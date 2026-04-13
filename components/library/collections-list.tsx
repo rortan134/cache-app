@@ -59,12 +59,11 @@ import {
     Trash2Icon,
 } from "lucide-react";
 import type { CSSProperties, ReactElement } from "react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 const COLLECTIONS_PREVIEW_OPEN_DELAY_MS = 450;
-const COLLECTION_ITEM_PREVIEW_OPEN_DELAY_MS = 180;
 const COLLECTION_ITEM_PREVIEW_CLOSE_DELAY_MS = 80;
-const COLLECTION_ITEM_PREVIEW_SLIDESHOW_INTERVAL_MS = 500;
+const COLLECTION_ITEM_PREVIEW_SLIDESHOW_INTERVAL_MS = 600;
 
 interface CollectionPriorityOption {
     readonly icon: LucideIcon;
@@ -298,10 +297,6 @@ function CollectionsListItemHoverPreview({
 }): ReactElement {
     const [isOpen, setIsOpen] = useState(false);
     const [activePreviewIndex, setActivePreviewIndex] = useState(0);
-    const [cursorPosition, setCursorPosition] = useState<{
-        readonly x: number;
-        readonly y: number;
-    } | null>(null);
 
     useEffect(() => {
         if (!(isOpen && previewThumbnailUrls.length > 1)) {
@@ -320,37 +315,16 @@ function CollectionsListItemHoverPreview({
         };
     }, [isOpen, previewThumbnailUrls]);
 
-    const cursorAnchor = useMemo(() => {
-        if (!cursorPosition) {
-            return null;
-        }
-
-        return {
-            getBoundingClientRect: () =>
-                new DOMRect(cursorPosition.x, cursorPosition.y, 0, 0),
-        };
-    }, [cursorPosition]);
-
     const activePreviewSrc = previewThumbnailUrls[activePreviewIndex];
 
     return (
         <PreviewCard onOpenChange={setIsOpen}>
             <PreviewCardTrigger
                 closeDelay={COLLECTION_ITEM_PREVIEW_CLOSE_DELAY_MS}
-                delay={COLLECTION_ITEM_PREVIEW_OPEN_DELAY_MS}
-                onMouseLeave={() => {
-                    setCursorPosition(null);
-                }}
-                onMouseMove={(event) => {
-                    setCursorPosition({
-                        x: event.clientX,
-                        y: event.clientY,
-                    });
-                }}
                 render={
                     <Button
                         className={cn(
-                            "min-w-0 flex-1 justify-start rounded-full border-[var(--focus-ring-color)]/7 px-8 text-left focus-visible:ring-1 focus-visible:ring-[var(--focus-ring-color)]"
+                            "w-full min-w-0 flex-1 justify-start rounded-full border-[var(--focus-ring-color)]/7 px-8 text-left focus-visible:ring-1 focus-visible:ring-[var(--focus-ring-color)]"
                         )}
                         onClick={onSelect}
                         style={getCollectionButtonStyle(
@@ -374,51 +348,14 @@ function CollectionsListItemHoverPreview({
                 </div>
             </PreviewCardTrigger>
             <PreviewCardPopup
-                align="start"
-                anchor={cursorAnchor ?? undefined}
-                className="pointer-events-none w-72 overflow-hidden rounded-2xl border-border/70 bg-background/96 p-2 shadow-lg/5 backdrop-blur-sm"
+                className="pointer-events-none aspect-3/2 p-0"
                 positionMethod="fixed"
                 side="right"
-                sideOffset={18}
             >
-                <div className="flex flex-col gap-2">
-                    <div className="overflow-hidden rounded-xl border border-border/70 bg-muted/30">
-                        <div className="aspect-[3/2] w-full">
-                            <CollectionPreviewImage
-                                alt={`${collection.name} preview`}
-                                src={activePreviewSrc}
-                            />
-                        </div>
-                    </div>
-                    <div className="flex items-start justify-between gap-3 px-1 pb-1">
-                        <div className="min-w-0">
-                            <p className="truncate font-medium text-sm">
-                                {collection.name}
-                            </p>
-                            <p className="text-muted-foreground text-xs">
-                                {collection.itemCount} items · quick visual skim
-                            </p>
-                        </div>
-                        <div className="flex items-center gap-1 pt-1">
-                            {Array.from({
-                                length: Math.max(
-                                    previewThumbnailUrls.length,
-                                    1
-                                ),
-                            }).map((_, index) => (
-                                <span
-                                    className={cn(
-                                        "size-1.5 rounded-full bg-border",
-                                        index === activePreviewIndex &&
-                                            previewThumbnailUrls.length > 0 &&
-                                            "bg-foreground"
-                                    )}
-                                    key={`${collection.id}-${index}`}
-                                />
-                            ))}
-                        </div>
-                    </div>
-                </div>
+                <CollectionPreviewImage
+                    alt={`${collection.name} preview`}
+                    src={activePreviewSrc}
+                />
             </PreviewCardPopup>
         </PreviewCard>
     );

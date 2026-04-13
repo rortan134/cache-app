@@ -2369,8 +2369,8 @@ export function LibraryBrowser({
                         size="xs"
                         variant="outline"
                     >
-                        <SquarePen className="size-4" />
-                        <span>New entry</span>
+                        <SquarePen className="inline-block size-4 shrink-0" />
+                        &nbsp;New entry
                     </Button>
                     <Badge className="sm:text-xs" size="lg" variant="outline">
                         {resultsSummary}
