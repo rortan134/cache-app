@@ -11,6 +11,7 @@ import { Send } from "lucide-react";
 import { usePathname } from "next/navigation";
 import type * as React from "react";
 import { useActionState, useEffect, useRef, useState } from "react";
+import { getPreset, useConfetti } from "react-confetti-burst";
 import { useFormStatus } from "react-dom";
 import { useHotkeys } from "react-hotkeys-hook";
 
@@ -24,7 +25,7 @@ export function FeedbackFloatingWidget(): React.ReactElement {
     const [open, setOpen] = useState(false);
     const [state, formAction] = useActionState(
         createFeedback,
-        initialFeedbackActionState
+        initialFeedbackActionState,
     );
     const formRef = useRef<HTMLFormElement>(null);
 
@@ -95,7 +96,7 @@ export function FeedbackFloatingWidget(): React.ReactElement {
                                         "min-h-5 text-xs",
                                         state.status === "error"
                                             ? "text-destructive"
-                                            : "text-muted-foreground"
+                                            : "text-muted-foreground",
                                     )}
                                     id="feedback-status"
                                     role={
@@ -116,12 +117,32 @@ export function FeedbackFloatingWidget(): React.ReactElement {
     );
 }
 
+const preset = getPreset("default");
+
 function SubmitButton(): React.ReactElement {
     const { pending } = useFormStatus();
+    const { fire } = useConfetti();
 
     return (
-        <Button loading={pending} size="sm" type="submit">
-            {!pending && <Send aria-hidden className="size-4" />}
+        <Button
+            loading={pending}
+            onClick={(e) =>
+                fire(
+                    {
+                        x: e.clientX,
+                        y: e.clientY,
+                    },
+                    preset,
+                )
+            }
+            size="sm"
+            type="submit"
+        >
+            <Send
+                aria-hidden="true"
+                className="inline-block size-4 shrink-0"
+                focusable="false"
+            />
             Send
         </Button>
     );

@@ -45,6 +45,7 @@
         "next": "16.2.3",
         "nuqs": "^2.8.9",
         "react": "19.2.5",
+        "react-confetti-burst": "^1.0.7",
         "react-dom": "19.2.5",
         "react-hotkeys-hook": "^5.2.4",
         "recharts": "^3.8.1",
