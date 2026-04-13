@@ -484,7 +484,7 @@ function PaletteChip({
     readonly onRemove: () => void;
 }) {
     return (
-        <span className="inline-flex max-w-[min(100%,12rem)] items-center gap-0.5 rounded-full border border-border/60 bg-background/90 py-0.5 ps-2 pe-0.5 font-medium text-foreground text-xs shadow-xs/5 dark:bg-background/40">
+        <span className="palette-chip-enter inline-flex max-w-[min(100%,12rem)] items-center gap-0.5 rounded-full border border-border/60 bg-background/90 py-0.5 ps-2 pe-0.5 font-medium text-foreground text-xs shadow-xs/5 dark:bg-background/40">
             <span className="min-w-0 truncate">{label}</span>
             <button
                 aria-label={`Remove ${label}`}
