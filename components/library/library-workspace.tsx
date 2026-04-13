@@ -143,6 +143,38 @@ function replaceCollectionPriority<T extends LibraryCollectionTag>(
     );
 }
 
+function getPreviewOrderSeed(value: string): number {
+    let hash = 0;
+
+    for (const character of value) {
+        hash = (hash * 31 + character.charCodeAt(0)) >>> 0;
+    }
+
+    return hash;
+}
+
+function getCollectionPreviewThumbnailUrls(
+    collectionId: string,
+    items: readonly LibraryItemWithCollections[]
+): string[] {
+    return [...items]
+        .filter(
+            (
+                item
+            ): item is LibraryItemWithCollections & {
+                readonly thumbnailUrl: string;
+            } => Boolean(item.thumbnailUrl)
+        )
+        .sort((left, right) => {
+            return (
+                getPreviewOrderSeed(`${collectionId}:${left.id}`) -
+                getPreviewOrderSeed(`${collectionId}:${right.id}`)
+            );
+        })
+        .slice(0, 5)
+        .map((item) => item.thumbnailUrl);
+}
+
 function replaceItemsCollectionPriority(
     items: readonly LibraryItemWithCollections[],
     collectionId: string,
@@ -323,6 +355,19 @@ export function LibraryWorkspace({
 
         return map;
     }, [items]);
+
+    const collectionPreviewThumbnailUrlsById = useMemo(() => {
+        const map = new Map<string, string[]>();
+
+        for (const [collectionId, collectionItems] of itemsByCollectionId) {
+            map.set(
+                collectionId,
+                getCollectionPreviewThumbnailUrls(collectionId, collectionItems)
+            );
+        }
+
+        return map;
+    }, [itemsByCollectionId]);
 
     const handleCreateDialogOpenChange = useCallback(
         (open: boolean) => {
@@ -793,6 +838,11 @@ export function LibraryWorkspace({
                                                 collection.id
                                             )}
                                             key={collection.id}
+                                            previewThumbnailUrls={
+                                                collectionPreviewThumbnailUrlsById.get(
+                                                    collection.id
+                                                ) ?? []
+                                            }
                                             onCopyLinks={() =>
                                                 handleCopyCollectionLinks(
                                                     collection
