@@ -512,14 +512,14 @@ function LibraryGridCard({
                 <div className="px-2.5 pb-1.5 text-muted-foreground text-xs">
                     <div className="flex items-center justify-between gap-3 py-0.5">
                         <span>Created</span>
-                        <span className="tabular-nums text-foreground">
+                        <span className="text-foreground tabular-nums">
                             {createdLabel}
                         </span>
                     </div>
                     {postedLabel ? (
                         <div className="flex items-center justify-between gap-3 py-0.5">
                             <span>Posted</span>
-                            <span className="tabular-nums text-foreground">
+                            <span className="text-foreground tabular-nums">
                                 {postedLabel}
                             </span>
                         </div>

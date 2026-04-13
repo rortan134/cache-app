@@ -37,7 +37,6 @@ import {
     DialogPopup,
     DialogTitle,
 } from "@/components/ui/dialog";
-import { Kbd, KbdGroup } from "@/components/ui/kbd";
 import { UnprivilegedOnly } from "@/components/ui/privilege";
 import { InlinePromotionBanner } from "@/components/ui/promotion-banner";
 import { Separator } from "@/components/ui/separator";
@@ -843,8 +842,6 @@ function LibraryPaletteTrailing({
     columnCountMode,
     domainFilters,
     groupBy,
-    hasActiveSearchFilterGroupOrSort,
-    isPaletteFocused,
     paletteInput,
     searchTerms,
     setCaptionFilters,
@@ -864,8 +861,6 @@ function LibraryPaletteTrailing({
     readonly columnCountMode: ColumnCountMode;
     readonly domainFilters: string[];
     readonly groupBy: GroupByMode;
-    readonly hasActiveSearchFilterGroupOrSort: boolean;
-    readonly isPaletteFocused: boolean;
     readonly paletteInput: string;
     readonly searchTerms: string[];
     readonly setCaptionFilters: (
@@ -995,17 +990,9 @@ function LibraryPaletteTrailing({
 
     const canReset = chips.length > 0 || paletteInput.trim().length > 0;
 
-    const systemControlKey = useClientOnlyValue(getSystemControlKey());
-
     return (
         <>
             <TruncateAfter after={2}>{chips}</TruncateAfter>
-            {isPaletteFocused || hasActiveSearchFilterGroupOrSort ? null : (
-                <KbdGroup>
-                    <Kbd>{systemControlKey}</Kbd>
-                    <Kbd>K</Kbd>
-                </KbdGroup>
-            )}
             {canReset ? (
                 <Button
                     aria-label="Clear search, filters, grouping, sorting, layout, and command input"
@@ -2262,12 +2249,6 @@ export function LibraryBrowser({
                                     columnCountMode={columnCountMode}
                                     domainFilters={domainFilters}
                                     groupBy={groupBy}
-                                    hasActiveSearchFilterGroupOrSort={
-                                        hasActiveFilters ||
-                                        groupBy !== "none" ||
-                                        sortMode !== DEFAULT_SORT_MODE
-                                    }
-                                    isPaletteFocused={isPaletteFocused}
                                     paletteInput={paletteInput}
                                     searchTerms={searchTerms}
                                     setCaptionFilters={setCaptionFilters}
