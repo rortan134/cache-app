@@ -7,16 +7,8 @@
         "es-419",
         "pt-BR",
         "ja-JP",
-        "nl-NL",
-        "ko-KR",
         "zh-CN",
-        "zh-TW",
-        "sv-SE",
-        "da-DK",
-        "pl-PL",
-        "it-IT",
-        "ru-RU",
-        "tr-TR"
+        "ru-RU"
     ],
     "files": {
         "gt": {

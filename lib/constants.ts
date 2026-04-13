@@ -9,16 +9,8 @@ export const SUPPORTED_LOCALES = [
     "es-419",
     "pt-BR",
     "ja-JP",
-    "nl-NL",
-    "ko-KR",
     "zh-CN",
-    "zh-TW",
-    "sv-SE",
-    "da-DK",
-    "pl-PL",
-    "it-IT",
     "ru-RU",
-    "tr-TR",
 ] as const;
 
 export type SupportedLocale = (typeof SUPPORTED_LOCALES)[number];
