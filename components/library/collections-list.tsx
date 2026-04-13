@@ -32,6 +32,11 @@ import {
     MenuTrigger,
 } from "@/components/ui/menu";
 import { Popover, PopoverPopup, PopoverTrigger } from "@/components/ui/popover";
+import {
+    PreviewCard,
+    PreviewCardPopup,
+    PreviewCardTrigger,
+} from "@/components/ui/preview-card";
 import { getColorFromName } from "@/lib/colors";
 import { getSourceLabel } from "@/lib/integrations/supports";
 import type { LibraryCollectionSummary } from "@/lib/library/types";
@@ -54,9 +59,12 @@ import {
     Trash2Icon,
 } from "lucide-react";
 import type { CSSProperties, ReactElement } from "react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 const COLLECTIONS_PREVIEW_OPEN_DELAY_MS = 450;
+const COLLECTION_ITEM_PREVIEW_OPEN_DELAY_MS = 180;
+const COLLECTION_ITEM_PREVIEW_CLOSE_DELAY_MS = 80;
+const COLLECTION_ITEM_PREVIEW_SLIDESHOW_INTERVAL_MS = 500;
 
 interface CollectionPriorityOption {
     readonly icon: LucideIcon;
@@ -245,6 +253,173 @@ function getCollectionPriorityOption(
     return DEFAULT_COLLECTION_PRIORITY_OPTION;
 }
 
+function CollectionPreviewImage({
+    alt,
+    src,
+}: {
+    readonly alt: string;
+    readonly src?: string;
+}): ReactElement {
+    const [didFail, setDidFail] = useState(false);
+    const canRenderImage = Boolean(src) && !didFail;
+
+    if (!canRenderImage) {
+        return (
+            <div className="flex size-full items-center justify-center bg-muted/40 text-[11px] text-muted-foreground">
+                No preview image
+            </div>
+        );
+    }
+
+    return (
+        <img
+            alt={alt}
+            className="size-full object-cover"
+            height={192}
+            loading="lazy"
+            onError={() => setDidFail(true)}
+            src={src}
+            width={288}
+        />
+    );
+}
+
+function CollectionsListItemHoverPreview({
+    collection,
+    isSelected,
+    onSelect,
+    previewThumbnailUrls,
+}: {
+    readonly collection: LibraryCollectionSummary;
+    readonly isSelected: boolean;
+    readonly onSelect: () => void;
+    readonly previewThumbnailUrls: readonly string[];
+}): ReactElement {
+    const [isOpen, setIsOpen] = useState(false);
+    const [activePreviewIndex, setActivePreviewIndex] = useState(0);
+    const [cursorPosition, setCursorPosition] = useState<{
+        readonly x: number;
+        readonly y: number;
+    } | null>(null);
+
+    useEffect(() => {
+        if (!(isOpen && previewThumbnailUrls.length > 1)) {
+            setActivePreviewIndex(0);
+            return;
+        }
+
+        const interval = window.setInterval(() => {
+            setActivePreviewIndex((currentIndex) => {
+                return (currentIndex + 1) % previewThumbnailUrls.length;
+            });
+        }, COLLECTION_ITEM_PREVIEW_SLIDESHOW_INTERVAL_MS);
+
+        return () => {
+            window.clearInterval(interval);
+        };
+    }, [isOpen, previewThumbnailUrls]);
+
+    const cursorAnchor = useMemo(() => {
+        if (!cursorPosition) {
+            return null;
+        }
+
+        return {
+            getBoundingClientRect: () =>
+                new DOMRect(cursorPosition.x, cursorPosition.y, 0, 0),
+        };
+    }, [cursorPosition]);
+
+    const activePreviewSrc = previewThumbnailUrls[activePreviewIndex];
+
+    return (
+        <PreviewCard onOpenChange={setIsOpen}>
+            <PreviewCardTrigger
+                closeDelay={COLLECTION_ITEM_PREVIEW_CLOSE_DELAY_MS}
+                delay={COLLECTION_ITEM_PREVIEW_OPEN_DELAY_MS}
+                onMouseLeave={() => {
+                    setCursorPosition(null);
+                }}
+                onMouseMove={(event) => {
+                    setCursorPosition({
+                        x: event.clientX,
+                        y: event.clientY,
+                    });
+                }}
+                render={
+                    <Button
+                        className={cn(
+                            "min-w-0 flex-1 justify-start rounded-full border-[var(--focus-ring-color)]/7 px-8 text-left focus-visible:ring-1 focus-visible:ring-[var(--focus-ring-color)]"
+                        )}
+                        onClick={onSelect}
+                        style={getCollectionButtonStyle(
+                            collection.name,
+                            isSelected
+                        )}
+                        type="button"
+                        variant="ghost"
+                    />
+                }
+            >
+                <div className="flex min-w-0 flex-1 items-center gap-3">
+                    <span className="truncate font-medium text-sm leading-tight">
+                        {collection.name}
+                    </span>
+                    {collection.sources.length > 0 && (
+                        <span className="truncate text-[11px] text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100">
+                            {collection.sources.map(getSourceLabel).join(", ")}
+                        </span>
+                    )}
+                </div>
+            </PreviewCardTrigger>
+            <PreviewCardPopup
+                align="start"
+                anchor={cursorAnchor ?? undefined}
+                className="pointer-events-none w-72 overflow-hidden rounded-2xl border-border/70 bg-background/96 p-2 shadow-lg/5 backdrop-blur-sm"
+                positionMethod="fixed"
+                side="right"
+                sideOffset={18}
+            >
+                <div className="flex flex-col gap-2">
+                    <div className="overflow-hidden rounded-xl border border-border/70 bg-muted/30">
+                        <div className="aspect-[3/2] w-full">
+                            <CollectionPreviewImage
+                                alt={`${collection.name} preview`}
+                                src={activePreviewSrc}
+                            />
+                        </div>
+                    </div>
+                    <div className="flex items-start justify-between gap-3 px-1 pb-1">
+                        <div className="min-w-0">
+                            <p className="truncate font-medium text-sm">
+                                {collection.name}
+                            </p>
+                            <p className="text-muted-foreground text-xs">
+                                {collection.itemCount} items · quick visual skim
+                            </p>
+                        </div>
+                        <div className="flex items-center gap-1 pt-1">
+                            {Array.from({
+                                length: Math.max(previewThumbnailUrls.length, 1),
+                            }).map((_, index) => (
+                                <span
+                                    className={cn(
+                                        "size-1.5 rounded-full bg-border",
+                                        index === activePreviewIndex &&
+                                            previewThumbnailUrls.length > 0 &&
+                                            "bg-foreground"
+                                    )}
+                                    key={`${collection.id}-${index}`}
+                                />
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            </PreviewCardPopup>
+        </PreviewCard>
+    );
+}
+
 /** @internal */
 function CollectionItemPriorityComboboxPicker({
     collection,
@@ -353,6 +528,7 @@ export function CollectionsListItem({
     collection,
     isSelected,
     isUpdatePriorityPending = false,
+    previewThumbnailUrls = [],
     onCopyLinks,
     onDelete,
     onExportCsv,
@@ -363,6 +539,7 @@ export function CollectionsListItem({
     readonly collection: LibraryCollectionSummary;
     readonly isSelected: boolean;
     readonly isUpdatePriorityPending?: boolean;
+    readonly previewThumbnailUrls?: readonly string[];
     readonly onCopyLinks: () => void;
     readonly onDelete: () => void;
     readonly onExportCsv: () => void;
@@ -379,26 +556,14 @@ export function CollectionsListItem({
                 isPending={isUpdatePriorityPending}
                 onUpdatePriority={(_, priority) => onUpdatePriority(priority)}
             />
-            <Button
-                className={cn(
-                    "min-w-0 flex-1 justify-start rounded-full border-[var(--focus-ring-color)]/7 px-8 text-left focus-visible:ring-1 focus-visible:ring-[var(--focus-ring-color)]"
-                )}
-                onClick={onSelect}
-                style={getCollectionButtonStyle(collection.name, isSelected)}
-                type="button"
-                variant="ghost"
-            >
-                <div className="flex min-w-0 flex-1 items-center gap-3">
-                    <span className="truncate font-medium text-sm leading-tight">
-                        {collection.name}
-                    </span>
-                    {collection.sources.length > 0 && (
-                        <span className="truncate text-[11px] text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100">
-                            {collection.sources.map(getSourceLabel).join(", ")}
-                        </span>
-                    )}
-                </div>
-            </Button>
+            <div className="min-w-0 flex-1">
+                <CollectionsListItemHoverPreview
+                    collection={collection}
+                    isSelected={isSelected}
+                    onSelect={onSelect}
+                    previewThumbnailUrls={previewThumbnailUrls}
+                />
+            </div>
             <div className="absolute top-1/2 right-0.5 flex size-8 -translate-y-1/2 items-center justify-center">
                 <span className="pointer-events-none text-nowrap text-muted-foreground text-xs tabular-nums transition-opacity focus-visible:opacity-0 group-focus-within:opacity-0 group-hover:opacity-0">
                     {collection.itemCount}
