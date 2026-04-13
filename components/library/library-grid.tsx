@@ -106,6 +106,7 @@ interface LibraryGridCardProps {
     readonly addedLabel: string;
     readonly alt: string;
     readonly collections: readonly LibraryCollectionSummary[];
+    readonly createdLabel: string;
     readonly domain: string;
     readonly hasBothDates: boolean;
     readonly href: string;
@@ -344,6 +345,7 @@ function LibraryGridCard({
     addedLabel,
     alt,
     collections,
+    createdLabel,
     domain,
     hasBothDates,
     href,
@@ -506,6 +508,22 @@ function LibraryGridCard({
                     <span className="block truncate text-xs">
                         {isNote ? displayTitle : item.url}
                     </span>
+                </div>
+                <div className="px-2.5 pb-1.5 text-muted-foreground text-xs">
+                    <div className="flex items-center justify-between gap-3 py-0.5">
+                        <span>Created</span>
+                        <span className="tabular-nums text-foreground">
+                            {createdLabel}
+                        </span>
+                    </div>
+                    {postedLabel ? (
+                        <div className="flex items-center justify-between gap-3 py-0.5">
+                            <span>Posted</span>
+                            <span className="tabular-nums text-foreground">
+                                {postedLabel}
+                            </span>
+                        </div>
+                    ) : null}
                 </div>
                 <ContextMenuSeparator />
                 {isNote ? (
@@ -673,6 +691,7 @@ function renderLibraryMasonry({
                 const previewTitle = alt === "Saved item" ? "Preview" : alt;
                 const previewDescription =
                     domain === "Other" ? item.url : domain;
+                const createdLabel = itemDateLabel(item.createdAt);
                 const addedLabel = itemDateLabel(
                     item.scrapedAt ?? item.createdAt
                 );
@@ -689,6 +708,7 @@ function renderLibraryMasonry({
                                 addedLabel={addedLabel}
                                 alt={alt}
                                 collections={collections}
+                                createdLabel={createdLabel}
                                 domain={domain}
                                 hasBothDates={hasBothDates}
                                 href={href}
