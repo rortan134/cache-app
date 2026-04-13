@@ -523,14 +523,14 @@ export function SmartCollectionsCallout(): ReactElement {
         <Collapsible onOpenChange={setIsOpen} open={isOpen}>
             <CollapsiblePanel className="items-center justify-center p-2">
                 <AvatarGroup>
-                    <Avatar className="bg-muted/90">
-                        <Sparkles className="inline-block size-4.5 shrink-0" />
+                    <Avatar className="size-7 bg-muted/90">
+                        <Sparkles className="inline-block size-4 shrink-0" />
                     </Avatar>
                     <Avatar className="border-2 border-white bg-muted">
                         <Info className="inline-block size-4.5 shrink-0" />
                     </Avatar>
-                    <Avatar className="-z-1 bg-muted/90">
-                        <Group className="inline-block size-4.5 shrink-0" />
+                    <Avatar className="-z-1 size-7 bg-muted/90">
+                        <Group className="inline-block size-4 shrink-0" />
                     </Avatar>
                 </AvatarGroup>
                 <div className="flex items-center justify-center gap-1">

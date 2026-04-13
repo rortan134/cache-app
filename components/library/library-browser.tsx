@@ -50,7 +50,7 @@ import type {
 import { normalizeURL } from "@/lib/url";
 import { cn } from "@/lib/utils";
 import { LibraryItemSource } from "@/prisma/client/enums";
-import { Plus, SearchIcon, SparklesIcon, XIcon } from "lucide-react";
+import { SearchIcon, SparklesIcon, SquarePen, XIcon } from "lucide-react";
 import type {
     CSSProperties,
     KeyboardEvent as ReactKeyboardEvent,
@@ -2369,8 +2369,8 @@ export function LibraryBrowser({
                         size="xs"
                         variant="outline"
                     >
-                        <Plus className="size-4" />
-                        New note
+                        <SquarePen className="size-4" />
+                        <span>New entry</span>
                     </Button>
                     <Badge className="sm:text-xs" size="lg" variant="outline">
                         {resultsSummary}
