@@ -53,7 +53,7 @@ import AppIconSmall from "@/public/cache-icon-small.png";
 import { ChevronRight, PlusIcon } from "lucide-react";
 import Image from "next/image";
 import type { ReactElement, ReactNode } from "react";
-import { useCallback, useId, useMemo, useState, useTransition } from "react";
+import { useId, useMemo, useState, useTransition } from "react";
 
 const COLLECTION_NAME_COLLATOR = new Intl.Collator(undefined, {
     numeric: true,
@@ -367,145 +367,129 @@ export function LibraryWorkspace({
         return map;
     }, [itemsByCollectionId]);
 
-    const handleCreateDialogOpenChange = useCallback(
-        (open: boolean) => {
-            if (!(open || isCreatePending)) {
-                setCreateDialogDraft("");
-                setCreateDialogDescriptionDraft("");
-                setCreateDialogError(null);
-                setCreateDialogAssignItemId(null);
-            }
-            setIsCreateDialogOpen(open);
-        },
-        [isCreatePending]
-    );
+    const handleCreateDialogOpenChange = (open: boolean) => {
+        if (!(open || isCreatePending)) {
+            setCreateDialogDraft("");
+            setCreateDialogDescriptionDraft("");
+            setCreateDialogError(null);
+            setCreateDialogAssignItemId(null);
+        }
+        setIsCreateDialogOpen(open);
+    };
 
-    const handleCreateCollectionRequest = useCallback((itemId?: string) => {
+    const handleCreateCollectionRequest = (itemId?: string) => {
         setCreateDialogAssignItemId(itemId ?? null);
         setCreateDialogDraft("");
         setCreateDialogDescriptionDraft("");
         setCreateDialogError(null);
         setIsCreateDialogOpen(true);
-    }, []);
+    };
 
-    const clearCollectionFilters = useCallback(() => {
+    const clearCollectionFilters = () => {
         setSelectedCollectionIds([]);
-    }, []);
+    };
 
-    const handleToggleCollectionSelection = useCallback((id: string) => {
+    const handleToggleCollectionSelection = (id: string) => {
         setSelectedCollectionIds((current) =>
             current.includes(id)
                 ? current.filter((entryId) => entryId !== id)
                 : [...current, id]
         );
-    }, []);
+    };
 
-    const handleRequestDeleteCollection = useCallback(
-        (collection: LibraryCollectionSummary) => {
-            setCollectionActionFeedback(null);
-            setPendingDeleteCollection(collection);
-        },
-        []
-    );
+    const handleRequestDeleteCollection = (
+        collection: LibraryCollectionSummary
+    ) => {
+        setCollectionActionFeedback(null);
+        setPendingDeleteCollection(collection);
+    };
 
-    const handleDeleteCollectionDialogOpenChange = useCallback(
-        (open: boolean) => {
-            if (!(open || isDeletePending)) {
-                setPendingDeleteCollection(null);
-            }
-        },
-        [isDeletePending]
-    );
+    const handleDeleteCollectionDialogOpenChange = (open: boolean) => {
+        if (!(open || isDeletePending)) {
+            setPendingDeleteCollection(null);
+        }
+    };
 
-    const handleCopyCollectionLinks = useCallback(
-        (collection: LibraryCollectionSummary) => {
-            const collectionItems =
-                itemsByCollectionId.get(collection.id) ?? [];
-            const urls = getCollectionItemUrls(collectionItems);
+    const handleCopyCollectionLinks = (
+        collection: LibraryCollectionSummary
+    ) => {
+        const collectionItems = itemsByCollectionId.get(collection.id) ?? [];
+        const urls = getCollectionItemUrls(collectionItems);
 
-            if (urls.length === 0) {
-                setCollectionActionFeedback({
-                    message: "There are no links in this collection yet.",
-                    tone: "error",
-                });
-                return;
-            }
+        if (urls.length === 0) {
+            setCollectionActionFeedback({
+                message: "There are no links in this collection yet.",
+                tone: "error",
+            });
+            return;
+        }
 
-            setCollectionActionFeedback(null);
-            copyToClipboard(urls.join("\n"));
-        },
-        [copyToClipboard, itemsByCollectionId]
-    );
+        setCollectionActionFeedback(null);
+        copyToClipboard(urls.join("\n"));
+    };
 
-    const handleOpenCollectionLinks = useCallback(
-        (collection: LibraryCollectionSummary) => {
-            const collectionItems =
-                itemsByCollectionId.get(collection.id) ?? [];
-            const urls = getCollectionItemUrls(collectionItems);
+    const handleOpenCollectionLinks = (
+        collection: LibraryCollectionSummary
+    ) => {
+        const collectionItems = itemsByCollectionId.get(collection.id) ?? [];
+        const urls = getCollectionItemUrls(collectionItems);
 
-            if (urls.length === 0) {
-                setCollectionActionFeedback({
-                    message: "There are no links in this collection yet.",
-                    tone: "error",
-                });
-                return;
-            }
+        if (urls.length === 0) {
+            setCollectionActionFeedback({
+                message: "There are no links in this collection yet.",
+                tone: "error",
+            });
+            return;
+        }
+
+        setCollectionActionFeedback({
+            message: `Opening ${urls.length} link${urls.length === 1 ? "" : "s"} from ${collection.name}.`,
+            tone: "success",
+        });
+
+        for (const url of urls) {
+            openSavedItemInNewTab(url);
+        }
+    };
+
+    const handleExportCollectionToCsv = async (
+        collection: LibraryCollectionSummary
+    ) => {
+        const collectionItems = itemsByCollectionId.get(collection.id) ?? [];
+
+        if (collectionItems.length === 0) {
+            setCollectionActionFeedback({
+                message: "There are no links in this collection yet.",
+                tone: "error",
+            });
+            return;
+        }
+
+        try {
+            await saveFile(
+                new Blob([buildCollectionCsv(collection, collectionItems)], {
+                    type: "text/csv;charset=utf-8",
+                }),
+                {
+                    description: "CSV file",
+                    extension: "csv",
+                    name: collectionExportFileName(collection.name),
+                }
+            );
 
             setCollectionActionFeedback({
-                message: `Opening ${urls.length} link${urls.length === 1 ? "" : "s"} from ${collection.name}.`,
+                message: `${collection.name} exported as CSV.`,
                 tone: "success",
             });
+        } catch {
+            setCollectionActionFeedback({
+                message: "We couldn't export this collection right now.",
+                tone: "error",
+            });
+        }
+    };
 
-            for (const url of urls) {
-                openSavedItemInNewTab(url);
-            }
-        },
-        [itemsByCollectionId]
-    );
-
-    const handleExportCollectionToCsv = useCallback(
-        async (collection: LibraryCollectionSummary) => {
-            const collectionItems =
-                itemsByCollectionId.get(collection.id) ?? [];
-
-            if (collectionItems.length === 0) {
-                setCollectionActionFeedback({
-                    message: "There are no links in this collection yet.",
-                    tone: "error",
-                });
-                return;
-            }
-
-            try {
-                await saveFile(
-                    new Blob(
-                        [buildCollectionCsv(collection, collectionItems)],
-                        {
-                            type: "text/csv;charset=utf-8",
-                        }
-                    ),
-                    {
-                        description: "CSV file",
-                        extension: "csv",
-                        name: collectionExportFileName(collection.name),
-                    }
-                );
-
-                setCollectionActionFeedback({
-                    message: `${collection.name} exported as CSV.`,
-                    tone: "success",
-                });
-            } catch {
-                setCollectionActionFeedback({
-                    message: "We couldn't export this collection right now.",
-                    tone: "error",
-                });
-            }
-        },
-        [itemsByCollectionId]
-    );
-
-    const handleConfirmDeleteCollection = useCallback(() => {
+    const handleConfirmDeleteCollection = () => {
         const targetCollection = pendingDeleteCollection;
         if (!targetCollection) {
             return;
@@ -555,88 +539,64 @@ export function LibraryWorkspace({
                 tone: "success",
             });
         });
-    }, [pendingDeleteCollection]);
+    };
 
-    const handleUpdateCollectionPriority = useCallback(
-        (collectionId: string, priority: CollectionPriority) => {
-            const previousPriority = collections.find(
-                (collection) => collection.id === collectionId
-            )?.priority;
+    const handleUpdateCollectionPriority = (
+        collectionId: string,
+        priority: CollectionPriority
+    ) => {
+        const previousPriority = collections.find(
+            (collection) => collection.id === collectionId
+        )?.priority;
 
-            if (!previousPriority || previousPriority === priority) {
-                return;
+        if (!previousPriority || previousPriority === priority) {
+            return;
+        }
+
+        setCollections((current) =>
+            replaceCollectionPriority(current, collectionId, priority)
+        );
+        setItems((current) =>
+            replaceItemsCollectionPriority(current, collectionId, priority)
+        );
+        setPendingPriorityCollectionIds((current) =>
+            current.includes(collectionId)
+                ? current
+                : [...current, collectionId]
+        );
+
+        const runUpdate = async () => {
+            let result: UpdateCollectionPriorityResult;
+
+            try {
+                result = await updateCollectionPriority({
+                    collectionId,
+                    priority,
+                });
+            } catch {
+                result = {
+                    message:
+                        "We couldn't update this collection priority right now.",
+                    status: "ERROR",
+                };
             }
 
-            setCollections((current) =>
-                replaceCollectionPriority(current, collectionId, priority)
-            );
-            setItems((current) =>
-                replaceItemsCollectionPriority(current, collectionId, priority)
-            );
-            setPendingPriorityCollectionIds((current) =>
-                current.includes(collectionId)
-                    ? current
-                    : [...current, collectionId]
-            );
-
-            const runUpdate = async () => {
-                let result: UpdateCollectionPriorityResult;
-
-                try {
-                    result = await updateCollectionPriority({
-                        collectionId,
-                        priority,
-                    });
-                } catch {
-                    result = {
-                        message:
-                            "We couldn't update this collection priority right now.",
-                        status: "ERROR",
-                    };
-                }
-
-                if (result.status === "UPDATED") {
-                    setCollections((current) =>
-                        replaceCollectionPriority(
-                            current,
-                            result.collection.id,
-                            result.collection.priority
-                        )
-                    );
-                    setItems((current) =>
-                        replaceItemsCollectionPriority(
-                            current,
-                            result.collection.id,
-                            result.collection.priority
-                        )
-                    );
-                } else {
-                    setCollections((current) =>
-                        replaceCollectionPriority(
-                            current,
-                            collectionId,
-                            previousPriority
-                        )
-                    );
-                    setItems((current) =>
-                        replaceItemsCollectionPriority(
-                            current,
-                            collectionId,
-                            previousPriority
-                        )
-                    );
-                    setCollectionActionFeedback({
-                        message: result.message,
-                        tone: "error",
-                    });
-                }
-
-                setPendingPriorityCollectionIds((current) =>
-                    current.filter((id) => id !== collectionId)
+            if (result.status === "UPDATED") {
+                setCollections((current) =>
+                    replaceCollectionPriority(
+                        current,
+                        result.collection.id,
+                        result.collection.priority
+                    )
                 );
-            };
-
-            runUpdate().catch(() => {
+                setItems((current) =>
+                    replaceItemsCollectionPriority(
+                        current,
+                        result.collection.id,
+                        result.collection.priority
+                    )
+                );
+            } else {
                 setCollections((current) =>
                     replaceCollectionPriority(
                         current,
@@ -651,20 +611,44 @@ export function LibraryWorkspace({
                         previousPriority
                     )
                 );
-                setPendingPriorityCollectionIds((current) =>
-                    current.filter((id) => id !== collectionId)
-                );
                 setCollectionActionFeedback({
-                    message:
-                        "We couldn't update this collection priority right now.",
+                    message: result.message,
                     tone: "error",
                 });
-            });
-        },
-        [collections]
-    );
+            }
 
-    const handleCreateCollectionSubmit = useCallback(() => {
+            setPendingPriorityCollectionIds((current) =>
+                current.filter((id) => id !== collectionId)
+            );
+        };
+
+        runUpdate().catch(() => {
+            setCollections((current) =>
+                replaceCollectionPriority(
+                    current,
+                    collectionId,
+                    previousPriority
+                )
+            );
+            setItems((current) =>
+                replaceItemsCollectionPriority(
+                    current,
+                    collectionId,
+                    previousPriority
+                )
+            );
+            setPendingPriorityCollectionIds((current) =>
+                current.filter((id) => id !== collectionId)
+            );
+            setCollectionActionFeedback({
+                message:
+                    "We couldn't update this collection priority right now.",
+                tone: "error",
+            });
+        });
+    };
+
+    const handleCreateCollectionSubmit = () => {
         startCreateTransition(async () => {
             let result: CreateCollectionResult;
 
@@ -718,79 +702,66 @@ export function LibraryWorkspace({
             setCreateDialogAssignItemId(null);
             setIsCreateDialogOpen(false);
         });
-    }, [
-        createDialogAssignItemId,
-        createDialogDescriptionDraft,
-        createDialogDraft,
-    ]);
+    };
 
-    const handleUpdateItemCollections = useCallback(
-        (itemId: string, collectionIds: string[]) => {
-            const previousCollections =
-                items.find((item) => item.id === itemId)?.collections ?? [];
-            const optimisticCollections = sortCollections(
-                collections.filter((collection) =>
-                    collectionIds.includes(collection.id)
-                )
-            );
+    const handleUpdateItemCollections = (
+        itemId: string,
+        collectionIds: string[]
+    ) => {
+        const previousCollections =
+            items.find((item) => item.id === itemId)?.collections ?? [];
+        const optimisticCollections = sortCollections(
+            collections.filter((collection) =>
+                collectionIds.includes(collection.id)
+            )
+        );
 
-            setItems((current) =>
-                replaceItemCollections(current, itemId, optimisticCollections)
-            );
-            setPendingCollectionItemIds((current) =>
-                current.includes(itemId) ? current : [...current, itemId]
-            );
+        setItems((current) =>
+            replaceItemCollections(current, itemId, optimisticCollections)
+        );
+        setPendingCollectionItemIds((current) =>
+            current.includes(itemId) ? current : [...current, itemId]
+        );
 
-            const runUpdate = async () => {
-                let result: UpdateLibraryItemCollectionsResult;
+        const runUpdate = async () => {
+            let result: UpdateLibraryItemCollectionsResult;
 
-                try {
-                    result = await updateLibraryItemCollections({
-                        collectionIds,
-                        itemId,
-                    });
-                } catch {
-                    result = {
-                        message:
-                            "We couldn't update collections for this item.",
-                        status: "ERROR",
-                    };
-                }
+            try {
+                result = await updateLibraryItemCollections({
+                    collectionIds,
+                    itemId,
+                });
+            } catch {
+                result = {
+                    message: "We couldn't update collections for this item.",
+                    status: "ERROR",
+                };
+            }
 
-                if (result.status === "UPDATED") {
-                    setItems((current) =>
-                        replaceItemCollections(
-                            current,
-                            itemId,
-                            result.collections
-                        )
-                    );
-                } else {
-                    setItems((current) =>
-                        replaceItemCollections(
-                            current,
-                            itemId,
-                            previousCollections
-                        )
-                    );
-                }
-
-                setPendingCollectionItemIds((current) =>
-                    current.filter((id) => id !== itemId)
+            if (result.status === "UPDATED") {
+                setItems((current) =>
+                    replaceItemCollections(current, itemId, result.collections)
                 );
-            };
-
-            runUpdate().catch(() => {
+            } else {
                 setItems((current) =>
                     replaceItemCollections(current, itemId, previousCollections)
                 );
-                setPendingCollectionItemIds((current) =>
-                    current.filter((id) => id !== itemId)
-                );
-            });
-        },
-        [collections, items]
-    );
+            }
+
+            setPendingCollectionItemIds((current) =>
+                current.filter((id) => id !== itemId)
+            );
+        };
+
+        runUpdate().catch(() => {
+            setItems((current) =>
+                replaceItemCollections(current, itemId, previousCollections)
+            );
+            setPendingCollectionItemIds((current) =>
+                current.filter((id) => id !== itemId)
+            );
+        });
+    };
 
     return (
         <>
