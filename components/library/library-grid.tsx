@@ -745,7 +745,7 @@ function renderLibraryMasonry({
                     ))}
                 </div>
             }
-            gap={5}
+            gap={4}
             linear
         >
             {items.map((item) => {
@@ -826,7 +826,7 @@ export function ExtensionLibraryEmptyMasonryPeek(): ReactElement {
     );
 
     return (
-        <Masonry columnCount={5} fallback={fallback} gap={5} linear>
+        <Masonry columnCount={5} fallback={fallback} gap={4} linear>
             {EMPTY_LIBRARY_PEEK_PLACEHOLDERS.map(({ aspect, id }, index) => {
                 const opacity = Math.max(0.06, 1 - index * 0.095);
 

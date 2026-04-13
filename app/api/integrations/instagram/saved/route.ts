@@ -10,10 +10,17 @@ import * as z from "zod";
 
 const itemSchema = z
     .object({
+        browserProfileId: z.string().optional(),
         caption: z.string().optional(),
         id: z.string().optional(),
+        kind: z.enum(["bookmark", "folder"]).optional(),
+        parentExternalId: z.string().optional(),
+        postedAt: z.string().optional(),
         scrapedAt: z.string().optional(),
         shortcode: z.string().optional(),
+        sourceDeviceId: z.string().optional(),
+        sourceDeviceName: z.string().optional(),
+        sourceMetadata: z.record(z.string(), z.unknown()).nullable().optional(),
         thumbnailUrl: z.string().optional(),
         url: z.string(),
     })

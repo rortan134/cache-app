@@ -404,6 +404,133 @@ function getPostedAtFromInstagramAlt(alt) {
     return null;
 }
 
+/**
+ * @param {string | null | undefined} value
+ * @returns {string | null}
+ */
+function normalizeInstagramPostedAtValue(value) {
+    if (!value) {
+        return null;
+    }
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) {
+        return null;
+    }
+    return parsed.toISOString();
+}
+
+/**
+ * @param {Element} start
+ * @returns {string | null}
+ */
+function findInstagramPostedAtFromDom(start) {
+    const directTime = start.querySelector("time[datetime]");
+    if (directTime instanceof HTMLTimeElement) {
+        const postedAt = normalizeInstagramPostedAtValue(
+            directTime.getAttribute("datetime")
+        );
+        if (postedAt) {
+            return postedAt;
+        }
+    }
+
+    let current = start;
+    while (current && current !== document.body) {
+        const timeEl = current.querySelector("time[datetime]");
+        if (timeEl instanceof HTMLTimeElement) {
+            const postedAt = normalizeInstagramPostedAtValue(
+                timeEl.getAttribute("datetime")
+            );
+            if (postedAt) {
+                return postedAt;
+            }
+        }
+
+        const postLinksInCurrent = current.querySelectorAll(
+            'a[href*="/p/"], a[href*="/reel/"]'
+        ).length;
+        if (postLinksInCurrent > 1) {
+            break;
+        }
+        current = current.parentElement;
+    }
+
+    return null;
+}
+
+let instagramPostedAtByShortcodeCache = null;
+
+function getInstagramPostedAtByShortcodeMap() {
+    if (instagramPostedAtByShortcodeCache) {
+        return instagramPostedAtByShortcodeCache;
+    }
+
+    /** @type {Map<string, string>} */
+    const byShortcode = new Map();
+    const scripts = document.querySelectorAll("script");
+    const patterns = [
+        /"shortcode":"([^"]+)"[\s\S]{0,240}?"taken_at_timestamp":(\d{9,})/g,
+        /"taken_at_timestamp":(\d{9,})[\s\S]{0,240}?"shortcode":"([^"]+)"/g,
+    ];
+
+    for (const script of scripts) {
+        const text = script.textContent ?? "";
+        if (
+            !text ||
+            !text.includes("shortcode") ||
+            !text.includes("taken_at_timestamp")
+        ) {
+            continue;
+        }
+
+        for (const pattern of patterns) {
+            pattern.lastIndex = 0;
+            for (const match of text.matchAll(pattern)) {
+                const shortcode =
+                    pattern === patterns[0] ? match[1] : match[2];
+                const rawTimestamp =
+                    pattern === patterns[0] ? match[2] : match[1];
+                if (!shortcode || byShortcode.has(shortcode)) {
+                    continue;
+                }
+                const timestamp = Number(rawTimestamp);
+                if (!Number.isFinite(timestamp)) {
+                    continue;
+                }
+                const postedAt = normalizeInstagramPostedAtValue(
+                    new Date(timestamp * 1000).toISOString()
+                );
+                if (postedAt) {
+                    byShortcode.set(shortcode, postedAt);
+                }
+            }
+        }
+    }
+
+    instagramPostedAtByShortcodeCache = byShortcode;
+    return byShortcode;
+}
+
+/**
+ * @param {HTMLAnchorElement} anchor
+ * @param {string} shortcode
+ * @param {string} caption
+ * @returns {string | null}
+ */
+function getInstagramPostedAt(anchor, shortcode, caption) {
+    const domPostedAt = findInstagramPostedAtFromDom(anchor);
+    if (domPostedAt) {
+        return domPostedAt;
+    }
+
+    const scriptPostedAt = getInstagramPostedAtByShortcodeMap().get(shortcode);
+    if (scriptPostedAt) {
+        return scriptPostedAt;
+    }
+
+    return getPostedAtFromInstagramAlt(caption);
+}
+
 // --- Instagram ---
 
 const IG_SAVED_PATH_RE = /^\/[^/]+\/saved(\/.*)?$/;
@@ -515,7 +642,7 @@ function parseInstagramPostHref(href) {
     }
 }
 
-/** @typedef {{ shortcode: string, url: string, thumbnailUrl: string, caption: string, scrapedAt: string }} InstagramRow */
+/** @typedef {{ shortcode: string, url: string, thumbnailUrl: string, caption: string, postedAt: string | null, scrapedAt: string }} InstagramRow */
 
 /**
  * @param {Map<string, InstagramRow>} accumulated
@@ -552,9 +679,10 @@ function mergeInstagramDomIntoAccumulated(accumulated) {
             a.getAttribute("aria-label") ??
             ""
         ).trim();
+        const postedAt = getInstagramPostedAt(a, parsed.shortcode, caption);
         const row = {
             caption,
-            postedAt: getPostedAtFromInstagramAlt(caption),
+            postedAt,
             scrapedAt: new Date().toISOString(),
             shortcode: parsed.shortcode,
             thumbnailUrl,
@@ -571,7 +699,6 @@ function mergeInstagramDomIntoAccumulated(accumulated) {
                 hasUsableImageUrl(thumbnailUrl);
             const shouldFillCaption =
                 prev && !prev.caption && Boolean(caption);
-            const postedAt = getPostedAtFromInstagramAlt(caption);
             const shouldFillPostedAt =
                 prev && !prev.postedAt && Boolean(postedAt);
             if (shouldFillThumbnail || shouldFillCaption || shouldFillPostedAt) {

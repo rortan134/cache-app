@@ -158,12 +158,7 @@ export function LibraryNoteDrawer({
 
     return (
         <Drawer onOpenChange={onOpenChange} open={open} position="right">
-            <DrawerPopup
-                className="w-full max-w-3xl"
-                showBar
-                showCloseButton
-                variant="inset"
-            >
+            <DrawerPopup className="max-w-2xl" showCloseButton variant="inset">
                 <DrawerHeader allowSelection>
                     <div className="flex items-center gap-1">
                         <Badge size="lg" variant="outline">
