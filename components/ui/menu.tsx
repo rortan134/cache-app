@@ -1,9 +1,9 @@
 "use client";
 
+import { cn } from "@/lib/utils";
 import { Menu as MenuPrimitive } from "@base-ui/react/menu";
 import { ChevronRightIcon } from "lucide-react";
 import type * as React from "react";
-import { cn } from "@/lib/utils";
 
 export const Menu: typeof MenuPrimitive.Root = MenuPrimitive.Root;
 
@@ -23,10 +23,12 @@ export function MenuPopup({
     align = "end",
     className,
     sideOffset = 6,
+    side,
     ...props
 }: MenuPrimitive.Popup.Props & {
     align?: MenuPrimitive.Positioner.Props["align"];
     sideOffset?: MenuPrimitive.Positioner.Props["sideOffset"];
+    side?: MenuPrimitive.Positioner.Props["side"];
 }): React.ReactElement {
     return (
         <MenuPortal>
@@ -34,6 +36,7 @@ export function MenuPopup({
                 align={align}
                 className="z-50 max-w-(--available-width)"
                 data-slot="menu-positioner"
+                side={side}
                 sideOffset={sideOffset}
             >
                 <MenuPrimitive.Popup

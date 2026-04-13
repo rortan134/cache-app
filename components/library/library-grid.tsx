@@ -20,6 +20,7 @@ import {
     ContextMenuTrigger,
 } from "@/components/ui/context-menu";
 import { Kbd } from "@/components/ui/kbd";
+import { Masonry, MasonryItem } from "@/components/ui/masonry";
 import {
     Menu,
     MenuItem,
@@ -27,7 +28,6 @@ import {
     MenuSeparator,
     MenuTrigger,
 } from "@/components/ui/menu";
-import { Masonry, MasonryItem } from "@/components/ui/masonry";
 import {
     PreviewDrawer,
     PreviewDrawerContent,
@@ -637,7 +637,7 @@ function LibraryGridCard({
                             <MenuTrigger
                                 render={
                                     <button
-                                        className="min-w-0 flex-1 truncate rounded-sm py-px text-left font-medium text-white text-xs leading-none mix-blend-difference outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+                                        className="min-w-0 flex-1 cursor-pointer truncate rounded-sm py-px text-left font-medium text-white text-xs leading-none mix-blend-difference outline-none focus-visible:ring-2 focus-visible:ring-white/70"
                                         title={displayTitle}
                                         type="button"
                                     />
