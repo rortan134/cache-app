@@ -1,25 +1,25 @@
 {
-  "version": 1,
-  "skills": {
-    "coss": {
-      "source": "cosscom/coss",
-      "sourceType": "github",
-      "computedHash": "445fa1dc5b8c5d15c976e8a8e5e8e852176facdc1d33ecd47a466a7666d3b058"
-    },
-    "vercel-composition-patterns": {
-      "source": "vercel-labs/agent-skills",
-      "sourceType": "github",
-      "computedHash": "575757e3e25761c8c562d6e395d29f0b76c98b1273c0bd72d88e6ab1bc9c7d42"
-    },
-    "vercel-react-best-practices": {
-      "source": "vercel-labs/agent-skills",
-      "sourceType": "github",
-      "computedHash": "43ca6c197f8ec13055079da7053232d477068b03ca443f9ac1bc819b95cdd432"
-    },
-    "web-design-guidelines": {
-      "source": "vercel-labs/agent-skills",
-      "sourceType": "github",
-      "computedHash": "f3bc47f890f42a44db1007ab390709ec368e4b8c089baee6b0007182236ac474"
+    "version": 1,
+    "skills": {
+        "coss": {
+            "source": "cosscom/coss",
+            "sourceType": "github",
+            "computedHash": "445fa1dc5b8c5d15c976e8a8e5e8e852176facdc1d33ecd47a466a7666d3b058"
+        },
+        "vercel-composition-patterns": {
+            "source": "vercel-labs/agent-skills",
+            "sourceType": "github",
+            "computedHash": "575757e3e25761c8c562d6e395d29f0b76c98b1273c0bd72d88e6ab1bc9c7d42"
+        },
+        "vercel-react-best-practices": {
+            "source": "vercel-labs/agent-skills",
+            "sourceType": "github",
+            "computedHash": "43ca6c197f8ec13055079da7053232d477068b03ca443f9ac1bc819b95cdd432"
+        },
+        "web-design-guidelines": {
+            "source": "vercel-labs/agent-skills",
+            "sourceType": "github",
+            "computedHash": "f3bc47f890f42a44db1007ab390709ec368e4b8c089baee6b0007182236ac474"
+        }
     }
-  }
 }
