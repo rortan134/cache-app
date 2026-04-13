@@ -25,7 +25,7 @@ export function FeedbackFloatingWidget(): React.ReactElement {
     const [open, setOpen] = useState(false);
     const [state, formAction] = useActionState(
         createFeedback,
-        initialFeedbackActionState,
+        initialFeedbackActionState
     );
     const formRef = useRef<HTMLFormElement>(null);
 
@@ -96,7 +96,7 @@ export function FeedbackFloatingWidget(): React.ReactElement {
                                         "min-h-5 text-xs",
                                         state.status === "error"
                                             ? "text-destructive"
-                                            : "text-muted-foreground",
+                                            : "text-muted-foreground"
                                     )}
                                     id="feedback-status"
                                     role={
@@ -132,7 +132,7 @@ function SubmitButton(): React.ReactElement {
                         x: e.clientX,
                         y: e.clientY,
                     },
-                    preset,
+                    preset
                 )
             }
             size="sm"

@@ -73,7 +73,7 @@ interface CollectionPriorityOption {
 
 function getCollectionButtonStyle(
     name: string,
-    isSelected: boolean,
+    isSelected: boolean
 ): CSSProperties {
     const assignedColor = getColorFromName(name);
     const backgroundOpacity = isSelected ? 20 : 7;
@@ -138,7 +138,7 @@ export function CollectionsListTrigger({
                     <CollapsibleTrigger
                         className={cn(
                             "flex select-none items-center gap-3 rounded-full bg-muted/94 px-3 py-2.5 text-left text-foreground hover:bg-input/50",
-                            className,
+                            className
                         )}
                         onMouseEnter={(event) => {
                             onMouseEnter?.(event);
@@ -195,7 +195,7 @@ export function CollectionsListAction({
         <Button
             className={cn(
                 "rounded-full bg-muted/94 hover:bg-input/50",
-                className,
+                className
             )}
             size="icon-xl"
             variant="secondary"
@@ -242,11 +242,11 @@ const COLLECTION_PRIORITY_OPTIONS = [
 ] satisfies readonly CollectionPriorityOption[];
 
 const COLLECTION_PRIORITY_OPTION_BY_VALUE = new Map(
-    COLLECTION_PRIORITY_OPTIONS.map((option) => [option.value, option]),
+    COLLECTION_PRIORITY_OPTIONS.map((option) => [option.value, option])
 );
 
 function getCollectionPriorityOption(
-    priority: CollectionPriority,
+    priority: CollectionPriority
 ): CollectionPriorityOption {
     const option = COLLECTION_PRIORITY_OPTION_BY_VALUE.get(priority);
     if (option) {
@@ -327,12 +327,12 @@ function CollectionsListItemHoverPreview({
                 render={
                     <Button
                         className={cn(
-                            "w-full min-w-0 flex-1 justify-start rounded-full border-[var(--focus-ring-color)]/7 px-8 text-left focus-visible:ring-1 focus-visible:ring-[var(--focus-ring-color)]",
+                            "w-full min-w-0 flex-1 justify-start rounded-full border-[var(--focus-ring-color)]/7 px-8 text-left focus-visible:ring-1 focus-visible:ring-[var(--focus-ring-color)]"
                         )}
                         onClick={onSelect}
                         style={getCollectionButtonStyle(
                             collection.name,
-                            isSelected,
+                            isSelected
                         )}
                         type="button"
                         variant="ghost"
@@ -379,7 +379,7 @@ function CollectionItemPriorityComboboxPicker({
     readonly isPending?: boolean;
     readonly onUpdatePriority: (
         collectionId: string,
-        priority: CollectionPriority,
+        priority: CollectionPriority
     ) => void;
     readonly open?: boolean;
     readonly onOpenChange?: (open: boolean) => void;
@@ -582,7 +582,7 @@ export function CollectionsListFeedback({
                     "text-xs",
                     tone === "error"
                         ? "text-destructive"
-                        : "text-muted-foreground",
+                        : "text-muted-foreground"
                 )}
             >
                 {message}
