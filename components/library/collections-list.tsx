@@ -400,7 +400,7 @@ export function CollectionsListItem({
                 </div>
             </Button>
             <div className="absolute top-1/2 right-0.5 flex size-8 -translate-y-1/2 items-center justify-center">
-                <span className="pointer-events-none text-nowrap text-xs tabular-nums opacity-80 transition-opacity focus-visible:opacity-0 group-focus-within:opacity-0 group-hover:opacity-0">
+                <span className="pointer-events-none text-nowrap text-muted-foreground text-xs tabular-nums transition-opacity focus-visible:opacity-0 group-focus-within:opacity-0 group-hover:opacity-0">
                     {collection.itemCount}
                 </span>
                 <Menu>
@@ -408,7 +408,7 @@ export function CollectionsListItem({
                         render={
                             <Button
                                 aria-label={`Collection actions for ${collection.name}`}
-                                className="absolute rounded-full opacity-0 transition-opacity focus-visible:opacity-100 group-focus-within:opacity-100 group-hover:translate-x-0 group-hover:opacity-100 group-focus:opacity-100"
+                                className="absolute rounded-full opacity-0 transition-opacity focus-visible:opacity-100 group-focus-within:opacity-100 group-hover:opacity-100 group-focus:opacity-100"
                                 size="icon-sm"
                                 variant="ghost"
                             />

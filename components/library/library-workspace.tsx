@@ -771,7 +771,7 @@ export function LibraryWorkspace({
                             >
                                 <PlusIcon
                                     aria-hidden
-                                    className="inline-block size-4 shrink-0"
+                                    className="inline-block size-4.5 shrink-0"
                                     focusable="false"
                                 />
                                 <span className="sr-only">
