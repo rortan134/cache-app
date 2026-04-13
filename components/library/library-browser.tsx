@@ -40,6 +40,7 @@ import {
 import { Kbd, KbdGroup } from "@/components/ui/kbd";
 import { UnprivilegedOnly } from "@/components/ui/privilege";
 import { InlinePromotionBanner } from "@/components/ui/promotion-banner";
+import { Separator } from "@/components/ui/separator";
 import { TruncateAfter } from "@/components/ui/truncate-after";
 import { useAccess } from "@/hooks/use-access";
 import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
@@ -2372,8 +2373,9 @@ export function LibraryBrowser({
                         <SquarePen className="inline-block size-4 shrink-0" />
                         &nbsp;New entry
                     </Button>
+                    <Separator className="mx-1 h-5" orientation="vertical" />
                     <Badge className="sm:text-xs" size="lg" variant="outline">
-                        {resultsSummary}
+                        Showing {resultsSummary}
                     </Badge>
                     {groupBy === "none" ? null : (
                         <Badge

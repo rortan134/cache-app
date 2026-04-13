@@ -177,7 +177,7 @@ export function LibraryNoteDrawer({
                         </Badge>
                         <ChevronRight className="inline-block size-3.5 shrink-0" />
                         <DrawerTitle className="font-medium text-sm">
-                            {note ? "Edit note" : "Create note"}
+                            {note ? "Edit note" : "New entry"}
                         </DrawerTitle>
                     </div>
                 </DrawerHeader>
@@ -192,7 +192,7 @@ export function LibraryNoteDrawer({
                         onChange={(event) => {
                             setTitle(event.currentTarget.value);
                         }}
-                        placeholder="Untitled note"
+                        placeholder="Untitled"
                         size="lg"
                         unstyled
                         value={title}
@@ -279,7 +279,7 @@ export function LibraryNoteDrawer({
                         />
                         {contentHtml === NOTE_EMPTY_HTML ? (
                             <div className="pointer-events-none absolute inset-0 text-base text-muted-foreground">
-                                Start writing...
+                                Start writing or paste an URL...
                             </div>
                         ) : null}
                     </div>
