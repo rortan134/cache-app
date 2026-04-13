@@ -130,8 +130,8 @@ body {
 }
 
 .palette-chip-enter {
-    animation: palette-chip-enter 220ms cubic-bezier(0.16, 1, 0.3, 1) both;
     transform-origin: top left;
+    animation: palette-chip-enter 220ms cubic-bezier(0.16, 1, 0.3, 1) both;
     will-change: opacity, transform;
 }
 
