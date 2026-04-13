@@ -145,11 +145,9 @@ function replaceCollectionPriority<T extends LibraryCollectionTag>(
 
 function getPreviewOrderSeed(value: string): number {
     let hash = 0;
-
     for (const character of value) {
         hash = (hash * 31 + character.charCodeAt(0)) >>> 0;
     }
-
     return hash;
 }
 
@@ -838,11 +836,6 @@ export function LibraryWorkspace({
                                                 collection.id
                                             )}
                                             key={collection.id}
-                                            previewThumbnailUrls={
-                                                collectionPreviewThumbnailUrlsById.get(
-                                                    collection.id
-                                                ) ?? []
-                                            }
                                             onCopyLinks={() =>
                                                 handleCopyCollectionLinks(
                                                     collection
@@ -873,6 +866,11 @@ export function LibraryWorkspace({
                                                     collection.id,
                                                     priority
                                                 )
+                                            }
+                                            previewThumbnailUrls={
+                                                collectionPreviewThumbnailUrlsById.get(
+                                                    collection.id
+                                                ) ?? []
                                             }
                                         />
                                     ))}

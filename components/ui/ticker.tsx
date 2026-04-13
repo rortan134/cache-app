@@ -47,7 +47,6 @@ const Ticker = ({
                             "flex-col": isVertical,
                             "flex-row": isHorizontal,
                         })}
-                        // biome-ignore lint/suspicious/noArrayIndexKey: Ignore
                         key={i}
                     >
                         {children}

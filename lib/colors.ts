@@ -136,7 +136,6 @@ function customHash(value: string): number {
     let hash = 5381;
     const len = value.length;
     for (let i = 0; i < len; i += 1) {
-        // biome-ignore lint/suspicious/noBitwiseOperators: ignore
         hash = (hash << 5) + hash + value.charCodeAt(i); // hash * 33 + char code
     }
     return Math.abs(hash);

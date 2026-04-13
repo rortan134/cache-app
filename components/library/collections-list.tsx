@@ -272,6 +272,7 @@ function CollectionPreviewImage({
     }
 
     return (
+        // biome-ignore lint/a11y/noNoninteractiveElementInteractions: Ignore
         <img
             alt={alt}
             className="size-full object-cover"
@@ -400,7 +401,10 @@ function CollectionsListItemHoverPreview({
                         </div>
                         <div className="flex items-center gap-1 pt-1">
                             {Array.from({
-                                length: Math.max(previewThumbnailUrls.length, 1),
+                                length: Math.max(
+                                    previewThumbnailUrls.length,
+                                    1
+                                ),
                             }).map((_, index) => (
                                 <span
                                     className={cn(

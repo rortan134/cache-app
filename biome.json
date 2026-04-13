@@ -38,6 +38,10 @@
                 "noNamespaceImport": "off",
                 "noBarrelFile": "off",
                 "noImgElement": "off"
+            },
+            "suspicious": {
+                "noArrayIndexKey": "off",
+                "noBitwiseOperators": "off"
             }
         }
     }
