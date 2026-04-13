@@ -1,9 +1,9 @@
 "use client";
 
 export { Input as InputPrimitive } from "@base-ui/react/input";
+import { cn } from "@/lib/utils";
 import { Input as InputPrimitive } from "@base-ui/react/input";
 import type * as React from "react";
-import { cn } from "@/lib/utils";
 
 export type InputProps = Omit<
     InputPrimitive.Props & React.RefAttributes<HTMLInputElement>,
@@ -50,6 +50,11 @@ export function Input({
                     data-slot="input"
                     size={typeof size === "number" ? size : undefined}
                     {...props}
+                    style={
+                        typeof props.style === "function"
+                            ? undefined
+                            : props.style
+                    }
                 />
             ) : (
                 <InputPrimitive

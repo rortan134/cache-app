@@ -22,7 +22,7 @@ type ExtensionIntegrationId = Extract<
 >;
 type OAuthIntegrationId = Extract<
     IntegrationId,
-    "google-photos" | "pinterest" | "soundcloud" | "x"
+    "google-photos" | "pinterest" | "x"
 >;
 
 const EXTENSION_OPEN_URL: Record<ExtensionIntegrationId, string> = {
@@ -70,12 +70,7 @@ function isExtensionIntegration(
 }
 
 function isOAuthIntegration(id: IntegrationId): id is OAuthIntegrationId {
-    return (
-        id === "google-photos" ||
-        id === "pinterest" ||
-        id === "soundcloud" ||
-        id === "x"
-    );
+    return id === "google-photos" || id === "pinterest" || id === "x";
 }
 
 function providerIdForIntegration(id: OAuthIntegrationId) {

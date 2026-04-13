@@ -49,52 +49,6 @@ async function pinterestUserFromTokens(tokens: OAuth2Tokens): Promise<{
     };
 }
 
-interface SoundcloudUserAccount {
-    avatar_url?: string | null;
-    full_name?: string | null;
-    id?: number | string;
-    username?: string | null;
-}
-
-async function soundcloudUserFromTokens(tokens: OAuth2Tokens): Promise<{
-    id: string;
-    name?: string;
-    email?: string | null;
-    image?: string;
-    emailVerified: boolean;
-} | null> {
-    const accessToken = tokens.accessToken;
-    if (!accessToken) {
-        return null;
-    }
-
-    const response = await fetch("https://api.soundcloud.com/me", {
-        headers: {
-            Accept: "application/json",
-            Authorization: `OAuth ${accessToken}`,
-        },
-    });
-
-    if (!response.ok) {
-        return null;
-    }
-
-    const data = (await response.json()) as SoundcloudUserAccount;
-    const id = data.id;
-    if (id === undefined || id === null) {
-        return null;
-    }
-
-    const stableId = String(id);
-    return {
-        email: `soundcloud.${stableId}.integration@placeholder.cache`,
-        emailVerified: false,
-        id: stableId,
-        image: data.avatar_url ?? undefined,
-        name: data.full_name ?? data.username ?? stableId,
-    };
-}
-
 interface XUserAccount {
     data?: {
         id?: string;
@@ -171,11 +125,6 @@ const trustedOrigins = [
         .filter(Boolean) ?? []),
 ];
 
-const soundcloudClientId = optionalEnv("SOUNDCLOUD_CLIENT_ID");
-const soundcloudClientSecret = optionalEnv("SOUNDCLOUD_CLIENT_SECRET");
-const soundcloudOAuthEnabled = Boolean(
-    soundcloudClientId && soundcloudClientSecret
-);
 const xClientId = optionalEnv("X_CLIENT_ID");
 const xClientSecret = optionalEnv("X_CLIENT_SECRET");
 const xOAuthEnabled = Boolean(xClientId && xClientSecret);
@@ -195,19 +144,6 @@ const genericOAuthConfig: GenericOAuthConfig[] = [
     },
 ];
 
-if (soundcloudClientId && soundcloudClientSecret) {
-    genericOAuthConfig.push({
-        authorizationUrl: "https://secure.soundcloud.com/authorize",
-        clientId: soundcloudClientId,
-        clientSecret: soundcloudClientSecret,
-        disableSignUp: true,
-        getUserInfo: soundcloudUserFromTokens,
-        providerId: "soundcloud",
-        scopes: ["non-expiring"],
-        tokenUrl: "https://secure.soundcloud.com/oauth/token",
-    });
-}
-
 if (xClientId && xClientSecret) {
     genericOAuthConfig.push({
         authentication: "basic",
@@ -226,7 +162,6 @@ if (xClientId && xClientSecret) {
 const trustedProviders = [
     "google",
     "pinterest",
-    ...(soundcloudOAuthEnabled ? ["soundcloud"] : []),
     ...(xOAuthEnabled ? ["x"] : []),
 ];
 

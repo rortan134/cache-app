@@ -3,7 +3,6 @@ import {
     Instagram,
     Photos,
     Pinterest,
-    SoundCloud,
     TikTok,
     XSocial,
     YouTube,
@@ -20,7 +19,6 @@ export type IntegrationId =
     | "google-photos"
     | "instagram"
     | "pinterest"
-    | "soundcloud"
     | "tiktok"
     | "x"
     | "youtube";
@@ -96,14 +94,6 @@ export const INTEGRATIONS = [
         Icon: Photos,
         id: "google-photos",
         label: "Google Photos",
-    },
-    {
-        capabilities: { bookmarks: false },
-        category: "media",
-        description: "Your latest liked tracks",
-        Icon: SoundCloud,
-        id: "soundcloud",
-        label: "SoundCloud",
     },
     {
         capabilities: { bookmarks: true },

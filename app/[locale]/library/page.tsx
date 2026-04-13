@@ -18,7 +18,6 @@ import { LibraryItemSource } from "@/prisma/client/enums";
 import LogoIconImage from "@/public/cache-app-icon.png";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { getLatestSoundcloudLikes } from "./actions";
 
 export async function generateMetadata({
     params,
@@ -50,34 +49,24 @@ export default async function LibraryPage({
         return redirect("/");
     }
 
-    const isSoundCloudParked = !(
-        process.env.SOUNDCLOUD_CLIENT_ID && process.env.SOUNDCLOUD_CLIENT_SECRET
-    );
     const isXParked = !(process.env.X_CLIENT_ID && process.env.X_CLIENT_SECRET);
 
-    const [{ collections, items }, linkedAccounts, soundcloudLikes] =
-        await Promise.all([
-            getLibraryItemsForUser(userId),
-            prisma.account.findMany({
-                select: { providerId: true },
-                where: {
-                    providerId: {
-                        in: ["google", "pinterest", "soundcloud", "x"],
-                    },
-                    userId,
+    const [{ collections, items }, linkedAccounts] = await Promise.all([
+        getLibraryItemsForUser(userId),
+        prisma.account.findMany({
+            select: { providerId: true },
+            where: {
+                providerId: {
+                    in: ["google", "pinterest", "x"],
                 },
-            }),
-            isSoundCloudParked
-                ? Promise.resolve(null)
-                : getLatestSoundcloudLikes(),
-        ]);
+                userId,
+            },
+        }),
+    ]);
 
     const linkedProviderIds = new Set(
         linkedAccounts.map((account) => account.providerId)
     );
-
-    const soundcloudConnected =
-        !isSoundCloudParked && soundcloudLikes?.status !== "NOT_CONNECTED";
 
     const isIntegrationConnected = (
         id: (typeof INTEGRATIONS)[number]["id"]
@@ -101,9 +90,6 @@ export default async function LibraryPage({
                 (item) => item.source === LibraryItemSource.youtube_watch_later
             );
         }
-        if (id === "soundcloud") {
-            return soundcloudConnected;
-        }
         return false;
     };
 
@@ -112,9 +98,6 @@ export default async function LibraryPage({
     );
 
     const parkedIntegrationIds = INTEGRATIONS.flatMap(({ id }) => {
-        if (id === "soundcloud" && isSoundCloudParked) {
-            return [id];
-        }
         if (id === "x" && isXParked) {
             return [id];
         }
