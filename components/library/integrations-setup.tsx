@@ -116,7 +116,7 @@ function IntegrationsSetupWizardButton({
         <button
             {...props}
             className={cn(
-                "flex select-none items-center gap-2 rounded-full bg-muted/94 px-3 py-2 text-left text-foreground",
+                "flex select-none items-center gap-2 rounded-full bg-muted/94 px-3 py-2 text-left text-foreground hover:bg-input/50",
                 className
             )}
             type="button"

@@ -137,7 +137,7 @@ export function CollectionsListTrigger({
                 render={
                     <CollapsibleTrigger
                         className={cn(
-                            "flex select-none items-center gap-3 rounded-full bg-muted/94 px-3 py-2.5 text-left text-foreground",
+                            "flex select-none items-center gap-3 rounded-full bg-muted/94 px-3 py-2.5 text-left text-foreground hover:bg-input/50",
                             className
                         )}
                         onMouseEnter={(event) => {
@@ -193,7 +193,10 @@ export function CollectionsListAction({
 }: React.ComponentProps<typeof Button>): ReactElement {
     return (
         <Button
-            className={cn("rounded-full", className)}
+            className={cn(
+                "rounded-full bg-muted/94 hover:bg-input/50",
+                className
+            )}
             size="icon-xl"
             variant="secondary"
             {...props}
