@@ -96,8 +96,8 @@ const items = [
 ```tsx
 // coss/Base UI
 <ToggleGroup defaultValue={["daily"]}>
-  <Toggle value="daily">Daily</Toggle>
-  <Toggle value="weekly">Weekly</Toggle>
+  <ToggleGroupItem value="daily">Daily</ToggleGroupItem>
+  <ToggleGroupItem value="weekly">Weekly</ToggleGroupItem>
 </ToggleGroup>
 ```
 
