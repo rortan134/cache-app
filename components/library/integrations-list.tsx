@@ -75,7 +75,7 @@ function IntegrationsList({
                     />
                 }
             />
-            <CollapsiblePanel>
+            <CollapsiblePanel className="gap-2.5">
                 {INTEGRATIONS.map(({ id, label, description, Icon }) => (
                     <div
                         className="flex items-center gap-2 pl-1 first:mt-3"
@@ -89,7 +89,7 @@ function IntegrationsList({
                                 <Icon aria-hidden className="size-5 shrink-0" />
                             </AvatarFallback>
                         </Avatar>
-                        <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+                        <div className="flex min-w-0 flex-1 flex-col">
                             <span className="font-medium text-sm">{label}</span>
                             <span className="text-[11px] text-muted-foreground leading-tight">
                                 {description}
