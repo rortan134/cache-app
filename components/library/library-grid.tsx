@@ -44,11 +44,11 @@ import {
     ChevronRightIcon,
     CircleDashed,
     CircleDot,
-    CopyIcon,
     DownloadIcon,
     ExternalLinkIcon,
     EyeIcon,
     FilePenLineIcon,
+    LinkIcon,
     MaximizeIcon,
     NotebookPenIcon,
     Trash2Icon,
@@ -509,7 +509,7 @@ function LibraryGridCard({
                         {isNote ? displayTitle : item.url}
                     </span>
                 </div>
-                <div className="px-2.5 pb-1.5 text-muted-foreground text-xs">
+                <div className="px-2.5 pb-1.5 text-[11px] text-muted-foreground">
                     <div className="flex items-center justify-between gap-3 py-0.5">
                         <span>Created</span>
                         <span className="text-foreground tabular-nums">
@@ -528,7 +528,7 @@ function LibraryGridCard({
                 <ContextMenuSeparator />
                 {isNote ? (
                     <ContextMenuItem onClick={() => onOpenNote?.(item)}>
-                        <FilePenLineIcon className="size-4 text-muted-foreground" />
+                        <FilePenLineIcon className="size-4.5 text-muted-foreground" />
                         Edit note
                     </ContextMenuItem>
                 ) : null}
@@ -542,7 +542,7 @@ function LibraryGridCard({
                                 setIsPreviewOpen(true);
                             }}
                         >
-                            <EyeIcon className="size-4 text-muted-foreground" />
+                            <EyeIcon className="size-4.5 text-muted-foreground" />
                             Open preview
                         </ContextMenuItem>
                         <PreviewDrawer
@@ -559,26 +559,26 @@ function LibraryGridCard({
                 {isNote ? null : (
                     <>
                         <ContextMenuItem onClick={() => onOpenInNewTab?.(item)}>
-                            <ExternalLinkIcon className="size-4 text-muted-foreground" />
+                            <ExternalLinkIcon className="size-4.5 text-muted-foreground" />
                             Open in new tab
                         </ContextMenuItem>
                         <ContextMenuItem onClick={() => onOpenHere?.(item)}>
-                            <ArrowUpRightIcon className="size-4 text-muted-foreground" />
+                            <ArrowUpRightIcon className="size-4.5 text-muted-foreground" />
                             Open here
                         </ContextMenuItem>
                         <ContextMenuItem onClick={() => onCopyLink?.(item)}>
-                            <CopyIcon className="size-4 text-muted-foreground" />
+                            <LinkIcon className="size-4.5 text-muted-foreground" />
                             Copy link
                         </ContextMenuItem>
                         <ContextMenuItem onClick={handleFullscreen}>
-                            <MaximizeIcon className="size-4 text-muted-foreground" />
+                            <MaximizeIcon className="size-4.5 text-muted-foreground" />
                             View fullscreen
                         </ContextMenuItem>
                         <ContextMenuItem
                             disabled={isDownloading}
                             onClick={handleDownload}
                         >
-                            <DownloadIcon className="size-4 text-muted-foreground" />
+                            <DownloadIcon className="size-4.5 text-muted-foreground" />
                             {isDownloading
                                 ? "Downloading..."
                                 : "Download media"}
@@ -591,7 +591,7 @@ function LibraryGridCard({
                     disabled={isDeletePending}
                     onClick={() => onDelete?.(item)}
                 >
-                    <Trash2Icon className="size-4" />
+                    <Trash2Icon className="size-4.5" />
                     {isDeletePending ? "Deleting..." : "Delete"}
                 </ContextMenuItem>
             </ContextMenuPopup>
