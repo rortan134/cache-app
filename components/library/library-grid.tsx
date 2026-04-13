@@ -145,6 +145,99 @@ interface PreviewMediaProps {
     readonly src: string | null;
 }
 
+function itemDomain(url: string): string {
+    try {
+        return new URL(url).hostname.replace(WWW_PREFIX_RE, "") || "Other";
+    } catch {
+        return "Other";
+    }
+}
+
+function itemDateLabel(dateValue: Date | string | null | undefined): string {
+    if (!dateValue) {
+        return "";
+    }
+    const date = dateValue instanceof Date ? dateValue : new Date(dateValue);
+    if (Number.isNaN(date.getTime())) {
+        return "";
+    }
+    return date.toLocaleDateString(undefined, {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+    });
+}
+
+function fallbackGridStyle(columnCount?: number): CSSProperties | undefined {
+    if (!columnCount) {
+        return undefined;
+    }
+    return {
+        gridTemplateColumns: `repeat(${columnCount}, minmax(0, 1fr))`,
+    };
+}
+
+function itemTitle(item: LibraryItemWithCollections): string {
+    const caption = item.caption?.trim();
+    if (caption) {
+        return caption;
+    }
+
+    if (item.kind === "note") {
+        return "Untitled note";
+    }
+
+    return item.url;
+}
+
+function opengraphPreviewUrl(item: LibraryItemWithCollections): string | null {
+    if (item.thumbnailUrl) {
+        return item.thumbnailUrl;
+    }
+
+    if (item.source !== LibraryItemSource.chrome_bookmarks) {
+        return null;
+    }
+
+    const href = normalizeURL(item.url);
+    if (href === "about:blank") {
+        return null;
+    }
+
+    return `/api/library/opengraph-image?url=${encodeURIComponent(href)}`;
+}
+
+function PreviewMedia({
+    alt,
+    fallbackLabel = "No preview",
+    src,
+}: PreviewMediaProps): ReactElement {
+    const [didFail, setDidFail] = useState(false);
+    const imageSrc = src ?? undefined;
+    const canRenderImage = Boolean(imageSrc) && !didFail;
+
+    if (!canRenderImage) {
+        return (
+            <div className="flex size-full items-center justify-center bg-muted/30 text-muted-foreground text-xs">
+                {fallbackLabel}
+            </div>
+        );
+    }
+
+    return (
+        // biome-ignore lint/a11y/noNoninteractiveElementInteractions: image load failures drive the visual fallback state
+        <img
+            alt={alt}
+            className="size-full object-cover"
+            height={400}
+            loading="lazy"
+            onError={() => setDidFail(true)}
+            src={imageSrc}
+            width={300}
+        />
+    );
+}
+
 function CollectionComboboxPicker({
     collections,
     item,
@@ -334,117 +427,134 @@ function LibraryGridCard({
         }
     };
 
+    const renderCardMenuMeta = () => (
+        <>
+            <div className="relative mx-auto flex max-w-56 items-center gap-2 pt-2 pb-1.5 pl-2.5 opacity-50">
+                <span className="block truncate text-xs">
+                    {isNote ? displayTitle : item.url}
+                </span>
+            </div>
+            <div className="px-2.5 pb-1.5 text-[11px] text-muted-foreground">
+                <div className="flex items-center justify-between gap-3 py-0.5">
+                    <span>Created</span>
+                    <span className="text-foreground tabular-nums">
+                        {createdLabel}
+                    </span>
+                </div>
+                {postedLabel ? (
+                    <div className="flex items-center justify-between gap-3 py-0.5">
+                        <span>Posted</span>
+                        <span className="text-foreground tabular-nums">
+                            {postedLabel}
+                        </span>
+                    </div>
+                ) : null}
+            </div>
+        </>
+    );
+
+    const renderPrimaryMenuItems = (
+        Item: typeof ContextMenuItem | typeof MenuItem,
+        Separator: typeof ContextMenuSeparator | typeof MenuSeparator
+    ) => (
+        <>
+            {isNote ? (
+                <Item closeOnClick onClick={() => onOpenNote?.(item)}>
+                    <FilePenLineIcon className="size-4.5 text-muted-foreground" />
+                    Edit note
+                </Item>
+            ) : null}
+            {canPreview ? (
+                <>
+                    <Item
+                        closeOnClick={false}
+                        onClick={(event) => {
+                            event.preventDefault();
+                            event.stopPropagation();
+                            setIsPreviewOpen(true);
+                        }}
+                    >
+                        <EyeIcon className="size-4.5 text-muted-foreground" />
+                        Open preview
+                    </Item>
+                    <PreviewDrawer
+                        description={previewDescription}
+                        onOpenChange={setIsPreviewOpen}
+                        open={isPreviewOpen}
+                        title={previewTitle}
+                        url={href}
+                    >
+                        <PreviewDrawerContent />
+                    </PreviewDrawer>
+                </>
+            ) : null}
+            {isNote ? null : (
+                <>
+                    <Item closeOnClick onClick={() => onOpenInNewTab?.(item)}>
+                        <ExternalLinkIcon className="size-4.5 text-muted-foreground" />
+                        Open in new tab
+                    </Item>
+                    <Item closeOnClick onClick={() => onOpenHere?.(item)}>
+                        <ArrowUpRightIcon className="size-4.5 text-muted-foreground" />
+                        Open here
+                    </Item>
+                    <Item closeOnClick onClick={() => onCopyLink?.(item)}>
+                        <LinkIcon className="size-4.5 text-muted-foreground" />
+                        Copy link
+                    </Item>
+                    <Item closeOnClick onClick={handleFullscreen}>
+                        <MaximizeIcon className="size-4.5 text-muted-foreground" />
+                        View fullscreen
+                    </Item>
+                    <Item closeOnClick disabled={isDownloading} onClick={handleDownload}>
+                        <DownloadIcon className="size-4.5 text-muted-foreground" />
+                        {isDownloading ? "Downloading..." : "Download media"}
+                    </Item>
+                    <Separator />
+                </>
+            )}
+        </>
+    );
+
+    const renderDeleteMenuItem = (menuKind: "context" | "menu") => {
+        if (menuKind === "context") {
+            return (
+                <ContextMenuItem
+                    className="text-destructive data-highlighted:bg-destructive/10 data-highlighted:text-destructive"
+                    closeOnClick
+                    disabled={isDeletePending}
+                    onClick={() => onDelete?.(item)}
+                >
+                    <Trash2Icon className="size-4.5" />
+                    {isDeletePending ? "Deleting..." : "Delete"}
+                </ContextMenuItem>
+            );
+        }
+
+        return (
+            <MenuItem
+                closeOnClick
+                disabled={isDeletePending}
+                onClick={() => onDelete?.(item)}
+                variant="destructive"
+            >
+                <Trash2Icon className="size-4.5" />
+                {isDeletePending ? "Deleting..." : "Delete"}
+            </MenuItem>
+        );
+    };
+
     const renderCardMenuContent = (menuKind: "context" | "menu") => {
-        const Item = menuKind === "context" ? ContextMenuItem : MenuItem;
         const Separator =
             menuKind === "context" ? ContextMenuSeparator : MenuSeparator;
+        const Item = menuKind === "context" ? ContextMenuItem : MenuItem;
 
         return (
             <>
-                <div className="relative mx-auto flex max-w-56 items-center gap-2 pt-2 pb-1.5 pl-2.5 opacity-50">
-                    <span className="block truncate text-xs">
-                        {isNote ? displayTitle : item.url}
-                    </span>
-                </div>
-                <div className="px-2.5 pb-1.5 text-[11px] text-muted-foreground">
-                    <div className="flex items-center justify-between gap-3 py-0.5">
-                        <span>Created</span>
-                        <span className="text-foreground tabular-nums">
-                            {createdLabel}
-                        </span>
-                    </div>
-                    {postedLabel ? (
-                        <div className="flex items-center justify-between gap-3 py-0.5">
-                            <span>Posted</span>
-                            <span className="text-foreground tabular-nums">
-                                {postedLabel}
-                            </span>
-                        </div>
-                    ) : null}
-                </div>
+                {renderCardMenuMeta()}
                 <Separator />
-                {isNote ? (
-                    <Item closeOnClick onClick={() => onOpenNote?.(item)}>
-                        <FilePenLineIcon className="size-4.5 text-muted-foreground" />
-                        Edit note
-                    </Item>
-                ) : null}
-                {canPreview ? (
-                    <>
-                        <Item
-                            closeOnClick={false}
-                            onClick={(event) => {
-                                event.preventDefault();
-                                event.stopPropagation();
-                                setIsPreviewOpen(true);
-                            }}
-                        >
-                            <EyeIcon className="size-4.5 text-muted-foreground" />
-                            Open preview
-                        </Item>
-                        <PreviewDrawer
-                            description={previewDescription}
-                            onOpenChange={setIsPreviewOpen}
-                            open={isPreviewOpen}
-                            title={previewTitle}
-                            url={href}
-                        >
-                            <PreviewDrawerContent />
-                        </PreviewDrawer>
-                    </>
-                ) : null}
-                {isNote ? null : (
-                    <>
-                        <Item closeOnClick onClick={() => onOpenInNewTab?.(item)}>
-                            <ExternalLinkIcon className="size-4.5 text-muted-foreground" />
-                            Open in new tab
-                        </Item>
-                        <Item closeOnClick onClick={() => onOpenHere?.(item)}>
-                            <ArrowUpRightIcon className="size-4.5 text-muted-foreground" />
-                            Open here
-                        </Item>
-                        <Item closeOnClick onClick={() => onCopyLink?.(item)}>
-                            <LinkIcon className="size-4.5 text-muted-foreground" />
-                            Copy link
-                        </Item>
-                        <Item closeOnClick onClick={handleFullscreen}>
-                            <MaximizeIcon className="size-4.5 text-muted-foreground" />
-                            View fullscreen
-                        </Item>
-                        <Item
-                            closeOnClick
-                            disabled={isDownloading}
-                            onClick={handleDownload}
-                        >
-                            <DownloadIcon className="size-4.5 text-muted-foreground" />
-                            {isDownloading
-                                ? "Downloading..."
-                                : "Download media"}
-                        </Item>
-                        <Separator />
-                    </>
-                )}
-                {menuKind === "context" ? (
-                    <ContextMenuItem
-                        className="text-destructive data-highlighted:bg-destructive/10 data-highlighted:text-destructive"
-                        closeOnClick
-                        disabled={isDeletePending}
-                        onClick={() => onDelete?.(item)}
-                    >
-                        <Trash2Icon className="size-4.5" />
-                        {isDeletePending ? "Deleting..." : "Delete"}
-                    </ContextMenuItem>
-                ) : (
-                    <MenuItem
-                        closeOnClick
-                        disabled={isDeletePending}
-                        onClick={() => onDelete?.(item)}
-                        variant="destructive"
-                    >
-                        <Trash2Icon className="size-4.5" />
-                        {isDeletePending ? "Deleting..." : "Delete"}
-                    </MenuItem>
-                )}
+                {renderPrimaryMenuItems(Item, Separator)}
+                {renderDeleteMenuItem(menuKind)}
             </>
         );
     };
