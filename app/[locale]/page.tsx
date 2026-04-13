@@ -40,12 +40,7 @@ export async function generateMetadata({
     };
 }
 
-export default async function Home({
-    params,
-}: Readonly<{
-    params: Promise<{ locale: string }>;
-}>) {
-    const { locale } = await params;
+export default async function Home() {
     const session = await getServerSession();
 
     return (
@@ -80,7 +75,7 @@ export default async function Home({
                                 suppressHydrationWarning
                             />
                         ) : (
-                            <GoogleSignInButton locale={locale}>
+                            <GoogleSignInButton>
                                 <T context="Sign in/up CTA button">
                                     Continue with Google
                                 </T>

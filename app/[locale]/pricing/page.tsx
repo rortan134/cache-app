@@ -196,7 +196,7 @@ export default async function PricingPage({
                                 </div>
                                 <div className="mt-8 flex flex-col gap-3">
                                     <SignedOutOnly>
-                                        <GoogleSignInButton locale={locale}>
+                                        <GoogleSignInButton>
                                             <T context="Pricing page sign-in CTA">
                                                 Continue with Google
                                             </T>

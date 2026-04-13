@@ -1,6 +1,6 @@
 "use client";
 
-import { LogoutDialogButton } from "@/components/auth/logout-dialog-button";
+import { LogoutButton } from "@/components/auth/logout-button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -323,13 +323,13 @@ export function UserMenuContent() {
                     <T>Support</T>
                     <ArrowUpRight className="ml-auto inline-block size-4.5 shrink-0 text-muted-foreground" />
                 </Button>
-                <LogoutDialogButton
+                <LogoutButton
                     render={
                         <Button className="justify-start" variant="ghost" />
                     }
                 >
                     <T>Log out</T>
-                </LogoutDialogButton>
+                </LogoutButton>
             </MenuSection>
         </>
     );

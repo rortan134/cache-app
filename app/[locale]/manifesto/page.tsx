@@ -35,13 +35,7 @@ export async function generateMetadata({
     };
 }
 
-export default async function Manifesto({
-    params,
-}: Readonly<{
-    params: Promise<{ locale: string }>;
-}>) {
-    const { locale } = await params;
-
+export default function Manifesto() {
     return (
         <PageShell>
             <div className="flex flex-1 flex-col gap-8 lg:flex-row lg:justify-between">
@@ -61,7 +55,7 @@ export default async function Manifesto({
                             </T>
                         </div>
                         <SignedOutOnly>
-                            <GoogleSignInButton locale={locale}>
+                            <GoogleSignInButton>
                                 <T context="Sign in/up CTA button">
                                     Continue with Google
                                 </T>

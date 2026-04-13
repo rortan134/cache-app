@@ -11,7 +11,7 @@ import { Send } from "lucide-react";
 import { usePathname } from "next/navigation";
 import type * as React from "react";
 import { useActionState, useEffect, useRef, useState } from "react";
-import { getPreset, useConfetti } from "react-confetti-burst";
+import { useConfetti } from "react-confetti-burst";
 import { useFormStatus } from "react-dom";
 import { useHotkeys } from "react-hotkeys-hook";
 
@@ -117,8 +117,6 @@ export function FeedbackFloatingWidget(): React.ReactElement {
     );
 }
 
-const preset = getPreset("default");
-
 function SubmitButton(): React.ReactElement {
     const { pending } = useFormStatus();
     const { fire } = useConfetti();
@@ -127,13 +125,10 @@ function SubmitButton(): React.ReactElement {
         <Button
             loading={pending}
             onClick={(e) =>
-                fire(
-                    {
-                        x: e.clientX,
-                        y: e.clientY,
-                    },
-                    preset
-                )
+                fire({
+                    x: e.clientX,
+                    y: e.clientY,
+                })
             }
             size="sm"
             type="submit"

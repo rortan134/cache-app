@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
 import {
     Dialog,
     DialogClose,
@@ -10,11 +11,10 @@ import {
     DialogTitle,
     DialogTrigger,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import type * as React from "react";
 
-function LogoutDialogButton(props: React.ComponentProps<typeof DialogTrigger>) {
+function LogoutButton(props: React.ComponentProps<typeof DialogTrigger>) {
     const router = useRouter();
 
     return (
@@ -45,4 +45,4 @@ function LogoutDialogButton(props: React.ComponentProps<typeof DialogTrigger>) {
     );
 }
 
-export { LogoutDialogButton };
+export { LogoutButton };

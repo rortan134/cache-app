@@ -1,8 +1,7 @@
 import { cn } from "@/lib/utils";
 import type { SVGProps } from "react";
 
-export const TikTok = (props: SVGProps<SVGSVGElement>) => {
-    const { className, ...rest } = props;
+export const TikTok = ({ className, ...props }: SVGProps<SVGSVGElement>) => {
     return (
         <svg
             aria-label="TikTok"
@@ -10,7 +9,7 @@ export const TikTok = (props: SVGProps<SVGSVGElement>) => {
             id="tiktok_icon_light-Layer_2"
             role="img"
             viewBox="0 0 352.28 398.67"
-            {...rest}
+            {...props}
         >
             <defs xmlns="http://www.w3.org/2000/svg">
                 <style>{".cls-1{fill:#fe2c55}.cls-2{fill:#25f4ee}"}</style>
@@ -38,9 +37,7 @@ export const TikTok = (props: SVGProps<SVGSVGElement>) => {
     );
 };
 
-export const Instagram = (props: SVGProps<SVGSVGElement>) => {
-    const { className, ...rest } = props;
-
+export const Instagram = ({ className, ...props }: SVGProps<SVGSVGElement>) => {
     return (
         <svg
             aria-label="Instagram"
@@ -48,7 +45,7 @@ export const Instagram = (props: SVGProps<SVGSVGElement>) => {
             role="img"
             viewBox="0 0 24 24"
             xmlns="http://www.w3.org/2000/svg"
-            {...rest}
+            {...props}
         >
             <path
                 d="M12 0C8.74 0 8.333.015 7.108.063 2.838.308.308 2.828.063 7.098.015 8.333 0 8.74 0 12s.015 3.667.063 4.902c.245 4.26 2.775 6.79 7.045 7.045 1.225.048 1.63.063 4.892.063s3.667-.015 4.902-.063c4.26-.245 6.79-2.775 7.045-7.045.048-1.225.063-1.63.063-4.892s-.015-3.667-.063-4.902c-.245-4.26-2.775-6.79-7.045-7.045C15.667.015 15.26 0 12 0zm0 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"
@@ -59,15 +56,14 @@ export const Instagram = (props: SVGProps<SVGSVGElement>) => {
     );
 };
 
-export const Pinterest = (props: SVGProps<SVGSVGElement>) => {
-    const { className, ...rest } = props;
+export const Pinterest = ({ className, ...props }: SVGProps<SVGSVGElement>) => {
     return (
         <svg
             aria-label="Pinterest"
             className={cn("size-6 shrink-0", className)}
             role="img"
             viewBox="0 0 256 256"
-            {...rest}
+            {...props}
         >
             <path
                 d="M0 128.002c0 52.414 31.518 97.442 76.619 117.239c-.36-8.938-.064-19.668 2.228-29.393c2.461-10.391 16.47-69.748 16.47-69.748s-4.089-8.173-4.089-20.252c0-18.969 10.994-33.136 24.686-33.136c11.643 0 17.268 8.745 17.268 19.217c0 11.704-7.465 29.211-11.304 45.426c-3.207 13.578 6.808 24.653 20.203 24.653c24.252 0 40.586-31.149 40.586-68.055c0-28.054-18.895-49.052-53.262-49.052c-38.828 0-63.017 28.956-63.017 61.3c0 11.152 3.288 19.016 8.438 25.106c2.368 2.797 2.697 3.922 1.84 7.134c-.614 2.355-2.024 8.025-2.608 10.272c-.852 3.242-3.479 4.401-6.409 3.204c-17.884-7.301-26.213-26.886-26.213-48.902c0-36.361 30.666-79.961 91.482-79.961c48.87 0 81.035 35.364 81.035 73.325c0 50.213-27.916 87.726-69.066 87.726c-13.819 0-26.818-7.47-31.271-15.955c0 0-7.431 29.492-9.005 35.187c-2.714 9.869-8.026 19.733-12.883 27.421a127.897 127.897 0 0 0 36.277 5.249c70.684 0 127.996-57.309 127.996-128.005C256.001 57.309 198.689 0 128.005 0C57.314 0 0 57.309 0 128.002"
@@ -77,8 +73,7 @@ export const Pinterest = (props: SVGProps<SVGSVGElement>) => {
     );
 };
 
-export const Photos = (props: SVGProps<SVGSVGElement>) => {
-    const { className, ...rest } = props;
+export const Photos = ({ className, ...props }: SVGProps<SVGSVGElement>) => {
     return (
         <svg
             aria-label="Google Photos"
@@ -86,7 +81,7 @@ export const Photos = (props: SVGProps<SVGSVGElement>) => {
             preserveAspectRatio="xMidYMid"
             role="img"
             viewBox="0 0 256 256"
-            {...rest}
+            {...props}
         >
             <g>
                 <path
@@ -110,9 +105,7 @@ export const Photos = (props: SVGProps<SVGSVGElement>) => {
     );
 };
 
-export const XSocial = (props: SVGProps<SVGSVGElement>) => {
-    const { className, ...rest } = props;
-
+export const XSocial = ({ className, ...props }: SVGProps<SVGSVGElement>) => {
     return (
         <svg
             aria-label="X"
@@ -120,7 +113,7 @@ export const XSocial = (props: SVGProps<SVGSVGElement>) => {
             fill="none"
             role="img"
             viewBox="0 0 1200 1227"
-            {...rest}
+            {...props}
         >
             <path
                 d="M714.163 519.284 1160.89 0h-105.86L667.137 450.887 357.328 0H0l468.492 681.821L0 1226.37h105.866l409.625-476.152 327.181 476.152H1200L714.137 519.284h.026ZM569.165 687.828l-47.468-67.894-377.686-540.24h162.604l304.797 435.991 47.468 67.894 396.2 566.721H892.476L569.165 687.854v-.026Z"
@@ -130,16 +123,14 @@ export const XSocial = (props: SVGProps<SVGSVGElement>) => {
     );
 };
 
-export const YouTube = (props: SVGProps<SVGSVGElement>) => {
-    const { className, ...rest } = props;
-
+export const YouTube = ({ className, ...props }: SVGProps<SVGSVGElement>) => {
     return (
         <svg
             aria-label="YouTube"
             className={cn("size-6 shrink-0", className)}
             role="img"
             viewBox="0 0 24 24"
-            {...rest}
+            {...props}
         >
             <path
                 d="M23.5 6.2a3 3 0 0 0-2.11-2.12C19.53 3.5 12 3.5 12 3.5s-7.53 0-9.39.58A3 3 0 0 0 .5 6.2 31.51 31.51 0 0 0 0 12a31.5 31.5 0 0 0 .5 5.8 3 3 0 0 0 2.11 2.12c1.86.58 9.39.58 9.39.58s7.53 0 9.39-.58a3 3 0 0 0 2.11-2.12A31.5 31.5 0 0 0 24 12a31.5 31.5 0 0 0-.5-5.8Z"
@@ -177,6 +168,36 @@ export const Chrome = ({ className, ...props }: SVGProps<SVGSVGElement>) => (
         <path
             d="M95.252 47.628h82.479A95.237 95.237 0 0 0 142.87 12.76 95.23 95.23 0 0 0 95.245 0a95.222 95.222 0 0 0-47.623 12.767 95.23 95.23 0 0 0-34.856 34.872l41.24 71.43.011.006a47.62 47.62 0 0 1-.015-47.633 47.61 47.61 0 0 1 41.252-23.815z"
             fill="#e33b2e"
+        />
+    </svg>
+);
+
+export const GoogleMarkIcon = ({
+    className,
+    ...props
+}: SVGProps<SVGSVGElement>) => (
+    <svg
+        aria-label="Google"
+        className={cn("size-5 shrink-0", className)}
+        role="img"
+        viewBox="0 0 48 48"
+        {...props}
+    >
+        <path
+            d="M43.611 20.083H42V20H24v8h11.303c-1.649 4.657-6.08 8-11.303 8-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.154 7.961 3l5.657-5.657C34.046 6.053 29.268 4 24 4 12.955 4 4 12.955 4 24s8.955 20 20 20 20-8.955 20-20c0-1.341-.138-2.65-.389-3.917z"
+            fill="#FFC107"
+        />
+        <path
+            d="m6.306 14.691 6.571 4.819C14.655 15.108 18.961 12 24 12c3.059 0 5.842 1.154 7.961 3l5.657-5.657C34.046 6.053 29.268 4 24 4 16.318 4 9.656 8.337 6.306 14.691z"
+            fill="#FF3D00"
+        />
+        <path
+            d="M24 44c5.166 0 9.86-1.977 13.409-5.197l-6.19-5.238A11.86 11.86 0 0 1 24 36c-5.202 0-9.619-3.317-11.283-7.946l-6.522 5.025C9.505 39.556 16.227 44 24 44z"
+            fill="#4CAF50"
+        />
+        <path
+            d="M43.611 20.083H42V20H24v8h11.303a12.04 12.04 0 0 1-4.087 5.571l.003-.002 6.19 5.238C36.971 39.205 44 34 44 24c0-1.341-.138-2.65-.389-3.917z"
+            fill="#1976D2"
         />
     </svg>
 );
