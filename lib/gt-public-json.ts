@@ -6,7 +6,6 @@ import deDE from "../public/_gt/de-DE.json";
 import es419 from "../public/_gt/es-419.json";
 import frFR from "../public/_gt/fr-FR.json";
 import ptBR from "../public/_gt/pt-BR.json";
-import zhCN from "../public/_gt/zh-CN.json";
 
 /** GT locale files mix named keys (e.g. `home.metadata.title`) with hashed JSX entries. */
 type GtBundleJson = Record<string, unknown>;
@@ -16,7 +15,6 @@ const bundles: Partial<Record<string, GtBundleJson>> = {
     "es-419": es419 as GtBundleJson,
     "fr-FR": frFR as GtBundleJson,
     "pt-BR": ptBR as GtBundleJson,
-    "zh-CN": zhCN as GtBundleJson,
 };
 
 export function gtPublicString(
