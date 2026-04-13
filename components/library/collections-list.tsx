@@ -47,6 +47,7 @@ import {
     Component,
     CopyIcon,
     EllipsisIcon,
+    PencilIcon,
     ExternalLinkIcon,
     FileSpreadsheetIcon,
     Group,
@@ -137,7 +138,7 @@ export function CollectionsListTrigger({
                 render={
                     <CollapsibleTrigger
                         className={cn(
-                            "flex select-none items-center gap-3 rounded-full bg-muted/94 px-3 py-2.5 text-left text-foreground hover:bg-input/50",
+                            "flex select-none items-center gap-3 rounded-full bg-muted/94 px-3 py-2.5 text-left text-foreground hover:bg-input/50 active:bg-input/20",
                             className
                         )}
                         onMouseEnter={(event) => {
@@ -470,6 +471,7 @@ function CollectionItemPriorityComboboxPicker({
 
 export function CollectionsListItem({
     collection,
+    isExportPending = false,
     isSelected,
     isUpdatePriorityPending = false,
     previewThumbnailUrls = [],
@@ -477,10 +479,12 @@ export function CollectionsListItem({
     onDelete,
     onExportCsv,
     onOpenLinks,
+    onRename,
     onSelect,
     onUpdatePriority,
 }: {
     readonly collection: LibraryCollectionSummary;
+    readonly isExportPending?: boolean;
     readonly isSelected: boolean;
     readonly isUpdatePriorityPending?: boolean;
     readonly previewThumbnailUrls?: readonly string[];
@@ -488,6 +492,7 @@ export function CollectionsListItem({
     readonly onDelete: () => void;
     readonly onExportCsv: () => void;
     readonly onOpenLinks: () => void;
+    readonly onRename: () => void;
     readonly onSelect: () => void;
     readonly onUpdatePriority: (priority: CollectionPriority) => void;
 }): ReactElement {
@@ -526,6 +531,11 @@ export function CollectionsListItem({
                         <EllipsisIcon className="size-4.5" />
                     </MenuTrigger>
                     <MenuPopup className="min-w-48">
+                        <MenuItem closeOnClick onClick={onRename}>
+                            <PencilIcon className="size-4 text-muted-foreground" />
+                            Rename
+                        </MenuItem>
+                        <MenuSeparator />
                         <MenuSub>
                             <MenuSubTrigger disabled={!hasItems}>
                                 Export to...
@@ -539,14 +549,19 @@ export function CollectionsListItem({
                                     <ExternalLinkIcon className="size-4 text-muted-foreground" />
                                     Open all links
                                 </MenuItem>
-                                <MenuItem closeOnClick onClick={onExportCsv}>
+                                <MenuItem
+                                    closeOnClick
+                                    disabled={isExportPending}
+                                    onClick={onExportCsv}
+                                >
                                     <FileSpreadsheetIcon className="size-4 text-muted-foreground" />
-                                    Export to CSV
+                                    {isExportPending
+                                        ? "Exporting CSV..."
+                                        : "Export to CSV"}
                                 </MenuItem>
                                 <MenuItem disabled>Send to Notion</MenuItem>
                             </MenuSubPopup>
                         </MenuSub>
-                        <MenuSeparator />
                         <MenuItem
                             closeOnClick
                             onClick={onDelete}

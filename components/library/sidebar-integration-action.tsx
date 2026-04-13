@@ -87,13 +87,6 @@ function extensionButtonLabel(extensionInstalled: boolean) {
     return "Get Extension";
 }
 
-function chromeExtensionLabel(extensionInstalled: boolean) {
-    if (extensionInstalled) {
-        return null;
-    }
-    return "Get Extension";
-}
-
 export function SidebarIntegrationAction({
     connected,
     extensionInstalled = false,
@@ -106,7 +99,6 @@ export function SidebarIntegrationAction({
     const [isImportingX, setIsImportingX] = useState(false);
     const [isImportingPinterest, setIsImportingPinterest] = useState(false);
     const [successMessage, setSuccessMessage] = useState<string | null>(null);
-    const isChromeIntegration = id === "chrome";
     const isGooglePhotosIntegration = id === "google-photos";
     const isPinterestIntegration = id === "pinterest";
     const isXIntegration = id === "x";
@@ -118,14 +110,6 @@ export function SidebarIntegrationAction({
 
         setErrorMessage(null);
         setSuccessMessage(null);
-        if (id === "chrome") {
-            if (extensionInstalled) {
-                return;
-            }
-            openExternal(CACHE_EXTENSION_DOWNLOAD_URL);
-            return;
-        }
-
         openExternal(
             extensionInstalled
                 ? EXTENSION_OPEN_URL[id]
@@ -281,16 +265,12 @@ export function SidebarIntegrationAction({
     }, [router]);
 
     if (isExtensionIntegration(id)) {
-        const extensionLabel = isChromeIntegration
-            ? chromeExtensionLabel(extensionInstalled)
-            : extensionButtonLabel(extensionInstalled);
+        const extensionLabel = extensionButtonLabel(extensionInstalled);
 
         return (
             <div className="ml-auto flex flex-col items-start gap-1">
                 <div className="flex flex-wrap items-center gap-2">
                     <Button
-                        disabled={id === "chrome" && extensionInstalled}
-                        loading={id === "chrome" && isConnecting}
                         onClick={handleExtensionClick}
                         size="sm"
                         type="button"

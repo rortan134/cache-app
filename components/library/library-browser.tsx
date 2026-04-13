@@ -108,18 +108,19 @@ type SortMode =
     | "created-newest"
     | "created-oldest"
     | "count-desc"
-    | "caption-asc"
-    | "caption-desc"
     | "source"
     | "domain";
 type SourceFilterValue = LibraryItemSource;
-type ThumbnailFilterValue = "with" | "without";
-type CaptionFilterValue = "with" | "without";
+type CollectionMembershipFilter =
+    | "all"
+    | "in-collections"
+    | "not-in-collections";
 type ColumnCountMode = "auto" | "2" | "3" | "4" | "5" | "6";
 type PaletteSection = "search" | "filter" | "group" | "sort" | "layout";
 
 const DEFAULT_SORT_MODE: SortMode = "added-newest";
 const DEFAULT_COLUMN_COUNT_MODE: ColumnCountMode = "auto";
+const DEFAULT_COLLECTION_MEMBERSHIP_FILTER: CollectionMembershipFilter = "all";
 const FILTERABLE_LIBRARY_SOURCES = [
     LibraryItemSource.cache_note,
     LibraryItemSource.chrome_bookmarks,
@@ -288,18 +289,6 @@ function compareItems(
             TEXT_COLLATOR.compare(itemPrimaryText(a), itemPrimaryText(b))
         );
     }
-    if (sortMode === "caption-asc") {
-        return (
-            TEXT_COLLATOR.compare(itemPrimaryText(a), itemPrimaryText(b)) ||
-            itemTimestamp(b, "added") - itemTimestamp(a, "added")
-        );
-    }
-    if (sortMode === "caption-desc") {
-        return (
-            TEXT_COLLATOR.compare(itemPrimaryText(b), itemPrimaryText(a)) ||
-            itemTimestamp(b, "added") - itemTimestamp(a, "added")
-        );
-    }
     if (sortMode === "source") {
         return (
             TEXT_COLLATOR.compare(
@@ -427,12 +416,6 @@ function sortModeLabel(mode: SortMode): string {
     if (mode === "count-desc") {
         return "Count: Most items first";
     }
-    if (mode === "caption-asc") {
-        return "Caption A-Z";
-    }
-    if (mode === "caption-desc") {
-        return "Caption Z-A";
-    }
     if (mode === "source") {
         return "Source";
     }
@@ -458,22 +441,20 @@ function groupByLabel(mode: GroupByMode): string {
     return "None";
 }
 
-function thumbnailFilterLabel(filter: ThumbnailFilterValue): string {
-    if (filter === "with") {
-        return "With preview";
-    }
-    return "Without preview";
-}
-
-function captionFilterLabel(filter: CaptionFilterValue): string {
-    if (filter === "with") {
-        return "With caption";
-    }
-    return "Without caption";
-}
-
 function columnCountLabel(mode: ColumnCountMode): string {
     return mode === "auto" ? "Auto columns" : `${mode} columns`;
+}
+
+function collectionMembershipFilterLabel(
+    filter: CollectionMembershipFilter
+): string {
+    if (filter === "in-collections") {
+        return "In collections";
+    }
+    if (filter === "not-in-collections") {
+        return "Not in collections";
+    }
+    return "All items";
 }
 
 function PaletteChip({
@@ -632,8 +613,8 @@ function buildSearchPaletteGroups({
     clearLibraryPalette,
     draft,
     hasAnyRefinements,
-    locale,
     navigationItems,
+    onRequestLogout,
     searchTerms,
     setCommandListOpen,
     setPaletteInput,
@@ -642,8 +623,8 @@ function buildSearchPaletteGroups({
     readonly clearLibraryPalette: () => void;
     readonly draft: string;
     readonly hasAnyRefinements: boolean;
-    readonly locale: string;
     readonly navigationItems: CommandPaletteItem[];
+    readonly onRequestLogout: () => void;
     readonly searchTerms: string[];
     readonly setCommandListOpen: (value: boolean) => void;
     readonly setPaletteInput: (value: string) => void;
@@ -756,9 +737,7 @@ function buildSearchPaletteGroups({
             {
                 description: "End your session securely",
                 label: "Log out",
-                onSelect: () => {
-                    window.location.assign(`/${locale}/logout`);
-                },
+                onSelect: onRequestLogout,
                 shortcut: "⇧L",
                 value: "account logout",
             },
@@ -837,36 +816,32 @@ function useSectionCollapseState({
 }
 
 function LibraryPaletteTrailing({
-    captionFilters,
     clearLibraryPalette,
+    collectionMembershipFilter,
     columnCountMode,
     domainFilters,
     groupBy,
     paletteInput,
     searchTerms,
-    setCaptionFilters,
+    setCollectionMembershipFilter,
     setColumnCountMode,
     setDomainFilters,
     setGroupBy,
     setSearchTerms,
     setSortMode,
     setSourceFilters,
-    setThumbFilters,
     sortMode,
     sourceFilters,
-    thumbFilters,
 }: {
-    readonly captionFilters: CaptionFilterValue[];
     readonly clearLibraryPalette: () => void;
+    readonly collectionMembershipFilter: CollectionMembershipFilter;
     readonly columnCountMode: ColumnCountMode;
     readonly domainFilters: string[];
     readonly groupBy: GroupByMode;
     readonly paletteInput: string;
     readonly searchTerms: string[];
-    readonly setCaptionFilters: (
-        value:
-            | CaptionFilterValue[]
-            | ((value: CaptionFilterValue[]) => CaptionFilterValue[])
+    readonly setCollectionMembershipFilter: (
+        value: CollectionMembershipFilter
     ) => void;
     readonly setColumnCountMode: (value: ColumnCountMode) => void;
     readonly setDomainFilters: (
@@ -882,14 +857,8 @@ function LibraryPaletteTrailing({
             | SourceFilterValue[]
             | ((value: SourceFilterValue[]) => SourceFilterValue[])
     ) => void;
-    readonly setThumbFilters: (
-        value:
-            | ThumbnailFilterValue[]
-            | ((value: ThumbnailFilterValue[]) => ThumbnailFilterValue[])
-    ) => void;
     readonly sortMode: SortMode;
     readonly sourceFilters: SourceFilterValue[];
-    readonly thumbFilters: ThumbnailFilterValue[];
 }) {
     const chips: ReactNode[] = [];
     for (const term of searchTerms) {
@@ -916,34 +885,6 @@ function LibraryPaletteTrailing({
         );
     }
 
-    for (const thumbFilter of thumbFilters) {
-        chips.push(
-            <PaletteChip
-                key={`thumb-${thumbFilter}`}
-                label={thumbnailFilterLabel(thumbFilter)}
-                onRemove={() =>
-                    setThumbFilters((current) =>
-                        removeValue(current, thumbFilter)
-                    )
-                }
-            />
-        );
-    }
-
-    for (const captionFilter of captionFilters) {
-        chips.push(
-            <PaletteChip
-                key={`caption-${captionFilter}`}
-                label={captionFilterLabel(captionFilter)}
-                onRemove={() =>
-                    setCaptionFilters((current) =>
-                        removeValue(current, captionFilter)
-                    )
-                }
-            />
-        );
-    }
-
     for (const domainFilter of domainFilters) {
         chips.push(
             <PaletteChip
@@ -952,6 +893,20 @@ function LibraryPaletteTrailing({
                 onRemove={() =>
                     setDomainFilters((current) =>
                         removeValue(current, domainFilter)
+                    )
+                }
+            />
+        );
+    }
+
+    if (collectionMembershipFilter !== DEFAULT_COLLECTION_MEMBERSHIP_FILTER) {
+        chips.push(
+            <PaletteChip
+                key="collection-membership"
+                label={`Collections: ${collectionMembershipFilterLabel(collectionMembershipFilter)}`}
+                onRemove={() =>
+                    setCollectionMembershipFilter(
+                        DEFAULT_COLLECTION_MEMBERSHIP_FILTER
                     )
                 }
             />
@@ -1188,13 +1143,11 @@ export function LibraryBrowser({
     const [searchTerms, setSearchTerms] = useState<string[]>([]);
     const [paletteInput, setPaletteInput] = useState("");
     const [sourceFilters, setSourceFilters] = useState<SourceFilterValue[]>([]);
-    const [thumbFilters, setThumbFilters] = useState<ThumbnailFilterValue[]>(
-        []
-    );
-    const [captionFilters, setCaptionFilters] = useState<CaptionFilterValue[]>(
-        []
-    );
     const [domainFilters, setDomainFilters] = useState<string[]>([]);
+    const [collectionMembershipFilter, setCollectionMembershipFilter] =
+        useState<CollectionMembershipFilter>(
+            DEFAULT_COLLECTION_MEMBERSHIP_FILTER
+        );
     const [groupBy, setGroupBy] = useState<GroupByMode>("none");
     const [sortMode, setSortMode] = useState<SortMode>(DEFAULT_SORT_MODE);
     const [columnCountMode, setColumnCountMode] = useState<ColumnCountMode>(
@@ -1205,6 +1158,7 @@ export function LibraryBrowser({
     const [activeNote, setActiveNote] =
         useState<LibraryItemWithCollections | null>(null);
     const [isNoteDrawerOpen, setIsNoteDrawerOpen] = useState(false);
+    const [isLogoutDialogOpen, setIsLogoutDialogOpen] = useState(false);
     const [commandListOpen, setCommandListOpen] = useState(false);
     const [isPaletteFocused, setIsPaletteFocused] = useState(false);
     const [commandPanelShellHeight, setCommandPanelShellHeight] = useState(0);
@@ -1238,15 +1192,6 @@ export function LibraryBrowser({
         []
     );
 
-    const captionOptions = useMemo(
-        () => [
-            { label: "Any caption", value: "any" },
-            { label: "With caption", value: "with" },
-            { label: "Without caption", value: "without" },
-        ],
-        []
-    );
-
     const sortOptions = useMemo(
         () => [
             { label: "Added: Newest first", value: "added-newest" },
@@ -1254,8 +1199,6 @@ export function LibraryBrowser({
             { label: "Created: Newest first", value: "created-newest" },
             { label: "Created: Oldest first", value: "created-oldest" },
             { label: "Count: Most items first", value: "count-desc" },
-            { label: "Caption A-Z", value: "caption-asc" },
-            { label: "Caption Z-A", value: "caption-desc" },
             { label: "Source", value: "source" },
             { label: "Domain", value: "domain" },
         ],
@@ -1494,9 +1437,8 @@ export function LibraryBrowser({
         setPaletteInput("");
         setSearchTerms([]);
         setSourceFilters([]);
-        setThumbFilters([]);
-        setCaptionFilters([]);
         setDomainFilters([]);
+        setCollectionMembershipFilter(DEFAULT_COLLECTION_MEMBERSHIP_FILTER);
         onClearCollectionFilters();
         setGroupBy("none");
         setSortMode(DEFAULT_SORT_MODE);
@@ -1545,6 +1487,15 @@ export function LibraryBrowser({
         [commandListOpen, paletteInput, paletteSection, returnToSearchSection]
     );
 
+    const handleRequestLogout = useCallback(() => {
+        setCommandListOpen(false);
+        setIsLogoutDialogOpen(true);
+    }, []);
+
+    const handleConfirmLogout = useCallback(() => {
+        window.location.assign(`/${locale}/logout`);
+    }, [locale]);
+
     const paletteGroups = useMemo<CommandPaletteGroup[]>(() => {
         const draft = paletteInput.trim();
         const groups: CommandPaletteGroup[] = [];
@@ -1561,7 +1512,7 @@ export function LibraryBrowser({
 
         const navigationItems: CommandPaletteItem[] = [
             {
-                description: "Source, preview, caption, and domain filters",
+                description: "Source and domain filters",
                 label: "Filter by…",
                 onSelect: () => openPaletteSection("filter"),
                 shortcut: "F",
@@ -1601,9 +1552,9 @@ export function LibraryBrowser({
             searchTerms.length > 0 ||
             selectedCollectionIds.length > 0 ||
             sourceFilters.length > 0 ||
-            thumbFilters.length > 0 ||
-            captionFilters.length > 0 ||
             domainFilters.length > 0 ||
+            collectionMembershipFilter !==
+                DEFAULT_COLLECTION_MEMBERSHIP_FILTER ||
             groupBy !== "none" ||
             sortMode !== DEFAULT_SORT_MODE ||
             columnCountMode !== DEFAULT_COLUMN_COUNT_MODE;
@@ -1613,8 +1564,8 @@ export function LibraryBrowser({
                 clearLibraryPalette,
                 draft,
                 hasAnyRefinements,
-                locale,
                 navigationItems,
+                onRequestLogout: handleRequestLogout,
                 searchTerms,
                 setCommandListOpen,
                 setPaletteInput,
@@ -1655,41 +1606,48 @@ export function LibraryBrowser({
                             ),
                             value: `filter source ${option.value}`,
                         })),
-                    {
-                        active: thumbFilters.length === 0,
-                        description: "Allow items with or without previews",
-                        label: "Preview: Any preview",
-                        onSelect: applyAndStay(() => setThumbFilters([])),
-                        value: "filter preview any",
-                    },
-                    {
-                        active: captionFilters.length === 0,
-                        description: "Allow items with or without captions",
-                        label: "Caption: Any caption",
-                        onSelect: applyAndStay(() => setCaptionFilters([])),
-                        value: "filter caption any",
-                    },
-                    ...captionOptions
-                        .filter((option) => option.value !== "any")
-                        .map((option) => ({
-                            active: captionFilters.includes(
-                                option.value as CaptionFilterValue
-                            ),
-                            description:
-                                "Toggle this caption condition in the stack",
-                            label: `Caption: ${option.label}`,
-                            onSelect: applyAndStay(() =>
-                                setCaptionFilters((current) =>
-                                    toggleValue(
-                                        current,
-                                        option.value as CaptionFilterValue
-                                    )
-                                )
-                            ),
-                            value: `filter caption ${option.value}`,
-                        })),
                 ],
                 label: "Conditions",
+            });
+            groups.push({
+                items: [
+                    {
+                        active:
+                            collectionMembershipFilter ===
+                            DEFAULT_COLLECTION_MEMBERSHIP_FILTER,
+                        description:
+                            "Show items whether or not they are in collections",
+                        label: "Collections: All items",
+                        onSelect: applyAndStay(() =>
+                            setCollectionMembershipFilter(
+                                DEFAULT_COLLECTION_MEMBERSHIP_FILTER
+                            )
+                        ),
+                        value: "filter collections all",
+                    },
+                    {
+                        active: collectionMembershipFilter === "in-collections",
+                        description:
+                            "Show only items that belong to at least one collection",
+                        label: "Collections: In collections",
+                        onSelect: applyAndStay(() =>
+                            setCollectionMembershipFilter("in-collections")
+                        ),
+                        value: "filter collections in",
+                    },
+                    {
+                        active:
+                            collectionMembershipFilter === "not-in-collections",
+                        description:
+                            "Show only items that do not belong to any collection",
+                        label: "Collections: Not in collections",
+                        onSelect: applyAndStay(() =>
+                            setCollectionMembershipFilter("not-in-collections")
+                        ),
+                        value: "filter collections not-in",
+                    },
+                ],
+                label: "Collections",
             });
             groups.push({
                 items: domainOptions.map((option) => ({
@@ -1779,6 +1737,7 @@ export function LibraryBrowser({
         domainOptions,
         groupBy,
         groupOptions,
+        handleRequestLogout,
         openPaletteSection,
         paletteInput,
         paletteSection,
@@ -1786,12 +1745,9 @@ export function LibraryBrowser({
         searchTerms,
         sortMode,
         sortOptions,
+        collectionMembershipFilter,
         sourceFilters,
         sourceOptions,
-        thumbFilters,
-        captionFilters,
-        captionOptions,
-        locale,
         selectedCollectionIds.length,
     ]);
 
@@ -1855,6 +1811,9 @@ export function LibraryBrowser({
     } else if (paletteSection === "sort") {
         inputPlaceholder = "Sort results…";
     }
+    if (isPaletteFocused) {
+        inputPlaceholder = "What are you looking for?";
+    }
 
     const filteredItems = useMemo(() => {
         let list = items;
@@ -1868,6 +1827,14 @@ export function LibraryBrowser({
                     selectedCollectionIds.includes(collection.id)
                 )
             );
+        }
+
+        if (collectionMembershipFilter === "in-collections") {
+            list = list.filter((item) => item.collections.length > 0);
+        }
+
+        if (collectionMembershipFilter === "not-in-collections") {
+            list = list.filter((item) => item.collections.length === 0);
         }
 
         if (normalizedSearchTerms.length > 0) {
@@ -1888,22 +1855,6 @@ export function LibraryBrowser({
             list = list.filter((item) => sourceFilters.includes(item.source));
         }
 
-        if (thumbFilters.length === 1) {
-            list = list.filter((item) =>
-                thumbFilters[0] === "with"
-                    ? Boolean(item.thumbnailUrl)
-                    : !item.thumbnailUrl
-            );
-        }
-
-        if (captionFilters.length === 1) {
-            list = list.filter((item) =>
-                captionFilters[0] === "with"
-                    ? Boolean(item.caption?.trim())
-                    : !item.caption?.trim()
-            );
-        }
-
         if (domainFilters.length > 0) {
             list = list.filter((item) =>
                 domainFilters.includes(itemDomain(item.url))
@@ -1912,11 +1863,10 @@ export function LibraryBrowser({
 
         return list;
     }, [
-        captionFilters,
+        collectionMembershipFilter,
         domainFilters,
         searchTerms,
         sourceFilters,
-        thumbFilters,
         items,
         selectedCollectionIds,
     ]);
@@ -2020,16 +1970,14 @@ export function LibraryBrowser({
             searchTerms.length > 0 ||
             selectedCollectionIds.length > 0 ||
             sourceFilters.length > 0 ||
-            thumbFilters.length > 0 ||
-            captionFilters.length > 0 ||
-            domainFilters.length > 0,
+            domainFilters.length > 0 ||
+            collectionMembershipFilter !== DEFAULT_COLLECTION_MEMBERSHIP_FILTER,
         [
-            captionFilters,
+            collectionMembershipFilter,
             domainFilters,
             selectedCollectionIds,
             searchTerms,
             sourceFilters,
-            thumbFilters,
         ]
     );
 
@@ -2210,6 +2158,33 @@ export function LibraryBrowser({
                     </DialogFooter>
                 </DialogPopup>
             </Dialog>
+            <Dialog
+                onOpenChange={setIsLogoutDialogOpen}
+                open={isLogoutDialogOpen}
+            >
+                <DialogPopup>
+                    <DialogHeader>
+                        <DialogTitle>Log out?</DialogTitle>
+                        <DialogDescription>
+                            You will need to sign in again to access your
+                            library.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter variant="default">
+                        <DialogClose
+                            render={<Button size="sm" variant="ghost" />}
+                        >
+                            Cancel
+                        </DialogClose>
+                        <DialogClose
+                            onClick={handleConfirmLogout}
+                            render={<Button size="sm" />}
+                        >
+                            Log out
+                        </DialogClose>
+                    </DialogFooter>
+                </DialogPopup>
+            </Dialog>
             <div
                 className="sticky top-3 z-20 w-full max-w-md"
                 onPointerDownCapture={handlePaletteShellPointerDownCapture}
@@ -2244,24 +2219,26 @@ export function LibraryBrowser({
                             }
                             trailing={
                                 <LibraryPaletteTrailing
-                                    captionFilters={captionFilters}
                                     clearLibraryPalette={clearLibraryPalette}
+                                    collectionMembershipFilter={
+                                        collectionMembershipFilter
+                                    }
                                     columnCountMode={columnCountMode}
                                     domainFilters={domainFilters}
                                     groupBy={groupBy}
                                     paletteInput={paletteInput}
                                     searchTerms={searchTerms}
-                                    setCaptionFilters={setCaptionFilters}
+                                    setCollectionMembershipFilter={
+                                        setCollectionMembershipFilter
+                                    }
                                     setColumnCountMode={setColumnCountMode}
                                     setDomainFilters={setDomainFilters}
                                     setGroupBy={setGroupBy}
                                     setSearchTerms={setSearchTerms}
                                     setSortMode={setSortMode}
                                     setSourceFilters={setSourceFilters}
-                                    setThumbFilters={setThumbFilters}
                                     sortMode={sortMode}
                                     sourceFilters={sourceFilters}
-                                    thumbFilters={thumbFilters}
                                 />
                             }
                             wrapperClassName="min-h-11 w-full max-w-md rounded-full bg-muted/94 backdrop-blur-xs px-2 py-1.5 ring-1 ring-border/40 shadow-[0_0_0_rgba(15,23,42,0)] transition-[box-shadow,background-color] duration-200 has-focus-within:bg-background/96 has-focus-within:shadow-[0_10px_30px_rgba(15,23,42,0.10),0_1px_0_rgba(255,255,255,0.24)_inset] dark:ring-border/50 dark:shadow-[0_0_0_rgba(0,0,0,0)] dark:has-focus-within:shadow-[0_12px_32px_rgba(0,0,0,0.28),0_1px_0_rgba(255,255,255,0.05)_inset]"

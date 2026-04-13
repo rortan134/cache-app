@@ -61,6 +61,18 @@ const UpdateCollectionPriorityInputSchema = z.object({
     ] satisfies [CollectionPriority, ...CollectionPriority[]]),
 });
 
+const RenameCollectionInputSchema = z.object({
+    collectionId: z.string().trim().min(1, "Select a collection to rename."),
+    name: z
+        .string()
+        .trim()
+        .min(1, "Enter a collection name.")
+        .max(
+            COLLECTION_NAME_MAX_LENGTH,
+            `Collection names can be up to ${COLLECTION_NAME_MAX_LENGTH} characters.`
+        ),
+});
+
 const CreateNoteInputSchema = z.object({
     contentHtml: z.string().max(NOTE_CONTENT_HTML_MAX_LENGTH).optional(),
     title: z.string().trim().max(NOTE_TITLE_MAX_LENGTH).optional(),
@@ -116,6 +128,21 @@ export type UpdateCollectionPriorityResult =
     | {
           message: string;
           status: "ERROR" | "INVALID" | "NOT_FOUND" | "UNAUTHORIZED";
+      };
+
+export type RenameCollectionResult =
+    | {
+          collection: LibraryCollectionTag;
+          status: "UPDATED";
+      }
+    | {
+          message: string;
+          status:
+              | "DUPLICATE"
+              | "ERROR"
+              | "INVALID"
+              | "NOT_FOUND"
+              | "UNAUTHORIZED";
       };
 
 export type UpdateLibraryItemCollectionsResult =
@@ -534,6 +561,131 @@ export async function updateCollectionPriority(input: {
         log.error("Unexpected collection priority update failure", error);
         return {
             message: "We couldn't update this collection priority right now.",
+            status: "ERROR",
+        };
+    }
+}
+
+export async function renameCollection(input: {
+    collectionId: string;
+    name: string;
+}): Promise<RenameCollectionResult> {
+    const parsed = RenameCollectionInputSchema.safeParse(input);
+    if (!parsed.success) {
+        return {
+            message:
+                parsed.error.issues[0]?.message ??
+                "Enter a valid collection name.",
+            status: "INVALID",
+        };
+    }
+
+    const userId = await getSessionUserId();
+    if (!userId) {
+        return {
+            message: "Sign in again to manage collections.",
+            status: "UNAUTHORIZED",
+        };
+    }
+
+    const normalized = normalizeCollectionName(parsed.data.name);
+
+    try {
+        const result = await prisma.$transaction(async (tx) => {
+            const collection = await tx.collection.findFirst({
+                select: {
+                    description: true,
+                    id: true,
+                    name: true,
+                    priority: true,
+                },
+                where: {
+                    id: parsed.data.collectionId,
+                    userId,
+                },
+            });
+
+            if (!collection) {
+                throw new LibraryCollectionError({
+                    code: "not_found",
+                    message: "That collection is no longer available.",
+                    operation: "renameCollection",
+                });
+            }
+
+            if (collection.name === normalized.name) {
+                return collection;
+            }
+
+            const existingCollection = await tx.collection.findFirst({
+                select: {
+                    id: true,
+                },
+                where: {
+                    id: {
+                        not: collection.id,
+                    },
+                    nameKey: normalized.nameKey,
+                    userId,
+                },
+            });
+
+            if (existingCollection) {
+                throw new LibraryCollectionError({
+                    code: "duplicate_name",
+                    message: "A collection with that name already exists.",
+                    operation: "renameCollection",
+                });
+            }
+
+            const updatedCollection = await tx.collection.update({
+                data: {
+                    name: normalized.name,
+                    nameKey: normalized.nameKey,
+                },
+                select: {
+                    description: true,
+                    id: true,
+                    name: true,
+                    priority: true,
+                },
+                where: {
+                    id: collection.id,
+                },
+            });
+
+            return updatedCollection;
+        });
+
+        return {
+            collection: result,
+            status: "UPDATED",
+        };
+    } catch (error) {
+        const named = extractNamedErrorMessage(error);
+        if (
+            LibraryCollectionError.isInstance(error) &&
+            error.data.code === "duplicate_name"
+        ) {
+            return {
+                message: named.message,
+                status: "DUPLICATE",
+            };
+        }
+
+        if (
+            LibraryCollectionError.isInstance(error) &&
+            error.data.code === "not_found"
+        ) {
+            return {
+                message: named.message,
+                status: "NOT_FOUND",
+            };
+        }
+
+        log.error("Unexpected collection rename failure", error);
+        return {
+            message: "We couldn't rename this collection right now.",
             status: "ERROR",
         };
     }

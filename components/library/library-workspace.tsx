@@ -3,10 +3,12 @@
 import {
     createCollection,
     deleteCollection,
+    renameCollection,
     updateCollectionPriority,
     updateLibraryItemCollections,
     type CreateCollectionResult,
     type DeleteCollectionResult,
+    type RenameCollectionResult,
     type UpdateCollectionPriorityResult,
     type UpdateLibraryItemCollectionsResult,
 } from "@/app/[locale]/library/actions";
@@ -81,6 +83,40 @@ interface CollectionActionFeedback {
     readonly tone: "error" | "success";
 }
 
+interface CollectionSidebarActionDependencies {
+    readonly collections: readonly LibraryCollectionTag[];
+    readonly itemsByCollectionId: ReadonlyMap<
+        string,
+        readonly LibraryItemWithCollections[]
+    >;
+    readonly setCollections: (
+        value:
+            | LibraryCollectionTag[]
+            | ((current: LibraryCollectionTag[]) => LibraryCollectionTag[])
+    ) => void;
+    readonly setItems: (
+        value:
+            | LibraryItemWithCollections[]
+            | ((
+                  current: LibraryItemWithCollections[]
+              ) => LibraryItemWithCollections[])
+    ) => void;
+}
+
+interface LibraryWorkspaceSidebarProps {
+    readonly actionDependencies: CollectionSidebarActionDependencies;
+    readonly collectionPreviewThumbnailUrlsById: ReadonlyMap<
+        string,
+        readonly string[]
+    >;
+    readonly collectionSummaries: readonly LibraryCollectionSummary[];
+    readonly onClearCollectionFilters: () => void;
+    readonly onSelectCollection: (collectionId: string) => void;
+    readonly selectedCollectionIds: readonly string[];
+    readonly sidebarBottom?: ReactNode;
+    readonly sidebarHeader?: ReactNode;
+}
+
 function sortCollections<T extends LibraryCollectionTag>(
     collections: readonly T[]
 ): T[] {
@@ -143,6 +179,20 @@ function replaceCollectionPriority<T extends LibraryCollectionTag>(
     );
 }
 
+function replaceCollectionName<T extends LibraryCollectionTag>(
+    collections: readonly T[],
+    collectionId: string,
+    name: string
+): T[] {
+    return sortCollections(
+        collections.map((collection) =>
+            collection.id === collectionId
+                ? { ...collection, name }
+                : collection
+        )
+    );
+}
+
 function getPreviewOrderSeed(value: string): number {
     let hash = 0;
     for (const character of value) {
@@ -184,6 +234,21 @@ function replaceItemsCollectionPriority(
             item.collections,
             collectionId,
             priority
+        ),
+    }));
+}
+
+function replaceItemsCollectionName(
+    items: readonly LibraryItemWithCollections[],
+    collectionId: string,
+    name: string
+): LibraryItemWithCollections[] {
+    return items.map((item) => ({
+        ...item,
+        collections: replaceCollectionName(
+            item.collections,
+            collectionId,
+            name
         ),
     }));
 }
@@ -279,30 +344,17 @@ function collectionExportFileName(name: string): string {
     return slug.length > 0 ? `${slug}-links` : "collection-links";
 }
 
-export function LibraryWorkspace({
-    initialCollections,
-    initialItems,
-    locale,
+function LibraryWorkspaceSidebar({
+    actionDependencies,
+    collectionPreviewThumbnailUrlsById,
+    collectionSummaries,
+    selectedCollectionIds,
+    onClearCollectionFilters,
+    onSelectCollection,
     sidebarBottom,
     sidebarHeader,
-}: Props): ReactElement {
-    const [items, setItems] = useState<LibraryItemWithCollections[]>([
-        ...initialItems,
-    ]);
-    const [collections, setCollections] = useState<LibraryCollectionTag[]>(
-        sortCollections(
-            initialCollections.map((collection) => ({
-                description: collection.description,
-                id: collection.id,
-                name: collection.name,
-                priority: collection.priority,
-            }))
-        )
-    );
+}: LibraryWorkspaceSidebarProps): ReactElement {
     const [isCollectionsListOpen, setIsCollectionsListOpen] = useState(false);
-    const [selectedCollectionIds, setSelectedCollectionIds] = useState<
-        string[]
-    >([]);
     const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
     const [createDialogDraft, setCreateDialogDraft] = useState("");
     const [createDialogDescriptionDraft, setCreateDialogDescriptionDraft] =
@@ -313,19 +365,30 @@ export function LibraryWorkspace({
     const [createDialogAssignItemId, setCreateDialogAssignItemId] = useState<
         string | null
     >(null);
-    const [pendingCollectionItemIds, setPendingCollectionItemIds] = useState<
-        string[]
-    >([]);
+    const [pendingRenameCollection, setPendingRenameCollection] =
+        useState<LibraryCollectionSummary | null>(null);
+    const [renameDialogDraft, setRenameDialogDraft] = useState("");
+    const [renameDialogError, setRenameDialogError] = useState<string | null>(
+        null
+    );
     const [pendingPriorityCollectionIds, setPendingPriorityCollectionIds] =
         useState<string[]>([]);
     const [pendingDeleteCollection, setPendingDeleteCollection] =
         useState<LibraryCollectionSummary | null>(null);
+    const [pendingExportCollectionId, setPendingExportCollectionId] = useState<
+        string | null
+    >(null);
     const [collectionActionFeedback, setCollectionActionFeedback] =
         useState<CollectionActionFeedback | null>(null);
     const [isCreatePending, startCreateTransition] = useTransition();
+    const [isRenamePending, startRenameTransition] = useTransition();
     const [isDeletePending, startDeleteTransition] = useTransition();
+    const [isExportPending, startExportTransition] = useTransition();
     const createInputId = useId();
     const createDescriptionId = useId();
+    const renameInputId = useId();
+    const { collections, itemsByCollectionId, setCollections, setItems } =
+        actionDependencies;
     const { copyToClipboard } = useCopyToClipboard({
         onCopy: () => {
             setCollectionActionFeedback({
@@ -335,44 +398,16 @@ export function LibraryWorkspace({
         },
     });
 
-    const collectionSummaries = deriveCollectionSummaries(collections, items);
-
-    const itemsByCollectionId = useMemo(() => {
-        const map = new Map<string, LibraryItemWithCollections[]>();
-
-        for (const item of items) {
-            for (const collection of item.collections) {
-                const entries = map.get(collection.id);
-                if (entries) {
-                    entries.push(item);
-                } else {
-                    map.set(collection.id, [item]);
-                }
-            }
-        }
-
-        return map;
-    }, [items]);
-
-    const collectionPreviewThumbnailUrlsById = useMemo(() => {
-        const map = new Map<string, string[]>();
-
-        for (const [collectionId, collectionItems] of itemsByCollectionId) {
-            map.set(
-                collectionId,
-                getCollectionPreviewThumbnailUrls(collectionId, collectionItems)
-            );
-        }
-
-        return map;
-    }, [itemsByCollectionId]);
+    const resetCreateDialog = () => {
+        setCreateDialogDraft("");
+        setCreateDialogDescriptionDraft("");
+        setCreateDialogError(null);
+        setCreateDialogAssignItemId(null);
+    };
 
     const handleCreateDialogOpenChange = (open: boolean) => {
         if (!(open || isCreatePending)) {
-            setCreateDialogDraft("");
-            setCreateDialogDescriptionDraft("");
-            setCreateDialogError(null);
-            setCreateDialogAssignItemId(null);
+            resetCreateDialog();
         }
         setIsCreateDialogOpen(open);
     };
@@ -385,23 +420,28 @@ export function LibraryWorkspace({
         setIsCreateDialogOpen(true);
     };
 
-    const clearCollectionFilters = () => {
-        setSelectedCollectionIds([]);
-    };
-
-    const handleToggleCollectionSelection = (id: string) => {
-        setSelectedCollectionIds((current) =>
-            current.includes(id)
-                ? current.filter((entryId) => entryId !== id)
-                : [...current, id]
-        );
-    };
-
     const handleRequestDeleteCollection = (
         collection: LibraryCollectionSummary
     ) => {
         setCollectionActionFeedback(null);
         setPendingDeleteCollection(collection);
+    };
+
+    const handleRequestRenameCollection = (
+        collection: LibraryCollectionSummary
+    ) => {
+        setCollectionActionFeedback(null);
+        setRenameDialogDraft(collection.name);
+        setRenameDialogError(null);
+        setPendingRenameCollection(collection);
+    };
+
+    const handleRenameDialogOpenChange = (open: boolean) => {
+        if (!(open || isRenamePending)) {
+            setPendingRenameCollection(null);
+            setRenameDialogDraft("");
+            setRenameDialogError(null);
+        }
     };
 
     const handleDeleteCollectionDialogOpenChange = (open: boolean) => {
@@ -452,7 +492,7 @@ export function LibraryWorkspace({
         }
     };
 
-    const handleExportCollectionToCsv = async (
+    const handleExportCollectionToCsv = (
         collection: LibraryCollectionSummary
     ) => {
         const collectionItems = itemsByCollectionId.get(collection.id) ?? [];
@@ -465,28 +505,39 @@ export function LibraryWorkspace({
             return;
         }
 
-        try {
-            await saveFile(
-                new Blob([buildCollectionCsv(collection, collectionItems)], {
-                    type: "text/csv;charset=utf-8",
-                }),
-                {
-                    description: "CSV file",
-                    extension: "csv",
-                    name: collectionExportFileName(collection.name),
-                }
-            );
+        startExportTransition(async () => {
+            setPendingExportCollectionId(collection.id);
 
-            setCollectionActionFeedback({
-                message: `${collection.name} exported as CSV.`,
-                tone: "success",
-            });
-        } catch {
-            setCollectionActionFeedback({
-                message: "We couldn't export this collection right now.",
-                tone: "error",
-            });
-        }
+            try {
+                await saveFile(
+                    new Blob(
+                        [buildCollectionCsv(collection, collectionItems)],
+                        {
+                            type: "text/csv;charset=utf-8",
+                        }
+                    ),
+                    {
+                        description: "CSV file",
+                        extension: "csv",
+                        name: collectionExportFileName(collection.name),
+                    }
+                );
+
+                setCollectionActionFeedback({
+                    message: `${collection.name} exported as CSV.`,
+                    tone: "success",
+                });
+            } catch {
+                setCollectionActionFeedback({
+                    message: "We couldn't export this collection right now.",
+                    tone: "error",
+                });
+            } finally {
+                setPendingExportCollectionId((current) =>
+                    current === collection.id ? null : current
+                );
+            }
+        });
     };
 
     const handleConfirmDeleteCollection = () => {
@@ -529,9 +580,6 @@ export function LibraryWorkspace({
                         (collection) => collection.id !== result.collection.id
                     ),
                 }))
-            );
-            setSelectedCollectionIds((current) =>
-                current.filter((id) => id !== result.collection.id)
             );
             setPendingDeleteCollection(null);
             setCollectionActionFeedback({
@@ -648,6 +696,92 @@ export function LibraryWorkspace({
         });
     };
 
+    const handleRenameCollectionSubmit = () => {
+        const targetCollection = pendingRenameCollection;
+        if (!targetCollection) {
+            return;
+        }
+
+        const previousName = targetCollection.name;
+        const nextName = renameDialogDraft.trim().replace(/\s+/g, " ");
+
+        if (nextName.length === 0) {
+            setRenameDialogError("Enter a collection name.");
+            return;
+        }
+
+        if (nextName === previousName) {
+            setPendingRenameCollection(null);
+            setRenameDialogDraft("");
+            setRenameDialogError(null);
+            return;
+        }
+
+        setCollections((current) =>
+            replaceCollectionName(current, targetCollection.id, nextName)
+        );
+        setItems((current) =>
+            replaceItemsCollectionName(current, targetCollection.id, nextName)
+        );
+
+        startRenameTransition(async () => {
+            let result: RenameCollectionResult;
+
+            try {
+                result = await renameCollection({
+                    collectionId: targetCollection.id,
+                    name: nextName,
+                });
+            } catch {
+                result = {
+                    message: "We couldn't rename this collection right now.",
+                    status: "ERROR",
+                };
+            }
+
+            if (result.status === "UPDATED") {
+                setCollections((current) =>
+                    replaceCollectionName(
+                        current,
+                        result.collection.id,
+                        result.collection.name
+                    )
+                );
+                setItems((current) =>
+                    replaceItemsCollectionName(
+                        current,
+                        result.collection.id,
+                        result.collection.name
+                    )
+                );
+                setPendingRenameCollection(null);
+                setRenameDialogDraft("");
+                setRenameDialogError(null);
+                setCollectionActionFeedback({
+                    message: `${result.collection.name} renamed.`,
+                    tone: "success",
+                });
+                return;
+            }
+
+            setCollections((current) =>
+                replaceCollectionName(
+                    current,
+                    targetCollection.id,
+                    previousName
+                )
+            );
+            setItems((current) =>
+                replaceItemsCollectionName(
+                    current,
+                    targetCollection.id,
+                    previousName
+                )
+            );
+            setRenameDialogError(result.message);
+        });
+    };
+
     const handleCreateCollectionSubmit = () => {
         startCreateTransition(async () => {
             let result: CreateCollectionResult;
@@ -696,70 +830,8 @@ export function LibraryWorkspace({
                 );
             }
 
-            setCreateDialogDraft("");
-            setCreateDialogDescriptionDraft("");
-            setCreateDialogError(null);
-            setCreateDialogAssignItemId(null);
+            resetCreateDialog();
             setIsCreateDialogOpen(false);
-        });
-    };
-
-    const handleUpdateItemCollections = (
-        itemId: string,
-        collectionIds: string[]
-    ) => {
-        const previousCollections =
-            items.find((item) => item.id === itemId)?.collections ?? [];
-        const optimisticCollections = sortCollections(
-            collections.filter((collection) =>
-                collectionIds.includes(collection.id)
-            )
-        );
-
-        setItems((current) =>
-            replaceItemCollections(current, itemId, optimisticCollections)
-        );
-        setPendingCollectionItemIds((current) =>
-            current.includes(itemId) ? current : [...current, itemId]
-        );
-
-        const runUpdate = async () => {
-            let result: UpdateLibraryItemCollectionsResult;
-
-            try {
-                result = await updateLibraryItemCollections({
-                    collectionIds,
-                    itemId,
-                });
-            } catch {
-                result = {
-                    message: "We couldn't update collections for this item.",
-                    status: "ERROR",
-                };
-            }
-
-            if (result.status === "UPDATED") {
-                setItems((current) =>
-                    replaceItemCollections(current, itemId, result.collections)
-                );
-            } else {
-                setItems((current) =>
-                    replaceItemCollections(current, itemId, previousCollections)
-                );
-            }
-
-            setPendingCollectionItemIds((current) =>
-                current.filter((id) => id !== itemId)
-            );
-        };
-
-        runUpdate().catch(() => {
-            setItems((current) =>
-                replaceItemCollections(current, itemId, previousCollections)
-            );
-            setPendingCollectionItemIds((current) =>
-                current.filter((id) => id !== itemId)
-            );
         });
     };
 
@@ -800,6 +872,11 @@ export function LibraryWorkspace({
                                     {collectionSummaries.map((collection) => (
                                         <CollectionsListItem
                                             collection={collection}
+                                            isExportPending={
+                                                isExportPending &&
+                                                pendingExportCollectionId ===
+                                                    collection.id
+                                            }
                                             isSelected={selectedCollectionIds.includes(
                                                 collection.id
                                             )}
@@ -827,8 +904,13 @@ export function LibraryWorkspace({
                                                     collection
                                                 )
                                             }
+                                            onRename={() =>
+                                                handleRequestRenameCollection(
+                                                    collection
+                                                )
+                                            }
                                             onSelect={() =>
-                                                handleToggleCollectionSelection(
+                                                onSelectCollection(
                                                     collection.id
                                                 )
                                             }
@@ -858,7 +940,7 @@ export function LibraryWorkspace({
                                         isVisible={
                                             selectedCollectionIds.length > 0
                                         }
-                                        onClear={clearCollectionFilters}
+                                        onClear={onClearCollectionFilters}
                                     />
                                 </>
                             ) : (
@@ -869,18 +951,74 @@ export function LibraryWorkspace({
                 </SidebarHeader>
                 <SidebarFooter>{sidebarBottom}</SidebarFooter>
             </Sidebar>
-            <div className="flex w-full max-w-[1024px] flex-col items-center gap-12 p-8 2xl:mx-auto">
-                <LibraryBrowser
-                    collections={collectionSummaries}
-                    items={items}
-                    locale={locale}
-                    onClearCollectionFilters={clearCollectionFilters}
-                    onItemsChange={setItems}
-                    onUpdateItemCollections={handleUpdateItemCollections}
-                    pendingCollectionItemIds={pendingCollectionItemIds}
-                    selectedCollectionIds={selectedCollectionIds}
-                />
-            </div>
+            <Dialog
+                onOpenChange={handleRenameDialogOpenChange}
+                open={pendingRenameCollection !== null}
+            >
+                <DialogPopup showCloseButton>
+                    <form
+                        className="contents"
+                        onSubmit={(event) => {
+                            event.preventDefault();
+                            handleRenameCollectionSubmit();
+                        }}
+                    >
+                        <DialogHeader>
+                            <DialogTitle>Rename collection</DialogTitle>
+                            <DialogDescription>
+                                Update how this collection appears across your
+                                library.
+                            </DialogDescription>
+                        </DialogHeader>
+                        <DialogPanel>
+                            <div>
+                                <label
+                                    className="sr-only font-medium text-sm"
+                                    htmlFor={renameInputId}
+                                >
+                                    Name
+                                </label>
+                                <Input
+                                    autoFocus
+                                    id={renameInputId}
+                                    maxLength={64}
+                                    onChange={(event) => {
+                                        setRenameDialogDraft(
+                                            event.currentTarget.value
+                                        );
+                                        if (renameDialogError) {
+                                            setRenameDialogError(null);
+                                        }
+                                    }}
+                                    placeholder="Collection title"
+                                    required
+                                    value={renameDialogDraft}
+                                />
+                                {renameDialogError ? (
+                                    <p className="pt-2 text-destructive text-xs">
+                                        {renameDialogError}
+                                    </p>
+                                ) : null}
+                            </div>
+                        </DialogPanel>
+                        <DialogFooter>
+                            <DialogClose
+                                disabled={isRenamePending}
+                                render={<Button size="sm" variant="ghost" />}
+                            >
+                                Cancel
+                            </DialogClose>
+                            <Button
+                                loading={isRenamePending}
+                                size="sm"
+                                type="submit"
+                            >
+                                Save
+                            </Button>
+                        </DialogFooter>
+                    </form>
+                </DialogPopup>
+            </Dialog>
             <Dialog
                 onOpenChange={handleCreateDialogOpenChange}
                 open={isCreateDialogOpen}
@@ -1011,6 +1149,167 @@ export function LibraryWorkspace({
                     </DialogFooter>
                 </DialogPopup>
             </Dialog>
+        </>
+    );
+}
+
+export function LibraryWorkspace({
+    initialCollections,
+    initialItems,
+    locale,
+    sidebarBottom,
+    sidebarHeader,
+}: Props): ReactElement {
+    const [items, setItems] = useState<LibraryItemWithCollections[]>([
+        ...initialItems,
+    ]);
+    const [collections, setCollections] = useState<LibraryCollectionTag[]>(
+        sortCollections(
+            initialCollections.map((collection) => ({
+                description: collection.description,
+                id: collection.id,
+                name: collection.name,
+                priority: collection.priority,
+            }))
+        )
+    );
+    const [selectedCollectionIds, setSelectedCollectionIds] = useState<
+        string[]
+    >([]);
+    const [pendingCollectionItemIds, setPendingCollectionItemIds] = useState<
+        string[]
+    >([]);
+
+    const collectionSummaries = deriveCollectionSummaries(collections, items);
+
+    const itemsByCollectionId = useMemo(() => {
+        const map = new Map<string, LibraryItemWithCollections[]>();
+        for (const item of items) {
+            for (const collection of item.collections) {
+                const entries = map.get(collection.id);
+                if (entries) {
+                    entries.push(item);
+                } else {
+                    map.set(collection.id, [item]);
+                }
+            }
+        }
+        return map;
+    }, [items]);
+
+    const collectionPreviewThumbnailUrlsById = useMemo(() => {
+        const map = new Map<string, string[]>();
+        for (const [collectionId, collectionItems] of itemsByCollectionId) {
+            map.set(
+                collectionId,
+                getCollectionPreviewThumbnailUrls(collectionId, collectionItems)
+            );
+        }
+        return map;
+    }, [itemsByCollectionId]);
+
+    const clearCollectionFilters = () => {
+        setSelectedCollectionIds([]);
+    };
+
+    const handleToggleCollectionSelection = (id: string) => {
+        setSelectedCollectionIds((current) =>
+            current.includes(id)
+                ? current.filter((entryId) => entryId !== id)
+                : [...current, id]
+        );
+    };
+
+    const handleUpdateItemCollections = (
+        itemId: string,
+        collectionIds: string[]
+    ) => {
+        const previousCollections =
+            items.find((item) => item.id === itemId)?.collections ?? [];
+        const optimisticCollections = sortCollections(
+            collections.filter((collection) =>
+                collectionIds.includes(collection.id)
+            )
+        );
+
+        setItems((current) =>
+            replaceItemCollections(current, itemId, optimisticCollections)
+        );
+        setPendingCollectionItemIds((current) =>
+            current.includes(itemId) ? current : [...current, itemId]
+        );
+
+        const runUpdate = async () => {
+            let result: UpdateLibraryItemCollectionsResult;
+
+            try {
+                result = await updateLibraryItemCollections({
+                    collectionIds,
+                    itemId,
+                });
+            } catch {
+                result = {
+                    message: "We couldn't update collections for this item.",
+                    status: "ERROR",
+                };
+            }
+
+            if (result.status === "UPDATED") {
+                setItems((current) =>
+                    replaceItemCollections(current, itemId, result.collections)
+                );
+            } else {
+                setItems((current) =>
+                    replaceItemCollections(current, itemId, previousCollections)
+                );
+            }
+
+            setPendingCollectionItemIds((current) =>
+                current.filter((id) => id !== itemId)
+            );
+        };
+
+        runUpdate().catch(() => {
+            setItems((current) =>
+                replaceItemCollections(current, itemId, previousCollections)
+            );
+            setPendingCollectionItemIds((current) =>
+                current.filter((id) => id !== itemId)
+            );
+        });
+    };
+
+    return (
+        <>
+            <LibraryWorkspaceSidebar
+                actionDependencies={{
+                    collections,
+                    itemsByCollectionId,
+                    setCollections,
+                    setItems,
+                }}
+                collectionPreviewThumbnailUrlsById={
+                    collectionPreviewThumbnailUrlsById
+                }
+                collectionSummaries={collectionSummaries}
+                onClearCollectionFilters={clearCollectionFilters}
+                onSelectCollection={handleToggleCollectionSelection}
+                selectedCollectionIds={selectedCollectionIds}
+                sidebarBottom={sidebarBottom}
+                sidebarHeader={sidebarHeader}
+            />
+            <div className="flex w-full max-w-[1024px] flex-col items-center gap-12 p-8 2xl:mx-auto">
+                <LibraryBrowser
+                    collections={collectionSummaries}
+                    items={items}
+                    locale={locale}
+                    onClearCollectionFilters={clearCollectionFilters}
+                    onItemsChange={setItems}
+                    onUpdateItemCollections={handleUpdateItemCollections}
+                    pendingCollectionItemIds={pendingCollectionItemIds}
+                    selectedCollectionIds={selectedCollectionIds}
+                />
+            </div>
         </>
     );
 }
