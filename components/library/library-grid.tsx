@@ -506,7 +506,11 @@ function LibraryGridCard({
                         <MaximizeIcon className="size-4.5 text-muted-foreground" />
                         View fullscreen
                     </Item>
-                    <Item closeOnClick disabled={isDownloading} onClick={handleDownload}>
+                    <Item
+                        closeOnClick
+                        disabled={isDownloading}
+                        onClick={handleDownload}
+                    >
                         <DownloadIcon className="size-4.5 text-muted-foreground" />
                         {isDownloading ? "Downloading..." : "Download media"}
                     </Item>
