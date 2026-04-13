@@ -1,15 +1,6 @@
 {
     "defaultLocale": "en-US",
-    "locales": [
-        "en-US",
-        "fr-FR",
-        "de-DE",
-        "es-419",
-        "pt-BR",
-        "ja-JP",
-        "zh-CN",
-        "ru-RU"
-    ],
+    "locales": ["en-US", "fr-FR", "de-DE", "es-419", "pt-BR"],
     "files": {
         "gt": {
             "output": "public/_gt/[locale].json"
