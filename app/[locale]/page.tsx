@@ -14,11 +14,11 @@ import { INTEGRATIONS } from "@/lib/integrations/supports";
 import { cn } from "@/lib/utils";
 import LogoIconImage from "@/public/cache-app-icon.png";
 import IconSmallImage from "@/public/cache-icon-small.png";
-import QRCodeDownloadImage from "@/public/download-qrcode.png";
-import SmartCollectionsBackgroundImage from "@/public/smart-collections-background.webp";
 import CollectionsSectionImage from "@/public/collections-section-image.webp";
-import OrganizeSectionImage from "@/public/organize-section.webp";
+import QRCodeDownloadImage from "@/public/download-qrcode.png";
 import LibrarySectionImage from "@/public/library-section.webp";
+import OrganizeSectionImage from "@/public/organize-section.webp";
+import SmartCollectionsBackgroundImage from "@/public/smart-collections-background.webp";
 import { LocaleSelector, T } from "gt-next";
 import {
     ChevronRight,
@@ -101,6 +101,8 @@ export default async function Home() {
                                 alt="Download QR Code"
                                 className="size-20"
                                 height={80}
+                                loading="eager"
+                                priority
                                 src={QRCodeDownloadImage}
                                 width={80}
                             />
@@ -143,6 +145,8 @@ export default async function Home() {
                                 <Image
                                     alt=""
                                     height={800}
+                                    loading="eager"
+                                    priority
                                     src={LibrarySectionImage}
                                     width={800}
                                 />
@@ -281,7 +285,7 @@ export default async function Home() {
                     </div>
                     <div className="grid w-full grid-cols-1 gap-2 md:grid-cols-2 md:gap-[40px]">
                         <div className="flex max-w-[340px] flex-col gap-[12px] py-[20px] md:gap-[16px]">
-                            <T context="Organization">
+                            <T>
                                 <h2 className="font-medium text-[#0A0B0D] text-[28px] leading-[1.1] tracking-[-1.28px] lg:text-[32px]">
                                     Stay organized. Spot the stale, keep the
                                     useful
@@ -290,7 +294,9 @@ export default async function Home() {
                                     Import once and go from messy to organized
                                     in minutes.
                                 </p>
-                                <ul className="mt-2 flex flex-col space-y-2 text-xs">
+                            </T>
+                            <ul className="mt-2 flex flex-col space-y-2 text-xs">
+                                <T context="Features">
                                     <li className="flex items-center gap-2">
                                         <Component className="inline-block size-4 shrink-0" />
                                         <span>
@@ -311,12 +317,12 @@ export default async function Home() {
                                     <li className="flex items-center gap-2 text-xs">
                                         <CloudDownload className="inline-block size-4 shrink-0" />
                                         <span>
-                                            Export or move out from Cache at any
+                                            Share or export from Cache at any
                                             time you want
                                         </span>
                                     </li>
-                                </ul>
-                            </T>
+                                </T>
+                            </ul>
                         </div>
                         <div className="relative order-first aspect-square w-full overflow-hidden rounded-2xl bg-muted md:order-last">
                             <figure className="h-full overflow-hidden">

@@ -681,6 +681,8 @@ export function SmartCollectionsCallout(): ReactElement {
                                 <Image
                                     alt=""
                                     className="-mx-(--viewport-inline-padding) -mt-4 aspect-32/9 h-auto max-h-24 w-(--positioner-width) min-w-0 max-w-(--positioner-width) rounded-t-lg"
+                                    loading="eager"
+                                    priority
                                     src={SmartCollectionsBackgroundImg}
                                 />
                                 <div className="mt-3 flex max-w-64 flex-col gap-3">

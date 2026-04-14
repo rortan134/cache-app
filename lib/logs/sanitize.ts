@@ -69,7 +69,13 @@ async function redactSensitiveEntities(
 
     try {
         const [redacted] = await redact(text, {
-            entities: ["email", "phone-number", "ip-address", "credit-card"],
+            entities: [
+                "email",
+                "phone-number",
+                "ip-address",
+                "credit-card",
+                "credit-card-number",
+            ],
         });
         context.redactionCache.set(text, redacted);
         return redacted;
