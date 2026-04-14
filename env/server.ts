@@ -22,6 +22,7 @@ export const serverEnv = createEnv({
 
         PINTEREST_CLIENT_ID: z.string().optional(),
         PINTEREST_CLIENT_SECRET: z.string().optional(),
+        SMART_COLLECTIONS_GEMINI_MODEL: z.string().optional(),
 
         STRIPE_PRICE_ID_MONTHLY: z.string().startsWith("price_"), // Stripe price ID for monthly subscription
         STRIPE_PRICE_ID_YEARLY: z.string().startsWith("price_"), // Stripe price ID for yearly subscription

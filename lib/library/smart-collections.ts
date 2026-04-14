@@ -1,11 +1,13 @@
 import "server-only";
 
+import { serverEnv } from "@/env/server";
 import { createLogger } from "@/lib/logs/console/logger";
 import { resolveCobaltDownloadUrl } from "@/lib/library/cobalt";
 import { normalizeCollectionName } from "@/lib/library/utils";
 import { prisma } from "@/prisma";
 import { LibraryItemSource } from "@/prisma/client/enums";
 import {
+    ApiError,
     FileState,
     GoogleGenAI,
     type Part,
@@ -18,7 +20,11 @@ import { tmpdir } from "node:os";
 import { z } from "zod";
 
 const log = createLogger("library:smart-collections");
-const SMART_COLLECTIONS_MODEL = "gemini-3-flash-preview";
+const SMART_COLLECTIONS_DEFAULT_MODEL = "gemini-2.5-flash";
+const SMART_COLLECTIONS_FALLBACK_MODELS = [
+    "gemini-2.5-flash-lite",
+    "gemini-3-flash-preview",
+] as const;
 const SMART_COLLECTIONS_MAX_APPLY_COLLECTIONS = 4;
 const SMART_COLLECTIONS_MAX_NEW_COLLECTIONS = 2;
 const SMART_COLLECTIONS_MAX_DOWNLOAD_BYTES = 100 * 1024 * 1024;
@@ -26,6 +32,7 @@ const SMART_COLLECTIONS_MAX_TEXT_LENGTH = 12_000;
 const SMART_COLLECTIONS_FILE_READY_ATTEMPTS = 20;
 const SMART_COLLECTIONS_FILE_READY_DELAY_MS = 1500;
 const SMART_COLLECTIONS_FETCH_TIMEOUT_MS = 20_000;
+const SMART_COLLECTIONS_MODEL_TIMEOUT_MS = 45_000;
 const COLLECTION_NAME_MAX_LENGTH = 64;
 const HTML_TITLE_PATTERN = /<title[^>]*>([\s\S]*?)<\/title>/i;
 const HTML_DESCRIPTION_PATTERN =
@@ -83,8 +90,52 @@ interface SmartCollectionAttachment {
     readonly parts: Part[];
 }
 
+interface SmartCollectionsModelErrorInfo {
+    readonly message: string;
+    readonly status: number | null;
+}
+
 function resolveGeminiApiKey(): string | null {
-    return process.env.GEMINI_API_KEY ?? process.env.GOOGLE_API_KEY ?? null;
+    return serverEnv.GEMINI_API_KEY ?? serverEnv.GOOGLE_API_KEY ?? null;
+}
+
+function resolveSmartCollectionsModels(): string[] {
+    const configuredModel = serverEnv.SMART_COLLECTIONS_GEMINI_MODEL?.trim();
+
+    return [
+        ...new Set(
+            [
+                configuredModel,
+                SMART_COLLECTIONS_DEFAULT_MODEL,
+                ...SMART_COLLECTIONS_FALLBACK_MODELS,
+            ].filter((model): model is string =>
+                Boolean(model && model.length > 0)
+            )
+        ),
+    ];
+}
+
+function getSmartCollectionsModelErrorInfo(
+    error: unknown
+): SmartCollectionsModelErrorInfo {
+    if (error instanceof ApiError) {
+        return {
+            message: error.message,
+            status: error.status,
+        };
+    }
+
+    if (error instanceof Error) {
+        return {
+            message: error.message,
+            status: null,
+        };
+    }
+
+    return {
+        message: "Unknown model response error",
+        status: null,
+    };
 }
 
 function sleep(ms: number): Promise<void> {
@@ -631,39 +682,80 @@ async function decideCollectionsForItem(
     collections: SmartCollectionCatalogEntry[]
 ): Promise<SmartCollectionDecision | null> {
     const attachment = await createAttachmentForItem(ai, item);
+    const prompt = createPartFromText(buildPrompt(item, collections));
+    const contentVariants = attachment
+        ? [
+              {
+                  contents: [prompt, ...attachment.parts],
+                  label: "with_attachment",
+              },
+              {
+                  contents: [prompt],
+                  label: "metadata_only",
+              },
+          ]
+        : [
+              {
+                  contents: [prompt],
+                  label: "metadata_only",
+              },
+          ];
 
     try {
-        const response = await ai.models.generateContent({
-            config: {
-                maxOutputTokens: 256,
-                responseJsonSchema: smartCollectionDecisionJsonSchema,
-                responseMimeType: "application/json",
-                systemInstruction:
-                    "You organize a user's saved media into focused collections. Be conservative, prefer existing collections, and create new collections only when there is a strong reusable theme.",
-                temperature: 0.1,
-            },
-            contents: [
-                createPartFromText(buildPrompt(item, collections)),
-                ...(attachment?.parts ?? []),
-            ],
-            model: SMART_COLLECTIONS_MODEL,
-        });
+        for (const model of resolveSmartCollectionsModels()) {
+            for (const variant of contentVariants) {
+                try {
+                    const response = await ai.models.generateContent({
+                        config: {
+                            httpOptions: {
+                                retryOptions: {
+                                    attempts: 2,
+                                },
+                                timeout: SMART_COLLECTIONS_MODEL_TIMEOUT_MS,
+                            },
+                            maxOutputTokens: 256,
+                            responseJsonSchema:
+                                smartCollectionDecisionJsonSchema,
+                            responseMimeType: "application/json",
+                            systemInstruction:
+                                "You organize a user's saved media into focused collections. Be conservative, prefer existing collections, and create new collections only when there is a strong reusable theme.",
+                            temperature: 0.1,
+                        },
+                        contents: variant.contents,
+                        model,
+                    });
 
-        const responseText = response.text?.trim();
-        if (!responseText) {
-            return null;
+                    const responseText = response.text?.trim();
+                    if (!responseText) {
+                        log.warn(
+                            "Smart collections decision returned an empty response",
+                            {
+                                itemId: item.id,
+                                model,
+                                source: item.source,
+                                variant: variant.label,
+                            }
+                        );
+                        continue;
+                    }
+
+                    return SmartCollectionDecisionSchema.parse(
+                        JSON.parse(responseText)
+                    );
+                } catch (error) {
+                    const errorInfo = getSmartCollectionsModelErrorInfo(error);
+
+                    log.warn("Smart collections decision attempt failed", {
+                        error: errorInfo.message,
+                        itemId: item.id,
+                        model,
+                        source: item.source,
+                        status: errorInfo.status,
+                        variant: variant.label,
+                    });
+                }
+            }
         }
-
-        return SmartCollectionDecisionSchema.parse(JSON.parse(responseText));
-    } catch (error) {
-        log.warn("Smart collections decision failed", {
-            error:
-                error instanceof Error
-                    ? error.message
-                    : "Unknown model response error",
-            itemId: item.id,
-            source: item.source,
-        });
         return null;
     } finally {
         await attachment?.cleanup?.();

@@ -689,7 +689,8 @@ export function SmartCollectionsCallout(): ReactElement {
                                     <p className="text-foreground text-xs">
                                         Let Cache do the organizing: AI now
                                         groups your related saves into focused,
-                                        contextual collections.
+                                        contextual collections. Cache learns
+                                        your preferences with time.
                                     </p>
                                     <Button
                                         className="ml-auto"
