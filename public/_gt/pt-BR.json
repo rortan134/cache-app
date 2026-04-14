@@ -35,69 +35,6 @@
     }
   ],
   "0e0f0cb623f12ffc": "Cookies e tecnologias semelhantes usados em nossos sites e produtos.",
-  "0f66501d51c11d54": [
-    {
-      "c": "Mantenha tudo organizado. Identifique o que ficou obsoleto e guarde o que ainda é útil",
-      "i": 1,
-      "t": "h2"
-    },
-    {
-      "c": "Importe uma vez e vá da bagunça à organização em minutos.",
-      "i": 2,
-      "t": "p"
-    },
-    {
-      "c": [
-        {
-          "c": [
-            {
-              "i": 5,
-              "t": "Component"
-            },
-            {
-              "c": "Smart Collections ajuda você a separar o que dá para colocar em prática da inspiração",
-              "i": 6,
-              "t": "span"
-            }
-          ],
-          "i": 4,
-          "t": "li"
-        },
-        {
-          "c": [
-            {
-              "i": 8,
-              "t": "Search"
-            },
-            {
-              "c": "Encontre qualquer coisa com busca associativa e OCR integrados",
-              "i": 9,
-              "t": "span"
-            }
-          ],
-          "i": 7,
-          "t": "li"
-        },
-        {
-          "c": [
-            {
-              "i": 11,
-              "t": "CloudDownload"
-            },
-            {
-              "c": "Exporte ou remova do Cache quando quiser",
-              "i": 12,
-              "t": "span"
-            }
-          ],
-          "i": 10,
-          "t": "li"
-        }
-      ],
-      "i": 3,
-      "t": "ul"
-    }
-  ],
   "11503a3d12f43fdd": "Documentos oficiais que regem sua relação conosco e explicam como lidamos com seus dados. Escolha um tópico abaixo para ler o texto completo.",
   "11ccc132c8c38c40": [
     {
@@ -187,6 +124,76 @@
     "i": 1,
     "t": "p"
   },
+  "37b3e0def486a15a": [
+    {
+      "c": "Mantenha tudo organizado. Veja o que está desatualizado e guarde o que ainda é útil",
+      "i": 1,
+      "t": "h2"
+    },
+    {
+      "c": "Importe uma vez e transforme a bagunça em organização em minutos.",
+      "i": 2,
+      "t": "p"
+    },
+    {
+      "c": [
+        {
+          "c": [
+            {
+              "i": 5,
+              "t": "Component"
+            },
+            {
+              "c": [
+                {
+                  "c": "Smart Collections",
+                  "i": 7,
+                  "t": "span"
+                },
+                " ajudam você a separar o que é prático do que é inspiração"
+              ],
+              "i": 6,
+              "t": "span"
+            }
+          ],
+          "i": 4,
+          "t": "li"
+        },
+        {
+          "c": [
+            {
+              "i": 9,
+              "t": "Search"
+            },
+            {
+              "c": "Encontre qualquer coisa com busca associativa e OCR integrados",
+              "i": 10,
+              "t": "span"
+            }
+          ],
+          "i": 8,
+          "t": "li"
+        },
+        {
+          "c": [
+            {
+              "i": 12,
+              "t": "CloudDownload"
+            },
+            {
+              "c": "Exporte ou retire seus dados do Cache quando quiser",
+              "i": 13,
+              "t": "span"
+            }
+          ],
+          "i": 11,
+          "t": "li"
+        }
+      ],
+      "i": 3,
+      "t": "ul"
+    }
+  ],
   "3c61319be1bc2db7": "*As plataformas de terceiros às quais você se conecta por meio do Serviço operam de forma independente da Cache. A Cache não controla as políticas dessas plataformas nem como elas as aplicam, e não se responsabiliza por decisões que elas tomem em relação às suas contas ou ao seu acesso aos serviços delas — incluindo, sem limitação, alterações na disponibilidade — estejam ou não relacionadas ao seu uso da Cache. Você é responsável por cumprir os termos, as políticas e as diretrizes da comunidade de cada plataforma. A Cache não se responsabiliza por qualquer inconveniente, perda ou outro resultado decorrente da sua relação com essas plataformas ou do seu uso do Serviço em conexão com elas. Mais detalhes podem ser encontrados",
   "3d26c791d3bcb69a": "Segurança",
   "3d62bee133111c76": [

@@ -35,69 +35,6 @@
     }
   ],
   "0e0f0cb623f12ffc": "Cookies und ähnliche Technologien, die auf unseren Websites und in unseren Produkten eingesetzt werden.",
-  "0f66501d51c11d54": [
-    {
-      "c": "Bleib organisiert. Sortiere Veraltetes aus, behalte Nützliches",
-      "i": 1,
-      "t": "h2"
-    },
-    {
-      "c": "Einmal importiert, und du wechselst in wenigen Minuten von chaotisch zu organisiert.",
-      "i": 2,
-      "t": "p"
-    },
-    {
-      "c": [
-        {
-          "c": [
-            {
-              "i": 5,
-              "t": "Component"
-            },
-            {
-              "c": "Smart Collections helfen dir dabei, Umsetzbares von Inspiration zu trennen",
-              "i": 6,
-              "t": "span"
-            }
-          ],
-          "i": 4,
-          "t": "li"
-        },
-        {
-          "c": [
-            {
-              "i": 8,
-              "t": "Search"
-            },
-            {
-              "c": "Finde alles mit assoziativer Suche und integrierter OCR",
-              "i": 9,
-              "t": "span"
-            }
-          ],
-          "i": 7,
-          "t": "li"
-        },
-        {
-          "c": [
-            {
-              "i": 11,
-              "t": "CloudDownload"
-            },
-            {
-              "c": "Du kannst jederzeit aus Cache exportieren oder deine Daten an einen anderen Ort verschieben",
-              "i": 12,
-              "t": "span"
-            }
-          ],
-          "i": 10,
-          "t": "li"
-        }
-      ],
-      "i": 3,
-      "t": "ul"
-    }
-  ],
   "11503a3d12f43fdd": "Offizielle Dokumente, die Ihre Beziehung zu uns regeln und erklären, wie wir mit Daten umgehen. Wählen Sie unten ein Thema aus, um den vollständigen Text zu lesen.",
   "11ccc132c8c38c40": [
     {
@@ -187,6 +124,76 @@
     "i": 1,
     "t": "p"
   },
+  "37b3e0def486a15a": [
+    {
+      "c": "Bleib organisiert. Erkenne, was veraltet ist, und behalte, was nützlich ist",
+      "i": 1,
+      "t": "h2"
+    },
+    {
+      "c": "Einmal importieren – und in wenigen Minuten wird aus Chaos Ordnung.",
+      "i": 2,
+      "t": "p"
+    },
+    {
+      "c": [
+        {
+          "c": [
+            {
+              "i": 5,
+              "t": "Component"
+            },
+            {
+              "c": [
+                {
+                  "c": "Smart Collections",
+                  "i": 7,
+                  "t": "span"
+                },
+                " helfen dir dabei, To-dos von Inspiration zu trennen"
+              ],
+              "i": 6,
+              "t": "span"
+            }
+          ],
+          "i": 4,
+          "t": "li"
+        },
+        {
+          "c": [
+            {
+              "i": 9,
+              "t": "Search"
+            },
+            {
+              "c": "Finde alles mit assoziativer Suche und integrierter OCR",
+              "i": 10,
+              "t": "span"
+            }
+          ],
+          "i": 8,
+          "t": "li"
+        },
+        {
+          "c": [
+            {
+              "i": 12,
+              "t": "CloudDownload"
+            },
+            {
+              "c": "Exportiere deine Inhalte aus Cache oder wechsle jederzeit problemlos zu einem anderen Tool",
+              "i": 13,
+              "t": "span"
+            }
+          ],
+          "i": 11,
+          "t": "li"
+        }
+      ],
+      "i": 3,
+      "t": "ul"
+    }
+  ],
   "3c61319be1bc2db7": "*Plattformen von Drittanbietern, die Sie über den Service verbinden, werden unabhängig von Cache betrieben. Cache hat weder Kontrolle über deren Richtlinien noch über deren Umsetzung und ist nicht verantwortlich für Entscheidungen, die diese Plattformen in Bezug auf Ihre Konten oder den Zugriff auf ihre Dienste treffen – einschließlich, aber nicht beschränkt auf Änderungen der Verfügbarkeit –, unabhängig davon, ob diese mit Ihrer Nutzung von Cache zusammenhängen oder nicht. Sie sind dafür verantwortlich, die Bedingungen, Richtlinien und Community-Richtlinien der jeweiligen Plattform einzuhalten. Cache haftet nicht für Unannehmlichkeiten, Verluste oder sonstige Folgen, die sich aus Ihrer Beziehung zu diesen Plattformen oder aus Ihrer Nutzung des Service in Verbindung mit ihnen ergeben. Weitere Einzelheiten finden Sie",
   "3d26c791d3bcb69a": "Sicherheit",
   "3d62bee133111c76": [

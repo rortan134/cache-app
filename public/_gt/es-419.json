@@ -35,69 +35,6 @@
     }
   ],
   "0e0f0cb623f12ffc": "Cookies y tecnologías similares que usamos en nuestros sitios y productos.",
-  "0f66501d51c11d54": [
-    {
-      "c": "Mantente organizado. Detecta lo obsoleto y conserva lo útil",
-      "i": 1,
-      "t": "h2"
-    },
-    {
-      "c": "Importa una vez y pasa del caos al orden en minutos.",
-      "i": 2,
-      "t": "p"
-    },
-    {
-      "c": [
-        {
-          "c": [
-            {
-              "i": 5,
-              "t": "Component"
-            },
-            {
-              "c": "Smart Collections te ayuda a separar lo accionable de la inspiración",
-              "i": 6,
-              "t": "span"
-            }
-          ],
-          "i": 4,
-          "t": "li"
-        },
-        {
-          "c": [
-            {
-              "i": 8,
-              "t": "Search"
-            },
-            {
-              "c": "Encuentra cualquier cosa con búsqueda asociativa y OCR integrado",
-              "i": 9,
-              "t": "span"
-            }
-          ],
-          "i": 7,
-          "t": "li"
-        },
-        {
-          "c": [
-            {
-              "i": 11,
-              "t": "CloudDownload"
-            },
-            {
-              "c": "Exporta o saca tu contenido de Cache cuando quieras",
-              "i": 12,
-              "t": "span"
-            }
-          ],
-          "i": 10,
-          "t": "li"
-        }
-      ],
-      "i": 3,
-      "t": "ul"
-    }
-  ],
   "11503a3d12f43fdd": "Documentos oficiales que rigen tu relación con nosotros y explican cómo manejamos los datos. Elige un tema a continuación para leer el texto completo.",
   "11ccc132c8c38c40": [
     {
@@ -187,6 +124,76 @@
     "i": 1,
     "t": "p"
   },
+  "37b3e0def486a15a": [
+    {
+      "c": "Mantente organizado. Detecta lo desactualizado y conserva lo útil",
+      "i": 1,
+      "t": "h2"
+    },
+    {
+      "c": "Importa una vez y pasa del caos al orden en minutos.",
+      "i": 2,
+      "t": "p"
+    },
+    {
+      "c": [
+        {
+          "c": [
+            {
+              "i": 5,
+              "t": "Component"
+            },
+            {
+              "c": [
+                {
+                  "c": "Smart Collections",
+                  "i": 7,
+                  "t": "span"
+                },
+                " te ayuda a separar lo que requiere acción de la inspiración"
+              ],
+              "i": 6,
+              "t": "span"
+            }
+          ],
+          "i": 4,
+          "t": "li"
+        },
+        {
+          "c": [
+            {
+              "i": 9,
+              "t": "Search"
+            },
+            {
+              "c": "Encuentra cualquier cosa con búsqueda asociativa y OCR integrados",
+              "i": 10,
+              "t": "span"
+            }
+          ],
+          "i": 8,
+          "t": "li"
+        },
+        {
+          "c": [
+            {
+              "i": 12,
+              "t": "CloudDownload"
+            },
+            {
+              "c": "Exporta tu contenido o sácalo de Cache cuando quieras",
+              "i": 13,
+              "t": "span"
+            }
+          ],
+          "i": 11,
+          "t": "li"
+        }
+      ],
+      "i": 3,
+      "t": "ul"
+    }
+  ],
   "3c61319be1bc2db7": "*Las plataformas de terceros que conectas a través del Servicio funcionan de manera independiente de Cache. Cache no controla sus políticas ni la forma en que las aplican, y no se hace responsable de las decisiones que esas plataformas tomen con respecto a tus cuentas o a tu acceso a sus servicios, incluidos, entre otros, cambios en la disponibilidad, estén o no relacionados con tu uso de Cache. Eres responsable de cumplir con los términos, políticas y lineamientos de la comunidad de cada plataforma. Cache no se hace responsable de ningún inconveniente, pérdida u otro resultado derivado de tu relación con esas plataformas o de tu uso del Servicio en conexión con ellas. Puedes encontrar más detalles",
   "3d26c791d3bcb69a": "Seguridad",
   "3d62bee133111c76": [
