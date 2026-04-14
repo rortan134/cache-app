@@ -56,11 +56,8 @@
             window.addEventListener("message", once);
             const script = document.createElement("script");
             script.dataset.cacheApp = "site-bridge";
-            script.textContent = `(function(){try{fetch(${JSON.stringify(
-                `${origin}/api/user/extension-ingest-token`,
-            )},{credentials:"include"}).then(function(res){if(!res||!res.ok){return null;}return res.json().catch(function(){return null;});}).then(function(data){var token=data&&typeof data.token==="string"?data.token:"";if(!token){return;}window.postMessage({type:${JSON.stringify(
-                TOKEN_MESSAGE_TYPE,
-            )},token:token},window.location.origin);}).catch(function(){});}catch(e){}})();`;
+            script.src = chrome.runtime.getURL("cache-site-page-bridge.js");
+            script.async = false;
             (
                 document.documentElement ||
                 document.head ||

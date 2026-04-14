@@ -7,6 +7,8 @@ import {
 import { createAuthClient } from "better-auth/react";
 
 const baseURL = `${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/api/auth`;
+const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID?.trim();
+const hasGoogleOneTapClientId = Boolean(googleClientId);
 
 export const authClient = createAuthClient({
     baseURL,
@@ -14,8 +16,14 @@ export const authClient = createAuthClient({
         genericOAuthClient(),
         stripeClient({ subscription: true }),
         multiSessionClient(),
-        oneTapClient({
-            clientId: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ?? "",
-        }),
+        ...(hasGoogleOneTapClientId
+            ? [
+                  oneTapClient({
+                      clientId: googleClientId ?? "",
+                  }),
+              ]
+            : []),
     ],
 });
+
+export { hasGoogleOneTapClientId };

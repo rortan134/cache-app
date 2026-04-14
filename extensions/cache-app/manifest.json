@@ -53,6 +53,14 @@
         {
             "resources": ["youtube-page-bootstrap.js"],
             "matches": ["https://www.youtube.com/*"]
+        },
+        {
+            "resources": ["cache-site-page-bridge.js"],
+            "matches": [
+                "http://localhost:3000/*",
+                "https://cachd.app/*",
+                "https://*.cachd.app/*"
+            ]
         }
     ]
 }

@@ -192,7 +192,9 @@ export const auth = betterAuth({
     },
     plugins: [
         nextCookies(),
-        oneTap(),
+        oneTap({
+            clientId: requiredEnv("GOOGLE_CLIENT_ID"),
+        }),
         genericOAuth({
             config: genericOAuthConfig,
         }),

@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { authClient } from "@/lib/auth/client";
+import { authClient, hasGoogleOneTapClientId } from "@/lib/auth/client";
 import type { auth } from "@/lib/auth/server";
 import { Info } from "lucide-react";
 import Link from "next/link";
@@ -15,7 +15,7 @@ function GoogleOneTapTrigger() {
     const { data: session } = useSession();
 
     useEffect(() => {
-        if (session) {
+        if (session || !hasGoogleOneTapClientId) {
             return;
         }
 
