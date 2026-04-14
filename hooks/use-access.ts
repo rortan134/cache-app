@@ -3,8 +3,8 @@ import useSWR from "swr";
 
 const { useSession } = authClient;
 
-async function getActiveSubscription(input: { email?: string }) {
-    if (!input?.email) {
+async function getActiveSubscription(email: string | undefined) {
+    if (!email) {
         return null;
     }
     const { data: subscriptions, error } = await authClient.subscription.list();
@@ -32,19 +32,12 @@ function useAccess() {
 
     const { data: subscription, isLoading: _isLoading } = useSWR<
         Awaited<ReturnType<typeof getActiveSubscription>>
-    >(
-        () =>
-            session?.user.email
-                ? getActiveSubscription({ email: session?.user.email })
-                : null,
-        {
-            dedupingInterval: 5000,
-            keepPreviousData: true,
-            refreshWhenHidden: true,
-            refreshWhenOffline: true,
-            revalidateOnMount: false,
-        }
-    );
+    >(session?.user.email, getActiveSubscription, {
+        keepPreviousData: true,
+        refreshWhenHidden: true,
+        refreshWhenOffline: true,
+        revalidateOnMount: false,
+    });
 
     const hasAccess =
         subscription?.status === "active" ||

@@ -441,14 +441,6 @@ function LibraryGridCard({
                         {createdLabel}
                     </span>
                 </div>
-                {postedLabel ? (
-                    <div className="flex items-center justify-between gap-3 py-0.5">
-                        <span>Posted</span>
-                        <span className="text-foreground tabular-nums">
-                            {postedLabel}
-                        </span>
-                    </div>
-                ) : null}
             </div>
         </>
     );
@@ -608,7 +600,7 @@ function LibraryGridCard({
                                         {hasBothDates ? (
                                             <>
                                                 <span className="rounded-full border border-border/50 bg-white/90 px-2 py-0.5 font-medium text-black backdrop-blur-xs">
-                                                    Posted: {postedLabel}
+                                                    Created: {postedLabel}
                                                 </span>
                                                 <span className="rounded-full border border-border/50 bg-white/90 px-2 py-0.5 font-medium text-black backdrop-blur-xs">
                                                     Added: {addedLabel}
