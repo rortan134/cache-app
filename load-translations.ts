@@ -5,7 +5,7 @@ export default async function loadTranslations(
     locale: string
 ): Promise<Record<string, unknown>> {
     const filePath = path.join(
-        process.cwd(),
+        /* turbopackIgnore: true */ process.cwd(),
         "public",
         "_gt",
         `${locale}.json`

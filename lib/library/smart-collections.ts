@@ -1,6 +1,5 @@
 import "server-only";
 
-import { serverEnv } from "@/env/server";
 import { createLogger } from "@/lib/logs/console/logger";
 import { resolveCobaltDownloadUrl } from "@/lib/library/cobalt";
 import { normalizeCollectionName } from "@/lib/library/utils";
@@ -85,7 +84,7 @@ interface SmartCollectionAttachment {
 }
 
 function resolveGeminiApiKey(): string | null {
-    return serverEnv.GEMINI_API_KEY ?? serverEnv.GOOGLE_API_KEY ?? null;
+    return process.env.GEMINI_API_KEY ?? process.env.GOOGLE_API_KEY ?? null;
 }
 
 function sleep(ms: number): Promise<void> {
@@ -361,10 +360,13 @@ async function downloadRemoteAsset(
             inferMimeTypeFromUrl(response.url || url) ??
             "application/octet-stream";
         const filePath = join(
-            tmpdir(),
+            /* turbopackIgnore: true */ tmpdir(),
             `cache-smart-collections-${crypto.randomUUID()}${tempExtensionForMimeType(mimeType)}`
         );
-        const fileHandle = await open(filePath, "w");
+        const fileHandle = await open(
+            /* turbopackIgnore: true */ filePath,
+            "w"
+        );
         const reader = response.body.getReader();
         let downloadedBytes = 0;
 
@@ -385,7 +387,9 @@ async function downloadRemoteAsset(
                         "Smart collections asset exceeded the maximum download size."
                     );
                     await fileHandle.close();
-                    await rm(filePath, { force: true });
+                    await rm(/* turbopackIgnore: true */ filePath, {
+                        force: true,
+                    });
                     return null;
                 }
 
@@ -397,7 +401,9 @@ async function downloadRemoteAsset(
 
         return {
             cleanup: async () => {
-                await rm(filePath, { force: true });
+                await rm(/* turbopackIgnore: true */ filePath, {
+                    force: true,
+                });
             },
             mimeType,
             path: filePath,
@@ -564,7 +570,10 @@ async function createAttachmentForItem(
 
         if (isTextLikeMimeType(asset.mimeType)) {
             try {
-                const rawText = await readFile(asset.path, "utf8");
+                const rawText = await readFile(
+                    /* turbopackIgnore: true */ asset.path,
+                    "utf8"
+                );
                 const extractedText = extractTextContent(
                     rawText,
                     asset.mimeType
