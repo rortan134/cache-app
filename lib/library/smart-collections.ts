@@ -91,6 +91,7 @@ interface SmartCollectionAttachment {
 }
 
 interface SmartCollectionsModelErrorInfo {
+    readonly details?: unknown;
     readonly message: string;
     readonly status: number | null;
 }
@@ -122,6 +123,15 @@ function getSmartCollectionsModelErrorInfo(
         return {
             message: error.message,
             status: error.status,
+        };
+    }
+
+    if (error instanceof z.ZodError) {
+        return {
+            details: error.flatten(),
+            message:
+                "Smart collections response did not match the expected schema.",
+            status: null,
         };
     }
 
@@ -746,6 +756,7 @@ async function decideCollectionsForItem(
                     const errorInfo = getSmartCollectionsModelErrorInfo(error);
 
                     log.warn("Smart collections decision attempt failed", {
+                        details: errorInfo.details,
                         error: errorInfo.message,
                         itemId: item.id,
                         model,

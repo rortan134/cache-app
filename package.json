@@ -45,6 +45,7 @@
         "nanoid": "^5.1.7",
         "next": "16.2.3",
         "nuqs": "^2.8.9",
+        "p-retry": "^8.0.0",
         "react": "19.2.5",
         "react-confetti-burst": "^1.0.7",
         "react-dom": "19.2.5",
