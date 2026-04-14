@@ -1,6 +1,7 @@
 import { LibraryItemSource } from "@/prisma/client/enums";
 import { auth } from "@/lib/auth/server";
 import { DEFAULT_BROWSER_PROFILE_ID } from "@/lib/library/chrome-bookmarks";
+import { autoTagLibraryItemsByIds } from "@/lib/library/smart-collections";
 import {
     listPinterestBoardPins,
     listPinterestBoards,
@@ -8,6 +9,7 @@ import {
 } from "@/lib/integrations/pinterest/api";
 import { prisma } from "@/prisma";
 import { headers } from "next/headers";
+import { after } from "next/server";
 
 const PINTEREST_PROVIDER_ID = "pinterest";
 
@@ -54,8 +56,26 @@ async function importPinterestBoards(
     boardsCount: number;
     importedCount: number;
     skippedCount: number;
+    smartCollectionItemIds: string[];
 }> {
     const libraryItemDelegate = prisma.libraryItem as unknown as {
+        findMany(args: {
+            select: {
+                externalId: true;
+            };
+            where: {
+                browserProfileId: string;
+                externalId: {
+                    in: string[];
+                };
+                source: LibraryItemSource;
+                userId: string;
+            };
+        }): Promise<
+            {
+                externalId: string;
+            }[]
+        >;
         upsert(args: {
             create: {
                 browserProfileId: string;
@@ -66,6 +86,9 @@ async function importPinterestBoards(
                 thumbnailUrl: string | null;
                 url: string;
                 userId: string;
+            };
+            select: {
+                id: true;
             };
             update: {
                 browserProfileId: string;
@@ -82,10 +105,19 @@ async function importPinterestBoards(
                     userId: string;
                 };
             };
-        }): Promise<unknown>;
+        }): Promise<{
+            id: string;
+        }>;
     };
     const boards = await listPinterestBoards(accessToken);
     const importedExternalIds = new Set<string>();
+    const pinsToImport: {
+        caption: string | null;
+        externalId: string;
+        scrapedAt: Date | null;
+        thumbnailUrl: string | null;
+        url: string;
+    }[] = [];
     let skippedCount = 0;
 
     for (const board of boards) {
@@ -101,34 +133,65 @@ async function importPinterestBoards(
                 skippedCount += 1;
                 continue;
             }
+            pinsToImport.push(pin);
+        }
+    }
 
-            await libraryItemDelegate.upsert({
-                create: {
+    const existingRows =
+        pinsToImport.length > 0
+            ? await libraryItemDelegate.findMany({
+                  select: {
+                      externalId: true,
+                  },
+                  where: {
+                      browserProfileId: DEFAULT_BROWSER_PROFILE_ID,
+                      externalId: {
+                          in: pinsToImport.map((pin) => pin.externalId),
+                      },
+                      source: LibraryItemSource.pinterest,
+                      userId,
+                  },
+              })
+            : [];
+    const existingExternalIds = new Set(
+        existingRows.map((row) => row.externalId)
+    );
+    const smartCollectionItemIds = new Set<string>();
+
+    for (const pin of pinsToImport) {
+        const savedRow = await libraryItemDelegate.upsert({
+            create: {
+                browserProfileId: DEFAULT_BROWSER_PROFILE_ID,
+                caption: pin.caption,
+                externalId: pin.externalId,
+                scrapedAt: pin.scrapedAt,
+                source: LibraryItemSource.pinterest,
+                thumbnailUrl: pin.thumbnailUrl,
+                url: pin.url,
+                userId,
+            },
+            select: {
+                id: true,
+            },
+            update: {
+                browserProfileId: DEFAULT_BROWSER_PROFILE_ID,
+                caption: pin.caption,
+                scrapedAt: pin.scrapedAt,
+                thumbnailUrl: pin.thumbnailUrl,
+                url: pin.url,
+            },
+            where: {
+                userId_source_browserProfileId_externalId: {
                     browserProfileId: DEFAULT_BROWSER_PROFILE_ID,
-                    caption: pin.caption,
                     externalId: pin.externalId,
-                    scrapedAt: pin.scrapedAt,
                     source: LibraryItemSource.pinterest,
-                    thumbnailUrl: pin.thumbnailUrl,
-                    url: pin.url,
                     userId,
                 },
-                update: {
-                    browserProfileId: DEFAULT_BROWSER_PROFILE_ID,
-                    caption: pin.caption,
-                    scrapedAt: pin.scrapedAt,
-                    thumbnailUrl: pin.thumbnailUrl,
-                    url: pin.url,
-                },
-                where: {
-                    userId_source_browserProfileId_externalId: {
-                        browserProfileId: DEFAULT_BROWSER_PROFILE_ID,
-                        externalId: pin.externalId,
-                        source: LibraryItemSource.pinterest,
-                        userId,
-                    },
-                },
-            });
+            },
+        });
+
+        if (!existingExternalIds.has(pin.externalId)) {
+            smartCollectionItemIds.add(savedRow.id);
         }
     }
 
@@ -136,6 +199,7 @@ async function importPinterestBoards(
         boardsCount: boards.length,
         importedCount: importedExternalIds.size,
         skippedCount,
+        smartCollectionItemIds: [...smartCollectionItemIds],
     };
 }
 
@@ -169,7 +233,19 @@ export async function POST() {
     }
 
     try {
-        return Response.json(await importPinterestBoards(accessToken, userId));
+        const result = await importPinterestBoards(accessToken, userId);
+        const { smartCollectionItemIds, ...response } = result;
+
+        if (smartCollectionItemIds.length > 0) {
+            after(async () => {
+                await autoTagLibraryItemsByIds({
+                    itemIds: smartCollectionItemIds,
+                    userId,
+                });
+            });
+        }
+
+        return Response.json(response);
     } catch (error) {
         if (error instanceof PinterestApiError) {
             return Response.json(

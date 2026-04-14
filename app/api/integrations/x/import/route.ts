@@ -4,10 +4,12 @@ import {
     listXBookmarks,
     XApiError,
 } from "@/lib/integrations/x/api";
+import { autoTagLibraryItemsByIds } from "@/lib/library/smart-collections";
 import { importLibraryItemSnapshot } from "@/lib/library/snapshot-import";
 import { prisma } from "@/prisma";
 import { LibraryItemSource } from "@/prisma/client/enums";
 import { headers } from "next/headers";
+import { after } from "next/server";
 
 const X_PROVIDER_ID = "x";
 
@@ -94,9 +96,19 @@ export async function POST() {
             source: LibraryItemSource.x_bookmarks,
             userId,
         });
+        const { smartCollectionItemIds, ...snapshotResult } = result;
+
+        if (smartCollectionItemIds.length > 0) {
+            after(async () => {
+                await autoTagLibraryItemsByIds({
+                    itemIds: smartCollectionItemIds,
+                    userId,
+                });
+            });
+        }
 
         return Response.json({
-            ...result,
+            ...snapshotResult,
             totalFetched: bookmarks.length,
             xUserId: xUser.id,
         });

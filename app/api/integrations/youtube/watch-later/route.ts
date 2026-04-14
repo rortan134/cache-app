@@ -3,8 +3,10 @@ import {
     parseBearerToken,
     resolveExtensionIngestUserId,
 } from "@/lib/library/extension-ingest";
+import { autoTagLibraryItemsByIds } from "@/lib/library/smart-collections";
 import { importLibraryItemSnapshot } from "@/lib/library/snapshot-import";
 import { LibraryItemSource } from "@/prisma/client/enums";
+import { after } from "next/server";
 import * as z from "zod";
 
 const optionalStringField = z
@@ -119,10 +121,20 @@ export async function POST(request: Request) {
         source: LibraryItemSource.youtube_watch_later,
         userId,
     });
+    const { smartCollectionItemIds, ...snapshotResult } = result;
+
+    if (smartCollectionItemIds.length > 0) {
+        after(async () => {
+            await autoTagLibraryItemsByIds({
+                itemIds: smartCollectionItemIds,
+                userId,
+            });
+        });
+    }
 
     return Response.json(
         {
-            ...result,
+            ...snapshotResult,
             ok: true,
             received: parsed.data.items.length,
             snapshotComplete: parsed.data.snapshotComplete,

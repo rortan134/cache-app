@@ -3,9 +3,11 @@ import {
     normalizeLibrarySource,
     parseBearerToken,
     resolveExtensionIngestUserId,
-    upsertLibraryItemsFromIngest,
     type IngestItemInput,
+    upsertLibraryItemsFromIngest,
 } from "@/lib/library/extension-ingest";
+import { autoTagLibraryItemsByIds } from "@/lib/library/smart-collections";
+import { after } from "next/server";
 import * as z from "zod";
 
 const itemSchema = z
@@ -84,14 +86,27 @@ export async function POST(request: Request) {
     }
 
     const source = normalizeLibrarySource(parsed.data.source);
-    const written = await upsertLibraryItemsFromIngest(
+    const result = await upsertLibraryItemsFromIngest(
         userId,
         source,
         parsed.data.items as IngestItemInput[]
     );
 
+    if (result.smartCollectionItemIds.length > 0) {
+        after(async () => {
+            await autoTagLibraryItemsByIds({
+                itemIds: result.smartCollectionItemIds,
+                userId,
+            });
+        });
+    }
+
     return Response.json(
-        { ok: true, received: parsed.data.items.length, upserted: written },
+        {
+            ok: true,
+            received: parsed.data.items.length,
+            upserted: result.upsertedCount,
+        },
         { headers: cors }
     );
 }

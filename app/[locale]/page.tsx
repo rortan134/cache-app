@@ -3,7 +3,7 @@ import { SessionHint } from "@/components/auth/session";
 import { Button } from "@/components/ui/button";
 import { Footer } from "@/components/ui/footer";
 import { GradientWaveText } from "@/components/ui/gradient-wave-text";
-import { Chrome } from "@/components/ui/integration-icons";
+import { Chrome, TikTok } from "@/components/ui/integration-icons";
 import { LogoContextMenu } from "@/components/ui/logo-context-menu";
 import { PageShell } from "@/components/ui/page-shell";
 import { Sidebar, SidebarFooter, SidebarHeader } from "@/components/ui/sidebar";
@@ -11,10 +11,22 @@ import { buildLocaleAlternates } from "@/lib/alternates";
 import { getServerSession } from "@/lib/auth/server";
 import { gtPublicString } from "@/lib/gt-public-json";
 import { INTEGRATIONS } from "@/lib/integrations/supports";
+import { cn } from "@/lib/utils";
 import LogoIconImage from "@/public/cache-app-icon.png";
+import IconSmallImage from "@/public/cache-icon-small.png";
 import QRCodeDownloadImage from "@/public/download-qrcode.png";
+import SmartCollectionsBackgroundImage from "@/public/smart-collections-background.webp";
+import CollectionsSectionImage from "@/public/collections-section-image.webp";
+import OrganizeSectionImage from "@/public/organize-section.webp";
+import LibrarySectionImage from "@/public/library-section.webp";
 import { LocaleSelector, T } from "gt-next";
-import { ChevronRight, CloudDownload, Component, Search } from "lucide-react";
+import {
+    ChevronRight,
+    CircleCheck,
+    CloudDownload,
+    Component,
+    Search,
+} from "lucide-react";
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
@@ -128,7 +140,12 @@ export default async function Home() {
                         </div>
                         <div className="order-first aspect-square w-full overflow-hidden rounded-2xl bg-muted md:order-last">
                             <figure className="overflow-hidden">
-                                {/* <Image alt="" height={800} src="" width={800} /> */}
+                                <Image
+                                    alt=""
+                                    height={800}
+                                    src={LibrarySectionImage}
+                                    width={800}
+                                />
                             </figure>
                         </div>
                     </div>
@@ -147,15 +164,69 @@ export default async function Home() {
                                     you.
                                 </p>
                             </T>
-                            <div className="mt-2 flex w-full items-center gap-5">
-                                {INTEGRATIONS.map(({ id, Icon }) => (
-                                    <Icon className="size-6" key={id} />
-                                ))}
-                            </div>
                         </div>
                         <div className="order-first aspect-square w-full overflow-hidden rounded-2xl bg-muted md:order-last">
-                            <figure className="overflow-hidden">
-                                {/* <Image alt="" height={800} src="" width={800} /> */}
+                            <figure className="relative flex h-full items-center justify-center overflow-hidden p-6">
+                                <div className="relative mx-auto flex w-full max-w-sm items-center justify-between">
+                                    <div className="space-y-6">
+                                        {INTEGRATIONS.slice(0, 3).map(
+                                            ({ id, Icon }, index) => (
+                                                <IntegrationCard
+                                                    key={id}
+                                                    position={
+                                                        [
+                                                            "left-top",
+                                                            "left-middle",
+                                                            "left-bottom",
+                                                        ][
+                                                            index
+                                                        ] as IntegrationCardPosition
+                                                    }
+                                                >
+                                                    <Icon className="size-6" />
+                                                </IntegrationCard>
+                                            )
+                                        )}
+                                    </div>
+                                    <div className="relative z-20 rounded-2xl border bg-muted p-1">
+                                        <IntegrationCard
+                                            className="size-16 border-black/20 shadow-black/10 shadow-xl"
+                                            isCenter
+                                        >
+                                            <Image
+                                                alt="Cache"
+                                                className="size-9"
+                                                height={32}
+                                                src={IconSmallImage}
+                                                width={32}
+                                            />
+                                        </IntegrationCard>
+                                    </div>
+                                    <div
+                                        aria-hidden
+                                        className="mask-[radial-gradient(ellipse_50%_50%_at_50%_50%,#000_70%,transparent_100%)] absolute inset-1/3 bg-[radial-gradient(var(--dots-color)_1px,transparent_1px)] bg-size-[16px_16px] opacity-50 [--dots-color:black]"
+                                    />
+                                    <div className="space-y-6">
+                                        {INTEGRATIONS.slice(3, 6).map(
+                                            ({ id, Icon }, index) => (
+                                                <IntegrationCard
+                                                    key={id}
+                                                    position={
+                                                        [
+                                                            "right-top",
+                                                            "right-middle",
+                                                            "right-bottom",
+                                                        ][
+                                                            index
+                                                        ] as IntegrationCardPosition
+                                                    }
+                                                >
+                                                    <Icon className="size-6" />
+                                                </IntegrationCard>
+                                            )
+                                        )}
+                                    </div>
+                                </div>
                             </figure>
                         </div>
                     </div>
@@ -174,7 +245,12 @@ export default async function Home() {
                         </div>
                         <div className="order-first aspect-square w-full overflow-hidden rounded-2xl bg-muted md:order-last">
                             <figure className="overflow-hidden">
-                                {/* <Image alt="" height={800} src="" width={800} /> */}
+                                <Image
+                                    alt=""
+                                    height={800}
+                                    src={OrganizeSectionImage}
+                                    width={800}
+                                />
                             </figure>
                         </div>
                     </div>
@@ -194,7 +270,12 @@ export default async function Home() {
                         </div>
                         <div className="order-first aspect-square w-full overflow-hidden rounded-2xl bg-muted md:order-last">
                             <figure className="overflow-hidden">
-                                {/* <Image alt="" height={800} src="" width={800} /> */}
+                                <Image
+                                    alt=""
+                                    height={800}
+                                    src={CollectionsSectionImage}
+                                    width={800}
+                                />
                             </figure>
                         </div>
                     </div>
@@ -213,8 +294,11 @@ export default async function Home() {
                                     <li className="flex items-center gap-2">
                                         <Component className="inline-block size-4 shrink-0" />
                                         <span>
-                                            Smart Collections helps you separate
-                                            the actionable from the inspiration
+                                            <span className="font-medium">
+                                                Smart Collections
+                                            </span>{" "}
+                                            helps you separate the actionable
+                                            from the inspiration
                                         </span>
                                     </li>
                                     <li className="flex items-center gap-2 text-xs">
@@ -234,9 +318,90 @@ export default async function Home() {
                                 </ul>
                             </T>
                         </div>
-                        <div className="order-first aspect-square w-full overflow-hidden rounded-2xl bg-muted md:order-last">
-                            <figure className="overflow-hidden">
-                                {/* <Image alt="" height={800} src="" width={800} /> */}
+                        <div className="relative order-first aspect-square w-full overflow-hidden rounded-2xl bg-muted md:order-last">
+                            <figure className="h-full overflow-hidden">
+                                <Image
+                                    alt=""
+                                    className="absolute inset-0 size-full object-cover"
+                                    src={SmartCollectionsBackgroundImage}
+                                />
+                                <div className="relative flex h-full items-center justify-center p-8 py-12">
+                                    <div
+                                        aria-hidden
+                                        className="w-full max-w-96"
+                                    >
+                                        <div className="flex items-center gap-2 rounded-xl border bg-background p-3 shadow-sm">
+                                            <CircleCheck className="size-4 fill-emerald-500/15 text-emerald-500" />
+                                            <span className="font-medium text-foreground text-sm">
+                                                Library organized
+                                            </span>
+                                        </div>
+                                        <div className="relative space-y-4 pt-6 pl-6">
+                                            <div className="absolute top-0 bottom-8 left-6 border-border border-l border-dashed mix-blend-color-dodge" />
+                                            <div className="relative pl-6">
+                                                <div className="absolute top-0 bottom-1/2 left-0 w-6 rounded-bl-full border-border border-b border-l border-dashed mix-blend-color-dodge" />
+                                                <div className="flex items-center gap-2 rounded-xl border bg-background p-3 shadow-sm">
+                                                    <Chrome className="size-3.5" />
+                                                    <span className="font-medium text-[11px] text-muted-foreground">
+                                                        Bookmarks imported
+                                                        <span className="pl-3 text-foreground/50">
+                                                            1m ago
+                                                        </span>
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            <div className="relative pl-6">
+                                                <div className="absolute top-0 bottom-1/2 left-0 w-6 rounded-bl-full border-border border-b border-l border-dashed mix-blend-color-dodge" />
+                                                <div className="flex items-center gap-2 rounded-xl border bg-background p-3 shadow-sm">
+                                                    <TikTok className="size-3.5" />
+                                                    <span className="font-medium text-[11px] text-muted-foreground">
+                                                        Bookmarks imported
+                                                        <span className="pl-3 text-foreground/50">
+                                                            1m ago
+                                                        </span>
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            <div className="relative pl-6">
+                                                <div className="absolute top-0 bottom-1/2 left-0 w-6 rounded-bl-full border-border border-b border-l border-dashed mix-blend-color-dodge" />
+                                                <div className="flex items-center gap-2 rounded-xl border bg-background p-3 shadow-sm">
+                                                    <Component className="size-3.5" />
+                                                    <span className="font-medium text-[11px] text-muted-foreground">
+                                                        Smart Collections sorted
+                                                        40 entries
+                                                        <span className="pl-3 text-foreground/50">
+                                                            24s ago
+                                                        </span>
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            <div className="relative pl-6">
+                                                <div className="absolute top-0 bottom-1/2 left-0 w-6 rounded-bl-full border-border border-b border-l border-dashed mix-blend-color-dodge" />
+                                                <div className="flex items-center gap-2 rounded-xl border bg-background p-3 shadow-sm">
+                                                    <Search className="size-3.5" />
+                                                    <span className="font-medium text-[11px] text-muted-foreground">
+                                                        OCR search indexed
+                                                        <span className="pl-3 text-foreground/50">
+                                                            8s ago
+                                                        </span>
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            <div className="relative pl-6">
+                                                <div className="absolute top-0 bottom-1/2 left-0 w-6 rounded-bl-full border-border border-b border-l border-dashed mix-blend-color-dodge" />
+                                                <div className="flex items-center gap-2 rounded-xl border bg-background p-3 shadow-sm">
+                                                    <CloudDownload className="size-3.5" />
+                                                    <span className="font-medium text-[11px] text-muted-foreground">
+                                                        Export ready
+                                                        <span className="pl-3 text-foreground/50">
+                                                            now
+                                                        </span>
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                             </figure>
                         </div>
                     </div>
@@ -244,5 +409,62 @@ export default async function Home() {
                 </div>
             </div>
         </PageShell>
+    );
+}
+
+type IntegrationCardPosition =
+    | "left-top"
+    | "left-middle"
+    | "left-bottom"
+    | "right-top"
+    | "right-middle"
+    | "right-bottom";
+
+function IntegrationCard({
+    children,
+    className,
+    position,
+    isCenter = false,
+}: {
+    children: React.ReactNode;
+    className?: string;
+    position?: IntegrationCardPosition;
+    isCenter?: boolean;
+}) {
+    return (
+        <div
+            className={cn(
+                "relative flex size-12 rounded-xl border bg-background",
+                className
+            )}
+        >
+            <div
+                className={cn(
+                    "relative z-20 m-auto size-fit *:size-6",
+                    isCenter && "*:size-8"
+                )}
+            >
+                {children}
+            </div>
+            {position && !isCenter && (
+                <div
+                    className={cn(
+                        "absolute z-10 h-px bg-linear-to-r to-muted-foreground/25",
+                        position === "left-top" &&
+                            "top-1/2 left-full w-[130px] origin-left rotate-25",
+                        position === "left-middle" &&
+                            "top-1/2 left-full w-[120px] origin-left",
+                        position === "left-bottom" &&
+                            "top-1/2 left-full w-[130px] origin-left rotate-[-25deg]",
+                        position === "right-top" &&
+                            "top-1/2 right-full w-[130px] origin-right rotate-[-25deg] bg-linear-to-l",
+                        position === "right-middle" &&
+                            "top-1/2 right-full w-[120px] origin-right bg-linear-to-l",
+                        position === "right-bottom" &&
+                            "top-1/2 right-full w-[130px] origin-right rotate-25 bg-linear-to-l"
+                    )}
+                />
+            )}
+        </div>
     );
 }

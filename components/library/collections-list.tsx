@@ -42,23 +42,25 @@ import { getSourceLabel } from "@/lib/integrations/supports";
 import type { LibraryCollectionSummary } from "@/lib/library/types";
 import { cn } from "@/lib/utils";
 import type { CollectionPriority } from "@/prisma/client/enums";
+import SmartCollectionsBackgroundImg from "@/public/smart-collections-background-wide.webp";
 import {
     ArchiveIcon,
     Component,
     CopyIcon,
     EllipsisIcon,
-    PencilIcon,
     ExternalLinkIcon,
     FileSpreadsheetIcon,
     Group,
     Info,
     type LucideIcon,
+    PencilIcon,
     SignalHigh,
     SignalMedium,
     Sparkle,
     Sparkles,
     Trash2Icon,
 } from "lucide-react";
+import Image from "next/image";
 import type { CSSProperties, ReactElement } from "react";
 import { useEffect, useRef, useState } from "react";
 
@@ -671,23 +673,29 @@ export function SmartCollectionsCallout(): ReactElement {
                                     Smart Collections
                                 </GradientWaveText>
                             </PopoverTrigger>
-                            <PopoverPopup align="start" tooltipStyle>
-                                <div className="flex gap-2">
-                                    <Info className="mt-0.5 inline-block size-4 shrink-0" />
-                                    <div className="flex flex-col gap-2">
-                                        <p className="text-foreground">
-                                            Let Cache do the organizing: AI now
-                                            groups your related saves into
-                                            focused, contextual collections.
-                                        </p>
-                                        <Button
-                                            className="ml-auto"
-                                            size="xs"
-                                            variant="destructive-outline"
-                                        >
-                                            Disable
-                                        </Button>
-                                    </div>
+                            <PopoverPopup
+                                align="start"
+                                className="max-w-64"
+                                positionMethod="fixed"
+                            >
+                                <Image
+                                    alt=""
+                                    className="-mx-(--viewport-inline-padding) -mt-4 aspect-32/9 h-auto max-h-24 w-(--positioner-width) min-w-0 max-w-(--positioner-width) rounded-t-lg"
+                                    src={SmartCollectionsBackgroundImg}
+                                />
+                                <div className="mt-3 flex max-w-64 flex-col gap-3">
+                                    <p className="text-foreground text-xs">
+                                        Let Cache do the organizing: AI now
+                                        groups your related saves into focused,
+                                        contextual collections.
+                                    </p>
+                                    <Button
+                                        className="ml-auto"
+                                        size="xs"
+                                        variant="destructive-outline"
+                                    >
+                                        Disable
+                                    </Button>
                                 </div>
                             </PopoverPopup>
                         </Popover>{" "}

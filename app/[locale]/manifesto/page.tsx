@@ -82,7 +82,7 @@ export default function Manifesto() {
                     <article className="flex flex-col gap-12 text-[#0A0B0D]">
                         <section className="flex flex-col gap-6">
                             <T context="Manifesto Section 1">
-                                <h2 className="font-medium text-[2.5rem] leading-[1.1] tracking-[-0.05rem]">
+                                <h2 className="font-medium text-[2rem] leading-[1.1] tracking-[-0.05rem]">
                                     You're Going to Scroll Anyway
                                 </h2>
                                 <p className="text-[1.25rem] leading-[1.4] opacity-80">

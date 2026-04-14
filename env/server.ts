@@ -12,6 +12,8 @@ export const serverEnv = createEnv({
 
         DATABASE_URL: z.string().startsWith("postgres://"), // Primary database connection string
 
+        GEMINI_API_KEY: z.string().optional(),
+        GOOGLE_API_KEY: z.string().optional(),
         GOOGLE_CLIENT_ID: z.string(),
         GOOGLE_CLIENT_SECRET: z.string(),
 

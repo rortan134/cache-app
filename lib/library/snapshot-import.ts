@@ -43,6 +43,7 @@ export interface SnapshotImportResult {
     readonly importedCount: number;
     readonly prunedCount: number;
     readonly skippedCount: number;
+    readonly smartCollectionItemIds: readonly string[];
     readonly updatedCount: number;
 }
 
@@ -70,6 +71,9 @@ interface LibraryItemDelegate {
     }): Promise<ExistingLibraryItem[]>;
     upsert(args: {
         create: SnapshotImportRow & { userId: string };
+        select: {
+            id: true;
+        };
         update: Omit<SnapshotImportRow, "externalId" | "source">;
         where: {
             userId_source_browserProfileId_externalId: {
@@ -79,7 +83,9 @@ interface LibraryItemDelegate {
                 userId: string;
             };
         };
-    }): Promise<unknown>;
+    }): Promise<{
+        id: string;
+    }>;
 }
 
 function normalizeSnapshotRow(
@@ -131,6 +137,116 @@ function chunkRows<T>(rows: readonly T[], size: number) {
     return chunks;
 }
 
+async function importSnapshotProfileRows(args: {
+    readonly browserProfileId: string;
+    readonly libraryItemDelegate: LibraryItemDelegate;
+    readonly rows: readonly SnapshotImportRow[];
+    readonly snapshotComplete: boolean;
+    readonly source: LibraryItemSource;
+    readonly userId: string;
+}): Promise<{
+    importedCount: number;
+    prunedCount: number;
+    smartCollectionItemIds: string[];
+    updatedCount: number;
+}> {
+    const existingRows = await args.libraryItemDelegate.findMany({
+        select: { externalId: true, id: true },
+        where: {
+            browserProfileId: args.browserProfileId,
+            source: args.source,
+            userId: args.userId,
+        },
+    });
+    const existingExternalIds = new Set(
+        existingRows.map((row) => row.externalId)
+    );
+    const importedCount = args.rows.filter(
+        (row) => !existingExternalIds.has(row.externalId)
+    ).length;
+    const smartCollectionItemIds = new Set<string>();
+
+    for (const batch of chunkRows(args.rows, SNAPSHOT_UPSERT_BATCH_SIZE)) {
+        const savedRows = await Promise.all(
+            batch.map((row) =>
+                args.libraryItemDelegate.upsert({
+                    create: {
+                        ...row,
+                        userId: args.userId,
+                    },
+                    select: {
+                        id: true,
+                    },
+                    update: {
+                        browserProfileId: row.browserProfileId,
+                        caption: row.caption,
+                        kind: row.kind,
+                        parentExternalId: row.parentExternalId,
+                        postedAt: row.postedAt,
+                        scrapedAt: row.scrapedAt,
+                        sourceDeviceId: row.sourceDeviceId,
+                        sourceDeviceName: row.sourceDeviceName,
+                        sourceMetadata: row.sourceMetadata,
+                        thumbnailUrl: row.thumbnailUrl,
+                        url: row.url,
+                    },
+                    where: {
+                        userId_source_browserProfileId_externalId: {
+                            browserProfileId: row.browserProfileId,
+                            externalId: row.externalId,
+                            source: args.source,
+                            userId: args.userId,
+                        },
+                    },
+                })
+            )
+        );
+
+        for (const [index, savedRow] of savedRows.entries()) {
+            const sourceRow = batch[index];
+            if (
+                sourceRow &&
+                sourceRow.kind !== "folder" &&
+                !existingExternalIds.has(sourceRow.externalId)
+            ) {
+                smartCollectionItemIds.add(savedRow.id);
+            }
+        }
+    }
+
+    if (!args.snapshotComplete) {
+        return {
+            importedCount,
+            prunedCount: 0,
+            smartCollectionItemIds: [...smartCollectionItemIds],
+            updatedCount: args.rows.length - importedCount,
+        };
+    }
+
+    const retainedExternalIds = args.rows.map((row) => row.externalId);
+    const deleteResult = await args.libraryItemDelegate.deleteMany({
+        where: {
+            browserProfileId: args.browserProfileId,
+            ...(retainedExternalIds.length > 0
+                ? {
+                      externalId: {
+                          notIn: retainedExternalIds,
+                      },
+                  }
+                : {}),
+            source: args.source,
+            userId: args.userId,
+        },
+    });
+
+    return {
+        importedCount,
+        prunedCount: deleteResult.count,
+        smartCollectionItemIds: [...smartCollectionItemIds],
+        updatedCount: args.rows.length - importedCount,
+    };
+}
+
 export async function importLibraryItemSnapshot(args: {
     readonly browserProfileIdsToSync?: readonly string[];
     readonly items: readonly SnapshotImportItemInput[];
@@ -155,6 +271,7 @@ export async function importLibraryItemSnapshot(args: {
     let importedCount = 0;
     let updatedCount = 0;
     let prunedCount = 0;
+    const smartCollectionItemIds = new Set<string>();
 
     await prisma.$transaction(
         async (tx) => {
@@ -165,81 +282,20 @@ export async function importLibraryItemSnapshot(args: {
                 const rows = [
                     ...(rowsByProfile.get(browserProfileId)?.values() ?? []),
                 ];
-                const existingRows = await libraryItemDelegate.findMany({
-                    select: { externalId: true, id: true },
-                    where: {
-                        browserProfileId,
-                        source: args.source,
-                        userId: args.userId,
-                    },
-                });
-                const existingExternalIds = new Set(
-                    existingRows.map((row) => row.externalId)
-                );
-                const nextImportedCount = rows.filter(
-                    (row) => !existingExternalIds.has(row.externalId)
-                ).length;
-                importedCount += nextImportedCount;
-                updatedCount += rows.length - nextImportedCount;
-
-                for (const batch of chunkRows(
+                const profileResult = await importSnapshotProfileRows({
+                    browserProfileId,
+                    libraryItemDelegate,
                     rows,
-                    SNAPSHOT_UPSERT_BATCH_SIZE
-                )) {
-                    await Promise.all(
-                        batch.map((row) =>
-                            libraryItemDelegate.upsert({
-                                create: {
-                                    ...row,
-                                    userId: args.userId,
-                                },
-                                update: {
-                                    browserProfileId: row.browserProfileId,
-                                    caption: row.caption,
-                                    kind: row.kind,
-                                    parentExternalId: row.parentExternalId,
-                                    postedAt: row.postedAt,
-                                    scrapedAt: row.scrapedAt,
-                                    sourceDeviceId: row.sourceDeviceId,
-                                    sourceDeviceName: row.sourceDeviceName,
-                                    sourceMetadata: row.sourceMetadata,
-                                    thumbnailUrl: row.thumbnailUrl,
-                                    url: row.url,
-                                },
-                                where: {
-                                    userId_source_browserProfileId_externalId: {
-                                        browserProfileId: row.browserProfileId,
-                                        externalId: row.externalId,
-                                        source: args.source,
-                                        userId: args.userId,
-                                    },
-                                },
-                            })
-                        )
-                    );
-                }
-
-                if (!args.snapshotComplete) {
-                    continue;
-                }
-
-                const retainedExternalIds = rows.map((row) => row.externalId);
-                const deleteResult = await libraryItemDelegate.deleteMany({
-                    where: {
-                        browserProfileId,
-                        ...(retainedExternalIds.length > 0
-                            ? {
-                                  externalId: {
-                                      notIn: retainedExternalIds,
-                                  },
-                              }
-                            : {}),
-                        source: args.source,
-                        userId: args.userId,
-                    },
+                    snapshotComplete: args.snapshotComplete,
+                    source: args.source,
+                    userId: args.userId,
                 });
-
-                prunedCount += deleteResult.count;
+                importedCount += profileResult.importedCount;
+                prunedCount += profileResult.prunedCount;
+                updatedCount += profileResult.updatedCount;
+                for (const itemId of profileResult.smartCollectionItemIds) {
+                    smartCollectionItemIds.add(itemId);
+                }
             }
         },
         {
@@ -252,6 +308,7 @@ export async function importLibraryItemSnapshot(args: {
         importedCount,
         prunedCount,
         skippedCount,
+        smartCollectionItemIds: [...smartCollectionItemIds],
         updatedCount,
     };
 }

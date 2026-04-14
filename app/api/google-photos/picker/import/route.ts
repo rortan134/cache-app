@@ -1,5 +1,6 @@
 import { auth } from "@/lib/auth/server";
 import { DEFAULT_BROWSER_PROFILE_ID } from "@/lib/library/chrome-bookmarks";
+import { autoTagLibraryItemsByIds } from "@/lib/library/smart-collections";
 import type { GooglePhotosPickedMediaItem } from "@/lib/integrations/google-photos/picker-api";
 import {
     deletePickerSession,
@@ -10,11 +11,75 @@ import {
 import { prisma } from "@/prisma";
 import { LibraryItemSource } from "@/prisma/client/enums";
 import { headers } from "next/headers";
+import { after } from "next/server";
 import * as z from "zod";
 
 const bodySchema = z.object({
     sessionId: z.string().min(1),
 });
+
+interface GooglePhotosImportCandidate {
+    readonly caption: string | null;
+    readonly externalId: string;
+    readonly scrapedAt: Date | null;
+    readonly sourceMetadata: Record<string, unknown>;
+    readonly thumbnailUrl: string | null;
+    readonly url: string;
+}
+
+interface GooglePhotosLibraryItemDelegate {
+    findMany(args: {
+        select: {
+            externalId: true;
+        };
+        where: {
+            browserProfileId: string;
+            externalId: {
+                in: string[];
+            };
+            source: LibraryItemSource;
+            userId: string;
+        };
+    }): Promise<
+        {
+            externalId: string;
+        }[]
+    >;
+    upsert(args: {
+        create: {
+            browserProfileId: string;
+            caption: string | null;
+            externalId: string;
+            scrapedAt: Date | null;
+            source: LibraryItemSource;
+            sourceMetadata: Record<string, unknown> | null;
+            thumbnailUrl: string | null;
+            url: string;
+            userId: string;
+        };
+        select: {
+            id: true;
+        };
+        update: {
+            browserProfileId: string;
+            caption: string | null;
+            scrapedAt: Date | null;
+            sourceMetadata: Record<string, unknown> | null;
+            thumbnailUrl: string | null;
+            url: string;
+        };
+        where: {
+            userId_source_browserProfileId_externalId: {
+                browserProfileId: string;
+                externalId: string;
+                source: LibraryItemSource;
+                userId: string;
+            };
+        };
+    }): Promise<{
+        id: string;
+    }>;
+}
 
 function mediaUrlFromItem(item: GooglePhotosPickedMediaItem): string | null {
     const baseUrl = item.mediaFile?.baseUrl;
@@ -35,6 +100,136 @@ function mediaThumbnailFromItem(
         return null;
     }
     return `${baseUrl}=w640-h640-c`;
+}
+
+function googlePhotosSourceMetadata(
+    item: GooglePhotosPickedMediaItem
+): Record<string, unknown> {
+    return {
+        googlePhotos: {
+            filename: item.mediaFile?.filename ?? null,
+            mimeType: item.mediaFile?.mimeType ?? null,
+        },
+    };
+}
+
+function buildGooglePhotosImportCandidate(
+    item: GooglePhotosPickedMediaItem
+): GooglePhotosImportCandidate | null {
+    const url = mediaUrlFromItem(item);
+    if (!url) {
+        return null;
+    }
+
+    return {
+        caption: item.mediaFile?.filename ?? null,
+        externalId: item.id,
+        scrapedAt: item.createTime ? new Date(item.createTime) : null,
+        sourceMetadata: googlePhotosSourceMetadata(item),
+        thumbnailUrl: mediaThumbnailFromItem(item),
+        url,
+    };
+}
+
+function collectGooglePhotosImportCandidates(
+    items: GooglePhotosPickedMediaItem[]
+): {
+    candidates: GooglePhotosImportCandidate[];
+    skippedCount: number;
+} {
+    const candidates: GooglePhotosImportCandidate[] = [];
+    let skippedCount = 0;
+
+    for (const item of items) {
+        const candidate = buildGooglePhotosImportCandidate(item);
+        if (!candidate) {
+            skippedCount += 1;
+            continue;
+        }
+
+        candidates.push(candidate);
+    }
+
+    return {
+        candidates,
+        skippedCount,
+    };
+}
+
+async function importGooglePhotosCandidates(args: {
+    readonly candidates: GooglePhotosImportCandidate[];
+    readonly delegate: GooglePhotosLibraryItemDelegate;
+    readonly userId: string;
+}): Promise<{
+    importedCount: number;
+    smartCollectionItemIds: string[];
+}> {
+    const existingRows =
+        args.candidates.length > 0
+            ? await args.delegate.findMany({
+                  select: {
+                      externalId: true,
+                  },
+                  where: {
+                      browserProfileId: DEFAULT_BROWSER_PROFILE_ID,
+                      externalId: {
+                          in: args.candidates.map(
+                              (candidate) => candidate.externalId
+                          ),
+                      },
+                      source: LibraryItemSource.google_photos,
+                      userId: args.userId,
+                  },
+              })
+            : [];
+    const existingExternalIds = new Set(
+        existingRows.map((row) => row.externalId)
+    );
+    const smartCollectionItemIds = new Set<string>();
+
+    for (const candidate of args.candidates) {
+        const savedRow = await args.delegate.upsert({
+            create: {
+                browserProfileId: DEFAULT_BROWSER_PROFILE_ID,
+                caption: candidate.caption,
+                externalId: candidate.externalId,
+                scrapedAt: candidate.scrapedAt,
+                source: LibraryItemSource.google_photos,
+                sourceMetadata: candidate.sourceMetadata,
+                thumbnailUrl: candidate.thumbnailUrl,
+                url: candidate.url,
+                userId: args.userId,
+            },
+            select: {
+                id: true,
+            },
+            update: {
+                browserProfileId: DEFAULT_BROWSER_PROFILE_ID,
+                caption: candidate.caption,
+                scrapedAt: candidate.scrapedAt,
+                sourceMetadata: candidate.sourceMetadata,
+                thumbnailUrl: candidate.thumbnailUrl,
+                url: candidate.url,
+            },
+            where: {
+                userId_source_browserProfileId_externalId: {
+                    browserProfileId: DEFAULT_BROWSER_PROFILE_ID,
+                    externalId: candidate.externalId,
+                    source: LibraryItemSource.google_photos,
+                    userId: args.userId,
+                },
+            },
+        });
+
+        if (!existingExternalIds.has(candidate.externalId)) {
+            smartCollectionItemIds.add(savedRow.id);
+        }
+    }
+
+    return {
+        importedCount: args.candidates.length,
+        smartCollectionItemIds: [...smartCollectionItemIds],
+    };
 }
 
 async function resolveGoogleAccessToken(): Promise<string | null> {
@@ -71,35 +266,8 @@ export async function POST(request: Request) {
     }
 
     try {
-        const libraryItemDelegate = prisma.libraryItem as unknown as {
-            upsert(args: {
-                create: {
-                    browserProfileId: string;
-                    caption: string | null;
-                    externalId: string;
-                    scrapedAt: Date | null;
-                    source: LibraryItemSource;
-                    thumbnailUrl: string | null;
-                    url: string;
-                    userId: string;
-                };
-                update: {
-                    browserProfileId: string;
-                    caption: string | null;
-                    scrapedAt: Date | null;
-                    thumbnailUrl: string | null;
-                    url: string;
-                };
-                where: {
-                    userId_source_browserProfileId_externalId: {
-                        browserProfileId: string;
-                        externalId: string;
-                        source: LibraryItemSource;
-                        userId: string;
-                    };
-                };
-            }): Promise<unknown>;
-        };
+        const libraryItemDelegate =
+            prisma.libraryItem as unknown as GooglePhotosLibraryItemDelegate;
         const pickerSession = await getPickerSession(
             accessToken,
             parsedBody.data.sessionId
@@ -115,53 +283,25 @@ export async function POST(request: Request) {
             accessToken,
             parsedBody.data.sessionId
         );
-
-        let importedCount = 0;
-        let skippedCount = 0;
-        for (const item of pickedItems) {
-            const url = mediaUrlFromItem(item);
-            const thumbnailUrl = mediaThumbnailFromItem(item);
-            if (!url) {
-                skippedCount += 1;
-                continue;
-            }
-
-            // Google Photos Picker baseUrl values are short-lived; durable storage is a follow-up.
-            await libraryItemDelegate.upsert({
-                create: {
-                    browserProfileId: DEFAULT_BROWSER_PROFILE_ID,
-                    caption: item.mediaFile?.filename ?? null,
-                    externalId: item.id,
-                    scrapedAt: item.createTime
-                        ? new Date(item.createTime)
-                        : null,
-                    source: LibraryItemSource.google_photos,
-                    thumbnailUrl,
-                    url,
-                    userId: session.user.id,
-                },
-                update: {
-                    browserProfileId: DEFAULT_BROWSER_PROFILE_ID,
-                    caption: item.mediaFile?.filename ?? null,
-                    scrapedAt: item.createTime
-                        ? new Date(item.createTime)
-                        : null,
-                    thumbnailUrl,
-                    url,
-                },
-                where: {
-                    userId_source_browserProfileId_externalId: {
-                        browserProfileId: DEFAULT_BROWSER_PROFILE_ID,
-                        externalId: item.id,
-                        source: LibraryItemSource.google_photos,
-                        userId: session.user.id,
-                    },
-                },
+        const { candidates, skippedCount } =
+            collectGooglePhotosImportCandidates(pickedItems);
+        const { importedCount, smartCollectionItemIds } =
+            await importGooglePhotosCandidates({
+                candidates,
+                delegate: libraryItemDelegate,
+                userId: session.user.id,
             });
-            importedCount += 1;
-        }
 
         await deletePickerSession(accessToken, parsedBody.data.sessionId);
+
+        if (smartCollectionItemIds.length > 0) {
+            after(async () => {
+                await autoTagLibraryItemsByIds({
+                    itemIds: smartCollectionItemIds,
+                    userId: session.user.id,
+                });
+            });
+        }
 
         return Response.json({
             importedCount,

@@ -146,6 +146,10 @@ export interface IngestItemInput {
     url: string;
 }
 
+function ingestRowKey(browserProfileId: string, externalId: string): string {
+    return `${browserProfileId}\u0000${externalId}`;
+}
+
 /**
  * Upserts library rows for one ingest payload (chunk or complete).
  */
@@ -153,9 +157,30 @@ export async function upsertLibraryItemsFromIngest(
     userId: string,
     source: LibraryItemSource,
     items: IngestItemInput[]
-): Promise<number> {
-    let count = 0;
+): Promise<{
+    smartCollectionItemIds: string[];
+    upsertedCount: number;
+}> {
     const libraryItemDelegate = prisma.libraryItem as unknown as {
+        findMany(args: {
+            select: {
+                browserProfileId: true;
+                externalId: true;
+            };
+            where: {
+                OR: {
+                    browserProfileId: string;
+                    externalId: string;
+                }[];
+                source: LibraryItemSource;
+                userId: string;
+            };
+        }): Promise<
+            {
+                browserProfileId: string;
+                externalId: string;
+            }[]
+        >;
         upsert(args: {
             create: {
                 browserProfileId: string;
@@ -172,6 +197,9 @@ export async function upsertLibraryItemsFromIngest(
                 thumbnailUrl: string | null;
                 url: string;
                 userId: string;
+            };
+            select: {
+                id: true;
             };
             update: {
                 browserProfileId: string;
@@ -194,41 +222,98 @@ export async function upsertLibraryItemsFromIngest(
                     userId: string;
                 };
             };
-        }): Promise<unknown>;
+        }): Promise<{
+            id: string;
+        }>;
     };
 
-    for (const item of items) {
+    const rows = items.flatMap((item) => {
         const externalId = externalIdForIngestItem(source, item);
         if (!externalId) {
-            continue;
+            return [];
         }
+
         const browserProfileId =
             item.browserProfileId?.trim() || DEFAULT_BROWSER_PROFILE_ID;
-        await libraryItemDelegate.upsert({
-            create: buildIngestCreateRow(
+
+        return [
+            {
                 browserProfileId,
-                externalId,
-                item,
-                source,
-                userId
-            ),
-            update: buildIngestUpdateRow(
-                browserProfileId,
-                externalId,
-                item,
-                source
-            ),
-            where: {
-                userId_source_browserProfileId_externalId: {
+                create: buildIngestCreateRow(
                     browserProfileId,
                     externalId,
+                    item,
+                    source,
+                    userId
+                ),
+                externalId,
+                update: buildIngestUpdateRow(
+                    browserProfileId,
+                    externalId,
+                    item,
+                    source
+                ),
+            },
+        ];
+    });
+
+    if (rows.length === 0) {
+        return {
+            smartCollectionItemIds: [],
+            upsertedCount: 0,
+        };
+    }
+
+    const existingRows = await libraryItemDelegate.findMany({
+        select: {
+            browserProfileId: true,
+            externalId: true,
+        },
+        where: {
+            OR: rows.map((row) => ({
+                browserProfileId: row.browserProfileId,
+                externalId: row.externalId,
+            })),
+            source,
+            userId,
+        },
+    });
+    const existingKeys = new Set(
+        existingRows.map((row) =>
+            ingestRowKey(row.browserProfileId, row.externalId)
+        )
+    );
+    const smartCollectionItemIds = new Set<string>();
+
+    for (const row of rows) {
+        const savedRow = await libraryItemDelegate.upsert({
+            create: row.create,
+            select: {
+                id: true,
+            },
+            update: row.update,
+            where: {
+                userId_source_browserProfileId_externalId: {
+                    browserProfileId: row.browserProfileId,
+                    externalId: row.externalId,
                     source,
                     userId,
                 },
             },
         });
-        count += 1;
+
+        if (
+            row.update.kind !== "folder" &&
+            !existingKeys.has(
+                ingestRowKey(row.browserProfileId, row.externalId)
+            )
+        ) {
+            smartCollectionItemIds.add(savedRow.id);
+        }
     }
 
-    return count;
+    return {
+        smartCollectionItemIds: [...smartCollectionItemIds],
+        upsertedCount: rows.length,
+    };
 }

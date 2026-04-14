@@ -179,6 +179,7 @@ interface ChromeSyncResult {
     readonly deleted: number;
     readonly processed: number;
     readonly pruned: number;
+    readonly smartCollectionItemIds: readonly string[];
     readonly upserted: number;
 }
 
@@ -187,6 +188,7 @@ interface ChromeSyncAccumulator {
     deleted: number;
     processed: number;
     pruned: number;
+    smartCollectionItemIds: string[];
     upserted: number;
 }
 
@@ -420,7 +422,10 @@ async function handleChromeBookmarkWriteEvent(args: {
     readonly lookup: ChromeBatchLookupState;
     readonly occurredAt: string | undefined;
     readonly userId: string;
-}): Promise<{ deduped: boolean }> {
+}): Promise<{
+    deduped: boolean;
+    smartCollectionItemId?: string;
+}> {
     const record = normalizeChromeBookmarkRecord(
         args.browserProfileId,
         args.bookmark,
@@ -520,7 +525,11 @@ async function handleChromeBookmarkWriteEvent(args: {
         },
     })) as ChromeLibraryRow;
     upsertChromeLookupRow(args.lookup, created);
-    return { deduped: false };
+    return {
+        deduped: false,
+        smartCollectionItemId:
+            created.kind === "bookmark" ? created.id : undefined,
+    };
 }
 
 async function pruneChromeSnapshot(
@@ -604,6 +613,7 @@ function processChromeBookmarkEventBatch(args: {
         const lookup = buildChromeLookupState(existingRows);
         let deleted = 0;
         let deduped = 0;
+        const smartCollectionItemIds = new Set<string>();
         let upserted = 0;
 
         for (const event of args.events) {
@@ -639,11 +649,15 @@ function processChromeBookmarkEventBatch(args: {
             if (result.deduped) {
                 deduped += 1;
             }
+            if (result.smartCollectionItemId) {
+                smartCollectionItemIds.add(result.smartCollectionItemId);
+            }
         }
 
         return {
             deduped,
             deleted,
+            smartCollectionItemIds: [...smartCollectionItemIds],
             upserted,
         };
     })();
@@ -662,6 +676,7 @@ export function applyChromeBookmarkSyncEvents(
             deleted: 0,
             processed: body.events.length,
             pruned: 0,
+            smartCollectionItemIds: [],
             upserted: 0,
         };
 
@@ -684,6 +699,9 @@ export function applyChromeBookmarkSyncEvents(
             });
             accumulator.deduped += result.deduped;
             accumulator.deleted += result.deleted;
+            accumulator.smartCollectionItemIds.push(
+                ...result.smartCollectionItemIds
+            );
             accumulator.upserted += result.upserted;
         }
 
@@ -696,7 +714,12 @@ export function applyChromeBookmarkSyncEvents(
             );
         }
 
-        return accumulator;
+        return {
+            ...accumulator,
+            smartCollectionItemIds: [
+                ...new Set(accumulator.smartCollectionItemIds),
+            ],
+        };
     })();
 }
 

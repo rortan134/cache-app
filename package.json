@@ -25,6 +25,7 @@
         "@better-auth/prisma-adapter": "^1.6.2",
         "@better-auth/stripe": "^1.6.2",
         "@braintree/sanitize-url": "^7.1.2",
+        "@google/genai": "^1.50.0",
         "@modelcontextprotocol/sdk": "^1.29.0",
         "@prisma/adapter-pg": "^7.7.0",
         "@prisma/client": "^7.7.0",

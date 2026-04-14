@@ -3,6 +3,7 @@
 import { auth } from "@/lib/auth/server";
 import { extractNamedErrorMessage } from "@/lib/error";
 import { LibraryCollectionError, LibraryNoteError } from "@/lib/library/error";
+import { resolveCobaltDownloadUrl } from "@/lib/library/cobalt";
 import {
     extractNoteText,
     normalizeNoteTitle,
@@ -965,56 +966,20 @@ export async function downloadMedia(url: string): Promise<DownloadMediaResult> {
         };
     }
 
-    const API_BASE = "https://cobalt-production-d7b0.up.railway.app";
-
     try {
-        const response = await fetch(`${API_BASE}/`, {
-            body: JSON.stringify({ url: normalizedUrl }),
-            cache: "no-store",
-            headers: {
-                Accept: "application/json",
-                "Content-Type": "application/json",
-            },
-            method: "POST",
-        });
-
-        if (!response.ok) {
-            const errorText = await response.text();
-            log.warn("Cobalt download request failed", {
-                error: errorText,
-                status: response.status,
-                url: normalizedUrl,
-            });
+        const result = await resolveCobaltDownloadUrl(normalizedUrl);
+        if (result.status === "ERROR") {
             return {
                 message:
+                    result.message ||
                     "The download service is currently unavailable. Please try again later.",
                 status: "ERROR",
             };
         }
 
-        const data = (await response.json()) as {
-            status?: string;
-            text?: string;
-            url?: string;
-        };
-
-        if (data.status === "error") {
-            return {
-                message: data.text || "Failed to process the download request.",
-                status: "ERROR",
-            };
-        }
-
-        if (data.url) {
-            return {
-                downloadUrl: data.url,
-                status: "SUCCESS",
-            };
-        }
-
         return {
-            message: "Could not find a download link for this media.",
-            status: "ERROR",
+            downloadUrl: result.downloadUrl,
+            status: "SUCCESS",
         };
     } catch (error) {
         log.error("Unexpected download failure", error);

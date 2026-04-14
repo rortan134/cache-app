@@ -9,8 +9,10 @@ import {
     parseBearerToken,
     resolveExtensionIngestUserId,
 } from "@/lib/library/extension-ingest";
+import { autoTagLibraryItemsByIds } from "@/lib/library/smart-collections";
 import { createLogger } from "@/lib/logs/console/logger";
 import { headers } from "next/headers";
+import { after } from "next/server";
 
 const log = createLogger("api:sync:chrome-bookmarks");
 
@@ -59,7 +61,18 @@ export async function POST(request: Request) {
 
     try {
         const result = await applyChromeBookmarkSyncEvents(userId, parsed.data);
-        return Response.json({ ok: true, ...result }, { headers: cors });
+        const { smartCollectionItemIds, ...syncResult } = result;
+
+        if (smartCollectionItemIds.length > 0) {
+            after(async () => {
+                await autoTagLibraryItemsByIds({
+                    itemIds: smartCollectionItemIds,
+                    userId,
+                });
+            });
+        }
+
+        return Response.json({ ok: true, ...syncResult }, { headers: cors });
     } catch (error) {
         const message =
             error instanceof Error
