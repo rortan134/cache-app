@@ -2,10 +2,12 @@
 
 import {
     createCollection,
+    createCollectionFromItems,
     deleteCollection,
     renameCollection,
     updateCollectionPriority,
     updateLibraryItemCollections,
+    type CreateCollectionFromItemsResult,
     type CreateCollectionResult,
     type DeleteCollectionResult,
     type RenameCollectionResult,
@@ -155,6 +157,30 @@ function appendCollectionToItem(
 ): LibraryItemWithCollections[] {
     return items.map((item) => {
         if (item.id !== itemId) {
+            return item;
+        }
+        if (item.collections.some((entry) => entry.id === collection.id)) {
+            return item;
+        }
+        return {
+            ...item,
+            collections: sortCollections([...item.collections, collection]),
+        };
+    });
+}
+
+function appendCollectionToItems(
+    items: readonly LibraryItemWithCollections[],
+    itemIds: readonly string[],
+    collection: LibraryCollectionTag
+): LibraryItemWithCollections[] {
+    const itemIdSet = new Set(itemIds);
+    if (itemIdSet.size === 0) {
+        return [...items];
+    }
+
+    return items.map((item) => {
+        if (!itemIdSet.has(item.id)) {
             return item;
         }
         if (item.collections.some((entry) => entry.id === collection.id)) {
@@ -1279,6 +1305,49 @@ export function LibraryWorkspace({
         });
     };
 
+    const handleCreateCollectionFromResults = async (input: {
+        description?: string;
+        itemIds: string[];
+        name: string;
+    }): Promise<CreateCollectionFromItemsResult> => {
+        let result: CreateCollectionFromItemsResult;
+
+        try {
+            result = await createCollectionFromItems(input);
+        } catch {
+            result = {
+                message: "We couldn't create this collection right now.",
+                status: "ERROR",
+            };
+        }
+
+        if (result.status !== "CREATED") {
+            return result;
+        }
+
+        const nextCollection = {
+            description: result.collection.description,
+            id: result.collection.id,
+            name: result.collection.name,
+            priority: result.collection.priority,
+        } satisfies LibraryCollectionTag;
+
+        setCollections((current) =>
+            current.some((collection) => collection.id === nextCollection.id)
+                ? current
+                : sortCollections([...current, nextCollection])
+        );
+        setItems((current) =>
+            appendCollectionToItems(
+                current,
+                result.assignedItemIds,
+                nextCollection
+            )
+        );
+
+        return result;
+    };
+
     return (
         <>
             <LibraryWorkspaceSidebar
@@ -1304,6 +1373,9 @@ export function LibraryWorkspace({
                     items={items}
                     locale={locale}
                     onClearCollectionFilters={clearCollectionFilters}
+                    onCreateCollectionFromResults={
+                        handleCreateCollectionFromResults
+                    }
                     onItemsChange={setItems}
                     onUpdateItemCollections={handleUpdateItemCollections}
                     pendingCollectionItemIds={pendingCollectionItemIds}

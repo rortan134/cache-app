@@ -42,6 +42,19 @@ const CreateCollectionInputSchema = z.object({
         ),
 });
 
+const CreateCollectionFromItemsInputSchema = z.object({
+    description: z.string().trim().max(1024).optional(),
+    itemIds: z.array(z.string().trim().min(1)).min(1).max(500),
+    name: z
+        .string()
+        .trim()
+        .min(1, "Enter a collection name.")
+        .max(
+            COLLECTION_NAME_MAX_LENGTH,
+            `Collection names can be up to ${COLLECTION_NAME_MAX_LENGTH} characters.`
+        ),
+});
+
 const UpdateLibraryItemCollectionsInputSchema = z.object({
     collectionIds: z.array(z.string().trim().min(1)).max(100),
     itemId: z.string().trim().min(1),
@@ -98,6 +111,22 @@ export type DeleteLibraryItemResult =
 export type CreateCollectionResult =
     | {
           assignedItemId: string | null;
+          collection: LibraryCollectionSummary;
+          status: "CREATED";
+      }
+    | {
+          message: string;
+          status:
+              | "DUPLICATE"
+              | "ERROR"
+              | "INVALID"
+              | "NOT_FOUND"
+              | "UNAUTHORIZED";
+      };
+
+export type CreateCollectionFromItemsResult =
+    | {
+          assignedItemIds: string[];
           collection: LibraryCollectionSummary;
           status: "CREATED";
       }
@@ -824,6 +853,151 @@ export async function createCollection(input: {
         }
 
         log.error("Unexpected collection create failure", error);
+        return {
+            message: "We couldn't create this collection right now.",
+            status: "ERROR",
+        };
+    }
+}
+
+export async function createCollectionFromItems(input: {
+    description?: string;
+    itemIds: string[];
+    name: string;
+}): Promise<CreateCollectionFromItemsResult> {
+    const parsed = CreateCollectionFromItemsInputSchema.safeParse({
+        ...input,
+        itemIds: Array.from(new Set(input.itemIds)),
+    });
+
+    if (!parsed.success) {
+        return {
+            message:
+                parsed.error.issues[0]?.message ??
+                "Enter a valid collection name and at least one saved item.",
+            status: "INVALID",
+        };
+    }
+
+    const requestHeaders = await headers();
+    const session = await auth.api.getSession({
+        headers: requestHeaders,
+    });
+
+    if (!session?.user?.id) {
+        return {
+            message: "Sign in again to create collections.",
+            status: "UNAUTHORIZED",
+        };
+    }
+
+    const { description, itemIds } = parsed.data;
+    const normalized = normalizeCollectionName(parsed.data.name);
+
+    try {
+        const result = await prisma.$transaction(async (tx) => {
+            const existingCollection = await tx.collection.findFirst({
+                select: {
+                    id: true,
+                },
+                where: {
+                    nameKey: normalized.nameKey,
+                    userId: session.user.id,
+                },
+            });
+
+            if (existingCollection) {
+                throw new LibraryCollectionError({
+                    code: "duplicate_name",
+                    message: "A collection with that name already exists.",
+                    operation: "createCollectionFromItems",
+                });
+            }
+
+            const matchingItems = await tx.libraryItem.findMany({
+                select: {
+                    id: true,
+                    source: true,
+                },
+                where: {
+                    id: {
+                        in: itemIds,
+                    },
+                    userId: session.user.id,
+                },
+            });
+
+            if (matchingItems.length !== itemIds.length) {
+                throw new LibraryCollectionError({
+                    code: "not_found",
+                    message:
+                        "Some of those saved items are no longer available.",
+                    operation: "createCollectionFromItems",
+                });
+            }
+
+            const collection = await tx.collection.create({
+                data: {
+                    description,
+                    items: {
+                        connect: itemIds.map((id) => ({
+                            id,
+                        })),
+                    },
+                    name: normalized.name,
+                    nameKey: normalized.nameKey,
+                    userId: session.user.id,
+                },
+                select: {
+                    description: true,
+                    id: true,
+                    name: true,
+                    priority: true,
+                },
+            });
+
+            return {
+                assignedItemIds: itemIds,
+                collection: {
+                    description: collection.description,
+                    id: collection.id,
+                    itemCount: itemIds.length,
+                    name: collection.name,
+                    priority: collection.priority,
+                    sources: Array.from(
+                        new Set(matchingItems.map((item) => item.source))
+                    ),
+                } satisfies LibraryCollectionSummary,
+            };
+        });
+
+        return {
+            assignedItemIds: result.assignedItemIds,
+            collection: result.collection,
+            status: "CREATED",
+        };
+    } catch (error) {
+        const named = extractNamedErrorMessage(error);
+        if (
+            LibraryCollectionError.isInstance(error) &&
+            error.data.code === "duplicate_name"
+        ) {
+            return {
+                message: named.message,
+                status: "DUPLICATE",
+            };
+        }
+        if (
+            LibraryCollectionError.isInstance(error) &&
+            error.data.code === "not_found"
+        ) {
+            return {
+                message: named.message,
+                status: "NOT_FOUND",
+            };
+        }
+
+        log.error("Unexpected collection create from results failure", error);
         return {
             message: "We couldn't create this collection right now.",
             status: "ERROR",

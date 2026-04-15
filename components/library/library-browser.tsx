@@ -4,6 +4,7 @@ import {
     createNote,
     deleteLibraryItem,
     updateNote,
+    type CreateCollectionFromItemsResult,
     type DeleteLibraryItemResult,
     type NoteMutationResult,
 } from "@/app/[locale]/library/actions";
@@ -34,12 +35,15 @@ import {
     DialogDescription,
     DialogFooter,
     DialogHeader,
+    DialogPanel,
     DialogPopup,
     DialogTitle,
 } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import { UnprivilegedOnly } from "@/components/ui/privilege";
 import { InlinePromotionBanner } from "@/components/ui/promotion-banner";
 import { Separator } from "@/components/ui/separator";
+import { Textarea } from "@/components/ui/textarea";
 import { TruncateAfter } from "@/components/ui/truncate-after";
 import { useAccess } from "@/hooks/use-access";
 import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
@@ -50,7 +54,13 @@ import type {
 import { normalizeURL } from "@/lib/url";
 import { cn } from "@/lib/utils";
 import { LibraryItemSource } from "@/prisma/client/enums";
-import { SearchIcon, SparklesIcon, SquarePen, XIcon } from "lucide-react";
+import {
+    SearchIcon,
+    SparklesIcon,
+    SquarePen,
+    WandSparkles,
+    XIcon,
+} from "lucide-react";
 import type {
     CSSProperties,
     KeyboardEvent as ReactKeyboardEvent,
@@ -59,6 +69,7 @@ import type {
 import {
     useCallback,
     useEffect,
+    useId,
     useLayoutEffect,
     useMemo,
     useRef,
@@ -94,6 +105,7 @@ const SEARCH_CANCEL_KEYS = ["esc", "tab"] as const;
 const LIBRARY_COMMAND_PANEL_TOP_PX = 12;
 const LIBRARY_SECTION_STICKY_GAP_PX = 8;
 const FREE_LIBRARY_PREVIEW_ITEMS = 12;
+const COLLECTION_NAME_MAX_LENGTH = 64;
 type LibraryItem = LibraryItemWithCollections;
 
 type GroupByMode =
@@ -239,6 +251,18 @@ function sourceLabel(source: LibraryItemSource): string {
         return "YouTube";
     }
     return "Other";
+}
+
+function buildResultsCollectionName(searchTerms: readonly string[]): string {
+    const normalizedTerms = searchTerms
+        .map((term) => term.trim())
+        .filter((term) => term.length > 0);
+
+    if (normalizedTerms.length === 0) {
+        return "";
+    }
+
+    return normalizedTerms.join(" + ").slice(0, COLLECTION_NAME_MAX_LENGTH);
 }
 
 function formatGroupHeading(mode: GroupByMode, key: string): string {
@@ -969,6 +993,11 @@ interface Props {
     readonly items: LibraryItemWithCollections[];
     readonly locale: string;
     readonly onClearCollectionFilters: () => void;
+    readonly onCreateCollectionFromResults: (input: {
+        description?: string;
+        itemIds: string[];
+        name: string;
+    }) => Promise<CreateCollectionFromItemsResult>;
     readonly onItemsChange: (
         value:
             | LibraryItemWithCollections[]
@@ -1133,6 +1162,7 @@ export function LibraryBrowser({
     items,
     locale,
     onClearCollectionFilters,
+    onCreateCollectionFromResults,
     onItemsChange,
     onUpdateItemCollections,
     pendingCollectionItemIds,
@@ -1158,12 +1188,22 @@ export function LibraryBrowser({
     const [activeNote, setActiveNote] =
         useState<LibraryItemWithCollections | null>(null);
     const [isNoteDrawerOpen, setIsNoteDrawerOpen] = useState(false);
+    const [isCreateResultsDialogOpen, setIsCreateResultsDialogOpen] =
+        useState(false);
+    const [createResultsNameDraft, setCreateResultsNameDraft] = useState("");
+    const [createResultsDescriptionDraft, setCreateResultsDescriptionDraft] =
+        useState("");
+    const [createResultsError, setCreateResultsError] = useState<string | null>(
+        null
+    );
     const [isLogoutDialogOpen, setIsLogoutDialogOpen] = useState(false);
     const [commandListOpen, setCommandListOpen] = useState(false);
     const [isPaletteFocused, setIsPaletteFocused] = useState(false);
     const [commandPanelShellHeight, setCommandPanelShellHeight] = useState(0);
     const commandPanelContainerRef = useRef<HTMLDivElement>(null);
     const paletteInputRef = useRef<HTMLInputElement>(null);
+    const createResultsNameInputId = useId();
+    const createResultsDescriptionId = useId();
     /** Skips one combobox-driven close right after entering a drill-down section. */
     const suppressNextCommandCloseRef = useRef(false);
     const {
@@ -1179,6 +1219,10 @@ export function LibraryBrowser({
         setActionFeedback,
     } = useLibraryItemActions(onItemsChange);
     const [isSavingNote, startSavingNoteTransition] = useTransition();
+    const [
+        isCreatingResultsCollection,
+        startCreateResultsCollectionTransition,
+    ] = useTransition();
 
     const sourceOptions = useMemo(
         () => [
@@ -2014,12 +2058,76 @@ export function LibraryBrowser({
         filteredItems.length === items.length
             ? `${items.length} item${items.length === 1 ? "" : "s"}`
             : `${filteredItems.length} of ${items.length} items`;
+    const canCreateCollectionFromResults =
+        searchTerms.length > 0 && filteredItems.length > 0;
+    const resultCollectionItemIds = useMemo(
+        () => filteredItems.map((item) => item.id),
+        [filteredItems]
+    );
 
     const handleCreateNote = useCallback(() => {
         setActionFeedback(null);
         setActiveNote(null);
         setIsNoteDrawerOpen(true);
     }, [setActionFeedback]);
+
+    const handleCreateResultsDialogOpenChange = useCallback(
+        (open: boolean) => {
+            if (open) {
+                setActionFeedback(null);
+                setCreateResultsError(null);
+                setCreateResultsNameDraft(
+                    buildResultsCollectionName(searchTerms)
+                );
+                setCreateResultsDescriptionDraft("");
+                setIsCreateResultsDialogOpen(true);
+                return;
+            }
+
+            if (!isCreatingResultsCollection) {
+                setIsCreateResultsDialogOpen(false);
+                setCreateResultsError(null);
+            }
+        },
+        [isCreatingResultsCollection, searchTerms, setActionFeedback]
+    );
+
+    const handleCreateCollectionFromResultsSubmit = useCallback(() => {
+        startCreateResultsCollectionTransition(async () => {
+            let result: CreateCollectionFromItemsResult;
+
+            try {
+                result = await onCreateCollectionFromResults({
+                    description: createResultsDescriptionDraft || undefined,
+                    itemIds: resultCollectionItemIds,
+                    name: createResultsNameDraft,
+                });
+            } catch {
+                result = {
+                    message: "We couldn't create this collection right now.",
+                    status: "ERROR",
+                };
+            }
+
+            if (result.status !== "CREATED") {
+                setCreateResultsError(result.message);
+                return;
+            }
+
+            setIsCreateResultsDialogOpen(false);
+            setCreateResultsError(null);
+            setActionFeedback({
+                message: `${result.collection.name} created with ${result.assignedItemIds.length} result${result.assignedItemIds.length === 1 ? "" : "s"}.`,
+                tone: "success",
+            });
+        });
+    }, [
+        createResultsDescriptionDraft,
+        createResultsNameDraft,
+        onCreateCollectionFromResults,
+        resultCollectionItemIds,
+        setActionFeedback,
+    ]);
 
     const handleOpenNote = useCallback(
         (item: LibraryItemWithCollections) => {
@@ -2156,6 +2264,100 @@ export function LibraryBrowser({
                             Delete
                         </Button>
                     </DialogFooter>
+                </DialogPopup>
+            </Dialog>
+            <Dialog
+                onOpenChange={handleCreateResultsDialogOpenChange}
+                open={isCreateResultsDialogOpen}
+            >
+                <DialogPopup showCloseButton>
+                    <form
+                        className="contents"
+                        onSubmit={(event) => {
+                            event.preventDefault();
+                            handleCreateCollectionFromResultsSubmit();
+                        }}
+                    >
+                        <DialogHeader>
+                            <DialogTitle>
+                                Create collection with results
+                            </DialogTitle>
+                            <DialogDescription>
+                                Create a new collection from the{" "}
+                                {resultCollectionItemIds.length} current search
+                                result
+                                {resultCollectionItemIds.length === 1
+                                    ? ""
+                                    : "s"}
+                                .
+                            </DialogDescription>
+                        </DialogHeader>
+                        <DialogPanel className="space-y-3">
+                            <div>
+                                <label
+                                    className="sr-only"
+                                    htmlFor={createResultsNameInputId}
+                                >
+                                    Collection name
+                                </label>
+                                <Input
+                                    autoFocus
+                                    id={createResultsNameInputId}
+                                    maxLength={COLLECTION_NAME_MAX_LENGTH}
+                                    onChange={(event) => {
+                                        setCreateResultsNameDraft(
+                                            event.currentTarget.value
+                                        );
+                                        if (createResultsError) {
+                                            setCreateResultsError(null);
+                                        }
+                                    }}
+                                    placeholder="Collection title"
+                                    required
+                                    value={createResultsNameDraft}
+                                />
+                            </div>
+                            <div>
+                                <label
+                                    className="sr-only"
+                                    htmlFor={createResultsDescriptionId}
+                                >
+                                    Description
+                                </label>
+                                <Textarea
+                                    id={createResultsDescriptionId}
+                                    maxLength={1024}
+                                    onChange={(event) => {
+                                        setCreateResultsDescriptionDraft(
+                                            event.currentTarget.value
+                                        );
+                                    }}
+                                    placeholder="Add description..."
+                                    value={createResultsDescriptionDraft}
+                                />
+                            </div>
+                            {createResultsError ? (
+                                <p className="text-destructive text-sm">
+                                    {createResultsError}
+                                </p>
+                            ) : null}
+                        </DialogPanel>
+                        <DialogFooter>
+                            <DialogClose
+                                disabled={isCreatingResultsCollection}
+                                render={<Button size="sm" variant="ghost" />}
+                            >
+                                Cancel
+                            </DialogClose>
+                            <Button
+                                loading={isCreatingResultsCollection}
+                                size="sm"
+                                type="submit"
+                            >
+                                Create collection
+                            </Button>
+                        </DialogFooter>
+                    </form>
                 </DialogPopup>
             </Dialog>
             <Dialog
@@ -2335,6 +2537,19 @@ export function LibraryBrowser({
                     <Badge className="sm:text-xs" size="lg" variant="outline">
                         Showing {resultsSummary}
                     </Badge>
+                    {canCreateCollectionFromResults ? (
+                        <Button
+                            className="rounded-full"
+                            onClick={() =>
+                                handleCreateResultsDialogOpenChange(true)
+                            }
+                            size="xs"
+                            variant="outline"
+                        >
+                            <WandSparkles className="inline-block size-4 shrink-0" />
+                            &nbsp;Create collection with results
+                        </Button>
+                    ) : null}
                     {groupBy === "none" ? null : (
                         <Badge
                             className="sm:text-xs"
