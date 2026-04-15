@@ -230,7 +230,7 @@ export const ChevronDownFilledIcon = ({
         aria-hidden="true"
         className={cn(
             "pointer-events-none ml-auto inline-block size-5 shrink-0 opacity-80 transition-transform group-data-panel-open:rotate-90",
-            className
+            className,
         )}
         focusable="false"
         height="16"
@@ -240,5 +240,24 @@ export const ChevronDownFilledIcon = ({
         {...props}
     >
         <path d="M7.00194 10.6239C6.66861 10.8183 6.25 10.5779 6.25 10.192V5.80802C6.25 5.42212 6.66861 5.18169 7.00194 5.37613L10.7596 7.56811C11.0904 7.76105 11.0904 8.23895 10.7596 8.43189L7.00194 10.6239Z" />
+    </svg>
+);
+
+export const CrownFilledIcon = ({
+    className,
+    ...props
+}: SVGProps<SVGSVGElement>) => (
+    <svg
+        width="16"
+        height="16"
+        viewBox="0 0 16 16"
+        fill="currentColor"
+        className={cn("size-4 inline-block shrink-0", className)}
+        aria-hidden="true"
+        focusable="false"
+        role="img"
+        {...props}
+    >
+        <path d="M14.3295 5.52562V11.2065C14.3295 11.6483 13.9714 12.0065 13.5295 12.0065H2.46992C2.02809 12.0065 1.66992 11.6483 1.66992 11.2065V5.51494C1.66992 5.00358 2.34675 4.82196 2.60275 5.26463L4.1736 7.98089C4.36707 8.31543 4.85073 8.31339 5.04137 7.97722L7.57078 3.51694C7.76235 3.17914 8.24908 3.17914 8.44064 3.51694L10.9694 7.97612C11.1602 8.31253 11.6443 8.31427 11.8375 7.97924L13.3964 5.27585C13.652 4.83258 14.3295 5.01393 14.3295 5.52562Z" />
     </svg>
 );

@@ -264,7 +264,6 @@ body {
 
     body {
         @apply bg-background text-foreground;
-        isolation: isolate;
         overflow-wrap: anywhere;
         position: relative;
         -webkit-font-smoothing: antialiased;

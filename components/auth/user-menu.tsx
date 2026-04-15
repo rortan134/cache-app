@@ -5,6 +5,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Group } from "@/components/ui/group";
+import { CrownFilledIcon } from "@/components/ui/integration-icons";
 import { Popover, PopoverPopup, PopoverTrigger } from "@/components/ui/popover";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -63,6 +64,7 @@ function SubscriptionBadge() {
                 className="h-6! w-full bg-amber-100 text-amber-900"
                 variant="secondary"
             >
+                <CrownFilledIcon />
                 <T context="Subscription ends message">
                     <Var>{planLabel}</Var> ends <Var>{expiresAt ?? "soon"}</Var>
                 </T>
@@ -76,6 +78,7 @@ function SubscriptionBadge() {
                 className="h-6! w-full bg-primary/10 text-primary"
                 variant="secondary"
             >
+                <CrownFilledIcon />
                 <T context="Trialing status label">
                     <Var>{planLabel}</Var> trial, then{" "}
                     <Var>{intervalLabel}</Var>
@@ -90,6 +93,7 @@ function SubscriptionBadge() {
                 className="h-6! w-full bg-primary/10 text-primary"
                 variant="secondary"
             >
+                <CrownFilledIcon />
                 <T context="Active status label">
                     <Var>{planLabel}</Var> <Var>{intervalLabel}</Var>
                 </T>
@@ -102,6 +106,7 @@ function SubscriptionBadge() {
             className="h-6! w-full bg-muted text-muted-foreground"
             variant="secondary"
         >
+            <CrownFilledIcon />
             <T context="Other subscription status">
                 <Var>{planLabel}</Var>{" "}
                 <Var>
@@ -128,7 +133,7 @@ function UpgradeButton({ returnPath }: { returnPath: string }) {
 
                 if (error) {
                     setErrorMessage(
-                        error.message ?? "We couldn't open checkout right now."
+                        error.message ?? "We couldn't open checkout right now.",
                     );
                     return;
                 }
@@ -177,7 +182,7 @@ function BillingPortalButton({ returnPath }: { returnPath: string }) {
 
                 if (error) {
                     setErrorMessage(
-                        error.message ?? "We couldn't open billing right now."
+                        error.message ?? "We couldn't open billing right now.",
                     );
                     return;
                 }

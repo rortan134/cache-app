@@ -48,7 +48,7 @@ export default async function RootLayout({
                     name="p:domain_verify"
                 />
             </head>
-            <body className="flex min-h-full flex-col">
+            <body className="flex flex-col">
                 <h1 className="sr-only">{SITE_APP_NAME}</h1>
                 <GTProvider>{children}</GTProvider>
                 <Analytics />
@@ -100,7 +100,7 @@ function NextChatSDKBootstrap({ baseUrl }: { baseUrl: string }) {
                                 history,
                                 state,
                                 unused,
-                                href
+                                href,
                             );
                         };
 
@@ -112,7 +112,7 @@ function NextChatSDKBootstrap({ baseUrl }: { baseUrl: string }) {
                                 history,
                                 state,
                                 unused,
-                                href
+                                href,
                             );
                         };
 
@@ -132,7 +132,7 @@ function NextChatSDKBootstrap({ baseUrl }: { baseUrl: string }) {
                                 }
                                 const url = new URL(
                                     a.href,
-                                    window.location.href
+                                    window.location.href,
                                 );
                                 if (
                                     url.origin !== window.location.origin &&
@@ -147,12 +147,12 @@ function NextChatSDKBootstrap({ baseUrl }: { baseUrl: string }) {
                                         }
                                     } catch {
                                         console.warn(
-                                            "openExternal failed, likely not in OpenAI client"
+                                            "openExternal failed, likely not in OpenAI client",
                                         );
                                     }
                                 }
                             },
-                            true
+                            true,
                         );
 
                         if (
@@ -163,7 +163,7 @@ function NextChatSDKBootstrap({ baseUrl }: { baseUrl: string }) {
 
                             function resolveFetchUrl(
                                 input: URL | RequestInfo,
-                                baseHref: string
+                                baseHref: string,
                             ): URL {
                                 if (
                                     typeof input === "string" ||
@@ -176,7 +176,7 @@ function NextChatSDKBootstrap({ baseUrl }: { baseUrl: string }) {
 
                             function inputForResolvedUrl(
                                 input: URL | RequestInfo,
-                                url: URL
+                                url: URL,
                             ): URL | RequestInfo {
                                 if (
                                     typeof input === "string" ||
@@ -189,18 +189,18 @@ function NextChatSDKBootstrap({ baseUrl }: { baseUrl: string }) {
 
                             window.fetch = (
                                 input: URL | RequestInfo,
-                                init?: RequestInit
+                                init?: RequestInit,
                             ) => {
                                 const url = resolveFetchUrl(
                                     input,
-                                    window.location.href
+                                    window.location.href,
                                 );
 
                                 if (url.origin === appOrigin) {
                                     return originalFetch.call(
                                         window,
                                         inputForResolvedUrl(input, url),
-                                        { ...init, mode: "cors" }
+                                        { ...init, mode: "cors" },
                                     );
                                 }
 
@@ -212,7 +212,7 @@ function NextChatSDKBootstrap({ baseUrl }: { baseUrl: string }) {
                                     return originalFetch.call(
                                         window,
                                         inputForResolvedUrl(input, rewritten),
-                                        { ...init, mode: "cors" }
+                                        { ...init, mode: "cors" },
                                     );
                                 }
 

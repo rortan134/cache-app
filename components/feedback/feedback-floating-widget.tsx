@@ -25,7 +25,7 @@ export function FeedbackFloatingWidget(): React.ReactElement {
     const [open, setOpen] = useState(false);
     const [state, formAction] = useActionState(
         createFeedback,
-        initialFeedbackActionState
+        initialFeedbackActionState,
     );
     const formRef = useRef<HTMLFormElement>(null);
 
@@ -48,7 +48,7 @@ export function FeedbackFloatingWidget(): React.ReactElement {
                 <PopoverTrigger
                     render={
                         <Button
-                            className="pointer-events-auto rounded-full bg-background/95 shadow-black/5 shadow-lg backdrop-blur-xs"
+                            className="pointer-events-auto rounded-full bg-background shadow-black/5 shadow-lg"
                             size="sm"
                             type="button"
                             variant="outline"
@@ -96,7 +96,7 @@ export function FeedbackFloatingWidget(): React.ReactElement {
                                         "min-h-5 text-xs",
                                         state.status === "error"
                                             ? "text-destructive"
-                                            : "text-muted-foreground"
+                                            : "text-muted-foreground",
                                     )}
                                     id="feedback-status"
                                     role={

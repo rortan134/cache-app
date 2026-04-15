@@ -1,4 +1,5 @@
 "use client";
+
 import { Avatar, AvatarGroup } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -76,7 +77,7 @@ interface CollectionPriorityOption {
 
 function getCollectionButtonStyle(
     name: string,
-    isSelected: boolean
+    isSelected: boolean,
 ): CSSProperties {
     const assignedColor = getColorFromName(name);
     const backgroundOpacity = isSelected ? 20 : 7;
@@ -140,8 +141,8 @@ export function CollectionsListTrigger({
                 render={
                     <CollapsibleTrigger
                         className={cn(
-                            "flex select-none items-center gap-3 rounded-full bg-muted/94 px-3 py-2.5 text-left text-foreground hover:bg-input/50 active:bg-input/20",
-                            className
+                            "flex select-none items-center gap-3 rounded-full bg-muted/94 pl-4 pr-3 py-2.5 text-left text-foreground hover:bg-input/50 active:bg-input/20",
+                            className,
                         )}
                         onMouseEnter={(event) => {
                             onMouseEnter?.(event);
@@ -198,7 +199,7 @@ export function CollectionsListAction({
         <Button
             className={cn(
                 "rounded-full bg-muted/94 hover:bg-input/50",
-                className
+                className,
             )}
             size="icon-xl"
             variant="secondary"
@@ -207,11 +208,10 @@ export function CollectionsListAction({
     );
 }
 
-export function CollectionsListContent({
-    className,
-    ...props
-}: React.ComponentProps<typeof CollapsiblePanel>): ReactElement {
-    return <CollapsiblePanel className={cn(className)} {...props} />;
+export function CollectionsListContent(
+    props: React.ComponentProps<typeof CollapsiblePanel>,
+): ReactElement {
+    return <CollapsiblePanel {...props} />;
 }
 
 const DEFAULT_COLLECTION_PRIORITY_OPTION: CollectionPriorityOption = {
@@ -245,11 +245,11 @@ const COLLECTION_PRIORITY_OPTIONS = [
 ] satisfies readonly CollectionPriorityOption[];
 
 const COLLECTION_PRIORITY_OPTION_BY_VALUE = new Map(
-    COLLECTION_PRIORITY_OPTIONS.map((option) => [option.value, option])
+    COLLECTION_PRIORITY_OPTIONS.map((option) => [option.value, option]),
 );
 
 function getCollectionPriorityOption(
-    priority: CollectionPriority
+    priority: CollectionPriority,
 ): CollectionPriorityOption {
     const option = COLLECTION_PRIORITY_OPTION_BY_VALUE.get(priority);
     if (option) {
@@ -330,24 +330,24 @@ function CollectionsListItemHoverPreview({
                 render={
                     <Button
                         className={cn(
-                            "w-full min-w-0 flex-1 justify-start rounded-full border-[var(--focus-ring-color)]/7 px-8 text-left focus-visible:ring-1 focus-visible:ring-[var(--focus-ring-color)]"
+                            "w-full min-w-0 flex-1 justify-start rounded-full border-(--focus-ring-color)/7 px-8 text-left focus-visible:ring-1 focus-visible:ring-(--focus-ring-color)",
                         )}
                         onClick={onSelect}
                         style={getCollectionButtonStyle(
                             collection.name,
-                            isSelected
+                            isSelected,
                         )}
                         type="button"
                         variant="ghost"
                     />
                 }
             >
-                <div className="flex min-w-0 flex-1 items-center gap-3">
-                    <span className="truncate font-medium text-sm leading-tight">
+                <div className="flex min-w-0 items-center gap-3">
+                    <span className="truncate shrink-0 font-medium text-sm leading-tight">
                         {collection.name}
                     </span>
                     {collection.sources.length > 0 && (
-                        <span className="truncate text-[11px] text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100">
+                        <span className="flex-1 max-w-full truncate text-[11px] text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100">
                             {collection.sources.map(getSourceLabel).join(", ")}
                         </span>
                     )}
@@ -382,7 +382,7 @@ function CollectionItemPriorityComboboxPicker({
     readonly isPending?: boolean;
     readonly onUpdatePriority: (
         collectionId: string,
-        priority: CollectionPriority
+        priority: CollectionPriority,
     ) => void;
     readonly open?: boolean;
     readonly onOpenChange?: (open: boolean) => void;
@@ -393,19 +393,20 @@ function CollectionItemPriorityComboboxPicker({
     const inputRef = useRef<HTMLInputElement>(null);
     const selectedOption = getCollectionPriorityOption(collection.priority);
 
-    useEffect(() => {
-        if (!isOpen || isPending) {
-            return;
-        }
-
-        const frame = window.requestAnimationFrame(() => {
-            inputRef.current?.focus();
-        });
-
-        return () => {
-            window.cancelAnimationFrame(frame);
-        };
-    }, [isOpen, isPending]);
+    useEffect(
+        function handleOpenFocus() {
+            if (!isOpen || isPending) {
+                return;
+            }
+            const frame = window.requestAnimationFrame(() => {
+                inputRef.current?.focus();
+            });
+            return () => {
+                window.cancelAnimationFrame(frame);
+            };
+        },
+        [isOpen, isPending],
+    );
 
     return (
         <Combobox
@@ -416,7 +417,6 @@ function CollectionItemPriorityComboboxPicker({
                 if (!nextPriority || nextPriority === collection.priority) {
                     return;
                 }
-
                 onUpdatePriority(collection.id, nextPriority);
                 setIsOpen(false);
             }}
@@ -535,7 +535,7 @@ export function CollectionsListItem({
                     <MenuPopup className="min-w-48">
                         <MenuItem closeOnClick onClick={onRename}>
                             <PencilIcon className="size-4 text-muted-foreground" />
-                            Rename
+                            Edit
                         </MenuItem>
                         <MenuSeparator />
                         <MenuSub>
@@ -599,7 +599,7 @@ export function CollectionsListFeedback({
                     "text-xs",
                     tone === "error"
                         ? "text-destructive"
-                        : "text-muted-foreground"
+                        : "text-muted-foreground",
                 )}
             >
                 {message}

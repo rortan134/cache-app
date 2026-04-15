@@ -3,8 +3,8 @@ import { SignedInOnly, SignedOutOnly } from "@/components/auth/session";
 import { PricingUpgradeButton } from "@/components/billing/pricing-upgrade-button";
 import {
     Accordion,
-    AccordionContent,
     AccordionItem,
+    AccordionPanel,
     AccordionTrigger,
 } from "@/components/ui/accordion";
 import { Footer } from "@/components/ui/footer";
@@ -27,7 +27,7 @@ export async function generateMetadata({
         description: gtPublicString(
             locale,
             "pricing.metadata.description",
-            "Simple pricing for power users who want one place to organize and rediscover everything they save."
+            "Simple pricing for power users who want one place to organize and rediscover everything they save.",
         ),
         title: gtPublicString(locale, "pricing.metadata.title", "Pricing"),
     };
@@ -256,7 +256,7 @@ export default async function PricingPage({
                                 <AccordionTrigger className="text-lg md:text-xl">
                                     <T context="FAQ question">What is Cache?</T>
                                 </AccordionTrigger>
-                                <AccordionContent className="text-[0.95rem] leading-relaxed md:text-base">
+                                <AccordionPanel className="text-[0.95rem] leading-relaxed md:text-base">
                                     <T context="FAQ answer">
                                         Cache is a unified library for
                                         everything you save online. We bring
@@ -264,7 +264,7 @@ export default async function PricingPage({
                                         and saved content from various platforms
                                         into one searchable, organized space.
                                     </T>
-                                </AccordionContent>
+                                </AccordionPanel>
                             </AccordionItem>
 
                             <AccordionItem value="item-1">
@@ -273,7 +273,7 @@ export default async function PricingPage({
                                         How often is my content updated?
                                     </T>
                                 </AccordionTrigger>
-                                <AccordionContent className="text-[0.95rem] leading-relaxed md:text-base">
+                                <AccordionPanel className="text-[0.95rem] leading-relaxed md:text-base">
                                     <T context="FAQ answer">
                                         We sync your connected integrations
                                         automatically. Whether it's a new Google
@@ -281,7 +281,7 @@ export default async function PricingPage({
                                         your library up to date so you can find
                                         what you need instantly.
                                     </T>
-                                </AccordionContent>
+                                </AccordionPanel>
                             </AccordionItem>
 
                             <AccordionItem value="item-2">
@@ -290,14 +290,14 @@ export default async function PricingPage({
                                         Do you have discounts for students?
                                     </T>
                                 </AccordionTrigger>
-                                <AccordionContent className="text-[0.95rem] leading-relaxed md:text-base">
+                                <AccordionPanel className="text-[0.95rem] leading-relaxed md:text-base">
                                     <T context="FAQ answer">
                                         Yes! We believe in supporting students
                                         and educators. Please contact our
                                         support team with your academic email to
                                         receive a special discount code.
                                     </T>
-                                </AccordionContent>
+                                </AccordionPanel>
                             </AccordionItem>
 
                             <AccordionItem value="item-3">
@@ -306,14 +306,14 @@ export default async function PricingPage({
                                         What payment methods do you accept?
                                     </T>
                                 </AccordionTrigger>
-                                <AccordionContent className="text-[0.95rem] leading-relaxed md:text-base">
+                                <AccordionPanel className="text-[0.95rem] leading-relaxed md:text-base">
                                     <T context="FAQ answer">
                                         We accept all major credit cards (Visa,
                                         Mastercard, American Express) and
                                         digital wallets through our secure
                                         payment processor, Stripe.
                                     </T>
-                                </AccordionContent>
+                                </AccordionPanel>
                             </AccordionItem>
 
                             <AccordionItem value="item-4">
@@ -322,7 +322,7 @@ export default async function PricingPage({
                                         Can I cancel my subscription?
                                     </T>
                                 </AccordionTrigger>
-                                <AccordionContent className="text-[0.95rem] leading-relaxed md:text-base">
+                                <AccordionPanel className="text-[0.95rem] leading-relaxed md:text-base">
                                     <T context="FAQ answer">
                                         Of course. You can cancel your Pro
                                         subscription at any time from your
@@ -330,7 +330,7 @@ export default async function PricingPage({
                                         have access to Pro features until the
                                         end of your billing period.
                                     </T>
-                                </AccordionContent>
+                                </AccordionPanel>
                             </AccordionItem>
 
                             <AccordionItem value="item-5">
@@ -339,7 +339,7 @@ export default async function PricingPage({
                                         Do you offer plans for teams?
                                     </T>
                                 </AccordionTrigger>
-                                <AccordionContent className="text-[0.95rem] leading-relaxed md:text-base">
+                                <AccordionPanel className="text-[0.95rem] leading-relaxed md:text-base">
                                     <T context="FAQ answer">
                                         Currently, we focus on providing the
                                         best experience for individual power
@@ -348,7 +348,7 @@ export default async function PricingPage({
                                         to us—we'd love to hear about your
                                         needs.
                                     </T>
-                                </AccordionContent>
+                                </AccordionPanel>
                             </AccordionItem>
 
                             <AccordionItem value="item-6">
@@ -357,14 +357,14 @@ export default async function PricingPage({
                                         What is your refund policy?
                                     </T>
                                 </AccordionTrigger>
-                                <AccordionContent className="text-[0.95rem] leading-relaxed md:text-base">
+                                <AccordionPanel className="text-[0.95rem] leading-relaxed md:text-base">
                                     <T context="FAQ answer">
                                         We offer a 30-day money-back guarantee.
                                         If Cache isn't right for you, just let
                                         us know within 30 days of your initial
                                         purchase for a full refund.
                                     </T>
-                                </AccordionContent>
+                                </AccordionPanel>
                             </AccordionItem>
                         </Accordion>
                     </div>
