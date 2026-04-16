@@ -10,7 +10,7 @@
             document.documentElement.dataset.cacheExtensionInstalled = "true";
             window.postMessage(
                 { type: READY_EVENT_TYPE },
-                window.location.origin,
+                window.location.origin
             );
             window.dispatchEvent(new CustomEvent(READY_EVENT_TYPE));
         } catch {}

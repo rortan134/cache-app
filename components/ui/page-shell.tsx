@@ -10,10 +10,10 @@ const PageShell = ({
         {...props}
         className={cn(
             "isolate z-0 mx-auto flex size-full min-h-screen flex-col leading-snug tracking-tight outline-hidden [-webkit-user-drag:none] focus-visible:outline-hidden",
-            className,
+            className
         )}
-        tabIndex={-1}
         id="main"
+        tabIndex={-1}
     />
 );
 

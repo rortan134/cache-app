@@ -46,7 +46,7 @@ export async function generateMetadata({
         description: gtPublicString(
             locale,
             "library.metadata.description",
-            "Saved items from your connected accounts and extension imports appear below by source.",
+            "Saved items from your connected accounts and extension imports appear below by source."
         ),
         title: gtPublicString(locale, "library.metadata.title", "My library"),
     };
@@ -74,11 +74,11 @@ export default async function LibraryPage() {
     ]);
 
     const providers = new Set(
-        linkedAccounts.map((account) => account.providerId),
+        linkedAccounts.map((account) => account.providerId)
     );
 
     const isIntegrationConnected = (
-        id: (typeof INTEGRATIONS)[number]["id"],
+        id: (typeof INTEGRATIONS)[number]["id"]
     ) => {
         if (id === "google-photos") {
             return providers.has("google");
@@ -88,7 +88,7 @@ export default async function LibraryPage() {
         }
         if (id === "chrome") {
             return items.some(
-                (item) => item.source === LibraryItemSource.chrome_bookmarks,
+                (item) => item.source === LibraryItemSource.chrome_bookmarks
             );
         }
         if (id === "x") {
@@ -96,19 +96,19 @@ export default async function LibraryPage() {
         }
         if (id === "youtube") {
             return items.some(
-                (item) => item.source === LibraryItemSource.youtube_watch_later,
+                (item) => item.source === LibraryItemSource.youtube_watch_later
             );
         }
         return false;
     };
 
     const connectedIntegrationIds = INTEGRATIONS.flatMap(({ id }) =>
-        isIntegrationConnected(id) ? [id] : [],
+        isIntegrationConnected(id) ? [id] : []
     );
     const syncable = syncableLibrarySourceTotal();
     const { connectedLabels, missingLabels } = partitionLibrarySyncLabels(
         items,
-        connectedIntegrationIds,
+        connectedIntegrationIds
     );
     const connectedCount = connectedLabels.length;
     const text = integrationSetupHeadingText({
@@ -119,7 +119,7 @@ export default async function LibraryPage() {
     });
     const progressPercent = integrationSetupProgressPercent(
         connectedCount,
-        syncable,
+        syncable
     );
 
     return (
@@ -179,13 +179,13 @@ export default async function LibraryPage() {
                                                     </span>
                                                 </div>
                                                 <IntegrationAction
-                                                    isConnected={connectedIntegrationIds.includes(
-                                                        id,
-                                                    )}
                                                     id={id}
+                                                    isConnected={connectedIntegrationIds.includes(
+                                                        id
+                                                    )}
                                                 />
                                             </IntegrationItem>
-                                        ),
+                                        )
                                     )}
                                     <IntegrationsNotice />
                                 </IntegrationsPanel>

@@ -42,12 +42,12 @@ export async function generateMetadata({
         description: gtPublicString(
             locale,
             "home.metadata.description",
-            "One place to view, manage, and organize bookmarks across browsers and platforms — built for power users who save at volume.",
+            "One place to view, manage, and organize bookmarks across browsers and platforms — built for power users who save at volume."
         ),
         title: gtPublicString(
             locale,
             "home.metadata.title",
-            "Unify your bookmarks across every platform",
+            "Unify your bookmarks across every platform"
         ),
     };
 }
@@ -190,7 +190,7 @@ export default async function Home() {
                                                 >
                                                     <Icon className="size-6" />
                                                 </IntegrationCard>
-                                            ),
+                                            )
                                         )}
                                     </div>
                                     <div className="relative z-20 rounded-2xl border bg-muted p-1">
@@ -228,7 +228,7 @@ export default async function Home() {
                                                 >
                                                     <Icon className="size-6" />
                                                 </IntegrationCard>
-                                            ),
+                                            )
                                         )}
                                     </div>
                                 </div>
@@ -442,13 +442,13 @@ function IntegrationCard({
         <div
             className={cn(
                 "relative flex size-12 rounded-xl border bg-background",
-                className,
+                className
             )}
         >
             <div
                 className={cn(
                     "relative z-20 m-auto size-fit *:size-6",
-                    isCenter && "*:size-8",
+                    isCenter && "*:size-8"
                 )}
             >
                 {children}
@@ -468,7 +468,7 @@ function IntegrationCard({
                         position === "right-middle" &&
                             "top-1/2 right-full w-[120px] origin-right bg-linear-to-l",
                         position === "right-bottom" &&
-                            "top-1/2 right-full w-[130px] origin-right rotate-25 bg-linear-to-l",
+                            "top-1/2 right-full w-[130px] origin-right rotate-25 bg-linear-to-l"
                     )}
                 />
             )}

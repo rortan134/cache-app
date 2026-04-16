@@ -37,7 +37,7 @@ export function useIsExtensionInstalled() {
         return () => {
             window.removeEventListener(
                 CACHE_EXTENSION_READY_EVENT,
-                handleReady,
+                handleReady
             );
             window.removeEventListener("message", handleMessage);
         };

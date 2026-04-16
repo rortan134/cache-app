@@ -28,7 +28,7 @@ function setOpenCacheVisible(visible) {
 async function requestBridgeFromOpenCacheTab() {
     const appOrigin = String(globalThis.CACHE_APP_ORIGIN ?? "").replace(
         /\/$/,
-        "",
+        ""
     );
     if (!appOrigin) {
         return false;
@@ -113,7 +113,9 @@ function isYouTubeWatchLaterUrl(raw) {
 }
 
 async function loadMeta() {
-    const response = await chrome.runtime.sendMessage({ type: "GET_SYNC_META" });
+    const response = await chrome.runtime.sendMessage({
+        type: "GET_SYNC_META",
+    });
     return response && typeof response === "object" ? response : {};
 }
 
@@ -132,7 +134,7 @@ async function refreshFromStorage() {
 async function applyCacheSessionGate() {
     const appOrigin = String(globalThis.CACHE_APP_ORIGIN ?? "").replace(
         /\/$/,
-        "",
+        ""
     );
     if (!appOrigin) {
         syncBtn.disabled = true;
@@ -140,7 +142,7 @@ async function applyCacheSessionGate() {
         setOpenCacheVisible(true);
         setStatus(
             "Extension is missing CACHE_APP_ORIGIN in cache-config.js.",
-            "error",
+            "error"
         );
         return false;
     }
@@ -162,7 +164,7 @@ async function applyCacheSessionGate() {
         setOpenCacheVisible(true);
         setStatus(
             "Sign in to Cache and keep a cachd.app tab open, then reopen this popup.",
-            "error",
+            "error"
         );
         return false;
     }
@@ -218,9 +220,9 @@ chrome.runtime.onMessage.addListener((msg) => {
         setStatus(
             formatErrorMessage(
                 typeof msg.code === "string" ? msg.code : "UNKNOWN",
-                typeof msg.message === "string" ? msg.message : undefined,
+                typeof msg.message === "string" ? msg.message : undefined
             ),
-            "error",
+            "error"
         );
         if (syncBtn) {
             syncBtn.disabled = false;
@@ -251,12 +253,14 @@ syncBtn?.addEventListener("click", async () => {
         }
         const url = tab.url ?? "";
         if (
-            !url.startsWith("https://www.instagram.com/") &&
-            !url.startsWith("https://www.tiktok.com/") &&
-            !isYouTubeWatchLaterUrl(url)
+            !(
+                url.startsWith("https://www.instagram.com/") ||
+                url.startsWith("https://www.tiktok.com/") ||
+                isYouTubeWatchLaterUrl(url)
+            )
         ) {
             throw new Error(
-                "Open Instagram Saved, TikTok Favorites, or YouTube Watch Later in this tab.",
+                "Open Instagram Saved, TikTok Favorites, or YouTube Watch Later in this tab."
             );
         }
 
@@ -266,7 +270,7 @@ syncBtn?.addEventListener("click", async () => {
             error instanceof Error
                 ? error.message
                 : "Could not reach this page. Reload the tab and try again.",
-            "error",
+            "error"
         );
         syncBtn.disabled = false;
         await applyCacheSessionGate();
@@ -294,7 +298,7 @@ chromeSyncBtn?.addEventListener("click", async () => {
             error instanceof Error
                 ? error.message
                 : "Chrome bookmarks could not be synced right now.",
-            "error",
+            "error"
         );
         chromeSyncBtn.disabled = false;
         await applyCacheSessionGate();
@@ -313,7 +317,7 @@ chromeContinuousEl?.addEventListener("change", async () => {
 openCacheBtnEl?.addEventListener("click", async () => {
     const appOrigin = String(globalThis.CACHE_APP_ORIGIN ?? "").replace(
         /\/$/,
-        "",
+        ""
     );
     const keyData = await chrome.storage.local.get(["syncEndpoint"]);
     const endpoint =

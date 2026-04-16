@@ -25,14 +25,14 @@ function GoogleSignInButton({
                 if (result.error) {
                     setErrorMessage(
                         result.error.message ??
-                            "Could not start Google sign-in.",
+                            "Could not start Google sign-in."
                     );
                 }
             } catch (err) {
                 setErrorMessage(
                     err instanceof Error
                         ? err.message
-                        : "Could not start Google sign-in.",
+                        : "Could not start Google sign-in."
                 );
             }
         });

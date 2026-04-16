@@ -88,7 +88,7 @@ function noteHtmlHasMeaningfulContent(contentHtml: string): boolean {
 function noteDraftShouldSave(
     currentDraft: NoteDraft,
     initialDraft: NoteDraft,
-    note: LibraryItemWithCollections | null,
+    note: LibraryItemWithCollections | null
 ): boolean {
     if (noteDraftsMatch(currentDraft, initialDraft)) {
         return false;
@@ -103,7 +103,7 @@ function noteDraftShouldSave(
 
 function useRichTextFormats(
     editorRef: RefObject<HTMLDivElement | null>,
-    enabled: boolean,
+    enabled: boolean
 ): FormatState {
     const [formats, setFormats] = useState<FormatState>(EMPTY_FORMAT_STATE);
 
@@ -128,7 +128,7 @@ function useRichTextFormats(
             }
 
             const highlightValue = String(
-                document.queryCommandValue("hiliteColor") ?? "",
+                document.queryCommandValue("hiliteColor") ?? ""
             ).toLowerCase();
 
             setFormats({
@@ -166,31 +166,31 @@ function NoteDrawerHeader({ title }: { readonly title: string }) {
                     {title}
                 </DrawerTitle>
             </div>
-            <div className="flex items-center gap-1.5 justify-end">
-                <Button size="xs" className="rounded-full" variant="outline">
-                    <GoogleDocsIcon className="size-3.5 inline-block" />
+            <div className="flex items-center justify-end gap-1.5">
+                <Button className="rounded-full" size="xs" variant="outline">
+                    <GoogleDocsIcon className="inline-block size-3.5" />
                     Open in Google Docs
                 </Button>
-                <Button size="xs" className="rounded-full" variant="outline">
-                    <NotionIcon className="size-3.5 inline-block" />
+                <Button className="rounded-full" size="xs" variant="outline">
+                    <NotionIcon className="inline-block size-3.5" />
                     &nbsp;Open in Notion
                 </Button>
                 <Group aria-label="Panel actions">
                     <Button
+                        className="rounded-full"
                         size="icon-sm"
                         variant="secondary"
-                        className="rounded-full"
                     >
-                        <Maximize2 className="size-3.5 inline-block" />
+                        <Maximize2 className="inline-block size-3.5" />
                     </Button>
                     <DrawerClose
                         render={
                             <Button
+                                className="rounded-full"
                                 size="icon-sm"
                                 variant="secondary"
-                                className="rounded-full"
                             >
-                                <XIcon className="size-3.5 inline-block" />
+                                <XIcon className="inline-block size-3.5" />
                             </Button>
                         }
                     />
@@ -274,9 +274,7 @@ function NoteFormattingToolbar({
                     event.preventDefault();
                     runCommand(
                         "hiliteColor",
-                        formats.highlight
-                            ? "transparent"
-                            : NOTE_HIGHLIGHT_COLOR,
+                        formats.highlight ? "transparent" : NOTE_HIGHLIGHT_COLOR
                     );
                 }}
                 size="icon-sm"
@@ -314,7 +312,7 @@ function NoteEditor({
             <div
                 className={cn(
                     "prose prose-stone max-w-none flex-1 overflow-y-auto text-[15px] leading-7 outline-none",
-                    "prose-p:my-0 prose-p:min-h-[1.75rem] prose-mark:rounded-sm prose-mark:bg-amber-200/90 prose-mark:px-0.5 prose-strong:font-semibold prose-em:italic prose-u:underline prose-s:line-through",
+                    "prose-p:my-0 prose-p:min-h-[1.75rem] prose-mark:rounded-sm prose-mark:bg-amber-200/90 prose-mark:px-0.5 prose-strong:font-semibold prose-em:italic prose-u:underline prose-s:line-through"
                 )}
                 contentEditable
                 onInput={(event) => {
@@ -372,7 +370,7 @@ export function LibraryNoteDrawer({
     const editorRef = useRef<HTMLDivElement>(null);
     const initialDraftRef = useRef<NoteDraft>(noteDraftFromItem(note));
     const [draft, setDraft] = useState<NoteDraft>(() =>
-        noteDraftFromItem(note),
+        noteDraftFromItem(note)
     );
     const [isClosing, setIsClosing] = useState(false);
 

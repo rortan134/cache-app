@@ -21,24 +21,23 @@ const groupVariants = cva(
                     "flex-col *:pointer-coarse:after:min-h-auto *:data-slot:has-[~[data-slot]]:rounded-b-none *:data-slot:has-[~[data-slot]]:border-b-0 *:data-slot:not-data-[slot=separator]:has-[~[data-slot]]:before:-bottom-[0.5px] *:data-slot:not-data-[slot=separator]:has-[~[data-slot]]:before:hidden *:data-slot:has-[~[data-slot]]:before:rounded-b-none dark:*:last:before:hidden dark:*:first:before:block *:[[data-slot]~[data-slot]:not([data-slot=separator])]:before:-top-[0.5px] *:[[data-slot]~[data-slot]]:rounded-t-none *:[[data-slot]~[data-slot]]:border-t-0 *:[[data-slot]~[data-slot]]:before:rounded-t-none",
             },
         },
-    },
+    }
 );
 
 export function Group({
     className,
     orientation,
     ...props
-}: {
-    className?: string;
+}: React.ComponentProps<"div"> & {
     orientation?: VariantProps<typeof groupVariants>["orientation"];
-    children: React.ReactNode;
-} & React.ComponentProps<"div">): React.ReactElement {
+}): React.ReactElement {
     return (
+        // biome-ignore lint/a11y/useSemanticElements: Ignore
         <div
             className={cn(
                 groupVariants({ orientation }),
                 "first:[&>*:first-child]:rounded-s-full last:[&>*:last-child]:rounded-e-full",
-                className,
+                className
             )}
             data-orientation={orientation}
             data-slot="group"
@@ -56,7 +55,7 @@ export function GroupText({
     const defaultProps = {
         className: cn(
             "relative inline-flex items-center gap-2 whitespace-nowrap rounded-lg border border-input bg-muted not-dark:bg-clip-padding px-[calc(--spacing(3)-1px)] text-base text-muted-foreground shadow-xs/5 outline-none transition-shadow before:pointer-events-none before:absolute before:inset-0 before:rounded-[calc(var(--radius-lg)-1px)] before:shadow-[0_1px_--theme(--color-black/6%)] sm:text-sm dark:bg-input/64 dark:before:shadow-[0_-1px_--theme(--color-white/6%)] [&_svg:not([class*='size-'])]:size-4.5 sm:[&_svg:not([class*='size-'])]:size-4 [&_svg]:-mx-0.5 [&_svg]:shrink-0",
-            className,
+            className
         ),
         "data-slot": "group-text",
     };
@@ -71,14 +70,12 @@ export function GroupSeparator({
     className,
     orientation = "vertical",
     ...props
-}: {
-    className?: string;
-} & React.ComponentProps<typeof Separator>): React.ReactElement {
+}: React.ComponentProps<typeof Separator>): React.ReactElement {
     return (
         <Separator
             className={cn(
                 "pointer-events-none relative z-2 bg-input before:absolute before:inset-0 has-[+[data-slot=input-control]:focus-within,+[data-slot=input-group]:focus-within,+[data-slot=select-trigger]:focus-visible+*,+[data-slot=number-field]:focus-within]:translate-x-px has-[+[data-slot=input-control]:focus-within,+[data-slot=input-group]:focus-within,+[data-slot=select-trigger]:focus-visible+*,+[data-slot=number-field]:focus-within]:bg-ring dark:before:bg-input/32 [[data-slot=input-control]:focus-within+&,[data-slot=input-group]:focus-within+&,[data-slot=select-trigger]:focus-visible+*+&,[data-slot=number-field]:focus-within+&,[data-slot=number-field]:focus-within+input+&]:bg-ring [[data-slot=input-control]:focus-within+&,[data-slot=input-group]:focus-within+&,[data-slot=select-trigger]:focus-visible+*+&,[data-slot=number-field]:focus-within+input+&]:-translate-x-px",
-                className,
+                className
             )}
             orientation={orientation}
             {...props}

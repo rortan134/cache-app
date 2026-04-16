@@ -1,24 +1,4 @@
 {
-    "name": "cache",
-    "type": "module",
-    "version": "1.0.0",
-    "private": true,
-    "packageManager": "bun@1.3.12",
-    "scripts": {
-        "clean": "find . -name node_modules -o -name .next -o -name .swc -o -name tsconfig.buildinfo -type d -prune | xargs rm -rf",
-        "dev": "next dev",
-        "build": "npx gt translate && next build",
-        "start": "next start",
-        "db-deploy": "prisma migrate deploy",
-        "postinstall": "prisma generate",
-        "db-migrate": "prisma migrate dev",
-        "lint": "ultracite check",
-        "lint:fix": "ultracite fix",
-        "analyze": "next experimental-analyze",
-        "type-check": "tsc --noEmit --emitDeclarationOnly false",
-        "validate": "knip --production --exclude types",
-        "prepare": "husky"
-    },
     "dependencies": {
         "@arcjet/redact": "^1.4.0",
         "@base-ui/react": "^1.4.0",
@@ -78,8 +58,30 @@
         "prisma": "^7.7.0",
         "tailwindcss": "^4",
         "typescript": "^6",
-        "ultracite": "^7.5.9"
+        "ultracite": "7.5.9"
     },
+    "name": "cache",
+    "scripts": {
+        "clean": "find . -name node_modules -o -name .next -o -name .swc -o -name tsconfig.buildinfo -type d -prune | xargs rm -rf",
+        "dev": "next dev",
+        "build": "npx gt translate && next build",
+        "start": "next start",
+        "db-deploy": "prisma migrate deploy",
+        "postinstall": "prisma generate",
+        "db-migrate": "prisma migrate dev",
+        "lint": "ultracite check",
+        "lint:fix": "ultracite fix",
+        "analyze": "next experimental-analyze",
+        "type-check": "tsc --noEmit --emitDeclarationOnly false",
+        "validate": "knip --production --exclude types",
+        "prepare": "husky",
+        "check": "ultracite check",
+        "fix": "ultracite fix"
+    },
+    "type": "module",
+    "version": "1.0.0",
+    "private": true,
+    "packageManager": "bun@1.3.12",
     "engines": {
         "node": "24.x"
     }

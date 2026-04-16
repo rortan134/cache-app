@@ -81,15 +81,15 @@ interface CollectionPriorityOption {
 
 function getCollectionButtonStyle(
     name: string,
-    isSelected: boolean,
+    isSelected: boolean
 ): CSSProperties {
     const assignedColor = getColorFromName(name);
     const backgroundOpacity = isSelected ? 20 : 7;
 
     return {
+        "--collection-background": `color-mix(in srgb, ${assignedColor} ${backgroundOpacity}%, transparent)`,
         "--focus-ring-color": `color-mix(in srgb, ${assignedColor}, black 50%)`,
         "--text-muted-color": `color-mix(in srgb, ${assignedColor} 16%, black 18%)`,
-        "--collection-background": `color-mix(in srgb, ${assignedColor} ${backgroundOpacity}%, transparent)`,
     } as CSSProperties;
 }
 
@@ -146,8 +146,8 @@ export function CollectionsListTrigger({
                 render={
                     <CollapsibleTrigger
                         className={cn(
-                            "flex select-none items-center gap-3 rounded-full bg-muted/94 pl-4 pr-3 py-2.5 text-left text-foreground hover:bg-input/50 active:bg-input/30",
-                            className,
+                            "flex select-none items-center gap-3 rounded-full bg-muted/94 py-2.5 pr-3 pl-4 text-left text-foreground hover:bg-input/50 active:bg-input/30",
+                            className
                         )}
                         onMouseEnter={(event) => {
                             onMouseEnter?.(event);
@@ -204,7 +204,7 @@ export function CollectionsListAction({
         <Button
             className={cn(
                 "rounded-full bg-muted/94 hover:bg-input/50",
-                className,
+                className
             )}
             size="icon-xl"
             variant="secondary"
@@ -214,7 +214,7 @@ export function CollectionsListAction({
 }
 
 export function CollectionsListContent(
-    props: React.ComponentProps<typeof CollapsiblePanel>,
+    props: React.ComponentProps<typeof CollapsiblePanel>
 ): ReactElement {
     return <CollapsiblePanel {...props} />;
 }
@@ -250,11 +250,11 @@ const COLLECTION_PRIORITY_OPTIONS = [
 ] satisfies readonly CollectionPriorityOption[];
 
 const COLLECTION_PRIORITY_OPTION_BY_VALUE = new Map(
-    COLLECTION_PRIORITY_OPTIONS.map((option) => [option.value, option]),
+    COLLECTION_PRIORITY_OPTIONS.map((option) => [option.value, option])
 );
 
 function getCollectionPriorityOption(
-    priority: CollectionPriority,
+    priority: CollectionPriority
 ): CollectionPriorityOption {
     const option = COLLECTION_PRIORITY_OPTION_BY_VALUE.get(priority);
     if (option) {
@@ -332,7 +332,7 @@ function CollectionsListItemHoverPreview({
                 closeDelay={COLLECTION_ITEM_PREVIEW_CLOSE_DELAY_MS}
                 render={
                     <Button
-                        className="w-full min-w-0 flex-1 justify-start rounded-full bg-(--collection-background) border-(--focus-ring-color)/7 px-8 text-left focus-visible:ring-1 focus-visible:ring-(--focus-ring-color)"
+                        className="w-full min-w-0 flex-1 justify-start rounded-full border-(--focus-ring-color)/7 bg-(--collection-background) px-8 text-left focus-visible:ring-(--focus-ring-color) focus-visible:ring-1"
                         onClick={onSelect}
                         type="button"
                         variant="ghost"
@@ -340,11 +340,11 @@ function CollectionsListItemHoverPreview({
                 }
             >
                 <div className="flex min-w-0 items-center gap-3">
-                    <span className="truncate shrink-0 font-medium text-sm leading-tight">
+                    <span className="shrink-0 truncate font-medium text-sm leading-tight">
                         {collection.name}
                     </span>
                     {collection.sources.length > 0 && (
-                        <span className="flex-1 max-w-full truncate text-[11px] text-muted-foreground opacity-0 transition-opacity group-hover:opacity-80">
+                        <span className="max-w-full flex-1 truncate text-[11px] text-muted-foreground opacity-0 transition-opacity group-hover:opacity-80">
                             {collection.sources.map(getSourceLabel).join(", ")}
                         </span>
                     )}
@@ -379,7 +379,7 @@ function CollectionItemPriorityComboboxPicker({
     readonly isPending?: boolean;
     readonly onUpdatePriority: (
         collectionId: string,
-        priority: CollectionPriority,
+        priority: CollectionPriority
     ) => void;
     readonly open?: boolean;
     readonly onOpenChange?: (open: boolean) => void;
@@ -419,8 +419,8 @@ function CollectionItemPriorityComboboxPicker({
             </ComboboxTrigger>
             <ComboboxPopup positionMethod="fixed">
                 <ComboboxInput
-                    placeholder="Set priority..."
                     endAddon={<Kbd>P</Kbd>}
+                    placeholder="Set priority..."
                 />
                 <ComboboxEmpty>No matching priorities</ComboboxEmpty>
                 <ComboboxList>
@@ -511,7 +511,7 @@ export function CollectionsListItem({
                     >
                         <EllipsisIcon className="size-4.5" />
                     </MenuTrigger>
-                    <MenuPopup side="right" align="start">
+                    <MenuPopup align="start" side="right">
                         <MenuItem closeOnClick onClick={onRename}>
                             <PencilIcon className="size-4 text-muted-foreground" />
                             Edit
@@ -523,7 +523,7 @@ export function CollectionsListItem({
                         </MenuItem>
                         <MenuSub>
                             <MenuSubTrigger disabled={!hasItems}>
-                                <Forward className="size-4 text-muted-foreground inline-block" />
+                                <Forward className="inline-block size-4 text-muted-foreground" />
                                 Export collection
                             </MenuSubTrigger>
                             <MenuSubPopup>
@@ -587,7 +587,7 @@ export function CollectionsListFeedback({
                     "text-xs",
                     tone === "error"
                         ? "text-destructive"
-                        : "text-muted-foreground",
+                        : "text-muted-foreground"
                 )}
             >
                 {message}

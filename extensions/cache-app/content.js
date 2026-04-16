@@ -6,7 +6,7 @@ const STABLE_ROUNDS_NO_NEW_AT_BOTTOM = 1;
 const STAGNANT_SCROLL_ROUNDS_STOP = 2;
 const SCROLL_BOTTOM_SLACK_PX = 56;
 const MAX_ITEMS = 2000;
-const MAX_YOUTUBE_ITEMS = 10000;
+const MAX_YOUTUBE_ITEMS = 10_000;
 const INNER_SCROLL_STEPS = 28;
 const INNER_SCROLL_STEP_PAUSE_MS = 72;
 
@@ -32,9 +32,7 @@ function isInnerScrolledToBottom(inner) {
     if (scrollHeight <= clientHeight + 12) {
         return true;
     }
-    return (
-        scrollTop + clientHeight >= scrollHeight - SCROLL_BOTTOM_SLACK_PX
-    );
+    return scrollTop + clientHeight >= scrollHeight - SCROLL_BOTTOM_SLACK_PX;
 }
 
 /**
@@ -64,8 +62,7 @@ function findBestScrollContainer(start) {
  * @returns {HTMLElement | null}
  */
 function findFeedScrollTarget(anchor, findAnchor) {
-    const sample =
-        anchor instanceof HTMLElement ? anchor : findAnchor();
+    const sample = anchor instanceof HTMLElement ? anchor : findAnchor();
     return findBestScrollContainer(sample);
 }
 
@@ -161,10 +158,7 @@ async function stepScrollInnerToBottom(innerScroller) {
     if (maxTop <= 0) {
         return;
     }
-    const step = Math.max(
-        120,
-        Math.floor(innerScroller.clientHeight * 0.72)
-    );
+    const step = Math.max(120, Math.floor(innerScroller.clientHeight * 0.72));
     for (let i = 0; i < INNER_SCROLL_STEPS; i += 1) {
         if (innerScroller.scrollTop >= maxTop - 2) {
             break;
@@ -226,9 +220,7 @@ function textFromRuns(value) {
     }
     if (Array.isArray(value.runs)) {
         return value.runs
-            .map((run) =>
-                run && typeof run.text === "string" ? run.text : "",
-            )
+            .map((run) => (run && typeof run.text === "string" ? run.text : ""))
             .join("")
             .trim();
     }
@@ -390,12 +382,26 @@ function getPostedAtFromInstagramAlt(alt) {
     if (esMatch?.[1]) {
         // Simple manual parse for Spanish months if Date() fails
         const months = {
-            enero: 0, febrero: 1, marzo: 2, abril: 3, mayo: 4, junio: 5,
-            julio: 6, agosto: 7, septiembre: 8, octubre: 9, noviembre: 10, diciembre: 11
+            abril: 3,
+            agosto: 7,
+            diciembre: 11,
+            enero: 0,
+            febrero: 1,
+            julio: 6,
+            junio: 5,
+            marzo: 2,
+            mayo: 4,
+            noviembre: 10,
+            octubre: 9,
+            septiembre: 8,
         };
         const parts = esMatch[1].toLowerCase().split(/\s+de\s+/);
         if (parts.length === 3) {
-            const d = new Date(Number(parts[2]), months[parts[1]] ?? 0, Number(parts[0]));
+            const d = new Date(
+                Number(parts[2]),
+                months[parts[1]] ?? 0,
+                Number(parts[0])
+            );
             if (!Number.isNaN(d.getTime())) {
                 return d.toISOString();
             }
@@ -476,9 +482,11 @@ function getInstagramPostedAtByShortcodeMap() {
     for (const script of scripts) {
         const text = script.textContent ?? "";
         if (
-            !text ||
-            !text.includes("shortcode") ||
-            !text.includes("taken_at_timestamp")
+            !(
+                text &&
+                text.includes("shortcode") &&
+                text.includes("taken_at_timestamp")
+            )
         ) {
             continue;
         }
@@ -486,8 +494,7 @@ function getInstagramPostedAtByShortcodeMap() {
         for (const pattern of patterns) {
             pattern.lastIndex = 0;
             for (const match of text.matchAll(pattern)) {
-                const shortcode =
-                    pattern === patterns[0] ? match[1] : match[2];
+                const shortcode = pattern === patterns[0] ? match[1] : match[2];
                 const rawTimestamp =
                     pattern === patterns[0] ? match[2] : match[1];
                 if (!shortcode || byShortcode.has(shortcode)) {
@@ -649,9 +656,7 @@ function parseInstagramPostHref(href) {
  */
 function mergeInstagramDomIntoAccumulated(accumulated) {
     const root = getInstagramPostLinkRoot();
-    const anchors = root.querySelectorAll(
-        'a[href*="/p/"], a[href*="/reel/"]'
-    );
+    const anchors = root.querySelectorAll('a[href*="/p/"], a[href*="/reel/"]');
 
     for (const a of anchors) {
         if (accumulated.size >= MAX_ITEMS) {
@@ -689,19 +694,20 @@ function mergeInstagramDomIntoAccumulated(accumulated) {
             url: `https://www.instagram.com${parsed.pathname}`,
         };
 
-        if (!accumulated.has(parsed.shortcode)) {
-            accumulated.set(parsed.shortcode, row);
-        } else {
+        if (accumulated.has(parsed.shortcode)) {
             const prev = accumulated.get(parsed.shortcode);
             const shouldFillThumbnail =
                 prev &&
                 !hasUsableImageUrl(prev.thumbnailUrl) &&
                 hasUsableImageUrl(thumbnailUrl);
-            const shouldFillCaption =
-                prev && !prev.caption && Boolean(caption);
+            const shouldFillCaption = prev && !prev.caption && Boolean(caption);
             const shouldFillPostedAt =
                 prev && !prev.postedAt && Boolean(postedAt);
-            if (shouldFillThumbnail || shouldFillCaption || shouldFillPostedAt) {
+            if (
+                shouldFillThumbnail ||
+                shouldFillCaption ||
+                shouldFillPostedAt
+            ) {
                 accumulated.set(parsed.shortcode, {
                     ...prev,
                     caption: prev.caption || caption,
@@ -709,6 +715,8 @@ function mergeInstagramDomIntoAccumulated(accumulated) {
                     thumbnailUrl: prev.thumbnailUrl || thumbnailUrl,
                 });
             }
+        } else {
+            accumulated.set(parsed.shortcode, row);
         }
     }
 }
@@ -880,7 +888,10 @@ function isTikTokFavoritesByUrl() {
     if (/^\/@[^/]+\/favorites?(?:\/|$)/i.test(p)) {
         return true;
     }
-    if (/\/favorites?(?:\/|$)/i.test(p) && /@/i.test(window.location.pathname)) {
+    if (
+        /\/favorites?(?:\/|$)/i.test(p) &&
+        /@/i.test(window.location.pathname)
+    ) {
         return true;
     }
     const sp = new URLSearchParams(window.location.search);
@@ -962,7 +973,12 @@ function tiktokTabLooksSelected(el) {
  */
 function tiktokElementLooksVisible(el) {
     const r = el.getBoundingClientRect();
-    return r.width > 4 && r.height > 4 && r.bottom > 0 && r.top < window.innerHeight;
+    return (
+        r.width > 4 &&
+        r.height > 4 &&
+        r.bottom > 0 &&
+        r.top < window.innerHeight
+    );
 }
 
 /**
@@ -1056,10 +1072,7 @@ function isTikTokFavoritesVideosView() {
 
 function findTikTokVideoScrollAnchor() {
     for (const el of querySelectorAllDeep('a[href*="/video/"]')) {
-        if (
-            el instanceof HTMLElement &&
-            tiktokElementLooksVisible(el)
-        ) {
+        if (el instanceof HTMLElement && tiktokElementLooksVisible(el)) {
             return el;
         }
     }
@@ -1139,9 +1152,7 @@ function mergeTikTokDomIntoAccumulated(accumulated) {
             url: parsed.url,
         };
 
-        if (!accumulated.has(parsed.id)) {
-            accumulated.set(parsed.id, row);
-        } else {
+        if (accumulated.has(parsed.id)) {
             const prev = accumulated.get(parsed.id);
             const shouldFillThumbnail =
                 prev &&
@@ -1150,6 +1161,8 @@ function mergeTikTokDomIntoAccumulated(accumulated) {
             if (shouldFillThumbnail) {
                 accumulated.set(parsed.id, { ...prev, thumbnailUrl });
             }
+        } else {
+            accumulated.set(parsed.id, row);
         }
     }
 }
@@ -1284,7 +1297,7 @@ function readLastThumbnailUrl(thumbnails) {
         (thumb) =>
             thumb &&
             typeof thumb.url === "string" &&
-            !thumb.url.startsWith("data:"),
+            !thumb.url.startsWith("data:")
     );
     return usable.length > 0 ? usable[usable.length - 1].url : "";
 }
@@ -1336,12 +1349,13 @@ function readYouTubeContinuationToken(value) {
         return value.continuationEndpoint.continuationCommand.token;
     }
     if (
-        value.continuationItemRenderer?.continuationEndpoint?.continuationCommand
-            ?.token &&
+        value.continuationItemRenderer?.continuationEndpoint
+            ?.continuationCommand?.token &&
         typeof value.continuationItemRenderer.continuationEndpoint
             .continuationCommand.token === "string"
     ) {
-        return value.continuationItemRenderer.continuationEndpoint.continuationCommand.token;
+        return value.continuationItemRenderer.continuationEndpoint
+            .continuationCommand.token;
     }
     if (
         value.nextContinuationData?.continuation &&
@@ -1369,15 +1383,15 @@ function parseYouTubePlaylistVideoRenderer(renderer, fallbackIndex) {
     }
 
     const title =
-        textFromRuns(renderer?.title) ||
-        textFromRuns(renderer?.headline) ||
-        "";
+        textFromRuns(renderer?.title) || textFromRuns(renderer?.headline) || "";
     const shortBylineRuns = Array.isArray(renderer?.shortBylineText?.runs)
         ? renderer.shortBylineText.runs
         : [];
     const firstBylineRun = shortBylineRuns[0] ?? null;
     const channelName =
-        typeof firstBylineRun?.text === "string" ? firstBylineRun.text.trim() : "";
+        typeof firstBylineRun?.text === "string"
+            ? firstBylineRun.text.trim()
+            : "";
     const channelId =
         typeof firstBylineRun?.navigationEndpoint?.browseEndpoint?.browseId ===
         "string"
@@ -1393,7 +1407,7 @@ function parseYouTubePlaylistVideoRenderer(renderer, fallbackIndex) {
         textFromRuns(renderer?.lengthText) ||
         textFromRuns(
             renderer?.thumbnailOverlays?.[0]?.thumbnailOverlayTimeStatusRenderer
-                ?.text,
+                ?.text
         ) ||
         "";
 
@@ -1421,7 +1435,7 @@ function extractYouTubeRowsAndTokens(root, offset = 0) {
         if (node.playlistVideoRenderer) {
             const row = parseYouTubePlaylistVideoRenderer(
                 node.playlistVideoRenderer,
-                offset + rows.length + 1,
+                offset + rows.length + 1
             );
             if (row) {
                 rows.push(row);
@@ -1463,7 +1477,8 @@ function mergeYouTubeRowsIntoAccumulated(accumulated, rows) {
             position:
                 typeof row.position === "number" ? row.position : prev.position,
             publishedAt: row.publishedAt || prev.publishedAt || null,
-            scrapedAt: row.scrapedAt || prev.scrapedAt || new Date().toISOString(),
+            scrapedAt:
+                row.scrapedAt || prev.scrapedAt || new Date().toISOString(),
             thumbnailUrl: row.thumbnailUrl || prev.thumbnailUrl || "",
             title: row.title || prev.title || "",
             videoUrl: row.videoUrl || prev.videoUrl || "",
@@ -1524,8 +1539,10 @@ async function getYouTubeBootstrapData() {
 }
 
 async function fetchYouTubeContinuationPage(token, bootstrap) {
-    if (!bootstrap?.apiKey || !bootstrap?.context) {
-        throw new Error("YouTube page data is missing continuation configuration.");
+    if (!(bootstrap?.apiKey && bootstrap?.context)) {
+        throw new Error(
+            "YouTube page data is missing continuation configuration."
+        );
     }
 
     const response = await fetch(
@@ -1547,17 +1564,19 @@ async function fetchYouTubeContinuationPage(token, bootstrap) {
                 ...(bootstrap.clientVersion
                     ? {
                           "X-YouTube-Client-Version": String(
-                              bootstrap.clientVersion,
+                              bootstrap.clientVersion
                           ),
                       }
                     : {}),
             },
             method: "POST",
-        },
+        }
     );
 
     if (!response.ok) {
-        throw new Error(`YouTube continuation request failed (${response.status}).`);
+        throw new Error(
+            `YouTube continuation request failed (${response.status}).`
+        );
     }
 
     return response.json();
@@ -1571,7 +1590,7 @@ async function scrollYouTubePlaylistTowardBottom() {
     const anchor =
         main instanceof HTMLElement ? main : document.documentElement;
     const scroller = findFeedScrollTarget(anchor, () =>
-        anchor instanceof HTMLElement ? anchor : document.documentElement,
+        anchor instanceof HTMLElement ? anchor : document.documentElement
     );
     await scrollFeedTowardBottom(anchor, scroller, { fullInnerSteps: true });
     await sleep(SCROLL_SETTLE_MS);
@@ -1612,7 +1631,7 @@ async function runYouTubeWatchLaterSync() {
 
     const initial = extractYouTubeRowsAndTokens(
         bootstrap.initialData,
-        positionOffset,
+        positionOffset
     );
     mergeYouTubeRowsIntoAccumulated(accumulated, initial.rows);
     positionOffset = accumulated.size;

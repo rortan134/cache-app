@@ -22,28 +22,28 @@ body {
 }
 
 .section:first-of-type {
-    border-top: 0;
     padding-top: 0;
+    border-top: 0;
 }
 
 .section-row {
     display: flex;
+    gap: 12px;
     align-items: center;
     justify-content: space-between;
-    gap: 12px;
 }
 
 .section-title {
     margin: 0;
+    margin-bottom: 4px;
     font-size: 12px;
     font-weight: 700;
-    margin-bottom: 4px;
 }
 
 .switch {
     display: inline-flex;
-    align-items: center;
     gap: 6px;
+    align-items: center;
     font-size: 12px;
     color: color-mix(in oklab, CanvasText 82%, transparent);
 }

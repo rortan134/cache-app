@@ -133,7 +133,7 @@ function UpgradeButton({ returnPath }: { returnPath: string }) {
 
                 if (error) {
                     setErrorMessage(
-                        error.message ?? "We couldn't open checkout right now.",
+                        error.message ?? "We couldn't open checkout right now."
                     );
                     return;
                 }
@@ -182,7 +182,7 @@ function BillingPortalButton({ returnPath }: { returnPath: string }) {
 
                 if (error) {
                     setErrorMessage(
-                        error.message ?? "We couldn't open billing right now.",
+                        error.message ?? "We couldn't open billing right now."
                     );
                     return;
                 }

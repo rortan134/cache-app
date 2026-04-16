@@ -20,13 +20,13 @@ const initialFeedbackActionState: FeedbackActionState = {
 } satisfies FeedbackActionState;
 
 export function FeedbackWidget(
-    props: React.ComponentProps<typeof PopoverTrigger>,
+    props: React.ComponentProps<typeof PopoverTrigger>
 ): React.ReactElement {
     const pathname = usePathname();
     const [open, setOpen] = useState(false);
     const [state, formAction] = useActionState(
         createFeedback,
-        initialFeedbackActionState,
+        initialFeedbackActionState
     );
     const formRef = useRef<HTMLFormElement>(null);
 
@@ -65,12 +65,12 @@ export function FeedbackWidget(
                                     ? undefined
                                     : "feedback-status"
                             }
+                            autoFocus
+                            className="min-h-24"
                             id="feedback-message"
                             name="message"
                             placeholder="Cache updates regularly with your suggestions. Have an idea to improve this page? Tell the Cache team"
-                            className="min-h-24"
                             required
-                            autoFocus
                         />
                         <div className="flex items-center justify-between gap-3">
                             <p
@@ -78,7 +78,7 @@ export function FeedbackWidget(
                                     "min-h-5 text-xs",
                                     state.status === "error"
                                         ? "text-destructive"
-                                        : "text-muted-foreground",
+                                        : "text-muted-foreground"
                                 )}
                                 id="feedback-status"
                                 role={

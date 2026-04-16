@@ -38,7 +38,7 @@ export function withRetry<T>(
         signal,
         shouldRetry = () => true,
         onRetry,
-    }: RetryOptions = {},
+    }: RetryOptions = {}
 ): Promise<T> {
     const retries = Math.max(0, attempts - 1);
 
@@ -69,15 +69,15 @@ export function withRetry<T>(
             }
         },
         {
-            retries,
             factor: 1,
-            minTimeout: 0,
             maxTimeout: 0,
-            randomize: false,
-            signal,
+            minTimeout: 0,
             onFailedAttempt: () => {
                 // noop
             },
-        },
+            randomize: false,
+            retries,
+            signal,
+        }
     );
 }

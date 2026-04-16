@@ -19,7 +19,7 @@ function InlinePromotionBanner() {
     return (
         <aside className="flex items-center gap-2 rounded-xl bg-muted px-4 py-2">
             <Badge>PRO</Badge>
-            <div className="flex items-center font-medium text-sm text-foreground">
+            <div className="flex items-center font-medium text-foreground text-sm">
                 Upgrade for full access to Cache and all
                 integrations&nbsp;—&nbsp;
                 <PricingUpgradeButton

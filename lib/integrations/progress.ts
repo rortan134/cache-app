@@ -9,7 +9,7 @@ const SIGNUP_PROGRESS_BASELINE_PERCENT = 10;
 
 export function integrationSetupProgressPercent(
     connectedCount: number,
-    syncable: number,
+    syncable: number
 ): number {
     if (syncable < 1) {
         return 0;
@@ -27,7 +27,7 @@ export function syncableLibrarySourceTotal(): number {
 
 function integrationMatchesSource(
     id: IntegrationId,
-    source: LibraryItemSource,
+    source: LibraryItemSource
 ): boolean {
     if (id === "chrome") {
         return source === "chrome_bookmarks";
@@ -43,7 +43,7 @@ function integrationMatchesSource(
 
 export function partitionLibrarySyncLabels(
     items: { source: LibraryItemSource }[],
-    connectedIntegrationIds: IntegrationId[] = [],
+    connectedIntegrationIds: IntegrationId[] = []
 ): { connectedLabels: string[]; missingLabels: string[] } {
     const connectedLabels: string[] = [];
     const missingLabels: string[] = [];
@@ -51,7 +51,7 @@ export function partitionLibrarySyncLabels(
 
     for (const id of LIBRARY_BOOKMARK_SYNC_INTEGRATION_IDS) {
         const count = items.filter((item) =>
-            integrationMatchesSource(id, item.source),
+            integrationMatchesSource(id, item.source)
         ).length;
         const label = getIntegration(id).label;
 

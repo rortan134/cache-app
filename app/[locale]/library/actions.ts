@@ -208,9 +208,7 @@ async function getSessionUserId(): Promise<string | null> {
     return session?.user?.id ?? null;
 }
 
-function normalizeNotePayload(input: {
-    contentHtml?: string;
-}): {
+function normalizeNotePayload(input: { contentHtml?: string }): {
     contentHtml: string;
     contentText: string;
 } {

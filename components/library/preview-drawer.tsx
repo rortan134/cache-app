@@ -30,7 +30,7 @@ interface PreviewDrawerContextValue {
 }
 
 const PreviewDrawerContext = createContext<PreviewDrawerContextValue | null>(
-    null,
+    null
 );
 
 function usePreviewDrawerContext(): PreviewDrawerContextValue {
@@ -38,7 +38,7 @@ function usePreviewDrawerContext(): PreviewDrawerContextValue {
 
     if (!value) {
         throw new Error(
-            "PreviewDrawer components must be used inside <PreviewDrawer>.",
+            "PreviewDrawer components must be used inside <PreviewDrawer>."
         );
     }
 
@@ -100,7 +100,7 @@ export function PreviewDrawer({
 }
 
 export function PreviewDrawerTrigger(
-    props: React.ComponentProps<typeof DrawerTrigger>,
+    props: React.ComponentProps<typeof DrawerTrigger>
 ): ReactElement {
     return <DrawerTrigger {...props} />;
 }
@@ -143,7 +143,7 @@ export function PreviewDrawerContent({
 
         const timeoutId = window.setTimeout(() => {
             setStatus((currentStatus) =>
-                currentStatus === "loading" ? "blocked" : currentStatus,
+                currentStatus === "loading" ? "blocked" : currentStatus
             );
         }, timeoutMs);
 
@@ -160,7 +160,7 @@ export function PreviewDrawerContent({
                     "w-full sm:mx-auto sm:max-w-[min(96vw,78rem)]",
                 position === "right" &&
                     "w-[min(96vw,68rem)] max-w-none sm:w-[min(92vw,72rem)]",
-                popupClassName,
+                popupClassName
             )}
             position={position}
             showBar={position === "bottom"}
@@ -229,7 +229,7 @@ export function PreviewDrawerContent({
                     <iframe
                         className={cn(
                             "size-full border-0 bg-background",
-                            status === "blocked" && "hidden",
+                            status === "blocked" && "hidden"
                         )}
                         key={`${iframeKey}-${open ? "open" : "closed"}-${url}`}
                         onError={() => {
@@ -247,7 +247,7 @@ export function PreviewDrawerContent({
             <DrawerFooter
                 className={cn(
                     "items-stretch gap-2 border-border/70 border-t sm:items-center sm:justify-between",
-                    footerClassName,
+                    footerClassName
                 )}
             >
                 <Button

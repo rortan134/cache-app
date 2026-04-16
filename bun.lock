@@ -63,7 +63,7 @@
         "prisma": "^7.7.0",
         "tailwindcss": "^4",
         "typescript": "^6",
-        "ultracite": "^7.5.9",
+        "ultracite": "7.5.9",
       },
     },
   },

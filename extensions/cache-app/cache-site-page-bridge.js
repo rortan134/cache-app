@@ -5,20 +5,22 @@
     try {
         void fetch(endpoint, { credentials: "include" })
             .then((res) => {
-                if (!res || !res.ok) {
+                if (!(res && res.ok)) {
                     return null;
                 }
                 return res.json().catch(() => null);
             })
             .then((data) => {
                 const token =
-                    data && typeof data.token === "string" ? data.token.trim() : "";
+                    data && typeof data.token === "string"
+                        ? data.token.trim()
+                        : "";
                 if (!token) {
                     return;
                 }
                 window.postMessage(
-                    { type: TOKEN_MESSAGE_TYPE, token },
-                    window.location.origin,
+                    { token, type: TOKEN_MESSAGE_TYPE },
+                    window.location.origin
                 );
             })
             .catch(() => {});

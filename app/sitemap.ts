@@ -22,7 +22,7 @@ const PUBLIC_STATIC_ROUTES = [
 
 function getLocalizedUrl(locale: string, path: SitemapRoute["path"]) {
     return normalizeURL(
-        path === "/" ? `${BASE_URL}/${locale}` : `${BASE_URL}/${locale}${path}`,
+        path === "/" ? `${BASE_URL}/${locale}` : `${BASE_URL}/${locale}${path}`
     );
 }
 
@@ -36,7 +36,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
                 locales.map((locale) => [
                     locale,
                     getLocalizedUrl(locale, entry.path),
-                ]),
+                ])
             ),
         },
         changeFrequency: "weekly",

@@ -11,7 +11,7 @@ export const MenuCreateHandle: typeof MenuPrimitive.createHandle =
 export const Menu: typeof MenuPrimitive.Root = MenuPrimitive.Root;
 
 export function MenuTrigger(
-    props: MenuPrimitive.Trigger.Props,
+    props: MenuPrimitive.Trigger.Props
 ): React.ReactElement {
     return <MenuPrimitive.Trigger data-slot="menu-trigger" {...props} />;
 }
@@ -48,7 +48,7 @@ export function MenuPopup({
                 <MenuPrimitive.Popup
                     className={cn(
                         "relative not-[class*='w-']:min-w-52 origin-(--transform-origin) overflow-hidden rounded-2xl border bg-popover not-dark:bg-clip-padding text-popover-foreground shadow-lg/8 outline-none transition-[scale,opacity] before:pointer-events-none before:absolute before:inset-0 before:rounded-[calc(var(--radius-xl)-1px)] before:shadow-[0_1px_--theme(--color-black/4%)] data-starting-style:scale-98 data-starting-style:opacity-0 dark:before:shadow-[0_-1px_--theme(--color-white/6%)]",
-                        className,
+                        className
                     )}
                     data-slot="menu-popup"
                     {...props}
@@ -63,7 +63,7 @@ export function MenuPopup({
 }
 
 export function MenuGroup(
-    props: MenuPrimitive.Group.Props,
+    props: MenuPrimitive.Group.Props
 ): React.ReactElement {
     return <MenuPrimitive.Group data-slot="menu-group" {...props} />;
 }
@@ -79,7 +79,7 @@ export function MenuGroupLabel({
         <MenuPrimitive.GroupLabel
             className={cn(
                 "px-2 py-1.5 font-medium text-muted-foreground text-xs data-inset:ps-9 sm:data-inset:ps-8",
-                className,
+                className
             )}
             data-inset={inset}
             data-slot="menu-label"
@@ -96,7 +96,7 @@ export function MenuShortcut({
         <kbd
             className={cn(
                 "ms-auto font-medium font-sans text-muted-foreground/72 text-xs tracking-widest",
-                className,
+                className
             )}
             data-slot="menu-shortcut"
             {...props}
@@ -119,7 +119,7 @@ export function MenuItem({
                     "data-highlighted:text-accent-foreground",
                 variant === "destructive" &&
                     "text-destructive-foreground data-highlighted:bg-destructive/8 data-highlighted:text-destructive-foreground",
-                className,
+                className
             )}
             data-slot="menu-item"
             {...props}
@@ -141,7 +141,7 @@ export function MenuSeparator({
 }
 
 export function MenuSub(
-    props: MenuPrimitive.SubmenuRoot.Props,
+    props: MenuPrimitive.SubmenuRoot.Props
 ): React.ReactElement {
     return <MenuPrimitive.SubmenuRoot data-slot="menu-sub" {...props} />;
 }
@@ -155,7 +155,7 @@ export function MenuSubTrigger({
         <MenuPrimitive.SubmenuTrigger
             className={cn(
                 "flex min-h-8 cursor-default select-none items-center gap-2 rounded-lg px-2.5 py-2 text-sm outline-none transition-colors data-disabled:pointer-events-none data-highlighted:bg-accent data-highlighted:text-accent-foreground data-disabled:opacity-50",
-                className,
+                className
             )}
             data-slot="menu-sub-trigger"
             {...props}
@@ -177,7 +177,7 @@ export function MenuSubPopup({
     sideOffset?: MenuPrimitive.Positioner.Props["sideOffset"];
     alignOffset?: MenuPrimitive.Positioner.Props["alignOffset"];
 }): React.ReactElement {
-    const defaultAlignOffset = align !== "center" ? -5 : undefined;
+    const defaultAlignOffset = align === "center" ? undefined : -5;
 
     return (
         <MenuPopup

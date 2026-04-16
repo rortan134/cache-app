@@ -6,9 +6,9 @@ import { cn } from "@/lib/utils";
 import * as React from "react";
 
 interface TruncateAfterProps {
-    count?: number;
     children: React.ReactNode;
     className?: string;
+    count?: number;
 }
 
 const TruncateAfter = ({

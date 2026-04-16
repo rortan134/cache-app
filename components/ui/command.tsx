@@ -39,8 +39,8 @@ export function CommandInput({
     return (
         <AutocompleteInput
             className={cn(
-                "border-transparent! min-h-11 outline-none ring-0 shadow-none before:hidden has-focus-visible:ring-0 has-focus-visible:ring-offset-0",
-                className,
+                "min-h-11 border-transparent! shadow-none outline-none ring-0 before:hidden has-focus-visible:ring-0 has-focus-visible:ring-offset-0",
+                className
             )}
             {...props}
         />
@@ -80,8 +80,8 @@ export function CommandPanel({
     return (
         <div
             className={cn(
-                "sticky top-3 -mx-px not-has-[+[data-slot=command-footer]]:-mb-px z-20 max-w-md w-full min-h-0",
-                className,
+                "sticky top-3 z-20 -mx-px not-has-[+[data-slot=command-footer]]:-mb-px min-h-0 w-full max-w-md",
+                className
             )}
             {...props}
         />
@@ -89,13 +89,13 @@ export function CommandPanel({
 }
 
 export function CommandGroup(
-    props: React.ComponentProps<typeof AutocompleteGroup>,
+    props: React.ComponentProps<typeof AutocompleteGroup>
 ): React.ReactElement {
     return <AutocompleteGroup data-slot="command-group" {...props} />;
 }
 
 export function CommandGroupLabel(
-    props: React.ComponentProps<typeof AutocompleteGroupLabel>,
+    props: React.ComponentProps<typeof AutocompleteGroupLabel>
 ): React.ReactElement {
     return (
         <AutocompleteGroupLabel data-slot="command-group-label" {...props} />
@@ -103,7 +103,7 @@ export function CommandGroupLabel(
 }
 
 export function CommandCollection(
-    props: React.ComponentProps<typeof AutocompleteCollection>,
+    props: React.ComponentProps<typeof AutocompleteCollection>
 ): React.ReactElement {
     return <AutocompleteCollection data-slot="command-collection" {...props} />;
 }
@@ -142,7 +142,7 @@ export function CommandShortcut({
         <kbd
             className={cn(
                 "ms-auto font-medium font-sans text-muted-foreground/72 text-xs tracking-wider",
-                className,
+                className
             )}
             data-slot="command-shortcut"
             {...props}
@@ -157,8 +157,8 @@ export function CommandFooter({
     return (
         <div
             className={cn(
-                "flex items-center justify-end gap-3 rounded-b-[calc(var(--radius-2xl)-1px)] border-t border-border/50 bg-muted/80 px-4 py-2 text-foreground text-xs",
-                className,
+                "flex items-center justify-end gap-3 rounded-b-[calc(var(--radius-2xl)-1px)] border-border/50 border-t bg-muted/80 px-4 py-2 text-foreground text-xs",
+                className
             )}
             data-slot="command-footer"
             {...props}

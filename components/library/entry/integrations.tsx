@@ -10,7 +10,7 @@ import {
 import { useIsExtensionInstalled } from "@/hooks/use-extension-installed";
 import { authClient } from "@/lib/auth/client";
 import { CACHE_EXTENSION_DOWNLOAD_URL } from "@/lib/constants";
-import { type IntegrationId } from "@/lib/integrations/support";
+import type { IntegrationId } from "@/lib/integrations/support";
 import { Info, RefreshCw } from "lucide-react";
 import { useRouter } from "next/navigation";
 import * as React from "react";
@@ -20,13 +20,13 @@ export function Integrations(props: React.ComponentProps<typeof Collapsible>) {
 }
 
 export function IntegrationsTrigger(
-    props: React.ComponentProps<typeof CollapsibleTrigger>,
+    props: React.ComponentProps<typeof CollapsibleTrigger>
 ) {
     return <CollapsibleTrigger {...props} />;
 }
 
 export function IntegrationsPanel(
-    props: React.ComponentProps<typeof CollapsiblePanel>,
+    props: React.ComponentProps<typeof CollapsiblePanel>
 ) {
     return <CollapsiblePanel {...props} />;
 }
@@ -64,8 +64,8 @@ export function IntegrationsNotice() {
 }
 
 interface IntegrationActionProps {
-    isConnected: boolean;
     id: IntegrationId;
+    isConnected: boolean;
 }
 
 type ExtensionIntegrationId = Extract<
@@ -112,7 +112,7 @@ function openExternal(url: string) {
 }
 
 function isExtensionIntegration(
-    id: IntegrationId,
+    id: IntegrationId
 ): id is ExtensionIntegrationId {
     return (
         id === "chrome" ||
@@ -143,7 +143,7 @@ function extensionButtonLabel(extensionInstalled: boolean) {
 export function IntegrationItem(props: React.ComponentProps<"div">) {
     return (
         <div
-            className="flex items-center gap-2.5 first:mt-3.5 pt-1"
+            className="flex items-center gap-2.5 pt-1 first:mt-3.5"
             {...props}
         />
     );
@@ -156,6 +156,7 @@ export function IntegrationAction({ isConnected, id }: IntegrationActionProps) {
     const [isImportingX, setIsImportingX] = React.useState(false);
     const [isImportingPinterest, setIsImportingPinterest] =
         React.useState(false);
+
     const isGooglePhotosIntegration = id === "google-photos";
     const isPinterestIntegration = id === "pinterest";
     const isXIntegration = id === "x";
@@ -168,7 +169,7 @@ export function IntegrationAction({ isConnected, id }: IntegrationActionProps) {
         openExternal(
             isExtensionInstalled
                 ? EXTENSION_OPEN_URL[id]
-                : CACHE_EXTENSION_DOWNLOAD_URL,
+                : CACHE_EXTENSION_DOWNLOAD_URL
         );
     };
 
@@ -239,7 +240,7 @@ export function IntegrationAction({ isConnected, id }: IntegrationActionProps) {
             if (!(response.ok && "importedCount" in payload)) {
                 throw new Error(
                     payload.error ??
-                        "Could not import pins from Pinterest right now.",
+                        "Could not import pins from Pinterest right now."
                 );
             }
 
@@ -269,7 +270,7 @@ export function IntegrationAction({ isConnected, id }: IntegrationActionProps) {
             if (!(response.ok && "importedCount" in payload)) {
                 throw new Error(
                     payload.error ??
-                        "Could not import bookmarks from X right now.",
+                        "Could not import bookmarks from X right now."
                 );
             }
 

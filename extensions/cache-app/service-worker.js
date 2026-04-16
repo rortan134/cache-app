@@ -53,7 +53,7 @@ let chromeFlushInFlight = null;
 function defaultIngestEndpoint() {
     const origin = String(globalThis.CACHE_APP_ORIGIN ?? "").replace(/\/$/, "");
     const path = String(globalThis.CACHE_INGEST_PATH ?? "");
-    if (!origin || !path.startsWith("/")) {
+    if (!(origin && path.startsWith("/"))) {
         return "";
     }
     return `${origin}${path}`;
@@ -81,7 +81,8 @@ function cacheOriginFromEndpoint(raw) {
 }
 
 function ingestEndpointForSource(storedEndpoint, source) {
-    const stored = typeof storedEndpoint === "string" ? storedEndpoint.trim() : "";
+    const stored =
+        typeof storedEndpoint === "string" ? storedEndpoint.trim() : "";
     if (source === "youtube") {
         return cacheOriginFromEndpoint(stored)
             ? `${cacheOriginFromEndpoint(stored)}/api/integrations/youtube/watch-later`
@@ -92,10 +93,15 @@ function ingestEndpointForSource(storedEndpoint, source) {
 
 function messageSource(msg) {
     if (msg && typeof msg === "object") {
-        if (msg.source === "tiktok") return "tiktok";
-        if (msg.source === "youtube") return "youtube";
-        if (msg.source === "chrome_bookmarks" || msg.source === "chrome")
+        if (msg.source === "tiktok") {
+            return "tiktok";
+        }
+        if (msg.source === "youtube") {
+            return "youtube";
+        }
+        if (msg.source === "chrome_bookmarks" || msg.source === "chrome") {
             return "chrome_bookmarks";
+        }
     }
     return "instagram";
 }
@@ -152,7 +158,8 @@ async function ensureChromeIdentity() {
 
 function mapChromeBookmarkNode(node, browserProfileId) {
     return {
-        dateAdded: typeof node.dateAdded === "number" ? node.dateAdded : undefined,
+        dateAdded:
+            typeof node.dateAdded === "number" ? node.dateAdded : undefined,
         dateGroupModified:
             typeof node.dateGroupModified === "number"
                 ? node.dateGroupModified
@@ -172,7 +179,12 @@ function mapChromeBookmarkNode(node, browserProfileId) {
     };
 }
 
-function flattenChromeBookmarkTree(nodes, browserProfileId, result, snapshotIds) {
+function flattenChromeBookmarkTree(
+    nodes,
+    browserProfileId,
+    result,
+    snapshotIds
+) {
     for (const node of nodes) {
         const externalId = String(node.id);
         snapshotIds.push(externalId);
@@ -186,7 +198,7 @@ function flattenChromeBookmarkTree(nodes, browserProfileId, result, snapshotIds)
                 node.children,
                 browserProfileId,
                 result,
-                snapshotIds,
+                snapshotIds
             );
         }
     }
@@ -210,11 +222,11 @@ async function readSyncMetaForUi() {
         ? data[CHROME_KEYS.pendingEvents].length
         : 0;
     return {
+        chromeContinuousSync: data[CHROME_KEYS.syncEnabled] === true,
         chromeCount:
             typeof data[CHROME_KEYS.bookmarkCount] === "number"
                 ? data[CHROME_KEYS.bookmarkCount]
                 : 0,
-        chromeContinuousSync: data[CHROME_KEYS.syncEnabled] === true,
         chromeLastError:
             typeof data[CHROME_KEYS.lastError] === "string"
                 ? data[CHROME_KEYS.lastError]
@@ -289,7 +301,7 @@ async function postToOptionalBackend(endpoint, apiKey, items, source) {
     }
     if (!apiKey?.trim()) {
         console.warn(
-            "[Cache App] Skipping server sync: no ingest token. Open any Cache page while signed in once.",
+            "[Cache App] Skipping server sync: no ingest token. Open any Cache page while signed in once."
         );
         return;
     }
@@ -312,7 +324,7 @@ async function postToOptionalBackend(endpoint, apiKey, items, source) {
             "[Cache App] Optional sync failed:",
             source,
             res.status,
-            await res.text().catch(() => ""),
+            await res.text().catch(() => "")
         );
     }
 }
@@ -323,7 +335,7 @@ async function postYouTubeSnapshot(endpoint, apiKey, payload) {
     }
     if (!apiKey?.trim()) {
         throw new Error(
-            "No ingest token found. Open Cache while signed in so the extension can link this browser.",
+            "No ingest token found. Open Cache while signed in so the extension can link this browser."
         );
     }
     const res = await fetch(endpoint.trim(), {
@@ -338,7 +350,9 @@ async function postYouTubeSnapshot(endpoint, apiKey, payload) {
     });
     if (!res.ok) {
         const body = await res.text().catch(() => "");
-        throw new Error(`YouTube Watch Later sync failed (${res.status}): ${body}`);
+        throw new Error(
+            `YouTube Watch Later sync failed (${res.status}): ${body}`
+        );
     }
     return res.json().catch(() => null);
 }
@@ -349,7 +363,7 @@ async function postChromeSyncBatch(endpoint, apiKey, payload) {
     }
     if (!apiKey?.trim()) {
         throw new Error(
-            "No ingest token found. Open Cache while signed in so the extension can link this browser.",
+            "No ingest token found. Open Cache while signed in so the extension can link this browser."
         );
     }
     const res = await fetch(endpoint.trim(), {
@@ -449,7 +463,7 @@ async function flushChromeBookmarkQueue() {
             while (offset < pendingEvents.length) {
                 const batch = pendingEvents.slice(
                     offset,
-                    offset + CHROME_SYNC_BATCH_SIZE,
+                    offset + CHROME_SYNC_BATCH_SIZE
                 );
                 await postChromeSyncBatch(endpoint, apiKey, {
                     browserProfileId:
@@ -467,7 +481,9 @@ async function flushChromeBookmarkQueue() {
 
             const bookmarkCount = pendingEvents.reduce((count, event) => {
                 if (event?.type === "upsert" || event?.type === "move") {
-                    return count + (event.bookmark?.kind === "bookmark" ? 1 : 0);
+                    return (
+                        count + (event.bookmark?.kind === "bookmark" ? 1 : 0)
+                    );
                 }
                 return count;
             }, 0);
@@ -477,7 +493,7 @@ async function flushChromeBookmarkQueue() {
                     typeof settings[CHROME_KEYS.bookmarkCount] === "number"
                         ? settings[CHROME_KEYS.bookmarkCount]
                         : 0,
-                    bookmarkCount,
+                    bookmarkCount
                 ),
                 [CHROME_KEYS.lastError]: "",
                 [CHROME_KEYS.lastSyncAt]: new Date().toISOString(),
@@ -509,7 +525,7 @@ async function queueChromeBookmarkNode(node, type) {
                 type,
             },
         ],
-        "continuous_sync",
+        "continuous_sync"
     );
     await flushChromeBookmarkQueue();
 }
@@ -523,7 +539,7 @@ async function queueChromeDelete(externalId) {
                 type: "delete",
             },
         ],
-        "continuous_sync",
+        "continuous_sync"
     );
     await flushChromeBookmarkQueue();
 }
@@ -533,7 +549,12 @@ async function runChromeInitialImport(mode) {
     const tree = await chrome.bookmarks.getTree();
     const events = [];
     const snapshotExternalIds = [];
-    flattenChromeBookmarkTree(tree, identity.profileId, events, snapshotExternalIds);
+    flattenChromeBookmarkTree(
+        tree,
+        identity.profileId,
+        events,
+        snapshotExternalIds
+    );
 
     const bookmarkCount = events.reduce((count, event) => {
         return count + (event.bookmark?.kind === "bookmark" ? 1 : 0);
@@ -559,7 +580,9 @@ async function searchChromeBookmarks(query) {
     }
     const results = await chrome.bookmarks.search(query.trim());
     const identity = await ensureChromeIdentity();
-    return results.map((node) => mapChromeBookmarkNode(node, identity.profileId));
+    return results.map((node) =>
+        mapChromeBookmarkNode(node, identity.profileId)
+    );
 }
 
 async function migrateInstagramIfNeeded(data) {
@@ -573,7 +596,9 @@ async function migrateInstagramIfNeeded(data) {
     if (version < INSTAGRAM_STORAGE_VERSION) {
         bookmarks = bookmarks
             .map((row) =>
-                row && typeof row === "object" && !Array.isArray(row) ? row : null,
+                row && typeof row === "object" && !Array.isArray(row)
+                    ? row
+                    : null
             )
             .filter(Boolean);
         await chrome.storage.local.set({
@@ -596,7 +621,9 @@ async function migrateTikTokIfNeeded(data) {
     if (version < TIKTOK_STORAGE_VERSION) {
         videos = videos
             .map((row) =>
-                row && typeof row === "object" && !Array.isArray(row) ? row : null,
+                row && typeof row === "object" && !Array.isArray(row)
+                    ? row
+                    : null
             )
             .filter(Boolean);
         await chrome.storage.local.set({
@@ -619,7 +646,9 @@ async function migrateYouTubeIfNeeded(data) {
     if (version < YOUTUBE_STORAGE_VERSION) {
         items = items
             .map((row) =>
-                row && typeof row === "object" && !Array.isArray(row) ? row : null,
+                row && typeof row === "object" && !Array.isArray(row)
+                    ? row
+                    : null
             )
             .filter(Boolean);
         await chrome.storage.local.set({
@@ -646,7 +675,9 @@ function mergeByShortcode(incoming, existing) {
                 ...item,
                 postedAt: item.postedAt || prev?.postedAt,
                 scrapedAt:
-                    item.scrapedAt || prev?.scrapedAt || new Date().toISOString(),
+                    item.scrapedAt ||
+                    prev?.scrapedAt ||
+                    new Date().toISOString(),
             });
         }
     }
@@ -668,7 +699,9 @@ function mergeByVideoId(incoming, existing) {
                 ...item,
                 postedAt: item.postedAt || prev?.postedAt,
                 scrapedAt:
-                    item.scrapedAt || prev?.scrapedAt || new Date().toISOString(),
+                    item.scrapedAt ||
+                    prev?.scrapedAt ||
+                    new Date().toISOString(),
             });
         }
     }
@@ -688,18 +721,22 @@ function mergeByYouTubeVideoId(incoming, existing) {
             map.set(item.videoId, {
                 ...prev,
                 ...item,
-                availability: item.availability || prev?.availability || "available",
+                availability:
+                    item.availability || prev?.availability || "available",
                 channelId: item.channelId || prev?.channelId || "",
                 channelName: item.channelName || prev?.channelName || "",
                 duration: item.duration || prev?.duration || "",
-                playlistItemId: item.playlistItemId || prev?.playlistItemId || "",
+                playlistItemId:
+                    item.playlistItemId || prev?.playlistItemId || "",
                 position:
                     typeof item.position === "number"
                         ? item.position
-                        : prev?.position ?? null,
+                        : (prev?.position ?? null),
                 publishedAt: item.publishedAt || prev?.publishedAt || null,
                 scrapedAt:
-                    item.scrapedAt || prev?.scrapedAt || new Date().toISOString(),
+                    item.scrapedAt ||
+                    prev?.scrapedAt ||
+                    new Date().toISOString(),
                 thumbnailUrl: item.thumbnailUrl || prev?.thumbnailUrl || "",
                 title: item.title || prev?.title || "",
                 videoUrl:
@@ -713,7 +750,8 @@ function mergeByYouTubeVideoId(incoming, existing) {
 }
 
 function sanitizeYouTubeSnapshotItem(item) {
-    const videoId = typeof item?.videoId === "string" ? item.videoId.trim() : "";
+    const videoId =
+        typeof item?.videoId === "string" ? item.videoId.trim() : "";
     if (!videoId) {
         return null;
     }
@@ -745,7 +783,8 @@ function sanitizeYouTubeSnapshotItem(item) {
                 ? item.duration.trim()
                 : undefined,
         playlistItemId:
-            typeof item?.playlistItemId === "string" && item.playlistItemId.trim()
+            typeof item?.playlistItemId === "string" &&
+            item.playlistItemId.trim()
                 ? item.playlistItemId.trim()
                 : undefined,
         position:
@@ -882,7 +921,7 @@ async function persistYouTubeItems(items, final) {
         const identity = await ensureChromeIdentity();
         const endpoint = ingestEndpointForSource(
             data[SYNC_KEYS.syncEndpoint],
-            "youtube",
+            "youtube"
         );
         const apiKey =
             typeof data[SYNC_KEYS.syncApiKey] === "string"
@@ -894,7 +933,8 @@ async function persistYouTubeItems(items, final) {
                 .map((item) => sanitizeYouTubeSnapshotItem(item))
                 .filter(Boolean);
             await postYouTubeSnapshot(endpoint, apiKey, {
-                browserProfileId: identity.profileId || DEFAULT_BROWSER_PROFILE_ID,
+                browserProfileId:
+                    identity.profileId || DEFAULT_BROWSER_PROFILE_ID,
                 items: payloadItems,
                 snapshotComplete: true,
                 sourceDeviceId: identity.deviceId,
@@ -943,7 +983,10 @@ chrome.bookmarks.onChanged.addListener((id) => {
             }
         })
         .catch((error) => {
-            console.warn("[Cache App] Could not reload changed bookmark", error);
+            console.warn(
+                "[Cache App] Could not reload changed bookmark",
+                error
+            );
         });
 });
 
@@ -964,10 +1007,15 @@ chrome.bookmarks.onChildrenReordered.addListener((id) => {
     void chrome.bookmarks
         .getChildren(id)
         .then((children) =>
-            Promise.all(children.map((child) => queueChromeBookmarkNode(child, "move"))),
+            Promise.all(
+                children.map((child) => queueChromeBookmarkNode(child, "move"))
+            )
         )
         .catch((error) => {
-            console.warn("[Cache App] Could not reload reordered folder", error);
+            console.warn(
+                "[Cache App] Could not reload reordered folder",
+                error
+            );
         });
 });
 
@@ -991,7 +1039,7 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
             const endpoint =
                 typeof msg.endpoint === "string" ? msg.endpoint.trim() : "";
             const token = typeof msg.token === "string" ? msg.token.trim() : "";
-            if (!endpoint || !token) {
+            if (!(endpoint && token)) {
                 return;
             }
             await chrome.storage.local.set({
@@ -1006,15 +1054,18 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     if (msg?.type === "BOOKMARKS_CHUNK" || msg?.type === "BOOKMARKS_COMPLETE") {
         (async () => {
             try {
-                await persistBookmarkItems(Array.isArray(msg.items) ? msg.items : [], {
-                    final: msg.type === "BOOKMARKS_COMPLETE",
-                    source: messageSource(msg),
-                });
+                await persistBookmarkItems(
+                    Array.isArray(msg.items) ? msg.items : [],
+                    {
+                        final: msg.type === "BOOKMARKS_COMPLETE",
+                        source: messageSource(msg),
+                    }
+                );
             } catch (error) {
                 console.error("[Cache App] bookmark persist failed:", error);
                 await notifySyncError(
                     "MERGE_FAILED",
-                    error instanceof Error ? error.message : String(error),
+                    error instanceof Error ? error.message : String(error)
                 );
             }
         })();
@@ -1025,7 +1076,7 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
         (async () => {
             await notifySyncError(
                 typeof msg.code === "string" ? msg.code : "UNKNOWN",
-                msg.message,
+                msg.message
             );
         })();
         return true;
@@ -1067,7 +1118,7 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     if (msg?.type === "SEARCH_CHROME_BOOKMARKS") {
         (async () => {
             const results = await searchChromeBookmarks(
-                typeof msg.query === "string" ? msg.query : "",
+                typeof msg.query === "string" ? msg.query : ""
             );
             sendResponse?.({ ok: true, results });
         })();

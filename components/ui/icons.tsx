@@ -229,7 +229,7 @@ export const ChevronDownFilledIcon = ({
         aria-hidden="true"
         className={cn(
             "pointer-events-none ml-auto inline-block size-5 shrink-0 opacity-80 transition-transform group-data-panel-open:rotate-90",
-            className,
+            className
         )}
         focusable="false"
         height="16"
@@ -247,14 +247,14 @@ export const CrownFilledIcon = ({
     ...props
 }: SVGProps<SVGSVGElement>) => (
     <svg
-        width="16"
-        height="16"
-        viewBox="0 0 16 16"
-        fill="currentColor"
-        className={cn("size-4 inline-block shrink-0", className)}
         aria-hidden="true"
+        className={cn("inline-block size-4 shrink-0", className)}
+        fill="currentColor"
         focusable="false"
+        height="16"
         role="img"
+        viewBox="0 0 16 16"
+        width="16"
         {...props}
     >
         <path d="M14.3295 5.52562V11.2065C14.3295 11.6483 13.9714 12.0065 13.5295 12.0065H2.46992C2.02809 12.0065 1.66992 11.6483 1.66992 11.2065V5.51494C1.66992 5.00358 2.34675 4.82196 2.60275 5.26463L4.1736 7.98089C4.36707 8.31543 4.85073 8.31339 5.04137 7.97722L7.57078 3.51694C7.76235 3.17914 8.24908 3.17914 8.44064 3.51694L10.9694 7.97612C11.1602 8.31253 11.6443 8.31427 11.8375 7.97924L13.3964 5.27585C13.652 4.83258 14.3295 5.01393 14.3295 5.52562Z" />
@@ -266,19 +266,19 @@ export const NotionIcon = ({
     ...props
 }: SVGProps<SVGSVGElement>) => (
     <svg
-        width="256"
-        className={cn("size-4 inline-block shrink-0", className)}
+        aria-hidden="true"
+        className={cn("inline-block size-4 shrink-0", className)}
+        focusable="false"
         height="268"
         preserveAspectRatio="xMidYMid"
-        viewBox="0 0 256 268"
-        aria-hidden="true"
-        focusable="false"
         role="img"
+        viewBox="0 0 256 268"
+        width="256"
         {...props}
     >
         <path
-            fill="#FFF"
             d="M16.092 11.538 164.09.608c18.179-1.56 22.85-.508 34.28 7.801l47.243 33.282C253.406 47.414 256 48.975 256 55.207v182.527c0 11.439-4.155 18.205-18.696 19.24L65.44 267.378c-10.913.517-16.11-1.043-21.825-8.327L8.826 213.814C2.586 205.487 0 199.254 0 191.97V29.726c0-9.352 4.155-17.153 16.092-18.188Z"
+            fill="#FFF"
         />
         <path d="M164.09.608 16.092 11.538C4.155 12.573 0 20.374 0 29.726v162.245c0 7.284 2.585 13.516 8.826 21.843l34.789 45.237c5.715 7.284 10.912 8.844 21.825 8.327l171.864-10.404c14.532-1.035 18.696-7.801 18.696-19.24V55.207c0-5.911-2.336-7.614-9.21-12.66l-1.185-.856L198.37 8.409C186.94.1 182.27-.952 164.09.608ZM69.327 52.22c-14.033.945-17.216 1.159-25.186-5.323L23.876 30.778c-2.06-2.086-1.026-4.69 4.163-5.207l142.274-10.395c11.947-1.043 18.17 3.12 22.842 6.758l24.401 17.68c1.043.525 3.638 3.637.517 3.637L71.146 52.095l-1.819.125Zm-16.36 183.954V81.222c0-6.767 2.077-9.887 8.3-10.413L230.02 60.93c5.724-.517 8.31 3.12 8.31 9.879v153.917c0 6.767-1.044 12.49-10.387 13.008l-161.487 9.361c-9.343.517-13.489-2.594-13.489-10.921ZM212.377 89.53c1.034 4.681 0 9.362-4.681 9.897l-7.783 1.542v114.404c-6.758 3.637-12.981 5.715-18.18 5.715-8.308 0-10.386-2.604-16.609-10.396l-50.898-80.079v77.476l16.1 3.646s0 9.362-12.989 9.362l-35.814 2.077c-1.043-2.086 0-7.284 3.63-8.318l9.351-2.595V109.823l-12.98-1.052c-1.044-4.68 1.55-11.439 8.826-11.965l38.426-2.585 52.958 81.113v-71.76l-13.498-1.552c-1.043-5.733 3.111-9.896 8.3-10.404l35.84-2.087Z" />
     </svg>
@@ -289,25 +289,25 @@ export const GoogleDocsIcon = ({
     ...props
 }: SVGProps<SVGSVGElement>) => (
     <svg
-        className={cn("size-4 inline-block shrink-0", className)}
-        xmlSpace="preserve"
-        viewBox="0 0 64 88"
         aria-hidden="true"
+        className={cn("inline-block size-4 shrink-0", className)}
         focusable="false"
         role="img"
+        viewBox="0 0 64 88"
         x="0px"
+        xmlSpace="preserve"
         y="0px"
         {...props}
     >
         <g>
             <path
-                fill="#3086F6"
                 d="M58,88H6c-3.3,0-6-2.7-6-6V6c0-3.3,2.7-6,6-6h36l22,22v60C64,85.3,61.3,88,58,88z"
+                fill="#3086F6"
             />
-            <path fill="#0C67D6" d="M42,0l22,22H42V0z" />
+            <path d="M42,0l22,22H42V0z" fill="#0C67D6" />
             <path
-                fill="#FDFFFF"
                 d="M50,39H14v-5h36V39z M50,46H14v5h36V46z M40,58H14v5h26V58z"
+                fill="#FDFFFF"
             />
         </g>
     </svg>

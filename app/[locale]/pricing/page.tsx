@@ -27,7 +27,7 @@ export async function generateMetadata({
         description: gtPublicString(
             locale,
             "pricing.metadata.description",
-            "Simple pricing for power users who want one place to organize and rediscover everything they save.",
+            "Simple pricing for power users who want one place to organize and rediscover everything they save."
         ),
         title: gtPublicString(locale, "pricing.metadata.title", "Pricing"),
     };

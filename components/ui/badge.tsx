@@ -37,7 +37,7 @@ const badgeVariants = cva(
                     "bg-warning/8 text-warning-foreground dark:bg-warning/16",
             },
         },
-    },
+    }
 );
 
 export interface BadgeProps extends useRender.ComponentProps<"span"> {
