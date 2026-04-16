@@ -50,7 +50,8 @@
                 "noBitwiseOperators": "off"
             },
             "complexity": {
-                "noUselessCatchBinding": "off"
+                "noUselessCatchBinding": "off",
+                "noExcessiveCognitiveComplexity": "warn"
             }
         }
     }
