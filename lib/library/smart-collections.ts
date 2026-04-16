@@ -315,6 +315,8 @@ function sourceLabel(source: LibraryItemSource): string {
     switch (source) {
         case LibraryItemSource.chrome_bookmarks:
             return "Chrome bookmark";
+        case LibraryItemSource.github_starred_repositories:
+            return "GitHub repository";
         case LibraryItemSource.google_photos:
             return "Google Photos item";
         case LibraryItemSource.instagram:
@@ -578,6 +580,10 @@ async function resolveContentCandidates(
 
     if (item.source === LibraryItemSource.chrome_bookmarks) {
         return [item.url].filter(isHttpUrl);
+    }
+
+    if (item.source === LibraryItemSource.github_starred_repositories) {
+        return [item.url, item.thumbnailUrl].filter(isHttpUrl);
     }
 
     const candidates: string[] = [];

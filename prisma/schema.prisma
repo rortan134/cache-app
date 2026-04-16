@@ -10,6 +10,7 @@ generator client {
 enum LibraryItemSource {
     cache_note
     chrome_bookmarks
+    github_starred_repositories
     google_photos
     instagram
     other

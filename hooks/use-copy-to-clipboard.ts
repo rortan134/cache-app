@@ -1,5 +1,4 @@
-"use client";
-
+import { getOwnerWindow } from "@/lib/dom";
 import copy from "copy-to-clipboard";
 import * as React from "react";
 
@@ -11,9 +10,10 @@ function useCopyToClipboard({
     onCopy?: () => void;
 } = {}): { copyToClipboard: (value: string) => void; isCopied: boolean } {
     const [isCopied, setIsCopied] = React.useState(false);
-    const timeoutIdRef = React.useRef<NodeJS.Timeout | null>(null);
+    const timeoutIdRef = React.useRef<number | null>(null);
 
     const copyToClipboard = (value: string): void => {
+        const window = getOwnerWindow();
         if (typeof window === "undefined") {
             return;
         }
@@ -29,24 +29,23 @@ function useCopyToClipboard({
         }
 
         if (timeoutIdRef.current) {
-            clearTimeout(timeoutIdRef.current);
+            window.clearTimeout(timeoutIdRef.current);
         }
         setIsCopied(true);
         onCopy?.();
 
         if (timeout !== 0) {
-            timeoutIdRef.current = setTimeout(() => {
+            timeoutIdRef.current = window.setTimeout(() => {
                 setIsCopied(false);
                 timeoutIdRef.current = null;
             }, timeout);
         }
     };
 
-    // Cleanup timeout on unmount
     React.useEffect(() => {
         return (): void => {
             if (timeoutIdRef.current) {
-                clearTimeout(timeoutIdRef.current);
+                getOwnerWindow().clearTimeout(timeoutIdRef.current);
             }
         };
     }, []);

@@ -9,17 +9,10 @@ export const PopoverCreateHandle: typeof PopoverPrimitive.createHandle =
 
 export const Popover: typeof PopoverPrimitive.Root = PopoverPrimitive.Root;
 
-export function PopoverTrigger({
-    className,
-    ...props
-}: PopoverPrimitive.Trigger.Props): React.ReactElement {
-    return (
-        <PopoverPrimitive.Trigger
-            className={className}
-            data-slot="popover-trigger"
-            {...props}
-        />
-    );
+export function PopoverTrigger(
+    props: PopoverPrimitive.Trigger.Props
+): React.ReactElement {
+    return <PopoverPrimitive.Trigger data-slot="popover-trigger" {...props} />;
 }
 
 export function PopoverPopup({

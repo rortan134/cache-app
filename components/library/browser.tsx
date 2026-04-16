@@ -1,17 +1,19 @@
 "use client";
 
-import {
-    createNote,
-    deleteLibraryItem,
-    downloadMedia,
-    updateNote,
-    type CreateCollectionFromItemsResult,
-    type DeleteLibraryItemResult,
-    type NoteMutationResult,
-} from "@/app/[locale]/library/actions";
 import { UnprivilegedOnly } from "@/components/billing/privilege";
 import { FeedbackWidget } from "@/components/feedback/feedback-widget";
-import { LibraryNoteDrawer } from "@/components/library/entry/notes";
+import {
+    CollectionsList,
+    CollectionsListAction,
+    CollectionsListContent,
+    CollectionsListEmpty,
+    CollectionsListFeedback,
+    CollectionsListFilterClear,
+    CollectionsListItem,
+    CollectionsListTrigger,
+    SmartCollectionsNoticeCallout,
+} from "@/components/library/collections";
+import { LibraryNoteDrawer } from "@/components/library/notes";
 import {
     PreviewDrawer,
     PreviewDrawerContent,
@@ -79,6 +81,7 @@ import {
     InlinePromotionBanner,
 } from "@/components/ui/promotion-banner";
 import { Separator } from "@/components/ui/separator";
+import { Sidebar, SidebarFooter, SidebarHeader } from "@/components/ui/sidebar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { Ticker } from "@/components/ui/ticker";
@@ -86,13 +89,37 @@ import { TruncateAfter } from "@/components/ui/truncate-after";
 import { useAccess } from "@/hooks/use-access";
 import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
 import { getSubtleColorGradientFromName } from "@/lib/colors";
+import { dayjs } from "@/lib/dayjs";
+import { saveFile } from "@/lib/file";
+import {
+    createCollection,
+    createCollectionFromItems,
+    createNote,
+    deleteCollection,
+    deleteLibraryItem,
+    downloadMedia,
+    renameCollection,
+    updateCollectionPriority,
+    updateLibraryItemCollections,
+    updateNote,
+    type CreateCollectionFromItemsResult,
+    type CreateCollectionResult,
+    type DeleteCollectionResult,
+    type DeleteLibraryItemResult,
+    type NoteMutationResult,
+    type RenameCollectionResult,
+    type UpdateCollectionPriorityResult,
+    type UpdateLibraryItemCollectionsResult,
+} from "@/lib/library/actions";
 import { getNoteExcerpt } from "@/lib/library/notes";
 import type {
     LibraryCollectionSummary,
+    LibraryCollectionTag,
     LibraryItemWithCollections,
 } from "@/lib/library/types";
 import { normalizeURL, toValidUrl } from "@/lib/url";
 import { cn } from "@/lib/utils";
+import type { CollectionPriority } from "@/prisma/client/enums";
 import { LibraryItemSource } from "@/prisma/client/enums";
 import AppIconSmall from "@/public/cache-icon-small.png";
 import type {
@@ -103,7 +130,6 @@ import fscreen from "fscreen";
 import {
     ArrowDownIcon,
     ArrowUpIcon,
-    ArrowUpRightIcon,
     ChevronDownIcon,
     ChevronRight,
     ChevronRightIcon,
@@ -118,11 +144,14 @@ import {
     LinkIcon,
     MaximizeIcon,
     NotebookPenIcon,
+    PlusIcon,
+    Shapes,
     SquarePen,
     Trash2Icon,
     XIcon,
 } from "lucide-react";
 import Image from "next/image";
+import type { ReactNode } from "react";
 import React, {
     useEffect,
     useId,
@@ -136,39 +165,6 @@ import React, {
     type ReactElement,
 } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
-
-import {
-    createCollection,
-    createCollectionFromItems,
-    deleteCollection,
-    renameCollection,
-    updateCollectionPriority,
-    updateLibraryItemCollections,
-    type CreateCollectionResult,
-    type DeleteCollectionResult,
-    type RenameCollectionResult,
-    type UpdateCollectionPriorityResult,
-    type UpdateLibraryItemCollectionsResult,
-} from "@/app/[locale]/library/actions";
-import {
-    CollectionsList,
-    CollectionsListAction,
-    CollectionsListContent,
-    CollectionsListEmpty,
-    CollectionsListFeedback,
-    CollectionsListFilterClear,
-    CollectionsListItem,
-    CollectionsListTrigger,
-    SmartCollectionsCallout,
-} from "@/components/library/collections";
-import { Sidebar, SidebarFooter, SidebarHeader } from "@/components/ui/sidebar";
-import { saveFile } from "@/lib/file";
-import type { LibraryCollectionTag } from "@/lib/library/types";
-import type { CollectionPriority } from "@/prisma/client/enums";
-
-import { PlusIcon, Shapes } from "lucide-react";
-
-import type { ReactNode } from "react";
 
 const NAME_COLLATOR = new Intl.Collator(undefined, {
     numeric: true,
@@ -999,7 +995,7 @@ function LibraryWorkspaceSidebar({
                             </CollectionsListAction>
                         </div>
                         <CollectionsListContent>
-                            <SmartCollectionsCallout />
+                            <SmartCollectionsNoticeCallout />
                             {collectionSummaries.length > 0 ? (
                                 <>
                                     {collectionSummaries.map((collection) => (
@@ -1351,6 +1347,7 @@ const DEFAULT_COLLECTION_MEMBERSHIP_FILTER: CollectionMembershipFilter = "all";
 const FILTERABLE_LIBRARY_SOURCES = [
     LibraryItemSource.cache_note,
     LibraryItemSource.chrome_bookmarks,
+    LibraryItemSource.github_starred_repositories,
     LibraryItemSource.google_photos,
     LibraryItemSource.instagram,
     LibraryItemSource.pinterest,
@@ -1485,6 +1482,9 @@ function sourceLabel(source: LibraryItemSource): string {
     }
     if (source === LibraryItemSource.chrome_bookmarks) {
         return "Chrome";
+    }
+    if (source === LibraryItemSource.github_starred_repositories) {
+        return "GitHub";
     }
     if (source === LibraryItemSource.google_photos) {
         return "Google Photos";
@@ -1782,7 +1782,6 @@ function renderLibraryGridBody({
     onCopyLink,
     onDelete,
     onOpenNote,
-    onOpenHere,
     onOpenInNewTab,
     onUpdateItemCollections,
     onToggleSection,
@@ -1802,7 +1801,6 @@ function renderLibraryGridBody({
     readonly onCopyLink: (item: LibraryItem) => void;
     readonly onDelete: (item: LibraryItem) => void;
     readonly onOpenNote: (item: LibraryItem) => void;
-    readonly onOpenHere: (item: LibraryItem) => void;
     readonly onOpenInNewTab: (item: LibraryItem) => void;
     readonly onUpdateItemCollections: (
         itemId: string,
@@ -1851,7 +1849,6 @@ function renderLibraryGridBody({
                 layoutToken={layoutRefreshToken}
                 onCopyLink={onCopyLink}
                 onDelete={onDelete}
-                onOpenHere={onOpenHere}
                 onOpenInNewTab={onOpenInNewTab}
                 onOpenNote={onOpenNote}
                 onToggle={() => onToggleSection(section.key)}
@@ -1883,7 +1880,6 @@ function renderLibraryGridBody({
                     layoutToken={layoutRefreshToken}
                     onCopyLink={onCopyLink}
                     onDelete={onDelete}
-                    onOpenHere={onOpenHere}
                     onOpenInNewTab={onOpenInNewTab}
                     onOpenNote={onOpenNote}
                     onUpdateItemCollections={onUpdateItemCollections}
@@ -2849,26 +2845,6 @@ interface LibraryActionFeedback {
     readonly tone: "error" | "success";
 }
 
-interface UseLibraryItemActionsResult {
-    readonly actionFeedback: LibraryActionFeedback | null;
-    readonly handleConfirmDelete: () => void;
-    readonly handleCopyLink: (item: LibraryItem) => void;
-    readonly handleDeleteDialogOpenChange: (open: boolean) => void;
-    readonly handleOpenHere: (item: LibraryItem) => void;
-    readonly handleOpenInNewTab: (item: LibraryItem) => void;
-    readonly handleRequestDelete: (item: LibraryItem) => void;
-    readonly isDeletePending: boolean;
-    readonly pendingDeleteItem: LibraryItem | null;
-    readonly setActionFeedback: (
-        value:
-            | LibraryActionFeedback
-            | null
-            | ((
-                  current: LibraryActionFeedback | null
-              ) => LibraryActionFeedback | null)
-    ) => void;
-}
-
 function openSavedItemInNewTab(url: string) {
     try {
         if (typeof window.openai !== "undefined") {
@@ -2890,7 +2866,7 @@ function useLibraryItemActions(
                   current: LibraryItemWithCollections[]
               ) => LibraryItemWithCollections[])
     ) => void
-): UseLibraryItemActionsResult {
+) {
     const [pendingDeleteItem, setPendingDeleteItem] =
         useState<LibraryItem | null>(null);
     const [actionFeedback, setActionFeedback] =
@@ -2908,11 +2884,6 @@ function useLibraryItemActions(
     const handleOpenInNewTab = (item: LibraryItem) => {
         setActionFeedback(null);
         openSavedItemInNewTab(normalizeURL(item.url));
-    };
-
-    const handleOpenHere = (item: LibraryItem) => {
-        setActionFeedback(null);
-        window.location.assign(normalizeURL(item.url));
     };
 
     const handleCopyLink = (item: LibraryItem) => {
@@ -2972,7 +2943,6 @@ function useLibraryItemActions(
         handleConfirmDelete,
         handleCopyLink,
         handleDeleteDialogOpenChange,
-        handleOpenHere,
         handleOpenInNewTab,
         handleRequestDelete,
         isDeletePending,
@@ -2988,7 +2958,6 @@ interface GridProps {
     readonly layoutToken?: number;
     readonly onCopyLink?: (item: LibraryItemWithCollections) => void;
     readonly onDelete?: (item: LibraryItemWithCollections) => void;
-    readonly onOpenHere?: (item: LibraryItemWithCollections) => void;
     readonly onOpenInNewTab?: (item: LibraryItemWithCollections) => void;
     readonly onOpenNote?: (item: LibraryItemWithCollections) => void;
     readonly onUpdateItemCollections: (
@@ -3020,7 +2989,6 @@ interface LibraryGridCardProps {
     readonly item: LibraryItemWithCollections;
     readonly onCopyLink?: (item: LibraryItemWithCollections) => void;
     readonly onDelete?: (item: LibraryItemWithCollections) => void;
-    readonly onOpenHere?: (item: LibraryItemWithCollections) => void;
     readonly onOpenInNewTab?: (item: LibraryItemWithCollections) => void;
     readonly onOpenNote?: (item: LibraryItemWithCollections) => void;
     readonly onUpdateItemCollections: (
@@ -3223,7 +3191,6 @@ function LibraryGridCard({
     onCopyLink,
     onDelete,
     onOpenNote,
-    onOpenHere,
     onOpenInNewTab,
     onUpdateItemCollections,
     pendingDeleteItemId,
@@ -3328,6 +3295,7 @@ function LibraryGridCard({
                     url={href}
                 >
                     <PreviewDrawerTrigger
+                        nativeButton={false}
                         render={<Item closeOnClick={false} />}
                     >
                         <EyeIcon className="size-4.5 text-muted-foreground" />
@@ -3341,10 +3309,6 @@ function LibraryGridCard({
                     <Item closeOnClick onClick={() => onOpenInNewTab?.(item)}>
                         <ExternalLinkIcon className="size-4.5 text-muted-foreground" />
                         Open in new tab
-                    </Item>
-                    <Item closeOnClick onClick={() => onOpenHere?.(item)}>
-                        <ArrowUpRightIcon className="size-4.5 text-muted-foreground" />
-                        Open here
                     </Item>
                     <Item closeOnClick onClick={() => onCopyLink?.(item)}>
                         <LinkIcon className="size-4.5 text-muted-foreground" />
@@ -3448,6 +3412,14 @@ function LibraryGridCard({
                             </div>
                         )}
                     </a>
+                    {dayjs(addedLabel).isToday() && !isNote ? (
+                        <Badge
+                            className="absolute top-3 left-3 bg-primary/50"
+                            size="sm"
+                        >
+                            NEW
+                        </Badge>
+                    ) : null}
                     <div
                         className={cn(
                             "overflow-fade-top absolute inset-x-0 bottom-0 flex items-center gap-1 overflow-hidden bg-black/35 px-1.5 pt-2 pb-1 backdrop-blur-[2.5px]",
@@ -3538,7 +3510,6 @@ function renderLibraryMasonry({
     onCopyLink,
     onDelete,
     onOpenNote,
-    onOpenHere,
     onOpenInNewTab,
     onUpdateItemCollections,
     pendingCollectionItemIds,
@@ -3598,7 +3569,6 @@ function renderLibraryMasonry({
                                 item={item}
                                 onCopyLink={onCopyLink}
                                 onDelete={onDelete}
-                                onOpenHere={onOpenHere}
                                 onOpenInNewTab={onOpenInNewTab}
                                 onOpenNote={onOpenNote}
                                 onUpdateItemCollections={
@@ -3673,7 +3643,6 @@ function ExtensionLibraryGrid({
     onCopyLink,
     onDelete,
     onOpenNote,
-    onOpenHere,
     onOpenInNewTab,
     onUpdateItemCollections,
     paywallPreviewCount,
@@ -3704,7 +3673,6 @@ function ExtensionLibraryGrid({
             layoutToken,
             onCopyLink,
             onDelete,
-            onOpenHere,
             onOpenInNewTab,
             onOpenNote,
             onUpdateItemCollections,
@@ -3723,7 +3691,6 @@ function ExtensionLibraryGrid({
                       layoutToken,
                       onCopyLink,
                       onDelete,
-                      onOpenHere,
                       onOpenInNewTab,
                       onOpenNote,
                       onUpdateItemCollections,
@@ -3748,7 +3715,6 @@ function ExtensionLibraryGrid({
                             locked: true,
                             onCopyLink,
                             onDelete,
-                            onOpenHere,
                             onOpenInNewTab,
                             onOpenNote,
                             onUpdateItemCollections,
@@ -3774,7 +3740,6 @@ function ExtensionLibrarySection({
     onCopyLink,
     onDelete,
     onOpenNote,
-    onOpenHere,
     onOpenInNewTab,
     onUpdateItemCollections,
     onToggle,
@@ -3802,7 +3767,6 @@ function ExtensionLibrarySection({
                 layoutToken={layoutToken}
                 onCopyLink={onCopyLink}
                 onDelete={onDelete}
-                onOpenHere={onOpenHere}
                 onOpenInNewTab={onOpenInNewTab}
                 onOpenNote={onOpenNote}
                 onUpdateItemCollections={onUpdateItemCollections}
@@ -3857,7 +3821,7 @@ function ExtensionLibrarySection({
     );
 }
 
-export function LibraryBrowser({
+function LibraryBrowser({
     collections,
     items,
     onClearCollectionFilters,
@@ -3909,7 +3873,6 @@ export function LibraryBrowser({
         handleConfirmDelete,
         handleCopyLink,
         handleDeleteDialogOpenChange,
-        handleOpenHere,
         handleOpenInNewTab,
         handleRequestDelete,
         isDeletePending,
@@ -4442,7 +4405,6 @@ export function LibraryBrowser({
         layoutRefreshToken,
         onCopyLink: handleCopyLink,
         onDelete: handleRequestDelete,
-        onOpenHere: handleOpenHere,
         onOpenInNewTab: handleOpenInNewTab,
         onOpenNote: handleOpenNote,
         onToggleSection: toggleSection,

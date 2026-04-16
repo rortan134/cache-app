@@ -3,17 +3,17 @@
 import { Button } from "@/components/ui/button";
 import { GoogleMarkIcon } from "@/components/ui/icons";
 import { authClient } from "@/lib/auth/client";
-import { useCallback, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 
 function GoogleSignInButton({
     children,
 }: Readonly<{
     children: React.ReactNode;
 }>) {
-    const [errorMessage, setErrorMessage] = useState<string | null>(null);
     const [isPending, startTransition] = useTransition();
+    const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-    const handleSignIn = useCallback(() => {
+    const handleSignIn = () => {
         setErrorMessage(null);
         startTransition(async () => {
             try {
@@ -36,7 +36,7 @@ function GoogleSignInButton({
                 );
             }
         });
-    }, []);
+    };
 
     return (
         <div className="flex flex-col gap-1">

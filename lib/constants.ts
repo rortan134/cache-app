@@ -6,7 +6,7 @@ export const SUPPORTED_LOCALES = [
     "en-US",
     "fr-FR",
     "de-DE",
-    "es-419",
+    "es-ES",
     "pt-BR",
 ] as const;
 

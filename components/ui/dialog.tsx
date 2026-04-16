@@ -13,16 +13,14 @@ export const DialogCreateHandle: typeof DialogPrimitive.createHandle =
 
 export const Dialog: typeof DialogPrimitive.Root = DialogPrimitive.Root;
 
-export const DialogPortal: typeof DialogPrimitive.Portal =
-    DialogPrimitive.Portal;
-
 export function DialogTrigger(
     props: DialogPrimitive.Trigger.Props
 ): React.ReactElement {
     return <DialogPrimitive.Trigger data-slot="dialog-trigger" {...props} />;
 }
 
-export function DialogBackdrop({
+/** @internal */
+function DialogBackdrop({
     className,
     ...props
 }: DialogPrimitive.Backdrop.Props): React.ReactElement {
@@ -38,7 +36,8 @@ export function DialogBackdrop({
     );
 }
 
-export function DialogViewport({
+/** @internal */
+function DialogViewport({
     className,
     ...props
 }: DialogPrimitive.Viewport.Props): React.ReactElement {
@@ -65,7 +64,7 @@ export function DialogPopup({
     closeProps?: DialogPrimitive.Close.Props;
 }): React.ReactElement {
     return (
-        <DialogPortal>
+        <DialogPrimitive.Portal>
             <DialogBackdrop />
             <DialogViewport>
                 <DialogPrimitive.Popup
@@ -80,7 +79,7 @@ export function DialogPopup({
                     {showCloseButton && (
                         <DialogPrimitive.Close
                             aria-label="Close"
-                            className="absolute end-2 top-2"
+                            className="absolute inset-e-2 top-2"
                             render={<Button size="icon" variant="ghost" />}
                             {...closeProps}
                         >
@@ -89,7 +88,7 @@ export function DialogPopup({
                     )}
                 </DialogPrimitive.Popup>
             </DialogViewport>
-        </DialogPortal>
+        </DialogPrimitive.Portal>
     );
 }
 

@@ -201,7 +201,6 @@ export function PreviewDrawerContent({
                             </div>
                         </div>
                     ) : null}
-
                     {status === "blocked" ? (
                         <div className="flex size-full flex-col items-center justify-center gap-4 bg-muted/20 px-6 text-center">
                             <div className="flex size-12 items-center justify-center rounded-full bg-destructive/10 text-destructive">

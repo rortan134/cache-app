@@ -158,8 +158,8 @@ export default async function Home() {
                         <div className="flex max-w-[340px] flex-col gap-[12px] py-[20px] md:gap-[16px]">
                             <T context="Integrations">
                                 <h2 className="font-medium text-[#0A0B0D] text-[28px] leading-[1.1] tracking-[-1.28px] lg:text-[32px]">
-                                    Connect your favorite media platforms –
-                                    Backfill everything you've ever saved
+                                    Connect your favorite platforms – Backfill
+                                    everything you've ever saved
                                 </h2>
                                 <p className="tracking=[-3%] text-pretty font-medium font-regular text-[#0A0B0D] text-[16px] leading-[1.2] opacity-50">
                                     Bring together bookmarks from social, video,
@@ -292,8 +292,9 @@ export default async function Home() {
                                     useful
                                 </h2>
                                 <p className="tracking=[-3%] text-pretty font-medium font-regular text-[#0A0B0D] text-[16px] leading-[1.2] opacity-50">
-                                    Import once and go from messy to organized
-                                    in minutes.
+                                    Build a knowledge base with the content
+                                    you've already deemed important. Import once
+                                    and go from messy to organized in minutes.
                                 </p>
                             </T>
                             <ul className="mt-2 flex flex-col space-y-2 text-xs">
@@ -312,7 +313,7 @@ export default async function Home() {
                                         <Search className="inline-block size-4 shrink-0" />
                                         <span>
                                             Find anything with associative
-                                            search with OCR built-in
+                                            search with OCR
                                         </span>
                                     </li>
                                     <li className="flex items-center gap-2 text-xs">

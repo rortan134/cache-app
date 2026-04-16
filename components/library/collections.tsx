@@ -34,7 +34,14 @@ import {
     MenuSubTrigger,
     MenuTrigger,
 } from "@/components/ui/menu";
-import { Popover, PopoverPopup, PopoverTrigger } from "@/components/ui/popover";
+import {
+    Popover,
+    PopoverClose,
+    PopoverDescription,
+    PopoverPopup,
+    PopoverTitle,
+    PopoverTrigger,
+} from "@/components/ui/popover";
 import {
     PreviewCard,
     PreviewCardPopup,
@@ -332,15 +339,15 @@ function CollectionsListItemHoverPreview({
                 closeDelay={COLLECTION_ITEM_PREVIEW_CLOSE_DELAY_MS}
                 render={
                     <Button
-                        className="w-full min-w-0 flex-1 justify-start rounded-full border-(--focus-ring-color)/7 bg-(--collection-background) px-8 text-left focus-visible:ring-(--focus-ring-color) focus-visible:ring-1"
+                        className="w-full min-w-0 flex-1 justify-start rounded-full border-(--focus-ring-color)/7 bg-(--collection-background) px-7.5 text-left focus-visible:ring-(--focus-ring-color) focus-visible:ring-1"
                         onClick={onSelect}
                         type="button"
                         variant="ghost"
                     />
                 }
             >
-                <div className="flex min-w-0 items-center gap-3">
-                    <span className="shrink-0 truncate font-medium text-sm leading-tight">
+                <div className="flex min-w-0 items-center gap-3 leading-none">
+                    <span className="shrink-0 truncate font-medium text-sm">
                         {collection.name}
                     </span>
                     {collection.sources.length > 0 && (
@@ -408,7 +415,7 @@ function CollectionItemPriorityComboboxPicker({
                 render={
                     <Button
                         aria-label={`Set priority for ${collection.name}`}
-                        className="absolute top-1/2 left-1 z-10 -translate-y-1/2 rounded-full opacity-80 group-hover:opacity-100"
+                        className="absolute top-1/2 left-0.5 z-10 -translate-y-1/2 rounded-full opacity-80 group-hover:opacity-100"
                         disabled={isPending}
                         size="icon-sm"
                         variant="ghost"
@@ -624,13 +631,13 @@ export function CollectionsListFilterClear({
 
 export function CollectionsListEmpty(): ReactElement {
     return (
-        <p className="rounded-xl border border-border/60 border-dashed px-4 py-6 text-center text-muted-foreground text-sm">
+        <p className="rounded-xl border border-border/30 border-dashed px-4 py-6 text-center text-muted-foreground text-xs">
             Create your first collection to start grouping saved items.
         </p>
     );
 }
 
-export function SmartCollectionsCallout(): ReactElement {
+export function SmartCollectionsNoticeCallout(): ReactElement {
     const [isOpen, setIsOpen] = useState(true);
 
     return (
@@ -648,7 +655,10 @@ export function SmartCollectionsCallout(): ReactElement {
                     </Avatar>
                 </AvatarGroup>
                 <div className="flex items-center justify-center gap-1">
-                    <span className="font-medium text-xs">
+                    <span aria-live="polite" className="sr-only" role="alert">
+                        Smart collections is active
+                    </span>
+                    <span className="not-sr-only font-medium text-xs">
                         <Popover>
                             <PopoverTrigger
                                 className="underline decoration-1 decoration-dotted underline-offset-2"
@@ -668,28 +678,33 @@ export function SmartCollectionsCallout(): ReactElement {
                             >
                                 <Image
                                     alt=""
+                                    aria-hidden
                                     className="-mx-(--viewport-inline-padding) -mt-4 aspect-32/9 h-auto max-h-24 w-(--positioner-width) min-w-0 max-w-(--positioner-width) rounded-t-lg"
                                     loading="eager"
                                     priority
                                     src={SmartCollectionsBackgroundImg}
                                 />
                                 <div className="mt-4 flex max-w-64 flex-col gap-2">
-                                    <h4 className="font-medium text-sm">
+                                    <PopoverTitle className="font-medium text-sm">
                                         Let Cache do the organizing
-                                    </h4>
-                                    <p className="text-foreground text-xs">
+                                    </PopoverTitle>
+                                    <PopoverDescription className="text-foreground text-xs">
                                         As you add new entries, Cache AI groups
                                         your related saves into contextual
                                         collections intuitively. Cache also
                                         learns your preferences with time.
-                                    </p>
-                                    <Button
-                                        className="ml-auto"
-                                        size="xs"
-                                        variant="destructive-outline"
+                                    </PopoverDescription>
+                                    <PopoverClose
+                                        render={
+                                            <Button
+                                                className="ml-auto"
+                                                size="xs"
+                                                variant="destructive-outline"
+                                            />
+                                        }
                                     >
                                         Disable
-                                    </Button>
+                                    </PopoverClose>
                                 </div>
                             </PopoverPopup>
                         </Popover>{" "}

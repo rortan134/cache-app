@@ -12,6 +12,7 @@
 export const LibraryItemSource = {
   cache_note: 'cache_note',
   chrome_bookmarks: 'chrome_bookmarks',
+  github_starred_repositories: 'github_starred_repositories',
   google_photos: 'google_photos',
   instagram: 'instagram',
   other: 'other',

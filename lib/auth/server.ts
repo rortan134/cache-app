@@ -58,6 +58,13 @@ interface XUserAccount {
     };
 }
 
+interface GitHubUserAccount {
+    avatar_url?: string;
+    id?: number;
+    login?: string;
+    name?: string;
+}
+
 async function xUserFromTokens(tokens: OAuth2Tokens): Promise<{
     id: string;
     name?: string;
@@ -100,6 +107,44 @@ async function xUserFromTokens(tokens: OAuth2Tokens): Promise<{
     };
 }
 
+async function githubUserFromTokens(tokens: OAuth2Tokens): Promise<{
+    id: string;
+    name?: string;
+    email?: string | null;
+    image?: string;
+    emailVerified: boolean;
+} | null> {
+    const accessToken = tokens.accessToken;
+    if (!accessToken) {
+        return null;
+    }
+
+    const response = await fetch("https://api.github.com/user", {
+        headers: {
+            Accept: "application/vnd.github+json",
+            Authorization: `Bearer ${accessToken}`,
+            "User-Agent": SITE_APP_NAME,
+        },
+    });
+    if (!response.ok) {
+        return null;
+    }
+
+    const payload = (await response.json()) as GitHubUserAccount;
+    const id = typeof payload.id === "number" ? String(payload.id) : undefined;
+    if (!id) {
+        return null;
+    }
+
+    return {
+        email: `github.${id}.integration@placeholder.cache`,
+        emailVerified: false,
+        id,
+        image: payload.avatar_url,
+        name: payload.name ?? payload.login ?? id,
+    };
+}
+
 function requiredEnv(name: string): string {
     const value = process.env[name];
     if (value === undefined || value === "") {
@@ -128,6 +173,9 @@ const trustedOrigins = [
 const xClientId = optionalEnv("X_CLIENT_ID");
 const xClientSecret = optionalEnv("X_CLIENT_SECRET");
 const xOAuthEnabled = Boolean(xClientId && xClientSecret);
+const githubClientId = optionalEnv("GITHUB_CLIENT_ID");
+const githubClientSecret = optionalEnv("GITHUB_CLIENT_SECRET");
+const githubOAuthEnabled = Boolean(githubClientId && githubClientSecret);
 
 const genericOAuthConfig: GenericOAuthConfig[] = [
     {
@@ -159,9 +207,24 @@ if (xClientId && xClientSecret) {
     });
 }
 
+if (githubClientId && githubClientSecret) {
+    genericOAuthConfig.push({
+        authentication: "basic",
+        authorizationUrl: "https://github.com/login/oauth/authorize",
+        clientId: githubClientId,
+        clientSecret: githubClientSecret,
+        disableSignUp: true,
+        getUserInfo: githubUserFromTokens,
+        providerId: "github",
+        scopes: ["read:user"],
+        tokenUrl: "https://github.com/login/oauth/access_token",
+    });
+}
+
 const trustedProviders = [
     "google",
     "pinterest",
+    ...(githubOAuthEnabled ? ["github"] : []),
     ...(xOAuthEnabled ? ["x"] : []),
 ];
 

@@ -1,18 +1,23 @@
 export const canUseDOM =
     typeof window !== "undefined" &&
-    typeof document !== "undefined" &&
-    typeof document.createElement === "function";
+    typeof window.document !== "undefined" &&
+    typeof window.document.createElement !== "undefined";
 
-export function getOwnerWindow(node: Node | null) {
+export function getOwnerWindow(node?: Node | Document | null | undefined) {
     if (!canUseDOM) {
         throw new Error("Cannot access window outside of the DOM");
     }
-    return node?.ownerDocument?.defaultView ?? window;
+    return (node?.ownerDocument?.defaultView ?? globalThis) as Window &
+        typeof globalThis;
 }
 
-export function getOwnerDocument(node: Node | null) {
+export function getOwnerDocument(node?: Node | Document | null | undefined) {
     if (!canUseDOM) {
         throw new Error("Cannot access document outside of the DOM");
     }
-    return node?.ownerDocument ?? document;
+    return node?.ownerDocument ?? globalThis.document;
+}
+
+export function getComputedStyle(element: Element, pseudoElement?: string) {
+    return getOwnerWindow(element).getComputedStyle(element, pseudoElement);
 }

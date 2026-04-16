@@ -1,7 +1,7 @@
 import {
-    getIntegration,
     type IntegrationId,
-    LIBRARY_BOOKMARK_SYNC_INTEGRATION_IDS,
+    integrationOwnsLibraryItemSource,
+    listSyncableIntegrations,
 } from "@/lib/integrations/support";
 import type { LibraryItemSource } from "@/prisma/client/enums";
 
@@ -22,23 +22,7 @@ export function integrationSetupProgressPercent(
 }
 
 export function syncableLibrarySourceTotal(): number {
-    return LIBRARY_BOOKMARK_SYNC_INTEGRATION_IDS.length;
-}
-
-function integrationMatchesSource(
-    id: IntegrationId,
-    source: LibraryItemSource
-): boolean {
-    if (id === "chrome") {
-        return source === "chrome_bookmarks";
-    }
-    if (id === "x") {
-        return source === "x_bookmarks";
-    }
-    if (id === "youtube") {
-        return source === "youtube_watch_later";
-    }
-    return source === id;
+    return listSyncableIntegrations().length;
 }
 
 export function partitionLibrarySyncLabels(
@@ -48,17 +32,17 @@ export function partitionLibrarySyncLabels(
     const connectedLabels: string[] = [];
     const missingLabels: string[] = [];
     const connectedIntegrationIdSet = new Set(connectedIntegrationIds);
+    const itemSources = new Set(items.map((item) => item.source));
 
-    for (const id of LIBRARY_BOOKMARK_SYNC_INTEGRATION_IDS) {
-        const count = items.filter((item) =>
-            integrationMatchesSource(id, item.source)
-        ).length;
-        const label = getIntegration(id).label;
+    for (const integration of listSyncableIntegrations()) {
+        const hasItems = [...itemSources].some((source) =>
+            integrationOwnsLibraryItemSource(integration.id, source)
+        );
 
-        if (count > 0 || connectedIntegrationIdSet.has(id)) {
-            connectedLabels.push(label);
+        if (hasItems || connectedIntegrationIdSet.has(integration.id)) {
+            connectedLabels.push(integration.label);
         } else {
-            missingLabels.push(label);
+            missingLabels.push(integration.label);
         }
     }
 

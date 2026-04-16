@@ -74,9 +74,7 @@
         "analyze": "next experimental-analyze",
         "type-check": "tsc --noEmit --emitDeclarationOnly false",
         "validate": "knip --production --exclude types",
-        "prepare": "husky",
-        "check": "ultracite check",
-        "fix": "ultracite fix"
+        "prepare": "husky"
     },
     "type": "module",
     "version": "1.0.0",

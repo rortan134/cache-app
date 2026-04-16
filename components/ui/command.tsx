@@ -9,7 +9,6 @@ import {
     AutocompleteInput,
     AutocompleteItem,
     AutocompleteList,
-    AutocompleteSeparator,
 } from "@/components/ui/autocomplete";
 import { cn } from "@/lib/utils";
 import type * as React from "react";
@@ -116,19 +115,6 @@ export function CommandItem({
         <AutocompleteItem
             className={cn("py-1.5", className)}
             data-slot="command-item"
-            {...props}
-        />
-    );
-}
-
-export function CommandSeparator({
-    className,
-    ...props
-}: React.ComponentProps<typeof AutocompleteSeparator>): React.ReactElement {
-    return (
-        <AutocompleteSeparator
-            className={cn("my-2", className)}
-            data-slot="command-separator"
             {...props}
         />
     );

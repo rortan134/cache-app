@@ -1,6 +1,7 @@
 import "@/lib/dayjs/locales";
 
 import { BASE_URL, SITE_APP_NAME, SITE_DEFAULT_TITLE } from "@/lib/constants";
+import { getOwnerDocument } from "@/lib/dom";
 import { Analytics } from "@vercel/analytics/next";
 import { GTProvider, getLocale } from "gt-next/server";
 import type { Metadata } from "next";
@@ -70,7 +71,7 @@ function NextChatSDKBootstrap({ baseUrl }: { baseUrl: string }) {
                         if (baseUrl === undefined) {
                             return;
                         }
-                        const htmlElement = document.documentElement;
+                        const htmlElement = getOwnerDocument().documentElement;
                         const observer = new MutationObserver((mutations) => {
                             for (const mutation of mutations) {
                                 if (

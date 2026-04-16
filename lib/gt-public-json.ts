@@ -3,7 +3,7 @@
  * When `gt translate` adds a new `{locale}.json`, import it and add one entry in `bundles`.
  */
 import deDE from "../public/_gt/de-DE.json";
-import es419 from "../public/_gt/es-419.json";
+import esES from "../public/_gt/es-ES.json";
 import frFR from "../public/_gt/fr-FR.json";
 import ptBR from "../public/_gt/pt-BR.json";
 
@@ -12,7 +12,7 @@ type GtBundleJson = Record<string, unknown>;
 
 const bundles: Partial<Record<string, GtBundleJson>> = {
     "de-DE": deDE as GtBundleJson,
-    "es-419": es419 as GtBundleJson,
+    "es-ES": esES as GtBundleJson,
     "fr-FR": frFR as GtBundleJson,
     "pt-BR": ptBR as GtBundleJson,
 };

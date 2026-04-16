@@ -12,7 +12,7 @@ import {
     IntegrationsNotice,
     IntegrationsPanel,
     IntegrationsTrigger,
-} from "@/components/library/entry/integrations";
+} from "@/components/library/integrations";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { BrandLogo } from "@/components/ui/brand-logo";
 import { ChevronDownFilledIcon } from "@/components/ui/icons";
@@ -27,10 +27,13 @@ import {
     partitionLibrarySyncLabels,
     syncableLibrarySourceTotal,
 } from "@/lib/integrations/progress";
-import { INTEGRATIONS } from "@/lib/integrations/support";
+import {
+    INTEGRATIONS,
+    listConnectedIntegrationIds,
+    listIntegrationAccountProviderIds,
+} from "@/lib/integrations/support";
 import { getLibraryItemsForUser } from "@/lib/library/get-library-items";
 import { prisma } from "@/prisma";
-import { LibraryItemSource } from "@/prisma/client/enums";
 import LogoIconImage from "@/public/cache-app-icon.png";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
@@ -66,45 +69,19 @@ export default async function LibraryPage() {
             select: { providerId: true },
             where: {
                 providerId: {
-                    in: ["google", "pinterest", "x"],
+                    in: listIntegrationAccountProviderIds(),
                 },
                 userId,
             },
         }),
     ]);
 
-    const providers = new Set(
-        linkedAccounts.map((account) => account.providerId)
-    );
+    const connectedIntegrationIds = listConnectedIntegrationIds("source", {
+        libraryItemSources: items.map((item) => item.source),
+        linkedProviderIds: linkedAccounts.map((account) => account.providerId),
+    });
 
-    const isIntegrationConnected = (
-        id: (typeof INTEGRATIONS)[number]["id"]
-    ) => {
-        if (id === "google-photos") {
-            return providers.has("google");
-        }
-        if (id === "pinterest") {
-            return providers.has("pinterest");
-        }
-        if (id === "chrome") {
-            return items.some(
-                (item) => item.source === LibraryItemSource.chrome_bookmarks
-            );
-        }
-        if (id === "x") {
-            return providers.has("x");
-        }
-        if (id === "youtube") {
-            return items.some(
-                (item) => item.source === LibraryItemSource.youtube_watch_later
-            );
-        }
-        return false;
-    };
-
-    const connectedIntegrationIds = INTEGRATIONS.flatMap(({ id }) =>
-        isIntegrationConnected(id) ? [id] : []
-    );
+    const connectedIntegrationIdSet = new Set(connectedIntegrationIds);
     const syncable = syncableLibrarySourceTotal();
     const { connectedLabels, missingLabels } = partitionLibrarySyncLabels(
         items,
@@ -180,7 +157,7 @@ export default async function LibraryPage() {
                                                 </div>
                                                 <IntegrationAction
                                                     id={id}
-                                                    isConnected={connectedIntegrationIds.includes(
+                                                    isConnected={connectedIntegrationIdSet.has(
                                                         id
                                                     )}
                                                 />

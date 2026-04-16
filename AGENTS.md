@@ -5,7 +5,7 @@ Cache is a modern well-crafted personal knowledge web application tool that unif
 <!-- BEGIN:nextjs-agent-rules -->
 ## This is NOT the Next.js you know
 
-This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` before writing any code. Heed deprecation notices.
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs` before writing relevant code. Heed deprecation notices.
 <!-- END:nextjs-agent-rules -->
 
 ## Tech stack
@@ -35,13 +35,14 @@ This version has breaking changes — APIs, conventions, and file structure may 
 - Learn from existing code: Study and plan before implementing. Identify recurring patterns and design influences in the code. Always keep rules or constraints of the task in mind.
 - Always trace how parts connect, such as data flow between functions, stage dependencies, or what module owns what.
 - Do not jump to conclusions. Question your assumptions so that you can achieve the most optimal solutions.
+- If a tradeoff is required, choose correctness and robustness over short-term convenience.
 
 ## On coding
 
 - Follow the rationale that each function should have a single, named responsibility. Keep it small enough to reason about in isolation such that it is understandable and verifiable as a logical unit (self-contained). If you need to trace external state to understand it, it's too large or too coupled.
 - Strive for writing fully functional, bug-free code by using best practices and minimizing room for error.
-- Avoid unnecessary code indirection unless an abstraction for DRY compliance is necessary.
+- Avoid unnecessary code indirection unless an abstraction for DRY compliance is necessary. Duplicate logic across multiple files is a code smell and should be avoided.
 - Composition over inheritance: Prefer dependency injection.
-- Handle errors at their appropriate scope. Never silently swallow exceptions.
+- Handle errors at the appropriate scopes. Never silently swallow exceptions.
 - Leverage ES6+ features for cleaner code (default parameters, arrow functions, and object destructuring).
 - Avoid using `any` or casting types at all costs as it indicates wrong assumptions or bad implementation.
