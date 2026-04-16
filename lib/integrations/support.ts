@@ -23,9 +23,6 @@ export type IntegrationId =
     | "x"
     | "youtube";
 
-/**
- * Bookmark-capable integrations that contribute items to the unified library.
- */
 export const LIBRARY_BOOKMARK_SYNC_INTEGRATION_IDS = [
     "chrome",
     "x",
@@ -33,17 +30,17 @@ export const LIBRARY_BOOKMARK_SYNC_INTEGRATION_IDS = [
     "instagram",
     "pinterest",
     "tiktok",
-] as const satisfies readonly IntegrationId[];
+] as const satisfies IntegrationId[];
 
 export interface SupportedIntegration {
-    readonly capabilities: {
-        readonly bookmarks: boolean;
+    capabilities: {
+        bookmarks: boolean;
     };
-    readonly category: IntegrationCategory;
-    readonly description: string;
-    readonly Icon: IntegrationIcon;
-    readonly id: IntegrationId;
-    readonly label: string;
+    category: IntegrationCategory;
+    description: string;
+    Icon: IntegrationIcon;
+    id: IntegrationId;
+    label: string;
 }
 
 export const INTEGRATIONS = [
@@ -103,7 +100,7 @@ export const INTEGRATIONS = [
         id: "pinterest",
         label: "Pinterest",
     },
-] satisfies readonly SupportedIntegration[];
+] satisfies SupportedIntegration[];
 
 const INTEGRATION_BY_ID = new Map<IntegrationId, SupportedIntegration>(
     INTEGRATIONS.map((item) => [item.id, item])
@@ -148,23 +145,21 @@ export function findIntegrationById(
 
 export function listIntegrations(
     predicate?: (item: SupportedIntegration) => boolean
-): readonly SupportedIntegration[] {
+): SupportedIntegration[] {
     return predicate ? INTEGRATIONS.filter(predicate) : INTEGRATIONS;
 }
 
 export function integrationsInCategory(
     category: IntegrationCategory
-): readonly SupportedIntegration[] {
+): SupportedIntegration[] {
     return INTEGRATIONS.filter((item) => item.category === category);
 }
 
-export function integrationIds(): readonly IntegrationId[] {
+export function integrationIds(): IntegrationId[] {
     return INTEGRATIONS.map((item) => item.id);
 }
 
-export function filterToIntegrationIds(
-    values: readonly string[]
-): IntegrationId[] {
+export function filterToIntegrationIds(values: string[]): IntegrationId[] {
     return values.filter(isIntegrationId);
 }
 

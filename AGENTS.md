@@ -1,6 +1,6 @@
 # What is this project?
 
-Cache is a modern well-crafted web application meant to unify user bookmarks across all mainstream platforms, meant for power-users.
+Cache is a modern well-crafted personal knowledge web application tool that unifies user bookmarks across all mainstream platforms into a single searchable and actionable library: you can search it in plain English, organize results into collections in one step, synthesize what you've gathered, and pipe it into the tools you already think in, like Notion. It starts where the algorithmic feed ends—at the moment you hit save—treating that decision as a signal worth honoring, and building everything around the one thing bookmark tools have historically failed at: making saved content retrievable and useful when it actually matters.
 
 <!-- BEGIN:nextjs-agent-rules -->
 ## This is NOT the Next.js you know
@@ -12,12 +12,11 @@ This version has breaking changes — APIs, conventions, and file structure may 
 
 - runtime & package manager: Node.js >= 24, Bun, read Bun API docs in `node_modules/bun-types/docs/**.mdx` if necessary.
 - framework: Next.js 16 (App Router)
-- ui: React 19; COSS (Base-UI); lucide-react; motion (aka framer-motion);
+- ui: React 19, Base-UI (@base-ui/react), lucide-react
 - styling: Tailwind CSS 4
 - validation: zod
-- auth: better-auth with better-auth/stripe (subscriptions)
-- payments: Stripe
-- tooling: TypeScript 6 (strict typing, never use `any`), Biome via Ultracite
+- auth: better-auth with better-auth/stripe (Stripe subscriptions)
+- tooling: TypeScript 6 (strict typing), Biome via Ultracite
 
 ## Logging and error handling
 
@@ -25,7 +24,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
   - `createLogger(module)` returns a scoped logger with `.debug/.info/.warn/.error` and a `.time()` helper for spans.
 - Named errors live at `lib/error.ts`:
   - `NamedError.create("SomeDomainError", z.object({...}))` creates a typed error class with runtime-validated `data` and a stable `name`.
-  - Use these in services and actions to propagate domain failures with structured metadata (e.g., `{ operation, message, ... }`).
+- Use these in services and actions to propagate domain failures with structured metadata (e.g., `{ operation, message, ... }`).
 
 ## On development
 
@@ -35,7 +34,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 - If you do not know the answer or think there might not be a correct answer, say so instead of guessing.
 - Learn from existing code: Study and plan before implementing. Identify recurring patterns and design influences in the code. Always keep rules or constraints of the task in mind.
 - Always trace how parts connect, such as data flow between functions, stage dependencies, or what module owns what.
-- Do not jump to conclusions; Question your assumptions so that you can achieve the most optimal solutions.
+- Do not jump to conclusions. Question your assumptions so that you can achieve the most optimal solutions.
 
 ## On coding
 
