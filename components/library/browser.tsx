@@ -345,12 +345,11 @@ function getCollectionPreviewThumbnailUrls(
                 readonly thumbnailUrl: string;
             } => Boolean(item.thumbnailUrl)
         )
-        .sort((left, right) => {
-            return (
+        .sort(
+            (left, right) =>
                 getPreviewOrderSeed(`${collectionId}:${left.id}`) -
                 getPreviewOrderSeed(`${collectionId}:${right.id}`)
-            );
-        })
+        )
         .slice(0, 5)
         .map((item) => item.thumbnailUrl);
 }
@@ -3028,7 +3027,7 @@ function itemDateLabel(dateValue: Date | string | null | undefined): string {
 
 function fallbackGridStyle(columnCount?: number): CSSProperties | undefined {
     if (!columnCount) {
-        return undefined;
+        return;
     }
     return {
         gridTemplateColumns: `repeat(${columnCount}, minmax(0, 1fr))`,
@@ -4352,8 +4351,8 @@ function LibraryBrowser({
         setIsNoteDrawerOpen(true);
     };
 
-    const handleSaveNote = async (draft: { contentHtml: string }) => {
-        return await new Promise<boolean>((resolve) => {
+    const handleSaveNote = async (draft: { contentHtml: string }) =>
+        await new Promise<boolean>((resolve) => {
             startSavingNoteTransition(async () => {
                 const result = await saveLibraryNoteDraft({
                     activeNote,
@@ -4392,7 +4391,6 @@ function LibraryBrowser({
                 resolve(true);
             });
         });
-    };
 
     const libraryBrowserStyle = getStickySectionStyle(commandPanelShellHeight);
 

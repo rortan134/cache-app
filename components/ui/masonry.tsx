@@ -541,7 +541,7 @@ function onDeepMemo<T extends unknown[], U>(
         for (i = 0; i < depth; i++) {
             const next = node.get(args[i] as CacheKey);
             if (!next) {
-                return undefined;
+                return;
             }
             node = next as Cache;
         }
@@ -1267,12 +1267,13 @@ function useThrottle<State>(
         }
     }, []);
 
-    React.useEffect(() => {
-        return () => {
+    React.useEffect(
+        () => () => {
             prevCountRef.current = 0;
             clearTrailing();
-        };
-    }, [clearTrailing]);
+        },
+        [clearTrailing]
+    );
 
     const throttledSetState = React.useCallback(
         (action: React.SetStateAction<State>) => {

@@ -1,7 +1,7 @@
 import { SITE_APP_NAME } from "@/lib/constants";
 import { getLocales } from "gt-next/server";
 import type { Metadata } from "next";
-import type * as React from "react";
+import * as React from "react";
 
 export function generateStaticParams() {
     return getLocales().map((locale) => ({ locale }));
@@ -14,5 +14,5 @@ export function generateMetadata(): Metadata {
 }
 
 export default function LocaleLayout({ children }: React.PropsWithChildren) {
-    return children;
+    return <React.Suspense>{children}</React.Suspense>;
 }

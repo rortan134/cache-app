@@ -321,9 +321,10 @@ function CollectionsListItemHoverPreview({
         }
 
         const interval = window.setInterval(() => {
-            setActivePreviewIndex((currentIndex) => {
-                return (currentIndex + 1) % previewThumbnailUrls.length;
-            });
+            setActivePreviewIndex(
+                (currentIndex) =>
+                    (currentIndex + 1) % previewThumbnailUrls.length
+            );
         }, COLLECTION_ITEM_PREVIEW_SLIDESHOW_INTERVAL_MS);
 
         return () => {

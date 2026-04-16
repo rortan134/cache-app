@@ -101,9 +101,10 @@ function GradientWaveText({
         return () => observer.disconnect();
     }, [inView, once]);
 
-    const resolvedColors = useMemo(() => {
-        return customColors?.length ? customColors : defaultColors;
-    }, [customColors]);
+    const resolvedColors = useMemo(
+        () => (customColors?.length ? customColors : defaultColors),
+        [customColors]
+    );
 
     const stops = useMemo(() => {
         const arr: string[] = [];
@@ -119,11 +120,13 @@ function GradientWaveText({
         return arr.join(", ");
     }, [resolvedColors, bandGap, bandCount]);
 
-    const gradient = useMemo(() => {
-        return radial
-            ? `radial-gradient(circle at left top, ${stops})`
-            : `linear-gradient(to bottom right, ${stops})`;
-    }, [radial, stops]);
+    const gradient = useMemo(
+        () =>
+            radial
+                ? `radial-gradient(circle at left top, ${stops})`
+                : `linear-gradient(to bottom right, ${stops})`,
+        [radial, stops]
+    );
 
     useEffect(() => {
         const node = elRef.current;

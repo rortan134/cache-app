@@ -89,13 +89,12 @@ export const UTMTags = [
     "ref",
 ] as const;
 
-export const getUTMParamsFromURL = (url: string) => {
-    return Object.fromEntries(
+export const getUTMParamsFromURL = (url: string) =>
+    Object.fromEntries(
         Object.entries(parseUrlSearchParams(url)).filter(([key]) =>
             UTMTags.includes(key as (typeof UTMTags)[number])
         )
     );
-};
 
 export const paramsMetadata = [
     { display: "UTM Source", examples: "google, twitter", key: "utm_source" },

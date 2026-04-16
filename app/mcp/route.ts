@@ -84,8 +84,8 @@ const handler = createMcpHandler(async (server) => {
             },
             title: contentWidget.title,
         },
-        async ({ name }) => {
-            return await Promise.resolve({
+        async ({ name }) =>
+            await Promise.resolve({
                 _meta: widgetMeta(contentWidget),
                 content: [
                     {
@@ -97,8 +97,7 @@ const handler = createMcpHandler(async (server) => {
                     name,
                     timestamp: new Date().toISOString(),
                 },
-            });
-        }
+            })
     );
 });
 

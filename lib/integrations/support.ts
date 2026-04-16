@@ -550,7 +550,7 @@ export function findIntegrationById(
     value: unknown
 ): SupportedIntegration | undefined {
     if (!isIntegrationId(value)) {
-        return undefined;
+        return;
     }
     return INTEGRATION_BY_ID.get(value);
 }

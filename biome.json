@@ -43,7 +43,6 @@
         "rules": {
             "performance": {
                 "noNamespaceImport": "off",
-                "noBarrelFile": "off",
                 "noImgElement": "off"
             },
             "suspicious": {
@@ -51,7 +50,7 @@
                 "noBitwiseOperators": "off"
             },
             "complexity": {
-                "noExcessiveCognitiveComplexity": "warn"
+                "noUselessCatchBinding": "off"
             }
         }
     }

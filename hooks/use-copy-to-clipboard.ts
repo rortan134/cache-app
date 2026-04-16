@@ -42,13 +42,14 @@ function useCopyToClipboard({
         }
     };
 
-    React.useEffect(() => {
-        return (): void => {
+    React.useEffect(
+        () => (): void => {
             if (timeoutIdRef.current) {
                 getOwnerWindow().clearTimeout(timeoutIdRef.current);
             }
-        };
-    }, []);
+        },
+        []
+    );
 
     return { copyToClipboard, isCopied };
 }
