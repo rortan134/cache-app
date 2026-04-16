@@ -27,7 +27,6 @@ const groupVariants = cva(
 export function Group({
     className,
     orientation,
-    children,
     ...props
 }: {
     className?: string;
@@ -45,9 +44,7 @@ export function Group({
             data-slot="group"
             role="group"
             {...props}
-        >
-            {children}
-        </div>
+        />
     );
 }
 

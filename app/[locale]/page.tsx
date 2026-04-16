@@ -1,16 +1,16 @@
 import { GoogleSignInButton } from "@/components/auth/google-sign-in-button";
-import { SessionHint } from "@/components/auth/session";
+import { GoogleOneTapTrigger, SessionHint } from "@/components/auth/session";
+import { BrandLogo } from "@/components/ui/brand-logo";
 import { Button } from "@/components/ui/button";
 import { Footer } from "@/components/ui/footer";
 import { GradientWaveText } from "@/components/ui/gradient-wave-text";
-import { Chrome, TikTok } from "@/components/ui/integration-icons";
-import { LogoContextMenu } from "@/components/ui/logo-context-menu";
+import { Chrome, TikTok } from "@/components/ui/icons";
 import { PageShell } from "@/components/ui/page-shell";
 import { Sidebar, SidebarFooter, SidebarHeader } from "@/components/ui/sidebar";
 import { buildLocaleAlternates } from "@/lib/alternates";
 import { getServerSession } from "@/lib/auth/server";
 import { gtPublicString } from "@/lib/gt-public-json";
-import { INTEGRATIONS } from "@/lib/integrations/supports";
+import { INTEGRATIONS } from "@/lib/integrations/support";
 import { cn } from "@/lib/utils";
 import LogoIconImage from "@/public/cache-app-icon.png";
 import IconSmallImage from "@/public/cache-icon-small.png";
@@ -42,12 +42,12 @@ export async function generateMetadata({
         description: gtPublicString(
             locale,
             "home.metadata.description",
-            "One place to view, manage, and organize bookmarks across browsers and platforms — built for power users who save at volume."
+            "One place to view, manage, and organize bookmarks across browsers and platforms — built for power users who save at volume.",
         ),
         title: gtPublicString(
             locale,
             "home.metadata.title",
-            "Unify your bookmarks across every platform"
+            "Unify your bookmarks across every platform",
         ),
     };
 }
@@ -57,10 +57,11 @@ export default async function Home() {
 
     return (
         <PageShell>
+            <GoogleOneTapTrigger />
             <div className="flex flex-1 flex-col gap-8 lg:flex-row lg:justify-between">
                 <Sidebar>
                     <SidebarHeader>
-                        <LogoContextMenu href="/library" src={LogoIconImage} />
+                        <BrandLogo href="/library" src={LogoIconImage} />
                         <div className="flex flex-col gap-3">
                             <T context="'Cache' is the product's name">
                                 <h1 className="font-medium text-[3rem] leading-[98%] md:text-[4rem] md:tracking-[-0.21875rem]">
@@ -189,7 +190,7 @@ export default async function Home() {
                                                 >
                                                     <Icon className="size-6" />
                                                 </IntegrationCard>
-                                            )
+                                            ),
                                         )}
                                     </div>
                                     <div className="relative z-20 rounded-2xl border bg-muted p-1">
@@ -227,7 +228,7 @@ export default async function Home() {
                                                 >
                                                     <Icon className="size-6" />
                                                 </IntegrationCard>
-                                            )
+                                            ),
                                         )}
                                     </div>
                                 </div>
@@ -441,13 +442,13 @@ function IntegrationCard({
         <div
             className={cn(
                 "relative flex size-12 rounded-xl border bg-background",
-                className
+                className,
             )}
         >
             <div
                 className={cn(
                     "relative z-20 m-auto size-fit *:size-6",
-                    isCenter && "*:size-8"
+                    isCenter && "*:size-8",
                 )}
             >
                 {children}
@@ -467,7 +468,7 @@ function IntegrationCard({
                         position === "right-middle" &&
                             "top-1/2 right-full w-[120px] origin-right bg-linear-to-l",
                         position === "right-bottom" &&
-                            "top-1/2 right-full w-[130px] origin-right rotate-25 bg-linear-to-l"
+                            "top-1/2 right-full w-[130px] origin-right rotate-25 bg-linear-to-l",
                     )}
                 />
             )}

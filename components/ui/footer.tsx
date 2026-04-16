@@ -94,7 +94,6 @@ function Footer() {
                                 role="presentation"
                                 viewBox="0 0 426 200"
                                 width="426"
-                                xmlns="http://www.w3.org/2000/svg"
                             >
                                 <rect
                                     className="origin-top transition-transform duration-300 hover:scale-95"

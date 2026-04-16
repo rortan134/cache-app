@@ -21,17 +21,14 @@ interface LogoContextMenuProps {
     src: StaticImageData;
 }
 
-function LogoContextMenu({
-    href,
-    src,
-}: LogoContextMenuProps): React.ReactElement {
+function BrandLogo({ href, src }: LogoContextMenuProps): React.ReactElement {
     const handleSaveLogo = async () => {
         try {
             await saveFile(
                 fetch(src.src).then((response) => {
                     if (!response.ok) {
                         throw new Error(
-                            `Failed to fetch logo image (${response.status})`
+                            `Failed to fetch logo image (${response.status})`,
                         );
                     }
                     return response.blob();
@@ -40,7 +37,7 @@ function LogoContextMenu({
                     description: "PNG image",
                     extension: "png",
                     name: "cache-logo",
-                }
+                },
             );
         } catch (error) {
             log.error("Failed to save logo image", error);
@@ -60,14 +57,12 @@ function LogoContextMenu({
             >
                 <Image
                     alt="App Icon"
-                    className="block h-auto select-none"
+                    className="block h-auto w-[180px] select-none"
                     draggable={false}
                     fetchPriority="high"
-                    height={50}
                     loading="eager"
                     priority
                     src={src}
-                    width={200}
                 />
             </ContextMenuTrigger>
             <ContextMenuPopup className="min-w-44">
@@ -80,4 +75,4 @@ function LogoContextMenu({
     );
 }
 
-export { LogoContextMenu };
+export { BrandLogo };

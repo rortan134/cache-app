@@ -1,15 +1,5 @@
 "use client";
 
-import {
-    createContext,
-    useContext,
-    useEffect,
-    useId,
-    useMemo,
-    useState,
-} from "react";
-import type { ReactElement, ReactNode } from "react";
-import { AlertCircleIcon, ExternalLinkIcon, GlobeIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
     Drawer,
@@ -24,6 +14,9 @@ import {
 } from "@/components/ui/drawer";
 import { Spinner } from "@/components/ui/spinner";
 import { cn } from "@/lib/utils";
+import { AlertCircleIcon, ExternalLinkIcon, GlobeIcon } from "lucide-react";
+import type { ReactElement, ReactNode } from "react";
+import { createContext, useContext, useEffect, useId, useState } from "react";
 
 type PreviewDrawerPosition = "bottom" | "left" | "right" | "top";
 type PreviewDrawerStatus = "blocked" | "loaded" | "loading";
@@ -37,7 +30,7 @@ interface PreviewDrawerContextValue {
 }
 
 const PreviewDrawerContext = createContext<PreviewDrawerContextValue | null>(
-    null
+    null,
 );
 
 function usePreviewDrawerContext(): PreviewDrawerContextValue {
@@ -45,7 +38,7 @@ function usePreviewDrawerContext(): PreviewDrawerContextValue {
 
     if (!value) {
         throw new Error(
-            "PreviewDrawer components must be used inside <PreviewDrawer>."
+            "PreviewDrawer components must be used inside <PreviewDrawer>.",
         );
     }
 
@@ -87,22 +80,18 @@ export function PreviewDrawer({
         if (!isControlled) {
             setUncontrolledOpen(nextOpen);
         }
-
         onOpenChange?.(nextOpen, eventDetails);
     };
 
-    const value = useMemo(
-        () => ({
-            description,
-            open: resolvedOpen ?? false,
-            title,
-            url,
-        }),
-        [description, resolvedOpen, title, url]
-    );
-
     return (
-        <PreviewDrawerContext.Provider value={value}>
+        <PreviewDrawerContext.Provider
+            value={{
+                description,
+                open: resolvedOpen ?? false,
+                title,
+                url,
+            }}
+        >
             <Drawer modal onOpenChange={handleOpenChange} open={resolvedOpen}>
                 {children}
             </Drawer>
@@ -111,7 +100,7 @@ export function PreviewDrawer({
 }
 
 export function PreviewDrawerTrigger(
-    props: React.ComponentProps<typeof DrawerTrigger>
+    props: React.ComponentProps<typeof DrawerTrigger>,
 ): ReactElement {
     return <DrawerTrigger {...props} />;
 }
@@ -154,7 +143,7 @@ export function PreviewDrawerContent({
 
         const timeoutId = window.setTimeout(() => {
             setStatus((currentStatus) =>
-                currentStatus === "loading" ? "blocked" : currentStatus
+                currentStatus === "loading" ? "blocked" : currentStatus,
             );
         }, timeoutMs);
 
@@ -171,7 +160,7 @@ export function PreviewDrawerContent({
                     "w-full sm:mx-auto sm:max-w-[min(96vw,78rem)]",
                 position === "right" &&
                     "w-[min(96vw,68rem)] max-w-none sm:w-[min(92vw,72rem)]",
-                popupClassName
+                popupClassName,
             )}
             position={position}
             showBar={position === "bottom"}
@@ -240,7 +229,7 @@ export function PreviewDrawerContent({
                     <iframe
                         className={cn(
                             "size-full border-0 bg-background",
-                            status === "blocked" && "hidden"
+                            status === "blocked" && "hidden",
                         )}
                         key={`${iframeKey}-${open ? "open" : "closed"}-${url}`}
                         onError={() => {
@@ -258,7 +247,7 @@ export function PreviewDrawerContent({
             <DrawerFooter
                 className={cn(
                     "items-stretch gap-2 border-border/70 border-t sm:items-center sm:justify-between",
-                    footerClassName
+                    footerClassName,
                 )}
             >
                 <Button

@@ -5,7 +5,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Group } from "@/components/ui/group";
-import { CrownFilledIcon } from "@/components/ui/integration-icons";
+import { CrownFilledIcon } from "@/components/ui/icons";
 import { Popover, PopoverPopup, PopoverTrigger } from "@/components/ui/popover";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -333,7 +333,7 @@ export function UserMenuContent() {
                         <Button className="justify-start" variant="ghost" />
                     }
                 >
-                    <T>Log out</T>
+                    <T context="User Log out/Sign out of the app">Log out</T>
                 </LogoutButton>
             </MenuSection>
         </>

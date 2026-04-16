@@ -31,7 +31,7 @@ export async function GET(request: Request): Promise<Response> {
             {
                 headers: {
                     Accept: "text/html,application/xhtml+xml",
-                    "User-Agent": "CacheBot/1.0 (+https://cache.day)",
+                    "User-Agent": "CacheBot/1.0 (+https://cachd.app)",
                 },
                 redirect: "follow",
             },
@@ -67,7 +67,7 @@ export async function GET(request: Request): Promise<Response> {
                 headers: {
                     Accept: "image/*",
                     Referer: pageUrl,
-                    "User-Agent": "CacheBot/1.0 (+https://cache.day)",
+                    "User-Agent": "CacheBot/1.0 (+https://cachd.app)",
                 },
                 redirect: "follow",
             },

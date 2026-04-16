@@ -1,4 +1,3 @@
-const NOTE_TITLE_FALLBACK = "Untitled note";
 const NOTE_ALLOWED_TAGS = new Set([
     "br",
     "div",
@@ -88,23 +87,6 @@ export function extractNoteText(input: string): string {
     )
         .replaceAll(/\u00a0/g, " ")
         .trim();
-}
-
-export function normalizeNoteTitle(
-    input: string,
-    fallbackSource?: string
-): string {
-    const trimmedTitle = input.trim().replaceAll(/\s+/g, " ");
-    if (trimmedTitle.length > 0) {
-        return trimmedTitle;
-    }
-
-    const fallbackTitle = fallbackSource
-        ?.split("\n")
-        .map((line) => line.trim())
-        .find((line) => line.length > 0);
-
-    return fallbackTitle?.slice(0, 120) || NOTE_TITLE_FALLBACK;
 }
 
 export function getNoteExcerpt(

@@ -4,10 +4,10 @@ import {
     SignedInOnly,
     SignedOutOnly,
 } from "@/components/auth/session";
+import { BrandLogo } from "@/components/ui/brand-logo";
 import { Button } from "@/components/ui/button";
 import { Footer } from "@/components/ui/footer";
 import { GradientWaveText } from "@/components/ui/gradient-wave-text";
-import { LogoContextMenu } from "@/components/ui/logo-context-menu";
 import { PageShell } from "@/components/ui/page-shell";
 import { Sidebar, SidebarFooter, SidebarHeader } from "@/components/ui/sidebar";
 import { buildLocaleAlternates } from "@/lib/alternates";
@@ -29,7 +29,7 @@ export async function generateMetadata({
         description: gtPublicString(
             locale,
             "manifesto.metadata.description",
-            "The scroll becomes a library. Meaning isn't in the feed. It's in what you choose to keep."
+            "The scroll becomes a library. Meaning isn't in the feed. It's in what you choose to keep.",
         ),
         title: gtPublicString(locale, "manifesto.metadata.title", "Manifesto"),
     };
@@ -41,7 +41,7 @@ export default function Manifesto() {
             <div className="flex flex-1 flex-col gap-8 lg:flex-row lg:justify-between">
                 <Sidebar>
                     <SidebarHeader>
-                        <LogoContextMenu href="/library" src={LogoIconImage} />
+                        <BrandLogo href="/library" src={LogoIconImage} />
                         <div className="flex flex-col gap-3">
                             <T context="Manifesto title">
                                 <h1 className="font-medium text-[3rem] leading-[98%] md:text-[4rem] md:tracking-[-0.21875rem]">

@@ -1,6 +1,6 @@
 import { NamedError } from "@/lib/error";
 import * as z from "zod";
-import type { IntegrationId } from "./supports";
+import type { IntegrationId } from "./support";
 
 const IntegrationErrorData = z.object({
     cause: z.unknown().optional(),
@@ -14,7 +14,7 @@ const IntegrationErrorData = z.object({
  */
 export const IntegrationConnectionError = NamedError.create(
     "IntegrationConnectionError",
-    IntegrationErrorData
+    IntegrationErrorData,
 );
 
 /**
@@ -22,7 +22,7 @@ export const IntegrationConnectionError = NamedError.create(
  */
 export const IntegrationAuthError = NamedError.create(
     "IntegrationAuthError",
-    IntegrationErrorData
+    IntegrationErrorData,
 );
 
 /**
@@ -32,7 +32,7 @@ export const IntegrationApiError = NamedError.create(
     "IntegrationApiError",
     IntegrationErrorData.extend({
         status: z.number().optional(),
-    })
+    }),
 );
 
 /**
@@ -40,7 +40,7 @@ export const IntegrationApiError = NamedError.create(
  */
 export const IntegrationNotConnectedError = NamedError.create(
     "IntegrationNotConnectedError",
-    IntegrationErrorData
+    IntegrationErrorData,
 );
 
 /**
@@ -48,7 +48,7 @@ export const IntegrationNotConnectedError = NamedError.create(
  */
 export const IntegrationSessionExpiredError = NamedError.create(
     "IntegrationSessionExpiredError",
-    IntegrationErrorData
+    IntegrationErrorData,
 );
 
 /**
@@ -56,7 +56,7 @@ export const IntegrationSessionExpiredError = NamedError.create(
  */
 export const IntegrationAccessDeniedError = NamedError.create(
     "IntegrationAccessDeniedError",
-    IntegrationErrorData
+    IntegrationErrorData,
 );
 
 /**
@@ -66,7 +66,7 @@ export const IntegrationRateLimitError = NamedError.create(
     "IntegrationRateLimitError",
     IntegrationErrorData.extend({
         retryAfter: z.number().optional(),
-    })
+    }),
 );
 
 /**
@@ -74,7 +74,7 @@ export const IntegrationRateLimitError = NamedError.create(
  */
 export const IntegrationInternalError = NamedError.create(
     "IntegrationInternalError",
-    IntegrationErrorData
+    IntegrationErrorData,
 );
 
 /**
@@ -84,7 +84,7 @@ export const IntegrationCapabilityMissingError = NamedError.create(
     "IntegrationCapabilityMissingError",
     IntegrationErrorData.extend({
         capability: z.string(),
-    })
+    }),
 );
 
 /**
@@ -92,7 +92,7 @@ export const IntegrationCapabilityMissingError = NamedError.create(
  */
 export const IntegrationProviderDownError = NamedError.create(
     "IntegrationProviderDownError",
-    IntegrationErrorData
+    IntegrationErrorData,
 );
 
 /**
@@ -102,5 +102,5 @@ export const IntegrationAccountAlreadyConnectedError = NamedError.create(
     "IntegrationAccountAlreadyConnectedError",
     IntegrationErrorData.extend({
         accountId: z.string(),
-    })
+    }),
 );

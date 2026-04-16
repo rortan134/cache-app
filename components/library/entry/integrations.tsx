@@ -2,24 +2,77 @@
 
 import { GooglePhotosImportButton } from "@/components/library/entry/google-photos-import-button";
 import { Button } from "@/components/ui/button";
+import {
+    Collapsible,
+    CollapsiblePanel,
+    CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import { useIsExtensionInstalled } from "@/hooks/use-extension-installed";
 import { authClient } from "@/lib/auth/client";
 import { CACHE_EXTENSION_DOWNLOAD_URL } from "@/lib/constants";
-import type { IntegrationId } from "@/lib/integrations/supports";
-import { RefreshCw } from "lucide-react";
+import { type IntegrationId } from "@/lib/integrations/support";
+import { Info, RefreshCw } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useCallback, useState } from "react";
+import * as React from "react";
 
-interface SidebarIntegrationActionProps {
-    connected: boolean;
-    extensionInstalled?: boolean;
+export function Integrations(props: React.ComponentProps<typeof Collapsible>) {
+    return <Collapsible defaultOpen {...props} />;
+}
+
+export function IntegrationsTrigger(
+    props: React.ComponentProps<typeof CollapsibleTrigger>,
+) {
+    return <CollapsibleTrigger {...props} />;
+}
+
+export function IntegrationsPanel(
+    props: React.ComponentProps<typeof CollapsiblePanel>,
+) {
+    return <CollapsiblePanel {...props} />;
+}
+
+export function IntegrationsNotice() {
+    const [isConnectAccountNoteOpen, setIsConnectAccountNoteOpen] =
+        React.useState(true);
+
+    return (
+        <Collapsible
+            onOpenChange={setIsConnectAccountNoteOpen}
+            open={isConnectAccountNoteOpen}
+        >
+            <CollapsiblePanel className="mt-1.5">
+                <div className="flex gap-1.5">
+                    <Info className="mt-0.5 inline-block size-3.5 shrink-0" />
+                    <p className="text-[11px] text-muted-foreground leading-tight">
+                        Please only connect accounts you trust. Cache can access
+                        what you choose to save with connected apps. You can
+                        always change your mind.
+                        <Button
+                            className="h-fit! leading-tight sm:text-[11px]"
+                            onClick={() => setIsConnectAccountNoteOpen(false)}
+                            size="xs"
+                            type="button"
+                            variant="link"
+                        >
+                            Dismiss
+                        </Button>
+                    </p>
+                </div>
+            </CollapsiblePanel>
+        </Collapsible>
+    );
+}
+
+interface IntegrationActionProps {
+    isConnected: boolean;
     id: IntegrationId;
-    parked?: boolean;
 }
 
 type ExtensionIntegrationId = Extract<
     IntegrationId,
     "chrome" | "instagram" | "tiktok" | "youtube"
 >;
+
 type OAuthIntegrationId = Extract<
     IntegrationId,
     "google-photos" | "pinterest" | "x"
@@ -87,39 +140,39 @@ function extensionButtonLabel(extensionInstalled: boolean) {
     return "Get Extension";
 }
 
-export function SidebarIntegrationAction({
-    connected,
-    extensionInstalled = false,
-    id,
-    parked = false,
-}: SidebarIntegrationActionProps) {
+export function IntegrationItem(props: React.ComponentProps<"div">) {
+    return (
+        <div
+            className="flex items-center gap-2.5 first:mt-3.5 pt-1"
+            {...props}
+        />
+    );
+}
+
+export function IntegrationAction({ isConnected, id }: IntegrationActionProps) {
     const router = useRouter();
-    const [errorMessage, setErrorMessage] = useState<string | null>(null);
-    const [isConnecting, setIsConnecting] = useState(false);
-    const [isImportingX, setIsImportingX] = useState(false);
-    const [isImportingPinterest, setIsImportingPinterest] = useState(false);
-    const [successMessage, setSuccessMessage] = useState<string | null>(null);
+    const isExtensionInstalled = useIsExtensionInstalled();
+    const [isConnecting, setIsConnecting] = React.useState(false);
+    const [isImportingX, setIsImportingX] = React.useState(false);
+    const [isImportingPinterest, setIsImportingPinterest] =
+        React.useState(false);
     const isGooglePhotosIntegration = id === "google-photos";
     const isPinterestIntegration = id === "pinterest";
     const isXIntegration = id === "x";
 
-    const handleExtensionClick = useCallback(() => {
+    const handleExtensionClick = () => {
         if (!isExtensionIntegration(id)) {
             return;
         }
 
-        setErrorMessage(null);
-        setSuccessMessage(null);
         openExternal(
-            extensionInstalled
+            isExtensionInstalled
                 ? EXTENSION_OPEN_URL[id]
                 : CACHE_EXTENSION_DOWNLOAD_URL,
         );
-    }, [extensionInstalled, id]);
+    };
 
-    const handleGoogleConnect = useCallback(async () => {
-        setErrorMessage(null);
-        setSuccessMessage(null);
+    const handleGoogleConnect = async () => {
         setIsConnecting(true);
 
         try {
@@ -130,29 +183,18 @@ export function SidebarIntegrationAction({
             });
 
             if (result.error) {
-                setErrorMessage(
-                    result.error.message ??
-                        "Could not start the Google connection flow.",
-                );
             }
         } catch (error) {
-            setErrorMessage(
-                error instanceof Error
-                    ? error.message
-                    : "Could not start the Google connection flow.",
-            );
         } finally {
             setIsConnecting(false);
         }
-    }, []);
+    };
 
-    const handleGenericOAuthConnect = useCallback(async () => {
+    const handleGenericOAuthConnect = async () => {
         if (!isOAuthIntegration(id) || id === "google-photos") {
             return;
         }
 
-        setErrorMessage(null);
-        setSuccessMessage(null);
         setIsConnecting(true);
 
         try {
@@ -168,25 +210,17 @@ export function SidebarIntegrationAction({
 
             const redirectUrl = readRedirectUrl(response);
             if (!redirectUrl) {
-                setErrorMessage("Could not start the account connection flow.");
                 return;
             }
 
             window.location.assign(redirectUrl);
         } catch (error) {
-            setErrorMessage(
-                error instanceof Error
-                    ? error.message
-                    : "Could not start the account connection flow.",
-            );
         } finally {
             setIsConnecting(false);
         }
-    }, [id]);
+    };
 
-    const handlePinterestImport = useCallback(async () => {
-        setErrorMessage(null);
-        setSuccessMessage(null);
+    const handlePinterestImport = async () => {
         setIsImportingPinterest(true);
 
         try {
@@ -209,24 +243,14 @@ export function SidebarIntegrationAction({
                 );
             }
 
-            setSuccessMessage(
-                `Imported ${payload.importedCount} pin${payload.importedCount === 1 ? "" : "s"} from ${payload.boardsCount} board${payload.boardsCount === 1 ? "" : "s"}.`,
-            );
             router.refresh();
         } catch (error) {
-            setErrorMessage(
-                error instanceof Error
-                    ? error.message
-                    : "Could not import pins from Pinterest right now.",
-            );
         } finally {
             setIsImportingPinterest(false);
         }
-    }, [router]);
+    };
 
-    const handleXImport = useCallback(async () => {
-        setErrorMessage(null);
-        setSuccessMessage(null);
+    const handleXImport = async () => {
         setIsImportingX(true);
 
         try {
@@ -249,23 +273,15 @@ export function SidebarIntegrationAction({
                 );
             }
 
-            setSuccessMessage(
-                `Synced ${payload.importedCount + payload.updatedCount} X bookmark${payload.importedCount + payload.updatedCount === 1 ? "" : "s"}${payload.prunedCount > 0 ? ` and pruned ${payload.prunedCount}` : ""}.`,
-            );
             router.refresh();
         } catch (error) {
-            setErrorMessage(
-                error instanceof Error
-                    ? error.message
-                    : "Could not import bookmarks from X right now.",
-            );
         } finally {
             setIsImportingX(false);
         }
-    }, [router]);
+    };
 
     if (isExtensionIntegration(id)) {
-        const extensionLabel = extensionButtonLabel(extensionInstalled);
+        const extensionLabel = extensionButtonLabel(isExtensionInstalled);
 
         return (
             <div className="ml-auto flex flex-col items-start gap-1">
@@ -283,68 +299,45 @@ export function SidebarIntegrationAction({
         );
     }
 
-    const connectLabel = connected ? "Reconnect" : "Connect";
-
     return (
-        <div className="ml-auto flex flex-col items-start gap-1">
-            <div className="flex flex-wrap items-center gap-2">
-                <Button
-                    disabled={parked}
-                    loading={isConnecting}
-                    onClick={
-                        isGooglePhotosIntegration
-                            ? handleGoogleConnect
-                            : handleGenericOAuthConnect
-                    }
-                    size="sm"
-                    type="button"
-                    variant="ghost"
-                >
-                    {parked ? "Soon" : connectLabel}
-                </Button>
-                {isGooglePhotosIntegration && connected ? (
-                    <GooglePhotosImportButton variant="outline" />
-                ) : null}
-                {isXIntegration && connected ? (
-                    <Button
-                        loading={isImportingX}
-                        onClick={handleXImport}
-                        size="icon"
-                        type="button"
-                        variant="outline"
-                    >
-                        <RefreshCw className="size-4" />
-                    </Button>
-                ) : null}
-                {isPinterestIntegration && connected ? (
-                    <Button
-                        loading={isImportingPinterest}
-                        onClick={handlePinterestImport}
-                        size="icon"
-                        type="button"
-                        variant="outline"
-                    >
-                        <RefreshCw className="size-4" />
-                    </Button>
-                ) : null}
-            </div>
-            {errorMessage ? (
-                <p
-                    aria-live="polite"
-                    className="text-destructive text-xs underline decoration-dotted"
-                    role="alert"
-                >
-                    {errorMessage}
-                </p>
+        <div className="ml-auto flex items-center gap-1">
+            <Button
+                loading={isConnecting}
+                onClick={
+                    isGooglePhotosIntegration
+                        ? handleGoogleConnect
+                        : handleGenericOAuthConnect
+                }
+                size="sm"
+                type="button"
+                variant="ghost"
+            >
+                {isConnected ? "Reconnect" : "Connect"}
+            </Button>
+            {isGooglePhotosIntegration && isConnected ? (
+                <GooglePhotosImportButton variant="outline" />
             ) : null}
-            {successMessage ? (
-                <p
-                    aria-live="polite"
-                    className="text-emerald-600 text-xs"
-                    role="status"
+            {isXIntegration && isConnected ? (
+                <Button
+                    loading={isImportingX}
+                    onClick={handleXImport}
+                    size="icon"
+                    type="button"
+                    variant="outline"
                 >
-                    {successMessage}
-                </p>
+                    <RefreshCw className="size-4" />
+                </Button>
+            ) : null}
+            {isPinterestIntegration && isConnected ? (
+                <Button
+                    loading={isImportingPinterest}
+                    onClick={handlePinterestImport}
+                    size="icon"
+                    type="button"
+                    variant="outline"
+                >
+                    <RefreshCw className="size-4" />
+                </Button>
             ) : null}
         </div>
     );

@@ -10,10 +10,9 @@ export const serverEnv = createEnv({
         BETTER_AUTH_SECRET: z.string(), // Secret key for Better Auth JWT signing
         BETTER_AUTH_URL: z.url(), // Base URL for Better Auth service
 
-        DATABASE_URL: z.string().startsWith("postgres://"), // Primary database connection string
+        DATABASE_URL: z.string().startsWith("postgres://"),
 
-        GEMINI_API_KEY: z.string().optional(),
-        GOOGLE_API_KEY: z.string().optional(),
+        GEMINI_API_KEY: z.string(),
         GOOGLE_CLIENT_ID: z.string(),
         GOOGLE_CLIENT_SECRET: z.string(),
 
@@ -22,7 +21,6 @@ export const serverEnv = createEnv({
 
         PINTEREST_CLIENT_ID: z.string().optional(),
         PINTEREST_CLIENT_SECRET: z.string().optional(),
-        SMART_COLLECTIONS_GEMINI_MODEL: z.string().optional(),
 
         STRIPE_PRICE_ID_MONTHLY: z.string().startsWith("price_"), // Stripe price ID for monthly subscription
         STRIPE_PRICE_ID_YEARLY: z.string().startsWith("price_"), // Stripe price ID for yearly subscription

@@ -4,12 +4,14 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
     Drawer,
+    DrawerClose,
     DrawerHeader,
     DrawerPanel,
     DrawerPopup,
     DrawerTitle,
 } from "@/components/ui/drawer";
-import { Input } from "@/components/ui/input";
+import { Group } from "@/components/ui/group";
+import { GoogleDocsIcon, NotionIcon } from "@/components/ui/icons";
 import type { LibraryItemWithCollections } from "@/lib/library/types";
 import { cn } from "@/lib/utils";
 import AppIconSmall from "@/public/cache-icon-small.png";
@@ -18,8 +20,10 @@ import {
     ChevronRight,
     HighlighterIcon,
     ItalicIcon,
+    Maximize2,
     StrikethroughIcon,
     UnderlineIcon,
+    XIcon,
 } from "lucide-react";
 import Image from "next/image";
 import { useEffect, useRef, useState, type RefObject } from "react";
@@ -29,7 +33,6 @@ const NOTE_HIGHLIGHT_COLOR = "#fef08a";
 
 interface NoteDraft {
     readonly contentHtml: string;
-    readonly title: string;
 }
 
 interface Props {
@@ -63,15 +66,13 @@ function normalizeNoteHtml(html: string | null | undefined): string {
 function noteDraftFromItem(note: LibraryItemWithCollections | null): NoteDraft {
     return {
         contentHtml: normalizeNoteHtml(note?.noteContentHtml),
-        title: note?.caption ?? "",
     };
 }
 
 function noteDraftsMatch(left: NoteDraft, right: NoteDraft): boolean {
     return (
-        left.title === right.title &&
         normalizeNoteHtml(left.contentHtml) ===
-            normalizeNoteHtml(right.contentHtml)
+        normalizeNoteHtml(right.contentHtml)
     );
 }
 
@@ -97,10 +98,7 @@ function noteDraftShouldSave(
         return true;
     }
 
-    return (
-        currentDraft.title.trim().length > 0 ||
-        noteHtmlHasMeaningfulContent(currentDraft.contentHtml)
-    );
+    return noteHtmlHasMeaningfulContent(currentDraft.contentHtml);
 }
 
 function useRichTextFormats(
@@ -157,7 +155,7 @@ function useRichTextFormats(
 
 function NoteDrawerHeader({ title }: { readonly title: string }) {
     return (
-        <DrawerHeader allowSelection>
+        <DrawerHeader allowSelection className="flex-row justify-between">
             <div className="flex items-center gap-1">
                 <Badge size="lg" variant="outline">
                     <Image alt="" height={12} src={AppIconSmall} width={12} />
@@ -168,29 +166,37 @@ function NoteDrawerHeader({ title }: { readonly title: string }) {
                     {title}
                 </DrawerTitle>
             </div>
+            <div className="flex items-center gap-1.5 justify-end">
+                <Button size="xs" className="rounded-full" variant="outline">
+                    <GoogleDocsIcon className="size-3.5 inline-block" />
+                    Open in Google Docs
+                </Button>
+                <Button size="xs" className="rounded-full" variant="outline">
+                    <NotionIcon className="size-3.5 inline-block" />
+                    &nbsp;Open in Notion
+                </Button>
+                <Group aria-label="Panel actions">
+                    <Button
+                        size="icon-sm"
+                        variant="secondary"
+                        className="rounded-full"
+                    >
+                        <Maximize2 className="size-3.5 inline-block" />
+                    </Button>
+                    <DrawerClose
+                        render={
+                            <Button
+                                size="icon-sm"
+                                variant="secondary"
+                                className="rounded-full"
+                            >
+                                <XIcon className="size-3.5 inline-block" />
+                            </Button>
+                        }
+                    />
+                </Group>
+            </div>
         </DrawerHeader>
-    );
-}
-
-function NoteTitleField({
-    onChange,
-    value,
-}: {
-    readonly onChange: (value: string) => void;
-    readonly value: string;
-}) {
-    return (
-        <Input
-            className="-mx-[calc(--spacing(3)-1px)] font-semibold text-2xl tracking-tight"
-            maxLength={160}
-            onChange={(event) => {
-                onChange(event.currentTarget.value);
-            }}
-            placeholder="Untitled"
-            size="lg"
-            unstyled
-            value={value}
-        />
     );
 }
 
@@ -304,7 +310,7 @@ function NoteEditor({
     const isEmpty = contentHtml === NOTE_EMPTY_HTML;
 
     return (
-        <div className="relative flex min-h-[24rem] flex-1">
+        <div className="relative flex min-h-96 flex-1">
             <div
                 className={cn(
                     "prose prose-stone max-w-none flex-1 overflow-y-auto text-[15px] leading-7 outline-none",
@@ -330,23 +336,18 @@ function NoteDrawerContent({
     contentHtml,
     editorRef,
     onContentHtmlChange,
-    onTitleChange,
     open,
-    title,
 }: {
     readonly contentHtml: string;
     readonly editorRef: RefObject<HTMLDivElement | null>;
     readonly onContentHtmlChange: (contentHtml: string) => void;
-    readonly onTitleChange: (title: string) => void;
     readonly open: boolean;
-    readonly title: string;
 }) {
     return (
         <DrawerPanel
             allowSelection
             className="flex min-h-0 flex-1 flex-col gap-4"
         >
-            <NoteTitleField onChange={onTitleChange} value={title} />
             <NoteFormattingToolbar
                 editorRef={editorRef}
                 onContentHtmlChange={onContentHtmlChange}
@@ -392,13 +393,6 @@ export function LibraryNoteDrawer({
         }));
     };
 
-    const handleTitleChange = (nextTitle: string) => {
-        setDraft((currentDraft) => ({
-            ...currentDraft,
-            title: nextTitle,
-        }));
-    };
-
     const handleOpenChange = async (nextOpen: boolean) => {
         if (nextOpen) {
             onOpenChange(true);
@@ -411,7 +405,6 @@ export function LibraryNoteDrawer({
 
         const currentDraft = {
             contentHtml: editorRef.current?.innerHTML ?? draft.contentHtml,
-            title: draft.title,
         } satisfies NoteDraft;
 
         if (!noteDraftShouldSave(currentDraft, initialDraftRef.current, note)) {
@@ -434,15 +427,13 @@ export function LibraryNoteDrawer({
 
     return (
         <Drawer onOpenChange={handleOpenChange} open={open} position="right">
-            <DrawerPopup className="max-w-2xl" showCloseButton variant="inset">
+            <DrawerPopup className="max-w-2xl" variant="straight">
                 <NoteDrawerHeader title={note ? "Edit note" : "New entry"} />
                 <NoteDrawerContent
                     contentHtml={draft.contentHtml}
                     editorRef={editorRef}
                     onContentHtmlChange={handleContentHtmlChange}
-                    onTitleChange={handleTitleChange}
                     open={open}
-                    title={draft.title}
                 />
             </DrawerPopup>
         </Drawer>

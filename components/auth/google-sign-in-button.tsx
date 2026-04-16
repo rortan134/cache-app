@@ -1,7 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { GoogleMarkIcon } from "@/components/ui/integration-icons";
+import { GoogleMarkIcon } from "@/components/ui/icons";
 import { authClient } from "@/lib/auth/client";
 import { useCallback, useState, useTransition } from "react";
 
@@ -25,14 +25,14 @@ function GoogleSignInButton({
                 if (result.error) {
                     setErrorMessage(
                         result.error.message ??
-                            "Could not start Google sign-in."
+                            "Could not start Google sign-in.",
                     );
                 }
             } catch (err) {
                 setErrorMessage(
                     err instanceof Error
                         ? err.message
-                        : "Could not start Google sign-in."
+                        : "Could not start Google sign-in.",
                 );
             }
         });

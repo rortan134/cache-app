@@ -7,11 +7,11 @@ function asRecord(value: unknown): Record<string, unknown> | null {
         : null;
 }
 
-function isExtensionInstalled() {
+function getIsExtensionInstalled() {
     return document.documentElement.dataset.cacheExtensionInstalled === "true";
 }
 
-function useExtensionInstalled() {
+export function useIsExtensionInstalled() {
     const [extensionInstalled, setExtensionInstalled] = useState(false);
 
     useEffect(() => {
@@ -30,17 +30,14 @@ function useExtensionInstalled() {
             }
         };
 
-        setExtensionInstalled(isExtensionInstalled());
-        window.addEventListener(
-            CACHE_EXTENSION_READY_EVENT,
-            handleReady as EventListener
-        );
+        setExtensionInstalled(getIsExtensionInstalled());
+        window.addEventListener(CACHE_EXTENSION_READY_EVENT, handleReady);
         window.addEventListener("message", handleMessage);
 
         return () => {
             window.removeEventListener(
                 CACHE_EXTENSION_READY_EVENT,
-                handleReady as EventListener
+                handleReady,
             );
             window.removeEventListener("message", handleMessage);
         };
@@ -48,5 +45,3 @@ function useExtensionInstalled() {
 
     return extensionInstalled;
 }
-
-export { useExtensionInstalled };

@@ -17,14 +17,16 @@ import type * as React from "react";
 export function Command({
     autoHighlight = "always",
     keepHighlight = true,
+    open = true,
+    inline = false,
     ...props
 }: React.ComponentProps<typeof Autocomplete>): React.ReactElement {
     return (
         <Autocomplete
             autoHighlight={autoHighlight}
-            inline
+            inline={inline}
             keepHighlight={keepHighlight}
-            open
+            open={open}
             {...props}
         />
     );
@@ -32,58 +34,16 @@ export function Command({
 
 export function CommandInput({
     className,
-    placeholder = undefined,
-    startAddon,
-    trailing,
     ...props
-}: React.ComponentProps<typeof AutocompleteInput> & {
-    /** Renders after the field (e.g. chips + clear). Enables a horizontal flex layout. */
-    readonly trailing?: React.ReactNode;
-}): React.ReactElement {
-    const field = (
+}: React.ComponentProps<typeof AutocompleteInput>): React.ReactElement {
+    return (
         <AutocompleteInput
             className={cn(
-                "border-transparent! rounded-none bg-transparent! outline-none ring-0 shadow-none before:hidden has-focus-visible:ring-0 has-focus-visible:ring-offset-0",
+                "border-transparent! min-h-11 outline-none ring-0 shadow-none before:hidden has-focus-visible:ring-0 has-focus-visible:ring-offset-0",
                 className,
             )}
-            placeholder={placeholder}
-            size="lg"
-            startAddon={startAddon}
             {...props}
         />
-    );
-
-    if (trailing) {
-        return (
-            <div
-                className={cn(
-                    "flex min-w-0 items-center gap-1.5",
-                    "min-h-11 w-full max-w-md rounded-full bg-muted px-2 py-1.5 ring-1 ring-border/40 shadow-[0_0_0_rgba(15,23,42,0)] transition-[box-shadow,background-color] has-focus-within:bg-background/96 has-focus-within:shadow-[0_10px_30px_rgba(15,23,42,0.10),0_1px_0_rgba(255,255,255,0.24)_inset] dark:ring-border/50 dark:shadow-[0_0_0_rgba(0,0,0,0)] dark:has-focus-within:shadow-[0_12px_32px_rgba(0,0,0,0.28),0_1px_0_rgba(255,255,255,0.05)_inset]",
-                )}
-            >
-                <div className="min-w-0 flex-1" data-library-command-field="">
-                    {field}
-                </div>
-                <div
-                    className="flex shrink-0 flex-wrap items-center justify-end gap-1"
-                    data-library-palette-trailing=""
-                >
-                    {trailing}
-                </div>
-            </div>
-        );
-    }
-
-    return (
-        <div
-            className={cn(
-                "px-2.5 py-1.5",
-                "min-h-11 w-full max-w-md rounded-full bg-muted px-2 py-1.5 ring-1 ring-border/40 shadow-[0_0_0_rgba(15,23,42,0)] transition-[box-shadow,background-color] has-focus-within:bg-background/96 has-focus-within:shadow-[0_10px_30px_rgba(15,23,42,0.10),0_1px_0_rgba(255,255,255,0.24)_inset] dark:ring-border/50 dark:shadow-[0_0_0_rgba(0,0,0,0)] dark:has-focus-within:shadow-[0_12px_32px_rgba(0,0,0,0.28),0_1px_0_rgba(255,255,255,0.05)_inset]",
-            )}
-            data-library-command-field=""
-        >
-            {field}
-        </div>
     );
 }
 
@@ -115,22 +75,12 @@ export function CommandEmpty({
 
 export function CommandPanel({
     className,
-    unstyled = false,
     ...props
-}: React.ComponentProps<"div"> & {
-    /**
-     * When true, skips popover shell (border, shadow, bg-popover) for inline
-     * page-embedded command fields.
-     */
-    readonly unstyled?: boolean;
-}): React.ReactElement {
+}: React.ComponentProps<"div">): React.ReactElement {
     return (
         <div
             className={cn(
-                !unstyled &&
-                    "relative -mx-px not-has-[+[data-slot=command-footer]]:-mb-px min-h-0 rounded-t-xl not-has-[+[data-slot=command-footer]]:rounded-b-2xl border border-b-0 bg-popover bg-clip-padding shadow-xs/5 [clip-path:inset(0_1px)] not-has-[+[data-slot=command-footer]]:[clip-path:inset(0_1px_1px_1px_round_0_0_calc(var(--radius-2xl)-1px)_calc(var(--radius-2xl)-1px))] before:pointer-events-none before:absolute before:inset-0 before:rounded-t-[calc(var(--radius-xl)-1px)] **:data-[slot=scroll-area-scrollbar]:mt-2",
-                unstyled &&
-                    "sticky top-3 z-20 max-w-md min-h-0 w-full border-0 bg-transparent p-0 shadow-none before:hidden",
+                "sticky top-3 -mx-px not-has-[+[data-slot=command-footer]]:-mb-px z-20 max-w-md w-full min-h-0",
                 className,
             )}
             {...props}
@@ -207,7 +157,7 @@ export function CommandFooter({
     return (
         <div
             className={cn(
-                "flex items-center justify-between gap-2 rounded-b-[calc(var(--radius-2xl)-1px)] border-t px-5 py-3 text-muted-foreground text-xs",
+                "flex items-center justify-end gap-3 rounded-b-[calc(var(--radius-2xl)-1px)] border-t border-border/50 bg-muted/80 px-4 py-2 text-foreground text-xs",
                 className,
             )}
             data-slot="command-footer"

@@ -84,7 +84,7 @@ model LibraryItem {
     sourceDeviceId   String?
     sourceDeviceName String?
     url              String
-    caption          String?
+    caption          String? // Non-note item caption/label. Notes use noteContentHtml/text only.
     noteContentHtml  String?
     noteContentText  String?
     thumbnailUrl     String?

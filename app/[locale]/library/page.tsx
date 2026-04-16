@@ -4,14 +4,30 @@ import {
     UserMenuFooter,
     UserMenuHeader,
 } from "@/components/auth/user-menu";
-import { IntegrationsList } from "@/components/library/entry/integrations-list";
-import { LibraryWorkspace } from "@/components/library/library-workspace";
-import { LogoContextMenu } from "@/components/ui/logo-context-menu";
+import { LibraryWorkspace } from "@/components/library/browser";
+import {
+    IntegrationAction,
+    IntegrationItem,
+    Integrations,
+    IntegrationsNotice,
+    IntegrationsPanel,
+    IntegrationsTrigger,
+} from "@/components/library/entry/integrations";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { BrandLogo } from "@/components/ui/brand-logo";
+import { ChevronDownFilledIcon } from "@/components/ui/icons";
 import { PageShell } from "@/components/ui/page-shell";
+import { RadialChart } from "@/components/ui/radial-chart";
 import { buildLocaleAlternates } from "@/lib/alternates";
 import { getServerSession } from "@/lib/auth/server";
 import { gtPublicString } from "@/lib/gt-public-json";
-import { INTEGRATIONS } from "@/lib/integrations/supports";
+import {
+    integrationSetupHeadingText,
+    integrationSetupProgressPercent,
+    partitionLibrarySyncLabels,
+    syncableLibrarySourceTotal,
+} from "@/lib/integrations/progress";
+import { INTEGRATIONS } from "@/lib/integrations/support";
 import { getLibraryItemsForUser } from "@/lib/library/get-library-items";
 import { prisma } from "@/prisma";
 import { LibraryItemSource } from "@/prisma/client/enums";
@@ -36,20 +52,13 @@ export async function generateMetadata({
     };
 }
 
-export default async function LibraryPage({
-    params,
-}: {
-    params: Promise<{ locale: string }>;
-}) {
-    const { locale } = await params;
+export default async function LibraryPage() {
     const session = await getServerSession();
     const userId = session?.user?.id;
 
     if (!userId) {
         return redirect("/");
     }
-
-    const isXParked = !(process.env.X_CLIENT_ID && process.env.X_CLIENT_SECRET);
 
     const [{ collections, items }, linkedAccounts] = await Promise.all([
         getLibraryItemsForUser(userId),
@@ -64,7 +73,7 @@ export default async function LibraryPage({
         }),
     ]);
 
-    const linkedProviderIds = new Set(
+    const providers = new Set(
         linkedAccounts.map((account) => account.providerId),
     );
 
@@ -72,10 +81,10 @@ export default async function LibraryPage({
         id: (typeof INTEGRATIONS)[number]["id"],
     ) => {
         if (id === "google-photos") {
-            return linkedProviderIds.has("google");
+            return providers.has("google");
         }
         if (id === "pinterest") {
-            return linkedProviderIds.has("pinterest");
+            return providers.has("pinterest");
         }
         if (id === "chrome") {
             return items.some(
@@ -83,7 +92,7 @@ export default async function LibraryPage({
             );
         }
         if (id === "x") {
-            return linkedProviderIds.has("x");
+            return providers.has("x");
         }
         if (id === "youtube") {
             return items.some(
@@ -93,16 +102,25 @@ export default async function LibraryPage({
         return false;
     };
 
-    const connectedIntegrationIDs = INTEGRATIONS.flatMap(({ id }) =>
+    const connectedIntegrationIds = INTEGRATIONS.flatMap(({ id }) =>
         isIntegrationConnected(id) ? [id] : [],
     );
-
-    const parkedIntegrationIds = INTEGRATIONS.flatMap(({ id }) => {
-        if (id === "x" && isXParked) {
-            return [id];
-        }
-        return [];
+    const syncable = syncableLibrarySourceTotal();
+    const { connectedLabels, missingLabels } = partitionLibrarySyncLabels(
+        items,
+        connectedIntegrationIds,
+    );
+    const connectedCount = connectedLabels.length;
+    const text = integrationSetupHeadingText({
+        connectedCount,
+        connectedLabels,
+        missingLabels,
+        syncable,
     });
+    const progressPercent = integrationSetupProgressPercent(
+        connectedCount,
+        syncable,
+    );
 
     return (
         <PageShell>
@@ -110,7 +128,6 @@ export default async function LibraryPage({
                 <LibraryWorkspace
                     initialCollections={collections}
                     initialItems={items}
-                    locale={locale}
                     sidebarBottom={
                         <UserMenu>
                             <UserMenuHeader />
@@ -120,17 +137,59 @@ export default async function LibraryPage({
                     }
                     sidebarHeader={
                         <>
-                            <LogoContextMenu
-                                href="/library"
-                                src={LogoIconImage}
-                            />
-                            <IntegrationsList
-                                items={items}
-                                parkedIntegrationIds={parkedIntegrationIds}
-                                serverConnectedIntegrationIds={
-                                    connectedIntegrationIDs
-                                }
-                            />
+                            <BrandLogo href="/library" src={LogoIconImage} />
+                            <Integrations>
+                                <IntegrationsTrigger className="flex select-none items-center gap-1.5 rounded-full bg-muted/94 px-3 py-2 text-left text-foreground hover:bg-input/50 active:bg-input/30">
+                                    <span
+                                        aria-hidden="true"
+                                        className="shrink-0 leading-none"
+                                    >
+                                        <RadialChart
+                                            size={36}
+                                            value={progressPercent}
+                                        />
+                                    </span>
+                                    <span className="min-w-0 flex-1 font-medium text-sm leading-tight">
+                                        {text}
+                                    </span>
+                                    <ChevronDownFilledIcon />
+                                </IntegrationsTrigger>
+                                <IntegrationsPanel>
+                                    {INTEGRATIONS.map(
+                                        ({ id, label, description, Icon }) => (
+                                            <IntegrationItem key={id}>
+                                                <Avatar
+                                                    aria-label={label}
+                                                    className="size-9 rounded-lg ring-1 ring-border/60"
+                                                >
+                                                    <AvatarFallback className="rounded-xl bg-card">
+                                                        <Icon
+                                                            aria-hidden="true"
+                                                            className="size-5 shrink-0"
+                                                            focusable="false"
+                                                        />
+                                                    </AvatarFallback>
+                                                </Avatar>
+                                                <div className="flex min-w-0 flex-1 flex-col">
+                                                    <span className="font-medium text-sm leading-tight">
+                                                        {label}
+                                                    </span>
+                                                    <span className="text-[11px] text-muted-foreground leading-tight">
+                                                        {description}
+                                                    </span>
+                                                </div>
+                                                <IntegrationAction
+                                                    isConnected={connectedIntegrationIds.includes(
+                                                        id,
+                                                    )}
+                                                    id={id}
+                                                />
+                                            </IntegrationItem>
+                                        ),
+                                    )}
+                                    <IntegrationsNotice />
+                                </IntegrationsPanel>
+                            </Integrations>
                         </>
                     }
                 />

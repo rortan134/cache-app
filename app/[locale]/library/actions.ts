@@ -4,11 +4,7 @@ import { auth } from "@/lib/auth/server";
 import { extractNamedErrorMessage } from "@/lib/error";
 import { LibraryCollectionError, LibraryNoteError } from "@/lib/library/error";
 import { resolveCobaltDownloadUrl } from "@/lib/library/cobalt";
-import {
-    extractNoteText,
-    normalizeNoteTitle,
-    sanitizeNoteHtml,
-} from "@/lib/library/notes";
+import { extractNoteText, sanitizeNoteHtml } from "@/lib/library/notes";
 import { normalizeCollectionName } from "@/lib/library/utils";
 import type {
     LibraryCollectionSummary,
@@ -26,7 +22,6 @@ import { z } from "zod";
 
 const log = createLogger("library:actions");
 const COLLECTION_NAME_MAX_LENGTH = 64;
-const NOTE_TITLE_MAX_LENGTH = 160;
 const NOTE_CONTENT_HTML_MAX_LENGTH = 100_000;
 
 const CreateCollectionInputSchema = z.object({
@@ -89,13 +84,11 @@ const RenameCollectionInputSchema = z.object({
 
 const CreateNoteInputSchema = z.object({
     contentHtml: z.string().max(NOTE_CONTENT_HTML_MAX_LENGTH).optional(),
-    title: z.string().trim().max(NOTE_TITLE_MAX_LENGTH).optional(),
 });
 
 const UpdateNoteInputSchema = z.object({
     contentHtml: z.string().max(NOTE_CONTENT_HTML_MAX_LENGTH),
     itemId: z.string().trim().min(1),
-    title: z.string().trim().max(NOTE_TITLE_MAX_LENGTH).optional(),
 });
 
 export type DeleteLibraryItemResult =
@@ -217,23 +210,16 @@ async function getSessionUserId(): Promise<string | null> {
 
 function normalizeNotePayload(input: {
     contentHtml?: string;
-    title?: string;
 }): {
     contentHtml: string;
     contentText: string;
-    title: string;
 } {
     const contentHtml = sanitizeNoteHtml(input.contentHtml ?? "");
     const contentText = extractNoteText(contentHtml);
-    const title = normalizeNoteTitle(input.title ?? "", contentText).slice(
-        0,
-        NOTE_TITLE_MAX_LENGTH
-    );
 
     return {
         contentHtml,
         contentText,
-        title,
     };
 }
 
@@ -320,7 +306,7 @@ export async function deleteLibraryItem(
 }
 
 export async function createNote(
-    input: { contentHtml?: string; title?: string } = {}
+    input: { contentHtml?: string } = {}
 ): Promise<NoteMutationResult> {
     const parsed = CreateNoteInputSchema.safeParse(input);
     if (!parsed.success) {
@@ -346,7 +332,7 @@ export async function createNote(
         const created = await prisma.libraryItem.create({
             data: {
                 browserProfileId: "default",
-                caption: note.title,
+                caption: null,
                 externalId: `note_${crypto.randomUUID()}`,
                 kind: "note",
                 noteContentHtml: note.contentHtml,
@@ -384,7 +370,6 @@ export async function createNote(
 export async function updateNote(input: {
     contentHtml: string;
     itemId: string;
-    title?: string;
 }): Promise<NoteMutationResult> {
     const parsed = UpdateNoteInputSchema.safeParse(input);
     if (!parsed.success) {
@@ -409,7 +394,7 @@ export async function updateNote(input: {
     try {
         const updated = await prisma.libraryItem.updateMany({
             data: {
-                caption: note.title,
+                caption: null,
                 noteContentHtml: note.contentHtml,
                 noteContentText: note.contentText,
             },

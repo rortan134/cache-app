@@ -20,8 +20,10 @@ import {
 import { GradientWaveText } from "@/components/ui/gradient-wave-text";
 import {
     ChevronDownFilledIcon,
+    NotionIcon,
     PriorityNoneIcon,
-} from "@/components/ui/integration-icons";
+} from "@/components/ui/icons";
+import { Kbd } from "@/components/ui/kbd";
 import {
     Menu,
     MenuItem,
@@ -39,7 +41,7 @@ import {
     PreviewCardTrigger,
 } from "@/components/ui/preview-card";
 import { getColorFromName } from "@/lib/colors";
-import { getSourceLabel } from "@/lib/integrations/supports";
+import { getSourceLabel } from "@/lib/integrations/support";
 import type { LibraryCollectionSummary } from "@/lib/library/types";
 import { cn } from "@/lib/utils";
 import type { CollectionPriority } from "@/prisma/client/enums";
@@ -51,6 +53,7 @@ import {
     EllipsisIcon,
     ExternalLinkIcon,
     FileSpreadsheetIcon,
+    Forward,
     Group,
     Info,
     type LucideIcon,
@@ -60,6 +63,7 @@ import {
     Sparkle,
     Sparkles,
     Trash2Icon,
+    UserRoundPlus,
 } from "lucide-react";
 import Image from "next/image";
 import type { CSSProperties, ReactElement } from "react";
@@ -83,8 +87,9 @@ function getCollectionButtonStyle(
     const backgroundOpacity = isSelected ? 20 : 7;
 
     return {
-        "--focus-ring-color": `color-mix(in srgb, ${assignedColor}, black 20%)`,
-        backgroundColor: `color-mix(in srgb, ${assignedColor} ${backgroundOpacity}%, transparent)`,
+        "--focus-ring-color": `color-mix(in srgb, ${assignedColor}, black 50%)`,
+        "--text-muted-color": `color-mix(in srgb, ${assignedColor} 16%, black 18%)`,
+        "--collection-background": `color-mix(in srgb, ${assignedColor} ${backgroundOpacity}%, transparent)`,
     } as CSSProperties;
 }
 
@@ -141,7 +146,7 @@ export function CollectionsListTrigger({
                 render={
                     <CollapsibleTrigger
                         className={cn(
-                            "flex select-none items-center gap-3 rounded-full bg-muted/94 pl-4 pr-3 py-2.5 text-left text-foreground hover:bg-input/50 active:bg-input/20",
+                            "flex select-none items-center gap-3 rounded-full bg-muted/94 pl-4 pr-3 py-2.5 text-left text-foreground hover:bg-input/50 active:bg-input/30",
                             className,
                         )}
                         onMouseEnter={(event) => {
@@ -292,12 +297,10 @@ function CollectionPreviewImage({
 
 function CollectionsListItemHoverPreview({
     collection,
-    isSelected,
     onSelect,
     previewThumbnailUrls,
 }: {
     readonly collection: LibraryCollectionSummary;
-    readonly isSelected: boolean;
     readonly onSelect: () => void;
     readonly previewThumbnailUrls: readonly string[];
 }): ReactElement {
@@ -329,14 +332,8 @@ function CollectionsListItemHoverPreview({
                 closeDelay={COLLECTION_ITEM_PREVIEW_CLOSE_DELAY_MS}
                 render={
                     <Button
-                        className={cn(
-                            "w-full min-w-0 flex-1 justify-start rounded-full border-(--focus-ring-color)/7 px-8 text-left focus-visible:ring-1 focus-visible:ring-(--focus-ring-color)",
-                        )}
+                        className="w-full min-w-0 flex-1 justify-start rounded-full bg-(--collection-background) border-(--focus-ring-color)/7 px-8 text-left focus-visible:ring-1 focus-visible:ring-(--focus-ring-color)"
                         onClick={onSelect}
-                        style={getCollectionButtonStyle(
-                            collection.name,
-                            isSelected,
-                        )}
                         type="button"
                         variant="ghost"
                     />
@@ -347,7 +344,7 @@ function CollectionsListItemHoverPreview({
                         {collection.name}
                     </span>
                     {collection.sources.length > 0 && (
-                        <span className="flex-1 max-w-full truncate text-[11px] text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100">
+                        <span className="flex-1 max-w-full truncate text-[11px] text-muted-foreground opacity-0 transition-opacity group-hover:opacity-80">
                             {collection.sources.map(getSourceLabel).join(", ")}
                         </span>
                     )}
@@ -390,23 +387,7 @@ function CollectionItemPriorityComboboxPicker({
     const [isOpenInternal, setIsOpenInternal] = useState(false);
     const isOpen = openProp ?? isOpenInternal;
     const setIsOpen = onOpenChange ?? setIsOpenInternal;
-    const inputRef = useRef<HTMLInputElement>(null);
     const selectedOption = getCollectionPriorityOption(collection.priority);
-
-    useEffect(
-        function handleOpenFocus() {
-            if (!isOpen || isPending) {
-                return;
-            }
-            const frame = window.requestAnimationFrame(() => {
-                inputRef.current?.focus();
-            });
-            return () => {
-                window.cancelAnimationFrame(frame);
-            };
-        },
-        [isOpen, isPending],
-    );
 
     return (
         <Combobox
@@ -437,14 +418,10 @@ function CollectionItemPriorityComboboxPicker({
                 <selectedOption.icon className="size-4" />
             </ComboboxTrigger>
             <ComboboxPopup positionMethod="fixed">
-                <div className="border-b">
-                    <ComboboxInput
-                        className="border-none! ring-0!"
-                        placeholder="Set priority..."
-                        ref={inputRef}
-                        showTrigger={false}
-                    />
-                </div>
+                <ComboboxInput
+                    placeholder="Set priority..."
+                    endAddon={<Kbd>P</Kbd>}
+                />
                 <ComboboxEmpty>No matching priorities</ComboboxEmpty>
                 <ComboboxList>
                     <ComboboxCollection>
@@ -501,7 +478,10 @@ export function CollectionsListItem({
     const hasItems = collection.itemCount > 0;
 
     return (
-        <div className="group relative flex select-none items-center">
+        <div
+            className="group relative flex select-none items-center"
+            style={getCollectionButtonStyle(collection.name, isSelected)}
+        >
             <CollectionItemPriorityComboboxPicker
                 collection={collection}
                 isPending={isUpdatePriorityPending}
@@ -510,13 +490,12 @@ export function CollectionsListItem({
             <div className="min-w-0 flex-1">
                 <CollectionsListItemHoverPreview
                     collection={collection}
-                    isSelected={isSelected}
                     onSelect={onSelect}
                     previewThumbnailUrls={previewThumbnailUrls}
                 />
             </div>
-            <div className="absolute top-1/2 right-0.5 flex size-8 -translate-y-1/2 items-center justify-center">
-                <span className="pointer-events-none text-nowrap text-muted-foreground text-xs tabular-nums transition-opacity focus-visible:opacity-0 group-focus-within:opacity-0 group-hover:opacity-0">
+            <div className="absolute top-1/2 right-0 flex size-8 -translate-y-1/2 items-center justify-center">
+                <span className="pointer-events-none text-nowrap text-(--text-muted-color) text-xs tabular-nums transition-opacity focus-visible:opacity-0 group-focus-within:opacity-0 group-hover:opacity-0">
                     {collection.itemCount}
                 </span>
                 <Menu>
@@ -532,17 +511,22 @@ export function CollectionsListItem({
                     >
                         <EllipsisIcon className="size-4.5" />
                     </MenuTrigger>
-                    <MenuPopup className="min-w-48">
+                    <MenuPopup side="right" align="start">
                         <MenuItem closeOnClick onClick={onRename}>
                             <PencilIcon className="size-4 text-muted-foreground" />
                             Edit
                         </MenuItem>
                         <MenuSeparator />
+                        <MenuItem closeOnClick>
+                            <UserRoundPlus className="size-4 text-muted-foreground" />
+                            Share collection
+                        </MenuItem>
                         <MenuSub>
                             <MenuSubTrigger disabled={!hasItems}>
-                                Export to...
+                                <Forward className="size-4 text-muted-foreground inline-block" />
+                                Export collection
                             </MenuSubTrigger>
-                            <MenuSubPopup className="min-w-48">
+                            <MenuSubPopup>
                                 <MenuItem closeOnClick onClick={onCopyLinks}>
                                     <CopyIcon className="size-4 text-muted-foreground" />
                                     Copy all links
@@ -561,9 +545,13 @@ export function CollectionsListItem({
                                         ? "Exporting CSV..."
                                         : "Export to CSV"}
                                 </MenuItem>
-                                <MenuItem disabled>Send to Notion</MenuItem>
+                                <MenuItem>
+                                    <NotionIcon />
+                                    Send to Notion
+                                </MenuItem>
                             </MenuSubPopup>
                         </MenuSub>
+                        <MenuSeparator />
                         <MenuItem
                             closeOnClick
                             onClick={onDelete}
@@ -685,12 +673,15 @@ export function SmartCollectionsCallout(): ReactElement {
                                     priority
                                     src={SmartCollectionsBackgroundImg}
                                 />
-                                <div className="mt-3 flex max-w-64 flex-col gap-3">
+                                <div className="mt-4 flex max-w-64 flex-col gap-2">
+                                    <h4 className="font-medium text-sm">
+                                        Let Cache do the organizing
+                                    </h4>
                                     <p className="text-foreground text-xs">
-                                        Let Cache do the organizing: AI now
-                                        groups your related saves into focused,
-                                        contextual collections. Cache learns
-                                        your preferences with time.
+                                        As you add new entries, Cache AI groups
+                                        your related saves into contextual
+                                        collections intuitively. Cache also
+                                        learns your preferences with time.
                                     </p>
                                     <Button
                                         className="ml-auto"

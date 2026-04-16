@@ -6,19 +6,19 @@ import { cn } from "@/lib/utils";
 import * as React from "react";
 
 interface TruncateAfterProps {
-    after?: number;
+    count?: number;
     children: React.ReactNode;
     className?: string;
 }
 
 const TruncateAfter = ({
-    after = 5,
+    count = 5,
     children,
     className,
 }: TruncateAfterProps) => {
-    const count = React.Children.count(children);
+    const elementCount = React.Children.count(children);
 
-    if (count === 0) {
+    if (elementCount === 0) {
         return null;
     }
 
@@ -26,7 +26,7 @@ const TruncateAfter = ({
     const remaining: React.ReactNode[] = [];
 
     React.Children.map(children, (child, index) => {
-        if (index < after) {
+        if (index < count) {
             displayed.push(child);
         } else {
             remaining.push(child);
@@ -51,7 +51,7 @@ const TruncateAfter = ({
                     >
                         +{numTruncated}
                     </PopoverTrigger>
-                    <PopoverPopup align="end" className="w-auto p-2" side="top">
+                    <PopoverPopup>
                         <div className="flex flex-col gap-2">{remaining}</div>
                     </PopoverPopup>
                 </Popover>

@@ -6,9 +6,9 @@ import {
     TikTok,
     XSocial,
     YouTube,
-} from "@/components/ui/integration-icons";
-import type { ComponentType, SVGProps } from "react";
+} from "@/components/ui/icons";
 import { LibraryItemSource } from "@/prisma/client/enums";
+import type { ComponentType, SVGProps } from "react";
 
 export type IntegrationCategory = "media" | "social";
 
@@ -50,7 +50,7 @@ export const INTEGRATIONS = [
     {
         capabilities: { bookmarks: true },
         category: "social",
-        description: "Bookmarks from your browser profile",
+        description: "Bookmarks from your browser",
         Icon: Chrome,
         id: "chrome",
         label: "Chrome",
@@ -90,7 +90,7 @@ export const INTEGRATIONS = [
     {
         capabilities: { bookmarks: true },
         category: "media",
-        description: "Photos and albums you have starred",
+        description: "Starred photos and albums",
         Icon: Photos,
         id: "google-photos",
         label: "Google Photos",
@@ -98,7 +98,7 @@ export const INTEGRATIONS = [
     {
         capabilities: { bookmarks: true },
         category: "social",
-        description: "Pins you save to boards",
+        description: "Pins saved to boards",
         Icon: Pinterest,
         id: "pinterest",
         label: "Pinterest",
@@ -106,11 +106,11 @@ export const INTEGRATIONS = [
 ] satisfies readonly SupportedIntegration[];
 
 const INTEGRATION_BY_ID = new Map<IntegrationId, SupportedIntegration>(
-    INTEGRATIONS.map((item) => [item.id, item])
+    INTEGRATIONS.map((item) => [item.id, item]),
 );
 
 const INTEGRATION_ID_SET = new Set<IntegrationId>(
-    INTEGRATIONS.map((item) => item.id)
+    INTEGRATIONS.map((item) => item.id),
 );
 
 export function isIntegrationId(value: unknown): value is IntegrationId {
@@ -123,7 +123,7 @@ export function isIntegrationId(value: unknown): value is IntegrationId {
 export function assertIntegrationId(value: unknown): IntegrationId {
     if (!isIntegrationId(value)) {
         throw new TypeError(
-            `Expected IntegrationId, received: ${String(value)}`
+            `Expected IntegrationId, received: ${String(value)}`,
         );
     }
     return value;
@@ -138,7 +138,7 @@ export function getIntegration(id: IntegrationId): SupportedIntegration {
 }
 
 export function findIntegrationById(
-    value: unknown
+    value: unknown,
 ): SupportedIntegration | undefined {
     if (!isIntegrationId(value)) {
         return undefined;
@@ -147,13 +147,13 @@ export function findIntegrationById(
 }
 
 export function listIntegrations(
-    predicate?: (item: SupportedIntegration) => boolean
+    predicate?: (item: SupportedIntegration) => boolean,
 ): readonly SupportedIntegration[] {
     return predicate ? INTEGRATIONS.filter(predicate) : INTEGRATIONS;
 }
 
 export function integrationsInCategory(
-    category: IntegrationCategory
+    category: IntegrationCategory,
 ): readonly SupportedIntegration[] {
     return INTEGRATIONS.filter((item) => item.category === category);
 }
@@ -163,7 +163,7 @@ export function integrationIds(): readonly IntegrationId[] {
 }
 
 export function filterToIntegrationIds(
-    values: readonly string[]
+    values: readonly string[],
 ): IntegrationId[] {
     return values.filter(isIntegrationId);
 }
@@ -182,7 +182,7 @@ export function integrationHasCapability<
 
 export function recordHasIntegrationId<K extends string>(
     record: Record<K, unknown>,
-    key: K
+    key: K,
 ): record is Record<K, IntegrationId> & typeof record {
     return isIntegrationId(record[key]);
 }

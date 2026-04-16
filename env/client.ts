@@ -5,8 +5,10 @@ import * as z from "zod";
 export const clientEnv = createEnv({
     client: {
         NEXT_PUBLIC_APP_URL: z.url(),
+
         NEXT_PUBLIC_GOOGLE_CLIENT_ID: z.string(),
-        NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: z.string().startsWith("pk_"), // Stripe publishable key for client-side payment processing
+
+        NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: z.string().startsWith("pk_"),
     },
     emptyStringAsUndefined: true,
     extends: [vercel()],
