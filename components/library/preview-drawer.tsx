@@ -13,7 +13,7 @@ import {
     DrawerTrigger,
 } from "@/components/ui/drawer";
 import { Spinner } from "@/components/ui/spinner";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/cn";
 import { AlertCircleIcon, ExternalLinkIcon, GlobeIcon } from "lucide-react";
 import type { ReactElement, ReactNode } from "react";
 import { createContext, useContext, useEffect, useId, useState } from "react";

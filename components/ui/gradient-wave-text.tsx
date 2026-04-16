@@ -1,6 +1,6 @@
 "use client";
 
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/cn";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 type Align = "left" | "center" | "right";

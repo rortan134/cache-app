@@ -2,7 +2,7 @@
 
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/cn";
 import { Combobox as ComboboxPrimitive } from "@base-ui/react/combobox";
 import { XIcon } from "lucide-react";
 import * as React from "react";

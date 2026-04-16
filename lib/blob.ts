@@ -31,3 +31,20 @@ export const blobToDataURL = async (file: Blob | File) =>
         reader.onerror = () => reject(reader.error as Error);
         reader.readAsDataURL(file);
     });
+
+export const blobToText = async (blob: Blob): Promise<string> =>
+    await new Promise((resolve, reject) => {
+        if (blob) {
+            const reader = new FileReader();
+            reader.onload = () => {
+                resolve(reader.result as string);
+            };
+            reader.onerror = (error) => {
+                reject(error);
+            };
+            reader.onabort = (error) => {
+                reject(error);
+            };
+            reader.readAsText(blob);
+        }
+    });

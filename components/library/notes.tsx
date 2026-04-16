@@ -12,8 +12,8 @@ import {
 } from "@/components/ui/drawer";
 import { Group } from "@/components/ui/group";
 import { GoogleDocsIcon, NotionIcon } from "@/components/ui/icons";
+import { cn } from "@/lib/cn";
 import type { LibraryItemWithCollections } from "@/lib/library/types";
-import { cn } from "@/lib/utils";
 import AppIconSmall from "@/public/cache-icon-small.png";
 import {
     BoldIcon,

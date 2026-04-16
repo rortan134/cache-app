@@ -1,5 +1,5 @@
 import { buildLocaleAlternates } from "@/lib/alternates";
-import { SITE_APP_NAME } from "@/lib/constants";
+import { APP_NAME } from "@/lib/constants";
 import { gtPublicString } from "@/lib/gt-public-json";
 import { T, Var } from "gt-next";
 import { ArrowRight, Cookie, Scale, Shield } from "lucide-react";
@@ -18,7 +18,7 @@ export async function generateMetadata({
         description: gtPublicString(
             locale,
             "legal.index.metadata.description",
-            `Legal documents, policies, and disclosures for ${SITE_APP_NAME}.`
+            `Legal documents, policies, and disclosures for ${APP_NAME}.`
         ),
         title: gtPublicString(locale, "legal.index.metadata.title", "Legal"),
     };
@@ -81,7 +81,7 @@ export default async function LegalIndexPage({
             <header className="relative flex flex-col gap-3 text-pretty">
                 <p className="font-medium text-[0.7rem] text-stone-500 uppercase tracking-[0.22em]">
                     <T context="Legal section eyebrow label">
-                        <Var>{SITE_APP_NAME}</Var>
+                        <Var>{APP_NAME}</Var>
                     </T>
                 </p>
                 <h1 className="font-semibold text-3xl text-stone-950 tracking-tight sm:text-[2rem] sm:leading-tight">

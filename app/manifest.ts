@@ -1,4 +1,4 @@
-import { BASE_URL, SITE_APP_NAME } from "@/lib/constants";
+import { APP_NAME, BASE_URL } from "@/lib/constants";
 import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
@@ -9,7 +9,6 @@ export default function manifest(): MetadataRoute.Manifest {
             "Cache is a tool to unify your bookmarks across all platforms.",
         dir: "ltr",
         display: "standalone",
-        display_override: ["fullscreen"],
         icons: [
             {
                 purpose: "maskable",
@@ -25,11 +24,11 @@ export default function manifest(): MetadataRoute.Manifest {
             },
         ],
         lang: "en-US",
-        name: SITE_APP_NAME,
-        orientation: "landscape-primary",
+        name: APP_NAME,
+        orientation: "any",
         prefer_related_applications: true,
         scope: BASE_URL,
-        short_name: SITE_APP_NAME,
+        short_name: APP_NAME,
         start_url: "/?utm_source=pwa_homescreen&__pwa=1",
         theme_color: "#ffffff",
     };

@@ -1,5 +1,6 @@
 {
     "dependencies": {
+        "@arcjet/ip": "^1.4.0",
         "@arcjet/redact": "^1.4.0",
         "@base-ui/react": "^1.4.0",
         "@better-auth/prisma-adapter": "^1.6.5",
@@ -75,7 +76,7 @@
         "lint:fix": "ultracite fix",
         "analyze": "next experimental-analyze",
         "type-check": "tsc --noEmit --emitDeclarationOnly false",
-        "validate": "knip --production --exclude types",
+        "validate": "knip --cache --strict",
         "prepare": "husky"
     },
     "type": "module",

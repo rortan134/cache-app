@@ -5,6 +5,7 @@
     "": {
       "name": "cache",
       "dependencies": {
+        "@arcjet/ip": "^1.4.0",
         "@arcjet/redact": "^1.4.0",
         "@base-ui/react": "^1.4.0",
         "@better-auth/prisma-adapter": "^1.6.5",
@@ -71,6 +72,8 @@
   },
   "packages": {
     "@alloc/quick-lru": ["@alloc/quick-lru@5.2.0", "", {}, "sha512-UrcABB+4bUrFABwbluTIBErXwvbsU/V7TZWfmbgJfbkwiBuziS9gxdODUyuiecfdGQ85jglMW6juS3+z5TsKLw=="],
+
+    "@arcjet/ip": ["@arcjet/ip@1.4.0", "", {}, "sha512-gTmtauz5tyuhTaFT8WqS5O7RhpNnJSqK2RO3Hjr1iZydGI2YFkfNoNHjIU8Jck9A281nlHyQTTj3X+ZP51LCfg=="],
 
     "@arcjet/redact": ["@arcjet/redact@1.4.0", "", { "dependencies": { "@arcjet/redact-wasm": "1.4.0" } }, "sha512-YSMK3yway4DxTWojMB/zIrAU/c9KVDnwZW/nWJgz2BwrYZmadwzq4b30E+EaZkC1RSv8tb2TLNiIDG7SsZJ6Dw=="],
 

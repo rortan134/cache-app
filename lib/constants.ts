@@ -14,11 +14,13 @@ export type SupportedLocale = (typeof SUPPORTED_LOCALES)[number];
 
 export const DEFAULT_LOCALE: SupportedLocale = "en-US";
 
+export const FOUNDING_DATE = new Date("2026-04-09T00:00:00.000Z");
+
 /** Shown after the page-specific title, e.g. "Settings | Cache". */
-export const SITE_APP_NAME = "Cache App";
+export const APP_NAME = "Cache App";
 
 /** Root / default document title when a segment does not override `title`. */
-export const SITE_DEFAULT_TITLE = `Bookmark manager | ${SITE_APP_NAME}`;
+export const SITE_DEFAULT_TITLE = `Bookmark manager | ${APP_NAME}`;
 
 export const CACHE_EXTENSION_DOWNLOAD_URL = "https://cachd.app";
 export const CACHE_EXTENSION_READY_EVENT = "CACHE_EXTENSION_READY";

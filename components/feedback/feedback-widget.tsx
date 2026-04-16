@@ -3,9 +3,9 @@
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverPopup, PopoverTrigger } from "@/components/ui/popover";
 import { Textarea } from "@/components/ui/textarea";
+import { cn } from "@/lib/cn";
 import { createFeedback } from "@/lib/feedback/actions";
 import type { FeedbackActionState } from "@/lib/feedback/schema";
-import { cn } from "@/lib/utils";
 import { Send } from "lucide-react";
 import { usePathname } from "next/navigation";
 import type * as React from "react";

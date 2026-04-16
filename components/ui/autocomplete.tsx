@@ -2,7 +2,7 @@
 
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/cn";
 import { Autocomplete as AutocompletePrimitive } from "@base-ui/react/autocomplete";
 import { CircleX } from "lucide-react";
 import type * as React from "react";

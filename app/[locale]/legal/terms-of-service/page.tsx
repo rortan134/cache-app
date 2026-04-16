@@ -1,11 +1,11 @@
 import { buildLocaleAlternates } from "@/lib/alternates";
-import { SITE_APP_NAME } from "@/lib/constants";
+import { APP_NAME } from "@/lib/constants";
 import type { Metadata } from "next";
 
 export async function generateMetadata(): Promise<Metadata> {
     return {
         alternates: buildLocaleAlternates("/legal/terms-of-service"),
-        description: `Terms of Service for ${SITE_APP_NAME}.`,
+        description: `Terms of Service for ${APP_NAME}.`,
         title: "Terms of Service",
     };
 }

@@ -1,6 +1,6 @@
 import "@/lib/dayjs/locales";
 
-import { BASE_URL, SITE_APP_NAME, SITE_DEFAULT_TITLE } from "@/lib/constants";
+import { APP_NAME, BASE_URL, SITE_DEFAULT_TITLE } from "@/lib/constants";
 import { getOwnerDocument } from "@/lib/dom";
 import { Analytics } from "@vercel/analytics/next";
 import { GTProvider, getLocale } from "gt-next/server";
@@ -19,7 +19,7 @@ export async function generateMetadata(): Promise<Metadata> {
         },
         title: {
             default: SITE_DEFAULT_TITLE,
-            template: `%s | ${SITE_APP_NAME}`,
+            template: `%s | ${APP_NAME}`,
         },
     };
 }
@@ -50,7 +50,7 @@ export default async function RootLayout({
                 />
             </head>
             <body className="flex flex-col">
-                <h1 className="sr-only">{SITE_APP_NAME}</h1>
+                <h1 className="sr-only">{APP_NAME}</h1>
                 <GTProvider>{children}</GTProvider>
                 <Analytics />
             </body>

@@ -1,5 +1,5 @@
 import { getStripeClient, getStripeWebhookSecret } from "@/lib/billing/client";
-import { SITE_APP_NAME } from "@/lib/constants";
+import { APP_NAME } from "@/lib/constants";
 import { setupUserCollections } from "@/lib/library/setup-user";
 import { prisma } from "@/prisma";
 import type { OAuth2Tokens } from "@better-auth/core/oauth2";
@@ -123,7 +123,7 @@ async function githubUserFromTokens(tokens: OAuth2Tokens): Promise<{
         headers: {
             Accept: "application/vnd.github+json",
             Authorization: `Bearer ${accessToken}`,
-            "User-Agent": SITE_APP_NAME,
+            "User-Agent": APP_NAME,
         },
     });
     if (!response.ok) {
@@ -236,7 +236,7 @@ export const auth = betterAuth({
             trustedProviders,
         },
     },
-    appName: SITE_APP_NAME,
+    appName: APP_NAME,
     baseURL,
     database: prismaAdapter(prisma, {
         provider: "postgresql",

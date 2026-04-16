@@ -47,10 +47,10 @@ import {
     PreviewCardPopup,
     PreviewCardTrigger,
 } from "@/components/ui/preview-card";
+import { cn } from "@/lib/cn";
 import { getColorFromName } from "@/lib/colors";
 import { getSourceLabel } from "@/lib/integrations/support";
 import type { LibraryCollectionSummary } from "@/lib/library/types";
-import { cn } from "@/lib/utils";
 import type { CollectionPriority } from "@/prisma/client/enums";
 import SmartCollectionsBackgroundImg from "@/public/smart-collections-background-wide.webp";
 import {

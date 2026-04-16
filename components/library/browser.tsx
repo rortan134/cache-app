@@ -88,6 +88,7 @@ import { Ticker } from "@/components/ui/ticker";
 import { TruncateAfter } from "@/components/ui/truncate-after";
 import { useAccess } from "@/hooks/use-access";
 import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
+import { cn } from "@/lib/cn";
 import { getSubtleColorGradientFromName } from "@/lib/colors";
 import { dayjs } from "@/lib/dayjs";
 import { saveFile } from "@/lib/file";
@@ -118,7 +119,6 @@ import type {
     LibraryItemWithCollections,
 } from "@/lib/library/types";
 import { normalizeURL, toValidUrl } from "@/lib/url";
-import { cn } from "@/lib/utils";
 import type { CollectionPriority } from "@/prisma/client/enums";
 import { LibraryItemSource } from "@/prisma/client/enums";
 import AppIconSmall from "@/public/cache-icon-small.png";
