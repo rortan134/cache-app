@@ -104,13 +104,13 @@ export function IntegrationsListItem({
 }
 
 export function IntegrationsListStatus({
-    message,
     tone = "success",
-}: {
-    readonly message?: string | null;
-    readonly tone?: "error" | "success";
+    className,
+    ...props
+}: React.ComponentProps<"p"> & {
+    tone?: "error" | "success";
 }) {
-    if (!message) {
+    if (!props.children) {
         return null;
     }
 
@@ -119,12 +119,12 @@ export function IntegrationsListStatus({
             aria-live="polite"
             className={cn(
                 "text-xs leading-tight",
-                tone === "error" ? "text-destructive" : "text-muted-foreground"
+                tone === "error" ? "text-destructive" : "text-muted-foreground",
+                className
             )}
             role={tone === "error" ? "alert" : "status"}
-        >
-            {message}
-        </p>
+            {...props}
+        />
     );
 }
 
@@ -148,9 +148,9 @@ export function IntegrationsListEmpty({
 /** @internal */
 function IntegrationActionIconGlyph({
     icon,
-}: Readonly<{
+}: {
     icon?: IntegrationActionIcon;
-}>) {
+}) {
     if (icon === "images") {
         return <Images className="size-4" />;
     }
@@ -205,8 +205,12 @@ export function IntegrationsListItemAction({
                     ))}
                 </div>
             ) : null}
-            <IntegrationsListStatus message={errorMessage} tone="error" />
-            <IntegrationsListStatus message={successMessage} tone="success" />
+            <IntegrationsListStatus tone="error">
+                {errorMessage}
+            </IntegrationsListStatus>
+            <IntegrationsListStatus tone="success">
+                {successMessage}
+            </IntegrationsListStatus>
         </div>
     );
 }

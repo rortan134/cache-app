@@ -1019,14 +1019,13 @@ function LibraryWorkspaceSidebar({
                                         />
                                     ))}
                                     <CollectionsListStatus
-                                        message={
-                                            collectionActionFeedback?.message
-                                        }
                                         onDismiss={() =>
                                             setCollectionActionFeedback(null)
                                         }
                                         tone={collectionActionFeedback?.tone}
-                                    />
+                                    >
+                                        {collectionActionFeedback?.message}
+                                    </CollectionsListStatus>
                                     <CollectionsListFilterClear
                                         isVisible={
                                             selectedCollectionIds.length > 0

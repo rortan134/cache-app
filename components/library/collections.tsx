@@ -209,8 +209,8 @@ function CollectionsListItemPreviewImage({
     alt,
     src,
 }: {
-    readonly alt: string;
-    readonly src?: string;
+    alt: string;
+    src?: string;
 }) {
     const [didFail, setDidFail] = React.useState(false);
     const canRenderImage = Boolean(src) && !didFail;
@@ -246,7 +246,7 @@ function CollectionsListItemPreview({
 }: React.ComponentProps<typeof PreviewCardTrigger> & {
     collection: LibraryCollectionSummary;
     onSelect: () => void;
-    thumbnails: readonly string[];
+    thumbnails: string[];
 }) {
     const [isOpen, setIsOpen] = React.useState(false);
     const [activePreviewIndex, setActivePreviewIndex] = React.useState(0);
@@ -352,7 +352,7 @@ const COLLECTION_PRIORITY_OPTIONS = [
         label: "Archive",
         value: "archive",
     },
-] satisfies readonly CollectionItemPriorityOption[];
+] satisfies CollectionItemPriorityOption[];
 
 const COLLECTION_PRIORITY_OPTION_BY_VALUE = new Map(
     COLLECTION_PRIORITY_OPTIONS.map((option) => [option.value, option])
@@ -567,15 +567,14 @@ export function CollectionsListItem({
 }
 
 export function CollectionsListStatus({
-    message,
     onDismiss,
     tone,
-}: {
-    readonly message?: string;
-    readonly onDismiss: () => void;
-    readonly tone?: "error" | "success";
+    ...props
+}: React.ComponentProps<"p"> & {
+    onDismiss: () => void;
+    tone?: "error" | "success";
 }) {
-    if (!message) {
+    if (!props.children) {
         return null;
     }
 
@@ -590,9 +589,8 @@ export function CollectionsListStatus({
                         : "text-muted-foreground"
                 )}
                 role={tone === "error" ? "alert" : "status"}
-            >
-                {message}
-            </p>
+                {...props}
+            />
             <Button onClick={onDismiss} size="xs" variant="ghost">
                 Dismiss
             </Button>
@@ -604,8 +602,8 @@ export function CollectionsListFilterClear({
     isVisible,
     onClear,
 }: {
-    readonly isVisible: boolean;
-    readonly onClear: () => void;
+    isVisible: boolean;
+    onClear: () => void;
 }) {
     if (!isVisible) {
         return null;
