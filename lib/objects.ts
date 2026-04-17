@@ -11,3 +11,11 @@ export function denyPropertyAccess<T extends object>() {
         },
     });
 }
+
+export function isRecord(value: unknown): value is Record<string, unknown> {
+    return typeof value === "object" && value !== null;
+}
+
+export function isObject(item: object) {
+    return item && typeof item === "object" && !Array.isArray(item);
+}

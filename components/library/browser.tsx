@@ -5,11 +5,11 @@ import { FeedbackWidget } from "@/components/feedback/feedback-widget";
 import {
     CollectionsList,
     CollectionsListAction,
-    CollectionsListContent,
     CollectionsListEmpty,
-    CollectionsListFeedback,
     CollectionsListFilterClear,
     CollectionsListItem,
+    CollectionsListPanel,
+    CollectionsListStatus,
     CollectionsListTrigger,
     SmartCollectionsNoticeCallout,
 } from "@/components/library/collections";
@@ -993,7 +993,7 @@ function LibraryWorkspaceSidebar({
                                 </span>
                             </CollectionsListAction>
                         </div>
-                        <CollectionsListContent>
+                        <CollectionsListPanel>
                             <SmartCollectionsNoticeCallout />
                             {collectionSummaries.length > 0 ? (
                                 <>
@@ -1055,7 +1055,7 @@ function LibraryWorkspaceSidebar({
                                             }
                                         />
                                     ))}
-                                    <CollectionsListFeedback
+                                    <CollectionsListStatus
                                         message={
                                             collectionActionFeedback?.message
                                         }
@@ -1074,7 +1074,7 @@ function LibraryWorkspaceSidebar({
                             ) : (
                                 <CollectionsListEmpty />
                             )}
-                        </CollectionsListContent>
+                        </CollectionsListPanel>
                     </CollectionsList>
                 </SidebarHeader>
                 <SidebarFooter>{sidebarBottom}</SidebarFooter>
@@ -2465,16 +2465,19 @@ async function saveLibraryNoteDraft({
     readonly activeNote: LibraryItemWithCollections | null;
     readonly draft: {
         readonly contentHtml: string;
+        readonly contentState: unknown | null;
     };
 }): Promise<NoteMutationResult> {
     try {
         return activeNote
             ? await updateNote({
                   contentHtml: draft.contentHtml,
+                  contentState: draft.contentState ?? undefined,
                   itemId: activeNote.id,
               })
             : await createNote({
                   contentHtml: draft.contentHtml,
+                  contentState: draft.contentState ?? undefined,
               });
     } catch {
         return {
@@ -4351,7 +4354,10 @@ function LibraryBrowser({
         setIsNoteDrawerOpen(true);
     };
 
-    const handleSaveNote = async (draft: { contentHtml: string }) =>
+    const handleSaveNote = async (draft: {
+        contentHtml: string;
+        contentState: unknown | null;
+    }) =>
         await new Promise<boolean>((resolve) => {
             startSavingNoteTransition(async () => {
                 const result = await saveLibraryNoteDraft({

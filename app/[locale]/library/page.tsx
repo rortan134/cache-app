@@ -6,12 +6,12 @@ import {
 } from "@/components/auth/user-menu";
 import { LibraryWorkspace } from "@/components/library/browser";
 import {
-    IntegrationAction,
-    IntegrationItem,
-    Integrations,
-    IntegrationsNotice,
-    IntegrationsPanel,
-    IntegrationsTrigger,
+    IntegrationsList,
+    IntegrationsListItem,
+    IntegrationsListItemAction,
+    IntegrationsListNoticeCallout,
+    IntegrationsListPanel,
+    IntegrationsListTrigger,
 } from "@/components/library/integrations";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { BrandLogo } from "@/components/ui/brand-logo";
@@ -115,26 +115,27 @@ export default async function LibraryPage() {
                     sidebarHeader={
                         <>
                             <BrandLogo href="/library" src={LogoIconImage} />
-                            <Integrations>
-                                <IntegrationsTrigger className="flex select-none items-center gap-1.5 rounded-full bg-muted/94 px-3 py-2 text-left text-foreground hover:bg-input/50 active:bg-input/30">
-                                    <span
-                                        aria-hidden="true"
-                                        className="shrink-0 leading-none"
-                                    >
-                                        <RadialChart
-                                            size={36}
-                                            value={progressPercent}
-                                        />
-                                    </span>
-                                    <span className="min-w-0 flex-1 font-medium text-sm leading-tight">
-                                        {text}
-                                    </span>
+                            <IntegrationsList className="group">
+                                <IntegrationsListTrigger>
+                                    <RadialChart
+                                        className="inline-block shrink-0"
+                                        size={36}
+                                        value={progressPercent}
+                                    />
+                                    <div className="relative">
+                                        <span className="min-w-0 flex-1 truncate font-medium text-sm leading-none transition-opacity group-data-open:opacity-0 group-data-closed:duration-300 group-data-open:duration-400">
+                                            Integrations
+                                        </span>
+                                        <span className="absolute top-1/2 left-0 min-w-0 flex-1 -translate-y-1/2 truncate font-medium text-sm leading-none opacity-0 transition-opacity group-data-open:opacity-100 group-data-closed:duration-300 group-data-open:duration-400">
+                                            {text}
+                                        </span>
+                                    </div>
                                     <ChevronDownFilledIcon />
-                                </IntegrationsTrigger>
-                                <IntegrationsPanel>
+                                </IntegrationsListTrigger>
+                                <IntegrationsListPanel>
                                     {INTEGRATIONS.map(
                                         ({ id, label, description, Icon }) => (
-                                            <IntegrationItem key={id}>
+                                            <IntegrationsListItem key={id}>
                                                 <Avatar
                                                     aria-label={label}
                                                     className="size-9 rounded-lg ring-1 ring-border/60"
@@ -155,18 +156,18 @@ export default async function LibraryPage() {
                                                         {description}
                                                     </span>
                                                 </div>
-                                                <IntegrationAction
+                                                <IntegrationsListItemAction
                                                     id={id}
                                                     isConnected={connectedIntegrationIdSet.has(
                                                         id
                                                     )}
                                                 />
-                                            </IntegrationItem>
+                                            </IntegrationsListItem>
                                         )
                                     )}
-                                    <IntegrationsNotice />
-                                </IntegrationsPanel>
-                            </Integrations>
+                                    <IntegrationsListNoticeCallout />
+                                </IntegrationsListPanel>
+                            </IntegrationsList>
                         </>
                     }
                 />

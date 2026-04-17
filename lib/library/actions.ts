@@ -4,7 +4,12 @@ import { auth } from "@/lib/auth/server";
 import { extractNamedErrorMessage } from "@/lib/error";
 import { LibraryCollectionError, LibraryNoteError } from "@/lib/library/error";
 import { resolveCobaltDownloadUrl } from "@/lib/library/cobalt";
-import { extractNoteText, sanitizeNoteHtml } from "@/lib/library/notes";
+import {
+    extractNoteText,
+    isNoteSerializedEditorState,
+    sanitizeNoteHtml,
+    serializeNoteEditorStateToHtml,
+} from "@/lib/library/notes";
 import { normalizeCollectionName } from "@/lib/library/utils";
 import type {
     LibraryCollectionSummary,
@@ -13,6 +18,10 @@ import type {
 } from "@/lib/library/types";
 import { createLogger } from "@/lib/logs/console/logger";
 import { prisma } from "@/prisma";
+import {
+    DbNull,
+    type InputJsonValue,
+} from "@/prisma/client/internal/prismaNamespace";
 import {
     type CollectionPriority,
     LibraryItemSource,
@@ -84,10 +93,12 @@ const RenameCollectionInputSchema = z.object({
 
 const CreateNoteInputSchema = z.object({
     contentHtml: z.string().max(NOTE_CONTENT_HTML_MAX_LENGTH).optional(),
+    contentState: z.unknown().optional(),
 });
 
 const UpdateNoteInputSchema = z.object({
     contentHtml: z.string().max(NOTE_CONTENT_HTML_MAX_LENGTH),
+    contentState: z.unknown().optional(),
     itemId: z.string().trim().min(1),
 });
 
@@ -208,15 +219,25 @@ async function getSessionUserId(): Promise<string | null> {
     return session?.user?.id ?? null;
 }
 
-function normalizeNotePayload(input: { contentHtml?: string }): {
+function normalizeNotePayload(input: {
+    contentHtml?: string;
+    contentState?: unknown;
+}): {
     contentHtml: string;
+    contentState: InputJsonValue | null;
     contentText: string;
 } {
-    const contentHtml = sanitizeNoteHtml(input.contentHtml ?? "");
+    const contentState = isNoteSerializedEditorState(input.contentState)
+        ? JSON.parse(JSON.stringify(input.contentState))
+        : null;
+    const contentHtml = contentState
+        ? serializeNoteEditorStateToHtml(contentState)
+        : sanitizeNoteHtml(input.contentHtml ?? "");
     const contentText = extractNoteText(contentHtml);
 
     return {
         contentHtml,
+        contentState,
         contentText,
     };
 }
@@ -304,7 +325,7 @@ export async function deleteLibraryItem(
 }
 
 export async function createNote(
-    input: { contentHtml?: string } = {}
+    input: { contentHtml?: string; contentState?: unknown } = {}
 ): Promise<NoteMutationResult> {
     const parsed = CreateNoteInputSchema.safeParse(input);
     if (!parsed.success) {
@@ -334,6 +355,7 @@ export async function createNote(
                 externalId: `note_${crypto.randomUUID()}`,
                 kind: "note",
                 noteContentHtml: note.contentHtml,
+                noteContentState: note.contentState ?? DbNull,
                 noteContentText: note.contentText,
                 source: LibraryItemSource.cache_note,
                 url: "about:blank",
@@ -367,6 +389,7 @@ export async function createNote(
 
 export async function updateNote(input: {
     contentHtml: string;
+    contentState?: unknown;
     itemId: string;
 }): Promise<NoteMutationResult> {
     const parsed = UpdateNoteInputSchema.safeParse(input);
@@ -394,6 +417,7 @@ export async function updateNote(input: {
             data: {
                 caption: null,
                 noteContentHtml: note.contentHtml,
+                noteContentState: note.contentState ?? DbNull,
                 noteContentText: note.contentText,
             },
             where: {

@@ -6,6 +6,7 @@ import {
     CollapsiblePanel,
     CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+import { cn } from "@/lib/cn";
 import type {
     IntegrationActionIcon,
     IntegrationDirection,
@@ -15,23 +16,34 @@ import { useIntegrationAction } from "@/lib/integrations/use-integration-action"
 import { Images, Info, RefreshCw } from "lucide-react";
 import * as React from "react";
 
-export function Integrations(props: React.ComponentProps<typeof Collapsible>) {
+export function IntegrationsList(
+    props: React.ComponentProps<typeof Collapsible>
+) {
     return <Collapsible defaultOpen {...props} />;
 }
 
-export function IntegrationsTrigger(
-    props: React.ComponentProps<typeof CollapsibleTrigger>
-) {
-    return <CollapsibleTrigger {...props} />;
+export function IntegrationsListTrigger({
+    className,
+    ...props
+}: React.ComponentProps<typeof CollapsibleTrigger>) {
+    return (
+        <CollapsibleTrigger
+            className={cn(
+                "flex select-none items-center gap-1.5 rounded-full bg-muted/94 px-3 py-2 text-left text-foreground leading-none hover:bg-input/50 active:bg-input/30",
+                className
+            )}
+            {...props}
+        />
+    );
 }
 
-export function IntegrationsPanel(
+export function IntegrationsListPanel(
     props: React.ComponentProps<typeof CollapsiblePanel>
 ) {
     return <CollapsiblePanel {...props} />;
 }
 
-export function IntegrationsNotice() {
+export function IntegrationsListNoticeCallout() {
     const [isConnectAccountNoteOpen, setIsConnectAccountNoteOpen] =
         React.useState(true);
 
@@ -63,18 +75,13 @@ export function IntegrationsNotice() {
     );
 }
 
-interface IntegrationActionProps {
-    direction?: IntegrationDirection;
-    id: IntegrationId;
-    isConnected: boolean;
-}
-
-export function IntegrationItem(props: React.ComponentProps<"div">) {
+export function IntegrationsListItem(props: React.ComponentProps<"div">) {
     return (
-        <div className="flex items-center gap-2 pt-1 first:mt-3.5" {...props} />
+        <div className="flex items-center gap-2 pt-1 first:mt-3" {...props} />
     );
 }
 
+/** @internal */
 function IntegrationActionIconGlyph({
     icon,
 }: Readonly<{
@@ -83,19 +90,23 @@ function IntegrationActionIconGlyph({
     if (icon === "images") {
         return <Images className="size-4" />;
     }
-
     if (icon === "refresh") {
         return <RefreshCw className="size-4" />;
     }
-
     return null;
 }
 
-export function IntegrationAction({
+interface IntegrationsListItemActionProps {
+    direction?: IntegrationDirection;
+    id: IntegrationId;
+    isConnected: boolean;
+}
+
+export function IntegrationsListItemAction({
     direction = "source",
     id,
     isConnected,
-}: IntegrationActionProps) {
+}: IntegrationsListItemActionProps) {
     const { actions, errorMessage, successMessage } = useIntegrationAction({
         direction,
         id,

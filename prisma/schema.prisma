@@ -87,6 +87,7 @@ model LibraryItem {
     url              String
     caption          String? // Non-note item caption/label. Notes use noteContentHtml/text only.
     noteContentHtml  String?
+    noteContentState Json?
     noteContentText  String?
     thumbnailUrl     String?
     sourceMetadata   Json?

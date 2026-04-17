@@ -1085,6 +1085,7 @@ export const LibraryItemScalarFieldEnum = {
   url: 'url',
   caption: 'caption',
   noteContentHtml: 'noteContentHtml',
+  noteContentState: 'noteContentState',
   noteContentText: 'noteContentText',
   thumbnailUrl: 'thumbnailUrl',
   sourceMetadata: 'sourceMetadata',

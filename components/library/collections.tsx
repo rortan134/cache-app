@@ -73,38 +73,16 @@ import {
     UserRoundPlus,
 } from "lucide-react";
 import Image from "next/image";
-import type { CSSProperties, ReactElement } from "react";
-import { useEffect, useRef, useState } from "react";
+import * as React from "react";
 
 const COLLECTIONS_PREVIEW_OPEN_DELAY_MS = 450;
 const COLLECTION_ITEM_PREVIEW_CLOSE_DELAY_MS = 20;
 const COLLECTION_ITEM_PREVIEW_SLIDESHOW_INTERVAL_MS = 600;
 
-interface CollectionPriorityOption {
-    readonly icon: LucideIcon;
-    readonly label: string;
-    readonly value: CollectionPriority;
-}
-
-function getCollectionButtonStyle(
-    name: string,
-    isSelected: boolean
-): CSSProperties {
-    const assignedColor = getColorFromName(name);
-    const backgroundOpacity = isSelected ? 20 : 7;
-
-    return {
-        "--collection-background": `color-mix(in srgb, ${assignedColor} ${backgroundOpacity}%, transparent)`,
-        "--focus-ring-color": `color-mix(in srgb, ${assignedColor}, black 50%)`,
-        "--text-muted-color": `color-mix(in srgb, ${assignedColor} 16%, black 18%)`,
-    } as CSSProperties;
-}
-
-export function CollectionsList({
-    className,
-    ...props
-}: React.ComponentProps<typeof Collapsible>): ReactElement {
-    return <Collapsible className={cn("gap-3", className)} {...props} />;
+export function CollectionsList(
+    props: React.ComponentProps<typeof Collapsible>
+) {
+    return <Collapsible {...props} />;
 }
 
 export function CollectionsListTrigger({
@@ -118,12 +96,12 @@ export function CollectionsListTrigger({
 }: React.ComponentProps<typeof CollapsibleTrigger> & {
     collectionLabels: string[];
     isPreviewEnabled?: boolean;
-}): ReactElement {
-    const [isPreviewOpen, setIsPreviewOpen] = useState(false);
-    const [isTriggerHovered, setIsTriggerHovered] = useState(false);
-    const hoverOpenTimeoutRef = useRef<number | null>(null);
+}) {
+    const [isPreviewOpen, setIsPreviewOpen] = React.useState(false);
+    const [isTriggerHovered, setIsTriggerHovered] = React.useState(false);
+    const hoverOpenTimeoutRef = React.useRef<number | null>(null);
 
-    useEffect(() => {
+    React.useEffect(() => {
         if (hoverOpenTimeoutRef.current) {
             clearTimeout(hoverOpenTimeoutRef.current);
             hoverOpenTimeoutRef.current = null;
@@ -203,10 +181,16 @@ export function CollectionsListTrigger({
     );
 }
 
+export function CollectionsListPanel(
+    props: React.ComponentProps<typeof CollapsiblePanel>
+) {
+    return <CollapsiblePanel {...props} />;
+}
+
 export function CollectionsListAction({
     className,
     ...props
-}: React.ComponentProps<typeof Button>): ReactElement {
+}: React.ComponentProps<typeof Button>) {
     return (
         <Button
             className={cn(
@@ -220,64 +204,15 @@ export function CollectionsListAction({
     );
 }
 
-export function CollectionsListContent(
-    props: React.ComponentProps<typeof CollapsiblePanel>
-): ReactElement {
-    return <CollapsiblePanel {...props} />;
-}
-
-const DEFAULT_COLLECTION_PRIORITY_OPTION: CollectionPriorityOption = {
-    icon: PriorityNoneIcon as LucideIcon,
-    label: "No priority",
-    value: "none",
-};
-
-const COLLECTION_PRIORITY_OPTIONS = [
-    DEFAULT_COLLECTION_PRIORITY_OPTION,
-    {
-        icon: Sparkle,
-        label: "Very relevant",
-        value: "very_relevant",
-    },
-    {
-        icon: SignalHigh,
-        label: "Relevant",
-        value: "relevant",
-    },
-    {
-        icon: SignalMedium,
-        label: "Background",
-        value: "peripheral",
-    },
-    {
-        icon: ArchiveIcon,
-        label: "Archive",
-        value: "archive",
-    },
-] satisfies readonly CollectionPriorityOption[];
-
-const COLLECTION_PRIORITY_OPTION_BY_VALUE = new Map(
-    COLLECTION_PRIORITY_OPTIONS.map((option) => [option.value, option])
-);
-
-function getCollectionPriorityOption(
-    priority: CollectionPriority
-): CollectionPriorityOption {
-    const option = COLLECTION_PRIORITY_OPTION_BY_VALUE.get(priority);
-    if (option) {
-        return option;
-    }
-    return DEFAULT_COLLECTION_PRIORITY_OPTION;
-}
-
-function CollectionPreviewImage({
+/** @internal */
+function CollectionsListItemPreviewImage({
     alt,
     src,
 }: {
     readonly alt: string;
     readonly src?: string;
-}): ReactElement {
-    const [didFail, setDidFail] = useState(false);
+}) {
+    const [didFail, setDidFail] = React.useState(false);
     const canRenderImage = Boolean(src) && !didFail;
 
     if (!canRenderImage) {
@@ -302,6 +237,7 @@ function CollectionPreviewImage({
     );
 }
 
+/** @internal */
 function CollectionsListItemHoverPreview({
     collection,
     onSelect,
@@ -310,11 +246,11 @@ function CollectionsListItemHoverPreview({
     readonly collection: LibraryCollectionSummary;
     readonly onSelect: () => void;
     readonly previewThumbnailUrls: readonly string[];
-}): ReactElement {
-    const [isOpen, setIsOpen] = useState(false);
-    const [activePreviewIndex, setActivePreviewIndex] = useState(0);
+}) {
+    const [isOpen, setIsOpen] = React.useState(false);
+    const [activePreviewIndex, setActivePreviewIndex] = React.useState(0);
 
-    useEffect(() => {
+    React.useEffect(() => {
         if (!(isOpen && previewThumbnailUrls.length > 1)) {
             setActivePreviewIndex(0);
             return;
@@ -363,7 +299,7 @@ function CollectionsListItemHoverPreview({
                 positionMethod="fixed"
                 side="right"
             >
-                <CollectionPreviewImage
+                <CollectionsListItemPreviewImage
                     alt={`${collection.name} preview`}
                     src={activePreviewSrc}
                 />
@@ -372,8 +308,59 @@ function CollectionsListItemHoverPreview({
     );
 }
 
+interface CollectionItemPriorityOption {
+    readonly icon: LucideIcon;
+    readonly label: string;
+    readonly value: CollectionPriority;
+}
+
+const DEFAULT_COLLECTION_PRIORITY_OPTION: CollectionItemPriorityOption = {
+    icon: PriorityNoneIcon as LucideIcon,
+    label: "No priority",
+    value: "none",
+};
+
+const COLLECTION_PRIORITY_OPTIONS = [
+    DEFAULT_COLLECTION_PRIORITY_OPTION,
+    {
+        icon: Sparkle,
+        label: "Very relevant",
+        value: "very_relevant",
+    },
+    {
+        icon: SignalHigh,
+        label: "Relevant",
+        value: "relevant",
+    },
+    {
+        icon: SignalMedium,
+        label: "Background",
+        value: "peripheral",
+    },
+    {
+        icon: ArchiveIcon,
+        label: "Archive",
+        value: "archive",
+    },
+] satisfies readonly CollectionItemPriorityOption[];
+
+const COLLECTION_PRIORITY_OPTION_BY_VALUE = new Map(
+    COLLECTION_PRIORITY_OPTIONS.map((option) => [option.value, option])
+);
+
 /** @internal */
-function CollectionItemPriorityComboboxPicker({
+function getCollectionItemPriorityOption(
+    priority: CollectionPriority
+): CollectionItemPriorityOption {
+    const option = COLLECTION_PRIORITY_OPTION_BY_VALUE.get(priority);
+    if (option) {
+        return option;
+    }
+    return DEFAULT_COLLECTION_PRIORITY_OPTION;
+}
+
+/** @internal */
+function CollectionsListItemPriorityCombobox({
     collection,
     isPending = false,
     onUpdatePriority,
@@ -391,11 +378,11 @@ function CollectionItemPriorityComboboxPicker({
     ) => void;
     readonly open?: boolean;
     readonly onOpenChange?: (open: boolean) => void;
-}): ReactElement {
-    const [isOpenInternal, setIsOpenInternal] = useState(false);
+}) {
+    const [isOpenInternal, setIsOpenInternal] = React.useState(false);
     const isOpen = openProp ?? isOpenInternal;
     const setIsOpen = onOpenChange ?? setIsOpenInternal;
-    const selectedOption = getCollectionPriorityOption(collection.priority);
+    const selectedOption = getCollectionItemPriorityOption(collection.priority);
 
     return (
         <Combobox
@@ -456,6 +443,17 @@ function CollectionItemPriorityComboboxPicker({
     );
 }
 
+function getCollectionsListItemStyle(name: string, isSelected: boolean) {
+    const assignedColor = getColorFromName(name);
+    const backgroundOpacity = isSelected ? 20 : 7;
+
+    return {
+        "--collection-background": `color-mix(in srgb, ${assignedColor} ${backgroundOpacity}%, transparent)`,
+        "--focus-ring-color": `color-mix(in srgb, ${assignedColor}, black 50%)`,
+        "--text-muted-color": `color-mix(in srgb, ${assignedColor} 16%, black 18%)`,
+    } as React.CSSProperties;
+}
+
 export function CollectionsListItem({
     collection,
     isExportPending = false,
@@ -482,15 +480,15 @@ export function CollectionsListItem({
     readonly onRename: () => void;
     readonly onSelect: () => void;
     readonly onUpdatePriority: (priority: CollectionPriority) => void;
-}): ReactElement {
+}) {
     const hasItems = collection.itemCount > 0;
 
     return (
         <div
             className="group relative flex select-none items-center"
-            style={getCollectionButtonStyle(collection.name, isSelected)}
+            style={getCollectionsListItemStyle(collection.name, isSelected)}
         >
-            <CollectionItemPriorityComboboxPicker
+            <CollectionsListItemPriorityCombobox
                 collection={collection}
                 isPending={isUpdatePriorityPending}
                 onUpdatePriority={(_, priority) => onUpdatePriority(priority)}
@@ -575,7 +573,7 @@ export function CollectionsListItem({
     );
 }
 
-export function CollectionsListFeedback({
+export function CollectionsListStatus({
     message,
     onDismiss,
     tone,
@@ -583,7 +581,7 @@ export function CollectionsListFeedback({
     readonly message?: string;
     readonly onDismiss: () => void;
     readonly tone?: "error" | "success";
-}): ReactElement | null {
+}) {
     if (!message) {
         return null;
     }
@@ -613,7 +611,7 @@ export function CollectionsListFilterClear({
 }: {
     readonly isVisible: boolean;
     readonly onClear: () => void;
-}): ReactElement | null {
+}) {
     if (!isVisible) {
         return null;
     }
@@ -630,20 +628,29 @@ export function CollectionsListFilterClear({
     );
 }
 
-export function CollectionsListEmpty(): ReactElement {
+export function CollectionsListEmpty({
+    className,
+    ...props
+}: React.ComponentProps<"p">) {
     return (
-        <p className="rounded-xl border border-border/30 border-dashed px-4 py-6 text-center text-muted-foreground text-xs">
+        <p
+            className={cn(
+                "rounded-xl border border-border/30 border-dashed px-4 py-6 text-center text-muted-foreground text-xs",
+                className
+            )}
+            {...props}
+        >
             Create your first collection to start grouping saved items.
         </p>
     );
 }
 
-export function SmartCollectionsNoticeCallout(): ReactElement {
-    const [isOpen, setIsOpen] = useState(true);
+export function SmartCollectionsNoticeCallout() {
+    const [isOpen, setIsOpen] = React.useState(true);
 
     return (
-        <Collapsible onOpenChange={setIsOpen} open={isOpen}>
-            <CollapsiblePanel className="items-center justify-center p-2">
+        <Collapsible className="mt-2.5" onOpenChange={setIsOpen} open={isOpen}>
+            <CollapsiblePanel className="items-center justify-center">
                 <AvatarGroup>
                     <Avatar className="size-7 bg-muted/90">
                         <Sparkles className="inline-block size-4 shrink-0" />

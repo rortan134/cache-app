@@ -10,19 +10,25 @@ This version has breaking changes — APIs, conventions, and file structure may 
 
 ## Tech stack
 
-- runtime & package manager: Node.js >= 24, Bun, read Bun API docs in `node_modules/bun-types/docs/**.mdx` if necessary.
+- runtime & package manager: Node.js 24.x, Bun, read Bun API docs in `node_modules/bun-types/docs/**.mdx` if necessary.
 - framework: Next.js 16 (App Router)
 - ui: React 19, Base-UI (@base-ui/react), lucide-react
 - styling: Tailwind CSS 4
-- validation: zod
+- validation: zod schemas
+- database: PostgreSQL via Prisma 6
 - auth: better-auth with better-auth/stripe (Stripe subscriptions)
 - tooling: TypeScript 6 (strict typing), Biome via Ultracite
+
+## Procedure module patterns (server actions + services)
+
+We organize Next.js Server Actions as thin adapters in `lib/{module}/actions.ts` files that handle input validation, auth and session checks, error normalization, caching/revalidation and rate limiting. These actions call pure service functions which contain all business logic and database/external-API calls. Services never depend on Next.js; they operate on validated data and return domain objects or typed results.
+Actions are the only networking boundary: they parse/validate inputs, guard with user context, translate service results to serialized responses, and decide side effects like `revalidatePath()`, Stripe operations, sending emails, and more.
 
 ## Logging and error handling
 
 - Logging lives at `lib/logs/console/logger.ts`:
   - `createLogger(module)` returns a scoped logger with `.debug/.info/.warn/.error` and a `.time()` helper for spans.
-- Named errors live at `lib/error.ts`:
+- Named error module lives at `lib/error.ts`:
   - `NamedError.create("SomeDomainError", z.object({...}))` creates a typed error class with runtime-validated `data` and a stable `name`.
 - Use these in services and actions to propagate domain failures with structured metadata (e.g., `{ operation, message, ... }`).
 

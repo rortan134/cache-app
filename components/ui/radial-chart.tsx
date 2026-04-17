@@ -3,7 +3,7 @@
 import * as React from "react";
 import { PolarAngleAxis, RadialBar, RadialBarChart } from "recharts";
 
-interface RadialChartProps {
+interface RadialChartProps extends React.ComponentProps<"div"> {
     /**
      * Fill colour for the progress bar, e.g. '#22c55e'. Defaults to brand blue.
      */
@@ -22,6 +22,7 @@ const RadialChartImpl = ({
     value,
     size = 50,
     color = "#2563eb",
+    ...props
 }: RadialChartProps) => {
     const normalizedValue = React.useMemo(() => {
         if (Number.isNaN(value) || value < 0) {
@@ -39,7 +40,11 @@ const RadialChartImpl = ({
     const barSize = size * 0.08;
 
     return (
-        <div style={{ height: size, position: "relative", width: size }}>
+        <div
+            aria-hidden
+            style={{ height: size, position: "relative", width: size }}
+            {...props}
+        >
             <RadialBarChart
                 barSize={barSize}
                 cx={size / 2}

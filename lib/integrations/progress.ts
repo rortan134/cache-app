@@ -10,7 +10,7 @@ const SIGNUP_PROGRESS_BASELINE_PERCENT = 10;
 export function integrationSetupProgressPercent(
     connectedCount: number,
     syncable: number
-): number {
+) {
     if (syncable < 1) {
         return 0;
     }
@@ -21,7 +21,7 @@ export function integrationSetupProgressPercent(
     return Math.round(SIGNUP_PROGRESS_BASELINE_PERCENT + integrationPortion);
 }
 
-export function syncableLibrarySourceTotal(): number {
+export function syncableLibrarySourceTotal() {
     return listSyncableIntegrations().length;
 }
 
@@ -63,7 +63,7 @@ export function integrationSetupHeadingText(args: {
         return "Get setup with your first account";
     }
     if (connectedCount < syncable) {
-        return "Connect more platforms to unify your saved posts in one library";
+        return "Unify your saved content in one library";
     }
     return "You're all set - keep your library in sync";
 }

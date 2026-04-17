@@ -1,5 +1,36 @@
 "use client";
 
+import {
+    $createParagraphNode,
+    $getSelection,
+    $getRoot,
+    $isRangeSelection,
+    $isRootNode,
+    COMMAND_PRIORITY_LOW,
+    FORMAT_TEXT_COMMAND,
+    SELECTION_CHANGE_COMMAND,
+    mergeRegister,
+    type LexicalEditor,
+    type TextFormatType,
+} from "lexical";
+import { $generateNodesFromDOM } from "@lexical/html";
+import { $setBlocksType } from "@lexical/selection";
+import {
+    HeadingNode,
+    $createHeadingNode,
+    $isHeadingNode,
+} from "@lexical/rich-text";
+import { AutoFocusPlugin } from "@lexical/react/LexicalAutoFocusPlugin";
+import { ContentEditable } from "@lexical/react/LexicalContentEditable";
+import {
+    LexicalComposer,
+    type InitialConfigType,
+} from "@lexical/react/LexicalComposer";
+import { LexicalErrorBoundary } from "@lexical/react/LexicalErrorBoundary";
+import { HistoryPlugin } from "@lexical/react/LexicalHistoryPlugin";
+import { OnChangePlugin } from "@lexical/react/LexicalOnChangePlugin";
+import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin";
+import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -13,12 +44,18 @@ import {
 import { Group } from "@/components/ui/group";
 import { GoogleDocsIcon, NotionIcon } from "@/components/ui/icons";
 import { cn } from "@/lib/cn";
+import {
+    NOTE_EMPTY_HTML,
+    isNoteSerializedEditorState,
+    normalizeNoteHtml,
+    serializeNoteEditorStateToHtml,
+    type NoteSerializedEditorState,
+} from "@/lib/library/notes";
 import type { LibraryItemWithCollections } from "@/lib/library/types";
 import AppIconSmall from "@/public/cache-icon-small.png";
 import {
     BoldIcon,
     ChevronRight,
-    HighlighterIcon,
     ItalicIcon,
     Maximize2,
     StrikethroughIcon,
@@ -26,13 +63,11 @@ import {
     XIcon,
 } from "lucide-react";
 import Image from "next/image";
-import { useEffect, useRef, useState, type RefObject } from "react";
-
-const NOTE_EMPTY_HTML = "<p></p>";
-const NOTE_HIGHLIGHT_COLOR = "#fef08a";
+import { useEffect, useRef, useState } from "react";
 
 interface NoteDraft {
     readonly contentHtml: string;
+    readonly contentState: NoteSerializedEditorState | null;
 }
 
 interface Props {
@@ -44,28 +79,52 @@ interface Props {
 }
 
 interface FormatState {
+    readonly blockType: NoteBlockType;
     readonly bold: boolean;
-    readonly highlight: boolean;
     readonly italic: boolean;
     readonly strikeThrough: boolean;
     readonly underline: boolean;
 }
 
+type NoteBlockType = "h1" | "h2" | "h3" | "paragraph";
+
 const EMPTY_FORMAT_STATE: FormatState = {
+    blockType: "paragraph",
     bold: false,
-    highlight: false,
     italic: false,
     strikeThrough: false,
     underline: false,
 };
 
-function normalizeNoteHtml(html: string | null | undefined): string {
-    return html?.trim() || NOTE_EMPTY_HTML;
-}
+const NOTE_EDITOR_THEME = {
+    heading: {
+        h1: "mb-3 mt-0 text-[2rem] font-semibold leading-tight tracking-tight",
+        h2: "mb-3 mt-6 text-[1.5rem] font-semibold leading-tight tracking-tight",
+        h3: "mb-2 mt-5 text-[1.2rem] font-semibold leading-tight tracking-tight",
+    },
+    paragraph: "my-0 min-h-[1.75rem] leading-7",
+    text: {
+        bold: "font-semibold",
+        highlight: "rounded-sm bg-amber-200/90 px-0.5",
+        italic: "italic",
+        strikethrough: "line-through",
+        underline: "underline",
+    },
+};
+
+const NOTE_EDITOR_NODES = [HeadingNode];
+const NOTE_EDITOR_NAMESPACE = "cache-library-note";
 
 function noteDraftFromItem(note: LibraryItemWithCollections | null): NoteDraft {
+    const contentState = isNoteSerializedEditorState(note?.noteContentState)
+        ? note.noteContentState
+        : null;
+
     return {
-        contentHtml: normalizeNoteHtml(note?.noteContentHtml),
+        contentHtml: contentState
+            ? serializeNoteEditorStateToHtml(contentState)
+            : normalizeNoteHtml(note?.noteContentHtml),
+        contentState,
     };
 }
 
@@ -101,56 +160,25 @@ function noteDraftShouldSave(
     return noteHtmlHasMeaningfulContent(currentDraft.contentHtml);
 }
 
-function useRichTextFormats(
-    editorRef: RefObject<HTMLDivElement | null>,
-    enabled: boolean
-): FormatState {
-    const [formats, setFormats] = useState<FormatState>(EMPTY_FORMAT_STATE);
+function getSelectedBlockType(): NoteBlockType {
+    const selection = $getSelection();
+    if (!$isRangeSelection(selection)) {
+        return "paragraph";
+    }
 
-    useEffect(() => {
-        if (!enabled) {
-            setFormats(EMPTY_FORMAT_STATE);
-            return;
+    const anchorNode = selection.anchor.getNode();
+    const topLevelNode = $isRootNode(anchorNode)
+        ? anchorNode
+        : anchorNode.getTopLevelElement();
+
+    if (topLevelNode && $isHeadingNode(topLevelNode)) {
+        const tag = topLevelNode.getTag();
+        if (tag === "h1" || tag === "h2" || tag === "h3") {
+            return tag;
         }
+    }
 
-        const refreshFormats = () => {
-            const selection = window.getSelection();
-            const anchorNode = selection?.anchorNode;
-            const editor = editorRef.current;
-            const isInsideEditor =
-                !!editor &&
-                !!anchorNode &&
-                (anchorNode === editor || editor.contains(anchorNode));
-
-            if (!isInsideEditor) {
-                setFormats(EMPTY_FORMAT_STATE);
-                return;
-            }
-
-            const highlightValue = String(
-                document.queryCommandValue("hiliteColor") ?? ""
-            ).toLowerCase();
-
-            setFormats({
-                bold: document.queryCommandState("bold"),
-                highlight:
-                    highlightValue.includes("254") ||
-                    highlightValue.includes("fef08a"),
-                italic: document.queryCommandState("italic"),
-                strikeThrough: document.queryCommandState("strikeThrough"),
-                underline: document.queryCommandState("underline"),
-            });
-        };
-
-        document.addEventListener("selectionchange", refreshFormats);
-        refreshFormats();
-
-        return () => {
-            document.removeEventListener("selectionchange", refreshFormats);
-        };
-    }, [editorRef, enabled]);
-
-    return formats;
+    return "paragraph";
 }
 
 function NoteDrawerHeader({ title }: { readonly title: string }) {
@@ -200,31 +228,135 @@ function NoteDrawerHeader({ title }: { readonly title: string }) {
     );
 }
 
-function NoteFormattingToolbar({
-    editorRef,
-    onContentHtmlChange,
-    open,
-}: {
-    readonly editorRef: RefObject<HTMLDivElement | null>;
-    readonly onContentHtmlChange: (contentHtml: string) => void;
-    readonly open: boolean;
-}) {
-    const formats = useRichTextFormats(editorRef, open);
+function NoteFormattingToolbarPlugin() {
+    const [editor] = useLexicalComposerContext();
+    const [formats, setFormats] = useState<FormatState>(EMPTY_FORMAT_STATE);
 
-    const runCommand = (command: string, value?: string) => {
-        editorRef.current?.focus();
-        document.execCommand(command, false, value);
-        onContentHtmlChange(editorRef.current?.innerHTML ?? NOTE_EMPTY_HTML);
+    useEffect(() => {
+        const updateToolbarState = () => {
+            editor.getEditorState().read(() => {
+                const selection = $getSelection();
+
+                if (!$isRangeSelection(selection)) {
+                    setFormats(EMPTY_FORMAT_STATE);
+                    return;
+                }
+
+                setFormats({
+                    blockType: getSelectedBlockType(),
+                    bold: selection.hasFormat("bold"),
+                    italic: selection.hasFormat("italic"),
+                    strikeThrough: selection.hasFormat("strikethrough"),
+                    underline: selection.hasFormat("underline"),
+                });
+            });
+        };
+
+        updateToolbarState();
+
+        return mergeRegister(
+            editor.registerUpdateListener(() => {
+                updateToolbarState();
+            }),
+            editor.registerCommand(
+                SELECTION_CHANGE_COMMAND,
+                () => {
+                    updateToolbarState();
+                    return false;
+                },
+                COMMAND_PRIORITY_LOW
+            )
+        );
+    }, [editor]);
+
+    const toggleTextFormat = (format: TextFormatType) => {
+        editor.dispatchCommand(FORMAT_TEXT_COMMAND, format);
+    };
+
+    const setBlockType = (blockType: NoteBlockType) => {
+        editor.update(() => {
+            const selection = $getSelection();
+            if (!$isRangeSelection(selection)) {
+                return;
+            }
+
+            if (blockType === "paragraph") {
+                $setBlocksType(selection, () => $createParagraphNode());
+                return;
+            }
+
+            $setBlocksType(selection, () => $createHeadingNode(blockType));
+        });
     };
 
     return (
         <div className="-mx-2 flex flex-wrap items-center gap-1 rounded-2xl border border-border/60 bg-muted/35 p-1">
             <Button
+                aria-label="Paragraph"
+                className={cn(
+                    "rounded-full px-3 font-medium text-xs",
+                    formats.blockType === "paragraph" && "bg-accent"
+                )}
+                onMouseDown={(event) => {
+                    event.preventDefault();
+                    setBlockType("paragraph");
+                }}
+                size="xs"
+                variant="ghost"
+            >
+                Text
+            </Button>
+            <Button
+                aria-label="Heading 1"
+                className={cn(
+                    "rounded-full px-3 font-medium text-xs",
+                    formats.blockType === "h1" && "bg-accent"
+                )}
+                onMouseDown={(event) => {
+                    event.preventDefault();
+                    setBlockType("h1");
+                }}
+                size="xs"
+                variant="ghost"
+            >
+                H1
+            </Button>
+            <Button
+                aria-label="Heading 2"
+                className={cn(
+                    "rounded-full px-3 font-medium text-xs",
+                    formats.blockType === "h2" && "bg-accent"
+                )}
+                onMouseDown={(event) => {
+                    event.preventDefault();
+                    setBlockType("h2");
+                }}
+                size="xs"
+                variant="ghost"
+            >
+                H2
+            </Button>
+            <Button
+                aria-label="Heading 3"
+                className={cn(
+                    "rounded-full px-3 font-medium text-xs",
+                    formats.blockType === "h3" && "bg-accent"
+                )}
+                onMouseDown={(event) => {
+                    event.preventDefault();
+                    setBlockType("h3");
+                }}
+                size="xs"
+                variant="ghost"
+            >
+                H3
+            </Button>
+            <Button
                 aria-label="Bold"
                 className={cn(formats.bold && "bg-accent")}
                 onMouseDown={(event) => {
                     event.preventDefault();
-                    runCommand("bold");
+                    toggleTextFormat("bold");
                 }}
                 size="icon-sm"
                 variant="ghost"
@@ -236,7 +368,7 @@ function NoteFormattingToolbar({
                 className={cn(formats.italic && "bg-accent")}
                 onMouseDown={(event) => {
                     event.preventDefault();
-                    runCommand("italic");
+                    toggleTextFormat("italic");
                 }}
                 size="icon-sm"
                 variant="ghost"
@@ -248,7 +380,7 @@ function NoteFormattingToolbar({
                 className={cn(formats.underline && "bg-accent")}
                 onMouseDown={(event) => {
                     event.preventDefault();
-                    runCommand("underline");
+                    toggleTextFormat("underline");
                 }}
                 size="icon-sm"
                 variant="ghost"
@@ -260,103 +392,107 @@ function NoteFormattingToolbar({
                 className={cn(formats.strikeThrough && "bg-accent")}
                 onMouseDown={(event) => {
                     event.preventDefault();
-                    runCommand("strikeThrough");
+                    toggleTextFormat("strikethrough");
                 }}
                 size="icon-sm"
                 variant="ghost"
             >
                 <StrikethroughIcon className="size-4" />
             </Button>
-            <Button
-                aria-label="Highlight"
-                className={cn(formats.highlight && "bg-accent")}
-                onMouseDown={(event) => {
-                    event.preventDefault();
-                    runCommand(
-                        "hiliteColor",
-                        formats.highlight ? "transparent" : NOTE_HIGHLIGHT_COLOR
-                    );
-                }}
-                size="icon-sm"
-                variant="ghost"
-            >
-                <HighlighterIcon className="size-4" />
-            </Button>
         </div>
+    );
+}
+
+function NoteContentPlugin({
+    onDraftChange,
+}: {
+    readonly onDraftChange: (draft: NoteDraft) => void;
+}) {
+    return (
+        <>
+            <NoteFormattingToolbarPlugin />
+            <div className="relative flex min-h-96 flex-1">
+                <RichTextPlugin
+                    contentEditable={
+                        <ContentEditable
+                            className={cn(
+                                "prose prose-stone max-w-none flex-1 overflow-y-auto text-[15px] leading-7 outline-none",
+                                "prose-p:my-0 prose-p:min-h-[1.75rem] prose-mark:rounded-sm prose-mark:bg-amber-200/90 prose-mark:px-0.5 prose-strong:font-semibold prose-em:italic prose-u:underline prose-s:line-through"
+                            )}
+                        />
+                    }
+                    ErrorBoundary={LexicalErrorBoundary}
+                    placeholder={
+                        <div className="pointer-events-none absolute inset-0 text-base text-muted-foreground">
+                            Start writing or paste an URL...
+                        </div>
+                    }
+                />
+                <HistoryPlugin />
+                <AutoFocusPlugin />
+                <OnChangePlugin
+                    ignoreSelectionChange
+                    onChange={(editorState) => {
+                        const contentState = editorState.toJSON();
+                        onDraftChange({
+                            contentHtml:
+                                serializeNoteEditorStateToHtml(contentState),
+                            contentState,
+                        });
+                    }}
+                />
+            </div>
+        </>
     );
 }
 
 function NoteEditor({
-    contentHtml,
-    editorRef,
-    onContentHtmlChange,
+    editorKey,
+    initialDraft,
+    onDraftChange,
 }: {
-    readonly contentHtml: string;
-    readonly editorRef: RefObject<HTMLDivElement | null>;
-    readonly onContentHtmlChange: (contentHtml: string) => void;
+    readonly editorKey: number;
+    readonly initialDraft: NoteDraft;
+    readonly onDraftChange: (draft: NoteDraft) => void;
 }) {
-    useEffect(() => {
-        const editor = editorRef.current;
+    let initialEditorState: InitialConfigType["editorState"] = null;
 
-        if (!editor || editor.innerHTML === contentHtml) {
-            return;
-        }
+    if (initialDraft.contentState) {
+        initialEditorState = JSON.stringify(initialDraft.contentState);
+    } else if (
+        normalizeNoteHtml(initialDraft.contentHtml) !== NOTE_EMPTY_HTML
+    ) {
+        initialEditorState = (editor: LexicalEditor) => {
+            const dom = new DOMParser().parseFromString(
+                initialDraft.contentHtml,
+                "text/html"
+            );
+            const nodes = $generateNodesFromDOM(editor, dom);
+            const root = $getRoot();
 
-        editor.innerHTML = contentHtml;
-    }, [contentHtml, editorRef]);
+            root.clear();
+            root.append(...nodes);
 
-    const isEmpty = contentHtml === NOTE_EMPTY_HTML;
+            if (root.getChildrenSize() === 0) {
+                root.append($createParagraphNode());
+            }
+        };
+    }
+
+    const initialConfig: InitialConfigType = {
+        editorState: initialEditorState,
+        namespace: NOTE_EDITOR_NAMESPACE,
+        nodes: NOTE_EDITOR_NODES,
+        onError(error: Error) {
+            console.error(error);
+        },
+        theme: NOTE_EDITOR_THEME,
+    };
 
     return (
-        <div className="relative flex min-h-96 flex-1">
-            <div
-                className={cn(
-                    "prose prose-stone max-w-none flex-1 overflow-y-auto text-[15px] leading-7 outline-none",
-                    "prose-p:my-0 prose-p:min-h-[1.75rem] prose-mark:rounded-sm prose-mark:bg-amber-200/90 prose-mark:px-0.5 prose-strong:font-semibold prose-em:italic prose-u:underline prose-s:line-through"
-                )}
-                contentEditable
-                onInput={(event) => {
-                    onContentHtmlChange(event.currentTarget.innerHTML);
-                }}
-                ref={editorRef}
-                suppressContentEditableWarning
-            />
-            {isEmpty ? (
-                <div className="pointer-events-none absolute inset-0 text-base text-muted-foreground">
-                    Start writing or paste an URL...
-                </div>
-            ) : null}
-        </div>
-    );
-}
-
-function NoteDrawerContent({
-    contentHtml,
-    editorRef,
-    onContentHtmlChange,
-    open,
-}: {
-    readonly contentHtml: string;
-    readonly editorRef: RefObject<HTMLDivElement | null>;
-    readonly onContentHtmlChange: (contentHtml: string) => void;
-    readonly open: boolean;
-}) {
-    return (
-        <DrawerPanel
-            allowSelection
-            className="flex min-h-0 flex-1 flex-col gap-4"
-        >
-            <NoteFormattingToolbar
-                editorRef={editorRef}
-                onContentHtmlChange={onContentHtmlChange}
-                open={open}
-            />
-            <NoteEditor
-                contentHtml={contentHtml}
-                editorRef={editorRef}
-                onContentHtmlChange={onContentHtmlChange}
-            />
-        </DrawerPanel>
+        <LexicalComposer initialConfig={initialConfig} key={editorKey}>
+            <NoteContentPlugin onDraftChange={onDraftChange} />
+        </LexicalComposer>
     );
 }
 
@@ -367,11 +503,12 @@ export function LibraryNoteDrawer({
     open,
     saving,
 }: Props) {
-    const editorRef = useRef<HTMLDivElement>(null);
     const initialDraftRef = useRef<NoteDraft>(noteDraftFromItem(note));
+    const latestDraftRef = useRef<NoteDraft>(noteDraftFromItem(note));
     const [draft, setDraft] = useState<NoteDraft>(() =>
         noteDraftFromItem(note)
     );
+    const [editorKey, setEditorKey] = useState(0);
     const [isClosing, setIsClosing] = useState(false);
 
     useEffect(() => {
@@ -381,14 +518,19 @@ export function LibraryNoteDrawer({
 
         const nextDraft = noteDraftFromItem(note);
         initialDraftRef.current = nextDraft;
+        latestDraftRef.current = nextDraft;
         setDraft(nextDraft);
+        setEditorKey((currentKey) => currentKey + 1);
     }, [note, open]);
 
-    const handleContentHtmlChange = (nextContentHtml: string) => {
-        setDraft((currentDraft) => ({
-            ...currentDraft,
-            contentHtml: normalizeNoteHtml(nextContentHtml),
-        }));
+    const handleDraftChange = (nextDraft: NoteDraft) => {
+        const normalizedDraft = {
+            contentHtml: normalizeNoteHtml(nextDraft.contentHtml),
+            contentState: nextDraft.contentState,
+        } satisfies NoteDraft;
+
+        latestDraftRef.current = normalizedDraft;
+        setDraft(normalizedDraft);
     };
 
     const handleOpenChange = async (nextOpen: boolean) => {
@@ -401,9 +543,7 @@ export function LibraryNoteDrawer({
             return;
         }
 
-        const currentDraft = {
-            contentHtml: editorRef.current?.innerHTML ?? draft.contentHtml,
-        } satisfies NoteDraft;
+        const currentDraft = latestDraftRef.current;
 
         if (!noteDraftShouldSave(currentDraft, initialDraftRef.current, note)) {
             onOpenChange(false);
@@ -427,12 +567,16 @@ export function LibraryNoteDrawer({
         <Drawer onOpenChange={handleOpenChange} open={open} position="right">
             <DrawerPopup className="max-w-2xl" variant="straight">
                 <NoteDrawerHeader title={note ? "Edit note" : "New entry"} />
-                <NoteDrawerContent
-                    contentHtml={draft.contentHtml}
-                    editorRef={editorRef}
-                    onContentHtmlChange={handleContentHtmlChange}
-                    open={open}
-                />
+                <DrawerPanel
+                    allowSelection
+                    className="flex min-h-0 flex-1 flex-col gap-4"
+                >
+                    <NoteEditor
+                        editorKey={editorKey}
+                        initialDraft={draft}
+                        onDraftChange={handleDraftChange}
+                    />
+                </DrawerPanel>
             </DrawerPopup>
         </Drawer>
     );
