@@ -1,3 +1,6 @@
+const TRAILING_NUMBER_PATTERN = /^.*(\d+)$/;
+const TRAILING_NUMBER_REPLACE_PATTERN = /(\d+)$/;
+
 /**
  * Get an incremented name (e.g. New page (2)) from a name (e.g. New page), based on an array of
  * existing names.
@@ -11,8 +14,10 @@ export function getIncrementedName(name: string, others: string[]) {
     const set = new Set(others);
 
     while (set.has(result)) {
-        result = /^.*(\d+)$/.exec(result)?.[1]
-            ? result.replace(/(\d+)$/, (m) => (+m + 1).toString())
+        result = TRAILING_NUMBER_PATTERN.exec(result)?.[1]
+            ? result.replace(TRAILING_NUMBER_REPLACE_PATTERN, (m) =>
+                  (+m + 1).toString()
+              )
             : `${result} 1`;
     }
 

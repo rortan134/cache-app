@@ -133,7 +133,6 @@ export function DrawerViewport({
     );
 }
 
-// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: TODO: fix lint error
 export function DrawerPopup({
     className,
     children,

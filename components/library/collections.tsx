@@ -372,22 +372,17 @@ function getCollectionItemPriorityOption(
 /** @internal */
 function CollectionsListItemPriorityCombobox({
     collection,
-    isPending = false,
     onUpdatePriority,
     open: openProp,
     onOpenChange,
 }: {
-    readonly collection: Pick<
-        LibraryCollectionSummary,
-        "id" | "name" | "priority"
-    >;
-    readonly isPending?: boolean;
-    readonly onUpdatePriority: (
+    collection: Pick<LibraryCollectionSummary, "id" | "name" | "priority">;
+    onUpdatePriority: (
         collectionId: string,
         priority: CollectionPriority
     ) => void;
-    readonly open?: boolean;
-    readonly onOpenChange?: (open: boolean) => void;
+    open?: boolean;
+    onOpenChange?: (open: boolean) => void;
 }) {
     const [isOpenInternal, setIsOpenInternal] = React.useState(false);
     const isOpen = openProp ?? isOpenInternal;
@@ -414,7 +409,6 @@ function CollectionsListItemPriorityCombobox({
                     <Button
                         aria-label={`Set priority for ${collection.name}`}
                         className="absolute top-1/2 left-0.5 z-10 -translate-y-1/2 rounded-full opacity-80 group-hover:opacity-100"
-                        disabled={isPending}
                         size="icon-sm"
                         variant="ghost"
                     />
@@ -466,9 +460,7 @@ function getCollectionsListItemStyle(name: string, isSelected: boolean) {
 
 export function CollectionsListItem({
     collection,
-    isExportPending = false,
     isSelected,
-    isUpdatePriorityPending = false,
     thumbnails = [],
     onCopyLinks,
     onDelete,
@@ -479,10 +471,8 @@ export function CollectionsListItem({
     onUpdatePriority,
 }: {
     collection: LibraryCollectionSummary;
-    isExportPending?: boolean;
     isSelected: boolean;
-    isUpdatePriorityPending?: boolean;
-    thumbnails?: string[];
+    thumbnails: string[];
     onCopyLinks: () => void;
     onDelete: () => void;
     onExportCsv: () => void;
@@ -500,7 +490,6 @@ export function CollectionsListItem({
         >
             <CollectionsListItemPriorityCombobox
                 collection={collection}
-                isPending={isUpdatePriorityPending}
                 onUpdatePriority={(_, priority) => onUpdatePriority(priority)}
             />
             <CollectionsListItemPreview
@@ -551,15 +540,9 @@ export function CollectionsListItem({
                                     <ExternalLinkIcon className="size-4 text-muted-foreground" />
                                     Open all links
                                 </MenuItem>
-                                <MenuItem
-                                    closeOnClick
-                                    disabled={isExportPending}
-                                    onClick={onExportCsv}
-                                >
+                                <MenuItem closeOnClick onClick={onExportCsv}>
                                     <FileSpreadsheetIcon className="size-4 text-muted-foreground" />
-                                    {isExportPending
-                                        ? "Exporting CSV..."
-                                        : "Export to CSV"}
+                                    Export to CSV
                                 </MenuItem>
                                 <MenuItem>
                                     <NotionIcon />

@@ -493,19 +493,15 @@ function LibraryWorkspaceSidebar({
     const [renameDialogError, setRenameDialogError] = useState<string | null>(
         null
     );
-    const [pendingPriorityCollectionIds, setPendingPriorityCollectionIds] =
-        useState<string[]>([]);
+
     const [pendingDeleteCollection, setPendingDeleteCollection] =
         useState<LibraryCollectionSummary | null>(null);
-    const [pendingExportCollectionId, setPendingExportCollectionId] = useState<
-        string | null
-    >(null);
+
     const [collectionActionFeedback, setCollectionActionFeedback] =
         useState<CollectionActionFeedback | null>(null);
     const [isCreatePending, startCreateTransition] = useTransition();
     const [isRenamePending, startRenameTransition] = useTransition();
     const [isDeletePending, startDeleteTransition] = useTransition();
-    const [isExportPending, startExportTransition] = useTransition();
     const createInputId = useId();
     const createDescriptionId = useId();
     const renameInputId = useId();
@@ -625,9 +621,7 @@ function LibraryWorkspaceSidebar({
             return;
         }
 
-        startExportTransition(async () => {
-            setPendingExportCollectionId(collection.id);
-
+        React.startTransition(async () => {
             try {
                 await saveFile(
                     new Blob(
@@ -652,10 +646,6 @@ function LibraryWorkspaceSidebar({
                     message: "We couldn't export this collection right now.",
                     tone: "error",
                 });
-            } finally {
-                setPendingExportCollectionId((current) =>
-                    current === collection.id ? null : current
-                );
             }
         });
     };
@@ -727,11 +717,6 @@ function LibraryWorkspaceSidebar({
         setItems((current) =>
             replaceItemsCollectionPriority(current, collectionId, priority)
         );
-        setPendingPriorityCollectionIds((current) =>
-            current.includes(collectionId)
-                ? current
-                : [...current, collectionId]
-        );
 
         const runUpdate = async () => {
             let result: UpdateCollectionPriorityResult;
@@ -784,10 +769,6 @@ function LibraryWorkspaceSidebar({
                     tone: "error",
                 });
             }
-
-            setPendingPriorityCollectionIds((current) =>
-                current.filter((id) => id !== collectionId)
-            );
         };
 
         runUpdate().catch(() => {
@@ -805,9 +786,7 @@ function LibraryWorkspaceSidebar({
                     previousPriority
                 )
             );
-            setPendingPriorityCollectionIds((current) =>
-                current.filter((id) => id !== collectionId)
-            );
+
             setCollectionActionFeedback({
                 message:
                     "We couldn't update this collection priority right now.",
@@ -992,15 +971,7 @@ function LibraryWorkspaceSidebar({
                                     {collectionSummaries.map((collection) => (
                                         <CollectionsListItem
                                             collection={collection}
-                                            isExportPending={
-                                                isExportPending &&
-                                                pendingExportCollectionId ===
-                                                    collection.id
-                                            }
                                             isSelected={selectedCollectionIds.includes(
-                                                collection.id
-                                            )}
-                                            isUpdatePriorityPending={pendingPriorityCollectionIds.includes(
                                                 collection.id
                                             )}
                                             key={collection.id}

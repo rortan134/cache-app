@@ -51,7 +51,7 @@
             },
             "complexity": {
                 "noUselessCatchBinding": "off",
-                "noExcessiveCognitiveComplexity": "warn"
+                "noExcessiveCognitiveComplexity": "off"
             }
         }
     }

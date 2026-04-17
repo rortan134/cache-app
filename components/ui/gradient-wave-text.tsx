@@ -163,7 +163,6 @@ function GradientWaveText({
         const RANGE = 200;
         let last = performance.now();
 
-        // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: ignore
         const tick = (now: number) => {
             if (finishedRef.current) {
                 return;

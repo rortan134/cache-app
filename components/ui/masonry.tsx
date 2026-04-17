@@ -190,7 +190,6 @@ function replaceNode(tree: Tree, x: TreeNode, y: TreeNode) {
     y.parent = x.parent;
 }
 
-// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: red-black tree delete fixup
 function fixRemove(tree: Tree, node: TreeNode) {
     let x = node;
     let w: TreeNode;
@@ -448,7 +447,6 @@ function createIntervalTree(): IntervalTree {
             tree.size--;
         },
 
-        // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: interval tree traversal
         search(low, high, onCallback) {
             const stack = [tree.root];
             while (stack.length !== 0) {
@@ -548,7 +546,6 @@ function onDeepMemo<T extends unknown[], U>(
         return node;
     }
 
-    // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: multi-depth memo cache
     function set(args: unknown[], value: unknown): unknown {
         if (depth < 3) {
             if (one) {
@@ -729,7 +726,6 @@ function usePositioner(
                     }
                     onItemRender(index, item.left, top);
                 }),
-            // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: column placement
             set: (index: number, height = 0) => {
                 let columnIndex = 0;
 
@@ -805,7 +801,6 @@ function usePositioner(
             size(): number {
                 return intervalTree.size;
             },
-            // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: batch relayout
             update: (updates: number[]) => {
                 const columns: (number | undefined)[] = new Array(
                     computedColumnCount
