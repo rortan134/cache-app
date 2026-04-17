@@ -180,29 +180,26 @@ const COLLECTION_PRIORITY_ORDER = {
 } satisfies Record<CollectionPriority, number>;
 
 interface Props {
-    readonly initialCollections: readonly LibraryCollectionSummary[];
-    readonly initialItems: readonly LibraryItemWithCollections[];
-    readonly sidebarBottom?: ReactNode;
-    readonly sidebarHeader?: ReactNode;
+    initialCollections: LibraryCollectionSummary[];
+    initialItems: LibraryItemWithCollections[];
+    sidebarBottom?: ReactNode;
+    sidebarHeader?: ReactNode;
 }
 
 interface CollectionActionFeedback {
-    readonly message: string;
-    readonly tone: "error" | "success";
+    message: string;
+    tone: "error" | "success";
 }
 
 interface CollectionSidebarActionDependencies {
-    readonly collections: readonly LibraryCollectionTag[];
-    readonly itemsByCollectionId: ReadonlyMap<
-        string,
-        readonly LibraryItemWithCollections[]
-    >;
-    readonly setCollections: (
+    collections: LibraryCollectionTag[];
+    itemsByCollectionId: Map<string, LibraryItemWithCollections[]>;
+    setCollections: (
         value:
             | LibraryCollectionTag[]
             | ((current: LibraryCollectionTag[]) => LibraryCollectionTag[])
     ) => void;
-    readonly setItems: (
+    setItems: (
         value:
             | LibraryItemWithCollections[]
             | ((
@@ -212,21 +209,18 @@ interface CollectionSidebarActionDependencies {
 }
 
 interface LibraryWorkspaceSidebarProps {
-    readonly actionDependencies: CollectionSidebarActionDependencies;
-    readonly collectionPreviewThumbnailUrlsById: ReadonlyMap<
-        string,
-        readonly string[]
-    >;
-    readonly collectionSummaries: readonly LibraryCollectionSummary[];
-    readonly onClearCollectionFilters: () => void;
-    readonly onSelectCollection: (collectionId: string) => void;
-    readonly selectedCollectionIds: readonly string[];
-    readonly sidebarBottom?: ReactNode;
-    readonly sidebarHeader?: ReactNode;
+    actionDependencies: CollectionSidebarActionDependencies;
+    collectionPreviewThumbnailUrlsById: Map<string, string[]>;
+    collectionSummaries: LibraryCollectionSummary[];
+    onClearCollectionFilters: () => void;
+    onSelectCollection: (collectionId: string) => void;
+    selectedCollectionIds: string[];
+    sidebarBottom?: ReactNode;
+    sidebarHeader?: ReactNode;
 }
 
 function sortCollections<T extends LibraryCollectionTag>(
-    collections: readonly T[]
+    collections: T[]
 ): T[] {
     return [...collections].sort((a, b) => {
         const priorityDifference =
@@ -242,9 +236,9 @@ function sortCollections<T extends LibraryCollectionTag>(
 }
 
 function replaceItemCollections(
-    items: readonly LibraryItemWithCollections[],
+    items: LibraryItemWithCollections[],
     itemId: string,
-    collections: readonly LibraryCollectionTag[]
+    collections: LibraryCollectionTag[]
 ): LibraryItemWithCollections[] {
     return items.map((item) =>
         item.id === itemId
@@ -257,7 +251,7 @@ function replaceItemCollections(
 }
 
 function appendCollectionToItem(
-    items: readonly LibraryItemWithCollections[],
+    items: LibraryItemWithCollections[],
     itemId: string,
     collection: LibraryCollectionTag
 ): LibraryItemWithCollections[] {
@@ -276,8 +270,8 @@ function appendCollectionToItem(
 }
 
 function appendCollectionToItems(
-    items: readonly LibraryItemWithCollections[],
-    itemIds: readonly string[],
+    items: LibraryItemWithCollections[],
+    itemIds: string[],
     collection: LibraryCollectionTag
 ): LibraryItemWithCollections[] {
     const itemIdSet = new Set(itemIds);
@@ -300,7 +294,7 @@ function appendCollectionToItems(
 }
 
 function replaceCollectionPriority<T extends LibraryCollectionTag>(
-    collections: readonly T[],
+    collections: T[],
     collectionId: string,
     priority: CollectionPriority
 ): T[] {
@@ -312,7 +306,7 @@ function replaceCollectionPriority<T extends LibraryCollectionTag>(
 }
 
 function replaceCollectionName<T extends LibraryCollectionTag>(
-    collections: readonly T[],
+    collections: T[],
     collectionId: string,
     name: string
 ): T[] {
@@ -335,14 +329,14 @@ function getPreviewOrderSeed(value: string): number {
 
 function getCollectionPreviewThumbnailUrls(
     collectionId: string,
-    items: readonly LibraryItemWithCollections[]
+    items: LibraryItemWithCollections[]
 ): string[] {
     return [...items]
         .filter(
             (
                 item
             ): item is LibraryItemWithCollections & {
-                readonly thumbnailUrl: string;
+                thumbnailUrl: string;
             } => Boolean(item.thumbnailUrl)
         )
         .sort(
@@ -355,7 +349,7 @@ function getCollectionPreviewThumbnailUrls(
 }
 
 function replaceItemsCollectionPriority(
-    items: readonly LibraryItemWithCollections[],
+    items: LibraryItemWithCollections[],
     collectionId: string,
     priority: CollectionPriority
 ): LibraryItemWithCollections[] {
@@ -370,7 +364,7 @@ function replaceItemsCollectionPriority(
 }
 
 function replaceItemsCollectionName(
-    items: readonly LibraryItemWithCollections[],
+    items: LibraryItemWithCollections[],
     collectionId: string,
     name: string
 ): LibraryItemWithCollections[] {
@@ -385,8 +379,8 @@ function replaceItemsCollectionName(
 }
 
 function deriveCollectionSummaries(
-    collections: readonly LibraryCollectionTag[],
-    items: readonly LibraryItemWithCollections[]
+    collections: LibraryCollectionTag[],
+    items: LibraryItemWithCollections[]
 ): LibraryCollectionSummary[] {
     const counts = new Map<string, number>();
     const collectionSources = new Map<string, Set<LibraryItemSource>>();
@@ -413,7 +407,7 @@ function deriveCollectionSummaries(
     );
 }
 
-function openSavedItemsInNewTabs(urls: readonly string[]): void {
+function openSavedItemsInNewTabs(urls: string[]): void {
     if (typeof window.openai === "undefined") {
         for (const url of urls) {
             openSavedItemInNewTab(url);
@@ -425,9 +419,7 @@ function openSavedItemsInNewTabs(urls: readonly string[]): void {
     }
 }
 
-function getCollectionItemUrls(
-    items: readonly LibraryItemWithCollections[]
-): string[] {
+function getCollectionItemUrls(items: LibraryItemWithCollections[]): string[] {
     return items.map((item) => normalizeURL(item.url));
 }
 
@@ -437,7 +429,7 @@ function escapeCsvCell(value: string): string {
 
 function buildCollectionCsv(
     collection: LibraryCollectionSummary,
-    items: readonly LibraryItemWithCollections[]
+    items: LibraryItemWithCollections[]
 ): string {
     const header = [
         "Collection",
@@ -1048,7 +1040,7 @@ function LibraryWorkspaceSidebar({
                                                     priority
                                                 )
                                             }
-                                            previewThumbnailUrls={
+                                            thumbnails={
                                                 collectionPreviewThumbnailUrlsById.get(
                                                     collection.id
                                                 ) ?? []
@@ -1353,7 +1345,7 @@ const FILTERABLE_LIBRARY_SOURCES = [
     LibraryItemSource.tiktok,
     LibraryItemSource.x_bookmarks,
     LibraryItemSource.youtube_watch_later,
-] as const satisfies readonly LibraryItemSource[];
+] as const satisfies LibraryItemSource[];
 
 /** Stable placeholders for empty-library masonry sneak peek (opacity fades by order). */
 const EMPTY_LIBRARY_PEEK_PLACEHOLDERS = [
@@ -1399,36 +1391,36 @@ const PALETTE_COLUMN_OPTIONS = [
 const getSystemControlKey = () => (IS_MAC ? "⌘" : "Ctrl");
 
 interface CommandPaletteItem {
-    readonly active?: boolean;
-    readonly description?: string;
-    readonly label: string;
-    readonly onSelect: (
+    active?: boolean;
+    description?: string;
+    label: string;
+    onSelect: (
         event: BaseUIEvent<React.MouseEvent> | KeyboardEvent
     ) => void | Promise<void>;
-    readonly shortcut?: string;
-    readonly value: string;
+    shortcut?: string;
+    value: string;
 }
 
 interface CommandPaletteGroup {
-    readonly items: CommandPaletteItem[];
-    readonly label: string;
+    items: CommandPaletteItem[];
+    label: string;
 }
 
 interface LibraryBrowserSection {
-    readonly items: LibraryItemWithCollections[];
-    readonly key: string;
-    readonly paywallPreviewCount?: number;
-    readonly showPaywallBanner?: boolean;
-    readonly title: string | null;
+    items: LibraryItemWithCollections[];
+    key: string;
+    paywallPreviewCount?: number;
+    showPaywallBanner?: boolean;
+    title: string | null;
 }
 
 interface SectionCollapseState {
-    readonly collapseAllSections: () => void;
-    readonly collapsedSectionKeys: string[];
-    readonly enableSectionCollapse: boolean;
-    readonly expandAllSections: () => void;
-    readonly layoutRefreshToken: number;
-    readonly toggleSection: (key: string) => void;
+    collapseAllSections: () => void;
+    collapsedSectionKeys: string[];
+    enableSectionCollapse: boolean;
+    expandAllSections: () => void;
+    layoutRefreshToken: number;
+    toggleSection: (key: string) => void;
 }
 
 function itemDomain(url: string): string {
@@ -1515,7 +1507,7 @@ const PALETTE_SOURCE_OPTIONS = [
     { label: sourceLabel(LibraryItemSource.other), value: "other" as const },
 ];
 
-function buildResultsCollectionName(searchTerms: readonly string[]): string {
+function buildResultsCollectionName(searchTerms: string[]): string {
     const normalizedTerms = searchTerms
         .map((term) => term.trim())
         .filter((term) => term.length > 0);
@@ -1613,10 +1605,7 @@ function truncateLabel(label: string, max = 22): string {
     return label.length > max ? `${label.slice(0, max)}…` : label;
 }
 
-function appendUniqueSearchTerm(
-    values: readonly string[],
-    next: string
-): string[] {
+function appendUniqueSearchTerm(values: string[], next: string): string[] {
     const normalized = next.trim();
     if (!normalized) {
         return [...values];
@@ -1646,11 +1635,11 @@ function matchesCommandPaletteItem(item: unknown, query: string): boolean {
     );
 }
 
-function removeValue<T>(values: readonly T[], value: T): T[] {
+function removeValue<T>(values: T[], value: T): T[] {
     return values.filter((entry) => entry !== value);
 }
 
-function toggleValue<T>(values: readonly T[], next: T): T[] {
+function toggleValue<T>(values: T[], next: T): T[] {
     return values.includes(next)
         ? values.filter((entry) => entry !== next)
         : [...values, next];
@@ -1747,8 +1736,8 @@ function PaletteChip({
     label,
     onRemove,
 }: {
-    readonly label: string;
-    readonly onRemove: () => void;
+    label: string;
+    onRemove: () => void;
 }) {
     return (
         <span className="palette-chip-enter inline-flex max-w-[min(100%,12rem)] items-center gap-0.5 rounded-full border border-border/60 bg-background/90 py-0.5 ps-2 pe-0.5 font-medium text-foreground text-xs shadow-xs/5 dark:bg-background/40">
@@ -1791,27 +1780,24 @@ function renderLibraryGridBody({
     showEmptyLibraryPeek,
     showNoFilteredResults,
 }: {
-    readonly collapsedSectionKeys: ReadonlySet<string>;
-    readonly collections: readonly LibraryCollectionSummary[];
-    readonly clearLibraryPalette: () => void;
-    readonly columnCount?: number;
-    readonly enableSectionCollapse: boolean;
-    readonly layoutRefreshToken: number;
-    readonly onCopyLink: (item: LibraryItem) => void;
-    readonly onDelete: (item: LibraryItem) => void;
-    readonly onOpenNote: (item: LibraryItem) => void;
-    readonly onOpenInNewTab: (item: LibraryItem) => void;
-    readonly onUpdateItemCollections: (
-        itemId: string,
-        collectionIds: string[]
-    ) => void;
-    readonly onToggleSection: (key: string) => void;
-    readonly paywallTotalCount?: number;
-    readonly pendingCollectionItemIds: readonly string[];
-    readonly pendingDeleteItemId: string | null;
-    readonly sections: readonly LibraryBrowserSection[];
-    readonly showEmptyLibraryPeek: boolean;
-    readonly showNoFilteredResults: boolean;
+    collapsedSectionKeys: Set<string>;
+    collections: LibraryCollectionSummary[];
+    clearLibraryPalette: () => void;
+    columnCount?: number;
+    enableSectionCollapse: boolean;
+    layoutRefreshToken: number;
+    onCopyLink: (item: LibraryItem) => void;
+    onDelete: (item: LibraryItem) => void;
+    onOpenNote: (item: LibraryItem) => void;
+    onOpenInNewTab: (item: LibraryItem) => void;
+    onUpdateItemCollections: (itemId: string, collectionIds: string[]) => void;
+    onToggleSection: (key: string) => void;
+    paywallTotalCount?: number;
+    pendingCollectionItemIds: string[];
+    pendingDeleteItemId: string | null;
+    sections: LibraryBrowserSection[];
+    showEmptyLibraryPeek: boolean;
+    showNoFilteredResults: boolean;
 }): React.ReactNode {
     if (showEmptyLibraryPeek) {
         return <ExtensionLibraryEmptyMasonryPeek />;
@@ -1903,16 +1889,14 @@ function buildSearchPaletteGroups({
     setPaletteInput,
     setSearchTerms,
 }: {
-    readonly clearLibraryPalette: () => void;
-    readonly draft: string;
-    readonly hasAnyRefinements: boolean;
-    readonly navigationItems: CommandPaletteItem[];
-    readonly searchTerms: string[];
-    readonly setCommandListOpen: (value: boolean) => void;
-    readonly setPaletteInput: (value: string) => void;
-    readonly setSearchTerms: (
-        value: string[] | ((value: string[]) => string[])
-    ) => void;
+    clearLibraryPalette: () => void;
+    draft: string;
+    hasAnyRefinements: boolean;
+    navigationItems: CommandPaletteItem[];
+    searchTerms: string[];
+    setCommandListOpen: (value: boolean) => void;
+    setPaletteInput: (value: string) => void;
+    setSearchTerms: (value: string[] | ((value: string[]) => string[])) => void;
 }): CommandPaletteGroup[] {
     const groups: CommandPaletteGroup[] = [];
     const draftAlreadyIncluded = searchTerms.some(
@@ -2018,51 +2002,47 @@ function buildSearchPaletteGroups({
 }
 
 interface BuildLibraryPaletteGroupsInput {
-    readonly clearLibraryPalette: () => void;
-    readonly collectionMembershipFilter: CollectionMembershipFilter;
-    readonly columnCountMode: ColumnCountMode;
-    readonly domainFilters: readonly string[];
-    readonly domainOptions: readonly {
-        readonly label: string;
-        readonly value: string;
+    clearLibraryPalette: () => void;
+    collectionMembershipFilter: CollectionMembershipFilter;
+    columnCountMode: ColumnCountMode;
+    domainFilters: string[];
+    domainOptions: {
+        label: string;
+        value: string;
     }[];
-    readonly groupBy: GroupByMode;
-    readonly openPaletteSection: (
+    groupBy: GroupByMode;
+    openPaletteSection: (
         section: Exclude<PaletteSection, "search">,
         event: BaseUIEvent<React.MouseEvent> | KeyboardEvent
     ) => void;
-    readonly paletteInput: string;
-    readonly paletteSection: PaletteSection;
-    readonly returnToSearchSection: () => void;
-    readonly searchTerms: readonly string[];
-    readonly selectedCollectionIdsLength: number;
-    readonly setCollectionMembershipFilter: (
-        value: CollectionMembershipFilter
-    ) => void;
-    readonly setColumnCountMode: (value: ColumnCountMode) => void;
-    readonly setCommandListOpen: (
+    paletteInput: string;
+    paletteSection: PaletteSection;
+    returnToSearchSection: () => void;
+    searchTerms: string[];
+    selectedCollectionIdsLength: number;
+    setCollectionMembershipFilter: (value: CollectionMembershipFilter) => void;
+    setColumnCountMode: (value: ColumnCountMode) => void;
+    setCommandListOpen: (
         value: boolean | ((previous: boolean) => boolean)
     ) => void;
-    readonly setDomainFilters: (
+    setDomainFilters: (
         value: string[] | ((value: string[]) => string[])
     ) => void;
-    readonly setGroupBy: (value: GroupByMode) => void;
-    readonly setPaletteInput: (value: string) => void;
-    readonly setSearchTerms: (
-        value: string[] | ((value: string[]) => string[])
-    ) => void;
-    readonly setSortMode: (value: SortMode) => void;
-    readonly setSourceFilters: (
+    setGroupBy: (value: GroupByMode) => void;
+    setPaletteInput: (value: string) => void;
+    setSearchTerms: (value: string[] | ((value: string[]) => string[])) => void;
+    setSortMode: (value: SortMode) => void;
+    setSourceFilters: (
         value:
             | SourceFilterValue[]
             | ((value: SourceFilterValue[]) => SourceFilterValue[])
     ) => void;
-    readonly sortMode: SortMode;
-    readonly sourceFilters: readonly SourceFilterValue[];
+    sortMode: SortMode;
+    sourceFilters: SourceFilterValue[];
 }
 
 function buildDomainPaletteOptions(
-    items: readonly LibraryItem[]
+    items: LibraryItem[]
 ): { label: string; value: string }[] {
     const counts = new Map<string, number>();
     for (const item of items) {
@@ -2341,13 +2321,13 @@ function buildLibraryPaletteGroups({
 }
 
 function filterLibraryBrowserItems(
-    items: readonly LibraryItemWithCollections[],
+    items: LibraryItemWithCollections[],
     input: {
-        readonly collectionMembershipFilter: CollectionMembershipFilter;
-        readonly domainFilters: readonly string[];
-        readonly searchTerms: readonly string[];
-        readonly selectedCollectionIds: readonly string[];
-        readonly sourceFilters: readonly SourceFilterValue[];
+        collectionMembershipFilter: CollectionMembershipFilter;
+        domainFilters: string[];
+        searchTerms: string[];
+        selectedCollectionIds: string[];
+        sourceFilters: SourceFilterValue[];
     }
 ): LibraryItemWithCollections[] {
     let list = [...items];
@@ -2399,7 +2379,7 @@ function filterLibraryBrowserItems(
 }
 
 function sortLibraryBrowserItems(
-    filteredItems: readonly LibraryItemWithCollections[],
+    filteredItems: LibraryItemWithCollections[],
     sortMode: SortMode
 ): LibraryItemWithCollections[] {
     const itemSortMode =
@@ -2408,7 +2388,7 @@ function sortLibraryBrowserItems(
 }
 
 function buildLibraryBrowserSections(
-    sortedItems: readonly LibraryItemWithCollections[],
+    sortedItems: LibraryItemWithCollections[],
     groupBy: GroupByMode,
     sortMode: SortMode
 ): LibraryBrowserSection[] {
@@ -2462,10 +2442,10 @@ async function saveLibraryNoteDraft({
     activeNote,
     draft,
 }: {
-    readonly activeNote: LibraryItemWithCollections | null;
-    readonly draft: {
-        readonly contentHtml: string;
-        readonly contentState: unknown | null;
+    activeNote: LibraryItemWithCollections | null;
+    draft: {
+        contentHtml: string;
+        contentState: unknown | null;
     };
 }): Promise<NoteMutationResult> {
     try {
@@ -2490,7 +2470,7 @@ async function saveLibraryNoteDraft({
 }
 
 function gateLibraryBrowserSections(
-    sections: readonly LibraryBrowserSection[],
+    sections: LibraryBrowserSection[],
     shouldGate: boolean
 ): LibraryBrowserSection[] {
     if (!shouldGate) {
@@ -2544,11 +2524,11 @@ function getVisibleSectionItems(
 }
 
 function libraryBrowserHasActiveFilters(input: {
-    readonly collectionMembershipFilter: CollectionMembershipFilter;
-    readonly domainFilters: readonly string[];
-    readonly searchTerms: readonly string[];
-    readonly selectedCollectionIds: readonly string[];
-    readonly sourceFilters: readonly SourceFilterValue[];
+    collectionMembershipFilter: CollectionMembershipFilter;
+    domainFilters: string[];
+    searchTerms: string[];
+    selectedCollectionIds: string[];
+    sourceFilters: SourceFilterValue[];
 }): boolean {
     return (
         input.searchTerms.length > 0 ||
@@ -2561,7 +2541,7 @@ function libraryBrowserHasActiveFilters(input: {
 }
 
 function applyVisiblePaletteShortcuts(
-    paletteGroups: readonly CommandPaletteGroup[],
+    paletteGroups: CommandPaletteGroup[],
     paletteInput: string,
     systemControlKey: string
 ): CommandPaletteGroup[] {
@@ -2605,11 +2585,11 @@ function useSectionCollapseState({
     showEmptyLibraryPeek,
     showNoFilteredResults,
 }: {
-    readonly groupBy: GroupByMode;
-    readonly hasActiveFilters: boolean;
-    readonly sections: readonly LibraryBrowserSection[];
-    readonly showEmptyLibraryPeek: boolean;
-    readonly showNoFilteredResults: boolean;
+    groupBy: GroupByMode;
+    hasActiveFilters: boolean;
+    sections: LibraryBrowserSection[];
+    showEmptyLibraryPeek: boolean;
+    showNoFilteredResults: boolean;
 }): SectionCollapseState {
     const [collapsedSectionKeys, setCollapsedSectionKeys] = useState<string[]>(
         []
@@ -2683,32 +2663,28 @@ function LibraryPaletteTrailing({
     sortMode,
     sourceFilters,
 }: {
-    readonly clearLibraryPalette: () => void;
-    readonly collectionMembershipFilter: CollectionMembershipFilter;
-    readonly columnCountMode: ColumnCountMode;
-    readonly domainFilters: string[];
-    readonly groupBy: GroupByMode;
-    readonly paletteInput: string;
-    readonly searchTerms: string[];
-    readonly setCollectionMembershipFilter: (
-        value: CollectionMembershipFilter
-    ) => void;
-    readonly setColumnCountMode: (value: ColumnCountMode) => void;
-    readonly setDomainFilters: (
+    clearLibraryPalette: () => void;
+    collectionMembershipFilter: CollectionMembershipFilter;
+    columnCountMode: ColumnCountMode;
+    domainFilters: string[];
+    groupBy: GroupByMode;
+    paletteInput: string;
+    searchTerms: string[];
+    setCollectionMembershipFilter: (value: CollectionMembershipFilter) => void;
+    setColumnCountMode: (value: ColumnCountMode) => void;
+    setDomainFilters: (
         value: string[] | ((value: string[]) => string[])
     ) => void;
-    readonly setGroupBy: (value: GroupByMode) => void;
-    readonly setSearchTerms: (
-        value: string[] | ((value: string[]) => string[])
-    ) => void;
-    readonly setSortMode: (value: SortMode) => void;
-    readonly setSourceFilters: (
+    setGroupBy: (value: GroupByMode) => void;
+    setSearchTerms: (value: string[] | ((value: string[]) => string[])) => void;
+    setSortMode: (value: SortMode) => void;
+    setSourceFilters: (
         value:
             | SourceFilterValue[]
             | ((value: SourceFilterValue[]) => SourceFilterValue[])
     ) => void;
-    readonly sortMode: SortMode;
-    readonly sourceFilters: SourceFilterValue[];
+    sortMode: SortMode;
+    sourceFilters: SourceFilterValue[];
 }) {
     const chips: React.ReactNode[] = [];
 
@@ -2819,32 +2795,29 @@ function LibraryPaletteTrailing({
 }
 
 interface LibraryProps {
-    readonly collections: readonly LibraryCollectionSummary[];
-    readonly items: LibraryItemWithCollections[];
-    readonly onClearCollectionFilters: () => void;
-    readonly onCreateCollectionFromResults: (input: {
+    collections: LibraryCollectionSummary[];
+    items: LibraryItemWithCollections[];
+    onClearCollectionFilters: () => void;
+    onCreateCollectionFromResults: (input: {
         description?: string;
         itemIds: string[];
         name: string;
     }) => Promise<CreateCollectionFromItemsResult>;
-    readonly onItemsChange: (
+    onItemsChange: (
         value:
             | LibraryItemWithCollections[]
             | ((
                   current: LibraryItemWithCollections[]
               ) => LibraryItemWithCollections[])
     ) => void;
-    readonly onUpdateItemCollections: (
-        itemId: string,
-        collectionIds: string[]
-    ) => void;
-    readonly pendingCollectionItemIds: readonly string[];
-    readonly selectedCollectionIds: readonly string[];
+    onUpdateItemCollections: (itemId: string, collectionIds: string[]) => void;
+    pendingCollectionItemIds: string[];
+    selectedCollectionIds: string[];
 }
 
 interface LibraryActionFeedback {
-    readonly message: string;
-    readonly tone: "error" | "success";
+    message: string;
+    tone: "error" | "success";
 }
 
 function openSavedItemInNewTab(url: string) {
@@ -2954,63 +2927,57 @@ function useLibraryItemActions(
 }
 
 interface GridProps {
-    readonly collections: readonly LibraryCollectionSummary[];
-    readonly columnCount?: number;
-    readonly items: LibraryItemWithCollections[];
-    readonly layoutToken?: number;
-    readonly onCopyLink?: (item: LibraryItemWithCollections) => void;
-    readonly onDelete?: (item: LibraryItemWithCollections) => void;
-    readonly onOpenInNewTab?: (item: LibraryItemWithCollections) => void;
-    readonly onOpenNote?: (item: LibraryItemWithCollections) => void;
-    readonly onUpdateItemCollections: (
-        itemId: string,
-        collectionIds: string[]
-    ) => void;
-    readonly paywallPreviewCount?: number;
-    readonly paywallTotalCount?: number;
-    readonly pendingCollectionItemIds: readonly string[];
-    readonly pendingDeleteItemId?: string | null;
-    readonly showPaywallBanner?: boolean;
+    collections: LibraryCollectionSummary[];
+    columnCount?: number;
+    items: LibraryItemWithCollections[];
+    layoutToken?: number;
+    onCopyLink?: (item: LibraryItemWithCollections) => void;
+    onDelete?: (item: LibraryItemWithCollections) => void;
+    onOpenInNewTab?: (item: LibraryItemWithCollections) => void;
+    onOpenNote?: (item: LibraryItemWithCollections) => void;
+    onUpdateItemCollections: (itemId: string, collectionIds: string[]) => void;
+    paywallPreviewCount?: number;
+    paywallTotalCount?: number;
+    pendingCollectionItemIds: string[];
+    pendingDeleteItemId?: string | null;
+    showPaywallBanner?: boolean;
 }
 
 interface SectionProps extends GridProps {
-    readonly accentKey?: string;
-    readonly collapsed?: boolean;
-    readonly collapsible?: boolean;
-    readonly emptyHint: string;
-    readonly onToggle?: () => void;
-    readonly title: string;
+    accentKey?: string;
+    collapsed?: boolean;
+    collapsible?: boolean;
+    emptyHint: string;
+    onToggle?: () => void;
+    title: string;
 }
 
 interface LibraryGridCardProps {
-    readonly addedLabel: string;
-    readonly alt: string;
-    readonly collections: readonly LibraryCollectionSummary[];
-    readonly createdLabel: string;
-    readonly href: string;
-    readonly item: LibraryItemWithCollections;
-    readonly onCopyLink?: (item: LibraryItemWithCollections) => void;
-    readonly onDelete?: (item: LibraryItemWithCollections) => void;
-    readonly onOpenInNewTab?: (item: LibraryItemWithCollections) => void;
-    readonly onOpenNote?: (item: LibraryItemWithCollections) => void;
-    readonly onUpdateItemCollections: (
-        itemId: string,
-        collectionIds: string[]
-    ) => void;
-    readonly pendingDeleteItemId?: string | null;
-    readonly previewDescription?: string;
-    readonly previewTitle: string;
+    addedLabel: string;
+    alt: string;
+    collections: LibraryCollectionSummary[];
+    createdLabel: string;
+    href: string;
+    item: LibraryItemWithCollections;
+    onCopyLink?: (item: LibraryItemWithCollections) => void;
+    onDelete?: (item: LibraryItemWithCollections) => void;
+    onOpenInNewTab?: (item: LibraryItemWithCollections) => void;
+    onOpenNote?: (item: LibraryItemWithCollections) => void;
+    onUpdateItemCollections: (itemId: string, collectionIds: string[]) => void;
+    pendingDeleteItemId?: string | null;
+    previewDescription?: string;
+    previewTitle: string;
 }
 
 interface LockedLibraryGridCardProps {
-    readonly alt: string;
-    readonly item: LibraryItemWithCollections;
+    alt: string;
+    item: LibraryItemWithCollections;
 }
 
 interface PreviewMediaProps {
-    readonly alt: string;
-    readonly fallbackLabel?: string;
-    readonly src: string | null;
+    alt: string;
+    fallbackLabel?: string;
+    src: string | null;
 }
 
 function itemDateLabel(dateValue: Date | string | null | undefined): string {
@@ -3104,14 +3071,11 @@ function CollectionComboboxPicker({
     open: openProp,
     onOpenChange,
 }: {
-    readonly collections: readonly LibraryCollectionSummary[];
-    readonly item: LibraryItemWithCollections;
-    readonly onUpdateItemCollections: (
-        itemId: string,
-        collectionIds: string[]
-    ) => void;
-    readonly open?: boolean;
-    readonly onOpenChange?: (open: boolean) => void;
+    collections: LibraryCollectionSummary[];
+    item: LibraryItemWithCollections;
+    onUpdateItemCollections: (itemId: string, collectionIds: string[]) => void;
+    open?: boolean;
+    onOpenChange?: (open: boolean) => void;
 }): ReactElement {
     const [isOpenInternal, setIsOpenInternal] = useState(false);
     const isOpen = openProp ?? isOpenInternal;
@@ -3516,7 +3480,7 @@ function renderLibraryMasonry({
     onUpdateItemCollections,
     pendingCollectionItemIds,
     pendingDeleteItemId,
-}: GridProps & { readonly locked?: boolean }): ReactElement {
+}: GridProps & { locked?: boolean }): ReactElement {
     return (
         <Masonry
             columnCount={columnCount}
@@ -3904,7 +3868,7 @@ function LibraryBrowser({
 
     const handleCommandOpenChange = (
         nextOpen: boolean,
-        eventDetails?: { readonly reason?: string }
+        eventDetails?: { reason?: string }
     ) => {
         setCommandListOpen(() => {
             if (!nextOpen && suppressNextCommandCloseRef.current) {

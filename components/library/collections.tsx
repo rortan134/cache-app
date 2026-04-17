@@ -238,37 +238,37 @@ function CollectionsListItemPreviewImage({
 }
 
 /** @internal */
-function CollectionsListItemHoverPreview({
+function CollectionsListItemPreview({
     collection,
     onSelect,
-    previewThumbnailUrls,
-}: {
-    readonly collection: LibraryCollectionSummary;
-    readonly onSelect: () => void;
-    readonly previewThumbnailUrls: readonly string[];
+    thumbnails,
+    ...props
+}: React.ComponentProps<typeof PreviewCardTrigger> & {
+    collection: LibraryCollectionSummary;
+    onSelect: () => void;
+    thumbnails: readonly string[];
 }) {
     const [isOpen, setIsOpen] = React.useState(false);
     const [activePreviewIndex, setActivePreviewIndex] = React.useState(0);
 
     React.useEffect(() => {
-        if (!(isOpen && previewThumbnailUrls.length > 1)) {
+        if (!(isOpen && thumbnails.length > 1)) {
             setActivePreviewIndex(0);
             return;
         }
 
         const interval = window.setInterval(() => {
             setActivePreviewIndex(
-                (currentIndex) =>
-                    (currentIndex + 1) % previewThumbnailUrls.length
+                (currentIndex) => (currentIndex + 1) % thumbnails.length
             );
         }, COLLECTION_ITEM_PREVIEW_SLIDESHOW_INTERVAL_MS);
 
         return () => {
             window.clearInterval(interval);
         };
-    }, [isOpen, previewThumbnailUrls]);
+    }, [isOpen, thumbnails]);
 
-    const activePreviewSrc = previewThumbnailUrls[activePreviewIndex];
+    const activePreviewSrc = thumbnails[activePreviewIndex];
 
     return (
         <PreviewCard onOpenChange={setIsOpen}>
@@ -282,18 +282,8 @@ function CollectionsListItemHoverPreview({
                         variant="ghost"
                     />
                 }
-            >
-                <div className="flex min-w-0 items-center gap-3 leading-none">
-                    <span className="shrink-0 truncate font-medium text-sm">
-                        {collection.name}
-                    </span>
-                    {collection.sources.length > 0 && (
-                        <span className="max-w-full flex-1 truncate text-[11px] text-muted-foreground opacity-0 transition-opacity group-hover:opacity-80">
-                            {collection.sources.map(getSourceLabel).join(", ")}
-                        </span>
-                    )}
-                </div>
-            </PreviewCardTrigger>
+                {...props}
+            />
             <PreviewCardPopup
                 className="pointer-events-none aspect-3/2 p-0"
                 positionMethod="fixed"
@@ -308,10 +298,30 @@ function CollectionsListItemHoverPreview({
     );
 }
 
+/** @internal */
+function CollectionsListItemValue({
+    collection,
+}: {
+    collection: LibraryCollectionSummary;
+}) {
+    return (
+        <div className="flex min-w-0 flex-1 items-center gap-3 leading-none">
+            <span className="shrink-0 truncate font-medium text-sm">
+                {collection.name}
+            </span>
+            {collection.sources.length > 0 && (
+                <span className="max-w-full flex-1 truncate text-[11px] text-muted-foreground opacity-0 transition-opacity group-hover:opacity-80">
+                    {collection.sources.map(getSourceLabel).join(", ")}
+                </span>
+            )}
+        </div>
+    );
+}
+
 interface CollectionItemPriorityOption {
-    readonly icon: LucideIcon;
-    readonly label: string;
-    readonly value: CollectionPriority;
+    icon: LucideIcon;
+    label: string;
+    value: CollectionPriority;
 }
 
 const DEFAULT_COLLECTION_PRIORITY_OPTION: CollectionItemPriorityOption = {
@@ -459,7 +469,7 @@ export function CollectionsListItem({
     isExportPending = false,
     isSelected,
     isUpdatePriorityPending = false,
-    previewThumbnailUrls = [],
+    thumbnails = [],
     onCopyLinks,
     onDelete,
     onExportCsv,
@@ -468,18 +478,18 @@ export function CollectionsListItem({
     onSelect,
     onUpdatePriority,
 }: {
-    readonly collection: LibraryCollectionSummary;
-    readonly isExportPending?: boolean;
-    readonly isSelected: boolean;
-    readonly isUpdatePriorityPending?: boolean;
-    readonly previewThumbnailUrls?: readonly string[];
-    readonly onCopyLinks: () => void;
-    readonly onDelete: () => void;
-    readonly onExportCsv: () => void;
-    readonly onOpenLinks: () => void;
-    readonly onRename: () => void;
-    readonly onSelect: () => void;
-    readonly onUpdatePriority: (priority: CollectionPriority) => void;
+    collection: LibraryCollectionSummary;
+    isExportPending?: boolean;
+    isSelected: boolean;
+    isUpdatePriorityPending?: boolean;
+    thumbnails?: string[];
+    onCopyLinks: () => void;
+    onDelete: () => void;
+    onExportCsv: () => void;
+    onOpenLinks: () => void;
+    onRename: () => void;
+    onSelect: () => void;
+    onUpdatePriority: (priority: CollectionPriority) => void;
 }) {
     const hasItems = collection.itemCount > 0;
 
@@ -493,13 +503,13 @@ export function CollectionsListItem({
                 isPending={isUpdatePriorityPending}
                 onUpdatePriority={(_, priority) => onUpdatePriority(priority)}
             />
-            <div className="min-w-0 flex-1">
-                <CollectionsListItemHoverPreview
-                    collection={collection}
-                    onSelect={onSelect}
-                    previewThumbnailUrls={previewThumbnailUrls}
-                />
-            </div>
+            <CollectionsListItemPreview
+                collection={collection}
+                onSelect={onSelect}
+                thumbnails={thumbnails}
+            >
+                <CollectionsListItemValue collection={collection} />
+            </CollectionsListItemPreview>
             <div className="absolute top-1/2 right-0 flex size-8 -translate-y-1/2 items-center justify-center">
                 <span className="pointer-events-none text-nowrap text-(--text-muted-color) text-xs tabular-nums transition-opacity focus-visible:opacity-0 group-focus-within:opacity-0 group-hover:opacity-0">
                     {collection.itemCount}
