@@ -60,6 +60,8 @@ export function Input({
                     className={inputClassName}
                     data-slot="input"
                     size={typeof size === "number" ? size : undefined}
+                    spellCheck="true"
+                    translate="no"
                     {...props}
                 />
             )}

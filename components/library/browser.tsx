@@ -4,7 +4,7 @@ import { UnprivilegedOnly } from "@/components/billing/privilege";
 import { FeedbackWidget } from "@/components/feedback/feedback-widget";
 import {
     CollectionsList,
-    CollectionsListAction,
+    CollectionsListActionButton,
     CollectionsListEmpty,
     CollectionsListFilterClear,
     CollectionsListItem,
@@ -979,7 +979,7 @@ function LibraryWorkspaceSidebar({
                                 )}
                                 isPreviewEnabled={!isCollectionsListOpen}
                             />
-                            <CollectionsListAction
+                            <CollectionsListActionButton
                                 aria-label="Create new collection"
                                 onClick={() => handleCreateCollectionRequest()}
                             >
@@ -991,7 +991,7 @@ function LibraryWorkspaceSidebar({
                                 <span className="sr-only">
                                     Create new collection
                                 </span>
-                            </CollectionsListAction>
+                            </CollectionsListActionButton>
                         </div>
                         <CollectionsListPanel>
                             <SmartCollectionsNoticeCallout />

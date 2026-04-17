@@ -6,6 +6,7 @@ import {
 } from "@/components/auth/user-menu";
 import { LibraryWorkspace } from "@/components/library/browser";
 import {
+    IntegrationsListEmpty,
     IntegrationsList,
     IntegrationsListItem,
     IntegrationsListItemAction,
@@ -133,37 +134,46 @@ export default async function LibraryPage() {
                                     <ChevronDownFilledIcon />
                                 </IntegrationsListTrigger>
                                 <IntegrationsListPanel>
-                                    {INTEGRATIONS.map(
-                                        ({ id, label, description, Icon }) => (
-                                            <IntegrationsListItem key={id}>
-                                                <Avatar
-                                                    aria-label={label}
-                                                    className="size-9 rounded-lg ring-1 ring-border/60"
-                                                >
-                                                    <AvatarFallback className="rounded-xl bg-card">
-                                                        <Icon
-                                                            aria-hidden="true"
-                                                            className="size-5 shrink-0"
-                                                            focusable="false"
-                                                        />
-                                                    </AvatarFallback>
-                                                </Avatar>
-                                                <div className="flex min-w-0 flex-1 flex-col">
-                                                    <span className="font-medium text-sm leading-tight">
-                                                        {label}
-                                                    </span>
-                                                    <span className="text-[11px] text-muted-foreground leading-tight">
-                                                        {description}
-                                                    </span>
-                                                </div>
-                                                <IntegrationsListItemAction
-                                                    id={id}
-                                                    isConnected={connectedIntegrationIdSet.has(
-                                                        id
-                                                    )}
-                                                />
-                                            </IntegrationsListItem>
+                                    {INTEGRATIONS.length > 0 ? (
+                                        INTEGRATIONS.map(
+                                            ({
+                                                id,
+                                                label,
+                                                description,
+                                                Icon,
+                                            }) => (
+                                                <IntegrationsListItem key={id}>
+                                                    <Avatar
+                                                        aria-label={label}
+                                                        className="size-9 rounded-lg ring-1 ring-border/60"
+                                                    >
+                                                        <AvatarFallback className="rounded-xl bg-card">
+                                                            <Icon
+                                                                aria-hidden="true"
+                                                                className="size-5 shrink-0"
+                                                                focusable="false"
+                                                            />
+                                                        </AvatarFallback>
+                                                    </Avatar>
+                                                    <div className="flex min-w-0 flex-1 flex-col">
+                                                        <span className="font-medium text-sm leading-tight">
+                                                            {label}
+                                                        </span>
+                                                        <span className="text-[11px] text-muted-foreground leading-tight">
+                                                            {description}
+                                                        </span>
+                                                    </div>
+                                                    <IntegrationsListItemAction
+                                                        id={id}
+                                                        isConnected={connectedIntegrationIdSet.has(
+                                                            id
+                                                        )}
+                                                    />
+                                                </IntegrationsListItem>
+                                            )
                                         )
+                                    ) : (
+                                        <IntegrationsListEmpty />
                                     )}
                                     <IntegrationsListNoticeCallout />
                                 </IntegrationsListPanel>

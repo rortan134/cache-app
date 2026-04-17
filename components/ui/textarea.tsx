@@ -31,6 +31,7 @@ export function Textarea({
             data-slot="textarea-control"
         >
             <FieldPrimitive.Control
+                aria-multiline="true"
                 defaultValue={props.defaultValue}
                 disabled={props.disabled}
                 id={props.id}
@@ -39,7 +40,7 @@ export function Textarea({
                 render={(defaultProps: React.ComponentProps<"textarea">) => (
                     <textarea
                         className={cn(
-                            "field-sizing-content min-h-17.5 w-full rounded-[inherit] px-[calc(--spacing(3)-1px)] py-[calc(--spacing(1.5)-1px)] outline-none max-sm:min-h-20.5",
+                            "field-sizing-content min-h-17.5 w-full resize-none rounded-[inherit] px-[calc(--spacing(3)-1px)] py-[calc(--spacing(1.5)-1px)] outline-none max-sm:min-h-20.5",
                             size === "sm" &&
                                 "min-h-16.5 px-[calc(--spacing(2.5)-1px)] py-[calc(--spacing(1)-1px)] max-sm:min-h-19.5",
                             size === "lg" &&
@@ -49,6 +50,8 @@ export function Textarea({
                         {...mergeProps(defaultProps, props)}
                     />
                 )}
+                spellCheck="true"
+                translate="no"
                 value={props.value}
             />
         </span>

@@ -187,7 +187,7 @@ export function CollectionsListPanel(
     return <CollapsiblePanel {...props} />;
 }
 
-export function CollectionsListAction({
+export function CollectionsListActionButton({
     className,
     ...props
 }: React.ComponentProps<typeof Button>) {
@@ -589,12 +589,14 @@ export function CollectionsListStatus({
     return (
         <div className="flex items-center justify-between gap-2 pt-1 pr-1 pl-3.5">
             <p
+                aria-live="polite"
                 className={cn(
-                    "text-xs",
+                    "text-xs leading-tight",
                     tone === "error"
                         ? "text-destructive"
                         : "text-muted-foreground"
                 )}
+                role={tone === "error" ? "alert" : "status"}
             >
                 {message}
             </p>

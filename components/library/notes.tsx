@@ -86,6 +86,11 @@ interface FormatState {
     readonly underline: boolean;
 }
 
+interface NoteTextStats {
+    readonly characterCount: number;
+    readonly wordCount: number;
+}
+
 type NoteBlockType = "h1" | "h2" | "h3" | "paragraph";
 
 const EMPTY_FORMAT_STATE: FormatState = {
@@ -114,6 +119,7 @@ const NOTE_EDITOR_THEME = {
 
 const NOTE_EDITOR_NODES = [HeadingNode];
 const NOTE_EDITOR_NAMESPACE = "cache-library-note";
+const NOTE_WORD_SEPARATOR = /\s+/;
 
 function noteDraftFromItem(note: LibraryItemWithCollections | null): NoteDraft {
     const contentState = isNoteSerializedEditorState(note?.noteContentState)
@@ -142,6 +148,33 @@ function noteHtmlHasMeaningfulContent(contentHtml: string): boolean {
         .trim();
 
     return textContent.length > 0;
+}
+
+function getNotePlainText(contentHtml: string): string {
+    return contentHtml
+        .replaceAll(/<br\s*\/?>/gi, "\n")
+        .replaceAll(/<\/(h[1-6]|p|div)>/gi, "\n")
+        .replaceAll(/<[^>]*>/g, "")
+        .replaceAll("&nbsp;", " ")
+        .replaceAll("&amp;", "&")
+        .replaceAll("&lt;", "<")
+        .replaceAll("&gt;", ">")
+        .replaceAll("&quot;", '"')
+        .replaceAll("&#39;", "'")
+        .replaceAll(/\u00a0/g, " ");
+}
+
+function getNoteTextStats(contentHtml: string): NoteTextStats {
+    const plainText = getNotePlainText(contentHtml);
+    const normalizedWords = plainText.trim();
+
+    return {
+        characterCount: plainText.length,
+        wordCount:
+            normalizedWords.length === 0
+                ? 0
+                : normalizedWords.split(NOTE_WORD_SEPARATOR).length,
+    };
 }
 
 function noteDraftShouldSave(
@@ -446,6 +479,17 @@ function NoteContentPlugin({
     );
 }
 
+function NoteStatsFooter({ contentHtml }: { readonly contentHtml: string }) {
+    const stats = getNoteTextStats(contentHtml);
+
+    return (
+        <div className="flex items-center justify-end gap-4 border-border/60 border-t pt-3 text-muted-foreground text-xs">
+            <span>{stats.wordCount} words</span>
+            <span>{stats.characterCount} characters</span>
+        </div>
+    );
+}
+
 function NoteEditor({
     editorKey,
     initialDraft,
@@ -576,6 +620,7 @@ export function LibraryNoteDrawer({
                         initialDraft={draft}
                         onDraftChange={handleDraftChange}
                     />
+                    <NoteStatsFooter contentHtml={draft.contentHtml} />
                 </DrawerPanel>
             </DrawerPopup>
         </Drawer>

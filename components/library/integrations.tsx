@@ -43,6 +43,22 @@ export function IntegrationsListPanel(
     return <CollapsiblePanel {...props} />;
 }
 
+export function IntegrationsListActionButton({
+    className,
+    ...props
+}: React.ComponentProps<typeof Button>) {
+    return (
+        <Button
+            className={cn(
+                "rounded-full bg-muted/94 hover:bg-input/50",
+                className
+            )}
+            variant="secondary"
+            {...props}
+        />
+    );
+}
+
 export function IntegrationsListNoticeCallout() {
     const [isConnectAccountNoteOpen, setIsConnectAccountNoteOpen] =
         React.useState(true);
@@ -75,9 +91,57 @@ export function IntegrationsListNoticeCallout() {
     );
 }
 
-export function IntegrationsListItem(props: React.ComponentProps<"div">) {
+export function IntegrationsListItem({
+    className,
+    ...props
+}: React.ComponentProps<"div">) {
     return (
-        <div className="flex items-center gap-2 pt-1 first:mt-3" {...props} />
+        <div
+            className={cn("flex items-center gap-2 pt-1 first:mt-3", className)}
+            {...props}
+        />
+    );
+}
+
+export function IntegrationsListStatus({
+    message,
+    tone = "success",
+}: {
+    readonly message?: string | null;
+    readonly tone?: "error" | "success";
+}) {
+    if (!message) {
+        return null;
+    }
+
+    return (
+        <p
+            aria-live="polite"
+            className={cn(
+                "text-xs leading-tight",
+                tone === "error" ? "text-destructive" : "text-muted-foreground"
+            )}
+            role={tone === "error" ? "alert" : "status"}
+        >
+            {message}
+        </p>
+    );
+}
+
+export function IntegrationsListEmpty({
+    className,
+    ...props
+}: React.ComponentProps<"p">) {
+    return (
+        <p
+            className={cn(
+                "rounded-xl border border-border/30 border-dashed px-4 py-6 text-center text-muted-foreground text-xs",
+                className
+            )}
+            {...props}
+        >
+            No integrations are available right now.
+        </p>
     );
 }
 
@@ -122,7 +186,7 @@ export function IntegrationsListItemAction({
             {actions.length > 0 ? (
                 <div className="flex flex-wrap items-center gap-2">
                     {actions.map((action) => (
-                        <Button
+                        <IntegrationsListActionButton
                             aria-label={
                                 action.size === "icon"
                                     ? action.label
@@ -137,28 +201,12 @@ export function IntegrationsListItemAction({
                         >
                             <IntegrationActionIconGlyph icon={action.icon} />
                             {action.size === "icon" ? null : action.label}
-                        </Button>
+                        </IntegrationsListActionButton>
                     ))}
                 </div>
             ) : null}
-            {errorMessage ? (
-                <p
-                    aria-live="polite"
-                    className="max-w-56 text-destructive text-xs leading-tight"
-                    role="alert"
-                >
-                    {errorMessage}
-                </p>
-            ) : null}
-            {successMessage ? (
-                <p
-                    aria-live="polite"
-                    className="max-w-56 text-emerald-600 text-xs leading-tight"
-                    role="status"
-                >
-                    {successMessage}
-                </p>
-            ) : null}
+            <IntegrationsListStatus message={errorMessage} tone="error" />
+            <IntegrationsListStatus message={successMessage} tone="success" />
         </div>
     );
 }
