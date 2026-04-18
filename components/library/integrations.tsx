@@ -21,8 +21,9 @@ import type {
 } from "@/lib/integrations/support";
 import { useIntegrationAction } from "@/lib/integrations/use-integration-action";
 import IntegrationsPreviewImage from "@/public/integrations-preview.webp";
-import { Images, Info, RefreshCw } from "lucide-react";
+import { ArrowUpRight, Images, Info, RefreshCw } from "lucide-react";
 import Image from "next/image";
+import Link from "next/link";
 import * as React from "react";
 import { createStore } from "stan-js";
 import { storage } from "stan-js/storage";
@@ -148,6 +149,17 @@ export function IntegrationsListNoticeCallout() {
                             variant="link"
                         >
                             Dismiss
+                        </Button>{" "}
+                        or{" "}
+                        <Button
+                            className="h-fit! leading-tight sm:text-[11px]"
+                            render={<Link href="/privacy" target="_blank" />}
+                            size="xs"
+                            type="button"
+                            variant="link"
+                        >
+                            Cache Privacy
+                            <ArrowUpRight className="inline-block size-3.5" />
                         </Button>
                     </p>
                 </div>

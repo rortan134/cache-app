@@ -97,6 +97,7 @@ import { getSubtleColorGradientFromName } from "@/lib/colors";
 import { dayjs } from "@/lib/dayjs";
 import { saveFile } from "@/lib/file";
 import {
+    createChromeBookmarkFromUrl,
     createCollection,
     createCollectionFromItems,
     createNote,
@@ -109,6 +110,7 @@ import {
     updateNote,
     type CreateCollectionFromItemsResult,
     type CreateCollectionResult,
+    type CreateChromeBookmarkFromUrlResult,
     type DeleteCollectionResult,
     type DeleteLibraryItemResult,
     type NoteMutationResult,
@@ -2447,6 +2449,23 @@ async function saveLibraryNoteDraft({
     }
 }
 
+async function createLibraryBookmarkFromPastedUrl({
+    url,
+}: {
+    url: string;
+}): Promise<CreateChromeBookmarkFromUrlResult> {
+    try {
+        return await createChromeBookmarkFromUrl({
+            url,
+        });
+    } catch {
+        return {
+            message: "We couldn't save this URL right now.",
+            status: "ERROR",
+        };
+    }
+}
+
 function gateLibraryBrowserSections(
     sections: LibraryBrowserSection[],
     shouldGate: boolean
@@ -3824,6 +3843,7 @@ function LibraryBrowser({
         setActionFeedback,
     } = useLibraryItemActions(onItemsChange);
     const [isSavingNote, startSavingNoteTransition] = useTransition();
+    const [isSavingPastedUrl, startSavingPastedUrlTransition] = useTransition();
     const [
         isCreatingResultsCollection,
         startCreateResultsCollectionTransition,
@@ -4340,6 +4360,55 @@ function LibraryBrowser({
             });
         });
 
+    const handlePasteUrlIntoLibrary = async (url: string) =>
+        await new Promise<void>((resolve) => {
+            startSavingPastedUrlTransition(async () => {
+                setActionFeedback(null);
+
+                const result = await createLibraryBookmarkFromPastedUrl({
+                    url,
+                });
+
+                if (result.status !== "SUCCESS") {
+                    setActionFeedback({
+                        message: result.message,
+                        tone: "error",
+                    });
+                    resolve();
+                    return;
+                }
+
+                onItemsChange((current) => {
+                    const existingIndex = current.findIndex(
+                        (item) => item.id === result.item.id
+                    );
+
+                    if (existingIndex === -1) {
+                        return [result.item, ...current];
+                    }
+
+                    return current.map((item) =>
+                        item.id === result.item.id ? result.item : item
+                    );
+                });
+
+                let message =
+                    "Existing bookmark refreshed from the pasted link.";
+                if (result.outcome === "CREATED") {
+                    message = "Link saved to your library.";
+                } else if (result.outcome === "MERGED") {
+                    message =
+                        "Link matched an existing bookmark in your library.";
+                }
+
+                setActionFeedback({
+                    message,
+                    tone: "success",
+                });
+                resolve();
+            });
+        });
+
     const libraryBrowserStyle = getStickySectionStyle(commandPanelShellHeight);
 
     const libraryGridBody = renderLibraryGridBody({
@@ -4730,8 +4799,9 @@ function LibraryBrowser({
                 note={activeNote}
                 onOpenChange={setIsNoteDrawerOpen}
                 onSave={handleSaveNote}
+                onUrlPaste={handlePasteUrlIntoLibrary}
                 open={isNoteDrawerOpen}
-                saving={isSavingNote}
+                saving={isSavingNote || isSavingPastedUrl}
             />
         </div>
     );

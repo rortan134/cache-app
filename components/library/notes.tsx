@@ -22,6 +22,7 @@ import {
     type NoteSerializedEditorState,
 } from "@/lib/library/notes";
 import type { LibraryItemWithCollections } from "@/lib/library/types";
+import { parseStandaloneUrl } from "@/lib/url";
 import AppIconSmall from "@/public/cache-icon-small.png";
 import { $generateNodesFromDOM } from "@lexical/html";
 import { AutoFocusPlugin } from "@lexical/react/LexicalAutoFocusPlugin";
@@ -69,7 +70,13 @@ import {
     XIcon,
 } from "lucide-react";
 import Image from "next/image";
-import { useEffect, useRef, useState, type SVGProps } from "react";
+import {
+    useEffect,
+    useRef,
+    useState,
+    type ClipboardEvent,
+    type SVGProps,
+} from "react";
 
 interface NoteDraft {
     readonly contentHtml: string;
@@ -80,6 +87,7 @@ interface Props {
     readonly note: LibraryItemWithCollections | null;
     readonly onOpenChange: (open: boolean) => void;
     readonly onSave: (draft: NoteDraft) => Promise<boolean> | boolean;
+    readonly onUrlPaste: (url: string) => Promise<void> | void;
     readonly open: boolean;
     readonly saving: boolean;
 }
@@ -458,9 +466,23 @@ function NoteFormattingToolbarPlugin() {
 
 function NoteContentPlugin({
     onDraftChange,
+    onUrlPaste,
 }: {
     readonly onDraftChange: (draft: NoteDraft) => void;
+    readonly onUrlPaste: (url: string) => Promise<void> | void;
 }) {
+    const handlePaste = async (event: ClipboardEvent<HTMLDivElement>) => {
+        const pastedText = event.clipboardData.getData("text/plain");
+        const parsedUrl = parseStandaloneUrl(pastedText);
+
+        if (!parsedUrl) {
+            return;
+        }
+
+        event.preventDefault();
+        await onUrlPaste(parsedUrl.href);
+    };
+
     return (
         <>
             <NoteFormattingToolbarPlugin />
@@ -472,6 +494,7 @@ function NoteContentPlugin({
                                 "prose prose-stone max-w-none flex-1 overflow-y-auto text-[15px] leading-7 outline-none",
                                 "prose-p:my-0 prose-p:min-h-[1.75rem] prose-mark:rounded-sm prose-mark:bg-amber-200/90 prose-mark:px-0.5 prose-strong:font-semibold prose-em:italic prose-u:underline prose-s:line-through"
                             )}
+                            onPaste={handlePaste}
                         />
                     }
                     ErrorBoundary={LexicalErrorBoundary}
@@ -514,10 +537,12 @@ function NoteEditor({
     editorKey,
     initialDraft,
     onDraftChange,
+    onUrlPaste,
 }: {
     readonly editorKey: number;
     readonly initialDraft: NoteDraft;
     readonly onDraftChange: (draft: NoteDraft) => void;
+    readonly onUrlPaste: (url: string) => Promise<void> | void;
 }) {
     let initialEditorState: InitialConfigType["editorState"] = null;
 
@@ -555,7 +580,10 @@ function NoteEditor({
 
     return (
         <LexicalComposer initialConfig={initialConfig} key={editorKey}>
-            <NoteContentPlugin onDraftChange={onDraftChange} />
+            <NoteContentPlugin
+                onDraftChange={onDraftChange}
+                onUrlPaste={onUrlPaste}
+            />
         </LexicalComposer>
     );
 }
@@ -564,6 +592,7 @@ export function LibraryNoteDrawer({
     note,
     onOpenChange,
     onSave,
+    onUrlPaste,
     open,
     saving,
 }: Props) {
@@ -756,6 +785,7 @@ export function LibraryNoteDrawer({
                         editorKey={editorKey}
                         initialDraft={draft}
                         onDraftChange={handleDraftChange}
+                        onUrlPaste={onUrlPaste}
                     />
                     <NoteStatsFooter contentHtml={draft.contentHtml} />
                 </DrawerPanel>

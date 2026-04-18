@@ -664,7 +664,7 @@ export function CollectionsNoticeCallout() {
                     <span className="not-sr-only font-medium text-xs">
                         <Popover>
                             <PopoverTrigger
-                                className="cursor-pointer underline decoration-1 decoration-dotted underline-offset-2"
+                                className="cursor-pointer underline decoration-1 decoration-muted-foreground decoration-dotted underline-offset-2 transition-colors hover:decoration-foreground"
                                 openOnHover
                             >
                                 <GradientWaveText
@@ -672,7 +672,8 @@ export function CollectionsNoticeCallout() {
                                     speed={2.2}
                                 >
                                     Smart Collections
-                                </GradientWaveText>
+                                </GradientWaveText>{" "}
+                                is active
                             </PopoverTrigger>
                             <PopoverPopup align="start" positionMethod="fixed">
                                 <Image
@@ -706,8 +707,7 @@ export function CollectionsNoticeCallout() {
                                     </PopoverClose>
                                 </div>
                             </PopoverPopup>
-                        </Popover>{" "}
-                        is active
+                        </Popover>
                     </span>
                     <Button
                         onClick={() => setIsOpen(false)}

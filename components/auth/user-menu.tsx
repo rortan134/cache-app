@@ -1,6 +1,7 @@
 "use client";
 
 import { LogoutButton } from "@/components/auth/logout-button";
+import { KeyboardShortcutsDialogTrigger } from "@/components/library/shortcuts";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -279,7 +280,7 @@ export function UserMenuContent() {
     return (
         <>
             <MenuSection>
-                <div className="flex items-center justify-between px-2.5">
+                <div className="flex items-center justify-between pr-2 pl-2.5">
                     <span className="font-medium text-foreground text-sm">
                         <T>Theme</T>
                     </span>
@@ -328,6 +329,13 @@ export function UserMenuContent() {
                     <T>Support</T>
                     <ArrowUpRight className="ml-auto inline-block size-4.5 shrink-0 text-muted-foreground" />
                 </Button>
+                <KeyboardShortcutsDialogTrigger
+                    render={
+                        <Button className="justify-between" variant="ghost">
+                            <T>Keyboard Shortcuts</T>
+                        </Button>
+                    }
+                />
                 <LogoutButton
                     render={
                         <Button className="justify-start" variant="ghost" />

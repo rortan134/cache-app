@@ -1,5 +1,8 @@
 import { sanitizeUrl } from "@braintree/sanitize-url";
 
+const URL_ONLY_WHITESPACE = /\s/;
+const URL_ONLY_PROTOCOLS = new Set(["http:", "https:"]);
+
 export const parseValidUrl = (url: string): URL | null => {
     try {
         return new URL(url);
@@ -21,7 +24,11 @@ export const normalizeURL = (link: string | null | undefined) => {
 };
 
 function getSafeOrigin() {
-    const origin = window?.location?.origin;
+    if (typeof window === "undefined") {
+        return null;
+    }
+
+    const origin = window.location.origin;
     return origin === "null" ? null : origin;
 }
 
@@ -56,6 +63,26 @@ export const toValidUrl = (link: string) => {
 
     // if newLink does not parse as URL, assume invalid and return blank page
     return parseValidUrl(newLink)?.href ?? "about:blank";
+};
+
+export const parseStandaloneUrl = (input: string): URL | null => {
+    const trimmedInput = input.trim();
+
+    if (trimmedInput.length === 0 || URL_ONLY_WHITESPACE.test(trimmedInput)) {
+        return null;
+    }
+
+    const normalizedUrl = toValidUrl(trimmedInput);
+    if (normalizedUrl === "about:blank") {
+        return null;
+    }
+
+    const parsedUrl = parseValidUrl(normalizedUrl);
+    if (!(parsedUrl && URL_ONLY_PROTOCOLS.has(parsedUrl.protocol))) {
+        return null;
+    }
+
+    return parsedUrl;
 };
 
 export const isLocalUrl = (link: string | null) =>

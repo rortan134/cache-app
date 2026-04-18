@@ -148,7 +148,7 @@ function VisuallyHiddenInput<T = InputValue>(
         const eventType = isCheckInput ? "click" : "input";
         const currentValue = isCheckInput ? checked : value;
 
-        let serializedCurrentValue = value;
+        let serializedCurrentValue: T | string | boolean | undefined = value;
 
         if (isCheckInput) {
             serializedCurrentValue = checked;
