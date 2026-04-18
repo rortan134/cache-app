@@ -148,11 +148,13 @@ function VisuallyHiddenInput<T = InputValue>(
         const eventType = isCheckInput ? "click" : "input";
         const currentValue = isCheckInput ? checked : value;
 
-        const serializedCurrentValue = isCheckInput
-            ? checked
-            : typeof value === "object" && value !== null
-              ? JSON.stringify(value)
-              : value;
+        let serializedCurrentValue = value;
+
+        if (isCheckInput) {
+            serializedCurrentValue = checked;
+        } else if (typeof value === "object" && value !== null) {
+            serializedCurrentValue = JSON.stringify(value);
+        }
 
         const descriptor = Object.getOwnPropertyDescriptor(
             inputProto,
@@ -240,11 +242,13 @@ function getDirectionAwareKey(key: string, dir?: Direction) {
     if (dir !== "rtl") {
         return key;
     }
-    return key === "ArrowLeft"
-        ? "ArrowRight"
-        : key === "ArrowRight"
-          ? "ArrowLeft"
-          : key;
+    if (key === "ArrowLeft") {
+        return "ArrowRight";
+    }
+    if (key === "ArrowRight") {
+        return "ArrowLeft";
+    }
+    return key;
 }
 
 function getFocusIntent(
@@ -1188,11 +1192,21 @@ function RatingItem(props: RatingItemProps) {
         [isDisabled, isReadOnly, step, itemValue, store, context.dir, propsRef]
     );
 
-    const dataState: DataState = isFilled
-        ? "full"
-        : isPartiallyFilled
-          ? "partial"
-          : "empty";
+    let dataState: DataState = "empty";
+
+    if (isFilled) {
+        dataState = "full";
+    } else if (isPartiallyFilled) {
+        dataState = "partial";
+    }
+
+    let itemSizeClass = "size-5";
+
+    if (context.size === "sm") {
+        itemSizeClass = "size-4";
+    } else if (context.size === "lg") {
+        itemSizeClass = "size-6";
+    }
 
     const resolvedChildren =
         typeof children === "function"
@@ -1210,11 +1224,7 @@ function RatingItem(props: RatingItemProps) {
                 className: cn(
                     "inline-flex items-center justify-center rounded transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50",
                     "[&_svg:not([class*='size-'])]:size-full [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg]:transition-colors [&_svg]:duration-200 data-[state=empty]:[&_svg]:fill-transparent data-[state=full]:[&_svg]:fill-current data-[state=partial]:[&_svg]:fill-(--partial-fill)",
-                    context.size === "sm"
-                        ? "size-4"
-                        : context.size === "lg"
-                          ? "size-6"
-                          : "size-5",
+                    itemSizeClass,
                     className
                 ),
                 disabled: isDisabled,
