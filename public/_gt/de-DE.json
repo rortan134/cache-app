@@ -1,572 +1,570 @@
 {
-    "019869a6c0157892": "Terms of Service",
-    "065fb981637b7b3d": {
-        "i": 1,
-        "k": "_gt_value_1",
-        "v": "v"
+  "019869a6c0157892": "Nutzungsbedingungen",
+  "065fb981637b7b3d": {
+    "i": 1,
+    "k": "_gt_value_1",
+    "v": "v"
+  },
+  "092723800fa245a8": "Wir akzeptieren alle gängigen Kreditkarten (Visa, Mastercard, American Express) und digitale Wallets über unseren sicheren Zahlungsdienstleister Stripe.",
+  "0d5988f4c0fbf2ad": "Cache-Konto",
+  "0db38849903f7632": [
+    {
+      "c": "Jedes Mal, wenn du auf „Speichern“ klickst, gehst du eine kleine Wette ein, dass dieser Moment der Aufmerksamkeit etwas wert war.",
+      "i": 1,
+      "t": "p"
     },
-    "092723800fa245a8": "Wir akzeptieren alle gängigen Kreditkarten (Visa, Mastercard, American Express) sowie digitale Geldbörsen über unseren sicheren Zahlungsanbieter Stripe.",
-    "0d5988f4c0fbf2ad": "Cache-Konto",
-    "0db38849903f7632": [
-        {
-            "c": "Jedes Mal, wenn du auf Speichern klickst, gehst du eine kleine Wette darauf ein, dass dieser Moment der Aufmerksamkeit etwas wert war.",
-            "i": 1,
-            "t": "p"
-        },
-        {
-            "c": "Cache sammelt diese Wetten. Es holt deine gespeicherten Inhalte aus den Silos — die Tweets, die Videos, die Links — und bringt sie an einen Ort, an den du tatsächlich zurückkehrst und aus dem du wirklich etwas mitnimmst.",
-            "i": 2,
-            "t": "p"
-        },
-        {
-            "c": "Aus dem Scrollen wird eine Bibliothek.",
-            "i": 3,
-            "t": "p"
-        },
-        {
-            "c": "Aus dem Konsumkreislauf wird eine Aufzeichnung dessen, was deine Aufmerksamkeit geweckt hat, was dich zum Nachdenken gebracht hat, was du festhalten wolltest.",
-            "i": 4,
-            "t": "p"
-        },
-        {
-            "c": "Bedeutung steckt nicht im Feed. Sondern in dem, was du behältst.",
-            "i": 5,
-            "t": "p"
-        }
-    ],
-    "0e0f0cb623f12ffc": "Cookies und ähnliche Technologien, die auf unseren Websites und in unseren Produkten eingesetzt werden.",
-    "11503a3d12f43fdd": "Offizielle Dokumente, die Ihre Beziehung zu uns regeln und erklären, wie wir mit Daten umgehen. Wählen Sie unten ein Thema aus, um den vollständigen Text zu lesen.",
-    "11ccc132c8c38c40": [
-        {
-            "c": "Du speicherst es für später. Später kommt nie.",
-            "i": 1,
-            "t": "p"
-        },
-        {
-            "c": "Das Lesezeichen verschwindet auf einem Friedhof guter Vorsätze, verstreut über fünf Plattformen, zwei Browser und drei Geräte. Die Erkenntnis verflüchtigt sich. Der Kreislauf beginnt von vorn.",
-            "i": 2,
-            "t": "p"
-        },
-        {
-            "c": "Du scrollst wieder, auf der Suche nach dem, was du schon einmal gefunden hattest.",
-            "i": 3,
-            "t": "p"
-        }
-    ],
-    "15833184c459d240": {
-        "c": "Terms of Service",
-        "i": 1,
-        "t": "p"
+    {
+      "c": "Cache sammelt diese Wetten. Es holt deine gespeicherten Inhalte aus den Silos — aus Tweets, Videos und Links — und bringt sie an einen Ort, an den du tatsächlich zurückkehren kannst und aus dem du wirklich etwas mitnimmst.",
+      "i": 2,
+      "t": "p"
     },
-    "15e6e8912a65c6e0": [
-        {
-            "c": "Du wirst sowieso scrollen",
-            "i": 1,
-            "t": "h2"
-        },
-        {
-            "c": "Niemand kehrt seinen Feeds wirklich den Rücken.",
-            "i": 2,
-            "t": "p"
-        },
-        {
-            "c": "Wir haben es versucht. Wir haben die Apps gelöscht, Timer gesetzt, uns schuldig gefühlt.",
-            "i": 3,
-            "t": "p"
-        },
-        {
-            "c": "Und am Ende kamen wir doch zurück.",
-            "i": 4,
-            "t": "p"
-        }
-    ],
-    "1d1c7a1398fc122d": "monatlich",
-    "20529ca475e73f99": "Design",
-    "2589956983dbe009": "Natürlich. Du kannst dein Pro-Abonnement jederzeit in den Kontoeinstellungen kündigen. Du behältst bis zum Ende deines Abrechnungszeitraums Zugriff auf die Pro-Funktionen.",
-    "2aa22ec9498b27cb": "Tarif upgraden",
-    "2c3a5cc094ee80d2": "Cache ist eine zentrale Bibliothek für alles, was du online speicherst. Wir bringen deine Lesezeichen, mit „Gefällt mir“ markierten Fotos und gespeicherten Inhalte von verschiedenen Plattformen an einem durchsuchbaren, übersichtlichen Ort zusammen.",
-    "2e739c6c3531ee7e": {
-        "c": "Spare mit dem jährlichen Abonnement",
-        "i": 1,
-        "t": "p"
+    {
+      "c": "Aus Scrollen wird eine Bibliothek.",
+      "i": 3,
+      "t": "p"
     },
-    "331304248ca3c976": "Gibt es Rabatte für Studierende?",
-    "344353d6bbaf365c": {
-        "c": [
+    {
+      "c": "Aus der Konsumschleife wird ein Protokoll dessen, was deine Aufmerksamkeit geweckt hat, was dich zum Nachdenken gebracht hat und was du festhalten wolltest.",
+      "i": 4,
+      "t": "p"
+    },
+    {
+      "c": "Bedeutung steckt nicht im Feed. Sie steckt in dem, was du behältst.",
+      "i": 5,
+      "t": "p"
+    }
+  ],
+  "0e0f0cb623f12ffc": "Cookies und ähnliche Technologien, die auf unseren Websites und in unseren Produkten zum Einsatz kommen.",
+  "11503a3d12f43fdd": "Offizielle Dokumente, die Ihre Beziehung zu uns regeln und erläutern, wie wir mit Daten umgehen. Wählen Sie unten ein Thema aus, um den vollständigen Text zu lesen.",
+  "11ccc132c8c38c40": [
+    {
+      "c": "Du speicherst es für später. Aber später kommt nie.",
+      "i": 1,
+      "t": "p"
+    },
+    {
+      "c": "Das Lesezeichen verschwindet auf einem Friedhof guter Vorsätze, verstreut über fünf Plattformen, zwei Browser und drei Geräte. Die Erkenntnis verflüchtigt sich. Die Schleife beginnt von vorn.",
+      "i": 2,
+      "t": "p"
+    },
+    {
+      "c": "Du scrollst wieder und suchst nach dem, was du längst schon einmal gefunden hattest.",
+      "i": 3,
+      "t": "p"
+    }
+  ],
+  "15833184c459d240": {
+    "c": "Nutzungsbedingungen",
+    "i": 1,
+    "t": "p"
+  },
+  "15e6e8912a65c6e0": [
+    {
+      "c": "Du wirst sowieso scrollen",
+      "i": 1,
+      "t": "h2"
+    },
+    {
+      "c": "Niemand hört einfach mit den Feeds auf.",
+      "i": 2,
+      "t": "p"
+    },
+    {
+      "c": "Wir haben es versucht. Wir haben die Apps gelöscht, Timer eingestellt, uns schuldig gefühlt.",
+      "i": 3,
+      "t": "p"
+    },
+    {
+      "c": "Und dann sind wir zurückgekommen.",
+      "i": 4,
+      "t": "p"
+    }
+  ],
+  "1d1c7a1398fc122d": "monatlich",
+  "20529ca475e73f99": "Design",
+  "2589956983dbe009": "Klar. Du kannst dein Pro-Abonnement jederzeit in deinen Kontoeinstellungen kündigen. Du behältst den Zugriff auf die Pro-Funktionen bis zum Ende deines aktuellen Abrechnungszeitraums.",
+  "26fe9d3e34588477": "Abmelden",
+  "2aa22ec9498b27cb": "Abo upgraden",
+  "2c3a5cc094ee80d2": "Cache ist eine zentrale Bibliothek für alles, was du online speicherst. Wir bringen deine Lesezeichen, mit „Gefällt mir“ markierte Fotos und gespeicherte Inhalte von verschiedenen Plattformen an einem durchsuchbaren, organisierten Ort zusammen.",
+  "2e739c6c3531ee7e": {
+    "c": "Spare mit dem Jahresabo",
+    "i": 1,
+    "t": "p"
+  },
+  "331304248ca3c976": "Gibt es bei euch Rabatte für Studierende?",
+  "344353d6bbaf365c": {
+    "c": [
+      {
+        "c": {
+          "c": [
+            "5 €",
             {
-                "c": {
-                    "c": [
-                        "5 €",
-                        {
-                            "c": "pro Monat",
-                            "i": 4,
-                            "t": "span"
-                        }
-                    ],
-                    "i": 3,
-                    "t": "p"
-                },
-                "i": 2,
-                "t": "div"
-            },
-            {
-                "c": "Monatliche Abrechnung",
-                "i": 5,
-                "t": "p"
+              "c": "pro Monat",
+              "i": 4,
+              "t": "span"
             }
-        ],
-        "i": 1,
+          ],
+          "i": 3,
+          "t": "p"
+        },
+        "i": 2,
         "t": "div"
-    },
-    "35d79362a091d51d": "Kann ich mein Abonnement kündigen?",
-    "36d1352c8871fb59": {
-        "c": "Preise",
-        "i": 1,
+      },
+      {
+        "c": "Monatliche Zahlung",
+        "i": 5,
         "t": "p"
+      }
+    ],
+    "i": 1,
+    "t": "div"
+  },
+  "35d79362a091d51d": "Kann ich mein Abonnement kündigen?",
+  "36d1352c8871fb59": {
+    "c": "Preise",
+    "i": 1,
+    "t": "p"
+  },
+  "3c61319be1bc2db7": "*Drittanbieter-Plattformen, die Sie über den Service verbinden, werden unabhängig von Cache betrieben. Cache hat weder Kontrolle über deren Richtlinien noch darüber, wie diese durchgesetzt werden, und ist nicht verantwortlich für Entscheidungen, die diese Plattformen in Bezug auf Ihre Konten oder Ihren Zugang zu ihren Diensten treffen – einschließlich, aber nicht beschränkt auf, Änderungen der Verfügbarkeit –, unabhängig davon, ob diese mit Ihrer Nutzung von Cache zusammenhängen oder nicht. Sie sind dafür verantwortlich, die Nutzungsbedingungen, Richtlinien und Community-Richtlinien der jeweiligen Plattform einzuhalten. Cache haftet nicht für Unannehmlichkeiten, Verluste oder sonstige Folgen, die sich aus Ihrer Beziehung zu diesen Plattformen oder aus Ihrer Nutzung des Service in Verbindung mit ihnen ergeben. Weitere Einzelheiten finden Sie",
+  "3d26c791d3bcb69a": "Sicherheit",
+  "44205dc5e0c99d88": [
+    {
+      "c": "Du schenkst den Dingen ohnehin schon Aufmerksamkeit.",
+      "i": 1,
+      "t": "p"
     },
-    "37b3e0def486a15a": [
-        {
-            "c": "Bleib organisiert. Erkenne, was veraltet ist, und behalte, was nützlich ist",
-            "i": 1,
-            "t": "h2"
-        },
-        {
-            "c": "Einmal importieren – und in wenigen Minuten wird aus Chaos Ordnung.",
-            "i": 2,
-            "t": "p"
-        },
-        {
-            "c": [
-                {
-                    "c": [
-                        {
-                            "i": 5,
-                            "t": "Component"
-                        },
-                        {
-                            "c": [
-                                {
-                                    "c": "Smart Collections",
-                                    "i": 7,
-                                    "t": "span"
-                                },
-                                " helfen dir dabei, To-dos von Inspiration zu trennen"
-                            ],
-                            "i": 6,
-                            "t": "span"
-                        }
-                    ],
-                    "i": 4,
-                    "t": "li"
-                },
-                {
-                    "c": [
-                        {
-                            "i": 9,
-                            "t": "Search"
-                        },
-                        {
-                            "c": "Finde alles mit assoziativer Suche und integrierter OCR",
-                            "i": 10,
-                            "t": "span"
-                        }
-                    ],
-                    "i": 8,
-                    "t": "li"
-                },
-                {
-                    "c": [
-                        {
-                            "i": 12,
-                            "t": "CloudDownload"
-                        },
-                        {
-                            "c": "Exportiere deine Inhalte aus Cache oder wechsle jederzeit problemlos zu einem anderen Tool",
-                            "i": 13,
-                            "t": "span"
-                        }
-                    ],
-                    "i": 11,
-                    "t": "li"
-                }
-            ],
-            "i": 3,
-            "t": "ul"
-        }
-    ],
-    "3c61319be1bc2db7": "*Plattformen von Drittanbietern, die Sie über den Service verbinden, werden unabhängig von Cache betrieben. Cache hat weder Kontrolle über deren Richtlinien noch über deren Umsetzung und ist nicht verantwortlich für Entscheidungen, die diese Plattformen in Bezug auf Ihre Konten oder den Zugriff auf ihre Dienste treffen – einschließlich, aber nicht beschränkt auf Änderungen der Verfügbarkeit –, unabhängig davon, ob diese mit Ihrer Nutzung von Cache zusammenhängen oder nicht. Sie sind dafür verantwortlich, die Bedingungen, Richtlinien und Community-Richtlinien der jeweiligen Plattform einzuhalten. Cache haftet nicht für Unannehmlichkeiten, Verluste oder sonstige Folgen, die sich aus Ihrer Beziehung zu diesen Plattformen oder aus Ihrer Nutzung des Service in Verbindung mit ihnen ergeben. Weitere Einzelheiten finden Sie",
-    "3d26c791d3bcb69a": "Sicherheit",
-    "3d62bee133111c76": [
-        {
-            "c": "Verbinde deine Lieblingsplattformen – und importiere nachträglich alles, was du je gespeichert hast",
-            "i": 1,
-            "t": "h2"
-        },
-        {
-            "c": "Führe Lesezeichen aus Social Media, Video-Plattformen und dem Browser automatisch zusammen. Schluss mit endlosem Scrollen und dem Wechseln zwischen Plattformen, um das zu finden, was dir wichtig ist.",
-            "i": 2,
-            "t": "p"
-        }
-    ],
-    "44205dc5e0c99d88": [
-        {
-            "c": "Du schenkst den Dingen ohnehin schon Aufmerksamkeit.",
-            "i": 1,
-            "t": "p"
-        },
-        {
-            "c": "Cache sorgt dafür, dass sie sich auszahlt.",
-            "i": 2,
-            "t": "p"
-        }
-    ],
-    "446fc0e1621b7ae8": "Support",
-    "4570406e2d38d956": {
-        "c": "Privacy Policy",
-        "i": 1,
-        "t": "p"
+    {
+      "c": "Cache sorgt dafür, dass sie sich lohnt.",
+      "i": 2,
+      "t": "p"
+    }
+  ],
+  "446fc0e1621b7ae8": "Support",
+  "4570406e2d38d956": {
+    "c": "Datenschutzerklärung",
+    "i": 1,
+    "t": "p"
+  },
+  "46e1253a6c6bc31b": [
+    {
+      "i": 1,
+      "k": "_gt_value_1",
+      "v": "v"
     },
-    "46e1253a6c6bc31b": [
-        {
-            "i": 1,
-            "k": "_gt_value_1",
-            "v": "v"
-        },
-        " endet am ",
-        {
-            "i": 2,
-            "k": "_gt_value_2",
-            "v": "v"
-        }
-    ],
-    "48de21dffb27aea4": "Änderungsprotokoll",
-    "600433e7972a7e75": "Abrechnung",
-    "634fd36cce8909a0": "Installiere die Erweiterung",
-    "69a327815dc1270a": "Cookie Policy",
-    "6c231374bfad8483": {
-        "c": "Cookie Policy",
-        "i": 1,
-        "t": "p"
+    " endet am ",
+    {
+      "i": 2,
+      "k": "_gt_value_2",
+      "v": "v"
+    }
+  ],
+  "48de21dffb27aea4": "Änderungsprotokoll",
+  "600433e7972a7e75": "Abrechnung",
+  "627bafce1f587e82": [
+    {
+      "c": "Bleib organisiert. Erkenne Veraltetes, behalte, was nützlich ist",
+      "i": 1,
+      "t": "h2"
     },
-    "72a2443c61bf0180": {
-        "c": "Mit Flexibilität und Sicherheit kaufen",
-        "i": 1,
-        "t": "p"
-    },
-    "738fa38eb9feb364": "Bietet ihr auch Abos für Teams an?",
-    "73a5a263b00ef6d2": [
+    {
+      "c": "Baue dir mit den Inhalten, die du bereits als wichtig markiert hast, eine Wissensbasis auf. Einmal importieren und in wenigen Minuten von chaotisch zu organisiert wechseln.",
+      "i": 2,
+      "t": "p"
+    }
+  ],
+  "634fd36cce8909a0": "Die Erweiterung installieren",
+  "641afa6ea8006f72": [
+    {
+      "c": [
         {
-            "c": "Hör auf, alles auf „später“ zu verschieben",
-            "i": 1,
-            "t": "h2"
+          "i": 2,
+          "t": "Component"
         },
         {
-            "c": "Halte deine wertvollsten gespeicherten Inhalte präsent, statt sie im Rückstau vergessener Lesezeichen untergehen zu lassen.",
-            "i": 2,
-            "t": "p"
-        }
-    ],
-    "7721d8d00edabeda": "Abmeldung…",
-    "7a6c957300c408f9": "Datenschutz",
-    "817e49763f46cca2": {
-        "c": "Manifest",
-        "i": 1,
-        "t": "p"
-    },
-    "835ca3b57bd60313": [
-        {
-            "c": "Gib jedem deiner Lesezeichen mehr Bedeutung.",
-            "i": 1,
-            "t": "h1"
-        },
-        {
-            "c": "Ab nur 5 € pro Monat — Jederzeit kündbar.",
-            "i": 2,
-            "t": "p"
-        },
-        {
-            "c": [
-                {
-                    "c": "2 Monate sparen",
-                    "i": 4,
-                    "t": "strong"
-                },
-                " mit einem jährlichen Abonnement"
-            ],
-            "i": 3,
-            "t": "p"
-        }
-    ],
-    "88696fd6758cea52": [
-        {
-            "c": {
-                "c": "Bring deine Lesezeichen zusammen.",
-                "i": 2,
-                "t": "GradientWaveText"
+          "c": [
+            {
+              "c": "Smart Collections",
+              "i": 4,
+              "t": "span"
             },
-            "i": 1,
-            "t": "h1"
+            " hilft dir, Praktisches von Inspiration zu trennen"
+          ],
+          "i": 3,
+          "t": "span"
+        }
+      ],
+      "i": 1,
+      "t": "li"
+    },
+    {
+      "c": [
+        {
+          "i": 6,
+          "t": "Search"
         },
         {
-            "c": "Lerne Cache kennen – der Ort, an dem du alles sammeln, organisieren und wiederentdecken kannst, was du plattformübergreifend gespeichert hast, direkt in deinem Browser.",
-            "i": 3,
-            "t": "p"
+          "c": "Finde alles mit assoziativer Suche und OCR",
+          "i": 7,
+          "t": "span"
         }
+      ],
+      "i": 5,
+      "t": "li"
+    },
+    {
+      "c": [
+        {
+          "i": 9,
+          "t": "CloudDownload"
+        },
+        {
+          "c": "Aus Cache teilen oder exportieren – jederzeit, wenn du willst",
+          "i": 10,
+          "t": "span"
+        }
+      ],
+      "i": 8,
+      "t": "li"
+    }
+  ],
+  "69a327815dc1270a": "Cookie-Richtlinie",
+  "6c231374bfad8483": {
+    "c": "Cookie-Richtlinie",
+    "i": 1,
+    "t": "p"
+  },
+  "72a2443c61bf0180": {
+    "c": "Kaufe flexibel und sicher",
+    "i": 1,
+    "t": "p"
+  },
+  "738fa38eb9feb364": "Bietet ihr auch Tarife für Teams an?",
+  "73a5a263b00ef6d2": [
+    {
+      "c": "Schieb nicht mehr alles auf „später“",
+      "i": 1,
+      "t": "h2"
+    },
+    {
+      "c": "Schaffe dir mehr konkrete Möglichkeiten, aktiv zu werden, indem du deine wertvollsten gespeicherten Inhalte im Blick behältst, statt sie in einem Rückstau vergessener Lesezeichen zu verlieren.",
+      "i": 2,
+      "t": "p"
+    }
+  ],
+  "7721d8d00edabeda": "Abmeldung…",
+  "7a6c957300c408f9": "Datenschutz",
+  "817e49763f46cca2": {
+    "c": "Manifest",
+    "i": 1,
+    "t": "p"
+  },
+  "835ca3b57bd60313": [
+    {
+      "c": "Gib jedem deiner Lesezeichen mehr Bedeutung.",
+      "i": 1,
+      "t": "h1"
+    },
+    {
+      "c": "Schon ab 5 € pro Monat — jederzeit kündbar.",
+      "i": 2,
+      "t": "p"
+    },
+    {
+      "c": [
+        {
+          "c": "Spare 2 Monate",
+          "i": 4,
+          "t": "strong"
+        },
+        " mit einem Jahresabonnement"
+      ],
+      "i": 3,
+      "t": "p"
+    }
+  ],
+  "88696fd6758cea52": [
+    {
+      "c": {
+        "c": "Führe deine Lesezeichen zusammen.",
+        "i": 2,
+        "t": "GradientWaveText"
+      },
+      "i": 1,
+      "t": "h1"
+    },
+    {
+      "c": "Lerne Cache kennen – ein Ort, an dem du alles sammeln, organisieren und wiederentdecken kannst, was du über verschiedene Plattformen hinweg gespeichert hast, direkt in deinem Browser.",
+      "i": 3,
+      "t": "p"
+    }
+  ],
+  "8d088a9a26ac644e": "Preise",
+  "9289a45309fee6c6": "Mit Google fortfahren",
+  "94c20ff6b75d8acb": "Wie wir personenbezogene Daten erfassen, nutzen und schützen.",
+  "9ac6f2ad3c7e5207": {
+    "c": "Häufig gestellte Fragen",
+    "i": 1,
+    "t": "h2"
+  },
+  "9e172217c3e3d8ae": "Auf Pro upgraden",
+  "a42f3aef4c8fe690": {
+    "c": "Bis zu 30 Tage Geld-zurück-Garantie",
+    "i": 1,
+    "t": "p"
+  },
+  "a44417a0d882c809": {
+    "c": "Schalte alle aktuellen Cache-Funktionen frei, während dein Archiv weiter wächst.",
+    "i": 1,
+    "t": "p"
+  },
+  "a4868a1aa63482ae": {
+    "c": "Wähle monatliche Flexibilität oder spare mit jährlicher Zahlung – mit demselben Pro-Abo.",
+    "i": 1,
+    "t": "p"
+  },
+  "a4ecc2d52fb9c50b": "Datenschutzerklärung",
+  "a54a73f960eb0874": "Wie sieht eure Rückerstattungsrichtlinie aus?",
+  "a651315dfcc7eacf": "Wir synchronisieren deine verbundenen Integrationen automatisch. Ob ein neues Google Photo oder ein Pinterest Pin – Cache hält deine Bibliothek auf dem neuesten Stand, damit du sofort findest, was du brauchst.",
+  "b14d974a53e3f53e": [
+    {
+      "c": "Deine Aufmerksamkeit ist begrenzt.",
+      "i": 1,
+      "t": "p"
+    },
+    {
+      "c": "Du gibst sie aus, ob du willst oder nicht. Jeder Scroll ist eine Abbuchung. Die meisten von uns behandeln sie, als wäre sie kostenlos, grenzenlos, erneuerbar, folgenlos.",
+      "i": 2,
+      "t": "p"
+    },
+    {
+      "c": "Die Frage ist nicht, ob du sie ausgeben wirst. Sondern ob du am Ende etwas dafür vorzuweisen hast.",
+      "i": 3,
+      "t": "p"
+    },
+    {
+      "c": "Cache ist kein Heilmittel. Es ist eine Erinnerung.",
+      "i": 4,
+      "t": "p"
+    }
+  ],
+  "b2bead436525c2d9": [
+    {
+      "c": "Suche und entdecke alles in einem schnellen, übersichtlichen Feed",
+      "i": 1,
+      "t": "h2"
+    },
+    {
+      "c": "Optimiere, wie du deine gespeicherten Inhalte durchgehst und wieder aufgreifst – mit einer einzigen aufgeräumten und leistungsstarken Oberfläche.",
+      "i": 2,
+      "t": "p"
+    }
+  ],
+  "b33e2234ec4ab823": "Kostenloses Abo",
+  "b3f91351560736c8": {
+    "c": [
+      {
+        "c": {
+          "c": [
+            "50 €",
+            {
+              "c": "pro Jahr",
+              "i": 4,
+              "t": "span"
+            }
+          ],
+          "i": 3,
+          "t": "p"
+        },
+        "i": 2,
+        "t": "div"
+      },
+      {
+        "c": "Jährliche Zahlung",
+        "i": 5,
+        "t": "p"
+      }
     ],
-    "8d088a9a26ac644e": "Preise",
-    "9289a45309fee6c6": "Continue with Google",
-    "94c20ff6b75d8acb": "Wie wir personenbezogene Daten erfassen, verwenden und schützen.",
-    "9ac6f2ad3c7e5207": {
-        "c": "Häufig gestellte Fragen",
-        "i": 1,
+    "i": 1,
+    "t": "div"
+  },
+  "b97318e56ebe2b1d": "Derzeit konzentrieren wir uns darauf, die bestmögliche Erfahrung für einzelne Power-User zu bieten. Wenn du daran interessiert bist, Cache mit deinem Team zu nutzen, melde dich gern bei uns — wir würden uns freuen, mehr über eure Anforderungen zu erfahren.",
+  "ba1e49f7141fca57": [
+    {
+      "c": "Noch nie gab es so viele Inhalte.",
+      "i": 1,
+      "t": "p"
+    },
+    {
+      "c": "Und selten hatten sie so wenig Bedeutung.",
+      "i": 2,
+      "t": "p"
+    },
+    {
+      "c": "Der Feed ist endlos, aber nichts bleibt hängen. Jede Erkenntnis wird sofort von der nächsten begraben. Jede Idee taucht ohne Kontext auf, ohne Verbindung zu dem, was dich zuletzt bewegt hat. Menge ohne Erinnerung ist einfach nur Rauschen.",
+      "i": 3,
+      "t": "p"
+    },
+    {
+      "c": "Dir fehlen keine Informationen. Dir fehlt ein Ort, an dem sie landen können.",
+      "i": 4,
+      "t": "p"
+    }
+  ],
+  "c26fd6852bfece9e": "Mit Google fortfahren",
+  "c4330b282e9cc217": [
+    {
+      "c": "Verbinde deine Lieblingsplattformen – und importiere alles, was du je gespeichert hast, nachträglich",
+      "i": 1,
+      "t": "h2"
+    },
+    {
+      "c": "Führe Lesezeichen von Social Media, aus Videos und aus deinem Browser automatisch zusammen. Schluss mit endlosem Scrollen und dem Wechsel zwischen verschiedenen Plattformen, nur um das zu finden, was dir wichtig ist.",
+      "i": 2,
+      "t": "p"
+    }
+  ],
+  "c6e026105239022b": "Welche Zahlungsmethoden akzeptiert ihr?",
+  "c734ac7608c757c3": "Im Chat öffnen",
+  "c884609397b72df2": "jährlich",
+  "cca6a310f45ce736": [
+    {
+      "i": 1,
+      "k": "_gt_value_1",
+      "v": "v"
+    },
+    " ",
+    {
+      "i": 2,
+      "k": "_gt_value_2",
+      "v": "v"
+    }
+  ],
+  "ccb2f47254d8ca62": [
+    {
+      "i": 1,
+      "k": "_gt_value_1",
+      "v": "v"
+    },
+    " Testphase, danach ",
+    {
+      "i": 2,
+      "k": "_gt_value_2",
+      "v": "v"
+    }
+  ],
+  "cdec264a0fff8ddf": [
+    {
+      "c": "Baue dir eine Bibliothek mit all den Inhalten auf, die du liebst",
+      "i": 1,
+      "t": "h2"
+    },
+    {
+      "c": "Lass dich inspirieren und finde genau die Lektion, den Rat, das Rezept oder die Idee, nach der du gesucht hast – in einer Kaffeepause.",
+      "i": 2,
+      "t": "p"
+    }
+  ],
+  "d011ae1a9a04132e": "Wir bieten eine 30-Tage-Geld-zurück-Garantie. Wenn Cache nicht das Richtige für dich ist, gib uns einfach innerhalb von 30 Tagen nach deinem ersten Kauf Bescheid, und du erhältst eine vollständige Rückerstattung.",
+  "d1526ef45744d297": "Ja! Wir möchten Studierende und Lehrkräfte unterstützen. Kontaktiere bitte unser Support-Team mit deiner akademischen E-Mail-Adresse, um einen speziellen Rabattcode zu erhalten.",
+  "daf8daec701f0863": "Konto",
+  "dc43f2f8b9531cf9": [
+    {
+      "c": "Also seien wir ehrlich damit, was hier eigentlich passiert.",
+      "i": 1,
+      "t": "p"
+    },
+    {
+      "c": "Du scrollst, weil die Welt interessant ist. Weil da draußen jemand gerade genau das gesagt hat, was du seit Jahren zu formulieren versuchst. Weil es da ein Rezept, einen Thread oder ein zweiminütiges Video gibt, das tatsächlich verändert, wie du über etwas denkst.",
+      "i": 2,
+      "t": "p"
+    },
+    {
+      "c": "Das Problem ist nicht, dass du konsumierst.",
+      "i": 3,
+      "t": "p"
+    },
+    {
+      "c": "Das Problem ist, dass du mit Amnesie konsumierst.",
+      "i": 4,
+      "t": "p"
+    }
+  ],
+  "dce930d99de233a7": "Nutzungsbedingungen",
+  "ddc161e16a7e8f5a": [
+    {
+      "i": 1,
+      "k": "_gt_value_1",
+      "v": "v"
+    },
+    " ",
+    {
+      "i": 2,
+      "k": "_gt_value_2",
+      "v": "v"
+    }
+  ],
+  "e258c217aa94baa7": {
+    "c": "Durchsuche, organisiere und blende deine gespeicherten Inhalte wieder ein – alles in einer einzigen Bibliothek.",
+    "i": 1,
+    "t": "p"
+  },
+  "e37f1708f0515194": {
+    "c": [
+      {
+        "c": "Pro-Abo",
+        "i": 2,
+        "t": "p"
+      },
+      {
+        "c": "Alles in Cache",
+        "i": 3,
         "t": "h2"
-    },
-    "9e172217c3e3d8ae": "Upgrade to Pro",
-    "a42f3aef4c8fe690": {
-        "c": "30-Tage-Geld-zurück-Garantie",
-        "i": 1,
+      }
+    ],
+    "i": 1,
+    "t": "div"
+  },
+  "e3880b69cb9e1b0d": "Tastenkombinationen",
+  "e87d348b3dd99eca": "Rechtliches & Richtlinien",
+  "f4882218996f2be2": {
+    "c": "Lesezeichen aus Browsern, Social-Apps und unterstützten Plattformen zusammenführen.",
+    "i": 1,
+    "t": "p"
+  },
+  "f670aea3af8a3f44": "Wie oft werden meine Inhalte aktualisiert?",
+  "f676d126c8fd832f": "Was ist Cache?",
+  "f76f62457e672828": "Diese Seiten können von Zeit zu Zeit aktualisiert werden. Maßgeblich ist jeweils die Version auf dieser Website zum Zeitpunkt Ihres Besuchs.",
+  "f8c57a3d7d964dde": {
+    "c": [
+      {
+        "c": "Das ist drin",
+        "i": 2,
         "t": "p"
+      },
+      {
+        "c": "Ein Abonnement für deinen gesamten Workflow rund um gespeicherte Inhalte",
+        "i": 3,
+        "t": "h2"
+      }
+    ],
+    "i": 1,
+    "t": "div"
+  },
+  "f96c9823ce4c4167": [
+    {
+      "c": {
+        "c": "Manifest.",
+        "i": 2,
+        "t": "GradientWaveText"
+      },
+      "i": 1,
+      "t": "h1"
     },
-    "a44417a0d882c809": {
-        "c": "Schalte alle aktuellen Cache-Funktionen frei, während dein Archiv weiter wächst.",
-        "i": 1,
-        "t": "p"
-    },
-    "a4868a1aa63482ae": {
-        "c": "Wähle monatlich für mehr Flexibilität oder jährlich für mehr Ersparnis – mit demselben Pro plan.",
-        "i": 1,
-        "t": "p"
-    },
-    "a4ecc2d52fb9c50b": "Privacy Policy",
-    "a54a73f960eb0874": "Wie sieht eure Rückerstattungsrichtlinie aus?",
-    "a651315dfcc7eacf": "Wir synchronisieren deine verbundenen Integrationen automatisch. Ob ein neues Google Photo oder ein Pinterest Pin: Cache hält deine Bibliothek aktuell, damit du sofort findest, was du brauchst.",
-    "b14d974a53e3f53e": [
-        {
-            "c": "Deine Aufmerksamkeit ist endlich.",
-            "i": 1,
-            "t": "p"
-        },
-        {
-            "c": "Du gibst sie aus, ob du willst oder nicht. Jedes Scrollen ist eine Abbuchung. Die meisten von uns behandeln sie, als wäre sie kostenlos, grenzenlos, erneuerbar, ohne Konsequenzen.",
-            "i": 2,
-            "t": "p"
-        },
-        {
-            "c": "Die Frage ist nicht, ob du sie ausgeben wirst. Sondern ob du am Ende etwas vorzuweisen hast.",
-            "i": 3,
-            "t": "p"
-        },
-        {
-            "c": "Cache ist kein Heilmittel. Es ist eine Erinnerung daran.",
-            "i": 4,
-            "t": "p"
-        }
-    ],
-    "b2bead436525c2d9": [
-        {
-            "c": "Suche und entdecke alles in einem einzigen, schnellen Feed",
-            "i": 1,
-            "t": "h2"
-        },
-        {
-            "c": "Vereinfache die Art, wie du deine gespeicherten Inhalte nutzt und wiederfindest – mit einer einzigen, übersichtlichen und leistungsstarken Oberfläche.",
-            "i": 2,
-            "t": "p"
-        }
-    ],
-    "b33e2234ec4ab823": "Gratis-Abo",
-    "b3f91351560736c8": {
-        "c": [
-            {
-                "c": {
-                    "c": [
-                        "50 €",
-                        {
-                            "c": "pro Jahr",
-                            "i": 4,
-                            "t": "span"
-                        }
-                    ],
-                    "i": 3,
-                    "t": "p"
-                },
-                "i": 2,
-                "t": "div"
-            },
-            {
-                "c": "Jährliche Abrechnung",
-                "i": 5,
-                "t": "p"
-            }
-        ],
-        "i": 1,
-        "t": "div"
-    },
-    "b97318e56ebe2b1d": "Aktuell konzentrieren wir uns darauf, die beste Erfahrung für einzelne Power-User zu bieten. Wenn du daran interessiert bist, Cache mit deinem Team zu nutzen, melde dich gern bei uns – wir würden gern mehr über eure Anforderungen erfahren.",
-    "ba1e49f7141fca57": [
-        {
-            "c": "Noch nie gab es mehr Inhalte.",
-            "i": 1,
-            "t": "p"
-        },
-        {
-            "c": "Und selten hatten sie weniger Bedeutung.",
-            "i": 2,
-            "t": "p"
-        },
-        {
-            "c": "Der Feed ist unendlich, aber nichts davon bleibt. Jede Erkenntnis wird sofort von der nächsten begraben. Jede Idee taucht ohne Kontext auf, ohne Verbindung zu dem, was dich zuletzt bewegt hat. Menge ohne bleibenden Wert ist nur Lärm.",
-            "i": 3,
-            "t": "p"
-        },
-        {
-            "c": "Dir fehlen keine Informationen. Dir fehlt ein Ort, an dem sie bleiben können.",
-            "i": 4,
-            "t": "p"
-        }
-    ],
-    "c26fd6852bfece9e": "Continue with Google",
-    "c6e026105239022b": "Welche Zahlungsmethoden akzeptiert ihr?",
-    "c884609397b72df2": "jährlich",
-    "cca6a310f45ce736": [
-        {
-            "i": 1,
-            "k": "_gt_value_1",
-            "v": "v"
-        },
-        " ",
-        {
-            "i": 2,
-            "k": "_gt_value_2",
-            "v": "v"
-        }
-    ],
-    "ccb2f47254d8ca62": [
-        {
-            "i": 1,
-            "k": "_gt_value_1",
-            "v": "v"
-        },
-        " Testphase, danach ",
-        {
-            "i": 2,
-            "k": "_gt_value_2",
-            "v": "v"
-        }
-    ],
-    "cdec264a0fff8ddf": [
-        {
-            "c": "Baue dir eine Bibliothek mit all den Inhalten auf, die du liebst",
-            "i": 1,
-            "t": "h2"
-        },
-        {
-            "c": "Lass dich inspirieren und finde genau die Lektion, den Rat, das Rezept oder die Idee, nach der du gesucht hast – in einer Kaffeepause.",
-            "i": 2,
-            "t": "p"
-        }
-    ],
-    "d011ae1a9a04132e": "Wir bieten eine 30-Tage-Geld-zurück-Garantie. Wenn Cache doch nicht das Richtige für dich ist, gib uns einfach innerhalb von 30 Tagen nach deinem ersten Kauf Bescheid und du erhältst eine vollständige Rückerstattung.",
-    "d1526ef45744d297": "Ja! Wir möchten Studierende und Lehrkräfte unterstützen. Kontaktiere bitte unser Support-Team mit deiner Hochschul-E-Mail-Adresse, um einen speziellen Rabattcode zu erhalten.",
-    "daf8daec701f0863": "Konto",
-    "dc43f2f8b9531cf9": [
-        {
-            "c": "Also seien wir ehrlich darüber, was hier eigentlich passiert.",
-            "i": 1,
-            "t": "p"
-        },
-        {
-            "c": "Du scrollst, weil die Welt interessant ist. Weil irgendwo da draußen gerade jemand genau das gesagt hat, was du seit Jahren in Worte zu fassen versuchst. Weil es da ein Rezept, einen Thread, ein zweiminütiges Video gibt, das tatsächlich verändert, wie du über etwas denkst.",
-            "i": 2,
-            "t": "p"
-        },
-        {
-            "c": "Das Problem ist nicht, dass du konsumierst.",
-            "i": 3,
-            "t": "p"
-        },
-        {
-            "c": "Das Problem ist, dass du mit einer Art Amnesie konsumierst.",
-            "i": 4,
-            "t": "p"
-        }
-    ],
-    "dce930d99de233a7": "Nutzungsbedingungen",
-    "ddc161e16a7e8f5a": [
-        {
-            "i": 1,
-            "k": "_gt_value_1",
-            "v": "v"
-        },
-        " ",
-        {
-            "i": 2,
-            "k": "_gt_value_2",
-            "v": "v"
-        }
-    ],
-    "e258c217aa94baa7": {
-        "c": "Durchsuche, organisiere und finde gespeicherte Inhalte in einer einzigen Bibliothek wieder.",
-        "i": 1,
-        "t": "p"
-    },
-    "e37f1708f0515194": {
-        "c": [
-            {
-                "c": "Pro plan",
-                "i": 2,
-                "t": "p"
-            },
-            {
-                "c": "Alles, was Cache bietet",
-                "i": 3,
-                "t": "h2"
-            }
-        ],
-        "i": 1,
-        "t": "div"
-    },
-    "e87d348b3dd99eca": "Rechtliches & Richtlinien",
-    "f4882218996f2be2": {
-        "c": "Führe Lesezeichen aus Browsern, Social-Apps und unterstützten Plattformen an einem Ort zusammen.",
-        "i": 1,
-        "t": "p"
-    },
-    "f670aea3af8a3f44": "Wie oft werden meine Inhalte aktualisiert?",
-    "f676d126c8fd832f": "Was ist Cache?",
-    "f76f62457e672828": "Diese Seiten können von Zeit zu Zeit aktualisiert werden. Maßgeblich ist jeweils die Version auf dieser Website zum Zeitpunkt Ihres Besuchs.",
-    "f8c57a3d7d964dde": {
-        "c": [
-            {
-                "c": "Was du bekommst",
-                "i": 2,
-                "t": "p"
-            },
-            {
-                "c": "Ein Abonnement für deinen gesamten Workflow rund um gespeicherte Inhalte",
-                "i": 3,
-                "t": "h2"
-            }
-        ],
-        "i": 1,
-        "t": "div"
-    },
-    "f96c9823ce4c4167": [
-        {
-            "c": {
-                "c": "Manifest.",
-                "i": 2,
-                "t": "GradientWaveText"
-            },
-            "i": 1,
-            "t": "h1"
-        },
-        {
-            "c": "Warum wir Cache entwickelt haben.",
-            "i": 3,
-            "t": "p"
-        }
-    ],
-    "fcb15e9966882974": "Abmelden",
-    "fee961fc81f1f189": "Regeln für die Nutzung des Dienstes, von Konten und die zulässige Nutzung."
+    {
+      "c": "Warum wir Cache entwickelt haben.",
+      "i": 3,
+      "t": "p"
+    }
+  ],
+  "fee961fc81f1f189": "Regeln zur Nutzung des Dienstes, zu Konten und zur zulässigen Nutzung."
 }
