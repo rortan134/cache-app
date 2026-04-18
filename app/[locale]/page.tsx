@@ -128,6 +128,9 @@ export default async function Home() {
                 </Sidebar>
                 <div className="flex w-full max-w-[1024px] flex-col items-center gap-12 p-8 2xl:mx-auto">
                     <div className="aspect-video h-auto w-full rounded-2xl bg-muted" />
+                    <p className="mx-auto -my-1 text-center text-xs uppercase">
+                        Discover what Cache can do for you
+                    </p>
                     <div className="grid w-full grid-cols-1 gap-2 md:grid-cols-2 md:gap-[40px]">
                         <div className="flex max-w-[340px] flex-col gap-[12px] py-[20px] md:gap-[16px]">
                             <T context="Library">
@@ -339,9 +342,10 @@ export default async function Home() {
                                         className="w-full max-w-96"
                                     >
                                         <div className="flex items-center gap-2 rounded-xl border bg-background p-3 shadow-sm">
-                                            <CircleCheck className="size-4 fill-emerald-500/15 text-emerald-500" />
+                                            <CircleCheck className="size-4.5 fill-emerald-500/15 text-emerald-500" />
                                             <span className="font-medium text-foreground text-sm">
-                                                Library organized
+                                                All done - Content library
+                                                organized
                                             </span>
                                         </div>
                                         <div className="relative space-y-4 pt-6 pl-6">
@@ -400,7 +404,7 @@ export default async function Home() {
                                                 <div className="flex items-center gap-2 rounded-xl border bg-background p-3 shadow-sm">
                                                     <CloudDownload className="size-3.5" />
                                                     <span className="font-medium text-[11px] text-muted-foreground">
-                                                        Export ready
+                                                        Export & Share ready
                                                         <span className="pl-3 text-foreground/50">
                                                             now
                                                         </span>

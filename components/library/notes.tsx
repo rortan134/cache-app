@@ -62,13 +62,14 @@ import {
     ExternalLinkIcon,
     ItalicIcon,
     Maximize2,
+    Minimize2,
     MessageCircleIcon,
     StrikethroughIcon,
     UnderlineIcon,
     XIcon,
 } from "lucide-react";
 import Image from "next/image";
-import React, { useEffect, useRef, useState, type SVGProps } from "react";
+import { useEffect, useRef, useState, type SVGProps } from "react";
 
 interface NoteDraft {
     readonly contentHtml: string;
@@ -278,43 +279,6 @@ function getSelectedBlockType(): NoteBlockType {
     }
 
     return "paragraph";
-}
-
-function NoteDrawerHeader({ children }: React.PropsWithChildren) {
-    return (
-        <DrawerHeader allowSelection className="flex-row justify-between">
-            <div className="flex items-center gap-1">
-                <Badge size="lg" variant="outline">
-                    <Image alt="" height={12} src={AppIconSmall} width={12} />
-                    Cache
-                </Badge>
-                <ChevronRight className="inline-block size-3.5 shrink-0" />
-                <DrawerTitle className="font-medium text-sm">
-                    {children}
-                </DrawerTitle>
-            </div>
-            <Group aria-label="Panel actions">
-                <Button
-                    className="rounded-full"
-                    size="icon-sm"
-                    variant="secondary"
-                >
-                    <Maximize2 className="inline-block size-3.5" />
-                </Button>
-                <DrawerClose
-                    render={
-                        <Button
-                            className="rounded-full"
-                            size="icon-sm"
-                            variant="secondary"
-                        >
-                            <XIcon className="inline-block size-3.5" />
-                        </Button>
-                    }
-                />
-            </Group>
-        </DrawerHeader>
-    );
 }
 
 function NoteFormattingToolbarPlugin() {
@@ -610,9 +574,11 @@ export function LibraryNoteDrawer({
     );
     const [editorKey, setEditorKey] = useState(0);
     const [isClosing, setIsClosing] = useState(false);
+    const [isExpanded, setIsExpanded] = useState(false);
 
     useEffect(() => {
         if (!open) {
+            setIsExpanded(false);
             return;
         }
 
@@ -664,13 +630,65 @@ export function LibraryNoteDrawer({
     };
 
     const query = getOpenInChatQuery(draft.contentHtml);
+    const ExpandIcon = isExpanded ? Minimize2 : Maximize2;
 
     return (
         <Drawer onOpenChange={handleOpenChange} open={open} position="right">
-            <DrawerPopup className="max-w-2xl" variant="straight">
-                <NoteDrawerHeader>
-                    {note ? "Edit note" : "New entry"}
-                </NoteDrawerHeader>
+            <DrawerPopup
+                className={cn(
+                    "max-w-2xl",
+                    isExpanded &&
+                        "w-[min(96vw,120rem)] max-w-[min(96vw,120rem)]"
+                )}
+                variant="straight"
+            >
+                <DrawerHeader
+                    allowSelection
+                    className="flex-row items-center justify-between"
+                >
+                    <div className="flex items-center gap-1">
+                        <Badge size="lg" variant="outline">
+                            <Image
+                                alt=""
+                                height={12}
+                                src={AppIconSmall}
+                                width={12}
+                            />
+                            Cache
+                        </Badge>
+                        <ChevronRight className="inline-block size-3.5 shrink-0" />
+                        <DrawerTitle className="font-medium text-sm">
+                            {note ? "Edit note" : "New entry"}
+                        </DrawerTitle>
+                    </div>
+                    <Group aria-label="Panel actions">
+                        <Button
+                            aria-label={
+                                isExpanded
+                                    ? "Restore drawer width"
+                                    : "Expand drawer width"
+                            }
+                            aria-pressed={isExpanded}
+                            className="rounded-full"
+                            onClick={() => setIsExpanded((current) => !current)}
+                            size="icon-sm"
+                            variant="secondary"
+                        >
+                            <ExpandIcon className="inline-block size-3.5" />
+                        </Button>
+                        <DrawerClose
+                            render={
+                                <Button
+                                    className="rounded-full"
+                                    size="icon-sm"
+                                    variant="secondary"
+                                >
+                                    <XIcon className="inline-block size-3.5" />
+                                </Button>
+                            }
+                        />
+                    </Group>
+                </DrawerHeader>
                 <DrawerHeader className="flex-row items-center pt-1">
                     <Menu>
                         <MenuTrigger
