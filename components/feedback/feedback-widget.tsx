@@ -45,10 +45,7 @@ export function FeedbackWidget(
     return (
         <Popover onOpenChange={setOpen} open={open}>
             <PopoverTrigger {...props} />
-            <PopoverPopup
-                align="center"
-                className="w-[min(calc(100vw-2rem),22rem)] *:p-2"
-            >
+            <PopoverPopup className="w-[min(calc(100vw-2rem),22rem)] *:p-2">
                 <div className="space-y-3">
                     <form
                         action={formAction}

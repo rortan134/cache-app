@@ -8,10 +8,14 @@ import {
     CollectionsListEmpty,
     CollectionsListFilterClear,
     CollectionsListItem,
+    CollectionsListItemMeta,
+    CollectionsListItemPreview,
+    CollectionsListItemPriorityCombobox,
+    CollectionsListItemValue,
     CollectionsListPanel,
     CollectionsListStatus,
     CollectionsListTrigger,
-    SmartCollectionsNoticeCallout,
+    CollectionsNoticeCallout,
 } from "@/components/library/collections";
 import { LibraryNoteDrawer } from "@/components/library/notes";
 import {
@@ -476,7 +480,6 @@ function LibraryWorkspaceSidebar({
     sidebarBottom,
     sidebarHeader,
 }: LibraryWorkspaceSidebarProps): ReactElement {
-    const [isCollectionsListOpen, setIsCollectionsListOpen] = useState(false);
     const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
     const [createDialogDraft, setCreateDialogDraft] = useState("");
     const [createDialogDescriptionDraft, setCreateDialogDescriptionDraft] =
@@ -939,16 +942,12 @@ function LibraryWorkspaceSidebar({
             <Sidebar>
                 <SidebarHeader>
                     {sidebarHeader}
-                    <CollectionsList
-                        onOpenChange={setIsCollectionsListOpen}
-                        open={isCollectionsListOpen}
-                    >
+                    <CollectionsList>
                         <div className="flex w-full items-center gap-1">
                             <CollectionsListTrigger
                                 collectionLabels={collectionSummaries.map(
                                     (collection) => collection.name
                                 )}
-                                isPreviewEnabled={!isCollectionsListOpen}
                             />
                             <CollectionsListActionButton
                                 aria-label="Create new collection"
@@ -965,7 +964,7 @@ function LibraryWorkspaceSidebar({
                             </CollectionsListActionButton>
                         </div>
                         <CollectionsListPanel>
-                            <SmartCollectionsNoticeCallout />
+                            <CollectionsNoticeCallout />
                             {collectionSummaries.length > 0 ? (
                                 <>
                                     {collectionSummaries.map((collection) => (
@@ -975,48 +974,57 @@ function LibraryWorkspaceSidebar({
                                                 collection.id
                                             )}
                                             key={collection.id}
-                                            onCopyLinks={() =>
-                                                handleCopyCollectionLinks(
-                                                    collection
-                                                )
-                                            }
-                                            onDelete={() =>
-                                                handleRequestDeleteCollection(
-                                                    collection
-                                                )
-                                            }
-                                            onExportCsv={() =>
-                                                handleExportCollectionToCsv(
-                                                    collection
-                                                )
-                                            }
-                                            onOpenLinks={() =>
-                                                handleOpenCollectionLinks(
-                                                    collection
-                                                )
-                                            }
-                                            onRename={() =>
-                                                handleRequestRenameCollection(
-                                                    collection
-                                                )
-                                            }
-                                            onSelect={() =>
-                                                onSelectCollection(
-                                                    collection.id
-                                                )
-                                            }
-                                            onUpdatePriority={(priority) =>
-                                                handleUpdateCollectionPriority(
-                                                    collection.id,
-                                                    priority
-                                                )
-                                            }
-                                            thumbnails={
-                                                collectionPreviewThumbnailUrlsById.get(
-                                                    collection.id
-                                                ) ?? []
-                                            }
-                                        />
+                                        >
+                                            <CollectionsListItemPriorityCombobox
+                                                onUpdatePriority={(priority) =>
+                                                    handleUpdateCollectionPriority(
+                                                        collection.id,
+                                                        priority
+                                                    )
+                                                }
+                                            />
+                                            <CollectionsListItemPreview
+                                                onSelect={() =>
+                                                    onSelectCollection(
+                                                        collection.id
+                                                    )
+                                                }
+                                                thumbnails={
+                                                    collectionPreviewThumbnailUrlsById.get(
+                                                        collection.id
+                                                    ) ?? []
+                                                }
+                                            >
+                                                <CollectionsListItemValue />
+                                            </CollectionsListItemPreview>
+                                            <CollectionsListItemMeta
+                                                onCopyLinks={() =>
+                                                    handleCopyCollectionLinks(
+                                                        collection
+                                                    )
+                                                }
+                                                onDelete={() =>
+                                                    handleRequestDeleteCollection(
+                                                        collection
+                                                    )
+                                                }
+                                                onExportCsv={() =>
+                                                    handleExportCollectionToCsv(
+                                                        collection
+                                                    )
+                                                }
+                                                onOpenLinks={() =>
+                                                    handleOpenCollectionLinks(
+                                                        collection
+                                                    )
+                                                }
+                                                onRename={() =>
+                                                    handleRequestRenameCollection(
+                                                        collection
+                                                    )
+                                                }
+                                            />
+                                        </CollectionsListItem>
                                     ))}
                                     <CollectionsListStatus
                                         onDismiss={() =>

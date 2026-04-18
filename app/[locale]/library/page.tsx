@@ -6,8 +6,8 @@ import {
 } from "@/components/auth/user-menu";
 import { LibraryWorkspace } from "@/components/library/browser";
 import {
-    IntegrationsListEmpty,
     IntegrationsList,
+    IntegrationsListEmpty,
     IntegrationsListItem,
     IntegrationsListItemAction,
     IntegrationsListNoticeCallout,
@@ -81,24 +81,24 @@ export default async function LibraryPage() {
         libraryItemSources: items.map((item) => item.source),
         linkedProviderIds: linkedAccounts.map((account) => account.providerId),
     });
-
     const connectedIntegrationIdSet = new Set(connectedIntegrationIds);
+
     const syncable = syncableLibrarySourceTotal();
     const { connectedLabels, missingLabels } = partitionLibrarySyncLabels(
         items,
         connectedIntegrationIds
     );
     const connectedCount = connectedLabels.length;
+    const progressPercent = integrationSetupProgressPercent(
+        connectedCount,
+        syncable
+    );
     const text = integrationSetupHeadingText({
         connectedCount,
         connectedLabels,
         missingLabels,
         syncable,
     });
-    const progressPercent = integrationSetupProgressPercent(
-        connectedCount,
-        syncable
-    );
 
     return (
         <PageShell>
@@ -120,12 +120,14 @@ export default async function LibraryPage() {
                                 <IntegrationsListTrigger>
                                     <RadialChart
                                         className="inline-block shrink-0"
-                                        size={36}
+                                        size={32}
                                         value={progressPercent}
                                     />
                                     <div className="relative">
                                         <span className="min-w-0 flex-1 truncate font-medium text-sm leading-none transition-opacity group-data-open:opacity-0 group-data-closed:duration-300 group-data-open:duration-400">
-                                            Integrations
+                                            {connectedCount > 0
+                                                ? "Integrations"
+                                                : "Get started"}
                                         </span>
                                         <span className="absolute top-1/2 left-0 min-w-0 flex-1 -translate-y-1/2 truncate font-medium text-sm leading-none opacity-0 transition-opacity group-data-open:opacity-100 group-data-closed:duration-300 group-data-open:duration-400">
                                             {text}

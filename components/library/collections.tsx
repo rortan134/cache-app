@@ -74,82 +74,88 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import * as React from "react";
+import { createStore } from "stan-js";
+import { storage } from "stan-js/storage";
 
-const COLLECTIONS_PREVIEW_OPEN_DELAY_MS = 450;
 const COLLECTION_ITEM_PREVIEW_CLOSE_DELAY_MS = 20;
 const COLLECTION_ITEM_PREVIEW_SLIDESHOW_INTERVAL_MS = 600;
+
+const { useStore: useCollectionsListStateStore } = createStore({
+    isCollectionsListOpen: storage(false),
+});
+
+export function useCollectionsListOpenState() {
+    const { isCollectionsListOpen, setIsCollectionsListOpen } =
+        useCollectionsListStateStore();
+
+    return {
+        isCollectionsListOpen,
+        setIsCollectionsListOpen,
+    };
+}
+
+interface CollectionsListItemContextValue {
+    collection: LibraryCollectionSummary;
+}
+
+const CollectionsListItemContext =
+    React.createContext<CollectionsListItemContextValue | null>(null);
+
+function useCollectionsListItemContext() {
+    const context = React.use(CollectionsListItemContext);
+    if (!context) {
+        throw new Error(
+            "CollectionsListItem compound components must be used within CollectionsListItem."
+        );
+    }
+    return context;
+}
 
 export function CollectionsList(
     props: React.ComponentProps<typeof Collapsible>
 ) {
-    return <Collapsible {...props} />;
+    const { isCollectionsListOpen, setIsCollectionsListOpen } =
+        useCollectionsListOpenState();
+    const { onOpenChange, open, ...restProps } = props;
+    const isControlled = open !== undefined;
+
+    return (
+        <Collapsible
+            defaultOpen={isControlled ? undefined : isCollectionsListOpen}
+            onOpenChange={(nextOpen, eventDetails) => {
+                if (!isControlled) {
+                    setIsCollectionsListOpen(nextOpen);
+                }
+                onOpenChange?.(nextOpen, eventDetails);
+            }}
+            open={isControlled ? open : isCollectionsListOpen}
+            {...restProps}
+        />
+    );
 }
 
 export function CollectionsListTrigger({
     className,
     collectionLabels,
-    isPreviewEnabled = true,
     onMouseEnter,
     onMouseLeave,
     onPointerDown,
     ...props
 }: React.ComponentProps<typeof CollapsibleTrigger> & {
     collectionLabels: string[];
-    isPreviewEnabled?: boolean;
 }) {
-    const [isPreviewOpen, setIsPreviewOpen] = React.useState(false);
-    const [isTriggerHovered, setIsTriggerHovered] = React.useState(false);
-    const hoverOpenTimeoutRef = React.useRef<number | null>(null);
-
-    React.useEffect(() => {
-        if (hoverOpenTimeoutRef.current) {
-            clearTimeout(hoverOpenTimeoutRef.current);
-            hoverOpenTimeoutRef.current = null;
-        }
-
-        if (!(isPreviewEnabled && isTriggerHovered)) {
-            setIsPreviewOpen(false);
-            return;
-        }
-
-        hoverOpenTimeoutRef.current = window.setTimeout(() => {
-            setIsPreviewOpen(true);
-            hoverOpenTimeoutRef.current = null;
-        }, COLLECTIONS_PREVIEW_OPEN_DELAY_MS);
-
-        return () => {
-            if (hoverOpenTimeoutRef.current) {
-                clearTimeout(hoverOpenTimeoutRef.current);
-                hoverOpenTimeoutRef.current = null;
-            }
-        };
-    }, [isPreviewEnabled, isTriggerHovered]);
+    const { isCollectionsListOpen } = useCollectionsListOpenState();
 
     return (
-        <Popover open={isPreviewOpen}>
+        <Popover>
             <PopoverTrigger
+                openOnHover
                 render={
                     <CollapsibleTrigger
                         className={cn(
                             "flex select-none items-center gap-3 rounded-full bg-muted/94 py-2.5 pr-3 pl-4 text-left text-foreground hover:bg-input/50 active:bg-input/30",
                             className
                         )}
-                        onMouseEnter={(event) => {
-                            onMouseEnter?.(event);
-                            setIsTriggerHovered(true);
-                        }}
-                        onMouseLeave={(event) => {
-                            onMouseLeave?.(event);
-                            setIsTriggerHovered(false);
-                        }}
-                        onPointerDown={(event) => {
-                            onPointerDown?.(event);
-                            if (hoverOpenTimeoutRef.current) {
-                                clearTimeout(hoverOpenTimeoutRef.current);
-                                hoverOpenTimeoutRef.current = null;
-                            }
-                            setIsPreviewOpen(false);
-                        }}
                         type="button"
                         {...props}
                     >
@@ -160,7 +166,7 @@ export function CollectionsListTrigger({
                                 focusable="false"
                             />
                             {collectionLabels.length > 0 ? (
-                                <span className="absolute -bottom-[6px] left-[17px] text-nowrap text-[10px] tabular-nums opacity-80 transition-opacity group-data-panel-open:opacity-100">
+                                <span className="absolute -bottom-[6px] left-[16.2px] text-nowrap text-[10px] tabular-nums opacity-80">
                                     {collectionLabels.length}
                                 </span>
                             ) : null}
@@ -172,7 +178,14 @@ export function CollectionsListTrigger({
                     </CollapsibleTrigger>
                 }
             />
-            <PopoverPopup align="start" tooltipStyle>
+            <PopoverPopup
+                align="start"
+                className={cn({
+                    "pointer-events-none! hidden!": isCollectionsListOpen,
+                })}
+                positionMethod="fixed"
+                tooltipStyle
+            >
                 <span className="font-medium">
                     {collectionLabels.join(", ")}
                 </span>
@@ -237,17 +250,15 @@ function CollectionsListItemPreviewImage({
     );
 }
 
-/** @internal */
-function CollectionsListItemPreview({
-    collection,
+export function CollectionsListItemPreview({
     onSelect,
     thumbnails,
     ...props
 }: React.ComponentProps<typeof PreviewCardTrigger> & {
-    collection: LibraryCollectionSummary;
     onSelect: () => void;
     thumbnails: string[];
 }) {
+    const { collection } = useCollectionsListItemContext();
     const [isOpen, setIsOpen] = React.useState(false);
     const [activePreviewIndex, setActivePreviewIndex] = React.useState(0);
 
@@ -298,12 +309,9 @@ function CollectionsListItemPreview({
     );
 }
 
-/** @internal */
-function CollectionsListItemValue({
-    collection,
-}: {
-    collection: LibraryCollectionSummary;
-}) {
+export function CollectionsListItemValue() {
+    const { collection } = useCollectionsListItemContext();
+
     return (
         <div className="flex min-w-0 flex-1 items-center gap-3 leading-none">
             <span className="shrink-0 truncate font-medium text-sm">
@@ -318,20 +326,20 @@ function CollectionsListItemValue({
     );
 }
 
-interface CollectionItemPriorityOption {
+interface PriorityOption {
     icon: LucideIcon;
     label: string;
     value: CollectionPriority;
 }
 
-const DEFAULT_COLLECTION_PRIORITY_OPTION: CollectionItemPriorityOption = {
+const DEFAULT_PRIORITY_OPTION: PriorityOption = {
     icon: PriorityNoneIcon as LucideIcon,
     label: "No priority",
     value: "none",
 };
 
-const COLLECTION_PRIORITY_OPTIONS = [
-    DEFAULT_COLLECTION_PRIORITY_OPTION,
+const PRIORITY_OPTIONS = [
+    DEFAULT_PRIORITY_OPTION,
     {
         icon: Sparkle,
         label: "Very relevant",
@@ -352,53 +360,46 @@ const COLLECTION_PRIORITY_OPTIONS = [
         label: "Archive",
         value: "archive",
     },
-] satisfies CollectionItemPriorityOption[];
+] satisfies PriorityOption[];
 
-const COLLECTION_PRIORITY_OPTION_BY_VALUE = new Map(
-    COLLECTION_PRIORITY_OPTIONS.map((option) => [option.value, option])
+const PRIORITY_OPTION_BY_VALUE = new Map(
+    PRIORITY_OPTIONS.map((option) => [option.value, option])
 );
 
 /** @internal */
-function getCollectionItemPriorityOption(
-    priority: CollectionPriority
-): CollectionItemPriorityOption {
-    const option = COLLECTION_PRIORITY_OPTION_BY_VALUE.get(priority);
+function getPriorityOption(priority: CollectionPriority): PriorityOption {
+    const option = PRIORITY_OPTION_BY_VALUE.get(priority);
     if (option) {
         return option;
     }
-    return DEFAULT_COLLECTION_PRIORITY_OPTION;
+    return DEFAULT_PRIORITY_OPTION;
 }
 
-/** @internal */
-function CollectionsListItemPriorityCombobox({
-    collection,
-    onUpdatePriority,
+export function CollectionsListItemPriorityCombobox({
     open: openProp,
     onOpenChange,
+    onUpdatePriority,
 }: {
-    collection: Pick<LibraryCollectionSummary, "id" | "name" | "priority">;
-    onUpdatePriority: (
-        collectionId: string,
-        priority: CollectionPriority
-    ) => void;
     open?: boolean;
     onOpenChange?: (open: boolean) => void;
+    onUpdatePriority: (priority: CollectionPriority) => void;
 }) {
+    const { collection } = useCollectionsListItemContext();
     const [isOpenInternal, setIsOpenInternal] = React.useState(false);
     const isOpen = openProp ?? isOpenInternal;
     const setIsOpen = onOpenChange ?? setIsOpenInternal;
-    const selectedOption = getCollectionItemPriorityOption(collection.priority);
+    const selectedOption = getPriorityOption(collection.priority);
 
     return (
         <Combobox
             autoHighlight
-            items={COLLECTION_PRIORITY_OPTIONS}
+            items={PRIORITY_OPTIONS}
             onOpenChange={setIsOpen}
             onValueChange={(nextPriority) => {
                 if (!nextPriority || nextPriority === collection.priority) {
                     return;
                 }
-                onUpdatePriority(collection.id, nextPriority);
+                onUpdatePriority(nextPriority);
                 setIsOpen(false);
             }}
             open={isOpen}
@@ -459,109 +460,110 @@ function getCollectionsListItemStyle(name: string, isSelected: boolean) {
 }
 
 export function CollectionsListItem({
+    children,
     collection,
     isSelected,
-    thumbnails = [],
+}: {
+    children: React.ReactNode;
+    collection: LibraryCollectionSummary;
+    isSelected: boolean;
+}) {
+    const contextValue = React.useMemo<CollectionsListItemContextValue>(
+        () => ({ collection }),
+        [collection]
+    );
+
+    return (
+        <CollectionsListItemContext value={contextValue}>
+            <div
+                className="group relative flex select-none items-center"
+                style={getCollectionsListItemStyle(collection.name, isSelected)}
+            >
+                {children}
+            </div>
+        </CollectionsListItemContext>
+    );
+}
+
+export function CollectionsListItemMeta({
     onCopyLinks,
     onDelete,
     onExportCsv,
     onOpenLinks,
     onRename,
-    onSelect,
-    onUpdatePriority,
 }: {
-    collection: LibraryCollectionSummary;
-    isSelected: boolean;
-    thumbnails: string[];
     onCopyLinks: () => void;
     onDelete: () => void;
     onExportCsv: () => void;
     onOpenLinks: () => void;
     onRename: () => void;
-    onSelect: () => void;
-    onUpdatePriority: (priority: CollectionPriority) => void;
 }) {
+    const { collection } = useCollectionsListItemContext();
     const hasItems = collection.itemCount > 0;
 
     return (
-        <div
-            className="group relative flex select-none items-center"
-            style={getCollectionsListItemStyle(collection.name, isSelected)}
-        >
-            <CollectionsListItemPriorityCombobox
-                collection={collection}
-                onUpdatePriority={(_, priority) => onUpdatePriority(priority)}
-            />
-            <CollectionsListItemPreview
-                collection={collection}
-                onSelect={onSelect}
-                thumbnails={thumbnails}
-            >
-                <CollectionsListItemValue collection={collection} />
-            </CollectionsListItemPreview>
-            <div className="absolute top-1/2 right-0 flex size-8 -translate-y-1/2 items-center justify-center">
-                <span className="pointer-events-none text-nowrap text-(--text-muted-color) text-xs tabular-nums transition-opacity focus-visible:opacity-0 group-focus-within:opacity-0 group-hover:opacity-0">
-                    {collection.itemCount}
-                </span>
-                <Menu>
-                    <MenuTrigger
-                        render={
-                            <Button
-                                aria-label={`Collection actions for ${collection.name}`}
-                                className="absolute rounded-full opacity-0 transition-opacity focus-visible:opacity-100 group-focus-within:opacity-100 group-hover:opacity-100 group-focus:opacity-100"
-                                size="icon-sm"
-                                variant="ghost"
-                            />
-                        }
+        <div className="absolute top-1/2 right-0 flex size-8 -translate-y-1/2 items-center justify-center">
+            <span className="pointer-events-none text-nowrap text-(--text-muted-color) text-xs tabular-nums transition-opacity focus-visible:opacity-0 group-focus-within:opacity-0 group-hover:opacity-0">
+                {collection.itemCount}
+            </span>
+            <Menu>
+                <MenuTrigger
+                    render={
+                        <Button
+                            aria-label={`Collection actions for ${collection.name}`}
+                            className="absolute rounded-full opacity-0 transition-opacity focus-visible:opacity-100 group-focus-within:opacity-100 group-hover:opacity-100 group-focus:opacity-100"
+                            size="icon-sm"
+                            variant="ghost"
+                        />
+                    }
+                >
+                    <EllipsisIcon className="size-4.5" />
+                </MenuTrigger>
+                <MenuPopup align="start" side="right">
+                    <MenuItem closeOnClick onClick={onRename}>
+                        <PencilIcon className="size-4 text-muted-foreground" />
+                        Edit
+                    </MenuItem>
+                    <MenuSeparator />
+                    <MenuItem closeOnClick>
+                        <UserRoundPlus className="size-4 text-muted-foreground" />
+                        Share collection
+                    </MenuItem>
+                    <MenuSub>
+                        <MenuSubTrigger disabled={!hasItems}>
+                            <Forward className="inline-block size-4 text-muted-foreground" />
+                            Export collection
+                        </MenuSubTrigger>
+                        <MenuSubPopup>
+                            <MenuItem closeOnClick onClick={onCopyLinks}>
+                                <CopyIcon className="size-4 text-muted-foreground" />
+                                Copy all links
+                            </MenuItem>
+                            <MenuItem closeOnClick onClick={onOpenLinks}>
+                                <ExternalLinkIcon className="size-4 text-muted-foreground" />
+                                Open all links
+                            </MenuItem>
+                            <MenuItem closeOnClick onClick={onExportCsv}>
+                                <FileSpreadsheetIcon className="size-4 text-muted-foreground" />
+                                Export to CSV
+                            </MenuItem>
+                            <MenuItem>
+                                <NotionIcon />
+                                Send to Notion
+                            </MenuItem>
+                        </MenuSubPopup>
+                    </MenuSub>
+                    <MenuSeparator />
+                    <MenuItem
+                        closeOnClick
+                        onClick={onDelete}
+                        variant="destructive"
                     >
-                        <EllipsisIcon className="size-4.5" />
-                    </MenuTrigger>
-                    <MenuPopup align="start" side="right">
-                        <MenuItem closeOnClick onClick={onRename}>
-                            <PencilIcon className="size-4 text-muted-foreground" />
-                            Edit
-                        </MenuItem>
-                        <MenuSeparator />
-                        <MenuItem closeOnClick>
-                            <UserRoundPlus className="size-4 text-muted-foreground" />
-                            Share collection
-                        </MenuItem>
-                        <MenuSub>
-                            <MenuSubTrigger disabled={!hasItems}>
-                                <Forward className="inline-block size-4 text-muted-foreground" />
-                                Export collection
-                            </MenuSubTrigger>
-                            <MenuSubPopup>
-                                <MenuItem closeOnClick onClick={onCopyLinks}>
-                                    <CopyIcon className="size-4 text-muted-foreground" />
-                                    Copy all links
-                                </MenuItem>
-                                <MenuItem closeOnClick onClick={onOpenLinks}>
-                                    <ExternalLinkIcon className="size-4 text-muted-foreground" />
-                                    Open all links
-                                </MenuItem>
-                                <MenuItem closeOnClick onClick={onExportCsv}>
-                                    <FileSpreadsheetIcon className="size-4 text-muted-foreground" />
-                                    Export to CSV
-                                </MenuItem>
-                                <MenuItem>
-                                    <NotionIcon />
-                                    Send to Notion
-                                </MenuItem>
-                            </MenuSubPopup>
-                        </MenuSub>
-                        <MenuSeparator />
-                        <MenuItem
-                            closeOnClick
-                            onClick={onDelete}
-                            variant="destructive"
-                        >
-                            <Trash2Icon className="size-4" />
-                            Delete
-                        </MenuItem>
-                    </MenuPopup>
-                </Menu>
-            </div>
+                        <Trash2Icon className="size-4" />
+                        Delete
+                    </MenuItem>
+                </MenuPopup>
+            </Menu>
         </div>
     );
 }
@@ -638,7 +640,7 @@ export function CollectionsListEmpty({
     );
 }
 
-export function SmartCollectionsNoticeCallout() {
+export function CollectionsNoticeCallout() {
     const [isOpen, setIsOpen] = React.useState(true);
 
     return (
@@ -662,7 +664,7 @@ export function SmartCollectionsNoticeCallout() {
                     <span className="not-sr-only font-medium text-xs">
                         <Popover>
                             <PopoverTrigger
-                                className="underline decoration-1 decoration-dotted underline-offset-2"
+                                className="cursor-pointer underline decoration-1 decoration-dotted underline-offset-2"
                                 openOnHover
                             >
                                 <GradientWaveText
@@ -672,11 +674,7 @@ export function SmartCollectionsNoticeCallout() {
                                     Smart Collections
                                 </GradientWaveText>
                             </PopoverTrigger>
-                            <PopoverPopup
-                                align="start"
-                                className="max-w-64"
-                                positionMethod="fixed"
-                            >
+                            <PopoverPopup align="start" positionMethod="fixed">
                                 <Image
                                     alt=""
                                     aria-hidden

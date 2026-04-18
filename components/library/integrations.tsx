@@ -6,6 +6,13 @@ import {
     CollapsiblePanel,
     CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+import {
+    Popover,
+    PopoverDescription,
+    PopoverPopup,
+    PopoverTitle,
+    PopoverTrigger,
+} from "@/components/ui/popover";
 import { cn } from "@/lib/cn";
 import type {
     IntegrationActionIcon,
@@ -13,27 +20,86 @@ import type {
     IntegrationId,
 } from "@/lib/integrations/support";
 import { useIntegrationAction } from "@/lib/integrations/use-integration-action";
+import IntegrationsPreviewImage from "@/public/integrations-preview.webp";
 import { Images, Info, RefreshCw } from "lucide-react";
+import Image from "next/image";
 import * as React from "react";
+import { createStore } from "stan-js";
+import { storage } from "stan-js/storage";
+
+const { useStore: useIntegrationsListState } = createStore({
+    isIntegrationsListOpen: storage(true),
+});
 
 export function IntegrationsList(
     props: React.ComponentProps<typeof Collapsible>
 ) {
-    return <Collapsible defaultOpen {...props} />;
+    const { isIntegrationsListOpen, setIsIntegrationsListOpen } =
+        useIntegrationsListState();
+    const { onOpenChange, open, ...restProps } = props;
+    const isControlled = open !== undefined;
+
+    return (
+        <Collapsible
+            defaultOpen={isControlled ? undefined : isIntegrationsListOpen}
+            onOpenChange={(nextOpen, eventDetails) => {
+                if (!isControlled) {
+                    setIsIntegrationsListOpen(nextOpen);
+                }
+                onOpenChange?.(nextOpen, eventDetails);
+            }}
+            open={isControlled ? open : isIntegrationsListOpen}
+            {...restProps}
+        />
+    );
 }
 
 export function IntegrationsListTrigger({
     className,
     ...props
 }: React.ComponentProps<typeof CollapsibleTrigger>) {
+    const { isIntegrationsListOpen } = useIntegrationsListState();
+
     return (
-        <CollapsibleTrigger
-            className={cn(
-                "flex select-none items-center gap-1.5 rounded-full bg-muted/94 px-3 py-2 text-left text-foreground leading-none hover:bg-input/50 active:bg-input/30",
-                className
-            )}
-            {...props}
-        />
+        <Popover>
+            <PopoverTrigger
+                openOnHover
+                render={
+                    <CollapsibleTrigger
+                        className={cn(
+                            "flex select-none items-center gap-2 rounded-full bg-muted/94 px-3 py-2 text-left text-foreground leading-none hover:bg-input/50 active:bg-input/30",
+                            className
+                        )}
+                        {...props}
+                    />
+                }
+            />
+            <PopoverPopup
+                align="start"
+                className={cn({
+                    "pointer-events-none! hidden!": isIntegrationsListOpen,
+                })}
+                positionMethod="fixed"
+                side="right"
+            >
+                <Image
+                    alt=""
+                    aria-hidden
+                    className="-mx-(--viewport-inline-padding) -mt-4 h-auto w-(--positioner-width) min-w-0 max-w-(--positioner-width) rounded-t-lg border-b"
+                    loading="eager"
+                    priority
+                    src={IntegrationsPreviewImage}
+                />
+                <div className="mt-4 flex max-w-64 flex-col gap-2">
+                    <PopoverTitle className="font-medium text-sm">
+                        Places to return to.
+                    </PopoverTitle>
+                    <PopoverDescription className="text-foreground text-xs">
+                        Give your every bookmark more meaning.
+                    </PopoverDescription>
+                </div>
+            </PopoverPopup>
+        </Popover>
     );
 }
 
@@ -45,15 +111,14 @@ export function IntegrationsListPanel(
 
 export function IntegrationsListActionButton({
     className,
+    variant = "ghost",
     ...props
 }: React.ComponentProps<typeof Button>) {
     return (
         <Button
-            className={cn(
-                "rounded-full bg-muted/94 hover:bg-input/50",
-                className
-            )}
-            variant="secondary"
+            className={cn("rounded-full", className)}
+            type="button"
+            variant={variant}
             {...props}
         />
     );
@@ -182,29 +247,24 @@ export function IntegrationsListItemAction({
     }
 
     return (
-        <div className="ml-auto flex flex-col items-start gap-1.5">
-            {actions.length > 0 ? (
-                <div className="flex flex-wrap items-center gap-2">
-                    {actions.map((action) => (
-                        <IntegrationsListActionButton
-                            aria-label={
-                                action.size === "icon"
-                                    ? action.label
-                                    : undefined
-                            }
-                            key={`${id}-${direction}-${action.role}`}
-                            loading={action.isLoading}
-                            onClick={action.onClick}
-                            size={action.size}
-                            type="button"
-                            variant={action.variant}
-                        >
-                            <IntegrationActionIconGlyph icon={action.icon} />
-                            {action.size === "icon" ? null : action.label}
-                        </IntegrationsListActionButton>
-                    ))}
-                </div>
-            ) : null}
+        <div className="ml-auto flex flex-col items-start gap-1">
+            <div className="flex flex-wrap items-center gap-1">
+                {actions.map((action) => (
+                    <IntegrationsListActionButton
+                        aria-label={
+                            action.size === "icon" ? action.label : undefined
+                        }
+                        key={`${id}-${direction}-${action.role}`}
+                        loading={action.isLoading}
+                        onClick={action.onClick}
+                        size={action.size}
+                        variant={action.variant}
+                    >
+                        <IntegrationActionIconGlyph icon={action.icon} />
+                        {action.size === "icon" ? null : action.label}
+                    </IntegrationsListActionButton>
+                ))}
+            </div>
             <IntegrationsListStatus tone="error">
                 {errorMessage}
             </IntegrationsListStatus>
