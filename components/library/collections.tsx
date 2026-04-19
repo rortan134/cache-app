@@ -26,6 +26,8 @@ import {
 import { Kbd } from "@/components/ui/kbd";
 import {
     Menu,
+    MenuGroup,
+    MenuGroupLabel,
     MenuItem,
     MenuPopup,
     MenuSeparator,
@@ -316,7 +318,7 @@ export function CollectionsListItemValue() {
 
     return (
         <div className="flex min-w-0 flex-1 items-center gap-3 leading-none">
-            <span className="shrink-0 truncate font-medium text-sm">
+            <span className="max-w-full shrink-0 truncate font-medium text-sm">
                 {collection.name}
             </span>
             {collection.sources.length > 0 && (
@@ -543,48 +545,55 @@ export function CollectionsListItemMeta({
                     <EllipsisIcon className="size-4.5" />
                 </MenuTrigger>
                 <MenuPopup align="start" side="right">
-                    <MenuItem closeOnClick onClick={onRename}>
-                        <PencilIcon className="size-4 text-muted-foreground" />
-                        Edit
-                    </MenuItem>
+                    <MenuGroup>
+                        <MenuGroupLabel>Collection</MenuGroupLabel>
+                        <MenuItem closeOnClick onClick={onRename}>
+                            <PencilIcon className="size-4 text-muted-foreground" />
+                            Rename
+                        </MenuItem>
+                    </MenuGroup>
                     <MenuSeparator />
-                    <MenuItem closeOnClick disabled>
-                        <UserRoundPlus className="size-4 text-muted-foreground" />
-                        Share collection
-                    </MenuItem>
-                    <MenuSub>
-                        <MenuSubTrigger disabled={!hasItems}>
-                            <Forward className="inline-block size-4 text-muted-foreground" />
-                            Export collection
-                        </MenuSubTrigger>
-                        <MenuSubPopup>
-                            <MenuItem closeOnClick onClick={onCopyLinks}>
-                                <CopyIcon className="size-4 text-muted-foreground" />
-                                Copy all links
-                            </MenuItem>
-                            <MenuItem closeOnClick onClick={onOpenLinks}>
-                                <ExternalLinkIcon className="size-4 text-muted-foreground" />
-                                Open all links
-                            </MenuItem>
-                            <MenuItem closeOnClick onClick={onExportCsv}>
-                                <FileSpreadsheetIcon className="size-4 text-muted-foreground" />
-                                Export to CSV
-                            </MenuItem>
-                            <MenuItem>
-                                <NotionIcon />
-                                Send to Notion
-                            </MenuItem>
-                        </MenuSubPopup>
-                    </MenuSub>
+                    <MenuGroup>
+                        <MenuItem closeOnClick disabled>
+                            <UserRoundPlus className="size-4 text-muted-foreground" />
+                            Share
+                        </MenuItem>
+                        <MenuSub>
+                            <MenuSubTrigger disabled={!hasItems}>
+                                <Forward className="inline-block size-4 text-muted-foreground" />
+                                Export
+                            </MenuSubTrigger>
+                            <MenuSubPopup>
+                                <MenuItem closeOnClick onClick={onCopyLinks}>
+                                    <CopyIcon className="size-4 text-muted-foreground" />
+                                    Copy all links
+                                </MenuItem>
+                                <MenuItem closeOnClick onClick={onOpenLinks}>
+                                    <ExternalLinkIcon className="size-4 text-muted-foreground" />
+                                    Open all links
+                                </MenuItem>
+                                <MenuItem closeOnClick onClick={onExportCsv}>
+                                    <FileSpreadsheetIcon className="size-4 text-muted-foreground" />
+                                    Export to CSV
+                                </MenuItem>
+                                <MenuItem>
+                                    <NotionIcon />
+                                    Send to Notion
+                                </MenuItem>
+                            </MenuSubPopup>
+                        </MenuSub>
+                    </MenuGroup>
                     <MenuSeparator />
-                    <MenuItem
-                        closeOnClick
-                        onClick={onDelete}
-                        variant="destructive"
-                    >
-                        <Trash2Icon className="size-4" />
-                        Delete
-                    </MenuItem>
+                    <MenuGroup>
+                        <MenuItem
+                            closeOnClick
+                            onClick={onDelete}
+                            variant="destructive"
+                        >
+                            <Trash2Icon className="size-4" />
+                            Delete
+                        </MenuItem>
+                    </MenuGroup>
                 </MenuPopup>
             </Menu>
         </div>

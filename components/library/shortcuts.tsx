@@ -45,7 +45,7 @@ export const KeyboardShortcutsDialogTrigger = (
                         className="flex items-center justify-between"
                         key={shortcut.label}
                     >
-                        <span className="flex items-center gap-2 text-foreground text-sm">
+                        <span className="my-3 flex items-center gap-2 font-medium text-foreground text-sm">
                             {shortcut.label}
                         </span>
                         <KbdGroup>
