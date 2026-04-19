@@ -55,6 +55,7 @@ const RadialChartImpl = ({
                 innerRadius={innerRadius}
                 outerRadius={outerRadius}
                 startAngle={90}
+                tabIndex={-1}
                 width={size}
             >
                 <PolarAngleAxis

@@ -131,10 +131,11 @@ export function IntegrationsListNoticeCallout() {
 
     return (
         <Collapsible
+            className="mt-2"
             onOpenChange={setIsConnectAccountNoteOpen}
             open={isConnectAccountNoteOpen}
         >
-            <CollapsiblePanel className="mt-1.5">
+            <CollapsiblePanel>
                 <div className="flex gap-1.5">
                     <Info className="mt-0.5 inline-block size-3.5 shrink-0" />
                     <p className="text-[11px] text-muted-foreground leading-tight">
@@ -153,13 +154,18 @@ export function IntegrationsListNoticeCallout() {
                         or{" "}
                         <Button
                             className="h-fit! leading-tight sm:text-[11px]"
-                            render={<Link href="/privacy" target="_blank" />}
+                            render={
+                                <Link
+                                    href="/legal/privacy-policy"
+                                    target="_blank"
+                                />
+                            }
                             size="xs"
                             type="button"
                             variant="link"
                         >
                             Cache Privacy
-                            <ArrowUpRight className="inline-block size-3.5" />
+                            <ArrowUpRight className="inline-block size-3 text-muted-foreground" />
                         </Button>
                     </p>
                 </div>

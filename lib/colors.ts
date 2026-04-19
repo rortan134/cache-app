@@ -1,7 +1,7 @@
 import { converter, formatHex, parse } from "culori";
 import * as z from "zod";
 
-export const colors: readonly string[] = [
+const COLORS: readonly string[] = [
     "#FF6900", // Orange
     "#FCB900", // Yellow
     "#00D084", // Emerald
@@ -84,7 +84,7 @@ export const isValidColor = (color: string): boolean => {
     }
 };
 
-export const parseValidColor = (color: string) => {
+export const parseToValidColor = (color: string) => {
     const parsed = parse(color);
     if (!parsed) {
         throw new Error(`Invalid color format: ${color}`);
@@ -92,7 +92,7 @@ export const parseValidColor = (color: string) => {
     return parsed;
 };
 
-export const toHexCode = (color: string): string => {
+export const parseToHex = (color: string): string => {
     try {
         const parsed = parse(color);
         if (!parsed) {
@@ -106,33 +106,22 @@ export const toHexCode = (color: string): string => {
     }
 };
 
-export const toRgb = (color: string) => {
+export const parseToRgb = (color: string) => {
     const parsed = parse(color);
+    console.log("attempted", color, parsed);
     if (!parsed) {
         throw new Error(`Invalid color format: ${color}`);
     }
     return converter("rgb")(parsed);
 };
 
-export const getColorFormats = (color: string) => {
-    const parsed = parse(color);
-    if (!parsed) {
-        throw new Error(`Invalid color format: ${color}`);
-    }
-
-    return {
-        hex: formatHex(parsed),
-        original: parsed,
-        rgb: converter("rgb")(parsed),
-    };
-};
-
 /**
  * Generates a hash for a given string using the DJB2 algorithm.
  * @param value - The string to hash.
  * @returns A non-negative hash value.
+ * @internal
  */
-function customHash(value: string): number {
+function djb2Hash(value: string): number {
     let hash = 5381;
     const len = value.length;
     for (let i = 0; i < len; i += 1) {
@@ -146,20 +135,21 @@ function customHash(value: string): number {
  * @param value - The input string.
  * @param arrayLength - The length of the color array.
  * @returns An index within the array range.
+ * @internal
  */
-export function getColor(value: string, arrayLength: number): number {
-    const hashValue = customHash(value);
+function getColorIndex(value: string, arrayLength: number): number {
+    const hashValue = djb2Hash(value);
     return hashValue % arrayLength;
 }
 
 /**
  * Retrieves a color from the colors array based on a given name.
- * @param name - The name from which to derive the color.
+ * @param value - The name from which to derive the color.
  * @returns A color string from the colors array.
  */
-export function getColorFromName(name: string): string {
-    const index = getColor(name, colors.length);
-    const color = colors[index];
+export function getHexColorFromName(value: string): string {
+    const index = getColorIndex(value, COLORS.length);
+    const color = COLORS[index];
     if (color === undefined || color === null) {
         throw new Error(`Color at index ${index} is undefined`);
     }
@@ -170,20 +160,16 @@ export function getColorFromName(name: string): string {
  * Retrieves a random color from the colors array.
  * @returns A random color string.
  */
-export function getRandomColor(): string {
-    const randomIndex = Math.floor(Math.random() * colors.length);
-    const color = colors[randomIndex];
+export function getRandomHexColor(): string {
+    const randomIndex = Math.floor(Math.random() * COLORS.length);
+    const color = COLORS[randomIndex];
     if (color === undefined || color === null) {
         throw new Error(`Color at index ${randomIndex} is undefined`);
     }
     return color;
 }
 
-function clamp(value: number, min: number, max: number): number {
-    return Math.min(max, Math.max(min, value));
-}
-
-function rgbToHue(r: number, g: number, b: number): number {
+export function rgbToHue(r: number, g: number, b: number): number {
     const rn = r / 255;
     const gn = g / 255;
     const bn = b / 255;
@@ -207,76 +193,37 @@ function rgbToHue(r: number, g: number, b: number): number {
     return (hue * 60 + 360) % 360;
 }
 
-export function getSubtleColorGradientFromName(name: string): string {
-    const rgb = hexToRgb(getColorFromName(name));
-    const hue = rgb ? rgbToHue(rgb[0], rgb[1], rgb[2]) : 272;
+/** @internal */
+function clamp(value: number, min: number, max: number): number {
+    return Math.min(max, Math.max(min, value));
+}
+
+export function getColorGradientFromName(name: string): string {
+    const color = parseToRgb(getHexColorFromName(name));
+    const rgb = [color.r, color.g, color.b] as const;
+    const hue = rgbToHue(rgb[0], rgb[1], rgb[2]);
     const chromaBias = rgb
         ? clamp((Math.max(...rgb) - Math.min(...rgb)) / 255, 0.6, 2.2)
         : 1;
     const start = `lch(97 ${Number((2.4 + chromaBias * 0.7).toFixed(3))} ${Number(hue.toFixed(3))})`;
     const end = `lch(97 ${Number((0.8 + chromaBias * 0.2).toFixed(3))} ${Number(((hue + 10) % 360).toFixed(3))})`;
-
     return `linear-gradient(90deg, ${start} 0%, ${end} 100%), ${end}`;
 }
 
-export const normalizeHexCode = (hex: string): string => {
-    if (!hex) {
-        return "";
-    }
-    let value = hex.trim().toLowerCase();
-    if (!value.startsWith("#")) {
-        value = `#${value}`;
-    }
-    // expand shorthand #abc -> #aabbcc
-    if (value.length === 4) {
-        const r = value[1] ?? "0";
-        const g = value[2] ?? "0";
-        const b = value[3] ?? "0";
-        return `#${r}${r}${g}${g}${b}${b}`;
-    }
-    // ensure #rrggbb
-    if (value.length === 7) {
-        return value;
-    }
-    return value;
-};
-
-const HEX_COLOR_REGEX = /^#(?:[0-9a-fA-F]{3}){1,2}$/;
-
-export const hexToRgb = (hexCode: string): [number, number, number] | null => {
-    const value = normalizeHexCode(hexCode);
-    if (!HEX_COLOR_REGEX.test(value)) {
-        return null;
-    }
-    const r = Number.parseInt(value.slice(1, 3), 16);
-    const g = Number.parseInt(value.slice(3, 5), 16);
-    const b = Number.parseInt(value.slice(5, 7), 16);
-    return [r, g, b];
-};
-
-export const euclideanRgbDistance = (
-    sourceHexColor: string,
-    targetHexColor: string
-): number => {
-    const sourceRgb = hexToRgb(sourceHexColor);
-    const targetRgb = hexToRgb(targetHexColor);
-    if (sourceRgb === null) {
-        return normalizeHexCode(sourceHexColor) ===
-            normalizeHexCode(targetHexColor)
-            ? 0
-            : Number.POSITIVE_INFINITY;
-    }
-    if (targetRgb === null) {
-        return normalizeHexCode(sourceHexColor) ===
-            normalizeHexCode(targetHexColor)
-            ? 0
-            : Number.POSITIVE_INFINITY;
-    }
-    const dr = sourceRgb[0] - targetRgb[0];
-    const dg = sourceRgb[1] - targetRgb[1];
-    const db = sourceRgb[2] - targetRgb[2];
-
-    return Math.sqrt(dr * dr + dg * dg + db * db);
+/**
+ * Calculates a contrasting text color based on the luminance of the background.
+ * It converts the hex background color to RGB values, computes the brightness,
+ * and returns white (#FFFFFF) for dark backgrounds or black (#000000) for light ones.
+ * @param hexColor - A hex string representing the background color (#RRGGBB).
+ * @returns A contrasting text color (#FFFFFF or #000000).
+ */
+export const getContrastColor = (hexColor: string) => {
+    const r = Number.parseInt(hexColor.slice(1, 3), 16) / 255;
+    const g = Number.parseInt(hexColor.slice(3, 5), 16) / 255;
+    const b = Number.parseInt(hexColor.slice(5, 7), 16) / 255;
+    return (Math.min(r, g, b) + Math.max(r, g, b)) / 2 < 0.55
+        ? "#FFFFFF"
+        : "#000000";
 };
 
 export const ColorSchema = z
@@ -286,21 +233,4 @@ export const ColorSchema = z
         message:
             "Invalid color format. Supported formats: hex (#RGB, #RRGGBB), named colors (red, blue), rgb/rgba, hsl/hsla, etc.",
     })
-    .overwrite(toHexCode);
-
-/**
- * Calculates a contrasting text color based on the luminance of the background.
- * It converts the hex background color to RGB values, computes the brightness,
- * and returns white (#FFFFFF) for dark backgrounds or black (#000000) for light ones.
- * @param background - A hex string representing the background color (#RRGGBB).
- * @returns A contrasting text color (#FFFFFF or #000000).
- */
-export const getContrastColor = (background: string) => {
-    const r = Number.parseInt(background.slice(1, 3), 16) / 255;
-    const g = Number.parseInt(background.slice(3, 5), 16) / 255;
-    const b = Number.parseInt(background.slice(5, 7), 16) / 255;
-
-    return (Math.min(r, g, b) + Math.max(r, g, b)) / 2 < 0.55
-        ? "#FFFFFF"
-        : "#000000";
-};
+    .overwrite(parseToHex);

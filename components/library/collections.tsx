@@ -48,7 +48,7 @@ import {
     PreviewCardTrigger,
 } from "@/components/ui/preview-card";
 import { cn } from "@/lib/cn";
-import { getColorFromName } from "@/lib/colors";
+import { getHexColorFromName } from "@/lib/colors";
 import { getSourceLabel } from "@/lib/integrations/support";
 import type { LibraryCollectionSummary } from "@/lib/library/types";
 import type { CollectionPriority } from "@/prisma/client/enums";
@@ -408,7 +408,7 @@ export function CollectionsListItemPriorityCombobox({
             <ComboboxTrigger
                 render={
                     <Button
-                        aria-label={`Set priority for ${collection.name}`}
+                        aria-label={`Change priority for ${collection.name}`}
                         className="absolute top-1/2 left-0.5 z-10 -translate-y-1/2 rounded-full opacity-80 group-hover:opacity-100"
                         size="icon-sm"
                         variant="ghost"
@@ -420,7 +420,11 @@ export function CollectionsListItemPriorityCombobox({
             <ComboboxPopup positionMethod="fixed">
                 <ComboboxInput
                     endAddon={<Kbd>P</Kbd>}
-                    placeholder="Set priority..."
+                    placeholder={
+                        collection.priority === "none"
+                            ? "Set priority to..."
+                            : "Change priority to..."
+                    }
                 />
                 <ComboboxEmpty>No matching priorities</ComboboxEmpty>
                 <ComboboxList>
@@ -449,7 +453,7 @@ export function CollectionsListItemPriorityCombobox({
 }
 
 function getCollectionsListItemStyle(name: string, isSelected: boolean) {
-    const assignedColor = getColorFromName(name);
+    const assignedColor = getHexColorFromName(name);
     const backgroundOpacity = isSelected ? 20 : 7;
 
     return {
@@ -664,16 +668,17 @@ export function CollectionsNoticeCallout() {
                     <span className="not-sr-only font-medium text-xs">
                         <Popover>
                             <PopoverTrigger
-                                className="cursor-pointer underline decoration-1 decoration-muted-foreground decoration-dotted underline-offset-2 transition-colors hover:decoration-foreground"
+                                className="flex cursor-pointer items-center whitespace-nowrap text-nowrap"
                                 openOnHover
                             >
                                 <GradientWaveText
                                     ariaLabel="Smart Collections"
+                                    className="underline decoration-muted-foreground/20 decoration-dotted underline-offset-2"
                                     speed={2.2}
                                 >
                                     Smart Collections
-                                </GradientWaveText>{" "}
-                                is active
+                                </GradientWaveText>
+                                &nbsp;is active
                             </PopoverTrigger>
                             <PopoverPopup align="start" positionMethod="fixed">
                                 <Image

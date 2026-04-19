@@ -41,7 +41,7 @@ export default async function PricingPage({
     const { locale } = await params;
 
     return (
-        <PageShell className="bg-background">
+        <PageShell>
             <section className="relative overflow-hidden px-6 pt-16 md:px-10 md:pt-24">
                 <div className="absolute inset-x-0 top-0 -z-10 h-80 bg-linear-to-b from-muted via-muted/50 to-transparent" />
                 <div className="mx-auto flex w-full max-w-6xl flex-col gap-10">

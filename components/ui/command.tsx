@@ -79,7 +79,7 @@ export function CommandPanel({
     return (
         <div
             className={cn(
-                "sticky top-3 z-20 -mx-px not-has-[+[data-slot=command-footer]]:-mb-px min-h-0 w-full max-w-md",
+                "sticky top-3 z-30 -mx-px not-has-[+[data-slot=command-footer]]:-mb-px min-h-0 w-full max-w-md",
                 className
             )}
             {...props}

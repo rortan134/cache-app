@@ -332,7 +332,7 @@ export function UserMenuContent() {
                 <KeyboardShortcutsDialogTrigger
                     render={
                         <Button className="justify-between" variant="ghost">
-                            <T>Keyboard Shortcuts</T>
+                            <T>Keyboard shortcuts</T>
                         </Button>
                     }
                 />

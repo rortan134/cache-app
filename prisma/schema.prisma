@@ -34,6 +34,19 @@ enum CollectionPriority {
     archive
 }
 
+enum CollectionTemplate {
+    reading_list
+    inspiration
+    tutorials_guides
+    watch_later
+    recipes
+    research_notes
+    product_ideas
+    travel_plans
+    career_growth
+    life_admin
+}
+
 model User {
     id                   String        @id
     name                 String

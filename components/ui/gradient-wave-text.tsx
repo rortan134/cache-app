@@ -229,7 +229,7 @@ function GradientWaveText({
         <div
             aria-label={ariaLabel}
             className={cn(
-                "flex h-full w-full items-center [--gradient-wave-base:rgb(29,29,31)]",
+                "flex size-full items-center [--gradient-wave-base:rgb(29,29,31)]",
                 className
             )}
             ref={elRef}

@@ -70,9 +70,10 @@ export default async function Home() {
                                     </GradientWaveText>
                                 </h1>
                                 <p className="font-medium text-[#0A0B0D] text-[1rem] leading-[1.22] tracking-[-3%] opacity-50 lg:max-w-[320px]">
-                                    Meet Cache – one place to collect, organize,
-                                    and rediscover everything you’ve saved
-                                    across platforms, right in your browser.
+                                    Meet Cache – A new kind of bookmark manager.
+                                    One place to collect, organize, and
+                                    rediscover everything you’ve saved across
+                                    platforms.
                                 </p>
                             </T>
                         </div>
@@ -247,7 +248,8 @@ export default async function Home() {
                                 <p className="tracking=[-3%] text-pretty font-medium font-regular text-[#0A0B0D] text-[16px] leading-[1.2] opacity-50">
                                     Streamline the way you consume and reengage
                                     with your saved content from a single clean
-                                    and powerful interface.
+                                    and powerful interface, right in your
+                                    browser.
                                 </p>
                             </T>
                         </div>

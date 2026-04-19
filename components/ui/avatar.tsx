@@ -57,7 +57,7 @@ export function AvatarGroup({
         <div
             {...props}
             className={cn(
-                "flex items-center justify-center -space-x-3",
+                "relative flex items-center justify-center -space-x-3",
                 className
             )}
         />

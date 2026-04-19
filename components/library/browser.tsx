@@ -27,6 +27,7 @@ import {
     AutocompleteClear,
     AutocompletePopup,
 } from "@/components/ui/autocomplete";
+import { Avatar, AvatarFallback, AvatarGroup } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useClientOnlyValue } from "@/components/ui/client-only";
@@ -70,6 +71,8 @@ import {
     DialogPopup,
     DialogTitle,
 } from "@/components/ui/dialog";
+import { GradientWaveText } from "@/components/ui/gradient-wave-text";
+import { ChevronDownFilledIcon } from "@/components/ui/icons";
 import { Input } from "@/components/ui/input";
 import { Kbd, KbdGroup } from "@/components/ui/kbd";
 import { Masonry, MasonryItem } from "@/components/ui/masonry";
@@ -93,9 +96,10 @@ import { TruncateAfter } from "@/components/ui/truncate-after";
 import { useAccess } from "@/hooks/use-access";
 import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
 import { cn } from "@/lib/cn";
-import { getSubtleColorGradientFromName } from "@/lib/colors";
+import { getColorGradientFromName } from "@/lib/colors";
 import { dayjs } from "@/lib/dayjs";
 import { saveFile } from "@/lib/file";
+import { getImageColors } from "@/lib/image-colors";
 import {
     createChromeBookmarkFromUrl,
     createCollection,
@@ -108,9 +112,9 @@ import {
     updateCollectionPriority,
     updateLibraryItemCollections,
     updateNote,
+    type CreateChromeBookmarkFromUrlResult,
     type CreateCollectionFromItemsResult,
     type CreateCollectionResult,
-    type CreateChromeBookmarkFromUrlResult,
     type DeleteCollectionResult,
     type DeleteLibraryItemResult,
     type NoteMutationResult,
@@ -124,6 +128,7 @@ import type {
     LibraryCollectionTag,
     LibraryItemWithCollections,
 } from "@/lib/library/types";
+import { withMemoize } from "@/lib/memoize";
 import { normalizeURL, toValidUrl } from "@/lib/url";
 import type { CollectionPriority } from "@/prisma/client/enums";
 import { LibraryItemSource } from "@/prisma/client/enums";
@@ -136,22 +141,24 @@ import fscreen from "fscreen";
 import {
     ArrowDownIcon,
     ArrowUpIcon,
-    ChevronDownIcon,
+    Check,
     ChevronRight,
-    ChevronRightIcon,
     CircleDashed,
     CircleDot,
     CircleFadingPlus,
+    Component,
     CornerDownLeftIcon,
     DownloadIcon,
     ExternalLinkIcon,
     EyeIcon,
     FilePenLineIcon,
+    Info,
     LinkIcon,
     MaximizeIcon,
     NotebookPenIcon,
     PlusIcon,
     Shapes,
+    Sparkles,
     SquarePen,
     Trash2Icon,
     XIcon,
@@ -171,6 +178,7 @@ import React, {
     type ReactElement,
 } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
+import useSWR from "swr";
 
 const NAME_COLLATOR = new Intl.Collator(undefined, {
     numeric: true,
@@ -489,6 +497,7 @@ function LibraryWorkspaceSidebar({
     const [createDialogError, setCreateDialogError] = useState<string | null>(
         null
     );
+    const [isTemplateComboboxOpen, setIsTemplateComboboxOpen] = useState(false);
     const [createDialogAssignItemId, setCreateDialogAssignItemId] = useState<
         string | null
     >(null);
@@ -525,6 +534,7 @@ function LibraryWorkspaceSidebar({
         setCreateDialogDraft("");
         setCreateDialogDescriptionDraft("");
         setCreateDialogError(null);
+        setIsTemplateComboboxOpen(false);
         setCreateDialogAssignItemId(null);
     };
 
@@ -886,6 +896,30 @@ function LibraryWorkspaceSidebar({
         });
     };
 
+    const syncCreatedCollection = (
+        result: Extract<CreateCollectionResult, { status: "CREATED" }>
+    ) => {
+        const nextCollection = {
+            description: result.collection.description,
+            id: result.collection.id,
+            name: result.collection.name,
+            priority: result.collection.priority,
+        } satisfies LibraryCollectionTag;
+
+        setCollections((current) =>
+            current.some((collection) => collection.id === nextCollection.id)
+                ? current
+                : sortCollections([...current, nextCollection])
+        );
+
+        if (result.assignedItemId) {
+            const assignedItemId = result.assignedItemId;
+            setItems((current) =>
+                appendCollectionToItem(current, assignedItemId, nextCollection)
+            );
+        }
+    };
+
     const handleCreateCollectionSubmit = () => {
         startCreateTransition(async () => {
             let result: CreateCollectionResult;
@@ -908,32 +942,54 @@ function LibraryWorkspaceSidebar({
                 return;
             }
 
-            const nextCollection = {
-                description: result.collection.description,
-                id: result.collection.id,
-                name: result.collection.name,
-                priority: result.collection.priority,
-            } satisfies LibraryCollectionTag;
+            syncCreatedCollection(result);
+            resetCreateDialog();
+            setIsCreateDialogOpen(false);
+        });
+    };
 
-            setCollections((current) =>
-                current.some(
-                    (collection) => collection.id === nextCollection.id
-                )
-                    ? current
-                    : sortCollections([...current, nextCollection])
-            );
+    const handleCreateTemplateCollection = (
+        templateValue: CollectionTemplateValue | null
+    ) => {
+        if (!templateValue) {
+            return;
+        }
 
-            if (result.assignedItemId) {
-                const assignedItemId = result.assignedItemId;
-                setItems((current) =>
-                    appendCollectionToItem(
-                        current,
-                        assignedItemId,
-                        nextCollection
-                    )
-                );
+        const selectedTemplate = COLLECTION_TEMPLATE_OPTIONS.find(
+            (template) => template.value === templateValue
+        );
+        if (!selectedTemplate) {
+            return;
+        }
+
+        setCreateDialogError(null);
+        setIsTemplateComboboxOpen(false);
+        startCreateTransition(async () => {
+            let result: CreateCollectionResult;
+
+            try {
+                result = await createCollection({
+                    assignToItemId: createDialogAssignItemId ?? undefined,
+                    description: selectedTemplate.description,
+                    name: selectedTemplate.name,
+                });
+            } catch {
+                result = {
+                    message: "We couldn't create this collection right now.",
+                    status: "ERROR",
+                };
             }
 
+            if (result.status !== "CREATED") {
+                setCreateDialogError(result.message);
+                return;
+            }
+
+            syncCreatedCollection(result);
+            setCollectionActionFeedback({
+                message: `${result.collection.name} created from template.`,
+                tone: "success",
+            });
             resetCreateDialog();
             setIsCreateDialogOpen(false);
         });
@@ -1200,17 +1256,76 @@ function LibraryWorkspaceSidebar({
                                     value={createDialogDescriptionDraft}
                                 />
                             </div>
+                            {createDialogError ? (
+                                <p className="text-destructive text-xs">
+                                    {createDialogError}
+                                </p>
+                            ) : null}
                         </DialogPanel>
                         <DialogFooter>
-                            <Button
-                                className="mr-auto -ml-2"
-                                size="xs"
-                                type="button"
-                                variant="link"
+                            <Combobox
+                                autoHighlight
+                                items={COLLECTION_TEMPLATE_OPTIONS}
+                                onOpenChange={setIsTemplateComboboxOpen}
+                                onValueChange={handleCreateTemplateCollection}
+                                open={isTemplateComboboxOpen}
                             >
-                                <Shapes className="size-4" />
-                                Explore Templates
-                            </Button>
+                                <ComboboxTrigger
+                                    disabled={isCreatePending}
+                                    render={
+                                        <Button
+                                            className="mr-auto -ml-2"
+                                            size="xs"
+                                            type="button"
+                                            variant="link"
+                                        />
+                                    }
+                                >
+                                    <Shapes className="mr-0.5! size-4" />
+                                    Explore Templates
+                                </ComboboxTrigger>
+                                <ComboboxPopup
+                                    align="start"
+                                    className="max-w-80"
+                                >
+                                    <ComboboxInput placeholder="Create collection from template..." />
+                                    <ComboboxEmpty>
+                                        No matching templates
+                                    </ComboboxEmpty>
+                                    <ComboboxList>
+                                        <ComboboxCollection>
+                                            {(template) => (
+                                                <ComboboxItem
+                                                    key={template.value}
+                                                    value={template.value}
+                                                >
+                                                    <div className="flex min-w-0 flex-col gap-0.5">
+                                                        <span className="truncate text-foreground text-sm">
+                                                            {template.name}
+                                                        </span>
+                                                        <span className="line-clamp-2 text-muted-foreground text-xs">
+                                                            {
+                                                                template.description
+                                                            }
+                                                        </span>
+                                                    </div>
+                                                </ComboboxItem>
+                                            )}
+                                        </ComboboxCollection>
+                                    </ComboboxList>
+                                    <div className="flex gap-1 px-3 py-2">
+                                        <Info className="inline-block size-3.5 shrink-0" />
+                                        <p className="text-[11px] text-muted-foreground leading-tight">
+                                            Cache's{" "}
+                                            <strong className="font-medium">
+                                                Smart Collections
+                                            </strong>{" "}
+                                            can automatically assign collections
+                                            to entries that match with these.
+                                        </p>
+                                    </div>
+                                </ComboboxPopup>
+                            </Combobox>
                             <DialogClose
                                 disabled={isCreatePending}
                                 render={<Button size="sm" variant="ghost" />}
@@ -1288,6 +1403,84 @@ const LIBRARY_COMMAND_PANEL_TOP_PX = 12;
 const LIBRARY_SECTION_STICKY_GAP_PX = 8;
 const FREE_LIBRARY_PREVIEW_ITEMS = 12;
 const COLLECTION_NAME_MAX_LENGTH = 64;
+type CollectionTemplateValue =
+    | "reading_list"
+    | "inspiration"
+    | "tutorials_guides"
+    | "watch_later"
+    | "recipes"
+    | "research_notes"
+    | "product_ideas"
+    | "travel_plans"
+    | "career_growth"
+    | "life_admin";
+
+interface CollectionTemplateOption {
+    description: string;
+    name: string;
+    value: CollectionTemplateValue;
+}
+
+const COLLECTION_TEMPLATE_OPTIONS = [
+    {
+        description:
+            "Articles, essays, and references worth reading when you have time.",
+        name: "Reading List",
+        value: "reading_list",
+    },
+    {
+        description:
+            "Visual references, examples, and sparks to kick off new ideas.",
+        name: "Inspiration",
+        value: "inspiration",
+    },
+    {
+        description:
+            "Step-by-step tutorials, docs, and practical guides to revisit.",
+        name: "Tutorials & Guides",
+        value: "tutorials_guides",
+    },
+    {
+        description: "Videos, talks, and media to watch when you're ready.",
+        name: "Watch Later",
+        value: "watch_later",
+    },
+    {
+        description: "Recipes and meal ideas you want to try later.",
+        name: "Recipes",
+        value: "recipes",
+    },
+    {
+        description:
+            "Background research, references, and findings for ongoing work.",
+        name: "Research Notes",
+        value: "research_notes",
+    },
+    {
+        description:
+            "Potential product concepts, opportunities, and experiments.",
+        name: "Product Ideas",
+        value: "product_ideas",
+    },
+    {
+        description:
+            "Trips, destinations, and travel resources to plan effectively.",
+        name: "Travel Plans",
+        value: "travel_plans",
+    },
+    {
+        description:
+            "Learning goals, resources, and opportunities for professional growth.",
+        name: "Career Growth",
+        value: "career_growth",
+    },
+    {
+        description:
+            "Personal admin items like purchases, reminders, and household tasks.",
+        name: "Life Admin",
+        value: "life_admin",
+    },
+] satisfies CollectionTemplateOption[];
 type LibraryItem = LibraryItemWithCollections;
 
 type GroupByMode =
@@ -1832,9 +2025,8 @@ function renderLibraryGridBody({
                         <h2 className="font-medium text-foreground text-sm">
                             {section.title}
                         </h2>
-                        <span className="text-muted-foreground text-xs tabular-nums">
-                            {section.items.length} item
-                            {section.items.length === 1 ? "" : "s"}
+                        <span className="font-medium text-foreground text-xs tabular-nums">
+                            {section.items.length}
                         </span>
                     </div>
                 ) : null}
@@ -3067,9 +3259,13 @@ function CollectionComboboxPicker({
     onUpdateItemCollections,
     open: openProp,
     onOpenChange,
-}: {
+    multiple = true,
+    children,
+    ...props
+}: React.ComponentProps<typeof ComboboxTrigger> & {
+    multiple?: boolean;
     collections: LibraryCollectionSummary[];
-    item: LibraryItemWithCollections;
+    item: LibraryItemWithCollections | string[];
     onUpdateItemCollections: (itemId: string, collectionIds: string[]) => void;
     open?: boolean;
     onOpenChange?: (open: boolean) => void;
@@ -3077,19 +3273,25 @@ function CollectionComboboxPicker({
     const [isOpenInternal, setIsOpenInternal] = useState(false);
     const isOpen = openProp ?? isOpenInternal;
     const setIsOpen = onOpenChange ?? setIsOpenInternal;
-    const selectedCollectionIds = item.collections.map(
-        (collection) => collection.id
-    );
+    const selectedCollectionIds = Array.isArray(item)
+        ? item
+        : item.collections.map((collection) => collection.id);
     const selectedCount = selectedCollectionIds.length;
 
     return (
         <Combobox
             autoHighlight
             items={collections}
-            multiple
+            multiple={multiple}
             onOpenChange={setIsOpen}
             onValueChange={(nextIds) => {
-                onUpdateItemCollections(item.id, [...nextIds]);
+                if (Array.isArray(item)) {
+                    for (const id of item) {
+                        onUpdateItemCollections(id, [...nextIds]);
+                    }
+                } else {
+                    onUpdateItemCollections(item.id, [...nextIds]);
+                }
             }}
             open={isOpen}
             value={selectedCollectionIds}
@@ -3107,12 +3309,14 @@ function CollectionComboboxPicker({
                         variant="ghost"
                     />
                 }
+                {...props}
             >
-                {selectedCount > 0 ? (
-                    <CircleDot className="size-4.5" />
-                ) : (
-                    <CircleDashed className="size-4.5" />
-                )}
+                {children ??
+                    (selectedCount > 0 ? (
+                        <CircleDot className="size-4.5" />
+                    ) : (
+                        <CircleDashed className="size-4.5" />
+                    ))}
             </ComboboxTrigger>
             <ComboboxPopup>
                 <ComboboxInput
@@ -3141,6 +3345,46 @@ function CollectionComboboxPicker({
                 </ComboboxList>
             </ComboboxPopup>
         </Combobox>
+    );
+}
+
+function PreviewColor({ value }: { value: string }) {
+    const { copyToClipboard, isCopied } = useCopyToClipboard();
+
+    return (
+        <Avatar
+            className="relative size-4.5 cursor-pointer overflow-visible"
+            onClick={() => copyToClipboard(value)}
+        >
+            <AvatarFallback style={{ backgroundColor: value }}>
+                {isCopied ? (
+                    <>
+                        <Check className="size-3 text-black invert" />
+                        <span className="absolute -bottom-4 text-nowrap rounded-full bg-white text-[11px] text-success-foreground">
+                            Copied!
+                        </span>
+                    </>
+                ) : null}
+            </AvatarFallback>
+        </Avatar>
+    );
+}
+
+function PreviewColorPalette({ src }: { src: string }) {
+    const { data } = useSWR(src, withMemoize(getImageColors), {
+        keepPreviousData: true,
+    });
+
+    if (!data) {
+        return null;
+    }
+
+    return (
+        <AvatarGroup className="justify-end -space-x-1">
+            {data.map((value, i) => (
+                <PreviewColor key={i} value={value} />
+            ))}
+        </AvatarGroup>
     );
 }
 
@@ -3218,12 +3462,27 @@ function LibraryGridCard({
 
     const renderCardMenuMeta = () => (
         <>
-            <div className="relative mx-auto flex max-w-56 items-center gap-2 pt-2 pb-1.5 pl-2.5 opacity-50">
-                <span className="block truncate text-xs">
-                    {isNote ? "Note" : item.url}
+            <div className="relative mx-auto flex max-w-56 items-center gap-2 py-2 pl-2.5 opacity-50">
+                <span
+                    className={cn("block truncate text-xs", {
+                        "underline decoration-muted-foreground/20 underline-offset-2":
+                            !isNote,
+                    })}
+                >
+                    {isNote ? (
+                        "Note"
+                    ) : (
+                        <a
+                            href={item.url}
+                            rel="noopener noreferrer"
+                            target="_blank"
+                        >
+                            {item.url}
+                        </a>
+                    )}
                 </span>
             </div>
-            <div className="px-2.5 pb-1.5 text-[11px] text-muted-foreground">
+            <div className="px-2.5 pb-2 text-[11px] text-muted-foreground">
                 <div className="flex items-center justify-between gap-3 py-0.5">
                     <span>Created</span>
                     <span className="text-foreground tabular-nums">
@@ -3236,6 +3495,12 @@ function LibraryGridCard({
                         {addedLabel}
                     </span>
                 </div>
+                {previewImageUrl ? (
+                    <div className="flex items-center justify-between gap-3 py-0.5">
+                        <span>Palette</span>
+                        <PreviewColorPalette src={previewImageUrl} />
+                    </div>
+                ) : null}
             </div>
         </>
     );
@@ -3691,6 +3956,15 @@ function ExtensionLibraryGrid({
     );
 }
 
+function SectionDescription() {
+    return (
+        <p className="block w-full text-xs leading-snug">
+            <Skeleton className="my-0.5 h-4 w-full" />
+            <Skeleton className="my-0.5 h-4 w-48" />
+        </p>
+    );
+}
+
 function ExtensionLibrarySection({
     accentKey,
     collapsed = false,
@@ -3711,11 +3985,12 @@ function ExtensionLibrarySection({
     title,
 }: SectionProps): ReactElement {
     const canToggle = collapsible && onToggle;
-    const stickyHeader = collapsible;
-    const headerGradient = stickyHeader
-        ? getSubtleColorGradientFromName(accentKey ?? title)
+    const headerGradient = collapsible
+        ? getColorGradientFromName(accentKey ?? title)
         : undefined;
     let body: ReactElement | null;
+
+    const shouldRequestDescription = canToggle && title === "Results";
 
     if (collapsed) {
         body = null;
@@ -3723,19 +3998,42 @@ function ExtensionLibrarySection({
         body = <p className="text-muted-foreground text-sm">{emptyHint}</p>;
     } else {
         body = (
-            <ExtensionLibraryGrid
-                collections={collections}
-                columnCount={columnCount}
-                items={items}
-                layoutToken={layoutToken}
-                onCopyLink={onCopyLink}
-                onDelete={onDelete}
-                onOpenInNewTab={onOpenInNewTab}
-                onOpenNote={onOpenNote}
-                onUpdateItemCollections={onUpdateItemCollections}
-                pendingCollectionItemIds={pendingCollectionItemIds}
-                pendingDeleteItemId={pendingDeleteItemId}
-            />
+            <>
+                {shouldRequestDescription ? (
+                    <div className="flex items-start gap-2">
+                        <AvatarGroup>
+                            <Avatar className="size-7 bg-muted">
+                                <Sparkles className="size-4" />
+                            </Avatar>
+                            <Avatar className="border-2 border-white bg-muted">
+                                <Info className="size-4" />
+                            </Avatar>
+                        </AvatarGroup>
+                        <div className="flex w-full flex-1 flex-col gap-1">
+                            <GradientWaveText
+                                ariaLabel="Description"
+                                className="font-medium text-muted-foreground text-xs opacity-80"
+                            >
+                                Description
+                            </GradientWaveText>
+                            <SectionDescription />
+                        </div>
+                    </div>
+                ) : null}
+                <ExtensionLibraryGrid
+                    collections={collections}
+                    columnCount={columnCount}
+                    items={items}
+                    layoutToken={layoutToken}
+                    onCopyLink={onCopyLink}
+                    onDelete={onDelete}
+                    onOpenInNewTab={onOpenInNewTab}
+                    onOpenNote={onOpenNote}
+                    onUpdateItemCollections={onUpdateItemCollections}
+                    pendingCollectionItemIds={pendingCollectionItemIds}
+                    pendingDeleteItemId={pendingDeleteItemId}
+                />
+            </>
         );
     }
 
@@ -3744,11 +4042,11 @@ function ExtensionLibrarySection({
             <div
                 className={cn(
                     "flex items-center justify-between gap-3 py-1 pr-5",
-                    stickyHeader &&
+                    collapsible &&
                         "sticky z-10 rounded-xl bg-muted/92 backdrop-blur-sm supports-backdrop-filter:bg-muted/50"
                 )}
                 style={
-                    stickyHeader
+                    collapsible
                         ? ({
                               background: headerGradient,
                               top: "var(--library-section-sticky-top)",
@@ -3758,16 +4056,13 @@ function ExtensionLibrarySection({
             >
                 {canToggle ? (
                     <Button
-                        className="min-w-0 flex-1 justify-start rounded-xl px-4"
+                        className="group min-w-0 flex-1 justify-start rounded-xl"
                         onClick={onToggle}
                         size="lg"
                         variant="ghost"
+                        {...(collapsed ? {} : { "data-panel-open": true })}
                     >
-                        {collapsed ? (
-                            <ChevronRightIcon className="size-4" />
-                        ) : (
-                            <ChevronDownIcon className="size-4" />
-                        )}
+                        <ChevronDownFilledIcon />
                         <span className="ml-1 truncate font-medium">
                             {title}
                         </span>
@@ -4564,6 +4859,25 @@ function LibraryBrowser({
                             ) : null}
                         </DialogPanel>
                         <DialogFooter>
+                            <CollectionComboboxPicker
+                                collections={collections}
+                                item={resultCollectionItemIds}
+                                multiple={false}
+                                onUpdateItemCollections={
+                                    onUpdateItemCollections
+                                }
+                                render={
+                                    <Button
+                                        className="mr-auto -ml-2"
+                                        size="xs"
+                                        type="button"
+                                        variant="link"
+                                    />
+                                }
+                            >
+                                <Component className="mr-0.5! size-4" />
+                                Add to existing
+                            </CollectionComboboxPicker>
                             <DialogClose
                                 disabled={isCreatingResultsCollection}
                                 render={
