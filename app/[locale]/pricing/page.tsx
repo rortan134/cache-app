@@ -262,29 +262,12 @@ export default async function PricingPage({
                                         everything you save online. We bring
                                         together your bookmarks, liked photos,
                                         and saved content from various platforms
-                                        into one searchable, organized space.
+                                        into one safe, searchable, organized
+                                        space.
                                     </T>
                                 </AccordionPanel>
                             </AccordionItem>
-
                             <AccordionItem value="item-1">
-                                <AccordionTrigger className="text-lg md:text-xl">
-                                    <T context="FAQ question">
-                                        How often is my content updated?
-                                    </T>
-                                </AccordionTrigger>
-                                <AccordionPanel className="text-[0.95rem] leading-relaxed md:text-base">
-                                    <T context="FAQ answer">
-                                        We sync your connected integrations
-                                        automatically. Whether it's a new Google
-                                        Photo or a Pinterest Pin, Cache keeps
-                                        your library up to date so you can find
-                                        what you need instantly.
-                                    </T>
-                                </AccordionPanel>
-                            </AccordionItem>
-
-                            <AccordionItem value="item-2">
                                 <AccordionTrigger className="text-lg md:text-xl">
                                     <T context="FAQ question">
                                         Do you have discounts for students?
@@ -299,8 +282,7 @@ export default async function PricingPage({
                                     </T>
                                 </AccordionPanel>
                             </AccordionItem>
-
-                            <AccordionItem value="item-3">
+                            <AccordionItem value="item-2">
                                 <AccordionTrigger className="text-lg md:text-xl">
                                     <T context="FAQ question">
                                         What payment methods do you accept?
@@ -315,8 +297,7 @@ export default async function PricingPage({
                                     </T>
                                 </AccordionPanel>
                             </AccordionItem>
-
-                            <AccordionItem value="item-4">
+                            <AccordionItem value="item-3">
                                 <AccordionTrigger className="text-lg md:text-xl">
                                     <T context="FAQ question">
                                         Can I cancel my subscription?
@@ -332,8 +313,7 @@ export default async function PricingPage({
                                     </T>
                                 </AccordionPanel>
                             </AccordionItem>
-
-                            <AccordionItem value="item-5">
+                            <AccordionItem value="item-4">
                                 <AccordionTrigger className="text-lg md:text-xl">
                                     <T context="FAQ question">
                                         Do you offer plans for teams?
@@ -350,8 +330,7 @@ export default async function PricingPage({
                                     </T>
                                 </AccordionPanel>
                             </AccordionItem>
-
-                            <AccordionItem value="item-6">
+                            <AccordionItem value="item-5">
                                 <AccordionTrigger className="text-lg md:text-xl">
                                     <T context="FAQ question">
                                         What is your refund policy?
