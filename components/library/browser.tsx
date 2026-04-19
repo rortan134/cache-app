@@ -3226,6 +3226,35 @@ function itemDateLabel(dateValue: Date | string | null | undefined): string {
     });
 }
 
+function getSharedCollectionIds(items: LibraryItemWithCollections[]): string[] {
+    if (items.length === 0) {
+        return [];
+    }
+
+    const [firstItem, ...remainingItems] = items;
+    const sharedCollectionIds = new Set(
+        firstItem?.collections.map((collection) => collection.id)
+    );
+
+    for (const item of remainingItems) {
+        const itemCollectionIds = new Set(
+            item.collections.map((collection) => collection.id)
+        );
+        for (const collectionId of [...sharedCollectionIds]) {
+            if (!itemCollectionIds.has(collectionId)) {
+                sharedCollectionIds.delete(collectionId);
+            }
+        }
+    }
+
+    return (
+        firstItem?.collections
+            .map((collection) => collection.id)
+            .filter((collectionId) => sharedCollectionIds.has(collectionId)) ??
+        []
+    );
+}
+
 function fallbackGridStyle(columnCount?: number): CSSProperties | undefined {
     if (!columnCount) {
         return;
@@ -3305,7 +3334,7 @@ function CollectionComboboxPicker({
     ...props
 }: React.ComponentProps<typeof ComboboxTrigger> & {
     collections: LibraryCollectionSummary[];
-    item: LibraryItemWithCollections | string[];
+    item: LibraryItemWithCollections | LibraryItemWithCollections[];
     onUpdateItemCollections: (itemId: string, collectionIds: string[]) => void;
     open?: boolean;
     onOpenChange?: (open: boolean) => void;
@@ -3314,7 +3343,7 @@ function CollectionComboboxPicker({
     const isOpen = openProp ?? isOpenInternal;
     const setIsOpen = onOpenChange ?? setIsOpenInternal;
     const selectedCollectionIds = Array.isArray(item)
-        ? item
+        ? getSharedCollectionIds(item)
         : item.collections.map((collection) => collection.id);
     const selectedCount = selectedCollectionIds.length;
 
@@ -3326,8 +3355,19 @@ function CollectionComboboxPicker({
             onOpenChange={setIsOpen}
             onValueChange={(nextIds) => {
                 if (Array.isArray(item)) {
-                    for (const itemId of item) {
-                        onUpdateItemCollections(itemId, [...nextIds]);
+                    for (const currentItem of item) {
+                        const mergedCollectionIds = Array.from(
+                            new Set([
+                                ...currentItem.collections.map(
+                                    (collection) => collection.id
+                                ),
+                                ...nextIds,
+                            ])
+                        );
+                        onUpdateItemCollections(
+                            currentItem.id,
+                            mergedCollectionIds
+                        );
                     }
                 } else {
                     onUpdateItemCollections(item.id, [...nextIds]);
@@ -4939,7 +4979,7 @@ function LibraryBrowser({
                         <DialogFooter>
                             <CollectionComboboxPicker
                                 collections={collections}
-                                item={resultCollectionItemIds}
+                                item={visibleResultItems}
                                 onUpdateItemCollections={
                                     onUpdateItemCollections
                                 }

@@ -1,6 +1,6 @@
 import { GoogleSignInButton } from "@/components/auth/google-sign-in-button";
 import { SignedInOnly, SignedOutOnly } from "@/components/auth/session";
-import { PricingUpgradeButton } from "@/components/billing/pricing-upgrade-button";
+import { UpgradeButton } from "@/components/billing/upgrade-button";
 import {
     Accordion,
     AccordionItem,
@@ -203,11 +203,11 @@ export default async function PricingPage({
                                         </GoogleSignInButton>
                                     </SignedOutOnly>
                                     <SignedInOnly>
-                                        <PricingUpgradeButton locale={locale}>
+                                        <UpgradeButton locale={locale}>
                                             <T context="Pricing page upgrade CTA">
                                                 Upgrade plan
                                             </T>
-                                        </PricingUpgradeButton>
+                                        </UpgradeButton>
                                     </SignedInOnly>
                                 </div>
                                 <div className="mt-8 grid gap-4">

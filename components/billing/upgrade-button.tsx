@@ -6,7 +6,7 @@ import { cn } from "@/lib/cn";
 import type * as React from "react";
 import { useState, useTransition } from "react";
 
-export function PricingUpgradeButton({
+export function UpgradeButton({
     children = "Upgrade to Pro",
     className,
     fullWidth = true,

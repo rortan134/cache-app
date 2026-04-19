@@ -1,6 +1,6 @@
 "use client";
 
-import { PricingUpgradeButton } from "@/components/billing/pricing-upgrade-button";
+import { UpgradeButton } from "@/components/billing/upgrade-button";
 import { Badge } from "@/components/ui/badge";
 import { useParams } from "next/navigation";
 
@@ -22,7 +22,7 @@ function InlinePromotionBanner() {
             <div className="flex items-center font-medium text-foreground text-sm">
                 Upgrade for full access to Cache and all
                 integrations&nbsp;—&nbsp;
-                <PricingUpgradeButton
+                <UpgradeButton
                     className="p-0 underline"
                     fullWidth={false}
                     locale={locale}
@@ -30,7 +30,7 @@ function InlinePromotionBanner() {
                     variant="link"
                 >
                     Get Pro
-                </PricingUpgradeButton>
+                </UpgradeButton>
             </div>
         </aside>
     );
@@ -55,12 +55,12 @@ function BlockPromotionBanner({ length }: { length: number }) {
                             </span>{" "}
                             — cancel anytime.
                         </p>
-                        <PricingUpgradeButton
+                        <UpgradeButton
                             className="mx-auto w-fit rounded-full"
                             locale={locale}
                         >
                             Get Pro
-                        </PricingUpgradeButton>
+                        </UpgradeButton>
                     </div>
                 </div>
             </div>

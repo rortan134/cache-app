@@ -548,7 +548,7 @@ export function CollectionsListItemMeta({
                         Edit
                     </MenuItem>
                     <MenuSeparator />
-                    <MenuItem closeOnClick>
+                    <MenuItem closeOnClick disabled>
                         <UserRoundPlus className="size-4 text-muted-foreground" />
                         Share collection
                     </MenuItem>
