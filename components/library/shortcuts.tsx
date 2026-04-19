@@ -13,8 +13,20 @@ import type * as React from "react";
 
 const KEYBOARD_SHORTCUTS = [
     {
-        keys: "",
-        label: "",
+        keys: "F",
+        label: "Toggle feedback widget",
+    },
+    {
+        keys: "S",
+        label: "Open collection picker for hovered item",
+    },
+    {
+        keys: "P",
+        label: "Open priority picker for hovered collection",
+    },
+    {
+        keys: "⌘/Ctrl+1-9",
+        label: "Run command palette item 1-9",
     },
 ];
 

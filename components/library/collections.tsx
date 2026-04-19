@@ -74,6 +74,7 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import * as React from "react";
+import { useHotkeys } from "react-hotkeys-hook";
 import { createStore } from "stan-js";
 import { storage } from "stan-js/storage";
 
@@ -96,6 +97,7 @@ export function useCollectionsListOpenState() {
 
 interface CollectionsListItemContextValue {
     collection: LibraryCollectionSummary;
+    isHovered: boolean;
 }
 
 const CollectionsListItemContext =
@@ -384,11 +386,23 @@ export function CollectionsListItemPriorityCombobox({
     onOpenChange?: (open: boolean) => void;
     onUpdatePriority: (priority: CollectionPriority) => void;
 }) {
-    const { collection } = useCollectionsListItemContext();
+    const { collection, isHovered } = useCollectionsListItemContext();
     const [isOpenInternal, setIsOpenInternal] = React.useState(false);
     const isOpen = openProp ?? isOpenInternal;
     const setIsOpen = onOpenChange ?? setIsOpenInternal;
     const selectedOption = getPriorityOption(collection.priority);
+
+    useHotkeys(
+        "p",
+        () => {
+            setIsOpen(true);
+        },
+        {
+            enabled: isHovered && !isOpen,
+            preventDefault: true,
+        },
+        [isHovered, isOpen, setIsOpen]
+    );
 
     return (
         <Combobox
@@ -472,15 +486,20 @@ export function CollectionsListItem({
     collection: LibraryCollectionSummary;
     isSelected: boolean;
 }) {
+    const [isHovered, setIsHovered] = React.useState(false);
     const contextValue = React.useMemo<CollectionsListItemContextValue>(
-        () => ({ collection }),
-        [collection]
+        () => ({ collection, isHovered }),
+        [collection, isHovered]
     );
 
     return (
         <CollectionsListItemContext value={contextValue}>
+            {/** biome-ignore lint/a11y/noNoninteractiveElementInteractions: Ignore */}
+            {/** biome-ignore lint/a11y/noStaticElementInteractions: Ignore */}
             <div
                 className="group relative flex select-none items-center"
+                onMouseEnter={() => setIsHovered(true)}
+                onMouseLeave={() => setIsHovered(false)}
                 style={getCollectionsListItemStyle(collection.name, isSelected)}
             >
                 {children}

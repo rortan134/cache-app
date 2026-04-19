@@ -19,6 +19,10 @@ const SECTION_DESCRIPTION_DISALLOWED_PLATFORM_PATTERN =
     /\b(?:youtube|x|twitter|instagram|pinterest|github|google\s+photos|chrome\s+bookmarks?)\b/i;
 const SECTION_DESCRIPTION_DISALLOWED_COUNT_PATTERN =
     /\b(?:\d+|one|two|three|four|five|six|seven|eight|nine|ten|dozen|several|many|multiple)\s+(?:saved\s+)?(?:items?|entries|bookmarks?|results|links?)\b/i;
+const SECTION_DESCRIPTION_FIRST_SENTENCE_PATTERN = /^.+?[.!?](?=\s|$)/;
+const SECTION_DESCRIPTION_WHITESPACE_PATTERN = /\s+/g;
+const SECTION_DESCRIPTION_SUMMARY_PREFIX_PATTERN = /^summary:\s*/i;
+const SECTION_DESCRIPTION_SURROUNDING_QUOTES_PATTERN = /^["']|["']$/g;
 
 const SectionDescriptionRequestSchema = z.object({
     items: z
@@ -45,7 +49,7 @@ function buildPrompt({
         "- Keep it under 22 words.",
         "- Do not mention counts, totals, quantities, or how many entries exist.",
         "- Do not mention source platforms or platform names.",
-        "- Do not start with: \"This library contains\", \"This collection contains\", \"This section contains\", \"These items\", or \"The items\".",
+        '- Do not start with: "This library contains", "This collection contains", "This section contains", "These items", or "The items".',
         "- Do not use markdown, bullets, headings, labels, or code fences.",
         "",
         "Item context JSON:",
@@ -54,12 +58,12 @@ function buildPrompt({
                 items,
             },
             null,
-            2,
+            2
         ),
     ].join("\n");
 }
 function firstSentence(value: string): string {
-    const match = value.match(/^.+?[.!?](?=\s|$)/);
+    const match = value.match(SECTION_DESCRIPTION_FIRST_SENTENCE_PATTERN);
     return match?.[0]?.trim() ?? value.trim();
 }
 
@@ -73,11 +77,13 @@ function hasDisallowedSummaryContent(value: string): boolean {
 
 function normalizeSummary(value: string | undefined): string | null {
     const normalized = value
-        ?.replace(/\s+/g, " ")
-        .replace(/^summary:\s*/i, "")
+        ?.replace(SECTION_DESCRIPTION_WHITESPACE_PATTERN, " ")
+        .replace(SECTION_DESCRIPTION_SUMMARY_PREFIX_PATTERN, "")
         .trim();
     const singleSentence = firstSentence(normalized ?? "");
-    const cleaned = singleSentence.replace(/^["']|["']$/g, "").trim();
+    const cleaned = singleSentence
+        .replace(SECTION_DESCRIPTION_SURROUNDING_QUOTES_PATTERN, "")
+        .trim();
 
     if (hasDisallowedSummaryContent(cleaned)) {
         return null;
@@ -87,7 +93,6 @@ function normalizeSummary(value: string | undefined): string | null {
     }
     if (cleaned.length <= SECTION_DESCRIPTION_RESPONSE_MAX_LENGTH) {
         return cleaned;
-        return normalized;
     }
 
     const truncated = `${cleaned.slice(0, SECTION_DESCRIPTION_RESPONSE_MAX_LENGTH - 3).trimEnd()}...`;
@@ -95,6 +100,16 @@ function normalizeSummary(value: string | undefined): string | null {
         return null;
     }
     return truncated;
+}
+
+function modelErrorMessage(error: unknown): string {
+    if (error instanceof ApiError) {
+        return error.message;
+    }
+    if (error instanceof Error) {
+        return error.message;
+    }
+    return "Unknown error";
 }
 
 export async function POST(request: Request): Promise<Response> {
@@ -111,7 +126,7 @@ export async function POST(request: Request): Promise<Response> {
     } catch {
         return Response.json(
             { error: "Invalid JSON payload." },
-            { status: 400 },
+            { status: 400 }
         );
     }
 
@@ -119,7 +134,7 @@ export async function POST(request: Request): Promise<Response> {
     if (!parsedBody.success) {
         return Response.json(
             { error: "Invalid request payload." },
-            { status: 400 },
+            { status: 400 }
         );
     }
 
@@ -152,12 +167,7 @@ export async function POST(request: Request): Promise<Response> {
                 SECTION_DESCRIPTION_FALLBACK_TEXT,
         });
     } catch (error) {
-        const message =
-            error instanceof ApiError
-                ? error.message
-                : error instanceof Error
-                  ? error.message
-                  : "Unknown error";
+        const message = modelErrorMessage(error);
 
         log.warn("Failed to generate library section description", {
             error: message,
