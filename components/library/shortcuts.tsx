@@ -13,6 +13,10 @@ import type * as React from "react";
 
 const KEYBOARD_SHORTCUTS = [
     {
+        keys: "⌘/Ctrl+K",
+        label: "Search library",
+    },
+    {
         keys: "F",
         label: "Toggle feedback widget",
     },

@@ -404,7 +404,7 @@ export function UserMenu({ children }: { children: ReactNode }) {
                 className="w-full justify-between"
                 render={<Button size="xl" variant="ghost" />}
             >
-                <span className="flex min-w-0 items-center gap-3">
+                <span className="flex min-w-0 items-center gap-2">
                     <Avatar className="size-8 ring-1 ring-border/50">
                         <AvatarImage
                             alt={user.name ?? user.email}

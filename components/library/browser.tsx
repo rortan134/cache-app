@@ -96,6 +96,7 @@ import {
     BlockPromotionBanner,
     InlinePromotionBanner,
 } from "@/components/ui/promotion-banner";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Sidebar, SidebarFooter, SidebarHeader } from "@/components/ui/sidebar";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -208,6 +209,12 @@ const COLLECTION_PRIORITY_ORDER = {
 const SECTION_DESCRIPTION_CONTEXT_ITEMS_LIMIT = 20;
 const SECTION_DESCRIPTION_FALLBACK_TEXT =
     "Description is unavailable right now.";
+
+const SUGGESTIONS = [
+    "Can you explain how to play tennis?",
+    "What is the weather in Tokyo?",
+    "How do I make a really good fish taco?",
+];
 
 interface SectionDescriptionResponse {
     summary: string;
@@ -5290,6 +5297,33 @@ function LibraryBrowser({
                     </AutocompletePopup>
                 </CommandPanel>
             </Command>
+            {(hasActiveFilters || hasNonDefaultView) &&
+            !showEmptyLibraryPeek ? null : (
+                <div className="relative -mt-3">
+                    <ScrollArea
+                        className="max-w-full whitespace-nowrap"
+                        scrollFade
+                    >
+                        <div className="flex w-max flex-nowrap items-center gap-2">
+                            {SUGGESTIONS.map((suggestion) => (
+                                <Button
+                                    className="rounded-full"
+                                    key={suggestion}
+                                    size="xs"
+                                    type="button"
+                                    variant="secondary"
+                                >
+                                    {suggestion}
+                                </Button>
+                            ))}
+                        </div>
+                        <ScrollBar
+                            className="hidden"
+                            orientation="horizontal"
+                        />
+                    </ScrollArea>
+                </div>
+            )}
             {actionFeedback ? (
                 <div
                     className={cn(
@@ -5309,7 +5343,7 @@ function LibraryBrowser({
                     size="xs"
                     variant="outline"
                 >
-                    <SquarePen className="inline-block size-4 shrink-0" />
+                    <SquarePen className="inline-block size-3.5 shrink-0" />
                     &nbsp;New entry
                 </Button>
                 <FeedbackWidget
