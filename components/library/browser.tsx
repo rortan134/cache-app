@@ -137,7 +137,6 @@ import type {
     AutocompleteRootChangeEventDetails,
     BaseUIEvent,
 } from "@base-ui/react";
-import fscreen from "fscreen";
 import {
     ArrowDownIcon,
     ArrowUpIcon,
@@ -154,7 +153,6 @@ import {
     FilePenLineIcon,
     Info,
     LinkIcon,
-    MaximizeIcon,
     NotebookPenIcon,
     PlusIcon,
     Shapes,
@@ -3490,7 +3488,6 @@ function LibraryGridCard({
     const [isHovered, setIsHovered] = useState(false);
     const [isCollectionPickerOpen, setIsCollectionPickerOpen] = useState(false);
     const previewImageUrl = opengraphPreviewUrl(item);
-    const cardRef = useRef<HTMLDivElement>(null);
     const canPreview = !isNote && toValidUrl(href) !== "about:blank";
     const noteExcerpt = getNoteExcerpt(item.noteContentText);
     const displayTitle = getItemTitle(item);
@@ -3507,12 +3504,6 @@ function LibraryGridCard({
             return;
         }
         onOpenInNewTab?.(item);
-    };
-
-    const handleFullscreen = () => {
-        if (cardRef.current && fscreen.fullscreenEnabled) {
-            fscreen.requestFullscreen(cardRef.current);
-        }
     };
 
     const handleDownload = async () => {
@@ -3622,10 +3613,6 @@ function LibraryGridCard({
                         <LinkIcon className="size-4.5 text-muted-foreground" />
                         Copy link
                     </Item>
-                    <Item closeOnClick onClick={handleFullscreen}>
-                        <MaximizeIcon className="size-4.5 text-muted-foreground" />
-                        View fullscreen
-                    </Item>
                     <Item
                         closeOnClick
                         disabled={isDownloading}
@@ -3691,7 +3678,6 @@ function LibraryGridCard({
                     className="group relative flex flex-col overflow-hidden rounded-xl ring-1 ring-border/50 hover:z-10"
                     onMouseEnter={() => setIsHovered(true)}
                     onMouseLeave={() => setIsHovered(false)}
-                    ref={cardRef}
                 >
                     <a
                         className="flex flex-col focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"

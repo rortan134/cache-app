@@ -23,10 +23,10 @@ type PreviewDrawerStatus = "blocked" | "loaded" | "loading";
 const WWW_PREFIX_RE = /^www\./;
 
 interface PreviewDrawerContextValue {
-    readonly description?: string;
-    readonly open: boolean;
-    readonly title: string;
-    readonly url: string;
+    description?: string;
+    open: boolean;
+    title: string;
+    url: string;
 }
 
 const PreviewDrawerContext = createContext<PreviewDrawerContextValue | null>(
@@ -62,13 +62,13 @@ export function PreviewDrawer({
     title = "Preview",
     url,
 }: {
-    readonly children: ReactNode;
-    readonly defaultOpen?: boolean;
-    readonly description?: string;
-    readonly onOpenChange?: React.ComponentProps<typeof Drawer>["onOpenChange"];
-    readonly open?: React.ComponentProps<typeof Drawer>["open"];
-    readonly title?: string;
-    readonly url: string;
+    children: ReactNode;
+    defaultOpen?: boolean;
+    description?: string;
+    onOpenChange?: React.ComponentProps<typeof Drawer>["onOpenChange"];
+    open?: React.ComponentProps<typeof Drawer>["open"];
+    title?: string;
+    url: string;
 }): ReactElement {
     const [uncontrolledOpen, setUncontrolledOpen] = useState(defaultOpen);
     const isControlled = open !== undefined;
@@ -115,14 +115,14 @@ export function PreviewDrawerContent({
     position = "bottom",
     timeoutMs = 8000,
 }: {
-    readonly className?: string;
-    readonly errorDescription?: string;
-    readonly footerClassName?: string;
-    readonly heightClassName?: string;
-    readonly loadingLabel?: string;
-    readonly popupClassName?: string;
-    readonly position?: PreviewDrawerPosition;
-    readonly timeoutMs?: number;
+    className?: string;
+    errorDescription?: string;
+    footerClassName?: string;
+    heightClassName?: string;
+    loadingLabel?: string;
+    popupClassName?: string;
+    position?: PreviewDrawerPosition;
+    timeoutMs?: number;
 }): ReactElement {
     const { description, open, title, url } = usePreviewDrawerContext();
     const iframeKey = useId();
