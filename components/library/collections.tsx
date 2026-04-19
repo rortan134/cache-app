@@ -535,9 +535,9 @@ export function CollectionsListItemMeta({
                 <MenuTrigger
                     render={
                         <Button
-                            aria-label={`Collection actions for ${collection.name}`}
                             className="absolute rounded-full opacity-0 transition-opacity focus-visible:opacity-100 group-focus-within:opacity-100 group-hover:opacity-100 group-focus:opacity-100"
                             size="icon-sm"
+                            title={`Collection actions for ${collection.name}`}
                             variant="ghost"
                         />
                     }

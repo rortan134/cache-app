@@ -57,7 +57,7 @@ export function AutocompleteInput({
             {endAddon && (
                 // biome-ignore lint/a11y/useSemanticElements: Ignore
                 <div
-                    className="absolute inset-e-0.5 inset-y-0 z-10 flex shrink-0 items-center justify-end gap-0.5 pe-[calc(--spacing(2)-1px)] has-[+[data-size=sm]]:pe-[calc(--spacing(1.5)-1px)]"
+                    className="absolute inset-e-0.5 inset-y-0 z-10 flex shrink-0 flex-nowrap items-center justify-end gap-0.5 pe-[calc(--spacing(2)-1px)] has-[+[data-size=sm]]:pe-[calc(--spacing(1.5)-1px)]"
                     role="group"
                 >
                     {endAddon}

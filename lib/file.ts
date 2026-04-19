@@ -3,6 +3,8 @@ import {
     fileSave as _fileSave,
 } from "browser-fs-access";
 
+const DEFAULT_FILE_MEDIA_TYPE = "application/octet-stream";
+
 export const fileOpen = <M extends boolean | undefined = false>(options: {
     extensions?: string[];
     description: string;
@@ -22,6 +24,34 @@ export const fileOpen = <M extends boolean | undefined = false>(options: {
         multiple: options.multiple ?? false,
     });
 };
+
+export interface FileAttachment {
+    file: File;
+    filename: string;
+    mediaType: string;
+    type: "file";
+    url: string;
+}
+
+function resolveFileMediaType(file: File): string {
+    const mediaType = file.type.trim();
+
+    return mediaType.length > 0 ? mediaType : DEFAULT_FILE_MEDIA_TYPE;
+}
+
+export function createFileAttachment(file: File): FileAttachment {
+    return {
+        file,
+        filename: file.name,
+        mediaType: resolveFileMediaType(file),
+        type: "file",
+        url: URL.createObjectURL(file),
+    };
+}
+
+export function revokeFileAttachmentObjectUrl(url: string): void {
+    URL.revokeObjectURL(url);
+}
 
 export const saveFile = (
     blob: Blob | Promise<Blob>,

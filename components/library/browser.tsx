@@ -24,9 +24,18 @@ import {
     PreviewDrawerTrigger,
 } from "@/components/library/preview-drawer";
 import {
-    AutocompleteClear,
-    AutocompletePopup,
-} from "@/components/ui/autocomplete";
+    Attachment,
+    AttachmentInfo,
+    AttachmentPreview,
+    AttachmentPreviewCard,
+    AttachmentPreviewCardPopup,
+    AttachmentPreviewCardTrigger,
+    AttachmentRemove,
+    Attachments,
+    getAttachmentLabel,
+    getMediaCategory,
+} from "@/components/ui/attachments";
+import { AutocompletePopup } from "@/components/ui/autocomplete";
 import { Avatar, AvatarFallback, AvatarGroup } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -98,7 +107,12 @@ import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
 import { cn } from "@/lib/cn";
 import { getColorGradientFromName } from "@/lib/colors";
 import { dayjs } from "@/lib/dayjs";
-import { saveFile } from "@/lib/file";
+import {
+    createFileAttachment,
+    fileOpen,
+    revokeFileAttachmentObjectUrl,
+    saveFile,
+} from "@/lib/file";
 import { getImageColors } from "@/lib/image-colors";
 import {
     createChromeBookmarkFromUrl,
@@ -154,6 +168,7 @@ import {
     Info,
     LinkIcon,
     NotebookPenIcon,
+    Plus,
     PlusIcon,
     Shapes,
     Sparkles,
@@ -1048,8 +1063,8 @@ function LibraryWorkspaceSidebar({
                                 )}
                             />
                             <CollectionsListActionButton
-                                aria-label="Create new collection"
                                 onClick={() => handleCreateCollectionRequest()}
+                                title="Create a new collection"
                             >
                                 <PlusIcon
                                     aria-hidden
@@ -1057,7 +1072,7 @@ function LibraryWorkspaceSidebar({
                                     focusable="false"
                                 />
                                 <span className="sr-only">
-                                    Create new collection
+                                    Create a new collection
                                 </span>
                             </CollectionsListActionButton>
                         </div>
@@ -1626,6 +1641,10 @@ interface LibraryBrowserSection {
     showPaywallBanner?: boolean;
     title: string | null;
 }
+interface LibraryCommandAttachment
+    extends ReturnType<typeof createFileAttachment> {
+    id: string;
+}
 
 interface SectionCollapseState {
     collapseAllSections: () => void;
@@ -1634,6 +1653,12 @@ interface SectionCollapseState {
     expandAllSections: () => void;
     layoutRefreshToken: number;
     toggleSection: (key: string) => void;
+}
+
+function isAbortError(error: unknown): boolean {
+    return error instanceof DOMException
+        ? error.name === "AbortError"
+        : error instanceof Error && error.name === "AbortError";
 }
 
 function itemDomain(url: string): string {
@@ -1945,6 +1970,67 @@ function collectionMembershipFilterLabel(
     return "All items";
 }
 
+function PaletteAttachmentChip({
+    attachment,
+    onRemove,
+}: {
+    attachment: LibraryCommandAttachment;
+    onRemove: (id: string) => void;
+}) {
+    const label = getAttachmentLabel(attachment);
+    const mediaCategory = getMediaCategory(attachment);
+
+    return (
+        <Attachments className="gap-0" variant="inline">
+            <AttachmentPreviewCard>
+                <AttachmentPreviewCardTrigger
+                    render={
+                        <Attachment
+                            className="palette-chip-enter max-w-[min(100%,12rem)] rounded-full border-border/60 bg-background/90 py-0.5 ps-1 pe-0.5 text-xs shadow-xs/5"
+                            data={attachment}
+                            onRemove={() => onRemove(attachment.id)}
+                        />
+                    }
+                >
+                    <AttachmentPreview className="size-4 rounded-full bg-transparent" />
+                    <AttachmentInfo />
+                    <AttachmentRemove
+                        className="rounded-full opacity-100"
+                        size="icon-xs"
+                    >
+                        <XIcon className="size-3.5! shrink-0" />
+                    </AttachmentRemove>
+                </AttachmentPreviewCardTrigger>
+                <AttachmentPreviewCardPopup className="max-w-80">
+                    <div className="space-y-3">
+                        {mediaCategory === "image" && attachment.url ? (
+                            <div className="flex max-h-80 w-72 items-center justify-center overflow-hidden rounded-md border">
+                                <img
+                                    alt={label}
+                                    className="max-h-full max-w-full object-contain"
+                                    height={320}
+                                    src={attachment.url}
+                                    width={288}
+                                />
+                            </div>
+                        ) : null}
+                        <div className="space-y-1 px-0.5">
+                            <h4 className="font-semibold text-sm leading-none">
+                                {label}
+                            </h4>
+                            {attachment.mediaType ? (
+                                <p className="font-mono text-muted-foreground text-xs">
+                                    {attachment.mediaType}
+                                </p>
+                            ) : null}
+                        </div>
+                    </div>
+                </AttachmentPreviewCardPopup>
+            </AttachmentPreviewCard>
+        </Attachments>
+    );
+}
+
 function PaletteChip({
     label,
     onRemove,
@@ -1953,8 +2039,8 @@ function PaletteChip({
     onRemove: () => void;
 }) {
     return (
-        <span className="palette-chip-enter inline-flex max-w-[min(100%,12rem)] items-center gap-0.5 rounded-full border border-border/60 bg-background/90 py-0.5 ps-2 pe-0.5 font-medium text-foreground text-xs shadow-xs/5 dark:bg-background/40">
-            <span className="min-w-0 truncate">{label}</span>
+        <span className="palette-chip-enter inline-flex max-w-[min(100%,12rem)] items-center gap-0.5 rounded-full border border-border/60 bg-background/90 py-0.5 ps-2 pe-0.5 font-medium text-foreground text-xs shadow-xs/5">
+            <span className="min-w-0 truncate text-xs">{label}</span>
             <Button
                 aria-label={`Remove ${label}`}
                 className="rounded-full"
@@ -2875,12 +2961,13 @@ function useSectionCollapseState({
 }
 
 function LibraryPaletteTrailing({
-    clearLibraryPalette,
+    commandAttachments,
     collectionMembershipFilter,
     columnCountMode,
     domainFilters,
     groupBy,
-    paletteInput,
+    onAttachFiles,
+    onRemoveCommandAttachment,
     searchTerms,
     setCollectionMembershipFilter,
     setColumnCountMode,
@@ -2892,12 +2979,13 @@ function LibraryPaletteTrailing({
     sortMode,
     sourceFilters,
 }: {
-    clearLibraryPalette: () => void;
+    commandAttachments: LibraryCommandAttachment[];
     collectionMembershipFilter: CollectionMembershipFilter;
     columnCountMode: ColumnCountMode;
     domainFilters: string[];
     groupBy: GroupByMode;
-    paletteInput: string;
+    onAttachFiles: () => void | Promise<void>;
+    onRemoveCommandAttachment: (id: string) => void;
     searchTerms: string[];
     setCollectionMembershipFilter: (value: CollectionMembershipFilter) => void;
     setColumnCountMode: (value: ColumnCountMode) => void;
@@ -2916,6 +3004,15 @@ function LibraryPaletteTrailing({
     sourceFilters: SourceFilterValue[];
 }) {
     const chips: React.ReactNode[] = [];
+    for (const attachment of commandAttachments) {
+        chips.push(
+            <PaletteAttachmentChip
+                attachment={attachment}
+                key={`attachment-${attachment.id}`}
+                onRemove={onRemoveCommandAttachment}
+            />
+        );
+    }
 
     for (const term of searchTerms) {
         chips.push(
@@ -2999,26 +3096,23 @@ function LibraryPaletteTrailing({
         );
     }
 
-    const canReset = chips.length > 0 || paletteInput.length > 0;
-
     return (
         <>
             <TruncateAfter count={2}>{chips}</TruncateAfter>
-            {canReset ? (
-                <AutocompleteClear
-                    keepMounted
-                    render={
-                        <Button
-                            aria-label="Clear search, filters, grouping, sorting, layout, and command input"
-                            className="rounded-full"
-                            onClick={clearLibraryPalette}
-                            size="icon-sm"
-                            type="button"
-                            variant="ghost"
-                        />
-                    }
-                />
-            ) : null}
+            <Button
+                className="rounded-full"
+                onClick={(event) => {
+                    event.stopPropagation();
+                    onAttachFiles();
+                    event.preventDefault();
+                }}
+                size="icon-sm"
+                title="Add context"
+                type="button"
+                variant="ghost"
+            >
+                <Plus className="size-4 shrink-0" />
+            </Button>
         </>
     );
 }
@@ -4210,6 +4304,9 @@ function LibraryBrowser({
     );
     const [paletteSection, setPaletteSection] =
         useState<PaletteSection>("search");
+    const [commandAttachments, setCommandAttachments] = useState<
+        LibraryCommandAttachment[]
+    >([]);
     const [activeNote, setActiveNote] =
         useState<LibraryItemWithCollections | null>(null);
     const [isNoteDrawerOpen, setIsNoteDrawerOpen] = useState(false);
@@ -4226,6 +4323,8 @@ function LibraryBrowser({
     const [commandPanelShellHeight, setCommandPanelShellHeight] = useState(0);
     const commandPanelContainerRef = useRef<HTMLDivElement>(null);
     const paletteInputRef = useRef<HTMLInputElement>(null);
+    const commandAttachmentsRef = useRef<LibraryCommandAttachment[]>([]);
+    commandAttachmentsRef.current = commandAttachments;
     const createResultsNameInputId = useId();
     const createResultsDescriptionId = useId();
     /** Skips one combobox-driven close right after entering a drill-down section. */
@@ -4395,6 +4494,15 @@ function LibraryBrowser({
         };
     }, []);
 
+    useEffect(
+        () => () => {
+            for (const attachment of commandAttachmentsRef.current) {
+                revokeFileAttachmentObjectUrl(attachment.url);
+            }
+        },
+        []
+    );
+
     const returnToSearchSection = () => {
         setPaletteSection("search");
         setPaletteInput("");
@@ -4427,11 +4535,69 @@ function LibraryBrowser({
         setPaletteInput(next);
     };
 
+    const removeCommandAttachment = (id: string) => {
+        setCommandAttachments((current) => {
+            const nextAttachments: LibraryCommandAttachment[] = [];
+            for (const attachment of current) {
+                if (attachment.id === id) {
+                    revokeFileAttachmentObjectUrl(attachment.url);
+                    continue;
+                }
+                nextAttachments.push(attachment);
+            }
+            return nextAttachments;
+        });
+    };
+
+    const clearCommandAttachments = () => {
+        setCommandAttachments((current) => {
+            for (const attachment of current) {
+                revokeFileAttachmentObjectUrl(attachment.url);
+            }
+            return [];
+        });
+    };
+
+    const handleAttachCommandFiles = async () => {
+        try {
+            const selectedFiles = await fileOpen({
+                description: "Files",
+                multiple: true,
+            });
+            const files = Array.isArray(selectedFiles)
+                ? selectedFiles
+                : [selectedFiles];
+
+            if (files.length === 0) {
+                return;
+            }
+
+            const nextAttachments = files.map((file) => ({
+                ...createFileAttachment(file),
+                id: crypto.randomUUID(),
+            }));
+            setCommandAttachments((current) => [
+                ...current,
+                ...nextAttachments,
+            ]);
+            focusPaletteInputRef.current();
+        } catch (error) {
+            if (isAbortError(error)) {
+                return;
+            }
+            setActionFeedback({
+                message: "We couldn't attach those files right now.",
+                tone: "error",
+            });
+        }
+    };
+
     const clearLibraryPalette = () => {
         setPaletteInput("");
         setSearchTerms([]);
         setSourceFilters([]);
         setDomainFilters([]);
+        clearCommandAttachments();
         setCollectionMembershipFilter(DEFAULT_COLLECTION_MEMBERSHIP_FILTER);
         onClearCollectionFilters();
         setGroupBy("none");
@@ -5021,14 +5187,17 @@ function LibraryBrowser({
                     <CommandInput
                         endAddon={
                             <LibraryPaletteTrailing
-                                clearLibraryPalette={clearLibraryPalette}
                                 collectionMembershipFilter={
                                     collectionMembershipFilter
                                 }
                                 columnCountMode={columnCountMode}
+                                commandAttachments={commandAttachments}
                                 domainFilters={domainFilters}
                                 groupBy={groupBy}
-                                paletteInput={paletteInput}
+                                onAttachFiles={handleAttachCommandFiles}
+                                onRemoveCommandAttachment={
+                                    removeCommandAttachment
+                                }
                                 searchTerms={searchTerms}
                                 setCollectionMembershipFilter={
                                     setCollectionMembershipFilter
