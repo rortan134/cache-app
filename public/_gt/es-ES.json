@@ -252,7 +252,35 @@
     }
   ],
   "7721d8d00edabeda": "Cerrando sesión…",
+  "78f721a4159b9902": [
+    {
+      "c": {
+        "c": "Unifica tus marcadores.",
+        "i": 2,
+        "t": "GradientWaveText"
+      },
+      "i": 1,
+      "t": "h1"
+    },
+    {
+      "c": "Descubre Cache: una nueva forma de gestionar tus marcadores. Un único lugar donde recopilar, organizar y redescubrir todo lo que has guardado en distintas plataformas.",
+      "i": 3,
+      "t": "p"
+    }
+  ],
   "7a6c957300c408f9": "Privacidad",
+  "7a92071630ef5b70": [
+    {
+      "c": "Busca y explora desde un único feed rápido",
+      "i": 1,
+      "t": "h2"
+    },
+    {
+      "c": "Simplifica la forma en que consumes y vuelves a descubrir tu contenido guardado desde una interfaz única, limpia y potente, directamente en tu navegador.",
+      "i": 2,
+      "t": "p"
+    }
+  ],
   "817e49763f46cca2": {
     "c": "Manifiesto",
     "i": 1,
@@ -278,22 +306,6 @@
         },
         " con una suscripción anual"
       ],
-      "i": 3,
-      "t": "p"
-    }
-  ],
-  "88696fd6758cea52": [
-    {
-      "c": {
-        "c": "Reúne tus marcadores.",
-        "i": 2,
-        "t": "GradientWaveText"
-      },
-      "i": 1,
-      "t": "h1"
-    },
-    {
-      "c": "Descubre Cache: un único lugar donde recopilar, organizar y redescubrir todo lo que has guardado en distintas plataformas, directamente en tu navegador.",
       "i": 3,
       "t": "p"
     }
@@ -325,6 +337,7 @@
   "a4ecc2d52fb9c50b": "Política de privacidad",
   "a54a73f960eb0874": "¿Cuál es vuestra política de reembolso?",
   "a651315dfcc7eacf": "Sincronizamos automáticamente las integraciones que hayas conectado. Ya sea una nueva Google Photo o un Pinterest Pin, Cache mantiene tu biblioteca al día para que encuentres al instante lo que necesitas.",
+  "b0218088cb0cf61f": "Atajos de teclado",
   "b14d974a53e3f53e": [
     {
       "c": "Tu atención es finita.",
@@ -344,18 +357,6 @@
     {
       "c": "Cache no es una cura. Es una memoria.",
       "i": 4,
-      "t": "p"
-    }
-  ],
-  "b2bead436525c2d9": [
-    {
-      "c": "Busca y explora desde un único feed rápido",
-      "i": 1,
-      "t": "h2"
-    },
-    {
-      "c": "Simplifica tu forma de consumir y redescubrir tu contenido guardado desde una interfaz única, limpia y potente.",
-      "i": 2,
       "t": "p"
     }
   ],
@@ -524,7 +525,6 @@
     "i": 1,
     "t": "div"
   },
-  "e3880b69cb9e1b0d": "Atajos de teclado",
   "e87d348b3dd99eca": "Legal y políticas",
   "f4882218996f2be2": {
     "c": "Reúne tus marcadores de navegadores, apps sociales y plataformas compatibles.",

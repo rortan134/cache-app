@@ -1,10 +1,16 @@
 {
-    "defaultLocale": "en-US",
-    "locales": ["en-US", "fr-FR", "de-DE", "es-ES", "pt-BR"],
-    "files": {
-        "gt": {
-            "output": "public/_gt/[locale].json"
-        }
-    },
-    "_versionId": "034eaae8c5485340a798094da406d1f150b80abd8a95b45ab11b8526503bbc9c"
+  "defaultLocale": "en-US",
+  "locales": [
+    "en-US",
+    "fr-FR",
+    "de-DE",
+    "es-ES",
+    "pt-BR"
+  ],
+  "files": {
+    "gt": {
+      "output": "public/_gt/[locale].json"
+    }
+  },
+  "_versionId": "095c90f63304ac92132238335f8f6bf3b3869aca2f68476ebc8f6ef001fea467"
 }

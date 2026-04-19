@@ -252,7 +252,35 @@
     }
   ],
   "7721d8d00edabeda": "Saindo…",
+  "78f721a4159b9902": [
+    {
+      "c": {
+        "c": "Unifique seus favoritos.",
+        "i": 2,
+        "t": "GradientWaveText"
+      },
+      "i": 1,
+      "t": "h1"
+    },
+    {
+      "c": "Conheça o Cache — um novo tipo de gerenciador de favoritos. Um só lugar para reunir, organizar e redescobrir tudo o que você salvou em diferentes plataformas.",
+      "i": 3,
+      "t": "p"
+    }
+  ],
   "7a6c957300c408f9": "Privacidade",
+  "7a92071630ef5b70": [
+    {
+      "c": "Pesquise e explore em um único feed ágil",
+      "i": 1,
+      "t": "h2"
+    },
+    {
+      "c": "Simplifique a forma como você consome e revisita o conteúdo salvo em uma interface única, limpa e poderosa, direto no seu navegador.",
+      "i": 2,
+      "t": "p"
+    }
+  ],
   "817e49763f46cca2": {
     "c": "Manifesto",
     "i": 1,
@@ -278,22 +306,6 @@
         },
         " com uma assinatura anual"
       ],
-      "i": 3,
-      "t": "p"
-    }
-  ],
-  "88696fd6758cea52": [
-    {
-      "c": {
-        "c": "Reúna seus favoritos.",
-        "i": 2,
-        "t": "GradientWaveText"
-      },
-      "i": 1,
-      "t": "h1"
-    },
-    {
-      "c": "Conheça o Cache — um só lugar para reunir, organizar e reencontrar tudo o que você salvou em diferentes plataformas, direto no navegador.",
       "i": 3,
       "t": "p"
     }
@@ -325,6 +337,7 @@
   "a4ecc2d52fb9c50b": "Política de Privacidade",
   "a54a73f960eb0874": "Qual é a política de reembolso?",
   "a651315dfcc7eacf": "Sincronizamos automaticamente suas integrações conectadas. Seja uma nova foto no Google Photo ou um Pinterest Pin, o Cache mantém sua biblioteca atualizada para que você encontre o que precisa na hora.",
+  "b0218088cb0cf61f": "Atalhos de Teclado",
   "b14d974a53e3f53e": [
     {
       "c": "Sua atenção é finita.",
@@ -344,18 +357,6 @@
     {
       "c": "Cache não é uma cura. É uma memória.",
       "i": 4,
-      "t": "p"
-    }
-  ],
-  "b2bead436525c2d9": [
-    {
-      "c": "Pesquise e explore em um único feed rápido",
-      "i": 1,
-      "t": "h2"
-    },
-    {
-      "c": "Simplifique a forma como você consome e revisita seu conteúdo salvo com uma interface única, limpa e poderosa.",
-      "i": 2,
       "t": "p"
     }
   ],
@@ -525,7 +526,6 @@
     "i": 1,
     "t": "div"
   },
-  "e3880b69cb9e1b0d": "Atalhos de Teclado",
   "e87d348b3dd99eca": "Jurídico e políticas",
   "f4882218996f2be2": {
     "c": "Reúna seus favoritos de navegadores, apps sociais e plataformas compatíveis.",
