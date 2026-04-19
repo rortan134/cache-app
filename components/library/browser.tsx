@@ -2047,7 +2047,7 @@ function PaletteChip({
 }) {
     return (
         <span className="palette-chip-enter inline-flex max-w-[min(100%,12rem)] items-center gap-0.5 rounded-full border border-border/60 bg-background/90 py-0.5 ps-2 pe-0.5 font-medium text-foreground text-xs shadow-xs/5">
-            <span className="min-w-0 truncate text-xs">{label}</span>
+            <span className="min-w-0 max-w-full truncate text-xs">{label}</span>
             <Button
                 aria-label={`Remove ${label}`}
                 className="rounded-full"
@@ -2970,12 +2970,15 @@ function useSectionCollapseState({
 function LibraryPaletteTrailing({
     commandAttachments,
     collectionMembershipFilter,
+    collections,
     columnCountMode,
     domainFilters,
     groupBy,
     onAttachFiles,
+    onRemoveCollectionFilter,
     onRemoveCommandAttachment,
     searchTerms,
+    selectedCollectionIds,
     setCollectionMembershipFilter,
     setColumnCountMode,
     setDomainFilters,
@@ -2988,12 +2991,15 @@ function LibraryPaletteTrailing({
 }: {
     commandAttachments: LibraryCommandAttachment[];
     collectionMembershipFilter: CollectionMembershipFilter;
+    collections: LibraryCollectionSummary[];
     columnCountMode: ColumnCountMode;
     domainFilters: string[];
     groupBy: GroupByMode;
     onAttachFiles: () => void | Promise<void>;
+    onRemoveCollectionFilter: (id: string) => void;
     onRemoveCommandAttachment: (id: string) => void;
     searchTerms: string[];
+    selectedCollectionIds: string[];
     setCollectionMembershipFilter: (value: CollectionMembershipFilter) => void;
     setColumnCountMode: (value: ColumnCountMode) => void;
     setDomainFilters: (
@@ -3011,6 +3017,20 @@ function LibraryPaletteTrailing({
     sourceFilters: SourceFilterValue[];
 }) {
     const chips: React.ReactNode[] = [];
+
+    for (const collectionId of selectedCollectionIds) {
+        const collection = collections.find((c) => c.id === collectionId);
+        if (collection) {
+            chips.push(
+                <PaletteChip
+                    key={`collection-${collectionId}`}
+                    label={`Collection: ${truncateLabel(collection.name)}`}
+                    onRemove={() => onRemoveCollectionFilter(collectionId)}
+                />
+            );
+        }
+    }
+
     for (const attachment of commandAttachments) {
         chips.push(
             <PaletteAttachmentChip
@@ -3105,7 +3125,9 @@ function LibraryPaletteTrailing({
 
     return (
         <>
-            <TruncateAfter count={2}>{chips}</TruncateAfter>
+            <TruncateAfter className="justify-end" count={1}>
+                {chips}
+            </TruncateAfter>
             <Button
                 className="rounded-full"
                 onClick={(event) => {
@@ -3140,6 +3162,7 @@ interface LibraryProps {
                   current: LibraryItemWithCollections[]
               ) => LibraryItemWithCollections[])
     ) => void;
+    onRemoveCollectionFilter: (id: string) => void;
     onUpdateItemCollections: (itemId: string, collectionIds: string[]) => void;
     pendingCollectionItemIds: string[];
     selectedCollectionIds: string[];
@@ -4290,6 +4313,7 @@ function LibraryBrowser({
     onClearCollectionFilters,
     onCreateCollectionFromResults,
     onItemsChange,
+    onRemoveCollectionFilter,
     onUpdateItemCollections,
     pendingCollectionItemIds,
     selectedCollectionIds,
@@ -5197,15 +5221,20 @@ function LibraryBrowser({
                                 collectionMembershipFilter={
                                     collectionMembershipFilter
                                 }
+                                collections={collections}
                                 columnCountMode={columnCountMode}
                                 commandAttachments={commandAttachments}
                                 domainFilters={domainFilters}
                                 groupBy={groupBy}
                                 onAttachFiles={handleAttachCommandFiles}
+                                onRemoveCollectionFilter={
+                                    onRemoveCollectionFilter
+                                }
                                 onRemoveCommandAttachment={
                                     removeCommandAttachment
                                 }
                                 searchTerms={searchTerms}
+                                selectedCollectionIds={selectedCollectionIds}
                                 setCollectionMembershipFilter={
                                     setCollectionMembershipFilter
                                 }
@@ -5623,6 +5652,7 @@ export function LibraryWorkspace({
                         handleCreateCollectionFromResults
                     }
                     onItemsChange={setItems}
+                    onRemoveCollectionFilter={handleToggleCollectionSelection}
                     onUpdateItemCollections={handleUpdateItemCollections}
                     pendingCollectionItemIds={pendingCollectionItemIds}
                     selectedCollectionIds={selectedCollectionIds}

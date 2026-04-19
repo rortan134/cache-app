@@ -36,14 +36,14 @@ const TruncateAfter = ({
     const numTruncated = remaining.length;
 
     return (
-        <div className={cn("flex flex-wrap items-center gap-1", className)}>
+        <div className={cn("flex items-center gap-1", className)}>
             {displayed}
             {numTruncated > 0 && (
                 <Popover>
                     <PopoverTrigger
                         render={
                             <Badge
-                                className="cursor-pointer tabular-nums"
+                                className="palette-chip-enter inline-flex h-7! cursor-pointer rounded-full text-xs tabular-nums"
                                 render={<button type="button" />}
                                 variant="outline"
                             />
