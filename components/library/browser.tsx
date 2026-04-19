@@ -3259,11 +3259,9 @@ function CollectionComboboxPicker({
     onUpdateItemCollections,
     open: openProp,
     onOpenChange,
-    multiple = true,
     children,
     ...props
 }: React.ComponentProps<typeof ComboboxTrigger> & {
-    multiple?: boolean;
     collections: LibraryCollectionSummary[];
     item: LibraryItemWithCollections | string[];
     onUpdateItemCollections: (itemId: string, collectionIds: string[]) => void;
@@ -3282,12 +3280,12 @@ function CollectionComboboxPicker({
         <Combobox
             autoHighlight
             items={collections}
-            multiple={multiple}
+            multiple
             onOpenChange={setIsOpen}
             onValueChange={(nextIds) => {
                 if (Array.isArray(item)) {
-                    for (const id of item) {
-                        onUpdateItemCollections(id, [...nextIds]);
+                    for (const itemId of item) {
+                        onUpdateItemCollections(itemId, [...nextIds]);
                     }
                 } else {
                     onUpdateItemCollections(item.id, [...nextIds]);
@@ -4862,7 +4860,6 @@ function LibraryBrowser({
                             <CollectionComboboxPicker
                                 collections={collections}
                                 item={resultCollectionItemIds}
-                                multiple={false}
                                 onUpdateItemCollections={
                                     onUpdateItemCollections
                                 }
