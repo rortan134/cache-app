@@ -32,17 +32,17 @@ const { useStore: useIntegrationsListState } = createStore({
     isIntegrationsListOpen: storage(true),
 });
 
-export function IntegrationsList(
-    props: React.ComponentProps<typeof Collapsible>
-) {
+export function IntegrationsList({
+    onOpenChange,
+    open,
+    ...props
+}: React.ComponentProps<typeof Collapsible>) {
     const { isIntegrationsListOpen, setIsIntegrationsListOpen } =
         useIntegrationsListState();
-    const { onOpenChange, open, ...restProps } = props;
     const isControlled = open !== undefined;
 
     return (
         <Collapsible
-            defaultOpen={isControlled ? undefined : isIntegrationsListOpen}
             onOpenChange={(nextOpen, eventDetails) => {
                 if (!isControlled) {
                     setIsIntegrationsListOpen(nextOpen);
@@ -50,7 +50,7 @@ export function IntegrationsList(
                 onOpenChange?.(nextOpen, eventDetails);
             }}
             open={isControlled ? open : isIntegrationsListOpen}
-            {...restProps}
+            {...props}
         />
     );
 }
@@ -82,9 +82,9 @@ export function IntegrationsListTrigger({
             />
             <PopoverPopup
                 align="start"
-                className={cn({
-                    "pointer-events-none! hidden!": isIntegrationsListOpen,
-                })}
+                className={cn(
+                    isIntegrationsListOpen && "pointer-events-none! hidden!"
+                )}
                 positionMethod="fixed"
                 side="right"
             >
@@ -146,7 +146,7 @@ export function IntegrationsListNoticeCallout() {
                     <p className="text-[11px] text-muted-foreground leading-tight">
                         Please only connect accounts you trust. Cache can access
                         what you choose to save with connected apps. You can
-                        always change your mind.
+                        always change your mind.{" "}
                         <Button
                             className="h-fit! leading-tight sm:text-[11px]"
                             onClick={() => setIsConnectAccountNoteOpen(false)}
@@ -239,13 +239,14 @@ function IntegrationActionIconGlyph({
 }: {
     icon?: IntegrationActionIcon;
 }) {
-    if (icon === "images") {
-        return <Images className="size-4" />;
+    switch (icon) {
+        case "images":
+            return <Images className="size-4" />;
+        case "refresh":
+            return <RefreshCw className="size-4" />;
+        default:
+            return null;
     }
-    if (icon === "refresh") {
-        return <RefreshCw className="size-4" />;
-    }
-    return null;
 }
 
 interface IntegrationsListItemActionProps {
@@ -265,29 +266,33 @@ export function IntegrationsListItemAction({
         isConnected,
     });
 
-    if (actions.length === 0 && !errorMessage && !successMessage) {
+    if (!(actions.length || errorMessage || successMessage)) {
         return null;
     }
 
     return (
         <div className="ml-auto flex flex-col items-start gap-1">
-            <div className="flex flex-wrap items-center gap-1">
-                {actions.map((action) => (
-                    <IntegrationsListActionButton
-                        aria-label={
-                            action.size === "icon" ? action.label : undefined
-                        }
-                        key={`${id}-${direction}-${action.role}`}
-                        loading={action.isLoading}
-                        onClick={action.onClick}
-                        size={action.size}
-                        variant={action.variant}
-                    >
-                        <IntegrationActionIconGlyph icon={action.icon} />
-                        {action.size === "icon" ? null : action.label}
-                    </IntegrationsListActionButton>
-                ))}
-            </div>
+            {actions.length > 0 && (
+                <div className="flex flex-wrap items-center gap-1">
+                    {actions.map((action) => (
+                        <IntegrationsListActionButton
+                            aria-label={
+                                action.size === "icon"
+                                    ? action.label
+                                    : undefined
+                            }
+                            key={`${id}-${direction}-${action.role}`}
+                            loading={action.isLoading}
+                            onClick={action.onClick}
+                            size={action.size}
+                            variant={action.variant}
+                        >
+                            <IntegrationActionIconGlyph icon={action.icon} />
+                            {action.size === "icon" ? null : action.label}
+                        </IntegrationsListActionButton>
+                    ))}
+                </div>
+            )}
             <IntegrationsListStatus tone="error">
                 {errorMessage}
             </IntegrationsListStatus>

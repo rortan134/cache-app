@@ -65,7 +65,6 @@ import {
     Forward,
     Group,
     Info,
-    type LucideIcon,
     PencilIcon,
     SignalHigh,
     SignalMedium,
@@ -141,9 +140,6 @@ export function CollectionsList(
 export function CollectionsListTrigger({
     className,
     collectionLabels,
-    onMouseEnter,
-    onMouseLeave,
-    onPointerDown,
     ...props
 }: React.ComponentProps<typeof CollapsibleTrigger> & {
     collectionLabels: string[];
@@ -234,7 +230,7 @@ function CollectionsListItemPreviewImage({
     src?: string;
 }) {
     const [didFail, setDidFail] = React.useState(false);
-    const canRenderImage = Boolean(src) && !didFail;
+    const canRenderImage = !!src && !didFail;
 
     if (!canRenderImage) {
         return (
@@ -335,13 +331,13 @@ export function CollectionsListItemValue() {
 }
 
 interface PriorityOption {
-    icon: LucideIcon;
+    icon: React.ElementType;
     label: string;
     value: CollectionPriority;
 }
 
 const DEFAULT_PRIORITY_OPTION: PriorityOption = {
-    icon: PriorityNoneIcon as LucideIcon,
+    icon: PriorityNoneIcon,
     label: "No priority",
     value: "none",
 };
@@ -376,11 +372,7 @@ const PRIORITY_OPTION_BY_VALUE = new Map(
 
 /** @internal */
 function getPriorityOption(priority: CollectionPriority): PriorityOption {
-    const option = PRIORITY_OPTION_BY_VALUE.get(priority);
-    if (option) {
-        return option;
-    }
-    return DEFAULT_PRIORITY_OPTION;
+    return PRIORITY_OPTION_BY_VALUE.get(priority) ?? DEFAULT_PRIORITY_OPTION;
 }
 
 export function CollectionsListItemPriorityCombobox({
@@ -694,7 +686,7 @@ export function CollectionsNoticeCallout() {
                     </Avatar>
                 </AvatarGroup>
                 <div className="flex items-center justify-center gap-1">
-                    <span aria-live="polite" className="sr-only" role="alert">
+                    <span aria-live="polite" className="sr-only" role="status">
                         Smart collections is active
                     </span>
                     <span className="not-sr-only font-medium text-xs">
