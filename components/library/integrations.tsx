@@ -71,6 +71,11 @@ export function IntegrationsListTrigger({
                             "flex select-none items-center gap-1.5 rounded-full bg-muted/94 px-3 py-2 text-left text-foreground leading-none hover:bg-input/50 active:bg-input/30",
                             className
                         )}
+                        title={
+                            isIntegrationsListOpen
+                                ? "Collapse panel"
+                                : "Expand panel"
+                        }
                         {...props}
                     />
                 }

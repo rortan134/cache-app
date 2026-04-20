@@ -722,15 +722,15 @@ function mergeInstagramDomIntoAccumulated(accumulated) {
 }
 
 /**
- * @returns {Promise<Map<string, InstagramRow>>}
+ * @param {string} source
+ * @param {() => HTMLElement | null} findAnchor
+ * @param {(accumulated: Map<string, any>) => void} mergeDomFn
+ * @returns {Promise<Map<string, any>>}
  */
-async function scrollInstagramToLoadMore() {
-    const findAnchor = findInstagramScrollAnchorElement;
-
-    /** @type {Map<string, InstagramRow>} */
+async function scrollFeedToLoadMore(source, findAnchor, mergeDomFn) {
     const accumulated = new Map();
-    mergeInstagramDomIntoAccumulated(accumulated);
-    flushChunkToExtension(accumulated, "instagram");
+    mergeDomFn(accumulated);
+    flushChunkToExtension(accumulated, source);
 
     let roundsWithoutNewAccumulated = 0;
     let stagnantScrollRounds = 0;
@@ -746,8 +746,8 @@ async function scrollInstagramToLoadMore() {
         await scrollFeedTowardBottom(anchor, feedScroller, { fullInnerSteps });
         await sleep(SCROLL_SETTLE_MS);
 
-        mergeInstagramDomIntoAccumulated(accumulated);
-        flushChunkToExtension(accumulated, "instagram");
+        mergeDomFn(accumulated);
+        flushChunkToExtension(accumulated, source);
 
         const grew = accumulated.size > sizeBeforeRound;
         if (grew) {
@@ -782,8 +782,19 @@ async function scrollInstagramToLoadMore() {
         }
     }
 
-    mergeInstagramDomIntoAccumulated(accumulated);
+    mergeDomFn(accumulated);
     return accumulated;
+}
+
+/**
+ * @returns {Promise<Map<string, InstagramRow>>}
+ */
+async function scrollInstagramToLoadMore() {
+    return scrollFeedToLoadMore(
+        "instagram",
+        findInstagramScrollAnchorElement,
+        mergeInstagramDomIntoAccumulated
+    );
 }
 
 async function runInstagramSync() {
@@ -1171,65 +1182,11 @@ function mergeTikTokDomIntoAccumulated(accumulated) {
  * @returns {Promise<Map<string, TikTokRow>>}
  */
 async function scrollTikTokToLoadMore() {
-    const findAnchor = findTikTokVideoScrollAnchor;
-
-    /** @type {Map<string, TikTokRow>} */
-    const accumulated = new Map();
-    mergeTikTokDomIntoAccumulated(accumulated);
-    flushChunkToExtension(accumulated, "tiktok");
-
-    let roundsWithoutNewAccumulated = 0;
-    let stagnantScrollRounds = 0;
-
-    for (let round = 0; round < MAX_SCROLL_ROUNDS; round += 1) {
-        const sizeBeforeRound = accumulated.size;
-
-        const anchor = findAnchor();
-        const feedScroller = findFeedScrollTarget(anchor, findAnchor);
-        const metricsBefore = getFeedScrollMetrics(anchor, findAnchor);
-
-        const fullInnerSteps = roundsWithoutNewAccumulated < 2;
-        await scrollFeedTowardBottom(anchor, feedScroller, { fullInnerSteps });
-        await sleep(SCROLL_SETTLE_MS);
-
-        mergeTikTokDomIntoAccumulated(accumulated);
-        flushChunkToExtension(accumulated, "tiktok");
-
-        const grew = accumulated.size > sizeBeforeRound;
-        if (grew) {
-            roundsWithoutNewAccumulated = 0;
-            stagnantScrollRounds = 0;
-        } else {
-            roundsWithoutNewAccumulated += 1;
-            const metricsAfter = getFeedScrollMetrics(findAnchor(), findAnchor);
-            if (feedScrollMetricsNearlyEqual(metricsBefore, metricsAfter)) {
-                stagnantScrollRounds += 1;
-            } else {
-                stagnantScrollRounds = 0;
-            }
-
-            const atEnd = isFeedScrolledToEnd(findAnchor(), findAnchor);
-            if (
-                atEnd &&
-                roundsWithoutNewAccumulated >= STABLE_ROUNDS_NO_NEW_AT_BOTTOM
-            ) {
-                break;
-            }
-            if (stagnantScrollRounds >= STAGNANT_SCROLL_ROUNDS_STOP) {
-                break;
-            }
-            if (roundsWithoutNewAccumulated >= STABLE_ROUNDS_NO_NEW_HARD_STOP) {
-                break;
-            }
-        }
-
-        if (accumulated.size >= MAX_ITEMS) {
-            break;
-        }
-    }
-
-    mergeTikTokDomIntoAccumulated(accumulated);
-    return accumulated;
+    return scrollFeedToLoadMore(
+        "tiktok",
+        findTikTokVideoScrollAnchor,
+        mergeTikTokDomIntoAccumulated
+    );
 }
 
 async function runTikTokSync() {

@@ -4287,6 +4287,7 @@ function ExtensionLibrarySection({
                         className="group min-w-0 flex-1 justify-start rounded-xl"
                         onClick={onToggle}
                         size="lg"
+                        title={collapsed ? "Expand group" : "Collapse group"}
                         variant="ghost"
                         {...(collapsed ? {} : { "data-panel-open": true })}
                     >

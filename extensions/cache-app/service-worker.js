@@ -585,65 +585,13 @@ async function searchChromeBookmarks(query) {
     );
 }
 
-async function migrateInstagramIfNeeded(data) {
+async function migrateItemsIfNeeded(data, versionKey, itemsKey, targetVersion) {
     const version =
-        typeof data[INSTAGRAM_KEYS.storageVersion] === "number"
-            ? data[INSTAGRAM_KEYS.storageVersion]
-            : 0;
-    const raw = data[INSTAGRAM_KEYS.bookmarks];
-    let bookmarks = Array.isArray(raw) ? raw : [];
-
-    if (version < INSTAGRAM_STORAGE_VERSION) {
-        bookmarks = bookmarks
-            .map((row) =>
-                row && typeof row === "object" && !Array.isArray(row)
-                    ? row
-                    : null
-            )
-            .filter(Boolean);
-        await chrome.storage.local.set({
-            [INSTAGRAM_KEYS.bookmarks]: bookmarks,
-            [INSTAGRAM_KEYS.storageVersion]: INSTAGRAM_STORAGE_VERSION,
-        });
-    }
-
-    return bookmarks;
-}
-
-async function migrateTikTokIfNeeded(data) {
-    const version =
-        typeof data[TIKTOK_KEYS.storageVersion] === "number"
-            ? data[TIKTOK_KEYS.storageVersion]
-            : 0;
-    const raw = data[TIKTOK_KEYS.videos];
-    let videos = Array.isArray(raw) ? raw : [];
-
-    if (version < TIKTOK_STORAGE_VERSION) {
-        videos = videos
-            .map((row) =>
-                row && typeof row === "object" && !Array.isArray(row)
-                    ? row
-                    : null
-            )
-            .filter(Boolean);
-        await chrome.storage.local.set({
-            [TIKTOK_KEYS.storageVersion]: TIKTOK_STORAGE_VERSION,
-            [TIKTOK_KEYS.videos]: videos,
-        });
-    }
-
-    return videos;
-}
-
-async function migrateYouTubeIfNeeded(data) {
-    const version =
-        typeof data[YOUTUBE_KEYS.storageVersion] === "number"
-            ? data[YOUTUBE_KEYS.storageVersion]
-            : 0;
-    const raw = data[YOUTUBE_KEYS.items];
+        typeof data[versionKey] === "number" ? data[versionKey] : 0;
+    const raw = data[itemsKey];
     let items = Array.isArray(raw) ? raw : [];
 
-    if (version < YOUTUBE_STORAGE_VERSION) {
+    if (version < targetVersion) {
         items = items
             .map((row) =>
                 row && typeof row === "object" && !Array.isArray(row)
@@ -652,8 +600,8 @@ async function migrateYouTubeIfNeeded(data) {
             )
             .filter(Boolean);
         await chrome.storage.local.set({
-            [YOUTUBE_KEYS.items]: items,
-            [YOUTUBE_KEYS.storageVersion]: YOUTUBE_STORAGE_VERSION,
+            [itemsKey]: items,
+            [versionKey]: targetVersion,
         });
     }
 
@@ -807,162 +755,87 @@ function sanitizeYouTubeSnapshotItem(item) {
     };
 }
 
-async function persistInstagramItems(items, final) {
-    const data = await chrome.storage.local.get([
-        INSTAGRAM_KEYS.bookmarks,
-        INSTAGRAM_KEYS.storageVersion,
-        SYNC_KEYS.syncEndpoint,
-        SYNC_KEYS.syncApiKey,
-    ]);
-
-    const existing = await migrateInstagramIfNeeded(data);
-    const incoming = Array.isArray(items) ? items : [];
-    const merged = mergeByShortcode(incoming, existing);
-
-    const patch = {
-        [INSTAGRAM_KEYS.bookmarkCount]: merged.length,
-        [INSTAGRAM_KEYS.bookmarks]: merged,
-        [INSTAGRAM_KEYS.storageVersion]: INSTAGRAM_STORAGE_VERSION,
-    };
-
-    if (final) {
-        patch[INSTAGRAM_KEYS.lastSyncAt] = new Date().toISOString();
-        await chrome.storage.local.set(patch);
-
-        const endpoint =
-            (typeof data[SYNC_KEYS.syncEndpoint] === "string"
-                ? data[SYNC_KEYS.syncEndpoint]
-                : ""
-            ).trim() || defaultIngestEndpoint();
-        const apiKey =
-            typeof data[SYNC_KEYS.syncApiKey] === "string"
-                ? data[SYNC_KEYS.syncApiKey]
-                : "";
-
-        try {
-            await postToOptionalBackend(endpoint, apiKey, merged, "instagram");
-        } catch (error) {
-            console.warn("[Cache App] Instagram optional sync error:", error);
-        }
-
-        await notifySyncDone("instagram");
-    } else {
-        await chrome.storage.local.set(patch);
-        await notifySyncProgress("instagram");
-    }
-}
-
-async function persistTikTokItems(items, final) {
-    const data = await chrome.storage.local.get([
-        TIKTOK_KEYS.storageVersion,
-        TIKTOK_KEYS.videos,
-        SYNC_KEYS.syncEndpoint,
-        SYNC_KEYS.syncApiKey,
-    ]);
-
-    const existing = await migrateTikTokIfNeeded(data);
-    const incoming = Array.isArray(items) ? items : [];
-    const merged = mergeByVideoId(incoming, existing);
-
-    const patch = {
-        [TIKTOK_KEYS.favoriteCount]: merged.length,
-        [TIKTOK_KEYS.storageVersion]: TIKTOK_STORAGE_VERSION,
-        [TIKTOK_KEYS.videos]: merged,
-    };
-
-    if (final) {
-        patch[TIKTOK_KEYS.lastSyncAt] = new Date().toISOString();
-        await chrome.storage.local.set(patch);
-
-        const endpoint =
-            (typeof data[SYNC_KEYS.syncEndpoint] === "string"
-                ? data[SYNC_KEYS.syncEndpoint]
-                : ""
-            ).trim() || defaultIngestEndpoint();
-        const apiKey =
-            typeof data[SYNC_KEYS.syncApiKey] === "string"
-                ? data[SYNC_KEYS.syncApiKey]
-                : "";
-
-        try {
-            await postToOptionalBackend(endpoint, apiKey, merged, "tiktok");
-        } catch (error) {
-            console.warn("[Cache App] TikTok optional sync error:", error);
-        }
-
-        await notifySyncDone("tiktok");
-    } else {
-        await chrome.storage.local.set(patch);
-        await notifySyncProgress("tiktok");
-    }
-}
-
-async function persistYouTubeItems(items, final) {
-    const data = await chrome.storage.local.get([
-        YOUTUBE_KEYS.items,
-        YOUTUBE_KEYS.storageVersion,
-        SYNC_KEYS.syncEndpoint,
-        SYNC_KEYS.syncApiKey,
-    ]);
-
-    const existing = await migrateYouTubeIfNeeded(data);
-    const incoming = Array.isArray(items) ? items : [];
-    const merged = mergeByYouTubeVideoId(incoming, existing);
-
-    const patch = {
-        [YOUTUBE_KEYS.items]: merged,
-        [YOUTUBE_KEYS.storageVersion]: YOUTUBE_STORAGE_VERSION,
-        [YOUTUBE_KEYS.videoCount]: merged.length,
-    };
-
-    if (final) {
-        await chrome.storage.local.set(patch);
-
-        const identity = await ensureChromeIdentity();
-        const endpoint = ingestEndpointForSource(
-            data[SYNC_KEYS.syncEndpoint],
-            "youtube"
-        );
-        const apiKey =
-            typeof data[SYNC_KEYS.syncApiKey] === "string"
-                ? data[SYNC_KEYS.syncApiKey]
-                : "";
-
-        try {
-            const payloadItems = merged
-                .map((item) => sanitizeYouTubeSnapshotItem(item))
-                .filter(Boolean);
-            await postYouTubeSnapshot(endpoint, apiKey, {
-                browserProfileId:
-                    identity.profileId || DEFAULT_BROWSER_PROFILE_ID,
-                items: payloadItems,
-                snapshotComplete: true,
-                sourceDeviceId: identity.deviceId,
-                sourceDeviceName: identity.deviceName,
-            });
-            await chrome.storage.local.set({
-                [YOUTUBE_KEYS.lastSyncAt]: new Date().toISOString(),
-            });
-            await notifySyncDone("youtube");
-        } catch (error) {
-            const message =
-                error instanceof Error ? error.message : String(error);
-            console.warn("[Cache App] YouTube optional sync error:", error);
-            await notifySyncError("YOUTUBE_SYNC_FAILED", message);
-        }
-    } else {
-        await chrome.storage.local.set(patch);
-        await notifySyncProgress("youtube");
-    }
-}
-
 async function persistBookmarkItems(items, options) {
+    let keys, storageVersion, mergeFn, itemsKey, countKey;
+
     if (options.source === "youtube") {
-        await persistYouTubeItems(items, options.final);
+        keys = YOUTUBE_KEYS;
+        storageVersion = YOUTUBE_STORAGE_VERSION;
+        itemsKey = YOUTUBE_KEYS.items;
+        countKey = YOUTUBE_KEYS.videoCount;
+        mergeFn = mergeByYouTubeVideoId;
     } else if (options.source === "tiktok") {
-        await persistTikTokItems(items, options.final);
+        keys = TIKTOK_KEYS;
+        storageVersion = TIKTOK_STORAGE_VERSION;
+        itemsKey = TIKTOK_KEYS.videos;
+        countKey = TIKTOK_KEYS.favoriteCount;
+        mergeFn = mergeByVideoId;
     } else {
-        await persistInstagramItems(items, options.final);
+        keys = INSTAGRAM_KEYS;
+        storageVersion = INSTAGRAM_STORAGE_VERSION;
+        itemsKey = INSTAGRAM_KEYS.bookmarks;
+        countKey = INSTAGRAM_KEYS.bookmarkCount;
+        mergeFn = mergeByShortcode;
+    }
+
+    const data = await chrome.storage.local.get([
+        itemsKey,
+        keys.storageVersion,
+        SYNC_KEYS.syncEndpoint,
+        SYNC_KEYS.syncApiKey,
+    ]);
+
+    const existing = await migrateItemsIfNeeded(data, keys.storageVersion, itemsKey, storageVersion);
+    const incoming = Array.isArray(items) ? items : [];
+    const merged = mergeFn(incoming, existing);
+
+    const patch = {
+        [itemsKey]: merged,
+        [keys.storageVersion]: storageVersion,
+    };
+    if (countKey) {
+        patch[countKey] = merged.length;
+    }
+
+    if (options.final) {
+        if (keys.lastSyncAt) {
+            patch[keys.lastSyncAt] = new Date().toISOString();
+        }
+        await chrome.storage.local.set(patch);
+
+        const endpoint = options.source === "youtube"
+            ? ingestEndpointForSource(data[SYNC_KEYS.syncEndpoint], "youtube")
+            : (typeof data[SYNC_KEYS.syncEndpoint] === "string" ? data[SYNC_KEYS.syncEndpoint] : "").trim() || defaultIngestEndpoint();
+
+        const apiKey = typeof data[SYNC_KEYS.syncApiKey] === "string" ? data[SYNC_KEYS.syncApiKey] : "";
+
+        try {
+            if (options.source === "youtube") {
+                const identity = await ensureChromeIdentity();
+                const payloadItems = merged
+                    .map((item) => sanitizeYouTubeSnapshotItem(item))
+                    .filter(Boolean);
+                await postYouTubeSnapshot(endpoint, apiKey, {
+                    browserProfileId: identity.profileId || DEFAULT_BROWSER_PROFILE_ID,
+                    items: payloadItems,
+                    snapshotComplete: true,
+                    sourceDeviceId: identity.deviceId,
+                    sourceDeviceName: identity.deviceName,
+                });
+            } else {
+                await postToOptionalBackend(endpoint, apiKey, merged, options.source);
+            }
+        } catch (error) {
+            console.warn(`[Cache App] ${options.source} optional sync error:`, error);
+            if (options.source === "youtube") {
+                await notifySyncError("YOUTUBE_SYNC_FAILED", error instanceof Error ? error.message : String(error));
+            }
+        }
+
+        await notifySyncDone(options.source);
+    } else {
+        await chrome.storage.local.set(patch);
+        await notifySyncProgress(options.source);
     }
 }
 

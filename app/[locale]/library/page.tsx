@@ -119,7 +119,7 @@ export default async function LibraryPage() {
                             <IntegrationsList className="group">
                                 <IntegrationsListTrigger>
                                     <RadialChart
-                                        className="inline-block shrink-0"
+                                        className="pointer-events-none inline-block shrink-0 select-none"
                                         size={32}
                                         value={progressPercent}
                                     />

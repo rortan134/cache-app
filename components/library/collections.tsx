@@ -160,7 +160,11 @@ export function CollectionsListTrigger({
                             "flex select-none items-center gap-3 rounded-full bg-muted/94 py-2.5 pr-3 pl-4 text-left text-foreground hover:bg-input/50 active:bg-input/30",
                             className
                         )}
-                        type="button"
+                        title={
+                            isCollectionsListOpen
+                                ? "Collapse group"
+                                : "Expand group"
+                        }
                         {...props}
                     >
                         <div className="relative">

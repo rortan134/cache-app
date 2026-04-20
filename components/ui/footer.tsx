@@ -1,3 +1,4 @@
+import { GDPRIcon } from "@/components/ui/icons";
 import { T } from "gt-next";
 import Link from "next/link";
 
@@ -7,7 +8,7 @@ function Footer() {
             <div className="relative mx-auto mt-auto grid h-auto w-full grid-cols-12 gap-x-[min(2.25vw,32px)] pt-[120px] lg:top-0">
                 <div className="relative z-20 col-span-full mx-auto grid w-full grid-cols-12 flex-col gap-6 gap-x-[min(2.25vw,32px)] pb-4! md:pb-6! lg:mb-20 lg:py-8 lg:pb-8!">
                     <div className="col-span-full flex flex-col gap-4">
-                        <div className="col-span-full flex h-full flex-row gap-6 text-[#0A0B0D] text-[0.8rem] leading-[1.22] tracking-[-3%] opacity-50">
+                        <div className="col-span-full flex h-full flex-row flex-wrap gap-6 text-[#0A0B0D] text-[0.8rem] leading-[1.22] tracking-[-3%] opacity-50">
                             <Link
                                 className="underline"
                                 href="/pricing"
@@ -62,6 +63,7 @@ function Footer() {
                                 <p>X</p>
                             </Link>
                             <p>&copy; Cache. All rights reserved.</p>
+                            <GDPRIcon />
                         </div>
                     </div>
                     <div className="relative col-span-full flex flex-col items-start justify-between font-sans text-[#0A0B0D] text-xs leading-[1.22] tracking-[-3%] opacity-50">
@@ -84,7 +86,7 @@ function Footer() {
                                 Additional detail may be found
                             </T>
                         </span>
-                        <div className="absolute inset-x-0 mt-8 h-[200px] w-full overflow-clip md:mt-4 lg:mt-0">
+                        <div className="inset-x-0 -my-8 h-[200px] w-full overflow-clip">
                             <svg
                                 aria-hidden
                                 aria-label="Branding"

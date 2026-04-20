@@ -130,7 +130,7 @@ export default async function Home() {
                 <div className="flex w-full max-w-[1024px] flex-col items-center gap-12 p-8 2xl:mx-auto">
                     <div className="aspect-video h-auto w-full rounded-2xl bg-muted" />
                     <p className="mx-auto -my-1 text-center text-xs uppercase">
-                        Discover what Cache can do for you
+                        <T>Discover what Cache can do for you</T>
                     </p>
                     <div className="grid w-full grid-cols-1 gap-2 md:grid-cols-2 md:gap-[40px]">
                         <div className="flex max-w-[340px] flex-col gap-[12px] py-[20px] md:gap-[16px]">
