@@ -19,7 +19,7 @@ export async function createPaymentIntent({
     idempotencyKey?: string;
 }) {
     const paymentIntent = await withStripe(async (stripe) => {
-        if (typeof customerId !== "undefined") {
+        if (customerId) {
             const [cards, links] = await Promise.all([
                 stripe.paymentMethods.list({
                     customer: customerId,
@@ -39,7 +39,7 @@ export async function createPaymentIntent({
             }
         }
 
-        return await stripe.paymentIntents.create(
+        return stripe.paymentIntents.create(
             {
                 amount: amountInCents,
                 automatic_payment_methods: {
@@ -49,8 +49,6 @@ export async function createPaymentIntent({
                 customer: customerId,
                 description,
                 metadata,
-                // confirmation_method: "automatic",
-                // confirm: true,
             },
             { idempotencyKey, stripeAccount }
         );
@@ -70,8 +68,8 @@ export async function createPaymentIntent({
 }
 
 export async function verifyPaymentSession(sessionId: string) {
-    const session = await withStripe(
-        async (stripe) => await stripe.checkout.sessions.retrieve(sessionId)
+    const session = await withStripe((stripe) =>
+        stripe.checkout.sessions.retrieve(sessionId)
     );
 
     if (!session) {
@@ -100,21 +98,20 @@ export async function createStripeCheckoutSession({
     cancelUrl: string;
     metadata?: Record<string, string>;
 }) {
-    const session = await withStripe(
-        async (stripe) =>
-            await stripe.checkout.sessions.create({
-                cancel_url: cancelUrl,
-                customer: customerId,
-                line_items: [
-                    {
-                        price: priceId,
-                        quantity: 1,
-                    },
-                ],
-                metadata,
-                mode: "payment",
-                success_url: successUrl,
-            })
+    const session = await withStripe((stripe) =>
+        stripe.checkout.sessions.create({
+            cancel_url: cancelUrl,
+            customer: customerId,
+            line_items: [
+                {
+                    price: priceId,
+                    quantity: 1,
+                },
+            ],
+            metadata,
+            mode: "payment",
+            success_url: successUrl,
+        })
     );
 
     if (!session?.url) {
@@ -137,12 +134,11 @@ export async function createBillingPortalSession({
     customerId: string;
     returnUrl?: string;
 }) {
-    const session = await withStripe(
-        async (stripe) =>
-            await stripe.billingPortal.sessions.create({
-                customer: customerId,
-                return_url: returnUrl,
-            })
+    const session = await withStripe((stripe) =>
+        stripe.billingPortal.sessions.create({
+            customer: customerId,
+            return_url: returnUrl,
+        })
     );
 
     if (!session?.url) {
@@ -173,7 +169,7 @@ export async function cancelSubscription(customerId?: string) {
             });
         }
 
-        return await stripe.subscriptions.update(subscriptionId, {
+        return stripe.subscriptions.update(subscriptionId, {
             cancel_at_period_end: true,
             cancellation_details: {
                 comment: "Customer deleted their workspace.",

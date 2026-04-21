@@ -1,9 +1,9 @@
 import "server-only";
 
 import { serverEnv } from "@/env/server";
-import { resolveCobaltDownloadUrl } from "@/lib/library/cobalt";
-import { normalizeCollectionName } from "@/lib/library/utils";
+import { resolveCobaltDownloadUrl } from "@/lib/cobalt";
 import { createLogger } from "@/lib/logs/console/logger";
+import { normalizeCollectionName } from "@/lib/strings";
 import { prisma } from "@/prisma";
 import { LibraryItemSource } from "@/prisma/client/enums";
 import {
@@ -50,7 +50,7 @@ const SmartCollectionDecisionSchema = z.object({
 
 const smartCollectionDecisionJsonSchema = (() => {
     const { $schema: _ignoredSchema, ...schema } = z.toJSONSchema(
-        SmartCollectionDecisionSchema
+        SmartCollectionDecisionSchema,
     ) as Record<string, unknown>;
 
     return schema;
@@ -108,14 +108,14 @@ function resolveSmartCollectionsModels(): string[] {
                 SMART_COLLECTIONS_DEFAULT_MODEL,
                 ...SMART_COLLECTIONS_FALLBACK_MODELS,
             ].filter((model): model is string =>
-                Boolean(model && model.length > 0)
-            )
+                Boolean(model && model.length > 0),
+            ),
         ),
     ];
 }
 
 function getSmartCollectionsModelErrorInfo(
-    error: unknown
+    error: unknown,
 ): SmartCollectionsModelErrorInfo {
     if (error instanceof ApiError) {
         return {
@@ -252,8 +252,8 @@ function extractHtmlContent(input: string): string {
                 body,
             ]
                 .filter(Boolean)
-                .join("\n")
-        )
+                .join("\n"),
+        ),
     );
 }
 
@@ -332,10 +332,10 @@ function summarizeJson(value: unknown, maxLength = 1500): string {
 
 function buildPrompt(
     item: SmartCollectionItem,
-    collections: SmartCollectionCatalogEntry[]
+    collections: SmartCollectionCatalogEntry[],
 ): string {
     const currentCollectionNames = item.collections.map(
-        (collection) => collection.name
+        (collection) => collection.name,
     );
     const collectionCatalog = collections.map((collection) => ({
         description: collection.description,
@@ -370,12 +370,12 @@ function buildPrompt(
 }
 
 async function downloadRemoteAsset(
-    url: string
+    url: string,
 ): Promise<DownloadedRemoteAsset | null> {
     const controller = new AbortController();
     const timeout = setTimeout(
         () => controller.abort(),
-        SMART_COLLECTIONS_FETCH_TIMEOUT_MS
+        SMART_COLLECTIONS_FETCH_TIMEOUT_MS,
     );
 
     try {
@@ -397,11 +397,11 @@ async function downloadRemoteAsset(
             "application/octet-stream";
         const filePath = join(
             /* turbopackIgnore: true */ tmpdir(),
-            `cache-smart-collections-${randomUUID()}${tempExtensionForMimeType(mimeType)}`
+            `cache-smart-collections-${randomUUID()}${tempExtensionForMimeType(mimeType)}`,
         );
         const fileHandle = await open(
             /* turbopackIgnore: true */ filePath,
-            "w"
+            "w",
         );
         const reader = response.body.getReader();
         let downloadedBytes = 0;
@@ -420,7 +420,7 @@ async function downloadRemoteAsset(
                 downloadedBytes += value.byteLength;
                 if (downloadedBytes > SMART_COLLECTIONS_MAX_DOWNLOAD_BYTES) {
                     await reader.cancel(
-                        "Smart collections asset exceeded the maximum download size."
+                        "Smart collections asset exceeded the maximum download size.",
                     );
                     await fileHandle.close();
                     await rm(/* turbopackIgnore: true */ filePath, {
@@ -460,7 +460,7 @@ async function waitForGeminiFile(
         name?: string;
         state?: FileState;
         uri?: string;
-    }
+    },
 ): Promise<{
     mimeType: string;
     name: string;
@@ -494,7 +494,7 @@ async function waitForGeminiFile(
         if (currentFile.state === FileState.FAILED) {
             throw new Error(
                 currentFile.error?.message ||
-                    "Gemini failed to process the uploaded asset."
+                    "Gemini failed to process the uploaded asset.",
             );
         }
 
@@ -508,7 +508,7 @@ async function waitForGeminiFile(
 async function uploadRemoteAsset(
     ai: GoogleGenAI,
     asset: DownloadedRemoteAsset,
-    displayName: string
+    displayName: string,
 ): Promise<{
     cleanup: () => Promise<void>;
     part: ReturnType<typeof createPartFromUri>;
@@ -544,7 +544,7 @@ function displayNameForItem(item: SmartCollectionItem, url: string): string {
 }
 
 async function resolveContentCandidates(
-    item: SmartCollectionItem
+    item: SmartCollectionItem,
 ): Promise<string[]> {
     const candidates: string[] = [];
     const addUrl = (url: string | null | undefined) => {
@@ -584,7 +584,7 @@ async function resolveContentCandidates(
 
 async function createAttachmentForItem(
     ai: GoogleGenAI,
-    item: SmartCollectionItem
+    item: SmartCollectionItem,
 ): Promise<SmartCollectionAttachment | null> {
     if (
         item.source === LibraryItemSource.youtube_watch_later &&
@@ -612,11 +612,11 @@ async function createAttachmentForItem(
             try {
                 const rawText = await readFile(
                     /* turbopackIgnore: true */ asset.path,
-                    "utf8"
+                    "utf8",
                 );
                 const extractedText = extractTextContent(
                     rawText,
-                    asset.mimeType
+                    asset.mimeType,
                 );
                 await asset.cleanup();
 
@@ -627,7 +627,7 @@ async function createAttachmentForItem(
                 return {
                     parts: [
                         createPartFromText(
-                            `Attached textual content (truncated if necessary):\n${extractedText.slice(0, SMART_COLLECTIONS_MAX_TEXT_LENGTH)}`
+                            `Attached textual content (truncated if necessary):\n${extractedText.slice(0, SMART_COLLECTIONS_MAX_TEXT_LENGTH)}`,
                         ),
                     ],
                 };
@@ -641,7 +641,7 @@ async function createAttachmentForItem(
             const upload = await uploadRemoteAsset(
                 ai,
                 asset,
-                displayNameForItem(item, candidateUrl)
+                displayNameForItem(item, candidateUrl),
             );
 
             return {
@@ -668,7 +668,7 @@ async function createAttachmentForItem(
 async function decideCollectionsForItem(
     ai: GoogleGenAI,
     item: SmartCollectionItem,
-    collections: SmartCollectionCatalogEntry[]
+    collections: SmartCollectionCatalogEntry[],
 ): Promise<SmartCollectionDecision | null> {
     const attachment = await createAttachmentForItem(ai, item);
     const prompt = createPartFromText(buildPrompt(item, collections));
@@ -720,13 +720,13 @@ async function decideCollectionsForItem(
                                 model,
                                 source: item.source,
                                 variant: variant.label,
-                            }
+                            },
                         );
                         continue;
                     }
 
                     return SmartCollectionDecisionSchema.parse(
-                        JSON.parse(responseText)
+                        JSON.parse(responseText),
                     );
                 } catch (error) {
                     const errorInfo = getSmartCollectionsModelErrorInfo(error);
@@ -751,10 +751,10 @@ async function decideCollectionsForItem(
 
 function mergeCollections(
     current: SmartCollectionCatalogEntry[],
-    nextEntries: SmartCollectionCatalogEntry[]
+    nextEntries: SmartCollectionCatalogEntry[],
 ): SmartCollectionCatalogEntry[] {
     const byNameKey = new Map(
-        current.map((collection) => [collection.nameKey, collection])
+        current.map((collection) => [collection.nameKey, collection]),
     );
 
     for (const collection of nextEntries) {
@@ -762,7 +762,7 @@ function mergeCollections(
     }
 
     return [...byNameKey.values()].sort((left, right) =>
-        left.name.localeCompare(right.name)
+        left.name.localeCompare(right.name),
     );
 }
 
@@ -773,7 +773,7 @@ async function applyDecisionToItem(args: {
     userId: string;
 }): Promise<SmartCollectionCatalogEntry[]> {
     const collectionsByNameKey = new Map(
-        args.collections.map((collection) => [collection.nameKey, collection])
+        args.collections.map((collection) => [collection.nameKey, collection]),
     );
     const desiredCollectionIds = new Set<string>();
     const normalizedNewCollectionNames = [
@@ -781,11 +781,11 @@ async function applyDecisionToItem(args: {
             args.decision.createCollectionNames
                 .map((name) =>
                     normalizeCollectionName(
-                        name.slice(0, COLLECTION_NAME_MAX_LENGTH)
-                    )
+                        name.slice(0, COLLECTION_NAME_MAX_LENGTH),
+                    ),
                 )
                 .filter((collection) => collection.name.length > 0)
-                .map((collection) => [collection.nameKey, collection])
+                .map((collection) => [collection.nameKey, collection]),
         ).values(),
     ];
 

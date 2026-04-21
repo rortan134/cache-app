@@ -19,9 +19,7 @@ export async function retrievePriceById(
         return null;
     }
 
-    const price = await withStripe(async (stripe) =>
-        stripe.prices.retrieve(priceId)
-    );
+    const price = await withStripe((stripe) => stripe.prices.retrieve(priceId));
     if (!price) {
         return null;
     }

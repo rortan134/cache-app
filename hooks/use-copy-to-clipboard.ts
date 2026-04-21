@@ -2,50 +2,63 @@ import { getOwnerWindow } from "@/lib/dom";
 import copy from "copy-to-clipboard";
 import * as React from "react";
 
-function useCopyToClipboard({
+interface UseCopyToClipboardOptions {
+    onCopy?: () => void;
+    timeout?: number;
+}
+
+interface UseCopyToClipboardResult {
+    copyToClipboard: (value: string) => void;
+    isCopied: boolean;
+}
+
+export function useCopyToClipboard({
     timeout = 2000,
     onCopy,
-}: {
-    timeout?: number;
-    onCopy?: () => void;
-} = {}): { copyToClipboard: (value: string) => void; isCopied: boolean } {
+}: UseCopyToClipboardOptions = {}): UseCopyToClipboardResult {
     const [isCopied, setIsCopied] = React.useState(false);
-    const timeoutIdRef = React.useRef<number | null>(null);
+    const timeoutRef = React.useRef<number | null>(null);
 
-    const copyToClipboard = (value: string): void => {
-        const window = getOwnerWindow();
-        if (typeof window === "undefined") {
+    const onCopyRef = React.useRef(onCopy);
+    const durationRef = React.useRef(timeout);
+    React.useEffect(() => {
+        onCopyRef.current = onCopy;
+        durationRef.current = timeout;
+    }, [onCopy, timeout]);
+
+    const copyToClipboard = React.useCallback((value: string) => {
+        const ownerWindow = getOwnerWindow();
+
+        if (!(ownerWindow && value)) {
             return;
         }
 
-        if (!value) {
+        const success = copy(value);
+        if (!success) {
             return;
         }
 
-        const immediate = copy(value);
-
-        if (!immediate) {
-            return;
+        if (timeoutRef.current) {
+            ownerWindow.clearTimeout(timeoutRef.current);
         }
 
-        if (timeoutIdRef.current) {
-            window.clearTimeout(timeoutIdRef.current);
-        }
         setIsCopied(true);
-        onCopy?.();
+        onCopyRef.current?.();
 
-        if (timeout !== 0) {
-            timeoutIdRef.current = window.setTimeout(() => {
+        const duration = durationRef.current;
+        if (duration !== 0) {
+            timeoutRef.current = ownerWindow.setTimeout(() => {
                 setIsCopied(false);
-                timeoutIdRef.current = null;
-            }, timeout);
+                timeoutRef.current = null;
+            }, duration);
         }
-    };
+    }, []);
 
     React.useEffect(
-        () => (): void => {
-            if (timeoutIdRef.current) {
-                getOwnerWindow().clearTimeout(timeoutIdRef.current);
+        () => () => {
+            if (timeoutRef.current) {
+                const ownerWindow = getOwnerWindow();
+                ownerWindow?.clearTimeout(timeoutRef.current);
             }
         },
         []
@@ -53,5 +66,3 @@ function useCopyToClipboard({
 
     return { copyToClipboard, isCopied };
 }
-
-export { useCopyToClipboard };

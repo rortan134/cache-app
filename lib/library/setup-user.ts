@@ -1,6 +1,6 @@
 import { prisma } from "@/prisma";
 import { PRESET_COLLECTIONS } from "./presets";
-import { normalizeCollectionName } from "./utils";
+import { normalizeCollectionName } from "@/lib/strings";
 
 export async function setupUserCollections(userId: string) {
     const data = PRESET_COLLECTIONS.map((preset) => {

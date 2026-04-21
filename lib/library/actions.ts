@@ -1,13 +1,13 @@
 "use server";
 
 import { auth } from "@/lib/auth/server";
+import { resolveCobaltDownloadUrl } from "@/lib/cobalt";
 import { extractNamedErrorMessage } from "@/lib/error";
 import {
     applyChromeBookmarkSyncEvents,
     DEFAULT_BROWSER_PROFILE_ID,
 } from "@/lib/library/chrome-bookmarks";
 import { LibraryCollectionError, LibraryNoteError } from "@/lib/library/error";
-import { resolveCobaltDownloadUrl } from "@/lib/library/cobalt";
 import {
     extractNoteText,
     isNoteSerializedEditorState,
@@ -15,23 +15,23 @@ import {
     serializeNoteEditorStateToHtml,
 } from "@/lib/library/notes";
 import { autoTagLibraryItemsByIds } from "@/lib/library/smart-collections";
-import { normalizeCollectionName } from "@/lib/library/utils";
 import type {
     LibraryCollectionSummary,
     LibraryCollectionTag,
     LibraryItemWithCollections,
 } from "@/lib/library/types";
 import { createLogger } from "@/lib/logs/console/logger";
+import { normalizeCollectionName } from "@/lib/strings";
 import { parseStandaloneUrl } from "@/lib/url";
 import { prisma } from "@/prisma";
-import {
-    DbNull,
-    type InputJsonValue,
-} from "@/prisma/client/internal/prismaNamespace";
 import {
     type CollectionPriority,
     LibraryItemSource,
 } from "@/prisma/client/enums";
+import {
+    DbNull,
+    type InputJsonValue,
+} from "@/prisma/client/internal/prismaNamespace";
 import { headers } from "next/headers";
 import { after } from "next/server";
 import * as z from "zod";
@@ -65,7 +65,7 @@ const CreateCollectionInputSchema = z.object({
         .min(1, "Enter a collection name.")
         .max(
             COLLECTION_NAME_MAX_LENGTH,
-            `Collection names can be up to ${COLLECTION_NAME_MAX_LENGTH} characters.`
+            `Collection names can be up to ${COLLECTION_NAME_MAX_LENGTH} characters.`,
         ),
 });
 
@@ -78,7 +78,7 @@ const CreateCollectionFromItemsInputSchema = z.object({
         .min(1, "Enter a collection name.")
         .max(
             COLLECTION_NAME_MAX_LENGTH,
-            `Collection names can be up to ${COLLECTION_NAME_MAX_LENGTH} characters.`
+            `Collection names can be up to ${COLLECTION_NAME_MAX_LENGTH} characters.`,
         ),
 });
 
@@ -110,7 +110,7 @@ const RenameCollectionInputSchema = z.object({
         .min(1, "Enter a collection name.")
         .max(
             COLLECTION_NAME_MAX_LENGTH,
-            `Collection names can be up to ${COLLECTION_NAME_MAX_LENGTH} characters.`
+            `Collection names can be up to ${COLLECTION_NAME_MAX_LENGTH} characters.`,
         ),
 });
 
@@ -282,7 +282,7 @@ function normalizeNotePayload(input: {
 
 async function getNoteItemForUser(
     userId: string,
-    itemId: string
+    itemId: string,
 ): Promise<LibraryItemWithCollections | null> {
     return (await prisma.libraryItem.findFirst({
         include: LIBRARY_ITEM_COLLECTIONS_INCLUDE,
@@ -296,7 +296,7 @@ async function getNoteItemForUser(
 
 async function getChromeBookmarkItemForUserByExternalId(
     userId: string,
-    externalId: string
+    externalId: string,
 ): Promise<LibraryItemWithCollections | null> {
     return (await prisma.libraryItem.findFirst({
         include: LIBRARY_ITEM_COLLECTIONS_INCLUDE,
@@ -323,7 +323,7 @@ function pastedChromeBookmarkExternalId(url: string): string {
 }
 
 export async function deleteLibraryItem(
-    itemId: string
+    itemId: string,
 ): Promise<DeleteLibraryItemResult> {
     const normalizedItemId = itemId.trim();
     if (normalizedItemId.length === 0) {
@@ -379,7 +379,7 @@ export async function deleteLibraryItem(
 }
 
 export async function createNote(
-    input: { contentHtml?: string; contentState?: unknown } = {}
+    input: { contentHtml?: string; contentState?: unknown } = {},
 ): Promise<NoteMutationResult> {
     const parsed = CreateNoteInputSchema.safeParse(input);
     if (!parsed.success) {
@@ -572,11 +572,11 @@ export async function createChromeBookmarkFromUrl(input: {
 
         const item = await getChromeBookmarkItemForUserByExternalId(
             userId,
-            externalId
+            externalId,
         );
         if (!item) {
             throw new Error(
-                "We saved the bookmark but couldn't load it back into the library."
+                "We saved the bookmark but couldn't load it back into the library.",
             );
         }
 
@@ -1118,7 +1118,7 @@ export async function createCollectionFromItems(input: {
                     name: collection.name,
                     priority: collection.priority,
                     sources: Array.from(
-                        new Set(matchingItems.map((item) => item.source))
+                        new Set(matchingItems.map((item) => item.source)),
                     ),
                 } satisfies LibraryCollectionSummary,
             };
