@@ -8,7 +8,6 @@ import { prismaAdapter } from "better-auth/adapters/prisma";
 import { nextCookies } from "better-auth/next-js";
 import type { GenericOAuthConfig } from "better-auth/plugins";
 import { genericOAuth, multiSession, oneTap } from "better-auth/plugins";
-import { serverEnv } from "@/env/server";
 import { headers } from "next/headers";
 
 interface PinterestUserAccount {
@@ -145,12 +144,23 @@ async function githubUserFromTokens(tokens: OAuth2Tokens): Promise<{
     };
 }
 
+function requiredEnv(name: string): string {
+    const value = process.env[name];
+    if (value === undefined || value === "") {
+        throw new Error(`Missing required environment variable: ${name}`);
+    }
+    return value;
+}
+
 function optionalEnv(name: string): string | null {
     const value = process.env[name];
     return value === undefined || value === "" ? null : value;
 }
 
-const baseURL = serverEnv.BETTER_AUTH_URL;
+const baseURL =
+    process.env.BETTER_AUTH_URL ??
+    process.env.NEXT_PUBLIC_APP_URL ??
+    "http://localhost:3000";
 
 const trustedOrigins = [
     baseURL,
@@ -168,12 +178,12 @@ const githubOAuthEnabled = Boolean(githubClientId && githubClientSecret);
 
 const genericOAuthConfig: GenericOAuthConfig[] = [];
 
-if (serverEnv.PINTEREST_CLIENT_ID && serverEnv.PINTEREST_CLIENT_SECRET) {
+if (process.env.PINTEREST_CLIENT_ID && process.env.PINTEREST_CLIENT_SECRET) {
     genericOAuthConfig.push({
         authentication: "basic",
         authorizationUrl: "https://www.pinterest.com/oauth/",
-        clientId: serverEnv.PINTEREST_CLIENT_ID,
-        clientSecret: serverEnv.PINTEREST_CLIENT_SECRET,
+        clientId: process.env.PINTEREST_CLIENT_ID,
+        clientSecret: process.env.PINTEREST_CLIENT_SECRET,
         disableSignUp: true,
         getUserInfo: pinterestUserFromTokens,
         pkce: true,
@@ -214,7 +224,7 @@ if (githubClientId && githubClientSecret) {
 
 const trustedProviders = [
     "google",
-    ...(serverEnv.PINTEREST_CLIENT_ID && serverEnv.PINTEREST_CLIENT_SECRET
+    ...(process.env.PINTEREST_CLIENT_ID && process.env.PINTEREST_CLIENT_SECRET
         ? ["pinterest"]
         : []),
     ...(githubOAuthEnabled ? ["github"] : []),
@@ -240,7 +250,7 @@ export const auth = betterAuth({
     plugins: [
         nextCookies(),
         oneTap({
-            clientId: serverEnv.GOOGLE_CLIENT_ID,
+            clientId: requiredEnv("GOOGLE_CLIENT_ID"),
         }),
         genericOAuth({
             config: genericOAuthConfig,
@@ -253,16 +263,18 @@ export const auth = betterAuth({
                 enabled: true,
                 plans: [
                     {
-                        annualDiscountPriceId: serverEnv.STRIPE_PRICE_ID_YEARLY,
+                        annualDiscountPriceId: requiredEnv(
+                            "STRIPE_PRICE_ID_YEARLY"
+                        ),
                         name: "pro",
-                        priceId: serverEnv.STRIPE_PRICE_ID_MONTHLY,
+                        priceId: requiredEnv("STRIPE_PRICE_ID_MONTHLY"),
                     },
                 ],
             },
         }),
         multiSession(),
     ],
-    secret: serverEnv.BETTER_AUTH_SECRET,
+    secret: requiredEnv("BETTER_AUTH_SECRET"),
     session: {
         cookieCache: {
             enabled: true,
@@ -272,8 +284,8 @@ export const auth = betterAuth({
     socialProviders: {
         google: {
             accessType: "offline",
-            clientId: serverEnv.GOOGLE_CLIENT_ID,
-            clientSecret: serverEnv.GOOGLE_CLIENT_SECRET,
+            clientId: requiredEnv("GOOGLE_CLIENT_ID"),
+            clientSecret: requiredEnv("GOOGLE_CLIENT_SECRET"),
             prompt: "select_account consent",
             scope: [
                 "openid",

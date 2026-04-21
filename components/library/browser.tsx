@@ -1,6 +1,10 @@
 "use client";
 
 import { UnprivilegedOnly } from "@/components/billing/privilege";
+import {
+    BlockPromotionBanner,
+    InlinePromotionBanner,
+} from "@/components/billing/promotion-banner";
 import { FeedbackWidget } from "@/components/feedback/feedback-widget";
 import {
     CollectionsList,
@@ -92,10 +96,6 @@ import {
     MenuSeparator,
     MenuTrigger,
 } from "@/components/ui/menu";
-import {
-    BlockPromotionBanner,
-    InlinePromotionBanner,
-} from "@/components/ui/promotion-banner";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Sidebar, SidebarFooter, SidebarHeader } from "@/components/ui/sidebar";
