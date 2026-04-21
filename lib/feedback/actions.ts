@@ -4,7 +4,7 @@ import {
     FeedbackInputSchema,
     type FeedbackActionState,
 } from "@/lib/feedback/schema";
-import { submitFeedback } from "@/lib/feedback/submit-feedback";
+import { submitFeedback } from "@/lib/feedback/service";
 
 export async function createFeedback(
     _previousState: FeedbackActionState,

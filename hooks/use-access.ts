@@ -28,23 +28,27 @@ function useAccess() {
         throw sessionError;
     }
 
-    const { data: subscription, isLoading: isSubscriptionLoading } = useSWR<
-        Awaited<ReturnType<typeof getActiveSubscription>>
-    >(
+    const {
+        data: subscription,
+        isLoading: isSubscriptionLoading,
+        mutate: mutateSubscription,
+    } = useSWR<Awaited<ReturnType<typeof getActiveSubscription>>>(
         session?.user?.id ? `subscription-${session.user.id}` : null,
         getActiveSubscription,
         {
             keepPreviousData: true,
-            refreshWhenHidden: true,
-            refreshWhenOffline: true,
-            revalidateOnMount: false,
         }
     );
 
     const hasAccess = !!subscription;
     const isLoading = isPending || isSubscriptionLoading;
 
-    return { hasAccess, isLoading, mutate, session, subscription };
+    const mutateAll = async () => {
+        await mutate();
+        await mutateSubscription();
+    };
+
+    return { hasAccess, isLoading, mutate: mutateAll, session, subscription };
 }
 
 export { useAccess };

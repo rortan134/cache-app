@@ -10,6 +10,7 @@ import {
     type SerializedTextNode,
 } from "lexical";
 import type { SerializedHeadingNode } from "@lexical/rich-text";
+import { decodeHtmlEntities } from "@/lib/strings";
 
 export const NOTE_EMPTY_HTML = "<p></p>";
 
@@ -51,16 +52,6 @@ const NOTE_SCRIPT_STYLE_BLOCKS =
 const NOTE_COMMENTS = /<!--[\s\S]*?-->/g;
 const NOTE_EMPTY_PARAGRAPHS = /<p>(?:\s|<br>)*<\/p>/gi;
 const NOTE_HEADING_TAG = /^h[1-6]$/;
-
-function decodeHtmlEntities(value: string): string {
-    return value
-        .replaceAll("&nbsp;", " ")
-        .replaceAll("&amp;", "&")
-        .replaceAll("&lt;", "<")
-        .replaceAll("&gt;", ">")
-        .replaceAll("&quot;", '"')
-        .replaceAll("&#39;", "'");
-}
 
 function escapeNoteHtml(value: string): string {
     return value

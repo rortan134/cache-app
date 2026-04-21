@@ -624,12 +624,8 @@ export async function deleteCollection(input: {
         };
     }
 
-    const requestHeaders = await headers();
-    const session = await auth.api.getSession({
-        headers: requestHeaders,
-    });
-
-    if (!session?.user?.id) {
+    const userId = await getSessionUserId();
+    if (!userId) {
         return {
             message: "Sign in again to manage collections.",
             status: "UNAUTHORIZED",
@@ -645,7 +641,7 @@ export async function deleteCollection(input: {
                 },
                 where: {
                     id: parsed.data.collectionId,
-                    userId: session.user.id,
+                    userId,
                 },
             });
 
@@ -889,12 +885,8 @@ export async function createCollection(input: {
         };
     }
 
-    const requestHeaders = await headers();
-    const session = await auth.api.getSession({
-        headers: requestHeaders,
-    });
-
-    if (!session?.user?.id) {
+    const userId = await getSessionUserId();
+    if (!userId) {
         return {
             message: "Sign in again to create collections.",
             status: "UNAUTHORIZED",
@@ -913,7 +905,7 @@ export async function createCollection(input: {
                     },
                     where: {
                         id: assignToItemId,
-                        userId: session.user.id,
+                        userId,
                     },
                 });
 
@@ -932,7 +924,7 @@ export async function createCollection(input: {
                 },
                 where: {
                     nameKey: normalized.nameKey,
-                    userId: session.user.id,
+                    userId,
                 },
             });
 
@@ -956,7 +948,7 @@ export async function createCollection(input: {
                         : undefined,
                     name: normalized.name,
                     nameKey: normalized.nameKey,
-                    userId: session.user.id,
+                    userId,
                 },
                 select: {
                     description: true,
@@ -1032,12 +1024,8 @@ export async function createCollectionFromItems(input: {
         };
     }
 
-    const requestHeaders = await headers();
-    const session = await auth.api.getSession({
-        headers: requestHeaders,
-    });
-
-    if (!session?.user?.id) {
+    const userId = await getSessionUserId();
+    if (!userId) {
         return {
             message: "Sign in again to create collections.",
             status: "UNAUTHORIZED",
@@ -1055,7 +1043,7 @@ export async function createCollectionFromItems(input: {
                 },
                 where: {
                     nameKey: normalized.nameKey,
-                    userId: session.user.id,
+                    userId,
                 },
             });
 
@@ -1076,7 +1064,7 @@ export async function createCollectionFromItems(input: {
                     id: {
                         in: itemIds,
                     },
-                    userId: session.user.id,
+                    userId,
                 },
             });
 
@@ -1099,7 +1087,7 @@ export async function createCollectionFromItems(input: {
                     },
                     name: normalized.name,
                     nameKey: normalized.nameKey,
-                    userId: session.user.id,
+                    userId,
                 },
                 select: {
                     description: true,
@@ -1174,12 +1162,8 @@ export async function updateLibraryItemCollections(input: {
         };
     }
 
-    const requestHeaders = await headers();
-    const session = await auth.api.getSession({
-        headers: requestHeaders,
-    });
-
-    if (!session?.user?.id) {
+    const userId = await getSessionUserId();
+    if (!userId) {
         return {
             message: "Sign in again to manage collections.",
             status: "UNAUTHORIZED",
@@ -1193,7 +1177,7 @@ export async function updateLibraryItemCollections(input: {
             },
             where: {
                 id: parsed.data.itemId,
-                userId: session.user.id,
+                userId,
             },
         });
 
@@ -1219,7 +1203,7 @@ export async function updateLibraryItemCollections(input: {
                       id: {
                           in: parsed.data.collectionIds,
                       },
-                      userId: session.user.id,
+                      userId,
                   },
               })
             : [];
@@ -1281,12 +1265,8 @@ export async function downloadMedia(url: string): Promise<DownloadMediaResult> {
         };
     }
 
-    const requestHeaders = await headers();
-    const session = await auth.api.getSession({
-        headers: requestHeaders,
-    });
-
-    if (!session?.user?.id) {
+    const userId = await getSessionUserId();
+    if (!userId) {
         return {
             message: "Sign in again to download media.",
             status: "UNAUTHORIZED",

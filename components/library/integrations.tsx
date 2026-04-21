@@ -19,7 +19,7 @@ import type {
     IntegrationDirection,
     IntegrationId,
 } from "@/lib/integrations/support";
-import { useIntegrationAction } from "@/lib/integrations/use-integration-action";
+import { useIntegrationAction } from "@/hooks/use-integration-action";
 import IntegrationsPreviewImage from "@/public/integrations-preview.webp";
 import { ArrowUpRight, Images, Info, RefreshCw } from "lucide-react";
 import Image from "next/image";

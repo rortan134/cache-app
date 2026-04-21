@@ -33,7 +33,7 @@ import {
     listConnectedIntegrationIds,
     listIntegrationAccountProviderIds,
 } from "@/lib/integrations/support";
-import { getLibraryItemsForUser } from "@/lib/library/get-library-items";
+import { getUserLibraryItems } from "@/lib/library/get-library-items";
 import { prisma } from "@/prisma";
 import LogoIconImage from "@/public/cache-app-icon.png";
 import type { Metadata } from "next";
@@ -65,7 +65,7 @@ export default async function LibraryPage() {
     }
 
     const [{ collections, items }, linkedAccounts] = await Promise.all([
-        getLibraryItemsForUser(userId),
+        getUserLibraryItems(userId),
         prisma.account.findMany({
             select: { providerId: true },
             where: {

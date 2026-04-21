@@ -3,7 +3,11 @@ import "server-only";
 import { serverEnv } from "@/env/server";
 import { resolveCobaltDownloadUrl } from "@/lib/cobalt";
 import { createLogger } from "@/lib/logs/console/logger";
-import { normalizeCollectionName } from "@/lib/strings";
+import {
+    decodeHtmlEntities,
+    normalizeCollectionName,
+    normalizeWhitespace,
+} from "@/lib/strings";
 import { prisma } from "@/prisma";
 import { LibraryItemSource } from "@/prisma/client/enums";
 import {
@@ -217,20 +221,6 @@ function inferMimeTypeFromUrl(url: string): string | null {
 
 function tempExtensionForMimeType(mimeType: string): string {
     return MIME_TYPE_TO_EXTENSION[mimeType] ?? ".bin";
-}
-
-function decodeHtmlEntities(input: string): string {
-    return input
-        .replaceAll("&nbsp;", " ")
-        .replaceAll("&amp;", "&")
-        .replaceAll("&lt;", "<")
-        .replaceAll("&gt;", ">")
-        .replaceAll("&quot;", '"')
-        .replaceAll("&#39;", "'");
-}
-
-function normalizeWhitespace(input: string): string {
-    return input.replace(/\s+/g, " ").trim();
 }
 
 function extractHtmlContent(input: string): string {

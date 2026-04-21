@@ -24,11 +24,25 @@ export function getIncrementedName(name: string, others: string[]) {
     return result;
 }
 
+export function normalizeWhitespace(input: string): string {
+    return input.replace(/\s+/g, " ").trim();
+}
+
+export function decodeHtmlEntities(input: string): string {
+    return input
+        .replaceAll("&nbsp;", " ")
+        .replaceAll("&amp;", "&")
+        .replaceAll("&lt;", "<")
+        .replaceAll("&gt;", ">")
+        .replaceAll("&quot;", '"')
+        .replaceAll("&#39;", "'");
+}
+
 export function normalizeCollectionName(name: string): {
     name: string;
     nameKey: string;
 } {
-    const normalizedName = name.trim().replace(/\s+/g, " ");
+    const normalizedName = normalizeWhitespace(name);
     return {
         name: normalizedName,
         nameKey: normalizedName.toLocaleLowerCase(),

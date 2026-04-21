@@ -6,7 +6,7 @@ import type {
 } from "@/lib/library/types";
 import { prisma } from "@/prisma";
 
-export async function getLibraryItemsForUser(userId: string) {
+export async function getUserLibraryItems(userId: string) {
     const [items, collections] = await Promise.all([
         prisma.libraryItem.findMany({
             include: {
