@@ -49,6 +49,7 @@ import {
     PreviewCardPopup,
     PreviewCardTrigger,
 } from "@/components/ui/preview-card";
+import { useListPanelOpenState } from "@/hooks/use-list-panel-open-state";
 import { cn } from "@/lib/cn";
 import { getHexColorFromName } from "@/lib/colors";
 import { dayjs } from "@/lib/dayjs";
@@ -91,16 +92,15 @@ const COMPACT_NUMBER_FORMATTER = new Intl.NumberFormat("en-US", {
 
 const { useStore: useCollectionsListStateStore } = createStore({
     isCollectionsListOpen: storage(false),
-    searchQuery: "",
 });
 
-export function useCollectionsListOpenState() {
+function useCollectionsListOpenState() {
     const { isCollectionsListOpen, setIsCollectionsListOpen } =
         useCollectionsListStateStore();
 
     return {
-        isCollectionsListOpen,
-        setIsCollectionsListOpen,
+        isOpen: isCollectionsListOpen,
+        setIsOpen: setIsCollectionsListOpen,
     };
 }
 
@@ -109,30 +109,16 @@ export function CollectionsList({
     open,
     ...props
 }: React.ComponentProps<typeof Collapsible>) {
-    const { isCollectionsListOpen, setIsCollectionsListOpen } =
-        useCollectionsListOpenState();
-    const isControlled = open !== undefined;
-
-    useHotkeys(
-        "mod+c",
-        () => setIsCollectionsListOpen(!isCollectionsListOpen),
-        {
-            preventDefault: true,
-        },
-        [isCollectionsListOpen, setIsCollectionsListOpen]
-    );
+    const state = useCollectionsListOpenState();
+    const { isOpen, onOpenChange: handleOpenChange } = useListPanelOpenState({
+        hotkey: "mod+c",
+        onOpenChange,
+        open,
+        state,
+    });
 
     return (
-        <Collapsible
-            onOpenChange={(nextOpen, eventDetails) => {
-                if (!isControlled) {
-                    setIsCollectionsListOpen(nextOpen);
-                }
-                onOpenChange?.(nextOpen, eventDetails);
-            }}
-            open={isControlled ? open : isCollectionsListOpen}
-            {...props}
-        />
+        <Collapsible onOpenChange={handleOpenChange} open={isOpen} {...props} />
     );
 }
 
@@ -143,7 +129,11 @@ export function CollectionsListTrigger({
 }: React.ComponentProps<typeof CollapsibleTrigger> & {
     collectionLabels: string[];
 }) {
-    const { isCollectionsListOpen } = useCollectionsListOpenState();
+    const { isOpen } = useCollectionsListOpenState();
+    const collectionLabelsText =
+        collectionLabels.length > 0
+            ? collectionLabels.join(", ")
+            : "No collections yet";
 
     return (
         <Popover>
@@ -155,11 +145,7 @@ export function CollectionsListTrigger({
                             "flex select-none items-center gap-3 rounded-full bg-muted/94 py-2.5 pr-3 pl-4 text-left text-foreground hover:bg-input/50 active:bg-input/30",
                             className
                         )}
-                        title={
-                            isCollectionsListOpen
-                                ? "Collapse group"
-                                : "Expand group"
-                        }
+                        title={isOpen ? "Collapse group" : "Expand group"}
                         {...props}
                     >
                         <div className="relative">
@@ -188,14 +174,14 @@ export function CollectionsListTrigger({
             />
             <PopoverPopup
                 align="start"
-                positionerClassname={cn({
-                    "pointer-events-none! hidden!": isCollectionsListOpen,
-                })}
+                positionerClassname={cn(
+                    isOpen && "pointer-events-none! hidden!"
+                )}
                 positionMethod="fixed"
                 tooltipStyle
             >
                 <p className="wrap-break-word w-full whitespace-normal font-medium leading-tight">
-                    {collectionLabels.join(", ")}
+                    {collectionLabelsText}
                 </p>
             </PopoverPopup>
         </Popover>
@@ -269,9 +255,10 @@ export function CollectionsListItemPreview({
     const { collection } = useCollectionsListItemContext();
     const [isOpen, setIsOpen] = React.useState(false);
     const [activePreviewIndex, setActivePreviewIndex] = React.useState(0);
+    const hasMultipleThumbnails = thumbnails.length > 1;
 
     React.useEffect(() => {
-        if (!(isOpen && thumbnails.length > 1)) {
+        if (!(isOpen && hasMultipleThumbnails)) {
             setActivePreviewIndex(0);
             return;
         }
@@ -285,7 +272,7 @@ export function CollectionsListItemPreview({
         return () => {
             window.clearInterval(interval);
         };
-    }, [isOpen, thumbnails.length]);
+    }, [hasMultipleThumbnails, isOpen, thumbnails.length]);
 
     const activePreviewSrc = thumbnails[activePreviewIndex];
 

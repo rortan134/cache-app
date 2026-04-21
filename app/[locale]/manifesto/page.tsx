@@ -29,7 +29,7 @@ export async function generateMetadata({
         description: gtPublicString(
             locale,
             "manifesto.metadata.description",
-            "The scroll becomes a library. Meaning isn't in the feed. It's in what you choose to keep.",
+            "The scroll becomes a library. Meaning isn't in the feed. It's in what you choose to keep."
         ),
         title: gtPublicString(locale, "manifesto.metadata.title", "Manifesto"),
     };

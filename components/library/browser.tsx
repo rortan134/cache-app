@@ -5111,7 +5111,7 @@ function LibraryBrowser({
 
     return (
         <div
-            className="relative z-0 flex w-full flex-col gap-3"
+            className="relative z-0 flex w-full flex-col gap-4"
             style={libraryBrowserStyle}
         >
             <Dialog

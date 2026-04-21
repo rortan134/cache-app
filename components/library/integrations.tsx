@@ -13,19 +13,19 @@ import {
     PopoverTitle,
     PopoverTrigger,
 } from "@/components/ui/popover";
+import { useIntegrationAction } from "@/hooks/use-integration-action";
+import { useListPanelOpenState } from "@/hooks/use-list-panel-open-state";
 import { cn } from "@/lib/cn";
 import type {
     IntegrationActionIcon,
     IntegrationDirection,
     IntegrationId,
 } from "@/lib/integrations/support";
-import { useIntegrationAction } from "@/hooks/use-integration-action";
 import IntegrationsPreviewImage from "@/public/integrations-preview.webp";
 import { ArrowUpRight, Images, Info, RefreshCw } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import * as React from "react";
-import { useHotkeys } from "react-hotkeys-hook";
 import { createStore } from "stan-js";
 import { storage } from "stan-js/storage";
 
@@ -38,8 +38,8 @@ function useIntegrationsListOpenState() {
         useIntegrationsListStateStore();
 
     return {
-        isIntegrationsListOpen,
-        setIsIntegrationsListOpen,
+        isOpen: isIntegrationsListOpen,
+        setIsOpen: setIsIntegrationsListOpen,
     };
 }
 
@@ -48,30 +48,16 @@ export function IntegrationsList({
     open,
     ...props
 }: React.ComponentProps<typeof Collapsible>) {
-    const { isIntegrationsListOpen, setIsIntegrationsListOpen } =
-        useIntegrationsListOpenState();
-    const isControlled = open !== undefined;
-
-    useHotkeys(
-        "mod+i",
-        () => setIsIntegrationsListOpen(!isIntegrationsListOpen),
-        {
-            preventDefault: true,
-        },
-        [isIntegrationsListOpen, setIsIntegrationsListOpen]
-    );
+    const state = useIntegrationsListOpenState();
+    const { isOpen, onOpenChange: handleOpenChange } = useListPanelOpenState({
+        hotkey: "mod+i",
+        onOpenChange,
+        open,
+        state,
+    });
 
     return (
-        <Collapsible
-            onOpenChange={(nextOpen, eventDetails) => {
-                if (!isControlled) {
-                    setIsIntegrationsListOpen(nextOpen);
-                }
-                onOpenChange?.(nextOpen, eventDetails);
-            }}
-            open={isControlled ? open : isIntegrationsListOpen}
-            {...props}
-        />
+        <Collapsible onOpenChange={handleOpenChange} open={isOpen} {...props} />
     );
 }
 
@@ -79,7 +65,7 @@ export function IntegrationsListTrigger({
     className,
     ...props
 }: React.ComponentProps<typeof CollapsibleTrigger>) {
-    const { isIntegrationsListOpen } = useIntegrationsListOpenState();
+    const { isOpen } = useIntegrationsListOpenState();
 
     return (
         <Popover>
@@ -91,19 +77,15 @@ export function IntegrationsListTrigger({
                             "flex select-none items-center gap-1.5 rounded-full bg-muted/94 px-3 py-2 text-left text-foreground leading-none hover:bg-input/50 active:bg-input/30",
                             className
                         )}
-                        title={
-                            isIntegrationsListOpen
-                                ? "Collapse panel"
-                                : "Expand panel"
-                        }
+                        title={isOpen ? "Collapse panel" : "Expand panel"}
                         {...props}
                     />
                 }
             />
             <PopoverPopup
                 align="start"
-                className={cn(
-                    isIntegrationsListOpen && "pointer-events-none! hidden!"
+                positionerClassname={cn(
+                    isOpen && "pointer-events-none! hidden!"
                 )}
                 positionMethod="fixed"
                 side="right"
@@ -285,8 +267,9 @@ export function IntegrationsListItemAction({
         id,
         isConnected,
     });
+    const hasStatusMessage = !!(errorMessage || successMessage);
 
-    if (!(actions.length || errorMessage || successMessage)) {
+    if (actions.length === 0 && !hasStatusMessage) {
         return null;
     }
 
