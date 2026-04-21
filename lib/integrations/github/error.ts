@@ -8,3 +8,4 @@ export const GitHubApiError = NamedError.create(
         status: z.number(),
     })
 );
+export type GitHubApiError = InstanceType<typeof GitHubApiError>;

@@ -8,3 +8,4 @@ export const XApiError = NamedError.create(
         status: z.number(),
     })
 );
+export type XApiError = InstanceType<typeof XApiError>;

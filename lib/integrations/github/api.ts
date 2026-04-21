@@ -151,7 +151,10 @@ export async function getGitHubAuthenticatedUser(
     const user = parseAuthenticatedUser(payload);
 
     if (!user) {
-        throw new GitHubApiError("GitHub did not return a valid user.", 502);
+        throw new GitHubApiError({
+            message: "GitHub did not return a valid user.",
+            status: 502,
+        });
     }
 
     return user;

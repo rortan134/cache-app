@@ -25,10 +25,10 @@ import {
     CollectionsListToolbarButton,
     CollectionsListToolbarGroup,
     CollectionsListTrigger,
+    NAME_COLLATOR,
     sortCollections,
     sortCollectionSummaries,
     useCollectionsSortStore,
-    NAME_COLLATOR,
 } from "@/components/library/collections";
 import { LibraryNoteDrawer } from "@/components/library/notes";
 import {
@@ -1474,18 +1474,7 @@ function LibraryWorkspaceSidebar({
 const COMBOBOX_ITEM_PRESS_REASON = "item-press";
 const ALL_DOMAIN_FILTER = "__all_domains__";
 
-const SEARCH_HOTKEYS = [
-    "cmd+g",
-    "ctrl+g",
-    "Meta+g",
-    "cmd+k",
-    "ctrl+k",
-    "Meta+k",
-    "cmd+p",
-    "ctrl+p",
-    "Meta+p",
-    "/",
-] as const;
+const SEARCH_HOTKEYS = ["mod+g", "mod+k", "mod+p", "/"] as const;
 const SEARCH_CANCEL_KEYS = ["esc", "tab"] as const;
 const LIBRARY_COMMAND_PANEL_TOP_PX = 12;
 const LIBRARY_SECTION_STICKY_GAP_PX = 8;

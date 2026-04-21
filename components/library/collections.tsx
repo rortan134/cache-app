@@ -30,6 +30,7 @@ import {
     MenuItem,
     MenuPopup,
     MenuSeparator,
+    MenuShortcut,
     MenuSub,
     MenuSubPopup,
     MenuSubTrigger,
@@ -50,6 +51,7 @@ import {
 } from "@/components/ui/preview-card";
 import { cn } from "@/lib/cn";
 import { getHexColorFromName } from "@/lib/colors";
+import { dayjs } from "@/lib/dayjs";
 import { getSourceLabel } from "@/lib/integrations/support";
 import type { LibraryCollectionSummary } from "@/lib/types";
 import type { CollectionPriority } from "@/prisma/client/enums";
@@ -89,7 +91,13 @@ const COMPACT_NUMBER_FORMATTER = new Intl.NumberFormat("en-US", {
 
 const { useStore: useCollectionsListStateStore } = createStore({
     isCollectionsListOpen: storage(false),
+    searchQuery: "",
 });
+
+export function useCollectionsSearch() {
+    const { searchQuery, setSearchQuery } = useCollectionsListStateStore();
+    return { searchQuery, setSearchQuery };
+}
 
 export function useCollectionsListOpenState() {
     const { isCollectionsListOpen, setIsCollectionsListOpen } =
@@ -116,7 +124,7 @@ export function CollectionsList({
         {
             preventDefault: true,
         },
-        [isCollectionsListOpen, setIsCollectionsListOpen],
+        [isCollectionsListOpen, setIsCollectionsListOpen]
     );
 
     return (
@@ -150,7 +158,7 @@ export function CollectionsListTrigger({
                     <CollapsibleTrigger
                         className={cn(
                             "flex select-none items-center gap-3 rounded-full bg-muted/94 py-2.5 pr-3 pl-4 text-left text-foreground hover:bg-input/50 active:bg-input/30",
-                            className,
+                            className
                         )}
                         title={
                             isCollectionsListOpen
@@ -200,7 +208,7 @@ export function CollectionsListTrigger({
 }
 
 export function CollectionsListPanel(
-    props: React.ComponentProps<typeof CollapsiblePanel>,
+    props: React.ComponentProps<typeof CollapsiblePanel>
 ) {
     return <CollapsiblePanel {...props} />;
 }
@@ -213,7 +221,7 @@ export function CollectionsListActionButton({
         <Button
             className={cn(
                 "rounded-full bg-muted/94 hover:bg-input/50",
-                className,
+                className
             )}
             size="icon-xl"
             variant="secondary"
@@ -275,7 +283,7 @@ export function CollectionsListItemPreview({
 
         const interval = window.setInterval(() => {
             setActivePreviewIndex(
-                (currentIndex) => (currentIndex + 1) % thumbnails.length,
+                (currentIndex) => (currentIndex + 1) % thumbnails.length
             );
         }, COLLECTION_ITEM_PREVIEW_SLIDESHOW_INTERVAL_MS);
 
@@ -371,7 +379,7 @@ const PRIORITY_OPTIONS = [
 ] satisfies PriorityOption[];
 
 const PRIORITY_OPTION_BY_VALUE = new Map(
-    PRIORITY_OPTIONS.map((option) => [option.value, option]),
+    PRIORITY_OPTIONS.map((option) => [option.value, option])
 );
 
 /** @internal */
@@ -403,7 +411,7 @@ export function CollectionsListItemPriorityCombobox({
             enabled: isHovered && !isOpen,
             preventDefault: true,
         },
-        [isHovered, isOpen, setIsOpen],
+        [isHovered, isOpen, setIsOpen]
     );
 
     return (
@@ -491,27 +499,23 @@ function useCollectionsListItemContext() {
     const context = React.use(CollectionsListItemContext);
     if (!context) {
         throw new Error(
-            "CollectionsListItem compound components must be used within CollectionsListItem.",
+            "CollectionsListItem compound components must be used within CollectionsListItem."
         );
     }
     return context;
 }
 
 export function CollectionsListItem({
-    children,
     collection,
     isSelected,
-}: {
+    ...props
+}: React.ComponentProps<"div"> & {
     children: React.ReactNode;
     collection: LibraryCollectionSummary;
     isSelected: boolean;
 }) {
     const [isHovered, setIsHovered] = React.useState(false);
-
-    const style = React.useMemo(
-        () => getCollectionsListItemStyle(collection.name, isSelected),
-        [collection.name, isSelected],
-    );
+    const style = getCollectionsListItemStyle(collection.name, isSelected);
 
     return (
         <CollectionsListItemContext value={{ collection, isHovered }}>
@@ -521,10 +525,9 @@ export function CollectionsListItem({
                 className="group relative flex select-none items-center"
                 onMouseEnter={() => setIsHovered(true)}
                 onMouseLeave={() => setIsHovered(false)}
-                style={style}
-            >
-                {children}
-            </div>
+                style={{ ...style, ...props.style }}
+                {...props}
+            />
         </CollectionsListItemContext>
     );
 }
@@ -542,17 +545,69 @@ export function CollectionsListItemMeta({
     onOpenLinks: () => void;
     onRename: () => void;
 }) {
-    const { collection } = useCollectionsListItemContext();
+    const { collection, isHovered } = useCollectionsListItemContext();
     const hasItems = collection.itemCount > 0;
+
+    useHotkeys(
+        "e",
+        () => {
+            onRename();
+        },
+        {
+            enabled: isHovered,
+            preventDefault: true,
+        },
+        [isHovered, onRename]
+    );
+
+    useHotkeys(
+        ["delete", "backspace"],
+        () => {
+            onDelete();
+        },
+        {
+            enabled: isHovered,
+            preventDefault: true,
+        },
+        [isHovered, onDelete]
+    );
+
+    useHotkeys(
+        "c",
+        () => {
+            if (hasItems) {
+                onCopyLinks();
+            }
+        },
+        {
+            enabled: isHovered,
+            preventDefault: true,
+        },
+        [isHovered, hasItems, onCopyLinks]
+    );
 
     return (
         <div className="absolute top-1/2 right-0 flex size-8 -translate-y-1/2 items-center justify-center">
-            <span
-                className="pointer-events-none text-nowrap text-(--text-muted-color) text-xs tabular-nums transition-opacity focus-visible:opacity-0 group-focus-within:opacity-0 group-hover:opacity-0"
-                title={`${collection.itemCount} items`}
-            >
-                {COMPACT_NUMBER_FORMATTER.format(collection.itemCount)}
-            </span>
+            <Popover>
+                <PopoverTrigger
+                    openOnHover
+                    render={
+                        <span className="pointer-events-none text-nowrap text-(--text-muted-color) text-xs tabular-nums transition-opacity focus-visible:opacity-0 group-focus-within:opacity-0 group-hover:opacity-0">
+                            {COMPACT_NUMBER_FORMATTER.format(
+                                collection.itemCount
+                            )}
+                        </span>
+                    }
+                />
+                <PopoverPopup align="end" side="top" tooltipStyle>
+                    <p className="text-nowrap font-medium text-xs leading-none">
+                        {collection.itemCount} items
+                    </p>
+                    <p className="mt-1 text-nowrap text-[10px] text-muted-foreground leading-none">
+                        Updated {dayjs(collection.updatedAt).fromNow()}
+                    </p>
+                </PopoverPopup>
+            </Popover>
             <Menu>
                 <MenuTrigger
                     render={
@@ -572,6 +627,7 @@ export function CollectionsListItemMeta({
                         <MenuItem closeOnClick onClick={onRename}>
                             <PencilIcon className="size-4 text-muted-foreground" />
                             Rename
+                            <MenuShortcut>E</MenuShortcut>
                         </MenuItem>
                     </MenuGroup>
                     <MenuSeparator />
@@ -644,7 +700,7 @@ export function CollectionsListStatus({
                     tone === "error"
                         ? "text-destructive"
                         : "text-muted-foreground",
-                    className,
+                    className
                 )}
                 role={tone === "error" ? "alert" : "status"}
                 {...props}
@@ -683,6 +739,69 @@ export function CollectionsListFilterClear({
     );
 }
 
+export function CollectionsListSearch({
+    className,
+    ...props
+}: React.ComponentProps<"div">) {
+    const { searchQuery, setSearchQuery } = useCollectionsSearch();
+    const inputRef = React.useRef<HTMLInputElement>(null);
+
+    useHotkeys(
+        "mod+/",
+        (event) => {
+            event.preventDefault();
+            inputRef.current?.focus();
+        },
+        {
+            enableOnFormTags: true,
+        }
+    );
+
+    return (
+        <div
+            className={cn(
+                "relative flex items-center px-3.5 pt-1 pb-2 focus-within:z-10",
+                className
+            )}
+            {...props}
+        >
+            <div className="group relative w-full">
+                <label className="sr-only" htmlFor="collections-search">
+                    Search collections
+                </label>
+                <input
+                    aria-keyshortcuts="Control+/"
+                    className="w-full rounded-full border border-transparent bg-muted/50 py-1.5 pr-8 pl-9 text-xs ring-offset-background transition-all placeholder:text-muted-foreground/60 focus:border-border/50 focus:bg-background focus:outline-none focus:ring-2 focus:ring-ring/5"
+                    id="collections-search"
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Search collections..."
+                    ref={inputRef}
+                    type="text"
+                    value={searchQuery}
+                />
+                <ListFilter className="absolute top-1/2 left-3 size-3.5 -translate-y-1/2 text-muted-foreground/70 transition-colors group-focus-within:text-foreground" />
+                {searchQuery && (
+                    <button
+                        aria-label="Clear search"
+                        className="absolute top-1/2 right-2 flex size-5 -translate-y-1/2 items-center justify-center rounded-full text-muted-foreground hover:bg-input hover:text-foreground"
+                        onClick={() => setSearchQuery("")}
+                        type="button"
+                    >
+                        <X className="size-3" />
+                    </button>
+                )}
+                {!searchQuery && (
+                    <div className="pointer-events-none absolute top-1/2 right-2.5 -translate-y-1/2 opacity-40">
+                        <Kbd>
+                            <CtrlKbd />/
+                        </Kbd>
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+}
+
 export function CollectionsListFilterClearIcon({
     isVisible,
     ...props
@@ -707,18 +826,53 @@ export function CollectionsListFilterClearIcon({
 
 export function CollectionsListEmpty({
     className,
+    onCreateCollection,
     ...props
-}: React.ComponentProps<"p">) {
+}: React.ComponentProps<"div"> & {
+    onCreateCollection?: () => void;
+}) {
+    const { searchQuery, setSearchQuery } = useCollectionsSearch();
+
     return (
-        <p
+        <div
             className={cn(
-                "rounded-xl border border-border/30 border-dashed px-4 py-6 text-center text-muted-foreground text-xs",
-                className,
+                "flex flex-col items-center justify-center gap-4 rounded-2xl border border-border/30 border-dashed px-4 py-8 text-center",
+                className
             )}
             {...props}
         >
-            Create your first collection to start grouping saved items.
-        </p>
+            <div className="flex flex-col gap-1">
+                <p className="font-medium text-foreground text-sm">
+                    {searchQuery
+                        ? "No collections found"
+                        : "No collections yet"}
+                </p>
+                <p className="text-muted-foreground text-xs">
+                    {searchQuery
+                        ? `We couldn't find any collections matching "${searchQuery}"`
+                        : "Create your first collection to start grouping saved items."}
+                </p>
+            </div>
+            {onCreateCollection && !searchQuery && (
+                <Button
+                    onClick={onCreateCollection}
+                    size="sm"
+                    variant="outline"
+                >
+                    <UserRoundPlus className="mr-2 size-3.5" />
+                    Create Collection
+                </Button>
+            )}
+            {searchQuery && (
+                <Button
+                    onClick={() => setSearchQuery("")}
+                    size="sm"
+                    variant="ghost"
+                >
+                    Clear search
+                </Button>
+            )}
+        </div>
     );
 }
 
@@ -747,7 +901,7 @@ export function CollectionsListToolbarGroup({
 }
 
 export function CollectionsListToolbarButton(
-    props: React.ComponentProps<typeof Toolbar.Button>,
+    props: React.ComponentProps<typeof Toolbar.Button>
 ) {
     return <Toolbar.Button {...props} />;
 }
@@ -905,8 +1059,22 @@ export function sortCollectionSummaries<
     });
 }
 
+export function filterCollections<T extends { name: string }>(
+    collections: T[],
+    query: string
+): T[] {
+    if (!query) {
+        return collections;
+    }
+
+    const normalizedQuery = query.toLowerCase().trim();
+    return collections.filter((collection) =>
+        collection.name.toLowerCase().includes(normalizedQuery)
+    );
+}
+
 export function CollectionsListSortingCombobox(
-    props: React.ComponentProps<typeof ComboboxTrigger>,
+    props: React.ComponentProps<typeof ComboboxTrigger>
 ) {
     const { collectionSortField, setCollectionSortField } =
         useCollectionsSortStore();
@@ -921,7 +1089,7 @@ export function CollectionsListSortingCombobox(
         {
             enabled: !isOpen,
         },
-        [isOpen],
+        [isOpen]
     );
 
     return (

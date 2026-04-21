@@ -253,7 +253,10 @@ export async function getXAuthenticatedUser(
     );
     const user = parseAuthenticatedUser(payload);
     if (!user) {
-        throw new XApiError("Could not resolve the authenticated X user.", 500);
+        throw new XApiError({
+            message: "Could not resolve the authenticated X user.",
+            status: 500,
+        });
     }
     return user;
 }
@@ -300,10 +303,11 @@ export async function listXBookmarks(
     }
 
     if (nextToken) {
-        throw new XApiError(
-            "X bookmark import exceeded the safe pagination limit before completion.",
-            502
-        );
+        throw new XApiError({
+            message:
+                "X bookmark import exceeded the safe pagination limit before completion.",
+            status: 502,
+        });
     }
 
     return items;

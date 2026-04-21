@@ -8,3 +8,4 @@ export const PinterestApiError = NamedError.create(
         status: z.number(),
     })
 );
+export type PinterestApiError = InstanceType<typeof PinterestApiError>;
