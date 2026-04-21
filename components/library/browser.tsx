@@ -1192,7 +1192,10 @@ function LibraryWorkspaceSidebar({
                                     />
                                 </>
                             ) : (
-                                <CollectionsListEmpty />
+                                <CollectionsListEmpty>
+                                    No collections found. Create your first
+                                    collection to start grouping saved items.
+                                </CollectionsListEmpty>
                             )}
                         </CollectionsListPanel>
                     </CollectionsList>

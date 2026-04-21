@@ -94,11 +94,6 @@ const { useStore: useCollectionsListStateStore } = createStore({
     searchQuery: "",
 });
 
-export function useCollectionsSearch() {
-    const { searchQuery, setSearchQuery } = useCollectionsListStateStore();
-    return { searchQuery, setSearchQuery };
-}
-
 export function useCollectionsListOpenState() {
     const { isCollectionsListOpen, setIsCollectionsListOpen } =
         useCollectionsListStateStore();
@@ -476,7 +471,8 @@ export function CollectionsListItemPriorityCombobox({
     );
 }
 
-export function getCollectionsListItemStyle(name: string, isSelected: boolean) {
+/** @internal */
+function getCollectionsListItemStyle(name: string, isSelected: boolean) {
     const assignedColor = getHexColorFromName(name);
     const backgroundOpacity = isSelected ? 20 : 7;
 
@@ -739,69 +735,6 @@ export function CollectionsListFilterClear({
     );
 }
 
-export function CollectionsListSearch({
-    className,
-    ...props
-}: React.ComponentProps<"div">) {
-    const { searchQuery, setSearchQuery } = useCollectionsSearch();
-    const inputRef = React.useRef<HTMLInputElement>(null);
-
-    useHotkeys(
-        "mod+/",
-        (event) => {
-            event.preventDefault();
-            inputRef.current?.focus();
-        },
-        {
-            enableOnFormTags: true,
-        }
-    );
-
-    return (
-        <div
-            className={cn(
-                "relative flex items-center px-3.5 pt-1 pb-2 focus-within:z-10",
-                className
-            )}
-            {...props}
-        >
-            <div className="group relative w-full">
-                <label className="sr-only" htmlFor="collections-search">
-                    Search collections
-                </label>
-                <input
-                    aria-keyshortcuts="Control+/"
-                    className="w-full rounded-full border border-transparent bg-muted/50 py-1.5 pr-8 pl-9 text-xs ring-offset-background transition-all placeholder:text-muted-foreground/60 focus:border-border/50 focus:bg-background focus:outline-none focus:ring-2 focus:ring-ring/5"
-                    id="collections-search"
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Search collections..."
-                    ref={inputRef}
-                    type="text"
-                    value={searchQuery}
-                />
-                <ListFilter className="absolute top-1/2 left-3 size-3.5 -translate-y-1/2 text-muted-foreground/70 transition-colors group-focus-within:text-foreground" />
-                {searchQuery && (
-                    <button
-                        aria-label="Clear search"
-                        className="absolute top-1/2 right-2 flex size-5 -translate-y-1/2 items-center justify-center rounded-full text-muted-foreground hover:bg-input hover:text-foreground"
-                        onClick={() => setSearchQuery("")}
-                        type="button"
-                    >
-                        <X className="size-3" />
-                    </button>
-                )}
-                {!searchQuery && (
-                    <div className="pointer-events-none absolute top-1/2 right-2.5 -translate-y-1/2 opacity-40">
-                        <Kbd>
-                            <CtrlKbd />/
-                        </Kbd>
-                    </div>
-                )}
-            </div>
-        </div>
-    );
-}
-
 export function CollectionsListFilterClearIcon({
     isVisible,
     ...props
@@ -826,13 +759,9 @@ export function CollectionsListFilterClearIcon({
 
 export function CollectionsListEmpty({
     className,
-    onCreateCollection,
+    children,
     ...props
-}: React.ComponentProps<"div"> & {
-    onCreateCollection?: () => void;
-}) {
-    const { searchQuery, setSearchQuery } = useCollectionsSearch();
-
+}: React.ComponentProps<"div">) {
     return (
         <div
             className={cn(
@@ -841,37 +770,7 @@ export function CollectionsListEmpty({
             )}
             {...props}
         >
-            <div className="flex flex-col gap-1">
-                <p className="font-medium text-foreground text-sm">
-                    {searchQuery
-                        ? "No collections found"
-                        : "No collections yet"}
-                </p>
-                <p className="text-muted-foreground text-xs">
-                    {searchQuery
-                        ? `We couldn't find any collections matching "${searchQuery}"`
-                        : "Create your first collection to start grouping saved items."}
-                </p>
-            </div>
-            {onCreateCollection && !searchQuery && (
-                <Button
-                    onClick={onCreateCollection}
-                    size="sm"
-                    variant="outline"
-                >
-                    <UserRoundPlus className="mr-2 size-3.5" />
-                    Create Collection
-                </Button>
-            )}
-            {searchQuery && (
-                <Button
-                    onClick={() => setSearchQuery("")}
-                    size="sm"
-                    variant="ghost"
-                >
-                    Clear search
-                </Button>
-            )}
+            <p className="font-medium text-foreground text-sm">{children}</p>
         </div>
     );
 }
@@ -1005,7 +904,7 @@ export const NAME_COLLATOR = new Intl.Collator(undefined, {
     sensitivity: "base",
 });
 
-export const COLLECTION_PRIORITY_ORDER: Record<CollectionPriority, number> = {
+const COLLECTION_PRIORITY_ORDER: Record<CollectionPriority, number> = {
     archive: 3,
     none: 4,
     peripheral: 2,
@@ -1057,20 +956,6 @@ export function sortCollectionSummaries<
                 return NAME_COLLATOR.compare(a.name, b.name);
         }
     });
-}
-
-export function filterCollections<T extends { name: string }>(
-    collections: T[],
-    query: string
-): T[] {
-    if (!query) {
-        return collections;
-    }
-
-    const normalizedQuery = query.toLowerCase().trim();
-    return collections.filter((collection) =>
-        collection.name.toLowerCase().includes(normalizedQuery)
-    );
 }
 
 export function CollectionsListSortingCombobox(
