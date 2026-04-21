@@ -1,7 +1,7 @@
 import { PageShell } from "@/components/ui/page-shell";
-import { getPublicCollectionShareById } from "@/lib/collection-sharing/service";
-import { getSourceLabel } from "@/lib/integrations/support";
 import { getNoteExcerpt } from "@/lib/integrations/notes/utils";
+import { getSourceLabel } from "@/lib/integrations/support";
+import { getPublicCollectionShareById } from "@/lib/sharing/service";
 import { getDisplayUrl, normalizeURL } from "@/lib/url";
 import type { Metadata } from "next";
 import Link from "next/link";

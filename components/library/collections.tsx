@@ -146,7 +146,7 @@ export function CollectionsListTrigger({
                 render={
                     <CollapsibleTrigger
                         className={cn(
-                            "flex select-none items-center gap-3 rounded-full bg-muted/94 py-2.5 pr-3 pl-4 text-left text-foreground hover:bg-input/50 active:bg-input/30",
+                            "flex select-none items-center gap-3 rounded-full bg-muted py-2.5 pr-3 pl-4 text-left text-foreground hover:bg-input/50 active:bg-input/30",
                             className
                         )}
                         title={isOpen ? "Collapse group" : "Expand group"}
@@ -204,10 +204,7 @@ export function CollectionsListActionButton({
 }: React.ComponentProps<typeof Button>) {
     return (
         <Button
-            className={cn(
-                "rounded-full bg-muted/94 hover:bg-input/50",
-                className
-            )}
+            className={cn("rounded-full bg-muted hover:bg-input/50", className)}
             size="icon-xl"
             variant="secondary"
             {...props}

@@ -69,10 +69,12 @@ import {
     StrikethroughIcon,
     UnderlineIcon,
     XIcon,
+    type LucideIcon,
 } from "lucide-react";
 import Image from "next/image";
 import {
     useEffect,
+    useMemo,
     useRef,
     useState,
     type ClipboardEvent,
@@ -84,7 +86,7 @@ interface NoteDraft {
     contentState: NoteSerializedEditorState | null;
 }
 
-interface Props {
+interface LibraryNoteDrawerProps {
     note: LibraryItemWithCollections | null;
     onOpenChange: (open: boolean) => void;
     onSave: (draft: NoteDraft) => Promise<boolean> | boolean;
@@ -101,13 +103,15 @@ interface FormatState {
     underline: boolean;
 }
 
-interface NoteTextStats {
+interface NoteTextMetrics {
     characterCount: number;
     paragraphCount: number;
+    plainText: string;
     wordCount: number;
 }
 
 type NoteBlockType = "h1" | "h2" | "h3" | "paragraph";
+type NoteInlineFormatStateKey = Exclude<keyof FormatState, "blockType">;
 
 const EMPTY_FORMAT_STATE: FormatState = {
     blockType: "paragraph",
@@ -137,8 +141,66 @@ const NOTE_EDITOR_NODES = [HeadingNode];
 const NOTE_EDITOR_NAMESPACE = "cache-library-note";
 const NOTE_PARAGRAPH_TAG_NAME = /^(H1|H2|H3|P)$/u;
 const NOTE_WORD_SEPARATOR = /\s+/;
+const NOTE_BLOCK_OPTIONS = [
+    {
+        ariaLabel: "Paragraph",
+        label: "Text",
+        value: "paragraph",
+    },
+    {
+        ariaLabel: "Heading 1",
+        label: "H1",
+        value: "h1",
+    },
+    {
+        ariaLabel: "Heading 2",
+        label: "H2",
+        value: "h2",
+    },
+    {
+        ariaLabel: "Heading 3",
+        label: "H3",
+        value: "h3",
+    },
+] satisfies ReadonlyArray<{
+    ariaLabel: string;
+    label: string;
+    value: NoteBlockType;
+}>;
 
-const chatProviders = [
+const NOTE_TEXT_FORMAT_OPTIONS = [
+    {
+        ariaLabel: "Bold",
+        format: "bold",
+        icon: BoldIcon,
+        stateKey: "bold",
+    },
+    {
+        ariaLabel: "Italic",
+        format: "italic",
+        icon: ItalicIcon,
+        stateKey: "italic",
+    },
+    {
+        ariaLabel: "Underline",
+        format: "underline",
+        icon: UnderlineIcon,
+        stateKey: "underline",
+    },
+    {
+        ariaLabel: "Strikethrough",
+        format: "strikethrough",
+        icon: StrikethroughIcon,
+        stateKey: "strikeThrough",
+    },
+] satisfies ReadonlyArray<{
+    ariaLabel: string;
+    format: TextFormatType;
+    icon: LucideIcon;
+    stateKey: NoteInlineFormatStateKey;
+}>;
+
+const CHAT_PROVIDERS = [
     {
         createUrl: (prompt: string) =>
             `https://chatgpt.com/?${new URLSearchParams({
@@ -191,27 +253,38 @@ const chatProviders = [
     },
 ];
 
+function normalizeDraft(draft: NoteDraft): NoteDraft {
+    return {
+        contentHtml: normalizeNoteHtml(draft.contentHtml),
+        contentState: draft.contentState,
+    };
+}
+
+function noteDraftFromEditorState(
+    contentState: NoteSerializedEditorState
+): NoteDraft {
+    return normalizeDraft({
+        contentHtml: serializeNoteEditorStateToHtml(contentState),
+        contentState,
+    });
+}
+
 function noteDraftFromItem(note: LibraryItemWithCollections | null): NoteDraft {
     const contentState = isNoteSerializedEditorState(note?.noteContentState)
         ? note.noteContentState
         : null;
 
-    return {
-        contentHtml: contentState
-            ? serializeNoteEditorStateToHtml(contentState)
-            : normalizeNoteHtml(note?.noteContentHtml),
-        contentState,
-    };
+    if (contentState) {
+        return noteDraftFromEditorState(contentState);
+    }
+
+    return normalizeDraft({
+        contentHtml: note?.noteContentHtml ?? NOTE_EMPTY_HTML,
+        contentState: null,
+    });
 }
 
-function noteDraftsMatch(left: NoteDraft, right: NoteDraft): boolean {
-    return (
-        normalizeNoteHtml(left.contentHtml) ===
-        normalizeNoteHtml(right.contentHtml)
-    );
-}
-
-function getNoteTextStats(contentHtml: string): NoteTextStats {
+function getNoteTextMetrics(contentHtml: string): NoteTextMetrics {
     const plainText = extractNoteText(contentHtml);
     const document = new DOMParser().parseFromString(contentHtml, "text/html");
     const paragraphCount = Array.from(document.body.children).filter(
@@ -225,6 +298,7 @@ function getNoteTextStats(contentHtml: string): NoteTextStats {
     return {
         characterCount: plainText.length,
         paragraphCount: normalizedParagraphCount,
+        plainText,
         wordCount:
             plainText.length === 0
                 ? 0
@@ -232,41 +306,32 @@ function getNoteTextStats(contentHtml: string): NoteTextStats {
     };
 }
 
-function noteDraftShouldSave(
-    currentDraft: NoteDraft,
-    initialDraft: NoteDraft,
-    note: LibraryItemWithCollections | null
-): boolean {
-    if (noteDraftsMatch(currentDraft, initialDraft)) {
-        return false;
+function getInitialEditorState(
+    initialDraft: NoteDraft
+): InitialConfigType["editorState"] {
+    if (initialDraft.contentState) {
+        return JSON.stringify(initialDraft.contentState);
     }
 
-    if (note) {
-        return true;
+    if (normalizeNoteHtml(initialDraft.contentHtml) === NOTE_EMPTY_HTML) {
+        return null;
     }
 
-    return extractNoteText(currentDraft.contentHtml).length > 0;
-}
+    return (editor: LexicalEditor) => {
+        const dom = new DOMParser().parseFromString(
+            initialDraft.contentHtml,
+            "text/html"
+        );
+        const nodes = $generateNodesFromDOM(editor, dom);
+        const root = $getRoot();
 
-function getSelectedBlockType(): NoteBlockType {
-    const selection = $getSelection();
-    if (!$isRangeSelection(selection)) {
-        return "paragraph";
-    }
+        root.clear();
+        root.append(...nodes);
 
-    const anchorNode = selection.anchor.getNode();
-    const topLevelNode = $isRootNode(anchorNode)
-        ? anchorNode
-        : anchorNode.getTopLevelElement();
-
-    if (topLevelNode && $isHeadingNode(topLevelNode)) {
-        const tag = topLevelNode.getTag();
-        if (tag === "h1" || tag === "h2" || tag === "h3") {
-            return tag;
+        if (root.getChildrenSize() === 0) {
+            root.append($createParagraphNode());
         }
-    }
-
-    return "paragraph";
+    };
 }
 
 function NoteFormattingToolbarPlugin() {
@@ -277,14 +342,27 @@ function NoteFormattingToolbarPlugin() {
         const updateToolbarState = () => {
             editor.getEditorState().read(() => {
                 const selection = $getSelection();
-
                 if (!$isRangeSelection(selection)) {
                     setFormats(EMPTY_FORMAT_STATE);
                     return;
                 }
 
+                const anchorNode = selection.anchor.getNode();
+                const topLevelNode = $isRootNode(anchorNode)
+                    ? anchorNode
+                    : anchorNode.getTopLevelElement();
+                const blockType =
+                    topLevelNode && $isHeadingNode(topLevelNode)
+                        ? topLevelNode.getTag()
+                        : "paragraph";
+
                 setFormats({
-                    blockType: getSelectedBlockType(),
+                    blockType:
+                        blockType === "h1" ||
+                        blockType === "h2" ||
+                        blockType === "h3"
+                            ? blockType
+                            : "paragraph",
                     bold: selection.hasFormat("bold"),
                     italic: selection.hasFormat("italic"),
                     strikeThrough: selection.hasFormat("strikethrough"),
@@ -332,114 +410,43 @@ function NoteFormattingToolbarPlugin() {
 
     return (
         <div className="-mx-2 flex flex-wrap items-center gap-1 rounded-2xl border border-border/60 bg-muted/35 p-1">
-            <Button
-                aria-label="Paragraph"
-                className={cn(
-                    "rounded-full px-3 font-medium text-xs",
-                    formats.blockType === "paragraph" && "bg-accent"
-                )}
-                onMouseDown={(event) => {
-                    event.preventDefault();
-                    setBlockType("paragraph");
-                }}
-                size="xs"
-                variant="ghost"
-            >
-                Text
-            </Button>
-            <Button
-                aria-label="Heading 1"
-                className={cn(
-                    "rounded-full px-3 font-medium text-xs",
-                    formats.blockType === "h1" && "bg-accent"
-                )}
-                onMouseDown={(event) => {
-                    event.preventDefault();
-                    setBlockType("h1");
-                }}
-                size="xs"
-                variant="ghost"
-            >
-                H1
-            </Button>
-            <Button
-                aria-label="Heading 2"
-                className={cn(
-                    "rounded-full px-3 font-medium text-xs",
-                    formats.blockType === "h2" && "bg-accent"
-                )}
-                onMouseDown={(event) => {
-                    event.preventDefault();
-                    setBlockType("h2");
-                }}
-                size="xs"
-                variant="ghost"
-            >
-                H2
-            </Button>
-            <Button
-                aria-label="Heading 3"
-                className={cn(
-                    "rounded-full px-3 font-medium text-xs",
-                    formats.blockType === "h3" && "bg-accent"
-                )}
-                onMouseDown={(event) => {
-                    event.preventDefault();
-                    setBlockType("h3");
-                }}
-                size="xs"
-                variant="ghost"
-            >
-                H3
-            </Button>
-            <Button
-                aria-label="Bold"
-                className={cn(formats.bold && "bg-accent")}
-                onMouseDown={(event) => {
-                    event.preventDefault();
-                    toggleTextFormat("bold");
-                }}
-                size="icon-sm"
-                variant="ghost"
-            >
-                <BoldIcon className="size-4" />
-            </Button>
-            <Button
-                aria-label="Italic"
-                className={cn(formats.italic && "bg-accent")}
-                onMouseDown={(event) => {
-                    event.preventDefault();
-                    toggleTextFormat("italic");
-                }}
-                size="icon-sm"
-                variant="ghost"
-            >
-                <ItalicIcon className="size-4" />
-            </Button>
-            <Button
-                aria-label="Underline"
-                className={cn(formats.underline && "bg-accent")}
-                onMouseDown={(event) => {
-                    event.preventDefault();
-                    toggleTextFormat("underline");
-                }}
-                size="icon-sm"
-                variant="ghost"
-            >
-                <UnderlineIcon className="size-4" />
-            </Button>
-            <Button
-                aria-label="Strikethrough"
-                className={cn(formats.strikeThrough && "bg-accent")}
-                onMouseDown={(event) => {
-                    event.preventDefault();
-                    toggleTextFormat("strikethrough");
-                }}
-                size="icon-sm"
-                variant="ghost"
-            >
-                <StrikethroughIcon className="size-4" />
-            </Button>
+            {NOTE_BLOCK_OPTIONS.map((option) => (
+                <Button
+                    aria-label={option.ariaLabel}
+                    className={cn(
+                        "rounded-full px-3 font-medium text-xs",
+                        formats.blockType === option.value && "bg-accent"
+                    )}
+                    key={option.value}
+                    onMouseDown={(event) => {
+                        event.preventDefault();
+                        setBlockType(option.value);
+                    }}
+                    size="xs"
+                    variant="ghost"
+                >
+                    {option.label}
+                </Button>
+            ))}
+            {NOTE_TEXT_FORMAT_OPTIONS.map((option) => {
+                const Icon = option.icon;
+
+                return (
+                    <Button
+                        aria-label={option.ariaLabel}
+                        className={cn(formats[option.stateKey] && "bg-accent")}
+                        key={option.format}
+                        onMouseDown={(event) => {
+                            event.preventDefault();
+                            toggleTextFormat(option.format);
+                        }}
+                        size="icon-sm"
+                        variant="ghost"
+                    >
+                        <Icon className="size-4" />
+                    </Button>
+                );
+            })}
         </div>
     );
 }
@@ -470,17 +477,14 @@ function NoteContentPlugin({
                 <RichTextPlugin
                     contentEditable={
                         <ContentEditable
-                            className={cn(
-                                "prose prose-stone max-w-none flex-1 overflow-y-auto text-[15px] leading-7 outline-none",
-                                "prose-p:my-0 prose-p:min-h-[1.75rem] prose-mark:rounded-sm prose-mark:bg-amber-200/90 prose-mark:px-0.5 prose-strong:font-semibold prose-em:italic prose-u:underline prose-s:line-through"
-                            )}
+                            className="prose prose-stone prose-p:my-0 prose-p:min-h-[1.75rem] max-w-none flex-1 overflow-y-auto prose-mark:rounded-sm prose-mark:bg-amber-200/90 prose-mark:px-0.5 prose-strong:font-semibold text-[15px] prose-em:italic leading-7 prose-u:underline prose-s:line-through outline-none"
                             onPaste={handlePaste}
                         />
                     }
                     ErrorBoundary={LexicalErrorBoundary}
                     placeholder={
                         <div className="pointer-events-none absolute inset-0 text-base text-muted-foreground">
-                            Start typing or paste an URL...
+                            Start typing or paste a URL...
                         </div>
                     }
                 />
@@ -490,11 +494,7 @@ function NoteContentPlugin({
                     ignoreSelectionChange
                     onChange={(editorState) => {
                         const contentState = editorState.toJSON();
-                        onDraftChange({
-                            contentHtml:
-                                serializeNoteEditorStateToHtml(contentState),
-                            contentState,
-                        });
+                        onDraftChange(noteDraftFromEditorState(contentState));
                     }}
                 />
             </div>
@@ -502,18 +502,8 @@ function NoteContentPlugin({
     );
 }
 
-function NoteStatsFooter({ contentHtml }: { contentHtml: string }) {
-    const stats = getNoteTextStats(contentHtml);
-
-    return (
-        <div className="flex items-center justify-end gap-4 border-border/60 border-t pt-3 text-muted-foreground text-xs">
-            <span>{stats.wordCount} words</span>
-            <span>{stats.paragraphCount} paragraphs</span>
-            <span>{stats.characterCount} characters</span>
-        </div>
-    );
-}
-
+// Lexical only consumes `initialConfig` on mount, so we keep this composer boundary
+// separate from the drawer's live draft state and remount it explicitly via `editorKey`.
 function NoteEditor({
     editorKey,
     initialDraft,
@@ -525,39 +515,19 @@ function NoteEditor({
     onDraftChange: (draft: NoteDraft) => void;
     onUrlPaste: (url: string) => Promise<void> | void;
 }) {
-    let initialEditorState: InitialConfigType["editorState"] = null;
-
-    if (initialDraft.contentState) {
-        initialEditorState = JSON.stringify(initialDraft.contentState);
-    } else if (
-        normalizeNoteHtml(initialDraft.contentHtml) !== NOTE_EMPTY_HTML
-    ) {
-        initialEditorState = (editor: LexicalEditor) => {
-            const dom = new DOMParser().parseFromString(
-                initialDraft.contentHtml,
-                "text/html"
-            );
-            const nodes = $generateNodesFromDOM(editor, dom);
-            const root = $getRoot();
-
-            root.clear();
-            root.append(...nodes);
-
-            if (root.getChildrenSize() === 0) {
-                root.append($createParagraphNode());
-            }
-        };
-    }
-
-    const initialConfig = {
-        editorState: initialEditorState,
-        namespace: NOTE_EDITOR_NAMESPACE,
-        nodes: NOTE_EDITOR_NODES,
-        onError(error: Error) {
-            console.error(error);
-        },
-        theme: NOTE_EDITOR_THEME,
-    } satisfies InitialConfigType;
+    const initialConfig = useMemo(
+        () =>
+            ({
+                editorState: getInitialEditorState(initialDraft),
+                namespace: NOTE_EDITOR_NAMESPACE,
+                nodes: NOTE_EDITOR_NODES,
+                onError(error: Error) {
+                    console.error("Unexpected note editor error", error);
+                },
+                theme: NOTE_EDITOR_THEME,
+            }) satisfies InitialConfigType,
+        [initialDraft]
+    );
 
     return (
         <LexicalComposer initialConfig={initialConfig} key={editorKey}>
@@ -576,12 +546,12 @@ export function LibraryNoteDrawer({
     onUrlPaste,
     open,
     saving,
-}: Props) {
-    const initialDraftRef = useRef<NoteDraft>(noteDraftFromItem(note));
-    const latestDraftRef = useRef<NoteDraft>(noteDraftFromItem(note));
+}: LibraryNoteDrawerProps) {
     const [draft, setDraft] = useState<NoteDraft>(() =>
         noteDraftFromItem(note)
     );
+    const initialDraftRef = useRef<NoteDraft>(draft);
+    const latestDraftRef = useRef<NoteDraft>(draft);
     const [editorKey, setEditorKey] = useState(0);
     const [isClosing, setIsClosing] = useState(false);
     const [isExpanded, setIsExpanded] = useState(false);
@@ -600,11 +570,7 @@ export function LibraryNoteDrawer({
     }, [note, open]);
 
     const handleDraftChange = (nextDraft: NoteDraft) => {
-        const normalizedDraft = {
-            contentHtml: normalizeNoteHtml(nextDraft.contentHtml),
-            contentState: nextDraft.contentState,
-        } satisfies NoteDraft;
-
+        const normalizedDraft = normalizeDraft(nextDraft);
         latestDraftRef.current = normalizedDraft;
         setDraft(normalizedDraft);
     };
@@ -620,8 +586,16 @@ export function LibraryNoteDrawer({
         }
 
         const currentDraft = latestDraftRef.current;
+        const hasChanged =
+            normalizeNoteHtml(currentDraft.contentHtml) !==
+            normalizeNoteHtml(initialDraftRef.current.contentHtml);
 
-        if (!noteDraftShouldSave(currentDraft, initialDraftRef.current, note)) {
+        if (!hasChanged) {
+            onOpenChange(false);
+            return;
+        }
+
+        if (!note && extractNoteText(currentDraft.contentHtml).length === 0) {
             onOpenChange(false);
             return;
         }
@@ -639,7 +613,8 @@ export function LibraryNoteDrawer({
         }
     };
 
-    const query = extractNoteText(draft.contentHtml);
+    const textMetrics = getNoteTextMetrics(draft.contentHtml);
+    const query = textMetrics.plainText;
     const ExpandIcon = isExpanded ? Minimize2 : Maximize2;
 
     return (
@@ -715,7 +690,7 @@ export function LibraryNoteDrawer({
                             <ChevronDownIcon className="size-3.5" />
                         </MenuTrigger>
                         <MenuPopup align="start" className="w-60">
-                            {chatProviders.map((provider) => {
+                            {CHAT_PROVIDERS.map((provider) => {
                                 const ProviderIcon = provider.icon;
 
                                 return (
@@ -764,11 +739,15 @@ export function LibraryNoteDrawer({
                 >
                     <NoteEditor
                         editorKey={editorKey}
-                        initialDraft={draft}
+                        initialDraft={initialDraftRef.current}
                         onDraftChange={handleDraftChange}
                         onUrlPaste={onUrlPaste}
                     />
-                    <NoteStatsFooter contentHtml={draft.contentHtml} />
+                    <div className="flex items-center justify-end gap-4 border-border/60 border-t pt-3 text-muted-foreground text-xs">
+                        <span>{textMetrics.wordCount} words</span>
+                        <span>{textMetrics.paragraphCount} paragraphs</span>
+                        <span>{textMetrics.characterCount} characters</span>
+                    </div>
                 </DrawerPanel>
             </DrawerPopup>
         </Drawer>

@@ -14,7 +14,7 @@ const logger = createLogger("collection-sharing:service");
 const COLLECTION_SHARE_ID_LENGTH = 12;
 const COLLECTION_SHARE_ID_ATTEMPTS = 3;
 
-export interface PublicCollectionShareItem {
+interface PublicCollectionShareItem {
     readonly caption: string | null;
     readonly createdAt: Date;
     readonly id: string;
@@ -26,7 +26,7 @@ export interface PublicCollectionShareItem {
     readonly url: string;
 }
 
-export interface PublicCollectionShare {
+interface PublicCollectionShare {
     readonly description: string | null;
     readonly itemCount: number;
     readonly items: PublicCollectionShareItem[];

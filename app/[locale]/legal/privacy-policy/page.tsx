@@ -37,261 +37,503 @@ export default function PrivacyPolicyPage() {
                     Privacy Policy
                 </h1>
                 <p>
-                    <strong>Last Updated:</strong> April 1, 2026
+                    <strong>Effective:</strong> April 21, 2026
                 </p>
                 <p>
                     This Privacy Policy explains how CachdApp, Inc.
-                    (&quot;we,&quot; &quot;us,&quot; or &quot;our&quot;)
-                    collects, uses, stores, and shares personal information when
-                    you use Cache, including when you sign in with Google or
-                    connect Google to import content from Google Photos.
+                    (&quot;Cache,&quot; &quot;we,&quot; &quot;us,&quot; or
+                    &quot;our&quot;) collects, uses, discloses, and otherwise
+                    processes personal data when you use {APP_NAME}, our
+                    websites, our browser extension, public shared collection
+                    pages, and related services where we act as a data
+                    controller.
                 </p>
                 <p>
-                    This page is intended to help users understand our data
-                    practices generally and, specifically, how our application
-                    interacts with Google user data under the Google API
-                    Services User Data Policy.
+                    This Privacy Policy does not apply to third-party websites,
+                    apps, or services that you connect to Cache, including
+                    Google, GitHub, Pinterest, X, Instagram, TikTok, YouTube, or
+                    your browser vendor, except to the extent we receive and
+                    process data from those services inside Cache. Those third
+                    parties govern their own privacy practices.
+                </p>
+                <p>
+                    This Privacy Policy also describes your privacy rights and
+                    choices, including how to contact us about your data.
                 </p>
             </header>
 
             <section className="flex flex-col gap-4">
                 <h2 className="font-semibold text-stone-950 text-xl tracking-tight">
-                    Information We Collect
+                    1. Collection of Personal Data
                 </h2>
-                <p>Depending on how you use the product, we may collect:</p>
+
+                <div className="flex flex-col gap-3">
+                    <h3 className="font-medium text-base text-stone-950">
+                        Personal data you provide to us directly
+                    </h3>
+                    <ul className="list-disc space-y-2 pl-5">
+                        <li>
+                            <strong>Account and profile information:</strong>{" "}
+                            your name, email address, profile image, linked
+                            provider identifiers, and session data used to sign
+                            you in and keep you authenticated.
+                        </li>
+                        <li>
+                            <strong>Library and content data:</strong>{" "}
+                            bookmarks, URLs, titles, captions, thumbnails,
+                            notes, collection names and descriptions,
+                            timestamps, and similar content you save, import,
+                            organize, share, or export through Cache.
+                        </li>
+                        <li>
+                            <strong>Feedback and communications:</strong>{" "}
+                            messages you send us, feedback you submit in the
+                            product, and related context such as the page where
+                            you submitted that feedback.
+                        </li>
+                        <li>
+                            <strong>Billing and subscription data:</strong> plan
+                            selection, billing interval, subscription status,
+                            Stripe customer and subscription identifiers, and
+                            related transaction metadata. Payment card details
+                            are processed by Stripe and are not stored directly
+                            by Cache.
+                        </li>
+                    </ul>
+                </div>
+
+                <div className="flex flex-col gap-3">
+                    <h3 className="font-medium text-base text-stone-950">
+                        Personal data we receive automatically
+                    </h3>
+                    <ul className="list-disc space-y-2 pl-5">
+                        <li>
+                            <strong>
+                                Device, browser, and connection information:
+                            </strong>{" "}
+                            IP address, browser type, user agent, device and
+                            operating system signals, time zone, and similar
+                            technical information.
+                        </li>
+                        <li>
+                            <strong>Usage and log information:</strong> pages or
+                            features used, timestamps, request metadata, error
+                            logs, performance data, and troubleshooting
+                            information generated when you use the service.
+                        </li>
+                        <li>
+                            <strong>Cookies and similar technologies:</strong>{" "}
+                            data used to maintain sessions, protect accounts,
+                            remember preferences, and understand product usage,
+                            including through analytics providers we use to help
+                            operate the service.
+                        </li>
+                    </ul>
+                </div>
+
+                <div className="flex flex-col gap-3">
+                    <h3 className="font-medium text-base text-stone-950">
+                        Personal data we collect from connected accounts and
+                        imports
+                    </h3>
+                    <ul className="list-disc space-y-2 pl-5">
+                        <li>
+                            <strong>Connected account records:</strong> when you
+                            link a provider account, we may receive the
+                            provider&apos;s account identifier, basic profile
+                            data, OAuth tokens, token expiry times, approved
+                            scopes, and other connection metadata needed to keep
+                            the integration working.
+                        </li>
+                        <li>
+                            <strong>Imported source data:</strong> when you sync
+                            or import from supported sources, we may receive
+                            source-specific information such as external item
+                            IDs, URLs, titles, captions, thumbnails, filenames,
+                            mime types, timestamps, folder or playlist
+                            relationships, channel or account metadata, device
+                            identifiers, browser profile identifiers, and other
+                            metadata returned by the source or sent by the Cache
+                            browser extension.
+                        </li>
+                        <li>
+                            <strong>Public collection sharing data:</strong> if
+                            you choose to create a public share link, we store a
+                            share ID and make the collection name, description,
+                            included items, and your account display name
+                            available on a read-only page to anyone with the
+                            link.
+                        </li>
+                    </ul>
+                </div>
+
+                <div className="flex flex-col gap-3">
+                    <h3 className="font-medium text-base text-stone-950">
+                        AI-assisted feature inputs
+                    </h3>
+                    <p>
+                        If you use AI-assisted features in Cache, such as
+                        section descriptions or smart collection suggestions, we
+                        may send relevant library item content, URLs,
+                        thumbnails, extracted text, and source metadata to our
+                        AI service providers so they can generate the requested
+                        output on our behalf.
+                    </p>
+                </div>
+            </section>
+
+            <section className="flex flex-col gap-4">
+                <h2 className="font-semibold text-stone-950 text-xl tracking-tight">
+                    2. Uses of Personal Data
+                </h2>
+                <p>We use personal data for the following purposes:</p>
+                <ul className="list-disc space-y-2 pl-5">
+                    <li>
+                        To provide, maintain, secure, and improve Cache and the
+                        features available through your account.
+                    </li>
+                    <li>
+                        To create and administer your account, authenticate you,
+                        and keep your sessions active.
+                    </li>
+                    <li>
+                        To connect third-party accounts, import or sync saved
+                        content, and keep your library up to date across
+                        supported sources.
+                    </li>
+                    <li>
+                        To let you organize, search, annotate, export, and share
+                        your saved content, including through public collection
+                        links you intentionally enable.
+                    </li>
+                    <li>
+                        To process subscriptions, billing, checkout, and other
+                        payment-related workflows.
+                    </li>
+                    <li>
+                        To generate AI-assisted summaries, categorization, and
+                        organizational suggestions when you use those features.
+                    </li>
+                    <li>
+                        To monitor service performance, troubleshoot issues,
+                        debug errors, and protect against fraud, abuse,
+                        unauthorized access, and security incidents.
+                    </li>
+                    <li>
+                        To respond to feedback, support requests, legal demands,
+                        and other communications.
+                    </li>
+                    <li>
+                        To enforce our Terms of Service and comply with
+                        applicable law, regulation, legal process, or
+                        governmental request.
+                    </li>
+                    <li>
+                        To analyze aggregated or de-identified usage trends so
+                        we can understand how Cache is used and improve the
+                        product.
+                    </li>
+                </ul>
                 <p>
-                    <strong>Account and profile information:</strong> your name,
-                    email address, profile image, linked account identifiers,
-                    and session data used to authenticate you and keep you
-                    signed in.
-                </p>
-                <p>
-                    <strong>Library data:</strong> links, metadata, thumbnails,
-                    captions, source identifiers, timestamps, and similar
-                    content you import, save, or organize in the product.
-                </p>
-                <p>
-                    <strong>Payment and subscription information:</strong>{" "}
-                    billing status, Stripe customer and subscription
-                    identifiers, and related transaction metadata.
-                </p>
-                <p>
-                    <strong>Operational data:</strong> device, browser, IP
-                    address, user agent, logs, and feedback you submit to help
-                    us secure, operate, and improve the service.
+                    We do not sell personal data. We do not use personal data
+                    you submit to Cache to train generalized AI or machine
+                    learning models of our own.
                 </p>
             </section>
 
             <section className="flex flex-col gap-4">
                 <h2 className="font-semibold text-stone-950 text-xl tracking-tight">
-                    Google User Data
+                    3. How We Disclose Personal Data
                 </h2>
                 <p>
-                    If you use Google with Cache, we may access the following
-                    categories of Google user data:
+                    We may disclose personal data to the following categories of
+                    recipients:
                 </p>
+                <ul className="list-disc space-y-2 pl-5">
+                    <li>
+                        <strong>
+                            Service providers and infrastructure vendors:
+                        </strong>{" "}
+                        providers that help us host, operate, authenticate,
+                        secure, analyze, support, pay for, or power the service,
+                        such as hosting, database, authentication, analytics,
+                        payment, logging, and AI vendors.
+                    </li>
+                    <li>
+                        <strong>Connected services at your direction:</strong>{" "}
+                        when you choose to link an account, sync a source, open
+                        a provider flow, or otherwise ask us to exchange data
+                        with a third-party service to complete your request.
+                    </li>
+                    <li>
+                        <strong>Public recipients:</strong> if you enable a
+                        public collection share link, anyone with that link may
+                        view the content made available on that page. We ask
+                        search engines not to index those pages, but we cannot
+                        guarantee that a shared link stays private once you
+                        distribute it.
+                    </li>
+                    <li>
+                        <strong>
+                            Legal, safety, and enforcement recipients:
+                        </strong>{" "}
+                        where reasonably necessary to comply with law, protect
+                        rights or safety, investigate misuse, collect amounts
+                        owed, or enforce our agreements.
+                    </li>
+                    <li>
+                        <strong>Business transaction counterparties:</strong> in
+                        connection with a merger, acquisition, financing, asset
+                        sale, bankruptcy, or similar corporate event, subject to
+                        appropriate confidentiality and legal protections.
+                    </li>
+                </ul>
                 <p>
-                    <strong>Google basic profile data:</strong> your Google
-                    account identifier, name, email address, and profile photo
-                    through the Google sign-in scopes <code>openid</code>,{" "}
-                    <code>email</code>, and <code>profile</code>.
-                </p>
-                <p>
-                    <strong>Google Photos Picker data:</strong> when you choose
-                    to connect Google Photos, we request read-only access
-                    through the Google Photos Picker scope{" "}
-                    <code>
-                        https://www.googleapis.com/auth/photospicker.mediaitems.readonly
-                    </code>
-                    . This lets the app create a picker session, display your
-                    selected items for import, and retrieve metadata needed to
-                    import the items you choose.
-                </p>
-                <p>
-                    For selected Google Photos items, this may include media
-                    item identifiers, file names, creation times, and temporary
-                    Google-hosted URLs such as preview or base URLs returned by
-                    Google for the chosen media.
+                    We do not sell personal data or disclose it for
+                    cross-context behavioral advertising.
                 </p>
             </section>
 
             <section className="flex flex-col gap-4">
                 <h2 className="font-semibold text-stone-950 text-xl tracking-tight">
-                    How We Use Google User Data
+                    4. Rights and Choices
                 </h2>
-                <p>We use Google user data only for the following purposes:</p>
                 <p>
-                    <strong>Authentication:</strong> to let you sign in,
-                    identify your account, and maintain your session in Cache.
+                    Depending on where you live, you may have rights to access,
+                    know, correct, delete, port, restrict, or object to our
+                    processing of your personal data, subject to applicable law
+                    and certain exceptions.
+                </p>
+                <ul className="list-disc space-y-2 pl-5">
+                    <li>
+                        You can manage some information directly in the product,
+                        including deleting saved items, notes, collections, and
+                        disabling public collection share links.
+                    </li>
+                    <li>
+                        Deleting an imported item from Cache removes it from
+                        Cache only. It does not remove the original item from
+                        the third-party service where it was first saved.
+                    </li>
+                    <li>
+                        You can stop future imports from a connected account by
+                        revoking Cache&apos;s access in the connected
+                        service&apos;s settings or by no longer using that
+                        integration.
+                    </li>
+                    <li>
+                        You can control cookies and similar technologies through
+                        your browser or device settings, though some features
+                        may not work properly if you disable them.
+                    </li>
+                    <li>
+                        To exercise privacy rights that are not available in the
+                        product, contact{" "}
+                        <LinkText href="mailto:notices@cachd.app">
+                            notices@cachd.app
+                        </LinkText>
+                        . We may need to verify your identity before acting on
+                        your request.
+                    </li>
+                </ul>
+            </section>
+
+            <section className="flex flex-col gap-4">
+                <h2 className="font-semibold text-stone-950 text-xl tracking-tight">
+                    5. International Data Transfers
+                </h2>
+                <p>
+                    Cache and our service providers may process personal data in
+                    the United States and other countries where we or our
+                    providers operate. Those countries may not provide the same
+                    level of data protection as your home jurisdiction.
                 </p>
                 <p>
-                    <strong>Account linking:</strong> to connect your Google
-                    account to your existing Cache account so you can use Google
-                    as a sign-in or import source.
-                </p>
-                <p>
-                    <strong>Google Photos import:</strong> to create and manage
-                    Google Photos Picker sessions, let you choose specific media
-                    items, and import the items you selected into your Cache
-                    library.
-                </p>
-                <p>
-                    <strong>Service operations and security:</strong> to
-                    troubleshoot authentication and import issues, prevent
-                    abuse, maintain product functionality, and comply with legal
-                    obligations.
-                </p>
-                <p>
-                    We do not use Google user data for advertising, we do not
-                    sell Google user data, and we do not use Google user data to
-                    train generalized AI or machine learning models.
+                    Where required by applicable law, we use contractual or
+                    other lawful safeguards intended to help protect personal
+                    data when it is transferred across borders.
                 </p>
             </section>
 
             <section className="flex flex-col gap-4">
                 <h2 className="font-semibold text-stone-950 text-xl tracking-tight">
-                    What We Store
+                    6. Data Retention and Security
                 </h2>
                 <p>
-                    When you connect Google, we may store Google-related account
-                    records and tokens associated with your linked account, such
-                    as access tokens, refresh tokens, token expiry times, your
-                    Google account identifier, and approved scopes, so the app
-                    can maintain the connection and complete requested actions.
+                    We retain personal data for as long as reasonably necessary
+                    to provide the service, maintain your account, complete the
+                    workflows you request, comply with legal, tax, accounting,
+                    and security obligations, resolve disputes, and enforce our
+                    agreements.
                 </p>
-                <p>
-                    When you import from Google Photos, we store the imported
-                    library records in our application database, including the
-                    selected item&apos;s source identifier, filename or caption,
-                    creation timestamp, thumbnail URL, and media URL as returned
-                    by Google at the time of import.
-                </p>
-                <p>
-                    We store only the Google user data reasonably necessary to
-                    provide the features you request.
-                </p>
-            </section>
-
-            <section className="flex flex-col gap-4">
-                <h2 className="font-semibold text-stone-950 text-xl tracking-tight">
-                    Sharing of Google User Data
-                </h2>
-                <p>
-                    We do not sell Google user data. We do not share Google user
-                    data with third parties except in the limited circumstances
-                    below:
-                </p>
-                <p>
-                    <strong>
-                        Service providers and infrastructure vendors:
-                    </strong>{" "}
-                    we may share data with vendors that host, secure, support,
-                    or process data on our behalf, such as cloud hosting,
-                    authentication, database, logging, customer support, and
-                    payment providers. These providers may access data only as
-                    needed to perform services for us.
-                </p>
-                <p>
-                    <strong>At your direction:</strong> when you intentionally
-                    connect third-party services or take actions that require us
-                    to transmit data to complete your request.
-                </p>
-                <p>
-                    <strong>Legal or safety reasons:</strong> when disclosure is
-                    reasonably necessary to comply with applicable law,
-                    regulation, legal process, or enforceable governmental
-                    request, or to protect the rights, safety, and security of
-                    our users, our company, or others.
-                </p>
-                <p>
-                    <strong>Business transfers:</strong> as part of a merger,
-                    acquisition, financing, or sale of assets, subject to
-                    standard confidentiality and legal protections.
-                </p>
-            </section>
-
-            <section className="flex flex-col gap-4">
-                <h2 className="font-semibold text-stone-950 text-xl tracking-tight">
-                    Data Storage and Protection
-                </h2>
-                <p>
-                    We store personal data, including Google user data, in
-                    systems we or our service providers operate for the purpose
-                    of delivering the service.
-                </p>
+                <ul className="list-disc space-y-2 pl-5">
+                    <li>
+                        Account, session, and linked-provider records may remain
+                        active while your account is active and while the
+                        relevant connection is needed for the service to work.
+                    </li>
+                    <li>
+                        Imported library items, notes, collections, and related
+                        metadata remain in Cache until you remove them, close
+                        your account, or we no longer need to retain them for a
+                        lawful business purpose.
+                    </li>
+                    <li>
+                        Limited data may be retained longer where necessary for
+                        fraud prevention, abuse prevention, legal compliance,
+                        audit trails, or security investigations.
+                    </li>
+                </ul>
                 <p>
                     We use administrative, technical, and organizational
                     safeguards designed to protect personal data, including
-                    access restrictions, authenticated service requests, secret
-                    management for credentials, and internal logging and
-                    monitoring practices intended to reduce unauthorized access,
-                    disclosure, or misuse.
-                </p>
-                <p>
-                    No method of transmission or storage is completely secure,
-                    and we cannot guarantee absolute security.
+                    access controls, authenticated service requests, secret
+                    management, monitoring, and logging. No method of
+                    transmission or storage is completely secure, and we cannot
+                    guarantee absolute security.
                 </p>
             </section>
 
             <section className="flex flex-col gap-4">
                 <h2 className="font-semibold text-stone-950 text-xl tracking-tight">
-                    Data Retention
+                    7. Children&apos;s Privacy
                 </h2>
                 <p>
-                    We retain personal data, including Google user data, for as
-                    long as reasonably necessary to provide the service you
-                    requested, maintain your account, comply with legal, tax,
-                    accounting, and security obligations, resolve disputes, and
-                    enforce our agreements.
-                </p>
-                <p>
-                    Linked-account tokens and account connection records may be
-                    retained while your account remains active and while the
-                    Google connection is needed for product functionality.
-                </p>
-                <p>
-                    Imported Google Photos library records may remain in your
-                    Cache library until they are removed from our systems
-                    following your deletion request, account closure, or other
-                    internal retention requirements.
+                    Cache is not directed to children under 13, and we do not
+                    knowingly collect personal data from children under 13. If
+                    you believe a child has provided personal data to us, please
+                    contact{" "}
+                    <LinkText href="mailto:notices@cachd.app">
+                        notices@cachd.app
+                    </LinkText>{" "}
+                    so we can investigate and take appropriate action.
                 </p>
             </section>
 
             <section className="flex flex-col gap-4">
                 <h2 className="font-semibold text-stone-950 text-xl tracking-tight">
-                    Deletion and Revocation
+                    8. Changes to This Privacy Policy
                 </h2>
                 <p>
-                    You can stop future Google data access by no longer using
-                    Google sign-in or Google Photos import and by revoking
-                    Cache&apos;s access from your Google account permissions at{" "}
-                    <LinkText href="https://myaccount.google.com/permissions">
-                        myaccount.google.com/permissions
-                    </LinkText>
-                    .
+                    We may update this Privacy Policy from time to time. If we
+                    make material changes, we will update the effective date at
+                    the top of this page and may provide additional notice when
+                    appropriate.
                 </p>
+            </section>
+
+            <section className="flex flex-col gap-4">
+                <h2 className="font-semibold text-stone-950 text-xl tracking-tight">
+                    9. Contact Information
+                </h2>
                 <p>
-                    To request deletion of your Cache account or Google-related
-                    data stored by us, contact{" "}
+                    If you have questions, complaints, or requests about this
+                    Privacy Policy or our handling of personal data, contact
+                    CachdApp, Inc. at{" "}
                     <LinkText href="mailto:notices@cachd.app">
                         notices@cachd.app
                     </LinkText>
-                    . Please include the email address associated with your
-                    account and enough detail for us to identify your request.
-                </p>
-                <p>
-                    We will review and process verified deletion requests within
-                    a commercially reasonable timeframe, subject to any legal
-                    retention obligations, fraud prevention needs, payment
-                    recordkeeping requirements, or other legitimate business
-                    needs.
+                    .
                 </p>
             </section>
 
             <section className="flex flex-col gap-4">
                 <h2 className="font-semibold text-stone-950 text-xl tracking-tight">
-                    Other Disclosures
+                    10. Legal Bases for Processing
                 </h2>
+                <p>
+                    If you are in a jurisdiction that requires a legal basis for
+                    processing personal data, such as the EEA, UK, or
+                    Switzerland, we generally rely on one or more of the
+                    following bases:
+                </p>
+                <ul className="list-disc space-y-2 pl-5">
+                    <li>
+                        <strong>Contract:</strong> where processing is necessary
+                        to provide Cache, manage your account, perform imports,
+                        and deliver paid features you request.
+                    </li>
+                    <li>
+                        <strong>Legitimate interests:</strong> where processing
+                        is necessary to secure, maintain, troubleshoot, improve,
+                        and defend the service, provided those interests are not
+                        overridden by your rights and interests.
+                    </li>
+                    <li>
+                        <strong>Consent:</strong> where we ask for it, including
+                        for certain connected account permissions or other uses
+                        that require consent under applicable law.
+                    </li>
+                    <li>
+                        <strong>Legal obligation:</strong> where processing is
+                        necessary to comply with legal requirements, lawful
+                        requests, or regulatory duties.
+                    </li>
+                </ul>
+            </section>
+
+            <section className="flex flex-col gap-4">
+                <h2 className="font-semibold text-stone-950 text-xl tracking-tight">
+                    11. Additional Google User Data Disclosures
+                </h2>
+                <p>
+                    If you sign in with Google or connect Google Photos, the
+                    following additional disclosures apply.
+                </p>
+                <ul className="list-disc space-y-2 pl-5">
+                    <li>
+                        <strong>Google basic profile data:</strong> we may
+                        access your Google account identifier, name, email
+                        address, and profile image through the Google sign-in
+                        scopes <code>openid</code>, <code>email</code>, and{" "}
+                        <code>profile</code>.
+                    </li>
+                    <li>
+                        <strong>Google Photos Picker data:</strong> when you use
+                        Google Photos import, we request read-only access
+                        through the Google Photos Picker scope{" "}
+                        <code>
+                            https://www.googleapis.com/auth/photospicker.mediaitems.readonly
+                        </code>
+                        . This allows Cache to create picker sessions, display
+                        your selected items, and import the Google Photos items
+                        you choose.
+                    </li>
+                    <li>
+                        <strong>Selected item metadata:</strong> for the items
+                        you choose to import, we may receive media item IDs,
+                        filenames, mime types, creation timestamps, thumbnail
+                        URLs, and Google-hosted base or preview URLs returned by
+                        Google for those selected items.
+                    </li>
+                    <li>
+                        <strong>How we use Google user data:</strong> only to
+                        authenticate your account, maintain the linked
+                        connection, create and manage Google Photos Picker
+                        sessions, import the items you select, secure the
+                        service, and satisfy legal obligations.
+                    </li>
+                    <li>
+                        <strong>What we store:</strong> linked Google account
+                        records, approved scopes, access and refresh tokens,
+                        token expiry data, and the imported Google Photos
+                        library records you ask us to save in Cache.
+                    </li>
+                    <li>
+                        <strong>Our restrictions:</strong> we do not sell Google
+                        user data, we do not use Google user data for
+                        advertising, and we do not use Google user data to train
+                        generalized AI or machine learning models.
+                    </li>
+                    <li>
+                        <strong>Revocation:</strong> you can revoke Cache&apos;s
+                        Google access at{" "}
+                        <LinkText href="https://myaccount.google.com/permissions">
+                            myaccount.google.com/permissions
+                        </LinkText>
+                        .
+                    </li>
+                </ul>
                 <p>
                     Our use of information received from Google APIs will adhere
                     to the{" "}
@@ -299,14 +541,6 @@ export default function PrivacyPolicyPage() {
                         Google API Services User Data Policy
                     </LinkText>
                     , including the Limited Use requirements where applicable.
-                </p>
-                <p>
-                    If you have questions about this Privacy Policy or our data
-                    practices, contact{" "}
-                    <LinkText href="mailto:notices@cachd.app">
-                        notices@cachd.app
-                    </LinkText>
-                    .
                 </p>
             </section>
         </article>

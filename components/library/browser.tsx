@@ -116,12 +116,6 @@ import { useAccess } from "@/hooks/use-access";
 import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
 import { useIsomorphicLayoutEffect } from "@/hooks/use-isomorphic-effect";
 import {
-    disableCollectionSharing,
-    shareCollectionPublicly,
-    type DisableCollectionPublicShareResult,
-    type ShareCollectionPubliclyResult,
-} from "@/lib/collection-sharing/actions";
-import {
     createCollection,
     createCollectionFromItems,
     deleteCollection,
@@ -164,12 +158,18 @@ import {
 } from "@/lib/integrations/notes/actions";
 import { getNoteExcerpt } from "@/lib/integrations/notes/utils";
 import { withMemoize } from "@/lib/memoize";
+import {
+    disableCollectionSharing,
+    shareCollectionPublicly,
+    type DisableCollectionPublicShareResult,
+    type ShareCollectionPubliclyResult,
+} from "@/lib/sharing/actions";
+import { buildPublicCollectionShareUrl } from "@/lib/sharing/url";
 import type {
     LibraryCollectionSummary,
     LibraryCollectionTag,
     LibraryItemWithCollections,
 } from "@/lib/types";
-import { buildPublicCollectionShareUrl } from "@/lib/collection-sharing/url";
 import { getDisplayUrl, normalizeURL, toValidUrl } from "@/lib/url";
 import {
     LibraryItemSource,
@@ -198,6 +198,7 @@ import {
     ExternalLinkIcon,
     EyeIcon,
     FilePenLineIcon,
+    Globe,
     Info,
     LinkIcon,
     NotebookPenIcon,
@@ -1702,7 +1703,7 @@ function LibraryWorkspaceSidebar({
                                             )}
                                         </ComboboxCollection>
                                     </ComboboxList>
-                                    <div className="flex gap-1 px-3 py-2">
+                                    <div className="flex gap-2 px-3 py-2">
                                         <Info className="inline-block size-3.5 shrink-0" />
                                         <p className="text-[11px] text-muted-foreground leading-tight">
                                             Cache's{" "}
@@ -1777,22 +1778,11 @@ const LIBRARY_COMMAND_PANEL_TOP_PX = 12;
 const LIBRARY_SECTION_STICKY_GAP_PX = 8;
 const FREE_LIBRARY_PREVIEW_ITEMS = 12;
 const COLLECTION_NAME_MAX_LENGTH = 64;
-type CollectionTemplateValue =
-    | "reading_list"
-    | "inspiration"
-    | "tutorials_guides"
-    | "watch_later"
-    | "recipes"
-    | "research_notes"
-    | "product_ideas"
-    | "travel_plans"
-    | "career_growth"
-    | "life_admin";
 
 interface CollectionTemplateOption {
     description: string;
     name: string;
-    value: CollectionTemplateValue;
+    value: string;
 }
 
 const COLLECTION_TEMPLATE_OPTIONS = [
@@ -1813,6 +1803,18 @@ const COLLECTION_TEMPLATE_OPTIONS = [
             "Step-by-step tutorials, docs, and practical guides to revisit.",
         name: "Tutorials & Guides",
         value: "tutorials_guides",
+    },
+    {
+        description:
+            "APIs, standards, specs, and evergreen references you keep coming back to.",
+        name: "Reference Shelf",
+        value: "reference_shelf",
+    },
+    {
+        description:
+            "Apps, services, libraries, and useful tools worth keeping handy.",
+        name: "Tools & Resources",
+        value: "tools_resources",
     },
     {
         description: "Videos, talks, and media to watch when you're ready.",
@@ -1838,9 +1840,33 @@ const COLLECTION_TEMPLATE_OPTIONS = [
     },
     {
         description:
+            "Products, gear, and purchase links you're comparing or planning to buy.",
+        name: "Things to Buy",
+        value: "things_to_buy",
+    },
+    {
+        description:
+            "Restaurants, cafes, shops, and spots you want to check out soon.",
+        name: "Places to Try",
+        value: "places_to_try",
+    },
+    {
+        description:
             "Trips, destinations, and travel resources to plan effectively.",
         name: "Travel Plans",
         value: "travel_plans",
+    },
+    {
+        description:
+            "DIY ideas, home upgrades, decor references, and projects for your space.",
+        name: "Home Projects",
+        value: "home_projects",
+    },
+    {
+        description:
+            "Workouts, routines, nutrition ideas, and wellness resources to revisit.",
+        name: "Wellness & Fitness",
+        value: "wellness_fitness",
     },
     {
         description:
@@ -1854,7 +1880,11 @@ const COLLECTION_TEMPLATE_OPTIONS = [
         name: "Life Admin",
         value: "life_admin",
     },
-] satisfies CollectionTemplateOption[];
+] as const satisfies readonly CollectionTemplateOption[];
+
+type CollectionTemplateValue =
+    (typeof COLLECTION_TEMPLATE_OPTIONS)[number]["value"];
+
 type LibraryItem = LibraryItemWithCollections;
 
 type GroupByMode =
@@ -5787,6 +5817,7 @@ function LibraryBrowser({
                         />
                     }
                 >
+                    <Globe className="inline-block size-3.5 shrink-0" />
                     Feedback
                 </FeedbackWidget>
                 <Separator className="mx-1 h-5" orientation="vertical" />
