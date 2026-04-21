@@ -5,7 +5,9 @@ import {
     getGitHubAccountId,
     importGitHubStarredRepositories,
 } from "@/lib/integrations/github/service";
+import { autoTagLibraryItemsByIds } from "@/lib/smart-collections";
 import { headers } from "next/headers";
+import { after } from "next/server";
 
 function messageForGitHubApiError(error: GitHubApiError): string {
     if (error.data.status === 401) {
@@ -53,7 +55,18 @@ export async function POST() {
             userId,
         });
 
-        return Response.json(result);
+        const { smartCollectionItemIds, ...response } = result;
+
+        if (smartCollectionItemIds.length > 0) {
+            after(async () => {
+                await autoTagLibraryItemsByIds({
+                    itemIds: smartCollectionItemIds,
+                    userId,
+                });
+            });
+        }
+
+        return Response.json(response);
     } catch (error) {
         if (error instanceof GitHubApiError) {
             return Response.json(
@@ -62,6 +75,14 @@ export async function POST() {
             );
         }
 
-        throw error;
+        return Response.json(
+            {
+                error:
+                    error instanceof Error
+                        ? error.message
+                        : "Failed to import GitHub starred repositories",
+            },
+            { status: 500 }
+        );
     }
 }

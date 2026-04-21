@@ -1,6 +1,5 @@
 import { listPinterestBoardPins, listPinterestBoards } from "./api";
 import { DEFAULT_BROWSER_PROFILE_ID } from "@/lib/integrations/chrome/service";
-import { autoTagLibraryItemsByIds } from "@/lib/smart-collections";
 import { prisma } from "@/prisma";
 import { LibraryItemSource } from "@/prisma/client/enums";
 
@@ -114,13 +113,6 @@ export async function importPinterestBoards(args: {
         if (!existingExternalIds.has(pin.externalId)) {
             smartCollectionItemIds.add(savedRow.id);
         }
-    }
-
-    if (smartCollectionItemIds.size > 0) {
-        autoTagLibraryItemsByIds({
-            itemIds: [...smartCollectionItemIds],
-            userId,
-        }).catch(console.error);
     }
 
     return {

@@ -2,7 +2,9 @@ import { auth } from "@/lib/auth/server";
 import { XApiError } from "@/lib/integrations/x/error";
 import { resolveXAccessToken } from "@/lib/integrations/x/actions";
 import { getXAccountId, importXBookmarks } from "@/lib/integrations/x/service";
+import { autoTagLibraryItemsByIds } from "@/lib/smart-collections";
 import { headers } from "next/headers";
+import { after } from "next/server";
 
 function messageForXApiError(error: XApiError): string {
     if (error.data.status === 401) {
@@ -45,7 +47,18 @@ export async function POST() {
             userId,
         });
 
-        return Response.json(result);
+        const { smartCollectionItemIds, ...response } = result;
+
+        if (smartCollectionItemIds.length > 0) {
+            after(async () => {
+                await autoTagLibraryItemsByIds({
+                    itemIds: smartCollectionItemIds,
+                    userId,
+                });
+            });
+        }
+
+        return Response.json(response);
     } catch (error) {
         if (error instanceof XApiError) {
             return Response.json(
@@ -54,6 +67,14 @@ export async function POST() {
             );
         }
 
-        throw error;
+        return Response.json(
+            {
+                error:
+                    error instanceof Error
+                        ? error.message
+                        : "Failed to import X bookmarks",
+            },
+            { status: 500 }
+        );
     }
 }

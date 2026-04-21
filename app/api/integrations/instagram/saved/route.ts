@@ -5,6 +5,8 @@ import {
     type IngestItemInput,
 } from "@/lib/integrations/shared/extension-ingest";
 import { importInstagramSaved } from "@/lib/integrations/instagram/service";
+import { autoTagLibraryItemsByIds } from "@/lib/smart-collections";
+import { after } from "next/server";
 import * as z from "zod";
 
 const itemSchema = z
@@ -82,17 +84,40 @@ export async function POST(request: Request) {
         );
     }
 
-    const result = await importInstagramSaved({
-        items: parsed.data.items as IngestItemInput[],
-        source: parsed.data.source,
-        userId,
-    });
+    try {
+        const result = await importInstagramSaved({
+            items: parsed.data.items as IngestItemInput[],
+            source: parsed.data.source,
+            userId,
+        });
 
-    return Response.json(
-        {
-            ok: true,
-            ...result,
-        },
-        { headers: cors }
-    );
+        const { smartCollectionItemIds, ...response } = result;
+
+        if (smartCollectionItemIds.length > 0) {
+            after(async () => {
+                await autoTagLibraryItemsByIds({
+                    itemIds: smartCollectionItemIds,
+                    userId,
+                });
+            });
+        }
+
+        return Response.json(
+            {
+                ok: true,
+                ...response,
+            },
+            { headers: cors }
+        );
+    } catch (error) {
+        return Response.json(
+            {
+                error:
+                    error instanceof Error
+                        ? error.message
+                        : "Failed to import items from Instagram/TikTok",
+            },
+            { headers: cors, status: 500 }
+        );
+    }
 }

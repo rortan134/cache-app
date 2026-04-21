@@ -1,5 +1,4 @@
 import { importLibraryItemSnapshot } from "@/lib/integrations/shared/snapshot";
-import { autoTagLibraryItemsByIds } from "@/lib/smart-collections";
 import { LibraryItemSource } from "@/prisma/client/enums";
 
 export interface YoutubeWatchLaterItemInput {
@@ -77,14 +76,8 @@ export async function importYoutubeWatchLaterSnapshot(args: {
         userId,
     });
 
-    const { smartCollectionItemIds, ...snapshotResult } = result;
-
-    if (smartCollectionItemIds.length > 0) {
-        autoTagLibraryItemsByIds({
-            itemIds: smartCollectionItemIds,
-            userId,
-        }).catch(console.error);
-    }
-
-    return snapshotResult;
+    return {
+        ...result,
+        smartCollectionItemIds: result.smartCollectionItemIds,
+    };
 }

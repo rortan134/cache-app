@@ -3,7 +3,6 @@ import {
     upsertLibraryItemsFromIngest,
     type IngestItemInput,
 } from "@/lib/integrations/shared/extension-ingest";
-import { autoTagLibraryItemsByIds } from "@/lib/smart-collections";
 
 export async function importInstagramSaved(args: {
     items: IngestItemInput[];
@@ -19,15 +18,9 @@ export async function importInstagramSaved(args: {
         items
     );
 
-    if (result.smartCollectionItemIds.length > 0) {
-        autoTagLibraryItemsByIds({
-            itemIds: result.smartCollectionItemIds,
-            userId,
-        }).catch(console.error);
-    }
-
     return {
         received: items.length,
+        smartCollectionItemIds: result.smartCollectionItemIds,
         upserted: result.upsertedCount,
     };
 }

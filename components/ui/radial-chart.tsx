@@ -7,15 +7,15 @@ interface RadialChartProps extends React.ComponentProps<"div"> {
     /**
      * Fill colour for the progress bar, e.g. '#22c55e'. Defaults to brand blue.
      */
-    readonly color?: string;
+    color?: string;
     /**
      * Overall width / height of the circular chart. Defaults to 50 px.
      */
-    readonly size?: number;
+    size?: number;
     /**
      * Percentage value from 0-100 that the chart should display.
      */
-    readonly value: number;
+    value: number;
 }
 
 const RadialChartImpl = ({

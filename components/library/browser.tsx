@@ -224,10 +224,7 @@ interface SectionDescriptionResponse {
     summary: string;
 }
 
-type SectionDescriptionSWRKey = readonly [
-    endpoint: string,
-    requestBody: string,
-];
+type SectionDescriptionSWRKey = [endpoint: string, requestBody: string];
 
 async function fetchSectionDescription([
     endpoint,
@@ -3747,7 +3744,7 @@ function LibraryGridCard({
                     </Item>
                     <Item closeOnClick onClick={() => onCopyLink?.(item)}>
                         <LinkIcon className="size-4.5 text-muted-foreground" />
-                        Copy link
+                        Copy URL link
                     </Item>
                     <Item
                         closeOnClick

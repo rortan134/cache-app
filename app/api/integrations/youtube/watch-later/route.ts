@@ -4,6 +4,8 @@ import {
     resolveExtensionIngestUserId,
 } from "@/lib/integrations/shared/extension-ingest";
 import { importYoutubeWatchLaterSnapshot } from "@/lib/integrations/youtube/service";
+import { autoTagLibraryItemsByIds } from "@/lib/smart-collections";
+import { after } from "next/server";
 import * as z from "zod";
 
 const optionalStringField = z
@@ -76,22 +78,45 @@ export async function POST(request: Request) {
         );
     }
 
-    const snapshotResult = await importYoutubeWatchLaterSnapshot({
-        browserProfileId: parsed.data.browserProfileId,
-        items: parsed.data.items,
-        snapshotComplete: parsed.data.snapshotComplete,
-        sourceDeviceId: parsed.data.sourceDeviceId,
-        sourceDeviceName: parsed.data.sourceDeviceName,
-        userId,
-    });
-
-    return Response.json(
-        {
-            ...snapshotResult,
-            ok: true,
-            received: parsed.data.items.length,
+    try {
+        const result = await importYoutubeWatchLaterSnapshot({
+            browserProfileId: parsed.data.browserProfileId,
+            items: parsed.data.items,
             snapshotComplete: parsed.data.snapshotComplete,
-        },
-        { headers: cors }
-    );
+            sourceDeviceId: parsed.data.sourceDeviceId,
+            sourceDeviceName: parsed.data.sourceDeviceName,
+            userId,
+        });
+
+        const { smartCollectionItemIds, ...snapshotResult } = result;
+
+        if (smartCollectionItemIds.length > 0) {
+            after(async () => {
+                await autoTagLibraryItemsByIds({
+                    itemIds: smartCollectionItemIds,
+                    userId,
+                });
+            });
+        }
+
+        return Response.json(
+            {
+                ...snapshotResult,
+                ok: true,
+                received: parsed.data.items.length,
+                snapshotComplete: parsed.data.snapshotComplete,
+            },
+            { headers: cors }
+        );
+    } catch (error) {
+        return Response.json(
+            {
+                error:
+                    error instanceof Error
+                        ? error.message
+                        : "Failed to import YouTube Watch Later snapshot",
+            },
+            { headers: cors, status: 500 }
+        );
+    }
 }

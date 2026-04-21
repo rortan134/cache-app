@@ -5,7 +5,9 @@ import {
     getPinterestAccountId,
     importPinterestBoards,
 } from "@/lib/integrations/pinterest/service";
+import { autoTagLibraryItemsByIds } from "@/lib/smart-collections";
 import { headers } from "next/headers";
+import { after } from "next/server";
 
 function messageForPinterestApiError(error: PinterestApiError): string {
     if (error.data.status === 401) {
@@ -48,10 +50,16 @@ export async function POST() {
             userId,
         });
 
-        // The smartCollectionItemIds handling was moved to the service layer.
-        // We strip it from the result here if it was accidentally exposed, but
-        // importPinterestBoards returns the safe subset already.
         const { smartCollectionItemIds, ...response } = result;
+
+        if (smartCollectionItemIds.length > 0) {
+            after(async () => {
+                await autoTagLibraryItemsByIds({
+                    itemIds: smartCollectionItemIds,
+                    userId,
+                });
+            });
+        }
 
         return Response.json(response);
     } catch (error) {
@@ -62,6 +70,14 @@ export async function POST() {
             );
         }
 
-        throw error;
+        return Response.json(
+            {
+                error:
+                    error instanceof Error
+                        ? error.message
+                        : "Failed to import Pinterest pins",
+            },
+            { status: 500 }
+        );
     }
 }

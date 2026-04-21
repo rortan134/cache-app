@@ -3,7 +3,6 @@ import {
     listGitHubStarredRepositories,
 } from "./api";
 import { importLibraryItemSnapshot } from "@/lib/integrations/shared/snapshot";
-import { autoTagLibraryItemsByIds } from "@/lib/smart-collections";
 import { prisma } from "@/prisma";
 import { LibraryItemSource } from "@/prisma/client/enums";
 
@@ -46,21 +45,11 @@ export async function importGitHubStarredRepositories(args: {
         userId,
     });
 
-    const { smartCollectionItemIds, ...snapshotResult } = result;
-
-    if (smartCollectionItemIds.length > 0) {
-        // We use an async operation without waiting for it to block the response
-        // Note: In an edge/serverless environment, this should ideally be handled via a background queue
-        autoTagLibraryItemsByIds({
-            itemIds: smartCollectionItemIds,
-            userId,
-        }).catch(console.error);
-    }
-
     return {
-        ...snapshotResult,
+        ...result,
         gitHubLogin: gitHubUser.login,
         gitHubUserId: gitHubUser.id,
+        smartCollectionItemIds: result.smartCollectionItemIds,
         totalFetched: repositories.length,
     };
 }

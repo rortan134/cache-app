@@ -1,6 +1,5 @@
 import { getXAuthenticatedUser, listXBookmarks } from "./api";
 import { importLibraryItemSnapshot } from "@/lib/integrations/shared/snapshot";
-import { autoTagLibraryItemsByIds } from "@/lib/smart-collections";
 import { prisma } from "@/prisma";
 import { LibraryItemSource } from "@/prisma/client/enums";
 
@@ -41,17 +40,9 @@ export async function importXBookmarks(args: {
         userId,
     });
 
-    const { smartCollectionItemIds, ...snapshotResult } = result;
-
-    if (smartCollectionItemIds.length > 0) {
-        autoTagLibraryItemsByIds({
-            itemIds: smartCollectionItemIds,
-            userId,
-        }).catch(console.error);
-    }
-
     return {
-        ...snapshotResult,
+        ...result,
+        smartCollectionItemIds: result.smartCollectionItemIds,
         totalFetched: bookmarks.length,
         xUserId: xUser.id,
     };
