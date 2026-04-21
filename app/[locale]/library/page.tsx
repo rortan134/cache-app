@@ -34,6 +34,11 @@ import {
     listConnectedIntegrationIds,
     listIntegrationAccountProviderIds,
 } from "@/lib/integrations/support";
+import {
+    LIBRARY_COLLECTION_TAG_SELECT,
+    LIBRARY_ITEM_COLLECTIONS_INCLUDE,
+    toLibraryCollectionSummary,
+} from "@/lib/collections/shared";
 import type {
     LibraryCollectionSummary,
     LibraryItemWithCollections,
@@ -46,21 +51,7 @@ import { redirect } from "next/navigation";
 export async function getUserLibraryItems(userId: string) {
     const [items, collections] = await Promise.all([
         prisma.libraryItem.findMany({
-            include: {
-                collections: {
-                    orderBy: {
-                        name: "asc",
-                    },
-                    select: {
-                        createdAt: true,
-                        description: true,
-                        id: true,
-                        name: true,
-                        priority: true,
-                        updatedAt: true,
-                    },
-                },
-            },
+            include: LIBRARY_ITEM_COLLECTIONS_INCLUDE,
             orderBy: [{ scrapedAt: "desc" }, { updatedAt: "desc" }],
             where: {
                 kind: {
@@ -79,17 +70,12 @@ export async function getUserLibraryItems(userId: string) {
                         items: true,
                     },
                 },
-                createdAt: true,
-                description: true,
-                id: true,
+                ...LIBRARY_COLLECTION_TAG_SELECT,
                 items: {
                     select: {
                         source: true,
                     },
                 },
-                name: true,
-                priority: true,
-                updatedAt: true,
             },
             where: {
                 userId,
@@ -99,18 +85,8 @@ export async function getUserLibraryItems(userId: string) {
 
     return {
         collections: collections.map(
-            (collection): LibraryCollectionSummary => ({
-                createdAt: collection.createdAt,
-                description: collection.description,
-                id: collection.id,
-                itemCount: collection._count.items,
-                name: collection.name,
-                priority: collection.priority,
-                sources: Array.from(
-                    new Set(collection.items.map((item) => item.source))
-                ),
-                updatedAt: collection.updatedAt,
-            })
+            (collection): LibraryCollectionSummary =>
+                toLibraryCollectionSummary(collection)
         ),
         items,
     };

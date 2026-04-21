@@ -76,6 +76,8 @@ model Collection {
     nameKey     String
     description String?
     priority    CollectionPriority @default(none)
+    shareId     String?            @unique
+    sharedAt    DateTime?
     items       LibraryItem[]
     createdAt   DateTime           @default(now())
     updatedAt   DateTime           @updatedAt

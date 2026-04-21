@@ -771,10 +771,6 @@ export type LibraryItemUpdatesourceAliasIdsInput = {
   push?: string | string[]
 }
 
-export type NullableDateTimeFieldUpdateOperationsInput = {
-  set?: Date | string | null
-}
-
 export type LibraryItemCreateWithoutUserInput = {
   id?: string
   source: $Enums.LibraryItemSource

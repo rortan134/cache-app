@@ -31,6 +31,8 @@ export type CollectionMinAggregateOutputType = {
   nameKey: string | null
   description: string | null
   priority: $Enums.CollectionPriority | null
+  shareId: string | null
+  sharedAt: Date | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -42,6 +44,8 @@ export type CollectionMaxAggregateOutputType = {
   nameKey: string | null
   description: string | null
   priority: $Enums.CollectionPriority | null
+  shareId: string | null
+  sharedAt: Date | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -53,6 +57,8 @@ export type CollectionCountAggregateOutputType = {
   nameKey: number
   description: number
   priority: number
+  shareId: number
+  sharedAt: number
   createdAt: number
   updatedAt: number
   _all: number
@@ -66,6 +72,8 @@ export type CollectionMinAggregateInputType = {
   nameKey?: true
   description?: true
   priority?: true
+  shareId?: true
+  sharedAt?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -77,6 +85,8 @@ export type CollectionMaxAggregateInputType = {
   nameKey?: true
   description?: true
   priority?: true
+  shareId?: true
+  sharedAt?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -88,6 +98,8 @@ export type CollectionCountAggregateInputType = {
   nameKey?: true
   description?: true
   priority?: true
+  shareId?: true
+  sharedAt?: true
   createdAt?: true
   updatedAt?: true
   _all?: true
@@ -172,6 +184,8 @@ export type CollectionGroupByOutputType = {
   nameKey: string
   description: string | null
   priority: $Enums.CollectionPriority
+  shareId: string | null
+  sharedAt: Date | null
   createdAt: Date
   updatedAt: Date
   _count: CollectionCountAggregateOutputType | null
@@ -204,6 +218,8 @@ export type CollectionWhereInput = {
   nameKey?: Prisma.StringFilter<"Collection"> | string
   description?: Prisma.StringNullableFilter<"Collection"> | string | null
   priority?: Prisma.EnumCollectionPriorityFilter<"Collection"> | $Enums.CollectionPriority
+  shareId?: Prisma.StringNullableFilter<"Collection"> | string | null
+  sharedAt?: Prisma.DateTimeNullableFilter<"Collection"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"Collection"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Collection"> | Date | string
   user?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
@@ -217,6 +233,8 @@ export type CollectionOrderByWithRelationInput = {
   nameKey?: Prisma.SortOrder
   description?: Prisma.SortOrderInput | Prisma.SortOrder
   priority?: Prisma.SortOrder
+  shareId?: Prisma.SortOrderInput | Prisma.SortOrder
+  sharedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   user?: Prisma.UserOrderByWithRelationInput
@@ -225,6 +243,7 @@ export type CollectionOrderByWithRelationInput = {
 
 export type CollectionWhereUniqueInput = Prisma.AtLeast<{
   id?: string
+  shareId?: string
   userId_nameKey?: Prisma.CollectionUserIdNameKeyCompoundUniqueInput
   AND?: Prisma.CollectionWhereInput | Prisma.CollectionWhereInput[]
   OR?: Prisma.CollectionWhereInput[]
@@ -234,11 +253,12 @@ export type CollectionWhereUniqueInput = Prisma.AtLeast<{
   nameKey?: Prisma.StringFilter<"Collection"> | string
   description?: Prisma.StringNullableFilter<"Collection"> | string | null
   priority?: Prisma.EnumCollectionPriorityFilter<"Collection"> | $Enums.CollectionPriority
+  sharedAt?: Prisma.DateTimeNullableFilter<"Collection"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"Collection"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Collection"> | Date | string
   user?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
   items?: Prisma.LibraryItemListRelationFilter
-}, "id" | "userId_nameKey">
+}, "id" | "shareId" | "userId_nameKey">
 
 export type CollectionOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
@@ -247,6 +267,8 @@ export type CollectionOrderByWithAggregationInput = {
   nameKey?: Prisma.SortOrder
   description?: Prisma.SortOrderInput | Prisma.SortOrder
   priority?: Prisma.SortOrder
+  shareId?: Prisma.SortOrderInput | Prisma.SortOrder
+  sharedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   _count?: Prisma.CollectionCountOrderByAggregateInput
@@ -264,6 +286,8 @@ export type CollectionScalarWhereWithAggregatesInput = {
   nameKey?: Prisma.StringWithAggregatesFilter<"Collection"> | string
   description?: Prisma.StringNullableWithAggregatesFilter<"Collection"> | string | null
   priority?: Prisma.EnumCollectionPriorityWithAggregatesFilter<"Collection"> | $Enums.CollectionPriority
+  shareId?: Prisma.StringNullableWithAggregatesFilter<"Collection"> | string | null
+  sharedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"Collection"> | Date | string | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"Collection"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"Collection"> | Date | string
 }
@@ -274,6 +298,8 @@ export type CollectionCreateInput = {
   nameKey: string
   description?: string | null
   priority?: $Enums.CollectionPriority
+  shareId?: string | null
+  sharedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   user: Prisma.UserCreateNestedOneWithoutCollectionsInput
@@ -287,6 +313,8 @@ export type CollectionUncheckedCreateInput = {
   nameKey: string
   description?: string | null
   priority?: $Enums.CollectionPriority
+  shareId?: string | null
+  sharedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   items?: Prisma.LibraryItemUncheckedCreateNestedManyWithoutCollectionsInput
@@ -298,6 +326,8 @@ export type CollectionUpdateInput = {
   nameKey?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   priority?: Prisma.EnumCollectionPriorityFieldUpdateOperationsInput | $Enums.CollectionPriority
+  shareId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sharedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   user?: Prisma.UserUpdateOneRequiredWithoutCollectionsNestedInput
@@ -311,6 +341,8 @@ export type CollectionUncheckedUpdateInput = {
   nameKey?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   priority?: Prisma.EnumCollectionPriorityFieldUpdateOperationsInput | $Enums.CollectionPriority
+  shareId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sharedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   items?: Prisma.LibraryItemUncheckedUpdateManyWithoutCollectionsNestedInput
@@ -323,6 +355,8 @@ export type CollectionCreateManyInput = {
   nameKey: string
   description?: string | null
   priority?: $Enums.CollectionPriority
+  shareId?: string | null
+  sharedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -333,6 +367,8 @@ export type CollectionUpdateManyMutationInput = {
   nameKey?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   priority?: Prisma.EnumCollectionPriorityFieldUpdateOperationsInput | $Enums.CollectionPriority
+  shareId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sharedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -344,6 +380,8 @@ export type CollectionUncheckedUpdateManyInput = {
   nameKey?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   priority?: Prisma.EnumCollectionPriorityFieldUpdateOperationsInput | $Enums.CollectionPriority
+  shareId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sharedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -370,6 +408,8 @@ export type CollectionCountOrderByAggregateInput = {
   nameKey?: Prisma.SortOrder
   description?: Prisma.SortOrder
   priority?: Prisma.SortOrder
+  shareId?: Prisma.SortOrder
+  sharedAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -381,6 +421,8 @@ export type CollectionMaxOrderByAggregateInput = {
   nameKey?: Prisma.SortOrder
   description?: Prisma.SortOrder
   priority?: Prisma.SortOrder
+  shareId?: Prisma.SortOrder
+  sharedAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -392,6 +434,8 @@ export type CollectionMinOrderByAggregateInput = {
   nameKey?: Prisma.SortOrder
   description?: Prisma.SortOrder
   priority?: Prisma.SortOrder
+  shareId?: Prisma.SortOrder
+  sharedAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -442,6 +486,10 @@ export type EnumCollectionPriorityFieldUpdateOperationsInput = {
   set?: $Enums.CollectionPriority
 }
 
+export type NullableDateTimeFieldUpdateOperationsInput = {
+  set?: Date | string | null
+}
+
 export type CollectionCreateNestedManyWithoutItemsInput = {
   create?: Prisma.XOR<Prisma.CollectionCreateWithoutItemsInput, Prisma.CollectionUncheckedCreateWithoutItemsInput> | Prisma.CollectionCreateWithoutItemsInput[] | Prisma.CollectionUncheckedCreateWithoutItemsInput[]
   connectOrCreate?: Prisma.CollectionCreateOrConnectWithoutItemsInput | Prisma.CollectionCreateOrConnectWithoutItemsInput[]
@@ -486,6 +534,8 @@ export type CollectionCreateWithoutUserInput = {
   nameKey: string
   description?: string | null
   priority?: $Enums.CollectionPriority
+  shareId?: string | null
+  sharedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   items?: Prisma.LibraryItemCreateNestedManyWithoutCollectionsInput
@@ -497,6 +547,8 @@ export type CollectionUncheckedCreateWithoutUserInput = {
   nameKey: string
   description?: string | null
   priority?: $Enums.CollectionPriority
+  shareId?: string | null
+  sharedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   items?: Prisma.LibraryItemUncheckedCreateNestedManyWithoutCollectionsInput
@@ -538,6 +590,8 @@ export type CollectionScalarWhereInput = {
   nameKey?: Prisma.StringFilter<"Collection"> | string
   description?: Prisma.StringNullableFilter<"Collection"> | string | null
   priority?: Prisma.EnumCollectionPriorityFilter<"Collection"> | $Enums.CollectionPriority
+  shareId?: Prisma.StringNullableFilter<"Collection"> | string | null
+  sharedAt?: Prisma.DateTimeNullableFilter<"Collection"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"Collection"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Collection"> | Date | string
 }
@@ -548,6 +602,8 @@ export type CollectionCreateWithoutItemsInput = {
   nameKey: string
   description?: string | null
   priority?: $Enums.CollectionPriority
+  shareId?: string | null
+  sharedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   user: Prisma.UserCreateNestedOneWithoutCollectionsInput
@@ -560,6 +616,8 @@ export type CollectionUncheckedCreateWithoutItemsInput = {
   nameKey: string
   description?: string | null
   priority?: $Enums.CollectionPriority
+  shareId?: string | null
+  sharedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -591,6 +649,8 @@ export type CollectionCreateManyUserInput = {
   nameKey: string
   description?: string | null
   priority?: $Enums.CollectionPriority
+  shareId?: string | null
+  sharedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -601,6 +661,8 @@ export type CollectionUpdateWithoutUserInput = {
   nameKey?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   priority?: Prisma.EnumCollectionPriorityFieldUpdateOperationsInput | $Enums.CollectionPriority
+  shareId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sharedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   items?: Prisma.LibraryItemUpdateManyWithoutCollectionsNestedInput
@@ -612,6 +674,8 @@ export type CollectionUncheckedUpdateWithoutUserInput = {
   nameKey?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   priority?: Prisma.EnumCollectionPriorityFieldUpdateOperationsInput | $Enums.CollectionPriority
+  shareId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sharedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   items?: Prisma.LibraryItemUncheckedUpdateManyWithoutCollectionsNestedInput
@@ -623,6 +687,8 @@ export type CollectionUncheckedUpdateManyWithoutUserInput = {
   nameKey?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   priority?: Prisma.EnumCollectionPriorityFieldUpdateOperationsInput | $Enums.CollectionPriority
+  shareId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sharedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -633,6 +699,8 @@ export type CollectionUpdateWithoutItemsInput = {
   nameKey?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   priority?: Prisma.EnumCollectionPriorityFieldUpdateOperationsInput | $Enums.CollectionPriority
+  shareId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sharedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   user?: Prisma.UserUpdateOneRequiredWithoutCollectionsNestedInput
@@ -645,6 +713,8 @@ export type CollectionUncheckedUpdateWithoutItemsInput = {
   nameKey?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   priority?: Prisma.EnumCollectionPriorityFieldUpdateOperationsInput | $Enums.CollectionPriority
+  shareId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sharedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -656,6 +726,8 @@ export type CollectionUncheckedUpdateManyWithoutItemsInput = {
   nameKey?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   priority?: Prisma.EnumCollectionPriorityFieldUpdateOperationsInput | $Enums.CollectionPriority
+  shareId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sharedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -698,6 +770,8 @@ export type CollectionSelect<ExtArgs extends runtime.Types.Extensions.InternalAr
   nameKey?: boolean
   description?: boolean
   priority?: boolean
+  shareId?: boolean
+  sharedAt?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
@@ -712,6 +786,8 @@ export type CollectionSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Ex
   nameKey?: boolean
   description?: boolean
   priority?: boolean
+  shareId?: boolean
+  sharedAt?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
@@ -724,6 +800,8 @@ export type CollectionSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Ex
   nameKey?: boolean
   description?: boolean
   priority?: boolean
+  shareId?: boolean
+  sharedAt?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
@@ -736,11 +814,13 @@ export type CollectionSelectScalar = {
   nameKey?: boolean
   description?: boolean
   priority?: boolean
+  shareId?: boolean
+  sharedAt?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }
 
-export type CollectionOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "userId" | "name" | "nameKey" | "description" | "priority" | "createdAt" | "updatedAt", ExtArgs["result"]["collection"]>
+export type CollectionOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "userId" | "name" | "nameKey" | "description" | "priority" | "shareId" | "sharedAt" | "createdAt" | "updatedAt", ExtArgs["result"]["collection"]>
 export type CollectionInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
   items?: boolean | Prisma.Collection$itemsArgs<ExtArgs>
@@ -766,6 +846,8 @@ export type $CollectionPayload<ExtArgs extends runtime.Types.Extensions.Internal
     nameKey: string
     description: string | null
     priority: $Enums.CollectionPriority
+    shareId: string | null
+    sharedAt: Date | null
     createdAt: Date
     updatedAt: Date
   }, ExtArgs["result"]["collection"]>
@@ -1199,6 +1281,8 @@ export interface CollectionFieldRefs {
   readonly nameKey: Prisma.FieldRef<"Collection", 'String'>
   readonly description: Prisma.FieldRef<"Collection", 'String'>
   readonly priority: Prisma.FieldRef<"Collection", 'CollectionPriority'>
+  readonly shareId: Prisma.FieldRef<"Collection", 'String'>
+  readonly sharedAt: Prisma.FieldRef<"Collection", 'DateTime'>
   readonly createdAt: Prisma.FieldRef<"Collection", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"Collection", 'DateTime'>
 }

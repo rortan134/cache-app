@@ -116,6 +116,12 @@ import { useAccess } from "@/hooks/use-access";
 import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
 import { useIsomorphicLayoutEffect } from "@/hooks/use-isomorphic-effect";
 import {
+    disableCollectionSharing,
+    shareCollectionPublicly,
+    type DisableCollectionPublicShareResult,
+    type ShareCollectionPubliclyResult,
+} from "@/lib/collection-sharing/actions";
+import {
     createCollection,
     createCollectionFromItems,
     deleteCollection,
@@ -163,6 +169,7 @@ import type {
     LibraryCollectionTag,
     LibraryItemWithCollections,
 } from "@/lib/types";
+import { buildPublicCollectionShareUrl } from "@/lib/collection-sharing/url";
 import { getDisplayUrl, normalizeURL, toValidUrl } from "@/lib/url";
 import {
     LibraryItemSource,
@@ -388,6 +395,27 @@ function replaceCollectionName<T extends LibraryCollectionTag>(
     );
 }
 
+function replaceCollectionShareState<T extends LibraryCollectionTag>(
+    collections: T[],
+    nextCollection: Pick<
+        LibraryCollectionTag,
+        "id" | "shareId" | "sharedAt" | "updatedAt"
+    >
+): T[] {
+    return sortCollections(
+        collections.map((collection) =>
+            collection.id === nextCollection.id
+                ? {
+                      ...collection,
+                      sharedAt: nextCollection.sharedAt,
+                      shareId: nextCollection.shareId,
+                      updatedAt: nextCollection.updatedAt,
+                  }
+                : collection
+        )
+    );
+}
+
 function getPreviewOrderSeed(value: string): number {
     let hash = 0;
     for (const character of value) {
@@ -447,6 +475,22 @@ function replaceItemsCollectionName(
     }));
 }
 
+function replaceItemsCollectionShareState(
+    items: LibraryItemWithCollections[],
+    nextCollection: Pick<
+        LibraryCollectionTag,
+        "id" | "shareId" | "sharedAt" | "updatedAt"
+    >
+): LibraryItemWithCollections[] {
+    return items.map((item) => ({
+        ...item,
+        collections: replaceCollectionShareState(
+            item.collections,
+            nextCollection
+        ),
+    }));
+}
+
 function deriveCollectionSummaries(
     collections: LibraryCollectionTag[],
     items: LibraryItemWithCollections[]
@@ -472,6 +516,8 @@ function deriveCollectionSummaries(
             itemCount: counts.get(collection.id) ?? 0,
             name: collection.name,
             priority: collection.priority,
+            sharedAt: collection.sharedAt,
+            shareId: collection.shareId,
             sources: Array.from(collectionSources.get(collection.id) ?? []),
             updatedAt: collection.updatedAt,
         }))
@@ -573,7 +619,11 @@ function LibraryWorkspaceSidebar({
     const [isCreatePending, startCreateTransition] = useTransition();
     const [isRenamePending, startRenameTransition] = useTransition();
     const [isDeletePending, startDeleteTransition] = useTransition();
+    const [isSharePending, startShareTransition] = useTransition();
     const [, startDuplicateTransition] = useTransition();
+    const [pendingShareCollectionId, setPendingShareCollectionId] = useState<
+        string | null
+    >(null);
     const createInputId = useId();
     const createDescriptionId = useId();
     const renameInputId = useId();
@@ -691,6 +741,126 @@ function LibraryWorkspaceSidebar({
                       tone: "error",
                   }
         );
+    };
+
+    const handleCopyCollectionShareLink = (
+        collection: LibraryCollectionSummary
+    ) => {
+        if (!collection.shareId) {
+            setCollectionActionFeedback({
+                message: "Create a public link before trying to copy it.",
+                tone: "error",
+            });
+            return;
+        }
+
+        const shareUrl = buildPublicCollectionShareUrl(collection.shareId);
+
+        setCollectionActionFeedback(
+            copyToClipboard(shareUrl)
+                ? {
+                      message: `Public link for ${collection.name} copied to the clipboard.`,
+                      tone: "success",
+                  }
+                : {
+                      message: "We couldn't copy this public link right now.",
+                      tone: "error",
+                  }
+        );
+    };
+
+    const handleEnableCollectionShare = (
+        collection: LibraryCollectionSummary
+    ) => {
+        setCollectionActionFeedback(null);
+        setPendingShareCollectionId(collection.id);
+
+        startShareTransition(async () => {
+            let result: ShareCollectionPubliclyResult;
+
+            try {
+                result = await shareCollectionPublicly({
+                    collectionId: collection.id,
+                });
+            } catch {
+                result = {
+                    message: "We couldn't create a public link right now.",
+                    status: "ERROR",
+                };
+            }
+
+            if (result.status !== "SHARED") {
+                setCollectionActionFeedback({
+                    message: result.message,
+                    tone: "error",
+                });
+                setPendingShareCollectionId(null);
+                return;
+            }
+
+            setCollections((current) =>
+                replaceCollectionShareState(current, result.collection)
+            );
+            setItems((current) =>
+                replaceItemsCollectionShareState(current, result.collection)
+            );
+            setPendingShareCollectionId(null);
+            setCollectionActionFeedback(
+                copyToClipboard(result.shareUrl)
+                    ? {
+                          message: `${collection.name} is now publicly shared. Link copied to the clipboard.`,
+                          tone: "success",
+                      }
+                    : {
+                          message: `${collection.name} is now publicly shared.`,
+                          tone: "success",
+                      }
+            );
+        });
+    };
+
+    const handleDisableCollectionShare = (
+        collection: LibraryCollectionSummary
+    ) => {
+        setCollectionActionFeedback(null);
+        setPendingShareCollectionId(collection.id);
+
+        startShareTransition(async () => {
+            let result: DisableCollectionPublicShareResult;
+
+            try {
+                result = await disableCollectionSharing({
+                    collectionId: collection.id,
+                });
+            } catch {
+                result = {
+                    message:
+                        "We couldn't stop sharing this collection right now.",
+                    status: "ERROR",
+                };
+            }
+
+            if (result.status !== "DISABLED") {
+                setCollectionActionFeedback({
+                    message: result.message,
+                    tone: "error",
+                });
+                setPendingShareCollectionId(null);
+                return;
+            }
+
+            setCollections((current) =>
+                replaceCollectionShareState(current, result.collection)
+            );
+            setItems((current) =>
+                replaceItemsCollectionShareState(current, result.collection)
+            );
+            setPendingShareCollectionId(null);
+            setCollectionActionFeedback({
+                message: `${collection.name} is no longer publicly shared.`,
+                tone: "success",
+            });
+        });
     };
 
     const handleOpenCollectionLinks = (
@@ -998,6 +1168,8 @@ function LibraryWorkspaceSidebar({
             id: input.collection.id,
             name: input.collection.name,
             priority: input.collection.priority,
+            sharedAt: input.collection.sharedAt,
+            shareId: input.collection.shareId,
             updatedAt: input.collection.updatedAt,
         } satisfies LibraryCollectionTag;
 
@@ -1233,8 +1405,18 @@ function LibraryWorkspaceSidebar({
                                                 <CollectionsListItemValue />
                                             </CollectionsListItemPreview>
                                             <CollectionsListItemMeta
+                                                isSharePending={
+                                                    pendingShareCollectionId ===
+                                                        collection.id &&
+                                                    isSharePending
+                                                }
                                                 onCopyLinks={() =>
                                                     handleCopyCollectionLinks(
+                                                        collection
+                                                    )
+                                                }
+                                                onCopyShareLink={() =>
+                                                    handleCopyCollectionShareLink(
                                                         collection
                                                     )
                                                 }
@@ -1245,6 +1427,16 @@ function LibraryWorkspaceSidebar({
                                                 }
                                                 onDelete={() =>
                                                     handleRequestDeleteCollection(
+                                                        collection
+                                                    )
+                                                }
+                                                onDisableShare={() =>
+                                                    handleDisableCollectionShare(
+                                                        collection
+                                                    )
+                                                }
+                                                onEnableShare={() =>
+                                                    handleEnableCollectionShare(
                                                         collection
                                                     )
                                                 }
@@ -1267,6 +1459,13 @@ function LibraryWorkspaceSidebar({
                                                     handleRequestRenameCollection(
                                                         collection
                                                     )
+                                                }
+                                                shareUrl={
+                                                    collection.shareId
+                                                        ? buildPublicCollectionShareUrl(
+                                                              collection.shareId
+                                                          )
+                                                        : null
                                                 }
                                             />
                                         </CollectionsListItem>
@@ -5677,6 +5876,8 @@ export function LibraryWorkspace({
                 id: collection.id,
                 name: collection.name,
                 priority: collection.priority,
+                sharedAt: collection.sharedAt,
+                shareId: collection.shareId,
                 updatedAt: collection.updatedAt,
             }))
         )
@@ -5818,6 +6019,8 @@ export function LibraryWorkspace({
             id: result.collection.id,
             name: result.collection.name,
             priority: result.collection.priority,
+            sharedAt: result.collection.sharedAt,
+            shareId: result.collection.shareId,
             updatedAt: result.collection.updatedAt,
         } satisfies LibraryCollectionTag;
 

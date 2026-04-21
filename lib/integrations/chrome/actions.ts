@@ -1,6 +1,7 @@
 "use server";
 
 import { getSessionUserId } from "@/lib/auth/server";
+import { LIBRARY_ITEM_COLLECTIONS_INCLUDE } from "@/lib/collections/shared";
 import { extractNamedErrorMessage } from "@/lib/error";
 import {
     applyChromeBookmarkSyncEvents,
@@ -19,20 +20,6 @@ import * as z from "zod";
 const log = createLogger("integrations:standalone:actions");
 const PASTED_BOOKMARK_URL_MAX_LENGTH = 4096;
 const NOTE_PASTED_BOOKMARK_EXTERNAL_ID_PREFIX = "cache_pasted_url:";
-
-const LIBRARY_ITEM_COLLECTIONS_INCLUDE = {
-    collections: {
-        orderBy: {
-            name: "asc" as const,
-        },
-        select: {
-            description: true,
-            id: true,
-            name: true,
-            priority: true,
-        },
-    },
-} as const;
 
 const CreateChromeBookmarkFromUrlInputSchema = z.object({
     url: z.string().trim().min(1).max(PASTED_BOOKMARK_URL_MAX_LENGTH),

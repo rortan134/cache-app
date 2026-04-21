@@ -1,6 +1,11 @@
 "use server";
 
 import { getSessionUserId } from "@/lib/auth/server";
+import {
+    LIBRARY_COLLECTION_TAG_SELECT,
+    toLibraryCollectionSummary,
+    toLibraryCollectionTag,
+} from "@/lib/collections/shared";
 import { NamedError, extractNamedErrorMessage } from "@/lib/error";
 import type {
     LibraryCollectionSummary,
@@ -324,32 +329,20 @@ export async function duplicateCollection(input: {
                     priority: sourceCollection.priority,
                     userId,
                 },
-                select: {
-                    createdAt: true,
-                    description: true,
-                    id: true,
-                    name: true,
-                    priority: true,
-                    updatedAt: true,
-                },
+                select: LIBRARY_COLLECTION_TAG_SELECT,
             });
 
             return {
                 assignedItemIds: sourceCollection.items.map((item) => item.id),
-                collection: {
-                    createdAt: duplicatedCollection.createdAt,
-                    description: duplicatedCollection.description,
-                    id: duplicatedCollection.id,
-                    itemCount: sourceCollection.items.length,
-                    name: duplicatedCollection.name,
-                    priority: duplicatedCollection.priority,
-                    sources: Array.from(
-                        new Set(
-                            sourceCollection.items.map((item) => item.source)
-                        )
-                    ),
-                    updatedAt: duplicatedCollection.updatedAt,
-                } satisfies LibraryCollectionSummary,
+                collection: toLibraryCollectionSummary({
+                    ...duplicatedCollection,
+                    _count: {
+                        items: sourceCollection.items.length,
+                    },
+                    items: sourceCollection.items.map((item) => ({
+                        source: item.source,
+                    })),
+                }),
             };
         });
 
@@ -404,14 +397,7 @@ export async function updateCollectionPriority(input: {
             data: {
                 priority: parsed.data.priority,
             },
-            select: {
-                createdAt: true,
-                description: true,
-                id: true,
-                name: true,
-                priority: true,
-                updatedAt: true,
-            },
+            select: LIBRARY_COLLECTION_TAG_SELECT,
             where: {
                 id: parsed.data.collectionId,
                 userId,
@@ -427,7 +413,7 @@ export async function updateCollectionPriority(input: {
         }
 
         return {
-            collection,
+            collection: toLibraryCollectionTag(collection),
             status: "UPDATED",
         };
     } catch (error) {
@@ -466,14 +452,7 @@ export async function renameCollection(input: {
     try {
         const result = await prisma.$transaction(async (tx) => {
             const collection = await tx.collection.findFirst({
-                select: {
-                    createdAt: true,
-                    description: true,
-                    id: true,
-                    name: true,
-                    priority: true,
-                    updatedAt: true,
-                },
+                select: LIBRARY_COLLECTION_TAG_SELECT,
                 where: {
                     id: parsed.data.collectionId,
                     userId,
@@ -518,14 +497,7 @@ export async function renameCollection(input: {
                     name: normalized.name,
                     nameKey: normalized.nameKey,
                 },
-                select: {
-                    createdAt: true,
-                    description: true,
-                    id: true,
-                    name: true,
-                    priority: true,
-                    updatedAt: true,
-                },
+                select: LIBRARY_COLLECTION_TAG_SELECT,
                 where: {
                     id: collection.id,
                 },
@@ -535,7 +507,7 @@ export async function renameCollection(input: {
         });
 
         return {
-            collection: result,
+            collection: toLibraryCollectionTag(result),
             status: "UPDATED",
         };
     } catch (error) {
@@ -648,28 +620,18 @@ export async function createCollection(input: {
                     nameKey: normalized.nameKey,
                     userId,
                 },
-                select: {
-                    createdAt: true,
-                    description: true,
-                    id: true,
-                    name: true,
-                    priority: true,
-                    updatedAt: true,
-                },
+                select: LIBRARY_COLLECTION_TAG_SELECT,
             });
 
             return {
                 assignedItemId: assignToItemId ?? null,
-                collection: {
-                    createdAt: collection.createdAt,
-                    description: collection.description,
-                    id: collection.id,
-                    itemCount: assignToItemId ? 1 : 0,
-                    name: collection.name,
-                    priority: collection.priority,
-                    sources: [],
-                    updatedAt: collection.updatedAt,
-                } satisfies LibraryCollectionSummary,
+                collection: toLibraryCollectionSummary({
+                    ...collection,
+                    _count: {
+                        items: assignToItemId ? 1 : 0,
+                    },
+                    items: [],
+                }),
             };
         });
 
@@ -791,30 +753,20 @@ export async function createCollectionFromItems(input: {
                     nameKey: normalized.nameKey,
                     userId,
                 },
-                select: {
-                    createdAt: true,
-                    description: true,
-                    id: true,
-                    name: true,
-                    priority: true,
-                    updatedAt: true,
-                },
+                select: LIBRARY_COLLECTION_TAG_SELECT,
             });
 
             return {
                 assignedItemIds: itemIds,
-                collection: {
-                    createdAt: collection.createdAt,
-                    description: collection.description,
-                    id: collection.id,
-                    itemCount: itemIds.length,
-                    name: collection.name,
-                    priority: collection.priority,
-                    sources: Array.from(
-                        new Set(matchingItems.map((item) => item.source))
-                    ),
-                    updatedAt: collection.updatedAt,
-                } satisfies LibraryCollectionSummary,
+                collection: toLibraryCollectionSummary({
+                    ...collection,
+                    _count: {
+                        items: itemIds.length,
+                    },
+                    items: matchingItems.map((item) => ({
+                        source: item.source,
+                    })),
+                }),
             };
         });
 

@@ -1,6 +1,7 @@
 "use server";
 
 import { getSessionUserId } from "@/lib/auth/server";
+import { LIBRARY_COLLECTION_TAG_SELECT } from "@/lib/collections/shared";
 import { createLogger } from "@/lib/logs/console/logger";
 import { prisma } from "@/prisma";
 
@@ -138,14 +139,7 @@ export async function updateLibraryItemCollections(input: {
                   orderBy: {
                       name: "asc",
                   },
-                  select: {
-                      createdAt: true,
-                      description: true,
-                      id: true,
-                      name: true,
-                      priority: true,
-                      updatedAt: true,
-                  },
+                  select: LIBRARY_COLLECTION_TAG_SELECT,
                   where: {
                       id: {
                           in: parsed.data.collectionIds,
@@ -175,14 +169,7 @@ export async function updateLibraryItemCollections(input: {
                     orderBy: {
                         name: "asc",
                     },
-                    select: {
-                        createdAt: true,
-                        description: true,
-                        id: true,
-                        name: true,
-                        priority: true,
-                        updatedAt: true,
-                    },
+                    select: LIBRARY_COLLECTION_TAG_SELECT,
                 },
                 id: true,
             },

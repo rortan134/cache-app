@@ -49,6 +49,7 @@ import {
     PreviewCardPopup,
     PreviewCardTrigger,
 } from "@/components/ui/preview-card";
+import { Input } from "@/components/ui/input";
 import { useListPanelOpenState } from "@/hooks/use-list-panel-open-state";
 import { cn } from "@/lib/cn";
 import { getHexColorFromName } from "@/lib/colors";
@@ -68,7 +69,9 @@ import {
     ExternalLinkIcon,
     FileSpreadsheetIcon,
     Forward,
+    LinkIcon,
     ListFilter,
+    LockKeyhole,
     PencilIcon,
     SignalHigh,
     SignalMedium,
@@ -519,22 +522,35 @@ export function CollectionsListItem({
 export function CollectionsListItemMeta({
     onCopyTitle,
     onCopyLinks,
+    onCopyShareLink,
     onDelete,
+    onDisableShare,
+    onEnableShare,
     onExportCsv,
+    isSharePending,
     onMakeCopy,
     onOpenLinks,
     onRename,
+    shareUrl,
 }: {
     onCopyTitle: () => void;
     onCopyLinks: () => void;
+    onCopyShareLink: () => void;
     onDelete: () => void;
+    onDisableShare: () => void;
+    onEnableShare: () => void;
     onExportCsv: () => void;
+    isSharePending: boolean;
     onMakeCopy: () => void;
     onOpenLinks: () => void;
     onRename: () => void;
+    shareUrl: string | null;
 }) {
     const { collection, isHovered } = useCollectionsListItemContext();
     const hasItems = collection.itemCount > 0;
+    const [isSharePopoverOpen, setIsSharePopoverOpen] = React.useState(false);
+    const shareInputId = React.useId();
+    const isShared = Boolean(collection.shareId);
 
     useHotkeys(
         "e",
@@ -603,10 +619,139 @@ export function CollectionsListItemMeta({
                     </MenuGroup>
                     <MenuSeparator />
                     <MenuGroup>
-                        <MenuItem closeOnClick disabled>
-                            <UserRoundPlus className="size-4 text-muted-foreground" />
-                            Share
-                        </MenuItem>
+                        <Popover
+                            modal={false}
+                            onOpenChange={setIsSharePopoverOpen}
+                            open={isSharePopoverOpen}
+                        >
+                            <PopoverTrigger
+                                nativeButton={false}
+                                render={
+                                    <MenuItem closeOnClick={false}>
+                                        <UserRoundPlus className="size-4 text-muted-foreground" />
+                                        Share
+                                    </MenuItem>
+                                }
+                            />
+                            <PopoverPopup
+                                align="start"
+                                className="w-[22rem]"
+                                positionMethod="fixed"
+                                side="right"
+                                sideOffset={8}
+                            >
+                                <div className="flex items-start justify-between gap-3">
+                                    <div className="space-y-1">
+                                        <PopoverTitle className="font-medium text-sm">
+                                            Share collection
+                                        </PopoverTitle>
+                                        <PopoverDescription className="text-xs">
+                                            Anyone with the link can view this
+                                            collection. Search engines are asked
+                                            not to index it.
+                                        </PopoverDescription>
+                                    </div>
+                                    <PopoverClose
+                                        render={
+                                            <Button
+                                                aria-label="Close share popover"
+                                                size="icon-xs"
+                                                variant="ghost"
+                                            />
+                                        }
+                                    >
+                                        <X className="size-4" />
+                                    </PopoverClose>
+                                </div>
+                                <div className="mt-4 rounded-xl border bg-muted/40 p-3">
+                                    <div className="flex items-start gap-3">
+                                        <div className="mt-0.5 flex size-9 items-center justify-center rounded-xl bg-background text-muted-foreground shadow-xs/5">
+                                            {isShared ? (
+                                                <LinkIcon className="size-4" />
+                                            ) : (
+                                                <LockKeyhole className="size-4" />
+                                            )}
+                                        </div>
+                                        <div className="min-w-0 flex-1">
+                                            <p className="font-medium text-sm">
+                                                {isShared
+                                                    ? "Anyone with the link"
+                                                    : "Only you"}
+                                            </p>
+                                            <p className="mt-0.5 text-muted-foreground text-xs leading-relaxed">
+                                                {isShared
+                                                    ? "Shared publicly as a read-only page."
+                                                    : "Create a short, unlisted read-only link for this collection."}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                                {isShared ? (
+                                    <div className="mt-4 space-y-3">
+                                        <div className="space-y-1">
+                                            <label
+                                                className="font-medium text-muted-foreground text-xs"
+                                                htmlFor={shareInputId}
+                                            >
+                                                Public link
+                                            </label>
+                                            <Input
+                                                id={shareInputId}
+                                                readOnly
+                                                size="sm"
+                                                value={shareUrl ?? ""}
+                                            />
+                                        </div>
+                                        <div className="flex items-center justify-between gap-2">
+                                            <p className="text-muted-foreground text-xs">
+                                                Shared{" "}
+                                                {collection.sharedAt
+                                                    ? dayjs(
+                                                          collection.sharedAt
+                                                      ).fromNow()
+                                                    : "just now"}
+                                            </p>
+                                            <div className="flex items-center gap-2">
+                                                <Button
+                                                    loading={isSharePending}
+                                                    onClick={onDisableShare}
+                                                    size="sm"
+                                                    variant="ghost"
+                                                >
+                                                    Disable
+                                                </Button>
+                                                <Button
+                                                    disabled={
+                                                        !shareUrl ||
+                                                        isSharePending
+                                                    }
+                                                    onClick={onCopyShareLink}
+                                                    size="sm"
+                                                >
+                                                    <CopyIcon className="size-4" />
+                                                    Copy link
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="mt-4 flex items-center justify-between gap-3">
+                                        <p className="max-w-52 text-muted-foreground text-xs leading-relaxed">
+                                            Public links stay simple and
+                                            read-only so your collection can be
+                                            browsed without signing in.
+                                        </p>
+                                        <Button
+                                            loading={isSharePending}
+                                            onClick={onEnableShare}
+                                            size="sm"
+                                        >
+                                            Create link
+                                        </Button>
+                                    </div>
+                                )}
+                            </PopoverPopup>
+                        </Popover>
                         <MenuSub>
                             <MenuSubTrigger>
                                 <Forward className="inline-block size-4 text-muted-foreground" />

@@ -10,6 +10,8 @@ export interface LibraryCollectionTag {
     readonly id: string;
     readonly name: string;
     readonly priority: CollectionPriority;
+    readonly sharedAt: Date | null;
+    readonly shareId: string | null;
     readonly updatedAt: Date;
 }
 

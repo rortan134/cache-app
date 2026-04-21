@@ -1,6 +1,7 @@
 "use server";
 
 import { getSessionUserId } from "@/lib/auth/server";
+import { LIBRARY_ITEM_COLLECTIONS_INCLUDE } from "@/lib/collections/shared";
 import { extractNamedErrorMessage } from "@/lib/error";
 import { LibraryNoteError } from "@/lib/integrations/notes/error";
 import {
@@ -21,20 +22,6 @@ import * as z from "zod";
 
 const log = createLogger("integrations:notes:actions");
 const NOTE_CONTENT_HTML_MAX_LENGTH = 100_000;
-
-const LIBRARY_ITEM_COLLECTIONS_INCLUDE = {
-    collections: {
-        orderBy: {
-            name: "asc" as const,
-        },
-        select: {
-            description: true,
-            id: true,
-            name: true,
-            priority: true,
-        },
-    },
-} as const;
 
 const CreateNoteInputSchema = z.object({
     contentHtml: z.string().max(NOTE_CONTENT_HTML_MAX_LENGTH).optional(),
