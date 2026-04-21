@@ -9,8 +9,8 @@ import {
 } from "@/components/ui/accordion";
 import { Footer } from "@/components/ui/footer";
 import { PageShell } from "@/components/ui/page-shell";
-import { buildLocaleAlternates } from "@/lib/alternates";
-import { gtPublicString } from "@/lib/gt-public-json";
+import { buildLocaleAlternates } from "@/lib/i18n/alternates";
+import { gtPublicString } from "@/lib/i18n/gt-public-json";
 import { T } from "gt-next";
 import { Check, Lock, ShieldCheck, TrendingDown } from "lucide-react";
 import type { Metadata } from "next";

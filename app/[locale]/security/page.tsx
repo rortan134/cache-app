@@ -1,6 +1,6 @@
 import { PageShell } from "@/components/ui/page-shell";
-import { buildLocaleAlternates } from "@/lib/alternates";
 import { APP_NAME } from "@/lib/constants";
+import { buildLocaleAlternates } from "@/lib/i18n/alternates";
 import { T } from "gt-next";
 import type { Metadata } from "next";
 

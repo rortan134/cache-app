@@ -19,9 +19,9 @@ import { BrandLogo } from "@/components/ui/brand-logo";
 import { ChevronDownFilledIcon } from "@/components/ui/icons";
 import { PageShell } from "@/components/ui/page-shell";
 import { RadialChart } from "@/components/ui/radial-chart";
-import { buildLocaleAlternates } from "@/lib/alternates";
 import { getServerSession } from "@/lib/auth/server";
-import { gtPublicString } from "@/lib/gt-public-json";
+import { buildLocaleAlternates } from "@/lib/i18n/alternates";
+import { gtPublicString } from "@/lib/i18n/gt-public-json";
 import {
     integrationSetupHeadingText,
     integrationSetupProgressPercent,

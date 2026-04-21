@@ -2,10 +2,10 @@
  * Sync lookup into `public/_gt/*.json` for route metadata (avoids runtime `readFile` under PPR).
  * When `gt translate` adds a new `{locale}.json`, import it and add one entry in `bundles`.
  */
-import deDE from "../public/_gt/de-DE.json";
-import esES from "../public/_gt/es-ES.json";
-import frFR from "../public/_gt/fr-FR.json";
-import ptBR from "../public/_gt/pt-BR.json";
+import deDE from "../../public/_gt/de-DE.json";
+import esES from "../../public/_gt/es-ES.json";
+import frFR from "../../public/_gt/fr-FR.json";
+import ptBR from "../../public/_gt/pt-BR.json";
 
 /** GT locale files mix named keys (e.g. `home.metadata.title`) with hashed JSX entries. */
 type GtBundleJson = Record<string, unknown>;
