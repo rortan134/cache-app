@@ -89,3 +89,40 @@ export function extractNamedErrorMessage(e: unknown): {
         operation: errObj?.data?.operation,
     };
 }
+
+/**
+ * Extracts a human-readable error message from a variety of error payloads.
+ */
+export function getErrorMessage(
+    payload: unknown,
+    fallback = "An unexpected error occurred"
+): string {
+    if (typeof payload === "string" && payload.length > 0) {
+        return payload;
+    }
+
+    if (payload instanceof Error) {
+        return payload.message;
+    }
+
+    if (typeof payload === "object" && payload !== null) {
+        const record = payload as Record<string, unknown>;
+
+        // Better-auth error shape
+        if (typeof record.message === "string" && record.message.length > 0) {
+            return record.message;
+        }
+
+        // Generic API error shape
+        if (typeof record.error === "string" && record.error.length > 0) {
+            return record.error;
+        }
+
+        // Nested data shape
+        if (typeof record.data === "object" && record.data !== null) {
+            return getErrorMessage(record.data, fallback);
+        }
+    }
+
+    return fallback;
+}

@@ -23,7 +23,7 @@ export function FeedbackWidget(
     props: React.ComponentProps<typeof PopoverTrigger>
 ): React.ReactElement {
     const pathname = usePathname();
-    const [open, setOpen] = useState(false);
+    const [isOpen, setIsOpen] = useState(false);
     const [state, formAction] = useActionState(
         createFeedback,
         initialFeedbackActionState
@@ -35,15 +35,15 @@ export function FeedbackWidget(
             return;
         }
         formRef.current?.reset();
-        setOpen(false);
+        setIsOpen(false);
     }, [state.status]);
 
     useHotkeys("F", () => {
-        setOpen((prev) => !prev);
+        setIsOpen((prev) => !prev);
     });
 
     return (
-        <Popover onOpenChange={setOpen} open={open}>
+        <Popover onOpenChange={setIsOpen} open={isOpen}>
             <PopoverTrigger {...props} />
             <PopoverPopup className="*:p-2">
                 <div className="space-y-3">

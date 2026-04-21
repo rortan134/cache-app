@@ -37,7 +37,7 @@ export async function retrievePriceById(
     return {
         amountCents,
         currency,
-        id: String(price.id),
+        id: price.id,
         interval: price.recurring.interval as "month" | "year",
         nickname: price.nickname ?? null,
     } satisfies PlanPrice;

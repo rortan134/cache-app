@@ -1,4 +1,5 @@
 import "server-only";
+import { GitHubApiError } from "./error";
 
 const GITHUB_API_BASE_URL = "https://api.github.com";
 const GITHUB_PAGE_SIZE = 100;
@@ -20,16 +21,6 @@ export interface GitHubAuthenticatedUser {
     readonly id: string;
     readonly login: string | null;
     readonly name: string | null;
-}
-
-export class GitHubApiError extends Error {
-    readonly status: number;
-
-    constructor(message: string, status: number) {
-        super(message);
-        this.name = "GitHubApiError";
-        this.status = status;
-    }
 }
 
 function asRecord(value: unknown): JsonRecord | null {
@@ -62,7 +53,7 @@ function parseGitHubApiError(payload: unknown, status: number): GitHubApiError {
         readString(record?.message) ??
         `GitHub API request failed with status ${status}.`;
 
-    return new GitHubApiError(message, status);
+    return new GitHubApiError({ message, status });
 }
 
 async function fetchGitHub(

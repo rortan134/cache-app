@@ -66,7 +66,7 @@ function defaultYouTubeSyncEndpoint() {
 
 function defaultChromeSyncEndpoint() {
     const origin = String(globalThis.CACHE_APP_ORIGIN ?? "").replace(/\/$/, "");
-    return origin ? `${origin}/api/sync/bookmarks/chrome` : "";
+    return origin ? `${origin}/api/integrations/chrome/sync` : "";
 }
 
 function cacheOriginFromEndpoint(raw) {
@@ -449,7 +449,7 @@ async function flushChromeBookmarkQueue() {
                 ? settings[SYNC_KEYS.syncEndpoint]
                 : "";
         const endpoint = storedEndpoint.trim()
-            ? `${storedEndpoint.replace(/\/api\/integrations\/instagram\/saved$/, "")}/api/sync/bookmarks/chrome`
+            ? `${storedEndpoint.replace(/\/api\/integrations\/instagram\/saved$/, "")}/api/integrations/chrome/sync`
             : defaultChromeSyncEndpoint();
         const mode =
             settings[CHROME_KEYS.pendingMode] === "one_time_import"

@@ -85,7 +85,6 @@
   "2589956983dbe009": "Claro. Você pode cancelar sua assinatura Pro a qualquer momento nas configurações da conta. Você continuará com acesso aos recursos Pro até o fim do seu período de cobrança.",
   "26fe9d3e34588477": "Sair",
   "2aa22ec9498b27cb": "Fazer upgrade para o Plano Pro",
-  "2c3a5cc094ee80d2": "Cache é uma biblioteca unificada de tudo o que você salva online. Reunimos seus favoritos, fotos curtidas e conteúdos salvos de várias plataformas em um único espaço pesquisável e organizado.",
   "2e739c6c3531ee7e": {
     "c": "Economize com a assinatura anual",
     "i": 1,
@@ -336,7 +335,6 @@
   },
   "a4ecc2d52fb9c50b": "Política de Privacidade",
   "a54a73f960eb0874": "Qual é a política de reembolso?",
-  "a651315dfcc7eacf": "Sincronizamos automaticamente suas integrações conectadas. Seja uma nova foto no Google Photo ou um Pinterest Pin, o Cache mantém sua biblioteca atualizada para que você encontre o que precisa na hora.",
   "b0218088cb0cf61f": "Atalhos de Teclado",
   "b14d974a53e3f53e": [
     {
@@ -532,7 +530,6 @@
     "i": 1,
     "t": "p"
   },
-  "f670aea3af8a3f44": "Com que frequência meu conteúdo é atualizado?",
   "f676d126c8fd832f": "O que é o Cache?",
   "f76f62457e672828": "Estas páginas podem ser atualizadas de tempos em tempos. A versão publicada neste site é a que vale quando você o visita.",
   "f8c57a3d7d964dde": {
@@ -567,5 +564,7 @@
       "t": "p"
     }
   ],
+  "fa7b804124828a9e": "Descubra o que o Cache pode fazer por você",
+  "fbcddac4fd87ab2f": "O Cache é uma biblioteca unificada para tudo o que você salva online. Reunimos seus favoritos, as fotos que você curtiu e o conteúdo salvo de várias plataformas em um só lugar — seguro, pesquisável e organizado.",
   "fee961fc81f1f189": "Regras para usar o serviço, as contas e o uso aceitável."
 }

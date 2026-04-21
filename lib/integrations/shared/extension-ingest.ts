@@ -1,6 +1,6 @@
 import "server-only";
 
-import { DEFAULT_BROWSER_PROFILE_ID } from "@/lib/library/chrome-bookmarks";
+import { DEFAULT_BROWSER_PROFILE_ID } from "@/lib/integrations/chrome/sync";
 import { LibraryItemSource } from "@/prisma/client/enums";
 import { prisma } from "@/prisma";
 

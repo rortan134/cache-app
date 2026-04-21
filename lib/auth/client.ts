@@ -8,7 +8,7 @@ import { createAuthClient } from "better-auth/react";
 
 const baseURL = `${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/api/auth`;
 const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID?.trim();
-const hasGoogleOneTapClientId = Boolean(googleClientId);
+const hasGoogleOneTapClientId = !!googleClientId;
 
 export const authClient = createAuthClient({
     baseURL,
@@ -19,7 +19,8 @@ export const authClient = createAuthClient({
         ...(hasGoogleOneTapClientId
             ? [
                   oneTapClient({
-                      clientId: googleClientId ?? "",
+                      // biome-ignore lint/style/noNonNullAssertion: guarded by hasGoogleOneTapClientId
+                      clientId: googleClientId!,
                   }),
               ]
             : []),

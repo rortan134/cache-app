@@ -54,13 +54,6 @@ export async function createPaymentIntent({
         );
     });
 
-    if (!paymentIntent) {
-        throw new StripeError({
-            message: "Failed to create payment intent",
-            operation: "payment::createPaymentIntent",
-        });
-    }
-
     return {
         client_secret: paymentIntent.client_secret,
         id: paymentIntent.id,
@@ -71,13 +64,6 @@ export async function verifyPaymentSession(sessionId: string) {
     const session = await withStripe((stripe) =>
         stripe.checkout.sessions.retrieve(sessionId)
     );
-
-    if (!session) {
-        throw new StripeError({
-            message: "Session not found",
-            operation: "payment::verifyPaymentSession",
-        });
-    }
 
     return {
         metadata: session.metadata,
@@ -114,10 +100,10 @@ export async function createStripeCheckoutSession({
         })
     );
 
-    if (!session?.url) {
+    if (!session.url) {
         throw new StripeError({
             message: "Failed to create checkout session",
-            operation: "subscription::createStripeCheckoutSession",
+            operation: "payment::createStripeCheckoutSession",
         });
     }
 
@@ -141,10 +127,10 @@ export async function createBillingPortalSession({
         })
     );
 
-    if (!session?.url) {
+    if (!session.url) {
         throw new StripeError({
             message: "Failed to create billing portal session",
-            operation: "subscription::createBillingPortalSession",
+            operation: "payment::createBillingPortalSession",
         });
     }
 
@@ -165,7 +151,7 @@ export async function cancelSubscription(customerId?: string) {
         if (!subscriptionId) {
             throw new StripeError({
                 message: "Subscription not found",
-                operation: "subscription::cancelSubscription",
+                operation: "payment::cancelSubscription",
             });
         }
 

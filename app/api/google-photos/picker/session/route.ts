@@ -2,19 +2,12 @@ import { auth } from "@/lib/auth/server";
 import {
     createPickerSession,
     getPickerSession,
-    GooglePhotosPickerApiError,
-    pickerPollIntervalMs,
-    withPickerAutoclose,
-} from "@/lib/integrations/google-photos/picker-api";
+} from "@/lib/integrations/google-photos/api";
+import { mapPickerSessionToViewModel } from "@/lib/integrations/google-photos/service";
+import { GooglePhotosPickerApiError } from "@/lib/integrations/google-photos/error";
 import { headers } from "next/headers";
 
-async function resolveGoogleAccessToken(): Promise<string | null> {
-    const tokenResponse = await auth.api.getAccessToken({
-        body: { providerId: "google" },
-        headers: await headers(),
-    });
-    return tokenResponse?.accessToken ?? null;
-}
+import { resolveGoogleAccessToken } from "@/lib/integrations/google-photos/actions";
 
 export async function POST() {
     const session = await auth.api.getSession({
@@ -34,23 +27,17 @@ export async function POST() {
 
     try {
         const pickerSession = await createPickerSession(accessToken);
-        return Response.json({
-            pickerUri: pickerSession.pickerUri
-                ? withPickerAutoclose(pickerSession.pickerUri)
-                : null,
-            pollIntervalMs: pickerPollIntervalMs(
-                pickerSession.pollingConfig?.pollInterval
-            ),
-            sessionId: pickerSession.id,
-            timeoutIn: pickerSession.pollingConfig?.timeoutIn ?? null,
-        });
+        return Response.json(mapPickerSessionToViewModel(pickerSession));
     } catch (error) {
         if (error instanceof GooglePhotosPickerApiError) {
             const message =
-                error.status === 401
+                error.data.status === 401
                     ? "Your Google account needs Photos permission. Please sign out and sign back in to reconnect."
                     : error.message;
-            return Response.json({ error: message }, { status: error.status });
+            return Response.json(
+                { error: message },
+                { status: error.data.status }
+            );
         }
         throw error;
     }
@@ -80,19 +67,12 @@ export async function GET(request: Request) {
 
     try {
         const pickerSession = await getPickerSession(accessToken, id);
-        return Response.json({
-            mediaItemsSet: Boolean(pickerSession.mediaItemsSet),
-            pollIntervalMs: pickerPollIntervalMs(
-                pickerSession.pollingConfig?.pollInterval
-            ),
-            sessionId: pickerSession.id,
-            timeoutIn: pickerSession.pollingConfig?.timeoutIn ?? null,
-        });
+        return Response.json(mapPickerSessionToViewModel(pickerSession));
     } catch (error) {
         if (error instanceof GooglePhotosPickerApiError) {
             return Response.json(
                 { error: error.message },
-                { status: error.status }
+                { status: error.data.status }
             );
         }
         throw error;

@@ -1,6 +1,10 @@
 "use client";
 
 import { LogoutButton } from "@/components/auth/logout-button";
+import {
+    PrivilegedOnly,
+    UnprivilegedOnly,
+} from "@/components/billing/privilege";
 import { KeyboardShortcutsDialogTrigger } from "@/components/library/shortcuts";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -269,12 +273,6 @@ export function UserMenuHeader() {
 
 export function UserMenuContent() {
     const locale = useLocale();
-    const { session, hasAccess } = useAccess();
-
-    if (!session?.user) {
-        return null;
-    }
-
     const returnPath = `${typeof window === "undefined" ? "" : window.location.origin}/${locale}/library`;
 
     return (
@@ -298,21 +296,20 @@ export function UserMenuContent() {
                 </div>
             </MenuSection>
             <MenuSection>
-                {hasAccess ? (
+                <PrivilegedOnly>
                     <BillingPortalButton returnPath={returnPath} />
-                ) : (
-                    <>
-                        <UpgradeButton returnPath={returnPath} />
-                        <Button
-                            className="justify-between"
-                            render={<Link href="/pricing" />}
-                            variant="ghost"
-                        >
-                            <T>Pricing</T>
-                            <ArrowUpRight className="ml-auto inline-block size-4.5 shrink-0 text-muted-foreground" />
-                        </Button>
-                    </>
-                )}
+                </PrivilegedOnly>
+                <UnprivilegedOnly>
+                    <UpgradeButton returnPath={returnPath} />
+                    <Button
+                        className="justify-between"
+                        render={<Link href="/pricing" />}
+                        variant="ghost"
+                    >
+                        <T>Pricing</T>
+                        <ArrowUpRight className="ml-auto inline-block size-4.5 shrink-0 text-muted-foreground" />
+                    </Button>
+                </UnprivilegedOnly>
                 <Button
                     className="justify-between"
                     render={<Link href="/changelog" />}

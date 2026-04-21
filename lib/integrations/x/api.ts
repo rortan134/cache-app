@@ -1,4 +1,5 @@
 import "server-only";
+import { XApiError } from "./error";
 
 const X_API_BASE_URL = "https://api.x.com/2";
 const X_BOOKMARKS_PAGE_SIZE = 100;
@@ -26,16 +27,6 @@ export interface XAuthenticatedUser {
     readonly name: string | null;
     readonly profileImageUrl: string | null;
     readonly username: string | null;
-}
-
-export class XApiError extends Error {
-    readonly status: number;
-
-    constructor(message: string, status: number) {
-        super(message);
-        this.name = "XApiError";
-        this.status = status;
-    }
 }
 
 function asRecord(value: unknown): JsonRecord | null {
@@ -73,7 +64,7 @@ function parseXApiError(payload: unknown, status: number): XApiError {
         readString(firstError?.title) ??
         readString(record?.title) ??
         `X API request failed with status ${status}.`;
-    return new XApiError(message, status);
+    return new XApiError({ message, status });
 }
 
 async function fetchX(

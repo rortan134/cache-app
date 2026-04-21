@@ -17,6 +17,7 @@ import {
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { BrandLogo } from "@/components/ui/brand-logo";
 import { ChevronDownFilledIcon } from "@/components/ui/icons";
+import { CtrlKbd, Kbd, KbdGroup } from "@/components/ui/kbd";
 import { PageShell } from "@/components/ui/page-shell";
 import { RadialChart } from "@/components/ui/radial-chart";
 import { getServerSession } from "@/lib/auth/server";
@@ -27,17 +28,93 @@ import {
     integrationSetupProgressPercent,
     partitionLibrarySyncLabels,
     syncableLibrarySourceTotal,
-} from "@/lib/integrations/progress";
+} from "@/lib/integrations/shared/progress";
 import {
     INTEGRATIONS,
     listConnectedIntegrationIds,
     listIntegrationAccountProviderIds,
 } from "@/lib/integrations/support";
-import { getUserLibraryItems } from "@/lib/library/get-library-items";
+import type {
+    LibraryCollectionSummary,
+    LibraryItemWithCollections,
+} from "@/lib/types";
 import { prisma } from "@/prisma";
 import LogoIconImage from "@/public/cache-app-icon.png";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
+
+export async function getUserLibraryItems(userId: string) {
+    const [items, collections] = await Promise.all([
+        prisma.libraryItem.findMany({
+            include: {
+                collections: {
+                    orderBy: {
+                        name: "asc",
+                    },
+                    select: {
+                        createdAt: true,
+                        description: true,
+                        id: true,
+                        name: true,
+                        priority: true,
+                        updatedAt: true,
+                    },
+                },
+            },
+            orderBy: [{ scrapedAt: "desc" }, { updatedAt: "desc" }],
+            where: {
+                kind: {
+                    not: "folder",
+                },
+                userId,
+            },
+        }) as Promise<LibraryItemWithCollections[]>,
+        prisma.collection.findMany({
+            orderBy: {
+                name: "asc",
+            },
+            select: {
+                _count: {
+                    select: {
+                        items: true,
+                    },
+                },
+                createdAt: true,
+                description: true,
+                id: true,
+                items: {
+                    select: {
+                        source: true,
+                    },
+                },
+                name: true,
+                priority: true,
+                updatedAt: true,
+            },
+            where: {
+                userId,
+            },
+        }),
+    ]);
+
+    return {
+        collections: collections.map(
+            (collection): LibraryCollectionSummary => ({
+                createdAt: collection.createdAt,
+                description: collection.description,
+                id: collection.id,
+                itemCount: collection._count.items,
+                name: collection.name,
+                priority: collection.priority,
+                sources: Array.from(
+                    new Set(collection.items.map((item) => item.source))
+                ),
+                updatedAt: collection.updatedAt,
+            })
+        ),
+        items,
+    };
+}
 
 export async function generateMetadata({
     params,
@@ -133,7 +210,14 @@ export default async function LibraryPage() {
                                             {text}
                                         </span>
                                     </div>
-                                    <ChevronDownFilledIcon />
+                                    <div className="ml-auto flex items-center justify-end gap-1">
+                                        <KbdGroup className="opacity-0 group-hover:opacity-100 group-data-open:opacity-0!">
+                                            <Kbd>
+                                                <CtrlKbd />I
+                                            </Kbd>
+                                        </KbdGroup>
+                                        <ChevronDownFilledIcon />
+                                    </div>
                                 </IntegrationsListTrigger>
                                 <IntegrationsListPanel>
                                     {INTEGRATIONS.length > 0 ? (

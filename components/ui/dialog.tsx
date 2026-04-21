@@ -56,7 +56,7 @@ function DialogViewport({
 export function DialogPopup({
     className,
     children,
-    showCloseButton,
+    showCloseButton = true,
     closeProps,
     ...props
 }: DialogPrimitive.Popup.Props & {

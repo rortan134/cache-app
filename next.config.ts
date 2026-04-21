@@ -8,9 +8,10 @@ const nextConfig: NextConfig = {
     experimental: {
         optimizePackageImports: [
             "@base-ui/react",
+            "@base-ui/utils",
             "zod",
             "recharts",
-            "@lexical/react",
+            "@lexical/*",
             "lexical",
         ],
         turbopackFileSystemCacheForBuild: true,

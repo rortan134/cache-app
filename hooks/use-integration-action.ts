@@ -1,12 +1,17 @@
 "use client";
 
 import { useIsExtensionInstalled } from "@/hooks/use-extension-installed";
-import { authClient } from "@/lib/auth/client";
+import { getErrorMessage } from "@/lib/error";
+import { executeGooglePhotosPickerFlow } from "@/lib/integrations/google-photos/client";
+import {
+    executeConnectBehavior,
+    executeOpenBehavior,
+    executeRouteSyncBehavior,
+} from "@/lib/integrations/shared/execution";
 import {
     getIntegration,
     listIntegrationActions,
     type ExtensionOpenBehavior,
-    type GooglePhotosPickerSyncBehavior,
     type IntegrationActionIcon,
     type IntegrationActionRole,
     type IntegrationActionSize,
@@ -14,7 +19,6 @@ import {
     type IntegrationDirection,
     type IntegrationId,
     type OAuthLinkConnectBehavior,
-    type RouteSyncBehavior,
     type SocialSignInConnectBehavior,
     type SupportedIntegration,
 } from "@/lib/integrations/support";
@@ -38,160 +42,6 @@ interface UseIntegrationActionsArgs {
     direction: IntegrationDirection;
     id: IntegrationId;
     isConnected: boolean;
-}
-
-interface SessionCreateResponse {
-    error?: string;
-    pickerUri: string | null;
-    pollIntervalMs: number;
-    sessionId: string;
-    timeoutIn: string | null;
-}
-
-interface SessionPollResponse {
-    error?: string;
-    mediaItemsSet: boolean;
-    pollIntervalMs: number;
-}
-
-interface ImportResponse {
-    error?: string;
-    importedCount: number;
-}
-
-function asRecord(value: unknown): Record<string, unknown> | null {
-    return typeof value === "object" && value !== null
-        ? (value as Record<string, unknown>)
-        : null;
-}
-
-function extractErrorMessage(
-    payload: unknown,
-    fallbackMessage: string
-): string {
-    const error = asRecord(payload)?.error;
-    return typeof error === "string" && error.length > 0
-        ? error
-        : fallbackMessage;
-}
-
-function hasRequiredKey(payload: unknown, key: string): boolean {
-    return Object.hasOwn(asRecord(payload) ?? {}, key);
-}
-
-function readRedirectUrl(response: unknown): string | null {
-    const root = asRecord(response);
-    const payload = asRecord(root?.data) ?? root;
-    const url = payload?.url;
-
-    return typeof url === "string" && url.length > 0 ? url : null;
-}
-
-function openExternal(url: string) {
-    try {
-        if (typeof window.openai !== "undefined") {
-            window.openai.openExternal({ href: url });
-            return;
-        }
-    } catch {
-        // Fall back to a normal browser navigation when the desktop bridge is unavailable.
-    }
-
-    window.location.assign(url);
-}
-
-function parseDurationMs(value: string | null): number | null {
-    if (!value?.endsWith("s")) {
-        return null;
-    }
-
-    const seconds = Number(value.slice(0, -1));
-    return Number.isNaN(seconds) ? null : Math.round(seconds * 1000);
-}
-
-const sleep = (ms: number) =>
-    new Promise<void>((resolve) => setTimeout(resolve, ms));
-
-async function createPickerSessionRequest(): Promise<SessionCreateResponse> {
-    const response = await fetch("/api/google-photos/picker/session", {
-        method: "POST",
-    });
-    const payload = (await response.json()) as
-        | SessionCreateResponse
-        | { error: string };
-
-    if (!(response.ok && "sessionId" in payload)) {
-        throw new Error(
-            extractErrorMessage(
-                payload,
-                "Could not start Google Photos Picker. Please reconnect Google and try again."
-            )
-        );
-    }
-
-    return payload;
-}
-
-async function pollUntilMediaSelected(
-    sessionId: string,
-    initialPollMs: number,
-    timeoutIn: string | null
-): Promise<void> {
-    const startedAt = Date.now();
-    const timeoutMs = parseDurationMs(timeoutIn) ?? 5 * 60_000;
-    let pollMs = initialPollMs;
-
-    while (Date.now() - startedAt < timeoutMs) {
-        await sleep(Math.max(1000, pollMs));
-
-        const response = await fetch(
-            `/api/google-photos/picker/session?id=${encodeURIComponent(sessionId)}`,
-            { method: "GET" }
-        );
-        const payload = (await response.json()) as
-            | SessionPollResponse
-            | { error: string };
-
-        if (!(response.ok && "mediaItemsSet" in payload)) {
-            throw new Error(
-                extractErrorMessage(
-                    payload,
-                    "Could not read picker status. Please try again."
-                )
-            );
-        }
-
-        pollMs = payload.pollIntervalMs;
-        if (payload.mediaItemsSet) {
-            return;
-        }
-    }
-
-    throw new Error(
-        "Selection timed out. Open the picker again and confirm your media."
-    );
-}
-
-async function importSelectedMedia(sessionId: string): Promise<ImportResponse> {
-    const response = await fetch("/api/google-photos/picker/import", {
-        body: JSON.stringify({ sessionId }),
-        headers: { "Content-Type": "application/json" },
-        method: "POST",
-    });
-    const payload = (await response.json()) as
-        | ImportResponse
-        | { error: string };
-
-    if (!(response.ok && "importedCount" in payload)) {
-        throw new Error(
-            extractErrorMessage(
-                payload,
-                "Import failed. Ensure Photos permission is granted, then try again."
-            )
-        );
-    }
-
-    return payload;
 }
 
 function resolveActionLabel(args: {
@@ -232,95 +82,6 @@ function resolveActionLabel(args: {
     return "Open";
 }
 
-function executeOpenBehavior(
-    behavior: ExtensionOpenBehavior,
-    extensionInstalled: boolean
-) {
-    const targetUrl =
-        extensionInstalled || !behavior.installUrl
-            ? behavior.openUrl
-            : behavior.installUrl;
-
-    openExternal(targetUrl);
-}
-
-async function executeConnectBehavior(
-    behavior: OAuthLinkConnectBehavior | SocialSignInConnectBehavior
-) {
-    if (behavior.kind === "social-sign-in") {
-        const result = await authClient.signIn.social({
-            callbackURL: behavior.callbackURL,
-            errorCallbackURL: behavior.errorCallbackURL,
-            provider: behavior.provider,
-        });
-
-        if (result.error) {
-            throw new Error(
-                result.error.message ?? "Could not start the connection flow."
-            );
-        }
-
-        return;
-    }
-
-    const response = await authClient.$fetch("/oauth2/link", {
-        body: {
-            callbackURL: behavior.callbackURL,
-            disableRedirect: true,
-            errorCallbackURL: behavior.errorCallbackURL,
-            providerId: behavior.providerId,
-        },
-        method: "POST",
-    });
-
-    const redirectUrl = readRedirectUrl(response);
-    if (!redirectUrl) {
-        throw new Error("Could not start the connection flow.");
-    }
-
-    window.location.assign(redirectUrl);
-}
-
-async function executeRouteSyncBehavior(
-    behavior: RouteSyncBehavior
-): Promise<string | null> {
-    const response = await fetch(behavior.path, {
-        method: behavior.method,
-    });
-    const payload = (await response.json()) as unknown;
-
-    if (!(response.ok && hasRequiredKey(payload, behavior.successKey))) {
-        throw new Error(extractErrorMessage(payload, behavior.errorMessage));
-    }
-
-    const payloadRecord = asRecord(payload);
-    if (!payloadRecord) {
-        throw new Error(behavior.errorMessage);
-    }
-
-    return behavior.successMessage?.(payloadRecord) ?? null;
-}
-
-async function executeGooglePhotosPickerBehavior(
-    _behavior: GooglePhotosPickerSyncBehavior
-): Promise<string | null> {
-    const createPayload = await createPickerSessionRequest();
-
-    if (!createPayload.pickerUri) {
-        throw new Error("Picker URL is missing. Please try again.");
-    }
-
-    window.open(createPayload.pickerUri, "_blank", "noopener,noreferrer");
-    await pollUntilMediaSelected(
-        createPayload.sessionId,
-        createPayload.pollIntervalMs,
-        createPayload.timeoutIn
-    );
-    const importPayload = await importSelectedMedia(createPayload.sessionId);
-
-    return `Imported ${importPayload.importedCount} item${importPayload.importedCount === 1 ? "" : "s"}.`;
-}
-
 async function executeIntegrationAction(args: {
     extensionInstalled: boolean;
     integration: SupportedIntegration;
@@ -356,9 +117,7 @@ async function executeIntegrationAction(args: {
     const successMessage =
         integration.behaviors.sync.kind === "route"
             ? await executeRouteSyncBehavior(integration.behaviors.sync)
-            : await executeGooglePhotosPickerBehavior(
-                  integration.behaviors.sync
-              );
+            : await executeGooglePhotosPickerFlow();
 
     return { refresh: true, successMessage };
 }
@@ -399,10 +158,10 @@ export function useIntegrationAction({
                 setSuccessMessage(result.successMessage);
             }
         } catch (error) {
-            const message =
-                error instanceof Error
-                    ? error.message
-                    : "Could not complete this integration action.";
+            const message = getErrorMessage(
+                error,
+                "Could not complete this integration action."
+            );
 
             log.error("Integration action failed", {
                 direction,

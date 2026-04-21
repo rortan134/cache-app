@@ -3,10 +3,10 @@ import {
     normalizeLibrarySource,
     parseBearerToken,
     resolveExtensionIngestUserId,
-    type IngestItemInput,
     upsertLibraryItemsFromIngest,
-} from "@/lib/library/extension-ingest";
-import { autoTagLibraryItemsByIds } from "@/lib/library/smart-collections";
+    type IngestItemInput,
+} from "@/lib/integrations/shared/extension-ingest";
+import { autoTagLibraryItemsByIds } from "@/lib/smart-collections";
 import { after } from "next/server";
 import * as z from "zod";
 

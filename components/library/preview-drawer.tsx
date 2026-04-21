@@ -14,13 +14,14 @@ import {
 } from "@/components/ui/drawer";
 import { Spinner } from "@/components/ui/spinner";
 import { cn } from "@/lib/cn";
+import { getDisplayUrl } from "@/lib/url";
 import { AlertCircleIcon, ExternalLinkIcon, GlobeIcon } from "lucide-react";
+import Link from "next/link";
 import type { ReactElement, ReactNode } from "react";
 import { createContext, useContext, useEffect, useId, useState } from "react";
 
 type PreviewDrawerPosition = "bottom" | "left" | "right" | "top";
 type PreviewDrawerStatus = "blocked" | "loaded" | "loading";
-const WWW_PREFIX_RE = /^www\./;
 
 interface PreviewDrawerContextValue {
     description?: string;
@@ -45,12 +46,34 @@ function usePreviewDrawerContext(): PreviewDrawerContextValue {
     return value;
 }
 
-function externalLinkProps(url: string) {
-    return {
-        href: url,
-        rel: "noopener noreferrer",
-        target: "_blank",
-    } as const;
+function usePreviewStatus(open: boolean, url: string, timeoutMs: number) {
+    const [status, setStatus] = useState<PreviewDrawerStatus>("loading");
+
+    useEffect(() => {
+        if (!open) {
+            setStatus("loading");
+            return;
+        }
+
+        if (url === "about:blank") {
+            setStatus("blocked");
+            return;
+        }
+
+        setStatus("loading");
+
+        const timeoutId = window.setTimeout(() => {
+            setStatus((currentStatus) =>
+                currentStatus === "loading" ? "blocked" : currentStatus
+            );
+        }, timeoutMs);
+
+        return () => {
+            window.clearTimeout(timeoutId);
+        };
+    }, [open, timeoutMs, url]);
+
+    return [status, setStatus] as const;
 }
 
 export function PreviewDrawer({
@@ -87,7 +110,7 @@ export function PreviewDrawer({
         <PreviewDrawerContext.Provider
             value={{
                 description,
-                open: resolvedOpen ?? false,
+                open: resolvedOpen,
                 title,
                 url,
             }}
@@ -99,11 +122,7 @@ export function PreviewDrawer({
     );
 }
 
-export function PreviewDrawerTrigger(
-    props: React.ComponentProps<typeof DrawerTrigger>
-): ReactElement {
-    return <DrawerTrigger {...props} />;
-}
+export const PreviewDrawerTrigger = DrawerTrigger;
 
 export function PreviewDrawerContent({
     className,
@@ -126,31 +145,7 @@ export function PreviewDrawerContent({
 }): ReactElement {
     const { description, open, title, url } = usePreviewDrawerContext();
     const iframeKey = useId();
-    const [status, setStatus] = useState<PreviewDrawerStatus>("loading");
-
-    useEffect(() => {
-        if (!open) {
-            setStatus("loading");
-            return;
-        }
-
-        if (url === "about:blank") {
-            setStatus("blocked");
-            return;
-        }
-
-        setStatus("loading");
-
-        const timeoutId = window.setTimeout(() => {
-            setStatus((currentStatus) =>
-                currentStatus === "loading" ? "blocked" : currentStatus
-            );
-        }, timeoutMs);
-
-        return () => {
-            window.clearTimeout(timeoutId);
-        };
-    }, [open, timeoutMs, url]);
+    const [status, setStatus] = usePreviewStatus(open, url, timeoutMs);
 
     return (
         <DrawerPopup
@@ -172,8 +167,7 @@ export function PreviewDrawerContent({
                     {title}
                 </DrawerTitle>
                 <DrawerDescription className="line-clamp-2 text-sm">
-                    {description ??
-                        new URL(url).hostname.replace(WWW_PREFIX_RE, "")}
+                    {description ?? getDisplayUrl(url)}
                 </DrawerDescription>
             </DrawerHeader>
             <DrawerPanel
@@ -215,7 +209,13 @@ export function PreviewDrawerContent({
                                 </p>
                             </div>
                             <Button
-                                render={<a {...externalLinkProps(url)} />}
+                                render={
+                                    <Link
+                                        href={url}
+                                        rel="noopener noreferrer"
+                                        target="_blank"
+                                    />
+                                }
                                 size="sm"
                             >
                                 <ExternalLinkIcon className="size-4" />
@@ -250,7 +250,13 @@ export function PreviewDrawerContent({
             >
                 <Button
                     className="justify-start sm:justify-center"
-                    render={<a {...externalLinkProps(url)} />}
+                    render={
+                        <Link
+                            href={url}
+                            rel="noopener noreferrer"
+                            target="_blank"
+                        />
+                    }
                     size="sm"
                     variant="link"
                 >

@@ -3,14 +3,14 @@ import {
     applyChromeBookmarkSyncEvents,
     chromeBookmarkSyncBodySchema,
     purgeChromeBookmarksForUser,
-} from "@/lib/library/chrome-bookmarks";
+} from "@/lib/integrations/chrome/sync";
 import {
     extensionIngestCorsHeaders,
     parseBearerToken,
     resolveExtensionIngestUserId,
-} from "@/lib/library/extension-ingest";
-import { autoTagLibraryItemsByIds } from "@/lib/library/smart-collections";
+} from "@/lib/integrations/shared/extension-ingest";
 import { createLogger } from "@/lib/logs/console/logger";
+import { autoTagLibraryItemsByIds } from "@/lib/smart-collections";
 import { headers } from "next/headers";
 import { after } from "next/server";
 

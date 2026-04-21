@@ -1,5 +1,7 @@
 "use server";
 
+import { getServerSession } from "@/lib/auth/server";
+import { FeedbackError } from "@/lib/feedback/error";
 import {
     FeedbackInputSchema,
     type FeedbackActionState,
@@ -22,14 +24,25 @@ export async function createFeedback(
         };
     }
 
+    const session = await getServerSession();
+
     try {
-        await submitFeedback(parsed.data);
+        await submitFeedback({
+            ...parsed.data,
+            userId: session?.user?.id ?? null,
+        });
 
         return {
             message: "Thanks for the feedback.",
             status: "success",
         };
-    } catch {
+    } catch (error) {
+        if (error instanceof FeedbackError) {
+            return {
+                message: error.data.message,
+                status: "error",
+            };
+        }
         return {
             message: "We couldn't save your feedback. Please try again.",
             status: "error",

@@ -1,19 +1,8 @@
 import { authClient } from "@/lib/auth/client";
+import { getActiveSubscription } from "@/lib/auth/subscriptions";
 import useSWR from "swr";
 
 const { useSession } = authClient;
-
-async function getActiveSubscription() {
-    const { data: subscriptions, error } = await authClient.subscription.list();
-    if (error) {
-        throw new Error(error.message);
-    }
-    return (
-        subscriptions?.find(
-            (sub) => sub.status === "active" || sub.status === "trialing"
-        ) ?? null
-    );
-}
 
 function useAccess() {
     const {
@@ -32,7 +21,7 @@ function useAccess() {
         data: subscription,
         isLoading: isSubscriptionLoading,
         mutate: mutateSubscription,
-    } = useSWR<Awaited<ReturnType<typeof getActiveSubscription>>>(
+    } = useSWR(
         session?.user?.id ? `subscription-${session.user.id}` : null,
         getActiveSubscription,
         {

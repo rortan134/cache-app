@@ -27,15 +27,15 @@ function LogoutButton(props: React.ComponentProps<typeof DialogTrigger>) {
                         You will need to sign in again to access your library.
                     </DialogDescription>
                 </DialogHeader>
-                <DialogFooter variant="default">
-                    <DialogClose render={<Button size="sm" variant="ghost" />}>
+                <DialogFooter>
+                    <DialogClose render={<Button variant="ghost" />}>
                         Cancel
                     </DialogClose>
                     <DialogClose
                         onClick={() => {
                             router.push("/logout");
                         }}
-                        render={<Button size="sm" />}
+                        render={<Button variant="destructive" />}
                     >
                         Log out
                     </DialogClose>

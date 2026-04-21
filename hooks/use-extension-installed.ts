@@ -1,17 +1,16 @@
 import { CACHE_EXTENSION_READY_EVENT } from "@/lib/constants";
 import { getOwnerWindow } from "@/lib/dom";
-import { isRecord } from "@/lib/objects";
+import { asRecord } from "@/lib/objects";
 import * as React from "react";
-
-function asRecord(value: unknown) {
-    return isRecord(value) ? value : null;
-}
 
 export function useIsExtensionInstalled() {
     const [isInstalled, setIsInstalled] = React.useState(false);
 
     React.useEffect(() => {
         const ownerWindow = getOwnerWindow();
+        if (!ownerWindow) {
+            return;
+        }
 
         const handleReady = () => setIsInstalled(true);
 

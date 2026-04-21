@@ -1,6 +1,7 @@
 "use client";
 
 import { useComposedRefs } from "@/hooks/compose-refs";
+import { useIsomorphicLayoutEffect } from "@/hooks/use-isomorphic-effect";
 import * as React from "react";
 
 const NODE_COLOR = {
@@ -1679,8 +1680,5 @@ function MasonryViewport(props: DivProps) {
 function MasonryItem(props: DivProps) {
     return <div data-slot="masonry-item" {...props} />;
 }
-
-const useIsomorphicLayoutEffect =
-    typeof window === "undefined" ? React.useEffect : React.useLayoutEffect;
 
 export { Masonry, MasonryItem };

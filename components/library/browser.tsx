@@ -11,15 +11,24 @@ import {
     CollectionsListActionButton,
     CollectionsListEmpty,
     CollectionsListFilterClear,
+    CollectionsListFilterClearIcon,
     CollectionsListItem,
     CollectionsListItemMeta,
     CollectionsListItemPreview,
     CollectionsListItemPriorityCombobox,
     CollectionsListItemValue,
+    CollectionsListNoticeCallout,
     CollectionsListPanel,
+    CollectionsListSortingCombobox,
     CollectionsListStatus,
+    CollectionsListToolbar,
+    CollectionsListToolbarButton,
+    CollectionsListToolbarGroup,
     CollectionsListTrigger,
-    CollectionsNoticeCallout,
+    sortCollections,
+    sortCollectionSummaries,
+    useCollectionsSortStore,
+    NAME_COLLATOR,
 } from "@/components/library/collections";
 import { LibraryNoteDrawer } from "@/components/library/notes";
 import {
@@ -105,9 +114,30 @@ import { Ticker } from "@/components/ui/ticker";
 import { TruncateAfter } from "@/components/ui/truncate-after";
 import { useAccess } from "@/hooks/use-access";
 import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
+import { useIsomorphicLayoutEffect } from "@/hooks/use-isomorphic-effect";
+import {
+    createCollection,
+    createCollectionFromItems,
+    deleteCollection,
+    renameCollection,
+    updateCollectionPriority,
+    type CreateCollectionFromItemsResult,
+    type CreateCollectionResult,
+    type DeleteCollectionResult,
+    type RenameCollectionResult,
+    type UpdateCollectionPriorityResult,
+} from "@/lib/actions/collections";
+import {
+    deleteLibraryItem,
+    updateLibraryItemCollections,
+    type DeleteLibraryItemResult,
+    type UpdateLibraryItemCollectionsResult,
+} from "@/lib/actions/items";
+import { downloadMedia } from "@/lib/actions/media";
 import { cn } from "@/lib/cn";
 import { getColorGradientFromName } from "@/lib/colors";
 import { dayjs } from "@/lib/dayjs";
+import { getSystemControlKey } from "@/lib/environment";
 import {
     createFileAttachment,
     fileOpen,
@@ -117,34 +147,21 @@ import {
 import { getImageColors } from "@/lib/image-colors";
 import {
     createChromeBookmarkFromUrl,
-    createCollection,
-    createCollectionFromItems,
-    createNote,
-    deleteCollection,
-    deleteLibraryItem,
-    downloadMedia,
-    renameCollection,
-    updateCollectionPriority,
-    updateLibraryItemCollections,
-    updateNote,
     type CreateChromeBookmarkFromUrlResult,
-    type CreateCollectionFromItemsResult,
-    type CreateCollectionResult,
-    type DeleteCollectionResult,
-    type DeleteLibraryItemResult,
+} from "@/lib/integrations/chrome/actions";
+import {
+    createNote,
+    updateNote,
     type NoteMutationResult,
-    type RenameCollectionResult,
-    type UpdateCollectionPriorityResult,
-    type UpdateLibraryItemCollectionsResult,
-} from "@/lib/library/actions";
-import { getNoteExcerpt } from "@/lib/library/notes";
+} from "@/lib/integrations/notes/actions";
+import { getNoteExcerpt } from "@/lib/integrations/notes/utils";
+import { withMemoize } from "@/lib/memoize";
 import type {
     LibraryCollectionSummary,
     LibraryCollectionTag,
     LibraryItemWithCollections,
-} from "@/lib/library/types";
-import { withMemoize } from "@/lib/memoize";
-import { normalizeURL, toValidUrl } from "@/lib/url";
+} from "@/lib/types";
+import { getDisplayUrl, normalizeURL, toValidUrl } from "@/lib/url";
 import type { CollectionPriority } from "@/prisma/client/enums";
 import { LibraryItemSource } from "@/prisma/client/enums";
 import AppIconSmall from "@/public/cache-icon-small.png";
@@ -182,7 +199,6 @@ import type { ReactNode } from "react";
 import React, {
     useEffect,
     useId,
-    useLayoutEffect,
     useMemo,
     useRef,
     useState,
@@ -194,18 +210,6 @@ import React, {
 import { useHotkeys } from "react-hotkeys-hook";
 import useSWR from "swr";
 
-const NAME_COLLATOR = new Intl.Collator(undefined, {
-    numeric: true,
-    sensitivity: "base",
-});
-
-const COLLECTION_PRIORITY_ORDER = {
-    archive: 3,
-    none: 4,
-    peripheral: 2,
-    relevant: 1,
-    very_relevant: 0,
-} satisfies Record<CollectionPriority, number>;
 const SECTION_DESCRIPTION_CONTEXT_ITEMS_LIMIT = 20;
 const SECTION_DESCRIPTION_FALLBACK_TEXT =
     "Description is unavailable right now.";
@@ -293,22 +297,6 @@ interface LibraryWorkspaceSidebarProps {
     selectedCollectionIds: string[];
     sidebarBottom?: ReactNode;
     sidebarHeader?: ReactNode;
-}
-
-function sortCollections<T extends LibraryCollectionTag>(
-    collections: T[]
-): T[] {
-    return [...collections].sort((a, b) => {
-        const priorityDifference =
-            COLLECTION_PRIORITY_ORDER[a.priority] -
-            COLLECTION_PRIORITY_ORDER[b.priority];
-
-        if (priorityDifference !== 0) {
-            return priorityDifference;
-        }
-
-        return NAME_COLLATOR.compare(a.name, b.name);
-    });
 }
 
 function replaceItemCollections(
@@ -473,12 +461,14 @@ function deriveCollectionSummaries(
 
     return sortCollections(
         collections.map((collection) => ({
+            createdAt: collection.createdAt,
             description: collection.description ?? null,
             id: collection.id,
             itemCount: counts.get(collection.id) ?? 0,
             name: collection.name,
             priority: collection.priority,
             sources: Array.from(collectionSources.get(collection.id) ?? []),
+            updatedAt: collection.updatedAt,
         }))
     );
 }
@@ -614,6 +604,21 @@ function LibraryWorkspaceSidebar({
         setCreateDialogError(null);
         setIsCreateDialogOpen(true);
     };
+
+    useHotkeys(
+        "mod+n",
+        () => {
+            if (isCreateDialogOpen) {
+                setIsCreateDialogOpen(false);
+            } else {
+                handleCreateCollectionRequest();
+            }
+        },
+        {
+            preventDefault: true,
+        },
+        [isCreateDialogOpen]
+    );
 
     const handleRequestDeleteCollection = (
         collection: LibraryCollectionSummary
@@ -962,10 +967,12 @@ function LibraryWorkspaceSidebar({
         result: Extract<CreateCollectionResult, { status: "CREATED" }>
     ) => {
         const nextCollection = {
+            createdAt: result.collection.createdAt,
             description: result.collection.description,
             id: result.collection.id,
             name: result.collection.name,
             priority: result.collection.priority,
+            updatedAt: result.collection.updatedAt,
         } satisfies LibraryCollectionTag;
 
         setCollections((current) =>
@@ -1071,7 +1078,7 @@ function LibraryWorkspaceSidebar({
                             />
                             <CollectionsListActionButton
                                 onClick={() => handleCreateCollectionRequest()}
-                                title="Create a new collection"
+                                title={`Create a new collection (${getSystemControlKey()}N)`}
                             >
                                 <PlusIcon
                                     aria-hidden
@@ -1079,12 +1086,35 @@ function LibraryWorkspaceSidebar({
                                     focusable="false"
                                 />
                                 <span className="sr-only">
-                                    Create a new collection
+                                    Create a new collection (
+                                    {getSystemControlKey()}N)
                                 </span>
                             </CollectionsListActionButton>
                         </div>
                         <CollectionsListPanel>
-                            <CollectionsNoticeCallout />
+                            <CollectionsListToolbar>
+                                <CollectionsListNoticeCallout />
+                                <CollectionsListToolbarGroup>
+                                    <CollectionsListToolbarButton
+                                        render={
+                                            <CollectionsListFilterClearIcon
+                                                isVisible={
+                                                    selectedCollectionIds.length >
+                                                    0
+                                                }
+                                                onClick={
+                                                    onClearCollectionFilters
+                                                }
+                                            />
+                                        }
+                                    />
+                                    <CollectionsListToolbarButton
+                                        render={
+                                            <CollectionsListSortingCombobox />
+                                        }
+                                    />
+                                </CollectionsListToolbarGroup>
+                            </CollectionsListToolbar>
                             {collectionSummaries.length > 0 ? (
                                 <>
                                     {collectionSummaries.map((collection) => (
@@ -1158,7 +1188,7 @@ function LibraryWorkspaceSidebar({
                                         isVisible={
                                             selectedCollectionIds.length > 0
                                         }
-                                        onClear={onClearCollectionFilters}
+                                        onClick={onClearCollectionFilters}
                                     />
                                 </>
                             ) : (
@@ -1173,7 +1203,7 @@ function LibraryWorkspaceSidebar({
                 onOpenChange={handleRenameDialogOpenChange}
                 open={pendingRenameCollection !== null}
             >
-                <DialogPopup showCloseButton>
+                <DialogPopup>
                     <form
                         className="contents"
                         onSubmit={(event) => {
@@ -1242,7 +1272,7 @@ function LibraryWorkspaceSidebar({
                 onOpenChange={handleCreateDialogOpenChange}
                 open={isCreateDialogOpen}
             >
-                <DialogPopup showCloseButton>
+                <DialogPopup>
                     <form
                         className="contents"
                         onSubmit={(event) => {
@@ -1419,17 +1449,16 @@ function LibraryWorkspaceSidebar({
                             but they won't belong to this collection anymore.
                         </DialogDescription>
                     </DialogHeader>
-                    <DialogFooter variant="default">
+                    <DialogFooter>
                         <DialogClose
                             disabled={isDeletePending}
-                            render={<Button size="sm" variant="ghost" />}
+                            render={<Button variant="ghost" />}
                         >
                             Cancel
                         </DialogClose>
                         <Button
                             loading={isDeletePending}
                             onClick={handleConfirmDeleteCollection}
-                            size="sm"
                             variant="destructive"
                         >
                             Delete
@@ -1445,10 +1474,10 @@ function LibraryWorkspaceSidebar({
 const COMBOBOX_ITEM_PRESS_REASON = "item-press";
 const ALL_DOMAIN_FILTER = "__all_domains__";
 
-const WWW_PREFIX_RE = /^www\./;
-const IS_MAC =
-    typeof window !== "undefined" && navigator.userAgent.includes("Mac");
 const SEARCH_HOTKEYS = [
+    "cmd+g",
+    "ctrl+g",
+    "Meta+g",
     "cmd+k",
     "ctrl+k",
     "Meta+k",
@@ -1456,9 +1485,6 @@ const SEARCH_HOTKEYS = [
     "ctrl+p",
     "Meta+p",
     "/",
-    "cmd+f",
-    "ctrl+f",
-    "Meta+f",
 ] as const;
 const SEARCH_CANCEL_KEYS = ["esc", "tab"] as const;
 const LIBRARY_COMMAND_PANEL_TOP_PX = 12;
@@ -1623,8 +1649,6 @@ const PALETTE_COLUMN_OPTIONS = [
     { label: "6 columns", value: "6" as const },
 ];
 
-const getSystemControlKey = () => (IS_MAC ? "⌘" : "Ctrl");
-
 interface CommandPaletteItem {
     active?: boolean;
     description?: string;
@@ -1669,11 +1693,7 @@ function isAbortError(error: unknown): boolean {
 }
 
 function itemDomain(url: string): string {
-    try {
-        return new URL(url).hostname.replace(WWW_PREFIX_RE, "") || "Other";
-    } catch {
-        return "Other";
-    }
+    return getDisplayUrl(url) || "Other";
 }
 
 function itemDate(
@@ -4176,10 +4196,10 @@ function SectionDescription({
 
     if (isLoading && !data && !error) {
         return (
-            <p className="block w-full text-xs leading-snug">
+            <div className="block w-full text-xs leading-snug">
                 <Skeleton className="my-0.5 h-4 w-full" />
                 <Skeleton className="my-0.5 h-4 w-48" />
-            </p>
+            </div>
         );
     }
 
@@ -4429,7 +4449,7 @@ function LibraryBrowser({
         });
     };
 
-    useLayoutEffect(() => {
+    useIsomorphicLayoutEffect(() => {
         const el = commandPanelContainerRef.current;
         if (!el) {
             return;
@@ -4465,7 +4485,7 @@ function LibraryBrowser({
         };
     }, []);
 
-    useLayoutEffect(() => {
+    useIsomorphicLayoutEffect(() => {
         const el = commandPanelContainerRef.current;
         if (!el) {
             return;
@@ -5051,17 +5071,16 @@ function LibraryBrowser({
                             not from the original platform.
                         </DialogDescription>
                     </DialogHeader>
-                    <DialogFooter variant="default">
+                    <DialogFooter>
                         <DialogClose
                             disabled={isDeletePending}
-                            render={<Button size="sm" variant="ghost" />}
+                            render={<Button variant="ghost" />}
                         >
                             Cancel
                         </DialogClose>
                         <Button
                             loading={isDeletePending}
                             onClick={handleConfirmDelete}
-                            size="sm"
                             variant="destructive"
                         >
                             Delete
@@ -5073,7 +5092,7 @@ function LibraryBrowser({
                 onOpenChange={handleCreateResultsDialogOpenChange}
                 open={isCreateResultsDialogOpen}
             >
-                <DialogPopup showCloseButton>
+                <DialogPopup>
                     <form
                         className="contents"
                         onSubmit={(event) => {
@@ -5469,10 +5488,12 @@ export function LibraryWorkspace({
     const [collections, setCollections] = useState<LibraryCollectionTag[]>(
         sortCollections(
             initialCollections.map((collection) => ({
+                createdAt: collection.createdAt,
                 description: collection.description,
                 id: collection.id,
                 name: collection.name,
                 priority: collection.priority,
+                updatedAt: collection.updatedAt,
             }))
         )
     );
@@ -5483,7 +5504,12 @@ export function LibraryWorkspace({
         string[]
     >([]);
 
-    const collectionSummaries = deriveCollectionSummaries(collections, items);
+    const { collectionSortField } = useCollectionsSortStore();
+
+    const collectionSummaries = sortCollectionSummaries(
+        deriveCollectionSummaries(collections, items),
+        collectionSortField
+    );
 
     const itemsByCollectionId = useMemo(() => {
         const map = new Map<string, LibraryItemWithCollections[]>();
@@ -5603,10 +5629,12 @@ export function LibraryWorkspace({
         }
 
         const nextCollection = {
+            createdAt: result.collection.createdAt,
             description: result.collection.description,
             id: result.collection.id,
             name: result.collection.name,
             priority: result.collection.priority,
+            updatedAt: result.collection.updatedAt,
         } satisfies LibraryCollectionTag;
 
         setCollections((current) =>

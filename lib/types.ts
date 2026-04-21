@@ -5,10 +5,12 @@ import type {
 } from "@/prisma/client/enums";
 
 export interface LibraryCollectionTag {
+    readonly createdAt: Date;
     readonly description?: string | null;
     readonly id: string;
     readonly name: string;
     readonly priority: CollectionPriority;
+    readonly updatedAt: Date;
 }
 
 export interface LibraryCollectionSummary extends LibraryCollectionTag {

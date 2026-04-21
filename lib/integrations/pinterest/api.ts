@@ -1,4 +1,5 @@
 import "server-only";
+import { PinterestApiError } from "./error";
 
 const PINTEREST_API_BASE_URL = "https://api.pinterest.com/v5";
 const PINTEREST_PAGE_SIZE = 100;
@@ -22,16 +23,6 @@ export interface PinterestImportablePin {
     scrapedAt: Date | null;
     thumbnailUrl: string | null;
     url: string;
-}
-
-export class PinterestApiError extends Error {
-    readonly status: number;
-
-    constructor(message: string, status: number) {
-        super(message);
-        this.name = "PinterestApiError";
-        this.status = status;
-    }
 }
 
 function asRecord(value: unknown): Record<string, unknown> | null {
@@ -62,7 +53,7 @@ function parsePinterestApiError(
         readString(record?.message) ??
         readString(asRecord(record?.error)?.message) ??
         `Pinterest API request failed with status ${status}.`;
-    return new PinterestApiError(message, status);
+    return new PinterestApiError({ message, status });
 }
 
 async function fetchPinterestPage(

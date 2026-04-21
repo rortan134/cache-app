@@ -2,9 +2,9 @@ import {
     extensionIngestCorsHeaders,
     parseBearerToken,
     resolveExtensionIngestUserId,
-} from "@/lib/library/extension-ingest";
-import { autoTagLibraryItemsByIds } from "@/lib/library/smart-collections";
-import { importLibraryItemSnapshot } from "@/lib/library/snapshot-import";
+} from "@/lib/integrations/shared/extension-ingest";
+import { importLibraryItemSnapshot } from "@/lib/integrations/shared/snapshot";
+import { autoTagLibraryItemsByIds } from "@/lib/smart-collections";
 import { LibraryItemSource } from "@/prisma/client/enums";
 import { after } from "next/server";
 import * as z from "zod";

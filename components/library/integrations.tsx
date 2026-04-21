@@ -25,12 +25,23 @@ import { ArrowUpRight, Images, Info, RefreshCw } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import * as React from "react";
+import { useHotkeys } from "react-hotkeys-hook";
 import { createStore } from "stan-js";
 import { storage } from "stan-js/storage";
 
-const { useStore: useIntegrationsListState } = createStore({
+const { useStore: useIntegrationsListStateStore } = createStore({
     isIntegrationsListOpen: storage(true),
 });
+
+function useIntegrationsListOpenState() {
+    const { isIntegrationsListOpen, setIsIntegrationsListOpen } =
+        useIntegrationsListStateStore();
+
+    return {
+        isIntegrationsListOpen,
+        setIsIntegrationsListOpen,
+    };
+}
 
 export function IntegrationsList({
     onOpenChange,
@@ -38,8 +49,17 @@ export function IntegrationsList({
     ...props
 }: React.ComponentProps<typeof Collapsible>) {
     const { isIntegrationsListOpen, setIsIntegrationsListOpen } =
-        useIntegrationsListState();
+        useIntegrationsListOpenState();
     const isControlled = open !== undefined;
+
+    useHotkeys(
+        "mod+i",
+        () => setIsIntegrationsListOpen(!isIntegrationsListOpen),
+        {
+            preventDefault: true,
+        },
+        [isIntegrationsListOpen, setIsIntegrationsListOpen]
+    );
 
     return (
         <Collapsible
@@ -59,7 +79,7 @@ export function IntegrationsListTrigger({
     className,
     ...props
 }: React.ComponentProps<typeof CollapsibleTrigger>) {
-    const { isIntegrationsListOpen } = useIntegrationsListState();
+    const { isIntegrationsListOpen } = useIntegrationsListOpenState();
 
     return (
         <Popover>
@@ -131,15 +151,10 @@ export function IntegrationsListActionButton({
 }
 
 export function IntegrationsListNoticeCallout() {
-    const [isConnectAccountNoteOpen, setIsConnectAccountNoteOpen] =
-        React.useState(true);
+    const [isOpen, setIsOpen] = React.useState(true);
 
     return (
-        <Collapsible
-            className="mt-2"
-            onOpenChange={setIsConnectAccountNoteOpen}
-            open={isConnectAccountNoteOpen}
-        >
+        <Collapsible className="mt-2" onOpenChange={setIsOpen} open={isOpen}>
             <CollapsiblePanel>
                 <div className="flex gap-1.5">
                     <Info className="mt-0.5 inline-block size-3.5 shrink-0" />
@@ -149,7 +164,7 @@ export function IntegrationsListNoticeCallout() {
                         always change your mind.{" "}
                         <Button
                             className="h-fit! leading-tight sm:text-[11px]"
-                            onClick={() => setIsConnectAccountNoteOpen(false)}
+                            onClick={() => setIsOpen(false)}
                             size="xs"
                             type="button"
                             variant="link"

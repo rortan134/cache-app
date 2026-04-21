@@ -85,7 +85,6 @@
   "2589956983dbe009": "Por supuesto. Puedes cancelar tu suscripción Pro en cualquier momento desde la configuración de tu cuenta. Seguirás teniendo acceso a las funciones Pro hasta el final de tu período de facturación.",
   "26fe9d3e34588477": "Cerrar sesión",
   "2aa22ec9498b27cb": "Pasarte al Plan Pro",
-  "2c3a5cc094ee80d2": "Cache es una biblioteca unificada para todo lo que guardas en Internet. Reúne tus marcadores, las fotos que te gustan y el contenido que guardas en distintas plataformas en un único espacio organizado y fácil de buscar.",
   "2e739c6c3531ee7e": {
     "c": "Ahorra con la suscripción anual",
     "i": 1,
@@ -336,7 +335,6 @@
   },
   "a4ecc2d52fb9c50b": "Política de privacidad",
   "a54a73f960eb0874": "¿Cuál es vuestra política de reembolso?",
-  "a651315dfcc7eacf": "Sincronizamos automáticamente las integraciones que hayas conectado. Ya sea una nueva Google Photo o un Pinterest Pin, Cache mantiene tu biblioteca al día para que encuentres al instante lo que necesitas.",
   "b0218088cb0cf61f": "Atajos de teclado",
   "b14d974a53e3f53e": [
     {
@@ -531,7 +529,6 @@
     "i": 1,
     "t": "p"
   },
-  "f670aea3af8a3f44": "¿Con qué frecuencia se actualiza mi contenido?",
   "f676d126c8fd832f": "¿Qué es Cache?",
   "f76f62457e672828": "Estas páginas pueden actualizarse de vez en cuando. La versión publicada en este sitio es la que está en vigor cuando lo visitas.",
   "f8c57a3d7d964dde": {
@@ -566,5 +563,7 @@
       "t": "p"
     }
   ],
+  "fa7b804124828a9e": "Descubre todo lo que Cache puede hacer por ti",
+  "fbcddac4fd87ab2f": "Cache es una biblioteca unificada para todo lo que guardas en internet. Reunimos tus marcadores, las fotos que te gustan y el contenido que guardas en distintas plataformas en un espacio único, seguro, bien organizado y con buscador.",
   "fee961fc81f1f189": "Normas de uso del servicio, las cuentas y el uso aceptable."
 }

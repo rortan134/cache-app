@@ -85,7 +85,6 @@
   "2589956983dbe009": "Klar. Du kannst dein Pro-Abonnement jederzeit in deinen Kontoeinstellungen kündigen. Du behältst den Zugriff auf die Pro-Funktionen bis zum Ende deines aktuellen Abrechnungszeitraums.",
   "26fe9d3e34588477": "Abmelden",
   "2aa22ec9498b27cb": "Abo upgraden",
-  "2c3a5cc094ee80d2": "Cache ist eine zentrale Bibliothek für alles, was du online speicherst. Wir bringen deine Lesezeichen, mit „Gefällt mir“ markierte Fotos und gespeicherte Inhalte von verschiedenen Plattformen an einem durchsuchbaren, organisierten Ort zusammen.",
   "2e739c6c3531ee7e": {
     "c": "Spare mit dem Jahresabo",
     "i": 1,
@@ -336,7 +335,6 @@
   },
   "a4ecc2d52fb9c50b": "Datenschutzerklärung",
   "a54a73f960eb0874": "Wie sieht eure Rückerstattungsrichtlinie aus?",
-  "a651315dfcc7eacf": "Wir synchronisieren deine verbundenen Integrationen automatisch. Ob ein neues Google Photo oder ein Pinterest Pin – Cache hält deine Bibliothek auf dem neuesten Stand, damit du sofort findest, was du brauchst.",
   "b0218088cb0cf61f": "Tastenkombinationen",
   "b14d974a53e3f53e": [
     {
@@ -531,7 +529,6 @@
     "i": 1,
     "t": "p"
   },
-  "f670aea3af8a3f44": "Wie oft werden meine Inhalte aktualisiert?",
   "f676d126c8fd832f": "Was ist Cache?",
   "f76f62457e672828": "Diese Seiten können von Zeit zu Zeit aktualisiert werden. Maßgeblich ist jeweils die Version auf dieser Website zum Zeitpunkt Ihres Besuchs.",
   "f8c57a3d7d964dde": {
@@ -566,5 +563,7 @@
       "t": "p"
     }
   ],
+  "fa7b804124828a9e": "Entdecke, was Cache für dich tun kann",
+  "fbcddac4fd87ab2f": "Cache ist eine zentrale Bibliothek für alles, was du online speicherst. Wir bringen deine Lesezeichen, gelikten Fotos und gespeicherten Inhalte von verschiedenen Plattformen an einem sicheren, durchsuchbaren und gut organisierten Ort zusammen.",
   "fee961fc81f1f189": "Regeln zur Nutzung des Dienstes, zu Konten und zur zulässigen Nutzung."
 }

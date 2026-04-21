@@ -1,4 +1,6 @@
 import { getOwnerWindow } from "@/lib/dom";
+import { useValueAsRef } from "@base-ui/utils/useValueAsRef";
+import { useTimeout } from "@base-ui/utils/useTimeout";
 import copy from "copy-to-clipboard";
 import * as React from "react";
 
@@ -17,16 +19,11 @@ export function useCopyToClipboard({
     onCopy,
 }: UseCopyToClipboardOptions = {}): UseCopyToClipboardResult {
     const [isCopied, setIsCopied] = React.useState(false);
-    const timeoutRef = React.useRef<number | null>(null);
+    const timeoutManager = useTimeout();
+    const onCopyRef = useValueAsRef(onCopy);
+    const durationRef = useValueAsRef(timeout);
 
-    const onCopyRef = React.useRef(onCopy);
-    const durationRef = React.useRef(timeout);
-    React.useEffect(() => {
-        onCopyRef.current = onCopy;
-        durationRef.current = timeout;
-    }, [onCopy, timeout]);
-
-    const copyToClipboard = React.useCallback((value: string) => {
+    const copyToClipboard = (value: string) => {
         const ownerWindow = getOwnerWindow();
 
         if (!(ownerWindow && value)) {
@@ -38,31 +35,18 @@ export function useCopyToClipboard({
             return;
         }
 
-        if (timeoutRef.current) {
-            ownerWindow.clearTimeout(timeoutRef.current);
-        }
+        timeoutManager.clear();
 
         setIsCopied(true);
         onCopyRef.current?.();
 
         const duration = durationRef.current;
         if (duration !== 0) {
-            timeoutRef.current = ownerWindow.setTimeout(() => {
+            timeoutManager.start(duration, () => {
                 setIsCopied(false);
-                timeoutRef.current = null;
-            }, duration);
+            });
         }
-    }, []);
-
-    React.useEffect(
-        () => () => {
-            if (timeoutRef.current) {
-                const ownerWindow = getOwnerWindow();
-                ownerWindow?.clearTimeout(timeoutRef.current);
-            }
-        },
-        []
-    );
+    };
 
     return { copyToClipboard, isCopied };
 }

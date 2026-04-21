@@ -107,40 +107,13 @@ export const parseUrlSearchParams = (url: string) => {
     }
 };
 
-export const UTMTags = [
-    "utm_source",
-    "utm_medium",
-    "utm_campaign",
-    "utm_term",
-    "utm_content",
-    "ref",
-] as const;
+const WWW_REG = /^www\./i;
 
-export const getUTMParamsFromURL = (url: string) =>
-    Object.fromEntries(
-        Object.entries(parseUrlSearchParams(url)).filter(([key]) =>
-            UTMTags.includes(key as (typeof UTMTags)[number])
-        )
-    );
-
-export const paramsMetadata = [
-    { display: "UTM Source", examples: "google, twitter", key: "utm_source" },
-    { display: "UTM Medium", examples: "social, email", key: "utm_medium" },
-    { display: "UTM Campaign", examples: "summer sale", key: "utm_campaign" },
-    { display: "UTM Term", examples: "blue shoes", key: "utm_term" },
-    { display: "UTM Content", examples: "logo link", key: "utm_content" },
-    { display: "Referral (ref)", examples: "google, twitter", key: "ref" },
-];
-
-export const getUrlWithoutUTMParams = (url: string) => {
+export const getDisplayUrl = (url: string): string => {
     try {
-        const newURL = new URL(url);
-        for (const param of paramsMetadata) {
-            newURL.searchParams.delete(param.key);
-        }
-        return newURL.toString();
-    } catch (error) {
-        console.error(error);
+        const parsed = new URL(url);
+        return parsed.hostname.replace(WWW_REG, "") || parsed.hostname;
+    } catch {
         return url;
     }
 };

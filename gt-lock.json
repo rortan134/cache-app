@@ -4,27 +4,27 @@
     "entries": [
         {
             "fileId": "879f3a5f954ee8b75bf1e91f4ea9916b41c933e5beba7eb6362647a637c9c66d",
-            "versionId": "095c90f63304ac92132238335f8f6bf3b3869aca2f68476ebc8f6ef001fea467",
+            "versionId": "52b6100d2f5c6f6ad1d54dfae191edc605724e7770b542e5174606249f8a7b76",
             "translations": {
                 "pt-BR": {
-                    "updatedAt": "2026-04-19T14:46:53.323Z",
+                    "updatedAt": "2026-04-21T12:01:49.488Z",
                     "fileName": "/Users/gilbert/Documents/proyectos/Cache/public/_gt/pt-BR.json",
-                    "postProcessHash": "fcafae42536a4f09ea942f91a41b09519156f7f5701a361662cd6c8137561ea3"
+                    "postProcessHash": "6dab16b3a0ccf841549265b5f24ac60df69001b57ea74244beae6c7e4320afd0"
                 },
                 "es-ES": {
-                    "updatedAt": "2026-04-19T14:46:53.325Z",
+                    "updatedAt": "2026-04-21T12:01:49.491Z",
                     "fileName": "/Users/gilbert/Documents/proyectos/Cache/public/_gt/es-ES.json",
-                    "postProcessHash": "1e704633eeeac20db956702563fc37de3d74c24132c952502fba2d1effe4bc7b"
+                    "postProcessHash": "54374bc0ea1c0685c4ab3099b3235922d0aae88840a498103d59dcab1f820e66"
                 },
                 "fr-FR": {
-                    "updatedAt": "2026-04-19T14:46:53.327Z",
+                    "updatedAt": "2026-04-21T12:01:49.493Z",
                     "fileName": "/Users/gilbert/Documents/proyectos/Cache/public/_gt/fr-FR.json",
-                    "postProcessHash": "f9bd8b1361ebba8fb46f69bb61377f7ae64d2f048ed478dc891393249b318178"
+                    "postProcessHash": "c9bd2809c77e5dbca588d022b0315ea634e01e2c148b75a59adef59d59aff2b3"
                 },
                 "de-DE": {
-                    "updatedAt": "2026-04-19T14:46:53.327Z",
+                    "updatedAt": "2026-04-21T12:01:49.494Z",
                     "fileName": "/Users/gilbert/Documents/proyectos/Cache/public/_gt/de-DE.json",
-                    "postProcessHash": "9f0d2f24f567dca3e1bd90fd3744ca4829def1979386cd39a5575cb518e8d58e"
+                    "postProcessHash": "f6e58ece37474a3a99fe85febe1165398f0a6331ce968ccdf8cdbb1c42605cf3"
                 }
             },
             "fileName": "__INTERNAL_GT_TEMPLATE_NAME__",

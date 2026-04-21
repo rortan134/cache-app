@@ -85,7 +85,6 @@
   "2589956983dbe009": "Bien sûr. Vous pouvez annuler votre abonnement Pro à tout moment depuis les paramètres du compte. Vous continuerez à avoir accès aux fonctionnalités Pro jusqu’à la fin de votre période de facturation.",
   "26fe9d3e34588477": "Se déconnecter",
   "2aa22ec9498b27cb": "Passer au forfait supérieur",
-  "2c3a5cc094ee80d2": "Cache est une bibliothèque unifiée pour tout ce que vous enregistrez en ligne. Nous réunissons vos favoris, les photos que vous aimez et les contenus enregistrés depuis différentes plateformes dans un espace unique, organisé et facile à parcourir grâce à la recherche.",
   "2e739c6c3531ee7e": {
     "c": "Économisez avec un abonnement annuel",
     "i": 1,
@@ -336,7 +335,6 @@
   },
   "a4ecc2d52fb9c50b": "Politique de confidentialité",
   "a54a73f960eb0874": "Quelle est votre politique de remboursement ?",
-  "a651315dfcc7eacf": "Nous synchronisons automatiquement les intégrations que vous avez connectées. Qu’il s’agisse d’une nouvelle Google Photo ou d’un Pinterest Pin, Cache garde votre bibliothèque à jour pour que vous trouviez instantanément ce dont vous avez besoin.",
   "b0218088cb0cf61f": "Raccourcis clavier",
   "b14d974a53e3f53e": [
     {
@@ -536,7 +534,6 @@
     "i": 1,
     "t": "p"
   },
-  "f670aea3af8a3f44": "À quelle fréquence mon contenu est-il mis à jour ?",
   "f676d126c8fd832f": "Qu’est-ce que Cache ?",
   "f76f62457e672828": "Ces pages peuvent être mises à jour de temps à autre. La version publiée sur ce site est celle en vigueur au moment de votre visite.",
   "f8c57a3d7d964dde": {
@@ -571,5 +568,7 @@
       "t": "p"
     }
   ],
+  "fa7b804124828a9e": "Découvrez tout ce que Cache peut faire pour vous",
+  "fbcddac4fd87ab2f": "Cache est une bibliothèque centralisée pour tout ce que vous enregistrez en ligne. Nous réunissons vos favoris, les photos que vous aimez et le contenu enregistré depuis différentes plateformes dans un espace unique, sécurisé, consultable et organisé.",
   "fee961fc81f1f189": "Règles relatives à l’utilisation du service, aux comptes et aux usages acceptables."
 }

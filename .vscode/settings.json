@@ -8,6 +8,10 @@
     "tailwindCSS.experimental.classRegex": [
         ["cn\\(([^)]*)\\)", "[\"'`]([^\"'`]*).*?[\"'`]"]
     ],
+    "search.exclude": {
+        "prisma/client": true,
+        "**/*.agents": true
+    },
     "eslint.enable": false,
     "editor.codeActionsOnSave": {
         "source.fixAll.biome": "explicit",

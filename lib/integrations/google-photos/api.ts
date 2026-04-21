@@ -1,3 +1,5 @@
+import { GooglePhotosPickerApiError } from "./error";
+
 const GOOGLE_PHOTOS_PICKER_API = "https://photospicker.googleapis.com/v1";
 const DURATION_SECONDS_PATTERN = /^(\d+)(\.\d+)?s$/;
 const TRAILING_SLASHES_PATTERN = /\/+$/;
@@ -8,16 +10,6 @@ interface PickerApiErrorShape {
         message?: string;
         status?: string;
     };
-}
-
-export class GooglePhotosPickerApiError extends Error {
-    readonly status: number;
-
-    constructor(message: string, status: number) {
-        super(message);
-        this.name = "GooglePhotosPickerApiError";
-        this.status = status;
-    }
 }
 
 export interface GooglePhotosPickerSession {
@@ -64,7 +56,10 @@ async function pickerFetch<TResponse>(
             .json()
             .catch(() => ({}))) as PickerApiErrorShape;
         const apiMessage = maybeJson.error?.message ?? response.statusText;
-        throw new GooglePhotosPickerApiError(apiMessage, response.status);
+        throw new GooglePhotosPickerApiError({
+            message: apiMessage,
+            status: response.status,
+        });
     }
 
     return (await response.json()) as TResponse;

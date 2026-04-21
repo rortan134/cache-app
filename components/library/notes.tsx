@@ -21,8 +21,8 @@ import {
     normalizeNoteHtml,
     serializeNoteEditorStateToHtml,
     type NoteSerializedEditorState,
-} from "@/lib/library/notes";
-import type { LibraryItemWithCollections } from "@/lib/library/types";
+} from "@/lib/integrations/notes/utils";
+import type { LibraryItemWithCollections } from "@/lib/types";
 import { parseStandaloneUrl } from "@/lib/url";
 import AppIconSmall from "@/public/cache-icon-small.png";
 import { $generateNodesFromDOM } from "@lexical/html";

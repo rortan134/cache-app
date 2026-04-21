@@ -29,6 +29,22 @@ const KEYBOARD_SHORTCUTS = [
         label: "Open priority picker for hovered collection",
     },
     {
+        keys: "⌘/Ctrl+C",
+        label: "Toggle collections panel",
+    },
+    {
+        keys: "⌘/Ctrl+I",
+        label: "Toggle integrations panel",
+    },
+    {
+        keys: "⌘/Ctrl+N",
+        label: "Create new collection",
+    },
+    {
+        keys: "⌘/Ctrl+F",
+        label: "Sort and organize collections",
+    },
+    {
         keys: "⌘/Ctrl+1-9",
         label: "Run command palette item 1-9",
     },
@@ -39,7 +55,7 @@ export const KeyboardShortcutsDialogTrigger = (
 ) => (
     <Dialog>
         <DialogTrigger {...props} />
-        <DialogPopup showCloseButton>
+        <DialogPopup>
             <DialogHeader>
                 <DialogTitle>Keyboard shortcuts</DialogTitle>
             </DialogHeader>

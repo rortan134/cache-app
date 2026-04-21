@@ -1,6 +1,5 @@
 "use client";
 
-import { Avatar, AvatarGroup } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
     Collapsible,
@@ -23,7 +22,7 @@ import {
     NotionIcon,
     PriorityNoneIcon,
 } from "@/components/ui/icons";
-import { Kbd } from "@/components/ui/kbd";
+import { CtrlKbd, Kbd, KbdGroup } from "@/components/ui/kbd";
 import {
     Menu,
     MenuGroup,
@@ -52,26 +51,27 @@ import {
 import { cn } from "@/lib/cn";
 import { getHexColorFromName } from "@/lib/colors";
 import { getSourceLabel } from "@/lib/integrations/support";
-import type { LibraryCollectionSummary } from "@/lib/library/types";
+import type { LibraryCollectionSummary } from "@/lib/types";
 import type { CollectionPriority } from "@/prisma/client/enums";
 import SmartCollectionsBackgroundImg from "@/public/smart-collections-background-wide.webp";
+import { Toolbar } from "@base-ui/react/toolbar";
 import {
     ArchiveIcon,
+    Clock,
     Component,
     CopyIcon,
     EllipsisIcon,
     ExternalLinkIcon,
     FileSpreadsheetIcon,
     Forward,
-    Group,
-    Info,
+    ListFilter,
     PencilIcon,
     SignalHigh,
     SignalMedium,
     Sparkle,
-    Sparkles,
     Trash2Icon,
     UserRoundPlus,
+    X,
 } from "lucide-react";
 import Image from "next/image";
 import * as React from "react";
@@ -96,35 +96,26 @@ export function useCollectionsListOpenState() {
     };
 }
 
-interface CollectionsListItemContextValue {
-    collection: LibraryCollectionSummary;
-    isHovered: boolean;
-}
-
-const CollectionsListItemContext =
-    React.createContext<CollectionsListItemContextValue | null>(null);
-
-function useCollectionsListItemContext() {
-    const context = React.use(CollectionsListItemContext);
-    if (!context) {
-        throw new Error(
-            "CollectionsListItem compound components must be used within CollectionsListItem."
-        );
-    }
-    return context;
-}
-
-export function CollectionsList(
-    props: React.ComponentProps<typeof Collapsible>
-) {
+export function CollectionsList({
+    onOpenChange,
+    open,
+    ...props
+}: React.ComponentProps<typeof Collapsible>) {
     const { isCollectionsListOpen, setIsCollectionsListOpen } =
         useCollectionsListOpenState();
-    const { onOpenChange, open, ...restProps } = props;
     const isControlled = open !== undefined;
+
+    useHotkeys(
+        "mod+c",
+        () => setIsCollectionsListOpen(!isCollectionsListOpen),
+        {
+            preventDefault: true,
+        },
+        [isCollectionsListOpen, setIsCollectionsListOpen]
+    );
 
     return (
         <Collapsible
-            defaultOpen={isControlled ? undefined : isCollectionsListOpen}
             onOpenChange={(nextOpen, eventDetails) => {
                 if (!isControlled) {
                     setIsCollectionsListOpen(nextOpen);
@@ -132,7 +123,7 @@ export function CollectionsList(
                 onOpenChange?.(nextOpen, eventDetails);
             }}
             open={isControlled ? open : isCollectionsListOpen}
-            {...restProps}
+            {...props}
         />
     );
 }
@@ -169,30 +160,35 @@ export function CollectionsListTrigger({
                                 className="inline-block size-5 shrink-0"
                                 focusable="false"
                             />
-                            {collectionLabels.length > 0 ? (
-                                <span className="absolute -bottom-[6px] left-[16.2px] text-nowrap text-[10px] tabular-nums opacity-80">
-                                    {collectionLabels.length}
-                                </span>
-                            ) : null}
+                            <span className="absolute -bottom-[6px] left-[16.2px] text-nowrap text-[10px] tabular-nums opacity-80">
+                                {collectionLabels.length}
+                            </span>
                         </div>
                         <span className="min-w-0 flex-1 font-medium text-sm leading-tight">
                             Collections
                         </span>
-                        <ChevronDownFilledIcon />
+                        <div className="ml-auto flex items-center justify-end gap-0.5">
+                            <KbdGroup className="opacity-0 group-hover:opacity-100 group-data-open:opacity-0!">
+                                <Kbd>
+                                    <CtrlKbd />C
+                                </Kbd>
+                            </KbdGroup>
+                            <ChevronDownFilledIcon />
+                        </div>
                     </CollapsibleTrigger>
                 }
             />
             <PopoverPopup
                 align="start"
-                className={cn({
+                positionerClassname={cn({
                     "pointer-events-none! hidden!": isCollectionsListOpen,
                 })}
                 positionMethod="fixed"
                 tooltipStyle
             >
-                <span className="font-medium">
+                <p className="wrap-break-word w-full whitespace-normal font-medium leading-tight">
                     {collectionLabels.join(", ")}
-                </span>
+                </p>
             </PopoverPopup>
         </Popover>
     );
@@ -464,7 +460,7 @@ export function CollectionsListItemPriorityCombobox({
     );
 }
 
-function getCollectionsListItemStyle(name: string, isSelected: boolean) {
+export function getCollectionsListItemStyle(name: string, isSelected: boolean) {
     const assignedColor = getHexColorFromName(name);
     const backgroundOpacity = isSelected ? 20 : 7;
 
@@ -473,6 +469,24 @@ function getCollectionsListItemStyle(name: string, isSelected: boolean) {
         "--focus-ring-color": `color-mix(in srgb, ${assignedColor}, black 50%)`,
         "--text-muted-color": `color-mix(in srgb, ${assignedColor} 16%, black 18%)`,
     } as React.CSSProperties;
+}
+
+interface CollectionsListItemContextValue {
+    collection: LibraryCollectionSummary;
+    isHovered: boolean;
+}
+
+const CollectionsListItemContext =
+    React.createContext<CollectionsListItemContextValue | null>(null);
+
+function useCollectionsListItemContext() {
+    const context = React.use(CollectionsListItemContext);
+    if (!context) {
+        throw new Error(
+            "CollectionsListItem compound components must be used within CollectionsListItem."
+        );
+    }
+    return context;
 }
 
 export function CollectionsListItem({
@@ -485,20 +499,21 @@ export function CollectionsListItem({
     isSelected: boolean;
 }) {
     const [isHovered, setIsHovered] = React.useState(false);
-    const contextValue = React.useMemo<CollectionsListItemContextValue>(
-        () => ({ collection, isHovered }),
-        [collection, isHovered]
+
+    const style = React.useMemo(
+        () => getCollectionsListItemStyle(collection.name, isSelected),
+        [collection.name, isSelected]
     );
 
     return (
-        <CollectionsListItemContext value={contextValue}>
-            {/** biome-ignore lint/a11y/noNoninteractiveElementInteractions: Ignore */}
-            {/** biome-ignore lint/a11y/noStaticElementInteractions: Ignore */}
+        <CollectionsListItemContext value={{ collection, isHovered }}>
+            {/* biome-ignore lint/a11y/noNoninteractiveElementInteractions: Hover tracking for keyboard shortcut scoping */}
+            {/* biome-ignore lint/a11y/noStaticElementInteractions: Same as above */}
             <div
                 className="group relative flex select-none items-center"
                 onMouseEnter={() => setIsHovered(true)}
                 onMouseLeave={() => setIsHovered(false)}
-                style={getCollectionsListItemStyle(collection.name, isSelected)}
+                style={style}
             >
                 {children}
             </div>
@@ -597,8 +612,9 @@ export function CollectionsListItemMeta({
 }
 
 export function CollectionsListStatus({
+    className,
     onDismiss,
-    tone,
+    tone = "success",
     ...props
 }: React.ComponentProps<"p"> & {
     onDismiss: () => void;
@@ -616,7 +632,8 @@ export function CollectionsListStatus({
                     "text-xs leading-tight",
                     tone === "error"
                         ? "text-destructive"
-                        : "text-muted-foreground"
+                        : "text-muted-foreground",
+                    className
                 )}
                 role={tone === "error" ? "alert" : "status"}
                 {...props}
@@ -630,10 +647,9 @@ export function CollectionsListStatus({
 
 export function CollectionsListFilterClear({
     isVisible,
-    onClear,
-}: {
+    ...props
+}: React.ComponentProps<typeof Button> & {
     isVisible: boolean;
-    onClear: () => void;
 }) {
     if (!isVisible) {
         return null;
@@ -642,12 +658,39 @@ export function CollectionsListFilterClear({
     return (
         <div className="flex items-center justify-between gap-2 pr-1 pl-3.5">
             <p className="text-muted-foreground text-xs">
-                Filtering by any selected collection
+                Filtering by selected collection
             </p>
-            <Button onClick={onClear} size="xs" variant="ghost">
+            <Button
+                aria-label="Clear selected collections"
+                size="xs"
+                variant="ghost"
+                {...props}
+            >
                 Clear
             </Button>
         </div>
+    );
+}
+
+export function CollectionsListFilterClearIcon({
+    isVisible,
+    ...props
+}: React.ComponentProps<typeof Button> & {
+    isVisible: boolean;
+}) {
+    if (!isVisible) {
+        return null;
+    }
+
+    return (
+        <Button
+            aria-label="Clear selected collections"
+            size="icon-xs"
+            variant="ghost"
+            {...props}
+        >
+            <X className="size-3" />
+        </Button>
     );
 }
 
@@ -668,86 +711,266 @@ export function CollectionsListEmpty({
     );
 }
 
-export function CollectionsNoticeCallout() {
-    const [isOpen, setIsOpen] = React.useState(true);
+export function CollectionsListToolbar({
+    className,
+    ...props
+}: React.ComponentProps<typeof Toolbar.Root>) {
+    return (
+        <Toolbar.Root
+            className={cn("mt-4 flex items-center justify-between", className)}
+            {...props}
+        />
+    );
+}
+
+export function CollectionsListToolbarGroup({
+    className,
+    ...props
+}: React.ComponentProps<typeof Toolbar.Group>) {
+    return (
+        <Toolbar.Group
+            className={cn("flex items-center justify-end gap-1", className)}
+            {...props}
+        />
+    );
+}
+
+export function CollectionsListToolbarButton(
+    props: React.ComponentProps<typeof Toolbar.Button>
+) {
+    return <Toolbar.Button {...props} />;
+}
+
+export function CollectionsListNoticeCallout() {
+    return (
+        <div className="flex items-center justify-center gap-1">
+            <span aria-live="polite" className="sr-only" role="status">
+                Smart Collections is active
+            </span>
+            <Popover>
+                <PopoverTrigger
+                    className="group not-sr-only flex cursor-pointer items-center text-nowrap font-medium text-[11px]"
+                    openOnHover
+                >
+                    <GradientWaveText
+                        ariaLabel="Smart Collections"
+                        className="underline decoration-muted-foreground/20 decoration-dotted underline-offset-2"
+                        speed={2.2}
+                    >
+                        Smart Collections
+                    </GradientWaveText>
+                    &nbsp;is active{" "}
+                    <ChevronDownFilledIcon className="mb-px size-4 rotate-90 group-data-popup-open:opacity-10!" />
+                </PopoverTrigger>
+                <PopoverPopup align="start" positionMethod="fixed">
+                    <Image
+                        alt=""
+                        aria-hidden
+                        className="-mx-(--viewport-inline-padding) -mt-4 aspect-32/9 h-auto max-h-24 w-(--positioner-width) min-w-0 max-w-(--positioner-width) rounded-t-lg"
+                        loading="eager"
+                        priority
+                        src={SmartCollectionsBackgroundImg}
+                    />
+                    <div className="mt-4 flex max-w-64 flex-col gap-2">
+                        <PopoverTitle className="font-medium text-sm">
+                            Let Cache do the organizing
+                        </PopoverTitle>
+                        <PopoverDescription className="text-foreground text-xs">
+                            As you add new entries, Cache AI groups your related
+                            saves into contextual collections intuitively. Cache
+                            also learns your preferences with time.
+                        </PopoverDescription>
+                        <PopoverClose
+                            render={
+                                <Button
+                                    className="ml-auto"
+                                    size="xs"
+                                    variant="destructive-outline"
+                                />
+                            }
+                        >
+                            Disable
+                        </PopoverClose>
+                    </div>
+                </PopoverPopup>
+            </Popover>
+        </div>
+    );
+}
+
+type CollectionSortField = "count" | "created" | "priority" | "updated";
+
+interface SortingOption {
+    icon: React.ElementType;
+    label: string;
+    value: CollectionSortField;
+}
+
+const DEFAULT_SORT_FIELD: CollectionSortField = "priority";
+
+const SORTING_OPTIONS = [
+    {
+        icon: SignalHigh,
+        label: "Priority",
+        value: "priority",
+    },
+    {
+        icon: Sparkle,
+        label: "Created",
+        value: "created",
+    },
+    {
+        icon: Clock,
+        label: "Updated",
+        value: "updated",
+    },
+    {
+        icon: Component,
+        label: "Count",
+        value: "count",
+    },
+] satisfies SortingOption[];
+
+export const { useStore: useCollectionsSortStore } = createStore({
+    collectionSortField: storage<CollectionSortField>(DEFAULT_SORT_FIELD),
+});
+
+export const NAME_COLLATOR = new Intl.Collator(undefined, {
+    numeric: true,
+    sensitivity: "base",
+});
+
+export const COLLECTION_PRIORITY_ORDER: Record<CollectionPriority, number> = {
+    archive: 3,
+    none: 4,
+    peripheral: 2,
+    relevant: 1,
+    very_relevant: 0,
+};
+
+export function sortCollections<
+    T extends Pick<LibraryCollectionSummary, "name" | "priority">,
+>(collections: T[]): T[] {
+    return [...collections].sort((a, b) => {
+        const priorityDifference =
+            COLLECTION_PRIORITY_ORDER[a.priority] -
+            COLLECTION_PRIORITY_ORDER[b.priority];
+
+        if (priorityDifference !== 0) {
+            return priorityDifference;
+        }
+
+        return NAME_COLLATOR.compare(a.name, b.name);
+    });
+}
+
+export function sortCollectionSummaries<
+    T extends Pick<
+        LibraryCollectionSummary,
+        "createdAt" | "itemCount" | "name" | "priority" | "updatedAt"
+    >,
+>(collections: T[], sortField: CollectionSortField): T[] {
+    if (sortField === "priority") {
+        return sortCollections(collections);
+    }
+
+    return [...collections].sort((a, b) => {
+        switch (sortField) {
+            case "created":
+                return (
+                    new Date(b.createdAt).getTime() -
+                    new Date(a.createdAt).getTime()
+                );
+            case "updated":
+                return (
+                    new Date(b.updatedAt).getTime() -
+                    new Date(a.updatedAt).getTime()
+                );
+            case "count":
+                return b.itemCount - a.itemCount;
+            default:
+                return NAME_COLLATOR.compare(a.name, b.name);
+        }
+    });
+}
+
+export function CollectionsListSortingCombobox(
+    props: React.ComponentProps<typeof ComboboxTrigger>
+) {
+    const { collectionSortField, setCollectionSortField } =
+        useCollectionsSortStore();
+    const [isOpen, setIsOpen] = React.useState(false);
+
+    useHotkeys(
+        "mod+f",
+        (event) => {
+            event.preventDefault();
+            setIsOpen(true);
+        },
+        {
+            enabled: !isOpen,
+        },
+        [isOpen]
+    );
 
     return (
-        <Collapsible className="mt-2.5" onOpenChange={setIsOpen} open={isOpen}>
-            <CollapsiblePanel className="items-center justify-center">
-                <AvatarGroup>
-                    <Avatar className="size-7 bg-muted/90">
-                        <Sparkles className="inline-block size-4 shrink-0" />
-                    </Avatar>
-                    <Avatar className="border-2 border-white bg-muted">
-                        <Info className="inline-block size-4.5 shrink-0" />
-                    </Avatar>
-                    <Avatar className="-z-1 size-7 bg-muted/90">
-                        <Group className="inline-block size-4 shrink-0" />
-                    </Avatar>
-                </AvatarGroup>
-                <div className="flex items-center justify-center gap-1">
-                    <span aria-live="polite" className="sr-only" role="status">
-                        Smart collections is active
-                    </span>
-                    <span className="not-sr-only font-medium text-xs">
-                        <Popover>
-                            <PopoverTrigger
-                                className="flex cursor-pointer items-center text-nowrap"
-                                openOnHover
-                            >
-                                <GradientWaveText
-                                    ariaLabel="Smart Collections"
-                                    className="underline decoration-muted-foreground/20 decoration-dotted underline-offset-2"
-                                    speed={2.2}
-                                >
-                                    Smart Collections
-                                </GradientWaveText>
-                                &nbsp;is active
-                            </PopoverTrigger>
-                            <PopoverPopup align="start" positionMethod="fixed">
-                                <Image
-                                    alt=""
-                                    aria-hidden
-                                    className="-mx-(--viewport-inline-padding) -mt-4 aspect-32/9 h-auto max-h-24 w-(--positioner-width) min-w-0 max-w-(--positioner-width) rounded-t-lg"
-                                    loading="eager"
-                                    priority
-                                    src={SmartCollectionsBackgroundImg}
-                                />
-                                <div className="mt-4 flex max-w-64 flex-col gap-2">
-                                    <PopoverTitle className="font-medium text-sm">
-                                        Let Cache do the organizing
-                                    </PopoverTitle>
-                                    <PopoverDescription className="text-foreground text-xs">
-                                        As you add new entries, Cache AI groups
-                                        your related saves into contextual
-                                        collections intuitively. Cache also
-                                        learns your preferences with time.
-                                    </PopoverDescription>
-                                    <PopoverClose
-                                        render={
-                                            <Button
-                                                className="ml-auto"
-                                                size="xs"
-                                                variant="destructive-outline"
-                                            />
-                                        }
-                                    >
-                                        Disable
-                                    </PopoverClose>
-                                </div>
-                            </PopoverPopup>
-                        </Popover>
-                    </span>
+        <Combobox
+            autoHighlight
+            items={SORTING_OPTIONS}
+            onOpenChange={setIsOpen}
+            onValueChange={(nextField) => {
+                if (!nextField || nextField === collectionSortField) {
+                    return;
+                }
+                setCollectionSortField(nextField);
+                setIsOpen(false);
+            }}
+            open={isOpen}
+            value={collectionSortField}
+        >
+            <ComboboxTrigger
+                render={
                     <Button
-                        onClick={() => setIsOpen(false)}
-                        size="xs"
-                        type="button"
+                        aria-label="Sort and organize collections"
+                        size="icon-xs"
                         variant="ghost"
-                    >
-                        Dismiss
-                    </Button>
-                </div>
-            </CollapsiblePanel>
-        </Collapsible>
+                    />
+                }
+                {...props}
+            >
+                <ListFilter className="size-3" />
+            </ComboboxTrigger>
+            <ComboboxPopup align="end" positionMethod="fixed">
+                <ComboboxInput
+                    endAddon={
+                        <Kbd>
+                            <CtrlKbd />F
+                        </Kbd>
+                    }
+                    placeholder="Sort by..."
+                />
+                <ComboboxEmpty>No matching sort options</ComboboxEmpty>
+                <ComboboxList>
+                    <ComboboxCollection>
+                        {(sortOption) => (
+                            <ComboboxItem
+                                key={sortOption.value}
+                                showIndicatorLast
+                                value={sortOption.value}
+                            >
+                                <div className="flex min-w-0 items-center justify-between gap-3">
+                                    <span className="flex min-w-0 items-center gap-2 text-foreground text-sm">
+                                        <sortOption.icon className="size-4 text-muted-foreground" />
+                                        <span className="truncate">
+                                            {sortOption.label}
+                                        </span>
+                                    </span>
+                                </div>
+                            </ComboboxItem>
+                        )}
+                    </ComboboxCollection>
+                </ComboboxList>
+            </ComboboxPopup>
+        </Combobox>
     );
 }

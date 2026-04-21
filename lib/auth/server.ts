@@ -10,42 +10,43 @@ import type { GenericOAuthConfig } from "better-auth/plugins";
 import { genericOAuth, multiSession, oneTap } from "better-auth/plugins";
 import { headers } from "next/headers";
 
+interface OAuthUserProfile {
+    email?: string | null;
+    emailVerified: boolean;
+    id: string;
+    image?: string;
+    name?: string;
+}
+
+/**
+ * Generic OAuth user fetcher that handles the shared pattern:
+ * extract token → fetch provider API → guard response → map to profile.
+ */
+async function fetchOAuthUser<T>(
+    tokens: OAuth2Tokens,
+    url: string,
+    extraHeaders: Record<string, string>,
+    mapUser: (data: T) => OAuthUserProfile | null
+): Promise<OAuthUserProfile | null> {
+    const { accessToken } = tokens;
+    if (!accessToken) {
+        return null;
+    }
+
+    const response = await fetch(url, {
+        headers: { Authorization: `Bearer ${accessToken}`, ...extraHeaders },
+    });
+    if (!response.ok) {
+        return null;
+    }
+
+    return mapUser((await response.json()) as T);
+}
+
 interface PinterestUserAccount {
     id?: string;
     profile_image?: string;
     username?: string;
-}
-
-async function pinterestUserFromTokens(tokens: OAuth2Tokens): Promise<{
-    id: string;
-    name?: string;
-    email?: string | null;
-    image?: string;
-    emailVerified: boolean;
-} | null> {
-    const accessToken = tokens.accessToken;
-    if (!accessToken) {
-        return null;
-    }
-    const res = await fetch("https://api.pinterest.com/v5/user_account", {
-        headers: { Authorization: `Bearer ${accessToken}` },
-    });
-    if (!res.ok) {
-        return null;
-    }
-    const data = (await res.json()) as PinterestUserAccount;
-    const id = data.id ?? data.username;
-    if (!id) {
-        return null;
-    }
-    const sid = String(id);
-    return {
-        email: `pinterest.${sid}.integration@placeholder.cache`,
-        emailVerified: false,
-        id: sid,
-        image: data.profile_image,
-        name: data.username ?? sid,
-    };
 }
 
 interface XUserAccount {
@@ -64,77 +65,40 @@ interface GitHubUserAccount {
     name?: string;
 }
 
-async function xUserFromTokens(tokens: OAuth2Tokens): Promise<{
-    id: string;
-    name?: string;
-    email?: string | null;
-    image?: string;
-    emailVerified: boolean;
-} | null> {
-    const accessToken = tokens.accessToken;
-    if (!accessToken) {
-        return null;
-    }
-
-    const response = await fetch(
-        "https://api.x.com/2/users/me?user.fields=profile_image_url",
-        {
-            headers: {
-                Accept: "application/json",
-                Authorization: `Bearer ${accessToken}`,
-            },
-        }
-    );
-
-    if (!response.ok) {
-        return null;
-    }
-
-    const payload = (await response.json()) as XUserAccount;
-    const user = payload.data;
-    const id = user?.id;
+function mapPinterestUser(data: PinterestUserAccount): OAuthUserProfile | null {
+    const id = data.id ?? data.username;
     if (!id) {
         return null;
     }
+    const sid = String(id);
+    return {
+        email: `pinterest.${sid}.integration@placeholder.cache`,
+        emailVerified: false,
+        id: sid,
+        image: data.profile_image,
+        name: data.username ?? sid,
+    };
+}
 
+function mapXUser(payload: XUserAccount): OAuthUserProfile | null {
+    const id = payload.data?.id;
+    if (!id) {
+        return null;
+    }
     return {
         email: `x.${id}.integration@placeholder.cache`,
         emailVerified: false,
         id,
-        image: user.profile_image_url,
-        name: user.name ?? user.username ?? id,
+        image: payload.data?.profile_image_url,
+        name: payload.data?.name ?? payload.data?.username ?? id,
     };
 }
 
-async function githubUserFromTokens(tokens: OAuth2Tokens): Promise<{
-    id: string;
-    name?: string;
-    email?: string | null;
-    image?: string;
-    emailVerified: boolean;
-} | null> {
-    const accessToken = tokens.accessToken;
-    if (!accessToken) {
-        return null;
-    }
-
-    const response = await fetch("https://api.github.com/user", {
-        headers: {
-            Accept: "application/vnd.github+json",
-            Authorization: `Bearer ${accessToken}`,
-            "User-Agent": APP_NAME,
-        },
-    });
-    if (!response.ok) {
-        return null;
-    }
-
-    const payload = (await response.json()) as GitHubUserAccount;
+function mapGitHubUser(payload: GitHubUserAccount): OAuthUserProfile | null {
     const id = typeof payload.id === "number" ? String(payload.id) : undefined;
     if (!id) {
         return null;
     }
-
     return {
         email: `github.${id}.integration@placeholder.cache`,
         emailVerified: false,
@@ -169,23 +133,29 @@ const trustedOrigins = [
         .filter(Boolean) ?? []),
 ];
 
+const pinterestClientId = optionalEnv("PINTEREST_CLIENT_ID");
+const pinterestClientSecret = optionalEnv("PINTEREST_CLIENT_SECRET");
 const xClientId = optionalEnv("X_CLIENT_ID");
 const xClientSecret = optionalEnv("X_CLIENT_SECRET");
-const xOAuthEnabled = Boolean(xClientId && xClientSecret);
 const githubClientId = optionalEnv("GITHUB_CLIENT_ID");
 const githubClientSecret = optionalEnv("GITHUB_CLIENT_SECRET");
-const githubOAuthEnabled = Boolean(githubClientId && githubClientSecret);
 
 const genericOAuthConfig: GenericOAuthConfig[] = [];
 
-if (process.env.PINTEREST_CLIENT_ID && process.env.PINTEREST_CLIENT_SECRET) {
+if (pinterestClientId && pinterestClientSecret) {
     genericOAuthConfig.push({
         authentication: "basic",
         authorizationUrl: "https://www.pinterest.com/oauth/",
-        clientId: process.env.PINTEREST_CLIENT_ID,
-        clientSecret: process.env.PINTEREST_CLIENT_SECRET,
+        clientId: pinterestClientId,
+        clientSecret: pinterestClientSecret,
         disableSignUp: true,
-        getUserInfo: pinterestUserFromTokens,
+        getUserInfo: (tokens) =>
+            fetchOAuthUser(
+                tokens,
+                "https://api.pinterest.com/v5/user_account",
+                {},
+                mapPinterestUser
+            ),
         pkce: true,
         providerId: "pinterest",
         scopes: ["user_accounts:read", "boards:read", "pins:read"],
@@ -200,7 +170,13 @@ if (xClientId && xClientSecret) {
         clientId: xClientId,
         clientSecret: xClientSecret,
         disableSignUp: true,
-        getUserInfo: xUserFromTokens,
+        getUserInfo: (tokens) =>
+            fetchOAuthUser(
+                tokens,
+                "https://api.x.com/2/users/me?user.fields=profile_image_url",
+                { Accept: "application/json" },
+                mapXUser
+            ),
         pkce: true,
         providerId: "x",
         scopes: ["bookmark.read", "offline.access", "tweet.read", "users.read"],
@@ -215,7 +191,16 @@ if (githubClientId && githubClientSecret) {
         clientId: githubClientId,
         clientSecret: githubClientSecret,
         disableSignUp: true,
-        getUserInfo: githubUserFromTokens,
+        getUserInfo: (tokens) =>
+            fetchOAuthUser(
+                tokens,
+                "https://api.github.com/user",
+                {
+                    Accept: "application/vnd.github+json",
+                    "User-Agent": APP_NAME,
+                },
+                mapGitHubUser
+            ),
         providerId: "github",
         scopes: ["read:user"],
         tokenUrl: "https://github.com/login/oauth/access_token",
@@ -224,11 +209,7 @@ if (githubClientId && githubClientSecret) {
 
 const trustedProviders = [
     "google",
-    ...(process.env.PINTEREST_CLIENT_ID && process.env.PINTEREST_CLIENT_SECRET
-        ? ["pinterest"]
-        : []),
-    ...(githubOAuthEnabled ? ["github"] : []),
-    ...(xOAuthEnabled ? ["x"] : []),
+    ...genericOAuthConfig.map((c) => c.providerId),
 ];
 
 export const auth = betterAuth({
@@ -302,4 +283,9 @@ export async function getServerSession() {
     return await auth.api.getSession({
         headers: await headers(),
     });
+}
+
+export async function getSessionUserId(): Promise<string | null> {
+    const session = await getServerSession();
+    return session?.user?.id ?? null;
 }
