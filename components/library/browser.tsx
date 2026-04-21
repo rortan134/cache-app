@@ -162,8 +162,10 @@ import type {
     LibraryItemWithCollections,
 } from "@/lib/types";
 import { getDisplayUrl, normalizeURL, toValidUrl } from "@/lib/url";
-import type { CollectionPriority } from "@/prisma/client/enums";
-import { LibraryItemSource } from "@/prisma/client/enums";
+import {
+    LibraryItemSource,
+    type CollectionPriority,
+} from "@/prisma/client/enums";
 import AppIconSmall from "@/public/cache-icon-small.png";
 import type {
     AutocompleteRootChangeEventDetails,
@@ -173,7 +175,11 @@ import {
     ArrowDownIcon,
     ArrowUpIcon,
     Check,
+    ChevronDown,
     ChevronRight,
+    ChevronsDown,
+    ChevronsUp,
+    ChevronUp,
     CircleDashed,
     CircleDot,
     CircleFadingPlus,
@@ -2082,8 +2088,10 @@ function renderLibraryGridBody({
     columnCount,
     enableSectionCollapse,
     layoutRefreshToken,
+    onCollapseAllSections,
     onCopyLink,
     onDelete,
+    onExpandAllSections,
     onOpenNote,
     onOpenInNewTab,
     onUpdateItemCollections,
@@ -2101,8 +2109,10 @@ function renderLibraryGridBody({
     columnCount?: number;
     enableSectionCollapse: boolean;
     layoutRefreshToken: number;
+    onCollapseAllSections?: () => void;
     onCopyLink: (item: LibraryItem) => void;
     onDelete: (item: LibraryItem) => void;
+    onExpandAllSections?: () => void;
     onOpenNote: (item: LibraryItem) => void;
     onOpenInNewTab: (item: LibraryItem) => void;
     onUpdateItemCollections: (itemId: string, collectionIds: string[]) => void;
@@ -2147,8 +2157,10 @@ function renderLibraryGridBody({
                 items={section.items}
                 key={section.key}
                 layoutToken={layoutRefreshToken}
+                onCollapseAll={onCollapseAllSections}
                 onCopyLink={onCopyLink}
                 onDelete={onDelete}
+                onExpandAll={onExpandAllSections}
                 onOpenInNewTab={onOpenInNewTab}
                 onOpenNote={onOpenNote}
                 onToggle={() => onToggleSection(section.key)}
@@ -3310,6 +3322,8 @@ interface SectionProps extends GridProps {
     collapsed?: boolean;
     collapsible?: boolean;
     emptyHint: string;
+    onCollapseAll?: () => void;
+    onExpandAll?: () => void;
     onToggle?: () => void;
     title: string;
 }
@@ -4217,6 +4231,8 @@ function ExtensionLibrarySection({
     onOpenInNewTab,
     onUpdateItemCollections,
     onToggle,
+    onCollapseAll,
+    onExpandAll,
     pendingCollectionItemIds,
     pendingDeleteItemId,
     title,
@@ -4276,42 +4292,95 @@ function ExtensionLibrarySection({
 
     return (
         <section className="flex w-full flex-col gap-3">
-            <div
-                className={cn(
-                    "flex items-center justify-between gap-3 py-1 pr-5",
-                    collapsible &&
-                        "sticky z-10 rounded-xl bg-muted/92 backdrop-blur-sm supports-backdrop-filter:bg-muted/50"
-                )}
-                style={
-                    collapsible
-                        ? ({
-                              background: headerGradient,
-                              top: "var(--library-section-sticky-top)",
-                          } as CSSProperties)
-                        : undefined
-                }
-            >
-                {canToggle ? (
-                    <Button
-                        className="group min-w-0 flex-1 justify-start rounded-xl"
-                        onClick={onToggle}
-                        size="lg"
-                        title={collapsed ? "Expand group" : "Collapse group"}
-                        variant="ghost"
-                        {...(collapsed ? {} : { "data-panel-open": true })}
+            <ContextMenu>
+                <ContextMenuTrigger render={<div className="contents" />}>
+                    <div
+                        className={cn(
+                            "flex items-center justify-between gap-3 py-1 pr-5",
+                            collapsible &&
+                                "sticky z-10 rounded-xl bg-muted/92 backdrop-blur-sm supports-backdrop-filter:bg-muted/50"
+                        )}
+                        style={
+                            collapsible
+                                ? ({
+                                      background: headerGradient,
+                                      top: "var(--library-section-sticky-top)",
+                                  } as CSSProperties)
+                                : undefined
+                        }
                     >
-                        <ChevronDownFilledIcon />
-                        <span className="ml-1 truncate font-medium">
-                            {title}
+                        {canToggle ? (
+                            <Button
+                                className="group min-w-0 flex-1 justify-start rounded-xl"
+                                onClick={onToggle}
+                                size="lg"
+                                title={
+                                    collapsed
+                                        ? "Expand group"
+                                        : "Collapse group"
+                                }
+                                variant="ghost"
+                                {...(collapsed
+                                    ? {}
+                                    : { "data-panel-open": true })}
+                            >
+                                <ChevronDownFilledIcon />
+                                <span className="ml-1 truncate font-medium">
+                                    {title}
+                                </span>
+                            </Button>
+                        ) : (
+                            <h2 className="font-medium text-lg">{title}</h2>
+                        )}
+                        <span className="font-medium text-foreground text-xs tabular-nums">
+                            {items.length}
                         </span>
-                    </Button>
-                ) : (
-                    <h2 className="font-medium text-lg">{title}</h2>
+                    </div>
+                </ContextMenuTrigger>
+                {collapsible && (
+                    <ContextMenuPopup>
+                        <ContextMenuItem
+                            closeOnClick
+                            disabled={!collapsed}
+                            onClick={onToggle}
+                        >
+                            <ChevronDown className="size-4.5 text-muted-foreground" />
+                            Expand
+                        </ContextMenuItem>
+                        <ContextMenuItem
+                            closeOnClick
+                            disabled={collapsed}
+                            onClick={onToggle}
+                        >
+                            <ChevronUp className="size-4.5 text-muted-foreground" />
+                            Collapse
+                        </ContextMenuItem>
+                        {(onExpandAll || onCollapseAll) && (
+                            <>
+                                <ContextMenuSeparator />
+                                {onExpandAll && (
+                                    <ContextMenuItem
+                                        closeOnClick
+                                        onClick={onExpandAll}
+                                    >
+                                        <ChevronsDown className="size-4.5 text-muted-foreground" />
+                                        Expand all
+                                    </ContextMenuItem>
+                                )}
+                                {onCollapseAll && (
+                                    <ContextMenuItem
+                                        closeOnClick
+                                        onClick={onCollapseAll}
+                                    >
+                                        <ChevronsUp className="size-4.5 text-muted-foreground" />
+                                        Collapse all
+                                    </ContextMenuItem>
+                                )}
+                            </>
+                        )}
+                    </ContextMenuPopup>
                 )}
-                <span className="font-medium text-foreground text-xs tabular-nums">
-                    {items.length}
-                </span>
-            </div>
+            </ContextMenu>
             {body}
         </section>
     );
@@ -5024,8 +5093,10 @@ function LibraryBrowser({
         columnCount: resolvedColumnCount,
         enableSectionCollapse,
         layoutRefreshToken,
+        onCollapseAllSections: collapseAllSections,
         onCopyLink: handleCopyLink,
         onDelete: handleRequestDelete,
+        onExpandAllSections: expandAllSections,
         onOpenInNewTab: handleOpenInNewTab,
         onOpenNote: handleOpenNote,
         onToggleSection: toggleSection,
@@ -5040,7 +5111,7 @@ function LibraryBrowser({
 
     return (
         <div
-            className="relative z-0 flex w-full flex-col gap-6"
+            className="relative z-0 flex w-full flex-col gap-3"
             style={libraryBrowserStyle}
         >
             <Dialog
@@ -5337,7 +5408,7 @@ function LibraryBrowser({
             </Command>
             {(hasActiveFilters || hasNonDefaultView) &&
             !showEmptyLibraryPeek ? null : (
-                <div className="relative -mt-3">
+                <div className="relative -mt-1">
                     <ScrollArea
                         className="max-w-full whitespace-nowrap"
                         scrollFade

@@ -103,6 +103,7 @@ interface FormatState {
 
 interface NoteTextStats {
     characterCount: number;
+    paragraphCount: number;
     wordCount: number;
 }
 
@@ -134,6 +135,7 @@ const NOTE_EDITOR_THEME = {
 
 const NOTE_EDITOR_NODES = [HeadingNode];
 const NOTE_EDITOR_NAMESPACE = "cache-library-note";
+const NOTE_PARAGRAPH_TAG_NAME = /^(H1|H2|H3|P)$/u;
 const NOTE_WORD_SEPARATOR = /\s+/;
 
 const chatProviders = [
@@ -211,9 +213,18 @@ function noteDraftsMatch(left: NoteDraft, right: NoteDraft): boolean {
 
 function getNoteTextStats(contentHtml: string): NoteTextStats {
     const plainText = extractNoteText(contentHtml);
+    const document = new DOMParser().parseFromString(contentHtml, "text/html");
+    const paragraphCount = Array.from(document.body.children).filter(
+        (element) =>
+            NOTE_PARAGRAPH_TAG_NAME.test(element.tagName) &&
+            element.textContent?.trim().length
+    ).length;
+    const normalizedParagraphCount =
+        paragraphCount > 0 || plainText.length === 0 ? paragraphCount : 1;
 
     return {
         characterCount: plainText.length,
+        paragraphCount: normalizedParagraphCount,
         wordCount:
             plainText.length === 0
                 ? 0
@@ -497,6 +508,7 @@ function NoteStatsFooter({ contentHtml }: { contentHtml: string }) {
     return (
         <div className="flex items-center justify-end gap-4 border-border/60 border-t pt-3 text-muted-foreground text-xs">
             <span>{stats.wordCount} words</span>
+            <span>{stats.paragraphCount} paragraphs</span>
             <span>{stats.characterCount} characters</span>
         </div>
     );

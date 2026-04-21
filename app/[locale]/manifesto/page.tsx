@@ -29,7 +29,7 @@ export async function generateMetadata({
         description: gtPublicString(
             locale,
             "manifesto.metadata.description",
-            "The scroll becomes a library. Meaning isn't in the feed. It's in what you choose to keep."
+            "The scroll becomes a library. Meaning isn't in the feed. It's in what you choose to keep.",
         ),
         title: gtPublicString(locale, "manifesto.metadata.title", "Manifesto"),
     };
@@ -83,7 +83,8 @@ export default function Manifesto() {
                         <section className="flex flex-col gap-6">
                             <T context="Manifesto Section 1">
                                 <h2 className="font-medium text-[2rem] leading-[1.1] tracking-[-0.05rem]">
-                                    You're Going to Scroll Anyway
+                                    If you're going to scroll anyway, make sure
+                                    you get something out of it.
                                 </h2>
                                 <p className="text-[1.25rem] leading-[1.4] opacity-80">
                                     Nobody quits the feeds.
