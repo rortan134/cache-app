@@ -3,7 +3,7 @@ import { auth } from "@/lib/auth/server";
 import { createLogger } from "@/lib/logs/console/logger";
 import { ApiError, GoogleGenAI } from "@google/genai";
 import { headers } from "next/headers";
-import { z } from "zod";
+import * as z from "zod";
 
 const log = createLogger("api:library:section-description");
 const SECTION_DESCRIPTION_MODEL = "gemini-2.5-flash-lite";

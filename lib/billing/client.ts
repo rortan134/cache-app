@@ -51,20 +51,17 @@ export const withStripe = async <T>(
         const stripeClient = getStripeClient();
         return await callbackFn(stripeClient);
     } catch (error) {
+        logger.error("Stripe operation failed:", error);
+
         if (error instanceof StripeError) {
-            logger.warn(`Stripe operation aborted: ${error.message}`);
-            return null;
+            throw error;
         }
 
-        logger.error("Stripe operation failed:", error);
-        throw error instanceof Error
-            ? error
-            : new StripeError({
-                  cause: error,
-                  message:
-                      error instanceof Error ? error.message : String(error),
-                  operation: "core::withStripe",
-              });
+        throw new StripeError({
+            cause: error,
+            message: error instanceof Error ? error.message : String(error),
+            operation: "core::withStripe",
+        });
     }
 };
 

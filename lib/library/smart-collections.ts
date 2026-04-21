@@ -14,10 +14,11 @@ import {
     createPartFromText,
     createPartFromUri,
 } from "@google/genai";
+import { randomUUID } from "node:crypto";
 import { open, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { basename, extname, join } from "node:path";
-import { z } from "zod";
+import * as z from "zod";
 
 const log = createLogger("library:smart-collections");
 const SMART_COLLECTIONS_DEFAULT_MODEL = "gemini-2.5-flash";
@@ -58,42 +59,42 @@ const smartCollectionDecisionJsonSchema = (() => {
 type SmartCollectionDecision = z.infer<typeof SmartCollectionDecisionSchema>;
 
 interface SmartCollectionCatalogEntry {
-    readonly description: string | null;
-    readonly id: string;
-    readonly name: string;
-    readonly nameKey: string;
+    description: string | null;
+    id: string;
+    name: string;
+    nameKey: string;
 }
 
 interface SmartCollectionItem {
-    readonly caption: string | null;
-    readonly collections: ReadonlyArray<{
-        readonly id: string;
-        readonly name: string;
+    caption: string | null;
+    collections: Array<{
+        id: string;
+        name: string;
     }>;
-    readonly id: string;
-    readonly kind: "bookmark" | "folder" | "note";
-    readonly source: LibraryItemSource;
-    readonly sourceMetadata: unknown;
-    readonly thumbnailUrl: string | null;
-    readonly url: string;
+    id: string;
+    kind: "bookmark" | "folder" | "note";
+    source: LibraryItemSource;
+    sourceMetadata: unknown;
+    thumbnailUrl: string | null;
+    url: string;
 }
 
 interface DownloadedRemoteAsset {
-    readonly cleanup: () => Promise<void>;
-    readonly mimeType: string;
-    readonly path: string;
-    readonly sourceUrl: string;
+    cleanup: () => Promise<void>;
+    mimeType: string;
+    path: string;
+    sourceUrl: string;
 }
 
 interface SmartCollectionAttachment {
-    readonly cleanup?: () => Promise<void>;
-    readonly parts: Part[];
+    cleanup?: () => Promise<void>;
+    parts: Part[];
 }
 
 interface SmartCollectionsModelErrorInfo {
-    readonly details?: unknown;
-    readonly message: string;
-    readonly status: number | null;
+    details?: unknown;
+    message: string;
+    status: number | null;
 }
 
 function resolveGeminiApiKey(): string | null {
@@ -167,82 +168,55 @@ function normalizeMimeType(value: string | null | undefined): string | null {
     return normalized && normalized.length > 0 ? normalized : null;
 }
 
-function inferMimeTypeFromUrl(url: string): string | null {
-    const extension = extname(new URL(url).pathname).toLocaleLowerCase();
+const MIME_TYPE_TO_EXTENSION: Record<string, string> = {
+    "application/json": ".json",
+    "application/pdf": ".pdf",
+    "application/xml": ".xml",
+    "image/avif": ".avif",
+    "image/gif": ".gif",
+    "image/jpeg": ".jpg",
+    "image/png": ".png",
+    "image/svg+xml": ".svg",
+    "image/webp": ".webp",
+    "text/csv": ".csv",
+    "text/html": ".html",
+    "text/plain": ".txt",
+    "video/mp4": ".mp4",
+    "video/quicktime": ".mov",
+    "video/webm": ".webm",
+};
 
-    switch (extension) {
-        case ".avif":
-            return "image/avif";
-        case ".csv":
-            return "text/csv";
-        case ".gif":
-            return "image/gif";
-        case ".htm":
-        case ".html":
-            return "text/html";
-        case ".jpeg":
-        case ".jpg":
-            return "image/jpeg";
-        case ".json":
-            return "application/json";
-        case ".mov":
-            return "video/quicktime";
-        case ".mp4":
-            return "video/mp4";
-        case ".pdf":
-            return "application/pdf";
-        case ".png":
-            return "image/png";
-        case ".svg":
-            return "image/svg+xml";
-        case ".txt":
-            return "text/plain";
-        case ".webm":
-            return "video/webm";
-        case ".webp":
-            return "image/webp";
-        case ".xml":
-            return "application/xml";
-        default:
-            return null;
+const EXTENSION_TO_MIME_TYPE: Record<string, string> = {
+    ".avif": "image/avif",
+    ".csv": "text/csv",
+    ".gif": "image/gif",
+    ".htm": "text/html",
+    ".html": "text/html",
+    ".jpeg": "image/jpeg",
+    ".jpg": "image/jpeg",
+    ".json": "application/json",
+    ".mov": "video/quicktime",
+    ".mp4": "video/mp4",
+    ".pdf": "application/pdf",
+    ".png": "image/png",
+    ".svg": "image/svg+xml",
+    ".txt": "text/plain",
+    ".webm": "video/webm",
+    ".webp": "image/webp",
+    ".xml": "application/xml",
+};
+
+function inferMimeTypeFromUrl(url: string): string | null {
+    try {
+        const extension = extname(new URL(url).pathname).toLocaleLowerCase();
+        return EXTENSION_TO_MIME_TYPE[extension] ?? null;
+    } catch {
+        return null;
     }
 }
 
 function tempExtensionForMimeType(mimeType: string): string {
-    switch (mimeType) {
-        case "application/json":
-            return ".json";
-        case "application/pdf":
-            return ".pdf";
-        case "application/xml":
-            return ".xml";
-        case "image/avif":
-            return ".avif";
-        case "image/gif":
-            return ".gif";
-        case "image/jpeg":
-            return ".jpg";
-        case "image/png":
-            return ".png";
-        case "image/svg+xml":
-            return ".svg";
-        case "image/webp":
-            return ".webp";
-        case "text/csv":
-            return ".csv";
-        case "text/html":
-            return ".html";
-        case "text/plain":
-            return ".txt";
-        case "video/mp4":
-            return ".mp4";
-        case "video/quicktime":
-            return ".mov";
-        case "video/webm":
-            return ".webm";
-        default:
-            return ".bin";
-    }
+    return MIME_TYPE_TO_EXTENSION[mimeType] ?? ".bin";
 }
 
 function decodeHtmlEntities(input: string): string {
@@ -313,6 +287,8 @@ function isTaggableItem(item: SmartCollectionItem): boolean {
 
 function sourceLabel(source: LibraryItemSource): string {
     switch (source) {
+        case LibraryItemSource.cache_note:
+            return "Note";
         case LibraryItemSource.chrome_bookmarks:
             return "Chrome bookmark";
         case LibraryItemSource.github_starred_repositories:
@@ -421,7 +397,7 @@ async function downloadRemoteAsset(
             "application/octet-stream";
         const filePath = join(
             /* turbopackIgnore: true */ tmpdir(),
-            `cache-smart-collections-${crypto.randomUUID()}${tempExtensionForMimeType(mimeType)}`
+            `cache-smart-collections-${randomUUID()}${tempExtensionForMimeType(mimeType)}`
         );
         const fileHandle = await open(
             /* turbopackIgnore: true */ filePath,
@@ -570,37 +546,37 @@ function displayNameForItem(item: SmartCollectionItem, url: string): string {
 async function resolveContentCandidates(
     item: SmartCollectionItem
 ): Promise<string[]> {
-    if (item.source === LibraryItemSource.google_photos) {
-        return [item.url, item.thumbnailUrl].filter(isHttpUrl);
-    }
-
-    if (item.source === LibraryItemSource.pinterest) {
-        return [item.thumbnailUrl, item.url].filter(isHttpUrl);
-    }
-
-    if (item.source === LibraryItemSource.chrome_bookmarks) {
-        return [item.url].filter(isHttpUrl);
-    }
-
-    if (item.source === LibraryItemSource.github_starred_repositories) {
-        return [item.url, item.thumbnailUrl].filter(isHttpUrl);
-    }
-
     const candidates: string[] = [];
-
-    if (isHttpUrl(item.url)) {
-        const cobaltResult = await resolveCobaltDownloadUrl(item.url);
-        if (cobaltResult.status === "SUCCESS") {
-            candidates.push(cobaltResult.downloadUrl);
+    const addUrl = (url: string | null | undefined) => {
+        if (isHttpUrl(url)) {
+            candidates.push(url);
         }
-    }
+    };
 
-    if (isHttpUrl(item.thumbnailUrl)) {
-        candidates.push(item.thumbnailUrl);
-    }
-
-    if (item.source === LibraryItemSource.other && isHttpUrl(item.url)) {
-        candidates.push(item.url);
+    switch (item.source) {
+        case LibraryItemSource.google_photos:
+        case LibraryItemSource.github_starred_repositories:
+            addUrl(item.url);
+            addUrl(item.thumbnailUrl);
+            break;
+        case LibraryItemSource.pinterest:
+            addUrl(item.thumbnailUrl);
+            addUrl(item.url);
+            break;
+        case LibraryItemSource.chrome_bookmarks:
+            addUrl(item.url);
+            break;
+        default:
+            if (isHttpUrl(item.url)) {
+                const cobaltResult = await resolveCobaltDownloadUrl(item.url);
+                if (cobaltResult.status === "SUCCESS") {
+                    candidates.push(cobaltResult.downloadUrl);
+                }
+            }
+            addUrl(item.thumbnailUrl);
+            if (item.source === LibraryItemSource.other) {
+                addUrl(item.url);
+            }
     }
 
     return [...new Set(candidates)];
@@ -696,23 +672,20 @@ async function decideCollectionsForItem(
 ): Promise<SmartCollectionDecision | null> {
     const attachment = await createAttachmentForItem(ai, item);
     const prompt = createPartFromText(buildPrompt(item, collections));
-    const contentVariants = attachment
-        ? [
-              {
-                  contents: [prompt, ...attachment.parts],
-                  label: "with_attachment",
-              },
-              {
-                  contents: [prompt],
-                  label: "metadata_only",
-              },
-          ]
-        : [
-              {
-                  contents: [prompt],
-                  label: "metadata_only",
-              },
-          ];
+    const contentVariants = [
+        ...(attachment
+            ? [
+                  {
+                      contents: [prompt, ...attachment.parts],
+                      label: "with_attachment",
+                  },
+              ]
+            : []),
+        {
+            contents: [prompt],
+            label: "metadata_only",
+        },
+    ];
 
     try {
         for (const model of resolveSmartCollectionsModels()) {
@@ -794,10 +767,10 @@ function mergeCollections(
 }
 
 async function applyDecisionToItem(args: {
-    readonly collections: SmartCollectionCatalogEntry[];
-    readonly decision: SmartCollectionDecision;
-    readonly itemId: string;
-    readonly userId: string;
+    collections: SmartCollectionCatalogEntry[];
+    decision: SmartCollectionDecision;
+    itemId: string;
+    userId: string;
 }): Promise<SmartCollectionCatalogEntry[]> {
     const collectionsByNameKey = new Map(
         args.collections.map((collection) => [collection.nameKey, collection])
@@ -904,8 +877,8 @@ async function applyDecisionToItem(args: {
 }
 
 export async function autoTagLibraryItemsByIds(args: {
-    readonly itemIds: readonly string[];
-    readonly userId: string;
+    itemIds: readonly string[];
+    userId: string;
 }): Promise<void> {
     const apiKey = resolveGeminiApiKey();
     if (!apiKey) {

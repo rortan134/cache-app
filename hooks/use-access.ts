@@ -3,18 +3,16 @@ import useSWR from "swr";
 
 const { useSession } = authClient;
 
-async function getActiveSubscription(email: string | undefined) {
-    if (!email) {
-        return null;
-    }
+async function getActiveSubscription() {
     const { data: subscriptions, error } = await authClient.subscription.list();
     if (error) {
         throw new Error(error.message);
     }
-    const activeSubscription = subscriptions.find(
-        (sub) => sub.status === "active" || sub.status === "trialing"
+    return (
+        subscriptions?.find(
+            (sub) => sub.status === "active" || sub.status === "trialing"
+        ) ?? null
     );
-    return activeSubscription ?? null;
 }
 
 function useAccess() {
@@ -30,20 +28,21 @@ function useAccess() {
         throw sessionError;
     }
 
-    const { data: subscription, isLoading: _isLoading } = useSWR<
+    const { data: subscription, isLoading: isSubscriptionLoading } = useSWR<
         Awaited<ReturnType<typeof getActiveSubscription>>
-    >(session?.user.email, getActiveSubscription, {
-        keepPreviousData: true,
-        refreshWhenHidden: true,
-        refreshWhenOffline: true,
-        revalidateOnMount: false,
-    });
+    >(
+        session?.user?.id ? `subscription-${session.user.id}` : null,
+        getActiveSubscription,
+        {
+            keepPreviousData: true,
+            refreshWhenHidden: true,
+            refreshWhenOffline: true,
+            revalidateOnMount: false,
+        }
+    );
 
-    const hasAccess =
-        subscription?.status === "active" ||
-        subscription?.status === "trialing";
-
-    const isLoading = isPending || _isLoading;
+    const hasAccess = !!subscription;
+    const isLoading = isPending || isSubscriptionLoading;
 
     return { hasAccess, isLoading, mutate, session, subscription };
 }

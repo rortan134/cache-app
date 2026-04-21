@@ -1,28 +1,22 @@
 import { CACHE_EXTENSION_READY_EVENT } from "@/lib/constants";
 import { getOwnerWindow } from "@/lib/dom";
+import { isRecord } from "@/lib/objects";
 import * as React from "react";
 
-function asRecord(value: unknown): Record<string, unknown> | null {
-    return typeof value === "object" && value !== null
-        ? (value as Record<string, unknown>)
-        : null;
-}
-
-function getIsExtensionInstalled() {
-    return document.documentElement.dataset.cacheExtensionInstalled === "true";
+function asRecord(value: unknown) {
+    return isRecord(value) ? value : null;
 }
 
 export function useIsExtensionInstalled() {
-    const [extensionInstalled, setExtensionInstalled] = React.useState(false);
+    const [isInstalled, setIsInstalled] = React.useState(false);
 
     React.useEffect(() => {
-        const window = getOwnerWindow();
-        const handleReady = () => {
-            setExtensionInstalled(true);
-        };
+        const ownerWindow = getOwnerWindow();
+
+        const handleReady = () => setIsInstalled(true);
 
         const handleMessage = (event: MessageEvent) => {
-            if (event.source !== window) {
+            if (event.source !== ownerWindow) {
                 return;
             }
 
@@ -32,18 +26,25 @@ export function useIsExtensionInstalled() {
             }
         };
 
-        setExtensionInstalled(getIsExtensionInstalled());
-        window.addEventListener(CACHE_EXTENSION_READY_EVENT, handleReady);
-        window.addEventListener("message", handleMessage);
+        // Check if already installed before subscribing
+        if (
+            ownerWindow.document.documentElement.dataset
+                .cacheExtensionInstalled === "true"
+        ) {
+            handleReady();
+        }
+
+        ownerWindow.addEventListener(CACHE_EXTENSION_READY_EVENT, handleReady);
+        ownerWindow.addEventListener("message", handleMessage);
 
         return () => {
-            window.removeEventListener(
+            ownerWindow.removeEventListener(
                 CACHE_EXTENSION_READY_EVENT,
                 handleReady
             );
-            window.removeEventListener("message", handleMessage);
+            ownerWindow.removeEventListener("message", handleMessage);
         };
     }, []);
 
-    return extensionInstalled;
+    return isInstalled;
 }

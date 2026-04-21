@@ -34,7 +34,7 @@ import {
 } from "@/prisma/client/enums";
 import { headers } from "next/headers";
 import { after } from "next/server";
-import { z } from "zod";
+import * as z from "zod";
 
 const log = createLogger("library:actions");
 const COLLECTION_NAME_MAX_LENGTH = 64;

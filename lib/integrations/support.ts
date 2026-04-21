@@ -627,11 +627,18 @@ export function listConnectedIntegrationIds(
     direction: IntegrationDirection,
     context: IntegrationConnectionContext
 ): IntegrationId[] {
-    return INTEGRATIONS.flatMap((integration) =>
-        isIntegrationConnected(integration.id, direction, context)
-            ? [integration.id]
-            : []
-    );
+    const sets = buildConnectionSets(context);
+    return INTEGRATIONS.filter((integration) => {
+        const definition = getDirectionDefinition(
+            integration as SupportedIntegration,
+            direction
+        );
+        return (
+            definition?.connectedWhen.some((signal) =>
+                integrationMatchesSignal(signal, sets)
+            ) ?? false
+        );
+    }).map((integration) => integration.id);
 }
 
 export function recordHasIntegrationId<K extends string>(

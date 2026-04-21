@@ -32,9 +32,10 @@ export async function createPaymentIntent({
             ]);
 
             if (cards.data.length === 0 && links.data.length === 0) {
-                throw new Error(
-                    `No valid payment methods found for customer ${customerId}.`
-                );
+                throw new StripeError({
+                    message: `No valid payment methods found for customer ${customerId}.`,
+                    operation: "payment::createPaymentIntent",
+                });
             }
         }
 
@@ -160,11 +161,10 @@ export async function cancelSubscription(customerId?: string) {
     }
 
     return await withStripe(async (stripe) => {
-        const subscriptionId = await stripe.subscriptions
-            .list({
-                customer: customerId,
-            })
-            .then((res) => res.data[0]?.id);
+        const { data: subscriptions } = await stripe.subscriptions.list({
+            customer: customerId,
+        });
+        const subscriptionId = subscriptions[0]?.id;
 
         if (!subscriptionId) {
             throw new StripeError({

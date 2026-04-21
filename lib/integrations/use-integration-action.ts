@@ -59,8 +59,6 @@ interface ImportResponse {
     readonly importedCount: number;
 }
 
-const DURATION_SECONDS_PATTERN = /^(\d+)(\.\d+)?s$/;
-
 function asRecord(value: unknown): Record<string, unknown> | null {
     return typeof value === "object" && value !== null
         ? (value as Record<string, unknown>)
@@ -103,20 +101,16 @@ function openExternal(url: string) {
 }
 
 function parseDurationMs(value: string | null): number | null {
-    if (!value) {
+    if (!value?.endsWith("s")) {
         return null;
     }
 
-    const match = DURATION_SECONDS_PATTERN.exec(value);
-    if (!match) {
-        return null;
-    }
-
-    return Math.round(Number(match[0].slice(0, -1)) * 1000);
+    const seconds = Number(value.slice(0, -1));
+    return Number.isNaN(seconds) ? null : Math.round(seconds * 1000);
 }
 
-const sleep = async (ms: number) =>
-    await new Promise<void>((resolve) => setTimeout(resolve, ms));
+const sleep = (ms: number) =>
+    new Promise<void>((resolve) => setTimeout(resolve, ms));
 
 async function createPickerSessionRequest(): Promise<SessionCreateResponse> {
     const response = await fetch("/api/google-photos/picker/session", {
@@ -200,17 +194,6 @@ async function importSelectedMedia(sessionId: string): Promise<ImportResponse> {
     return payload;
 }
 
-function resolveOpenActionLabel(
-    behavior: ExtensionOpenBehavior,
-    extensionInstalled: boolean
-): string {
-    if (!extensionInstalled && behavior.installUrl) {
-        return "Get Extension";
-    }
-
-    return "Open";
-}
-
 function resolveActionLabel(args: {
     connectBehavior?: OAuthLinkConnectBehavior | SocialSignInConnectBehavior;
     extensionInstalled: boolean;
@@ -233,7 +216,9 @@ function resolveActionLabel(args: {
     }
 
     if (role === "open" && openBehavior) {
-        return resolveOpenActionLabel(openBehavior, extensionInstalled);
+        return !extensionInstalled && openBehavior.installUrl
+            ? "Get Extension"
+            : "Open";
     }
 
     if (role === "connect" && connectBehavior) {
