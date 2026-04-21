@@ -119,11 +119,13 @@ import {
     createCollection,
     createCollectionFromItems,
     deleteCollection,
+    duplicateCollection,
     renameCollection,
     updateCollectionPriority,
     type CreateCollectionFromItemsResult,
     type CreateCollectionResult,
     type DeleteCollectionResult,
+    type DuplicateCollectionResult,
     type RenameCollectionResult,
     type UpdateCollectionPriorityResult,
 } from "@/lib/actions/collections";
@@ -571,19 +573,13 @@ function LibraryWorkspaceSidebar({
     const [isCreatePending, startCreateTransition] = useTransition();
     const [isRenamePending, startRenameTransition] = useTransition();
     const [isDeletePending, startDeleteTransition] = useTransition();
+    const [, startDuplicateTransition] = useTransition();
     const createInputId = useId();
     const createDescriptionId = useId();
     const renameInputId = useId();
     const { collections, itemsByCollectionId, setCollections, setItems } =
         actionDependencies;
-    const { copyToClipboard } = useCopyToClipboard({
-        onCopy: () => {
-            setCollectionActionFeedback({
-                message: "All collection links copied to the clipboard.",
-                tone: "success",
-            });
-        },
-    });
+    const { copyToClipboard } = useCopyToClipboard();
 
     const resetCreateDialog = () => {
         setCreateDialogDraft("");
@@ -667,8 +663,34 @@ function LibraryWorkspaceSidebar({
             return;
         }
 
-        setCollectionActionFeedback(null);
-        copyToClipboard(urls.join("\n"));
+        setCollectionActionFeedback(
+            copyToClipboard(urls.join("\n"))
+                ? {
+                      message: `Links from ${collection.name} copied to the clipboard.`,
+                      tone: "success",
+                  }
+                : {
+                      message: "We couldn't copy these links right now.",
+                      tone: "error",
+                  }
+        );
+    };
+
+    const handleCopyCollectionTitle = (
+        collection: LibraryCollectionSummary
+    ) => {
+        setCollectionActionFeedback(
+            copyToClipboard(collection.name)
+                ? {
+                      message: `${collection.name} title copied to the clipboard.`,
+                      tone: "success",
+                  }
+                : {
+                      message:
+                          "We couldn't copy this collection title right now.",
+                      tone: "error",
+                  }
+        );
     };
 
     const handleOpenCollectionLinks = (
@@ -966,16 +988,17 @@ function LibraryWorkspaceSidebar({
         });
     };
 
-    const syncCreatedCollection = (
-        result: Extract<CreateCollectionResult, { status: "CREATED" }>
-    ) => {
+    const syncCollection = (input: {
+        assignedItemIds: string[];
+        collection: LibraryCollectionSummary;
+    }) => {
         const nextCollection = {
-            createdAt: result.collection.createdAt,
-            description: result.collection.description,
-            id: result.collection.id,
-            name: result.collection.name,
-            priority: result.collection.priority,
-            updatedAt: result.collection.updatedAt,
+            createdAt: input.collection.createdAt,
+            description: input.collection.description,
+            id: input.collection.id,
+            name: input.collection.name,
+            priority: input.collection.priority,
+            updatedAt: input.collection.updatedAt,
         } satisfies LibraryCollectionTag;
 
         setCollections((current) =>
@@ -984,12 +1007,61 @@ function LibraryWorkspaceSidebar({
                 : sortCollections([...current, nextCollection])
         );
 
-        if (result.assignedItemId) {
-            const assignedItemId = result.assignedItemId;
+        if (input.assignedItemIds.length > 0) {
+            const [firstAssignedItemId] = input.assignedItemIds;
             setItems((current) =>
-                appendCollectionToItem(current, assignedItemId, nextCollection)
+                input.assignedItemIds.length === 1 && firstAssignedItemId
+                    ? appendCollectionToItem(
+                          current,
+                          firstAssignedItemId,
+                          nextCollection
+                      )
+                    : appendCollectionToItems(
+                          current,
+                          input.assignedItemIds,
+                          nextCollection
+                      )
             );
         }
+    };
+
+    const handleDuplicateCollection = (
+        collection: LibraryCollectionSummary
+    ) => {
+        setCollectionActionFeedback(null);
+
+        startDuplicateTransition(async () => {
+            let result: DuplicateCollectionResult;
+
+            try {
+                result = await duplicateCollection({
+                    collectionId: collection.id,
+                });
+            } catch {
+                result = {
+                    message:
+                        "We couldn't make a copy of this collection right now.",
+                    status: "ERROR",
+                };
+            }
+
+            if (result.status !== "CREATED") {
+                setCollectionActionFeedback({
+                    message: result.message,
+                    tone: "error",
+                });
+                return;
+            }
+
+            syncCollection({
+                assignedItemIds: result.assignedItemIds,
+                collection: result.collection,
+            });
+            setCollectionActionFeedback({
+                message: `${collection.name} copied as ${result.collection.name}.`,
+                tone: "success",
+            });
+        });
     };
 
     const handleCreateCollectionSubmit = () => {
@@ -1014,7 +1086,12 @@ function LibraryWorkspaceSidebar({
                 return;
             }
 
-            syncCreatedCollection(result);
+            syncCollection({
+                assignedItemIds: result.assignedItemId
+                    ? [result.assignedItemId]
+                    : [],
+                collection: result.collection,
+            });
             resetCreateDialog();
             setIsCreateDialogOpen(false);
         });
@@ -1057,7 +1134,12 @@ function LibraryWorkspaceSidebar({
                 return;
             }
 
-            syncCreatedCollection(result);
+            syncCollection({
+                assignedItemIds: result.assignedItemId
+                    ? [result.assignedItemId]
+                    : [],
+                collection: result.collection,
+            });
             setCollectionActionFeedback({
                 message: `${result.collection.name} created from template.`,
                 tone: "success",
@@ -1156,6 +1238,11 @@ function LibraryWorkspaceSidebar({
                                                         collection
                                                     )
                                                 }
+                                                onCopyTitle={() =>
+                                                    handleCopyCollectionTitle(
+                                                        collection
+                                                    )
+                                                }
                                                 onDelete={() =>
                                                     handleRequestDeleteCollection(
                                                         collection
@@ -1163,6 +1250,11 @@ function LibraryWorkspaceSidebar({
                                                 }
                                                 onExportCsv={() =>
                                                     handleExportCollectionToCsv(
+                                                        collection
+                                                    )
+                                                }
+                                                onMakeCopy={() =>
+                                                    handleDuplicateCollection(
                                                         collection
                                                     )
                                                 }
@@ -1924,6 +2016,28 @@ function isSearchHotkey(event: KeyboardEvent): boolean {
     }
 
     return SEARCH_HOTKEYS.some((hotkey) => eventHotkeys.has(hotkey));
+}
+
+function isTextEntryTarget(target: EventTarget | null): boolean {
+    return (
+        target instanceof HTMLElement &&
+        (target.isContentEditable ||
+            Boolean(
+                target.closest('input, textarea, select, [role="textbox"]')
+            ))
+    );
+}
+
+function isPrintablePaletteKey(event: KeyboardEvent): boolean {
+    return (
+        event.key.length === 1 &&
+        event.key.trim() !== "" &&
+        !event.isComposing &&
+        event.key !== "Dead" &&
+        !event.metaKey &&
+        !event.ctrlKey &&
+        !event.altKey
+    );
 }
 
 function isSearchCancelKey(
@@ -4571,14 +4685,10 @@ function LibraryBrowser({
     useEffect(() => {
         const handleWindowKeyDown = (event: KeyboardEvent) => {
             const target = event.target;
-            const isEditable =
-                target instanceof HTMLElement &&
-                (target.isContentEditable ||
-                    Boolean(
-                        target.closest(
-                            'input, textarea, select, button, [role="textbox"]'
-                        )
-                    ));
+            const isTextEntry = isTextEntryTarget(target);
+            const isPaletteEventTarget =
+                target instanceof Node &&
+                commandPanelContainerRef.current?.contains(target);
 
             if (isSearchHotkey(event)) {
                 event.preventDefault();
@@ -4591,11 +4701,25 @@ function LibraryBrowser({
                 !event.metaKey &&
                 !event.ctrlKey &&
                 !event.altKey &&
-                !isEditable
+                !isTextEntry
             ) {
                 event.preventDefault();
                 focusPaletteInputRef.current();
+                return;
             }
+
+            if (
+                event.defaultPrevented ||
+                isTextEntry ||
+                isPaletteEventTarget ||
+                !isPrintablePaletteKey(event)
+            ) {
+                return;
+            }
+
+            event.preventDefault();
+            setPaletteInput((current) => `${current}${event.key}`);
+            focusPaletteInputRef.current();
         };
 
         window.addEventListener("keydown", handleWindowKeyDown);

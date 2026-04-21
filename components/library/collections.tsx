@@ -63,6 +63,7 @@ import {
     Clock,
     Component,
     CopyIcon,
+    CopyPlus,
     EllipsisIcon,
     ExternalLinkIcon,
     FileSpreadsheetIcon,
@@ -516,15 +517,19 @@ export function CollectionsListItem({
 }
 
 export function CollectionsListItemMeta({
+    onCopyTitle,
     onCopyLinks,
     onDelete,
     onExportCsv,
+    onMakeCopy,
     onOpenLinks,
     onRename,
 }: {
+    onCopyTitle: () => void;
     onCopyLinks: () => void;
     onDelete: () => void;
     onExportCsv: () => void;
+    onMakeCopy: () => void;
     onOpenLinks: () => void;
     onRename: () => void;
 }) {
@@ -571,26 +576,9 @@ export function CollectionsListItemMeta({
 
     return (
         <div className="absolute top-1/2 right-0 flex size-8 -translate-y-1/2 items-center justify-center">
-            <Popover>
-                <PopoverTrigger
-                    openOnHover
-                    render={
-                        <span className="pointer-events-none text-nowrap text-(--text-muted-color) text-xs tabular-nums transition-opacity focus-visible:opacity-0 group-focus-within:opacity-0 group-hover:opacity-0">
-                            {COMPACT_NUMBER_FORMATTER.format(
-                                collection.itemCount
-                            )}
-                        </span>
-                    }
-                />
-                <PopoverPopup align="end" side="top" tooltipStyle>
-                    <p className="text-nowrap font-medium text-xs leading-none">
-                        {collection.itemCount} items
-                    </p>
-                    <p className="mt-1 text-nowrap text-[10px] text-muted-foreground leading-none">
-                        Updated {dayjs(collection.updatedAt).fromNow()}
-                    </p>
-                </PopoverPopup>
-            </Popover>
+            <span className="pointer-events-none text-nowrap text-(--text-muted-color) text-xs tabular-nums transition-opacity focus-visible:opacity-0 group-focus-within:opacity-0 group-hover:opacity-0">
+                {COMPACT_NUMBER_FORMATTER.format(collection.itemCount)}
+            </span>
             <Menu>
                 <MenuTrigger
                     render={
@@ -620,24 +608,44 @@ export function CollectionsListItemMeta({
                             Share
                         </MenuItem>
                         <MenuSub>
-                            <MenuSubTrigger disabled={!hasItems}>
+                            <MenuSubTrigger>
                                 <Forward className="inline-block size-4 text-muted-foreground" />
                                 Export
                             </MenuSubTrigger>
                             <MenuSubPopup>
-                                <MenuItem closeOnClick onClick={onCopyLinks}>
+                                <MenuItem closeOnClick onClick={onCopyTitle}>
+                                    <CopyIcon className="size-4 text-muted-foreground" />
+                                    Copy title
+                                </MenuItem>
+                                <MenuItem
+                                    closeOnClick
+                                    disabled={!hasItems}
+                                    onClick={onCopyLinks}
+                                >
                                     <CopyIcon className="size-4 text-muted-foreground" />
                                     Copy all links
                                 </MenuItem>
-                                <MenuItem closeOnClick onClick={onOpenLinks}>
+                                <MenuItem
+                                    closeOnClick
+                                    disabled={!hasItems}
+                                    onClick={onOpenLinks}
+                                >
                                     <ExternalLinkIcon className="size-4 text-muted-foreground" />
                                     Open all links
                                 </MenuItem>
-                                <MenuItem closeOnClick onClick={onExportCsv}>
+                                <MenuItem
+                                    closeOnClick
+                                    disabled={!hasItems}
+                                    onClick={onExportCsv}
+                                >
                                     <FileSpreadsheetIcon className="size-4 text-muted-foreground" />
                                     Export to CSV
                                 </MenuItem>
-                                <MenuItem>
+                                <MenuItem closeOnClick onClick={onMakeCopy}>
+                                    <CopyPlus className="size-4 text-muted-foreground" />
+                                    Make a copy
+                                </MenuItem>
+                                <MenuItem disabled={!hasItems}>
                                     <NotionIcon />
                                     Send to Notion
                                 </MenuItem>
@@ -655,6 +663,10 @@ export function CollectionsListItemMeta({
                             Delete
                         </MenuItem>
                     </MenuGroup>
+                    <MenuSeparator />
+                    <p className="text-nowrap p-2 text-[10px] text-muted-foreground leading-none">
+                        Last updated {dayjs(collection.updatedAt).fromNow()}
+                    </p>
                 </MenuPopup>
             </Menu>
         </div>

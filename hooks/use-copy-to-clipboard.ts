@@ -10,7 +10,7 @@ interface UseCopyToClipboardOptions {
 }
 
 interface UseCopyToClipboardResult {
-    copyToClipboard: (value: string) => void;
+    copyToClipboard: (value: string) => boolean;
     isCopied: boolean;
 }
 
@@ -27,12 +27,12 @@ export function useCopyToClipboard({
         const ownerWindow = getOwnerWindow();
 
         if (!(ownerWindow && value)) {
-            return;
+            return false;
         }
 
         const success = copy(value);
         if (!success) {
-            return;
+            return false;
         }
 
         timeoutManager.clear();
@@ -46,6 +46,8 @@ export function useCopyToClipboard({
                 setIsCopied(false);
             });
         }
+
+        return true;
     };
 
     return { copyToClipboard, isCopied };

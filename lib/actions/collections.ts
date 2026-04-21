@@ -7,7 +7,7 @@ import type {
     LibraryCollectionTag,
 } from "@/lib/types";
 import { createLogger } from "@/lib/logs/console/logger";
-import { normalizeCollectionName } from "@/lib/strings";
+import { getIncrementedName, normalizeCollectionName } from "@/lib/strings";
 import { prisma } from "@/prisma";
 import type { CollectionPriority } from "@/prisma/client/enums";
 import * as z from "zod";
@@ -52,6 +52,10 @@ const CreateCollectionFromItemsInputSchema = z.object({
 
 const DeleteCollectionInputSchema = z.object({
     collectionId: z.string().trim().min(1, "Select a collection to delete."),
+});
+
+const DuplicateCollectionInputSchema = z.object({
+    collectionId: z.string().trim().min(1, "Select a collection to copy."),
 });
 
 const UpdateCollectionPriorityInputSchema = z.object({
@@ -113,6 +117,17 @@ export type DeleteCollectionResult =
     | {
           collection: Pick<LibraryCollectionSummary, "id" | "name">;
           status: "DELETED";
+      }
+    | {
+          message: string;
+          status: "ERROR" | "INVALID" | "NOT_FOUND" | "UNAUTHORIZED";
+      };
+
+export type DuplicateCollectionResult =
+    | {
+          assignedItemIds: string[];
+          collection: LibraryCollectionSummary;
+          status: "CREATED";
       }
     | {
           message: string;
@@ -213,6 +228,150 @@ export async function deleteCollection(input: {
         log.error("Unexpected collection delete failure", error);
         return {
             message: "We couldn't delete this collection right now.",
+            status: "ERROR",
+        };
+    }
+}
+
+export async function duplicateCollection(input: {
+    collectionId: string;
+}): Promise<DuplicateCollectionResult> {
+    const parsed = DuplicateCollectionInputSchema.safeParse(input);
+    if (!parsed.success) {
+        return {
+            message:
+                parsed.error.issues[0]?.message ??
+                "Select a collection to copy.",
+            status: "INVALID",
+        };
+    }
+
+    const userId = await getSessionUserId();
+    if (!userId) {
+        return {
+            message: "Sign in again to manage collections.",
+            status: "UNAUTHORIZED",
+        };
+    }
+
+    try {
+        const result = await prisma.$transaction(async (tx) => {
+            const sourceCollection = await tx.collection.findFirst({
+                select: {
+                    description: true,
+                    items: {
+                        select: {
+                            id: true,
+                            source: true,
+                        },
+                    },
+                    name: true,
+                    priority: true,
+                },
+                where: {
+                    id: parsed.data.collectionId,
+                    userId,
+                },
+            });
+
+            if (!sourceCollection) {
+                throw new LibraryCollectionError({
+                    code: "not_found",
+                    message: "That collection is no longer available.",
+                    operation: "duplicateCollection",
+                });
+            }
+
+            const existingNames = await tx.collection.findMany({
+                select: {
+                    name: true,
+                },
+                where: {
+                    userId,
+                },
+            });
+            const existingNameKeys = new Set(
+                existingNames.map(
+                    (collection) =>
+                        normalizeCollectionName(collection.name).nameKey
+                )
+            );
+            let nextName = sourceCollection.name;
+
+            while (
+                existingNameKeys.has(normalizeCollectionName(nextName).nameKey)
+            ) {
+                nextName = getIncrementedName(nextName, [nextName]);
+            }
+
+            const normalized = normalizeCollectionName(nextName);
+
+            const duplicatedCollection = await tx.collection.create({
+                data: {
+                    description: sourceCollection.description,
+                    items:
+                        sourceCollection.items.length > 0
+                            ? {
+                                  connect: sourceCollection.items.map(
+                                      (item) => ({
+                                          id: item.id,
+                                      })
+                                  ),
+                              }
+                            : undefined,
+                    name: normalized.name,
+                    nameKey: normalized.nameKey,
+                    priority: sourceCollection.priority,
+                    userId,
+                },
+                select: {
+                    createdAt: true,
+                    description: true,
+                    id: true,
+                    name: true,
+                    priority: true,
+                    updatedAt: true,
+                },
+            });
+
+            return {
+                assignedItemIds: sourceCollection.items.map((item) => item.id),
+                collection: {
+                    createdAt: duplicatedCollection.createdAt,
+                    description: duplicatedCollection.description,
+                    id: duplicatedCollection.id,
+                    itemCount: sourceCollection.items.length,
+                    name: duplicatedCollection.name,
+                    priority: duplicatedCollection.priority,
+                    sources: Array.from(
+                        new Set(
+                            sourceCollection.items.map((item) => item.source)
+                        )
+                    ),
+                    updatedAt: duplicatedCollection.updatedAt,
+                } satisfies LibraryCollectionSummary,
+            };
+        });
+
+        return {
+            assignedItemIds: result.assignedItemIds,
+            collection: result.collection,
+            status: "CREATED",
+        };
+    } catch (error) {
+        if (
+            LibraryCollectionError.isInstance(error) &&
+            error.data.code === "not_found"
+        ) {
+            return {
+                message: extractNamedErrorMessage(error).message,
+                status: "NOT_FOUND",
+            };
+        }
+
+        log.error("Unexpected collection duplicate failure", error);
+        return {
+            message: "We couldn't make a copy of this collection right now.",
             status: "ERROR",
         };
     }
