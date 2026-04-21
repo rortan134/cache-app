@@ -9,47 +9,47 @@ const SNAPSHOT_IMPORT_TRANSACTION_TIMEOUT_MS = 60_000;
 const SNAPSHOT_IMPORT_TRANSACTION_MAX_WAIT_MS = 10_000;
 
 interface SnapshotImportRow {
-    readonly browserProfileId: string;
-    readonly caption: string | null;
-    readonly externalId: string;
-    readonly kind: "bookmark" | "folder";
-    readonly parentExternalId: string | null;
-    readonly postedAt: Date | null;
-    readonly scrapedAt: Date | null;
-    readonly source: LibraryItemSource;
-    readonly sourceDeviceId: string | null;
-    readonly sourceDeviceName: string | null;
-    readonly sourceMetadata: Record<string, unknown> | null;
-    readonly thumbnailUrl: string | null;
-    readonly url: string;
+    browserProfileId: string;
+    caption: string | null;
+    externalId: string;
+    kind: "bookmark" | "folder";
+    parentExternalId: string | null;
+    postedAt: Date | null;
+    scrapedAt: Date | null;
+    source: LibraryItemSource;
+    sourceDeviceId: string | null;
+    sourceDeviceName: string | null;
+    sourceMetadata: Record<string, unknown> | null;
+    thumbnailUrl: string | null;
+    url: string;
 }
 
 export interface SnapshotImportItemInput {
-    readonly browserProfileId?: string;
-    readonly caption?: string | null;
-    readonly externalId?: string | null;
-    readonly kind?: "bookmark" | "folder";
-    readonly parentExternalId?: string | null;
-    readonly postedAt?: Date | null;
-    readonly scrapedAt?: Date | null;
-    readonly sourceDeviceId?: string | null;
-    readonly sourceDeviceName?: string | null;
-    readonly sourceMetadata?: Record<string, unknown> | null;
-    readonly thumbnailUrl?: string | null;
-    readonly url: string;
+    browserProfileId?: string;
+    caption?: string | null;
+    externalId?: string | null;
+    kind?: "bookmark" | "folder";
+    parentExternalId?: string | null;
+    postedAt?: Date | null;
+    scrapedAt?: Date | null;
+    sourceDeviceId?: string | null;
+    sourceDeviceName?: string | null;
+    sourceMetadata?: Record<string, unknown> | null;
+    thumbnailUrl?: string | null;
+    url: string;
 }
 
 export interface SnapshotImportResult {
-    readonly importedCount: number;
-    readonly prunedCount: number;
-    readonly skippedCount: number;
-    readonly smartCollectionItemIds: readonly string[];
-    readonly updatedCount: number;
+    importedCount: number;
+    prunedCount: number;
+    skippedCount: number;
+    smartCollectionItemIds: string[];
+    updatedCount: number;
 }
 
 interface ExistingLibraryItem {
-    readonly externalId: string;
-    readonly id: string;
+    externalId: string;
+    id: string;
 }
 
 interface LibraryItemDelegate {
@@ -115,7 +115,7 @@ function normalizeSnapshotRow(
     };
 }
 
-function groupRowsByProfile(rows: readonly SnapshotImportRow[]) {
+function groupRowsByProfile(rows: SnapshotImportRow[]) {
     const grouped = new Map<string, Map<string, SnapshotImportRow>>();
 
     for (const row of rows) {
@@ -129,7 +129,7 @@ function groupRowsByProfile(rows: readonly SnapshotImportRow[]) {
     return grouped;
 }
 
-function chunkRows<T>(rows: readonly T[], size: number) {
+function chunkRows<T>(rows: T[], size: number) {
     const chunks: T[][] = [];
     for (let index = 0; index < rows.length; index += size) {
         chunks.push(rows.slice(index, index + size));
@@ -138,12 +138,12 @@ function chunkRows<T>(rows: readonly T[], size: number) {
 }
 
 async function importSnapshotProfileRows(args: {
-    readonly browserProfileId: string;
-    readonly libraryItemDelegate: LibraryItemDelegate;
-    readonly rows: readonly SnapshotImportRow[];
-    readonly snapshotComplete: boolean;
-    readonly source: LibraryItemSource;
-    readonly userId: string;
+    browserProfileId: string;
+    libraryItemDelegate: LibraryItemDelegate;
+    rows: SnapshotImportRow[];
+    snapshotComplete: boolean;
+    source: LibraryItemSource;
+    userId: string;
 }): Promise<{
     importedCount: number;
     prunedCount: number;
@@ -248,11 +248,11 @@ async function importSnapshotProfileRows(args: {
 }
 
 export async function importLibraryItemSnapshot(args: {
-    readonly browserProfileIdsToSync?: readonly string[];
-    readonly items: readonly SnapshotImportItemInput[];
-    readonly snapshotComplete: boolean;
-    readonly source: LibraryItemSource;
-    readonly userId: string;
+    browserProfileIdsToSync?: string[];
+    items: SnapshotImportItemInput[];
+    snapshotComplete: boolean;
+    source: LibraryItemSource;
+    userId: string;
 }): Promise<SnapshotImportResult> {
     const normalizedRows = args.items
         .map((item) => normalizeSnapshotRow(args.source, item))

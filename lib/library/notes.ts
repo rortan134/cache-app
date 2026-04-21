@@ -149,9 +149,7 @@ function renderNoteTextNode(node: SerializedTextNode): string {
     return html;
 }
 
-function renderNoteChildren(
-    children: readonly SerializedLexicalNode[]
-): string {
+function renderNoteChildren(children: SerializedLexicalNode[]): string {
     return children.map((child) => renderNoteNode(child)).join("");
 }
 

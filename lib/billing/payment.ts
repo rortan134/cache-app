@@ -165,7 +165,7 @@ export async function cancelSubscription(customerId?: string) {
         if (!subscriptionId) {
             throw new StripeError({
                 message: "Subscription not found",
-                operation: "cancelSubscription",
+                operation: "subscription::cancelSubscription",
             });
         }
 

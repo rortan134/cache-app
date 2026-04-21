@@ -1,3 +1,4 @@
+import { serverEnv } from "@/env/server";
 import { createLogger } from "@/lib/logs/console/logger";
 import Stripe from "stripe";
 import { StripeError } from "./error";
@@ -6,7 +7,7 @@ const logger = createLogger("Stripe");
 
 let stripeInstance: Stripe | null = null;
 
-export const isStripeEnabled = () => !!process.env.STRIPE_SECRET_KEY;
+export const isStripeEnabled = () => !!serverEnv.STRIPE_SECRET_KEY;
 
 /**
  * Get configured Stripe client instance
@@ -25,7 +26,7 @@ export const getStripeClient = (): Stripe => {
         });
     }
 
-    stripeInstance = new Stripe(process.env.STRIPE_SECRET_KEY ?? "", {
+    stripeInstance = new Stripe(serverEnv.STRIPE_SECRET_KEY, {
         apiVersion: "2026-03-25.dahlia",
         typescript: true,
     });
@@ -66,11 +67,11 @@ export const withStripe = async <T>(
 };
 
 export const getStripeWebhookSecret = (): string => {
-    if (!process.env.STRIPE_WEBHOOK_SECRET) {
+    if (!serverEnv.STRIPE_WEBHOOK_SECRET) {
         throw new StripeError({
             message: "Stripe webhook secret is not set",
             operation: "core::getStripeWebhookSecret",
         });
     }
-    return process.env.STRIPE_WEBHOOK_SECRET;
+    return serverEnv.STRIPE_WEBHOOK_SECRET;
 };

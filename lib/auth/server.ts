@@ -1,6 +1,5 @@
 import { getStripeClient, getStripeWebhookSecret } from "@/lib/billing/client";
 import { APP_NAME } from "@/lib/constants";
-import { setupUserCollections } from "@/lib/library/setup-user";
 import { prisma } from "@/prisma";
 import type { OAuth2Tokens } from "@better-auth/core/oauth2";
 import { stripe } from "@better-auth/stripe";
@@ -9,6 +8,7 @@ import { prismaAdapter } from "better-auth/adapters/prisma";
 import { nextCookies } from "better-auth/next-js";
 import type { GenericOAuthConfig } from "better-auth/plugins";
 import { genericOAuth, multiSession, oneTap } from "better-auth/plugins";
+import { serverEnv } from "@/env/server";
 import { headers } from "next/headers";
 
 interface PinterestUserAccount {
@@ -145,23 +145,12 @@ async function githubUserFromTokens(tokens: OAuth2Tokens): Promise<{
     };
 }
 
-function requiredEnv(name: string): string {
-    const value = process.env[name];
-    if (value === undefined || value === "") {
-        throw new Error(`Missing required environment variable: ${name}`);
-    }
-    return value;
-}
-
 function optionalEnv(name: string): string | null {
     const value = process.env[name];
     return value === undefined || value === "" ? null : value;
 }
 
-const baseURL =
-    process.env.BETTER_AUTH_URL ??
-    process.env.NEXT_PUBLIC_APP_URL ??
-    "http://localhost:3000";
+const baseURL = serverEnv.BETTER_AUTH_URL;
 
 const trustedOrigins = [
     baseURL,
@@ -177,20 +166,22 @@ const githubClientId = optionalEnv("GITHUB_CLIENT_ID");
 const githubClientSecret = optionalEnv("GITHUB_CLIENT_SECRET");
 const githubOAuthEnabled = Boolean(githubClientId && githubClientSecret);
 
-const genericOAuthConfig: GenericOAuthConfig[] = [
-    {
+const genericOAuthConfig: GenericOAuthConfig[] = [];
+
+if (serverEnv.PINTEREST_CLIENT_ID && serverEnv.PINTEREST_CLIENT_SECRET) {
+    genericOAuthConfig.push({
         authentication: "basic",
         authorizationUrl: "https://www.pinterest.com/oauth/",
-        clientId: requiredEnv("PINTEREST_CLIENT_ID"),
-        clientSecret: requiredEnv("PINTEREST_CLIENT_SECRET"),
+        clientId: serverEnv.PINTEREST_CLIENT_ID,
+        clientSecret: serverEnv.PINTEREST_CLIENT_SECRET,
         disableSignUp: true,
         getUserInfo: pinterestUserFromTokens,
         pkce: true,
         providerId: "pinterest",
         scopes: ["user_accounts:read", "boards:read", "pins:read"],
         tokenUrl: "https://api.pinterest.com/v5/oauth/token",
-    },
-];
+    });
+}
 
 if (xClientId && xClientSecret) {
     genericOAuthConfig.push({
@@ -223,7 +214,9 @@ if (githubClientId && githubClientSecret) {
 
 const trustedProviders = [
     "google",
-    "pinterest",
+    ...(serverEnv.PINTEREST_CLIENT_ID && serverEnv.PINTEREST_CLIENT_SECRET
+        ? ["pinterest"]
+        : []),
     ...(githubOAuthEnabled ? ["github"] : []),
     ...(xOAuthEnabled ? ["x"] : []),
 ];
@@ -241,22 +234,13 @@ export const auth = betterAuth({
     database: prismaAdapter(prisma, {
         provider: "postgresql",
     }),
-    databaseHooks: {
-        user: {
-            create: {
-                after: async (user) => {
-                    await setupUserCollections(user.id);
-                },
-            },
-        },
-    },
     emailAndPassword: {
         enabled: false,
     },
     plugins: [
         nextCookies(),
         oneTap({
-            clientId: requiredEnv("GOOGLE_CLIENT_ID"),
+            clientId: serverEnv.GOOGLE_CLIENT_ID,
         }),
         genericOAuth({
             config: genericOAuthConfig,
@@ -269,18 +253,16 @@ export const auth = betterAuth({
                 enabled: true,
                 plans: [
                     {
-                        annualDiscountPriceId: requiredEnv(
-                            "STRIPE_PRICE_ID_YEARLY"
-                        ),
+                        annualDiscountPriceId: serverEnv.STRIPE_PRICE_ID_YEARLY,
                         name: "pro",
-                        priceId: requiredEnv("STRIPE_PRICE_ID_MONTHLY"),
+                        priceId: serverEnv.STRIPE_PRICE_ID_MONTHLY,
                     },
                 ],
             },
         }),
         multiSession(),
     ],
-    secret: requiredEnv("BETTER_AUTH_SECRET"),
+    secret: serverEnv.BETTER_AUTH_SECRET,
     session: {
         cookieCache: {
             enabled: true,
@@ -290,8 +272,8 @@ export const auth = betterAuth({
     socialProviders: {
         google: {
             accessType: "offline",
-            clientId: requiredEnv("GOOGLE_CLIENT_ID"),
-            clientSecret: requiredEnv("GOOGLE_CLIENT_SECRET"),
+            clientId: serverEnv.GOOGLE_CLIENT_ID,
+            clientSecret: serverEnv.GOOGLE_CLIENT_SECRET,
             prompt: "select_account consent",
             scope: [
                 "openid",

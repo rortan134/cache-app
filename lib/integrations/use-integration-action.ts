@@ -41,22 +41,22 @@ interface UseIntegrationActionsArgs {
 }
 
 interface SessionCreateResponse {
-    readonly error?: string;
-    readonly pickerUri: string | null;
-    readonly pollIntervalMs: number;
-    readonly sessionId: string;
-    readonly timeoutIn: string | null;
+    error?: string;
+    pickerUri: string | null;
+    pollIntervalMs: number;
+    sessionId: string;
+    timeoutIn: string | null;
 }
 
 interface SessionPollResponse {
-    readonly error?: string;
-    readonly mediaItemsSet: boolean;
-    readonly pollIntervalMs: number;
+    error?: string;
+    mediaItemsSet: boolean;
+    pollIntervalMs: number;
 }
 
 interface ImportResponse {
-    readonly error?: string;
-    readonly importedCount: number;
+    error?: string;
+    importedCount: number;
 }
 
 function asRecord(value: unknown): Record<string, unknown> | null {
