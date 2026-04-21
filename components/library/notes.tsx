@@ -16,6 +16,7 @@ import { Menu, MenuItem, MenuPopup, MenuTrigger } from "@/components/ui/menu";
 import { cn } from "@/lib/cn";
 import {
     NOTE_EMPTY_HTML,
+    extractNoteText,
     isNoteSerializedEditorState,
     normalizeNoteHtml,
     serializeNoteEditorStateToHtml,
@@ -63,8 +64,8 @@ import {
     ExternalLinkIcon,
     ItalicIcon,
     Maximize2,
-    Minimize2,
     MessageCircleIcon,
+    Minimize2,
     StrikethroughIcon,
     UnderlineIcon,
     XIcon,
@@ -79,30 +80,30 @@ import {
 } from "react";
 
 interface NoteDraft {
-    readonly contentHtml: string;
-    readonly contentState: NoteSerializedEditorState | null;
+    contentHtml: string;
+    contentState: NoteSerializedEditorState | null;
 }
 
 interface Props {
-    readonly note: LibraryItemWithCollections | null;
-    readonly onOpenChange: (open: boolean) => void;
-    readonly onSave: (draft: NoteDraft) => Promise<boolean> | boolean;
-    readonly onUrlPaste: (url: string) => Promise<void> | void;
-    readonly open: boolean;
-    readonly saving: boolean;
+    note: LibraryItemWithCollections | null;
+    onOpenChange: (open: boolean) => void;
+    onSave: (draft: NoteDraft) => Promise<boolean> | boolean;
+    onUrlPaste: (url: string) => Promise<void> | void;
+    open: boolean;
+    saving: boolean;
 }
 
 interface FormatState {
-    readonly blockType: NoteBlockType;
-    readonly bold: boolean;
-    readonly italic: boolean;
-    readonly strikeThrough: boolean;
-    readonly underline: boolean;
+    blockType: NoteBlockType;
+    bold: boolean;
+    italic: boolean;
+    strikeThrough: boolean;
+    underline: boolean;
 }
 
 interface NoteTextStats {
-    readonly characterCount: number;
-    readonly wordCount: number;
+    characterCount: number;
+    wordCount: number;
 }
 
 type NoteBlockType = "h1" | "h2" | "h3" | "paragraph";
@@ -135,8 +136,8 @@ const NOTE_EDITOR_NODES = [HeadingNode];
 const NOTE_EDITOR_NAMESPACE = "cache-library-note";
 const NOTE_WORD_SEPARATOR = /\s+/;
 
-const chatProviders = {
-    chatgpt: {
+const chatProviders = [
+    {
         createUrl: (prompt: string) =>
             `https://chatgpt.com/?${new URLSearchParams({
                 hints: "search",
@@ -145,7 +146,7 @@ const chatProviders = {
         icon: OpenAIIcon,
         title: "Open in ChatGPT",
     },
-    claude: {
+    {
         createUrl: (query: string) =>
             `https://claude.ai/new?${new URLSearchParams({
                 q: query,
@@ -153,7 +154,7 @@ const chatProviders = {
         icon: ClaudeIcon,
         title: "Open in Claude",
     },
-    cursor: {
+    {
         createUrl: (text: string) => {
             const url = new URL("https://cursor.com/link/prompt");
             url.searchParams.set("text", text);
@@ -162,7 +163,7 @@ const chatProviders = {
         icon: CursorIcon,
         title: "Open in Cursor",
     },
-    scira: {
+    {
         createUrl: (query: string) =>
             `https://scira.ai/?${new URLSearchParams({
                 q: query,
@@ -170,7 +171,7 @@ const chatProviders = {
         icon: SciraIcon,
         title: "Open in Scira",
     },
-    t3: {
+    {
         createUrl: (query: string) =>
             `https://t3.chat/new?${new URLSearchParams({
                 q: query,
@@ -178,7 +179,7 @@ const chatProviders = {
         icon: T3ChatIcon,
         title: "Open in T3 Chat",
     },
-    v0: {
+    {
         createUrl: (query: string) =>
             `https://v0.app?${new URLSearchParams({
                 q: query,
@@ -186,11 +187,7 @@ const chatProviders = {
         icon: V0Icon,
         title: "Open in v0",
     },
-};
-
-const chatProviderList = Object.values(
-    chatProviders
-) as (typeof chatProviders)[keyof typeof chatProviders][];
+];
 
 function noteDraftFromItem(note: LibraryItemWithCollections | null): NoteDraft {
     const contentState = isNoteSerializedEditorState(note?.noteContentState)
@@ -212,44 +209,16 @@ function noteDraftsMatch(left: NoteDraft, right: NoteDraft): boolean {
     );
 }
 
-function noteHtmlHasMeaningfulContent(contentHtml: string): boolean {
-    const textContent = contentHtml
-        .replaceAll(/<[^>]*>/g, " ")
-        .replaceAll("&nbsp;", " ")
-        .trim();
-
-    return textContent.length > 0;
-}
-
-function getNotePlainText(contentHtml: string): string {
-    return contentHtml
-        .replaceAll(/<br\s*\/?>/gi, "\n")
-        .replaceAll(/<\/(h[1-6]|p|div)>/gi, "\n")
-        .replaceAll(/<[^>]*>/g, "")
-        .replaceAll("&nbsp;", " ")
-        .replaceAll("&amp;", "&")
-        .replaceAll("&lt;", "<")
-        .replaceAll("&gt;", ">")
-        .replaceAll("&quot;", '"')
-        .replaceAll("&#39;", "'")
-        .replaceAll(/\u00a0/g, " ");
-}
-
 function getNoteTextStats(contentHtml: string): NoteTextStats {
-    const plainText = getNotePlainText(contentHtml);
-    const normalizedWords = plainText.trim();
+    const plainText = extractNoteText(contentHtml);
 
     return {
         characterCount: plainText.length,
         wordCount:
-            normalizedWords.length === 0
+            plainText.length === 0
                 ? 0
-                : normalizedWords.split(NOTE_WORD_SEPARATOR).length,
+                : plainText.split(NOTE_WORD_SEPARATOR).length,
     };
-}
-
-function getOpenInChatQuery(contentHtml: string): string {
-    return getNotePlainText(contentHtml).trim();
 }
 
 function noteDraftShouldSave(
@@ -265,7 +234,7 @@ function noteDraftShouldSave(
         return true;
     }
 
-    return noteHtmlHasMeaningfulContent(currentDraft.contentHtml);
+    return extractNoteText(currentDraft.contentHtml).length > 0;
 }
 
 function getSelectedBlockType(): NoteBlockType {
@@ -468,8 +437,8 @@ function NoteContentPlugin({
     onDraftChange,
     onUrlPaste,
 }: {
-    readonly onDraftChange: (draft: NoteDraft) => void;
-    readonly onUrlPaste: (url: string) => Promise<void> | void;
+    onDraftChange: (draft: NoteDraft) => void;
+    onUrlPaste: (url: string) => Promise<void> | void;
 }) {
     const handlePaste = async (event: ClipboardEvent<HTMLDivElement>) => {
         const pastedText = event.clipboardData.getData("text/plain");
@@ -522,7 +491,7 @@ function NoteContentPlugin({
     );
 }
 
-function NoteStatsFooter({ contentHtml }: { readonly contentHtml: string }) {
+function NoteStatsFooter({ contentHtml }: { contentHtml: string }) {
     const stats = getNoteTextStats(contentHtml);
 
     return (
@@ -539,10 +508,10 @@ function NoteEditor({
     onDraftChange,
     onUrlPaste,
 }: {
-    readonly editorKey: number;
-    readonly initialDraft: NoteDraft;
-    readonly onDraftChange: (draft: NoteDraft) => void;
-    readonly onUrlPaste: (url: string) => Promise<void> | void;
+    editorKey: number;
+    initialDraft: NoteDraft;
+    onDraftChange: (draft: NoteDraft) => void;
+    onUrlPaste: (url: string) => Promise<void> | void;
 }) {
     let initialEditorState: InitialConfigType["editorState"] = null;
 
@@ -568,7 +537,7 @@ function NoteEditor({
         };
     }
 
-    const initialConfig: InitialConfigType = {
+    const initialConfig = {
         editorState: initialEditorState,
         namespace: NOTE_EDITOR_NAMESPACE,
         nodes: NOTE_EDITOR_NODES,
@@ -576,7 +545,7 @@ function NoteEditor({
             console.error(error);
         },
         theme: NOTE_EDITOR_THEME,
-    };
+    } satisfies InitialConfigType;
 
     return (
         <LexicalComposer initialConfig={initialConfig} key={editorKey}>
@@ -658,7 +627,7 @@ export function LibraryNoteDrawer({
         }
     };
 
-    const query = getOpenInChatQuery(draft.contentHtml);
+    const query = extractNoteText(draft.contentHtml);
     const ExpandIcon = isExpanded ? Minimize2 : Maximize2;
 
     return (
@@ -734,7 +703,7 @@ export function LibraryNoteDrawer({
                             <ChevronDownIcon className="size-3.5" />
                         </MenuTrigger>
                         <MenuPopup align="start" className="w-60">
-                            {chatProviderList.map((provider) => {
+                            {chatProviders.map((provider) => {
                                 const ProviderIcon = provider.icon;
 
                                 return (

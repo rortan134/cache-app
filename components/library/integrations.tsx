@@ -233,20 +233,25 @@ export function IntegrationsListEmpty({
     );
 }
 
+const ACTION_ICON_MAP: Record<
+    IntegrationActionIcon,
+    React.ComponentType<{ className?: string }>
+> = {
+    images: Images,
+    refresh: RefreshCw,
+};
+
 /** @internal */
 function IntegrationActionIconGlyph({
     icon,
 }: {
     icon?: IntegrationActionIcon;
 }) {
-    switch (icon) {
-        case "images":
-            return <Images className="size-4" />;
-        case "refresh":
-            return <RefreshCw className="size-4" />;
-        default:
-            return null;
+    if (!icon) {
+        return null;
     }
+    const Icon = ACTION_ICON_MAP[icon];
+    return Icon ? <Icon className="size-4" /> : null;
 }
 
 interface IntegrationsListItemActionProps {

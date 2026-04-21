@@ -117,19 +117,6 @@ model LibraryItem {
     @@map("library_item")
 }
 
-model Feedback {
-    id        String   @id @default(cuid())
-    userId    String?
-    user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
-    pagePath  String
-    message   String
-    createdAt DateTime @default(now())
-
-    @@index([pagePath])
-    @@index([userId])
-    @@map("feedback")
-}
-
 model Session {
     id        String   @id
     expiresAt DateTime
@@ -198,4 +185,17 @@ model Subscription {
     stripeScheduleId     String?
 
     @@map("subscription")
+}
+
+model Feedback {
+    id        String   @id @default(cuid())
+    userId    String?
+    user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+    pagePath  String
+    message   String
+    createdAt DateTime @default(now())
+
+    @@index([pagePath])
+    @@index([userId])
+    @@map("feedback")
 }

@@ -482,22 +482,6 @@ export type UserUpdateOneRequiredWithoutLibraryItemsNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutLibraryItemsInput, Prisma.UserUpdateWithoutLibraryItemsInput>, Prisma.UserUncheckedUpdateWithoutLibraryItemsInput>
 }
 
-export type UserCreateNestedOneWithoutFeedbackEntriesInput = {
-  create?: Prisma.XOR<Prisma.UserCreateWithoutFeedbackEntriesInput, Prisma.UserUncheckedCreateWithoutFeedbackEntriesInput>
-  connectOrCreate?: Prisma.UserCreateOrConnectWithoutFeedbackEntriesInput
-  connect?: Prisma.UserWhereUniqueInput
-}
-
-export type UserUpdateOneWithoutFeedbackEntriesNestedInput = {
-  create?: Prisma.XOR<Prisma.UserCreateWithoutFeedbackEntriesInput, Prisma.UserUncheckedCreateWithoutFeedbackEntriesInput>
-  connectOrCreate?: Prisma.UserCreateOrConnectWithoutFeedbackEntriesInput
-  upsert?: Prisma.UserUpsertWithoutFeedbackEntriesInput
-  disconnect?: Prisma.UserWhereInput | boolean
-  delete?: Prisma.UserWhereInput | boolean
-  connect?: Prisma.UserWhereUniqueInput
-  update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutFeedbackEntriesInput, Prisma.UserUpdateWithoutFeedbackEntriesInput>, Prisma.UserUncheckedUpdateWithoutFeedbackEntriesInput>
-}
-
 export type UserCreateNestedOneWithoutSessionsInput = {
   create?: Prisma.XOR<Prisma.UserCreateWithoutSessionsInput, Prisma.UserUncheckedCreateWithoutSessionsInput>
   connectOrCreate?: Prisma.UserCreateOrConnectWithoutSessionsInput
@@ -524,6 +508,22 @@ export type UserUpdateOneRequiredWithoutAccountsNestedInput = {
   upsert?: Prisma.UserUpsertWithoutAccountsInput
   connect?: Prisma.UserWhereUniqueInput
   update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutAccountsInput, Prisma.UserUpdateWithoutAccountsInput>, Prisma.UserUncheckedUpdateWithoutAccountsInput>
+}
+
+export type UserCreateNestedOneWithoutFeedbackEntriesInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutFeedbackEntriesInput, Prisma.UserUncheckedCreateWithoutFeedbackEntriesInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutFeedbackEntriesInput
+  connect?: Prisma.UserWhereUniqueInput
+}
+
+export type UserUpdateOneWithoutFeedbackEntriesNestedInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutFeedbackEntriesInput, Prisma.UserUncheckedCreateWithoutFeedbackEntriesInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutFeedbackEntriesInput
+  upsert?: Prisma.UserUpsertWithoutFeedbackEntriesInput
+  disconnect?: Prisma.UserWhereInput | boolean
+  delete?: Prisma.UserWhereInput | boolean
+  connect?: Prisma.UserWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutFeedbackEntriesInput, Prisma.UserUpdateWithoutFeedbackEntriesInput>, Prisma.UserUncheckedUpdateWithoutFeedbackEntriesInput>
 }
 
 export type UserCreateWithoutCollectionsInput = {
@@ -686,86 +686,6 @@ export type UserUncheckedUpdateWithoutLibraryItemsInput = {
   feedbackEntries?: Prisma.FeedbackUncheckedUpdateManyWithoutUserNestedInput
 }
 
-export type UserCreateWithoutFeedbackEntriesInput = {
-  id: string
-  name: string
-  email: string
-  emailVerified?: boolean
-  image?: string | null
-  createdAt?: Date | string
-  updatedAt?: Date | string
-  stripeCustomerId?: string | null
-  extensionIngestToken?: string | null
-  sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
-  accounts?: Prisma.AccountCreateNestedManyWithoutUserInput
-  libraryItems?: Prisma.LibraryItemCreateNestedManyWithoutUserInput
-  collections?: Prisma.CollectionCreateNestedManyWithoutUserInput
-}
-
-export type UserUncheckedCreateWithoutFeedbackEntriesInput = {
-  id: string
-  name: string
-  email: string
-  emailVerified?: boolean
-  image?: string | null
-  createdAt?: Date | string
-  updatedAt?: Date | string
-  stripeCustomerId?: string | null
-  extensionIngestToken?: string | null
-  sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
-  accounts?: Prisma.AccountUncheckedCreateNestedManyWithoutUserInput
-  libraryItems?: Prisma.LibraryItemUncheckedCreateNestedManyWithoutUserInput
-  collections?: Prisma.CollectionUncheckedCreateNestedManyWithoutUserInput
-}
-
-export type UserCreateOrConnectWithoutFeedbackEntriesInput = {
-  where: Prisma.UserWhereUniqueInput
-  create: Prisma.XOR<Prisma.UserCreateWithoutFeedbackEntriesInput, Prisma.UserUncheckedCreateWithoutFeedbackEntriesInput>
-}
-
-export type UserUpsertWithoutFeedbackEntriesInput = {
-  update: Prisma.XOR<Prisma.UserUpdateWithoutFeedbackEntriesInput, Prisma.UserUncheckedUpdateWithoutFeedbackEntriesInput>
-  create: Prisma.XOR<Prisma.UserCreateWithoutFeedbackEntriesInput, Prisma.UserUncheckedCreateWithoutFeedbackEntriesInput>
-  where?: Prisma.UserWhereInput
-}
-
-export type UserUpdateToOneWithWhereWithoutFeedbackEntriesInput = {
-  where?: Prisma.UserWhereInput
-  data: Prisma.XOR<Prisma.UserUpdateWithoutFeedbackEntriesInput, Prisma.UserUncheckedUpdateWithoutFeedbackEntriesInput>
-}
-
-export type UserUpdateWithoutFeedbackEntriesInput = {
-  id?: Prisma.StringFieldUpdateOperationsInput | string
-  name?: Prisma.StringFieldUpdateOperationsInput | string
-  email?: Prisma.StringFieldUpdateOperationsInput | string
-  emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  stripeCustomerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  extensionIngestToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
-  accounts?: Prisma.AccountUpdateManyWithoutUserNestedInput
-  libraryItems?: Prisma.LibraryItemUpdateManyWithoutUserNestedInput
-  collections?: Prisma.CollectionUpdateManyWithoutUserNestedInput
-}
-
-export type UserUncheckedUpdateWithoutFeedbackEntriesInput = {
-  id?: Prisma.StringFieldUpdateOperationsInput | string
-  name?: Prisma.StringFieldUpdateOperationsInput | string
-  email?: Prisma.StringFieldUpdateOperationsInput | string
-  emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  stripeCustomerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  extensionIngestToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
-  accounts?: Prisma.AccountUncheckedUpdateManyWithoutUserNestedInput
-  libraryItems?: Prisma.LibraryItemUncheckedUpdateManyWithoutUserNestedInput
-  collections?: Prisma.CollectionUncheckedUpdateManyWithoutUserNestedInput
-}
-
 export type UserCreateWithoutSessionsInput = {
   id: string
   name: string
@@ -924,6 +844,86 @@ export type UserUncheckedUpdateWithoutAccountsInput = {
   libraryItems?: Prisma.LibraryItemUncheckedUpdateManyWithoutUserNestedInput
   collections?: Prisma.CollectionUncheckedUpdateManyWithoutUserNestedInput
   feedbackEntries?: Prisma.FeedbackUncheckedUpdateManyWithoutUserNestedInput
+}
+
+export type UserCreateWithoutFeedbackEntriesInput = {
+  id: string
+  name: string
+  email: string
+  emailVerified?: boolean
+  image?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  stripeCustomerId?: string | null
+  extensionIngestToken?: string | null
+  sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
+  accounts?: Prisma.AccountCreateNestedManyWithoutUserInput
+  libraryItems?: Prisma.LibraryItemCreateNestedManyWithoutUserInput
+  collections?: Prisma.CollectionCreateNestedManyWithoutUserInput
+}
+
+export type UserUncheckedCreateWithoutFeedbackEntriesInput = {
+  id: string
+  name: string
+  email: string
+  emailVerified?: boolean
+  image?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  stripeCustomerId?: string | null
+  extensionIngestToken?: string | null
+  sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
+  accounts?: Prisma.AccountUncheckedCreateNestedManyWithoutUserInput
+  libraryItems?: Prisma.LibraryItemUncheckedCreateNestedManyWithoutUserInput
+  collections?: Prisma.CollectionUncheckedCreateNestedManyWithoutUserInput
+}
+
+export type UserCreateOrConnectWithoutFeedbackEntriesInput = {
+  where: Prisma.UserWhereUniqueInput
+  create: Prisma.XOR<Prisma.UserCreateWithoutFeedbackEntriesInput, Prisma.UserUncheckedCreateWithoutFeedbackEntriesInput>
+}
+
+export type UserUpsertWithoutFeedbackEntriesInput = {
+  update: Prisma.XOR<Prisma.UserUpdateWithoutFeedbackEntriesInput, Prisma.UserUncheckedUpdateWithoutFeedbackEntriesInput>
+  create: Prisma.XOR<Prisma.UserCreateWithoutFeedbackEntriesInput, Prisma.UserUncheckedCreateWithoutFeedbackEntriesInput>
+  where?: Prisma.UserWhereInput
+}
+
+export type UserUpdateToOneWithWhereWithoutFeedbackEntriesInput = {
+  where?: Prisma.UserWhereInput
+  data: Prisma.XOR<Prisma.UserUpdateWithoutFeedbackEntriesInput, Prisma.UserUncheckedUpdateWithoutFeedbackEntriesInput>
+}
+
+export type UserUpdateWithoutFeedbackEntriesInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  stripeCustomerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  extensionIngestToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
+  accounts?: Prisma.AccountUpdateManyWithoutUserNestedInput
+  libraryItems?: Prisma.LibraryItemUpdateManyWithoutUserNestedInput
+  collections?: Prisma.CollectionUpdateManyWithoutUserNestedInput
+}
+
+export type UserUncheckedUpdateWithoutFeedbackEntriesInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  stripeCustomerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  extensionIngestToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
+  accounts?: Prisma.AccountUncheckedUpdateManyWithoutUserNestedInput
+  libraryItems?: Prisma.LibraryItemUncheckedUpdateManyWithoutUserNestedInput
+  collections?: Prisma.CollectionUncheckedUpdateManyWithoutUserNestedInput
 }
 
 

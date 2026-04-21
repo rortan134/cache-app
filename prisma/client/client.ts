@@ -57,11 +57,6 @@ export type Collection = Prisma.CollectionModel
  */
 export type LibraryItem = Prisma.LibraryItemModel
 /**
- * Model Feedback
- * 
- */
-export type Feedback = Prisma.FeedbackModel
-/**
  * Model Session
  * 
  */
@@ -81,3 +76,8 @@ export type Verification = Prisma.VerificationModel
  * 
  */
 export type Subscription = Prisma.SubscriptionModel
+/**
+ * Model Feedback
+ * 
+ */
+export type Feedback = Prisma.FeedbackModel

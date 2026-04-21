@@ -54,11 +54,11 @@ export const ModelName = {
   User: 'User',
   Collection: 'Collection',
   LibraryItem: 'LibraryItem',
-  Feedback: 'Feedback',
   Session: 'Session',
   Account: 'Account',
   Verification: 'Verification',
-  Subscription: 'Subscription'
+  Subscription: 'Subscription',
+  Feedback: 'Feedback'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -133,17 +133,6 @@ export const LibraryItemScalarFieldEnum = {
 export type LibraryItemScalarFieldEnum = (typeof LibraryItemScalarFieldEnum)[keyof typeof LibraryItemScalarFieldEnum]
 
 
-export const FeedbackScalarFieldEnum = {
-  id: 'id',
-  userId: 'userId',
-  pagePath: 'pagePath',
-  message: 'message',
-  createdAt: 'createdAt'
-} as const
-
-export type FeedbackScalarFieldEnum = (typeof FeedbackScalarFieldEnum)[keyof typeof FeedbackScalarFieldEnum]
-
-
 export const SessionScalarFieldEnum = {
   id: 'id',
   expiresAt: 'expiresAt',
@@ -210,6 +199,17 @@ export const SubscriptionScalarFieldEnum = {
 } as const
 
 export type SubscriptionScalarFieldEnum = (typeof SubscriptionScalarFieldEnum)[keyof typeof SubscriptionScalarFieldEnum]
+
+
+export const FeedbackScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  pagePath: 'pagePath',
+  message: 'message',
+  createdAt: 'createdAt'
+} as const
+
+export type FeedbackScalarFieldEnum = (typeof FeedbackScalarFieldEnum)[keyof typeof FeedbackScalarFieldEnum]
 
 
 export const SortOrder = {

@@ -281,7 +281,7 @@ export function CollectionsListItemPreview({
         return () => {
             window.clearInterval(interval);
         };
-    }, [isOpen, thumbnails]);
+    }, [isOpen, thumbnails.length]);
 
     const activePreviewSrc = thumbnails[activePreviewIndex];
 
@@ -692,7 +692,7 @@ export function CollectionsNoticeCallout() {
                     <span className="not-sr-only font-medium text-xs">
                         <Popover>
                             <PopoverTrigger
-                                className="flex cursor-pointer items-center whitespace-nowrap text-nowrap"
+                                className="flex cursor-pointer items-center text-nowrap"
                                 openOnHover
                             >
                                 <GradientWaveText

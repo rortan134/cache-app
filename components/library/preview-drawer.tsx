@@ -223,7 +223,6 @@ export function PreviewDrawerContent({
                             </Button>
                         </div>
                     ) : null}
-
                     {/* biome-ignore lint/a11y/noNoninteractiveElementInteractions: iframe load and error events are required to track preview readiness. */}
                     <iframe
                         className={cn(
