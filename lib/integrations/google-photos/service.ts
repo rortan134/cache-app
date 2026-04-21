@@ -1,4 +1,4 @@
-import { DEFAULT_BROWSER_PROFILE_ID } from "@/lib/integrations/chrome/sync";
+import { DEFAULT_BROWSER_PROFILE_ID } from "@/lib/integrations/chrome/service";
 import { prisma } from "@/prisma";
 import { LibraryItemSource } from "@/prisma/client/enums";
 import type {

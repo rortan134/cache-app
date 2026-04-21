@@ -318,7 +318,7 @@ export const INTEGRATIONS = [
                 errorMessage: "Could not import pins from Pinterest right now.",
                 kind: "route",
                 method: "POST",
-                path: "/api/pinterest/import",
+                path: "/api/integrations/pinterest/import",
                 successKey: "importedCount",
                 successMessage: (payload) =>
                     formatImportedCountMessage(payload, "pin"),

@@ -1,5 +1,5 @@
 import { listPinterestBoardPins, listPinterestBoards } from "./api";
-import { DEFAULT_BROWSER_PROFILE_ID } from "@/lib/integrations/chrome/sync";
+import { DEFAULT_BROWSER_PROFILE_ID } from "@/lib/integrations/chrome/service";
 import { autoTagLibraryItemsByIds } from "@/lib/smart-collections";
 import { prisma } from "@/prisma";
 import { LibraryItemSource } from "@/prisma/client/enums";

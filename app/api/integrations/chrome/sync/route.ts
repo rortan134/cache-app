@@ -3,7 +3,7 @@ import {
     applyChromeBookmarkSyncEvents,
     chromeBookmarkSyncBodySchema,
     purgeChromeBookmarksForUser,
-} from "@/lib/integrations/chrome/sync";
+} from "@/lib/integrations/chrome/service";
 import {
     extensionIngestCorsHeaders,
     parseBearerToken,

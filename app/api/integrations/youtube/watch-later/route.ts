@@ -3,10 +3,7 @@ import {
     parseBearerToken,
     resolveExtensionIngestUserId,
 } from "@/lib/integrations/shared/extension-ingest";
-import { importLibraryItemSnapshot } from "@/lib/integrations/shared/snapshot";
-import { autoTagLibraryItemsByIds } from "@/lib/smart-collections";
-import { LibraryItemSource } from "@/prisma/client/enums";
-import { after } from "next/server";
+import { importYoutubeWatchLaterSnapshot } from "@/lib/integrations/youtube/service";
 import * as z from "zod";
 
 const optionalStringField = z
@@ -45,14 +42,6 @@ const bodySchema = z.object({
     sourceDeviceName: z.string().optional(),
 });
 
-function parseDate(value: string | undefined): Date | null {
-    if (!value) {
-        return null;
-    }
-    const parsed = new Date(value);
-    return Number.isNaN(parsed.getTime()) ? null : parsed;
-}
-
 export function OPTIONS() {
     return new Response(null, {
         headers: extensionIngestCorsHeaders(),
@@ -87,50 +76,14 @@ export async function POST(request: Request) {
         );
     }
 
-    const syncedAt = new Date();
-    const result = await importLibraryItemSnapshot({
-        browserProfileIdsToSync: [parsed.data.browserProfileId ?? "default"],
-        items: parsed.data.items.map((item) => ({
-            browserProfileId: parsed.data.browserProfileId,
-            caption: item.title ?? null,
-            externalId: item.videoId,
-            postedAt: parseDate(item.publishedAt),
-            scrapedAt: parseDate(item.scrapedAt) ?? syncedAt,
-            sourceDeviceId: parsed.data.sourceDeviceId ?? null,
-            sourceDeviceName: parsed.data.sourceDeviceName ?? null,
-            sourceMetadata: {
-                youtube: {
-                    availability: item.availability ?? null,
-                    channelId: item.channelId ?? null,
-                    channelName: item.channelName ?? null,
-                    duration: item.duration ?? null,
-                    importTimestamp: syncedAt.toISOString(),
-                    isLive: item.availability === "live",
-                    isUpcoming: item.availability === "upcoming",
-                    playlistItemId: item.playlistItemId ?? null,
-                    position: item.position ?? null,
-                    videoId: item.videoId,
-                },
-            },
-            thumbnailUrl: item.thumbnailUrl ?? null,
-            url:
-                item.videoUrl ??
-                `https://www.youtube.com/watch?v=${encodeURIComponent(item.videoId)}`,
-        })),
+    const snapshotResult = await importYoutubeWatchLaterSnapshot({
+        browserProfileId: parsed.data.browserProfileId,
+        items: parsed.data.items,
         snapshotComplete: parsed.data.snapshotComplete,
-        source: LibraryItemSource.youtube_watch_later,
+        sourceDeviceId: parsed.data.sourceDeviceId,
+        sourceDeviceName: parsed.data.sourceDeviceName,
         userId,
     });
-    const { smartCollectionItemIds, ...snapshotResult } = result;
-
-    if (smartCollectionItemIds.length > 0) {
-        after(async () => {
-            await autoTagLibraryItemsByIds({
-                itemIds: smartCollectionItemIds,
-                userId,
-            });
-        });
-    }
 
     return Response.json(
         {

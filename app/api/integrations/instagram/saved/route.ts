@@ -1,13 +1,10 @@
 import {
     extensionIngestCorsHeaders,
-    normalizeLibrarySource,
     parseBearerToken,
     resolveExtensionIngestUserId,
-    upsertLibraryItemsFromIngest,
     type IngestItemInput,
 } from "@/lib/integrations/shared/extension-ingest";
-import { autoTagLibraryItemsByIds } from "@/lib/smart-collections";
-import { after } from "next/server";
+import { importInstagramSaved } from "@/lib/integrations/instagram/service";
 import * as z from "zod";
 
 const itemSchema = z
@@ -85,27 +82,16 @@ export async function POST(request: Request) {
         );
     }
 
-    const source = normalizeLibrarySource(parsed.data.source);
-    const result = await upsertLibraryItemsFromIngest(
+    const result = await importInstagramSaved({
+        items: parsed.data.items as IngestItemInput[],
+        source: parsed.data.source,
         userId,
-        source,
-        parsed.data.items as IngestItemInput[]
-    );
-
-    if (result.smartCollectionItemIds.length > 0) {
-        after(async () => {
-            await autoTagLibraryItemsByIds({
-                itemIds: result.smartCollectionItemIds,
-                userId,
-            });
-        });
-    }
+    });
 
     return Response.json(
         {
             ok: true,
-            received: parsed.data.items.length,
-            upserted: result.upsertedCount,
+            ...result,
         },
         { headers: cors }
     );
