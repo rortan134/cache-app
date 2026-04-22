@@ -1,5 +1,10 @@
 import { getErrorMessage } from "@/lib/common/error";
 import { withRetry } from "@/lib/common/retry";
+import {
+    IntegrationApiError,
+    IntegrationInternalError,
+    IntegrationSessionExpiredError,
+} from "@/lib/integrations/error";
 import { PickerNotReadyError } from "./error";
 
 interface SessionCreateResponse {
@@ -30,21 +35,74 @@ function parseDurationMs(value: string | null): number | null {
     return Number.isNaN(seconds) ? null : Math.round(seconds * 1000);
 }
 
+function createGooglePhotosApiError(args: {
+    cause?: unknown;
+    message: string;
+    operation: string;
+    status: number;
+}): IntegrationApiError {
+    return new IntegrationApiError(
+        {
+            cause: args.cause,
+            integrationId: "google-photos",
+            message: args.message,
+            operation: args.operation,
+            status: args.status,
+        },
+        {
+            cause: args.cause,
+        }
+    );
+}
+
+function createGooglePhotosInternalError(args: {
+    cause?: unknown;
+    message: string;
+    operation: string;
+}): IntegrationInternalError {
+    return new IntegrationInternalError(
+        {
+            cause: args.cause,
+            integrationId: "google-photos",
+            message: args.message,
+            operation: args.operation,
+        },
+        {
+            cause: args.cause,
+        }
+    );
+}
+
+function createGooglePhotosSessionExpiredError(args: {
+    message: string;
+    operation: string;
+}): IntegrationSessionExpiredError {
+    return new IntegrationSessionExpiredError({
+        integrationId: "google-photos",
+        message: args.message,
+        operation: args.operation,
+    });
+}
+
 async function createPickerSessionRequest(): Promise<SessionCreateResponse> {
     const response = await fetch("/api/google-photos/picker/session", {
         method: "POST",
     });
-    const payload = (await response.json()) as
+    const payload = (await response.json().catch(() => null)) as
         | SessionCreateResponse
-        | { error: string };
+        | { error: string }
+        | null;
 
-    if (!(response.ok && "sessionId" in payload)) {
-        throw new Error(
-            getErrorMessage(
+    if (!(response.ok && payload && "sessionId" in payload)) {
+        throw createGooglePhotosApiError({
+            cause: payload,
+            message: getErrorMessage(
                 payload,
                 "Could not start Google Photos Picker. Please reconnect Google and try again."
-            )
-        );
+            ),
+            operation: "createPickerSessionRequest",
+            status: response.status,
+        });
     }
 
     return payload;
@@ -60,26 +118,32 @@ async function pollUntilMediaSelected(
     await withRetry(
         async () => {
             if (Date.now() - startedAt >= timeoutMs) {
-                throw new Error(
-                    "Selection timed out. Open the picker again and confirm your media."
-                );
+                throw createGooglePhotosSessionExpiredError({
+                    message:
+                        "Selection timed out. Open the picker again and confirm your media.",
+                    operation: "pollUntilMediaSelected",
+                });
             }
 
             const response = await fetch(
                 `/api/google-photos/picker/session?id=${encodeURIComponent(sessionId)}`,
                 { method: "GET" }
             );
-            const payload = (await response.json()) as
+            const payload = (await response.json().catch(() => null)) as
                 | SessionPollResponse
-                | { error: string };
+                | { error: string }
+                | null;
 
-            if (!(response.ok && "mediaItemsSet" in payload)) {
-                throw new Error(
-                    getErrorMessage(
+            if (!(response.ok && payload && "mediaItemsSet" in payload)) {
+                throw createGooglePhotosApiError({
+                    cause: payload,
+                    message: getErrorMessage(
                         payload,
                         "Could not read picker status. Please try again."
-                    )
-                );
+                    ),
+                    operation: "pollUntilMediaSelected",
+                    status: response.status,
+                });
             }
 
             if (payload.mediaItemsSet) {
@@ -107,17 +171,21 @@ async function importSelectedMedia(sessionId: string): Promise<ImportResponse> {
         headers: { "Content-Type": "application/json" },
         method: "POST",
     });
-    const payload = (await response.json()) as
+    const payload = (await response.json().catch(() => null)) as
         | ImportResponse
-        | { error: string };
+        | { error: string }
+        | null;
 
-    if (!(response.ok && "importedCount" in payload)) {
-        throw new Error(
-            getErrorMessage(
+    if (!(response.ok && payload && "importedCount" in payload)) {
+        throw createGooglePhotosApiError({
+            cause: payload,
+            message: getErrorMessage(
                 payload,
                 "Import failed. Ensure Photos permission is granted, then try again."
-            )
-        );
+            ),
+            operation: "importSelectedMedia",
+            status: response.status,
+        });
     }
 
     return payload;
@@ -132,7 +200,11 @@ export async function executeGooglePhotosPickerFlow(): Promise<string> {
     const createPayload = await createPickerSessionRequest();
 
     if (!createPayload.pickerUri) {
-        throw new Error("Picker URL is missing. Please try again.");
+        throw createGooglePhotosInternalError({
+            cause: createPayload,
+            message: "Picker URL is missing. Please try again.",
+            operation: "executeGooglePhotosPickerFlow",
+        });
     }
 
     window.open(createPayload.pickerUri, "_blank", "noopener,noreferrer");

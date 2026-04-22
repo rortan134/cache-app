@@ -11,6 +11,7 @@ import {
     applyChromeBookmarkSyncEvents,
     DEFAULT_BROWSER_PROFILE_ID,
 } from "@/lib/integrations/chrome/service";
+import { IntegrationResourceNotFoundError } from "@/lib/integrations/error";
 import { prisma } from "@/prisma";
 import { LibraryItemSource } from "@/prisma/client/enums";
 
@@ -120,9 +121,13 @@ export async function createChromeBookmarkFromUrl(input: {
             externalId
         );
         if (!item) {
-            throw new Error(
-                "We saved the bookmark but couldn't load it back into the library."
-            );
+            throw new IntegrationResourceNotFoundError({
+                integrationId: "chrome",
+                message:
+                    "We saved the bookmark but couldn't load it back into the library.",
+                operation: "createChromeBookmarkFromUrl",
+                resource: "libraryItem",
+            });
         }
 
         if (syncResult.smartCollectionItemIds.length > 0) {

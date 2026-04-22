@@ -1,11 +1,11 @@
 import { auth } from "@/lib/auth/server";
 import { autoTagLibraryItemsByIds } from "@/lib/collections/smart-collections";
+import { IntegrationApiError } from "@/lib/integrations/error";
 import {
     deletePickerSession,
     getPickerSession,
     listPickedMediaItems,
 } from "@/lib/integrations/google-photos/api";
-import { GooglePhotosPickerApiError } from "@/lib/integrations/google-photos/error";
 import { headers } from "next/headers";
 import { after } from "next/server";
 import * as z from "zod";
@@ -86,14 +86,17 @@ export async function POST(request: Request) {
             totalPicked: pickedItems.length,
         });
     } catch (error) {
-        if (error instanceof GooglePhotosPickerApiError) {
+        if (
+            error instanceof IntegrationApiError &&
+            error.data.integrationId === "google-photos"
+        ) {
             const message =
                 error.data.status === 401
                     ? "Your Google account needs Photos permission. Please sign out and sign back in to reconnect."
                     : error.message;
             return Response.json(
                 { error: message },
-                { status: error.data.status }
+                { status: error.data.status ?? 500 }
             );
         }
         throw error;

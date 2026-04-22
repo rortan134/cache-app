@@ -1,5 +1,3 @@
-import "server-only";
-
 const COBALT_API_BASE = "https://cobalt-production-d7b0.up.railway.app";
 
 interface CobaltResponse {

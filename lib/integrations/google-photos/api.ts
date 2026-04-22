@@ -1,4 +1,4 @@
-import { GooglePhotosPickerApiError } from "./error";
+import { IntegrationApiError } from "@/lib/integrations/error";
 
 const GOOGLE_PHOTOS_PICKER_API = "https://photospicker.googleapis.com/v1";
 const DURATION_SECONDS_PATTERN = /^(\d+)(\.\d+)?s$/;
@@ -56,8 +56,10 @@ async function pickerFetch<TResponse>(
             .json()
             .catch(() => ({}))) as PickerApiErrorShape;
         const apiMessage = maybeJson.error?.message ?? response.statusText;
-        throw new GooglePhotosPickerApiError({
+        throw new IntegrationApiError({
+            integrationId: "google-photos",
             message: apiMessage,
+            operation: "pickerFetch",
             status: response.status,
         });
     }

@@ -1,5 +1,5 @@
 import "server-only";
-import { PinterestApiError } from "./error";
+import { IntegrationApiError } from "@/lib/integrations/error";
 
 const PINTEREST_API_BASE_URL = "https://api.pinterest.com/v5";
 const PINTEREST_PAGE_SIZE = 100;
@@ -47,13 +47,18 @@ function readDate(value: unknown): Date | null {
 function parsePinterestApiError(
     payload: unknown,
     status: number
-): PinterestApiError {
+): IntegrationApiError {
     const record = asRecord(payload);
     const message =
         readString(record?.message) ??
         readString(asRecord(record?.error)?.message) ??
         `Pinterest API request failed with status ${status}.`;
-    return new PinterestApiError({ message, status });
+    return new IntegrationApiError({
+        integrationId: "pinterest",
+        message,
+        operation: "fetchPinterestPage",
+        status,
+    });
 }
 
 async function fetchPinterestPage(

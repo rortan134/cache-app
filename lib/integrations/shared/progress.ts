@@ -7,10 +7,23 @@ import type { LibraryItemSource } from "@/prisma/client/enums";
 
 const SIGNUP_PROGRESS_BASELINE_PERCENT = 10;
 
+function integrationHasSyncedItems(
+    integrationId: IntegrationId,
+    itemSources: Set<LibraryItemSource>
+): boolean {
+    for (const source of itemSources) {
+        if (integrationOwnsLibraryItemSource(integrationId, source)) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 export function integrationSetupProgressPercent(
     connectedCount: number,
     syncable: number
-) {
+): number {
     if (syncable < 1) {
         return 0;
     }
@@ -35,9 +48,7 @@ export function partitionLibrarySyncLabels(
     const itemSources = new Set(items.map((item) => item.source));
 
     for (const integration of listSyncableIntegrations()) {
-        const hasItems = [...itemSources].some((source) =>
-            integrationOwnsLibraryItemSource(integration.id, source)
-        );
+        const hasItems = integrationHasSyncedItems(integration.id, itemSources);
 
         if (hasItems || connectedIntegrationIdSet.has(integration.id)) {
             connectedLabels.push(integration.label);
@@ -52,8 +63,8 @@ export function partitionLibrarySyncLabels(
 export function integrationSetupHeadingText(args: {
     syncable: number;
     connectedCount: number;
-    connectedLabels: string[];
-    missingLabels: string[];
+    connectedLabels?: string[];
+    missingLabels?: string[];
 }): string {
     const { syncable, connectedCount } = args;
     if (syncable < 1) {

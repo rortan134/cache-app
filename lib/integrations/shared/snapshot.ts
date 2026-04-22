@@ -1,6 +1,14 @@
 import "server-only";
 
 import { DEFAULT_BROWSER_PROFILE_ID } from "@/lib/integrations/chrome/service";
+import {
+    buildLibraryItemCreateData,
+    buildLibraryItemImportRow,
+    buildLibraryItemUpdateData,
+    type LibraryItemImportCreateData,
+    type LibraryItemImportRow,
+    type LibraryItemImportUpdateData,
+} from "@/lib/integrations/shared/library-item-imports";
 import type { LibraryItemSource } from "@/prisma/client/enums";
 import { prisma } from "@/prisma";
 
@@ -8,21 +16,7 @@ const SNAPSHOT_UPSERT_BATCH_SIZE = 50;
 const SNAPSHOT_IMPORT_TRANSACTION_TIMEOUT_MS = 60_000;
 const SNAPSHOT_IMPORT_TRANSACTION_MAX_WAIT_MS = 10_000;
 
-interface SnapshotImportRow {
-    browserProfileId: string;
-    caption: string | null;
-    externalId: string;
-    kind: "bookmark" | "folder";
-    parentExternalId: string | null;
-    postedAt: Date | null;
-    scrapedAt: Date | null;
-    source: LibraryItemSource;
-    sourceDeviceId: string | null;
-    sourceDeviceName: string | null;
-    sourceMetadata: Record<string, unknown> | null;
-    thumbnailUrl: string | null;
-    url: string;
-}
+type SnapshotImportRow = LibraryItemImportRow;
 
 export interface SnapshotImportItemInput {
     browserProfileId?: string;
@@ -70,11 +64,11 @@ interface LibraryItemDelegate {
         };
     }): Promise<ExistingLibraryItem[]>;
     upsert(args: {
-        create: SnapshotImportRow & { userId: string };
+        create: LibraryItemImportCreateData;
         select: {
             id: true;
         };
-        update: Omit<SnapshotImportRow, "externalId" | "source">;
+        update: LibraryItemImportUpdateData;
         where: {
             userId_source_browserProfileId_externalId: {
                 browserProfileId: string;
@@ -92,44 +86,42 @@ function normalizeSnapshotRow(
     source: LibraryItemSource,
     item: SnapshotImportItemInput
 ): SnapshotImportRow | null {
-    const externalId = item.externalId?.trim();
-    if (!externalId) {
-        return null;
-    }
-
-    return {
-        browserProfileId:
-            item.browserProfileId?.trim() || DEFAULT_BROWSER_PROFILE_ID,
-        caption: item.caption?.trim() || null,
-        externalId,
-        kind: item.kind === "folder" ? "folder" : "bookmark",
-        parentExternalId: item.parentExternalId ?? null,
-        postedAt: item.postedAt ?? null,
-        scrapedAt: item.scrapedAt ?? null,
+    return buildLibraryItemImportRow({
+        browserProfileId: item.browserProfileId,
+        caption: item.caption,
+        externalId: item.externalId,
+        kind: item.kind,
+        parentExternalId: item.parentExternalId,
+        postedAt: item.postedAt,
+        scrapedAt: item.scrapedAt,
         source,
-        sourceDeviceId: item.sourceDeviceId ?? null,
-        sourceDeviceName: item.sourceDeviceName ?? null,
-        sourceMetadata: item.sourceMetadata ?? null,
-        thumbnailUrl: item.thumbnailUrl ?? null,
+        sourceDeviceId: item.sourceDeviceId,
+        sourceDeviceName: item.sourceDeviceName,
+        sourceMetadata: item.sourceMetadata,
+        thumbnailUrl: item.thumbnailUrl,
         url: item.url,
-    };
+    });
 }
 
 function groupRowsByProfile(rows: SnapshotImportRow[]) {
     const grouped = new Map<string, Map<string, SnapshotImportRow>>();
 
     for (const row of rows) {
-        const rowsByExternalId =
-            grouped.get(row.browserProfileId) ??
-            new Map<string, SnapshotImportRow>();
-        rowsByExternalId.set(row.externalId, row);
-        grouped.set(row.browserProfileId, rowsByExternalId);
+        const rowsByExternalId = grouped.get(row.browserProfileId);
+        if (rowsByExternalId) {
+            rowsByExternalId.set(row.externalId, row);
+            continue;
+        }
+
+        const rowsForProfile = new Map<string, SnapshotImportRow>();
+        rowsForProfile.set(row.externalId, row);
+        grouped.set(row.browserProfileId, rowsForProfile);
     }
 
     return grouped;
 }
 
-function chunkRows<T>(rows: T[], size: number) {
+function chunkRows<T>(rows: readonly T[], size: number): T[][] {
     const chunks: T[][] = [];
     for (let index = 0; index < rows.length; index += size) {
         chunks.push(rows.slice(index, index + size));
@@ -164,32 +156,18 @@ async function importSnapshotProfileRows(args: {
     const importedCount = args.rows.filter(
         (row) => !existingExternalIds.has(row.externalId)
     ).length;
+    const updatedCount = args.rows.length - importedCount;
     const smartCollectionItemIds = new Set<string>();
 
     for (const batch of chunkRows(args.rows, SNAPSHOT_UPSERT_BATCH_SIZE)) {
         const savedRows = await Promise.all(
             batch.map((row) =>
                 args.libraryItemDelegate.upsert({
-                    create: {
-                        ...row,
-                        userId: args.userId,
-                    },
+                    create: buildLibraryItemCreateData(row, args.userId),
                     select: {
                         id: true,
                     },
-                    update: {
-                        browserProfileId: row.browserProfileId,
-                        caption: row.caption,
-                        kind: row.kind,
-                        parentExternalId: row.parentExternalId,
-                        postedAt: row.postedAt,
-                        scrapedAt: row.scrapedAt,
-                        sourceDeviceId: row.sourceDeviceId,
-                        sourceDeviceName: row.sourceDeviceName,
-                        sourceMetadata: row.sourceMetadata,
-                        thumbnailUrl: row.thumbnailUrl,
-                        url: row.url,
-                    },
+                    update: buildLibraryItemUpdateData(row),
                     where: {
                         userId_source_browserProfileId_externalId: {
                             browserProfileId: row.browserProfileId,
@@ -218,8 +196,8 @@ async function importSnapshotProfileRows(args: {
         return {
             importedCount,
             prunedCount: 0,
-            smartCollectionItemIds: [...smartCollectionItemIds],
-            updatedCount: args.rows.length - importedCount,
+            smartCollectionItemIds: Array.from(smartCollectionItemIds),
+            updatedCount,
         };
     }
 
@@ -242,8 +220,8 @@ async function importSnapshotProfileRows(args: {
     return {
         importedCount,
         prunedCount: deleteResult.count,
-        smartCollectionItemIds: [...smartCollectionItemIds],
-        updatedCount: args.rows.length - importedCount,
+        smartCollectionItemIds: Array.from(smartCollectionItemIds),
+        updatedCount,
     };
 }
 
@@ -308,7 +286,7 @@ export async function importLibraryItemSnapshot(args: {
         importedCount,
         prunedCount,
         skippedCount,
-        smartCollectionItemIds: [...smartCollectionItemIds],
+        smartCollectionItemIds: Array.from(smartCollectionItemIds),
         updatedCount,
     };
 }

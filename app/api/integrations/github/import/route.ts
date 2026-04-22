@@ -1,7 +1,7 @@
 import { auth } from "@/lib/auth/server";
 import { autoTagLibraryItemsByIds } from "@/lib/collections/smart-collections";
+import { IntegrationApiError } from "@/lib/integrations/error";
 import { resolveGitHubAccessToken } from "@/lib/integrations/github/actions";
-import { GitHubApiError } from "@/lib/integrations/github/error";
 import {
     getGitHubAccountId,
     importGitHubStarredRepositories,
@@ -9,7 +9,7 @@ import {
 import { headers } from "next/headers";
 import { after } from "next/server";
 
-function messageForGitHubApiError(error: GitHubApiError): string {
+function messageForGitHubApiError(error: IntegrationApiError): string {
     if (error.data.status === 401) {
         return "GitHub asked us to reconnect your account before importing stars.";
     }
@@ -68,10 +68,13 @@ export async function POST() {
 
         return Response.json(response);
     } catch (error) {
-        if (error instanceof GitHubApiError) {
+        if (
+            error instanceof IntegrationApiError &&
+            error.data.integrationId === "github"
+        ) {
             return Response.json(
                 { error: messageForGitHubApiError(error) },
-                { status: error.data.status }
+                { status: error.data.status ?? 500 }
             );
         }
 

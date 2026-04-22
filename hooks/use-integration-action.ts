@@ -3,6 +3,7 @@
 import { useIsExtensionInstalled } from "@/hooks/use-extension-installed";
 import { getErrorMessage } from "@/lib/common/error";
 import { createLogger } from "@/lib/common/logs/console/logger";
+import { IntegrationCapabilityMissingError } from "@/lib/integrations/error";
 import { executeGooglePhotosPickerFlow } from "@/lib/integrations/google-photos/client";
 import {
     executeConnectBehavior,
@@ -82,6 +83,19 @@ function resolveActionLabel(args: {
     return "Open";
 }
 
+function createCapabilityMissingError(args: {
+    capability: "connect" | "open" | "sync";
+    integrationId: IntegrationId;
+    message: string;
+}): InstanceType<typeof IntegrationCapabilityMissingError> {
+    return new IntegrationCapabilityMissingError({
+        capability: args.capability,
+        integrationId: args.integrationId,
+        message: args.message,
+        operation: "executeIntegrationAction",
+    });
+}
+
 async function executeIntegrationAction(args: {
     extensionInstalled: boolean;
     integration: SupportedIntegration;
@@ -94,7 +108,11 @@ async function executeIntegrationAction(args: {
 
     if (role === "open") {
         if (!integration.behaviors.open) {
-            throw new Error("This integration cannot be opened yet.");
+            throw createCapabilityMissingError({
+                capability: "open",
+                integrationId: integration.id,
+                message: "This integration cannot be opened yet.",
+            });
         }
 
         executeOpenBehavior(integration.behaviors.open, extensionInstalled);
@@ -103,7 +121,11 @@ async function executeIntegrationAction(args: {
 
     if (role === "connect") {
         if (!integration.behaviors.connect) {
-            throw new Error("This integration cannot be connected yet.");
+            throw createCapabilityMissingError({
+                capability: "connect",
+                integrationId: integration.id,
+                message: "This integration cannot be connected yet.",
+            });
         }
 
         await executeConnectBehavior(integration.behaviors.connect);
@@ -111,7 +133,11 @@ async function executeIntegrationAction(args: {
     }
 
     if (!integration.behaviors.sync) {
-        throw new Error("This integration cannot sync yet.");
+        throw createCapabilityMissingError({
+            capability: "sync",
+            integrationId: integration.id,
+            message: "This integration cannot sync yet.",
+        });
     }
 
     const successMessage =

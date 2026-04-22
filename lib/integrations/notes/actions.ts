@@ -5,7 +5,7 @@ import { LIBRARY_ITEM_COLLECTIONS_INCLUDE } from "@/lib/collections/utils";
 import { extractNamedErrorMessage } from "@/lib/common/error";
 import { createLogger } from "@/lib/common/logs/console/logger";
 import type { LibraryItemWithCollections } from "@/lib/common/types";
-import { LibraryNoteError } from "@/lib/integrations/notes/error";
+import { IntegrationResourceNotFoundError } from "@/lib/integrations/error";
 import {
     extractNoteText,
     isNoteSerializedEditorState,
@@ -122,10 +122,10 @@ export async function createNote(
 
         const item = await getNoteItemForUser(userId, created.id);
         if (!item) {
-            throw new LibraryNoteError({
-                code: "not_found",
+            throw new IntegrationResourceNotFoundError({
                 message: "We created the note but couldn't load it back.",
                 operation: "createNote",
+                resource: "note",
             });
         }
 
@@ -185,19 +185,19 @@ export async function updateNote(input: {
         });
 
         if (updated.count === 0) {
-            throw new LibraryNoteError({
-                code: "not_found",
+            throw new IntegrationResourceNotFoundError({
                 message: "This note no longer exists.",
                 operation: "updateNote",
+                resource: "note",
             });
         }
 
         const item = await getNoteItemForUser(userId, parsed.data.itemId);
         if (!item) {
-            throw new LibraryNoteError({
-                code: "not_found",
+            throw new IntegrationResourceNotFoundError({
                 message: "We couldn't reload this note after saving it.",
                 operation: "updateNote",
+                resource: "note",
             });
         }
 
@@ -207,7 +207,7 @@ export async function updateNote(input: {
         };
     } catch (error) {
         const details = extractNamedErrorMessage(error);
-        if (details.name === "LibraryNoteError") {
+        if (details.name === "IntegrationResourceNotFoundError") {
             return {
                 message: details.message,
                 status: "NOT_FOUND",

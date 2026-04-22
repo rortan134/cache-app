@@ -1,7 +1,7 @@
 import { auth } from "@/lib/auth/server";
 import { autoTagLibraryItemsByIds } from "@/lib/collections/smart-collections";
+import { IntegrationApiError } from "@/lib/integrations/error";
 import { resolvePinterestAccessToken } from "@/lib/integrations/pinterest/actions";
-import { PinterestApiError } from "@/lib/integrations/pinterest/error";
 import {
     getPinterestAccountId,
     importPinterestBoards,
@@ -9,7 +9,7 @@ import {
 import { headers } from "next/headers";
 import { after } from "next/server";
 
-function messageForPinterestApiError(error: PinterestApiError): string {
+function messageForPinterestApiError(error: IntegrationApiError): string {
     if (error.data.status === 401) {
         return "Pinterest asked us to reconnect your account before importing pins.";
     }
@@ -63,10 +63,13 @@ export async function POST() {
 
         return Response.json(response);
     } catch (error) {
-        if (error instanceof PinterestApiError) {
+        if (
+            error instanceof IntegrationApiError &&
+            error.data.integrationId === "pinterest"
+        ) {
             return Response.json(
                 { error: messageForPinterestApiError(error) },
-                { status: error.data.status }
+                { status: error.data.status ?? 500 }
             );
         }
 

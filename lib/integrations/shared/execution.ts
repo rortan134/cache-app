@@ -1,12 +1,70 @@
 import { authClient } from "@/lib/auth/client";
 import { getErrorMessage } from "@/lib/common/error";
 import { asRecord } from "@/lib/common/objects";
+import {
+    IntegrationApiError,
+    IntegrationConnectionError,
+} from "@/lib/integrations/error";
 import type {
     ExtensionOpenBehavior,
     OAuthLinkConnectBehavior,
     RouteSyncBehavior,
     SocialSignInConnectBehavior,
 } from "@/lib/integrations/support";
+
+const CONNECTION_FLOW_ERROR_MESSAGE = "Could not start the connection flow.";
+
+function navigateTo(url: string) {
+    window.location.assign(url);
+}
+
+function createConnectionError(args: {
+    cause?: unknown;
+    message: string;
+    operation: string;
+}): InstanceType<typeof IntegrationConnectionError> {
+    return new IntegrationConnectionError(
+        {
+            cause: args.cause,
+            message: args.message,
+            operation: args.operation,
+        },
+        {
+            cause: args.cause,
+        }
+    );
+}
+
+function createApiError(args: {
+    cause?: unknown;
+    message: string;
+    operation: string;
+    status: number;
+}): InstanceType<typeof IntegrationApiError> {
+    return new IntegrationApiError(
+        {
+            cause: args.cause,
+            message: args.message,
+            operation: args.operation,
+            status: args.status,
+        },
+        {
+            cause: args.cause,
+        }
+    );
+}
+
+function extractRedirectUrl(payload: unknown): string | null {
+    const root = asRecord(payload);
+    const data = asRecord(root?.data) ?? root;
+    const redirectUrl = data?.url;
+
+    if (typeof redirectUrl !== "string" || redirectUrl.length === 0) {
+        return null;
+    }
+
+    return redirectUrl;
+}
 
 /**
  * Opens a URL in the browser, attempting to use the desktop bridge if available.
@@ -21,7 +79,7 @@ export function openExternal(url: string) {
         // Fall back to a normal browser navigation when the desktop bridge is unavailable.
     }
 
-    window.location.assign(url);
+    navigateTo(url);
 }
 
 /**
@@ -53,9 +111,11 @@ export async function executeConnectBehavior(
         });
 
         if (result.error) {
-            throw new Error(
-                result.error.message ?? "Could not start the connection flow."
-            );
+            throw createConnectionError({
+                cause: result.error,
+                message: result.error.message ?? CONNECTION_FLOW_ERROR_MESSAGE,
+                operation: "executeConnectBehavior.socialSignIn",
+            });
         }
 
         return;
@@ -71,15 +131,16 @@ export async function executeConnectBehavior(
         method: "POST",
     });
 
-    const root = asRecord(response);
-    const payload = asRecord(root?.data) ?? root;
-    const redirectUrl = payload?.url;
-
-    if (typeof redirectUrl !== "string" || redirectUrl.length === 0) {
-        throw new Error("Could not start the connection flow.");
+    const url = extractRedirectUrl(response);
+    if (!url) {
+        throw createConnectionError({
+            cause: response,
+            message: CONNECTION_FLOW_ERROR_MESSAGE,
+            operation: "executeConnectBehavior.oauthLink",
+        });
     }
 
-    window.location.assign(redirectUrl);
+    navigateTo(url);
 }
 
 /**
@@ -91,7 +152,7 @@ export async function executeRouteSyncBehavior(
     const response = await fetch(behavior.path, {
         method: behavior.method,
     });
-    const payload = (await response.json()) as unknown;
+    const payload = (await response.json().catch(() => null)) as unknown;
 
     const payloadRecord = asRecord(payload);
     if (
@@ -101,7 +162,12 @@ export async function executeRouteSyncBehavior(
             Object.hasOwn(payloadRecord, behavior.successKey)
         )
     ) {
-        throw new Error(getErrorMessage(payload, behavior.errorMessage));
+        throw createApiError({
+            cause: payload,
+            message: getErrorMessage(payload, behavior.errorMessage),
+            operation: "executeRouteSyncBehavior",
+            status: response.status,
+        });
     }
 
     return behavior.successMessage?.(payloadRecord) ?? null;

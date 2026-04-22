@@ -1,10 +1,10 @@
 import { auth } from "@/lib/auth/server";
+import { IntegrationApiError } from "@/lib/integrations/error";
 import {
     createPickerSession,
     getPickerSession,
 } from "@/lib/integrations/google-photos/api";
 import { mapPickerSessionToViewModel } from "@/lib/integrations/google-photos/service";
-import { GooglePhotosPickerApiError } from "@/lib/integrations/google-photos/error";
 import { headers } from "next/headers";
 
 import { resolveGoogleAccessToken } from "@/lib/integrations/google-photos/actions";
@@ -29,14 +29,17 @@ export async function POST() {
         const pickerSession = await createPickerSession(accessToken);
         return Response.json(mapPickerSessionToViewModel(pickerSession));
     } catch (error) {
-        if (error instanceof GooglePhotosPickerApiError) {
+        if (
+            error instanceof IntegrationApiError &&
+            error.data.integrationId === "google-photos"
+        ) {
             const message =
                 error.data.status === 401
                     ? "Your Google account needs Photos permission. Please sign out and sign back in to reconnect."
                     : error.message;
             return Response.json(
                 { error: message },
-                { status: error.data.status }
+                { status: error.data.status ?? 500 }
             );
         }
         throw error;
@@ -69,10 +72,13 @@ export async function GET(request: Request) {
         const pickerSession = await getPickerSession(accessToken, id);
         return Response.json(mapPickerSessionToViewModel(pickerSession));
     } catch (error) {
-        if (error instanceof GooglePhotosPickerApiError) {
+        if (
+            error instanceof IntegrationApiError &&
+            error.data.integrationId === "google-photos"
+        ) {
             return Response.json(
                 { error: error.message },
-                { status: error.data.status }
+                { status: error.data.status ?? 500 }
             );
         }
         throw error;

@@ -1,5 +1,5 @@
 import "server-only";
-import { GitHubApiError } from "./error";
+import { IntegrationApiError } from "@/lib/integrations/error";
 
 const GITHUB_API_BASE_URL = "https://api.github.com";
 const GITHUB_PAGE_SIZE = 100;
@@ -47,13 +47,21 @@ function readDate(value: unknown): Date | null {
     return Number.isNaN(parsed.getTime()) ? null : parsed;
 }
 
-function parseGitHubApiError(payload: unknown, status: number): GitHubApiError {
+function parseGitHubApiError(
+    payload: unknown,
+    status: number
+): IntegrationApiError {
     const record = asRecord(payload);
     const message =
         readString(record?.message) ??
         `GitHub API request failed with status ${status}.`;
 
-    return new GitHubApiError({ message, status });
+    return new IntegrationApiError({
+        integrationId: "github",
+        message,
+        operation: "fetchGitHub",
+        status,
+    });
 }
 
 async function fetchGitHub(
@@ -151,8 +159,10 @@ export async function getGitHubAuthenticatedUser(
     const user = parseAuthenticatedUser(payload);
 
     if (!user) {
-        throw new GitHubApiError({
+        throw new IntegrationApiError({
+            integrationId: "github",
             message: "GitHub did not return a valid user.",
+            operation: "getGitHubAuthenticatedUser",
             status: 502,
         });
     }

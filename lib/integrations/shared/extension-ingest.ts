@@ -1,6 +1,16 @@
 import "server-only";
 
-import { DEFAULT_BROWSER_PROFILE_ID } from "@/lib/integrations/chrome/service";
+import {
+    buildLibraryItemCreateData,
+    buildLibraryItemImportRow,
+    buildLibraryItemUpdateData,
+    libraryItemIdentityKey,
+    parseOptionalDate,
+    type LibraryItemImportCreateData,
+    type LibraryItemImportIdentity,
+    type LibraryItemImportRow,
+    type LibraryItemImportUpdateData,
+} from "@/lib/integrations/shared/library-item-imports";
 import { LibraryItemSource } from "@/prisma/client/enums";
 import { prisma } from "@/prisma";
 
@@ -38,96 +48,65 @@ export async function resolveExtensionIngestUserId(
         return byToken.id;
     }
 
-    const envToken = process.env.INSTAGRAM_SAVED_INGEST_TOKEN;
+    return resolveFallbackExtensionIngestUserId(bearerToken);
+}
+
+async function resolveFallbackExtensionIngestUserId(
+    bearerToken: string
+): Promise<string | null> {
+    const envToken = process.env.INSTAGRAM_SAVED_INGEST_TOKEN?.trim();
     const fallbackUserId = process.env.EXTENSION_FALLBACK_USER_ID;
-    if (envToken && fallbackUserId && bearerToken === envToken.trim()) {
-        const u = await prisma.user.findUnique({
-            select: { id: true },
-            where: { id: fallbackUserId },
-        });
-        return u?.id ?? null;
+    if (!(envToken && fallbackUserId) || bearerToken !== envToken) {
+        return null;
     }
 
-    return null;
+    const user = await prisma.user.findUnique({
+        select: { id: true },
+        where: { id: fallbackUserId },
+    });
+    return user?.id ?? null;
 }
 
 export function normalizeLibrarySource(
     raw: string | undefined
 ): LibraryItemSource {
-    if (raw === "tiktok") {
-        return LibraryItemSource.tiktok;
+    switch (raw?.trim().toLowerCase()) {
+        case "tiktok":
+            return LibraryItemSource.tiktok;
+        case "chrome":
+        case "chrome_bookmarks":
+            return LibraryItemSource.chrome_bookmarks;
+        default:
+            return LibraryItemSource.instagram;
     }
-    if (raw === "chrome_bookmarks" || raw === "chrome") {
-        return LibraryItemSource.chrome_bookmarks;
-    }
-    return LibraryItemSource.instagram;
 }
 
-function parseScrapedAt(iso: string | undefined): Date | null {
-    if (!iso) {
-        return null;
-    }
-    const d = new Date(iso);
-    return Number.isNaN(d.getTime()) ? null : d;
-}
-
-function externalIdForIngestItem(
+function resolveIngestExternalId(
     source: LibraryItemSource,
     item: IngestItemInput
 ): string | undefined {
-    if (source === LibraryItemSource.instagram) {
-        return item.shortcode;
-    }
-    if (
-        source === LibraryItemSource.tiktok ||
-        source === LibraryItemSource.chrome_bookmarks
-    ) {
-        return item.id;
-    }
-    return item.id;
+    return source === LibraryItemSource.instagram ? item.shortcode : item.id;
 }
 
-function ingestItemKind(kind: IngestItemInput["kind"]): "bookmark" | "folder" {
-    if (kind === "folder") {
-        return "folder";
-    }
-    return "bookmark";
-}
-
-function buildIngestUpdateRow(
-    browserProfileId: string,
-    externalId: string,
-    item: IngestItemInput,
-    source: LibraryItemSource
-) {
-    return {
-        browserProfileId,
-        caption: item.caption ?? null,
-        externalId,
-        kind: ingestItemKind(item.kind),
-        parentExternalId: item.parentExternalId ?? null,
-        postedAt: parseScrapedAt(item.postedAt),
-        scrapedAt: parseScrapedAt(item.scrapedAt),
-        source,
-        sourceDeviceId: item.sourceDeviceId ?? null,
-        sourceDeviceName: item.sourceDeviceName ?? null,
-        sourceMetadata: item.sourceMetadata ?? null,
-        thumbnailUrl: item.thumbnailUrl ?? null,
-        url: item.url,
-    };
-}
-
-function buildIngestCreateRow(
-    browserProfileId: string,
-    externalId: string,
-    item: IngestItemInput,
+function buildIngestRow(
     source: LibraryItemSource,
-    userId: string
-) {
-    return {
-        ...buildIngestUpdateRow(browserProfileId, externalId, item, source),
-        userId,
-    };
+    item: IngestItemInput
+): LibraryItemImportRow | null {
+    return buildLibraryItemImportRow({
+        browserProfileId: item.browserProfileId,
+        caption: item.caption,
+        externalId: resolveIngestExternalId(source, item),
+        kind: item.kind,
+        parentExternalId: item.parentExternalId,
+        postedAt: parseOptionalDate(item.postedAt),
+        scrapedAt: parseOptionalDate(item.scrapedAt),
+        source,
+        sourceDeviceId: item.sourceDeviceId,
+        sourceDeviceName: item.sourceDeviceName,
+        sourceMetadata: item.sourceMetadata,
+        thumbnailUrl: item.thumbnailUrl,
+        url: item.url,
+    });
 }
 
 export interface IngestItemInput {
@@ -144,10 +123,6 @@ export interface IngestItemInput {
     sourceMetadata?: Record<string, unknown> | null;
     thumbnailUrl?: string;
     url: string;
-}
-
-function ingestRowKey(browserProfileId: string, externalId: string): string {
-    return `${browserProfileId}\u0000${externalId}`;
 }
 
 /**
@@ -175,45 +150,13 @@ export async function upsertLibraryItemsFromIngest(
                 source: LibraryItemSource;
                 userId: string;
             };
-        }): Promise<
-            {
-                browserProfileId: string;
-                externalId: string;
-            }[]
-        >;
+        }): Promise<LibraryItemImportIdentity[]>;
         upsert(args: {
-            create: {
-                browserProfileId: string;
-                caption: string | null;
-                externalId: string;
-                kind: "bookmark" | "folder";
-                parentExternalId: string | null;
-                postedAt: Date | null;
-                scrapedAt: Date | null;
-                source: LibraryItemSource;
-                sourceDeviceId: string | null;
-                sourceDeviceName: string | null;
-                sourceMetadata: Record<string, unknown> | null;
-                thumbnailUrl: string | null;
-                url: string;
-                userId: string;
-            };
+            create: LibraryItemImportCreateData;
             select: {
                 id: true;
             };
-            update: {
-                browserProfileId: string;
-                caption: string | null;
-                kind: "bookmark" | "folder";
-                parentExternalId: string | null;
-                postedAt: Date | null;
-                scrapedAt: Date | null;
-                sourceDeviceId: string | null;
-                sourceDeviceName: string | null;
-                sourceMetadata: Record<string, unknown> | null;
-                thumbnailUrl: string | null;
-                url: string;
-            };
+            update: LibraryItemImportUpdateData;
             where: {
                 userId_source_browserProfileId_externalId: {
                     browserProfileId: string;
@@ -228,33 +171,12 @@ export async function upsertLibraryItemsFromIngest(
     };
 
     const rows = items.flatMap((item) => {
-        const externalId = externalIdForIngestItem(source, item);
-        if (!externalId) {
+        const row = buildIngestRow(source, item);
+        if (!row) {
             return [];
         }
 
-        const browserProfileId =
-            item.browserProfileId?.trim() || DEFAULT_BROWSER_PROFILE_ID;
-
-        return [
-            {
-                browserProfileId,
-                create: buildIngestCreateRow(
-                    browserProfileId,
-                    externalId,
-                    item,
-                    source,
-                    userId
-                ),
-                externalId,
-                update: buildIngestUpdateRow(
-                    browserProfileId,
-                    externalId,
-                    item,
-                    source
-                ),
-            },
-        ];
+        return [row];
     });
 
     if (rows.length === 0) {
@@ -279,19 +201,18 @@ export async function upsertLibraryItemsFromIngest(
         },
     });
     const existingKeys = new Set(
-        existingRows.map((row) =>
-            ingestRowKey(row.browserProfileId, row.externalId)
-        )
+        existingRows.map((row) => libraryItemIdentityKey(row))
     );
     const smartCollectionItemIds = new Set<string>();
 
     for (const row of rows) {
+        const rowKey = libraryItemIdentityKey(row);
         const savedRow = await libraryItemDelegate.upsert({
-            create: row.create,
+            create: buildLibraryItemCreateData(row, userId),
             select: {
                 id: true,
             },
-            update: row.update,
+            update: buildLibraryItemUpdateData(row),
             where: {
                 userId_source_browserProfileId_externalId: {
                     browserProfileId: row.browserProfileId,
@@ -302,18 +223,13 @@ export async function upsertLibraryItemsFromIngest(
             },
         });
 
-        if (
-            row.update.kind !== "folder" &&
-            !existingKeys.has(
-                ingestRowKey(row.browserProfileId, row.externalId)
-            )
-        ) {
+        if (row.kind !== "folder" && !existingKeys.has(rowKey)) {
             smartCollectionItemIds.add(savedRow.id);
         }
     }
 
     return {
-        smartCollectionItemIds: [...smartCollectionItemIds],
+        smartCollectionItemIds: Array.from(smartCollectionItemIds),
         upsertedCount: rows.length,
     };
 }

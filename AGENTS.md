@@ -52,3 +52,4 @@ Actions are the only networking boundary: they parse/validate inputs, guard with
 - Handle errors at the appropriate scopes. Never silently swallow exceptions.
 - Leverage ES6+ features for cleaner code (default parameters, arrow functions, and object destructuring).
 - Avoid using `any` or casting types at all costs as it indicates wrong assumptions or bad implementation.
+- Before adding a new utility, check if a similar one exists in the `lib/` directory or nearby module scope as utils.
