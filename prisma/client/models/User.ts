@@ -14,7 +14,7 @@ import type * as Prisma from "../internal/prismaNamespace.ts"
 
 /**
  * Model User
- * 
+ * Managed by better-auth core. Do not rename fields.
  */
 export type UserModel = runtime.Types.Result.DefaultSelection<Prisma.$UserPayload>
 
@@ -256,7 +256,7 @@ export type UserWhereUniqueInput = Prisma.AtLeast<{
   libraryItems?: Prisma.LibraryItemListRelationFilter
   collections?: Prisma.CollectionListRelationFilter
   feedbackEntries?: Prisma.FeedbackListRelationFilter
-}, "id" | "extensionIngestToken" | "email">
+}, "id" | "email" | "extensionIngestToken">
 
 export type UserOrderByWithAggregationInput = {
   id?: Prisma.SortOrder

@@ -1,5 +1,10 @@
-import "server-only";
 import { IntegrationApiError } from "@/lib/integrations/error";
+import {
+    asProviderPayloadRecord,
+    readPayloadDate,
+    readPayloadString,
+} from "@/lib/integrations/provider-payload";
+import "server-only";
 
 const PINTEREST_API_BASE_URL = "https://api.pinterest.com/v5";
 const PINTEREST_PAGE_SIZE = 100;
@@ -25,33 +30,14 @@ export interface PinterestImportablePin {
     url: string;
 }
 
-function asRecord(value: unknown): Record<string, unknown> | null {
-    return typeof value === "object" && value !== null
-        ? (value as Record<string, unknown>)
-        : null;
-}
-
-function readString(value: unknown): string | null {
-    return typeof value === "string" && value.length > 0 ? value : null;
-}
-
-function readDate(value: unknown): Date | null {
-    const raw = readString(value);
-    if (!raw) {
-        return null;
-    }
-    const parsed = new Date(raw);
-    return Number.isNaN(parsed.getTime()) ? null : parsed;
-}
-
 function parsePinterestApiError(
     payload: unknown,
     status: number
 ): IntegrationApiError {
-    const record = asRecord(payload);
+    const record = asProviderPayloadRecord(payload);
     const message =
-        readString(record?.message) ??
-        readString(asRecord(record?.error)?.message) ??
+        readPayloadString(record?.message) ??
+        readPayloadString(asProviderPayloadRecord(record?.error)?.message) ??
         `Pinterest API request failed with status ${status}.`;
     return new IntegrationApiError({
         integrationId: "pinterest",
@@ -82,9 +68,9 @@ async function fetchPinterestPage(
         throw parsePinterestApiError(payload, response.status);
     }
 
-    const record = asRecord(payload);
+    const record = asProviderPayloadRecord(payload);
     return {
-        bookmark: readString(record?.bookmark),
+        bookmark: readPayloadString(record?.bookmark),
         items: Array.isArray(record?.items) ? record.items : [],
     };
 }
@@ -126,16 +112,16 @@ function readImageUrl(value: unknown): string | null {
         return value;
     }
 
-    const record = asRecord(value);
+    const record = asProviderPayloadRecord(value);
     if (!record) {
         return null;
     }
 
     const directUrl =
-        readString(record.url) ??
-        readString(record.image_url) ??
-        readString(record.image_thumbnail_url) ??
-        readString(record.image_cover_url);
+        readPayloadString(record.url) ??
+        readPayloadString(record.image_url) ??
+        readPayloadString(record.image_thumbnail_url) ??
+        readPayloadString(record.image_cover_url);
     if (directUrl?.startsWith("http")) {
         return directUrl;
     }
@@ -166,18 +152,18 @@ function readImageUrl(value: unknown): string | null {
 }
 
 function parseBoard(candidate: unknown): PinterestBoardSummary | null {
-    const record = asRecord(candidate);
-    const id = readString(record?.id);
+    const record = asProviderPayloadRecord(candidate);
+    const id = readPayloadString(record?.id);
     if (!id) {
         return null;
     }
 
     return {
         id,
-        name: readString(record?.name),
+        name: readPayloadString(record?.name),
         updatedAt:
-            readDate(record?.updated_at) ??
-            readDate(record?.created_at) ??
+            readPayloadDate(record?.updated_at) ??
+            readPayloadDate(record?.created_at) ??
             null,
     };
 }
@@ -186,17 +172,17 @@ function parsePin(
     candidate: unknown,
     boardName: string | null
 ): PinterestImportablePin | null {
-    const record = asRecord(candidate);
-    const externalId = readString(record?.id);
+    const record = asProviderPayloadRecord(candidate);
+    const externalId = readPayloadString(record?.id);
     if (!externalId) {
         return null;
     }
 
-    const title = readString(record?.title);
-    const description = readString(record?.description);
+    const title = readPayloadString(record?.title);
+    const description = readPayloadString(record?.description);
     const destinationUrl =
-        readString(record?.link) ??
-        readString(record?.original_link) ??
+        readPayloadString(record?.link) ??
+        readPayloadString(record?.original_link) ??
         `https://www.pinterest.com/pin/${externalId}/`;
 
     const captionBase = title ?? description ?? null;
@@ -209,8 +195,8 @@ function parsePin(
         caption,
         externalId,
         scrapedAt:
-            readDate(record?.created_at) ??
-            readDate(record?.updated_at) ??
+            readPayloadDate(record?.created_at) ??
+            readPayloadDate(record?.updated_at) ??
             null,
         thumbnailUrl: readImageUrl(record),
         url: destinationUrl,

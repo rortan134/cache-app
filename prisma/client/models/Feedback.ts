@@ -14,7 +14,7 @@ import type * as Prisma from "../internal/prismaNamespace.ts"
 
 /**
  * Model Feedback
- * 
+ * Application-owned. User feedback submissions.
  */
 export type FeedbackModel = runtime.Types.Result.DefaultSelection<Prisma.$FeedbackPayload>
 

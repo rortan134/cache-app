@@ -260,7 +260,7 @@ async function fetchSectionDescription([
 
     if (!response.ok) {
         throw new Error(
-            payload.error ?? "Unable to generate a section description."
+            payload.error ?? "Unable to generate a section description.",
         );
     }
 
@@ -290,14 +290,14 @@ interface CollectionSidebarActionDependencies {
     setCollections: (
         value:
             | LibraryCollectionTag[]
-            | ((current: LibraryCollectionTag[]) => LibraryCollectionTag[])
+            | ((current: LibraryCollectionTag[]) => LibraryCollectionTag[]),
     ) => void;
     setItems: (
         value:
             | LibraryItemWithCollections[]
             | ((
-                  current: LibraryItemWithCollections[]
-              ) => LibraryItemWithCollections[])
+                  current: LibraryItemWithCollections[],
+              ) => LibraryItemWithCollections[]),
     ) => void;
 }
 
@@ -315,7 +315,7 @@ interface LibraryWorkspaceSidebarProps {
 function replaceItemCollections(
     items: LibraryItemWithCollections[],
     itemId: string,
-    collections: LibraryCollectionTag[]
+    collections: LibraryCollectionTag[],
 ): LibraryItemWithCollections[] {
     return items.map((item) =>
         item.id === itemId
@@ -323,14 +323,14 @@ function replaceItemCollections(
                   ...item,
                   collections: [...collections],
               }
-            : item
+            : item,
     );
 }
 
 function appendCollectionToItem(
     items: LibraryItemWithCollections[],
     itemId: string,
-    collection: LibraryCollectionTag
+    collection: LibraryCollectionTag,
 ): LibraryItemWithCollections[] {
     return items.map((item) => {
         if (item.id !== itemId) {
@@ -349,7 +349,7 @@ function appendCollectionToItem(
 function appendCollectionToItems(
     items: LibraryItemWithCollections[],
     itemIds: string[],
-    collection: LibraryCollectionTag
+    collection: LibraryCollectionTag,
 ): LibraryItemWithCollections[] {
     const itemIdSet = new Set(itemIds);
     if (itemIdSet.size === 0) {
@@ -373,26 +373,26 @@ function appendCollectionToItems(
 function replaceCollectionPriority<T extends LibraryCollectionTag>(
     collections: T[],
     collectionId: string,
-    priority: CollectionPriority
+    priority: CollectionPriority,
 ): T[] {
     return collections.map((collection) =>
         collection.id === collectionId
             ? { ...collection, priority }
-            : collection
+            : collection,
     );
 }
 
 function replaceCollectionName<T extends LibraryCollectionTag>(
     collections: T[],
     collectionId: string,
-    name: string
+    name: string,
 ): T[] {
     return sortCollections(
         collections.map((collection) =>
             collection.id === collectionId
                 ? { ...collection, name }
-                : collection
-        )
+                : collection,
+        ),
     );
 }
 
@@ -401,7 +401,7 @@ function replaceCollectionShareState<T extends LibraryCollectionTag>(
     nextCollection: Pick<
         LibraryCollectionTag,
         "id" | "shareId" | "sharedAt" | "updatedAt"
-    >
+    >,
 ): T[] {
     return sortCollections(
         collections.map((collection) =>
@@ -412,8 +412,8 @@ function replaceCollectionShareState<T extends LibraryCollectionTag>(
                       shareId: nextCollection.shareId,
                       updatedAt: nextCollection.updatedAt,
                   }
-                : collection
-        )
+                : collection,
+        ),
     );
 }
 
@@ -427,20 +427,20 @@ function getPreviewOrderSeed(value: string): number {
 
 function getCollectionPreviewThumbnailUrls(
     collectionId: string,
-    items: LibraryItemWithCollections[]
+    items: LibraryItemWithCollections[],
 ): string[] {
     return [...items]
         .filter(
             (
-                item
+                item,
             ): item is LibraryItemWithCollections & {
                 thumbnailUrl: string;
-            } => Boolean(item.thumbnailUrl)
+            } => Boolean(item.thumbnailUrl),
         )
         .sort(
             (left, right) =>
                 getPreviewOrderSeed(`${collectionId}:${left.id}`) -
-                getPreviewOrderSeed(`${collectionId}:${right.id}`)
+                getPreviewOrderSeed(`${collectionId}:${right.id}`),
         )
         .slice(0, 5)
         .map((item) => item.thumbnailUrl);
@@ -449,14 +449,14 @@ function getCollectionPreviewThumbnailUrls(
 function replaceItemsCollectionPriority(
     items: LibraryItemWithCollections[],
     collectionId: string,
-    priority: CollectionPriority
+    priority: CollectionPriority,
 ): LibraryItemWithCollections[] {
     return items.map((item) => ({
         ...item,
         collections: replaceCollectionPriority(
             item.collections,
             collectionId,
-            priority
+            priority,
         ),
     }));
 }
@@ -464,14 +464,14 @@ function replaceItemsCollectionPriority(
 function replaceItemsCollectionName(
     items: LibraryItemWithCollections[],
     collectionId: string,
-    name: string
+    name: string,
 ): LibraryItemWithCollections[] {
     return items.map((item) => ({
         ...item,
         collections: replaceCollectionName(
             item.collections,
             collectionId,
-            name
+            name,
         ),
     }));
 }
@@ -481,20 +481,20 @@ function replaceItemsCollectionShareState(
     nextCollection: Pick<
         LibraryCollectionTag,
         "id" | "shareId" | "sharedAt" | "updatedAt"
-    >
+    >,
 ): LibraryItemWithCollections[] {
     return items.map((item) => ({
         ...item,
         collections: replaceCollectionShareState(
             item.collections,
-            nextCollection
+            nextCollection,
         ),
     }));
 }
 
 function deriveCollectionSummaries(
     collections: LibraryCollectionTag[],
-    items: LibraryItemWithCollections[]
+    items: LibraryItemWithCollections[],
 ): LibraryCollectionSummary[] {
     const counts = new Map<string, number>();
     const collectionSources = new Map<string, Set<LibraryItemSource>>();
@@ -521,7 +521,7 @@ function deriveCollectionSummaries(
             shareId: collection.shareId,
             sources: Array.from(collectionSources.get(collection.id) ?? []),
             updatedAt: collection.updatedAt,
-        }))
+        })),
     );
 }
 
@@ -547,7 +547,7 @@ function escapeCsvCell(value: string): string {
 
 function buildCollectionCsv(
     collection: LibraryCollectionSummary,
-    items: LibraryItemWithCollections[]
+    items: LibraryItemWithCollections[],
 ): string {
     const header = [
         "Collection",
@@ -599,7 +599,7 @@ function LibraryWorkspaceSidebar({
     const [createDialogDescriptionDraft, setCreateDialogDescriptionDraft] =
         useState("");
     const [createDialogError, setCreateDialogError] = useState<string | null>(
-        null
+        null,
     );
     const [isTemplateComboboxOpen, setIsTemplateComboboxOpen] = useState(false);
     const [createDialogAssignItemId, setCreateDialogAssignItemId] = useState<
@@ -609,7 +609,7 @@ function LibraryWorkspaceSidebar({
         useState<LibraryCollectionSummary | null>(null);
     const [renameDialogDraft, setRenameDialogDraft] = useState("");
     const [renameDialogError, setRenameDialogError] = useState<string | null>(
-        null
+        null,
     );
 
     const [pendingDeleteCollection, setPendingDeleteCollection] =
@@ -667,18 +667,18 @@ function LibraryWorkspaceSidebar({
         {
             preventDefault: true,
         },
-        [isCreateDialogOpen]
+        [isCreateDialogOpen],
     );
 
     const handleRequestDeleteCollection = (
-        collection: LibraryCollectionSummary
+        collection: LibraryCollectionSummary,
     ) => {
         setCollectionActionFeedback(null);
         setPendingDeleteCollection(collection);
     };
 
     const handleRequestRenameCollection = (
-        collection: LibraryCollectionSummary
+        collection: LibraryCollectionSummary,
     ) => {
         setCollectionActionFeedback(null);
         setRenameDialogDraft(collection.name);
@@ -701,7 +701,7 @@ function LibraryWorkspaceSidebar({
     };
 
     const handleCopyCollectionLinks = (
-        collection: LibraryCollectionSummary
+        collection: LibraryCollectionSummary,
     ) => {
         const collectionItems = itemsByCollectionId.get(collection.id) ?? [];
         const urls = getCollectionItemUrls(collectionItems);
@@ -723,12 +723,12 @@ function LibraryWorkspaceSidebar({
                 : {
                       message: "We couldn't copy these links right now.",
                       tone: "error",
-                  }
+                  },
         );
     };
 
     const handleCopyCollectionTitle = (
-        collection: LibraryCollectionSummary
+        collection: LibraryCollectionSummary,
     ) => {
         setCollectionActionFeedback(
             copyToClipboard(collection.name)
@@ -740,12 +740,12 @@ function LibraryWorkspaceSidebar({
                       message:
                           "We couldn't copy this collection title right now.",
                       tone: "error",
-                  }
+                  },
         );
     };
 
     const handleCopyCollectionShareLink = (
-        collection: LibraryCollectionSummary
+        collection: LibraryCollectionSummary,
     ) => {
         if (!collection.shareId) {
             setCollectionActionFeedback({
@@ -766,12 +766,12 @@ function LibraryWorkspaceSidebar({
                 : {
                       message: "We couldn't copy this public link right now.",
                       tone: "error",
-                  }
+                  },
         );
     };
 
     const handleEnableCollectionShare = (
-        collection: LibraryCollectionSummary
+        collection: LibraryCollectionSummary,
     ) => {
         setCollectionActionFeedback(null);
         setPendingShareCollectionId(collection.id);
@@ -800,10 +800,10 @@ function LibraryWorkspaceSidebar({
             }
 
             setCollections((current) =>
-                replaceCollectionShareState(current, result.collection)
+                replaceCollectionShareState(current, result.collection),
             );
             setItems((current) =>
-                replaceItemsCollectionShareState(current, result.collection)
+                replaceItemsCollectionShareState(current, result.collection),
             );
             setPendingShareCollectionId(null);
             setCollectionActionFeedback(
@@ -815,13 +815,13 @@ function LibraryWorkspaceSidebar({
                     : {
                           message: `${collection.name} is now publicly shared.`,
                           tone: "success",
-                      }
+                      },
             );
         });
     };
 
     const handleDisableCollectionShare = (
-        collection: LibraryCollectionSummary
+        collection: LibraryCollectionSummary,
     ) => {
         setCollectionActionFeedback(null);
         setPendingShareCollectionId(collection.id);
@@ -851,10 +851,10 @@ function LibraryWorkspaceSidebar({
             }
 
             setCollections((current) =>
-                replaceCollectionShareState(current, result.collection)
+                replaceCollectionShareState(current, result.collection),
             );
             setItems((current) =>
-                replaceItemsCollectionShareState(current, result.collection)
+                replaceItemsCollectionShareState(current, result.collection),
             );
             setPendingShareCollectionId(null);
             setCollectionActionFeedback({
@@ -865,7 +865,7 @@ function LibraryWorkspaceSidebar({
     };
 
     const handleOpenCollectionLinks = (
-        collection: LibraryCollectionSummary
+        collection: LibraryCollectionSummary,
     ) => {
         const collectionItems = itemsByCollectionId.get(collection.id) ?? [];
         const urls = getCollectionItemUrls(collectionItems);
@@ -887,7 +887,7 @@ function LibraryWorkspaceSidebar({
     };
 
     const handleExportCollectionToCsv = (
-        collection: LibraryCollectionSummary
+        collection: LibraryCollectionSummary,
     ) => {
         const collectionItems = itemsByCollectionId.get(collection.id) ?? [];
 
@@ -906,13 +906,13 @@ function LibraryWorkspaceSidebar({
                         [buildCollectionCsv(collection, collectionItems)],
                         {
                             type: "text/csv;charset=utf-8",
-                        }
+                        },
                     ),
                     {
                         description: "CSV file",
                         extension: "csv",
                         name: collectionExportFileName(collection.name),
-                    }
+                    },
                 );
 
                 setCollectionActionFeedback({
@@ -958,16 +958,16 @@ function LibraryWorkspaceSidebar({
 
             setCollections((current) =>
                 current.filter(
-                    (collection) => collection.id !== result.collection.id
-                )
+                    (collection) => collection.id !== result.collection.id,
+                ),
             );
             setItems((current) =>
                 current.map((item) => ({
                     ...item,
                     collections: item.collections.filter(
-                        (collection) => collection.id !== result.collection.id
+                        (collection) => collection.id !== result.collection.id,
                     ),
-                }))
+                })),
             );
             setPendingDeleteCollection(null);
             setCollectionActionFeedback({
@@ -979,10 +979,10 @@ function LibraryWorkspaceSidebar({
 
     const handleUpdateCollectionPriority = (
         collectionId: string,
-        priority: CollectionPriority
+        priority: CollectionPriority,
     ) => {
         const previousPriority = collections.find(
-            (collection) => collection.id === collectionId
+            (collection) => collection.id === collectionId,
         )?.priority;
 
         if (!previousPriority || previousPriority === priority) {
@@ -990,10 +990,10 @@ function LibraryWorkspaceSidebar({
         }
 
         setCollections((current) =>
-            replaceCollectionPriority(current, collectionId, priority)
+            replaceCollectionPriority(current, collectionId, priority),
         );
         setItems((current) =>
-            replaceItemsCollectionPriority(current, collectionId, priority)
+            replaceItemsCollectionPriority(current, collectionId, priority),
         );
 
         const runUpdate = async () => {
@@ -1017,30 +1017,30 @@ function LibraryWorkspaceSidebar({
                     replaceCollectionPriority(
                         current,
                         result.collection.id,
-                        result.collection.priority
-                    )
+                        result.collection.priority,
+                    ),
                 );
                 setItems((current) =>
                     replaceItemsCollectionPriority(
                         current,
                         result.collection.id,
-                        result.collection.priority
-                    )
+                        result.collection.priority,
+                    ),
                 );
             } else {
                 setCollections((current) =>
                     replaceCollectionPriority(
                         current,
                         collectionId,
-                        previousPriority
-                    )
+                        previousPriority,
+                    ),
                 );
                 setItems((current) =>
                     replaceItemsCollectionPriority(
                         current,
                         collectionId,
-                        previousPriority
-                    )
+                        previousPriority,
+                    ),
                 );
                 setCollectionActionFeedback({
                     message: result.message,
@@ -1054,15 +1054,15 @@ function LibraryWorkspaceSidebar({
                 replaceCollectionPriority(
                     current,
                     collectionId,
-                    previousPriority
-                )
+                    previousPriority,
+                ),
             );
             setItems((current) =>
                 replaceItemsCollectionPriority(
                     current,
                     collectionId,
-                    previousPriority
-                )
+                    previousPriority,
+                ),
             );
 
             setCollectionActionFeedback({
@@ -1095,10 +1095,10 @@ function LibraryWorkspaceSidebar({
         }
 
         setCollections((current) =>
-            replaceCollectionName(current, targetCollection.id, nextName)
+            replaceCollectionName(current, targetCollection.id, nextName),
         );
         setItems((current) =>
-            replaceItemsCollectionName(current, targetCollection.id, nextName)
+            replaceItemsCollectionName(current, targetCollection.id, nextName),
         );
 
         startRenameTransition(async () => {
@@ -1121,15 +1121,15 @@ function LibraryWorkspaceSidebar({
                     replaceCollectionName(
                         current,
                         result.collection.id,
-                        result.collection.name
-                    )
+                        result.collection.name,
+                    ),
                 );
                 setItems((current) =>
                     replaceItemsCollectionName(
                         current,
                         result.collection.id,
-                        result.collection.name
-                    )
+                        result.collection.name,
+                    ),
                 );
                 setPendingRenameCollection(null);
                 setRenameDialogDraft("");
@@ -1145,15 +1145,15 @@ function LibraryWorkspaceSidebar({
                 replaceCollectionName(
                     current,
                     targetCollection.id,
-                    previousName
-                )
+                    previousName,
+                ),
             );
             setItems((current) =>
                 replaceItemsCollectionName(
                     current,
                     targetCollection.id,
-                    previousName
-                )
+                    previousName,
+                ),
             );
             setRenameDialogError(result.message);
         });
@@ -1177,7 +1177,7 @@ function LibraryWorkspaceSidebar({
         setCollections((current) =>
             current.some((collection) => collection.id === nextCollection.id)
                 ? current
-                : sortCollections([...current, nextCollection])
+                : sortCollections([...current, nextCollection]),
         );
 
         if (input.assignedItemIds.length > 0) {
@@ -1187,19 +1187,19 @@ function LibraryWorkspaceSidebar({
                     ? appendCollectionToItem(
                           current,
                           firstAssignedItemId,
-                          nextCollection
+                          nextCollection,
                       )
                     : appendCollectionToItems(
                           current,
                           input.assignedItemIds,
-                          nextCollection
-                      )
+                          nextCollection,
+                      ),
             );
         }
     };
 
     const handleDuplicateCollection = (
-        collection: LibraryCollectionSummary
+        collection: LibraryCollectionSummary,
     ) => {
         setCollectionActionFeedback(null);
 
@@ -1271,14 +1271,14 @@ function LibraryWorkspaceSidebar({
     };
 
     const handleCreateTemplateCollection = (
-        templateValue: CollectionTemplateValue | null
+        templateValue: CollectionTemplateValue | null,
     ) => {
         if (!templateValue) {
             return;
         }
 
         const selectedTemplate = COLLECTION_TEMPLATE_OPTIONS.find(
-            (template) => template.value === templateValue
+            (template) => template.value === templateValue,
         );
         if (!selectedTemplate) {
             return;
@@ -1331,7 +1331,7 @@ function LibraryWorkspaceSidebar({
                         <div className="flex w-full items-center gap-1">
                             <CollectionsListTrigger
                                 collectionLabels={collectionSummaries.map(
-                                    (collection) => collection.name
+                                    (collection) => collection.name,
                                 )}
                             />
                             <CollectionsListActionButton
@@ -1379,7 +1379,7 @@ function LibraryWorkspaceSidebar({
                                         <CollectionsListItem
                                             collection={collection}
                                             isSelected={selectedCollectionIds.includes(
-                                                collection.id
+                                                collection.id,
                                             )}
                                             key={collection.id}
                                         >
@@ -1387,19 +1387,19 @@ function LibraryWorkspaceSidebar({
                                                 onUpdatePriority={(priority) =>
                                                     handleUpdateCollectionPriority(
                                                         collection.id,
-                                                        priority
+                                                        priority,
                                                     )
                                                 }
                                             />
                                             <CollectionsListItemPreview
                                                 onSelect={() =>
                                                     onSelectCollection(
-                                                        collection.id
+                                                        collection.id,
                                                     )
                                                 }
                                                 thumbnails={
                                                     collectionPreviewThumbnailUrlsById.get(
-                                                        collection.id
+                                                        collection.id,
                                                     ) ?? []
                                                 }
                                             >
@@ -1413,58 +1413,58 @@ function LibraryWorkspaceSidebar({
                                                 }
                                                 onCopyLinks={() =>
                                                     handleCopyCollectionLinks(
-                                                        collection
+                                                        collection,
                                                     )
                                                 }
                                                 onCopyShareLink={() =>
                                                     handleCopyCollectionShareLink(
-                                                        collection
+                                                        collection,
                                                     )
                                                 }
                                                 onCopyTitle={() =>
                                                     handleCopyCollectionTitle(
-                                                        collection
+                                                        collection,
                                                     )
                                                 }
                                                 onDelete={() =>
                                                     handleRequestDeleteCollection(
-                                                        collection
+                                                        collection,
                                                     )
                                                 }
                                                 onDisableShare={() =>
                                                     handleDisableCollectionShare(
-                                                        collection
+                                                        collection,
                                                     )
                                                 }
                                                 onEnableShare={() =>
                                                     handleEnableCollectionShare(
-                                                        collection
+                                                        collection,
                                                     )
                                                 }
                                                 onExportCsv={() =>
                                                     handleExportCollectionToCsv(
-                                                        collection
+                                                        collection,
                                                     )
                                                 }
                                                 onMakeCopy={() =>
                                                     handleDuplicateCollection(
-                                                        collection
+                                                        collection,
                                                     )
                                                 }
                                                 onOpenLinks={() =>
                                                     handleOpenCollectionLinks(
-                                                        collection
+                                                        collection,
                                                     )
                                                 }
                                                 onRename={() =>
                                                     handleRequestRenameCollection(
-                                                        collection
+                                                        collection,
                                                     )
                                                 }
                                                 shareUrl={
                                                     collection.shareId
                                                         ? buildPublicCollectionShareUrl(
-                                                              collection.shareId
+                                                              collection.shareId,
                                                           )
                                                         : null
                                                 }
@@ -1530,7 +1530,7 @@ function LibraryWorkspaceSidebar({
                                     maxLength={64}
                                     onChange={(event) => {
                                         setRenameDialogDraft(
-                                            event.currentTarget.value
+                                            event.currentTarget.value,
                                         );
                                         if (renameDialogError) {
                                             setRenameDialogError(null);
@@ -1610,7 +1610,7 @@ function LibraryWorkspaceSidebar({
                                     maxLength={64}
                                     onChange={(event) => {
                                         setCreateDialogDraft(
-                                            event.currentTarget.value
+                                            event.currentTarget.value,
                                         );
                                         if (createDialogError) {
                                             setCreateDialogError(null);
@@ -1637,7 +1637,7 @@ function LibraryWorkspaceSidebar({
                                     maxLength={1024}
                                     onChange={(event) => {
                                         setCreateDialogDescriptionDraft(
-                                            event.currentTarget.value
+                                            event.currentTarget.value,
                                         );
                                     }}
                                     placeholder="Add description..."
@@ -1970,7 +1970,7 @@ interface CommandPaletteItem {
     description?: string;
     label: string;
     onSelect: (
-        event: BaseUIEvent<React.MouseEvent> | KeyboardEvent
+        event: BaseUIEvent<React.MouseEvent> | KeyboardEvent,
     ) => void | Promise<void>;
     shortcut?: string;
     value: string;
@@ -1988,8 +1988,9 @@ interface LibraryBrowserSection {
     showPaywallBanner?: boolean;
     title: string | null;
 }
-interface LibraryCommandAttachment
-    extends ReturnType<typeof createFileAttachment> {
+interface LibraryCommandAttachment extends ReturnType<
+    typeof createFileAttachment
+> {
     id: string;
 }
 
@@ -2014,7 +2015,7 @@ function itemDomain(url: string): string {
 
 function itemDate(
     item: LibraryItem,
-    mode: "added" | "created" = "added"
+    mode: "added" | "created" = "added",
 ): Date {
     const value =
         mode === "created"
@@ -2025,14 +2026,14 @@ function itemDate(
 
 function itemTimestamp(
     item: LibraryItem,
-    mode: "added" | "created" = "added"
+    mode: "added" | "created" = "added",
 ): number {
     return itemDate(item, mode).getTime();
 }
 
 function itemMonthKey(
     item: LibraryItem,
-    mode: "added" | "created" = "added"
+    mode: "added" | "created" = "added",
 ): string {
     const date = itemDate(item, mode);
     const y = date.getFullYear();
@@ -2122,7 +2123,7 @@ function formatGroupHeading(mode: GroupByMode, key: string): string {
 function compareItems(
     a: LibraryItem,
     b: LibraryItem,
-    sortMode: SortMode
+    sortMode: SortMode,
 ): number {
     if (sortMode === "added-newest") {
         return (
@@ -2152,7 +2153,7 @@ function compareItems(
         return (
             NAME_COLLATOR.compare(
                 sourceLabel(a.source),
-                sourceLabel(b.source)
+                sourceLabel(b.source),
             ) || NAME_COLLATOR.compare(itemPrimaryText(a), itemPrimaryText(b))
         );
     }
@@ -2166,7 +2167,7 @@ function compareSectionKeys(
     a: string,
     b: string,
     groupBy: GroupByMode,
-    sortMode: SortMode
+    sortMode: SortMode,
 ): number {
     if (groupBy === "month-added" || groupBy === "month-created") {
         const isOldest =
@@ -2176,7 +2177,7 @@ function compareSectionKeys(
     if (groupBy === "source") {
         return NAME_COLLATOR.compare(
             formatGroupHeading(groupBy, a),
-            formatGroupHeading(groupBy, b)
+            formatGroupHeading(groupBy, b),
         );
     }
     return NAME_COLLATOR.compare(a, b);
@@ -2192,7 +2193,7 @@ function appendUniqueSearchTerm(values: string[], next: string): string[] {
         return [...values];
     }
     return values.some(
-        (value) => value.toLowerCase() === normalized.toLowerCase()
+        (value) => value.toLowerCase() === normalized.toLowerCase(),
     )
         ? [...values]
         : [...values, normalized];
@@ -2212,7 +2213,7 @@ function matchesCommandPaletteItem(item: unknown, query: string): boolean {
     const candidate = item as Partial<CommandPaletteItem>;
 
     return [candidate.label, candidate.description, candidate.value].some(
-        (field) => field?.toLowerCase().includes(normalizedQuery)
+        (field) => field?.toLowerCase().includes(normalizedQuery),
     );
 }
 
@@ -2252,7 +2253,7 @@ function isTextEntryTarget(target: EventTarget | null): boolean {
         target instanceof HTMLElement &&
         (target.isContentEditable ||
             Boolean(
-                target.closest('input, textarea, select, [role="textbox"]')
+                target.closest('input, textarea, select, [role="textbox"]'),
             ))
     );
 }
@@ -2270,11 +2271,11 @@ function isPrintablePaletteKey(event: KeyboardEvent): boolean {
 }
 
 function isSearchCancelKey(
-    event: React.KeyboardEvent<HTMLInputElement>
+    event: React.KeyboardEvent<HTMLInputElement>,
 ): boolean {
     const key = event.key.toLowerCase();
     return SEARCH_CANCEL_KEYS.includes(
-        key as (typeof SEARCH_CANCEL_KEYS)[number]
+        key as (typeof SEARCH_CANCEL_KEYS)[number],
     );
 }
 
@@ -2324,7 +2325,7 @@ function columnCountLabel(mode: ColumnCountMode): string {
 }
 
 function collectionMembershipFilterLabel(
-    filter: CollectionMembershipFilter
+    filter: CollectionMembershipFilter,
 ): string {
     if (filter === "in-collections") {
         return "In collections";
@@ -2341,7 +2342,7 @@ function collectionItemCountLabel(count: number): string {
 
 function buildCollectionPaletteDescription(
     collection: LibraryCollectionSummary,
-    isActive: boolean
+    isActive: boolean,
 ): string {
     const details = [collectionItemCountLabel(collection.itemCount)];
 
@@ -2385,11 +2386,11 @@ function buildCollectionPaletteItems({
                 active: isActive,
                 description: buildCollectionPaletteDescription(
                     collection,
-                    isActive
+                    isActive,
                 ),
                 label: `Collection: ${collection.name}`,
                 onSelect: wrapOnSelect(() =>
-                    onToggleCollectionSelection(collection.id)
+                    onToggleCollectionSelection(collection.id),
                 ),
                 value: `filter collection ${collection.id}`,
             } satisfies CommandPaletteItem;
@@ -2606,7 +2607,7 @@ function renderLibraryGridBody({
                     showPaywallBanner={section.showPaywallBanner}
                 />
             </section>
-        )
+        ),
     );
 }
 
@@ -2639,7 +2640,7 @@ function buildSearchPaletteGroups({
 }): CommandPaletteGroup[] {
     const groups: CommandPaletteGroup[] = [];
     const draftAlreadyIncluded = searchTerms.some(
-        (term) => term.toLowerCase() === draft.toLowerCase()
+        (term) => term.toLowerCase() === draft.toLowerCase(),
     );
     const showCollectionsGroup =
         collections.length > 0 &&
@@ -2661,7 +2662,7 @@ function buildSearchPaletteGroups({
                     label: `Add search "${draft}"`,
                     onSelect: () => {
                         setSearchTerms((current) =>
-                            appendUniqueSearchTerm(current, draft)
+                            appendUniqueSearchTerm(current, draft),
                         );
                         setPaletteInput("");
                         setCommandListOpen(true);
@@ -2776,7 +2777,7 @@ interface BuildLibraryPaletteGroupsInput {
     onToggleCollectionSelection: (id: string) => void;
     openPaletteSection: (
         section: Exclude<PaletteSection, "search">,
-        event: BaseUIEvent<React.MouseEvent> | KeyboardEvent
+        event: BaseUIEvent<React.MouseEvent> | KeyboardEvent,
     ) => void;
     paletteInput: string;
     paletteSection: PaletteSection;
@@ -2786,10 +2787,10 @@ interface BuildLibraryPaletteGroupsInput {
     setCollectionMembershipFilter: (value: CollectionMembershipFilter) => void;
     setColumnCountMode: (value: ColumnCountMode) => void;
     setCommandListOpen: (
-        value: boolean | ((previous: boolean) => boolean)
+        value: boolean | ((previous: boolean) => boolean),
     ) => void;
     setDomainFilters: (
-        value: string[] | ((value: string[]) => string[])
+        value: string[] | ((value: string[]) => string[]),
     ) => void;
     setGroupBy: (value: GroupByMode) => void;
     setPaletteInput: (value: string) => void;
@@ -2798,14 +2799,14 @@ interface BuildLibraryPaletteGroupsInput {
     setSourceFilters: (
         value:
             | SourceFilterValue[]
-            | ((value: SourceFilterValue[]) => SourceFilterValue[])
+            | ((value: SourceFilterValue[]) => SourceFilterValue[]),
     ) => void;
     sortMode: SortMode;
     sourceFilters: SourceFilterValue[];
 }
 
 function buildDomainPaletteOptions(
-    items: LibraryItem[]
+    items: LibraryItem[],
 ): { label: string; value: string }[] {
     const counts = new Map<string, number>();
     for (const item of items) {
@@ -2816,7 +2817,7 @@ function buildDomainPaletteOptions(
     const dynamicDomains = Array.from(counts.entries())
         .sort(
             ([aDomain, aCount], [bDomain, bCount]) =>
-                bCount - aCount || NAME_COLLATOR.compare(aDomain, bDomain)
+                bCount - aCount || NAME_COLLATOR.compare(aDomain, bDomain),
         )
         .map(([domain, count]) => ({
             label: `${domain} (${count})`,
@@ -2950,10 +2951,10 @@ function buildLibraryPaletteGroups({
                     value: "filter source all",
                 },
                 ...PALETTE_SOURCE_OPTIONS.filter(
-                    (option) => option.value !== "all"
+                    (option) => option.value !== "all",
                 ).map((option) => ({
                     active: sourceFilters.includes(
-                        option.value as SourceFilterValue
+                        option.value as SourceFilterValue,
                     ),
                     description: "Toggle this source in the filter stack",
                     label: `Source: ${option.label}`,
@@ -2961,9 +2962,9 @@ function buildLibraryPaletteGroups({
                         setSourceFilters((current) =>
                             toggleValue(
                                 current,
-                                option.value as SourceFilterValue
-                            )
-                        )
+                                option.value as SourceFilterValue,
+                            ),
+                        ),
                     ),
                     value: `filter source ${option.value}`,
                 })),
@@ -2981,8 +2982,8 @@ function buildLibraryPaletteGroups({
                     label: "Collections: All items",
                     onSelect: applyAndStay(() =>
                         setCollectionMembershipFilter(
-                            DEFAULT_COLLECTION_MEMBERSHIP_FILTER
-                        )
+                            DEFAULT_COLLECTION_MEMBERSHIP_FILTER,
+                        ),
                     ),
                     value: "filter collections all",
                 },
@@ -2992,7 +2993,7 @@ function buildLibraryPaletteGroups({
                         "Show only items that belong to at least one collection",
                     label: "Collections: In collections",
                     onSelect: applyAndStay(() =>
-                        setCollectionMembershipFilter("in-collections")
+                        setCollectionMembershipFilter("in-collections"),
                     ),
                     value: "filter collections in",
                 },
@@ -3002,7 +3003,7 @@ function buildLibraryPaletteGroups({
                         "Show only items that do not belong to any collection",
                     label: "Collections: Not in collections",
                     onSelect: applyAndStay(() =>
-                        setCollectionMembershipFilter("not-in-collections")
+                        setCollectionMembershipFilter("not-in-collections"),
                     ),
                     value: "filter collections not-in",
                 },
@@ -3034,8 +3035,8 @@ function buildLibraryPaletteGroups({
                     option.value === ALL_DOMAIN_FILTER
                         ? setDomainFilters([])
                         : setDomainFilters((current) =>
-                              toggleValue(current, option.value)
-                          )
+                              toggleValue(current, option.value),
+                          ),
                 ),
                 value: `filter domain ${option.value}`,
             })),
@@ -3053,7 +3054,7 @@ function buildLibraryPaletteGroups({
                     description: "Organize the grid into sections",
                     label: option.label,
                     onSelect: applyAndReturn(() =>
-                        setGroupBy(option.value as GroupByMode)
+                        setGroupBy(option.value as GroupByMode),
                     ),
                     value: `group ${option.value}`,
                 })),
@@ -3071,7 +3072,7 @@ function buildLibraryPaletteGroups({
                     description: "Change the ordering within the current view",
                     label: option.label,
                     onSelect: applyAndReturn(() =>
-                        setSortMode(option.value as SortMode)
+                        setSortMode(option.value as SortMode),
                     ),
                     value: `sort ${option.value}`,
                 })),
@@ -3091,7 +3092,7 @@ function buildLibraryPaletteGroups({
                         : "Force a specific number of columns",
                 label: option.label,
                 onSelect: applyAndReturn(() =>
-                    setColumnCountMode(option.value as ColumnCountMode)
+                    setColumnCountMode(option.value as ColumnCountMode),
                 ),
                 value: `columns ${option.value}`,
             })),
@@ -3108,18 +3109,18 @@ function filterLibraryBrowserItems(
         searchTerms: string[];
         selectedCollectionIds: string[];
         sourceFilters: SourceFilterValue[];
-    }
+    },
 ): LibraryItemWithCollections[] {
     let list = [...items];
     const normalizedSearchTerms = input.searchTerms.map((term) =>
-        term.trim().toLowerCase()
+        term.trim().toLowerCase(),
     );
 
     if (input.selectedCollectionIds.length > 0) {
         list = list.filter((item) =>
             item.collections.some((collection) =>
-                input.selectedCollectionIds.includes(collection.id)
-            )
+                input.selectedCollectionIds.includes(collection.id),
+            ),
         );
     }
 
@@ -3140,7 +3141,7 @@ function filterLibraryBrowserItems(
                 (term) =>
                     cap.includes(term) ||
                     noteText.includes(term) ||
-                    url.includes(term)
+                    url.includes(term),
             );
         });
     }
@@ -3151,7 +3152,7 @@ function filterLibraryBrowserItems(
 
     if (input.domainFilters.length > 0) {
         list = list.filter((item) =>
-            input.domainFilters.includes(itemDomain(item.url))
+            input.domainFilters.includes(itemDomain(item.url)),
         );
     }
 
@@ -3160,7 +3161,7 @@ function filterLibraryBrowserItems(
 
 function sortLibraryBrowserItems(
     filteredItems: LibraryItemWithCollections[],
-    sortMode: SortMode
+    sortMode: SortMode,
 ): LibraryItemWithCollections[] {
     const itemSortMode =
         sortMode === "count-desc" ? DEFAULT_SORT_MODE : sortMode;
@@ -3170,7 +3171,7 @@ function sortLibraryBrowserItems(
 function buildLibraryBrowserSections(
     sortedItems: LibraryItemWithCollections[],
     groupBy: GroupByMode,
-    sortMode: SortMode
+    sortMode: SortMode,
 ): LibraryBrowserSection[] {
     if (groupBy === "none") {
         return [
@@ -3268,7 +3269,7 @@ async function createLibraryBookmarkFromPastedUrl({
 
 function gateLibraryBrowserSections(
     sections: LibraryBrowserSection[],
-    shouldGate: boolean
+    shouldGate: boolean,
 ): LibraryBrowserSection[] {
     if (!shouldGate) {
         return sections as LibraryBrowserSection[];
@@ -3280,13 +3281,13 @@ function gateLibraryBrowserSections(
     return sections.map((section) => {
         const paywallPreviewCount = Math.min(
             section.items.length,
-            remainingPreviewItems
+            remainingPreviewItems,
         );
         const hasLockedItems = paywallPreviewCount < section.items.length;
 
         remainingPreviewItems = Math.max(
             0,
-            remainingPreviewItems - paywallPreviewCount
+            remainingPreviewItems - paywallPreviewCount,
         );
 
         if (hasLockedItems && shouldShowPaywallBanner) {
@@ -3307,14 +3308,14 @@ function gateLibraryBrowserSections(
 }
 
 function getVisibleSectionItems(
-    section: LibraryBrowserSection
+    section: LibraryBrowserSection,
 ): LibraryItemWithCollections[] {
     const resolvedPreviewCount = Math.max(
         0,
         Math.min(
             section.paywallPreviewCount ?? section.items.length,
-            section.items.length
-        )
+            section.items.length,
+        ),
     );
 
     return section.items.slice(0, resolvedPreviewCount);
@@ -3340,13 +3341,13 @@ function libraryBrowserHasActiveFilters(input: {
 function applyVisiblePaletteShortcuts(
     paletteGroups: CommandPaletteGroup[],
     paletteInput: string,
-    systemControlKey: string
+    systemControlKey: string,
 ): CommandPaletteGroup[] {
     const filtered = paletteGroups
         .map((group) => ({
             ...group,
             items: group.items.filter((item) =>
-                matchesCommandPaletteItem(item, paletteInput)
+                matchesCommandPaletteItem(item, paletteInput),
             ),
         }))
         .filter((group) => group.items.length > 0);
@@ -3389,7 +3390,7 @@ function useSectionCollapseState({
     showNoFilteredResults: boolean;
 }): SectionCollapseState {
     const [collapsedSectionKeys, setCollapsedSectionKeys] = useState<string[]>(
-        []
+        [],
     );
     const [layoutRefreshToken, setLayoutRefreshToken] = useState(0);
 
@@ -3408,7 +3409,7 @@ function useSectionCollapseState({
     useEffect(() => {
         if (!enableSectionCollapse) {
             setCollapsedSectionKeys((current) =>
-                current.length === 0 ? current : []
+                current.length === 0 ? current : [],
             );
         }
     }, [enableSectionCollapse]);
@@ -3417,7 +3418,7 @@ function useSectionCollapseState({
         setCollapsedSectionKeys((current) =>
             current.includes(key)
                 ? current.filter((entry) => entry !== key)
-                : [...current, key]
+                : [...current, key],
         );
         setLayoutRefreshToken((current) => current + 1);
     };
@@ -3478,7 +3479,7 @@ function LibraryPaletteTrailing({
     setCollectionMembershipFilter: (value: CollectionMembershipFilter) => void;
     setColumnCountMode: (value: ColumnCountMode) => void;
     setDomainFilters: (
-        value: string[] | ((value: string[]) => string[])
+        value: string[] | ((value: string[]) => string[]),
     ) => void;
     setGroupBy: (value: GroupByMode) => void;
     setSearchTerms: (value: string[] | ((value: string[]) => string[])) => void;
@@ -3486,7 +3487,7 @@ function LibraryPaletteTrailing({
     setSourceFilters: (
         value:
             | SourceFilterValue[]
-            | ((value: SourceFilterValue[]) => SourceFilterValue[])
+            | ((value: SourceFilterValue[]) => SourceFilterValue[]),
     ) => void;
     sortMode: SortMode;
     sourceFilters: SourceFilterValue[];
@@ -3501,7 +3502,7 @@ function LibraryPaletteTrailing({
                     key={`collection-${collectionId}`}
                     label={`Collection: ${truncateLabel(collection.name)}`}
                     onRemove={() => onRemoveCollectionFilter(collectionId)}
-                />
+                />,
             );
         }
     }
@@ -3512,7 +3513,7 @@ function LibraryPaletteTrailing({
                 attachment={attachment}
                 key={`attachment-${attachment.id}`}
                 onRemove={onRemoveCommandAttachment}
-            />
+            />,
         );
     }
 
@@ -3524,7 +3525,7 @@ function LibraryPaletteTrailing({
                 onRemove={() =>
                     setSearchTerms((current) => removeValue(current, term))
                 }
-            />
+            />,
         );
     }
 
@@ -3536,7 +3537,7 @@ function LibraryPaletteTrailing({
                 onRemove={() =>
                     setSourceFilters((current) => removeValue(current, source))
                 }
-            />
+            />,
         );
     }
 
@@ -3547,10 +3548,10 @@ function LibraryPaletteTrailing({
                 label={`Domain: ${truncateLabel(domainFilter)}`}
                 onRemove={() =>
                     setDomainFilters((current) =>
-                        removeValue(current, domainFilter)
+                        removeValue(current, domainFilter),
                     )
                 }
-            />
+            />,
         );
     }
 
@@ -3561,10 +3562,10 @@ function LibraryPaletteTrailing({
                 label={`Collections: ${collectionMembershipFilterLabel(collectionMembershipFilter)}`}
                 onRemove={() =>
                     setCollectionMembershipFilter(
-                        DEFAULT_COLLECTION_MEMBERSHIP_FILTER
+                        DEFAULT_COLLECTION_MEMBERSHIP_FILTER,
                     )
                 }
-            />
+            />,
         );
     }
 
@@ -3574,7 +3575,7 @@ function LibraryPaletteTrailing({
                 key="group"
                 label={`Group: ${groupByLabel(groupBy)}`}
                 onRemove={() => setGroupBy("none")}
-            />
+            />,
         );
     }
 
@@ -3584,7 +3585,7 @@ function LibraryPaletteTrailing({
                 key="sort"
                 label={`Sort: ${sortModeLabel(sortMode)}`}
                 onRemove={() => setSortMode(DEFAULT_SORT_MODE)}
-            />
+            />,
         );
     }
 
@@ -3594,7 +3595,7 @@ function LibraryPaletteTrailing({
                 key="columns"
                 label={`Layout: ${columnCountLabel(columnCountMode)}`}
                 onRemove={() => setColumnCountMode(DEFAULT_COLUMN_COUNT_MODE)}
-            />
+            />,
         );
     }
 
@@ -3634,8 +3635,8 @@ interface LibraryProps {
         value:
             | LibraryItemWithCollections[]
             | ((
-                  current: LibraryItemWithCollections[]
-              ) => LibraryItemWithCollections[])
+                  current: LibraryItemWithCollections[],
+              ) => LibraryItemWithCollections[]),
     ) => void;
     onRemoveCollectionFilter: (id: string) => void;
     onUpdateItemCollections: (itemId: string, collectionIds: string[]) => void;
@@ -3666,9 +3667,9 @@ function useLibraryItemActions(
         value:
             | LibraryItemWithCollections[]
             | ((
-                  current: LibraryItemWithCollections[]
-              ) => LibraryItemWithCollections[])
-    ) => void
+                  current: LibraryItemWithCollections[],
+              ) => LibraryItemWithCollections[]),
+    ) => void,
 ) {
     const [pendingDeleteItem, setPendingDeleteItem] =
         useState<LibraryItem | null>(null);
@@ -3724,7 +3725,7 @@ function useLibraryItemActions(
 
             if (result.status === "DELETED") {
                 setVisibleItems((current) =>
-                    current.filter((item) => item.id !== result.itemId)
+                    current.filter((item) => item.id !== result.itemId),
                 );
                 setPendingDeleteItem(null);
                 setActionFeedback({
@@ -3832,12 +3833,12 @@ function getSharedCollectionIds(items: LibraryItemWithCollections[]): string[] {
 
     const [firstItem, ...remainingItems] = items;
     const sharedCollectionIds = new Set(
-        firstItem?.collections.map((collection) => collection.id)
+        firstItem?.collections.map((collection) => collection.id),
     );
 
     for (const item of remainingItems) {
         const itemCollectionIds = new Set(
-            item.collections.map((collection) => collection.id)
+            item.collections.map((collection) => collection.id),
         );
         for (const collectionId of [...sharedCollectionIds]) {
             if (!itemCollectionIds.has(collectionId)) {
@@ -3958,14 +3959,14 @@ function CollectionComboboxPicker({
                         const mergedCollectionIds = Array.from(
                             new Set([
                                 ...currentItem.collections.map(
-                                    (collection) => collection.id
+                                    (collection) => collection.id,
                                 ),
                                 ...nextIds,
-                            ])
+                            ]),
                         );
                         onUpdateItemCollections(
                             currentItem.id,
-                            mergedCollectionIds
+                            mergedCollectionIds,
                         );
                     }
                 } else {
@@ -4179,7 +4180,7 @@ function LibraryGridCard({
 
     const renderPrimaryMenuItems = (
         Item: typeof ContextMenuItem | typeof MenuItem,
-        Separator: typeof ContextMenuSeparator | typeof MenuSeparator
+        Separator: typeof ContextMenuSeparator | typeof MenuSeparator,
     ) => (
         <>
             {isNote ? (
@@ -4321,7 +4322,7 @@ function LibraryGridCard({
                             {
                                 "bg-black/4 opacity-80 mix-blend-difference":
                                     isNote,
-                            }
+                            },
                         )}
                     >
                         <CollectionComboboxPicker
@@ -4426,7 +4427,7 @@ function renderLibraryMasonry({
                     className={cn(
                         "grid gap-2",
                         !columnCount &&
-                            "grid-cols-1 sm:grid-cols-2 md:grid-cols-3"
+                            "grid-cols-1 sm:grid-cols-2 md:grid-cols-3",
                     )}
                     style={fallbackGridStyle(columnCount)}
                 >
@@ -4447,7 +4448,7 @@ function renderLibraryMasonry({
                     domain === "Other" ? item.url : domain;
                 const createdLabel = itemDateLabel(item.createdAt);
                 const addedLabel = itemDateLabel(
-                    item.scrapedAt ?? item.createdAt
+                    item.scrapedAt ?? item.createdAt,
                 );
 
                 return (
@@ -4552,7 +4553,7 @@ function ExtensionLibraryGrid({
 
     const resolvedPreviewCount = Math.max(
         0,
-        Math.min(paywallPreviewCount ?? items.length, items.length)
+        Math.min(paywallPreviewCount ?? items.length, items.length),
     );
     const showPaywall = resolvedPreviewCount < items.length;
     const previewItems = showPaywall
@@ -4636,7 +4637,7 @@ function SectionDescription({
                 items: items.slice(0, SECTION_DESCRIPTION_CONTEXT_ITEMS_LIMIT),
                 sectionTitle: title,
             }),
-        [items, title]
+        [items, title],
     );
     const { data, error, isLoading } = useSWR<SectionDescriptionResponse>(
         items.length > 0
@@ -4648,7 +4649,7 @@ function SectionDescription({
             keepPreviousData: true,
             revalidateOnFocus: false,
             shouldRetryOnError: false,
-        }
+        },
     );
 
     if (isLoading && !data && !error) {
@@ -4752,7 +4753,7 @@ function ExtensionLibrarySection({
                         className={cn(
                             "flex items-center justify-between gap-3 py-1 pr-5",
                             collapsible &&
-                                "sticky z-10 rounded-xl bg-muted/92 backdrop-blur-sm supports-backdrop-filter:bg-muted/50"
+                                "sticky z-10 rounded-xl bg-muted/92 backdrop-blur-sm supports-backdrop-filter:bg-muted/50",
                         )}
                         style={
                             collapsible
@@ -4859,12 +4860,12 @@ function LibraryBrowser({
     const [domainFilters, setDomainFilters] = useState<string[]>([]);
     const [collectionMembershipFilter, setCollectionMembershipFilter] =
         useState<CollectionMembershipFilter>(
-            DEFAULT_COLLECTION_MEMBERSHIP_FILTER
+            DEFAULT_COLLECTION_MEMBERSHIP_FILTER,
         );
     const [groupBy, setGroupBy] = useState<GroupByMode>("none");
     const [sortMode, setSortMode] = useState<SortMode>(DEFAULT_SORT_MODE);
     const [columnCountMode, setColumnCountMode] = useState<ColumnCountMode>(
-        DEFAULT_COLUMN_COUNT_MODE
+        DEFAULT_COLUMN_COUNT_MODE,
     );
     const [paletteSection, setPaletteSection] =
         useState<PaletteSection>("search");
@@ -4880,7 +4881,7 @@ function LibraryBrowser({
     const [createResultsDescriptionDraft, setCreateResultsDescriptionDraft] =
         useState("");
     const [createResultsError, setCreateResultsError] = useState<string | null>(
-        null
+        null,
     );
     const [commandListOpen, setCommandListOpen] = useState(false);
     const [isPaletteFocused, setIsPaletteFocused] = useState(false);
@@ -4928,7 +4929,7 @@ function LibraryBrowser({
 
     const handleCommandOpenChange = (
         nextOpen: boolean,
-        eventDetails?: { reason?: string }
+        eventDetails?: { reason?: string },
     ) => {
         setCommandListOpen(() => {
             if (!nextOpen && suppressNextCommandCloseRef.current) {
@@ -5006,7 +5007,7 @@ function LibraryBrowser({
         const updateHeight = () => {
             const nextHeight = Math.ceil(el.getBoundingClientRect().height);
             setCommandPanelShellHeight((current) =>
-                current === nextHeight ? current : nextHeight
+                current === nextHeight ? current : nextHeight,
             );
         };
 
@@ -5074,7 +5075,7 @@ function LibraryBrowser({
                 revokeFileAttachmentObjectUrl(attachment.url);
             }
         },
-        []
+        [],
     );
 
     const returnToSearchSection = () => {
@@ -5085,7 +5086,7 @@ function LibraryBrowser({
 
     const openPaletteSection = (
         section: Exclude<PaletteSection, "search">,
-        event: BaseUIEvent<React.MouseEvent> | KeyboardEvent
+        event: BaseUIEvent<React.MouseEvent> | KeyboardEvent,
     ) => {
         event.preventDefault();
         suppressNextCommandCloseRef.current = true;
@@ -5095,7 +5096,7 @@ function LibraryBrowser({
 
     const handleCommandInputChange = (
         next: string,
-        eventDetails: AutocompleteRootChangeEventDetails
+        eventDetails: AutocompleteRootChangeEventDetails,
     ) => {
         if (
             paletteGroups
@@ -5182,7 +5183,7 @@ function LibraryBrowser({
     };
 
     const handlePaletteInputKeyDown = (
-        event: React.KeyboardEvent<HTMLInputElement>
+        event: React.KeyboardEvent<HTMLInputElement>,
     ) => {
         if (event.key === "Escape") {
             event.preventDefault();
@@ -5252,7 +5253,7 @@ function LibraryBrowser({
     const visiblePaletteGroups = applyVisiblePaletteShortcuts(
         paletteGroups,
         paletteInput,
-        systemControlKey ?? ""
+        systemControlKey ?? "",
     );
 
     const visiblePaletteGroupsRef = useRef(visiblePaletteGroups);
@@ -5267,7 +5268,7 @@ function LibraryBrowser({
             }
             const index = digit - 1;
             const flatItems = visiblePaletteGroupsRef.current.flatMap(
-                (g) => g.items
+                (g) => g.items,
             );
             const item = flatItems[index];
             if (item) {
@@ -5279,7 +5280,7 @@ function LibraryBrowser({
             enableOnFormTags: true,
             preventDefault: true,
         },
-        [commandListOpen]
+        [commandListOpen],
     );
 
     let inputPlaceholder = "Search, filter, group, sort, and more…";
@@ -5314,17 +5315,17 @@ function LibraryBrowser({
             searchTerms,
             selectedCollectionIds,
             sourceFilters,
-        ]
+        ],
     );
 
     const sortedItems = useMemo(
         () => sortLibraryBrowserItems(filteredItems, sortMode),
-        [filteredItems, sortMode]
+        [filteredItems, sortMode],
     );
 
     const sections = useMemo(
         () => buildLibraryBrowserSections(sortedItems, groupBy, sortMode),
-        [groupBy, sortMode, sortedItems]
+        [groupBy, sortMode, sortedItems],
     );
 
     const shouldGateResults =
@@ -5333,7 +5334,7 @@ function LibraryBrowser({
 
     const gatedSections = useMemo(
         () => gateLibraryBrowserSections(sections, shouldGateResults),
-        [sections, shouldGateResults]
+        [sections, shouldGateResults],
     );
 
     const hasActiveFilters = useMemo(
@@ -5351,7 +5352,7 @@ function LibraryBrowser({
             searchTerms,
             selectedCollectionIds,
             sourceFilters,
-        ]
+        ],
     );
 
     const hasNonDefaultView =
@@ -5390,13 +5391,13 @@ function LibraryBrowser({
     const visibleResultItems = useMemo(
         () =>
             gatedSections.flatMap((section) => getVisibleSectionItems(section)),
-        [gatedSections]
+        [gatedSections],
     );
     const canCreateCollectionFromResults =
         searchTerms.length > 0 && visibleResultItems.length > 0;
     const resultCollectionItemIds = useMemo(
         () => visibleResultItems.map((item) => item.id),
-        [visibleResultItems]
+        [visibleResultItems],
     );
 
     const handleCreateNote = () => {
@@ -5480,7 +5481,7 @@ function LibraryBrowser({
 
                 onItemsChange((current) => {
                     const existingIndex = current.findIndex(
-                        (item) => item.id === result.item.id
+                        (item) => item.id === result.item.id,
                     );
 
                     if (existingIndex === -1) {
@@ -5488,7 +5489,7 @@ function LibraryBrowser({
                     }
 
                     return current.map((item) =>
-                        item.id === result.item.id ? result.item : item
+                        item.id === result.item.id ? result.item : item,
                     );
                 });
                 setActiveNote(result.item);
@@ -5522,7 +5523,7 @@ function LibraryBrowser({
 
                 onItemsChange((current) => {
                     const existingIndex = current.findIndex(
-                        (item) => item.id === result.item.id
+                        (item) => item.id === result.item.id,
                     );
 
                     if (existingIndex === -1) {
@@ -5530,7 +5531,7 @@ function LibraryBrowser({
                     }
 
                     return current.map((item) =>
-                        item.id === result.item.id ? result.item : item
+                        item.id === result.item.id ? result.item : item,
                     );
                 });
 
@@ -5664,7 +5665,7 @@ function LibraryBrowser({
                                     maxLength={COLLECTION_NAME_MAX_LENGTH}
                                     onChange={(event) => {
                                         setCreateResultsNameDraft(
-                                            event.currentTarget.value
+                                            event.currentTarget.value,
                                         );
                                         if (createResultsError) {
                                             setCreateResultsError(null);
@@ -5691,7 +5692,7 @@ function LibraryBrowser({
                                     maxLength={1024}
                                     onChange={(event) => {
                                         setCreateResultsDescriptionDraft(
-                                            event.currentTarget.value
+                                            event.currentTarget.value,
                                         );
                                     }}
                                     placeholder="Add description..."
@@ -5906,7 +5907,7 @@ function LibraryBrowser({
                         "rounded-xl border px-4 py-2 font-medium text-sm",
                         actionFeedback.tone === "success"
                             ? "border-emerald-500/25 bg-emerald-500/8 text-foreground"
-                            : "border-destructive/25 bg-destructive/6 text-foreground"
+                            : "border-destructive/25 bg-destructive/6 text-foreground",
                     )}
                 >
                     {actionFeedback.message}
@@ -5932,7 +5933,7 @@ function LibraryBrowser({
                     }
                 >
                     <Globe className="inline-block size-3.5 shrink-0" />
-                    Feedback
+                    &nbsp;Feedback
                 </FeedbackWidget>
                 <Separator className="mx-1 h-5" orientation="vertical" />
                 <Badge className="sm:text-xs" size="lg" variant="outline">
@@ -6024,8 +6025,8 @@ export function LibraryWorkspace({
                 sharedAt: collection.sharedAt,
                 shareId: collection.shareId,
                 updatedAt: collection.updatedAt,
-            }))
-        )
+            })),
+        ),
     );
     const [selectedCollectionIds, setSelectedCollectionIds] = useState<
         string[]
@@ -6038,7 +6039,7 @@ export function LibraryWorkspace({
 
     const collectionSummaries = sortCollectionSummaries(
         deriveCollectionSummaries(collections, items),
-        collectionSortField
+        collectionSortField,
     );
 
     const itemsByCollectionId = useMemo(() => {
@@ -6061,7 +6062,10 @@ export function LibraryWorkspace({
         for (const [collectionId, collectionItems] of itemsByCollectionId) {
             map.set(
                 collectionId,
-                getCollectionPreviewThumbnailUrls(collectionId, collectionItems)
+                getCollectionPreviewThumbnailUrls(
+                    collectionId,
+                    collectionItems,
+                ),
             );
         }
         return map;
@@ -6075,27 +6079,27 @@ export function LibraryWorkspace({
         setSelectedCollectionIds((current) =>
             current.includes(id)
                 ? current.filter((entryId) => entryId !== id)
-                : [...current, id]
+                : [...current, id],
         );
     };
 
     const handleUpdateItemCollections = (
         itemId: string,
-        collectionIds: string[]
+        collectionIds: string[],
     ) => {
         const previousCollections =
             items.find((item) => item.id === itemId)?.collections ?? [];
         const optimisticCollections = sortCollections(
             collections.filter((collection) =>
-                collectionIds.includes(collection.id)
-            )
+                collectionIds.includes(collection.id),
+            ),
         );
 
         setItems((current) =>
-            replaceItemCollections(current, itemId, optimisticCollections)
+            replaceItemCollections(current, itemId, optimisticCollections),
         );
         setPendingCollectionItemIds((current) =>
-            current.includes(itemId) ? current : [...current, itemId]
+            current.includes(itemId) ? current : [...current, itemId],
         );
 
         const runUpdate = async () => {
@@ -6115,25 +6119,29 @@ export function LibraryWorkspace({
 
             if (result.status === "UPDATED") {
                 setItems((current) =>
-                    replaceItemCollections(current, itemId, result.collections)
+                    replaceItemCollections(current, itemId, result.collections),
                 );
             } else {
                 setItems((current) =>
-                    replaceItemCollections(current, itemId, previousCollections)
+                    replaceItemCollections(
+                        current,
+                        itemId,
+                        previousCollections,
+                    ),
                 );
             }
 
             setPendingCollectionItemIds((current) =>
-                current.filter((id) => id !== itemId)
+                current.filter((id) => id !== itemId),
             );
         };
 
         runUpdate().catch(() => {
             setItems((current) =>
-                replaceItemCollections(current, itemId, previousCollections)
+                replaceItemCollections(current, itemId, previousCollections),
             );
             setPendingCollectionItemIds((current) =>
-                current.filter((id) => id !== itemId)
+                current.filter((id) => id !== itemId),
             );
         });
     };
@@ -6172,14 +6180,14 @@ export function LibraryWorkspace({
         setCollections((current) =>
             current.some((collection) => collection.id === nextCollection.id)
                 ? current
-                : sortCollections([...current, nextCollection])
+                : sortCollections([...current, nextCollection]),
         );
         setItems((current) =>
             appendCollectionToItems(
                 current,
                 result.assignedItemIds,
-                nextCollection
-            )
+                nextCollection,
+            ),
         );
 
         return result;

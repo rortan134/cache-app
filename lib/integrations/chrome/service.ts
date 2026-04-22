@@ -1,13 +1,14 @@
 import "server-only";
 
 import { createLogger } from "@/lib/common/logs/console/logger";
+import { DEFAULT_BROWSER_PROFILE_ID } from "@/lib/integrations/browser-profiles";
+import { parseOptionalDate } from "@/lib/integrations/dates";
 import { prisma } from "@/prisma";
+import type { Prisma } from "@/prisma/client/client";
 import { LibraryItemSource } from "@/prisma/client/enums";
 import * as z from "zod";
 
 const log = createLogger("library:chrome-bookmarks");
-
-export const DEFAULT_BROWSER_PROFILE_ID = "default";
 const CHROME_FOLDER_URL_PREFIX = "cache://chrome-bookmarks/folder/";
 const CHROME_BOOKMARK_SYNC_BATCH_SIZE = 25;
 
@@ -95,7 +96,7 @@ interface ChromeBookmarkRecord {
     source: typeof LibraryItemSource.chrome_bookmarks;
     sourceDeviceId: string | null;
     sourceDeviceName: string | null;
-    sourceMetadata: Record<string, unknown>;
+    sourceMetadata: Prisma.InputJsonObject;
     thumbnailUrl: null;
     url: string;
 }
@@ -216,14 +217,6 @@ function chromeFolderUrl(browserProfileId: string, externalId: string): string {
     return `${CHROME_FOLDER_URL_PREFIX}${encodeURIComponent(browserProfileId)}/${encodeURIComponent(externalId)}`;
 }
 
-function parseChromeTimestamp(value: string | undefined): Date | null {
-    if (!value) {
-        return null;
-    }
-    const parsed = new Date(value);
-    return Number.isNaN(parsed.getTime()) ? null : parsed;
-}
-
 function normalizeChromeBookmarkRecord(
     browserProfileId: string,
     bookmark: z.infer<typeof chromeBookmarkNodeSchema>,
@@ -256,7 +249,7 @@ function normalizeChromeBookmarkRecord(
             typeof bookmark.dateAdded === "number"
                 ? new Date(bookmark.dateAdded)
                 : null,
-        scrapedAt: parseChromeTimestamp(occurredAt) ?? new Date(),
+        scrapedAt: parseOptionalDate(occurredAt) ?? new Date(),
         source: LibraryItemSource.chrome_bookmarks,
         sourceDeviceId: device?.id ?? null,
         sourceDeviceName: device?.name ?? null,

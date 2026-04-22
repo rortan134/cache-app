@@ -14,7 +14,7 @@ import type * as Prisma from "../internal/prismaNamespace.ts"
 
 /**
  * Model Collection
- * 
+ * Application-owned. Named groupings of library items.
  */
 export type CollectionModel = runtime.Types.Result.DefaultSelection<Prisma.$CollectionPayload>
 

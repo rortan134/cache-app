@@ -4,12 +4,12 @@ import { useIsExtensionInstalled } from "@/hooks/use-extension-installed";
 import { getErrorMessage } from "@/lib/common/error";
 import { createLogger } from "@/lib/common/logs/console/logger";
 import { IntegrationCapabilityMissingError } from "@/lib/integrations/error";
-import { executeGooglePhotosPickerFlow } from "@/lib/integrations/google-photos/client";
 import {
     executeConnectBehavior,
     executeOpenBehavior,
     executeRouteSyncBehavior,
-} from "@/lib/integrations/shared/execution";
+} from "@/lib/integrations/execution";
+import { executeGooglePhotosPickerFlow } from "@/lib/integrations/google-photos/client";
 import {
     getIntegration,
     listIntegrationActions,
@@ -23,6 +23,7 @@ import {
     type OAuthLinkConnectBehavior,
     type SocialSignInConnectBehavior,
     type SupportedIntegration,
+    type SupportedIntegrationAction,
 } from "@/lib/integrations/support";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -43,6 +44,12 @@ interface UseIntegrationActionsArgs {
     direction: IntegrationDirection;
     id: IntegrationId;
     isConnected: boolean;
+}
+
+interface UseIntegrationActionResult {
+    actions: IntegrationActionViewModel[];
+    errorMessage: string | null;
+    successMessage: string | null;
 }
 
 function resolveActionLabel(args: {
@@ -148,18 +155,59 @@ async function executeIntegrationAction(args: {
     return { refresh: true, successMessage };
 }
 
+function isActionVisible(
+    action: SupportedIntegrationAction,
+    isConnected: boolean
+): boolean {
+    return action.visibleWhen !== "connected" || Boolean(isConnected);
+}
+
+function createActionViewModel(args: {
+    action: SupportedIntegrationAction;
+    connectBehavior?: OAuthLinkConnectBehavior | SocialSignInConnectBehavior;
+    extensionInstalled: boolean;
+    isConnected: boolean;
+    isLoading: boolean;
+    onSelect: (role: IntegrationActionRole) => void | Promise<void>;
+    openBehavior?: ExtensionOpenBehavior;
+}): IntegrationActionViewModel {
+    const {
+        action,
+        connectBehavior,
+        extensionInstalled,
+        isConnected,
+        isLoading,
+        onSelect,
+        openBehavior,
+    } = args;
+
+    return {
+        icon: action.icon,
+        isLoading,
+        label: resolveActionLabel({
+            connectBehavior,
+            explicitLabel: action.label,
+            extensionInstalled,
+            isConnected,
+            openBehavior,
+            role: action.role,
+        }),
+        onClick: () => onSelect(action.role),
+        role: action.role,
+        size: action.size,
+        variant: action.variant,
+    };
+}
+
 export function useIntegrationAction({
     direction,
     id,
     isConnected,
-}: UseIntegrationActionsArgs): {
-    actions: IntegrationActionViewModel[];
-    errorMessage: string | null;
-    successMessage: string | null;
-} {
+}: UseIntegrationActionsArgs): UseIntegrationActionResult {
     const router = useRouter();
     const extensionInstalled = useIsExtensionInstalled();
     const integration = getIntegration(id);
+    const { behaviors } = integration;
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
     const [pendingRole, setPendingRole] =
         useState<IntegrationActionRole | null>(null);
@@ -192,7 +240,7 @@ export function useIntegrationAction({
             log.error("Integration action failed", {
                 direction,
                 error,
-                integrationId: id,
+                integrationId: integration.id,
                 role,
             });
             setErrorMessage(message);
@@ -202,26 +250,18 @@ export function useIntegrationAction({
     };
 
     const actions = listIntegrationActions(id, direction)
-        .filter(
-            (action) =>
-                action.visibleWhen !== "connected" || Boolean(isConnected)
-        )
-        .map((action) => ({
-            icon: action.icon,
-            isLoading: pendingRole === action.role,
-            label: resolveActionLabel({
-                connectBehavior: integration.behaviors.connect,
-                explicitLabel: action.label,
+        .filter((action) => isActionVisible(action, isConnected))
+        .map((action) =>
+            createActionViewModel({
+                action,
+                connectBehavior: behaviors.connect,
                 extensionInstalled,
                 isConnected,
-                openBehavior: integration.behaviors.open,
-                role: action.role,
-            }),
-            onClick: () => handleAction(action.role),
-            role: action.role,
-            size: action.size,
-            variant: action.variant,
-        }));
+                isLoading: pendingRole === action.role,
+                onSelect: handleAction,
+                openBehavior: behaviors.open,
+            })
+        );
 
     return {
         actions,

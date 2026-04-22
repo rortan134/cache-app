@@ -14,7 +14,7 @@ import type * as Prisma from "../internal/prismaNamespace.ts"
 
 /**
  * Model Verification
- * 
+ * Managed by better-auth core. Do not rename fields.
  */
 export type VerificationModel = runtime.Types.Result.DefaultSelection<Prisma.$VerificationPayload>
 

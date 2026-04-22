@@ -1,11 +1,11 @@
 import { autoTagLibraryItemsByIds } from "@/lib/collections/smart-collections";
-import { importInstagramSaved } from "@/lib/integrations/instagram/service";
 import {
     extensionIngestCorsHeaders,
     parseBearerToken,
     resolveExtensionIngestUserId,
     type IngestItemInput,
-} from "@/lib/integrations/shared/extension-ingest";
+} from "@/lib/integrations/extension-ingest";
+import { importInstagramSaved } from "@/lib/integrations/instagram/service";
 import { after } from "next/server";
 import * as z from "zod";
 

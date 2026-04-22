@@ -7,7 +7,7 @@ function getPublicCollectionSharePath(shareId: string): string {
 
 export function buildPublicCollectionShareUrl(
     shareId: string,
-    baseUrl = BASE_URL,
+    baseUrl = BASE_URL
 ): string {
     return new URL(getPublicCollectionSharePath(shareId), baseUrl).toString();
 }

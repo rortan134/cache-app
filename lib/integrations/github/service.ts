@@ -1,24 +1,13 @@
+import { getIntegrationAccountId } from "@/lib/integrations/provider-account";
+import { importLibraryItemSnapshot } from "@/lib/integrations/snapshot";
+import { LibraryItemSource } from "@/prisma/client/enums";
 import {
     getGitHubAuthenticatedUser,
     listGitHubStarredRepositories,
 } from "./api";
-import { importLibraryItemSnapshot } from "@/lib/integrations/shared/snapshot";
-import { prisma } from "@/prisma";
-import { LibraryItemSource } from "@/prisma/client/enums";
 
-export async function getGitHubAccountId(
-    userId: string
-): Promise<string | null> {
-    const account = await prisma.account.findFirst({
-        select: {
-            accountId: true,
-        },
-        where: {
-            providerId: "github",
-            userId,
-        },
-    });
-    return account?.accountId ?? null;
+export function getGitHubAccountId(userId: string): Promise<string | null> {
+    return getIntegrationAccountId(userId, "github");
 }
 
 export async function importGitHubStarredRepositories(args: {

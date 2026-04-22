@@ -1,17 +1,22 @@
-import "server-only";
 import { IntegrationApiError } from "@/lib/integrations/error";
+import {
+    asProviderPayloadRecord,
+    readPayloadDate,
+    readPayloadNumber,
+    readPayloadString,
+} from "@/lib/integrations/provider-payload";
+import type { Prisma } from "@/prisma/client/client";
+import "server-only";
 
 const GITHUB_API_BASE_URL = "https://api.github.com";
 const GITHUB_PAGE_SIZE = 100;
 const MAX_GITHUB_STARRED_PAGES = 20;
 
-type JsonRecord = Record<string, unknown>;
-
 export interface GitHubImportableRepository {
     readonly caption: string | null;
     readonly externalId: string;
     readonly postedAt: Date | null;
-    readonly sourceMetadata: Record<string, unknown>;
+    readonly sourceMetadata: Prisma.InputJsonObject;
     readonly thumbnailUrl: string | null;
     readonly url: string;
 }
@@ -23,37 +28,13 @@ export interface GitHubAuthenticatedUser {
     readonly name: string | null;
 }
 
-function asRecord(value: unknown): JsonRecord | null {
-    return typeof value === "object" && value !== null
-        ? (value as JsonRecord)
-        : null;
-}
-
-function readString(value: unknown): string | null {
-    return typeof value === "string" && value.length > 0 ? value : null;
-}
-
-function readNumber(value: unknown): number | null {
-    return typeof value === "number" && Number.isFinite(value) ? value : null;
-}
-
-function readDate(value: unknown): Date | null {
-    const raw = readString(value);
-    if (!raw) {
-        return null;
-    }
-
-    const parsed = new Date(raw);
-    return Number.isNaN(parsed.getTime()) ? null : parsed;
-}
-
 function parseGitHubApiError(
     payload: unknown,
     status: number
 ): IntegrationApiError {
-    const record = asRecord(payload);
+    const record = asProviderPayloadRecord(payload);
     const message =
-        readString(record?.message) ??
+        readPayloadString(record?.message) ??
         `GitHub API request failed with status ${status}.`;
 
     return new IntegrationApiError({
@@ -92,34 +73,34 @@ async function fetchGitHub(
 function parseAuthenticatedUser(
     payload: unknown
 ): GitHubAuthenticatedUser | null {
-    const record = asRecord(payload);
-    const numericId = readNumber(record?.id);
+    const record = asProviderPayloadRecord(payload);
+    const numericId = readPayloadNumber(record?.id);
     if (numericId === null) {
         return null;
     }
 
     return {
-        avatarUrl: readString(record?.avatar_url),
+        avatarUrl: readPayloadString(record?.avatar_url),
         id: String(numericId),
-        login: readString(record?.login),
-        name: readString(record?.name),
+        login: readPayloadString(record?.login),
+        name: readPayloadString(record?.name),
     };
 }
 
 function parseRepository(
     candidate: unknown
 ): GitHubImportableRepository | null {
-    const record = asRecord(candidate);
-    const numericId = readNumber(record?.id);
-    const htmlUrl = readString(record?.html_url);
+    const record = asProviderPayloadRecord(candidate);
+    const numericId = readPayloadNumber(record?.id);
+    const htmlUrl = readPayloadString(record?.html_url);
 
     if (numericId === null || !htmlUrl) {
         return null;
     }
 
-    const owner = asRecord(record?.owner);
-    const fullName = readString(record?.full_name);
-    const language = readString(record?.language);
+    const owner = asProviderPayloadRecord(record?.owner);
+    const fullName = readPayloadString(record?.full_name);
+    const language = readPayloadString(record?.language);
     const topics = Array.isArray(record?.topics)
         ? record.topics.filter(
               (topic): topic is string => typeof topic === "string"
@@ -127,27 +108,27 @@ function parseRepository(
         : [];
 
     return {
-        caption: readString(record?.description) ?? fullName,
+        caption: readPayloadString(record?.description) ?? fullName,
         externalId: String(numericId),
-        postedAt: readDate(record?.updated_at),
+        postedAt: readPayloadDate(record?.updated_at),
         sourceMetadata: {
             github: {
-                defaultBranch: readString(record?.default_branch),
+                defaultBranch: readPayloadString(record?.default_branch),
                 fork: Boolean(record?.fork),
                 fullName,
                 importTimestamp: new Date().toISOString(),
                 language,
                 owner: {
-                    avatarUrl: readString(owner?.avatar_url),
-                    id: readNumber(owner?.id),
-                    login: readString(owner?.login),
+                    avatarUrl: readPayloadString(owner?.avatar_url),
+                    id: readPayloadNumber(owner?.id),
+                    login: readPayloadString(owner?.login),
                 },
                 private: Boolean(record?.private),
-                stargazersCount: readNumber(record?.stargazers_count),
+                stargazersCount: readPayloadNumber(record?.stargazers_count),
                 topics,
             },
         },
-        thumbnailUrl: readString(owner?.avatar_url),
+        thumbnailUrl: readPayloadString(owner?.avatar_url),
         url: htmlUrl,
     };
 }

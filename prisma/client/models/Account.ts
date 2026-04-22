@@ -14,7 +14,7 @@ import type * as Prisma from "../internal/prismaNamespace.ts"
 
 /**
  * Model Account
- * 
+ * Managed by better-auth core. Do not rename fields.
  */
 export type AccountModel = runtime.Types.Result.DefaultSelection<Prisma.$AccountPayload>
 

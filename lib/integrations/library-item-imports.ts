@@ -1,6 +1,7 @@
 import "server-only";
 
-import { DEFAULT_BROWSER_PROFILE_ID } from "@/lib/integrations/chrome/service";
+import { DEFAULT_BROWSER_PROFILE_ID } from "@/lib/integrations/browser-profiles";
+import { Prisma } from "@/prisma/client/client";
 import type { LibraryItemSource } from "@/prisma/client/enums";
 
 export type LibraryItemImportKind = "bookmark" | "folder";
@@ -19,7 +20,7 @@ export interface LibraryItemImportRow extends LibraryItemImportIdentity {
     source: LibraryItemSource;
     sourceDeviceId: string | null;
     sourceDeviceName: string | null;
-    sourceMetadata: Record<string, unknown> | null;
+    sourceMetadata: Prisma.InputJsonObject | null;
     thumbnailUrl: string | null;
     url: string;
 }
@@ -35,28 +36,16 @@ export interface LibraryItemImportRowInput {
     source: LibraryItemSource;
     sourceDeviceId?: string | null;
     sourceDeviceName?: string | null;
-    sourceMetadata?: Record<string, unknown> | null;
+    sourceMetadata?: Prisma.InputJsonObject | null;
     thumbnailUrl?: string | null;
     url: string;
 }
 
-export type LibraryItemImportCreateData = LibraryItemImportRow & {
-    userId: string;
-};
+export type LibraryItemImportCreateData =
+    Prisma.LibraryItemUncheckedCreateInput;
 
-export interface LibraryItemImportUpdateData {
-    browserProfileId: string;
-    caption: string | null;
-    kind: LibraryItemImportKind;
-    parentExternalId: string | null;
-    postedAt: Date | null;
-    scrapedAt: Date | null;
-    sourceDeviceId: string | null;
-    sourceDeviceName: string | null;
-    sourceMetadata: Record<string, unknown> | null;
-    thumbnailUrl: string | null;
-    url: string;
-}
+export type LibraryItemImportUpdateData =
+    Prisma.LibraryItemUncheckedUpdateInput;
 
 function normalizeOptionalTrimmedText(value?: string | null): string | null {
     const normalized = value?.trim();
@@ -67,15 +56,6 @@ export function normalizeBrowserProfileId(
     browserProfileId?: string | null
 ): string {
     return browserProfileId?.trim() || DEFAULT_BROWSER_PROFILE_ID;
-}
-
-export function parseOptionalDate(value: string | undefined): Date | null {
-    if (!value) {
-        return null;
-    }
-
-    const parsed = new Date(value);
-    return Number.isNaN(parsed.getTime()) ? null : parsed;
 }
 
 export function buildLibraryItemImportRow(
@@ -109,6 +89,7 @@ export function buildLibraryItemCreateData(
 ): LibraryItemImportCreateData {
     return {
         ...row,
+        sourceMetadata: row.sourceMetadata ?? Prisma.DbNull,
         userId,
     };
 }
@@ -125,7 +106,7 @@ export function buildLibraryItemUpdateData(
         scrapedAt: row.scrapedAt,
         sourceDeviceId: row.sourceDeviceId,
         sourceDeviceName: row.sourceDeviceName,
-        sourceMetadata: row.sourceMetadata,
+        sourceMetadata: row.sourceMetadata ?? Prisma.DbNull,
         thumbnailUrl: row.thumbnailUrl,
         url: row.url,
     };

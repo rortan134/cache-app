@@ -14,7 +14,7 @@ import type * as Prisma from "../internal/prismaNamespace.ts"
 
 /**
  * Model Subscription
- * 
+ * Managed by @better-auth/stripe plugin. Do not rename fields.
  */
 export type SubscriptionModel = runtime.Types.Result.DefaultSelection<Prisma.$SubscriptionPayload>
 

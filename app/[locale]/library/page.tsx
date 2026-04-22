@@ -37,7 +37,7 @@ import {
     integrationSetupProgressPercent,
     partitionLibrarySyncLabels,
     syncableLibrarySourceTotal,
-} from "@/lib/integrations/shared/progress";
+} from "@/lib/integrations/progress";
 import {
     INTEGRATIONS,
     listConnectedIntegrationIds,

@@ -1,16 +1,15 @@
 import "server-only";
 
-import { DEFAULT_BROWSER_PROFILE_ID } from "@/lib/integrations/chrome/service";
+import { DEFAULT_BROWSER_PROFILE_ID } from "@/lib/integrations/browser-profiles";
 import {
     buildLibraryItemCreateData,
     buildLibraryItemImportRow,
     buildLibraryItemUpdateData,
-    type LibraryItemImportCreateData,
     type LibraryItemImportRow,
-    type LibraryItemImportUpdateData,
-} from "@/lib/integrations/shared/library-item-imports";
-import type { LibraryItemSource } from "@/prisma/client/enums";
+} from "@/lib/integrations/library-item-imports";
 import { prisma } from "@/prisma";
+import type { Prisma } from "@/prisma/client/client";
+import type { LibraryItemSource } from "@/prisma/client/enums";
 
 const SNAPSHOT_UPSERT_BATCH_SIZE = 50;
 const SNAPSHOT_IMPORT_TRANSACTION_TIMEOUT_MS = 60_000;
@@ -28,7 +27,7 @@ export interface SnapshotImportItemInput {
     scrapedAt?: Date | null;
     sourceDeviceId?: string | null;
     sourceDeviceName?: string | null;
-    sourceMetadata?: Record<string, unknown> | null;
+    sourceMetadata?: Prisma.InputJsonObject | null;
     thumbnailUrl?: string | null;
     url: string;
 }
@@ -41,46 +40,10 @@ export interface SnapshotImportResult {
     updatedCount: number;
 }
 
-interface ExistingLibraryItem {
-    externalId: string;
-    id: string;
-}
-
-interface LibraryItemDelegate {
-    deleteMany(args: {
-        where: {
-            browserProfileId: string;
-            externalId?: { in?: string[]; notIn?: string[] };
-            source: LibraryItemSource;
-            userId: string;
-        };
-    }): Promise<{ count: number }>;
-    findMany(args: {
-        select: { externalId: true; id: true };
-        where: {
-            browserProfileId: string;
-            source: LibraryItemSource;
-            userId: string;
-        };
-    }): Promise<ExistingLibraryItem[]>;
-    upsert(args: {
-        create: LibraryItemImportCreateData;
-        select: {
-            id: true;
-        };
-        update: LibraryItemImportUpdateData;
-        where: {
-            userId_source_browserProfileId_externalId: {
-                browserProfileId: string;
-                externalId: string;
-                source: LibraryItemSource;
-                userId: string;
-            };
-        };
-    }): Promise<{
-        id: string;
-    }>;
-}
+type LibraryItemDelegate = Pick<
+    Prisma.TransactionClient["libraryItem"],
+    "deleteMany" | "findMany" | "upsert"
+>;
 
 function normalizeSnapshotRow(
     source: LibraryItemSource,
@@ -253,8 +216,7 @@ export async function importLibraryItemSnapshot(args: {
 
     await prisma.$transaction(
         async (tx) => {
-            const libraryItemDelegate =
-                tx.libraryItem as unknown as LibraryItemDelegate;
+            const libraryItemDelegate: LibraryItemDelegate = tx.libraryItem;
 
             for (const browserProfileId of browserProfileIdsToSync) {
                 const rows = [

@@ -9,8 +9,9 @@ function useAccess() {
         data: session,
         error: sessionError,
         isPending,
-        refetch: mutate,
+        refetch: refreshSession,
     } = useSession();
+    const sessionUserId = session?.user?.id;
 
     // Let error boundary catch
     if (sessionError) {
@@ -20,24 +21,31 @@ function useAccess() {
     const {
         data: subscription,
         isLoading: isSubscriptionLoading,
-        mutate: mutateSubscription,
+        mutate: refreshSubscription,
     } = useSWR(
-        session?.user?.id ? `subscription-${session.user.id}` : null,
+        sessionUserId ? ["subscription", sessionUserId] : null,
         getActiveSubscription,
-        {
-            keepPreviousData: true,
-        }
+        { keepPreviousData: true }
     );
 
     const hasAccess = !!subscription;
     const isLoading = isPending || isSubscriptionLoading;
 
-    const mutateAll = async () => {
-        await mutate();
-        await mutateSubscription();
+    const refreshAccess = async () => {
+        await refreshSession();
+
+        if (sessionUserId) {
+            await refreshSubscription();
+        }
     };
 
-    return { hasAccess, isLoading, mutate: mutateAll, session, subscription };
+    return {
+        hasAccess,
+        isLoading,
+        mutate: refreshAccess,
+        session,
+        subscription,
+    };
 }
 
 export { useAccess };

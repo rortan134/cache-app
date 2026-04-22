@@ -5,6 +5,7 @@ import { LIBRARY_ITEM_COLLECTIONS_INCLUDE } from "@/lib/collections/utils";
 import { extractNamedErrorMessage } from "@/lib/common/error";
 import { createLogger } from "@/lib/common/logs/console/logger";
 import type { LibraryItemWithCollections } from "@/lib/common/types";
+import { DEFAULT_BROWSER_PROFILE_ID } from "@/lib/integrations/browser-profiles";
 import { IntegrationResourceNotFoundError } from "@/lib/integrations/error";
 import {
     extractNoteText,
@@ -107,7 +108,7 @@ export async function createNote(
     try {
         const created = await prisma.libraryItem.create({
             data: {
-                browserProfileId: "default",
+                browserProfileId: DEFAULT_BROWSER_PROFILE_ID,
                 caption: null,
                 externalId: `note_${crypto.randomUUID()}`,
                 kind: "note",

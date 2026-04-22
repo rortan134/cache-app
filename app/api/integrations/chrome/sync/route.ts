@@ -10,7 +10,7 @@ import {
     extensionIngestCorsHeaders,
     parseBearerToken,
     resolveExtensionIngestUserId,
-} from "@/lib/integrations/shared/extension-ingest";
+} from "@/lib/integrations/extension-ingest";
 import { headers } from "next/headers";
 import { after } from "next/server";
 

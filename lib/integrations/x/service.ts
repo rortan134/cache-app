@@ -1,19 +1,10 @@
-import { getXAuthenticatedUser, listXBookmarks } from "./api";
-import { importLibraryItemSnapshot } from "@/lib/integrations/shared/snapshot";
-import { prisma } from "@/prisma";
+import { getIntegrationAccountId } from "@/lib/integrations/provider-account";
+import { importLibraryItemSnapshot } from "@/lib/integrations/snapshot";
 import { LibraryItemSource } from "@/prisma/client/enums";
+import { getXAuthenticatedUser, listXBookmarks } from "./api";
 
-export async function getXAccountId(userId: string): Promise<string | null> {
-    const account = await prisma.account.findFirst({
-        select: {
-            accountId: true,
-        },
-        where: {
-            providerId: "x",
-            userId,
-        },
-    });
-    return account?.accountId ?? null;
+export function getXAccountId(userId: string): Promise<string | null> {
+    return getIntegrationAccountId(userId, "x");
 }
 
 export async function importXBookmarks(args: {

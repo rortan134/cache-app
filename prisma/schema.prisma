@@ -47,10 +47,11 @@ enum CollectionTemplate {
     life_admin
 }
 
+/// Managed by better-auth core. Do not rename fields.
 model User {
     id                   String        @id
     name                 String
-    email                String
+    email                String        @unique
     emailVerified        Boolean       @default(false)
     image                String?
     createdAt            DateTime      @default(now())
@@ -64,10 +65,10 @@ model User {
 
     feedbackEntries Feedback[]
 
-    @@unique([email])
     @@map("user")
 }
 
+/// Application-owned. Named groupings of library items.
 model Collection {
     id          String             @id @default(cuid())
     userId      String
@@ -87,6 +88,7 @@ model Collection {
     @@map("collection")
 }
 
+/// Application-owned. User's saved content items.
 model LibraryItem {
     id               String            @id @default(cuid())
     userId           String
@@ -119,10 +121,11 @@ model LibraryItem {
     @@map("library_item")
 }
 
+/// Managed by better-auth core. Do not rename fields.
 model Session {
     id        String   @id
     expiresAt DateTime
-    token     String
+    token     String   @unique
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
     ipAddress String?
@@ -130,11 +133,11 @@ model Session {
     userId    String
     user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-    @@unique([token])
     @@index([userId])
     @@map("session")
 }
 
+/// Managed by better-auth core. Do not rename fields.
 model Account {
     id                    String    @id
     accountId             String
@@ -151,10 +154,11 @@ model Account {
     createdAt             DateTime  @default(now())
     updatedAt             DateTime  @updatedAt
 
-    @@index([userId])
+    @@index([userId, providerId])
     @@map("account")
 }
 
+/// Managed by better-auth core. Do not rename fields.
 model Verification {
     id         String   @id
     identifier String
@@ -167,6 +171,7 @@ model Verification {
     @@map("verification")
 }
 
+/// Managed by @better-auth/stripe plugin. Do not rename fields.
 model Subscription {
     id                   String    @id
     plan                 String
@@ -189,6 +194,7 @@ model Subscription {
     @@map("subscription")
 }
 
+/// Application-owned. User feedback submissions.
 model Feedback {
     id        String   @id @default(cuid())
     userId    String?

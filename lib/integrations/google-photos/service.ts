@@ -1,12 +1,12 @@
-import { DEFAULT_BROWSER_PROFILE_ID } from "@/lib/integrations/chrome/service";
-import { prisma } from "@/prisma";
+import { DEFAULT_BROWSER_PROFILE_ID } from "@/lib/integrations/browser-profiles";
+import { upsertLibraryItemImports } from "@/lib/integrations/upsert";
+import type { Prisma } from "@/prisma/client/client";
 import { LibraryItemSource } from "@/prisma/client/enums";
 import type {
     GooglePhotosPickedMediaItem,
     GooglePhotosPickerSession,
 } from "./api";
 import { pickerPollIntervalMs, withPickerAutoclose } from "./api";
-import type { Prisma } from "@/prisma/client/client";
 
 export interface PickerSessionViewModel {
     mediaItemsSet?: boolean;
@@ -36,7 +36,7 @@ export interface GooglePhotosImportCandidate {
     readonly caption: string | null;
     readonly externalId: string;
     readonly scrapedAt: Date | null;
-    readonly sourceMetadata: Prisma.InputJsonValue;
+    readonly sourceMetadata: Prisma.InputJsonObject;
     readonly thumbnailUrl: string | null;
     readonly url: string;
 }
@@ -66,7 +66,7 @@ export function mediaThumbnailFromItem(
 
 export function googlePhotosSourceMetadata(
     item: GooglePhotosPickedMediaItem
-): Prisma.InputJsonValue {
+): Prisma.InputJsonObject {
     return {
         googlePhotos: {
             filename: item.mediaFile?.filename ?? null,
@@ -125,70 +125,22 @@ export async function importGooglePhotosCandidates(args: {
     importedCount: number;
     smartCollectionItemIds: string[];
 }> {
-    const existingRows =
-        args.candidates.length > 0
-            ? await prisma.libraryItem.findMany({
-                  select: {
-                      externalId: true,
-                  },
-                  where: {
-                      browserProfileId: DEFAULT_BROWSER_PROFILE_ID,
-                      externalId: {
-                          in: args.candidates.map(
-                              (candidate) => candidate.externalId
-                          ),
-                      },
-                      source: LibraryItemSource.google_photos,
-                      userId: args.userId,
-                  },
-              })
-            : [];
-    const existingExternalIds = new Set(
-        existingRows.map((row) => row.externalId)
-    );
-    const smartCollectionItemIds = new Set<string>();
-
-    for (const candidate of args.candidates) {
-        const savedRow = await prisma.libraryItem.upsert({
-            create: {
-                browserProfileId: DEFAULT_BROWSER_PROFILE_ID,
-                caption: candidate.caption,
-                externalId: candidate.externalId,
-                scrapedAt: candidate.scrapedAt,
-                source: LibraryItemSource.google_photos,
-                sourceMetadata: candidate.sourceMetadata,
-                thumbnailUrl: candidate.thumbnailUrl,
-                url: candidate.url,
-                userId: args.userId,
-            },
-            select: {
-                id: true,
-            },
-            update: {
-                browserProfileId: DEFAULT_BROWSER_PROFILE_ID,
-                caption: candidate.caption,
-                scrapedAt: candidate.scrapedAt,
-                sourceMetadata: candidate.sourceMetadata,
-                thumbnailUrl: candidate.thumbnailUrl,
-                url: candidate.url,
-            },
-            where: {
-                userId_source_browserProfileId_externalId: {
-                    browserProfileId: DEFAULT_BROWSER_PROFILE_ID,
-                    externalId: candidate.externalId,
-                    source: LibraryItemSource.google_photos,
-                    userId: args.userId,
-                },
-            },
-        });
-
-        if (!existingExternalIds.has(candidate.externalId)) {
-            smartCollectionItemIds.add(savedRow.id);
-        }
-    }
+    const result = await upsertLibraryItemImports({
+        items: args.candidates.map((candidate) => ({
+            browserProfileId: DEFAULT_BROWSER_PROFILE_ID,
+            caption: candidate.caption,
+            externalId: candidate.externalId,
+            scrapedAt: candidate.scrapedAt,
+            sourceMetadata: candidate.sourceMetadata,
+            thumbnailUrl: candidate.thumbnailUrl,
+            url: candidate.url,
+        })),
+        source: LibraryItemSource.google_photos,
+        userId: args.userId,
+    });
 
     return {
-        importedCount: args.candidates.length,
-        smartCollectionItemIds: [...smartCollectionItemIds],
+        importedCount: result.upsertedCount,
+        smartCollectionItemIds: result.smartCollectionItemIds,
     };
 }

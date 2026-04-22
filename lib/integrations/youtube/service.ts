@@ -1,4 +1,6 @@
-import { importLibraryItemSnapshot } from "@/lib/integrations/shared/snapshot";
+import { DEFAULT_BROWSER_PROFILE_ID } from "@/lib/integrations/browser-profiles";
+import { parseOptionalDate } from "@/lib/integrations/dates";
+import { importLibraryItemSnapshot } from "@/lib/integrations/snapshot";
 import { LibraryItemSource } from "@/prisma/client/enums";
 
 export interface YoutubeWatchLaterItemInput {
@@ -14,14 +16,6 @@ export interface YoutubeWatchLaterItemInput {
     title?: string;
     videoId: string;
     videoUrl?: string;
-}
-
-function parseDate(value: string | undefined): Date | null {
-    if (!value) {
-        return null;
-    }
-    const parsed = new Date(value);
-    return Number.isNaN(parsed.getTime()) ? null : parsed;
 }
 
 export async function importYoutubeWatchLaterSnapshot(args: {
@@ -43,13 +37,15 @@ export async function importYoutubeWatchLaterSnapshot(args: {
 
     const syncedAt = new Date();
     const result = await importLibraryItemSnapshot({
-        browserProfileIdsToSync: [browserProfileId ?? "default"],
+        browserProfileIdsToSync: [
+            browserProfileId ?? DEFAULT_BROWSER_PROFILE_ID,
+        ],
         items: items.map((item) => ({
             browserProfileId,
             caption: item.title ?? null,
             externalId: item.videoId,
-            postedAt: parseDate(item.publishedAt),
-            scrapedAt: parseDate(item.scrapedAt) ?? syncedAt,
+            postedAt: parseOptionalDate(item.publishedAt),
+            scrapedAt: parseOptionalDate(item.scrapedAt) ?? syncedAt,
             sourceDeviceId: sourceDeviceId ?? null,
             sourceDeviceName: sourceDeviceName ?? null,
             sourceMetadata: {

@@ -1,21 +1,10 @@
-import { listPinterestBoardPins, listPinterestBoards } from "./api";
-import { DEFAULT_BROWSER_PROFILE_ID } from "@/lib/integrations/chrome/service";
-import { prisma } from "@/prisma";
+import { getIntegrationAccountId } from "@/lib/integrations/provider-account";
+import { upsertLibraryItemImports } from "@/lib/integrations/upsert";
 import { LibraryItemSource } from "@/prisma/client/enums";
+import { listPinterestBoardPins, listPinterestBoards } from "./api";
 
-export async function getPinterestAccountId(
-    userId: string
-): Promise<string | null> {
-    const account = await prisma.account.findFirst({
-        select: {
-            accountId: true,
-        },
-        where: {
-            providerId: "pinterest",
-            userId,
-        },
-    });
-    return account?.accountId ?? null;
+export function getPinterestAccountId(userId: string): Promise<string | null> {
+    return getIntegrationAccountId(userId, "pinterest");
 }
 
 export async function importPinterestBoards(args: {
@@ -57,68 +46,16 @@ export async function importPinterestBoards(args: {
         }
     }
 
-    const existingRows =
-        pinsToImport.length > 0
-            ? await prisma.libraryItem.findMany({
-                  select: {
-                      externalId: true,
-                  },
-                  where: {
-                      browserProfileId: DEFAULT_BROWSER_PROFILE_ID,
-                      externalId: {
-                          in: pinsToImport.map((pin) => pin.externalId),
-                      },
-                      source: LibraryItemSource.pinterest,
-                      userId,
-                  },
-              })
-            : [];
-    const existingExternalIds = new Set(
-        existingRows.map((row) => row.externalId)
-    );
-    const smartCollectionItemIds = new Set<string>();
-
-    for (const pin of pinsToImport) {
-        const savedRow = await prisma.libraryItem.upsert({
-            create: {
-                browserProfileId: DEFAULT_BROWSER_PROFILE_ID,
-                caption: pin.caption,
-                externalId: pin.externalId,
-                scrapedAt: pin.scrapedAt,
-                source: LibraryItemSource.pinterest,
-                thumbnailUrl: pin.thumbnailUrl,
-                url: pin.url,
-                userId,
-            },
-            select: {
-                id: true,
-            },
-            update: {
-                browserProfileId: DEFAULT_BROWSER_PROFILE_ID,
-                caption: pin.caption,
-                scrapedAt: pin.scrapedAt,
-                thumbnailUrl: pin.thumbnailUrl,
-                url: pin.url,
-            },
-            where: {
-                userId_source_browserProfileId_externalId: {
-                    browserProfileId: DEFAULT_BROWSER_PROFILE_ID,
-                    externalId: pin.externalId,
-                    source: LibraryItemSource.pinterest,
-                    userId,
-                },
-            },
-        });
-
-        if (!existingExternalIds.has(pin.externalId)) {
-            smartCollectionItemIds.add(savedRow.id);
-        }
-    }
+    const upsertResult = await upsertLibraryItemImports({
+        items: pinsToImport,
+        source: LibraryItemSource.pinterest,
+        userId,
+    });
 
     return {
         boardsCount: boards.length,
-        importedCount: importedExternalIds.size,
-        skippedCount,
-        smartCollectionItemIds: [...smartCollectionItemIds],
+        importedCount: upsertResult.upsertedCount,
+        skippedCount: skippedCount + upsertResult.skippedCount,
+        smartCollectionItemIds: upsertResult.smartCollectionItemIds,
     };
 }

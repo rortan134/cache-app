@@ -1,4 +1,4 @@
-import { getOwnerWindow } from "@/lib/common/dom";
+import { canUseDOM } from "@/lib/common/dom";
 import { useTimeout } from "@base-ui/utils/useTimeout";
 import { useValueAsRef } from "@base-ui/utils/useValueAsRef";
 import copy from "copy-to-clipboard";
@@ -21,12 +21,10 @@ export function useCopyToClipboard({
     const [isCopied, setIsCopied] = React.useState(false);
     const timeoutManager = useTimeout();
     const onCopyRef = useValueAsRef(onCopy);
-    const durationRef = useValueAsRef(timeout);
+    const timeoutRef = useValueAsRef(timeout);
 
     const copyToClipboard = (value: string) => {
-        const ownerWindow = getOwnerWindow();
-
-        if (!(ownerWindow && value)) {
+        if (!(canUseDOM && value)) {
             return false;
         }
 
@@ -40,9 +38,9 @@ export function useCopyToClipboard({
         setIsCopied(true);
         onCopyRef.current?.();
 
-        const duration = durationRef.current;
-        if (duration !== 0) {
-            timeoutManager.start(duration, () => {
+        const timeoutMs = timeoutRef.current;
+        if (timeoutMs !== 0) {
+            timeoutManager.start(timeoutMs, () => {
                 setIsCopied(false);
             });
         }

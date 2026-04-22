@@ -3,7 +3,7 @@ import {
     extensionIngestCorsHeaders,
     parseBearerToken,
     resolveExtensionIngestUserId,
-} from "@/lib/integrations/shared/extension-ingest";
+} from "@/lib/integrations/extension-ingest";
 import { importYoutubeWatchLaterSnapshot } from "@/lib/integrations/youtube/service";
 import { after } from "next/server";
 import * as z from "zod";

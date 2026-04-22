@@ -14,7 +14,7 @@ import type * as Prisma from "../internal/prismaNamespace.ts"
 
 /**
  * Model LibraryItem
- * 
+ * Application-owned. User's saved content items.
  */
 export type LibraryItemModel = runtime.Types.Result.DefaultSelection<Prisma.$LibraryItemPayload>
 

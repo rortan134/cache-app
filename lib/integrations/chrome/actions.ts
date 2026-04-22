@@ -7,10 +7,8 @@ import { extractNamedErrorMessage } from "@/lib/common/error";
 import { createLogger } from "@/lib/common/logs/console/logger";
 import type { LibraryItemWithCollections } from "@/lib/common/types";
 import { parseStandaloneUrl } from "@/lib/common/url";
-import {
-    applyChromeBookmarkSyncEvents,
-    DEFAULT_BROWSER_PROFILE_ID,
-} from "@/lib/integrations/chrome/service";
+import { DEFAULT_BROWSER_PROFILE_ID } from "@/lib/integrations/browser-profiles";
+import { applyChromeBookmarkSyncEvents } from "@/lib/integrations/chrome/service";
 import { IntegrationResourceNotFoundError } from "@/lib/integrations/error";
 import { prisma } from "@/prisma";
 import { LibraryItemSource } from "@/prisma/client/enums";

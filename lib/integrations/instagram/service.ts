@@ -2,7 +2,7 @@ import {
     normalizeLibrarySource,
     upsertLibraryItemsFromIngest,
     type IngestItemInput,
-} from "@/lib/integrations/shared/extension-ingest";
+} from "@/lib/integrations/extension-ingest";
 
 export async function importInstagramSaved(args: {
     items: IngestItemInput[];

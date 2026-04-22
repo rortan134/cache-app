@@ -19,41 +19,41 @@ export * as $Enums from './enums.ts'
 export * from './enums.ts';
 /**
  * Model User
- * 
+ * Managed by better-auth core. Do not rename fields.
  */
 export type User = Prisma.UserModel
 /**
  * Model Collection
- * 
+ * Application-owned. Named groupings of library items.
  */
 export type Collection = Prisma.CollectionModel
 /**
  * Model LibraryItem
- * 
+ * Application-owned. User's saved content items.
  */
 export type LibraryItem = Prisma.LibraryItemModel
 /**
  * Model Session
- * 
+ * Managed by better-auth core. Do not rename fields.
  */
 export type Session = Prisma.SessionModel
 /**
  * Model Account
- * 
+ * Managed by better-auth core. Do not rename fields.
  */
 export type Account = Prisma.AccountModel
 /**
  * Model Verification
- * 
+ * Managed by better-auth core. Do not rename fields.
  */
 export type Verification = Prisma.VerificationModel
 /**
  * Model Subscription
- * 
+ * Managed by @better-auth/stripe plugin. Do not rename fields.
  */
 export type Subscription = Prisma.SubscriptionModel
 /**
  * Model Feedback
- * 
+ * Application-owned. User feedback submissions.
  */
 export type Feedback = Prisma.FeedbackModel

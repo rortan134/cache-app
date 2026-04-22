@@ -5,6 +5,7 @@ import * as React from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 
 type OnOpenChange = CollapsiblePrimitive.Root.Props["onOpenChange"];
+type OpenChangeDetails = Parameters<NonNullable<OnOpenChange>>[1];
 
 interface UseListPanelOpenStateOptions {
     hotkey: string;
@@ -16,15 +17,35 @@ interface UseListPanelOpenStateOptions {
     };
 }
 
+function createHotkeyOpenChangeDetails(
+    event: KeyboardEvent
+): OpenChangeDetails {
+    const details: OpenChangeDetails = {
+        allowPropagation() {
+            details.isPropagationAllowed = true;
+        },
+        cancel() {
+            details.isCanceled = true;
+        },
+        event,
+        isCanceled: false,
+        isPropagationAllowed: false,
+        reason: "trigger-press",
+        trigger: undefined,
+    };
+
+    return details;
+}
+
 export function useListPanelOpenState({
     hotkey,
     onOpenChange,
     open,
     state,
 }: UseListPanelOpenStateOptions) {
-    const { isOpen: storedOpen, setIsOpen } = state;
+    const { isOpen: uncontrolledOpen, setIsOpen } = state;
     const isControlled = open !== undefined;
-    const resolvedOpen = isControlled ? open : storedOpen;
+    const resolvedOpen = isControlled ? open : uncontrolledOpen;
 
     const handleOpenChange = React.useCallback<NonNullable<OnOpenChange>>(
         (nextOpen, eventDetails) => {
@@ -39,15 +60,16 @@ export function useListPanelOpenState({
 
     useHotkeys(
         hotkey,
-        () => {
-            if (!isControlled) {
-                setIsOpen(!storedOpen);
-            }
+        (event) => {
+            handleOpenChange(
+                !resolvedOpen,
+                createHotkeyOpenChangeDetails(event)
+            );
         },
         {
             preventDefault: true,
         },
-        [isControlled, setIsOpen, storedOpen]
+        [handleOpenChange, resolvedOpen]
     );
 
     return {

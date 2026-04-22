@@ -14,7 +14,7 @@ import type * as Prisma from "../internal/prismaNamespace.ts"
 
 /**
  * Model Session
- * 
+ * Managed by better-auth core. Do not rename fields.
  */
 export type SessionModel = runtime.Types.Result.DefaultSelection<Prisma.$SessionPayload>
 
