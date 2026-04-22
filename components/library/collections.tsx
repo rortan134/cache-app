@@ -900,18 +900,17 @@ export function CollectionsListFilterClearIcon({
 
 export function CollectionsListEmpty({
     className,
-    children,
     ...props
-}: React.ComponentProps<"div">) {
+}: React.ComponentProps<"p">) {
     return (
-        <div
-            className={cn(
-                "flex flex-col items-center justify-center gap-4 rounded-2xl border border-border/30 border-dashed px-4 py-8 text-center",
-                className
-            )}
-            {...props}
-        >
-            <p className="font-medium text-foreground text-sm">{children}</p>
+        <div className="flex flex-col items-center justify-center gap-4 rounded-2xl border border-border/30 border-dashed px-4 py-7 text-center">
+            <p
+                className={cn(
+                    "font-medium text-foreground text-sm leading-tight",
+                    className
+                )}
+                {...props}
+            />
         </div>
     );
 }

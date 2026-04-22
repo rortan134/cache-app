@@ -27,6 +27,7 @@ import {
     CloudDownload,
     Component,
     Search,
+    Sparkles,
 } from "lucide-react";
 import type { Metadata } from "next";
 import Image from "next/image";
@@ -348,7 +349,7 @@ export default async function Home() {
                                         </span>
                                     </li>
                                     <li className="flex items-center gap-2 text-xs">
-                                        <CloudDownload className="inline-block size-4 shrink-0" />
+                                        <Sparkles className="inline-block size-4 shrink-0" />
                                         <span>
                                             Leverage AI for doing your best work
                                         </span>

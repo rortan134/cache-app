@@ -74,7 +74,7 @@ export function integrationSetupHeadingText(args: {
         return "Get setup with your first account";
     }
     if (connectedCount < syncable) {
-        return "Unify your saved content in one library";
+        return "Get setup - Unify your saved content";
     }
     return "You're all set - keep your library in sync";
 }
