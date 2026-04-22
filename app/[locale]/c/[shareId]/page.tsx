@@ -6,7 +6,7 @@ import { getSourceLabel } from "@/lib/integrations/support";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { cache } from "react";
+import React, { cache } from "react";
 
 const DATE_FORMATTER = new Intl.DateTimeFormat("en-US", {
     dateStyle: "medium",
@@ -18,9 +18,10 @@ interface CollectionSharePageProps {
     }>;
 }
 
-const getCachedPublicCollectionShare = cache(async (shareId: string) =>
-    getPublicCollectionShareById(shareId)
-);
+const getCachedPublicCollectionShare = cache(async (shareId: string) => {
+    "use cache";
+    return getPublicCollectionShareById(shareId);
+});
 
 function formatDate(value: Date | null | undefined): string | null {
     return value ? DATE_FORMATTER.format(value) : null;
@@ -79,9 +80,7 @@ export async function generateMetadata(
     };
 }
 
-export default async function CollectionSharePage(
-    props: CollectionSharePageProps
-) {
+async function PageComp(props: CollectionSharePageProps) {
     const { shareId } = await props.params;
     const collection = await getCachedPublicCollectionShare(shareId);
 
@@ -105,7 +104,6 @@ export default async function CollectionSharePage(
                         Shared collection
                     </span>
                 </div>
-
                 <div className="mt-10 grid gap-6 lg:grid-cols-[minmax(0,320px)_1fr]">
                     <aside className="h-fit rounded-[2rem] border border-border/70 bg-background/88 p-6 shadow-xl/5 backdrop-blur-sm lg:sticky lg:top-6">
                         <div className="inline-flex rounded-full border border-amber-200/80 bg-amber-100/70 px-3 py-1 text-[11px] text-amber-900/80 uppercase tracking-[0.16em]">
@@ -239,5 +237,13 @@ export default async function CollectionSharePage(
                 </div>
             </div>
         </PageShell>
+    );
+}
+
+export default function CollectionSharePage(props: CollectionSharePageProps) {
+    return (
+        <React.Suspense>
+            <PageComp {...props} />
+        </React.Suspense>
     );
 }

@@ -6,11 +6,14 @@ import { Analytics } from "@vercel/analytics/next";
 import { GTProvider, getLocale } from "gt-next/server";
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
-import type * as React from "react";
+import * as React from "react";
 import "./globals.css";
 
-export async function generateMetadata(): Promise<Metadata> {
-    const locale = await getLocale();
+export async function generateMetadata(props: {
+    params: Promise<{ locale?: string }>;
+}): Promise<Metadata> {
+    const { locale: localeParam } = await props.params;
+    const locale = localeParam ?? (await getLocale());
 
     return {
         metadataBase: new URL(BASE_URL),
@@ -29,12 +32,12 @@ const inter = Inter({
     variable: "--font-inter",
 });
 
-export default async function RootLayout({
-    children,
-}: Readonly<{
+export default async function RootLayout(props: {
     children: React.ReactNode;
-}>) {
-    const locale = await getLocale();
+    params: Promise<{ locale?: string }>;
+}) {
+    const { locale: localeParam } = await props.params;
+    const locale = localeParam ?? (await getLocale());
 
     return (
         <html
@@ -51,7 +54,9 @@ export default async function RootLayout({
             </head>
             <body className="flex flex-col">
                 <h1 className="sr-only">{APP_NAME}</h1>
-                <GTProvider>{children}</GTProvider>
+                <React.Suspense>
+                    <GTProvider>{props.children}</GTProvider>
+                </React.Suspense>
                 <Analytics />
             </body>
         </html>
