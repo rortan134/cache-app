@@ -48,6 +48,9 @@ const nextConfig: NextConfig = {
             },
         ];
     },
+    typescript: {
+        ignoreBuildErrors: false,
+    },
 };
 
 const securityHeaders = [

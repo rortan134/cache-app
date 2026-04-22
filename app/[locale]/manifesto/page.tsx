@@ -31,6 +31,16 @@ export async function generateMetadata({
             "manifesto.metadata.description",
             "The scroll becomes a library. Meaning isn't in the feed. It's in what you choose to keep."
         ),
+        openGraph: {
+            images: [
+                {
+                    alt: "Manifesto",
+                    height: 630,
+                    url: "/manifesto-og.png",
+                    width: 1200,
+                },
+            ],
+        },
         title: gtPublicString(locale, "manifesto.metadata.title", "Manifesto"),
     };
 }
