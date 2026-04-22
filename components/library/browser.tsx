@@ -105,7 +105,6 @@ import {
     MenuSeparator,
     MenuTrigger,
 } from "@/components/ui/menu";
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Sidebar, SidebarFooter, SidebarHeader } from "@/components/ui/sidebar";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -152,6 +151,7 @@ import {
     revokeFileAttachmentObjectUrl,
     saveFile,
 } from "@/lib/common/file";
+import { filterValidImageUrls } from "@/lib/common/image";
 import { getImageColors } from "@/lib/common/image-colors";
 import { withMemoize } from "@/lib/common/memoize";
 import type {
@@ -230,11 +230,11 @@ const SECTION_DESCRIPTION_CONTEXT_ITEMS_LIMIT = 20;
 const SECTION_DESCRIPTION_FALLBACK_TEXT =
     "Description is unavailable right now.";
 
-const SUGGESTIONS = [
-    "Can you explain how to play tennis?",
-    "What is the weather in Tokyo?",
-    "How do I make a really good fish taco?",
-];
+// const SUGGESTIONS = [
+//     "Can you explain how to play tennis?",
+//     "What is the weather in Tokyo?",
+//     "How do I make a really good fish taco?",
+// ];
 
 interface SectionDescriptionResponse {
     summary: string;
@@ -2612,6 +2612,41 @@ function renderLibraryGridBody({
     );
 }
 
+function ValidCategoryThumbnail({ urls }: { urls: string[] }) {
+    const [validUrls, setValidUrls] = useState<string[]>([]);
+    const urlsKey = urls.join(",");
+
+    useEffect(() => {
+        if (!urlsKey) {
+            setValidUrls([]);
+            return;
+        }
+        let isMounted = true;
+        filterValidImageUrls(urlsKey.split(",")).then((valid) => {
+            if (isMounted) {
+                setValidUrls(valid);
+            }
+        });
+        return () => {
+            isMounted = false;
+        };
+    }, [urlsKey]);
+
+    if (validUrls.length === 0) {
+        return null;
+    }
+
+    return (
+        <img
+            alt=""
+            className="absolute inset-0 z-10 size-full object-cover opacity-80 mix-blend-overlay"
+            height={225}
+            src={validUrls[0]}
+            width={300}
+        />
+    );
+}
+
 function buildSearchPaletteGroups({
     collections,
     collectionPreviewThumbnailUrlsById,
@@ -2734,13 +2769,9 @@ function buildSearchPaletteGroups({
                             ),
                             render: () => (
                                 <div className="group relative flex size-full flex-col overflow-hidden rounded-3xl">
-                                    {thumbnails[0] && (
-                                        <img
-                                            alt=""
-                                            className="absolute inset-0 z-10 size-full object-cover opacity-80 mix-blend-overlay"
-                                            height={225}
-                                            src={thumbnails[0]}
-                                            width={300}
+                                    {thumbnails.length > 0 && (
+                                        <ValidCategoryThumbnail
+                                            urls={thumbnails}
                                         />
                                     )}
                                     <div className="absolute inset-0 z-20 bg-linear-to-b from-black/40 via-black/15 to-black/5" />
@@ -5930,7 +5961,7 @@ function LibraryBrowser({
                     </AutocompletePopup>
                 </CommandPanel>
             </Command>
-            {(hasActiveFilters || hasNonDefaultView) &&
+            {/* {(hasActiveFilters || hasNonDefaultView) &&
             !showEmptyLibraryPeek ? null : (
                 <div className="relative -mt-1">
                     <ScrollArea
@@ -5956,7 +5987,7 @@ function LibraryBrowser({
                         />
                     </ScrollArea>
                 </div>
-            )}
+            )} */}
             {actionFeedback ? (
                 <div
                     className={cn(

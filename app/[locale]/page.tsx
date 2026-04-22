@@ -16,6 +16,7 @@ import LogoIconImage from "@/public/cache-app-icon.png";
 import IconSmallImage from "@/public/cache-icon-small.png";
 import CollectionsSectionImage from "@/public/collections-section-image.webp";
 import QRCodeDownloadImage from "@/public/download-qrcode.png";
+import HeroImage from "@/public/hero-image.webp";
 import LibrarySectionImage from "@/public/library-section.webp";
 import OrganizeSectionImage from "@/public/organize-section.webp";
 import SmartCollectionsBackgroundImage from "@/public/smart-collections-background.webp";
@@ -128,7 +129,16 @@ export default async function Home() {
                     </SidebarFooter>
                 </Sidebar>
                 <div className="flex w-full max-w-[1024px] flex-col items-center gap-12 p-8 2xl:mx-auto">
-                    <div className="aspect-video h-auto w-full rounded-2xl bg-muted" />
+                    <div className="relative aspect-video h-auto w-full overflow-hidden rounded-2xl border border-border/50 bg-muted">
+                        <Image
+                            alt=""
+                            className="absolute inset-x-6 top-10 rounded-xl"
+                            fetchPriority="high"
+                            loading="eager"
+                            priority
+                            src={HeroImage}
+                        />
+                    </div>
                     <div className="flex flex-col gap-2">
                         <p className="mx-auto text-center text-xs uppercase">
                             <T>Discover what Cache can do for you</T>
