@@ -209,7 +209,7 @@ export default async function SecurityPage() {
 
                         <SessionHint serverSession={session} />
 
-                        <div className="rounded-2xl border border-black/8 bg-black/[0.03] p-5 text-[#0A0B0D]">
+                        <div className="rounded-2xl border border-black/8 bg-black/3 p-5 text-[#0A0B0D]">
                             <div className="flex items-start gap-3">
                                 <div className="mt-0.5 flex size-10 shrink-0 items-center justify-center rounded-full bg-black text-white">
                                     <Mail className="size-4" />
@@ -252,13 +252,12 @@ export default async function SecurityPage() {
                     <section className="relative overflow-hidden rounded-[2rem] border border-stone-200/90 bg-[linear-gradient(145deg,rgba(248,248,247,0.96),rgba(255,255,255,0.9))] p-8 shadow-[0_1px_0_0_rgb(255_255_255/0.7)_inset] md:p-10">
                         <div
                             aria-hidden
-                            className="pointer-events-none absolute -top-28 right-[-6rem] h-72 w-72 rounded-full bg-[radial-gradient(circle,rgba(20,20,20,0.14)_0%,rgba(20,20,20,0.04)_38%,transparent_72%)] blur-2xl"
+                            className="pointer-events-none absolute -top-28 -right-24 h-72 w-72 rounded-full bg-[radial-gradient(circle,rgba(20,20,20,0.14)_0%,rgba(20,20,20,0.04)_38%,transparent_72%)] blur-2xl"
                         />
                         <div
                             aria-hidden
-                            className="pointer-events-none absolute bottom-0 left-[-5rem] h-48 w-80 rounded-full bg-[radial-gradient(circle,rgba(205,208,214,0.55)_0%,transparent_72%)] blur-2xl"
+                            className="pointer-events-none absolute bottom-0 -left-20 h-48 w-80 rounded-full bg-[radial-gradient(circle,rgba(205,208,214,0.55)_0%,transparent_72%)] blur-2xl"
                         />
-
                         <div className="relative grid gap-8 lg:grid-cols-[1.15fr_0.85fr] lg:items-end">
                             <div className="space-y-5 text-[#0A0B0D]">
                                 <p className="font-medium text-[0.75rem] uppercase tracking-[0.28em] opacity-45">
@@ -268,7 +267,7 @@ export default async function SecurityPage() {
                                     Saved knowledge should feel retrievable,
                                     useful, and difficult to misuse.
                                 </h2>
-                                <p className="max-w-3xl text-[1.05rem] leading-[1.5] opacity-70">
+                                <p className="max-w-3xl text-[1.05rem] leading-normal opacity-70">
                                     Cache is built around explicit user action:
                                     sign in through supported providers, connect
                                     only the accounts you trust, import only the
@@ -320,7 +319,7 @@ export default async function SecurityPage() {
                                             {description}
                                         </p>
                                     </div>
-                                    <ul className="space-y-2.5 border-stone-200 border-t pt-4 text-sm leading-[1.5] opacity-80">
+                                    <ul className="space-y-2.5 border-stone-200 border-t pt-4 text-sm leading-normal opacity-80">
                                         {points.map((point) => (
                                             <li
                                                 className="flex gap-2.5"

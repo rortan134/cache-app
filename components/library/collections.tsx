@@ -632,7 +632,7 @@ export function CollectionsListItemMeta({
                             />
                             <PopoverPopup
                                 align="start"
-                                className="w-[22rem]"
+                                className="w-88"
                                 positionMethod="fixed"
                                 side="right"
                                 sideOffset={8}
