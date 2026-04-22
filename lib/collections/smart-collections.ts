@@ -1,5 +1,7 @@
 import "server-only";
 
+import { COLLECTION_NAME_MAX_LENGTH } from "@/lib/collections/utils";
+
 import { serverEnv } from "@/env/server";
 import { resolveCobaltDownloadUrl } from "@/lib/common/cobalt";
 import { createLogger } from "@/lib/common/logs/console/logger";
@@ -8,6 +10,7 @@ import {
     normalizeCollectionName,
     normalizeWhitespace,
 } from "@/lib/common/strings";
+import { isHttpUrl } from "@/lib/common/url";
 import { prisma } from "@/prisma";
 import { LibraryItemSource } from "@/prisma/client/enums";
 import {
@@ -38,7 +41,6 @@ const SMART_COLLECTIONS_FILE_READY_ATTEMPTS = 20;
 const SMART_COLLECTIONS_FILE_READY_DELAY_MS = 1500;
 const SMART_COLLECTIONS_FETCH_TIMEOUT_MS = 20_000;
 const SMART_COLLECTIONS_MODEL_TIMEOUT_MS = 45_000;
-const COLLECTION_NAME_MAX_LENGTH = 64;
 const HTML_TITLE_PATTERN = /<title[^>]*>([\s\S]*?)<\/title>/i;
 const HTML_DESCRIPTION_PATTERN =
     /<meta[^>]+name=["']description["'][^>]+content=["']([\s\S]*?)["'][^>]*>/i;
@@ -150,21 +152,8 @@ function getSmartCollectionsModelErrorInfo(
     };
 }
 
-function sleep(ms: number): Promise<void> {
+function delay(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-function isHttpUrl(value: string | null | undefined): value is string {
-    if (!value) {
-        return false;
-    }
-
-    try {
-        const url = new URL(value);
-        return url.protocol === "http:" || url.protocol === "https:";
-    } catch {
-        return false;
-    }
 }
 
 function normalizeMimeType(value: string | null | undefined): string | null {
@@ -488,7 +477,7 @@ async function waitForGeminiFile(
             );
         }
 
-        await sleep(SMART_COLLECTIONS_FILE_READY_DELAY_MS);
+        await delay(SMART_COLLECTIONS_FILE_READY_DELAY_MS);
         currentFile = await ai.files.get({ name: file.name });
     }
 

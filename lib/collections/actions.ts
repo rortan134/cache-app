@@ -3,6 +3,7 @@
 import { getSessionUserId } from "@/lib/auth/server";
 import {
     LIBRARY_COLLECTION_TAG_SELECT,
+    collectionNameSchema,
     toLibraryCollectionSummary,
     toLibraryCollectionTag,
 } from "@/lib/collections/utils";
@@ -30,32 +31,17 @@ const LibraryCollectionError = NamedError.create(
 );
 
 const log = createLogger("library:actions");
-const COLLECTION_NAME_MAX_LENGTH = 64;
 
 const CreateCollectionInputSchema = z.object({
     assignToItemId: z.string().trim().min(1).optional(),
     description: z.string().trim().max(1024).optional(),
-    name: z
-        .string()
-        .trim()
-        .min(1, "Enter a collection name.")
-        .max(
-            COLLECTION_NAME_MAX_LENGTH,
-            `Collection names can be up to ${COLLECTION_NAME_MAX_LENGTH} characters.`
-        ),
+    name: collectionNameSchema,
 });
 
 const CreateCollectionFromItemsInputSchema = z.object({
     description: z.string().trim().max(1024).optional(),
     itemIds: z.array(z.string().trim().min(1)).min(1).max(500),
-    name: z
-        .string()
-        .trim()
-        .min(1, "Enter a collection name.")
-        .max(
-            COLLECTION_NAME_MAX_LENGTH,
-            `Collection names can be up to ${COLLECTION_NAME_MAX_LENGTH} characters.`
-        ),
+    name: collectionNameSchema,
 });
 
 const DeleteCollectionInputSchema = z.object({
@@ -79,15 +65,17 @@ const UpdateCollectionPriorityInputSchema = z.object({
 
 const RenameCollectionInputSchema = z.object({
     collectionId: z.string().trim().min(1, "Select a collection to rename."),
-    name: z
-        .string()
-        .trim()
-        .min(1, "Enter a collection name.")
-        .max(
-            COLLECTION_NAME_MAX_LENGTH,
-            `Collection names can be up to ${COLLECTION_NAME_MAX_LENGTH} characters.`
-        ),
+    name: collectionNameSchema,
 });
+
+type CollectionErrorCode = z.infer<
+    typeof LibraryCollectionError.Schema
+>["data"]["code"];
+
+const ERROR_CODE_TO_STATUS = {
+    duplicate_name: "DUPLICATE",
+    not_found: "NOT_FOUND",
+} as const satisfies Partial<Record<CollectionErrorCode, string>>;
 
 export type CreateCollectionResult =
     | {
@@ -515,24 +503,14 @@ export async function renameCollection(input: {
         };
     } catch (error) {
         const named = extractNamedErrorMessage(error);
-        if (
-            LibraryCollectionError.isInstance(error) &&
-            error.data.code === "duplicate_name"
-        ) {
-            return {
-                message: named.message,
-                status: "DUPLICATE",
-            };
-        }
-
-        if (
-            LibraryCollectionError.isInstance(error) &&
-            error.data.code === "not_found"
-        ) {
-            return {
-                message: named.message,
-                status: "NOT_FOUND",
-            };
+        if (LibraryCollectionError.isInstance(error)) {
+            const status =
+                ERROR_CODE_TO_STATUS[
+                    error.data.code as keyof typeof ERROR_CODE_TO_STATUS
+                ];
+            if (status) {
+                return { message: named.message, status };
+            }
         }
 
         log.error("Unexpected collection rename failure", error);
@@ -645,23 +623,14 @@ export async function createCollection(input: {
         };
     } catch (error) {
         const named = extractNamedErrorMessage(error);
-        if (
-            LibraryCollectionError.isInstance(error) &&
-            error.data.code === "duplicate_name"
-        ) {
-            return {
-                message: named.message,
-                status: "DUPLICATE",
-            };
-        }
-        if (
-            LibraryCollectionError.isInstance(error) &&
-            error.data.code === "not_found"
-        ) {
-            return {
-                message: named.message,
-                status: "NOT_FOUND",
-            };
+        if (LibraryCollectionError.isInstance(error)) {
+            const status =
+                ERROR_CODE_TO_STATUS[
+                    error.data.code as keyof typeof ERROR_CODE_TO_STATUS
+                ];
+            if (status) {
+                return { message: named.message, status };
+            }
         }
 
         log.error("Unexpected collection create failure", error);
@@ -780,26 +749,17 @@ export async function createCollectionFromItems(input: {
         };
     } catch (error) {
         const named = extractNamedErrorMessage(error);
-        if (
-            LibraryCollectionError.isInstance(error) &&
-            error.data.code === "duplicate_name"
-        ) {
-            return {
-                message: named.message,
-                status: "DUPLICATE",
-            };
-        }
-        if (
-            LibraryCollectionError.isInstance(error) &&
-            error.data.code === "not_found"
-        ) {
-            return {
-                message: named.message,
-                status: "NOT_FOUND",
-            };
+        if (LibraryCollectionError.isInstance(error)) {
+            const status =
+                ERROR_CODE_TO_STATUS[
+                    error.data.code as keyof typeof ERROR_CODE_TO_STATUS
+                ];
+            if (status) {
+                return { message: named.message, status };
+            }
         }
 
-        log.error("Unexpected collection create from results failure", error);
+        log.error("Unexpected collection create from items failure", error);
         return {
             message: "We couldn't create this collection right now.",
             status: "ERROR",

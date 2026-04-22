@@ -1,7 +1,10 @@
 "use server";
 
 import { getSessionUserId } from "@/lib/auth/server";
-import { LIBRARY_COLLECTION_TAG_SELECT } from "@/lib/collections/utils";
+import {
+    LIBRARY_COLLECTION_TAG_SELECT,
+    toLibraryCollectionTag,
+} from "@/lib/collections/utils";
 import { createLogger } from "@/lib/common/logs/console/logger";
 import type { LibraryCollectionTag } from "@/lib/common/types";
 import { prisma } from "@/prisma";
@@ -54,17 +57,8 @@ export async function deleteLibraryItem(
         };
     }
 
-    const libraryItemDelegate = prisma.libraryItem as unknown as {
-        deleteMany(args: {
-            where: {
-                id: string;
-                userId: string;
-            };
-        }): Promise<{ count: number }>;
-    };
-
     try {
-        const result = await libraryItemDelegate.deleteMany({
+        const result = await prisma.libraryItem.deleteMany({
             where: {
                 id: normalizedItemId,
                 userId,
@@ -178,7 +172,7 @@ export async function updateLibraryItemCollections(input: {
         });
 
         return {
-            collections: updatedItem.collections,
+            collections: updatedItem.collections.map(toLibraryCollectionTag),
             itemId: updatedItem.id,
             status: "UPDATED",
         };

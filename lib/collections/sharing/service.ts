@@ -7,10 +7,11 @@ import {
 import { createLogger } from "@/lib/common/logs/console/logger";
 import { prisma } from "@/prisma";
 import { LibraryItemKind, type LibraryItemSource } from "@/prisma/client/enums";
+import { Prisma } from "@/prisma/client/client";
 import { nanoid } from "nanoid";
 import { CollectionShareError } from "./error";
 
-const logger = createLogger("collection-sharing:service");
+const log = createLogger("collection-sharing:service");
 const COLLECTION_SHARE_ID_LENGTH = 12;
 const COLLECTION_SHARE_ID_ATTEMPTS = 3;
 
@@ -39,10 +40,8 @@ interface PublicCollectionShare {
 
 function isPrismaUniqueConstraintError(error: unknown): boolean {
     return (
-        typeof error === "object" &&
-        error !== null &&
-        "code" in error &&
-        (error as { code?: string }).code === "P2002"
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === "P2002"
     );
 }
 
@@ -87,7 +86,7 @@ export async function enablePublicCollectionShare(input: {
                 },
             });
 
-            logger.info("Enabled public collection share", {
+            log.info("Enabled public collection share", {
                 collectionId: sharedCollection.id,
                 shareId: sharedCollection.shareId,
                 userId: input.userId,
@@ -145,7 +144,7 @@ export async function disablePublicCollectionShare(input: {
         },
     });
 
-    logger.info("Disabled public collection share", {
+    log.info("Disabled public collection share", {
         collectionId: disabledCollection.id,
         userId: input.userId,
     });

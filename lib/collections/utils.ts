@@ -4,6 +4,18 @@ import type {
 } from "@/lib/common/types";
 import type { Prisma } from "@/prisma/client/client";
 import type { LibraryItemSource } from "@/prisma/client/enums";
+import * as z from "zod";
+
+export const COLLECTION_NAME_MAX_LENGTH = 64;
+
+export const collectionNameSchema = z
+    .string()
+    .trim()
+    .min(1, "Enter a collection name.")
+    .max(
+        COLLECTION_NAME_MAX_LENGTH,
+        `Collection names can be up to ${COLLECTION_NAME_MAX_LENGTH} characters.`
+    );
 
 export const LIBRARY_COLLECTION_TAG_SELECT = {
     createdAt: true,

@@ -12,7 +12,7 @@ import {
 } from "./service";
 import { buildPublicCollectionShareUrl } from "./url";
 
-const logger = createLogger("collection-sharing:actions");
+const log = createLogger("collection-sharing:actions");
 
 const CollectionShareInputSchema = z.object({
     collectionId: z.string().trim().min(1, "Select a collection to share."),
@@ -98,7 +98,7 @@ export async function shareCollectionPublicly(input: {
             };
         }
 
-        logger.error("Unexpected collection sharing failure", error);
+        log.error("Unexpected collection sharing failure", error);
         return {
             message: "We couldn't create a public link right now.",
             status: "ERROR",
@@ -149,7 +149,7 @@ export async function disableCollectionSharing(input: {
             };
         }
 
-        logger.error("Unexpected collection unshare failure", error);
+        log.error("Unexpected collection unshare failure", error);
         return {
             message: "We couldn't stop sharing this collection right now.",
             status: "ERROR",
