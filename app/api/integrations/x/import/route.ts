@@ -1,12 +1,12 @@
 import { auth } from "@/lib/auth/server";
 import { autoTagLibraryItemsByIds } from "@/lib/collections/smart-collections";
+import { IntegrationApiError } from "@/lib/integrations/error";
 import { resolveXAccessToken } from "@/lib/integrations/x/actions";
-import { XApiError } from "@/lib/integrations/x/error";
 import { getXAccountId, importXBookmarks } from "@/lib/integrations/x/service";
 import { headers } from "next/headers";
 import { after } from "next/server";
 
-function messageForXApiError(error: XApiError): string {
+function messageForXApiError(error: IntegrationApiError): string {
     if (error.data.status === 401) {
         return "X asked us to reconnect your account before importing bookmarks.";
     }
@@ -60,10 +60,13 @@ export async function POST() {
 
         return Response.json(response);
     } catch (error) {
-        if (error instanceof XApiError) {
+        if (
+            error instanceof IntegrationApiError &&
+            error.data.integrationId === "x"
+        ) {
             return Response.json(
                 { error: messageForXApiError(error) },
-                { status: error.data.status }
+                { status: error.data.status ?? 500 }
             );
         }
 

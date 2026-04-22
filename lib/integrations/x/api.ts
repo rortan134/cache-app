@@ -1,5 +1,5 @@
 import "server-only";
-import { XApiError } from "./error";
+import { IntegrationApiError } from "@/lib/integrations/error";
 
 const X_API_BASE_URL = "https://api.x.com/2";
 const X_BOOKMARKS_PAGE_SIZE = 100;
@@ -55,7 +55,7 @@ function readDate(value: unknown): Date | null {
     return Number.isNaN(parsed.getTime()) ? null : parsed;
 }
 
-function parseXApiError(payload: unknown, status: number): XApiError {
+function parseXApiError(payload: unknown, status: number): IntegrationApiError {
     const record = asRecord(payload);
     const errors = Array.isArray(record?.errors) ? record.errors : [];
     const firstError = asRecord(errors[0]);
@@ -64,7 +64,12 @@ function parseXApiError(payload: unknown, status: number): XApiError {
         readString(firstError?.title) ??
         readString(record?.title) ??
         `X API request failed with status ${status}.`;
-    return new XApiError({ message, status });
+    return new IntegrationApiError({
+        integrationId: "x",
+        message,
+        operation: "fetchX",
+        status,
+    });
 }
 
 async function fetchX(
@@ -253,8 +258,10 @@ export async function getXAuthenticatedUser(
     );
     const user = parseAuthenticatedUser(payload);
     if (!user) {
-        throw new XApiError({
+        throw new IntegrationApiError({
+            integrationId: "x",
             message: "Could not resolve the authenticated X user.",
+            operation: "getXAuthenticatedUser",
             status: 500,
         });
     }
@@ -303,9 +310,11 @@ export async function listXBookmarks(
     }
 
     if (nextToken) {
-        throw new XApiError({
+        throw new IntegrationApiError({
+            integrationId: "x",
             message:
                 "X bookmark import exceeded the safe pagination limit before completion.",
+            operation: "listXBookmarks",
             status: 502,
         });
     }
