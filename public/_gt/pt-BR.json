@@ -58,28 +58,6 @@
     "i": 1,
     "t": "p"
   },
-  "15e6e8912a65c6e0": [
-    {
-      "c": "Você vai continuar rolando de qualquer forma",
-      "i": 1,
-      "t": "h2"
-    },
-    {
-      "c": "Ninguém larga os feeds.",
-      "i": 2,
-      "t": "p"
-    },
-    {
-      "c": "Nós tentamos. Apagamos os apps, colocamos temporizadores, nos sentimos culpados.",
-      "i": 3,
-      "t": "p"
-    },
-    {
-      "c": "Mas acabamos voltando.",
-      "i": 4,
-      "t": "p"
-    }
-  ],
   "1d1c7a1398fc122d": "mensal",
   "20529ca475e73f99": "Tema",
   "2589956983dbe009": "Claro. Você pode cancelar sua assinatura Pro a qualquer momento nas configurações da conta. Você continuará com acesso aos recursos Pro até o fim do seu período de cobrança.",
@@ -158,21 +136,7 @@
     }
   ],
   "48de21dffb27aea4": "Registro de alterações",
-  "600433e7972a7e75": "Faturamento",
-  "627bafce1f587e82": [
-    {
-      "c": "Mantenha tudo organizado. Identifique o que ficou desatualizado e guarde o que ainda é útil",
-      "i": 1,
-      "t": "h2"
-    },
-    {
-      "c": "Crie uma base de conhecimento com o conteúdo que você já considerou importante. Importe uma vez e transforme a bagunça em organização em minutos.",
-      "i": 2,
-      "t": "p"
-    }
-  ],
-  "634fd36cce8909a0": "Instale a extensão",
-  "641afa6ea8006f72": [
+  "59c37025252f2e97": [
     {
       "c": [
         {
@@ -186,7 +150,7 @@
               "i": 4,
               "t": "span"
             },
-            " ajuda você a separar o que pede ação do que é inspiração"
+            " ajuda você a separar o que é prático do que é inspiração"
           ],
           "i": 3,
           "t": "span"
@@ -224,8 +188,37 @@
       ],
       "i": 8,
       "t": "li"
+    },
+    {
+      "c": [
+        {
+          "i": 12,
+          "t": "CloudDownload"
+        },
+        {
+          "c": "Use IA para fazer o seu melhor trabalho",
+          "i": 13,
+          "t": "span"
+        }
+      ],
+      "i": 11,
+      "t": "li"
     }
   ],
+  "600433e7972a7e75": "Faturamento",
+  "627bafce1f587e82": [
+    {
+      "c": "Mantenha tudo organizado. Identifique o que ficou desatualizado e guarde o que ainda é útil",
+      "i": 1,
+      "t": "h2"
+    },
+    {
+      "c": "Crie uma base de conhecimento com o conteúdo que você já considerou importante. Importe uma vez e transforme a bagunça em organização em minutos.",
+      "i": 2,
+      "t": "p"
+    }
+  ],
+  "634fd36cce8909a0": "Instale a extensão",
   "69a327815dc1270a": "Política de Cookies",
   "6c231374bfad8483": {
     "c": "Política de Cookies",
@@ -335,6 +328,19 @@
   },
   "a4ecc2d52fb9c50b": "Política de Privacidade",
   "a54a73f960eb0874": "Qual é a política de reembolso?",
+  "ab9e07271e5efe93": [
+    {
+      "c": "Uma ferramenta para",
+      "i": 1,
+      "t": "span"
+    },
+    " organizar todo o seu conhecimento pessoal",
+    {
+      "c": " em escala",
+      "i": 2,
+      "t": "span"
+    }
+  ],
   "b0218088cb0cf61f": "Atalhos de Teclado",
   "b14d974a53e3f53e": [
     {
@@ -524,6 +530,28 @@
     "i": 1,
     "t": "div"
   },
+  "e768c8a859e016d2": [
+    {
+      "c": "Se você já vai ficar rolando, pelo menos aproveite isso.",
+      "i": 1,
+      "t": "h2"
+    },
+    {
+      "c": "Ninguém larga os feeds.",
+      "i": 2,
+      "t": "p"
+    },
+    {
+      "c": "Nós tentamos. Apagamos os apps, colocamos temporizadores, sentimos culpa.",
+      "i": 3,
+      "t": "p"
+    },
+    {
+      "c": "Mas aí voltamos.",
+      "i": 4,
+      "t": "p"
+    }
+  ],
   "e87d348b3dd99eca": "Jurídico e políticas",
   "f4882218996f2be2": {
     "c": "Reúna seus favoritos de navegadores, apps sociais e plataformas compatíveis.",

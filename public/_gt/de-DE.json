@@ -58,28 +58,6 @@
     "i": 1,
     "t": "p"
   },
-  "15e6e8912a65c6e0": [
-    {
-      "c": "Du wirst sowieso scrollen",
-      "i": 1,
-      "t": "h2"
-    },
-    {
-      "c": "Niemand hört einfach mit den Feeds auf.",
-      "i": 2,
-      "t": "p"
-    },
-    {
-      "c": "Wir haben es versucht. Wir haben die Apps gelöscht, Timer eingestellt, uns schuldig gefühlt.",
-      "i": 3,
-      "t": "p"
-    },
-    {
-      "c": "Und dann sind wir zurückgekommen.",
-      "i": 4,
-      "t": "p"
-    }
-  ],
   "1d1c7a1398fc122d": "monatlich",
   "20529ca475e73f99": "Design",
   "2589956983dbe009": "Klar. Du kannst dein Pro-Abonnement jederzeit in deinen Kontoeinstellungen kündigen. Du behältst den Zugriff auf die Pro-Funktionen bis zum Ende deines aktuellen Abrechnungszeitraums.",
@@ -158,21 +136,7 @@
     }
   ],
   "48de21dffb27aea4": "Änderungsprotokoll",
-  "600433e7972a7e75": "Abrechnung",
-  "627bafce1f587e82": [
-    {
-      "c": "Bleib organisiert. Erkenne Veraltetes, behalte, was nützlich ist",
-      "i": 1,
-      "t": "h2"
-    },
-    {
-      "c": "Baue dir mit den Inhalten, die du bereits als wichtig markiert hast, eine Wissensbasis auf. Einmal importieren und in wenigen Minuten von chaotisch zu organisiert wechseln.",
-      "i": 2,
-      "t": "p"
-    }
-  ],
-  "634fd36cce8909a0": "Die Erweiterung installieren",
-  "641afa6ea8006f72": [
+  "59c37025252f2e97": [
     {
       "c": [
         {
@@ -186,7 +150,7 @@
               "i": 4,
               "t": "span"
             },
-            " hilft dir, Praktisches von Inspiration zu trennen"
+            " hilft dir, das Umsetzbare von der Inspiration zu trennen"
           ],
           "i": 3,
           "t": "span"
@@ -217,15 +181,44 @@
           "t": "CloudDownload"
         },
         {
-          "c": "Aus Cache teilen oder exportieren – jederzeit, wenn du willst",
+          "c": "Teile Inhalte aus Cache oder exportiere sie, wann immer du willst",
           "i": 10,
           "t": "span"
         }
       ],
       "i": 8,
       "t": "li"
+    },
+    {
+      "c": [
+        {
+          "i": 12,
+          "t": "CloudDownload"
+        },
+        {
+          "c": "Nutze KI, um deine beste Arbeit abzuliefern",
+          "i": 13,
+          "t": "span"
+        }
+      ],
+      "i": 11,
+      "t": "li"
     }
   ],
+  "600433e7972a7e75": "Abrechnung",
+  "627bafce1f587e82": [
+    {
+      "c": "Bleib organisiert. Erkenne Veraltetes, behalte, was nützlich ist",
+      "i": 1,
+      "t": "h2"
+    },
+    {
+      "c": "Baue dir mit den Inhalten, die du bereits als wichtig markiert hast, eine Wissensbasis auf. Einmal importieren und in wenigen Minuten von chaotisch zu organisiert wechseln.",
+      "i": 2,
+      "t": "p"
+    }
+  ],
+  "634fd36cce8909a0": "Die Erweiterung installieren",
   "69a327815dc1270a": "Cookie-Richtlinie",
   "6c231374bfad8483": {
     "c": "Cookie-Richtlinie",
@@ -335,6 +328,19 @@
   },
   "a4ecc2d52fb9c50b": "Datenschutzerklärung",
   "a54a73f960eb0874": "Wie sieht eure Rückerstattungsrichtlinie aus?",
+  "ab9e07271e5efe93": [
+    {
+      "c": "Ein Tool, um",
+      "i": 1,
+      "t": "span"
+    },
+    " dein gesamtes persönliches Wissen",
+    {
+      "c": " im großen Stil zu organisieren",
+      "i": 2,
+      "t": "span"
+    }
+  ],
   "b0218088cb0cf61f": "Tastenkombinationen",
   "b14d974a53e3f53e": [
     {
@@ -523,6 +529,28 @@
     "i": 1,
     "t": "div"
   },
+  "e768c8a859e016d2": [
+    {
+      "c": "Wenn du ohnehin scrollst, dann hol wenigstens etwas für dich dabei raus.",
+      "i": 1,
+      "t": "h2"
+    },
+    {
+      "c": "Niemand kommt aus den Feeds raus.",
+      "i": 2,
+      "t": "p"
+    },
+    {
+      "c": "Wir haben es versucht. Wir haben die Apps gelöscht, Timer gesetzt, das schlechte Gewissen gespürt.",
+      "i": 3,
+      "t": "p"
+    },
+    {
+      "c": "Und dann sind wir zurückgekommen.",
+      "i": 4,
+      "t": "p"
+    }
+  ],
   "e87d348b3dd99eca": "Rechtliches & Richtlinien",
   "f4882218996f2be2": {
     "c": "Lesezeichen aus Browsern, Social-Apps und unterstützten Plattformen zusammenführen.",

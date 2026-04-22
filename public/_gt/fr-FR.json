@@ -58,28 +58,6 @@
     "i": 1,
     "t": "p"
   },
-  "15e6e8912a65c6e0": [
-    {
-      "c": "De toute façon, vous allez scroller",
-      "i": 1,
-      "t": "h2"
-    },
-    {
-      "c": "Personne ne quitte vraiment les flux.",
-      "i": 2,
-      "t": "p"
-    },
-    {
-      "c": "On a essayé. On a supprimé les applis, réglé des minuteurs, culpabilisé.",
-      "i": 3,
-      "t": "p"
-    },
-    {
-      "c": "Puis on y est retournés.",
-      "i": 4,
-      "t": "p"
-    }
-  ],
   "1d1c7a1398fc122d": "mensuel",
   "20529ca475e73f99": "Thème",
   "2589956983dbe009": "Bien sûr. Vous pouvez annuler votre abonnement Pro à tout moment depuis les paramètres du compte. Vous continuerez à avoir accès aux fonctionnalités Pro jusqu’à la fin de votre période de facturation.",
@@ -158,21 +136,7 @@
     }
   ],
   "48de21dffb27aea4": "Journal des modifications",
-  "600433e7972a7e75": "Facturation",
-  "627bafce1f587e82": [
-    {
-      "c": "Restez organisé. Repérez ce qui est dépassé, gardez l’utile",
-      "i": 1,
-      "t": "h2"
-    },
-    {
-      "c": "Constituez une base de connaissances avec les contenus que vous jugez déjà importants. Importez une fois, et passez du désordre à l’organisation en quelques minutes.",
-      "i": 2,
-      "t": "p"
-    }
-  ],
-  "634fd36cce8909a0": "Installer l’extension",
-  "641afa6ea8006f72": [
+  "59c37025252f2e97": [
     {
       "c": [
         {
@@ -186,7 +150,7 @@
               "i": 4,
               "t": "span"
             },
-            " vous aide à faire la différence entre ce qui appelle à l’action et ce qui relève de l’inspiration"
+            " vous aide à distinguer ce sur quoi agir de ce qui vous inspire"
           ],
           "i": 3,
           "t": "span"
@@ -202,7 +166,7 @@
           "t": "Search"
         },
         {
-          "c": "Trouvez tout ce que vous cherchez grâce à la recherche associative et à l’OCR",
+          "c": "Retrouvez tout grâce à la recherche associative et à l’OCR",
           "i": 7,
           "t": "span"
         }
@@ -217,15 +181,44 @@
           "t": "CloudDownload"
         },
         {
-          "c": "Partagez ou exportez depuis Cache à tout moment",
+          "c": "Partagez ou exportez depuis Cache quand vous voulez",
           "i": 10,
           "t": "span"
         }
       ],
       "i": 8,
       "t": "li"
+    },
+    {
+      "c": [
+        {
+          "i": 12,
+          "t": "CloudDownload"
+        },
+        {
+          "c": "Tirez parti de l’IA pour donner le meilleur de vous-même",
+          "i": 13,
+          "t": "span"
+        }
+      ],
+      "i": 11,
+      "t": "li"
     }
   ],
+  "600433e7972a7e75": "Facturation",
+  "627bafce1f587e82": [
+    {
+      "c": "Restez organisé. Repérez ce qui est dépassé, gardez l’utile",
+      "i": 1,
+      "t": "h2"
+    },
+    {
+      "c": "Constituez une base de connaissances avec les contenus que vous jugez déjà importants. Importez une fois, et passez du désordre à l’organisation en quelques minutes.",
+      "i": 2,
+      "t": "p"
+    }
+  ],
+  "634fd36cce8909a0": "Installer l’extension",
   "69a327815dc1270a": "Politique relative aux cookies",
   "6c231374bfad8483": {
     "c": "Politique relative aux cookies",
@@ -335,6 +328,19 @@
   },
   "a4ecc2d52fb9c50b": "Politique de confidentialité",
   "a54a73f960eb0874": "Quelle est votre politique de remboursement ?",
+  "ab9e07271e5efe93": [
+    {
+      "c": "Un outil pour",
+      "i": 1,
+      "t": "span"
+    },
+    " organiser toutes vos connaissances personnelles",
+    {
+      "c": " à grande échelle",
+      "i": 2,
+      "t": "span"
+    }
+  ],
   "b0218088cb0cf61f": "Raccourcis clavier",
   "b14d974a53e3f53e": [
     {
@@ -528,6 +534,28 @@
     "i": 1,
     "t": "div"
   },
+  "e768c8a859e016d2": [
+    {
+      "c": "Puisque vous allez scroller de toute façon, autant en tirer quelque chose.",
+      "i": 1,
+      "t": "h2"
+    },
+    {
+      "c": "Personne ne quitte les flux.",
+      "i": 2,
+      "t": "p"
+    },
+    {
+      "c": "On a essayé. On a supprimé des applis, lancé des minuteurs, culpabilisé.",
+      "i": 3,
+      "t": "p"
+    },
+    {
+      "c": "Puis on y est revenus.",
+      "i": 4,
+      "t": "p"
+    }
+  ],
   "e87d348b3dd99eca": "Mentions légales et politiques",
   "f4882218996f2be2": {
     "c": "Rassemblez vos favoris depuis vos navigateurs, vos applis sociales et les plateformes compatibles.",

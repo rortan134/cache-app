@@ -58,28 +58,6 @@
     "i": 1,
     "t": "p"
   },
-  "15e6e8912a65c6e0": [
-    {
-      "c": "Vas a seguir haciendo scroll de todos modos",
-      "i": 1,
-      "t": "h2"
-    },
-    {
-      "c": "Nadie abandona los feeds.",
-      "i": 2,
-      "t": "p"
-    },
-    {
-      "c": "Lo hemos intentado. Borramos las apps, nos pusimos temporizadores, nos sentimos culpables.",
-      "i": 3,
-      "t": "p"
-    },
-    {
-      "c": "Y luego volvimos.",
-      "i": 4,
-      "t": "p"
-    }
-  ],
   "1d1c7a1398fc122d": "mensual",
   "20529ca475e73f99": "Tema",
   "2589956983dbe009": "Por supuesto. Puedes cancelar tu suscripción Pro en cualquier momento desde la configuración de tu cuenta. Seguirás teniendo acceso a las funciones Pro hasta el final de tu período de facturación.",
@@ -158,21 +136,7 @@
     }
   ],
   "48de21dffb27aea4": "Registro de cambios",
-  "600433e7972a7e75": "Facturación",
-  "627bafce1f587e82": [
-    {
-      "c": "Mantente organizado. Detecta lo obsoleto y conserva lo útil",
-      "i": 1,
-      "t": "h2"
-    },
-    {
-      "c": "Crea una base de conocimiento con el contenido que ya has considerado importante. Importa una vez y pasa del caos al orden en cuestión de minutos.",
-      "i": 2,
-      "t": "p"
-    }
-  ],
-  "634fd36cce8909a0": "Instala la extensión",
-  "641afa6ea8006f72": [
+  "59c37025252f2e97": [
     {
       "c": [
         {
@@ -186,7 +150,7 @@
               "i": 4,
               "t": "span"
             },
-            " te ayuda a separar lo práctico de lo inspirador"
+            " te ayuda a distinguir lo importante de la inspiración"
           ],
           "i": 3,
           "t": "span"
@@ -217,15 +181,44 @@
           "t": "CloudDownload"
         },
         {
-          "c": "Comparte o exporta desde Cache cuando quieras",
+          "c": "Compartir o exportar desde Cache cuando quieras",
           "i": 10,
           "t": "span"
         }
       ],
       "i": 8,
       "t": "li"
+    },
+    {
+      "c": [
+        {
+          "i": 12,
+          "t": "CloudDownload"
+        },
+        {
+          "c": "Aprovecha la IA para dar lo mejor de ti",
+          "i": 13,
+          "t": "span"
+        }
+      ],
+      "i": 11,
+      "t": "li"
     }
   ],
+  "600433e7972a7e75": "Facturación",
+  "627bafce1f587e82": [
+    {
+      "c": "Mantente organizado. Detecta lo obsoleto y conserva lo útil",
+      "i": 1,
+      "t": "h2"
+    },
+    {
+      "c": "Crea una base de conocimiento con el contenido que ya has considerado importante. Importa una vez y pasa del caos al orden en cuestión de minutos.",
+      "i": 2,
+      "t": "p"
+    }
+  ],
+  "634fd36cce8909a0": "Instala la extensión",
   "69a327815dc1270a": "Política de cookies",
   "6c231374bfad8483": {
     "c": "Política de cookies",
@@ -335,6 +328,19 @@
   },
   "a4ecc2d52fb9c50b": "Política de privacidad",
   "a54a73f960eb0874": "¿Cuál es vuestra política de reembolso?",
+  "ab9e07271e5efe93": [
+    {
+      "c": "Una herramienta para",
+      "i": 1,
+      "t": "span"
+    },
+    " gestionar todo tu conocimiento personal",
+    {
+      "c": " a lo grande",
+      "i": 2,
+      "t": "span"
+    }
+  ],
   "b0218088cb0cf61f": "Atajos de teclado",
   "b14d974a53e3f53e": [
     {
@@ -523,6 +529,28 @@
     "i": 1,
     "t": "div"
   },
+  "e768c8a859e016d2": [
+    {
+      "c": "Si de todos modos vas a hacer scroll, asegúrate de sacar algo en claro.",
+      "i": 1,
+      "t": "h2"
+    },
+    {
+      "c": "Nadie abandona los feeds.",
+      "i": 2,
+      "t": "p"
+    },
+    {
+      "c": "Lo hemos intentado. Borramos las apps, pusimos temporizadores, nos sentimos culpables.",
+      "i": 3,
+      "t": "p"
+    },
+    {
+      "c": "Y luego volvimos.",
+      "i": 4,
+      "t": "p"
+    }
+  ],
   "e87d348b3dd99eca": "Legal y políticas",
   "f4882218996f2be2": {
     "c": "Reúne tus marcadores de navegadores, apps sociales y plataformas compatibles.",
