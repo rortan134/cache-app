@@ -105,6 +105,7 @@ import {
     MenuSeparator,
     MenuTrigger,
 } from "@/components/ui/menu";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Sidebar, SidebarFooter, SidebarHeader } from "@/components/ui/sidebar";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -176,9 +177,10 @@ import {
     type CollectionPriority,
 } from "@/prisma/client/enums";
 import AppIconSmall from "@/public/cache-icon-small.png";
-import type {
-    AutocompleteRootChangeEventDetails,
-    BaseUIEvent,
+import {
+    Toolbar,
+    type AutocompleteRootChangeEventDetails,
+    type BaseUIEvent,
 } from "@base-ui/react";
 import {
     ArrowDownIcon,
@@ -199,6 +201,8 @@ import {
     EyeIcon,
     FilePenLineIcon,
     Globe,
+    Grid2x2,
+    Grid2x2X,
     Info,
     LinkIcon,
     NotebookPenIcon,
@@ -230,11 +234,108 @@ const SECTION_DESCRIPTION_CONTEXT_ITEMS_LIMIT = 20;
 const SECTION_DESCRIPTION_FALLBACK_TEXT =
     "Description is unavailable right now.";
 
-// const SUGGESTIONS = [
-//     "Can you explain how to play tennis?",
-//     "What is the weather in Tokyo?",
-//     "How do I make a really good fish taco?",
-// ];
+interface CommandSuggestion {
+    label: string;
+    onSelect: () => void;
+}
+
+const SUGGESTION_LIMIT = 3;
+
+function buildCommandSuggestions({
+    collections,
+    items,
+    selectedCollectionIds,
+    setGroupBy,
+    setSourceFilters,
+    setPaletteInput,
+    setCommandListOpen,
+    onToggleCollectionSelection,
+}: {
+    collections: LibraryCollectionSummary[];
+    items: LibraryItemWithCollections[];
+    selectedCollectionIds: string[];
+    setGroupBy: (value: GroupByMode) => void;
+    setSourceFilters: (
+        value:
+            | SourceFilterValue[]
+            | ((value: SourceFilterValue[]) => SourceFilterValue[])
+    ) => void;
+    setPaletteInput: (value: string) => void;
+    setCommandListOpen: (
+        value: boolean | ((previous: boolean) => boolean)
+    ) => void;
+    onToggleCollectionSelection: (id: string) => void;
+}): CommandSuggestion[] {
+    const suggestions: CommandSuggestion[] = [];
+
+    // Suggest filtering by the most populated unselected collection
+    const unselectedCollections = collections.filter(
+        (c) => !selectedCollectionIds.includes(c.id) && c.itemCount > 0
+    );
+    const topCollection = unselectedCollections.sort(
+        (a, b) => b.itemCount - a.itemCount
+    )[0];
+
+    if (topCollection) {
+        suggestions.push({
+            label: `Browse \u201c${topCollection.name}\u201d`,
+            onSelect: () => {
+                onToggleCollectionSelection(topCollection.id);
+                setPaletteInput("");
+                setCommandListOpen(false);
+            },
+        });
+    }
+
+    // Suggest filtering by the most common source
+    const sourceCounts = new Map<LibraryItemSource, number>();
+    for (const item of items) {
+        sourceCounts.set(item.source, (sourceCounts.get(item.source) ?? 0) + 1);
+    }
+    const topSource = Array.from(sourceCounts.entries()).sort(
+        ([, a], [, b]) => b - a
+    )[0];
+
+    if (topSource) {
+        suggestions.push({
+            label: `Filter by ${sourceLabel(topSource[0])}`,
+            onSelect: () => {
+                setSourceFilters([topSource[0]]);
+                setPaletteInput("");
+                setCommandListOpen(false);
+            },
+        });
+    }
+
+    // Suggest grouping by source when there are multiple sources
+    if (sourceCounts.size > 1) {
+        suggestions.push({
+            label: "Group by source",
+            onSelect: () => {
+                setGroupBy("source");
+                setPaletteInput("");
+                setCommandListOpen(false);
+            },
+        });
+    }
+
+    // Suggest grouping by domain as a fallback
+    if (suggestions.length < SUGGESTION_LIMIT) {
+        const domains = new Set(items.map((item) => itemDomain(item.url)));
+        if (domains.size > 1) {
+            suggestions.push({
+                label: "Group by domain",
+                onSelect: () => {
+                    setGroupBy("domain");
+                    setPaletteInput("");
+                    setCommandListOpen(false);
+                },
+            });
+        }
+    }
+
+    return suggestions.slice(0, SUGGESTION_LIMIT);
+}
 
 interface SectionDescriptionResponse {
     summary: string;
@@ -5462,6 +5563,25 @@ function LibraryBrowser({
     );
     const canCreateCollectionFromResults =
         searchTerms.length > 0 && visibleResultItems.length > 0;
+
+    const canClear =
+        (hasActiveFilters || hasNonDefaultView) && !showEmptyLibraryPeek;
+
+    const commandSuggestions = useMemo(
+        () =>
+            buildCommandSuggestions({
+                collections,
+                items,
+                onToggleCollectionSelection: onRemoveCollectionFilter,
+                selectedCollectionIds,
+                setCommandListOpen,
+                setGroupBy,
+                setPaletteInput,
+                setSourceFilters,
+            }),
+        [collections, items, onRemoveCollectionFilter, selectedCollectionIds]
+    );
+
     const resultCollectionItemIds = useMemo(
         () => visibleResultItems.map((item) => item.id),
         [visibleResultItems]
@@ -5816,169 +5936,268 @@ function LibraryBrowser({
                     </form>
                 </DialogPopup>
             </Dialog>
-            <Command
-                filter={null}
-                filteredItems={visiblePaletteGroups.map((group) => ({
-                    items: group.items,
-                }))}
-                items={paletteGroups.map((group) => ({
-                    items: group.items,
-                }))}
-                onOpenChange={handleCommandOpenChange}
-                onValueChange={handleCommandInputChange}
-                open={commandListOpen}
-                value={paletteInput}
-            >
-                <CommandPanel ref={commandPanelContainerRef}>
-                    <CommandInput
-                        endAddon={
-                            <LibraryPaletteTrailing
-                                collectionMembershipFilter={
-                                    collectionMembershipFilter
-                                }
-                                collections={collections}
-                                columnCountMode={columnCountMode}
-                                commandAttachments={commandAttachments}
-                                domainFilters={domainFilters}
-                                groupBy={groupBy}
-                                onAttachFiles={handleAttachCommandFiles}
-                                onRemoveCollectionFilter={
-                                    onRemoveCollectionFilter
-                                }
-                                onRemoveCommandAttachment={
-                                    removeCommandAttachment
-                                }
-                                searchTerms={searchTerms}
-                                selectedCollectionIds={selectedCollectionIds}
-                                setCollectionMembershipFilter={
-                                    setCollectionMembershipFilter
-                                }
-                                setColumnCountMode={setColumnCountMode}
-                                setDomainFilters={setDomainFilters}
-                                setGroupBy={setGroupBy}
-                                setSearchTerms={setSearchTerms}
-                                setSortMode={setSortMode}
-                                setSourceFilters={setSourceFilters}
-                                sortMode={sortMode}
-                                sourceFilters={sourceFilters}
-                            />
-                        }
-                        onKeyDown={handlePaletteInputKeyDown}
-                        placeholder={inputPlaceholder}
-                        ref={paletteInputRef}
-                        size="lg"
-                    />
-                    <AutocompletePopup positionMethod="fixed">
-                        <CommandEmpty>No matching commands found.</CommandEmpty>
-                        <CommandList>
-                            {visiblePaletteGroups.map((group) => (
-                                <CommandGroup
-                                    items={group.items}
-                                    key={group.label}
-                                >
-                                    <CommandGroupLabel>
-                                        {group.label}
-                                    </CommandGroupLabel>
-                                    <div
-                                        className={
-                                            group.layout === "horizontal"
-                                                ? "-mx-1 flex gap-3 overflow-x-auto px-1 pt-1 pb-4 [&::-webkit-scrollbar]:hidden"
-                                                : ""
-                                        }
+            <div className="max-w-xl rounded-t-4xl rounded-b-2xl bg-muted/80">
+                <Command
+                    filter={null}
+                    filteredItems={visiblePaletteGroups.map((group) => ({
+                        items: group.items,
+                    }))}
+                    items={paletteGroups.map((group) => ({
+                        items: group.items,
+                    }))}
+                    onOpenChange={handleCommandOpenChange}
+                    onValueChange={handleCommandInputChange}
+                    open={commandListOpen}
+                    value={paletteInput}
+                >
+                    <CommandPanel ref={commandPanelContainerRef}>
+                        <CommandInput
+                            endAddon={
+                                <LibraryPaletteTrailing
+                                    collectionMembershipFilter={
+                                        collectionMembershipFilter
+                                    }
+                                    collections={collections}
+                                    columnCountMode={columnCountMode}
+                                    commandAttachments={commandAttachments}
+                                    domainFilters={domainFilters}
+                                    groupBy={groupBy}
+                                    onAttachFiles={handleAttachCommandFiles}
+                                    onRemoveCollectionFilter={
+                                        onRemoveCollectionFilter
+                                    }
+                                    onRemoveCommandAttachment={
+                                        removeCommandAttachment
+                                    }
+                                    searchTerms={searchTerms}
+                                    selectedCollectionIds={
+                                        selectedCollectionIds
+                                    }
+                                    setCollectionMembershipFilter={
+                                        setCollectionMembershipFilter
+                                    }
+                                    setColumnCountMode={setColumnCountMode}
+                                    setDomainFilters={setDomainFilters}
+                                    setGroupBy={setGroupBy}
+                                    setSearchTerms={setSearchTerms}
+                                    setSortMode={setSortMode}
+                                    setSourceFilters={setSourceFilters}
+                                    sortMode={sortMode}
+                                    sourceFilters={sourceFilters}
+                                />
+                            }
+                            onKeyDown={handlePaletteInputKeyDown}
+                            placeholder={inputPlaceholder}
+                            ref={paletteInputRef}
+                            size="lg"
+                        />
+                        <AutocompletePopup positionMethod="fixed">
+                            <CommandEmpty>
+                                No matching commands found.
+                            </CommandEmpty>
+                            <CommandList>
+                                {visiblePaletteGroups.map((group) => (
+                                    <CommandGroup
+                                        items={group.items}
+                                        key={group.label}
                                     >
-                                        <CommandCollection>
-                                            {(item: CommandPaletteItem) => (
-                                                <CommandItem
-                                                    className={
-                                                        group.layout ===
-                                                        "horizontal"
-                                                            ? "relative h-[104px] w-[140px] shrink-0 p-0 outline-none data-active:ring-2 data-active:ring-ring data-active:ring-offset-2 data-active:ring-offset-background"
-                                                            : undefined
-                                                    }
-                                                    key={item.value}
-                                                    onClick={item.onSelect}
-                                                    value={item.value}
-                                                >
-                                                    {item.render ? (
-                                                        item.render(item)
-                                                    ) : (
-                                                        <div className="flex min-w-0 flex-1 items-center gap-3">
-                                                            <div className="min-w-0 flex-1">
-                                                                <div className="truncate">
-                                                                    {item.label}
-                                                                </div>
-                                                                {item.description ? (
-                                                                    <p className="truncate text-muted-foreground text-xs">
+                                        <CommandGroupLabel>
+                                            {group.label}
+                                        </CommandGroupLabel>
+                                        <div
+                                            className={
+                                                group.layout === "horizontal"
+                                                    ? "-mx-1 flex gap-3 overflow-x-auto px-1 pt-1 pb-4 [&::-webkit-scrollbar]:hidden"
+                                                    : ""
+                                            }
+                                        >
+                                            <CommandCollection>
+                                                {(item: CommandPaletteItem) => (
+                                                    <CommandItem
+                                                        className={
+                                                            group.layout ===
+                                                            "horizontal"
+                                                                ? "relative h-[104px] w-[140px] shrink-0 p-0 outline-none data-active:ring-2 data-active:ring-ring data-active:ring-offset-2 data-active:ring-offset-background"
+                                                                : undefined
+                                                        }
+                                                        key={item.value}
+                                                        onClick={item.onSelect}
+                                                        value={item.value}
+                                                    >
+                                                        {item.render ? (
+                                                            item.render(item)
+                                                        ) : (
+                                                            <div className="flex min-w-0 flex-1 items-center gap-3">
+                                                                <div className="min-w-0 flex-1">
+                                                                    <div className="truncate">
                                                                         {
-                                                                            item.description
+                                                                            item.label
                                                                         }
-                                                                    </p>
+                                                                    </div>
+                                                                    {item.description ? (
+                                                                        <p className="truncate text-muted-foreground text-xs">
+                                                                            {
+                                                                                item.description
+                                                                            }
+                                                                        </p>
+                                                                    ) : null}
+                                                                </div>
+                                                                {item.active ? (
+                                                                    <span className="shrink-0 rounded-full bg-accent px-2 py-0.5 font-medium text-[11px] text-accent-foreground">
+                                                                        Active
+                                                                    </span>
+                                                                ) : null}
+                                                                {item.shortcut ? (
+                                                                    <CommandShortcut>
+                                                                        {
+                                                                            item.shortcut
+                                                                        }
+                                                                    </CommandShortcut>
                                                                 ) : null}
                                                             </div>
-                                                            {item.active ? (
-                                                                <span className="shrink-0 rounded-full bg-accent px-2 py-0.5 font-medium text-[11px] text-accent-foreground">
-                                                                    Active
-                                                                </span>
-                                                            ) : null}
-                                                            {item.shortcut ? (
-                                                                <CommandShortcut>
-                                                                    {
-                                                                        item.shortcut
-                                                                    }
-                                                                </CommandShortcut>
-                                                            ) : null}
-                                                        </div>
-                                                    )}
-                                                </CommandItem>
-                                            )}
-                                        </CommandCollection>
-                                    </div>
-                                </CommandGroup>
-                            ))}
-                        </CommandList>
-                        <CommandFooter>
-                            <div className="flex items-center gap-1.5">
-                                <span className="font-medium">Navigate</span>
-                                <KbdGroup>
+                                                        )}
+                                                    </CommandItem>
+                                                )}
+                                            </CommandCollection>
+                                        </div>
+                                    </CommandGroup>
+                                ))}
+                            </CommandList>
+                            <CommandFooter>
+                                <div className="flex items-center gap-1.5">
+                                    <span className="font-medium">
+                                        Navigate
+                                    </span>
+                                    <KbdGroup>
+                                        <Kbd>
+                                            <ArrowUpIcon />
+                                        </Kbd>
+                                        <Kbd>
+                                            <ArrowDownIcon />
+                                        </Kbd>
+                                    </KbdGroup>
+                                </div>
+                                <Separator orientation="vertical" />
+                                <div className="flex items-center gap-1.5">
+                                    <span className="font-medium">
+                                        Open Command
+                                    </span>
                                     <Kbd>
-                                        <ArrowUpIcon />
+                                        <CornerDownLeftIcon />
                                     </Kbd>
-                                    <Kbd>
-                                        <ArrowDownIcon />
-                                    </Kbd>
-                                </KbdGroup>
-                            </div>
-                            <Separator orientation="vertical" />
-                            <div className="flex items-center gap-1.5">
-                                <span className="font-medium">
-                                    Open Command
-                                </span>
-                                <Kbd>
-                                    <CornerDownLeftIcon />
-                                </Kbd>
-                            </div>
-                        </CommandFooter>
-                    </AutocompletePopup>
-                </CommandPanel>
-            </Command>
-            {/* {(hasActiveFilters || hasNonDefaultView) &&
-            !showEmptyLibraryPeek ? null : (
-                <div className="relative -mt-1">
+                                </div>
+                            </CommandFooter>
+                        </AutocompletePopup>
+                    </CommandPanel>
+                </Command>
+                <Toolbar.Root className="flex items-center gap-2 px-2.5 py-2">
+                    <Toolbar.Button
+                        render={
+                            <Button
+                                className="rounded-full"
+                                onClick={handleCreateNote}
+                                size="xs"
+                                variant="ghost"
+                            >
+                                <SquarePen className="inline-block size-3.5 shrink-0" />
+                                &nbsp;New
+                            </Button>
+                        }
+                    />
+                    <FeedbackWidget
+                        render={
+                            <Toolbar.Button
+                                render={
+                                    <Button
+                                        className="hidden rounded-full md:flex"
+                                        size="xs"
+                                        variant="ghost"
+                                    />
+                                }
+                            />
+                        }
+                    >
+                        <Globe className="inline-block size-3.5 shrink-0" />
+                        &nbsp;Feedback&nbsp;
+                        <ChevronDown className="inline-block size-3.5 shrink-0" />
+                    </FeedbackWidget>
+                    {canCreateCollectionFromResults ? (
+                        <Toolbar.Button
+                            render={
+                                <Button
+                                    className="rounded-full"
+                                    onClick={() =>
+                                        handleCreateResultsDialogOpenChange(
+                                            true
+                                        )
+                                    }
+                                    size="xs"
+                                    variant="ghost"
+                                >
+                                    <CircleFadingPlus className="inline-block size-4 shrink-0" />
+                                    &nbsp;Collection with results
+                                </Button>
+                            }
+                        />
+                    ) : null}
+                    <Toolbar.Button
+                        render={
+                            <Button
+                                className="rounded-full"
+                                onClick={() => {
+                                    clearLibraryPalette();
+                                }}
+                                size="xs"
+                                title="Reset browser"
+                                variant="ghost"
+                            >
+                                {canClear ? (
+                                    <Grid2x2X className="inline-block size-3.5 shrink-0" />
+                                ) : (
+                                    <Grid2x2 className="inline-block size-3.5 shrink-0" />
+                                )}
+                                &nbsp;Showing {resultsSummary}
+                                {groupBy === "none" ? null : (
+                                    <>
+                                        , {sections.length} group
+                                        {sections.length === 1 ? "" : "s"}
+                                    </>
+                                )}
+                            </Button>
+                        }
+                    />
+                </Toolbar.Root>
+            </div>
+            {canClear ||
+            actionFeedback ||
+            commandSuggestions.length === 0 ? null : (
+                <div className="relative -mt-1 px-2.5">
                     <ScrollArea
                         className="max-w-full whitespace-nowrap"
                         scrollFade
                     >
-                        <div className="flex w-max flex-nowrap items-center gap-2">
-                            {SUGGESTIONS.map((suggestion) => (
-                                <Button
-                                    className="rounded-full"
-                                    key={suggestion}
-                                    size="xs"
-                                    type="button"
-                                    variant="secondary"
-                                >
-                                    {suggestion}
-                                </Button>
+                        <div className="flex w-max flex-nowrap items-center gap-1.5">
+                            <span className="pr-2 font-medium text-muted-foreground text-xs">
+                                Suggestions
+                            </span>
+                            <span className="font-medium text-muted-foreground text-xs">
+                                ·
+                            </span>
+                            {commandSuggestions.map((suggestion) => (
+                                <React.Fragment key={suggestion.label}>
+                                    <Button
+                                        className="rounded-full text-muted-foreground"
+                                        onClick={suggestion.onSelect}
+                                        size="xs"
+                                        type="button"
+                                        variant="ghost"
+                                    >
+                                        {suggestion.label}
+                                    </Button>
+                                    <span className="font-medium text-muted-foreground text-xs last:hidden">
+                                        ·
+                                    </span>
+                                </React.Fragment>
                             ))}
                         </div>
                         <ScrollBar
@@ -5987,7 +6206,7 @@ function LibraryBrowser({
                         />
                     </ScrollArea>
                 </div>
-            )} */}
+            )}
             {actionFeedback ? (
                 <div
                     className={cn(
@@ -6000,82 +6219,6 @@ function LibraryBrowser({
                     {actionFeedback.message}
                 </div>
             ) : null}
-            <div className="flex flex-wrap items-center gap-2">
-                <Button
-                    className="rounded-full"
-                    onClick={handleCreateNote}
-                    size="xs"
-                    variant="outline"
-                >
-                    <SquarePen className="inline-block size-3.5 shrink-0" />
-                    &nbsp;New entry
-                </Button>
-                <FeedbackWidget
-                    render={
-                        <Button
-                            className="hidden rounded-full md:flex"
-                            size="xs"
-                            variant="outline"
-                        />
-                    }
-                >
-                    <Globe className="inline-block size-3.5 shrink-0" />
-                    &nbsp;Feedback
-                </FeedbackWidget>
-                <Separator className="mx-1 h-5" orientation="vertical" />
-                <Badge className="sm:text-xs" size="lg" variant="outline">
-                    Showing {resultsSummary}
-                </Badge>
-                {canCreateCollectionFromResults ? (
-                    <Button
-                        className="rounded-full"
-                        onClick={() =>
-                            handleCreateResultsDialogOpenChange(true)
-                        }
-                        size="xs"
-                        variant="outline"
-                    >
-                        <CircleFadingPlus className="inline-block size-4 shrink-0" />
-                        &nbsp;Collection with these results
-                    </Button>
-                ) : null}
-                {groupBy === "none" ? null : (
-                    <Badge className="sm:text-xs" size="lg" variant="outline">
-                        {sections.length} group
-                        {sections.length === 1 ? "" : "s"}
-                    </Badge>
-                )}
-                {(hasActiveFilters || hasNonDefaultView) &&
-                !showEmptyLibraryPeek ? (
-                    <Button
-                        onClick={() => {
-                            clearLibraryPalette();
-                        }}
-                        size="xs"
-                        variant="ghost"
-                    >
-                        Reset browser
-                    </Button>
-                ) : null}
-                {enableSectionCollapse ? (
-                    <>
-                        <Button
-                            onClick={expandAllSections}
-                            size="xs"
-                            variant="ghost"
-                        >
-                            Expand all
-                        </Button>
-                        <Button
-                            onClick={collapseAllSections}
-                            size="xs"
-                            variant="ghost"
-                        >
-                            Collapse all
-                        </Button>
-                    </>
-                ) : null}
-            </div>
             <UnprivilegedOnly>
                 <InlinePromotionBanner />
             </UnprivilegedOnly>

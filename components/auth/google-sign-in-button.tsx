@@ -1,7 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { GoogleMarkIcon } from "@/components/ui/icons";
+import { GoogleIcon } from "@/components/ui/icons";
 import { authClient } from "@/lib/auth/client";
 import { useState, useTransition } from "react";
 
@@ -48,7 +48,7 @@ function GoogleSignInButton({
                 size="xl"
                 type="button"
             >
-                <GoogleMarkIcon />
+                <GoogleIcon />
                 {children}
             </Button>
             {errorMessage ? (

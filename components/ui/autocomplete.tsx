@@ -42,7 +42,7 @@ export function AutocompleteInput({
             )}
             <AutocompletePrimitive.Input
                 className={cn(
-                    "rounded-full bg-muted px-2 py-1.5 hover:bg-muted/94 hover:backdrop-blur-xs has-focus-visible:bg-muted/94 has-focus-visible:backdrop-blur-xs",
+                    "min-h-11 rounded-full p-1.5",
                     startAddon &&
                         "data-[size=sm]:*:data-[slot=autocomplete-input]:ps-[calc(--spacing(7.5)-1px)] *:data-[slot=autocomplete-input]:ps-[calc(--spacing(8.5)-1px)] sm:data-[size=sm]:*:data-[slot=autocomplete-input]:ps-[calc(--spacing(7)-1px)] sm:*:data-[slot=autocomplete-input]:ps-[calc(--spacing(9)-1px)]",
                     sizeValue === "sm"

@@ -38,7 +38,7 @@ export function CommandInput({
     return (
         <AutocompleteInput
             className={cn(
-                "min-h-11 border-transparent! shadow-none outline-none ring-0 before:hidden has-focus-visible:ring-0 has-focus-visible:ring-offset-0",
+                "border bg-card shadow-xs outline-none ring-0 before:hidden has-focus-visible:border-border has-focus-visible:ring-0 has-focus-visible:ring-offset-0",
                 className
             )}
             {...props}
@@ -76,15 +76,7 @@ export function CommandPanel({
     className,
     ...props
 }: React.ComponentProps<"div">): React.ReactElement {
-    return (
-        <div
-            className={cn(
-                "sticky top-3 z-30 -mx-px not-has-[+[data-slot=command-footer]]:-mb-px min-h-0 w-full max-w-md",
-                className
-            )}
-            {...props}
-        />
-    );
+    return <div className={cn("min-h-0 w-full", className)} {...props} />;
 }
 
 export function CommandGroup(

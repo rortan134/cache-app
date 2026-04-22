@@ -1,12 +1,12 @@
 import {
-    Chrome,
-    Github,
-    Instagram,
-    Photos,
-    Pinterest,
-    TikTok,
-    XSocial,
-    YouTube,
+    ChromeIcon,
+    GithubIcon,
+    InstagramIcon,
+    PhotosIcon,
+    PinterestIcon,
+    TikTokIcon,
+    XSocialIcon,
+    YouTubeIcon,
 } from "@/components/ui/icons";
 import { CACHE_EXTENSION_DOWNLOAD_URL } from "@/lib/common/constants";
 import { LibraryItemSource } from "@/prisma/client/enums";
@@ -149,7 +149,7 @@ export const INTEGRATIONS = [
         },
         category: "social",
         description: "Bookmarks from your browser",
-        Icon: Chrome,
+        Icon: ChromeIcon,
         id: "chrome",
         label: "Chrome",
         source: {
@@ -200,7 +200,7 @@ export const INTEGRATIONS = [
         },
         category: "developer",
         description: "Repositories you star to revisit later",
-        Icon: Github,
+        Icon: GithubIcon,
         id: "github",
         label: "GitHub",
         source: {
@@ -244,7 +244,7 @@ export const INTEGRATIONS = [
         },
         category: "media",
         description: "Starred photos and albums",
-        Icon: Photos,
+        Icon: PhotosIcon,
         id: "google-photos",
         label: "Google Photos",
         source: {
@@ -276,7 +276,7 @@ export const INTEGRATIONS = [
         },
         category: "social",
         description: "Posts you save to Favorites",
-        Icon: Instagram,
+        Icon: InstagramIcon,
         id: "instagram",
         label: "Instagram",
         source: {
@@ -326,7 +326,7 @@ export const INTEGRATIONS = [
         },
         category: "social",
         description: "Pins saved to boards",
-        Icon: Pinterest,
+        Icon: PinterestIcon,
         id: "pinterest",
         label: "Pinterest",
         source: {
@@ -358,7 +358,7 @@ export const INTEGRATIONS = [
         },
         category: "social",
         description: "Videos in your Favorites",
-        Icon: TikTok,
+        Icon: TikTokIcon,
         id: "tiktok",
         label: "TikTok",
         source: {
@@ -408,7 +408,7 @@ export const INTEGRATIONS = [
         },
         category: "social",
         description: "Posts you save to Bookmarks",
-        Icon: XSocial,
+        Icon: XSocialIcon,
         id: "x",
         label: "X",
         source: {
@@ -440,7 +440,7 @@ export const INTEGRATIONS = [
         },
         category: "media",
         description: "Videos in your playlists",
-        Icon: YouTube,
+        Icon: YouTubeIcon,
         id: "youtube",
         label: "YouTube",
         source: {

@@ -250,6 +250,16 @@ const CHAT_PROVIDERS = [
         icon: V0Icon,
         title: "Open in v0",
     },
+    {
+        createUrl: () => "https://docs.new",
+        icon: GoogleDocsIcon,
+        title: "Open in Google Docs",
+    },
+    {
+        createUrl: () => "https://notion.new",
+        icon: NotionIcon,
+        title: "Open in Notion",
+    },
 ];
 
 function normalizeDraft(draft: NoteDraft): NoteDraft {
@@ -714,22 +724,6 @@ export function LibraryNoteDrawer({
                             })}
                         </MenuPopup>
                     </Menu>
-                    <Button
-                        className="rounded-full"
-                        size="xs"
-                        variant="outline"
-                    >
-                        <GoogleDocsIcon className="inline-block size-3.5" />
-                        Open in Google Docs
-                    </Button>
-                    <Button
-                        className="rounded-full"
-                        size="xs"
-                        variant="outline"
-                    >
-                        <NotionIcon className="inline-block size-3.5" />
-                        &nbsp;Open in Notion
-                    </Button>
                 </DrawerHeader>
                 <DrawerPanel
                     allowSelection

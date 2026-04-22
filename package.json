@@ -25,7 +25,7 @@
         "culori": "^4.0.2",
         "dayjs": "^1.11.20",
         "dotenv": "^17.4.2",
-        "gt-next": "^6.16.7",
+        "gt-next": "^6.16.8",
         "lexical": "^0.43.0",
         "lucide-react": "^1.8.0",
         "mcp-handler": "^1.1.0",
@@ -67,7 +67,7 @@
         "prisma": "^7.8.0",
         "tailwindcss": "^4",
         "typescript": "^6",
-        "ultracite": "7.6.0"
+        "ultracite": "7.6.1"
     },
     "name": "cache",
     "scripts": {

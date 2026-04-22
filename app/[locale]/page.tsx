@@ -4,7 +4,7 @@ import { BrandLogo } from "@/components/ui/brand-logo";
 import { Button } from "@/components/ui/button";
 import { Footer } from "@/components/ui/footer";
 import { GradientWaveText } from "@/components/ui/gradient-wave-text";
-import { Chrome, TikTok } from "@/components/ui/icons";
+import { ChromeIcon, TikTokIcon } from "@/components/ui/icons";
 import { PageShell } from "@/components/ui/page-shell";
 import { Sidebar, SidebarFooter, SidebarHeader } from "@/components/ui/sidebar";
 import { getServerSession } from "@/lib/auth/server";
@@ -117,7 +117,7 @@ export default async function Home() {
                                 </p>
                                 <p className="flex shrink-0 flex-row items-center gap-1.5 truncate text-[#0A0B0D] text-[1rem] leading-[1.22] tracking-[-3%]">
                                     <span>
-                                        <Chrome className="size-4" />
+                                        <ChromeIcon className="size-4" />
                                     </span>
                                     <span className="opacity-50">
                                         Chrome Web Store
@@ -140,10 +140,10 @@ export default async function Home() {
                         />
                     </div>
                     <div className="flex flex-col gap-2">
-                        <p className="mx-auto text-center text-xs uppercase">
+                        <p className="mx-auto text-center text-xs">
                             <T>Discover what Cache can do for you</T>
                         </p>
-                        <p className="mx-auto text-center text-xs uppercase">
+                        <p className="mx-auto text-center font-medium text-xs">
                             <T>
                                 <span className="opacity-50">A tool for</span>{" "}
                                 managing all of your personal knowledge
@@ -380,7 +380,7 @@ export default async function Home() {
                                             <div className="relative pl-6">
                                                 <div className="absolute top-0 bottom-1/2 left-0 w-6 rounded-bl-full border-border border-b border-l border-dashed mix-blend-color-dodge" />
                                                 <div className="flex items-center gap-2 rounded-xl border bg-background p-3 shadow-sm">
-                                                    <Chrome className="size-3.5" />
+                                                    <ChromeIcon className="size-3.5" />
                                                     <span className="font-medium text-[11px] text-muted-foreground">
                                                         Bookmarks imported
                                                         <span className="pl-3 text-foreground/50">
@@ -392,7 +392,7 @@ export default async function Home() {
                                             <div className="relative pl-6">
                                                 <div className="absolute top-0 bottom-1/2 left-0 w-6 rounded-bl-full border-border border-b border-l border-dashed mix-blend-color-dodge" />
                                                 <div className="flex items-center gap-2 rounded-xl border bg-background p-3 shadow-sm">
-                                                    <TikTok className="size-3.5" />
+                                                    <TikTokIcon className="size-3.5" />
                                                     <span className="font-medium text-[11px] text-muted-foreground">
                                                         Bookmarks imported
                                                         <span className="pl-3 text-foreground/50">

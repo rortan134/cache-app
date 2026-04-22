@@ -2,6 +2,7 @@
 
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { CheckmarkIcon } from "@/components/ui/icons";
 import { cn } from "@/lib/common/cn";
 import { Combobox as ComboboxPrimitive } from "@base-ui/react/combobox";
 import { XIcon } from "lucide-react";
@@ -225,17 +226,7 @@ export function ComboboxItem({
             <ComboboxPrimitive.ItemIndicator
                 className={showIndicatorLast ? "col-start-2" : "col-start-1"}
             >
-                <svg
-                    aria-hidden="true"
-                    fill="none"
-                    height="24"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    viewBox="0 0 24 24"
-                    width="24"
-                >
-                    <path d="M5.252 12.7 10.2 18.63 18.748 5.37" />
-                </svg>
+                <CheckmarkIcon className="size-4" />
             </ComboboxPrimitive.ItemIndicator>
             {!showIndicatorLast && (
                 <div className="col-start-2">{children}</div>

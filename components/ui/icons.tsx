@@ -1,7 +1,10 @@
 import { cn } from "@/lib/common/cn";
 import type { SVGProps } from "react";
 
-export const Github = ({ className, ...props }: SVGProps<SVGSVGElement>) => (
+export const GithubIcon = ({
+    className,
+    ...props
+}: SVGProps<SVGSVGElement>) => (
     <svg
         aria-label="GitHub"
         className={cn("size-6 shrink-0", className)}
@@ -16,11 +19,13 @@ export const Github = ({ className, ...props }: SVGProps<SVGSVGElement>) => (
     </svg>
 );
 
-export const TikTok = ({ className, ...props }: SVGProps<SVGSVGElement>) => (
+export const TikTokIcon = ({
+    className,
+    ...props
+}: SVGProps<SVGSVGElement>) => (
     <svg
         aria-label="TikTok"
         className={cn("size-6 shrink-0", className)}
-        id="tiktok_icon_light-Layer_2"
         role="img"
         viewBox="0 0 352.28 398.67"
         {...props}
@@ -50,7 +55,10 @@ export const TikTok = ({ className, ...props }: SVGProps<SVGSVGElement>) => (
     </svg>
 );
 
-export const Instagram = ({ className, ...props }: SVGProps<SVGSVGElement>) => (
+export const InstagramIcon = ({
+    className,
+    ...props
+}: SVGProps<SVGSVGElement>) => (
     <svg
         aria-label="Instagram"
         className={cn("size-6 shrink-0", className)}
@@ -60,13 +68,16 @@ export const Instagram = ({ className, ...props }: SVGProps<SVGSVGElement>) => (
     >
         <path
             d="M12 0C8.74 0 8.333.015 7.108.063 2.838.308.308 2.828.063 7.098.015 8.333 0 8.74 0 12s.015 3.667.063 4.902c.245 4.26 2.775 6.79 7.045 7.045 1.225.048 1.63.063 4.892.063s3.667-.015 4.902-.063c4.26-.245 6.79-2.775 7.045-7.045.048-1.225.063-1.63.063-4.892s-.015-3.667-.063-4.902c-.245-4.26-2.775-6.79-7.045-7.045C15.667.015 15.26 0 12 0zm0 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"
-            fill="#000"
+            fill="currentColor"
             fillRule="evenodd"
         />
     </svg>
 );
 
-export const Pinterest = ({ className, ...props }: SVGProps<SVGSVGElement>) => (
+export const PinterestIcon = ({
+    className,
+    ...props
+}: SVGProps<SVGSVGElement>) => (
     <svg
         aria-label="Pinterest"
         className={cn("size-6 shrink-0", className)}
@@ -81,7 +92,10 @@ export const Pinterest = ({ className, ...props }: SVGProps<SVGSVGElement>) => (
     </svg>
 );
 
-export const Photos = ({ className, ...props }: SVGProps<SVGSVGElement>) => (
+export const PhotosIcon = ({
+    className,
+    ...props
+}: SVGProps<SVGSVGElement>) => (
     <svg
         aria-label="Google Photos"
         className={cn("size-6 shrink-0", className)}
@@ -111,7 +125,10 @@ export const Photos = ({ className, ...props }: SVGProps<SVGSVGElement>) => (
     </svg>
 );
 
-export const XSocial = ({ className, ...props }: SVGProps<SVGSVGElement>) => (
+export const XSocialIcon = ({
+    className,
+    ...props
+}: SVGProps<SVGSVGElement>) => (
     <svg
         aria-label="X"
         className={cn("size-6 shrink-0", className)}
@@ -122,12 +139,15 @@ export const XSocial = ({ className, ...props }: SVGProps<SVGSVGElement>) => (
     >
         <path
             d="M714.163 519.284 1160.89 0h-105.86L667.137 450.887 357.328 0H0l468.492 681.821L0 1226.37h105.866l409.625-476.152 327.181 476.152H1200L714.137 519.284h.026ZM569.165 687.828l-47.468-67.894-377.686-540.24h162.604l304.797 435.991 47.468 67.894 396.2 566.721H892.476L569.165 687.854v-.026Z"
-            fill="#000"
+            fill="currentColor"
         />
     </svg>
 );
 
-export const YouTube = ({ className, ...props }: SVGProps<SVGSVGElement>) => (
+export const YouTubeIcon = ({
+    className,
+    ...props
+}: SVGProps<SVGSVGElement>) => (
     <svg
         aria-label="YouTube"
         className={cn("size-6 shrink-0", className)}
@@ -143,7 +163,10 @@ export const YouTube = ({ className, ...props }: SVGProps<SVGSVGElement>) => (
     </svg>
 );
 
-export const Chrome = ({ className, ...props }: SVGProps<SVGSVGElement>) => (
+export const ChromeIcon = ({
+    className,
+    ...props
+}: SVGProps<SVGSVGElement>) => (
     <svg
         aria-label="Chrome"
         className={cn("size-6 shrink-0", className)}
@@ -174,7 +197,7 @@ export const Chrome = ({ className, ...props }: SVGProps<SVGSVGElement>) => (
     </svg>
 );
 
-export const GoogleMarkIcon = ({
+export const GoogleIcon = ({
     className,
     ...props
 }: SVGProps<SVGSVGElement>) => (
@@ -201,66 +224,6 @@ export const GoogleMarkIcon = ({
             d="M43.611 20.083H42V20H24v8h11.303a12.04 12.04 0 0 1-4.087 5.571l.003-.002 6.19 5.238C36.971 39.205 44 34 44 24c0-1.341-.138-2.65-.389-3.917z"
             fill="#1976D2"
         />
-    </svg>
-);
-
-export const PriorityNoneIcon = ({
-    className,
-    ...props
-}: SVGProps<SVGSVGElement>) => (
-    <svg
-        aria-label="No Priority"
-        className={cn("size-6 shrink-0", className)}
-        focusable="false"
-        height="16"
-        role="img"
-        viewBox="0 0 16 16"
-        width="16"
-        {...props}
-    >
-        <rect height="1.5" opacity="0.9" rx="0.5" width="3" x="1.5" y="7.25" />
-        <rect height="1.5" opacity="0.9" rx="0.5" width="3" x="6.5" y="7.25" />
-        <rect height="1.5" opacity="0.9" rx="0.5" width="3" x="11.5" y="7.25" />
-    </svg>
-);
-
-export const ChevronDownFilledIcon = ({
-    className,
-    ...props
-}: SVGProps<SVGSVGElement>) => (
-    <svg
-        aria-hidden="true"
-        className={cn(
-            "pointer-events-none inline-block size-5 shrink-0 opacity-80 transition-[opacity,transform] group-hover:opacity-80! group-data-panel-open:rotate-90 group-data-panel-open:opacity-30",
-            className
-        )}
-        focusable="false"
-        height="16"
-        role="img"
-        viewBox="0 0 16 16"
-        width="16"
-        {...props}
-    >
-        <path d="M7.00194 10.6239C6.66861 10.8183 6.25 10.5779 6.25 10.192V5.80802C6.25 5.42212 6.66861 5.18169 7.00194 5.37613L10.7596 7.56811C11.0904 7.76105 11.0904 8.23895 10.7596 8.43189L7.00194 10.6239Z" />
-    </svg>
-);
-
-export const CrownFilledIcon = ({
-    className,
-    ...props
-}: SVGProps<SVGSVGElement>) => (
-    <svg
-        aria-hidden="true"
-        className={cn("inline-block size-4 shrink-0", className)}
-        fill="currentColor"
-        focusable="false"
-        height="16"
-        role="img"
-        viewBox="0 0 16 16"
-        width="16"
-        {...props}
-    >
-        <path d="M14.3295 5.52562V11.2065C14.3295 11.6483 13.9714 12.0065 13.5295 12.0065H2.46992C2.02809 12.0065 1.66992 11.6483 1.66992 11.2065V5.51494C1.66992 5.00358 2.34675 4.82196 2.60275 5.26463L4.1736 7.98089C4.36707 8.31543 4.85073 8.31339 5.04137 7.97722L7.57078 3.51694C7.76235 3.17914 8.24908 3.17914 8.44064 3.51694L10.9694 7.97612C11.1602 8.31253 11.6443 8.31427 11.8375 7.97924L13.3964 5.27585C13.652 4.83258 14.3295 5.01393 14.3295 5.52562Z" />
     </svg>
 );
 
@@ -313,6 +276,110 @@ export const GoogleDocsIcon = ({
                 fill="#FDFFFF"
             />
         </g>
+    </svg>
+);
+
+export const CheckmarkIcon = ({
+    className,
+    ...props
+}: SVGProps<SVGSVGElement>) => (
+    <svg
+        aria-hidden="true"
+        className={cn("size-6 shrink-0", className)}
+        fill="none"
+        height="24"
+        stroke="currentColor"
+        strokeWidth="2"
+        viewBox="0 0 24 24"
+        width="24"
+        {...props}
+    >
+        <path d="M5.252 12.7 10.2 18.63 18.748 5.37" />
+    </svg>
+);
+
+export const PriorityNoneIcon = ({
+    className,
+    ...props
+}: SVGProps<SVGSVGElement>) => (
+    <svg
+        aria-label="No Priority"
+        className={cn("size-6 shrink-0", className)}
+        focusable="false"
+        height="16"
+        role="img"
+        viewBox="0 0 16 16"
+        width="16"
+        {...props}
+    >
+        <rect
+            fill="currentColor"
+            height="1.5"
+            opacity="0.9"
+            rx="0.5"
+            width="3"
+            x="1.5"
+            y="7.25"
+        />
+        <rect
+            fill="currentColor"
+            height="1.5"
+            opacity="0.9"
+            rx="0.5"
+            width="3"
+            x="6.5"
+            y="7.25"
+        />
+        <rect
+            fill="currentColor"
+            height="1.5"
+            opacity="0.9"
+            rx="0.5"
+            width="3"
+            x="11.5"
+            y="7.25"
+        />
+    </svg>
+);
+
+export const ChevronDownFilledIcon = ({
+    className,
+    ...props
+}: SVGProps<SVGSVGElement>) => (
+    <svg
+        aria-hidden="true"
+        className={cn(
+            "pointer-events-none inline-block size-5 shrink-0 opacity-80 transition-[opacity,transform] group-hover:opacity-80! group-data-panel-open:rotate-90 group-data-panel-open:opacity-30",
+            className
+        )}
+        fill="currentColor"
+        focusable="false"
+        height="16"
+        role="img"
+        viewBox="0 0 16 16"
+        width="16"
+        {...props}
+    >
+        <path d="M7.00194 10.6239C6.66861 10.8183 6.25 10.5779 6.25 10.192V5.80802C6.25 5.42212 6.66861 5.18169 7.00194 5.37613L10.7596 7.56811C11.0904 7.76105 11.0904 8.23895 10.7596 8.43189L7.00194 10.6239Z" />
+    </svg>
+);
+
+export const CrownFilledIcon = ({
+    className,
+    ...props
+}: SVGProps<SVGSVGElement>) => (
+    <svg
+        aria-hidden="true"
+        className={cn("inline-block size-4 shrink-0", className)}
+        fill="currentColor"
+        focusable="false"
+        height="16"
+        role="img"
+        viewBox="0 0 16 16"
+        width="16"
+        {...props}
+    >
+        <path d="M14.3295 5.52562V11.2065C14.3295 11.6483 13.9714 12.0065 13.5295 12.0065H2.46992C2.02809 12.0065 1.66992 11.6483 1.66992 11.2065V5.51494C1.66992 5.00358 2.34675 4.82196 2.60275 5.26463L4.1736 7.98089C4.36707 8.31543 4.85073 8.31339 5.04137 7.97722L7.57078 3.51694C7.76235 3.17914 8.24908 3.17914 8.44064 3.51694L10.9694 7.97612C11.1602 8.31253 11.6443 8.31427 11.8375 7.97924L13.3964 5.27585C13.652 4.83258 14.3295 5.01393 14.3295 5.52562Z" />
     </svg>
 );
 
