@@ -1,3 +1,5 @@
+import { decodeHtmlEntities } from "@/lib/common/strings";
+import type { SerializedHeadingNode } from "@lexical/rich-text";
 import {
     IS_BOLD,
     IS_HIGHLIGHT,
@@ -9,8 +11,6 @@ import {
     type SerializedLexicalNode,
     type SerializedTextNode,
 } from "lexical";
-import type { SerializedHeadingNode } from "@lexical/rich-text";
-import { decodeHtmlEntities } from "@/lib/strings";
 
 export const NOTE_EMPTY_HTML = "<p></p>";
 

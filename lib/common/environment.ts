@@ -1,4 +1,4 @@
-import { canUseDOM } from "@/lib/dom";
+import { canUseDOM } from "@/lib/common/dom";
 
 declare global {
     interface Document {

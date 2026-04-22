@@ -6,8 +6,8 @@ import {
     ContextMenuPopup,
     ContextMenuTrigger,
 } from "@/components/ui/context-menu";
-import { saveFile } from "@/lib/file";
-import { createLogger } from "@/lib/logs/console/logger";
+import { saveFile } from "@/lib/common/file";
+import { createLogger } from "@/lib/common/logs/console/logger";
 import { DownloadIcon } from "lucide-react";
 import type { StaticImageData } from "next/image";
 import Image from "next/image";

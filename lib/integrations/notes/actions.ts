@@ -1,8 +1,10 @@
 "use server";
 
 import { getSessionUserId } from "@/lib/auth/server";
-import { LIBRARY_ITEM_COLLECTIONS_INCLUDE } from "@/lib/collections/shared";
-import { extractNamedErrorMessage } from "@/lib/error";
+import { LIBRARY_ITEM_COLLECTIONS_INCLUDE } from "@/lib/collections/utils";
+import { extractNamedErrorMessage } from "@/lib/common/error";
+import { createLogger } from "@/lib/common/logs/console/logger";
+import type { LibraryItemWithCollections } from "@/lib/common/types";
 import { LibraryNoteError } from "@/lib/integrations/notes/error";
 import {
     extractNoteText,
@@ -10,8 +12,6 @@ import {
     sanitizeNoteHtml,
     serializeNoteEditorStateToHtml,
 } from "@/lib/integrations/notes/utils";
-import { createLogger } from "@/lib/logs/console/logger";
-import type { LibraryItemWithCollections } from "@/lib/types";
 import { prisma } from "@/prisma";
 import { LibraryItemSource } from "@/prisma/client/enums";
 import {

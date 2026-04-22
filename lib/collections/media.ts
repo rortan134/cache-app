@@ -1,8 +1,8 @@
 "use server";
 
 import { getSessionUserId } from "@/lib/auth/server";
-import { resolveCobaltDownloadUrl } from "@/lib/cobalt";
-import { createLogger } from "@/lib/logs/console/logger";
+import { resolveCobaltDownloadUrl } from "@/lib/common/cobalt";
+import { createLogger } from "@/lib/common/logs/console/logger";
 
 const log = createLogger("library:actions:media");
 

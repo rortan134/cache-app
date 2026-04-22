@@ -1,4 +1,4 @@
-import { BASE_URL } from "@/lib/constants";
+import { BASE_URL } from "@/lib/common/constants";
 import type { MetadataRoute } from "next";
 
 export default function robots(): MetadataRoute.Robots {

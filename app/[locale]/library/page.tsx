@@ -21,6 +21,15 @@ import { CtrlKbd, Kbd, KbdGroup } from "@/components/ui/kbd";
 import { PageShell } from "@/components/ui/page-shell";
 import { RadialChart } from "@/components/ui/radial-chart";
 import { getServerSession } from "@/lib/auth/server";
+import {
+    LIBRARY_COLLECTION_TAG_SELECT,
+    LIBRARY_ITEM_COLLECTIONS_INCLUDE,
+    toLibraryCollectionSummary,
+} from "@/lib/collections/utils";
+import type {
+    LibraryCollectionSummary,
+    LibraryItemWithCollections,
+} from "@/lib/common/types";
 import { buildLocaleAlternates } from "@/lib/i18n/alternates";
 import { gtPublicString } from "@/lib/i18n/gt-public-json";
 import {
@@ -34,15 +43,6 @@ import {
     listConnectedIntegrationIds,
     listIntegrationAccountProviderIds,
 } from "@/lib/integrations/support";
-import {
-    LIBRARY_COLLECTION_TAG_SELECT,
-    LIBRARY_ITEM_COLLECTIONS_INCLUDE,
-    toLibraryCollectionSummary,
-} from "@/lib/collections/shared";
-import type {
-    LibraryCollectionSummary,
-    LibraryItemWithCollections,
-} from "@/lib/types";
 import { prisma } from "@/prisma";
 import LogoIconImage from "@/public/cache-app-icon.png";
 import type { Metadata } from "next";

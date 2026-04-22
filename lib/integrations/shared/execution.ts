@@ -1,6 +1,6 @@
 import { authClient } from "@/lib/auth/client";
-import { getErrorMessage } from "@/lib/error";
-import { asRecord } from "@/lib/objects";
+import { getErrorMessage } from "@/lib/common/error";
+import { asRecord } from "@/lib/common/objects";
 import type {
     ExtensionOpenBehavior,
     OAuthLinkConnectBehavior,

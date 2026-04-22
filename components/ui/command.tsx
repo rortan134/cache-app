@@ -10,7 +10,7 @@ import {
     AutocompleteItem,
     AutocompleteList,
 } from "@/components/ui/autocomplete";
-import { cn } from "@/lib/cn";
+import { cn } from "@/lib/common/cn";
 import type * as React from "react";
 
 export function Command({

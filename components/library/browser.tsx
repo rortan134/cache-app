@@ -128,25 +128,39 @@ import {
     type DuplicateCollectionResult,
     type RenameCollectionResult,
     type UpdateCollectionPriorityResult,
-} from "@/lib/actions/collections";
+} from "@/lib/collections/actions";
 import {
     deleteLibraryItem,
     updateLibraryItemCollections,
     type DeleteLibraryItemResult,
     type UpdateLibraryItemCollectionsResult,
-} from "@/lib/actions/items";
-import { downloadMedia } from "@/lib/actions/media";
-import { cn } from "@/lib/cn";
-import { getColorGradientFromName } from "@/lib/colors";
-import { dayjs } from "@/lib/dayjs";
-import { getSystemControlKey } from "@/lib/environment";
+} from "@/lib/collections/items";
+import { downloadMedia } from "@/lib/collections/media";
+import {
+    disableCollectionSharing,
+    shareCollectionPublicly,
+    type DisableCollectionPublicShareResult,
+    type ShareCollectionPubliclyResult,
+} from "@/lib/collections/sharing/actions";
+import { buildPublicCollectionShareUrl } from "@/lib/collections/sharing/url";
+import { cn } from "@/lib/common/cn";
+import { getColorGradientFromName } from "@/lib/common/colors";
+import { getSystemControlKey } from "@/lib/common/environment";
 import {
     createFileAttachment,
     fileOpen,
     revokeFileAttachmentObjectUrl,
     saveFile,
-} from "@/lib/file";
-import { getImageColors } from "@/lib/image-colors";
+} from "@/lib/common/file";
+import { getImageColors } from "@/lib/common/image-colors";
+import { withMemoize } from "@/lib/common/memoize";
+import type {
+    LibraryCollectionSummary,
+    LibraryCollectionTag,
+    LibraryItemWithCollections,
+} from "@/lib/common/types";
+import { normalizeURL, parseDisplayUrl, toValidUrl } from "@/lib/common/url";
+import { dayjs } from "@/lib/dayjs";
 import {
     createChromeBookmarkFromUrl,
     type CreateChromeBookmarkFromUrlResult,
@@ -157,20 +171,6 @@ import {
     type NoteMutationResult,
 } from "@/lib/integrations/notes/actions";
 import { getNoteExcerpt } from "@/lib/integrations/notes/utils";
-import { withMemoize } from "@/lib/memoize";
-import {
-    disableCollectionSharing,
-    shareCollectionPublicly,
-    type DisableCollectionPublicShareResult,
-    type ShareCollectionPubliclyResult,
-} from "@/lib/sharing/actions";
-import { buildPublicCollectionShareUrl } from "@/lib/sharing/url";
-import type {
-    LibraryCollectionSummary,
-    LibraryCollectionTag,
-    LibraryItemWithCollections,
-} from "@/lib/types";
-import { normalizeURL, parseDisplayUrl, toValidUrl } from "@/lib/url";
 import {
     LibraryItemSource,
     type CollectionPriority,

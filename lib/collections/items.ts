@@ -1,12 +1,11 @@
 "use server";
 
 import { getSessionUserId } from "@/lib/auth/server";
-import { LIBRARY_COLLECTION_TAG_SELECT } from "@/lib/collections/shared";
-import { createLogger } from "@/lib/logs/console/logger";
+import { LIBRARY_COLLECTION_TAG_SELECT } from "@/lib/collections/utils";
+import { createLogger } from "@/lib/common/logs/console/logger";
+import type { LibraryCollectionTag } from "@/lib/common/types";
 import { prisma } from "@/prisma";
-
 import * as z from "zod";
-import type { LibraryCollectionTag } from "@/lib/types";
 
 const log = createLogger("library:actions:items");
 

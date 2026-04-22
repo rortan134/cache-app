@@ -6,7 +6,7 @@ import {
     PreviewCardPopup,
     PreviewCardTrigger,
 } from "@/components/ui/preview-card";
-import { cn } from "@/lib/cn";
+import { cn } from "@/lib/common/cn";
 import type { FileUIPart, SourceDocumentUIPart } from "ai";
 import {
     FileTextIcon,

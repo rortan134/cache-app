@@ -1,7 +1,7 @@
 import "@/lib/dayjs/locales";
 
-import { APP_NAME, BASE_URL, SITE_DEFAULT_TITLE } from "@/lib/constants";
-import { getOwnerDocument } from "@/lib/dom";
+import { APP_NAME, BASE_URL, SITE_DEFAULT_TITLE } from "@/lib/common/constants";
+import { getOwnerDocument } from "@/lib/common/dom";
 import { Analytics } from "@vercel/analytics/next";
 import { GTProvider, getLocale } from "gt-next/server";
 import type { Metadata } from "next";

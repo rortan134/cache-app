@@ -1,4 +1,4 @@
-import { BASE_URL } from "@/lib/constants";
+import { BASE_URL } from "@/lib/common/constants";
 import { createMcpHandler } from "mcp-handler";
 import * as z from "zod";
 

@@ -1,16 +1,16 @@
 "use server";
 
 import { getSessionUserId } from "@/lib/auth/server";
-import { LIBRARY_ITEM_COLLECTIONS_INCLUDE } from "@/lib/collections/shared";
 import { autoTagLibraryItemsByIds } from "@/lib/collections/smart-collections";
-import { extractNamedErrorMessage } from "@/lib/error";
+import { LIBRARY_ITEM_COLLECTIONS_INCLUDE } from "@/lib/collections/utils";
+import { extractNamedErrorMessage } from "@/lib/common/error";
+import { createLogger } from "@/lib/common/logs/console/logger";
+import type { LibraryItemWithCollections } from "@/lib/common/types";
+import { parseStandaloneUrl } from "@/lib/common/url";
 import {
     applyChromeBookmarkSyncEvents,
     DEFAULT_BROWSER_PROFILE_ID,
 } from "@/lib/integrations/chrome/service";
-import { createLogger } from "@/lib/logs/console/logger";
-import type { LibraryItemWithCollections } from "@/lib/types";
-import { parseStandaloneUrl } from "@/lib/url";
 import { prisma } from "@/prisma";
 import { LibraryItemSource } from "@/prisma/client/enums";
 

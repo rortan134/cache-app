@@ -5,14 +5,17 @@ import {
     LIBRARY_COLLECTION_TAG_SELECT,
     toLibraryCollectionSummary,
     toLibraryCollectionTag,
-} from "@/lib/collections/shared";
-import { NamedError, extractNamedErrorMessage } from "@/lib/error";
+} from "@/lib/collections/utils";
+import { NamedError, extractNamedErrorMessage } from "@/lib/common/error";
+import { createLogger } from "@/lib/common/logs/console/logger";
+import {
+    getIncrementedName,
+    normalizeCollectionName,
+} from "@/lib/common/strings";
 import type {
     LibraryCollectionSummary,
     LibraryCollectionTag,
-} from "@/lib/types";
-import { createLogger } from "@/lib/logs/console/logger";
-import { getIncrementedName, normalizeCollectionName } from "@/lib/strings";
+} from "@/lib/common/types";
 import { prisma } from "@/prisma";
 import type { CollectionPriority } from "@/prisma/client/enums";
 import * as z from "zod";

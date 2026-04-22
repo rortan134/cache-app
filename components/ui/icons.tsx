@@ -1,4 +1,4 @@
-import { cn } from "@/lib/cn";
+import { cn } from "@/lib/common/cn";
 import type { SVGProps } from "react";
 
 export const Github = ({ className, ...props }: SVGProps<SVGSVGElement>) => (

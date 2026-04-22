@@ -2,7 +2,7 @@
 
 import { Spinner } from "@/components/ui/spinner";
 import { authClient } from "@/lib/auth/client";
-import { createLogger } from "@/lib/logs/console/logger";
+import { createLogger } from "@/lib/common/logs/console/logger";
 import { T } from "gt-next";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef } from "react";

@@ -1,5 +1,5 @@
-import { createLogger } from "@/lib/logs/console/logger";
-import { toValidUrl } from "@/lib/url";
+import { createLogger } from "@/lib/common/logs/console/logger";
+import { toValidUrl } from "@/lib/common/url";
 
 const log = createLogger("api:library:opengraph-image");
 

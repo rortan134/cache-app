@@ -1,8 +1,8 @@
 "use client";
 
 import { useClientOnlyValue } from "@/components/ui/client-only";
-import { cn } from "@/lib/cn";
-import { getSystemControlKey } from "@/lib/environment";
+import { cn } from "@/lib/common/cn";
+import { getSystemControlKey } from "@/lib/common/environment";
 import type * as React from "react";
 
 export function Kbd({

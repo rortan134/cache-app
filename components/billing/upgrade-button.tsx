@@ -2,7 +2,7 @@
 
 import { Button, type ButtonProps } from "@/components/ui/button";
 import { authClient } from "@/lib/auth/client";
-import { cn } from "@/lib/cn";
+import { cn } from "@/lib/common/cn";
 import type * as React from "react";
 import { useState, useTransition } from "react";
 

@@ -1,6 +1,6 @@
 import { serverEnv } from "@/env/server";
 import { auth } from "@/lib/auth/server";
-import { createLogger } from "@/lib/logs/console/logger";
+import { createLogger } from "@/lib/common/logs/console/logger";
 import { ApiError, GoogleGenAI } from "@google/genai";
 import { headers } from "next/headers";
 import * as z from "zod";

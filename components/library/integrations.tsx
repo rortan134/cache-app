@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/popover";
 import { useIntegrationAction } from "@/hooks/use-integration-action";
 import { useListPanelOpenState } from "@/hooks/use-list-panel-open-state";
-import { cn } from "@/lib/cn";
+import { cn } from "@/lib/common/cn";
 import type {
     IntegrationActionIcon,
     IntegrationDirection,

@@ -1,4 +1,4 @@
-import { BASE_URL } from "@/lib/constants";
+import { BASE_URL } from "@/lib/common/constants";
 import { getDefaultLocale, getGTClass, getLocales } from "gt-next/server";
 import type { Metadata } from "next";
 

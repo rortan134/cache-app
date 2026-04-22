@@ -1,4 +1,4 @@
-import { APP_NAME } from "@/lib/constants";
+import { APP_NAME } from "@/lib/common/constants";
 import { buildLocaleAlternates } from "@/lib/i18n/alternates";
 import type { Metadata } from "next";
 

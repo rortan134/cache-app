@@ -1,6 +1,6 @@
 import "server-only";
 
-import { createLogger } from "@/lib/logs/console/logger";
+import { createLogger } from "@/lib/common/logs/console/logger";
 import { prisma } from "@/prisma";
 import { LibraryItemSource } from "@/prisma/client/enums";
 import * as z from "zod";

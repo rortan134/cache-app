@@ -16,7 +16,7 @@ import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAccess } from "@/hooks/use-access";
 import { authClient } from "@/lib/auth/client";
-import { getInitials } from "@/lib/strings";
+import { getInitials } from "@/lib/common/strings";
 import { LocaleSelector, T, Var, useLocale } from "gt-next";
 import { ArrowUpRight, ChevronsUpDown, Monitor, Moon, Sun } from "lucide-react";
 import Link from "next/link";

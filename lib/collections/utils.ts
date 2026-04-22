@@ -1,7 +1,7 @@
 import type {
     LibraryCollectionSummary,
     LibraryCollectionTag,
-} from "@/lib/types";
+} from "@/lib/common/types";
 import type { Prisma } from "@/prisma/client/client";
 import type { LibraryItemSource } from "@/prisma/client/enums";
 

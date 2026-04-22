@@ -1,4 +1,4 @@
-import { cn } from "@/lib/cn";
+import { cn } from "@/lib/common/cn";
 import type * as React from "react";
 
 const Ticker = ({

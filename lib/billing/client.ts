@@ -1,4 +1,4 @@
-import { createLogger } from "@/lib/logs/console/logger";
+import { createLogger } from "@/lib/common/logs/console/logger";
 import Stripe from "stripe";
 import { StripeError } from "./error";
 

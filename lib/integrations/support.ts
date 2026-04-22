@@ -8,7 +8,7 @@ import {
     XSocial,
     YouTube,
 } from "@/components/ui/icons";
-import { CACHE_EXTENSION_DOWNLOAD_URL } from "@/lib/constants";
+import { CACHE_EXTENSION_DOWNLOAD_URL } from "@/lib/common/constants";
 import { LibraryItemSource } from "@/prisma/client/enums";
 import type { ComponentType, SVGProps } from "react";
 

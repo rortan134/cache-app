@@ -1,6 +1,6 @@
 "use client";
 
-import { cn } from "@/lib/cn";
+import { cn } from "@/lib/common/cn";
 import { Input as InputPrimitive } from "@base-ui/react/input";
 import type * as React from "react";
 

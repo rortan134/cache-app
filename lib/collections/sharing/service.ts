@@ -3,8 +3,8 @@ import "server-only";
 import {
     LIBRARY_COLLECTION_TAG_SELECT,
     toLibraryCollectionTag,
-} from "@/lib/collections/shared";
-import { createLogger } from "@/lib/logs/console/logger";
+} from "@/lib/collections/utils";
+import { createLogger } from "@/lib/common/logs/console/logger";
 import { prisma } from "@/prisma";
 import { LibraryItemKind, type LibraryItemSource } from "@/prisma/client/enums";
 import { nanoid } from "nanoid";

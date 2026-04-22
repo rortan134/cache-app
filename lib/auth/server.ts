@@ -1,5 +1,5 @@
 import { getStripeClient, getStripeWebhookSecret } from "@/lib/billing/client";
-import { APP_NAME } from "@/lib/constants";
+import { APP_NAME } from "@/lib/common/constants";
 import { prisma } from "@/prisma";
 import type { OAuth2Tokens } from "@better-auth/core/oauth2";
 import { stripe } from "@better-auth/stripe";

@@ -1,6 +1,6 @@
-import { CACHE_EXTENSION_READY_EVENT } from "@/lib/constants";
-import { getOwnerWindow } from "@/lib/dom";
-import { asRecord } from "@/lib/objects";
+import { CACHE_EXTENSION_READY_EVENT } from "@/lib/common/constants";
+import { getOwnerWindow } from "@/lib/common/dom";
+import { asRecord } from "@/lib/common/objects";
 import * as React from "react";
 
 export function useIsExtensionInstalled() {

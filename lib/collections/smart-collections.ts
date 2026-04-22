@@ -1,13 +1,13 @@
 import "server-only";
 
 import { serverEnv } from "@/env/server";
-import { resolveCobaltDownloadUrl } from "@/lib/cobalt";
-import { createLogger } from "@/lib/logs/console/logger";
+import { resolveCobaltDownloadUrl } from "@/lib/common/cobalt";
+import { createLogger } from "@/lib/common/logs/console/logger";
 import {
     decodeHtmlEntities,
     normalizeCollectionName,
     normalizeWhitespace,
-} from "@/lib/strings";
+} from "@/lib/common/strings";
 import { prisma } from "@/prisma";
 import { LibraryItemSource } from "@/prisma/client/enums";
 import {

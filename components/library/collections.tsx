@@ -22,6 +22,7 @@ import {
     NotionIcon,
     PriorityNoneIcon,
 } from "@/components/ui/icons";
+import { Input } from "@/components/ui/input";
 import { CtrlKbd, Kbd, KbdGroup } from "@/components/ui/kbd";
 import {
     Menu,
@@ -49,13 +50,12 @@ import {
     PreviewCardPopup,
     PreviewCardTrigger,
 } from "@/components/ui/preview-card";
-import { Input } from "@/components/ui/input";
 import { useListPanelOpenState } from "@/hooks/use-list-panel-open-state";
-import { cn } from "@/lib/cn";
-import { getHexColorFromName } from "@/lib/colors";
+import { cn } from "@/lib/common/cn";
+import { getHexColorFromName } from "@/lib/common/colors";
+import type { LibraryCollectionSummary } from "@/lib/common/types";
 import { dayjs } from "@/lib/dayjs";
 import { getSourceLabel } from "@/lib/integrations/support";
-import type { LibraryCollectionSummary } from "@/lib/types";
 import type { CollectionPriority } from "@/prisma/client/enums";
 import SmartCollectionsBackgroundImg from "@/public/smart-collections-background-wide.webp";
 import { Toolbar } from "@base-ui/react/toolbar";

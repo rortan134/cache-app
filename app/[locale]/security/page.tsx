@@ -7,7 +7,7 @@ import { GradientWaveText } from "@/components/ui/gradient-wave-text";
 import { PageShell } from "@/components/ui/page-shell";
 import { Sidebar, SidebarFooter, SidebarHeader } from "@/components/ui/sidebar";
 import { getServerSession } from "@/lib/auth/server";
-import { APP_NAME } from "@/lib/constants";
+import { APP_NAME } from "@/lib/common/constants";
 import { buildLocaleAlternates } from "@/lib/i18n/alternates";
 import { gtPublicString } from "@/lib/i18n/gt-public-json";
 import LogoIconImage from "@/public/cache-app-icon.png";

@@ -1,4 +1,4 @@
-import { NamedError } from "@/lib/error";
+import { NamedError } from "@/lib/common/error";
 import * as z from "zod";
 
 export const GooglePhotosPickerApiError = NamedError.create(

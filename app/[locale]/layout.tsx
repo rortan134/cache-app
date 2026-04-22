@@ -1,4 +1,4 @@
-import { APP_NAME } from "@/lib/constants";
+import { APP_NAME } from "@/lib/common/constants";
 import { getLocales } from "gt-next/server";
 import type { Metadata } from "next";
 import * as React from "react";

@@ -1,4 +1,4 @@
-import { BASE_URL } from "@/lib/constants";
+import { BASE_URL } from "@/lib/common/constants";
 import { withGTConfig } from "gt-next/config";
 import type { NextConfig } from "next";
 

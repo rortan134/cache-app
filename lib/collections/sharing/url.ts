@@ -1,4 +1,4 @@
-import { BASE_URL } from "@/lib/constants";
+import { BASE_URL } from "@/lib/common/constants";
 
 export const PUBLIC_COLLECTION_SHARE_ROUTE_PREFIX = "/c";
 

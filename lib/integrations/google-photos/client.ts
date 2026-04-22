@@ -1,5 +1,5 @@
-import { getErrorMessage } from "@/lib/error";
-import { withRetry } from "@/lib/retry";
+import { getErrorMessage } from "@/lib/common/error";
+import { withRetry } from "@/lib/common/retry";
 import { PickerNotReadyError } from "./error";
 
 interface SessionCreateResponse {

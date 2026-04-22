@@ -1,4 +1,4 @@
-import { APP_NAME, BASE_URL } from "@/lib/constants";
+import { APP_NAME, BASE_URL } from "@/lib/common/constants";
 import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {

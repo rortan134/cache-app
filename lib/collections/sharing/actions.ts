@@ -1,9 +1,9 @@
 "use server";
 
 import { getSessionUserId } from "@/lib/auth/server";
-import { extractNamedErrorMessage } from "@/lib/error";
-import { createLogger } from "@/lib/logs/console/logger";
-import type { LibraryCollectionTag } from "@/lib/types";
+import { extractNamedErrorMessage } from "@/lib/common/error";
+import { createLogger } from "@/lib/common/logs/console/logger";
+import type { LibraryCollectionTag } from "@/lib/common/types";
 import * as z from "zod";
 import { CollectionShareError } from "./error";
 import {

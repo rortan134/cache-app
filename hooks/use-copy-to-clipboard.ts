@@ -1,6 +1,6 @@
-import { getOwnerWindow } from "@/lib/dom";
-import { useValueAsRef } from "@base-ui/utils/useValueAsRef";
+import { getOwnerWindow } from "@/lib/common/dom";
 import { useTimeout } from "@base-ui/utils/useTimeout";
+import { useValueAsRef } from "@base-ui/utils/useValueAsRef";
 import copy from "copy-to-clipboard";
 import * as React from "react";
 

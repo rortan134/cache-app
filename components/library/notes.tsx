@@ -13,7 +13,9 @@ import {
 import { Group } from "@/components/ui/group";
 import { GoogleDocsIcon, NotionIcon } from "@/components/ui/icons";
 import { Menu, MenuItem, MenuPopup, MenuTrigger } from "@/components/ui/menu";
-import { cn } from "@/lib/cn";
+import { cn } from "@/lib/common/cn";
+import type { LibraryItemWithCollections } from "@/lib/common/types";
+import { parseStandaloneUrl } from "@/lib/common/url";
 import {
     NOTE_EMPTY_HTML,
     extractNoteText,
@@ -22,8 +24,6 @@ import {
     serializeNoteEditorStateToHtml,
     type NoteSerializedEditorState,
 } from "@/lib/integrations/notes/utils";
-import type { LibraryItemWithCollections } from "@/lib/types";
-import { parseStandaloneUrl } from "@/lib/url";
 import AppIconSmall from "@/public/cache-icon-small.png";
 import { $generateNodesFromDOM } from "@lexical/html";
 import { AutoFocusPlugin } from "@lexical/react/LexicalAutoFocusPlugin";

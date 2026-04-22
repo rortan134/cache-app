@@ -2,7 +2,7 @@
 
 import { Badge } from "@/components/ui/badge";
 import { Popover, PopoverPopup, PopoverTrigger } from "@/components/ui/popover";
-import { cn } from "@/lib/cn";
+import { cn } from "@/lib/common/cn";
 import * as React from "react";
 
 interface TruncateAfterProps {

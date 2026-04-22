@@ -1,7 +1,8 @@
 "use client";
 
 import { useIsExtensionInstalled } from "@/hooks/use-extension-installed";
-import { getErrorMessage } from "@/lib/error";
+import { getErrorMessage } from "@/lib/common/error";
+import { createLogger } from "@/lib/common/logs/console/logger";
 import { executeGooglePhotosPickerFlow } from "@/lib/integrations/google-photos/client";
 import {
     executeConnectBehavior,
@@ -22,7 +23,6 @@ import {
     type SocialSignInConnectBehavior,
     type SupportedIntegration,
 } from "@/lib/integrations/support";
-import { createLogger } from "@/lib/logs/console/logger";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
