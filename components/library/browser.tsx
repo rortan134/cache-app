@@ -2709,39 +2709,49 @@ function buildSearchPaletteGroups({
     if (showCollectionsGroup) {
         if (isDefaultState) {
             groups.push({
-                items: collections.slice(0, 4).map((collection) => {
-                    const thumbnails =
-                        collectionPreviewThumbnailUrlsById.get(collection.id) ??
-                        [];
-                    const isActive = selectedCollectionIds.includes(
-                        collection.id
-                    );
-                    return {
-                        active: isActive,
-                        label: collection.name,
-                        onSelect: applyCollectionFilter(() =>
-                            onToggleCollectionSelection(collection.id)
-                        ),
-                        render: () => (
-                            <div className="group relative flex size-full flex-col overflow-hidden rounded-2xl bg-muted/60 transition-colors">
-                                {thumbnails[0] && (
-                                    <img
-                                        alt=""
-                                        className="absolute inset-0 size-full object-cover opacity-80 mix-blend-overlay transition-transform duration-500 group-hover:scale-105"
-                                        height={300}
-                                        src={thumbnails[0]}
-                                        width={400}
-                                    />
-                                )}
-                                <div className="absolute inset-0 bg-linear-to-b from-black/60 via-black/20 to-black/5" />
-                                <span className="relative z-10 p-3 font-medium text-base text-white">
-                                    {collection.name}
-                                </span>
-                            </div>
-                        ),
-                        value: `filter collection ${collection.id}`,
-                    };
-                }),
+                items: collections
+                    .filter((collection) => {
+                        const thumbnails =
+                            collectionPreviewThumbnailUrlsById.get(
+                                collection.id
+                            ) ?? [];
+                        return thumbnails.length > 1;
+                    })
+                    .slice(0, 3)
+                    .map((collection) => {
+                        const thumbnails =
+                            collectionPreviewThumbnailUrlsById.get(
+                                collection.id
+                            ) ?? [];
+                        const isActive = selectedCollectionIds.includes(
+                            collection.id
+                        );
+                        return {
+                            active: isActive,
+                            label: collection.name,
+                            onSelect: applyCollectionFilter(() =>
+                                onToggleCollectionSelection(collection.id)
+                            ),
+                            render: () => (
+                                <div className="group relative flex size-full flex-col overflow-hidden rounded-3xl">
+                                    {thumbnails[0] && (
+                                        <img
+                                            alt=""
+                                            className="absolute inset-0 z-10 size-full object-cover opacity-80 mix-blend-overlay"
+                                            height={225}
+                                            src={thumbnails[0]}
+                                            width={300}
+                                        />
+                                    )}
+                                    <div className="absolute inset-0 z-20 bg-linear-to-b from-black/40 via-black/15 to-black/5" />
+                                    <span className="relative z-30 p-3 font-medium text-base text-white">
+                                        {collection.name}
+                                    </span>
+                                </div>
+                            ),
+                            value: `filter collection ${collection.id}`,
+                        };
+                    }),
                 label: "Categories",
                 layout: "horizontal",
             });
