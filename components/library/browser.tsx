@@ -170,7 +170,7 @@ import type {
     LibraryCollectionTag,
     LibraryItemWithCollections,
 } from "@/lib/types";
-import { getDisplayUrl, normalizeURL, toValidUrl } from "@/lib/url";
+import { normalizeURL, parseDisplayUrl, toValidUrl } from "@/lib/url";
 import {
     LibraryItemSource,
     type CollectionPriority,
@@ -2009,7 +2009,7 @@ function isAbortError(error: unknown): boolean {
 }
 
 function itemDomain(url: string): string {
-    return getDisplayUrl(url) || "Other";
+    return parseDisplayUrl(url) || "Other";
 }
 
 function itemDate(
@@ -2335,6 +2335,68 @@ function collectionMembershipFilterLabel(
     return "All items";
 }
 
+function collectionItemCountLabel(count: number): string {
+    return `${count} item${count === 1 ? "" : "s"}`;
+}
+
+function buildCollectionPaletteDescription(
+    collection: LibraryCollectionSummary,
+    isActive: boolean
+): string {
+    const details = [collectionItemCountLabel(collection.itemCount)];
+
+    if (collection.sources.length > 0) {
+        details.push(collection.sources.map(sourceLabel).join(", "));
+    }
+
+    return isActive
+        ? `Active collection filter. ${details.join(". ")}`
+        : `Toggle this collection in the filter stack. ${details.join(". ")}`;
+}
+
+function buildCollectionPaletteItems({
+    collections,
+    onClearCollectionFilters,
+    onToggleCollectionSelection,
+    selectedCollectionIds,
+    wrapOnSelect,
+}: {
+    collections: LibraryCollectionSummary[];
+    onClearCollectionFilters: () => void;
+    onToggleCollectionSelection: (id: string) => void;
+    selectedCollectionIds: string[];
+    wrapOnSelect: (fn: () => void) => () => void;
+}): CommandPaletteItem[] {
+    return [
+        {
+            active: selectedCollectionIds.length === 0,
+            description:
+                selectedCollectionIds.length === 0
+                    ? "Show items from every collection"
+                    : "Clear the selected collection filters",
+            label: "Collections: All collections",
+            onSelect: wrapOnSelect(onClearCollectionFilters),
+            value: "filter collection all",
+        },
+        ...collections.map((collection) => {
+            const isActive = selectedCollectionIds.includes(collection.id);
+
+            return {
+                active: isActive,
+                description: buildCollectionPaletteDescription(
+                    collection,
+                    isActive
+                ),
+                label: `Collection: ${collection.name}`,
+                onSelect: wrapOnSelect(() =>
+                    onToggleCollectionSelection(collection.id)
+                ),
+                value: `filter collection ${collection.id}`,
+            } satisfies CommandPaletteItem;
+        }),
+    ];
+}
+
 function PaletteAttachmentChip({
     attachment,
     onRemove,
@@ -2549,19 +2611,27 @@ function renderLibraryGridBody({
 }
 
 function buildSearchPaletteGroups({
+    collections,
     clearLibraryPalette,
     draft,
     hasAnyRefinements,
     navigationItems,
+    onClearCollectionFilters,
+    onToggleCollectionSelection,
+    selectedCollectionIds,
     searchTerms,
     setCommandListOpen,
     setPaletteInput,
     setSearchTerms,
 }: {
+    collections: LibraryCollectionSummary[];
     clearLibraryPalette: () => void;
     draft: string;
     hasAnyRefinements: boolean;
     navigationItems: CommandPaletteItem[];
+    onClearCollectionFilters: () => void;
+    onToggleCollectionSelection: (id: string) => void;
+    selectedCollectionIds: string[];
     searchTerms: string[];
     setCommandListOpen: (value: boolean) => void;
     setPaletteInput: (value: string) => void;
@@ -2571,6 +2641,14 @@ function buildSearchPaletteGroups({
     const draftAlreadyIncluded = searchTerms.some(
         (term) => term.toLowerCase() === draft.toLowerCase()
     );
+    const showCollectionsGroup =
+        collections.length > 0 &&
+        (draft.length > 0 || selectedCollectionIds.length > 0);
+    const applyCollectionFilter = (fn: () => void) => () => {
+        fn();
+        setPaletteInput("");
+        setCommandListOpen(true);
+    };
 
     if (draft) {
         groups.push({
@@ -2618,6 +2696,19 @@ function buildSearchPaletteGroups({
                 },
             ],
             label: "Current search",
+        });
+    }
+
+    if (showCollectionsGroup) {
+        groups.push({
+            items: buildCollectionPaletteItems({
+                collections,
+                onClearCollectionFilters,
+                onToggleCollectionSelection,
+                selectedCollectionIds,
+                wrapOnSelect: applyCollectionFilter,
+            }),
+            label: "Collections",
         });
     }
 
@@ -2673,6 +2764,7 @@ function buildSearchPaletteGroups({
 interface BuildLibraryPaletteGroupsInput {
     clearLibraryPalette: () => void;
     collectionMembershipFilter: CollectionMembershipFilter;
+    collections: LibraryCollectionSummary[];
     columnCountMode: ColumnCountMode;
     domainFilters: string[];
     domainOptions: {
@@ -2680,6 +2772,8 @@ interface BuildLibraryPaletteGroupsInput {
         value: string;
     }[];
     groupBy: GroupByMode;
+    onClearCollectionFilters: () => void;
+    onToggleCollectionSelection: (id: string) => void;
     openPaletteSection: (
         section: Exclude<PaletteSection, "search">,
         event: BaseUIEvent<React.MouseEvent> | KeyboardEvent
@@ -2688,7 +2782,7 @@ interface BuildLibraryPaletteGroupsInput {
     paletteSection: PaletteSection;
     returnToSearchSection: () => void;
     searchTerms: string[];
-    selectedCollectionIdsLength: number;
+    selectedCollectionIds: string[];
     setCollectionMembershipFilter: (value: CollectionMembershipFilter) => void;
     setColumnCountMode: (value: ColumnCountMode) => void;
     setCommandListOpen: (
@@ -2736,18 +2830,21 @@ function buildDomainPaletteOptions(
 }
 
 function buildLibraryPaletteGroups({
+    collections,
     clearLibraryPalette,
     columnCountMode,
     collectionMembershipFilter,
     domainFilters,
     domainOptions,
     groupBy,
+    onClearCollectionFilters,
+    onToggleCollectionSelection,
     openPaletteSection,
     paletteInput,
     paletteSection,
     returnToSearchSection,
     searchTerms,
-    selectedCollectionIdsLength,
+    selectedCollectionIds,
     setCollectionMembershipFilter,
     setColumnCountMode,
     setCommandListOpen,
@@ -2813,7 +2910,7 @@ function buildLibraryPaletteGroups({
     };
     const hasAnyRefinements =
         searchTerms.length > 0 ||
-        selectedCollectionIdsLength > 0 ||
+        selectedCollectionIds.length > 0 ||
         sourceFilters.length > 0 ||
         domainFilters.length > 0 ||
         collectionMembershipFilter !== DEFAULT_COLLECTION_MEMBERSHIP_FILTER ||
@@ -2824,10 +2921,14 @@ function buildLibraryPaletteGroups({
     if (paletteSection === "search") {
         return buildSearchPaletteGroups({
             clearLibraryPalette,
+            collections,
             draft,
             hasAnyRefinements,
             navigationItems,
+            onClearCollectionFilters,
+            onToggleCollectionSelection,
             searchTerms: [...searchTerms],
+            selectedCollectionIds: [...selectedCollectionIds],
             setCommandListOpen,
             setPaletteInput,
             setSearchTerms,
@@ -2906,6 +3007,16 @@ function buildLibraryPaletteGroups({
                     value: "filter collections not-in",
                 },
             ],
+            label: "Collection state",
+        });
+        groups.push({
+            items: buildCollectionPaletteItems({
+                collections,
+                onClearCollectionFilters,
+                onToggleCollectionSelection,
+                selectedCollectionIds,
+                wrapOnSelect: applyAndStay,
+            }),
             label: "Collections",
         });
         groups.push({
@@ -5112,16 +5223,19 @@ function LibraryBrowser({
     const paletteGroups = buildLibraryPaletteGroups({
         clearLibraryPalette,
         collectionMembershipFilter,
+        collections,
         columnCountMode,
         domainFilters,
         domainOptions,
         groupBy,
+        onClearCollectionFilters,
+        onToggleCollectionSelection: onRemoveCollectionFilter,
         openPaletteSection,
         paletteInput,
         paletteSection,
         returnToSearchSection,
         searchTerms,
-        selectedCollectionIdsLength: selectedCollectionIds.length,
+        selectedCollectionIds,
         setCollectionMembershipFilter,
         setColumnCountMode,
         setCommandListOpen,

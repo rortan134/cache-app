@@ -8,6 +8,7 @@ interface RetryOptions {
     signal?: AbortSignal;
 }
 
+/** @internal */
 const sleep = (ms: number, signal?: AbortSignal) =>
     new Promise<void>((resolve, reject) => {
         if (ms <= 0) {

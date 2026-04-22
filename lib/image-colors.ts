@@ -10,18 +10,3 @@ export async function getImageColors(imageSource: ImageSource) {
         .map((color) => color?.hex)
         .filter(Boolean) as string[];
 }
-
-// const deltaE = differenceCiede2000();
-
-// export function getColorNameFromHexColor(hexColor: string) {
-//     const color = ColorSchema.parse(hexColor);
-
-//     return colorsList
-//         .map((entry) => ({
-//             distance: deltaE(color, entry.hex),
-//             name: entry.name,
-//         }))
-//         .sort((a, b) => a.distance - b.distance)
-//         .slice(0, 6)
-//         .map((x) => x.name);
-// }

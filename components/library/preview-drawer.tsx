@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/drawer";
 import { Spinner } from "@/components/ui/spinner";
 import { cn } from "@/lib/cn";
-import { getDisplayUrl } from "@/lib/url";
+import { parseDisplayUrl } from "@/lib/url";
 import { AlertCircleIcon, ExternalLinkIcon, GlobeIcon } from "lucide-react";
 import type { ReactElement, ReactNode } from "react";
 import { createContext, useContext, useEffect, useId, useState } from "react";
@@ -209,7 +209,7 @@ export function PreviewDrawerContent({
 }: PreviewDrawerContentProps): ReactElement {
     const { description, open, title, url } = usePreviewDrawerContext();
     const iframeKey = useId();
-    const previewDescription = description ?? getDisplayUrl(url);
+    const previewDescription = description ?? parseDisplayUrl(url);
     const canOpenInNewTab = url !== PREVIEW_BLOCKED_URL;
     const { markAsBlocked, markAsLoaded, status } = usePreviewStatus(
         open,

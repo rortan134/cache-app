@@ -2,7 +2,7 @@ import { PageShell } from "@/components/ui/page-shell";
 import { getNoteExcerpt } from "@/lib/integrations/notes/utils";
 import { getSourceLabel } from "@/lib/integrations/support";
 import { getPublicCollectionShareById } from "@/lib/sharing/service";
-import { getDisplayUrl, normalizeURL } from "@/lib/url";
+import { normalizeURL, parseDisplayUrl } from "@/lib/url";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -49,7 +49,7 @@ function getSharedItemExcerpt(item: {
         return getNoteExcerpt(item.noteContentText, 220) || "No note text yet.";
     }
 
-    return getDisplayUrl(normalizeURL(item.url));
+    return parseDisplayUrl(normalizeURL(item.url));
 }
 
 function getSharedItemHref(item: { kind: string; url: string }): string | null {
@@ -223,7 +223,7 @@ export default async function CollectionSharePage(
                                             <span>
                                                 {item.kind === "note"
                                                     ? "Cache note"
-                                                    : getDisplayUrl(item.url)}
+                                                    : parseDisplayUrl(item.url)}
                                             </span>
                                             {itemDate ? (
                                                 <span>

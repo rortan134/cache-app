@@ -109,7 +109,7 @@ export const parseUrlSearchParams = (url: string) => {
 
 const WWW_REG = /^www\./i;
 
-export const getDisplayUrl = (url: string): string => {
+export const parseDisplayUrl = (url: string): string => {
     try {
         const parsed = new URL(url);
         return parsed.hostname.replace(WWW_REG, "") || parsed.hostname;

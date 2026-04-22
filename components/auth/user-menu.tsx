@@ -16,23 +16,11 @@ import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAccess } from "@/hooks/use-access";
 import { authClient } from "@/lib/auth/client";
+import { getInitials } from "@/lib/strings";
 import { LocaleSelector, T, Var, useLocale } from "gt-next";
 import { ArrowUpRight, ChevronsUpDown, Monitor, Moon, Sun } from "lucide-react";
 import Link from "next/link";
 import { type ReactNode, useState, useTransition } from "react";
-
-const WHITESPACE_PATTERN = /\s+/;
-
-function getInitials(name: string | null, email: string): string {
-    const source = name?.trim() || email.trim();
-    const parts = source.split(WHITESPACE_PATTERN).filter(Boolean);
-
-    if (parts.length >= 2) {
-        return `${parts[0]?.[0] ?? ""}${parts[1]?.[0] ?? ""}`.toUpperCase();
-    }
-
-    return source.slice(0, 2).toUpperCase();
-}
 
 function SubscriptionBadge() {
     const { subscription } = useAccess();
