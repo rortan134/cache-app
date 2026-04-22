@@ -1,10 +1,10 @@
+import { autoTagLibraryItemsByIds } from "@/lib/collections/smart-collections";
 import {
     extensionIngestCorsHeaders,
     parseBearerToken,
     resolveExtensionIngestUserId,
 } from "@/lib/integrations/shared/extension-ingest";
 import { importYoutubeWatchLaterSnapshot } from "@/lib/integrations/youtube/service";
-import { autoTagLibraryItemsByIds } from "@/lib/smart-collections";
 import { after } from "next/server";
 import * as z from "zod";
 

@@ -1,11 +1,11 @@
 import { auth } from "@/lib/auth/server";
+import { autoTagLibraryItemsByIds } from "@/lib/collections/smart-collections";
 import {
     deletePickerSession,
     getPickerSession,
     listPickedMediaItems,
 } from "@/lib/integrations/google-photos/api";
 import { GooglePhotosPickerApiError } from "@/lib/integrations/google-photos/error";
-import { autoTagLibraryItemsByIds } from "@/lib/smart-collections";
 import { headers } from "next/headers";
 import { after } from "next/server";
 import * as z from "zod";

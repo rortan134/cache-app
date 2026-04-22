@@ -1,4 +1,5 @@
 import { auth } from "@/lib/auth/server";
+import { autoTagLibraryItemsByIds } from "@/lib/collections/smart-collections";
 import {
     applyChromeBookmarkSyncEvents,
     chromeBookmarkSyncBodySchema,
@@ -10,7 +11,6 @@ import {
     resolveExtensionIngestUserId,
 } from "@/lib/integrations/shared/extension-ingest";
 import { createLogger } from "@/lib/logs/console/logger";
-import { autoTagLibraryItemsByIds } from "@/lib/smart-collections";
 import { headers } from "next/headers";
 import { after } from "next/server";
 

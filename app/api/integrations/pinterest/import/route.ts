@@ -1,11 +1,11 @@
 import { auth } from "@/lib/auth/server";
-import { PinterestApiError } from "@/lib/integrations/pinterest/error";
+import { autoTagLibraryItemsByIds } from "@/lib/collections/smart-collections";
 import { resolvePinterestAccessToken } from "@/lib/integrations/pinterest/actions";
+import { PinterestApiError } from "@/lib/integrations/pinterest/error";
 import {
     getPinterestAccountId,
     importPinterestBoards,
 } from "@/lib/integrations/pinterest/service";
-import { autoTagLibraryItemsByIds } from "@/lib/smart-collections";
 import { headers } from "next/headers";
 import { after } from "next/server";
 

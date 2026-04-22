@@ -1,8 +1,8 @@
 import { auth } from "@/lib/auth/server";
-import { XApiError } from "@/lib/integrations/x/error";
+import { autoTagLibraryItemsByIds } from "@/lib/collections/smart-collections";
 import { resolveXAccessToken } from "@/lib/integrations/x/actions";
+import { XApiError } from "@/lib/integrations/x/error";
 import { getXAccountId, importXBookmarks } from "@/lib/integrations/x/service";
-import { autoTagLibraryItemsByIds } from "@/lib/smart-collections";
 import { headers } from "next/headers";
 import { after } from "next/server";
 

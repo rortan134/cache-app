@@ -1,11 +1,11 @@
 import { auth } from "@/lib/auth/server";
-import { GitHubApiError } from "@/lib/integrations/github/error";
+import { autoTagLibraryItemsByIds } from "@/lib/collections/smart-collections";
 import { resolveGitHubAccessToken } from "@/lib/integrations/github/actions";
+import { GitHubApiError } from "@/lib/integrations/github/error";
 import {
     getGitHubAccountId,
     importGitHubStarredRepositories,
 } from "@/lib/integrations/github/service";
-import { autoTagLibraryItemsByIds } from "@/lib/smart-collections";
 import { headers } from "next/headers";
 import { after } from "next/server";
 
