@@ -6,6 +6,11 @@ import {
     getPickerSession,
     listPickedMediaItems,
 } from "@/lib/integrations/google-photos/api";
+import {
+    collectGooglePhotosImportCandidates,
+    importGooglePhotosCandidates,
+} from "@/lib/integrations/google-photos/service";
+import { resolveProviderAccessToken } from "@/lib/integrations/provider-account";
 import { headers } from "next/headers";
 import { after } from "next/server";
 import * as z from "zod";
@@ -13,12 +18,6 @@ import * as z from "zod";
 const bodySchema = z.object({
     sessionId: z.string().min(1),
 });
-
-import { resolveGoogleAccessToken } from "@/lib/integrations/google-photos/actions";
-import {
-    collectGooglePhotosImportCandidates,
-    importGooglePhotosCandidates,
-} from "@/lib/integrations/google-photos/service";
 
 export async function POST(request: Request) {
     const session = await auth.api.getSession({
@@ -37,7 +36,9 @@ export async function POST(request: Request) {
         );
     }
 
-    const accessToken = await resolveGoogleAccessToken();
+    const accessToken = await resolveProviderAccessToken({
+        providerId: "google",
+    });
     if (!accessToken) {
         return Response.json(
             { error: "Missing Google access token. Reconnect Google first." },

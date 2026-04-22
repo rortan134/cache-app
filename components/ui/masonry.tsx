@@ -1317,8 +1317,6 @@ const MASONRY_ERROR = {
     [ITEM_NAME]: `\`${ITEM_NAME}\` must be within \`${VIEWPORT_NAME}\``,
 } as const;
 
-interface DivProps extends React.ComponentPropsWithRef<"div"> {}
-
 type RootElement = React.ComponentRef<typeof Masonry>;
 type ItemElement = React.ComponentRef<typeof MasonryItem>;
 
@@ -1338,14 +1336,14 @@ interface MasonryContextValue {
 const MasonryContext = React.createContext<MasonryContextValue | null>(null);
 
 function useMasonryContext(name: keyof typeof MASONRY_ERROR) {
-    const context = React.useContext(MasonryContext);
+    const context = React.use(MasonryContext);
     if (!context) {
         throw new Error(MASONRY_ERROR[name]);
     }
     return context;
 }
 
-interface MasonryProps extends DivProps {
+interface MasonryProps extends React.ComponentProps<"div"> {
     columnCount?: number;
     columnWidth?: number;
     defaultHeight?: number;
@@ -1360,26 +1358,24 @@ interface MasonryProps extends DivProps {
     scrollFps?: number;
 }
 
-function Masonry(props: MasonryProps) {
-    const {
-        columnWidth = COLUMN_WIDTH,
-        columnCount,
-        maxColumnCount,
-        gap = GAP,
-        itemHeight = ITEM_HEIGHT,
-        defaultWidth,
-        defaultHeight,
-        overscan = OVERSCAN,
-        scrollFps = SCROLL_FPS,
-        fallback,
-        linear = false,
-        deps = [],
-        children,
-        style,
-        ref,
-        ...rootProps
-    } = props;
-
+function Masonry({
+    columnWidth = COLUMN_WIDTH,
+    columnCount,
+    maxColumnCount,
+    gap = GAP,
+    itemHeight = ITEM_HEIGHT,
+    defaultWidth,
+    defaultHeight,
+    overscan = OVERSCAN,
+    scrollFps = SCROLL_FPS,
+    fallback,
+    linear = false,
+    deps = [],
+    children,
+    style,
+    ref,
+    ...props
+}: MasonryProps) {
     const gapValue = typeof gap === "object" ? gap : { column: gap, row: gap };
     const columnGap = gapValue.column;
     const rowGap = gapValue.row;
@@ -1394,10 +1390,10 @@ function Masonry(props: MasonryProps) {
         delayMs: DEBOUNCE_DELAY,
     });
 
-    const [containerPosition, setContainerPosition] = React.useState<{
-        offset: number;
-        width: number;
-    }>({ offset: 0, width: 0 });
+    const [containerPosition, setContainerPosition] = React.useState({
+        offset: 0,
+        width: 0,
+    });
 
     useIsomorphicLayoutEffect(() => {
         if (!containerRef.current) {
@@ -1459,36 +1455,23 @@ function Masonry(props: MasonryProps) {
         [positioner, resizeObserver]
     );
 
-    const contextValue = React.useMemo<MasonryContextValue>(
-        () => ({
-            columnWidth: positioner.columnWidth,
-            fallback,
-            isScrolling,
-            itemHeight,
-            onItemRegister,
-            overscan,
-            positioner,
-            resizeObserver,
-            scrollTop,
-            windowHeight: size.height,
-        }),
-        [
-            positioner,
-            resizeObserver,
-            onItemRegister,
-            scrollTop,
-            size.height,
-            itemHeight,
-            overscan,
-            fallback,
-            isScrolling,
-        ]
-    );
-
     return (
-        <MasonryContext.Provider value={contextValue}>
+        <MasonryContext.Provider
+            value={{
+                columnWidth: positioner.columnWidth,
+                fallback,
+                isScrolling,
+                itemHeight,
+                onItemRegister,
+                overscan,
+                positioner,
+                resizeObserver,
+                scrollTop,
+                windowHeight: size.height,
+            }}
+        >
             <div
-                {...rootProps}
+                {...props}
                 data-slot="masonry"
                 ref={composedRef}
                 style={{
@@ -1504,8 +1487,12 @@ function Masonry(props: MasonryProps) {
     );
 }
 
-function MasonryViewport(props: DivProps) {
-    const { children, style, ref, ...viewportProps } = props;
+function MasonryViewport({
+    children,
+    style,
+    ref,
+    ...props
+}: React.ComponentProps<"div">) {
     const context = useMasonryContext(VIEWPORT_NAME);
     const [layoutVersion, setLayoutVersion] = React.useState(0);
     const rafId = React.useRef<number | null>(null);
@@ -1516,12 +1503,11 @@ function MasonryViewport(props: DivProps) {
     }, []);
 
     const validChildren = React.Children.toArray(children).filter(
-        (child): child is React.ReactElement<DivProps> =>
+        (child): child is React.ReactElement<React.ComponentProps<"div">> =>
             React.isValidElement(child) &&
             (child.type === MasonryItem || child.type === MasonryItem)
     );
     const itemCount = validChildren.length;
-
     const shortestColumnSize = context.positioner.shortestColumn();
     const measuredCount = context.positioner.size();
     const overscanPixels = context.windowHeight * context.overscan;
@@ -1667,7 +1653,7 @@ function MasonryViewport(props: DivProps) {
 
     return (
         <div
-            {...viewportProps}
+            {...props}
             data-version={mounted ? layoutVersion : undefined}
             ref={ref}
             style={containerStyle}
@@ -1677,7 +1663,7 @@ function MasonryViewport(props: DivProps) {
     );
 }
 
-function MasonryItem(props: DivProps) {
+function MasonryItem(props: React.ComponentProps<"div">) {
     return <div data-slot="masonry-item" {...props} />;
 }
 

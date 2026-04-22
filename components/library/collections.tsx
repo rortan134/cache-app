@@ -147,7 +147,7 @@ export function CollectionsListTrigger({
                     <CollapsibleTrigger
                         className={cn(
                             "flex select-none items-center gap-3 rounded-full bg-muted py-2.5 pr-3 pl-4 text-left text-foreground hover:bg-input/50 active:bg-input/30",
-                            className,
+                            className
                         )}
                         title={isOpen ? "Collapse group" : "Expand group"}
                         {...props}
@@ -179,7 +179,7 @@ export function CollectionsListTrigger({
             <PopoverPopup
                 align="start"
                 positionerClassname={cn(
-                    isOpen && "pointer-events-none! hidden!",
+                    isOpen && "pointer-events-none! hidden!"
                 )}
                 positionMethod="fixed"
                 tooltipStyle
@@ -193,7 +193,7 @@ export function CollectionsListTrigger({
 }
 
 export function CollectionsListPanel(
-    props: React.ComponentProps<typeof CollapsiblePanel>,
+    props: React.ComponentProps<typeof CollapsiblePanel>
 ) {
     return <CollapsiblePanel {...props} />;
 }
@@ -266,7 +266,7 @@ export function CollectionsListItemPreview({
 
         const interval = window.setInterval(() => {
             setActivePreviewIndex(
-                (currentIndex) => (currentIndex + 1) % thumbnails.length,
+                (currentIndex) => (currentIndex + 1) % thumbnails.length
             );
         }, COLLECTION_ITEM_PREVIEW_SLIDESHOW_INTERVAL_MS);
 
@@ -362,7 +362,7 @@ const PRIORITY_OPTIONS = [
 ] satisfies PriorityOption[];
 
 const PRIORITY_OPTION_BY_VALUE = new Map(
-    PRIORITY_OPTIONS.map((option) => [option.value, option]),
+    PRIORITY_OPTIONS.map((option) => [option.value, option])
 );
 
 /** @internal */
@@ -394,7 +394,7 @@ export function CollectionsListItemPriorityCombobox({
             enabled: isHovered && !isOpen,
             preventDefault: true,
         },
-        [isHovered, isOpen, setIsOpen],
+        [isHovered, isOpen, setIsOpen]
     );
 
     return (
@@ -483,7 +483,7 @@ function useCollectionsListItemContext() {
     const context = React.use(CollectionsListItemContext);
     if (!context) {
         throw new Error(
-            "CollectionsListItem compound components must be used within CollectionsListItem.",
+            "CollectionsListItem compound components must be used within CollectionsListItem."
         );
     }
     return context;
@@ -558,7 +558,7 @@ export function CollectionsListItemMeta({
             enabled: isHovered,
             preventDefault: true,
         },
-        [isHovered, onRename],
+        [isHovered, onRename]
     );
 
     useHotkeys(
@@ -570,7 +570,7 @@ export function CollectionsListItemMeta({
             enabled: isHovered,
             preventDefault: true,
         },
-        [isHovered, onDelete],
+        [isHovered, onDelete]
     );
 
     useHotkeys(
@@ -584,7 +584,7 @@ export function CollectionsListItemMeta({
             enabled: isHovered,
             preventDefault: true,
         },
-        [isHovered, hasItems, onCopyLinks],
+        [isHovered, hasItems, onCopyLinks]
     );
 
     return (
@@ -704,7 +704,7 @@ export function CollectionsListItemMeta({
                                                 Shared{" "}
                                                 {collection.sharedAt
                                                     ? dayjs(
-                                                          collection.sharedAt,
+                                                          collection.sharedAt
                                                       ).fromNow()
                                                     : "just now"}
                                             </p>
@@ -837,7 +837,7 @@ export function CollectionsListStatus({
                     tone === "error"
                         ? "text-destructive"
                         : "text-muted-foreground",
-                    className,
+                    className
                 )}
                 role={tone === "error" ? "alert" : "status"}
                 {...props}
@@ -907,7 +907,7 @@ export function CollectionsListEmpty({
         <div
             className={cn(
                 "flex flex-col items-center justify-center gap-4 rounded-2xl border border-border/30 border-dashed px-4 py-8 text-center",
-                className,
+                className
             )}
             {...props}
         >
@@ -924,7 +924,7 @@ export function CollectionsListToolbar({
         <Toolbar.Root
             className={cn(
                 "mt-4 mb-1 flex items-center justify-between",
-                className,
+                className
             )}
             {...props}
         />
@@ -944,7 +944,7 @@ export function CollectionsListToolbarGroup({
 }
 
 export function CollectionsListToolbarButton(
-    props: React.ComponentProps<typeof Toolbar.Button>,
+    props: React.ComponentProps<typeof Toolbar.Button>
 ) {
     return <Toolbar.Button {...props} />;
 }
@@ -1103,7 +1103,7 @@ export function sortCollectionSummaries<
 }
 
 export function CollectionsListSortingCombobox(
-    props: React.ComponentProps<typeof ComboboxTrigger>,
+    props: React.ComponentProps<typeof ComboboxTrigger>
 ) {
     const { collectionSortField, setCollectionSortField } =
         useCollectionsSortStore();
@@ -1118,7 +1118,7 @@ export function CollectionsListSortingCombobox(
         {
             enabled: !isOpen,
         },
-        [isOpen],
+        [isOpen]
     );
 
     return (

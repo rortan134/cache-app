@@ -5,9 +5,8 @@ import {
     getPickerSession,
 } from "@/lib/integrations/google-photos/api";
 import { mapPickerSessionToViewModel } from "@/lib/integrations/google-photos/service";
+import { resolveProviderAccessToken } from "@/lib/integrations/provider-account";
 import { headers } from "next/headers";
-
-import { resolveGoogleAccessToken } from "@/lib/integrations/google-photos/actions";
 
 export async function POST() {
     const session = await auth.api.getSession({
@@ -17,7 +16,9 @@ export async function POST() {
         return Response.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const accessToken = await resolveGoogleAccessToken();
+    const accessToken = await resolveProviderAccessToken({
+        providerId: "google",
+    });
     if (!accessToken) {
         return Response.json(
             { error: "Missing Google access token. Reconnect Google first." },
@@ -60,7 +61,9 @@ export async function GET(request: Request) {
         return Response.json({ error: "Missing session id" }, { status: 400 });
     }
 
-    const accessToken = await resolveGoogleAccessToken();
+    const accessToken = await resolveProviderAccessToken({
+        providerId: "google",
+    });
     if (!accessToken) {
         return Response.json(
             { error: "Missing Google access token. Reconnect Google first." },

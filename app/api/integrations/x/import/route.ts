@@ -1,7 +1,7 @@
 import { auth } from "@/lib/auth/server";
 import { autoTagLibraryItemsByIds } from "@/lib/collections/smart-collections";
 import { IntegrationApiError } from "@/lib/integrations/error";
-import { resolveXAccessToken } from "@/lib/integrations/x/actions";
+import { resolveProviderAccessToken } from "@/lib/integrations/provider-account";
 import { getXAccountId, importXBookmarks } from "@/lib/integrations/x/service";
 import { headers } from "next/headers";
 import { after } from "next/server";
@@ -33,7 +33,10 @@ export async function POST() {
         );
     }
 
-    const accessToken = await resolveXAccessToken(accountId);
+    const accessToken = await resolveProviderAccessToken({
+        accountId,
+        providerId: "x",
+    });
     if (!accessToken) {
         return Response.json(
             { error: "Reconnect X before importing bookmarks." },

@@ -1,11 +1,11 @@
 import { auth } from "@/lib/auth/server";
 import { autoTagLibraryItemsByIds } from "@/lib/collections/smart-collections";
 import { IntegrationApiError } from "@/lib/integrations/error";
-import { resolvePinterestAccessToken } from "@/lib/integrations/pinterest/actions";
 import {
     getPinterestAccountId,
     importPinterestBoards,
 } from "@/lib/integrations/pinterest/service";
+import { resolveProviderAccessToken } from "@/lib/integrations/provider-account";
 import { headers } from "next/headers";
 import { after } from "next/server";
 
@@ -36,7 +36,10 @@ export async function POST() {
         );
     }
 
-    const accessToken = await resolvePinterestAccessToken(accountId);
+    const accessToken = await resolveProviderAccessToken({
+        accountId,
+        providerId: "pinterest",
+    });
     if (!accessToken) {
         return Response.json(
             { error: "Reconnect Pinterest before importing pins." },

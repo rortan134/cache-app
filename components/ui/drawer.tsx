@@ -7,13 +7,12 @@ import { Drawer as DrawerPrimitive } from "@base-ui/react/drawer";
 import { mergeProps } from "@base-ui/react/merge-props";
 import { useRender } from "@base-ui/react/use-render";
 import { ChevronRightIcon, XIcon } from "lucide-react";
-import type * as React from "react";
-import { createContext, useContext } from "react";
+import * as React from "react";
 
 type DrawerPosition = "right" | "left" | "top" | "bottom";
 
 const DrawerContext: React.Context<{ position: DrawerPosition }> =
-    createContext<{ position: DrawerPosition }>({
+    React.createContext<{ position: DrawerPosition }>({
         position: "bottom",
     });
 
@@ -69,7 +68,7 @@ export function DrawerSwipeArea({
 }: DrawerPrimitive.SwipeArea.Props & {
     position?: DrawerPosition;
 }): React.ReactElement {
-    const { position: contextPosition } = useContext(DrawerContext);
+    const { position: contextPosition } = React.use(DrawerContext);
     const position = positionProp ?? contextPosition;
 
     return (
@@ -149,7 +148,7 @@ export function DrawerPopup({
     showBar?: boolean;
     portalProps?: DrawerPrimitive.Portal.Props;
 }): React.ReactElement {
-    const { position: contextPosition } = useContext(DrawerContext);
+    const { position: contextPosition } = React.use(DrawerContext);
     const position = positionProp ?? contextPosition;
 
     return (
@@ -353,7 +352,7 @@ export function DrawerBar({
 }: useRender.ComponentProps<"div"> & {
     position?: DrawerPosition;
 }): React.ReactElement {
-    const { position: contextPosition } = useContext(DrawerContext);
+    const { position: contextPosition } = React.use(DrawerContext);
     const position = positionProp ?? contextPosition;
     const horizontal = position === "left" || position === "right";
     const defaultProps = {

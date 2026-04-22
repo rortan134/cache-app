@@ -1,11 +1,11 @@
 import { auth } from "@/lib/auth/server";
 import { autoTagLibraryItemsByIds } from "@/lib/collections/smart-collections";
 import { IntegrationApiError } from "@/lib/integrations/error";
-import { resolveGitHubAccessToken } from "@/lib/integrations/github/actions";
 import {
     getGitHubAccountId,
     importGitHubStarredRepositories,
 } from "@/lib/integrations/github/service";
+import { resolveProviderAccessToken } from "@/lib/integrations/provider-account";
 import { headers } from "next/headers";
 import { after } from "next/server";
 
@@ -39,7 +39,10 @@ export async function POST() {
         );
     }
 
-    const accessToken = await resolveGitHubAccessToken(accountId);
+    const accessToken = await resolveProviderAccessToken({
+        accountId,
+        providerId: "github",
+    });
     if (!accessToken) {
         return Response.json(
             {

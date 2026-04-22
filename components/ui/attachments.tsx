@@ -18,7 +18,7 @@ import {
     XIcon,
 } from "lucide-react";
 import type { ComponentProps, HTMLAttributes, ReactNode } from "react";
-import { createContext, useCallback, useContext, useMemo } from "react";
+import * as React from "react";
 
 // ============================================================================
 // Types
@@ -116,7 +116,9 @@ interface AttachmentsContextValue {
     variant: AttachmentVariant;
 }
 
-const AttachmentsContext = createContext<AttachmentsContextValue | null>(null);
+const AttachmentsContext = React.createContext<AttachmentsContextValue | null>(
+    null
+);
 
 interface AttachmentContextValue {
     data: AttachmentData;
@@ -125,17 +127,19 @@ interface AttachmentContextValue {
     variant: AttachmentVariant;
 }
 
-const AttachmentContext = createContext<AttachmentContextValue | null>(null);
+const AttachmentContext = React.createContext<AttachmentContextValue | null>(
+    null
+);
 
 // ============================================================================
 // Hooks
 // ============================================================================
 
 export const useAttachmentsContext = () =>
-    useContext(AttachmentsContext) ?? { variant: "grid" as const };
+    React.use(AttachmentsContext) ?? { variant: "grid" as const };
 
 export const useAttachmentContext = () => {
-    const ctx = useContext(AttachmentContext);
+    const ctx = React.use(AttachmentContext);
     if (!ctx) {
         throw new Error(
             "Attachment components must be used within <Attachment>"
@@ -158,7 +162,7 @@ export const Attachments = ({
     children,
     ...props
 }: AttachmentsProps) => {
-    const contextValue = useMemo(() => ({ variant }), [variant]);
+    const contextValue = React.useMemo(() => ({ variant }), [variant]);
 
     return (
         <AttachmentsContext.Provider value={contextValue}>
@@ -196,7 +200,7 @@ export const Attachment = ({
     const { variant } = useAttachmentsContext();
     const mediaCategory = getMediaCategory(data);
 
-    const contextValue = useMemo<AttachmentContextValue>(
+    const contextValue = React.useMemo<AttachmentContextValue>(
         () => ({ data, mediaCategory, onRemove, variant }),
         [data, mediaCategory, onRemove, variant]
     );
@@ -335,7 +339,7 @@ export const AttachmentRemove = ({
 }: AttachmentRemoveProps) => {
     const { onRemove, variant } = useAttachmentContext();
 
-    const handleClick = useCallback(
+    const handleClick = React.useCallback(
         (e: React.MouseEvent) => {
             e.stopPropagation();
             onRemove?.();

@@ -85,9 +85,12 @@ function createGooglePhotosSessionExpiredError(args: {
 }
 
 async function createPickerSessionRequest(): Promise<SessionCreateResponse> {
-    const response = await fetch("/api/google-photos/picker/session", {
-        method: "POST",
-    });
+    const response = await fetch(
+        "/api/integrations/google-photos/picker/session",
+        {
+            method: "POST",
+        }
+    );
     const payload = (await response.json().catch(() => null)) as
         | SessionCreateResponse
         | { error: string }
@@ -126,7 +129,7 @@ async function pollUntilMediaSelected(
             }
 
             const response = await fetch(
-                `/api/google-photos/picker/session?id=${encodeURIComponent(sessionId)}`,
+                `/api/integrations/google-photos/picker/session?id=${encodeURIComponent(sessionId)}`,
                 { method: "GET" }
             );
             const payload = (await response.json().catch(() => null)) as
@@ -166,11 +169,14 @@ async function pollUntilMediaSelected(
 }
 
 async function importSelectedMedia(sessionId: string): Promise<ImportResponse> {
-    const response = await fetch("/api/google-photos/picker/import", {
-        body: JSON.stringify({ sessionId }),
-        headers: { "Content-Type": "application/json" },
-        method: "POST",
-    });
+    const response = await fetch(
+        "/api/integrations/google-photos/picker/import",
+        {
+            body: JSON.stringify({ sessionId }),
+            headers: { "Content-Type": "application/json" },
+            method: "POST",
+        }
+    );
     const payload = (await response.json().catch(() => null)) as
         | ImportResponse
         | { error: string }

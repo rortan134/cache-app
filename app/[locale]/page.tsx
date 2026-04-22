@@ -129,9 +129,18 @@ export default async function Home() {
                 </Sidebar>
                 <div className="flex w-full max-w-[1024px] flex-col items-center gap-12 p-8 2xl:mx-auto">
                     <div className="aspect-video h-auto w-full rounded-2xl bg-muted" />
-                    <p className="mx-auto -my-1 text-center text-xs uppercase">
-                        <T>Discover what Cache can do for you</T>
-                    </p>
+                    <div className="flex flex-col gap-2">
+                        <p className="mx-auto text-center text-xs uppercase">
+                            <T>Discover what Cache can do for you</T>
+                        </p>
+                        <p className="mx-auto text-center text-xs uppercase">
+                            <T>
+                                <span className="opacity-50">A tool for</span>{" "}
+                                managing all of your personal knowledge
+                                <span className="opacity-50"> at volume</span>
+                            </T>
+                        </p>
+                    </div>
                     <div className="grid w-full grid-cols-1 gap-2 md:grid-cols-2 md:gap-[40px]">
                         <div className="flex max-w-[340px] flex-col gap-[12px] py-[20px] md:gap-[16px]">
                             <T context="Library">
@@ -326,6 +335,12 @@ export default async function Home() {
                                         <span>
                                             Share or export from Cache at any
                                             time you want
+                                        </span>
+                                    </li>
+                                    <li className="flex items-center gap-2 text-xs">
+                                        <CloudDownload className="inline-block size-4 shrink-0" />
+                                        <span>
+                                            Leverage AI for doing your best work
                                         </span>
                                     </li>
                                 </T>

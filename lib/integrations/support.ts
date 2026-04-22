@@ -628,17 +628,16 @@ export function listConnectedIntegrationIds(
     context: IntegrationConnectionContext
 ): IntegrationId[] {
     const sets = buildConnectionSets(context);
-    return INTEGRATIONS.filter((integration) => {
-        const definition = getDirectionDefinition(
-            integration as SupportedIntegration,
-            direction
-        );
-        return (
-            definition?.connectedWhen.some((signal) =>
-                integrationMatchesSignal(signal, sets)
-            ) ?? false
-        );
-    }).map((integration) => integration.id);
+    return listIntegrations()
+        .filter((integration) => {
+            const definition = getDirectionDefinition(integration, direction);
+            return (
+                definition?.connectedWhen.some((signal) =>
+                    integrationMatchesSignal(signal, sets)
+                ) ?? false
+            );
+        })
+        .map((integration) => integration.id);
 }
 
 export function recordHasIntegrationId<K extends string>(

@@ -17,7 +17,7 @@ import { cn } from "@/lib/common/cn";
 import { parseDisplayUrl } from "@/lib/common/url";
 import { AlertCircleIcon, ExternalLinkIcon, GlobeIcon } from "lucide-react";
 import type { ReactElement, ReactNode } from "react";
-import { createContext, useContext, useEffect, useId, useState } from "react";
+import * as React from "react";
 
 type PreviewDrawerPosition = NonNullable<
     React.ComponentProps<typeof DrawerPopup>["position"]
@@ -82,26 +82,23 @@ const EXTERNAL_LINK_ATTRIBUTES = {
     target: "_blank",
 } as const;
 
-const PreviewDrawerContext = createContext<PreviewDrawerContextValue | null>(
-    null
-);
+const PreviewDrawerContext =
+    React.createContext<PreviewDrawerContextValue | null>(null);
 
 function usePreviewDrawerContext(): PreviewDrawerContextValue {
-    const value = useContext(PreviewDrawerContext);
-
+    const value = React.use(PreviewDrawerContext);
     if (!value) {
         throw new Error(
             "PreviewDrawer components must be used inside <PreviewDrawer>."
         );
     }
-
     return value;
 }
 
 function usePreviewStatus(open: boolean, url: string, timeoutMs: number) {
-    const [status, setStatus] = useState<PreviewDrawerStatus>("loading");
+    const [status, setStatus] = React.useState<PreviewDrawerStatus>("loading");
 
-    useEffect(() => {
+    React.useEffect(() => {
         if (!open) {
             setStatus("loading");
             return;
@@ -158,7 +155,7 @@ export function PreviewDrawer({
     url,
     ...drawerProps
 }: PreviewDrawerProps): ReactElement {
-    const [uncontrolledOpen, setUncontrolledOpen] = useState(defaultOpen);
+    const [uncontrolledOpen, setUncontrolledOpen] = React.useState(defaultOpen);
     const isControlled = open !== undefined;
     const resolvedOpen = isControlled ? open : uncontrolledOpen;
 
@@ -208,7 +205,7 @@ export function PreviewDrawerContent({
     ...popupProps
 }: PreviewDrawerContentProps): ReactElement {
     const { description, open, title, url } = usePreviewDrawerContext();
-    const iframeKey = useId();
+    const iframeKey = React.useId();
     const previewDescription = description ?? parseDisplayUrl(url);
     const canOpenInNewTab = url !== PREVIEW_BLOCKED_URL;
     const { markAsBlocked, markAsLoaded, status } = usePreviewStatus(
