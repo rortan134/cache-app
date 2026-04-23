@@ -261,31 +261,6 @@ export default async function Home() {
                     </div>
                     <div className="grid w-full grid-cols-1 gap-2 md:grid-cols-2 md:gap-[40px]">
                         <div className="flex max-w-[340px] flex-col gap-[12px] py-[20px] md:gap-[16px]">
-                            <T context="Feed">
-                                <h2 className="font-medium text-[#0A0B0D] text-[28px] leading-[1.1] tracking-[-1.28px] lg:text-[32px]">
-                                    Search and explore from a single, fast feed
-                                </h2>
-                                <p className="tracking=[-3%] text-pretty font-medium font-regular text-[#0A0B0D] text-[16px] leading-[1.2] opacity-50">
-                                    Streamline the way you consume and reengage
-                                    with your saved content from a single clean
-                                    and powerful interface, right in your
-                                    browser.
-                                </p>
-                            </T>
-                        </div>
-                        <div className="order-first aspect-square w-full overflow-hidden rounded-2xl bg-muted md:order-last">
-                            <figure className="overflow-hidden">
-                                <Image
-                                    alt=""
-                                    height={800}
-                                    src={OrganizeSectionImage}
-                                    width={800}
-                                />
-                            </figure>
-                        </div>
-                    </div>
-                    <div className="grid w-full grid-cols-1 gap-2 md:grid-cols-2 md:gap-[40px]">
-                        <div className="flex max-w-[340px] flex-col gap-[12px] py-[20px] md:gap-[16px]">
                             <T context="Habits">
                                 <h2 className="font-medium text-[#0A0B0D] text-[28px] leading-[1.1] tracking-[-1.28px] lg:text-[32px]">
                                     Stop leaving it for "later"
@@ -304,6 +279,31 @@ export default async function Home() {
                                     alt=""
                                     height={800}
                                     src={CollectionsSectionImage}
+                                    width={800}
+                                />
+                            </figure>
+                        </div>
+                    </div>
+                    <div className="grid w-full grid-cols-1 gap-2 md:grid-cols-2 md:gap-[40px]">
+                        <div className="flex max-w-[340px] flex-col gap-[12px] py-[20px] md:gap-[16px]">
+                            <T context="Feed">
+                                <h2 className="font-medium text-[#0A0B0D] text-[28px] leading-[1.1] tracking-[-1.28px] lg:text-[32px]">
+                                    Search and explore from a single, fast feed
+                                </h2>
+                                <p className="tracking=[-3%] text-pretty font-medium font-regular text-[#0A0B0D] text-[16px] leading-[1.2] opacity-50">
+                                    Streamline the way you consume and reengage
+                                    with your saved content from a single clean
+                                    and powerful interface, right in your
+                                    browser.
+                                </p>
+                            </T>
+                        </div>
+                        <div className="order-first aspect-square w-full overflow-hidden rounded-2xl bg-muted md:order-last">
+                            <figure className="overflow-hidden">
+                                <Image
+                                    alt=""
+                                    height={800}
+                                    src={OrganizeSectionImage}
                                     width={800}
                                 />
                             </figure>
@@ -351,7 +351,8 @@ export default async function Home() {
                                     <li className="flex items-center gap-2 text-xs">
                                         <Sparkles className="inline-block size-4 shrink-0" />
                                         <span>
-                                            Leverage AI for doing your best work
+                                            Leverage AI for better insights on
+                                            your content
                                         </span>
                                     </li>
                                 </T>

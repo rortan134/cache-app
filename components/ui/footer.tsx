@@ -47,6 +47,24 @@ function Footer() {
                             </Link>
                             <Link
                                 className="underline"
+                                href="/legal/cookie-policy"
+                                target="_blank"
+                            >
+                                <T>
+                                    <p>Cookie Policy</p>
+                                </T>
+                            </Link>
+                            <Link
+                                className="underline"
+                                href="/security"
+                                target="_blank"
+                            >
+                                <T>
+                                    <p>Security</p>
+                                </T>
+                            </Link>
+                            <Link
+                                className="underline"
                                 href="https://x.com/gsmmtt"
                                 rel="noreferrer noopener"
                                 target="_blank"
