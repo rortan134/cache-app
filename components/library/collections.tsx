@@ -301,14 +301,14 @@ function useCollectionItemPreviewIndex(
             return;
         }
 
-        const interval = window.setInterval(() => {
+        const interval = setInterval(() => {
             setActivePreviewIndex(
                 (currentIndex) => (currentIndex + 1) % thumbnailCount
             );
         }, COLLECTION_ITEM_PREVIEW_SLIDESHOW_INTERVAL_MS);
 
         return () => {
-            window.clearInterval(interval);
+            clearInterval(interval);
         };
     }, [hasMultipleThumbnails, isOpen, thumbnailCount]);
 

@@ -18,7 +18,14 @@ import { useAccess } from "@/hooks/use-access";
 import { authClient } from "@/lib/auth/client";
 import { getInitials } from "@/lib/common/strings";
 import { LocaleSelector, T, Var, useLocale } from "gt-next";
-import { ArrowUpRight, ChevronsUpDown, Monitor, Moon, Sun } from "lucide-react";
+import {
+    ArrowUpRight,
+    ChevronsUpDown,
+    LogOut,
+    Monitor,
+    Moon,
+    Sun,
+} from "lucide-react";
 import Link from "next/link";
 import { type ReactNode, useState, useTransition } from "react";
 
@@ -323,10 +330,11 @@ export function UserMenuContent() {
                 />
                 <LogoutButton
                     render={
-                        <Button className="justify-start" variant="ghost" />
+                        <Button className="justify-between" variant="ghost" />
                     }
                 >
                     <T context="User Log out/Sign out of the app">Log out</T>
+                    <LogOut className="ml-auto inline-block size-4 shrink-0 text-muted-foreground" />
                 </LogoutButton>
             </MenuSection>
         </>

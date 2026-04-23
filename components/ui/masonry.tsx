@@ -2,8 +2,11 @@
 
 import { useComposedRefs } from "@/hooks/compose-refs";
 import { useIsomorphicLayoutEffect } from "@/hooks/use-isomorphic-effect";
+import { useStableCallback } from "@base-ui/utils/useStableCallback";
+import { useValueAsRef } from "@base-ui/utils/useValueAsRef";
 import * as React from "react";
 
+// #region Interval tree definitions
 const NODE_COLOR = {
     BLACK: 1,
     RED: 0,
@@ -480,7 +483,9 @@ function createIntervalTree(): IntervalTree {
         },
     };
 }
+// #endregion
 
+// #region Deep memo cache definitions
 type CacheKey = string | number | symbol;
 type CacheConstructor = (new () => Cache) | Record<CacheKey, unknown>;
 
@@ -597,13 +602,15 @@ function onDeepMemo<T extends unknown[], U>(
         return cached as U;
     };
 }
+// #endregion
 
+// #region Masonry layout definitions
 const COLUMN_WIDTH = 200;
 const GAP = 0;
 const ITEM_HEIGHT = 300;
 const OVERSCAN = 2;
-const SCROLL_FPS = 12;
-const DEBOUNCE_DELAY = 300;
+const SCROLL_FPS = 24;
+const DEBOUNCE_DELAY = 100;
 
 interface Positioner {
     all: () => PositionerItem[];
@@ -946,7 +953,6 @@ function usePositioner(
         const positioner = initPositioner();
         prevDepsRef.current = deps;
         prevOptsRef.current = opts;
-
         if (optsChanged) {
             const cacheSize = prevPositioner.size();
             for (let index = 0; index < cacheSize; index++) {
@@ -954,7 +960,6 @@ function usePositioner(
                 positioner.set(index, pos === undefined ? 0 : pos.height);
             }
         }
-
         positionerRef.current = positioner;
     }
 
@@ -994,7 +999,6 @@ function useDebouncedWindowSize(options: DebouncedWindowSizeOptions) {
             if (timeoutRef.current) {
                 clearTimeout(timeoutRef.current);
             }
-
             timeoutRef.current = setTimeout(() => {
                 setSize(value);
             }, delayMs);
@@ -1044,7 +1048,6 @@ function onRafSchedule<T extends unknown[]>(
 
     function onCallback(...args: T) {
         lastArgs = args;
-
         if (!frameId) {
             frameId = requestAnimationFrame(() => {
                 frameId = null;
@@ -1166,7 +1169,7 @@ function useScroller({
 }: {
     offset?: number;
     fps?: number;
-} = {}): { scrollTop: number; isScrolling: boolean } {
+} = {}) {
     const [scrollY, setScrollY] = useThrottle(
         typeof globalThis.window === "undefined"
             ? 0
@@ -1176,11 +1179,11 @@ function useScroller({
         { fps, leading: true }
     );
 
-    const onScroll = React.useCallback(() => {
+    const onScroll = useStableCallback(() => {
         setScrollY(
             globalThis.window.scrollY ?? document.documentElement.scrollTop ?? 0
         );
-    }, [setScrollY]);
+    });
 
     React.useEffect(() => {
         if (typeof globalThis.window === "undefined") {
@@ -1189,14 +1192,14 @@ function useScroller({
         globalThis.window.addEventListener("scroll", onScroll, {
             passive: true,
         });
-
-        return () => globalThis.window.removeEventListener("scroll", onScroll);
+        return () => {
+            globalThis.window.removeEventListener("scroll", onScroll);
+        };
     }, [onScroll]);
 
     const [isScrolling, setIsScrolling] = React.useState(false);
     const hasMountedRef = React.useRef(0);
 
-    // biome-ignore lint/correctness/useExhaustiveDependencies: scrollY must trigger the isScrolling timeout logic
     React.useEffect(() => {
         if (hasMountedRef.current === 0) {
             hasMountedRef.current = 1;
@@ -1233,7 +1236,7 @@ function useScroller({
             didUnsubscribe = true;
             cancelAnimationFrame(timeout.id);
         };
-    }, [fps, scrollY]);
+    }, [fps]);
 
     return { isScrolling, scrollTop: Math.max(0, scrollY - offset) };
 }
@@ -1305,7 +1308,9 @@ function useThrottle<State>(
 
     return [state, throttledSetState];
 }
+// #endregion
 
+// #region Component Definitions
 const ROOT_NAME = "MasonryRoot";
 const VIEWPORT_NAME = "MasonryViewport";
 const ITEM_NAME = "MasonryItem";
@@ -1321,7 +1326,6 @@ type ItemElement = React.ComponentRef<typeof MasonryItem>;
 
 interface MasonryContextValue {
     columnWidth: number;
-    fallback?: React.ReactNode;
     isScrolling?: boolean;
     itemHeight: number;
     onItemRegister: (index: number) => (node: ItemElement | null) => void;
@@ -1357,6 +1361,13 @@ interface MasonryProps extends React.ComponentProps<"div"> {
     scrollFps?: number;
 }
 
+function parseGapValue(gap?: number | { column: number; row: number }) {
+    const gapValue = typeof gap === "object" ? gap : { column: gap, row: gap };
+    const columnGap = gapValue.column;
+    const rowGap = gapValue.row;
+    return { columnGap, rowGap };
+}
+
 function Masonry({
     columnWidth = COLUMN_WIDTH,
     columnCount,
@@ -1375,10 +1386,7 @@ function Masonry({
     ref,
     ...props
 }: MasonryProps) {
-    const gapValue = typeof gap === "object" ? gap : { column: gap, row: gap };
-    const columnGap = gapValue.column;
-    const rowGap = gapValue.row;
-
+    const { rowGap, columnGap } = parseGapValue(gap);
     const containerRef = React.useRef<RootElement | null>(null);
     const composedRef = useComposedRefs(ref, containerRef);
 
@@ -1406,16 +1414,18 @@ function Masonry({
                 document.documentElement.scrollTop ??
                 0;
         }
+
         const offset =
             containerRef.current.getBoundingClientRect().top + scrollOffset;
+        const width = containerRef.current.offsetWidth;
 
         if (
             offset !== containerPosition.offset ||
-            containerRef.current.offsetWidth !== containerPosition.width
+            width !== containerPosition.width
         ) {
             setContainerPosition({
                 offset,
-                width: containerRef.current.offsetWidth,
+                width,
             });
         }
     });
@@ -1443,7 +1453,6 @@ function Masonry({
             if (!node) {
                 return;
             }
-
             if (resizeObserver) {
                 resizeObserver.observe(node);
             }
@@ -1458,7 +1467,6 @@ function Masonry({
         <MasonryContext
             value={{
                 columnWidth: positioner.columnWidth,
-                fallback,
                 isScrolling,
                 itemHeight,
                 onItemRegister,
@@ -1489,17 +1497,9 @@ function Masonry({
 function MasonryViewport({
     children,
     style,
-    ref,
     ...props
 }: React.ComponentProps<"div">) {
     const context = useMasonryContext(VIEWPORT_NAME);
-    const [layoutVersion, setLayoutVersion] = React.useState(0);
-    const rafId = React.useRef<number | null>(null);
-    const [mounted, setMounted] = React.useState(false);
-
-    useIsomorphicLayoutEffect(() => {
-        setMounted(true);
-    }, []);
 
     const validChildren = React.Children.toArray(
         children
@@ -1510,7 +1510,7 @@ function MasonryViewport({
     const overscanPixels = context.windowHeight * context.overscan;
     const rangeStart = Math.max(0, context.scrollTop - overscanPixels / 2);
     const rangeEnd = context.scrollTop + overscanPixels;
-    const layoutOutdated =
+    const isLayoutOutdated =
         shortestColumnSize < rangeEnd && measuredCount < itemCount;
     const positionedChildren: React.ReactElement[] = [];
 
@@ -1542,25 +1542,25 @@ function MasonryViewport({
         if (!child) {
             return;
         }
-
         const itemStyle = {
             ...visibleItemStyle,
             left,
             top,
             ...child.props.style,
         };
+        const onItemRegister = context.onItemRegister;
 
         positionedChildren.push(
             React.cloneElement(child, {
                 ["data-index" as string]: index,
                 key: child.key ?? index,
-                ref: context.onItemRegister(index),
+                ref: onItemRegister(index),
                 style: itemStyle,
             })
         );
     });
 
-    if (layoutOutdated && mounted) {
+    if (isLayoutOutdated) {
         const batchSize = Math.min(
             itemCount - measuredCount,
             Math.ceil(
@@ -1570,50 +1570,37 @@ function MasonryViewport({
             )
         );
 
-        for (
-            let index = measuredCount;
-            index < measuredCount + batchSize;
-            index++
-        ) {
-            const child = validChildren[index];
-            if (!child) {
-                continue;
+        if (batchSize > 0) {
+            const end = Math.min(itemCount, measuredCount + batchSize);
+            const onItemRegister = context.onItemRegister;
+
+            for (let index = measuredCount; index < end; index++) {
+                const child = validChildren[index];
+                if (!child) {
+                    continue;
+                }
+
+                const itemStyle = {
+                    ...hiddenItemStyle,
+                    ...child.props.style,
+                };
+
+                positionedChildren.push(
+                    React.cloneElement(child, {
+                        ["data-index" as string]: index,
+                        key: child.key ?? index,
+                        ref: onItemRegister(index),
+                        style: itemStyle,
+                    })
+                );
             }
-
-            const itemStyle = {
-                ...hiddenItemStyle,
-                ...child.props.style,
-            };
-
-            positionedChildren.push(
-                React.cloneElement(child, {
-                    ["data-index" as string]: index,
-                    key: child.key ?? index,
-                    ref: context.onItemRegister(index),
-                    style: itemStyle,
-                })
-            );
         }
     }
 
-    React.useEffect(() => {
-        if (layoutOutdated && mounted) {
-            if (rafId.current) {
-                cancelAnimationFrame(rafId.current);
-            }
-            rafId.current = requestAnimationFrame(() => {
-                setLayoutVersion((v) => v + 1);
-            });
-        }
-        return () => {
-            if (rafId.current) {
-                cancelAnimationFrame(rafId.current);
-            }
-        };
-    }, [layoutOutdated, mounted]);
+    const estimateHeight = useValueAsRef(context.positioner.estimateHeight);
 
     const estimatedHeight = React.useMemo(() => {
-        const measuredHeight = context.positioner.estimateHeight(
+        const measuredHeight = estimateHeight.current(
             measuredCount,
             context.itemHeight
         );
@@ -1625,13 +1612,19 @@ function MasonryViewport({
             (remainingItems / context.positioner.columnCount) *
                 context.itemHeight
         );
-        return measuredHeight + estimatedRemainingHeight;
-    }, [context.positioner, context.itemHeight, measuredCount, itemCount]);
+        return Math.ceil(measuredHeight + estimatedRemainingHeight);
+    }, [
+        estimateHeight,
+        context.positioner.columnCount,
+        context.itemHeight,
+        measuredCount,
+        itemCount,
+    ]);
 
     const containerStyle = React.useMemo(
         () => ({
-            height: Math.ceil(estimatedHeight),
-            maxHeight: Math.ceil(estimatedHeight),
+            height: estimatedHeight,
+            maxHeight: estimatedHeight,
             maxWidth: "100%",
             pointerEvents: context.isScrolling ? ("none" as const) : undefined,
             position: "relative" as const,
@@ -1642,17 +1635,8 @@ function MasonryViewport({
         [context.isScrolling, estimatedHeight, style]
     );
 
-    if (!mounted && context.fallback) {
-        return context.fallback;
-    }
-
     return (
-        <div
-            {...props}
-            data-version={mounted ? layoutVersion : undefined}
-            ref={ref}
-            style={containerStyle}
-        >
+        <div {...props} style={containerStyle}>
             {positionedChildren}
         </div>
     );
@@ -1661,5 +1645,6 @@ function MasonryViewport({
 function MasonryItem(props: React.ComponentProps<"div">) {
     return <div data-slot="masonry-item" {...props} />;
 }
+// #endregion
 
 export { Masonry, MasonryItem };

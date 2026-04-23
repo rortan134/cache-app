@@ -5,7 +5,7 @@ import type * as React from "react";
 
 function PrivilegedOnly({
     children,
-    loadingRender,
+    loadingRender = null,
 }: React.PropsWithChildren<{ loadingRender?: React.ReactNode }>) {
     const { hasAccess, isLoading } = useAccess();
 
@@ -22,7 +22,7 @@ function PrivilegedOnly({
 
 function UnprivilegedOnly({
     children,
-    loadingRender,
+    loadingRender = null,
 }: React.PropsWithChildren<{ loadingRender?: React.ReactNode }>) {
     const { hasAccess, isLoading } = useAccess();
 

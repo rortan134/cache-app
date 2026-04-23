@@ -222,17 +222,7 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import type { ReactNode } from "react";
-import React, {
-    useEffect,
-    useId,
-    useMemo,
-    useRef,
-    useState,
-    useTransition,
-    type CSSProperties,
-    type MouseEvent,
-    type ReactElement,
-} from "react";
+import * as React from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 import useSWR from "swr";
 
@@ -700,41 +690,40 @@ function LibraryWorkspaceSidebar({
     onSelectCollection,
     sidebarBottom,
     sidebarHeader,
-}: LibraryWorkspaceSidebarProps): ReactElement {
-    const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-    const [createDialogDraft, setCreateDialogDraft] = useState("");
+}: LibraryWorkspaceSidebarProps): React.ReactElement {
+    const [isCreateDialogOpen, setIsCreateDialogOpen] = React.useState(false);
+    const [createDialogDraft, setCreateDialogDraft] = React.useState("");
     const [createDialogDescriptionDraft, setCreateDialogDescriptionDraft] =
-        useState("");
-    const [createDialogError, setCreateDialogError] = useState<string | null>(
-        null
-    );
-    const [isTemplateComboboxOpen, setIsTemplateComboboxOpen] = useState(false);
-    const [createDialogAssignItemId, setCreateDialogAssignItemId] = useState<
+        React.useState("");
+    const [createDialogError, setCreateDialogError] = React.useState<
         string | null
     >(null);
+    const [isTemplateComboboxOpen, setIsTemplateComboboxOpen] =
+        React.useState(false);
+    const [createDialogAssignItemId, setCreateDialogAssignItemId] =
+        React.useState<string | null>(null);
     const [pendingRenameCollection, setPendingRenameCollection] =
-        useState<LibraryCollectionSummary | null>(null);
-    const [renameDialogDraft, setRenameDialogDraft] = useState("");
-    const [renameDialogError, setRenameDialogError] = useState<string | null>(
-        null
-    );
+        React.useState<LibraryCollectionSummary | null>(null);
+    const [renameDialogDraft, setRenameDialogDraft] = React.useState("");
+    const [renameDialogError, setRenameDialogError] = React.useState<
+        string | null
+    >(null);
 
     const [pendingDeleteCollection, setPendingDeleteCollection] =
-        useState<LibraryCollectionSummary | null>(null);
+        React.useState<LibraryCollectionSummary | null>(null);
 
     const [collectionActionFeedback, setCollectionActionFeedback] =
-        useState<CollectionActionFeedback | null>(null);
-    const [isCreatePending, startCreateTransition] = useTransition();
-    const [isRenamePending, startRenameTransition] = useTransition();
-    const [isDeletePending, startDeleteTransition] = useTransition();
-    const [isSharePending, startShareTransition] = useTransition();
-    const [, startDuplicateTransition] = useTransition();
-    const [pendingShareCollectionId, setPendingShareCollectionId] = useState<
-        string | null
-    >(null);
-    const createInputId = useId();
-    const createDescriptionId = useId();
-    const renameInputId = useId();
+        React.useState<CollectionActionFeedback | null>(null);
+    const [isCreatePending, startCreateTransition] = React.useTransition();
+    const [isRenamePending, startRenameTransition] = React.useTransition();
+    const [isDeletePending, startDeleteTransition] = React.useTransition();
+    const [isSharePending, startShareTransition] = React.useTransition();
+    const [, startDuplicateTransition] = React.useTransition();
+    const [pendingShareCollectionId, setPendingShareCollectionId] =
+        React.useState<string | null>(null);
+    const createInputId = React.useId();
+    const createDescriptionId = React.useId();
+    const renameInputId = React.useId();
     const { collections, itemsByCollectionId, setCollections, setItems } =
         actionDependencies;
     const { copyToClipboard } = useCopyToClipboard();
@@ -1795,8 +1784,8 @@ function LibraryWorkspaceSidebar({
                                                     key={template.value}
                                                     value={template.value}
                                                 >
-                                                    <div className="flex min-w-0 flex-col gap-0.5">
-                                                        <span className="truncate text-foreground text-sm">
+                                                    <div className="flex min-w-0 max-w-80 flex-col gap-0.5">
+                                                        <span className="min-w-0 truncate text-foreground text-sm">
                                                             {template.name}
                                                         </span>
                                                         <span className="line-clamp-2 text-muted-foreground text-xs">
@@ -2118,15 +2107,6 @@ interface LibraryBrowserSection {
 interface LibraryCommandAttachment
     extends ReturnType<typeof createFileAttachment> {
     id: string;
-}
-
-interface SectionCollapseState {
-    collapseAllSections: () => void;
-    collapsedSectionKeys: string[];
-    enableSectionCollapse: boolean;
-    expandAllSections: () => void;
-    layoutRefreshToken: number;
-    toggleSection: (key: string) => void;
 }
 
 function isAbortError(error: unknown): boolean {
@@ -2623,7 +2603,6 @@ function renderLibraryGridBody({
     columnCount,
     layoutMode,
     enableSectionCollapse,
-    layoutRefreshToken,
     onCollapseAllSections,
     onCopyLink,
     onDelete,
@@ -2645,7 +2624,6 @@ function renderLibraryGridBody({
     columnCount?: number;
     layoutMode: LayoutMode;
     enableSectionCollapse: boolean;
-    layoutRefreshToken: number;
     onCollapseAllSections?: () => void;
     onCopyLink: (item: LibraryItem) => void;
     onDelete: (item: LibraryItem) => void;
@@ -2694,7 +2672,6 @@ function renderLibraryGridBody({
                 items={section.items}
                 key={section.key}
                 layoutMode={layoutMode}
-                layoutToken={layoutRefreshToken}
                 onCollapseAll={onCollapseAllSections}
                 onCopyLink={onCopyLink}
                 onDelete={onDelete}
@@ -2727,7 +2704,6 @@ function renderLibraryGridBody({
                     columnCount={columnCount}
                     items={section.items}
                     layoutMode={layoutMode}
-                    layoutToken={layoutRefreshToken}
                     onCopyLink={onCopyLink}
                     onDelete={onDelete}
                     onOpenInNewTab={onOpenInNewTab}
@@ -2745,10 +2721,10 @@ function renderLibraryGridBody({
 }
 
 function ValidCategoryThumbnail({ urls }: { urls: string[] }) {
-    const [validUrls, setValidUrls] = useState<string[]>([]);
+    const [validUrls, setValidUrls] = React.useState<string[]>([]);
     const urlsKey = urls.join(",");
 
-    useEffect(() => {
+    React.useEffect(() => {
         if (!urlsKey) {
             setValidUrls([]);
             return;
@@ -3610,17 +3586,16 @@ function useSectionCollapseState({
     sections: LibraryBrowserSection[];
     showEmptyLibraryPeek: boolean;
     showNoFilteredResults: boolean;
-}): SectionCollapseState {
-    const [collapsedSectionKeys, setCollapsedSectionKeys] = useState<string[]>(
-        []
-    );
-    const [layoutRefreshToken, setLayoutRefreshToken] = useState(0);
+}) {
+    const [collapsedSectionKeys, setCollapsedSectionKeys] = React.useState<
+        string[]
+    >([]);
 
     const enableSectionCollapse =
         !(showEmptyLibraryPeek || showNoFilteredResults) &&
         (hasActiveFilters || groupBy !== "none");
 
-    useEffect(() => {
+    React.useEffect(() => {
         const validKeys = new Set(sections.map((section) => section.key));
         setCollapsedSectionKeys((current) => {
             const next = current.filter((key) => validKeys.has(key));
@@ -3628,7 +3603,7 @@ function useSectionCollapseState({
         });
     }, [sections]);
 
-    useEffect(() => {
+    React.useEffect(() => {
         if (!enableSectionCollapse) {
             setCollapsedSectionKeys((current) =>
                 current.length === 0 ? current : []
@@ -3642,17 +3617,14 @@ function useSectionCollapseState({
                 ? current.filter((entry) => entry !== key)
                 : [...current, key]
         );
-        setLayoutRefreshToken((current) => current + 1);
     };
 
     const collapseAllSections = () => {
         setCollapsedSectionKeys(sections.map((section) => section.key));
-        setLayoutRefreshToken((current) => current + 1);
     };
 
     const expandAllSections = () => {
         setCollapsedSectionKeys([]);
-        setLayoutRefreshToken((current) => current + 1);
     };
 
     return {
@@ -3660,7 +3632,6 @@ function useSectionCollapseState({
         collapsedSectionKeys,
         enableSectionCollapse,
         expandAllSections,
-        layoutRefreshToken,
         toggleSection,
     };
 }
@@ -3921,10 +3892,10 @@ function useLibraryItemActions(
     ) => void
 ) {
     const [pendingDeleteItem, setPendingDeleteItem] =
-        useState<LibraryItem | null>(null);
+        React.useState<LibraryItem | null>(null);
     const [actionFeedback, setActionFeedback] =
-        useState<LibraryActionFeedback | null>(null);
-    const [isDeletePending, startDeleteTransition] = useTransition();
+        React.useState<LibraryActionFeedback | null>(null);
+    const [isDeletePending, startDeleteTransition] = React.useTransition();
     const { copyToClipboard } = useCopyToClipboard({
         onCopy: () => {
             setActionFeedback({
@@ -4009,7 +3980,6 @@ interface GridProps {
     columnCount?: number;
     items: LibraryItemWithCollections[];
     layoutMode: LayoutMode;
-    layoutToken?: number;
     onCopyLink?: (item: LibraryItemWithCollections) => void;
     onDelete?: (item: LibraryItemWithCollections) => void;
     onOpenInNewTab?: (item: LibraryItemWithCollections) => void;
@@ -4149,7 +4119,9 @@ function getSharedCollectionIds(items: LibraryItemWithCollections[]): string[] {
     );
 }
 
-function fallbackGridStyle(columnCount?: number): CSSProperties | undefined {
+function fallbackGridStyle(
+    columnCount?: number
+): React.CSSProperties | undefined {
     if (!columnCount) {
         return;
     }
@@ -4190,8 +4162,8 @@ function PreviewMedia({
     alt,
     fallbackLabel = "No preview",
     src,
-}: PreviewMediaProps): ReactElement {
-    const [didFail, setDidFail] = useState(false);
+}: PreviewMediaProps): React.ReactElement {
+    const [didFail, setDidFail] = React.useState(false);
     const imageSrc = src ?? undefined;
     const canRenderImage = Boolean(imageSrc) && !didFail;
 
@@ -4232,8 +4204,8 @@ function CollectionComboboxPicker({
     onUpdateItemCollections: (itemId: string, collectionIds: string[]) => void;
     open?: boolean;
     onOpenChange?: (open: boolean) => void;
-}): ReactElement {
-    const [isOpenInternal, setIsOpenInternal] = useState(false);
+}): React.ReactElement {
+    const [isOpenInternal, setIsOpenInternal] = React.useState(false);
     const isOpen = openProp ?? isOpenInternal;
     const setIsOpen = onOpenChange ?? setIsOpenInternal;
     const selectedCollectionIds = Array.isArray(item)
@@ -4305,11 +4277,11 @@ function CollectionComboboxPicker({
                                 key={collection.id}
                                 value={collection.id}
                             >
-                                <div className="flex min-w-0 items-center justify-between gap-3">
-                                    <span className="min-w-0 truncate text-foreground text-sm">
+                                <div className="flex max-w-64 items-center justify-between gap-3">
+                                    <span className="min-w-0 max-w-full flex-1 truncate text-foreground text-sm">
                                         {collection.name}
                                     </span>
-                                    <span className="shrink-0 text-muted-foreground text-xs tabular-nums">
+                                    <span className="shrink-0 text-nowrap text-muted-foreground text-xs tabular-nums">
                                         {collection.itemCount}
                                     </span>
                                 </div>
@@ -4377,12 +4349,13 @@ function LibraryGridCard({
     pendingDeleteItemId,
     previewDescription,
     previewTitle,
-}: LibraryGridCardProps): ReactElement {
+}: LibraryGridCardProps): React.ReactElement {
     const isNote = item.kind === "note";
     const isDeletePending = pendingDeleteItemId === item.id;
-    const [isDownloading, setIsDownloading] = useState(false);
-    const [isHovered, setIsHovered] = useState(false);
-    const [isCollectionPickerOpen, setIsCollectionPickerOpen] = useState(false);
+    const [isDownloading, setIsDownloading] = React.useState(false);
+    const [isHovered, setIsHovered] = React.useState(false);
+    const [isCollectionPickerOpen, setIsCollectionPickerOpen] =
+        React.useState(false);
     const previewImageUrl = opengraphPreviewUrl(item);
     const canPreview = !isNote && toValidUrl(href) !== "about:blank";
     const noteExcerpt = getNoteExcerpt(item.noteContentText);
@@ -4393,7 +4366,7 @@ function LibraryGridCard({
         preventDefault: true,
     });
 
-    const handlePrimaryClick = (event: MouseEvent<HTMLAnchorElement>) => {
+    const handlePrimaryClick = (event: React.MouseEvent<HTMLAnchorElement>) => {
         event.preventDefault();
         if (isNote) {
             onOpenNote?.(item);
@@ -4655,7 +4628,7 @@ function LibraryGridCard({
 function LockedLibraryGridCard({
     alt,
     item,
-}: LockedLibraryGridCardProps): ReactElement {
+}: LockedLibraryGridCardProps): React.ReactElement {
     const isNote = item.kind === "note";
     const previewImageUrl = opengraphPreviewUrl(item);
 
@@ -4695,7 +4668,6 @@ function renderLibraryMasonry({
     collections,
     columnCount,
     items,
-    layoutToken,
     locked = false,
     onCopyLink,
     onDelete,
@@ -4704,13 +4676,12 @@ function renderLibraryMasonry({
     onUpdateItemCollections,
     pendingCollectionItemIds,
     pendingDeleteItemId,
-}: GridProps & { locked?: boolean }): ReactElement {
+}: GridProps & { locked?: boolean }): React.ReactElement {
     return (
         <Masonry
             columnCount={columnCount}
             deps={[
                 collections,
-                layoutToken,
                 items,
                 locked,
                 pendingCollectionItemIds,
@@ -4786,7 +4757,7 @@ function renderLibraryKanban({
     onOpenInNewTab,
     onUpdateItemCollections,
     pendingDeleteItemId,
-}: GridProps & { locked?: boolean }): ReactElement {
+}: GridProps & { locked?: boolean }): React.ReactElement {
     const kanbanColumns = buildKanbanColumns(collections, items);
     const columnIds = [
         UNASSIGNED_COLLECTION_COLUMN_ID,
@@ -4964,7 +4935,6 @@ function ExtensionLibraryGrid({
     columnCount,
     items,
     layoutMode,
-    layoutToken,
     onCopyLink,
     onDelete,
     onOpenNote,
@@ -4975,7 +4945,7 @@ function ExtensionLibraryGrid({
     pendingCollectionItemIds,
     pendingDeleteItemId,
     showPaywallBanner,
-}: GridProps): ReactElement | null {
+}: GridProps): React.ReactElement | null {
     if (items.length === 0) {
         return null;
     }
@@ -4999,7 +4969,6 @@ function ExtensionLibraryGrid({
                   columnCount,
                   items: nextItems,
                   layoutMode,
-                  layoutToken,
                   locked,
                   onCopyLink,
                   onDelete,
@@ -5017,7 +4986,6 @@ function ExtensionLibraryGrid({
                   columnCount,
                   items: nextItems,
                   layoutMode,
-                  layoutToken,
                   locked,
                   onCopyLink,
                   onDelete,
@@ -5062,7 +5030,7 @@ function SectionDescription({
     items: LibraryItemWithCollections[];
     title: string;
 }) {
-    const requestBody = useMemo(
+    const requestBody = React.useMemo(
         () =>
             JSON.stringify({
                 items: items.slice(0, SECTION_DESCRIPTION_CONTEXT_ITEMS_LIMIT),
@@ -5094,7 +5062,7 @@ function SectionDescription({
 
     const summary = data?.summary?.trim();
     return (
-        <p className="fade-in-0 zoom-in-95 block w-full animate-in select-all text-xs leading-snug duration-200 motion-reduce:animate-none">
+        <p className="fade-in-0 block w-full animate-in text-xs leading-snug motion-reduce:animate-none">
             {summary && summary.length > 0
                 ? summary
                 : SECTION_DESCRIPTION_FALLBACK_TEXT}
@@ -5111,7 +5079,6 @@ function ExtensionLibrarySection({
     emptyHint,
     items,
     layoutMode,
-    layoutToken,
     onCopyLink,
     onDelete,
     onOpenNote,
@@ -5123,12 +5090,12 @@ function ExtensionLibrarySection({
     pendingCollectionItemIds,
     pendingDeleteItemId,
     title,
-}: SectionProps): ReactElement {
+}: SectionProps): React.ReactElement {
     const canToggle = collapsible && onToggle;
     const headerGradient = collapsible
         ? getColorGradientFromName(accentKey ?? title)
         : undefined;
-    let body: ReactElement | null;
+    let body: React.ReactElement | null;
 
     const shouldRequestDescription = canToggle && title === "Results";
 
@@ -5165,7 +5132,6 @@ function ExtensionLibrarySection({
                     columnCount={columnCount}
                     items={items}
                     layoutMode={layoutMode}
-                    layoutToken={layoutToken}
                     onCopyLink={onCopyLink}
                     onDelete={onDelete}
                     onOpenInNewTab={onOpenInNewTab}
@@ -5193,7 +5159,7 @@ function ExtensionLibrarySection({
                                 ? ({
                                       background: headerGradient,
                                       top: "var(--library-section-sticky-top)",
-                                  } as CSSProperties)
+                                  } as React.CSSProperties)
                                 : undefined
                         }
                     >
@@ -5288,48 +5254,51 @@ function LibraryBrowser({
 }: LibraryProps) {
     const { hasAccess, isLoading: isAccessLoading } = useAccess();
     const systemControlKey = useClientOnlyValue(getSystemControlKey());
-    const [searchTerms, setSearchTerms] = useState<string[]>([]);
-    const [paletteInput, setPaletteInput] = useState("");
-    const [sourceFilters, setSourceFilters] = useState<SourceFilterValue[]>([]);
-    const [domainFilters, setDomainFilters] = useState<string[]>([]);
+    const [searchTerms, setSearchTerms] = React.useState<string[]>([]);
+    const [paletteInput, setPaletteInput] = React.useState("");
+    const [sourceFilters, setSourceFilters] = React.useState<
+        SourceFilterValue[]
+    >([]);
+    const [domainFilters, setDomainFilters] = React.useState<string[]>([]);
     const [collectionMembershipFilter, setCollectionMembershipFilter] =
-        useState<CollectionMembershipFilter>(
+        React.useState<CollectionMembershipFilter>(
             DEFAULT_COLLECTION_MEMBERSHIP_FILTER
         );
-    const [groupBy, setGroupBy] = useState<GroupByMode>("none");
-    const [sortMode, setSortMode] = useState<SortMode>(DEFAULT_SORT_MODE);
-    const [columnCountMode, setColumnCountMode] = useState<ColumnCountMode>(
-        DEFAULT_COLUMN_COUNT_MODE
-    );
+    const [groupBy, setGroupBy] = React.useState<GroupByMode>("none");
+    const [sortMode, setSortMode] = React.useState<SortMode>(DEFAULT_SORT_MODE);
+    const [columnCountMode, setColumnCountMode] =
+        React.useState<ColumnCountMode>(DEFAULT_COLUMN_COUNT_MODE);
     const [layoutMode, setLayoutMode] =
-        useState<LayoutMode>(DEFAULT_LAYOUT_MODE);
+        React.useState<LayoutMode>(DEFAULT_LAYOUT_MODE);
     const [paletteSection, setPaletteSection] =
-        useState<PaletteSection>("search");
-    const [commandAttachments, setCommandAttachments] = useState<
+        React.useState<PaletteSection>("search");
+    const [commandAttachments, setCommandAttachments] = React.useState<
         LibraryCommandAttachment[]
     >([]);
     const [activeNote, setActiveNote] =
-        useState<LibraryItemWithCollections | null>(null);
-    const [isNoteDrawerOpen, setIsNoteDrawerOpen] = useState(false);
+        React.useState<LibraryItemWithCollections | null>(null);
+    const [isNoteDrawerOpen, setIsNoteDrawerOpen] = React.useState(false);
     const [isCreateResultsDialogOpen, setIsCreateResultsDialogOpen] =
-        useState(false);
-    const [createResultsNameDraft, setCreateResultsNameDraft] = useState("");
+        React.useState(false);
+    const [createResultsNameDraft, setCreateResultsNameDraft] =
+        React.useState("");
     const [createResultsDescriptionDraft, setCreateResultsDescriptionDraft] =
-        useState("");
-    const [createResultsError, setCreateResultsError] = useState<string | null>(
-        null
-    );
-    const [commandListOpen, setCommandListOpen] = useState(false);
-    const [isPaletteFocused, setIsPaletteFocused] = useState(false);
-    const [commandPanelShellHeight, setCommandPanelShellHeight] = useState(0);
-    const commandPanelContainerRef = useRef<HTMLDivElement>(null);
-    const paletteInputRef = useRef<HTMLInputElement>(null);
-    const commandAttachmentsRef = useRef<LibraryCommandAttachment[]>([]);
+        React.useState("");
+    const [createResultsError, setCreateResultsError] = React.useState<
+        string | null
+    >(null);
+    const [commandListOpen, setCommandListOpen] = React.useState(false);
+    const [isPaletteFocused, setIsPaletteFocused] = React.useState(false);
+    const [commandPanelShellHeight, setCommandPanelShellHeight] =
+        React.useState(0);
+    const commandPanelContainerRef = React.useRef<HTMLDivElement>(null);
+    const paletteInputRef = React.useRef<HTMLInputElement>(null);
+    const commandAttachmentsRef = React.useRef<LibraryCommandAttachment[]>([]);
     commandAttachmentsRef.current = commandAttachments;
-    const createResultsNameInputId = useId();
-    const createResultsDescriptionId = useId();
+    const createResultsNameInputId = React.useId();
+    const createResultsDescriptionId = React.useId();
     /** Skips one combobox-driven close right after entering a drill-down section. */
-    const suppressNextCommandCloseRef = useRef(false);
+    const suppressNextCommandCloseRef = React.useRef(false);
     const {
         actionFeedback,
         handleConfirmDelete,
@@ -5341,12 +5310,13 @@ function LibraryBrowser({
         pendingDeleteItem,
         setActionFeedback,
     } = useLibraryItemActions(onItemsChange);
-    const [isSavingNote, startSavingNoteTransition] = useTransition();
-    const [isSavingPastedUrl, startSavingPastedUrlTransition] = useTransition();
+    const [isSavingNote, startSavingNoteTransition] = React.useTransition();
+    const [isSavingPastedUrl, startSavingPastedUrlTransition] =
+        React.useTransition();
     const [
         isCreatingResultsCollection,
         startCreateResultsCollectionTransition,
-    ] = useTransition();
+    ] = React.useTransition();
 
     const domainOptions = buildDomainPaletteOptions(items);
 
@@ -5360,7 +5330,7 @@ function LibraryBrowser({
         });
     };
 
-    const focusPaletteInputRef = useRef(focusPaletteInput);
+    const focusPaletteInputRef = React.useRef(focusPaletteInput);
     focusPaletteInputRef.current = focusPaletteInput;
 
     const handleCommandOpenChange = (
@@ -5459,7 +5429,7 @@ function LibraryBrowser({
         };
     }, []);
 
-    useEffect(() => {
+    React.useEffect(() => {
         const handleWindowKeyDown = (event: KeyboardEvent) => {
             const target = event.target;
             const isTextEntry = isTextEntryTarget(target);
@@ -5505,7 +5475,7 @@ function LibraryBrowser({
         };
     }, []);
 
-    useEffect(
+    React.useEffect(
         () => () => {
             for (const attachment of commandAttachmentsRef.current) {
                 revokeFileAttachmentObjectUrl(attachment.url);
@@ -5696,7 +5666,7 @@ function LibraryBrowser({
         systemControlKey ?? ""
     );
 
-    const visiblePaletteGroupsRef = useRef(visiblePaletteGroups);
+    const visiblePaletteGroupsRef = React.useRef(visiblePaletteGroups);
     visiblePaletteGroupsRef.current = visiblePaletteGroups;
 
     useHotkeys(
@@ -5739,7 +5709,7 @@ function LibraryBrowser({
         inputPlaceholder = "Change the layout…";
     }
 
-    const filteredItems = useMemo(
+    const filteredItems = React.useMemo(
         () =>
             filterLibraryBrowserItems(items, {
                 collectionMembershipFilter,
@@ -5758,12 +5728,12 @@ function LibraryBrowser({
         ]
     );
 
-    const sortedItems = useMemo(
+    const sortedItems = React.useMemo(
         () => sortLibraryBrowserItems(filteredItems, sortMode),
         [filteredItems, sortMode]
     );
 
-    const sections = useMemo(
+    const sections = React.useMemo(
         () => buildLibraryBrowserSections(sortedItems, groupBy, sortMode),
         [groupBy, sortMode, sortedItems]
     );
@@ -5772,12 +5742,12 @@ function LibraryBrowser({
         !(isAccessLoading || hasAccess) &&
         filteredItems.length > FREE_LIBRARY_PREVIEW_ITEMS;
 
-    const gatedSections = useMemo(
+    const gatedSections = React.useMemo(
         () => gateLibraryBrowserSections(sections, shouldGateResults),
         [sections, shouldGateResults]
     );
 
-    const hasActiveFilters = useMemo(
+    const hasActiveFilters = React.useMemo(
         () =>
             libraryBrowserHasActiveFilters({
                 collectionMembershipFilter,
@@ -5812,7 +5782,6 @@ function LibraryBrowser({
         collapsedSectionKeys,
         enableSectionCollapse,
         expandAllSections,
-        layoutRefreshToken,
         toggleSection,
     } = useSectionCollapseState({
         groupBy,
@@ -5831,7 +5800,7 @@ function LibraryBrowser({
         filteredItems.length === items.length
             ? `${items.length} item${items.length === 1 ? "" : "s"}`
             : `${filteredItems.length} of ${items.length} items`;
-    const visibleResultItems = useMemo(
+    const visibleResultItems = React.useMemo(
         () =>
             gatedSections.flatMap((section) => getVisibleSectionItems(section)),
         [gatedSections]
@@ -5842,7 +5811,7 @@ function LibraryBrowser({
     const canClear =
         (hasActiveFilters || hasNonDefaultView) && !showEmptyLibraryPeek;
 
-    const commandSuggestions = useMemo(
+    const commandSuggestions = React.useMemo(
         () =>
             buildCommandSuggestions({
                 collections,
@@ -5857,7 +5826,7 @@ function LibraryBrowser({
         [collections, items, onRemoveCollectionFilter, selectedCollectionIds]
     );
 
-    const resultCollectionItemIds = useMemo(
+    const resultCollectionItemIds = React.useMemo(
         () => visibleResultItems.map((item) => item.id),
         [visibleResultItems]
     );
@@ -6023,7 +5992,6 @@ function LibraryBrowser({
         columnCount: resolvedColumnCount,
         enableSectionCollapse,
         layoutMode,
-        layoutRefreshToken,
         onCollapseAllSections: collapseAllSections,
         onCopyLink: handleCopyLink,
         onDelete: handleRequestDelete,
@@ -6515,11 +6483,13 @@ export function LibraryWorkspace({
     initialItems,
     sidebarBottom,
     sidebarHeader,
-}: Props): ReactElement {
-    const [items, setItems] = useState<LibraryItemWithCollections[]>([
+}: Props): React.ReactElement {
+    const [items, setItems] = React.useState<LibraryItemWithCollections[]>([
         ...initialItems,
     ]);
-    const [collections, setCollections] = useState<LibraryCollectionTag[]>(
+    const [collections, setCollections] = React.useState<
+        LibraryCollectionTag[]
+    >(
         sortCollections(
             initialCollections.map((collection) => ({
                 createdAt: collection.createdAt,
@@ -6533,12 +6503,11 @@ export function LibraryWorkspace({
             }))
         )
     );
-    const [selectedCollectionIds, setSelectedCollectionIds] = useState<
+    const [selectedCollectionIds, setSelectedCollectionIds] = React.useState<
         string[]
     >([]);
-    const [pendingCollectionItemIds, setPendingCollectionItemIds] = useState<
-        string[]
-    >([]);
+    const [pendingCollectionItemIds, setPendingCollectionItemIds] =
+        React.useState<string[]>([]);
 
     const { collectionSortField } = useCollectionsSortStore();
 
@@ -6547,7 +6516,7 @@ export function LibraryWorkspace({
         collectionSortField
     );
 
-    const itemsByCollectionId = useMemo(() => {
+    const itemsByCollectionId = React.useMemo(() => {
         const map = new Map<string, LibraryItemWithCollections[]>();
         for (const item of items) {
             for (const collection of item.collections) {
@@ -6562,7 +6531,7 @@ export function LibraryWorkspace({
         return map;
     }, [items]);
 
-    const collectionPreviewThumbnailUrlsById = useMemo(() => {
+    const collectionPreviewThumbnailUrlsById = React.useMemo(() => {
         const map = new Map<string, string[]>();
         for (const [collectionId, collectionItems] of itemsByCollectionId) {
             map.set(

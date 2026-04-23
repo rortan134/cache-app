@@ -30,13 +30,16 @@ export function FeedbackWidget(
     );
     const formRef = useRef<HTMLFormElement>(null);
 
-    useEffect(() => {
-        if (state.status !== "success") {
-            return;
-        }
-        formRef.current?.reset();
-        setIsOpen(false);
-    }, [state.status]);
+    useEffect(
+        function closeOnSubmit() {
+            if (state.status !== "success") {
+                return;
+            }
+            formRef.current?.reset();
+            setIsOpen(false);
+        },
+        [state.status]
+    );
 
     useHotkeys("F", () => {
         setIsOpen((prev) => !prev);
