@@ -139,13 +139,13 @@ export const useAttachmentsContext = () =>
     React.use(AttachmentsContext) ?? { variant: "grid" as const };
 
 export const useAttachmentContext = () => {
-    const ctx = React.use(AttachmentContext);
-    if (!ctx) {
+    const context = React.use(AttachmentContext);
+    if (!context) {
         throw new Error(
             "Attachment components must be used within <Attachment>"
         );
     }
-    return ctx;
+    return context;
 };
 
 // ============================================================================
@@ -159,13 +159,12 @@ export type AttachmentsProps = HTMLAttributes<HTMLDivElement> & {
 export const Attachments = ({
     variant = "grid",
     className,
-    children,
     ...props
 }: AttachmentsProps) => {
     const contextValue = React.useMemo(() => ({ variant }), [variant]);
 
     return (
-        <AttachmentsContext.Provider value={contextValue}>
+        <AttachmentsContext value={contextValue}>
             <div
                 className={cn(
                     "flex items-start",
@@ -174,10 +173,8 @@ export const Attachments = ({
                     className
                 )}
                 {...props}
-            >
-                {children}
-            </div>
-        </AttachmentsContext.Provider>
+            />
+        </AttachmentsContext>
     );
 };
 
@@ -194,7 +191,6 @@ export const Attachment = ({
     data,
     onRemove,
     className,
-    children,
     ...props
 }: AttachmentProps) => {
     const { variant } = useAttachmentsContext();
@@ -206,7 +202,7 @@ export const Attachment = ({
     );
 
     return (
-        <AttachmentContext.Provider value={contextValue}>
+        <AttachmentContext value={contextValue}>
             <div
                 className={cn(
                     "group relative",
@@ -224,10 +220,8 @@ export const Attachment = ({
                     className
                 )}
                 {...props}
-            >
-                {children}
-            </div>
-        </AttachmentContext.Provider>
+            />
+        </AttachmentContext>
     );
 };
 

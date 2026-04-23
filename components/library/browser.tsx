@@ -5094,7 +5094,7 @@ function SectionDescription({
 
     const summary = data?.summary?.trim();
     return (
-        <p className="block w-full select-all text-xs leading-snug">
+        <p className="fade-in-0 zoom-in-95 block w-full animate-in select-all text-xs leading-snug duration-200 motion-reduce:animate-none">
             {summary && summary.length > 0
                 ? summary
                 : SECTION_DESCRIPTION_FALLBACK_TEXT}
@@ -6389,7 +6389,7 @@ function LibraryBrowser({
                         }
                     >
                         <Globe className="inline-block size-3.5 shrink-0" />
-                        &nbsp;Feedback&nbsp;
+                        &nbsp;Feedback
                         <ChevronDown className="inline-block size-3.5 shrink-0" />
                     </FeedbackWidget>
                     {canCreateCollectionFromResults ? (

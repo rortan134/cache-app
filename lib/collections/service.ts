@@ -15,8 +15,115 @@ import type {
     LibraryCollectionTag,
 } from "@/lib/common/types";
 import { prisma } from "@/prisma";
+import type { Prisma } from "@/prisma/client/client";
 import type { CollectionPriority } from "@/prisma/client/enums";
 import { LibraryCollectionError } from "./error";
+
+type CollectionTransaction = Prisma.TransactionClient;
+
+interface OwnedCollectionLookup {
+    readonly id: string;
+    readonly name: string;
+    readonly nameKey: string;
+}
+
+function createCollectionError(args: {
+    code: "duplicate_name" | "not_found";
+    message: string;
+    operation: string;
+}): InstanceType<typeof LibraryCollectionError> {
+    return new LibraryCollectionError(args);
+}
+
+function throwCollectionNotFound(operation: string, message: string): never {
+    throw createCollectionError({
+        code: "not_found",
+        message,
+        operation,
+    });
+}
+
+function throwDuplicateCollectionName(
+    operation: string,
+    message = "A collection with that name already exists."
+): never {
+    throw createCollectionError({
+        code: "duplicate_name",
+        message,
+        operation,
+    });
+}
+
+function findOwnedCollection(
+    tx: CollectionTransaction,
+    args: {
+        collectionId: string;
+        userId: string;
+    }
+): Promise<OwnedCollectionLookup | null> {
+    return tx.collection.findFirst({
+        select: {
+            id: true,
+            name: true,
+            nameKey: true,
+        },
+        where: {
+            id: args.collectionId,
+            userId: args.userId,
+        },
+    });
+}
+
+async function requireOwnedCollection(
+    tx: CollectionTransaction,
+    args: {
+        collectionId: string;
+        message: string;
+        operation: string;
+        userId: string;
+    }
+): Promise<OwnedCollectionLookup> {
+    const collection = await findOwnedCollection(tx, args);
+    if (!collection) {
+        throwCollectionNotFound(args.operation, args.message);
+    }
+
+    return collection;
+}
+
+async function ensureCollectionNameIsAvailable(
+    tx: CollectionTransaction,
+    args: {
+        excludeCollectionId?: string;
+        message?: string;
+        normalizedNameKey: string;
+        operation: string;
+        userId: string;
+    }
+): Promise<void> {
+    const existingCollection = await tx.collection.findFirst({
+        select: { id: true },
+        where: {
+            id: args.excludeCollectionId
+                ? { not: args.excludeCollectionId }
+                : undefined,
+            nameKey: args.normalizedNameKey,
+            userId: args.userId,
+        },
+    });
+
+    if (existingCollection) {
+        throwDuplicateCollectionName(args.operation, args.message);
+    }
+}
+
+function buildDuplicateCollectionName(
+    sourceName: string,
+    existingNames: readonly string[]
+): string {
+    const uniqueName = getIncrementedName(sourceName, [...existingNames]);
+    return normalizeCollectionName(uniqueName).name;
+}
 
 /**
  * Resolves a download URL for a given media URL.
@@ -54,26 +161,18 @@ export async function createCollection(args: {
             });
 
             if (!item) {
-                throw new LibraryCollectionError({
-                    code: "not_found",
-                    message: "We couldn't find that saved item to tag it.",
-                    operation: "createCollection",
-                });
+                throwCollectionNotFound(
+                    "createCollection",
+                    "We couldn't find that saved item to tag it."
+                );
             }
         }
 
-        const existingCollection = await tx.collection.findFirst({
-            select: { id: true },
-            where: { nameKey: normalized.nameKey, userId },
+        await ensureCollectionNameIsAvailable(tx, {
+            normalizedNameKey: normalized.nameKey,
+            operation: "createCollection",
+            userId,
         });
-
-        if (existingCollection) {
-            throw new LibraryCollectionError({
-                code: "duplicate_name",
-                message: "A collection with that name already exists.",
-                operation: "createCollection",
-            });
-        }
 
         const collection = await tx.collection.create({
             data: {
@@ -115,18 +214,11 @@ export async function createCollectionFromItems(args: {
     const normalized = normalizeCollectionName(name);
 
     return await prisma.$transaction(async (tx) => {
-        const existingCollection = await tx.collection.findFirst({
-            select: { id: true },
-            where: { nameKey: normalized.nameKey, userId },
+        await ensureCollectionNameIsAvailable(tx, {
+            normalizedNameKey: normalized.nameKey,
+            operation: "createCollectionFromItems",
+            userId,
         });
-
-        if (existingCollection) {
-            throw new LibraryCollectionError({
-                code: "duplicate_name",
-                message: "A collection with that name already exists.",
-                operation: "createCollectionFromItems",
-            });
-        }
 
         const matchingItems = await tx.libraryItem.findMany({
             select: { id: true, source: true },
@@ -134,11 +226,10 @@ export async function createCollectionFromItems(args: {
         });
 
         if (matchingItems.length !== itemIds.length) {
-            throw new LibraryCollectionError({
-                code: "not_found",
-                message: "Some of those saved items are no longer available.",
-                operation: "createCollectionFromItems",
-            });
+            throwCollectionNotFound(
+                "createCollectionFromItems",
+                "Some of those saved items are no longer available."
+            );
         }
 
         const collection = await tx.collection.create({
@@ -175,18 +266,12 @@ export async function deleteCollection(args: {
     const { collectionId, userId } = args;
 
     return await prisma.$transaction(async (tx) => {
-        const collection = await tx.collection.findFirst({
-            select: { id: true, name: true },
-            where: { id: collectionId, userId },
+        const collection = await requireOwnedCollection(tx, {
+            collectionId,
+            message: "This collection was already removed.",
+            operation: "deleteCollection",
+            userId,
         });
-
-        if (!collection) {
-            throw new LibraryCollectionError({
-                code: "not_found",
-                message: "This collection was already removed.",
-                operation: "deleteCollection",
-            });
-        }
 
         await tx.collection.delete({
             where: { id: collection.id },
@@ -207,6 +292,7 @@ export async function duplicateCollection(args: {
     collection: LibraryCollectionSummary;
 }> {
     const { collectionId, userId } = args;
+    const operation = "duplicateCollection";
 
     return await prisma.$transaction(async (tx) => {
         const sourceCollection = await tx.collection.findFirst({
@@ -222,11 +308,10 @@ export async function duplicateCollection(args: {
         });
 
         if (!sourceCollection) {
-            throw new LibraryCollectionError({
-                code: "not_found",
-                message: "That collection is no longer available.",
-                operation: "duplicateCollection",
-            });
+            throwCollectionNotFound(
+                operation,
+                "That collection is no longer available."
+            );
         }
 
         const existingNames = await tx.collection.findMany({
@@ -234,19 +319,10 @@ export async function duplicateCollection(args: {
             where: { userId },
         });
 
-        const existingNameKeys = new Set(
-            existingNames.map(
-                (collection) => normalizeCollectionName(collection.name).nameKey
-            )
+        const nextName = buildDuplicateCollectionName(
+            sourceCollection.name,
+            existingNames.map((collection) => collection.name)
         );
-
-        let nextName = sourceCollection.name;
-        while (
-            existingNameKeys.has(normalizeCollectionName(nextName).nameKey)
-        ) {
-            nextName = getIncrementedName(nextName, [nextName]);
-        }
-
         const normalized = normalizeCollectionName(nextName);
 
         const duplicatedCollection = await tx.collection.create({
@@ -291,22 +367,22 @@ export async function updateCollectionPriority(args: {
 }): Promise<LibraryCollectionTag> {
     const { collectionId, priority, userId } = args;
 
-    const updatedCollection = await prisma.collection.updateManyAndReturn({
-        data: { priority },
-        select: LIBRARY_COLLECTION_TAG_SELECT,
-        where: { id: collectionId, userId },
-    });
-
-    const collection = updatedCollection[0];
-    if (!collection) {
-        throw new LibraryCollectionError({
-            code: "not_found",
+    return await prisma.$transaction(async (tx) => {
+        const collection = await requireOwnedCollection(tx, {
+            collectionId,
             message: "That collection is no longer available.",
             operation: "updateCollectionPriority",
+            userId,
         });
-    }
 
-    return toLibraryCollectionTag(collection);
+        const updatedCollection = await tx.collection.update({
+            data: { priority },
+            select: LIBRARY_COLLECTION_TAG_SELECT,
+            where: { id: collection.id },
+        });
+
+        return toLibraryCollectionTag(updatedCollection);
+    });
 }
 
 /**
@@ -327,33 +403,22 @@ export async function renameCollection(args: {
         });
 
         if (!collection) {
-            throw new LibraryCollectionError({
-                code: "not_found",
-                message: "That collection is no longer available.",
-                operation: "renameCollection",
-            });
+            throwCollectionNotFound(
+                "renameCollection",
+                "That collection is no longer available."
+            );
         }
 
         if (collection.name === normalized.name) {
             return toLibraryCollectionTag(collection);
         }
 
-        const existingCollection = await tx.collection.findFirst({
-            select: { id: true },
-            where: {
-                id: { not: collection.id },
-                nameKey: normalized.nameKey,
-                userId,
-            },
+        await ensureCollectionNameIsAvailable(tx, {
+            excludeCollectionId: collection.id,
+            normalizedNameKey: normalized.nameKey,
+            operation: "renameCollection",
+            userId,
         });
-
-        if (existingCollection) {
-            throw new LibraryCollectionError({
-                code: "duplicate_name",
-                message: "A collection with that name already exists.",
-                operation: "renameCollection",
-            });
-        }
 
         const updatedCollection = await tx.collection.update({
             data: {
@@ -382,11 +447,10 @@ export async function deleteLibraryItem(args: {
     });
 
     if (result.count === 0) {
-        throw new LibraryCollectionError({
-            code: "not_found",
-            message: "This saved item was already removed.",
-            operation: "deleteLibraryItem",
-        });
+        throwCollectionNotFound(
+            "deleteLibraryItem",
+            "This saved item was already removed."
+        );
     }
 
     return itemId;
@@ -411,11 +475,10 @@ export async function updateLibraryItemCollections(args: {
     });
 
     if (!item) {
-        throw new LibraryCollectionError({
-            code: "not_found",
-            message: "We couldn't find that saved item.",
-            operation: "updateLibraryItemCollections",
-        });
+        throwCollectionNotFound(
+            "updateLibraryItemCollections",
+            "We couldn't find that saved item."
+        );
     }
 
     const ownedCollections = collectionIds.length
@@ -430,11 +493,10 @@ export async function updateLibraryItemCollections(args: {
         : [];
 
     if (ownedCollections.length !== collectionIds.length) {
-        throw new LibraryCollectionError({
-            code: "not_found",
-            message: "One of those collections is no longer available.",
-            operation: "updateLibraryItemCollections",
-        });
+        throwCollectionNotFound(
+            "updateLibraryItemCollections",
+            "One of those collections is no longer available."
+        );
     }
 
     const updatedItem = await prisma.libraryItem.update({

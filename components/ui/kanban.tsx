@@ -673,9 +673,7 @@ function Kanban<T>(props: KanbanProps<T>) {
     );
 
     return (
-        <KanbanContext.Provider
-            value={contextValue as KanbanContextValue<unknown>}
-        >
+        <KanbanContext value={contextValue as KanbanContextValue<unknown>}>
             <DndContext
                 collisionDetection={collisionDetection}
                 modifiers={modifiers}
@@ -703,7 +701,7 @@ function Kanban<T>(props: KanbanProps<T>) {
                 onDragOver={onDragOver}
                 onDragStart={onDragStart}
             />
-        </KanbanContext.Provider>
+        </KanbanContext>
     );
 }
 
@@ -727,7 +725,7 @@ function KanbanBoard(props: KanbanBoardProps) {
     const BoardPrimitive = "div";
 
     return (
-        <KanbanBoardContext.Provider value={true}>
+        <KanbanBoardContext value={true}>
             <SortableContext
                 items={columns}
                 strategy={
@@ -751,7 +749,7 @@ function KanbanBoard(props: KanbanBoardProps) {
                     ref={ref}
                 />
             </SortableContext>
-        </KanbanBoardContext.Provider>
+        </KanbanBoardContext>
     );
 }
 
@@ -865,7 +863,7 @@ function KanbanColumn(props: KanbanColumnProps) {
     const ColumnPrimitive = "div";
 
     return (
-        <KanbanColumnContext.Provider value={columnContext}>
+        <KanbanColumnContext value={columnContext}>
             <SortableContext
                 items={items}
                 strategy={
@@ -900,7 +898,7 @@ function KanbanColumn(props: KanbanColumnProps) {
                     style={composedStyle}
                 />
             </SortableContext>
-        </KanbanColumnContext.Provider>
+        </KanbanColumnContext>
     );
 }
 
@@ -1046,7 +1044,7 @@ function KanbanItem(props: KanbanItemProps) {
     const ItemPrimitive = "div";
 
     return (
-        <KanbanItemContext.Provider value={itemContext}>
+        <KanbanItemContext value={itemContext}>
             <ItemPrimitive
                 data-disabled={disabled}
                 data-dragging={isDragging ? "" : undefined}
@@ -1071,7 +1069,7 @@ function KanbanItem(props: KanbanItemProps) {
                 ref={composedRef}
                 style={composedStyle}
             />
-        </KanbanItemContext.Provider>
+        </KanbanItemContext>
     );
 }
 
@@ -1170,7 +1168,7 @@ function KanbanOverlay(props: KanbanOverlayProps) {
             modifiers={context.modifiers}
             {...overlayProps}
         >
-            <KanbanOverlayContext.Provider value={true}>
+            <KanbanOverlayContext value={true}>
                 {context.activeId && children
                     ? // biome-ignore lint/style/noNestedTernary: Ignore
                       typeof children === "function"
@@ -1180,7 +1178,7 @@ function KanbanOverlay(props: KanbanOverlayProps) {
                           })
                         : children
                     : null}
-            </KanbanOverlayContext.Provider>
+            </KanbanOverlayContext>
         </DragOverlay>,
         container
     );

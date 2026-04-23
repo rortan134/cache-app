@@ -38,6 +38,36 @@ interface PublicCollectionShare {
     readonly updatedAt: Date;
 }
 
+function findOwnedCollectionTag(args: {
+    collectionId: string;
+    userId: string;
+}) {
+    return prisma.collection.findFirst({
+        select: LIBRARY_COLLECTION_TAG_SELECT,
+        where: {
+            id: args.collectionId,
+            userId: args.userId,
+        },
+    });
+}
+
+async function requireOwnedCollectionTag(args: {
+    collectionId: string;
+    operation: string;
+    userId: string;
+}) {
+    const collection = await findOwnedCollectionTag(args);
+    if (!collection) {
+        throw new CollectionShareError({
+            code: "not_found",
+            message: "That collection is no longer available.",
+            operation: args.operation,
+        });
+    }
+
+    return collection;
+}
+
 function isPrismaUniqueConstraintError(error: unknown): boolean {
     return (
         error instanceof Prisma.PrismaClientKnownRequestError &&
@@ -49,21 +79,11 @@ export async function enablePublicCollectionShare(input: {
     collectionId: string;
     userId: string;
 }) {
-    const existingCollection = await prisma.collection.findFirst({
-        select: LIBRARY_COLLECTION_TAG_SELECT,
-        where: {
-            id: input.collectionId,
-            userId: input.userId,
-        },
+    const existingCollection = await requireOwnedCollectionTag({
+        collectionId: input.collectionId,
+        operation: "enablePublicCollectionShare",
+        userId: input.userId,
     });
-
-    if (!existingCollection) {
-        throw new CollectionShareError({
-            code: "not_found",
-            message: "That collection is no longer available.",
-            operation: "enablePublicCollectionShare",
-        });
-    }
 
     if (existingCollection.shareId && existingCollection.sharedAt) {
         return toLibraryCollectionTag(existingCollection);
@@ -113,21 +133,11 @@ export async function disablePublicCollectionShare(input: {
     collectionId: string;
     userId: string;
 }) {
-    const existingCollection = await prisma.collection.findFirst({
-        select: LIBRARY_COLLECTION_TAG_SELECT,
-        where: {
-            id: input.collectionId,
-            userId: input.userId,
-        },
+    const existingCollection = await requireOwnedCollectionTag({
+        collectionId: input.collectionId,
+        operation: "disablePublicCollectionShare",
+        userId: input.userId,
     });
-
-    if (!existingCollection) {
-        throw new CollectionShareError({
-            code: "not_found",
-            message: "That collection is no longer available.",
-            operation: "disablePublicCollectionShare",
-        });
-    }
 
     if (!(existingCollection.shareId || existingCollection.sharedAt)) {
         return toLibraryCollectionTag(existingCollection);

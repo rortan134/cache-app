@@ -1,0 +1,120 @@
+{
+    "id": "soft-blur-in",
+    "display_name": "Soft Blur",
+    "description": "Per-character fade-in with a gentle blur and upward motion. Apple's signature hero-title reveal.",
+    "inspiration": "Apple keynote intros; iPhone, Mac, and Vision Pro product page headlines; macOS system UI reveals.",
+    "target": "per-character",
+    "signature_easing": "cubic-bezier(0.22, 1, 0.36, 1)",
+    "enter": {
+        "duration_ms": 900,
+        "stagger_ms": 25,
+        "easing": "cubic-bezier(0.22, 1, 0.36, 1)",
+        "from": {
+            "opacity": 0,
+            "y_px": 16,
+            "blur_px": 12
+        },
+        "to": {
+            "opacity": 1,
+            "y_px": 0,
+            "blur_px": 0
+        }
+    },
+    "exit": {
+        "duration_ms": 600,
+        "stagger_ms": 15,
+        "easing": "cubic-bezier(0.64, 0, 0.78, 0)",
+        "from": {
+            "opacity": 1,
+            "y_px": 0,
+            "blur_px": 0
+        },
+        "to": {
+            "opacity": 0,
+            "y_px": -16,
+            "blur_px": 12
+        }
+    },
+    "swap": {
+        "mode": "crossfade",
+        "overlap_ms": 300,
+        "scenario_spec": {
+            "entry_condition": "Use when text is replaced in the same layout slot and both strings remain visually stable in one block.",
+            "switch_order": [
+                "Start old text exit at t=0ms.",
+                "Start new text enter at t=exit_total_ms-overlap_ms.",
+                "Keep both text layers mounted only during the overlap window."
+            ],
+            "verification": [
+                "No hard-cut frame appears between old and new text.",
+                "Blur stays readable during overlap on desktop and mobile.",
+                "Total swap duration remains below 1300ms for default sample length."
+            ],
+            "fallback": {
+                "if_overlap_looks_heavy": "Reduce overlap_ms to 180 and exit blur_px to 8.",
+                "if_copy_is_long": "Switch target to per-word and reduce enter stagger_ms to 15."
+            }
+        }
+    },
+    "usage_notes": "Works best on hero titles 48px+ against solid backgrounds. On body text (<24px), reduce blur_px to 6 and stagger_ms to 15. Avoid on very long strings (>40 chars) — total stagger becomes too long; in that case switch target to 'per-word'.",
+    "preview": "./previews/soft-blur-in.html",
+    "visibility": "visible",
+    "site_reference": {
+        "sample_source": {
+            "asset": "assets/samples.json",
+            "key": "soft-blur-in"
+        },
+        "renderer": {
+            "id": "generic-stagger",
+            "source": "default",
+            "params": {}
+        },
+        "runtime": {
+            "preset": "website-default",
+            "speed_multiplier": 0.72,
+            "hold_ms": 550,
+            "gap_ms": 320,
+            "y_travel_multiplier": 0.58,
+            "initial_delay_ms": {
+                "mode": "random-range",
+                "min": 0,
+                "max": 400
+            }
+        },
+        "playback": {
+            "kind": "loop",
+            "cycle": ["enter", "hold", "exit", "micro-delay", "gap"],
+            "replacement_behavior": "exit-before-enter",
+            "hold_ms": 550,
+            "micro_delay_ms": 0,
+            "gap_ms": 320
+        },
+        "stage": {
+            "preset": "default-title-card",
+            "container": {
+                "container_type": "inline-size",
+                "padding": "clamp(1rem, 5cqi, 1.5rem)",
+                "perspective_px": 900
+            },
+            "title": {
+                "font_size": "clamp(1.375rem, 10cqi, 2.125rem)",
+                "font_weight": 580,
+                "letter_spacing_em": -0.022,
+                "line_height": 1.08,
+                "max_width": "min(92%, 18ch)",
+                "text_align": "center",
+                "text_wrap": "balance"
+            },
+            "unit": {
+                "display": "inline-block",
+                "transform_origin": "50% 55%",
+                "white_space": "pre"
+            }
+        },
+        "reproduction_notes": [
+            "On the site this effect uses the generic stagger renderer. Apply the portable enter and exit frames per animated unit, preserving the declared target split and stagger ordering.",
+            "For site parity, scale duration and stagger timing by 0.72 and scale vertical travel by 0.58. These runtime transforms materially affect the perceived pace and distance.",
+            "For exact site reproduction, follow `site_reference.playback` and `site_reference.stage` over any abstract assumptions inferred from the portable contract alone. The current site loop and typography treatment are part of the visible result."
+        ]
+    }
+}

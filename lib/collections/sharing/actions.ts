@@ -1,7 +1,10 @@
 "use server";
 
-import { getSessionUserId } from "@/lib/auth/server";
-import { extractNamedErrorMessage } from "@/lib/common/error";
+import {
+    getValidationErrorMessage,
+    handleActionError,
+    requireActionUserId,
+} from "@/lib/collections/action-helpers";
 import { createLogger } from "@/lib/common/logs/console/logger";
 import type { LibraryCollectionTag } from "@/lib/common/types";
 import * as z from "zod";
@@ -50,25 +53,25 @@ export async function shareCollectionPublicly(input: {
     const parsed = CollectionShareInputSchema.safeParse(input);
     if (!parsed.success) {
         return {
-            message:
-                parsed.error.issues[0]?.message ??
-                "Select a collection to share.",
+            message: getValidationErrorMessage(
+                parsed,
+                "Select a collection to share."
+            ),
             status: "INVALID",
         };
     }
 
-    const userId = await getSessionUserId();
-    if (!userId) {
-        return {
-            message: "Sign in again to share collections.",
-            status: "UNAUTHORIZED",
-        };
+    const auth = await requireActionUserId(
+        "Sign in again to share collections."
+    );
+    if ("status" in auth) {
+        return auth;
     }
 
     try {
         const collection = await enablePublicCollectionShare({
             collectionId: parsed.data.collectionId,
-            userId,
+            userId: auth.userId,
         });
 
         if (!(collection.shareId && collection.sharedAt)) {
@@ -87,22 +90,13 @@ export async function shareCollectionPublicly(input: {
             status: "SHARED",
         };
     } catch (error) {
-        const details = extractNamedErrorMessage(error);
-        if (
-            CollectionShareError.isInstance(error) &&
-            error.data.code === "not_found"
-        ) {
-            return {
-                message: details.message,
-                status: "NOT_FOUND",
-            };
-        }
-
-        log.error("Unexpected collection sharing failure", error);
-        return {
-            message: "We couldn't create a public link right now.",
-            status: "ERROR",
-        };
+        return handleActionError({
+            codeToStatus: { not_found: "NOT_FOUND" },
+            error,
+            errorFactory: CollectionShareError,
+            fallbackMessage: "We couldn't create a public link right now.",
+            log,
+        });
     }
 }
 
@@ -112,25 +106,25 @@ export async function disableCollectionSharing(input: {
     const parsed = CollectionShareInputSchema.safeParse(input);
     if (!parsed.success) {
         return {
-            message:
-                parsed.error.issues[0]?.message ??
-                "Select a collection to stop sharing.",
+            message: getValidationErrorMessage(
+                parsed,
+                "Select a collection to stop sharing."
+            ),
             status: "INVALID",
         };
     }
 
-    const userId = await getSessionUserId();
-    if (!userId) {
-        return {
-            message: "Sign in again to manage shared collections.",
-            status: "UNAUTHORIZED",
-        };
+    const auth = await requireActionUserId(
+        "Sign in again to manage shared collections."
+    );
+    if ("status" in auth) {
+        return auth;
     }
 
     try {
         const collection = await disablePublicCollectionShare({
             collectionId: parsed.data.collectionId,
-            userId,
+            userId: auth.userId,
         });
 
         return {
@@ -138,21 +132,13 @@ export async function disableCollectionSharing(input: {
             status: "DISABLED",
         };
     } catch (error) {
-        const details = extractNamedErrorMessage(error);
-        if (
-            CollectionShareError.isInstance(error) &&
-            error.data.code === "not_found"
-        ) {
-            return {
-                message: details.message,
-                status: "NOT_FOUND",
-            };
-        }
-
-        log.error("Unexpected collection unshare failure", error);
-        return {
-            message: "We couldn't stop sharing this collection right now.",
-            status: "ERROR",
-        };
+        return handleActionError({
+            codeToStatus: { not_found: "NOT_FOUND" },
+            error,
+            errorFactory: CollectionShareError,
+            fallbackMessage:
+                "We couldn't stop sharing this collection right now.",
+            log,
+        });
     }
 }

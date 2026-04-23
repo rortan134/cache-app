@@ -86,7 +86,6 @@ import { useHotkeys } from "react-hotkeys-hook";
 import { createStore } from "stan-js";
 import { storage } from "stan-js/storage";
 
-const COLLECTION_ITEM_PREVIEW_CLOSE_DELAY_MS = 20;
 const COLLECTION_ITEM_PREVIEW_SLIDESHOW_INTERVAL_MS = 600;
 
 const COMPACT_NUMBER_FORMATTER = new Intl.NumberFormat("en-US", {
@@ -98,6 +97,135 @@ const { useStore: useCollectionsListStateStore } = createStore({
     isCollectionsListOpen: storage(false),
 });
 
+export const { useStore: useCollectionsSortStore } = createStore({
+    collectionSortField: storage<CollectionSortField>("priority"),
+});
+
+export const NAME_COLLATOR = new Intl.Collator(undefined, {
+    numeric: true,
+    sensitivity: "base",
+});
+
+interface PriorityOption {
+    icon: React.ElementType;
+    label: string;
+    value: CollectionPriority;
+}
+
+type CollectionSortField = "count" | "created" | "priority" | "updated";
+
+interface SortingOption {
+    icon: React.ElementType;
+    label: string;
+    value: CollectionSortField;
+}
+
+interface CollectionsListItemContextValue {
+    collection: LibraryCollectionSummary;
+    isHovered: boolean;
+}
+
+interface CollectionsListItemMetaProps {
+    isSharePending: boolean;
+    onCopyLinks: () => void;
+    onCopyShareLink: () => void;
+    onCopyTitle: () => void;
+    onDelete: () => void;
+    onDisableShare: () => void;
+    onEnableShare: () => void;
+    onExportCsv: () => void;
+    onMakeCopy: () => void;
+    onOpenLinks: () => void;
+    onRename: () => void;
+    shareUrl: string | null;
+}
+
+interface CollectionsListSharePopoverProps {
+    collection: LibraryCollectionSummary;
+    isSharePending: boolean;
+    onCopyShareLink: () => void;
+    onDisableShare: () => void;
+    onEnableShare: () => void;
+    shareUrl: string | null;
+}
+
+interface CollectionsListExportMenuProps {
+    hasItems: boolean;
+    onCopyLinks: () => void;
+    onCopyTitle: () => void;
+    onExportCsv: () => void;
+    onMakeCopy: () => void;
+    onOpenLinks: () => void;
+}
+
+const DEFAULT_PRIORITY_OPTION: PriorityOption = {
+    icon: PriorityNoneIcon,
+    label: "No priority",
+    value: "none",
+};
+
+const PRIORITY_OPTIONS = [
+    DEFAULT_PRIORITY_OPTION,
+    {
+        icon: Sparkle,
+        label: "Very relevant",
+        value: "very_relevant",
+    },
+    {
+        icon: SignalHigh,
+        label: "Relevant",
+        value: "relevant",
+    },
+    {
+        icon: SignalMedium,
+        label: "Background",
+        value: "peripheral",
+    },
+    {
+        icon: ArchiveIcon,
+        label: "Archive",
+        value: "archive",
+    },
+] satisfies PriorityOption[];
+
+const PRIORITY_OPTION_BY_VALUE = new Map(
+    PRIORITY_OPTIONS.map((option) => [option.value, option])
+);
+
+const SORTING_OPTIONS = [
+    {
+        icon: SignalHigh,
+        label: "Priority",
+        value: "priority",
+    },
+    {
+        icon: Sparkle,
+        label: "Created",
+        value: "created",
+    },
+    {
+        icon: Clock,
+        label: "Updated",
+        value: "updated",
+    },
+    {
+        icon: Component,
+        label: "Count",
+        value: "count",
+    },
+] satisfies SortingOption[];
+
+const COLLECTION_PRIORITY_ORDER: Record<CollectionPriority, number> = {
+    archive: 3,
+    none: 4,
+    peripheral: 2,
+    relevant: 1,
+    very_relevant: 0,
+};
+
+const CollectionsListItemContext =
+    React.createContext<CollectionsListItemContextValue | null>(null);
+
 function useCollectionsListOpenState() {
     const { isCollectionsListOpen, setIsCollectionsListOpen } =
         useCollectionsListStateStore();
@@ -106,6 +234,378 @@ function useCollectionsListOpenState() {
         isOpen: isCollectionsListOpen,
         setIsOpen: setIsCollectionsListOpen,
     };
+}
+
+function useCollectionsListItemContext() {
+    const context = React.use(CollectionsListItemContext);
+    if (!context) {
+        throw new Error(
+            "CollectionsListItem compound components must be used within CollectionsListItem."
+        );
+    }
+    return context;
+}
+
+function useCollectionItemHotkey(
+    keys: Parameters<typeof useHotkeys>[0],
+    onTrigger: () => void,
+    enabled = true
+) {
+    const { isHovered } = useCollectionsListItemContext();
+
+    useHotkeys(
+        keys,
+        () => {
+            onTrigger();
+        },
+        {
+            enabled: isHovered && enabled,
+            preventDefault: true,
+        },
+        [enabled, isHovered, onTrigger]
+    );
+}
+
+function useControllableOpenState(
+    open: boolean | undefined,
+    onOpenChange?: (open: boolean) => void
+) {
+    const [uncontrolledOpen, setUncontrolledOpen] = React.useState(false);
+    const isControlled = open !== undefined;
+    const resolvedOpen = isControlled ? open : uncontrolledOpen;
+
+    const setOpen = React.useCallback(
+        (nextOpen: boolean) => {
+            if (!isControlled) {
+                setUncontrolledOpen(nextOpen);
+            }
+
+            onOpenChange?.(nextOpen);
+        },
+        [isControlled, onOpenChange]
+    );
+
+    return [resolvedOpen, setOpen] as const;
+}
+
+function useCollectionItemPreviewIndex(
+    isOpen: boolean,
+    thumbnailCount: number
+) {
+    const [activePreviewIndex, setActivePreviewIndex] = React.useState(0);
+    const hasMultipleThumbnails = thumbnailCount > 1;
+
+    React.useEffect(() => {
+        if (!(isOpen && hasMultipleThumbnails)) {
+            setActivePreviewIndex(0);
+            return;
+        }
+
+        const interval = window.setInterval(() => {
+            setActivePreviewIndex(
+                (currentIndex) => (currentIndex + 1) % thumbnailCount
+            );
+        }, COLLECTION_ITEM_PREVIEW_SLIDESHOW_INTERVAL_MS);
+
+        return () => {
+            window.clearInterval(interval);
+        };
+    }, [hasMultipleThumbnails, isOpen, thumbnailCount]);
+
+    return activePreviewIndex;
+}
+
+function getPriorityOption(priority: CollectionPriority): PriorityOption {
+    return PRIORITY_OPTION_BY_VALUE.get(priority) ?? DEFAULT_PRIORITY_OPTION;
+}
+
+function getCollectionsListItemStyle(name: string, isSelected: boolean) {
+    const assignedColor = getHexColorFromName(name);
+    const backgroundOpacity = isSelected ? 20 : 5;
+
+    return {
+        "--collection-background": `color-mix(in srgb, ${assignedColor} ${backgroundOpacity}%, transparent)`,
+        "--focus-ring-color": `color-mix(in srgb, ${assignedColor}, black 50%)`,
+        "--text-muted-color": `color-mix(in srgb, ${assignedColor} 16%, black 18%)`,
+    } as React.CSSProperties;
+}
+
+function compareCollectionNames<
+    T extends Pick<LibraryCollectionSummary, "name">,
+>(a: T, b: T) {
+    return NAME_COLLATOR.compare(a.name, b.name);
+}
+
+function compareCollectionPriorities<
+    T extends Pick<LibraryCollectionSummary, "name" | "priority">,
+>(a: T, b: T) {
+    const priorityDifference =
+        COLLECTION_PRIORITY_ORDER[a.priority] -
+        COLLECTION_PRIORITY_ORDER[b.priority];
+
+    if (priorityDifference !== 0) {
+        return priorityDifference;
+    }
+
+    return compareCollectionNames(a, b);
+}
+
+function compareCollectionCreatedAt<
+    T extends Pick<LibraryCollectionSummary, "createdAt">,
+>(a: T, b: T) {
+    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+}
+
+function compareCollectionUpdatedAt<
+    T extends Pick<LibraryCollectionSummary, "updatedAt">,
+>(a: T, b: T) {
+    return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+}
+
+function compareCollectionItemCount<
+    T extends Pick<LibraryCollectionSummary, "itemCount">,
+>(a: T, b: T) {
+    return b.itemCount - a.itemCount;
+}
+
+function CollectionComboboxOptionRow({
+    icon: Icon,
+    label,
+}: {
+    icon: React.ElementType;
+    label: string;
+}) {
+    return (
+        <div className="flex min-w-0 items-center justify-between gap-3">
+            <span className="flex min-w-0 items-center gap-2 text-foreground text-sm">
+                <Icon className="size-4 text-muted-foreground" />
+                <span className="truncate">{label}</span>
+            </span>
+        </div>
+    );
+}
+
+function CollectionsListItemPreviewImage({
+    alt,
+    src,
+}: {
+    alt: string;
+    src?: string;
+}) {
+    const [didFail, setDidFail] = React.useState(false);
+    const canRenderImage = !!src && !didFail;
+
+    if (!canRenderImage) {
+        return (
+            <div className="flex size-full items-center justify-center bg-muted/40 text-[11px] text-muted-foreground">
+                No preview image
+            </div>
+        );
+    }
+
+    return (
+        // biome-ignore lint/a11y/noNoninteractiveElementInteractions: Fallback swaps in when the browser cannot render the image.
+        <img
+            alt={alt}
+            className="size-full object-cover"
+            height={192}
+            loading="lazy"
+            onError={() => setDidFail(true)}
+            src={src}
+            width={288}
+        />
+    );
+}
+
+function CollectionsListSharePopover({
+    collection,
+    isSharePending,
+    onCopyShareLink,
+    onDisableShare,
+    onEnableShare,
+    shareUrl,
+}: CollectionsListSharePopoverProps) {
+    const shareInputId = React.useId();
+    const isShared = Boolean(collection.shareId);
+
+    return (
+        <Popover modal={false}>
+            <PopoverTrigger
+                nativeButton={false}
+                render={
+                    <MenuItem closeOnClick={false}>
+                        <UserRoundPlus className="size-4 text-muted-foreground" />
+                        Share
+                    </MenuItem>
+                }
+            />
+            <PopoverPopup
+                align="start"
+                className="w-88"
+                positionMethod="fixed"
+                side="right"
+                sideOffset={8}
+            >
+                <div className="flex items-start justify-between gap-3">
+                    <div className="space-y-1">
+                        <PopoverTitle className="font-medium text-sm">
+                            Share collection
+                        </PopoverTitle>
+                        <PopoverDescription className="text-xs">
+                            Anyone with the link can view this collection.
+                            Search engines are asked not to index it.
+                        </PopoverDescription>
+                    </div>
+                    <PopoverClose
+                        render={
+                            <Button
+                                aria-label="Close share popover"
+                                size="icon-xs"
+                                variant="ghost"
+                            />
+                        }
+                    >
+                        <X className="size-4" />
+                    </PopoverClose>
+                </div>
+                <div className="mt-4 rounded-xl border bg-muted/40 p-3">
+                    <div className="flex items-start gap-3">
+                        <div className="mt-0.5 flex size-9 items-center justify-center rounded-xl bg-background text-muted-foreground shadow-xs/5">
+                            {isShared ? (
+                                <LinkIcon className="size-4" />
+                            ) : (
+                                <LockKeyhole className="size-4" />
+                            )}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                            <p className="font-medium text-sm">
+                                {isShared ? "Anyone with the link" : "Only you"}
+                            </p>
+                            <p className="mt-0.5 text-muted-foreground text-xs leading-relaxed">
+                                {isShared
+                                    ? "Shared publicly as a read-only page."
+                                    : "Create a short, unlisted read-only link for this collection."}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                {isShared ? (
+                    <div className="mt-4 space-y-3">
+                        <div className="space-y-1">
+                            <label
+                                className="font-medium text-muted-foreground text-xs"
+                                htmlFor={shareInputId}
+                            >
+                                Public link
+                            </label>
+                            <Input
+                                id={shareInputId}
+                                readOnly
+                                size="sm"
+                                value={shareUrl ?? ""}
+                            />
+                        </div>
+                        <div className="flex items-center justify-between gap-2">
+                            <p className="text-muted-foreground text-xs">
+                                Shared{" "}
+                                {collection.sharedAt
+                                    ? dayjs(collection.sharedAt).fromNow()
+                                    : "just now"}
+                            </p>
+                            <div className="flex items-center gap-2">
+                                <Button
+                                    loading={isSharePending}
+                                    onClick={onDisableShare}
+                                    size="sm"
+                                    variant="ghost"
+                                >
+                                    Disable
+                                </Button>
+                                <Button
+                                    disabled={!shareUrl || isSharePending}
+                                    onClick={onCopyShareLink}
+                                    size="sm"
+                                >
+                                    <CopyIcon className="size-4" />
+                                    Copy link
+                                </Button>
+                            </div>
+                        </div>
+                    </div>
+                ) : (
+                    <div className="mt-4 flex items-center justify-between gap-3">
+                        <p className="max-w-52 text-muted-foreground text-xs leading-relaxed">
+                            Public links stay simple and read-only so your
+                            collection can be browsed without signing in.
+                        </p>
+                        <Button
+                            loading={isSharePending}
+                            onClick={onEnableShare}
+                            size="sm"
+                        >
+                            Create link
+                        </Button>
+                    </div>
+                )}
+            </PopoverPopup>
+        </Popover>
+    );
+}
+
+function CollectionsListExportMenu({
+    hasItems,
+    onCopyLinks,
+    onCopyTitle,
+    onExportCsv,
+    onMakeCopy,
+    onOpenLinks,
+}: CollectionsListExportMenuProps) {
+    return (
+        <MenuSub>
+            <MenuSubTrigger>
+                <Forward className="inline-block size-4 text-muted-foreground" />
+                Export
+            </MenuSubTrigger>
+            <MenuSubPopup>
+                <MenuItem closeOnClick onClick={onCopyTitle}>
+                    <CopyIcon className="size-4 text-muted-foreground" />
+                    Copy title
+                </MenuItem>
+                <MenuItem
+                    closeOnClick
+                    disabled={!hasItems}
+                    onClick={onCopyLinks}
+                >
+                    <CopyIcon className="size-4 text-muted-foreground" />
+                    Copy all links
+                </MenuItem>
+                <MenuItem
+                    closeOnClick
+                    disabled={!hasItems}
+                    onClick={onOpenLinks}
+                >
+                    <ExternalLinkIcon className="size-4 text-muted-foreground" />
+                    Open all links
+                </MenuItem>
+                <MenuItem
+                    closeOnClick
+                    disabled={!hasItems}
+                    onClick={onExportCsv}
+                >
+                    <FileSpreadsheetIcon className="size-4 text-muted-foreground" />
+                    Export to CSV
+                </MenuItem>
+                <MenuItem closeOnClick onClick={onMakeCopy}>
+                    <CopyPlus className="size-4 text-muted-foreground" />
+                    Make a copy
+                </MenuItem>
+                <MenuItem disabled={!hasItems}>
+                    <NotionIcon />
+                    Send to Notion
+                </MenuItem>
+            </MenuSubPopup>
+        </MenuSub>
+    );
 }
 
 export function CollectionsList({
@@ -212,39 +712,6 @@ export function CollectionsListActionButton({
     );
 }
 
-/** @internal */
-function CollectionsListItemPreviewImage({
-    alt,
-    src,
-}: {
-    alt: string;
-    src?: string;
-}) {
-    const [didFail, setDidFail] = React.useState(false);
-    const canRenderImage = !!src && !didFail;
-
-    if (!canRenderImage) {
-        return (
-            <div className="flex size-full items-center justify-center bg-muted/40 text-[11px] text-muted-foreground">
-                No preview image
-            </div>
-        );
-    }
-
-    return (
-        // biome-ignore lint/a11y/noNoninteractiveElementInteractions: Ignore
-        <img
-            alt={alt}
-            className="size-full object-cover"
-            height={192}
-            loading="lazy"
-            onError={() => setDidFail(true)}
-            src={src}
-            width={288}
-        />
-    );
-}
-
 export function CollectionsListItemPreview({
     onSelect,
     thumbnails,
@@ -255,32 +722,15 @@ export function CollectionsListItemPreview({
 }) {
     const { collection } = useCollectionsListItemContext();
     const [isOpen, setIsOpen] = React.useState(false);
-    const [activePreviewIndex, setActivePreviewIndex] = React.useState(0);
-    const hasMultipleThumbnails = thumbnails.length > 1;
-
-    React.useEffect(() => {
-        if (!(isOpen && hasMultipleThumbnails)) {
-            setActivePreviewIndex(0);
-            return;
-        }
-
-        const interval = window.setInterval(() => {
-            setActivePreviewIndex(
-                (currentIndex) => (currentIndex + 1) % thumbnails.length
-            );
-        }, COLLECTION_ITEM_PREVIEW_SLIDESHOW_INTERVAL_MS);
-
-        return () => {
-            window.clearInterval(interval);
-        };
-    }, [hasMultipleThumbnails, isOpen, thumbnails.length]);
-
-    const activePreviewSrc = thumbnails[activePreviewIndex];
+    const activePreviewIndex = useCollectionItemPreviewIndex(
+        isOpen,
+        thumbnails.length
+    );
 
     return (
         <PreviewCard onOpenChange={setIsOpen}>
             <PreviewCardTrigger
-                closeDelay={COLLECTION_ITEM_PREVIEW_CLOSE_DELAY_MS}
+                closeDelay={0}
                 render={
                     <Button
                         className="w-full min-w-0 flex-1 justify-start rounded-full border-(--focus-ring-color)/7 bg-(--collection-background) px-7.5 text-left focus-visible:ring-(--focus-ring-color) focus-visible:ring-1"
@@ -297,7 +747,7 @@ export function CollectionsListItemPreview({
             >
                 <CollectionsListItemPreviewImage
                     alt={`${collection.name} preview`}
-                    src={activePreviewSrc}
+                    src={thumbnails[activePreviewIndex]}
                 />
             </PreviewCardPopup>
         </PreviewCard>
@@ -306,6 +756,10 @@ export function CollectionsListItemPreview({
 
 export function CollectionsListItemValue() {
     const { collection } = useCollectionsListItemContext();
+    const sourceLabels =
+        collection.sources.length > 0
+            ? collection.sources.map(getSourceLabel).join(", ")
+            : null;
 
     return (
         <div className="flex min-w-0 flex-1 items-center gap-3 leading-none">
@@ -315,62 +769,17 @@ export function CollectionsListItemValue() {
             >
                 {collection.name}
             </span>
-            {collection.sources.length > 0 && (
+            {sourceLabels ? (
                 <span className="max-w-full flex-1 truncate text-[11px] text-muted-foreground opacity-0 transition-opacity group-hover:opacity-80">
-                    {collection.sources.map(getSourceLabel).join(", ")}
+                    {sourceLabels}
                 </span>
-            )}
+            ) : null}
         </div>
     );
 }
 
-interface PriorityOption {
-    icon: React.ElementType;
-    label: string;
-    value: CollectionPriority;
-}
-
-const DEFAULT_PRIORITY_OPTION: PriorityOption = {
-    icon: PriorityNoneIcon,
-    label: "No priority",
-    value: "none",
-};
-
-const PRIORITY_OPTIONS = [
-    DEFAULT_PRIORITY_OPTION,
-    {
-        icon: Sparkle,
-        label: "Very relevant",
-        value: "very_relevant",
-    },
-    {
-        icon: SignalHigh,
-        label: "Relevant",
-        value: "relevant",
-    },
-    {
-        icon: SignalMedium,
-        label: "Background",
-        value: "peripheral",
-    },
-    {
-        icon: ArchiveIcon,
-        label: "Archive",
-        value: "archive",
-    },
-] satisfies PriorityOption[];
-
-const PRIORITY_OPTION_BY_VALUE = new Map(
-    PRIORITY_OPTIONS.map((option) => [option.value, option])
-);
-
-/** @internal */
-function getPriorityOption(priority: CollectionPriority): PriorityOption {
-    return PRIORITY_OPTION_BY_VALUE.get(priority) ?? DEFAULT_PRIORITY_OPTION;
-}
-
 export function CollectionsListItemPriorityCombobox({
-    open: openProp,
+    open,
     onOpenChange,
     onUpdatePriority,
 }: {
@@ -378,22 +787,16 @@ export function CollectionsListItemPriorityCombobox({
     onOpenChange?: (open: boolean) => void;
     onUpdatePriority: (priority: CollectionPriority) => void;
 }) {
-    const { collection, isHovered } = useCollectionsListItemContext();
-    const [isOpenInternal, setIsOpenInternal] = React.useState(false);
-    const isOpen = openProp ?? isOpenInternal;
-    const setIsOpen = onOpenChange ?? setIsOpenInternal;
+    const { collection } = useCollectionsListItemContext();
+    const [isOpen, setIsOpen] = useControllableOpenState(open, onOpenChange);
     const selectedOption = getPriorityOption(collection.priority);
 
-    useHotkeys(
+    useCollectionItemHotkey(
         "p",
         () => {
             setIsOpen(true);
         },
-        {
-            enabled: isHovered && !isOpen,
-            preventDefault: true,
-        },
-        [isHovered, isOpen, setIsOpen]
+        !isOpen
     );
 
     return (
@@ -405,6 +808,7 @@ export function CollectionsListItemPriorityCombobox({
                 if (!nextPriority || nextPriority === collection.priority) {
                     return;
                 }
+
                 onUpdatePriority(nextPriority);
                 setIsOpen(false);
             }}
@@ -441,14 +845,10 @@ export function CollectionsListItemPriorityCombobox({
                                 showIndicatorLast
                                 value={priorityOption.value}
                             >
-                                <div className="flex min-w-0 items-center justify-between gap-3">
-                                    <span className="flex min-w-0 items-center gap-2 text-foreground text-sm">
-                                        <priorityOption.icon className="size-4 text-muted-foreground" />
-                                        <span className="truncate">
-                                            {priorityOption.label}
-                                        </span>
-                                    </span>
-                                </div>
+                                <CollectionComboboxOptionRow
+                                    icon={priorityOption.icon}
+                                    label={priorityOption.label}
+                                />
                             </ComboboxItem>
                         )}
                     </ComboboxCollection>
@@ -456,36 +856,6 @@ export function CollectionsListItemPriorityCombobox({
             </ComboboxPopup>
         </Combobox>
     );
-}
-
-/** @internal */
-function getCollectionsListItemStyle(name: string, isSelected: boolean) {
-    const assignedColor = getHexColorFromName(name);
-    const backgroundOpacity = isSelected ? 20 : 5;
-
-    return {
-        "--collection-background": `color-mix(in srgb, ${assignedColor} ${backgroundOpacity}%, transparent)`,
-        "--focus-ring-color": `color-mix(in srgb, ${assignedColor}, black 50%)`,
-        "--text-muted-color": `color-mix(in srgb, ${assignedColor} 16%, black 18%)`,
-    } as React.CSSProperties;
-}
-
-interface CollectionsListItemContextValue {
-    collection: LibraryCollectionSummary;
-    isHovered: boolean;
-}
-
-const CollectionsListItemContext =
-    React.createContext<CollectionsListItemContextValue | null>(null);
-
-function useCollectionsListItemContext() {
-    const context = React.use(CollectionsListItemContext);
-    if (!context) {
-        throw new Error(
-            "CollectionsListItem compound components must be used within CollectionsListItem."
-        );
-    }
-    return context;
 }
 
 export function CollectionsListItem({
@@ -502,8 +872,8 @@ export function CollectionsListItem({
 
     return (
         <CollectionsListItemContext value={{ collection, isHovered }}>
-            {/* biome-ignore lint/a11y/noNoninteractiveElementInteractions: Hover tracking for keyboard shortcut scoping */}
-            {/* biome-ignore lint/a11y/noStaticElementInteractions: Same as above */}
+            {/* biome-ignore lint/a11y/noNoninteractiveElementInteractions: Hover tracking scopes collection-level keyboard shortcuts. */}
+            {/* biome-ignore lint/a11y/noStaticElementInteractions: Same as above. */}
             <div
                 className="group relative flex select-none items-center"
                 onMouseEnter={() => setIsHovered(true)}
@@ -516,74 +886,32 @@ export function CollectionsListItem({
 }
 
 export function CollectionsListItemMeta({
-    onCopyTitle,
+    isSharePending,
     onCopyLinks,
     onCopyShareLink,
+    onCopyTitle,
     onDelete,
     onDisableShare,
     onEnableShare,
     onExportCsv,
-    isSharePending,
     onMakeCopy,
     onOpenLinks,
     onRename,
     shareUrl,
-}: {
-    onCopyTitle: () => void;
-    onCopyLinks: () => void;
-    onCopyShareLink: () => void;
-    onDelete: () => void;
-    onDisableShare: () => void;
-    onEnableShare: () => void;
-    onExportCsv: () => void;
-    isSharePending: boolean;
-    onMakeCopy: () => void;
-    onOpenLinks: () => void;
-    onRename: () => void;
-    shareUrl: string | null;
-}) {
-    const { collection, isHovered } = useCollectionsListItemContext();
+}: CollectionsListItemMetaProps) {
+    const { collection } = useCollectionsListItemContext();
     const hasItems = collection.itemCount > 0;
-    const [isSharePopoverOpen, setIsSharePopoverOpen] = React.useState(false);
-    const shareInputId = React.useId();
-    const isShared = Boolean(collection.shareId);
 
-    useHotkeys(
-        "e",
-        () => {
-            onRename();
-        },
-        {
-            enabled: isHovered,
-            preventDefault: true,
-        },
-        [isHovered, onRename]
-    );
-
-    useHotkeys(
-        ["delete", "backspace"],
-        () => {
-            onDelete();
-        },
-        {
-            enabled: isHovered,
-            preventDefault: true,
-        },
-        [isHovered, onDelete]
-    );
-
-    useHotkeys(
+    useCollectionItemHotkey("e", onRename);
+    useCollectionItemHotkey(["delete", "backspace"], onDelete);
+    useCollectionItemHotkey(
         "c",
         () => {
             if (hasItems) {
                 onCopyLinks();
             }
         },
-        {
-            enabled: isHovered,
-            preventDefault: true,
-        },
-        [isHovered, hasItems, onCopyLinks]
+        hasItems
     );
 
     return (
@@ -615,183 +943,22 @@ export function CollectionsListItemMeta({
                     </MenuGroup>
                     <MenuSeparator />
                     <MenuGroup>
-                        <Popover
-                            modal={false}
-                            onOpenChange={setIsSharePopoverOpen}
-                            open={isSharePopoverOpen}
-                        >
-                            <PopoverTrigger
-                                nativeButton={false}
-                                render={
-                                    <MenuItem closeOnClick={false}>
-                                        <UserRoundPlus className="size-4 text-muted-foreground" />
-                                        Share
-                                    </MenuItem>
-                                }
-                            />
-                            <PopoverPopup
-                                align="start"
-                                className="w-88"
-                                positionMethod="fixed"
-                                side="right"
-                                sideOffset={8}
-                            >
-                                <div className="flex items-start justify-between gap-3">
-                                    <div className="space-y-1">
-                                        <PopoverTitle className="font-medium text-sm">
-                                            Share collection
-                                        </PopoverTitle>
-                                        <PopoverDescription className="text-xs">
-                                            Anyone with the link can view this
-                                            collection. Search engines are asked
-                                            not to index it.
-                                        </PopoverDescription>
-                                    </div>
-                                    <PopoverClose
-                                        render={
-                                            <Button
-                                                aria-label="Close share popover"
-                                                size="icon-xs"
-                                                variant="ghost"
-                                            />
-                                        }
-                                    >
-                                        <X className="size-4" />
-                                    </PopoverClose>
-                                </div>
-                                <div className="mt-4 rounded-xl border bg-muted/40 p-3">
-                                    <div className="flex items-start gap-3">
-                                        <div className="mt-0.5 flex size-9 items-center justify-center rounded-xl bg-background text-muted-foreground shadow-xs/5">
-                                            {isShared ? (
-                                                <LinkIcon className="size-4" />
-                                            ) : (
-                                                <LockKeyhole className="size-4" />
-                                            )}
-                                        </div>
-                                        <div className="min-w-0 flex-1">
-                                            <p className="font-medium text-sm">
-                                                {isShared
-                                                    ? "Anyone with the link"
-                                                    : "Only you"}
-                                            </p>
-                                            <p className="mt-0.5 text-muted-foreground text-xs leading-relaxed">
-                                                {isShared
-                                                    ? "Shared publicly as a read-only page."
-                                                    : "Create a short, unlisted read-only link for this collection."}
-                                            </p>
-                                        </div>
-                                    </div>
-                                </div>
-                                {isShared ? (
-                                    <div className="mt-4 space-y-3">
-                                        <div className="space-y-1">
-                                            <label
-                                                className="font-medium text-muted-foreground text-xs"
-                                                htmlFor={shareInputId}
-                                            >
-                                                Public link
-                                            </label>
-                                            <Input
-                                                id={shareInputId}
-                                                readOnly
-                                                size="sm"
-                                                value={shareUrl ?? ""}
-                                            />
-                                        </div>
-                                        <div className="flex items-center justify-between gap-2">
-                                            <p className="text-muted-foreground text-xs">
-                                                Shared{" "}
-                                                {collection.sharedAt
-                                                    ? dayjs(
-                                                          collection.sharedAt
-                                                      ).fromNow()
-                                                    : "just now"}
-                                            </p>
-                                            <div className="flex items-center gap-2">
-                                                <Button
-                                                    loading={isSharePending}
-                                                    onClick={onDisableShare}
-                                                    size="sm"
-                                                    variant="ghost"
-                                                >
-                                                    Disable
-                                                </Button>
-                                                <Button
-                                                    disabled={
-                                                        !shareUrl ||
-                                                        isSharePending
-                                                    }
-                                                    onClick={onCopyShareLink}
-                                                    size="sm"
-                                                >
-                                                    <CopyIcon className="size-4" />
-                                                    Copy link
-                                                </Button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                ) : (
-                                    <div className="mt-4 flex items-center justify-between gap-3">
-                                        <p className="max-w-52 text-muted-foreground text-xs leading-relaxed">
-                                            Public links stay simple and
-                                            read-only so your collection can be
-                                            browsed without signing in.
-                                        </p>
-                                        <Button
-                                            loading={isSharePending}
-                                            onClick={onEnableShare}
-                                            size="sm"
-                                        >
-                                            Create link
-                                        </Button>
-                                    </div>
-                                )}
-                            </PopoverPopup>
-                        </Popover>
-                        <MenuSub>
-                            <MenuSubTrigger>
-                                <Forward className="inline-block size-4 text-muted-foreground" />
-                                Export
-                            </MenuSubTrigger>
-                            <MenuSubPopup>
-                                <MenuItem closeOnClick onClick={onCopyTitle}>
-                                    <CopyIcon className="size-4 text-muted-foreground" />
-                                    Copy title
-                                </MenuItem>
-                                <MenuItem
-                                    closeOnClick
-                                    disabled={!hasItems}
-                                    onClick={onCopyLinks}
-                                >
-                                    <CopyIcon className="size-4 text-muted-foreground" />
-                                    Copy all links
-                                </MenuItem>
-                                <MenuItem
-                                    closeOnClick
-                                    disabled={!hasItems}
-                                    onClick={onOpenLinks}
-                                >
-                                    <ExternalLinkIcon className="size-4 text-muted-foreground" />
-                                    Open all links
-                                </MenuItem>
-                                <MenuItem
-                                    closeOnClick
-                                    disabled={!hasItems}
-                                    onClick={onExportCsv}
-                                >
-                                    <FileSpreadsheetIcon className="size-4 text-muted-foreground" />
-                                    Export to CSV
-                                </MenuItem>
-                                <MenuItem closeOnClick onClick={onMakeCopy}>
-                                    <CopyPlus className="size-4 text-muted-foreground" />
-                                    Make a copy
-                                </MenuItem>
-                                <MenuItem disabled={!hasItems}>
-                                    <NotionIcon />
-                                    Send to Notion
-                                </MenuItem>
-                            </MenuSubPopup>
-                        </MenuSub>
+                        <CollectionsListSharePopover
+                            collection={collection}
+                            isSharePending={isSharePending}
+                            onCopyShareLink={onCopyShareLink}
+                            onDisableShare={onDisableShare}
+                            onEnableShare={onEnableShare}
+                            shareUrl={shareUrl}
+                        />
+                        <CollectionsListExportMenu
+                            hasItems={hasItems}
+                            onCopyLinks={onCopyLinks}
+                            onCopyTitle={onCopyTitle}
+                            onExportCsv={onExportCsv}
+                            onMakeCopy={onMakeCopy}
+                            onOpenLinks={onOpenLinks}
+                        />
                     </MenuGroup>
                     <MenuSeparator />
                     <MenuGroup>
@@ -1004,70 +1171,10 @@ export function CollectionsListNoticeCallout() {
     );
 }
 
-type CollectionSortField = "count" | "created" | "priority" | "updated";
-
-interface SortingOption {
-    icon: React.ElementType;
-    label: string;
-    value: CollectionSortField;
-}
-
-const DEFAULT_SORT_FIELD: CollectionSortField = "priority";
-
-const SORTING_OPTIONS = [
-    {
-        icon: SignalHigh,
-        label: "Priority",
-        value: "priority",
-    },
-    {
-        icon: Sparkle,
-        label: "Created",
-        value: "created",
-    },
-    {
-        icon: Clock,
-        label: "Updated",
-        value: "updated",
-    },
-    {
-        icon: Component,
-        label: "Count",
-        value: "count",
-    },
-] satisfies SortingOption[];
-
-export const { useStore: useCollectionsSortStore } = createStore({
-    collectionSortField: storage<CollectionSortField>(DEFAULT_SORT_FIELD),
-});
-
-export const NAME_COLLATOR = new Intl.Collator(undefined, {
-    numeric: true,
-    sensitivity: "base",
-});
-
-const COLLECTION_PRIORITY_ORDER: Record<CollectionPriority, number> = {
-    archive: 3,
-    none: 4,
-    peripheral: 2,
-    relevant: 1,
-    very_relevant: 0,
-};
-
 export function sortCollections<
     T extends Pick<LibraryCollectionSummary, "name" | "priority">,
 >(collections: T[]): T[] {
-    return [...collections].sort((a, b) => {
-        const priorityDifference =
-            COLLECTION_PRIORITY_ORDER[a.priority] -
-            COLLECTION_PRIORITY_ORDER[b.priority];
-
-        if (priorityDifference !== 0) {
-            return priorityDifference;
-        }
-
-        return NAME_COLLATOR.compare(a.name, b.name);
-    });
+    return [...collections].sort(compareCollectionPriorities);
 }
 
 export function sortCollectionSummaries<
@@ -1076,28 +1183,18 @@ export function sortCollectionSummaries<
         "createdAt" | "itemCount" | "name" | "priority" | "updatedAt"
     >,
 >(collections: T[], sortField: CollectionSortField): T[] {
-    if (sortField === "priority") {
-        return sortCollections(collections);
+    switch (sortField) {
+        case "created":
+            return [...collections].sort(compareCollectionCreatedAt);
+        case "updated":
+            return [...collections].sort(compareCollectionUpdatedAt);
+        case "count":
+            return [...collections].sort(compareCollectionItemCount);
+        case "priority":
+            return sortCollections(collections);
+        default:
+            return [...collections].sort(compareCollectionNames);
     }
-
-    return [...collections].sort((a, b) => {
-        switch (sortField) {
-            case "created":
-                return (
-                    new Date(b.createdAt).getTime() -
-                    new Date(a.createdAt).getTime()
-                );
-            case "updated":
-                return (
-                    new Date(b.updatedAt).getTime() -
-                    new Date(a.updatedAt).getTime()
-                );
-            case "count":
-                return b.itemCount - a.itemCount;
-            default:
-                return NAME_COLLATOR.compare(a.name, b.name);
-        }
-    });
 }
 
 export function CollectionsListSortingCombobox(
@@ -1128,6 +1225,7 @@ export function CollectionsListSortingCombobox(
                 if (!nextField || nextField === collectionSortField) {
                     return;
                 }
+
                 setCollectionSortField(nextField);
                 setIsOpen(false);
             }}
@@ -1159,14 +1257,10 @@ export function CollectionsListSortingCombobox(
                                 showIndicatorLast
                                 value={sortOption.value}
                             >
-                                <div className="flex min-w-0 items-center justify-between gap-3">
-                                    <span className="flex min-w-0 items-center gap-2 text-foreground text-sm">
-                                        <sortOption.icon className="size-4 text-muted-foreground" />
-                                        <span className="truncate">
-                                            {sortOption.label}
-                                        </span>
-                                    </span>
-                                </div>
+                                <CollectionComboboxOptionRow
+                                    icon={sortOption.icon}
+                                    label={sortOption.label}
+                                />
                             </ComboboxItem>
                         )}
                     </ComboboxCollection>

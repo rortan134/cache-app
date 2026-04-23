@@ -29,17 +29,16 @@ import * as React from "react";
 import { createStore } from "stan-js";
 import { storage } from "stan-js/storage";
 
-const { useStore: useIntegrationsListStateStore } = createStore({
-    isIntegrationsListOpen: storage(true),
+const { useStore: useIntegrationsPanelStore } = createStore({
+    isIntegrationsListPanelOpen: storage(true),
 });
 
 function useIntegrationsListOpenState() {
-    const { isIntegrationsListOpen, setIsIntegrationsListOpen } =
-        useIntegrationsListStateStore();
-
+    const { isIntegrationsListPanelOpen, setIsIntegrationsListPanelOpen } =
+        useIntegrationsPanelStore();
     return {
-        isOpen: isIntegrationsListOpen,
-        setIsOpen: setIsIntegrationsListOpen,
+        isOpen: isIntegrationsListPanelOpen,
+        setIsOpen: setIsIntegrationsListPanelOpen,
     };
 }
 

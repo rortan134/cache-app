@@ -11,19 +11,14 @@ import {
 import { prisma } from "@/prisma";
 import type { LibraryItemSource } from "@/prisma/client/enums";
 
-export interface UpsertLibraryItemImportsArgs {
+interface UpsertLibraryItemImportsArgs {
     items: Omit<LibraryItemImportRowInput, "source">[];
     shouldAddToSmartCollections?: (row: LibraryItemImportRow) => boolean;
     source: LibraryItemSource;
     userId: string;
 }
 
-export interface UpsertLibraryItemImportsResult {
-    skippedCount: number;
-    smartCollectionItemIds: string[];
-    upsertedCount: number;
-}
-
+/** @internal */
 function normalizeImportRows(args: UpsertLibraryItemImportsArgs): {
     skippedCount: number;
     rows: LibraryItemImportRow[];
@@ -51,6 +46,13 @@ function normalizeImportRows(args: UpsertLibraryItemImportsArgs): {
     };
 }
 
+interface UpsertLibraryItemImportsResult {
+    skippedCount: number;
+    smartCollectionItemIds: string[];
+    upsertedCount: number;
+}
+
+/** @public */
 export async function upsertLibraryItemImports(
     args: UpsertLibraryItemImportsArgs
 ): Promise<UpsertLibraryItemImportsResult> {

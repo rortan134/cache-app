@@ -37,12 +37,12 @@ export function Drawer({
     position?: DrawerPosition;
 }): React.ReactElement {
     return (
-        <DrawerContext.Provider value={{ position }}>
+        <DrawerContext value={{ position }}>
             <DrawerPrimitive.Root
                 swipeDirection={swipeDirection ?? directionMap[position]}
                 {...props}
             />
-        </DrawerContext.Provider>
+        </DrawerContext>
     );
 }
 

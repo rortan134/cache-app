@@ -1,7 +1,9 @@
 "use server";
 
-import { getSessionUserId } from "@/lib/auth/server";
-import { extractNamedErrorMessage } from "@/lib/common/error";
+import {
+    handleActionError,
+    requireActionUserId,
+} from "@/lib/collections/action-helpers";
 import { createLogger } from "@/lib/common/logs/console/logger";
 import type { LibraryCollectionTag } from "@/lib/common/types";
 import * as z from "zod";
@@ -47,18 +49,17 @@ export async function deleteLibraryItem(
         };
     }
 
-    const userId = await getSessionUserId();
-    if (!userId) {
-        return {
-            message: "Sign in again to manage saved items.",
-            status: "UNAUTHORIZED",
-        };
+    const auth = await requireActionUserId(
+        "Sign in again to manage saved items."
+    );
+    if ("status" in auth) {
+        return auth;
     }
 
     try {
         const id = await service.deleteLibraryItem({
             itemId: normalizedItemId,
-            userId,
+            userId: auth.userId,
         });
 
         return {
@@ -66,22 +67,13 @@ export async function deleteLibraryItem(
             status: "DELETED",
         };
     } catch (error) {
-        const named = extractNamedErrorMessage(error);
-        if (
-            LibraryCollectionError.isInstance(error) &&
-            error.data.code === "not_found"
-        ) {
-            return {
-                message: named.message,
-                status: "NOT_FOUND",
-            };
-        }
-
-        log.error("Unexpected library item delete failure", error);
-        return {
-            message: "We couldn't delete this saved item right now.",
-            status: "ERROR",
-        };
+        return handleActionError({
+            codeToStatus: { not_found: "NOT_FOUND" },
+            error,
+            errorFactory: LibraryCollectionError,
+            fallbackMessage: "We couldn't delete this saved item right now.",
+            log,
+        });
     }
 }
 
@@ -101,19 +93,18 @@ export async function updateLibraryItemCollections(input: {
         };
     }
 
-    const userId = await getSessionUserId();
-    if (!userId) {
-        return {
-            message: "Sign in again to manage collections.",
-            status: "UNAUTHORIZED",
-        };
+    const auth = await requireActionUserId(
+        "Sign in again to manage collections."
+    );
+    if ("status" in auth) {
+        return auth;
     }
 
     try {
         const result = await service.updateLibraryItemCollections({
             collectionIds: parsed.data.collectionIds,
             itemId: parsed.data.itemId,
-            userId,
+            userId: auth.userId,
         });
 
         return {
@@ -121,21 +112,12 @@ export async function updateLibraryItemCollections(input: {
             status: "UPDATED",
         };
     } catch (error) {
-        const named = extractNamedErrorMessage(error);
-        if (
-            LibraryCollectionError.isInstance(error) &&
-            error.data.code === "not_found"
-        ) {
-            return {
-                message: named.message,
-                status: "NOT_FOUND",
-            };
-        }
-
-        log.error("Unexpected library collection update failure", error);
-        return {
-            message: "We couldn't update collections for this item.",
-            status: "ERROR",
-        };
+        return handleActionError({
+            codeToStatus: { not_found: "NOT_FOUND" },
+            error,
+            errorFactory: LibraryCollectionError,
+            fallbackMessage: "We couldn't update collections for this item.",
+            log,
+        });
     }
 }

@@ -1,8 +1,11 @@
 "use server";
 
-import { getSessionUserId } from "@/lib/auth/server";
+import {
+    getValidationErrorMessage,
+    handleActionError,
+    requireActionUserId,
+} from "@/lib/collections/action-helpers";
 import { collectionNameSchema } from "@/lib/collections/utils";
-import { extractNamedErrorMessage } from "@/lib/common/error";
 import { createLogger } from "@/lib/common/logs/console/logger";
 import type {
     LibraryCollectionSummary,
@@ -134,69 +137,31 @@ const ERROR_CODE_TO_STATUS = {
     not_found: "NOT_FOUND",
 } as const;
 
-function handleError(error: unknown, fallbackMessage: string) {
-    const named = extractNamedErrorMessage(error);
-    if (LibraryCollectionError.isInstance(error)) {
-        const status =
-            ERROR_CODE_TO_STATUS[
-                error.data.code as keyof typeof ERROR_CODE_TO_STATUS
-            ];
-        if (status) {
-            return { message: named.message, status };
-        }
-    }
-
-    log.error(fallbackMessage, error);
-    return {
-        message: fallbackMessage,
-        status: "ERROR" as const,
-    };
-}
-
-function handleNotFoundError(error: unknown, fallbackMessage: string) {
-    const named = extractNamedErrorMessage(error);
-    if (
-        LibraryCollectionError.isInstance(error) &&
-        error.data.code === "not_found"
-    ) {
-        return {
-            message: named.message,
-            status: "NOT_FOUND" as const,
-        };
-    }
-
-    log.error(fallbackMessage, error);
-    return {
-        message: fallbackMessage,
-        status: "ERROR" as const,
-    };
-}
-
 export async function deleteCollection(input: {
     collectionId: string;
 }): Promise<DeleteCollectionResult> {
     const parsed = DeleteCollectionInputSchema.safeParse(input);
     if (!parsed.success) {
         return {
-            message:
-                parsed.error.issues[0]?.message ??
-                "Select a collection to delete.",
+            message: getValidationErrorMessage(
+                parsed,
+                "Select a collection to delete."
+            ),
             status: "INVALID",
         };
     }
 
-    const userId = await getSessionUserId();
-    if (!userId) {
-        return {
-            message: "Sign in again to manage collections.",
-            status: "UNAUTHORIZED",
-        };
+    const auth = await requireActionUserId(
+        "Sign in again to manage collections."
+    );
+    if ("status" in auth) {
+        return auth;
     }
 
     try {
         const collection = await service.deleteCollection({
             collectionId: parsed.data.collectionId,
-            userId,
+            userId: auth.userId,
         });
 
         return {
@@ -204,10 +169,13 @@ export async function deleteCollection(input: {
             status: "DELETED",
         };
     } catch (error) {
-        return handleNotFoundError(
+        return handleActionError({
+            codeToStatus: { not_found: "NOT_FOUND" },
             error,
-            "We couldn't delete this collection right now."
-        );
+            errorFactory: LibraryCollectionError,
+            fallbackMessage: "We couldn't delete this collection right now.",
+            log,
+        });
     }
 }
 
@@ -217,25 +185,25 @@ export async function duplicateCollection(input: {
     const parsed = DuplicateCollectionInputSchema.safeParse(input);
     if (!parsed.success) {
         return {
-            message:
-                parsed.error.issues[0]?.message ??
-                "Select a collection to copy.",
+            message: getValidationErrorMessage(
+                parsed,
+                "Select a collection to copy."
+            ),
             status: "INVALID",
         };
     }
 
-    const userId = await getSessionUserId();
-    if (!userId) {
-        return {
-            message: "Sign in again to manage collections.",
-            status: "UNAUTHORIZED",
-        };
+    const auth = await requireActionUserId(
+        "Sign in again to manage collections."
+    );
+    if ("status" in auth) {
+        return auth;
     }
 
     try {
         const result = await service.duplicateCollection({
             collectionId: parsed.data.collectionId,
-            userId,
+            userId: auth.userId,
         });
 
         return {
@@ -243,10 +211,14 @@ export async function duplicateCollection(input: {
             status: "CREATED",
         };
     } catch (error) {
-        return handleNotFoundError(
+        return handleActionError({
+            codeToStatus: { not_found: "NOT_FOUND" },
             error,
-            "We couldn't make a copy of this collection right now."
-        );
+            errorFactory: LibraryCollectionError,
+            fallbackMessage:
+                "We couldn't make a copy of this collection right now.",
+            log,
+        });
     }
 }
 
@@ -257,26 +229,26 @@ export async function updateCollectionPriority(input: {
     const parsed = UpdateCollectionPriorityInputSchema.safeParse(input);
     if (!parsed.success) {
         return {
-            message:
-                parsed.error.issues[0]?.message ??
-                "Pick a valid priority before saving.",
+            message: getValidationErrorMessage(
+                parsed,
+                "Pick a valid priority before saving."
+            ),
             status: "INVALID",
         };
     }
 
-    const userId = await getSessionUserId();
-    if (!userId) {
-        return {
-            message: "Sign in again to manage collections.",
-            status: "UNAUTHORIZED",
-        };
+    const auth = await requireActionUserId(
+        "Sign in again to manage collections."
+    );
+    if ("status" in auth) {
+        return auth;
     }
 
     try {
         const collection = await service.updateCollectionPriority({
             collectionId: parsed.data.collectionId,
             priority: parsed.data.priority,
-            userId,
+            userId: auth.userId,
         });
 
         return {
@@ -284,10 +256,14 @@ export async function updateCollectionPriority(input: {
             status: "UPDATED",
         };
     } catch (error) {
-        return handleNotFoundError(
+        return handleActionError({
+            codeToStatus: { not_found: "NOT_FOUND" },
             error,
-            "We couldn't update this collection priority right now."
-        );
+            errorFactory: LibraryCollectionError,
+            fallbackMessage:
+                "We couldn't update this collection priority right now.",
+            log,
+        });
     }
 }
 
@@ -298,26 +274,26 @@ export async function renameCollection(input: {
     const parsed = RenameCollectionInputSchema.safeParse(input);
     if (!parsed.success) {
         return {
-            message:
-                parsed.error.issues[0]?.message ??
-                "Enter a valid collection name.",
+            message: getValidationErrorMessage(
+                parsed,
+                "Enter a valid collection name."
+            ),
             status: "INVALID",
         };
     }
 
-    const userId = await getSessionUserId();
-    if (!userId) {
-        return {
-            message: "Sign in again to manage collections.",
-            status: "UNAUTHORIZED",
-        };
+    const auth = await requireActionUserId(
+        "Sign in again to manage collections."
+    );
+    if ("status" in auth) {
+        return auth;
     }
 
     try {
         const collection = await service.renameCollection({
             collectionId: parsed.data.collectionId,
             name: parsed.data.name,
-            userId,
+            userId: auth.userId,
         });
 
         return {
@@ -325,10 +301,13 @@ export async function renameCollection(input: {
             status: "UPDATED",
         };
     } catch (error) {
-        return handleError(
+        return handleActionError({
+            codeToStatus: ERROR_CODE_TO_STATUS,
             error,
-            "We couldn't rename this collection right now."
-        );
+            errorFactory: LibraryCollectionError,
+            fallbackMessage: "We couldn't rename this collection right now.",
+            log,
+        });
     }
 }
 
@@ -340,19 +319,19 @@ export async function createCollection(input: {
     const parsed = CreateCollectionInputSchema.safeParse(input);
     if (!parsed.success) {
         return {
-            message:
-                parsed.error.issues[0]?.message ??
-                "Enter a valid collection name.",
+            message: getValidationErrorMessage(
+                parsed,
+                "Enter a valid collection name."
+            ),
             status: "INVALID",
         };
     }
 
-    const userId = await getSessionUserId();
-    if (!userId) {
-        return {
-            message: "Sign in again to create collections.",
-            status: "UNAUTHORIZED",
-        };
+    const auth = await requireActionUserId(
+        "Sign in again to create collections."
+    );
+    if ("status" in auth) {
+        return auth;
     }
 
     try {
@@ -360,7 +339,7 @@ export async function createCollection(input: {
             assignToItemId: parsed.data.assignToItemId,
             description: parsed.data.description,
             name: parsed.data.name,
-            userId,
+            userId: auth.userId,
         });
 
         return {
@@ -368,10 +347,13 @@ export async function createCollection(input: {
             status: "CREATED",
         };
     } catch (error) {
-        return handleError(
+        return handleActionError({
+            codeToStatus: ERROR_CODE_TO_STATUS,
             error,
-            "We couldn't create this collection right now."
-        );
+            errorFactory: LibraryCollectionError,
+            fallbackMessage: "We couldn't create this collection right now.",
+            log,
+        });
     }
 }
 
@@ -387,19 +369,19 @@ export async function createCollectionFromItems(input: {
 
     if (!parsed.success) {
         return {
-            message:
-                parsed.error.issues[0]?.message ??
-                "Enter a valid collection name and at least one saved item.",
+            message: getValidationErrorMessage(
+                parsed,
+                "Enter a valid collection name and at least one saved item."
+            ),
             status: "INVALID",
         };
     }
 
-    const userId = await getSessionUserId();
-    if (!userId) {
-        return {
-            message: "Sign in again to create collections.",
-            status: "UNAUTHORIZED",
-        };
+    const auth = await requireActionUserId(
+        "Sign in again to create collections."
+    );
+    if ("status" in auth) {
+        return auth;
     }
 
     try {
@@ -407,7 +389,7 @@ export async function createCollectionFromItems(input: {
             description: parsed.data.description,
             itemIds: parsed.data.itemIds,
             name: parsed.data.name,
-            userId,
+            userId: auth.userId,
         });
 
         return {
@@ -415,9 +397,12 @@ export async function createCollectionFromItems(input: {
             status: "CREATED",
         };
     } catch (error) {
-        return handleError(
+        return handleActionError({
+            codeToStatus: ERROR_CODE_TO_STATUS,
             error,
-            "We couldn't create this collection right now."
-        );
+            errorFactory: LibraryCollectionError,
+            fallbackMessage: "We couldn't create this collection right now.",
+            log,
+        });
     }
 }

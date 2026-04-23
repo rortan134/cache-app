@@ -86,13 +86,13 @@ const PreviewDrawerContext =
     React.createContext<PreviewDrawerContextValue | null>(null);
 
 function usePreviewDrawerContext(): PreviewDrawerContextValue {
-    const value = React.use(PreviewDrawerContext);
-    if (!value) {
+    const context = React.use(PreviewDrawerContext);
+    if (!context) {
         throw new Error(
             "PreviewDrawer components must be used inside <PreviewDrawer>."
         );
     }
-    return value;
+    return context;
 }
 
 function usePreviewStatus(open: boolean, url: string, timeoutMs: number) {
@@ -146,14 +146,13 @@ function PreviewDrawerLinkButton({
 }
 
 export function PreviewDrawer({
-    children,
     defaultOpen = false,
     description,
     onOpenChange,
     open,
     title = DEFAULT_PREVIEW_TITLE,
     url,
-    ...drawerProps
+    ...props
 }: PreviewDrawerProps): ReactElement {
     const [uncontrolledOpen, setUncontrolledOpen] = React.useState(defaultOpen);
     const isControlled = open !== undefined;
@@ -166,12 +165,11 @@ export function PreviewDrawer({
         if (!isControlled) {
             setUncontrolledOpen(nextOpen);
         }
-
         onOpenChange?.(nextOpen, eventDetails);
     };
 
     return (
-        <PreviewDrawerContext.Provider
+        <PreviewDrawerContext
             value={{
                 description,
                 open: resolvedOpen,
@@ -180,14 +178,11 @@ export function PreviewDrawer({
             }}
         >
             <Drawer
-                modal
                 onOpenChange={handleOpenChange}
                 open={resolvedOpen}
-                {...drawerProps}
-            >
-                {children}
-            </Drawer>
-        </PreviewDrawerContext.Provider>
+                {...props}
+            />
+        </PreviewDrawerContext>
     );
 }
 

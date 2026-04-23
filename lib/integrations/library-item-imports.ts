@@ -41,20 +41,12 @@ export interface LibraryItemImportRowInput {
     url: string;
 }
 
-export type LibraryItemImportCreateData =
-    Prisma.LibraryItemUncheckedCreateInput;
-
-export type LibraryItemImportUpdateData =
-    Prisma.LibraryItemUncheckedUpdateInput;
-
 function normalizeOptionalTrimmedText(value?: string | null): string | null {
     const normalized = value?.trim();
     return normalized ? normalized : null;
 }
 
-export function normalizeBrowserProfileId(
-    browserProfileId?: string | null
-): string {
+function normalizeBrowserProfileId(browserProfileId?: string | null): string {
     return browserProfileId?.trim() || DEFAULT_BROWSER_PROFILE_ID;
 }
 
@@ -86,7 +78,7 @@ export function buildLibraryItemImportRow(
 export function buildLibraryItemCreateData(
     row: LibraryItemImportRow,
     userId: string
-): LibraryItemImportCreateData {
+): Prisma.LibraryItemUncheckedCreateInput {
     return {
         ...row,
         sourceMetadata: row.sourceMetadata ?? Prisma.DbNull,
@@ -96,7 +88,7 @@ export function buildLibraryItemCreateData(
 
 export function buildLibraryItemUpdateData(
     row: LibraryItemImportRow
-): LibraryItemImportUpdateData {
+): Prisma.LibraryItemUncheckedUpdateInput {
     return {
         browserProfileId: row.browserProfileId,
         caption: row.caption,

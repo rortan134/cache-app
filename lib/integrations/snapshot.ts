@@ -15,9 +15,7 @@ const SNAPSHOT_UPSERT_BATCH_SIZE = 50;
 const SNAPSHOT_IMPORT_TRANSACTION_TIMEOUT_MS = 60_000;
 const SNAPSHOT_IMPORT_TRANSACTION_MAX_WAIT_MS = 10_000;
 
-type SnapshotImportRow = LibraryItemImportRow;
-
-export interface SnapshotImportItemInput {
+interface SnapshotImportItemInput {
     browserProfileId?: string;
     caption?: string | null;
     externalId?: string | null;
@@ -32,7 +30,7 @@ export interface SnapshotImportItemInput {
     url: string;
 }
 
-export interface SnapshotImportResult {
+interface SnapshotImportResult {
     importedCount: number;
     prunedCount: number;
     skippedCount: number;
@@ -45,10 +43,11 @@ type LibraryItemDelegate = Pick<
     "deleteMany" | "findMany" | "upsert"
 >;
 
+/** @internal */
 function normalizeSnapshotRow(
     source: LibraryItemSource,
     item: SnapshotImportItemInput
-): SnapshotImportRow | null {
+): LibraryItemImportRow | null {
     return buildLibraryItemImportRow({
         browserProfileId: item.browserProfileId,
         caption: item.caption,
@@ -66,8 +65,9 @@ function normalizeSnapshotRow(
     });
 }
 
-function groupRowsByProfile(rows: SnapshotImportRow[]) {
-    const grouped = new Map<string, Map<string, SnapshotImportRow>>();
+/** @internal */
+function groupRowsByProfile(rows: LibraryItemImportRow[]) {
+    const grouped = new Map<string, Map<string, LibraryItemImportRow>>();
 
     for (const row of rows) {
         const rowsByExternalId = grouped.get(row.browserProfileId);
@@ -76,7 +76,7 @@ function groupRowsByProfile(rows: SnapshotImportRow[]) {
             continue;
         }
 
-        const rowsForProfile = new Map<string, SnapshotImportRow>();
+        const rowsForProfile = new Map<string, LibraryItemImportRow>();
         rowsForProfile.set(row.externalId, row);
         grouped.set(row.browserProfileId, rowsForProfile);
     }
@@ -84,6 +84,7 @@ function groupRowsByProfile(rows: SnapshotImportRow[]) {
     return grouped;
 }
 
+/** @internal */
 function chunkRows<T>(rows: readonly T[], size: number): T[][] {
     const chunks: T[][] = [];
     for (let index = 0; index < rows.length; index += size) {
@@ -92,10 +93,11 @@ function chunkRows<T>(rows: readonly T[], size: number): T[][] {
     return chunks;
 }
 
+/** @internal */
 async function importSnapshotProfileRows(args: {
     browserProfileId: string;
     libraryItemDelegate: LibraryItemDelegate;
-    rows: SnapshotImportRow[];
+    rows: LibraryItemImportRow[];
     snapshotComplete: boolean;
     source: LibraryItemSource;
     userId: string;
@@ -188,6 +190,7 @@ async function importSnapshotProfileRows(args: {
     };
 }
 
+/** @public */
 export async function importLibraryItemSnapshot(args: {
     browserProfileIdsToSync?: string[];
     items: SnapshotImportItemInput[];
@@ -197,7 +200,7 @@ export async function importLibraryItemSnapshot(args: {
 }): Promise<SnapshotImportResult> {
     const normalizedRows = args.items
         .map((item) => normalizeSnapshotRow(args.source, item))
-        .filter((item): item is SnapshotImportRow => item !== null);
+        .filter((item): item is LibraryItemImportRow => item !== null);
     const skippedCount = args.items.length - normalizedRows.length;
     const rowsByProfile = groupRowsByProfile(normalizedRows);
     const browserProfileIdsToSync = new Set(

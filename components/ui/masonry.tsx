@@ -101,7 +101,6 @@ const SENTINEL_NODE: TreeNode = {
     parent: undefined as unknown as TreeNode,
     right: undefined as unknown as TreeNode,
 };
-
 SENTINEL_NODE.parent = SENTINEL_NODE;
 SENTINEL_NODE.left = SENTINEL_NODE;
 SENTINEL_NODE.right = SENTINEL_NODE;
@@ -1456,7 +1455,7 @@ function Masonry({
     );
 
     return (
-        <MasonryContext.Provider
+        <MasonryContext
             value={{
                 columnWidth: positioner.columnWidth,
                 fallback,
@@ -1483,7 +1482,7 @@ function Masonry({
             >
                 <MasonryViewport>{children}</MasonryViewport>
             </div>
-        </MasonryContext.Provider>
+        </MasonryContext>
     );
 }
 
@@ -1502,11 +1501,9 @@ function MasonryViewport({
         setMounted(true);
     }, []);
 
-    const validChildren = React.Children.toArray(children).filter(
-        (child): child is React.ReactElement<React.ComponentProps<"div">> =>
-            React.isValidElement(child) &&
-            (child.type === MasonryItem || child.type === MasonryItem)
-    );
+    const validChildren = React.Children.toArray(
+        children
+    ) as React.ReactElement<React.ComponentProps<"div">>[];
     const itemCount = validChildren.length;
     const shortestColumnSize = context.positioner.shortestColumn();
     const measuredCount = context.positioner.size();
@@ -1515,7 +1512,6 @@ function MasonryViewport({
     const rangeEnd = context.scrollTop + overscanPixels;
     const layoutOutdated =
         shortestColumnSize < rangeEnd && measuredCount < itemCount;
-
     const positionedChildren: React.ReactElement[] = [];
 
     const visibleItemStyle = React.useMemo(
@@ -1600,7 +1596,6 @@ function MasonryViewport({
         }
     }
 
-    // biome-ignore lint/correctness/useExhaustiveDependencies: measuredCount and itemCount change must trigger re-measurement loop
     React.useEffect(() => {
         if (layoutOutdated && mounted) {
             if (rafId.current) {
@@ -1615,7 +1610,7 @@ function MasonryViewport({
                 cancelAnimationFrame(rafId.current);
             }
         };
-    }, [layoutOutdated, mounted, measuredCount, itemCount]);
+    }, [layoutOutdated, mounted]);
 
     const estimatedHeight = React.useMemo(() => {
         const measuredHeight = context.positioner.estimateHeight(

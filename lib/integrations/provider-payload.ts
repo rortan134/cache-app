@@ -15,7 +15,6 @@ export function readPayloadDate(value: unknown): Date | null {
     if (!raw) {
         return null;
     }
-
     const parsed = new Date(raw);
     return Number.isNaN(parsed.getTime()) ? null : parsed;
 }

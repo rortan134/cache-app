@@ -24,11 +24,9 @@ export function Combobox<Value, Multiple extends boolean | undefined = false>(
 ): React.ReactElement {
     const chipsRef = React.useRef<Element | null>(null);
     return (
-        <ComboboxContext.Provider
-            value={{ chipsRef, multiple: !!props.multiple }}
-        >
+        <ComboboxContext value={{ chipsRef, multiple: !!props.multiple }}>
             <ComboboxPrimitive.Root {...props} />
-        </ComboboxContext.Provider>
+        </ComboboxContext>
     );
 }
 

@@ -9,7 +9,3 @@ export const LibraryCollectionError = NamedError.create(
         operation: z.string(),
     })
 );
-
-export type LibraryCollectionErrorCode = z.infer<
-    typeof LibraryCollectionError.Schema
->["data"]["code"];

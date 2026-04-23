@@ -1,5 +1,6 @@
 import { BASE_URL } from "@/lib/common/constants";
 import { normalizeURL } from "@/lib/common/url";
+import { versusEntries } from "./[locale]/versus/data";
 import { getDefaultLocale, getLocales } from "gt-next/server";
 import type { MetadataRoute } from "next";
 
@@ -12,6 +13,7 @@ const PUBLIC_STATIC_ROUTES = [
     { path: "/", priority: 1 },
     { path: "/library", priority: 0.9 },
     { path: "/pricing", priority: 0.8 },
+    { path: "/versus", priority: 0.85 },
     { path: "/faq", priority: 0.8 },
     { path: "/manifesto", priority: 0.8 },
     { path: "/legal", priority: 0.7 },
@@ -19,6 +21,11 @@ const PUBLIC_STATIC_ROUTES = [
     { path: "/legal/privacy-policy", priority: 0.7 },
     { path: "/legal/cookie-policy", priority: 0.7 },
 ] satisfies SitemapRoute[];
+
+const VERSUS_DYNAMIC_ROUTES = versusEntries.map((entry) => ({
+    path: `/versus/${entry.slug}` as const,
+    priority: 0.75,
+})) satisfies SitemapRoute[];
 
 function getLocalizedUrl(locale: string, path: SitemapRoute["path"]) {
     return normalizeURL(
@@ -30,7 +37,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     const locales = getLocales();
     const defaultLocale = getDefaultLocale();
 
-    return PUBLIC_STATIC_ROUTES.map((entry) => ({
+    return [...PUBLIC_STATIC_ROUTES, ...VERSUS_DYNAMIC_ROUTES].map((entry) => ({
         alternates: {
             languages: Object.fromEntries(
                 locales.map((locale) => [

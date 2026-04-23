@@ -1,6 +1,6 @@
 "use server";
 
-import { getSessionUserId } from "@/lib/auth/server";
+import { requireActionUserId } from "@/lib/collections/action-helpers";
 import { createLogger } from "@/lib/common/logs/console/logger";
 import * as service from "./service";
 
@@ -25,12 +25,9 @@ export async function downloadMedia(url: string): Promise<DownloadMediaResult> {
         };
     }
 
-    const userId = await getSessionUserId();
-    if (!userId) {
-        return {
-            message: "Sign in again to download media.",
-            status: "UNAUTHORIZED",
-        };
+    const auth = await requireActionUserId("Sign in again to download media.");
+    if ("status" in auth) {
+        return auth;
     }
 
     try {
