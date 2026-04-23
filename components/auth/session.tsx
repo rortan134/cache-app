@@ -21,7 +21,9 @@ function GoogleOneTapTrigger() {
 
         const initOneTap = async () => {
             try {
-                await authClient.oneTap();
+                await authClient.oneTap({
+                    callbackURL: "/library",
+                });
             } catch (error) {
                 console.error("One Tap error:", error);
             }

@@ -654,76 +654,80 @@ export function LibraryNoteDrawer({
                             {note ? "Edit note" : "New entry"}
                         </DrawerTitle>
                     </div>
-                    <Group aria-label="Panel actions">
-                        <Button
-                            aria-label={
-                                isExpanded
-                                    ? "Restore drawer width"
-                                    : "Expand drawer width"
-                            }
-                            aria-pressed={isExpanded}
-                            className="rounded-full"
-                            onClick={() => setIsExpanded((current) => !current)}
-                            size="icon-sm"
-                            variant="secondary"
-                        >
-                            <ExpandIcon className="inline-block size-3.5" />
-                        </Button>
-                        <DrawerClose
-                            render={
-                                <Button
-                                    className="rounded-full"
-                                    size="icon-sm"
-                                    variant="secondary"
-                                >
-                                    <XIcon className="inline-block size-3.5" />
-                                </Button>
-                            }
-                        />
-                    </Group>
-                </DrawerHeader>
-                <DrawerHeader className="flex-row items-center pt-1">
-                    <Menu>
-                        <MenuTrigger
-                            render={
-                                <Button
-                                    className="rounded-full"
-                                    size="xs"
-                                    variant="outline"
-                                />
-                            }
-                        >
-                            <MessageCircleIcon className="inline-block size-3.5" />
-                            <T>Open in Chat</T>
-                            <ChevronDownIcon className="size-3.5" />
-                        </MenuTrigger>
-                        <MenuPopup align="start" className="w-60">
-                            {CHAT_PROVIDERS.map((provider) => {
-                                const ProviderIcon = provider.icon;
+                    <div className="flex items-center justify-end gap-2">
+                        <Menu>
+                            <MenuTrigger
+                                render={
+                                    <Button
+                                        className="rounded-full"
+                                        size="xs"
+                                        variant="outline"
+                                    />
+                                }
+                            >
+                                <MessageCircleIcon className="inline-block size-3.5" />
+                                <T>Open in...</T>
+                                <ChevronDownIcon className="size-3.5" />
+                            </MenuTrigger>
+                            <MenuPopup align="start" className="w-60">
+                                {CHAT_PROVIDERS.map((provider) => {
+                                    const ProviderIcon = provider.icon;
 
-                                return (
-                                    <MenuItem
-                                        closeOnClick
-                                        key={provider.title}
-                                        render={(props) => (
-                                            <a
-                                                {...props}
-                                                href={provider.createUrl(query)}
-                                                rel="noopener noreferrer"
-                                                target="_blank"
-                                            />
-                                        )}
+                                    return (
+                                        <MenuItem
+                                            closeOnClick
+                                            key={provider.title}
+                                            render={(props) => (
+                                                <a
+                                                    {...props}
+                                                    href={provider.createUrl(
+                                                        query
+                                                    )}
+                                                    rel="noopener noreferrer"
+                                                    target="_blank"
+                                                />
+                                            )}
+                                        >
+                                            <ProviderIcon className="size-4 text-muted-foreground" />
+                                            <span className="flex-1">
+                                                {provider.title}
+                                            </span>
+                                            <ExternalLinkIcon className="size-4 text-muted-foreground" />
+                                        </MenuItem>
+                                    );
+                                })}
+                            </MenuPopup>
+                        </Menu>
+                        <Group aria-label="Panel actions">
+                            <Button
+                                aria-label={
+                                    isExpanded
+                                        ? "Restore drawer width"
+                                        : "Expand drawer width"
+                                }
+                                aria-pressed={isExpanded}
+                                className="rounded-full"
+                                onClick={() =>
+                                    setIsExpanded((current) => !current)
+                                }
+                                size="icon-sm"
+                                variant="secondary"
+                            >
+                                <ExpandIcon className="inline-block size-3.5" />
+                            </Button>
+                            <DrawerClose
+                                render={
+                                    <Button
+                                        className="rounded-full"
+                                        size="icon-sm"
+                                        variant="secondary"
                                     >
-                                        <ProviderIcon className="size-4 text-muted-foreground" />
-                                        <span className="flex-1">
-                                            {provider.title}
-                                        </span>
-                                        <ExternalLinkIcon className="size-4 text-muted-foreground" />
-                                    </MenuItem>
-                                );
-                            })}
-                        </MenuPopup>
-                    </Menu>
+                                        <XIcon className="inline-block size-3.5" />
+                                    </Button>
+                                }
+                            />
+                        </Group>
+                    </div>
                 </DrawerHeader>
                 <DrawerPanel
                     allowSelection
