@@ -6437,6 +6437,11 @@ function LibraryBrowser({
                             </Button>
                         }
                     />
+                    {canCreateCollectionFromResults ? null : (
+                        <span className="mr-2 ml-auto select-all font-semibold text-[10px] text-muted-foreground uppercase">
+                            CACHE APP
+                        </span>
+                    )}
                 </Toolbar.Root>
             </div>
             {canClear ||
