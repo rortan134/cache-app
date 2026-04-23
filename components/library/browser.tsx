@@ -1872,7 +1872,18 @@ function LibraryWorkspaceSidebar({
 const COMBOBOX_ITEM_PRESS_REASON = "item-press";
 const ALL_DOMAIN_FILTER = "__all_domains__";
 
-const SEARCH_HOTKEYS = ["ctrl+g", "ctrl+k", "ctrl+p", "/"] as const;
+const SEARCH_HOTKEYS = [
+    "ctrl+g",
+    "ctrl+k",
+    "ctrl+p",
+    "cmd+g",
+    "cmd+k",
+    "cmd+p",
+    "Meta+g",
+    "Meta+k",
+    "Meta+p",
+    "/",
+] as const;
 const SEARCH_CANCEL_KEYS = ["esc", "tab"] as const;
 const LIBRARY_COMMAND_PANEL_TOP_PX = 12;
 const LIBRARY_SECTION_STICKY_GAP_PX = 8;
