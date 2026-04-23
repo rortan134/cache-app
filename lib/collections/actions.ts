@@ -153,6 +153,25 @@ function handleError(error: unknown, fallbackMessage: string) {
     };
 }
 
+function handleNotFoundError(error: unknown, fallbackMessage: string) {
+    const named = extractNamedErrorMessage(error);
+    if (
+        LibraryCollectionError.isInstance(error) &&
+        error.data.code === "not_found"
+    ) {
+        return {
+            message: named.message,
+            status: "NOT_FOUND" as const,
+        };
+    }
+
+    log.error(fallbackMessage, error);
+    return {
+        message: fallbackMessage,
+        status: "ERROR" as const,
+    };
+}
+
 export async function deleteCollection(input: {
     collectionId: string;
 }): Promise<DeleteCollectionResult> {
@@ -185,7 +204,7 @@ export async function deleteCollection(input: {
             status: "DELETED",
         };
     } catch (error) {
-        return handleError(
+        return handleNotFoundError(
             error,
             "We couldn't delete this collection right now."
         );
@@ -224,7 +243,7 @@ export async function duplicateCollection(input: {
             status: "CREATED",
         };
     } catch (error) {
-        return handleError(
+        return handleNotFoundError(
             error,
             "We couldn't make a copy of this collection right now."
         );
@@ -265,7 +284,7 @@ export async function updateCollectionPriority(input: {
             status: "UPDATED",
         };
     } catch (error) {
-        return handleError(
+        return handleNotFoundError(
             error,
             "We couldn't update this collection priority right now."
         );

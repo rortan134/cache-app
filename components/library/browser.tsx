@@ -97,6 +97,12 @@ import { GradientWaveText } from "@/components/ui/gradient-wave-text";
 import { ChevronDownFilledIcon } from "@/components/ui/icons";
 import { Input } from "@/components/ui/input";
 import { Kbd, KbdGroup } from "@/components/ui/kbd";
+import {
+    Kanban,
+    KanbanBoard,
+    KanbanColumn,
+    KanbanItem,
+} from "@/components/ui/kanban";
 import { Masonry, MasonryItem } from "@/components/ui/masonry";
 import {
     Menu,
@@ -2018,11 +2024,14 @@ type CollectionMembershipFilter =
     | "in-collections"
     | "not-in-collections";
 type ColumnCountMode = "auto" | "2" | "3" | "4" | "5" | "6";
+type LayoutMode = "masonry" | "kanban";
 type PaletteSection = "search" | "filter" | "group" | "sort" | "layout";
 
 const DEFAULT_SORT_MODE: SortMode = "added-newest";
 const DEFAULT_COLUMN_COUNT_MODE: ColumnCountMode = "auto";
+const DEFAULT_LAYOUT_MODE: LayoutMode = "masonry";
 const DEFAULT_COLLECTION_MEMBERSHIP_FILTER: CollectionMembershipFilter = "all";
+const UNASSIGNED_COLLECTION_COLUMN_ID = "__unassigned__";
 const FILTERABLE_LIBRARY_SOURCES = [
     LibraryItemSource.cache_note,
     LibraryItemSource.chrome_bookmarks,
@@ -2074,6 +2083,11 @@ const PALETTE_COLUMN_OPTIONS = [
     { label: "4 columns", value: "4" as const },
     { label: "5 columns", value: "5" as const },
     { label: "6 columns", value: "6" as const },
+];
+
+const PALETTE_LAYOUT_MODE_OPTIONS = [
+    { label: "Masonry", value: "masonry" as const },
+    { label: "Kanban", value: "kanban" as const },
 ];
 
 interface CommandPaletteItem {
@@ -2436,6 +2450,10 @@ function columnCountLabel(mode: ColumnCountMode): string {
     return mode === "auto" ? "Auto columns" : `${mode} columns`;
 }
 
+function layoutModeLabel(mode: LayoutMode): string {
+    return mode === "kanban" ? "Kanban" : "Masonry";
+}
+
 function collectionMembershipFilterLabel(
     filter: CollectionMembershipFilter
 ): string {
@@ -2603,6 +2621,7 @@ function renderLibraryGridBody({
     collections,
     clearLibraryPalette,
     columnCount,
+    layoutMode,
     enableSectionCollapse,
     layoutRefreshToken,
     onCollapseAllSections,
@@ -2624,6 +2643,7 @@ function renderLibraryGridBody({
     collections: LibraryCollectionSummary[];
     clearLibraryPalette: () => void;
     columnCount?: number;
+    layoutMode: LayoutMode;
     enableSectionCollapse: boolean;
     layoutRefreshToken: number;
     onCollapseAllSections?: () => void;
@@ -2673,6 +2693,7 @@ function renderLibraryGridBody({
                 emptyHint="No saved items in this section."
                 items={section.items}
                 key={section.key}
+                layoutMode={layoutMode}
                 layoutToken={layoutRefreshToken}
                 onCollapseAll={onCollapseAllSections}
                 onCopyLink={onCopyLink}
@@ -2705,6 +2726,7 @@ function renderLibraryGridBody({
                     collections={collections}
                     columnCount={columnCount}
                     items={section.items}
+                    layoutMode={layoutMode}
                     layoutToken={layoutRefreshToken}
                     onCopyLink={onCopyLink}
                     onDelete={onDelete}
@@ -2945,6 +2967,7 @@ interface BuildLibraryPaletteGroupsInput {
         value: string;
     }[];
     groupBy: GroupByMode;
+    layoutMode: LayoutMode;
     onClearCollectionFilters: () => void;
     onToggleCollectionSelection: (id: string) => void;
     openPaletteSection: (
@@ -2965,6 +2988,7 @@ interface BuildLibraryPaletteGroupsInput {
         value: string[] | ((value: string[]) => string[])
     ) => void;
     setGroupBy: (value: GroupByMode) => void;
+    setLayoutMode: (value: LayoutMode) => void;
     setPaletteInput: (value: string) => void;
     setSearchTerms: (value: string[] | ((value: string[]) => string[])) => void;
     setSortMode: (value: SortMode) => void;
@@ -3011,6 +3035,7 @@ function buildLibraryPaletteGroups({
     domainFilters,
     domainOptions,
     groupBy,
+    layoutMode,
     onClearCollectionFilters,
     onToggleCollectionSelection,
     openPaletteSection,
@@ -3024,6 +3049,7 @@ function buildLibraryPaletteGroups({
     setCommandListOpen,
     setDomainFilters,
     setGroupBy,
+    setLayoutMode,
     setPaletteInput,
     setSearchTerms,
     setSortMode,
@@ -3067,7 +3093,7 @@ function buildLibraryPaletteGroups({
             value: "navigate sorting",
         },
         {
-            description: `Current: ${columnCountLabel(columnCountMode)}`,
+            description: `Current: ${layoutModeLabel(layoutMode)}`,
             label: "Layout…",
             onSelect: (event) => openPaletteSection("layout", event),
             shortcut: "L",
@@ -3090,7 +3116,8 @@ function buildLibraryPaletteGroups({
         collectionMembershipFilter !== DEFAULT_COLLECTION_MEMBERSHIP_FILTER ||
         groupBy !== "none" ||
         sortMode !== DEFAULT_SORT_MODE ||
-        columnCountMode !== DEFAULT_COLUMN_COUNT_MODE;
+        columnCountMode !== DEFAULT_COLUMN_COUNT_MODE ||
+        layoutMode !== DEFAULT_LAYOUT_MODE;
 
     if (paletteSection === "search") {
         return buildSearchPaletteGroups({
@@ -3257,18 +3284,39 @@ function buildLibraryPaletteGroups({
 
     return [
         { items: [backItem], label: "Navigation" },
+        ...(layoutMode === "masonry"
+            ? [
+                  {
+                      items: PALETTE_COLUMN_OPTIONS.map((option) => ({
+                          active: columnCountMode === option.value,
+                          description:
+                              option.value === "auto"
+                                  ? "Let the masonry adapt to the available width"
+                                  : "Force a specific number of columns",
+                          label: option.label,
+                          onSelect: applyAndReturn(() =>
+                              setColumnCountMode(
+                                  option.value as ColumnCountMode
+                              )
+                          ),
+                          value: `columns ${option.value}`,
+                      })),
+                      label: "Columns",
+                  },
+              ]
+            : []),
         {
-            items: PALETTE_COLUMN_OPTIONS.map((option) => ({
-                active: columnCountMode === option.value,
+            items: PALETTE_LAYOUT_MODE_OPTIONS.map((option) => ({
+                active: layoutMode === option.value,
                 description:
-                    option.value === "auto"
-                        ? "Let the masonry adapt to the available width"
-                        : "Force a specific number of columns",
+                    option.value === "kanban"
+                        ? "Group entries by collections in draggable columns"
+                        : "Display saved items in a visual masonry grid",
                 label: option.label,
                 onSelect: applyAndReturn(() =>
-                    setColumnCountMode(option.value as ColumnCountMode)
+                    setLayoutMode(option.value as LayoutMode)
                 ),
-                value: `columns ${option.value}`,
+                value: `layout ${option.value}`,
             })),
             label: "Layout",
         },
@@ -3624,6 +3672,7 @@ function LibraryPaletteTrailing({
     columnCountMode,
     domainFilters,
     groupBy,
+    layoutMode,
     onAttachFiles,
     onRemoveCollectionFilter,
     onRemoveCommandAttachment,
@@ -3633,6 +3682,7 @@ function LibraryPaletteTrailing({
     setColumnCountMode,
     setDomainFilters,
     setGroupBy,
+    setLayoutMode,
     setSearchTerms,
     setSortMode,
     setSourceFilters,
@@ -3645,6 +3695,7 @@ function LibraryPaletteTrailing({
     columnCountMode: ColumnCountMode;
     domainFilters: string[];
     groupBy: GroupByMode;
+    layoutMode: LayoutMode;
     onAttachFiles: () => void | Promise<void>;
     onRemoveCollectionFilter: (id: string) => void;
     onRemoveCommandAttachment: (id: string) => void;
@@ -3656,6 +3707,7 @@ function LibraryPaletteTrailing({
         value: string[] | ((value: string[]) => string[])
     ) => void;
     setGroupBy: (value: GroupByMode) => void;
+    setLayoutMode: (value: LayoutMode) => void;
     setSearchTerms: (value: string[] | ((value: string[]) => string[])) => void;
     setSortMode: (value: SortMode) => void;
     setSourceFilters: (
@@ -3763,11 +3815,24 @@ function LibraryPaletteTrailing({
         );
     }
 
-    if (columnCountMode !== DEFAULT_COLUMN_COUNT_MODE) {
+    if (layoutMode !== DEFAULT_LAYOUT_MODE) {
+        chips.push(
+            <PaletteChip
+                key="layout-mode"
+                label={`Layout: ${layoutModeLabel(layoutMode)}`}
+                onRemove={() => setLayoutMode(DEFAULT_LAYOUT_MODE)}
+            />
+        );
+    }
+
+    if (
+        layoutMode === "masonry" &&
+        columnCountMode !== DEFAULT_COLUMN_COUNT_MODE
+    ) {
         chips.push(
             <PaletteChip
                 key="columns"
-                label={`Layout: ${columnCountLabel(columnCountMode)}`}
+                label={`Columns: ${columnCountLabel(columnCountMode)}`}
                 onRemove={() => setColumnCountMode(DEFAULT_COLUMN_COUNT_MODE)}
             />
         );
@@ -3943,6 +4008,7 @@ interface GridProps {
     collections: LibraryCollectionSummary[];
     columnCount?: number;
     items: LibraryItemWithCollections[];
+    layoutMode: LayoutMode;
     layoutToken?: number;
     onCopyLink?: (item: LibraryItemWithCollections) => void;
     onDelete?: (item: LibraryItemWithCollections) => void;
@@ -3989,10 +4055,54 @@ interface LockedLibraryGridCardProps {
     item: LibraryItemWithCollections;
 }
 
+interface KanbanColumnItem {
+    item: LibraryItemWithCollections;
+    value: string;
+}
+
 interface PreviewMediaProps {
     alt: string;
     fallbackLabel?: string;
     src: string | null;
+}
+
+function buildKanbanColumns(
+    collections: LibraryCollectionSummary[],
+    items: LibraryItemWithCollections[]
+): Record<string, KanbanColumnItem[]> {
+    const columns: Record<string, KanbanColumnItem[]> = {
+        [UNASSIGNED_COLLECTION_COLUMN_ID]: [],
+    };
+
+    for (const collection of collections) {
+        columns[collection.id] = [];
+    }
+
+    for (const item of items) {
+        if (item.collections.length === 0) {
+            columns[UNASSIGNED_COLLECTION_COLUMN_ID]?.push({
+                item,
+                value: `${UNASSIGNED_COLLECTION_COLUMN_ID}:${item.id}`,
+            });
+            continue;
+        }
+
+        for (const collection of collections) {
+            const belongsToCollection = item.collections.some(
+                (entry) => entry.id === collection.id
+            );
+            if (!belongsToCollection) {
+                continue;
+            }
+
+            columns[collection.id]?.push({
+                item,
+                value: `${collection.id}:${item.id}`,
+            });
+        }
+    }
+
+    return columns;
 }
 
 function itemDateLabel(dateValue: Date | string | null | undefined): string {
@@ -4666,6 +4776,140 @@ function renderLibraryMasonry({
     );
 }
 
+function renderLibraryKanban({
+    collections,
+    items,
+    locked = false,
+    onCopyLink,
+    onDelete,
+    onOpenNote,
+    onOpenInNewTab,
+    onUpdateItemCollections,
+    pendingDeleteItemId,
+}: GridProps & { locked?: boolean }): ReactElement {
+    const kanbanColumns = buildKanbanColumns(collections, items);
+    const columnIds = [
+        UNASSIGNED_COLLECTION_COLUMN_ID,
+        ...collections.map((collection) => collection.id),
+    ];
+
+    return (
+        <div className="overflow-x-auto pb-1">
+            <Kanban getItemValue={(entry) => entry.value} value={kanbanColumns}>
+                <KanbanBoard className="min-w-max items-start gap-3">
+                    {columnIds.map((columnId) => {
+                        const columnName =
+                            columnId === UNASSIGNED_COLLECTION_COLUMN_ID
+                                ? "No collection"
+                                : (collections.find(
+                                      (item) => item.id === columnId
+                                  )?.name ?? "Collection");
+                        const columnItems = kanbanColumns[columnId] ?? [];
+
+                        return (
+                            <KanbanColumn
+                                className="w-76"
+                                key={columnId}
+                                value={columnId}
+                            >
+                                <div className="mb-2 flex items-center gap-2">
+                                    <h3 className="truncate font-medium text-sm">
+                                        {columnName}
+                                    </h3>
+                                    <span className="shrink-0 font-medium text-muted-foreground text-xs tabular-nums">
+                                        {columnItems.length}
+                                    </span>
+                                </div>
+                                <div className="flex min-h-24 flex-col gap-3">
+                                    {columnItems.length === 0 ? (
+                                        <p className="rounded-lg border border-border/60 border-dashed px-3 py-4 text-center text-muted-foreground text-xs">
+                                            No items yet
+                                        </p>
+                                    ) : (
+                                        columnItems.map((columnItem) => {
+                                            const { item } = columnItem;
+                                            const href = normalizeURL(item.url);
+                                            const alt =
+                                                (item.caption ?? "").trim() ||
+                                                "Saved item";
+                                            const domain = itemDomain(item.url);
+                                            const previewTitle =
+                                                alt === "Saved item"
+                                                    ? "Preview"
+                                                    : alt;
+                                            const previewDescription =
+                                                domain === "Other"
+                                                    ? item.url
+                                                    : domain;
+                                            const createdLabel = itemDateLabel(
+                                                item.createdAt
+                                            );
+                                            const addedLabel = itemDateLabel(
+                                                item.scrapedAt ?? item.createdAt
+                                            );
+
+                                            return (
+                                                <KanbanItem
+                                                    key={columnItem.value}
+                                                    value={columnItem.value}
+                                                >
+                                                    {locked ? (
+                                                        <LockedLibraryGridCard
+                                                            alt={alt}
+                                                            item={item}
+                                                        />
+                                                    ) : (
+                                                        <LibraryGridCard
+                                                            addedLabel={
+                                                                addedLabel
+                                                            }
+                                                            alt={alt}
+                                                            collections={
+                                                                collections
+                                                            }
+                                                            createdLabel={
+                                                                createdLabel
+                                                            }
+                                                            href={href}
+                                                            item={item}
+                                                            onCopyLink={
+                                                                onCopyLink
+                                                            }
+                                                            onDelete={onDelete}
+                                                            onOpenInNewTab={
+                                                                onOpenInNewTab
+                                                            }
+                                                            onOpenNote={
+                                                                onOpenNote
+                                                            }
+                                                            onUpdateItemCollections={
+                                                                onUpdateItemCollections
+                                                            }
+                                                            pendingDeleteItemId={
+                                                                pendingDeleteItemId
+                                                            }
+                                                            previewDescription={
+                                                                previewDescription
+                                                            }
+                                                            previewTitle={
+                                                                previewTitle
+                                                            }
+                                                        />
+                                                    )}
+                                                </KanbanItem>
+                                            );
+                                        })
+                                    )}
+                                </div>
+                            </KanbanColumn>
+                        );
+                    })}
+                </KanbanBoard>
+            </Kanban>
+        </div>
+    );
+}
+
 function ExtensionLibraryEmptyMasonryPeek() {
     const fallback = (
         <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
@@ -4719,6 +4963,7 @@ function ExtensionLibraryGrid({
     collections,
     columnCount,
     items,
+    layoutMode,
     layoutToken,
     onCopyLink,
     onDelete,
@@ -4744,40 +4989,55 @@ function ExtensionLibraryGrid({
         ? items.slice(0, resolvedPreviewCount)
         : items;
     const lockedItems = showPaywall ? items.slice(resolvedPreviewCount) : [];
+    const renderLibraryLayout = (
+        nextItems: LibraryItemWithCollections[],
+        locked = false
+    ) =>
+        layoutMode === "kanban"
+            ? renderLibraryKanban({
+                  collections,
+                  columnCount,
+                  items: nextItems,
+                  layoutMode,
+                  layoutToken,
+                  locked,
+                  onCopyLink,
+                  onDelete,
+                  onOpenInNewTab,
+                  onOpenNote,
+                  onUpdateItemCollections,
+                  paywallPreviewCount,
+                  paywallTotalCount,
+                  pendingCollectionItemIds,
+                  pendingDeleteItemId,
+                  showPaywallBanner,
+              })
+            : renderLibraryMasonry({
+                  collections,
+                  columnCount,
+                  items: nextItems,
+                  layoutMode,
+                  layoutToken,
+                  locked,
+                  onCopyLink,
+                  onDelete,
+                  onOpenInNewTab,
+                  onOpenNote,
+                  onUpdateItemCollections,
+                  paywallPreviewCount,
+                  paywallTotalCount,
+                  pendingCollectionItemIds,
+                  pendingDeleteItemId,
+                  showPaywallBanner,
+              });
 
     if (!showPaywall) {
-        return renderLibraryMasonry({
-            collections,
-            columnCount,
-            items,
-            layoutToken,
-            onCopyLink,
-            onDelete,
-            onOpenInNewTab,
-            onOpenNote,
-            onUpdateItemCollections,
-            pendingCollectionItemIds,
-            pendingDeleteItemId,
-        });
+        return renderLibraryLayout(items);
     }
 
     return (
         <div className="flex flex-col gap-8">
-            {previewItems.length > 0
-                ? renderLibraryMasonry({
-                      collections,
-                      columnCount,
-                      items: previewItems,
-                      layoutToken,
-                      onCopyLink,
-                      onDelete,
-                      onOpenInNewTab,
-                      onOpenNote,
-                      onUpdateItemCollections,
-                      pendingCollectionItemIds,
-                      pendingDeleteItemId,
-                  })
-                : null}
+            {previewItems.length > 0 ? renderLibraryLayout(previewItems) : null}
             {lockedItems.length > 0 ? (
                 <div className="relative isolate">
                     {showPaywallBanner ? (
@@ -4787,20 +5047,7 @@ function ExtensionLibraryGrid({
                     ) : null}
                     <div className="pointer-events-none absolute inset-0 z-10 rounded-[2rem] bg-linear-to-b from-background/10 via-background/45 to-background/75" />
                     <div className="select-none opacity-60 blur-[1.5px] saturate-75">
-                        {renderLibraryMasonry({
-                            collections,
-                            columnCount,
-                            items: lockedItems,
-                            layoutToken,
-                            locked: true,
-                            onCopyLink,
-                            onDelete,
-                            onOpenInNewTab,
-                            onOpenNote,
-                            onUpdateItemCollections,
-                            pendingCollectionItemIds,
-                            pendingDeleteItemId,
-                        })}
+                        {renderLibraryLayout(lockedItems, true)}
                     </div>
                 </div>
             ) : null}
@@ -4863,6 +5110,7 @@ function ExtensionLibrarySection({
     columnCount,
     emptyHint,
     items,
+    layoutMode,
     layoutToken,
     onCopyLink,
     onDelete,
@@ -4916,6 +5164,7 @@ function ExtensionLibrarySection({
                     collections={collections}
                     columnCount={columnCount}
                     items={items}
+                    layoutMode={layoutMode}
                     layoutToken={layoutToken}
                     onCopyLink={onCopyLink}
                     onDelete={onDelete}
@@ -5052,6 +5301,8 @@ function LibraryBrowser({
     const [columnCountMode, setColumnCountMode] = useState<ColumnCountMode>(
         DEFAULT_COLUMN_COUNT_MODE
     );
+    const [layoutMode, setLayoutMode] =
+        useState<LayoutMode>(DEFAULT_LAYOUT_MODE);
     const [paletteSection, setPaletteSection] =
         useState<PaletteSection>("search");
     const [commandAttachments, setCommandAttachments] = useState<
@@ -5363,6 +5614,7 @@ function LibraryBrowser({
         setGroupBy("none");
         setSortMode(DEFAULT_SORT_MODE);
         setColumnCountMode(DEFAULT_COLUMN_COUNT_MODE);
+        setLayoutMode(DEFAULT_LAYOUT_MODE);
         setPaletteSection("search");
         setCommandListOpen(false);
     };
@@ -5415,6 +5667,7 @@ function LibraryBrowser({
         domainFilters,
         domainOptions,
         groupBy,
+        layoutMode,
         onClearCollectionFilters,
         onToggleCollectionSelection: onRemoveCollectionFilter,
         openPaletteSection,
@@ -5428,6 +5681,7 @@ function LibraryBrowser({
         setCommandListOpen,
         setDomainFilters,
         setGroupBy,
+        setLayoutMode,
         setPaletteInput,
         setSearchTerms,
         setSortMode,
@@ -5544,7 +5798,8 @@ function LibraryBrowser({
     const hasNonDefaultView =
         groupBy !== "none" ||
         sortMode !== DEFAULT_SORT_MODE ||
-        columnCountMode !== DEFAULT_COLUMN_COUNT_MODE;
+        columnCountMode !== DEFAULT_COLUMN_COUNT_MODE ||
+        layoutMode !== DEFAULT_LAYOUT_MODE;
 
     const showEmptyLibraryPeek =
         items.length === 0 && filteredItems.length === 0 && !hasActiveFilters;
@@ -5568,7 +5823,9 @@ function LibraryBrowser({
     });
 
     const resolvedColumnCount =
-        columnCountMode === "auto" ? undefined : Number(columnCountMode);
+        layoutMode === "masonry" && columnCountMode !== "auto"
+            ? Number(columnCountMode)
+            : undefined;
 
     const resultsSummary =
         filteredItems.length === items.length
@@ -5765,6 +6022,7 @@ function LibraryBrowser({
         collections,
         columnCount: resolvedColumnCount,
         enableSectionCollapse,
+        layoutMode,
         layoutRefreshToken,
         onCollapseAllSections: collapseAllSections,
         onCopyLink: handleCopyLink,
@@ -5973,6 +6231,7 @@ function LibraryBrowser({
                                     commandAttachments={commandAttachments}
                                     domainFilters={domainFilters}
                                     groupBy={groupBy}
+                                    layoutMode={layoutMode}
                                     onAttachFiles={handleAttachCommandFiles}
                                     onRemoveCollectionFilter={
                                         onRemoveCollectionFilter
@@ -5990,6 +6249,7 @@ function LibraryBrowser({
                                     setColumnCountMode={setColumnCountMode}
                                     setDomainFilters={setDomainFilters}
                                     setGroupBy={setGroupBy}
+                                    setLayoutMode={setLayoutMode}
                                     setSearchTerms={setSearchTerms}
                                     setSortMode={setSortMode}
                                     setSourceFilters={setSourceFilters}
