@@ -464,6 +464,18 @@ const INTEGRATION_ID_SET = new Set<IntegrationId>(
     INTEGRATIONS.map((item) => item.id)
 );
 
+const SOURCE_TO_LABEL = new Map<LibraryItemSource, string>(
+    INTEGRATIONS.flatMap((integration) =>
+        (integration.source?.libraryItemSources ?? []).map((source) => [
+            source,
+            integration.label,
+        ])
+    )
+);
+
+// Internal sources that don't belong to a specific external integration
+SOURCE_TO_LABEL.set(LibraryItemSource.cache_note, "Notes");
+
 const INTEGRATION_ACCOUNT_PROVIDER_IDS = Array.from(
     new Set(
         INTEGRATIONS.flatMap((integration) =>
@@ -483,10 +495,14 @@ export const LIBRARY_BOOKMARK_SYNC_INTEGRATION_IDS = INTEGRATIONS.filter(
 function listDirectionDefinitions(
     integration: SupportedIntegration
 ): IntegrationDirectionDefinition[] {
-    return [integration.source, integration.destination].filter(
-        (definition): definition is IntegrationDirectionDefinition =>
-            definition !== undefined
-    );
+    const definitions: IntegrationDirectionDefinition[] = [];
+    if (integration.source) {
+        definitions.push(integration.source);
+    }
+    if (integration.destination) {
+        definitions.push(integration.destination);
+    }
+    return definitions;
 }
 
 function getDirectionDefinition(
@@ -517,8 +533,14 @@ function buildConnectionSets(context: IntegrationConnectionContext): {
     linkedProviderIds: Set<string>;
 } {
     return {
-        libraryItemSources: new Set(context.libraryItemSources),
-        linkedProviderIds: new Set(context.linkedProviderIds),
+        libraryItemSources:
+            context.libraryItemSources instanceof Set
+                ? context.libraryItemSources
+                : new Set(context.libraryItemSources),
+        linkedProviderIds:
+            context.linkedProviderIds instanceof Set
+                ? context.linkedProviderIds
+                : new Set(context.linkedProviderIds),
     };
 }
 
@@ -648,26 +670,5 @@ export function recordHasIntegrationId<K extends string>(
 }
 
 export function getSourceLabel(source: LibraryItemSource): string {
-    switch (source) {
-        case LibraryItemSource.cache_note:
-            return "Notes";
-        case LibraryItemSource.chrome_bookmarks:
-            return "Chrome";
-        case LibraryItemSource.github_starred_repositories:
-            return "GitHub";
-        case LibraryItemSource.google_photos:
-            return "Google Photos";
-        case LibraryItemSource.instagram:
-            return "Instagram";
-        case LibraryItemSource.pinterest:
-            return "Pinterest";
-        case LibraryItemSource.tiktok:
-            return "TikTok";
-        case LibraryItemSource.x_bookmarks:
-            return "X";
-        case LibraryItemSource.youtube_watch_later:
-            return "YouTube";
-        default:
-            return "Other";
-    }
+    return SOURCE_TO_LABEL.get(source) ?? "Other";
 }

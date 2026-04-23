@@ -1,7 +1,10 @@
+import { createLogger } from "@/lib/common/logs/console/logger";
 import { getIntegrationAccountId } from "@/lib/integrations/provider-account";
 import { upsertLibraryItemImports } from "@/lib/integrations/upsert";
 import { LibraryItemSource } from "@/prisma/client/enums";
 import { listPinterestBoardPins, listPinterestBoards } from "./api";
+
+const log = createLogger("integrations:pinterest");
 
 export function getPinterestAccountId(userId: string): Promise<string | null> {
     return getIntegrationAccountId(userId, "pinterest");
@@ -17,45 +20,62 @@ export async function importPinterestBoards(args: {
     smartCollectionItemIds: string[];
 }> {
     const { accessToken, userId } = args;
+    const span = log.time("import-boards", { userId });
 
-    const boards = await listPinterestBoards(accessToken);
-    const importedExternalIds = new Set<string>();
-    const pinsToImport: {
-        caption: string | null;
-        externalId: string;
-        scrapedAt: Date | null;
-        thumbnailUrl: string | null;
-        url: string;
-    }[] = [];
-    let skippedCount = 0;
+    try {
+        const boards = await listPinterestBoards(accessToken);
+        const importedExternalIds = new Set<string>();
+        const pinsToImport: {
+            caption: string | null;
+            externalId: string;
+            scrapedAt: Date | null;
+            thumbnailUrl: string | null;
+            url: string;
+        }[] = [];
+        let skippedCount = 0;
 
-    for (const board of boards) {
-        const pins = await listPinterestBoardPins(accessToken, board);
+        for (const board of boards) {
+            const pins = await listPinterestBoardPins(accessToken, board);
 
-        for (const pin of pins) {
-            if (importedExternalIds.has(pin.externalId)) {
-                continue;
+            for (const pin of pins) {
+                if (importedExternalIds.has(pin.externalId)) {
+                    continue;
+                }
+
+                importedExternalIds.add(pin.externalId);
+                if (!pin.url) {
+                    skippedCount += 1;
+                    continue;
+                }
+                pinsToImport.push(pin);
             }
-
-            importedExternalIds.add(pin.externalId);
-            if (!pin.url) {
-                skippedCount += 1;
-                continue;
-            }
-            pinsToImport.push(pin);
         }
+
+        const upsertResult = await upsertLibraryItemImports({
+            items: pinsToImport,
+            source: LibraryItemSource.pinterest,
+            userId,
+        });
+
+        log.info("Successfully imported Pinterest pins from boards", {
+            boardsCount: boards.length,
+            importedCount: upsertResult.upsertedCount,
+            userId,
+        });
+
+        return {
+            boardsCount: boards.length,
+            importedCount: upsertResult.upsertedCount,
+            skippedCount: skippedCount + upsertResult.skippedCount,
+            smartCollectionItemIds: upsertResult.smartCollectionItemIds,
+        };
+    } catch (error) {
+        log.error("Failed to import Pinterest pins", {
+            error,
+            userId,
+        });
+        throw error;
+    } finally {
+        span.stop();
     }
-
-    const upsertResult = await upsertLibraryItemImports({
-        items: pinsToImport,
-        source: LibraryItemSource.pinterest,
-        userId,
-    });
-
-    return {
-        boardsCount: boards.length,
-        importedCount: upsertResult.upsertedCount,
-        skippedCount: skippedCount + upsertResult.skippedCount,
-        smartCollectionItemIds: upsertResult.smartCollectionItemIds,
-    };
 }

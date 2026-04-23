@@ -1,3 +1,4 @@
+import { createLogger } from "@/lib/common/logs/console/logger";
 import { DEFAULT_BROWSER_PROFILE_ID } from "@/lib/integrations/browser-profiles";
 import { upsertLibraryItemImports } from "@/lib/integrations/upsert";
 import type { Prisma } from "@/prisma/client/client";
@@ -7,6 +8,8 @@ import type {
     GooglePhotosPickerSession,
 } from "./api";
 import { pickerPollIntervalMs, withPickerAutoclose } from "./api";
+
+const log = createLogger("integrations:google-photos");
 
 export interface PickerSessionViewModel {
     mediaItemsSet?: boolean;
@@ -125,22 +128,43 @@ export async function importGooglePhotosCandidates(args: {
     importedCount: number;
     smartCollectionItemIds: string[];
 }> {
-    const result = await upsertLibraryItemImports({
-        items: args.candidates.map((candidate) => ({
-            browserProfileId: DEFAULT_BROWSER_PROFILE_ID,
-            caption: candidate.caption,
-            externalId: candidate.externalId,
-            scrapedAt: candidate.scrapedAt,
-            sourceMetadata: candidate.sourceMetadata,
-            thumbnailUrl: candidate.thumbnailUrl,
-            url: candidate.url,
-        })),
-        source: LibraryItemSource.google_photos,
-        userId: args.userId,
+    const { userId, candidates } = args;
+    const span = log.time("import-candidates", {
+        candidateCount: candidates.length,
+        userId,
     });
 
-    return {
-        importedCount: result.upsertedCount,
-        smartCollectionItemIds: result.smartCollectionItemIds,
-    };
+    try {
+        const result = await upsertLibraryItemImports({
+            items: candidates.map((candidate) => ({
+                browserProfileId: DEFAULT_BROWSER_PROFILE_ID,
+                caption: candidate.caption,
+                externalId: candidate.externalId,
+                scrapedAt: candidate.scrapedAt,
+                sourceMetadata: candidate.sourceMetadata,
+                thumbnailUrl: candidate.thumbnailUrl,
+                url: candidate.url,
+            })),
+            source: LibraryItemSource.google_photos,
+            userId,
+        });
+
+        log.info("Successfully imported Google Photos candidates", {
+            importedCount: result.upsertedCount,
+            userId,
+        });
+
+        return {
+            importedCount: result.upsertedCount,
+            smartCollectionItemIds: result.smartCollectionItemIds,
+        };
+    } catch (error) {
+        log.error("Failed to import Google Photos candidates", {
+            error,
+            userId,
+        });
+        throw error;
+    } finally {
+        span.stop();
+    }
 }
