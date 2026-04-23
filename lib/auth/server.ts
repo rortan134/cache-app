@@ -9,7 +9,6 @@ import { nextCookies } from "better-auth/next-js";
 import type { GenericOAuthConfig } from "better-auth/plugins";
 import { genericOAuth, oneTap } from "better-auth/plugins";
 import { headers } from "next/headers";
-import { sentinel } from "@better-auth/infra";
 
 interface OAuthUserProfile {
     email?: string | null;
@@ -231,7 +230,6 @@ export const auth = betterAuth({
     },
     plugins: [
         nextCookies(),
-        sentinel(),
         oneTap({
             clientId: requiredEnv("GOOGLE_CLIENT_ID"),
         }),

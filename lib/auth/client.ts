@@ -1,7 +1,6 @@
 import { stripeClient } from "@better-auth/stripe/client";
 import { genericOAuthClient, oneTapClient } from "better-auth/client/plugins";
 import { createAuthClient } from "better-auth/react";
-import { sentinelClient } from "@better-auth/infra/client";
 
 const baseURL = `${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/api/auth`;
 const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID?.trim();
@@ -11,7 +10,6 @@ export const authClient = createAuthClient({
     baseURL,
     plugins: [
         genericOAuthClient(),
-        sentinelClient(),
         stripeClient({ subscription: true }),
         ...(hasGoogleOneTapClientId
             ? [

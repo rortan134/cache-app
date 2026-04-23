@@ -11,15 +11,6 @@ function Footer() {
                         <div className="col-span-full flex h-full flex-row flex-wrap gap-6 text-[#0A0B0D] text-[0.8rem] leading-[1.22] tracking-[-3%] opacity-50">
                             <Link
                                 className="underline"
-                                href="/pricing"
-                                target="_blank"
-                            >
-                                <T>
-                                    <p>Pricing</p>
-                                </T>
-                            </Link>
-                            <Link
-                                className="underline"
                                 href="/manifesto"
                                 target="_blank"
                             >

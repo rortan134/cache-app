@@ -69,10 +69,10 @@ export function integrationSetupHeadingText(args: {
         return "Connected accounts";
     }
     if (connectedCount === 0) {
-        return "Get setup with your first account";
+        return "Get started with your first account";
     }
     if (connectedCount < syncable) {
-        return "Get setup - Unify your saved content";
+        return "Get started - Unify your saved content";
     }
     return "You're all set - keep your library in sync";
 }

@@ -2,6 +2,7 @@
 
 import { UpgradeButton } from "@/components/billing/upgrade-button";
 import { Badge } from "@/components/ui/badge";
+import { ArrowUpRight } from "lucide-react";
 import { useParams } from "next/navigation";
 
 function useLocaleParam(): string {
@@ -30,6 +31,7 @@ function InlinePromotionBanner() {
                     variant="link"
                 >
                     Get Pro
+                    <ArrowUpRight className="ml-auto inline-block size-4 shrink-0 text-muted-foreground" />
                 </UpgradeButton>
             </div>
         </aside>
@@ -60,6 +62,7 @@ function BlockPromotionBanner({ length }: { length: number }) {
                             locale={locale}
                         >
                             Get Pro
+                            <ArrowUpRight className="ml-auto inline-block size-4 shrink-0 text-muted-foreground" />
                         </UpgradeButton>
                     </div>
                 </div>
