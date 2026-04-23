@@ -858,7 +858,7 @@ async function applyDecisionToItem(args: {
 export async function autoTagLibraryItemsByIds(args: {
     itemIds: string[];
     userId: string;
-}): Promise<void> {
+}) {
     const apiKey = resolveGeminiApiKey();
     if (!apiKey) {
         return;
@@ -900,7 +900,7 @@ export async function autoTagLibraryItemsByIds(args: {
                 },
                 userId: args.userId,
             },
-        }) as Promise<SmartCollectionItem[]>,
+        }),
         prisma.collection.findMany({
             orderBy: {
                 name: "asc",
@@ -922,12 +922,20 @@ export async function autoTagLibraryItemsByIds(args: {
     }
 
     const ai = new GoogleGenAI({ apiKey });
-    const itemsById = new Map(items.map((item) => [item.id, item]));
     let collections = initialCollections;
 
     for (const itemId of itemIds) {
-        const item = itemsById.get(itemId);
-        if (!(item && isTaggableItem(item))) {
+        const rawItem = items.find((i) => i.id === itemId);
+        if (!rawItem) {
+            continue;
+        }
+
+        const item: SmartCollectionItem = {
+            ...rawItem,
+            kind: rawItem.kind as SmartCollectionItem["kind"],
+        };
+
+        if (!isTaggableItem(item)) {
             continue;
         }
 

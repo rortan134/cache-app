@@ -1,8 +1,8 @@
 "use server";
 
 import { getSessionUserId } from "@/lib/auth/server";
-import { resolveCobaltDownloadUrl } from "@/lib/common/cobalt";
 import { createLogger } from "@/lib/common/logs/console/logger";
+import * as service from "./service";
 
 const log = createLogger("library:actions:media");
 
@@ -34,25 +34,18 @@ export async function downloadMedia(url: string): Promise<DownloadMediaResult> {
     }
 
     try {
-        const result = await resolveCobaltDownloadUrl(normalizedUrl);
-        if (result.status === "ERROR") {
-            return {
-                message:
-                    result.message ||
-                    "The download service is currently unavailable. Please try again later.",
-                status: "ERROR",
-            };
-        }
-
+        const downloadUrl = await service.downloadMedia(normalizedUrl);
         return {
-            downloadUrl: result.downloadUrl,
+            downloadUrl,
             status: "SUCCESS",
         };
     } catch (error) {
         log.error("Unexpected download failure", error);
         return {
             message:
-                "We hit an unexpected error while preparing your download.",
+                error instanceof Error
+                    ? error.message
+                    : "We hit an unexpected error while preparing your download.",
             status: "ERROR",
         };
     }

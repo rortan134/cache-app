@@ -1,34 +1,17 @@
 "use server";
 
 import { getSessionUserId } from "@/lib/auth/server";
-import {
-    LIBRARY_COLLECTION_TAG_SELECT,
-    collectionNameSchema,
-    toLibraryCollectionSummary,
-    toLibraryCollectionTag,
-} from "@/lib/collections/utils";
-import { NamedError, extractNamedErrorMessage } from "@/lib/common/error";
+import { collectionNameSchema } from "@/lib/collections/utils";
+import { extractNamedErrorMessage } from "@/lib/common/error";
 import { createLogger } from "@/lib/common/logs/console/logger";
-import {
-    getIncrementedName,
-    normalizeCollectionName,
-} from "@/lib/common/strings";
 import type {
     LibraryCollectionSummary,
     LibraryCollectionTag,
 } from "@/lib/common/types";
-import { prisma } from "@/prisma";
 import type { CollectionPriority } from "@/prisma/client/enums";
 import * as z from "zod";
-
-const LibraryCollectionError = NamedError.create(
-    "LibraryCollectionError",
-    z.object({
-        code: z.enum(["duplicate_name", "invalid_name", "not_found"]),
-        message: z.string(),
-        operation: z.string(),
-    })
-);
+import { LibraryCollectionError } from "./error";
+import * as service from "./service";
 
 const log = createLogger("library:actions");
 
@@ -67,15 +50,6 @@ const RenameCollectionInputSchema = z.object({
     collectionId: z.string().trim().min(1, "Select a collection to rename."),
     name: collectionNameSchema,
 });
-
-type CollectionErrorCode = z.infer<
-    typeof LibraryCollectionError.Schema
->["data"]["code"];
-
-const ERROR_CODE_TO_STATUS = {
-    duplicate_name: "DUPLICATE",
-    not_found: "NOT_FOUND",
-} as const satisfies Partial<Record<CollectionErrorCode, string>>;
 
 export type CreateCollectionResult =
     | {
@@ -155,6 +129,30 @@ export type RenameCollectionResult =
               | "UNAUTHORIZED";
       };
 
+const ERROR_CODE_TO_STATUS = {
+    duplicate_name: "DUPLICATE",
+    not_found: "NOT_FOUND",
+} as const;
+
+function handleError(error: unknown, fallbackMessage: string) {
+    const named = extractNamedErrorMessage(error);
+    if (LibraryCollectionError.isInstance(error)) {
+        const status =
+            ERROR_CODE_TO_STATUS[
+                error.data.code as keyof typeof ERROR_CODE_TO_STATUS
+            ];
+        if (status) {
+            return { message: named.message, status };
+        }
+    }
+
+    log.error(fallbackMessage, error);
+    return {
+        message: fallbackMessage,
+        status: "ERROR" as const,
+    };
+}
+
 export async function deleteCollection(input: {
     collectionId: string;
 }): Promise<DeleteCollectionResult> {
@@ -177,55 +175,20 @@ export async function deleteCollection(input: {
     }
 
     try {
-        const result = await prisma.$transaction(async (tx) => {
-            const collection = await tx.collection.findFirst({
-                select: {
-                    id: true,
-                    name: true,
-                },
-                where: {
-                    id: parsed.data.collectionId,
-                    userId,
-                },
-            });
-
-            if (!collection) {
-                throw new LibraryCollectionError({
-                    code: "not_found",
-                    message: "This collection was already removed.",
-                    operation: "deleteCollection",
-                });
-            }
-
-            await tx.collection.delete({
-                where: {
-                    id: collection.id,
-                },
-            });
-
-            return collection;
+        const collection = await service.deleteCollection({
+            collectionId: parsed.data.collectionId,
+            userId,
         });
 
         return {
-            collection: result,
+            collection,
             status: "DELETED",
         };
     } catch (error) {
-        if (
-            LibraryCollectionError.isInstance(error) &&
-            error.data.code === "not_found"
-        ) {
-            return {
-                message: extractNamedErrorMessage(error).message,
-                status: "NOT_FOUND",
-            };
-        }
-
-        log.error("Unexpected collection delete failure", error);
-        return {
-            message: "We couldn't delete this collection right now.",
-            status: "ERROR",
-        };
+        return handleError(
+            error,
+            "We couldn't delete this collection right now."
+        );
     }
 }
 
@@ -251,113 +214,20 @@ export async function duplicateCollection(input: {
     }
 
     try {
-        const result = await prisma.$transaction(async (tx) => {
-            const sourceCollection = await tx.collection.findFirst({
-                select: {
-                    description: true,
-                    items: {
-                        select: {
-                            id: true,
-                            source: true,
-                        },
-                    },
-                    name: true,
-                    priority: true,
-                },
-                where: {
-                    id: parsed.data.collectionId,
-                    userId,
-                },
-            });
-
-            if (!sourceCollection) {
-                throw new LibraryCollectionError({
-                    code: "not_found",
-                    message: "That collection is no longer available.",
-                    operation: "duplicateCollection",
-                });
-            }
-
-            const existingNames = await tx.collection.findMany({
-                select: {
-                    name: true,
-                },
-                where: {
-                    userId,
-                },
-            });
-            const existingNameKeys = new Set(
-                existingNames.map(
-                    (collection) =>
-                        normalizeCollectionName(collection.name).nameKey
-                )
-            );
-            let nextName = sourceCollection.name;
-
-            while (
-                existingNameKeys.has(normalizeCollectionName(nextName).nameKey)
-            ) {
-                nextName = getIncrementedName(nextName, [nextName]);
-            }
-
-            const normalized = normalizeCollectionName(nextName);
-
-            const duplicatedCollection = await tx.collection.create({
-                data: {
-                    description: sourceCollection.description,
-                    items:
-                        sourceCollection.items.length > 0
-                            ? {
-                                  connect: sourceCollection.items.map(
-                                      (item) => ({
-                                          id: item.id,
-                                      })
-                                  ),
-                              }
-                            : undefined,
-                    name: normalized.name,
-                    nameKey: normalized.nameKey,
-                    priority: sourceCollection.priority,
-                    userId,
-                },
-                select: LIBRARY_COLLECTION_TAG_SELECT,
-            });
-
-            return {
-                assignedItemIds: sourceCollection.items.map((item) => item.id),
-                collection: toLibraryCollectionSummary({
-                    ...duplicatedCollection,
-                    _count: {
-                        items: sourceCollection.items.length,
-                    },
-                    items: sourceCollection.items.map((item) => ({
-                        source: item.source,
-                    })),
-                }),
-            };
+        const result = await service.duplicateCollection({
+            collectionId: parsed.data.collectionId,
+            userId,
         });
 
         return {
-            assignedItemIds: result.assignedItemIds,
-            collection: result.collection,
+            ...result,
             status: "CREATED",
         };
     } catch (error) {
-        if (
-            LibraryCollectionError.isInstance(error) &&
-            error.data.code === "not_found"
-        ) {
-            return {
-                message: extractNamedErrorMessage(error).message,
-                status: "NOT_FOUND",
-            };
-        }
-
-        log.error("Unexpected collection duplicate failure", error);
-        return {
-            message: "We couldn't make a copy of this collection right now.",
-            status: "ERROR",
-        };
+        return handleError(
+            error,
+            "We couldn't make a copy of this collection right now."
+        );
     }
 }
 
@@ -384,35 +254,21 @@ export async function updateCollectionPriority(input: {
     }
 
     try {
-        const updatedCollection = await prisma.collection.updateManyAndReturn({
-            data: {
-                priority: parsed.data.priority,
-            },
-            select: LIBRARY_COLLECTION_TAG_SELECT,
-            where: {
-                id: parsed.data.collectionId,
-                userId,
-            },
+        const collection = await service.updateCollectionPriority({
+            collectionId: parsed.data.collectionId,
+            priority: parsed.data.priority,
+            userId,
         });
 
-        const collection = updatedCollection[0];
-        if (!collection) {
-            return {
-                message: "That collection is no longer available.",
-                status: "NOT_FOUND",
-            };
-        }
-
         return {
-            collection: toLibraryCollectionTag(collection),
+            collection,
             status: "UPDATED",
         };
     } catch (error) {
-        log.error("Unexpected collection priority update failure", error);
-        return {
-            message: "We couldn't update this collection priority right now.",
-            status: "ERROR",
-        };
+        return handleError(
+            error,
+            "We couldn't update this collection priority right now."
+        );
     }
 }
 
@@ -438,86 +294,22 @@ export async function renameCollection(input: {
         };
     }
 
-    const normalized = normalizeCollectionName(parsed.data.name);
-
     try {
-        const result = await prisma.$transaction(async (tx) => {
-            const collection = await tx.collection.findFirst({
-                select: LIBRARY_COLLECTION_TAG_SELECT,
-                where: {
-                    id: parsed.data.collectionId,
-                    userId,
-                },
-            });
-
-            if (!collection) {
-                throw new LibraryCollectionError({
-                    code: "not_found",
-                    message: "That collection is no longer available.",
-                    operation: "renameCollection",
-                });
-            }
-
-            if (collection.name === normalized.name) {
-                return collection;
-            }
-
-            const existingCollection = await tx.collection.findFirst({
-                select: {
-                    id: true,
-                },
-                where: {
-                    id: {
-                        not: collection.id,
-                    },
-                    nameKey: normalized.nameKey,
-                    userId,
-                },
-            });
-
-            if (existingCollection) {
-                throw new LibraryCollectionError({
-                    code: "duplicate_name",
-                    message: "A collection with that name already exists.",
-                    operation: "renameCollection",
-                });
-            }
-
-            const updatedCollection = await tx.collection.update({
-                data: {
-                    name: normalized.name,
-                    nameKey: normalized.nameKey,
-                },
-                select: LIBRARY_COLLECTION_TAG_SELECT,
-                where: {
-                    id: collection.id,
-                },
-            });
-
-            return updatedCollection;
+        const collection = await service.renameCollection({
+            collectionId: parsed.data.collectionId,
+            name: parsed.data.name,
+            userId,
         });
 
         return {
-            collection: toLibraryCollectionTag(result),
+            collection,
             status: "UPDATED",
         };
     } catch (error) {
-        const named = extractNamedErrorMessage(error);
-        if (LibraryCollectionError.isInstance(error)) {
-            const status =
-                ERROR_CODE_TO_STATUS[
-                    error.data.code as keyof typeof ERROR_CODE_TO_STATUS
-                ];
-            if (status) {
-                return { message: named.message, status };
-            }
-        }
-
-        log.error("Unexpected collection rename failure", error);
-        return {
-            message: "We couldn't rename this collection right now.",
-            status: "ERROR",
-        };
+        return handleError(
+            error,
+            "We couldn't rename this collection right now."
+        );
     }
 }
 
@@ -544,100 +336,23 @@ export async function createCollection(input: {
         };
     }
 
-    const { assignToItemId, description } = parsed.data;
-    const normalized = normalizeCollectionName(parsed.data.name);
-
     try {
-        const result = await prisma.$transaction(async (tx) => {
-            if (assignToItemId) {
-                const item = await tx.libraryItem.findFirst({
-                    select: {
-                        id: true,
-                    },
-                    where: {
-                        id: assignToItemId,
-                        userId,
-                    },
-                });
-
-                if (!item) {
-                    throw new LibraryCollectionError({
-                        code: "not_found",
-                        message: "We couldn't find that saved item to tag it.",
-                        operation: "createCollection",
-                    });
-                }
-            }
-
-            const existingCollection = await tx.collection.findFirst({
-                select: {
-                    id: true,
-                },
-                where: {
-                    nameKey: normalized.nameKey,
-                    userId,
-                },
-            });
-
-            if (existingCollection) {
-                throw new LibraryCollectionError({
-                    code: "duplicate_name",
-                    message: "A collection with that name already exists.",
-                    operation: "createCollection",
-                });
-            }
-
-            const collection = await tx.collection.create({
-                data: {
-                    description,
-                    items: assignToItemId
-                        ? {
-                              connect: {
-                                  id: assignToItemId,
-                              },
-                          }
-                        : undefined,
-                    name: normalized.name,
-                    nameKey: normalized.nameKey,
-                    userId,
-                },
-                select: LIBRARY_COLLECTION_TAG_SELECT,
-            });
-
-            return {
-                assignedItemId: assignToItemId ?? null,
-                collection: toLibraryCollectionSummary({
-                    ...collection,
-                    _count: {
-                        items: assignToItemId ? 1 : 0,
-                    },
-                    items: [],
-                }),
-            };
+        const result = await service.createCollection({
+            assignToItemId: parsed.data.assignToItemId,
+            description: parsed.data.description,
+            name: parsed.data.name,
+            userId,
         });
 
         return {
-            assignedItemId: result.assignedItemId,
-            collection: result.collection,
+            ...result,
             status: "CREATED",
         };
     } catch (error) {
-        const named = extractNamedErrorMessage(error);
-        if (LibraryCollectionError.isInstance(error)) {
-            const status =
-                ERROR_CODE_TO_STATUS[
-                    error.data.code as keyof typeof ERROR_CODE_TO_STATUS
-                ];
-            if (status) {
-                return { message: named.message, status };
-            }
-        }
-
-        log.error("Unexpected collection create failure", error);
-        return {
-            message: "We couldn't create this collection right now.",
-            status: "ERROR",
-        };
+        return handleError(
+            error,
+            "We couldn't create this collection right now."
+        );
     }
 }
 
@@ -668,101 +383,22 @@ export async function createCollectionFromItems(input: {
         };
     }
 
-    const { description, itemIds } = parsed.data;
-    const normalized = normalizeCollectionName(parsed.data.name);
-
     try {
-        const result = await prisma.$transaction(async (tx) => {
-            const existingCollection = await tx.collection.findFirst({
-                select: {
-                    id: true,
-                },
-                where: {
-                    nameKey: normalized.nameKey,
-                    userId,
-                },
-            });
-
-            if (existingCollection) {
-                throw new LibraryCollectionError({
-                    code: "duplicate_name",
-                    message: "A collection with that name already exists.",
-                    operation: "createCollectionFromItems",
-                });
-            }
-
-            const matchingItems = await tx.libraryItem.findMany({
-                select: {
-                    id: true,
-                    source: true,
-                },
-                where: {
-                    id: {
-                        in: itemIds,
-                    },
-                    userId,
-                },
-            });
-
-            if (matchingItems.length !== itemIds.length) {
-                throw new LibraryCollectionError({
-                    code: "not_found",
-                    message:
-                        "Some of those saved items are no longer available.",
-                    operation: "createCollectionFromItems",
-                });
-            }
-
-            const collection = await tx.collection.create({
-                data: {
-                    description,
-                    items: {
-                        connect: itemIds.map((id) => ({
-                            id,
-                        })),
-                    },
-                    name: normalized.name,
-                    nameKey: normalized.nameKey,
-                    userId,
-                },
-                select: LIBRARY_COLLECTION_TAG_SELECT,
-            });
-
-            return {
-                assignedItemIds: itemIds,
-                collection: toLibraryCollectionSummary({
-                    ...collection,
-                    _count: {
-                        items: itemIds.length,
-                    },
-                    items: matchingItems.map((item) => ({
-                        source: item.source,
-                    })),
-                }),
-            };
+        const result = await service.createCollectionFromItems({
+            description: parsed.data.description,
+            itemIds: parsed.data.itemIds,
+            name: parsed.data.name,
+            userId,
         });
 
         return {
-            assignedItemIds: result.assignedItemIds,
-            collection: result.collection,
+            ...result,
             status: "CREATED",
         };
     } catch (error) {
-        const named = extractNamedErrorMessage(error);
-        if (LibraryCollectionError.isInstance(error)) {
-            const status =
-                ERROR_CODE_TO_STATUS[
-                    error.data.code as keyof typeof ERROR_CODE_TO_STATUS
-                ];
-            if (status) {
-                return { message: named.message, status };
-            }
-        }
-
-        log.error("Unexpected collection create from items failure", error);
-        return {
-            message: "We couldn't create this collection right now.",
-            status: "ERROR",
-        };
+        return handleError(
+            error,
+            "We couldn't create this collection right now."
+        );
     }
 }

@@ -1,14 +1,12 @@
 "use server";
 
 import { getSessionUserId } from "@/lib/auth/server";
-import {
-    LIBRARY_COLLECTION_TAG_SELECT,
-    toLibraryCollectionTag,
-} from "@/lib/collections/utils";
+import { extractNamedErrorMessage } from "@/lib/common/error";
 import { createLogger } from "@/lib/common/logs/console/logger";
 import type { LibraryCollectionTag } from "@/lib/common/types";
-import { prisma } from "@/prisma";
 import * as z from "zod";
+import { LibraryCollectionError } from "./error";
+import * as service from "./service";
 
 const log = createLogger("library:actions:items");
 
@@ -58,25 +56,27 @@ export async function deleteLibraryItem(
     }
 
     try {
-        const result = await prisma.libraryItem.deleteMany({
-            where: {
-                id: normalizedItemId,
-                userId,
-            },
+        const id = await service.deleteLibraryItem({
+            itemId: normalizedItemId,
+            userId,
         });
 
-        if (result.count === 0) {
+        return {
+            itemId: id,
+            status: "DELETED",
+        };
+    } catch (error) {
+        const named = extractNamedErrorMessage(error);
+        if (
+            LibraryCollectionError.isInstance(error) &&
+            error.data.code === "not_found"
+        ) {
             return {
-                message: "This saved item was already removed.",
+                message: named.message,
                 status: "NOT_FOUND",
             };
         }
 
-        return {
-            itemId: normalizedItemId,
-            status: "DELETED",
-        };
-    } catch (error) {
         log.error("Unexpected library item delete failure", error);
         return {
             message: "We couldn't delete this saved item right now.",
@@ -110,73 +110,28 @@ export async function updateLibraryItemCollections(input: {
     }
 
     try {
-        const item = await prisma.libraryItem.findFirst({
-            select: {
-                id: true,
-            },
-            where: {
-                id: parsed.data.itemId,
-                userId,
-            },
-        });
-
-        if (!item) {
-            return {
-                message: "We couldn't find that saved item.",
-                status: "NOT_FOUND",
-            };
-        }
-
-        const ownedCollections = parsed.data.collectionIds.length
-            ? await prisma.collection.findMany({
-                  orderBy: {
-                      name: "asc",
-                  },
-                  select: LIBRARY_COLLECTION_TAG_SELECT,
-                  where: {
-                      id: {
-                          in: parsed.data.collectionIds,
-                      },
-                      userId,
-                  },
-              })
-            : [];
-
-        if (ownedCollections.length !== parsed.data.collectionIds.length) {
-            return {
-                message: "One of those collections is no longer available.",
-                status: "NOT_FOUND",
-            };
-        }
-
-        const updatedItem = await prisma.libraryItem.update({
-            data: {
-                collections: {
-                    set: ownedCollections.map((collection) => ({
-                        id: collection.id,
-                    })),
-                },
-            },
-            select: {
-                collections: {
-                    orderBy: {
-                        name: "asc",
-                    },
-                    select: LIBRARY_COLLECTION_TAG_SELECT,
-                },
-                id: true,
-            },
-            where: {
-                id: parsed.data.itemId,
-            },
+        const result = await service.updateLibraryItemCollections({
+            collectionIds: parsed.data.collectionIds,
+            itemId: parsed.data.itemId,
+            userId,
         });
 
         return {
-            collections: updatedItem.collections.map(toLibraryCollectionTag),
-            itemId: updatedItem.id,
+            ...result,
             status: "UPDATED",
         };
     } catch (error) {
+        const named = extractNamedErrorMessage(error);
+        if (
+            LibraryCollectionError.isInstance(error) &&
+            error.data.code === "not_found"
+        ) {
+            return {
+                message: named.message,
+                status: "NOT_FOUND",
+            };
+        }
+
         log.error("Unexpected library collection update failure", error);
         return {
             message: "We couldn't update collections for this item.",
