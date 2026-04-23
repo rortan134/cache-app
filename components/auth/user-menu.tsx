@@ -29,6 +29,66 @@ import {
 import Link from "next/link";
 import { type ReactNode, useState, useTransition } from "react";
 
+function subscriptionErrorMessage(error: unknown): string | undefined {
+    if (!error || typeof error !== "object" || !("message" in error)) {
+        return;
+    }
+    const message = Reflect.get(error, "message");
+    return typeof message === "string" ? message : undefined;
+}
+
+function subscriptionRedirectUrl(data: unknown): string | undefined {
+    if (!data || typeof data !== "object" || !("url" in data)) {
+        return;
+    }
+    const url = Reflect.get(data, "url");
+    return typeof url === "string" && url.length > 0 ? url : undefined;
+}
+
+function useSubscriptionRedirectAction(
+    request: () => Promise<{ data?: unknown; error?: unknown }>,
+    fallbackMessage: string
+) {
+    const [isPending, startTransition] = useTransition();
+    const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+    const execute = () => {
+        startTransition(async () => {
+            setErrorMessage(null);
+            try {
+                const { data, error } = await request();
+
+                if (error) {
+                    setErrorMessage(
+                        subscriptionErrorMessage(error) ?? fallbackMessage
+                    );
+                    return;
+                }
+
+                const url = subscriptionRedirectUrl(data);
+                if (url) {
+                    window.location.assign(url);
+                    return;
+                }
+
+                setErrorMessage(fallbackMessage);
+            } catch {
+                setErrorMessage(fallbackMessage);
+            }
+        });
+    };
+
+    return { errorMessage, execute, isPending };
+}
+
+function MenuSeparator() {
+    return (
+        <div className="relative -my-1">
+            <Separator className="absolute left-1/2 -translate-x-1/2 data-horizontal:w-[400px]" />
+        </div>
+    );
+}
+
 function SubscriptionBadge() {
     const { subscription } = useAccess();
 
@@ -118,100 +178,69 @@ function SubscriptionBadge() {
 }
 
 function UpgradeButton({ returnPath }: { returnPath: string }) {
-    const [isPending, startTransition] = useTransition();
-    const [errorMessage, setErrorMessage] = useState<string | null>(null);
-
-    const handleUpgrade = () => {
-        startTransition(async () => {
-            setErrorMessage(null);
-            try {
-                const { data, error } = await authClient.subscription.upgrade({
-                    cancelUrl: returnPath,
-                    plan: "pro",
-                    successUrl: returnPath,
-                });
-
-                if (error) {
-                    setErrorMessage(
-                        error.message ?? "We couldn't open checkout right now."
-                    );
-                    return;
-                }
-
-                if (data?.url) {
-                    window.location.assign(data.url);
-                    return;
-                }
-
-                setErrorMessage("We couldn't open checkout right now.");
-            } catch {
-                setErrorMessage("We couldn't open checkout right now.");
-            }
-        });
-    };
+    const checkoutError = "We couldn't open checkout right now.";
+    const { errorMessage, execute, isPending } = useSubscriptionRedirectAction(
+        () =>
+            authClient.subscription.upgrade({
+                cancelUrl: returnPath,
+                plan: "pro",
+                successUrl: returnPath,
+            }),
+        checkoutError
+    );
 
     return (
         <>
             <Button
                 className="justify-start"
                 loading={isPending}
-                onClick={handleUpgrade}
+                onClick={execute}
                 variant="ghost"
             >
                 <T>Upgrade to Pro</T>
             </Button>
-            {errorMessage && (
-                <p className="px-2 text-destructive text-xs">{errorMessage}</p>
-            )}
+            {errorMessage ? (
+                <p
+                    aria-live="polite"
+                    className="px-2 text-destructive text-xs"
+                    role="status"
+                >
+                    {errorMessage}
+                </p>
+            ) : null}
         </>
     );
 }
 
 function BillingPortalButton({ returnPath }: { returnPath: string }) {
-    const [isPending, startTransition] = useTransition();
-    const [errorMessage, setErrorMessage] = useState<string | null>(null);
-
-    const handleBillingPortal = () => {
-        startTransition(async () => {
-            setErrorMessage(null);
-            try {
-                const { data, error } =
-                    await authClient.subscription.billingPortal({
-                        returnUrl: returnPath,
-                    });
-
-                if (error) {
-                    setErrorMessage(
-                        error.message ?? "We couldn't open billing right now."
-                    );
-                    return;
-                }
-
-                if (data?.url) {
-                    window.location.assign(data.url);
-                    return;
-                }
-
-                setErrorMessage("We couldn't open billing right now.");
-            } catch {
-                setErrorMessage("We couldn't open billing right now.");
-            }
-        });
-    };
+    const billingError = "We couldn't open billing right now.";
+    const { errorMessage, execute, isPending } = useSubscriptionRedirectAction(
+        () =>
+            authClient.subscription.billingPortal({
+                returnUrl: returnPath,
+            }),
+        billingError
+    );
 
     return (
         <>
             <Button
                 className="justify-start"
                 loading={isPending}
-                onClick={handleBillingPortal}
+                onClick={execute}
                 variant="ghost"
             >
                 <T>Billing</T>
             </Button>
-            {errorMessage && (
-                <p className="px-2 text-destructive text-xs">{errorMessage}</p>
-            )}
+            {errorMessage ? (
+                <p
+                    aria-live="polite"
+                    className="px-2 text-destructive text-xs"
+                    role="status"
+                >
+                    {errorMessage}
+                </p>
+            ) : null}
         </>
     );
 }
@@ -219,9 +248,7 @@ function BillingPortalButton({ returnPath }: { returnPath: string }) {
 function MenuSection({ children }: { children: ReactNode }) {
     return (
         <>
-            <div className="relative -my-1">
-                <Separator className="absolute left-1/2 -translate-x-1/2 data-horizontal:w-[400px]" />
-            </div>
+            <MenuSeparator />
             <div className="-mx-2 flex flex-col gap-1">{children}</div>
         </>
     );
@@ -344,13 +371,9 @@ export function UserMenuContent() {
 export function UserMenuFooter() {
     return (
         <>
-            <div className="relative -my-1">
-                <Separator className="absolute left-1/2 -translate-x-1/2 data-horizontal:w-[400px]" />
-            </div>
+            <MenuSeparator />
             <LocaleSelector />
-            <div className="relative -my-1">
-                <Separator className="absolute left-1/2 -translate-x-1/2 data-horizontal:w-[400px]" />
-            </div>
+            <MenuSeparator />
             <div className="-mx-1 -mb-1 flex flex-wrap opacity-80">
                 <Button
                     render={<Link href="/legal/privacy-policy" />}

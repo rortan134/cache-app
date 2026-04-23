@@ -12,9 +12,9 @@ import {
     DialogTrigger,
 } from "@/components/ui/dialog";
 import { useRouter } from "next/navigation";
-import type * as React from "react";
+import type { ComponentProps } from "react";
 
-function LogoutButton(props: React.ComponentProps<typeof DialogTrigger>) {
+function LogoutButton(props: ComponentProps<typeof DialogTrigger>) {
     const router = useRouter();
 
     return (

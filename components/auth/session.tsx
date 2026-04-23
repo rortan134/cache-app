@@ -3,16 +3,19 @@
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
-    useSession,
     authClient,
     hasGoogleOneTapClientId,
+    useSession,
 } from "@/lib/auth/client";
 import type { auth } from "@/lib/auth/server";
+import { createLogger } from "@/lib/common/logs/console/logger";
 import { Info } from "lucide-react";
 import Link from "next/link";
-import { type PropsWithChildren, type ReactNode, useEffect } from "react";
+import { useEffect, type PropsWithChildren, type ReactNode } from "react";
 
 type Session = typeof auth.$Infer.Session;
+
+const log = createLogger("auth-session");
 
 function GoogleOneTapTrigger() {
     const { data: session } = useSession();
@@ -23,16 +26,14 @@ function GoogleOneTapTrigger() {
         }
 
         const initOneTap = async () => {
-            try {
-                await authClient.oneTap({
-                    callbackURL: "/library",
-                });
-            } catch (error) {
-                console.error("One Tap error:", error);
-            }
+            await authClient.oneTap({
+                callbackURL: "/library",
+            });
         };
 
-        initOneTap();
+        initOneTap().catch((error) => {
+            log.error("Google One Tap init failed", error);
+        });
     }, [session]);
 
     return null;
@@ -40,11 +41,11 @@ function GoogleOneTapTrigger() {
 
 function SignedOutOnly({
     children,
-    loadingRender,
+    loadingRender = null,
 }: PropsWithChildren<{ loadingRender?: ReactNode }>) {
     const { data: session, isPending } = useSession();
 
-    if (isPending && typeof loadingRender !== "undefined") {
+    if (isPending) {
         return loadingRender;
     }
 
@@ -57,11 +58,11 @@ function SignedOutOnly({
 
 function SignedInOnly({
     children,
-    loadingRender,
+    loadingRender = null,
 }: PropsWithChildren<{ loadingRender?: ReactNode }>) {
     const { data: session, isPending } = useSession();
 
-    if (isPending && typeof loadingRender !== "undefined") {
+    if (isPending) {
         return loadingRender;
     }
 
@@ -90,12 +91,13 @@ function SessionHint({ serverSession }: { serverSession?: Session | null }) {
         return null;
     }
 
+    const email = session.user.email;
+
     return (
         <div className="flex items-center gap-2">
             <Info className="size-4 opacity-50" />
             <p className="font-medium text-xs leading-[1.22] tracking-[-3%] opacity-50">
-                You are signed in as{" "}
-                {session?.user.email ?? <Skeleton>Placeholder</Skeleton>}
+                You are signed in as {email ?? <Skeleton>Placeholder</Skeleton>}
                 <Button
                     loading={isPending}
                     render={<Link href="/logout">Log out</Link>}
