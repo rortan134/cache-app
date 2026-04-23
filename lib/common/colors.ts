@@ -1,3 +1,4 @@
+import { clamp } from "@/lib/common/clamp";
 import { converter, formatHex, parse } from "culori";
 import * as z from "zod";
 
@@ -191,11 +192,6 @@ export function rgbToHue(r: number, g: number, b: number): number {
     }
 
     return (hue * 60 + 360) % 360;
-}
-
-/** @internal */
-function clamp(value: number, min: number, max: number): number {
-    return Math.min(max, Math.max(min, value));
 }
 
 export function getColorGradientFromName(name: string): string {

@@ -16,7 +16,6 @@ function integrationHasSyncedItems(
             return true;
         }
     }
-
     return false;
 }
 
@@ -27,7 +26,6 @@ export function integrationSetupProgressPercent(
     if (syncable < 1) {
         return 0;
     }
-
     const clamped = Math.min(connectedCount, syncable);
     const integrationPortion =
         (clamped / syncable) * (100 - SIGNUP_PROGRESS_BASELINE_PERCENT);

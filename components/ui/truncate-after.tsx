@@ -1,13 +1,12 @@
 "use client";
 
-import { Badge } from "@/components/ui/badge";
 import { Popover, PopoverPopup, PopoverTrigger } from "@/components/ui/popover";
+import { clamp } from "@/lib/common/clamp";
 import { cn } from "@/lib/common/cn";
 import * as React from "react";
 
-interface TruncateAfterProps {
-    children: React.ReactNode;
-    className?: string;
+interface TruncateAfterProps extends React.ComponentProps<"div"> {
+    badgeRender?: React.ReactElement;
     count?: number;
 }
 
@@ -15,6 +14,8 @@ const TruncateAfter = ({
     count = 5,
     children,
     className,
+    badgeRender,
+    ...props
 }: TruncateAfterProps) => {
     const elementCount = React.Children.count(children);
 
@@ -33,23 +34,15 @@ const TruncateAfter = ({
         }
     });
 
-    const numTruncated = remaining.length;
+    const numTruncated = clamp(remaining.length, 0, 99);
 
     return (
-        <div className={cn("flex items-center gap-1", className)}>
+        <div className={cn("flex items-center gap-1", className)} {...props}>
             {displayed}
             {numTruncated > 0 && (
                 <Popover>
-                    <PopoverTrigger
-                        render={
-                            <Badge
-                                className="palette-chip-enter inline-flex h-7! cursor-pointer rounded-full text-xs tabular-nums"
-                                render={<button type="button" />}
-                                variant="outline"
-                            />
-                        }
-                    >
-                        +{numTruncated}
+                    <PopoverTrigger render={badgeRender}>
+                        +{numTruncated} more
                     </PopoverTrigger>
                     <PopoverPopup>
                         <div className="flex flex-col gap-2">{remaining}</div>

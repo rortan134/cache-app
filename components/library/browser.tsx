@@ -3764,7 +3764,17 @@ function LibraryPaletteTrailing({
 
     return (
         <>
-            <TruncateAfter className="justify-end" count={1}>
+            <TruncateAfter
+                badgeRender={
+                    <Badge
+                        className="palette-chip-enter inline-flex h-7! cursor-pointer rounded-full text-xs tabular-nums"
+                        render={<button type="button" />}
+                        variant="secondary"
+                    />
+                }
+                className="justify-end"
+                count={1}
+            >
                 {chips}
             </TruncateAfter>
             <Button

@@ -48,7 +48,7 @@ import LogoIconImage from "@/public/cache-app-icon.png";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
-export async function getUserLibraryItems(userId: string) {
+async function getUserLibraryItems(userId: string) {
     const [items, collections] = await Promise.all([
         prisma.libraryItem.findMany({
             include: LIBRARY_ITEM_COLLECTIONS_INCLUDE,
@@ -146,7 +146,7 @@ export default async function LibraryPage() {
         connectedCount,
         syncable
     );
-    const text = integrationSetupHeadingText({
+    const setupText = integrationSetupHeadingText({
         connectedCount,
         connectedLabels,
         missingLabels,
@@ -178,12 +178,10 @@ export default async function LibraryPage() {
                                     />
                                     <div className="relative">
                                         <span className="min-w-0 flex-1 truncate font-medium text-sm leading-none transition-opacity group-data-open:opacity-0 group-data-closed:duration-300 group-data-open:duration-400">
-                                            {connectedCount > 0
-                                                ? "Integrations"
-                                                : "Get started"}
+                                            Integrations
                                         </span>
                                         <span className="absolute top-1/2 left-0 min-w-0 flex-1 -translate-y-1/2 truncate font-medium text-sm leading-none opacity-0 transition-opacity group-data-open:opacity-100 group-data-closed:duration-300 group-data-open:duration-400">
-                                            {text}
+                                            {setupText}
                                         </span>
                                     </div>
                                     <div className="ml-auto flex items-center justify-end gap-1">
