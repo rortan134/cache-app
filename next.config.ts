@@ -21,7 +21,7 @@ const nextConfig: NextConfig = {
         return [
             {
                 headers: [...securityHeaders],
-                source: "/:path*",
+                source: "/(.*)",
             },
         ];
     },

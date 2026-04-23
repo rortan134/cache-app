@@ -374,7 +374,6 @@ export const AttachmentRemove = ({
                 className
             )}
             onClick={handleClick}
-            type="button"
             variant="ghost"
             {...props}
         >

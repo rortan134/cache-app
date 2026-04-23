@@ -285,7 +285,6 @@ export function CollectionsListItemPreview({
                     <Button
                         className="w-full min-w-0 flex-1 justify-start rounded-full border-(--focus-ring-color)/7 bg-(--collection-background) px-7.5 text-left focus-visible:ring-(--focus-ring-color) focus-visible:ring-1"
                         onClick={onSelect}
-                        type="button"
                         variant="ghost"
                     />
                 }

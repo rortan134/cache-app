@@ -1767,7 +1767,6 @@ function LibraryWorkspaceSidebar({
                                         <Button
                                             className="mr-auto -ml-2"
                                             size="xs"
-                                            type="button"
                                             variant="link"
                                         />
                                     }
@@ -1873,7 +1872,7 @@ function LibraryWorkspaceSidebar({
 const COMBOBOX_ITEM_PRESS_REASON = "item-press";
 const ALL_DOMAIN_FILTER = "__all_domains__";
 
-const SEARCH_HOTKEYS = ["mod+g", "mod+k", "mod+p", "/"] as const;
+const SEARCH_HOTKEYS = ["ctrl+g", "ctrl+k", "ctrl+p", "/"] as const;
 const SEARCH_CANCEL_KEYS = ["esc", "tab"] as const;
 const LIBRARY_COMMAND_PANEL_TOP_PX = 12;
 const LIBRARY_SECTION_STICKY_GAP_PX = 8;
@@ -2580,7 +2579,6 @@ function PaletteChip({
                     onRemove();
                 }}
                 size="icon-xs"
-                type="button"
                 variant="ghost"
             >
                 <XIcon className="size-3.5 shrink-0" />
@@ -3778,7 +3776,6 @@ function LibraryPaletteTrailing({
                 }}
                 size="icon-sm"
                 title="Add context"
-                type="button"
                 variant="ghost"
             >
                 <Plus className="size-4 shrink-0" />
@@ -5905,7 +5902,6 @@ function LibraryBrowser({
                                     <Button
                                         className="mr-auto -ml-2"
                                         size="xs"
-                                        type="button"
                                         variant="link"
                                     />
                                 }
@@ -5915,13 +5911,7 @@ function LibraryBrowser({
                             </CollectionComboboxPicker>
                             <DialogClose
                                 disabled={isCreatingResultsCollection}
-                                render={
-                                    <Button
-                                        size="sm"
-                                        type="button"
-                                        variant="ghost"
-                                    />
-                                }
+                                render={<Button size="sm" variant="ghost" />}
                             >
                                 Cancel
                             </DialogClose>
@@ -6189,7 +6179,6 @@ function LibraryBrowser({
                                         className="rounded-full text-muted-foreground"
                                         onClick={suggestion.onSelect}
                                         size="xs"
-                                        type="button"
                                         variant="ghost"
                                     >
                                         {suggestion.label}

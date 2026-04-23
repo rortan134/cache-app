@@ -2,13 +2,16 @@
 
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { authClient, hasGoogleOneTapClientId } from "@/lib/auth/client";
+import {
+    useSession,
+    authClient,
+    hasGoogleOneTapClientId,
+} from "@/lib/auth/client";
 import type { auth } from "@/lib/auth/server";
 import { Info } from "lucide-react";
 import Link from "next/link";
 import { type PropsWithChildren, type ReactNode, useEffect } from "react";
 
-const { useSession } = authClient;
 type Session = typeof auth.$Infer.Session;
 
 function GoogleOneTapTrigger() {

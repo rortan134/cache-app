@@ -7,8 +7,9 @@ import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import { nextCookies } from "better-auth/next-js";
 import type { GenericOAuthConfig } from "better-auth/plugins";
-import { genericOAuth, multiSession, oneTap } from "better-auth/plugins";
+import { genericOAuth, oneTap } from "better-auth/plugins";
 import { headers } from "next/headers";
+import { sentinel } from "@better-auth/infra";
 
 interface OAuthUserProfile {
     email?: string | null;
@@ -230,6 +231,7 @@ export const auth = betterAuth({
     },
     plugins: [
         nextCookies(),
+        sentinel(),
         oneTap({
             clientId: requiredEnv("GOOGLE_CLIENT_ID"),
         }),
@@ -253,7 +255,6 @@ export const auth = betterAuth({
                 ],
             },
         }),
-        multiSession(),
     ],
     secret: requiredEnv("BETTER_AUTH_SECRET"),
     session: {

@@ -125,7 +125,6 @@ export function IntegrationsListActionButton({
     return (
         <Button
             className={cn("rounded-full", className)}
-            type="button"
             variant={variant}
             {...props}
         />
@@ -148,7 +147,6 @@ export function IntegrationsListNoticeCallout() {
                             className="h-fit! leading-tight sm:text-[11px]"
                             onClick={() => setIsOpen(false)}
                             size="xs"
-                            type="button"
                             variant="link"
                         >
                             Dismiss
@@ -163,7 +161,6 @@ export function IntegrationsListNoticeCallout() {
                                 />
                             }
                             size="xs"
-                            type="button"
                             variant="link"
                         >
                             Cache Privacy

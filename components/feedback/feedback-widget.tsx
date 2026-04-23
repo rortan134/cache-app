@@ -101,6 +101,7 @@ function SubmitButton(): React.ReactElement {
 
     return (
         <Button
+            className="rounded-full"
             loading={pending}
             onClick={(e) =>
                 fire({

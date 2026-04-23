@@ -46,7 +46,6 @@ function GoogleSignInButton({
                 loading={isPending}
                 onClick={handleSignIn}
                 size="xl"
-                type="button"
             >
                 <GoogleIcon />
                 {children}

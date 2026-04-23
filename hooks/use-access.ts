@@ -1,8 +1,6 @@
-import { authClient } from "@/lib/auth/client";
+import { useSession } from "@/lib/auth/client";
 import { getActiveSubscription } from "@/lib/auth/subscriptions";
 import useSWR from "swr";
-
-const { useSession } = authClient;
 
 function useAccess() {
     const {

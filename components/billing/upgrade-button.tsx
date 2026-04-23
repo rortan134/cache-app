@@ -62,7 +62,6 @@ export function UpgradeButton({
                 loading={isPending}
                 onClick={handleUpgrade}
                 size={size}
-                type="button"
                 variant={variant}
             >
                 {children}
