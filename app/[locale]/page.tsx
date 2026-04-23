@@ -44,7 +44,7 @@ export async function generateMetadata({
         description: gtPublicString(
             locale,
             "home.metadata.description",
-            "One place to view, manage, and organize bookmarks across browsers and platforms — built for power users who save at volume."
+            "View, manage, and organize bookmarks across browsers and platforms — built for power users who save at volume."
         ),
         title: gtPublicString(
             locale,
@@ -73,9 +73,8 @@ export default async function Home() {
                                 </h1>
                                 <p className="font-medium text-[#0A0B0D] text-[1rem] leading-[1.22] tracking-[-3%] opacity-50 lg:max-w-[320px]">
                                     Meet Cache – A new kind of bookmark manager.
-                                    One place to collect, organize, and
-                                    rediscover everything you’ve saved across
-                                    platforms.
+                                    Collect, organize, and rediscover everything
+                                    you’ve saved across platforms.
                                 </p>
                             </T>
                         </div>

@@ -883,7 +883,7 @@ function KanbanColumn(props: KanbanColumnProps) {
                     {...(asHandle && !disabled ? attributes : {})}
                     {...(asHandle && !disabled ? listeners : {})}
                     className={cn(
-                        "flex size-full shrink-0 flex-col gap-2 rounded-lg bg-muted/80 p-2 aria-disabled:pointer-events-none aria-disabled:opacity-50",
+                        "flex size-full shrink-0 flex-col gap-2 rounded-lg bg-muted/80 p-3 aria-disabled:pointer-events-none aria-disabled:opacity-50",
                         {
                             "cursor-default": context.flatCursor,
                             "cursor-grab":

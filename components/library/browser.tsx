@@ -96,13 +96,13 @@ import {
 import { GradientWaveText } from "@/components/ui/gradient-wave-text";
 import { ChevronDownFilledIcon } from "@/components/ui/icons";
 import { Input } from "@/components/ui/input";
-import { Kbd, KbdGroup } from "@/components/ui/kbd";
 import {
     Kanban,
     KanbanBoard,
     KanbanColumn,
     KanbanItem,
 } from "@/components/ui/kanban";
+import { Kbd, KbdGroup } from "@/components/ui/kbd";
 import { Masonry, MasonryItem } from "@/components/ui/masonry";
 import {
     Menu,
@@ -4812,7 +4812,7 @@ function renderLibraryKanban({
                                 key={columnId}
                                 value={columnId}
                             >
-                                <div className="mb-2 flex items-center gap-2">
+                                <div className="mb-2 flex items-center gap-3">
                                     <h3 className="truncate font-medium text-sm">
                                         {columnName}
                                     </h3>
