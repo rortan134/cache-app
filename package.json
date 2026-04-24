@@ -20,6 +20,7 @@
         "@prisma/adapter-pg": "^7.8.0",
         "@prisma/client": "^7.8.0",
         "@t3-oss/env-nextjs": "^0.13.11",
+        "@upstash/ratelimit": "^2.0.8",
         "@upstash/redis": "^1.37.0",
         "@vercel/analytics": "^2.0.1",
         "better-auth": "^1.6.9",
