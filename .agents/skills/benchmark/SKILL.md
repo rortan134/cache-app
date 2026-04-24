@@ -1,7 +1,6 @@
 ---
 name: benchmarking-best-practices
 description: Different ways of writing similar logic (e.g., for loops vs. forEach) can have significant performance differences. Creating accurate and meaningful benchmarks requires careful attention to how modern JavaScript engines optimize code. This covers essential concepts and best practices to ensure your benchmarks measure actual performance characteristics rather than optimization artifacts.
-disable-model-invocation: true
 ---
 
 ## General Principles

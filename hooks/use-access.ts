@@ -23,7 +23,7 @@ function useAccess() {
     } = useSWR(
         sessionUserId ? ["subscription", sessionUserId] : null,
         getActiveSubscription,
-        { keepPreviousData: true }
+        { keepPreviousData: true, refreshInterval: 10_000 }
     );
 
     const hasAccess = !!subscription;

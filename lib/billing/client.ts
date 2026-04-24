@@ -2,7 +2,7 @@ import { createLogger } from "@/lib/common/logs/console/logger";
 import Stripe from "stripe";
 import { StripeError } from "./error";
 
-const logger = createLogger("Stripe");
+const logger = createLogger("Stripe:client");
 
 let stripeInstance: Stripe | null = null;
 

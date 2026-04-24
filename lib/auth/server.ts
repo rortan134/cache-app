@@ -1,5 +1,7 @@
+import { SessionError } from "@/lib/auth/error";
 import { getStripeClient, getStripeWebhookSecret } from "@/lib/billing/client";
 import { APP_NAME } from "@/lib/common/constants";
+import { createLogger } from "@/lib/common/logs/console/logger";
 import { prisma } from "@/prisma";
 import type { OAuth2Tokens } from "@better-auth/core/oauth2";
 import { stripe } from "@better-auth/stripe";
@@ -9,6 +11,8 @@ import { nextCookies } from "better-auth/next-js";
 import type { GenericOAuthConfig } from "better-auth/plugins";
 import { genericOAuth, oneTap } from "better-auth/plugins";
 import { headers } from "next/headers";
+
+const logger = createLogger("Auth:server");
 
 interface OAuthUserProfile {
     email?: string | null;
@@ -288,3 +292,31 @@ export async function getSessionUserId(): Promise<string | null> {
     const session = await getServerSession();
     return session?.user?.id ?? null;
 }
+
+export type Session = ReturnType<typeof getServerSession>;
+
+type WithSessionCallback<T> = (client: Session) => Promise<T> | T;
+
+/**
+ * Executes a callback with the Session client, normalizing errors to SessionError.
+ */
+export const withSession = async <T>(
+    callbackFn: WithSessionCallback<T>
+): Promise<T> => {
+    try {
+        const session = getServerSession();
+        return await callbackFn(session);
+    } catch (error) {
+        logger.error("Stripe operation failed:", error);
+
+        if (error instanceof SessionError) {
+            throw error;
+        }
+
+        throw new SessionError({
+            cause: error,
+            message: error instanceof Error ? error.message : String(error),
+            operation: "core::withStripe",
+        });
+    }
+};
