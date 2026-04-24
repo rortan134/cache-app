@@ -6,10 +6,10 @@ import cluster from "node:cluster";
 import path from "path";
 import { fileURLToPath } from "url";
 
-import { env, isCluster } from "./config.js"
-import { Red } from "./misc/console-text.js";
-import { initCluster } from "./misc/cluster.js";
+import { env, isCluster } from "./config.js";
 import { setupEnvWatcher } from "./core/env.js";
+import { initCluster } from "./misc/cluster.js";
+import { Red } from "./misc/console-text.js";
 
 const app = express();
 
@@ -19,10 +19,11 @@ const __dirname = path.dirname(__filename).slice(0, -4);
 app.disable("x-powered-by");
 
 if (env.apiURL) {
+    console.log("cobalt api starting.");
     const { runAPI } = await import("./core/api.js");
 
     if (isCluster) {
-       await initCluster();
+        await initCluster();
     }
 
     if (env.envFile) {
@@ -31,7 +32,5 @@ if (env.apiURL) {
 
     runAPI(express, app, __dirname, cluster.isPrimary);
 } else {
-    console.log(
-        Red("API_URL env variable is missing, cobalt api can't start.")
-    )
+    console.log(Red("API_URL env variable is missing, cobalt api can't start."));
 }
