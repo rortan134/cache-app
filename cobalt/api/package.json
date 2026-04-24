@@ -9,7 +9,7 @@
         "node": ">=18.17"
     },
     "scripts": {
-        "start": "node src/server",
+        "start": "node src/server.js",
         "test": "node src/util/test",
         "token:jwt": "node src/util/generate-jwt-secret"
     },
