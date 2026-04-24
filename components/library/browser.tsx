@@ -102,7 +102,7 @@ import {
     KanbanColumn,
     KanbanItem,
 } from "@/components/ui/kanban";
-import { Kbd, KbdGroup } from "@/components/ui/kbd";
+import { CtrlKbd, Kbd, KbdGroup } from "@/components/ui/kbd";
 import { Masonry, MasonryItem } from "@/components/ui/masonry";
 import {
     Menu,
@@ -3812,6 +3812,11 @@ function LibraryPaletteTrailing({
 
     return (
         <>
+            {chips.length === 0 && (
+                <Kbd className="border-none opacity-80">
+                    <CtrlKbd />G
+                </Kbd>
+            )}
             <TruncateAfter
                 badgeRender={
                     <Badge
