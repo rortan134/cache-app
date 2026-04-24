@@ -343,8 +343,8 @@ export default async function Home() {
                                     <li className="flex items-center gap-2 text-xs">
                                         <CloudDownload className="inline-block size-4 shrink-0" />
                                         <span>
-                                            Share or export from Cache at any
-                                            time you want
+                                            Share or export collections from
+                                            Cache at any time you want
                                         </span>
                                     </li>
                                     <li className="flex items-center gap-2 text-xs">

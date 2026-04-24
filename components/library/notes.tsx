@@ -675,7 +675,6 @@ export function LibraryNoteDrawer({
 
                                     return (
                                         <MenuItem
-                                            closeOnClick
                                             key={provider.title}
                                             render={(props) => (
                                                 <a

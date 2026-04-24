@@ -317,12 +317,12 @@ body {
         @apply indent-0 align-middle select-none;
         -webkit-user-drag: none;
     }
+}
 
-    canvas {
-        touch-action: none;
-        image-rendering: pixelated;
-        /* image-rendering: -moz-crisp-edges; */
-    }
+select,
+button,
+button.cursor-pointer {
+    cursor: default !important;
 }
 
 @supports (font-synthesis-weight: none) {

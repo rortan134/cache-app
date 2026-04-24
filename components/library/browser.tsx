@@ -4441,7 +4441,7 @@ function LibraryGridCard({
     ) => (
         <>
             {isNote ? (
-                <Item closeOnClick onClick={() => onOpenNote?.(item)}>
+                <Item onClick={() => onOpenNote?.(item)}>
                     <FilePenLineIcon className="size-4.5 text-muted-foreground" />
                     Edit note
                 </Item>
@@ -4464,19 +4464,15 @@ function LibraryGridCard({
             ) : null}
             {isNote ? null : (
                 <>
-                    <Item closeOnClick onClick={() => onOpenInNewTab?.(item)}>
+                    <Item onClick={() => onOpenInNewTab?.(item)}>
                         <ExternalLinkIcon className="size-4.5 text-muted-foreground" />
                         Open in new tab
                     </Item>
-                    <Item closeOnClick onClick={() => onCopyLink?.(item)}>
+                    <Item onClick={() => onCopyLink?.(item)}>
                         <LinkIcon className="size-4.5 text-muted-foreground" />
                         Copy URL link
                     </Item>
-                    <Item
-                        closeOnClick
-                        disabled={isDownloading}
-                        onClick={handleDownload}
-                    >
+                    <Item disabled={isDownloading} onClick={handleDownload}>
                         <DownloadIcon className="size-4.5 text-muted-foreground" />
                         {isDownloading ? "Downloading..." : "Download media"}
                     </Item>
@@ -4491,7 +4487,6 @@ function LibraryGridCard({
             return (
                 <ContextMenuItem
                     className="text-destructive data-highlighted:bg-destructive/10 data-highlighted:text-destructive"
-                    closeOnClick
                     disabled={isDeletePending}
                     onClick={() => onDelete?.(item)}
                 >
@@ -4503,7 +4498,6 @@ function LibraryGridCard({
 
         return (
             <MenuItem
-                closeOnClick
                 disabled={isDeletePending}
                 onClick={() => onDelete?.(item)}
                 variant="destructive"
@@ -5155,7 +5149,6 @@ function ExtensionLibrarySection({
                 {collapsible && (
                     <ContextMenuPopup>
                         <ContextMenuItem
-                            closeOnClick
                             disabled={!collapsed}
                             onClick={onToggle}
                         >
@@ -5163,7 +5156,6 @@ function ExtensionLibrarySection({
                             Expand
                         </ContextMenuItem>
                         <ContextMenuItem
-                            closeOnClick
                             disabled={collapsed}
                             onClick={onToggle}
                         >
@@ -5174,19 +5166,13 @@ function ExtensionLibrarySection({
                             <>
                                 <ContextMenuSeparator />
                                 {onExpandAll && (
-                                    <ContextMenuItem
-                                        closeOnClick
-                                        onClick={onExpandAll}
-                                    >
+                                    <ContextMenuItem onClick={onExpandAll}>
                                         <ChevronsDown className="size-4.5 text-muted-foreground" />
                                         Expand all
                                     </ContextMenuItem>
                                 )}
                                 {onCollapseAll && (
-                                    <ContextMenuItem
-                                        closeOnClick
-                                        onClick={onCollapseAll}
-                                    >
+                                    <ContextMenuItem onClick={onCollapseAll}>
                                         <ChevronsUp className="size-4.5 text-muted-foreground" />
                                         Collapse all
                                     </ContextMenuItem>

@@ -429,126 +429,107 @@ function CollectionsListSharePopover({
     const isShared = Boolean(collection.shareId);
 
     return (
-        <Popover modal={false}>
-            <PopoverTrigger
-                nativeButton={false}
-                render={
-                    <MenuItem closeOnClick={false}>
-                        <UserRoundPlus className="size-4 text-muted-foreground" />
-                        Share
-                    </MenuItem>
-                }
-            />
-            <PopoverPopup
-                align="start"
-                className="w-88"
-                positionMethod="fixed"
-                side="right"
-                sideOffset={8}
-            >
-                <div className="flex items-start justify-between gap-3">
-                    <div className="space-y-1">
-                        <PopoverTitle className="font-medium text-sm">
-                            Share collection
-                        </PopoverTitle>
-                        <PopoverDescription className="text-xs">
-                            Anyone with the link can view this collection.
-                            Search engines are asked not to index it.
-                        </PopoverDescription>
-                    </div>
-                    <PopoverClose
-                        render={
-                            <Button
-                                aria-label="Close share popover"
-                                size="icon-xs"
-                                variant="ghost"
-                            />
-                        }
-                    >
-                        <X className="size-4" />
-                    </PopoverClose>
-                </div>
-                <div className="mt-4 rounded-xl border bg-muted/40 p-3">
-                    <div className="flex items-start gap-3">
-                        <div className="mt-0.5 flex size-9 items-center justify-center rounded-xl bg-background text-muted-foreground shadow-xs/5">
-                            {isShared ? (
-                                <LinkIcon className="size-4" />
-                            ) : (
-                                <LockKeyhole className="size-4" />
-                            )}
-                        </div>
-                        <div className="min-w-0 flex-1">
-                            <p className="font-medium text-sm">
-                                {isShared ? "Anyone with the link" : "Only you"}
-                            </p>
-                            <p className="mt-0.5 text-muted-foreground text-xs leading-relaxed">
-                                {isShared
-                                    ? "Shared publicly as a read-only page."
-                                    : "Create a short, unlisted read-only link for this collection."}
-                            </p>
-                        </div>
-                    </div>
-                </div>
-                {isShared ? (
-                    <div className="mt-4 space-y-3">
+        <MenuSub>
+            <MenuSubTrigger>
+                <UserRoundPlus className="size-4 text-muted-foreground" />
+                Share
+            </MenuSubTrigger>
+            <MenuSubPopup>
+                <div className="max-w-xs p-2.5">
+                    <div className="flex items-start justify-between gap-3">
                         <div className="space-y-1">
-                            <label
-                                className="font-medium text-muted-foreground text-xs"
-                                htmlFor={shareInputId}
-                            >
-                                Public link
-                            </label>
-                            <Input
-                                id={shareInputId}
-                                readOnly
-                                size="sm"
-                                value={shareUrl ?? ""}
-                            />
-                        </div>
-                        <div className="flex items-center justify-between gap-2">
-                            <p className="text-muted-foreground text-xs">
-                                Shared{" "}
-                                {collection.sharedAt
-                                    ? dayjs(collection.sharedAt).fromNow()
-                                    : "just now"}
+                            <h3 className="font-medium text-sm">
+                                Share collection
+                            </h3>
+                            <p className="text-muted-foreground text-xs leading-snug">
+                                Anyone with the link can view this collection.
                             </p>
-                            <div className="flex items-center gap-2">
-                                <Button
-                                    loading={isSharePending}
-                                    onClick={onDisableShare}
-                                    size="sm"
-                                    variant="ghost"
-                                >
-                                    Disable
-                                </Button>
-                                <Button
-                                    disabled={!shareUrl || isSharePending}
-                                    onClick={onCopyShareLink}
-                                    size="sm"
-                                >
-                                    <CopyIcon className="size-4" />
-                                    Copy link
-                                </Button>
+                        </div>
+                    </div>
+                    <div className="mt-4 rounded-xl border bg-muted/40 p-3">
+                        <div className="flex items-start gap-3">
+                            <div className="mt-0.5 flex size-9 items-center justify-center rounded-xl bg-background text-muted-foreground shadow-xs/5">
+                                {isShared ? (
+                                    <LinkIcon className="size-4" />
+                                ) : (
+                                    <LockKeyhole className="size-4" />
+                                )}
+                            </div>
+                            <div className="min-w-0 flex-1">
+                                <p className="font-medium text-sm">
+                                    {isShared
+                                        ? "Anyone with the link"
+                                        : "Only you"}
+                                </p>
+                                <p className="mt-0.5 text-muted-foreground text-xs leading-relaxed">
+                                    {isShared
+                                        ? "Shared publicly as a read-only page."
+                                        : "Create a short, unlisted read-only link for this collection."}
+                                </p>
                             </div>
                         </div>
                     </div>
-                ) : (
-                    <div className="mt-4 flex items-center justify-between gap-3">
-                        <p className="max-w-52 text-muted-foreground text-xs leading-relaxed">
-                            Public links stay simple and read-only so your
-                            collection can be browsed without signing in.
-                        </p>
-                        <Button
-                            loading={isSharePending}
-                            onClick={onEnableShare}
-                            size="sm"
-                        >
-                            Create link
-                        </Button>
-                    </div>
-                )}
-            </PopoverPopup>
-        </Popover>
+                    {isShared ? (
+                        <div className="mt-4 space-y-3">
+                            <div className="space-y-1">
+                                <label
+                                    className="font-medium text-muted-foreground text-xs"
+                                    htmlFor={shareInputId}
+                                >
+                                    Public link
+                                </label>
+                                <Input
+                                    id={shareInputId}
+                                    readOnly
+                                    size="sm"
+                                    value={shareUrl ?? ""}
+                                />
+                            </div>
+                            <div className="flex items-center justify-between gap-2">
+                                <p className="text-muted-foreground text-xs">
+                                    Shared{" "}
+                                    {collection.sharedAt
+                                        ? dayjs(collection.sharedAt).fromNow()
+                                        : "just now"}
+                                </p>
+                                <div className="flex items-center gap-2">
+                                    <Button
+                                        loading={isSharePending}
+                                        onClick={onDisableShare}
+                                        size="sm"
+                                        variant="ghost"
+                                    >
+                                        Disable
+                                    </Button>
+                                    <Button
+                                        disabled={!shareUrl || isSharePending}
+                                        onClick={onCopyShareLink}
+                                        size="sm"
+                                    >
+                                        <CopyIcon className="size-4" />
+                                        Copy link
+                                    </Button>
+                                </div>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="mt-4 flex items-center justify-between gap-3">
+                            <p className="text-[11px] text-muted-foreground leading-tight">
+                                Public links stay simple and read-only so your
+                                collection can be browsed without signing in.
+                            </p>
+                            <Button
+                                loading={isSharePending}
+                                onClick={onEnableShare}
+                                size="sm"
+                            >
+                                Create link
+                            </Button>
+                        </div>
+                    )}
+                </div>
+            </MenuSubPopup>
+        </MenuSub>
     );
 }
 
@@ -567,35 +548,23 @@ function CollectionsListExportMenu({
                 Export
             </MenuSubTrigger>
             <MenuSubPopup>
-                <MenuItem closeOnClick onClick={onCopyTitle}>
+                <MenuItem onClick={onCopyTitle}>
                     <CopyIcon className="size-4 text-muted-foreground" />
                     Copy title
                 </MenuItem>
-                <MenuItem
-                    closeOnClick
-                    disabled={!hasItems}
-                    onClick={onCopyLinks}
-                >
+                <MenuItem disabled={!hasItems} onClick={onCopyLinks}>
                     <CopyIcon className="size-4 text-muted-foreground" />
                     Copy all links
                 </MenuItem>
-                <MenuItem
-                    closeOnClick
-                    disabled={!hasItems}
-                    onClick={onOpenLinks}
-                >
+                <MenuItem disabled={!hasItems} onClick={onOpenLinks}>
                     <ExternalLinkIcon className="size-4 text-muted-foreground" />
                     Open all links
                 </MenuItem>
-                <MenuItem
-                    closeOnClick
-                    disabled={!hasItems}
-                    onClick={onExportCsv}
-                >
+                <MenuItem disabled={!hasItems} onClick={onExportCsv}>
                     <FileSpreadsheetIcon className="size-4 text-muted-foreground" />
                     Export to CSV
                 </MenuItem>
-                <MenuItem closeOnClick onClick={onMakeCopy}>
+                <MenuItem onClick={onMakeCopy}>
                     <CopyPlus className="size-4 text-muted-foreground" />
                     Make a copy
                 </MenuItem>
@@ -935,7 +904,7 @@ export function CollectionsListItemMeta({
                 <MenuPopup align="start" side="right">
                     <MenuGroup>
                         <MenuGroupLabel>Collection</MenuGroupLabel>
-                        <MenuItem closeOnClick onClick={onRename}>
+                        <MenuItem onClick={onRename}>
                             <PencilIcon className="size-4 text-muted-foreground" />
                             Rename
                             <MenuShortcut>E</MenuShortcut>
@@ -962,11 +931,7 @@ export function CollectionsListItemMeta({
                     </MenuGroup>
                     <MenuSeparator />
                     <MenuGroup>
-                        <MenuItem
-                            closeOnClick
-                            onClick={onDelete}
-                            variant="destructive"
-                        >
+                        <MenuItem onClick={onDelete} variant="destructive">
                             <Trash2Icon className="size-4" />
                             Delete
                         </MenuItem>
