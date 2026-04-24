@@ -4,7 +4,7 @@ import { FeedbackError } from "./error";
 
 const logger = createLogger("feedback:submit");
 
-export interface SubmitFeedbackInput {
+interface SubmitFeedbackInput {
     message: string;
     pagePath: string;
     userId: string | null;

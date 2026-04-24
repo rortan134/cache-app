@@ -4,7 +4,7 @@ import { StripeError } from "@/lib/billing/error";
 
 export type PlanType = "monthly" | "yearly";
 
-interface PlanPrice {
+export interface PlanPrice {
     amountCents: number; // integer cents
     currency: string; // ISO 4217 uppercase (e.g., EUR)
     id: string;
@@ -13,12 +13,8 @@ interface PlanPrice {
 }
 
 export async function retrievePriceById(
-    priceId: string | undefined | null
+    priceId: string
 ): Promise<PlanPrice | null> {
-    if (!priceId) {
-        return null;
-    }
-
     const price = await withStripe((stripe) => stripe.prices.retrieve(priceId));
     if (!price) {
         return null;

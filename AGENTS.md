@@ -45,6 +45,7 @@ Actions are the only networking boundary: they parse/validate inputs, guard with
 
 ## On coding
 
+- Finish code so it never needs to be revisited.
 - Follow the rationale that each function should have a single, named responsibility. Keep it small enough to reason about in isolation such that it is understandable and verifiable as a logical unit (self-contained). If you need to trace external state to understand it, it's too large or too coupled.
 - Strive for writing fully functional, bug-free code by using best practices and minimizing room for error.
 - Avoid unnecessary code indirection unless an abstraction for DRY compliance is necessary. Duplicate logic across multiple files is a code smell and should be avoided.
@@ -53,3 +54,5 @@ Actions are the only networking boundary: they parse/validate inputs, guard with
 - Leverage ES6+ features for cleaner code (default parameters, arrow functions, and object destructuring).
 - Avoid using `any` or casting types at all costs as it indicates wrong assumptions or bad implementation.
 - Before adding a new utility, check if a similar one exists in the `lib/` directory or nearby module scope as utils.
+- Plugin architectures allow for extensibility and isolation; most functionality should live in plugins, not the core, enabling parallel development and future-proofing
+- Minimize risk by anticipating what’s most likely to fail (platforms, language changes, hardware, people) and insulating your system from those points of failure.
