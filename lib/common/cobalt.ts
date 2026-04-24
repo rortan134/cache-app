@@ -1,4 +1,4 @@
-const COBALT_API_BASE = "https://cache-cobalt-preview-cache.unkey.app";
+const COBALT_API_BASE = "https://cache-cobalt-cache.unkey.app";
 
 interface CobaltResponse {
     status?: string;
