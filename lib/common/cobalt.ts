@@ -1,4 +1,4 @@
-const COBALT_API_BASE = "https://cache-cobalt.vercel.app/";
+const COBALT_API_BASE = "https://cache-cobalt-preview-cache.unkey.app";
 
 interface CobaltResponse {
     status?: string;
@@ -78,7 +78,3 @@ export async function resolveCobaltDownloadUrl(
         };
     }
 }
-
-console.log(
-    await resolveCobaltDownloadUrl("https://www.instagram.com/p/DHL_e3zs0vz/"),
-);
