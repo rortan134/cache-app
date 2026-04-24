@@ -117,20 +117,6 @@ export function IntegrationsListPanel(
     return <CollapsiblePanel {...props} />;
 }
 
-export function IntegrationsListActionButton({
-    className,
-    variant = "ghost",
-    ...props
-}: React.ComponentProps<typeof Button>) {
-    return (
-        <Button
-            className={cn("rounded-full", className)}
-            variant={variant}
-            {...props}
-        />
-    );
-}
-
 export function IntegrationsListNoticeCallout() {
     const [isOpen, setIsOpen] = React.useState(true);
 
@@ -188,7 +174,8 @@ export function IntegrationsListItem({
     );
 }
 
-export function IntegrationsListStatus({
+/** @internal */
+function IntegrationsListStatus({
     tone = "success",
     className,
     ...props
@@ -249,6 +236,21 @@ function IntegrationActionIconGlyph({
     }
     const Icon = ACTION_ICON_MAP[icon];
     return Icon ? <Icon className="size-4" /> : null;
+}
+
+/** @internal */
+function IntegrationsListActionButton({
+    className,
+    variant = "ghost",
+    ...props
+}: React.ComponentProps<typeof Button>) {
+    return (
+        <Button
+            className={cn("rounded-full", className)}
+            variant={variant}
+            {...props}
+        />
+    );
 }
 
 interface IntegrationsListItemActionProps {

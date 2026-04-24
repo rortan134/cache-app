@@ -17,18 +17,13 @@ import {
     VideoIcon,
     XIcon,
 } from "lucide-react";
-import type { ComponentProps, HTMLAttributes, ReactNode } from "react";
 import * as React from "react";
 
-// ============================================================================
-// Types
-// ============================================================================
-
-export type AttachmentData =
+type AttachmentData =
     | (FileUIPart & { id: string })
     | (SourceDocumentUIPart & { id: string });
 
-export type AttachmentMediaCategory =
+type AttachmentMediaCategory =
     | "image"
     | "video"
     | "audio"
@@ -36,7 +31,7 @@ export type AttachmentMediaCategory =
     | "source"
     | "unknown";
 
-export type AttachmentVariant = "grid" | "inline" | "list";
+type AttachmentVariant = "grid" | "inline" | "list";
 
 const mediaCategoryIcons: Record<AttachmentMediaCategory, typeof ImageIcon> = {
     audio: Music2Icon,
@@ -108,10 +103,6 @@ const renderAttachmentImage = (
         />
     );
 
-// ============================================================================
-// Contexts
-// ============================================================================
-
 interface AttachmentsContextValue {
     variant: AttachmentVariant;
 }
@@ -131,14 +122,10 @@ const AttachmentContext = React.createContext<AttachmentContextValue | null>(
     null
 );
 
-// ============================================================================
-// Hooks
-// ============================================================================
-
-export const useAttachmentsContext = () =>
+const useAttachmentsContext = () =>
     React.use(AttachmentsContext) ?? { variant: "grid" as const };
 
-export const useAttachmentContext = () => {
+const useAttachmentContext = () => {
     const context = React.use(AttachmentContext);
     if (!context) {
         throw new Error(
@@ -148,13 +135,9 @@ export const useAttachmentContext = () => {
     return context;
 };
 
-// ============================================================================
-// Attachments - Container
-// ============================================================================
-
-export type AttachmentsProps = HTMLAttributes<HTMLDivElement> & {
+interface AttachmentsProps extends React.ComponentProps<"div"> {
     variant?: AttachmentVariant;
-};
+}
 
 export const Attachments = ({
     variant = "grid",
@@ -178,14 +161,10 @@ export const Attachments = ({
     );
 };
 
-// ============================================================================
-// Attachment - Item
-// ============================================================================
-
-export type AttachmentProps = HTMLAttributes<HTMLDivElement> & {
+interface AttachmentProps extends React.ComponentProps<"div"> {
     data: AttachmentData;
     onRemove?: () => void;
-};
+}
 
 export const Attachment = ({
     data,
@@ -225,13 +204,9 @@ export const Attachment = ({
     );
 };
 
-// ============================================================================
-// AttachmentPreview - Media preview
-// ============================================================================
-
-export type AttachmentPreviewProps = HTMLAttributes<HTMLDivElement> & {
-    fallbackIcon?: ReactNode;
-};
+interface AttachmentPreviewProps extends React.ComponentProps<"div"> {
+    fallbackIcon?: React.ReactNode;
+}
 
 export const AttachmentPreview = ({
     fallbackIcon,
@@ -285,13 +260,9 @@ export const AttachmentPreview = ({
     );
 };
 
-// ============================================================================
-// AttachmentInfo - Name and type display
-// ============================================================================
-
-export type AttachmentInfoProps = HTMLAttributes<HTMLDivElement> & {
+interface AttachmentInfoProps extends React.ComponentProps<"div"> {
     showMediaType?: boolean;
-};
+}
 
 export const AttachmentInfo = ({
     showMediaType = false,
@@ -308,22 +279,18 @@ export const AttachmentInfo = ({
     return (
         <div className={cn("min-w-0 flex-1", className)} {...props}>
             <span className="block truncate">{label}</span>
-            {showMediaType && data.mediaType && (
+            {showMediaType && data.mediaType ? (
                 <span className="block truncate text-muted-foreground text-xs">
                     {data.mediaType}
                 </span>
-            )}
+            ) : null}
         </div>
     );
 };
 
-// ============================================================================
-// AttachmentRemove - Remove button
-// ============================================================================
-
-export type AttachmentRemoveProps = ComponentProps<typeof Button> & {
+interface AttachmentRemoveProps extends React.ComponentProps<typeof Button> {
     label?: string;
-};
+}
 
 export const AttachmentRemove = ({
     label = "Remove",
@@ -333,13 +300,10 @@ export const AttachmentRemove = ({
 }: AttachmentRemoveProps) => {
     const { onRemove, variant } = useAttachmentContext();
 
-    const handleClick = React.useCallback(
-        (e: React.MouseEvent) => {
-            e.stopPropagation();
-            onRemove?.();
-        },
-        [onRemove]
-    );
+    const handleClick = (event: React.MouseEvent) => {
+        event.stopPropagation();
+        onRemove?.();
+    };
 
     if (!onRemove) {
         return null;
@@ -377,58 +341,22 @@ export const AttachmentRemove = ({
     );
 };
 
-// ============================================================================
-// AttachmentPreviewCard - Hover preview
-// ============================================================================
-
-export type AttachmentPreviewCardProps = ComponentProps<typeof PreviewCard>;
-
-export const AttachmentPreviewCard = (props: AttachmentPreviewCardProps) => (
-    <PreviewCard {...props} />
-);
-
-export type AttachmentPreviewCardTriggerProps = ComponentProps<
-    typeof PreviewCardTrigger
->;
+export const AttachmentPreviewCard = (
+    props: React.ComponentProps<typeof PreviewCard>
+) => <PreviewCard {...props} />;
 
 export const AttachmentPreviewCardTrigger = (
-    props: AttachmentPreviewCardTriggerProps
+    props: React.ComponentProps<typeof PreviewCardTrigger>
 ) => <PreviewCardTrigger {...props} />;
-
-export type AttachmentPreviewCardPopupProps = ComponentProps<
-    typeof PreviewCardPopup
->;
 
 export const AttachmentPreviewCardPopup = ({
     align = "start",
     className,
     ...props
-}: AttachmentPreviewCardPopupProps) => (
+}: React.ComponentProps<typeof PreviewCardPopup>) => (
     <PreviewCardPopup
         align={align}
         className={cn("w-auto p-2", className)}
         {...props}
     />
-);
-
-// ============================================================================
-// AttachmentEmpty - Empty state
-// ============================================================================
-
-export type AttachmentEmptyProps = HTMLAttributes<HTMLDivElement>;
-
-export const AttachmentEmpty = ({
-    className,
-    children,
-    ...props
-}: AttachmentEmptyProps) => (
-    <div
-        className={cn(
-            "flex items-center justify-center p-4 text-muted-foreground text-sm",
-            className
-        )}
-        {...props}
-    >
-        {children ?? "No attachments"}
-    </div>
 );

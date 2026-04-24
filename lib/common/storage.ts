@@ -27,17 +27,3 @@ export function removeItem(key: string, session?: boolean): void {
         (session ? sessionStorage : localStorage).removeItem(key);
     }
 }
-
-const TRAILING_SLASHES = /\/+$/;
-const LEADING_SLASHES = /^\/+/;
-
-type StorageEnvironment = "cachd/app" | "statsig" | "cache";
-
-export function buildStorageKey(
-    key: string,
-    environment: StorageEnvironment = "cachd/app"
-): string {
-    const env = environment.replace(TRAILING_SLASHES, "");
-    const k = key.replace(LEADING_SLASHES, "");
-    return `${env}/${k}`;
-}

@@ -1,3 +1,5 @@
+import * as z from "zod";
+
 const TRAILING_NUMBER_PATTERN = /^.*(\d+)$/;
 const TRAILING_NUMBER_REPLACE_PATTERN = /(\d+)$/;
 
@@ -61,3 +63,26 @@ export function getInitials(name: string | null, email: string): string {
 
     return source.slice(0, 2).toUpperCase();
 }
+
+/**
+ * A name is a user given human-readable string.
+ *
+ * It must not be used in URLs.
+ *
+ * @example the name of a key
+ */
+export const name = z.string().min(3).max(256);
+
+/**
+ * A description is a user given human-readable string.
+ *
+ * It must not be used in URLs.
+ *
+ * @example The description of a permission
+ */
+export const description = z
+    .string()
+    .min(3)
+    .max(256)
+    .optional()
+    .or(z.literal(""));

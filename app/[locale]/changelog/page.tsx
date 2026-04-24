@@ -1,5 +1,4 @@
 import { Badge } from "@/components/ui/badge";
-import { cn } from "@/lib/common/cn";
 import { ArrowUpRight } from "lucide-react";
 
 interface ChangelogEntry {
@@ -15,14 +14,7 @@ interface ChangelogEntry {
     version: string;
 }
 
-interface ChangelogProps {
-    className?: string;
-    description?: string;
-    entries?: ChangelogEntry[];
-    title?: string;
-}
-
-const defaultEntries: ChangelogEntry[] = [
+const entries = [
     {
         button: {
             text: "Explore Cache",
@@ -41,24 +33,16 @@ const defaultEntries: ChangelogEntry[] = [
         title: "Product launch",
         version: "Version 1.0.0",
     },
-];
+] satisfies ChangelogEntry[];
 
-function Changelog1({
-    title = "Changelog",
-    description = "Get the latest updates and improvements to our platform.",
-    entries = defaultEntries,
-    className,
-}: ChangelogProps) {
+export default function ChangelogPage() {
     return (
-        <section className={cn("py-32", className)}>
+        <section className="py-32">
             <div className="container">
                 <div className="mx-auto max-w-3xl">
                     <h1 className="mb-4 font-bold text-3xl tracking-tight md:text-5xl">
-                        {title}
+                        Changelog
                     </h1>
-                    <p className="mb-6 text-base text-muted-foreground md:text-lg">
-                        {description}
-                    </p>
                 </div>
                 <div className="mx-auto mt-16 max-w-3xl space-y-16 md:mt-24 md:space-y-24">
                     {entries.map((entry, index) => (
@@ -118,8 +102,4 @@ function Changelog1({
             </div>
         </section>
     );
-}
-
-export default function ChangelogPage() {
-    return <Changelog1 />;
 }

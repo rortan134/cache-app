@@ -6292,6 +6292,7 @@ function LibraryBrowser({
                             >
                                 <SquarePen className="inline-block size-3.5 shrink-0" />
                                 &nbsp;New
+                                <ChevronDown className="inline-block size-3.5 shrink-0" />
                             </Button>
                         }
                     />
