@@ -1,4 +1,4 @@
-const COBALT_API_BASE = "https://cobalt-production-d7b0.up.railway.app";
+const COBALT_API_BASE = "https://cache-cobalt.vercel.app/";
 
 interface CobaltResponse {
     status?: string;
@@ -17,7 +17,7 @@ type ResolveCobaltDownloadUrlResult =
       };
 
 export async function resolveCobaltDownloadUrl(
-    url: string
+    url: string,
 ): Promise<ResolveCobaltDownloadUrlResult> {
     const normalizedUrl = url.trim();
     if (normalizedUrl.length === 0) {
@@ -78,3 +78,7 @@ export async function resolveCobaltDownloadUrl(
         };
     }
 }
+
+console.log(
+    await resolveCobaltDownloadUrl("https://www.instagram.com/p/DHL_e3zs0vz/"),
+);
