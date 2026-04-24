@@ -610,7 +610,7 @@ const GAP = 0;
 const ITEM_HEIGHT = 300;
 const OVERSCAN = 2;
 const SCROLL_FPS = 24;
-const DEBOUNCE_DELAY = 100;
+const DEBOUNCE_DELAY = 300;
 
 interface Positioner {
     all: () => PositionerItem[];
@@ -1500,6 +1500,8 @@ function MasonryViewport({
     ...props
 }: React.ComponentProps<"div">) {
     const context = useMasonryContext(VIEWPORT_NAME);
+    const [layoutVersion, setLayoutVersion] = React.useState(0);
+    const rafId = React.useRef<number | null>(null);
 
     const validChildren = React.Children.toArray(
         children
@@ -1597,6 +1599,22 @@ function MasonryViewport({
         }
     }
 
+    React.useEffect(() => {
+        if (isLayoutOutdated) {
+            if (rafId.current) {
+                cancelAnimationFrame(rafId.current);
+            }
+            rafId.current = requestAnimationFrame(() => {
+                setLayoutVersion((v) => v + 1);
+            });
+        }
+        return () => {
+            if (rafId.current) {
+                cancelAnimationFrame(rafId.current);
+            }
+        };
+    }, [isLayoutOutdated]);
+
     const estimateHeight = useValueAsRef(context.positioner.estimateHeight);
 
     const estimatedHeight = React.useMemo(() => {
@@ -1636,7 +1654,7 @@ function MasonryViewport({
     );
 
     return (
-        <div {...props} style={containerStyle}>
+        <div {...props} data-version={layoutVersion} style={containerStyle}>
             {positionedChildren}
         </div>
     );

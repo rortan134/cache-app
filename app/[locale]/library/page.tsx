@@ -45,6 +45,7 @@ import {
 } from "@/lib/integrations/support";
 import { prisma } from "@/prisma";
 import LogoIconImage from "@/public/cache-app-icon.png";
+import { T } from "gt-next";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
@@ -178,7 +179,7 @@ export default async function LibraryPage() {
                                     />
                                     <div className="relative">
                                         <span className="min-w-0 flex-1 truncate font-medium text-sm leading-none transition-opacity group-data-open:opacity-0 group-data-closed:duration-300 group-data-open:duration-400">
-                                            Integrations
+                                            <T>Integrations</T>
                                         </span>
                                         <span className="absolute top-1/2 left-0 min-w-0 flex-1 -translate-y-1/2 truncate font-medium text-sm leading-none opacity-0 transition-opacity group-data-open:opacity-100 group-data-closed:duration-300 group-data-open:duration-400">
                                             {setupText}

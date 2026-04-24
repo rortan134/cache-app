@@ -6,7 +6,7 @@ interface CobaltResponse {
     url?: string;
 }
 
-export type ResolveCobaltDownloadUrlResult =
+type ResolveCobaltDownloadUrlResult =
     | {
           downloadUrl: string;
           status: "SUCCESS";

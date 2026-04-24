@@ -36,6 +36,7 @@ const { useStore: useIntegrationsPanelStore } = createStore({
 function useIntegrationsListOpenState() {
     const { isIntegrationsListPanelOpen, setIsIntegrationsListPanelOpen } =
         useIntegrationsPanelStore();
+
     return {
         isOpen: isIntegrationsListPanelOpen,
         setIsOpen: setIsIntegrationsListPanelOpen,
@@ -178,7 +179,10 @@ export function IntegrationsListItem({
 }: React.ComponentProps<"div">) {
     return (
         <div
-            className={cn("flex items-center gap-2 pt-1 first:mt-3", className)}
+            className={cn(
+                "flex items-center gap-2 pt-1.5 first:mt-3",
+                className
+            )}
             {...props}
         />
     );

@@ -211,6 +211,7 @@ import {
     Grid2x2X,
     Info,
     LinkIcon,
+    ListChevronsUpDown,
     NotebookPenIcon,
     Plus,
     PlusIcon,
@@ -4119,17 +4120,6 @@ function getSharedCollectionIds(items: LibraryItemWithCollections[]): string[] {
     );
 }
 
-function fallbackGridStyle(
-    columnCount?: number
-): React.CSSProperties | undefined {
-    if (!columnCount) {
-        return;
-    }
-    return {
-        gridTemplateColumns: `repeat(${columnCount}, minmax(0, 1fr))`,
-    };
-}
-
 function getItemTitle(item: LibraryItemWithCollections): string {
     if (item.kind === "note") {
         return "";
@@ -4687,20 +4677,6 @@ function renderLibraryMasonry({
                 pendingCollectionItemIds,
                 pendingDeleteItemId,
             ]}
-            fallback={
-                <div
-                    className={cn(
-                        "grid gap-2",
-                        !columnCount &&
-                            "grid-cols-1 sm:grid-cols-2 md:grid-cols-3"
-                    )}
-                    style={fallbackGridStyle(columnCount)}
-                >
-                    {items.map((item) => (
-                        <Skeleton key={item.id} />
-                    ))}
-                </div>
-            }
             gap={4}
             linear
         >
@@ -4882,31 +4858,8 @@ function renderLibraryKanban({
 }
 
 function ExtensionLibraryEmptyMasonryPeek() {
-    const fallback = (
-        <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-            {EMPTY_LIBRARY_PEEK_PLACEHOLDERS.map(({ aspect, id }, index) => {
-                const opacity = Math.max(0.06, 1 - index * 0.095);
-                return (
-                    <div
-                        className="flex flex-col overflow-hidden rounded-xl bg-card/40 transition-opacity"
-                        key={id}
-                        style={{ opacity }}
-                    >
-                        <Skeleton
-                            className={cn("w-full rounded-none", aspect)}
-                        />
-                        <div className="flex min-h-14 flex-col gap-1.5 p-3">
-                            <Skeleton className="h-2.5 w-[92%]" />
-                            <Skeleton className="h-2.5 w-[72%]" />
-                        </div>
-                    </div>
-                );
-            })}
-        </div>
-    );
-
     return (
-        <Masonry columnCount={5} fallback={fallback} gap={4} linear>
+        <Masonry columnCount={5} gap={4} linear>
             {EMPTY_LIBRARY_PEEK_PLACEHOLDERS.map(({ aspect, id }, index) => {
                 const opacity = Math.max(0.06, 1 - index * 0.095);
 
@@ -5065,7 +5018,15 @@ function SectionDescription({
         <p className="fade-in-0 block w-full animate-in text-xs leading-snug motion-reduce:animate-none">
             {summary && summary.length > 0
                 ? summary
-                : SECTION_DESCRIPTION_FALLBACK_TEXT}
+                : SECTION_DESCRIPTION_FALLBACK_TEXT}{" "}
+            <Button
+                className="h-fit! text-xs leading-snug sm:text-xs"
+                size="xs"
+                variant="link"
+            >
+                More&nbsp;
+                <ListChevronsUpDown className="inline-block size-3" />
+            </Button>
         </p>
     );
 }
