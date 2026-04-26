@@ -227,7 +227,6 @@ body {
 @layer base {
     * {
         touch-action: pan-x pan-y;
-        scrollbar-width: thin;
         @apply border-border outline-ring/50;
     }
 
@@ -239,7 +238,8 @@ body {
 
     html,
     body {
-        /* @apply motion-safe:scroll-smooth; */
+        scrollbar-color: color-mix(in oklab, var(--foreground) 20%, transparent)
+            transparent;
         overscroll-behavior: none;
         font-feature-settings: "case" on;
         font-variation-settings: "opsz" auto;

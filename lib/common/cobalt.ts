@@ -17,7 +17,7 @@ type ResolveCobaltDownloadUrlResult =
       };
 
 export async function resolveCobaltDownloadUrl(
-    url: string,
+    url: string
 ): Promise<ResolveCobaltDownloadUrlResult> {
     const normalizedUrl = url.trim();
     if (normalizedUrl.length === 0) {

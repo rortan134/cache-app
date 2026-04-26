@@ -1,6 +1,9 @@
 "use client";
 
-import { UnprivilegedOnly } from "@/components/billing/privilege";
+import {
+    PrivilegedOnly,
+    UnprivilegedOnly,
+} from "@/components/billing/privilege";
 import {
     BlockPromotionBanner,
     InlinePromotionBanner,
@@ -94,7 +97,7 @@ import {
     DialogTitle,
 } from "@/components/ui/dialog";
 import { GradientWaveText } from "@/components/ui/gradient-wave-text";
-import { ChevronDownFilledIcon } from "@/components/ui/icons";
+import { ChevronDownFilledIcon, CrownFilledIcon } from "@/components/ui/icons";
 import { Input } from "@/components/ui/input";
 import {
     Kanban,
@@ -188,6 +191,7 @@ import {
     type AutocompleteRootChangeEventDetails,
     type BaseUIEvent,
 } from "@base-ui/react";
+import { useStableCallback } from "@base-ui/utils/useStableCallback";
 import {
     ArrowDownIcon,
     ArrowUpIcon,
@@ -709,10 +713,8 @@ function LibraryWorkspaceSidebar({
     const [renameDialogError, setRenameDialogError] = React.useState<
         string | null
     >(null);
-
     const [pendingDeleteCollection, setPendingDeleteCollection] =
         React.useState<LibraryCollectionSummary | null>(null);
-
     const [collectionActionFeedback, setCollectionActionFeedback] =
         React.useState<CollectionActionFeedback | null>(null);
     const [isCreatePending, startCreateTransition] = React.useTransition();
@@ -762,6 +764,7 @@ function LibraryWorkspaceSidebar({
             }
         },
         {
+            enableOnFormTags: true,
             preventDefault: true,
         },
         [isCreateDialogOpen]
@@ -1881,8 +1884,7 @@ const SEARCH_HOTKEYS = [
     "/",
 ] as const;
 const SEARCH_CANCEL_KEYS = ["esc", "tab"] as const;
-const LIBRARY_COMMAND_PANEL_TOP_PX = 12;
-const LIBRARY_SECTION_STICKY_GAP_PX = 8;
+
 const FREE_LIBRARY_PREVIEW_ITEMS = 12;
 const COLLECTION_NAME_MAX_LENGTH = 64;
 
@@ -3569,12 +3571,6 @@ function applyVisiblePaletteShortcuts(
     }));
 }
 
-function getStickySectionStyle(commandPanelShellHeight: number) {
-    return {
-        "--library-section-sticky-top": `${commandPanelShellHeight + LIBRARY_COMMAND_PANEL_TOP_PX + LIBRARY_SECTION_STICKY_GAP_PX}px`,
-    } as React.CSSProperties;
-}
-
 function useSectionCollapseState({
     groupBy,
     hasActiveFilters,
@@ -3830,19 +3826,23 @@ function LibraryPaletteTrailing({
             >
                 {chips}
             </TruncateAfter>
-            <Button
-                className="rounded-full"
-                onClick={(event) => {
-                    event.stopPropagation();
-                    onAttachFiles();
-                    event.preventDefault();
-                }}
-                size="icon-sm"
-                title="Add context"
-                variant="ghost"
-            >
-                <Plus className="size-4 shrink-0" />
-            </Button>
+            <Toolbar.Button
+                render={
+                    <Button
+                        className="rounded-full"
+                        onClick={(event) => {
+                            event.stopPropagation();
+                            onAttachFiles();
+                            event.preventDefault();
+                        }}
+                        size="icon-sm"
+                        title="Add context"
+                        variant="ghost"
+                    >
+                        <Plus className="size-4 shrink-0" />
+                    </Button>
+                }
+            />
         </>
     );
 }
@@ -4982,14 +4982,11 @@ function SectionDescription({
     items: LibraryItemWithCollections[];
     title: string;
 }) {
-    const requestBody = React.useMemo(
-        () =>
-            JSON.stringify({
-                items: items.slice(0, SECTION_DESCRIPTION_CONTEXT_ITEMS_LIMIT),
-                sectionTitle: title,
-            }),
-        [items, title]
-    );
+    const requestBody = JSON.stringify({
+        items: items.slice(0, SECTION_DESCRIPTION_CONTEXT_ITEMS_LIMIT),
+        sectionTitle: title,
+    });
+
     const { data, error, isLoading } = useSWR<SectionDescriptionResponse>(
         items.length > 0
             ? (["/api/library/section-description", requestBody] as const)
@@ -5204,7 +5201,6 @@ function LibraryBrowser({
     pendingCollectionItemIds,
     selectedCollectionIds,
 }: LibraryProps) {
-    const { hasAccess, isLoading: isAccessLoading } = useAccess();
     const systemControlKey = useClientOnlyValue(getSystemControlKey());
     const [searchTerms, setSearchTerms] = React.useState<string[]>([]);
     const [paletteInput, setPaletteInput] = React.useState("");
@@ -5241,8 +5237,7 @@ function LibraryBrowser({
     >(null);
     const [commandListOpen, setCommandListOpen] = React.useState(false);
     const [isPaletteFocused, setIsPaletteFocused] = React.useState(false);
-    const [commandPanelShellHeight, setCommandPanelShellHeight] =
-        React.useState(0);
+
     const commandPanelContainerRef = React.useRef<HTMLDivElement>(null);
     const paletteInputRef = React.useRef<HTMLInputElement>(null);
     const commandAttachmentsRef = React.useRef<LibraryCommandAttachment[]>([]);
@@ -5272,7 +5267,7 @@ function LibraryBrowser({
 
     const domainOptions = buildDomainPaletteOptions(items);
 
-    const focusPaletteInput = (select = false) => {
+    const focusPaletteInput = useStableCallback((select = false) => {
         setCommandListOpen(true);
         queueMicrotask(() => {
             paletteInputRef.current?.focus();
@@ -5280,10 +5275,7 @@ function LibraryBrowser({
                 paletteInputRef.current?.select();
             }
         });
-    };
-
-    const focusPaletteInputRef = React.useRef(focusPaletteInput);
-    focusPaletteInputRef.current = focusPaletteInput;
+    });
 
     const handleCommandOpenChange = (
         nextOpen: boolean,
@@ -5356,31 +5348,6 @@ function LibraryBrowser({
         };
     }, []);
 
-    useIsomorphicLayoutEffect(() => {
-        const el = commandPanelContainerRef.current;
-        if (!el) {
-            return;
-        }
-
-        const updateHeight = () => {
-            const nextHeight = Math.ceil(el.getBoundingClientRect().height);
-            setCommandPanelShellHeight((current) =>
-                current === nextHeight ? current : nextHeight
-            );
-        };
-
-        updateHeight();
-
-        const resizeObserver = new ResizeObserver(updateHeight);
-        resizeObserver.observe(el);
-        window.addEventListener("resize", updateHeight);
-
-        return () => {
-            resizeObserver.disconnect();
-            window.removeEventListener("resize", updateHeight);
-        };
-    }, []);
-
     React.useEffect(() => {
         const handleWindowKeyDown = (event: KeyboardEvent) => {
             const target = event.target;
@@ -5391,7 +5358,7 @@ function LibraryBrowser({
 
             if (isSearchHotkey(event)) {
                 event.preventDefault();
-                focusPaletteInputRef.current(true);
+                focusPaletteInput(true);
                 return;
             }
 
@@ -5403,7 +5370,7 @@ function LibraryBrowser({
                 !isTextEntry
             ) {
                 event.preventDefault();
-                focusPaletteInputRef.current();
+                focusPaletteInput();
                 return;
             }
 
@@ -5418,14 +5385,14 @@ function LibraryBrowser({
 
             event.preventDefault();
             setPaletteInput((current) => `${current}${event.key}`);
-            focusPaletteInputRef.current();
+            focusPaletteInput();
         };
 
         window.addEventListener("keydown", handleWindowKeyDown);
         return () => {
             window.removeEventListener("keydown", handleWindowKeyDown);
         };
-    }, []);
+    }, [focusPaletteInput]);
 
     React.useEffect(
         () => () => {
@@ -5509,11 +5476,12 @@ function LibraryBrowser({
                 ...createFileAttachment(file),
                 id: crypto.randomUUID(),
             }));
+
             setCommandAttachments((current) => [
                 ...current,
                 ...nextAttachments,
             ]);
-            focusPaletteInputRef.current();
+            focusPaletteInput();
         } catch (error) {
             if (isAbortError(error)) {
                 return;
@@ -5615,11 +5583,8 @@ function LibraryBrowser({
     const visiblePaletteGroups = applyVisiblePaletteShortcuts(
         paletteGroups,
         paletteInput,
-        systemControlKey ?? ""
+        systemControlKey ?? "Ctrl"
     );
-
-    const visiblePaletteGroupsRef = React.useRef(visiblePaletteGroups);
-    visiblePaletteGroupsRef.current = visiblePaletteGroups;
 
     useHotkeys(
         "mod+1, mod+2, mod+3, mod+4, mod+5, mod+6, mod+7, mod+8, mod+9",
@@ -5629,9 +5594,7 @@ function LibraryBrowser({
                 return;
             }
             const index = digit - 1;
-            const flatItems = visiblePaletteGroupsRef.current.flatMap(
-                (g) => g.items
-            );
+            const flatItems = visiblePaletteGroups.flatMap((g) => g.items);
             const item = flatItems[index];
             if (item) {
                 item.onSelect(event);
@@ -5661,61 +5624,40 @@ function LibraryBrowser({
         inputPlaceholder = "Change the layout…";
     }
 
-    const filteredItems = React.useMemo(
-        () =>
-            filterLibraryBrowserItems(items, {
-                collectionMembershipFilter,
-                domainFilters,
-                searchTerms,
-                selectedCollectionIds,
-                sourceFilters,
-            }),
-        [
-            collectionMembershipFilter,
-            domainFilters,
-            items,
-            searchTerms,
-            selectedCollectionIds,
-            sourceFilters,
-        ]
+    const filteredItems = filterLibraryBrowserItems(items, {
+        collectionMembershipFilter,
+        domainFilters,
+        searchTerms,
+        selectedCollectionIds,
+        sourceFilters,
+    });
+
+    const sortedItems = sortLibraryBrowserItems(filteredItems, sortMode);
+
+    const sections = buildLibraryBrowserSections(
+        sortedItems,
+        groupBy,
+        sortMode
     );
 
-    const sortedItems = React.useMemo(
-        () => sortLibraryBrowserItems(filteredItems, sortMode),
-        [filteredItems, sortMode]
-    );
-
-    const sections = React.useMemo(
-        () => buildLibraryBrowserSections(sortedItems, groupBy, sortMode),
-        [groupBy, sortMode, sortedItems]
-    );
+    const { hasAccess, isLoading: isAccessLoading } = useAccess();
 
     const shouldGateResults =
         !(isAccessLoading || hasAccess) &&
         filteredItems.length > FREE_LIBRARY_PREVIEW_ITEMS;
 
-    const gatedSections = React.useMemo(
-        () => gateLibraryBrowserSections(sections, shouldGateResults),
-        [sections, shouldGateResults]
+    const gatedSections = gateLibraryBrowserSections(
+        sections,
+        shouldGateResults
     );
 
-    const hasActiveFilters = React.useMemo(
-        () =>
-            libraryBrowserHasActiveFilters({
-                collectionMembershipFilter,
-                domainFilters,
-                searchTerms,
-                selectedCollectionIds,
-                sourceFilters,
-            }),
-        [
-            collectionMembershipFilter,
-            domainFilters,
-            searchTerms,
-            selectedCollectionIds,
-            sourceFilters,
-        ]
-    );
+    const hasActiveFilters = libraryBrowserHasActiveFilters({
+        collectionMembershipFilter,
+        domainFilters,
+        searchTerms,
+        selectedCollectionIds,
+        sourceFilters,
+    });
 
     const hasNonDefaultView =
         groupBy !== "none" ||
@@ -5752,10 +5694,9 @@ function LibraryBrowser({
         filteredItems.length === items.length
             ? `${items.length} item${items.length === 1 ? "" : "s"}`
             : `${filteredItems.length} of ${items.length} items`;
-    const visibleResultItems = React.useMemo(
-        () =>
-            gatedSections.flatMap((section) => getVisibleSectionItems(section)),
-        [gatedSections]
+
+    const visibleResultItems = gatedSections.flatMap((section) =>
+        getVisibleSectionItems(section)
     );
     const canCreateCollectionFromResults =
         searchTerms.length > 0 && visibleResultItems.length > 0;
@@ -5763,25 +5704,18 @@ function LibraryBrowser({
     const canClear =
         (hasActiveFilters || hasNonDefaultView) && !showEmptyLibraryPeek;
 
-    const commandSuggestions = React.useMemo(
-        () =>
-            buildCommandSuggestions({
-                collections,
-                items,
-                onToggleCollectionSelection: onRemoveCollectionFilter,
-                selectedCollectionIds,
-                setCommandListOpen,
-                setGroupBy,
-                setPaletteInput,
-                setSourceFilters,
-            }),
-        [collections, items, onRemoveCollectionFilter, selectedCollectionIds]
-    );
+    const commandSuggestions = buildCommandSuggestions({
+        collections,
+        items,
+        onToggleCollectionSelection: onRemoveCollectionFilter,
+        selectedCollectionIds,
+        setCommandListOpen,
+        setGroupBy,
+        setPaletteInput,
+        setSourceFilters,
+    });
 
-    const resultCollectionItemIds = React.useMemo(
-        () => visibleResultItems.map((item) => item.id),
-        [visibleResultItems]
-    );
+    const resultCollectionItemIds = visibleResultItems.map((item) => item.id);
 
     const handleCreateNote = () => {
         setActionFeedback(null);
@@ -5935,8 +5869,6 @@ function LibraryBrowser({
             });
         });
 
-    const libraryBrowserStyle = getStickySectionStyle(commandPanelShellHeight);
-
     const libraryGridBody = renderLibraryGridBody({
         clearLibraryPalette,
         collapsedSectionKeys: new Set(collapsedSectionKeys),
@@ -5963,7 +5895,11 @@ function LibraryBrowser({
     return (
         <div
             className="relative z-0 flex w-full flex-col gap-4"
-            style={libraryBrowserStyle}
+            style={
+                {
+                    "--library-section-sticky-top": "8px",
+                } as React.CSSProperties
+            }
         >
             <Dialog
                 onOpenChange={handleDeleteDialogOpenChange}
@@ -6125,7 +6061,7 @@ function LibraryBrowser({
                     </form>
                 </DialogPopup>
             </Dialog>
-            <div className="max-w-xl rounded-t-4xl rounded-b-2xl bg-muted/80">
+            <Toolbar.Root className="max-w-xl rounded-t-4xl rounded-b-2xl bg-muted/80">
                 <Command
                     filter={null}
                     filteredItems={visiblePaletteGroups.map((group) => ({
@@ -6140,47 +6076,57 @@ function LibraryBrowser({
                     value={paletteInput}
                 >
                     <CommandPanel ref={commandPanelContainerRef}>
-                        <CommandInput
-                            endAddon={
-                                <LibraryPaletteTrailing
-                                    collectionMembershipFilter={
-                                        collectionMembershipFilter
+                        <Toolbar.Input
+                            render={
+                                <CommandInput
+                                    endAddon={
+                                        <LibraryPaletteTrailing
+                                            collectionMembershipFilter={
+                                                collectionMembershipFilter
+                                            }
+                                            collections={collections}
+                                            columnCountMode={columnCountMode}
+                                            commandAttachments={
+                                                commandAttachments
+                                            }
+                                            domainFilters={domainFilters}
+                                            groupBy={groupBy}
+                                            layoutMode={layoutMode}
+                                            onAttachFiles={
+                                                handleAttachCommandFiles
+                                            }
+                                            onRemoveCollectionFilter={
+                                                onRemoveCollectionFilter
+                                            }
+                                            onRemoveCommandAttachment={
+                                                removeCommandAttachment
+                                            }
+                                            searchTerms={searchTerms}
+                                            selectedCollectionIds={
+                                                selectedCollectionIds
+                                            }
+                                            setCollectionMembershipFilter={
+                                                setCollectionMembershipFilter
+                                            }
+                                            setColumnCountMode={
+                                                setColumnCountMode
+                                            }
+                                            setDomainFilters={setDomainFilters}
+                                            setGroupBy={setGroupBy}
+                                            setLayoutMode={setLayoutMode}
+                                            setSearchTerms={setSearchTerms}
+                                            setSortMode={setSortMode}
+                                            setSourceFilters={setSourceFilters}
+                                            sortMode={sortMode}
+                                            sourceFilters={sourceFilters}
+                                        />
                                     }
-                                    collections={collections}
-                                    columnCountMode={columnCountMode}
-                                    commandAttachments={commandAttachments}
-                                    domainFilters={domainFilters}
-                                    groupBy={groupBy}
-                                    layoutMode={layoutMode}
-                                    onAttachFiles={handleAttachCommandFiles}
-                                    onRemoveCollectionFilter={
-                                        onRemoveCollectionFilter
-                                    }
-                                    onRemoveCommandAttachment={
-                                        removeCommandAttachment
-                                    }
-                                    searchTerms={searchTerms}
-                                    selectedCollectionIds={
-                                        selectedCollectionIds
-                                    }
-                                    setCollectionMembershipFilter={
-                                        setCollectionMembershipFilter
-                                    }
-                                    setColumnCountMode={setColumnCountMode}
-                                    setDomainFilters={setDomainFilters}
-                                    setGroupBy={setGroupBy}
-                                    setLayoutMode={setLayoutMode}
-                                    setSearchTerms={setSearchTerms}
-                                    setSortMode={setSortMode}
-                                    setSourceFilters={setSourceFilters}
-                                    sortMode={sortMode}
-                                    sourceFilters={sourceFilters}
+                                    onKeyDown={handlePaletteInputKeyDown}
+                                    placeholder={inputPlaceholder}
+                                    ref={paletteInputRef}
+                                    size="lg"
                                 />
                             }
-                            onKeyDown={handlePaletteInputKeyDown}
-                            placeholder={inputPlaceholder}
-                            ref={paletteInputRef}
-                            size="lg"
                         />
                         <AutocompletePopup positionMethod="fixed">
                             <CommandEmpty>
@@ -6281,7 +6227,7 @@ function LibraryBrowser({
                         </AutocompletePopup>
                     </CommandPanel>
                 </Command>
-                <Toolbar.Root className="flex items-center gap-2 px-2.5 py-2">
+                <Toolbar.Group className="flex items-center gap-2 px-2.5 py-2">
                     <Toolbar.Button
                         render={
                             <Button
@@ -6296,9 +6242,9 @@ function LibraryBrowser({
                             </Button>
                         }
                     />
-                    <FeedbackWidget
+                    <Toolbar.Button
                         render={
-                            <Toolbar.Button
+                            <FeedbackWidget
                                 render={
                                     <Button
                                         className="hidden rounded-full md:flex"
@@ -6306,13 +6252,13 @@ function LibraryBrowser({
                                         variant="ghost"
                                     />
                                 }
-                            />
+                            >
+                                <Globe className="inline-block size-3.5 shrink-0" />
+                                &nbsp;Feedback
+                                <ChevronDown className="inline-block size-3.5 shrink-0" />
+                            </FeedbackWidget>
                         }
-                    >
-                        <Globe className="inline-block size-3.5 shrink-0" />
-                        &nbsp;Feedback
-                        <ChevronDown className="inline-block size-3.5 shrink-0" />
-                    </FeedbackWidget>
+                    />
                     {canCreateCollectionFromResults ? (
                         <Toolbar.Button
                             render={
@@ -6359,12 +6305,15 @@ function LibraryBrowser({
                         }
                     />
                     {canCreateCollectionFromResults ? null : (
-                        <span className="mr-2 ml-auto select-all font-semibold text-[10px] text-muted-foreground uppercase">
-                            CACHE APP
+                        <span className="pointer-events-none mr-2 ml-auto select-none font-semibold text-[10px] text-muted-foreground uppercase">
+                            <PrivilegedOnly>
+                                <CrownFilledIcon className="mb-0.5 size-3.5 opacity-80" />
+                            </PrivilegedOnly>
+                            &nbsp; CACHE
                         </span>
                     )}
-                </Toolbar.Root>
-            </div>
+                </Toolbar.Group>
+            </Toolbar.Root>
             {canClear ||
             actionFeedback ||
             commandSuggestions.length === 0 ? null : (
