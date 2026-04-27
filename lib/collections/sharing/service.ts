@@ -38,6 +38,13 @@ interface PublicCollectionShare {
     updatedAt: Date;
 }
 
+export type SharedLibraryCollectionTag = ReturnType<
+    typeof toLibraryCollectionTag
+> & {
+    shareId: string;
+    sharedAt: Date;
+};
+
 function findOwnedCollectionTag(args: {
     collectionId: string;
     userId: string;
@@ -67,6 +74,25 @@ async function requireOwnedCollectionTag(args: {
     return collection;
 }
 
+function requireSharedCollectionTag(
+    collection: ReturnType<typeof toLibraryCollectionTag>,
+    operation: string
+): SharedLibraryCollectionTag {
+    if (!(collection.shareId && collection.sharedAt)) {
+        throw new CollectionShareError({
+            code: "share_generation_failed",
+            message: "We couldn't create a public link right now.",
+            operation,
+        });
+    }
+
+    return {
+        ...collection,
+        sharedAt: collection.sharedAt,
+        shareId: collection.shareId,
+    };
+}
+
 function isPrismaUniqueConstraintError(error: unknown): boolean {
     return (
         error instanceof Prisma.PrismaClientKnownRequestError &&
@@ -77,7 +103,7 @@ function isPrismaUniqueConstraintError(error: unknown): boolean {
 export async function enablePublicCollectionShare(input: {
     collectionId: string;
     userId: string;
-}) {
+}): Promise<SharedLibraryCollectionTag> {
     const existingCollection = await requireOwnedCollectionTag({
         collectionId: input.collectionId,
         operation: "enablePublicCollectionShare",
@@ -85,7 +111,10 @@ export async function enablePublicCollectionShare(input: {
     });
 
     if (existingCollection.shareId && existingCollection.sharedAt) {
-        return toLibraryCollectionTag(existingCollection);
+        return requireSharedCollectionTag(
+            toLibraryCollectionTag(existingCollection),
+            "enablePublicCollectionShare"
+        );
     }
 
     for (
@@ -111,7 +140,10 @@ export async function enablePublicCollectionShare(input: {
                 userId: input.userId,
             });
 
-            return toLibraryCollectionTag(sharedCollection);
+            return requireSharedCollectionTag(
+                toLibraryCollectionTag(sharedCollection),
+                "enablePublicCollectionShare"
+            );
         } catch (error) {
             if (isPrismaUniqueConstraintError(error)) {
                 continue;

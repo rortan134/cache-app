@@ -2027,6 +2027,12 @@ const COLLECTION_TEMPLATE_OPTIONS = [
     },
     {
         description:
+            "Tickets, events, deadlines, deals, and opportunities that are only useful for a short window and should be acted on soon.",
+        name: "Time-sensitive",
+        value: "time_sensitive",
+    },
+    {
+        description:
             "Personal admin items like purchases, reminders, and household tasks.",
         name: "Life Admin",
         value: "life_admin",

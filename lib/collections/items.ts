@@ -1,7 +1,11 @@
 "use server";
 
 import { createLogger } from "@/lib/common/logs/console/logger";
-import { handleActionError, requireActionUserId } from "@/lib/common/procedure";
+import {
+    getValidationErrorMessage,
+    handleActionError,
+    requireActionUserId,
+} from "@/lib/common/procedure";
 import type { LibraryCollectionTag } from "@/lib/common/types";
 import * as z from "zod";
 import { LibraryCollectionError } from "./error";
@@ -14,6 +18,13 @@ const UpdateLibraryItemCollectionsInputSchema = z.object({
     itemId: z.string().trim().min(1),
 });
 
+const DeleteLibraryItemInputSchema = z.object({
+    itemId: z
+        .string()
+        .trim()
+        .min(1, "Select a saved item before trying to delete it."),
+});
+
 export type DeleteLibraryItemResult =
     | {
           itemId: string;
@@ -21,7 +32,7 @@ export type DeleteLibraryItemResult =
       }
     | {
           message: string;
-          status: "ERROR" | "NOT_FOUND" | "UNAUTHORIZED";
+          status: "ERROR" | "INVALID" | "NOT_FOUND" | "UNAUTHORIZED";
       };
 
 export type UpdateLibraryItemCollectionsResult =
@@ -38,11 +49,14 @@ export type UpdateLibraryItemCollectionsResult =
 export async function deleteLibraryItem(
     itemId: string
 ): Promise<DeleteLibraryItemResult> {
-    const normalizedItemId = itemId.trim();
-    if (normalizedItemId.length === 0) {
+    const parsed = DeleteLibraryItemInputSchema.safeParse({ itemId });
+    if (!parsed.success) {
         return {
-            message: "Select a saved item before trying to delete it.",
-            status: "ERROR",
+            message: getValidationErrorMessage(
+                parsed,
+                "Select a saved item before trying to delete it."
+            ),
+            status: "INVALID",
         };
     }
 
@@ -55,7 +69,7 @@ export async function deleteLibraryItem(
 
     try {
         const id = await service.deleteLibraryItem({
-            itemId: normalizedItemId,
+            itemId: parsed.data.itemId,
             userId: auth.userId,
         });
 

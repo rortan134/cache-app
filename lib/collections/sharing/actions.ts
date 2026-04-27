@@ -12,6 +12,7 @@ import { CollectionShareError } from "./error";
 import {
     disablePublicCollectionShare,
     enablePublicCollectionShare,
+    type SharedLibraryCollectionTag,
 } from "./service";
 import { buildPublicCollectionShareUrl } from "./url";
 
@@ -21,14 +22,9 @@ const CollectionShareInputSchema = z.object({
     collectionId: z.string().trim().min(1, "Select a collection to share."),
 });
 
-type SharedLibraryCollection = LibraryCollectionTag & {
-    readonly shareId: string;
-    readonly sharedAt: Date;
-};
-
 export type ShareCollectionPubliclyResult =
     | {
-          collection: SharedLibraryCollection;
+          collection: SharedLibraryCollectionTag;
           shareUrl: string;
           status: "SHARED";
       }
@@ -74,18 +70,8 @@ export async function shareCollectionPublicly(input: {
             userId: auth.userId,
         });
 
-        if (!(collection.shareId && collection.sharedAt)) {
-            throw new Error(
-                "Expected a share link after enabling collection sharing."
-            );
-        }
-
         return {
-            collection: {
-                ...collection,
-                sharedAt: collection.sharedAt,
-                shareId: collection.shareId,
-            },
+            collection,
             shareUrl: buildPublicCollectionShareUrl(collection.shareId),
             status: "SHARED",
         };

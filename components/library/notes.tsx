@@ -73,6 +73,8 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import {
+    startTransition,
+    useDeferredValue,
     useEffect,
     useRef,
     useState,
@@ -295,6 +297,16 @@ function noteDraftFromItem(note: LibraryItemWithCollections | null): NoteDraft {
 const NOTE_NON_EMPTY_BLOCK_TAG =
     /<(h[1-3]|p)>(?!(?:\s|<br\s*\/?>)*<\/\1>)[\s\S]*?<\/\1>/gi;
 
+function areFormatStatesEqual(left: FormatState, right: FormatState): boolean {
+    return (
+        left.blockType === right.blockType &&
+        left.bold === right.bold &&
+        left.italic === right.italic &&
+        left.strikeThrough === right.strikeThrough &&
+        left.underline === right.underline
+    );
+}
+
 function getNoteTextMetrics(contentHtml: string): NoteTextMetrics {
     const plainText = extractNoteText(contentHtml);
     const paragraphCount = (contentHtml.match(NOTE_NON_EMPTY_BLOCK_TAG) ?? [])
@@ -362,8 +374,7 @@ function NoteFormattingToolbarPlugin() {
                     topLevelNode && $isHeadingNode(topLevelNode)
                         ? topLevelNode.getTag()
                         : "paragraph";
-
-                setFormats({
+                const nextFormats: FormatState = {
                     blockType:
                         blockType === "h1" ||
                         blockType === "h2" ||
@@ -374,7 +385,13 @@ function NoteFormattingToolbarPlugin() {
                     italic: selection.hasFormat("italic"),
                     strikeThrough: selection.hasFormat("strikethrough"),
                     underline: selection.hasFormat("underline"),
-                });
+                };
+
+                setFormats((currentFormats) =>
+                    areFormatStatesEqual(currentFormats, nextFormats)
+                        ? currentFormats
+                        : nextFormats
+                );
             });
         };
 
@@ -507,6 +524,17 @@ function NoteContentPlugin({
     );
 }
 
+function haveDraftsChanged(left: NoteDraft, right: NoteDraft): boolean {
+    return (
+        normalizeNoteHtml(left.contentHtml) !==
+        normalizeNoteHtml(right.contentHtml)
+    );
+}
+
+function isDraftEmpty(draft: NoteDraft): boolean {
+    return extractNoteText(draft.contentHtml).length === 0;
+}
+
 export function LibraryNoteDrawer({
     note,
     onOpenChange,
@@ -538,8 +566,13 @@ export function LibraryNoteDrawer({
 
     const handleDraftChange = (nextDraft: NoteDraft) => {
         const normalizedDraft = normalizeDraft(nextDraft);
+        if (!haveDraftsChanged(normalizedDraft, latestDraftRef.current)) {
+            return;
+        }
         latestDraftRef.current = normalizedDraft;
-        setDraft(normalizedDraft);
+        startTransition(() => {
+            setDraft(normalizedDraft);
+        });
     };
 
     const handleOpenChange = async (nextOpen: boolean) => {
@@ -553,16 +586,17 @@ export function LibraryNoteDrawer({
         }
 
         const currentDraft = latestDraftRef.current;
-        const hasChanged =
-            normalizeNoteHtml(currentDraft.contentHtml) !==
-            normalizeNoteHtml(initialDraftRef.current.contentHtml);
+        const hasChanged = haveDraftsChanged(
+            currentDraft,
+            initialDraftRef.current
+        );
 
         if (!hasChanged) {
             onOpenChange(false);
             return;
         }
 
-        if (!note && extractNoteText(currentDraft.contentHtml).length === 0) {
+        if (!note && isDraftEmpty(currentDraft)) {
             onOpenChange(false);
             return;
         }
@@ -580,9 +614,11 @@ export function LibraryNoteDrawer({
         }
     };
 
-    const textMetrics = getNoteTextMetrics(draft.contentHtml);
+    const deferredContentHtml = useDeferredValue(draft.contentHtml);
+    const textMetrics = getNoteTextMetrics(deferredContentHtml);
     const query = textMetrics.plainText;
     const ExpandIcon = isExpanded ? Minimize2 : Maximize2;
+    const isBusy = saving || isClosing;
 
     return (
         <Drawer onOpenChange={handleOpenChange} open={open} position="right">
@@ -619,6 +655,7 @@ export function LibraryNoteDrawer({
                                 render={
                                     <Button
                                         className="rounded-full"
+                                        disabled={query.length === 0}
                                         size="xs"
                                         variant="outline"
                                     />
@@ -633,6 +670,7 @@ export function LibraryNoteDrawer({
                                     const ProviderIcon = provider.icon;
                                     return (
                                         <MenuItem
+                                            disabled={query.length === 0}
                                             key={provider.title}
                                             render={(props) => (
                                                 <a
@@ -664,6 +702,7 @@ export function LibraryNoteDrawer({
                                 }
                                 aria-pressed={isExpanded}
                                 className="rounded-full"
+                                disabled={isBusy}
                                 onClick={() =>
                                     setIsExpanded((current) => !current)
                                 }
@@ -676,6 +715,7 @@ export function LibraryNoteDrawer({
                                 render={
                                     <Button
                                         className="rounded-full"
+                                        loading={isBusy}
                                         size="icon-sm"
                                         variant="secondary"
                                     >

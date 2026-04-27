@@ -16,15 +16,38 @@ import type {
 } from "@/lib/common/types";
 import { prisma } from "@/prisma";
 import type { Prisma } from "@/prisma/client/client";
-import type { CollectionPriority } from "@/prisma/client/enums";
+import type {
+    CollectionPriority,
+    LibraryItemSource,
+} from "@/prisma/client/enums";
 import { LibraryCollectionError } from "./error";
 
 type CollectionTransaction = Prisma.TransactionClient;
 
 interface OwnedCollectionLookup {
-    readonly id: string;
-    readonly name: string;
-    readonly nameKey: string;
+    id: string;
+    name: string;
+    nameKey: string;
+}
+
+interface OwnedLibraryItemLookup {
+    id: string;
+    source: LibraryItemSource;
+}
+
+interface CollectionTagRecord {
+    createdAt: Date;
+    description: string | null;
+    id: string;
+    name: string;
+    priority: LibraryCollectionTag["priority"];
+    sharedAt: Date | null;
+    shareId: string | null;
+    updatedAt: Date;
+}
+
+interface CollectionSummarySourceRecord {
+    source: LibraryItemSource;
 }
 
 function createCollectionError(args: {
@@ -119,15 +142,71 @@ async function ensureCollectionNameIsAvailable(
 
 function buildDuplicateCollectionName(
     sourceName: string,
-    existingNames: readonly string[]
+    existingNames: string[]
 ): string {
     const uniqueName = getIncrementedName(sourceName, [...existingNames]);
     return normalizeCollectionName(uniqueName).name;
 }
 
-/**
- * Resolves a download URL for a given media URL.
- */
+function toCollectionSummary(args: {
+    collection: CollectionTagRecord;
+    items: CollectionSummarySourceRecord[];
+}): LibraryCollectionSummary {
+    return toLibraryCollectionSummary({
+        ...args.collection,
+        _count: { items: args.items.length },
+        items: args.items.map((item) => ({ source: item.source })),
+    });
+}
+
+async function requireOwnedLibraryItem(
+    tx: CollectionTransaction,
+    args: {
+        itemId: string;
+        message: string;
+        operation: string;
+        userId: string;
+    }
+): Promise<OwnedLibraryItemLookup> {
+    const item = await tx.libraryItem.findFirst({
+        select: { id: true, source: true },
+        where: {
+            id: args.itemId,
+            userId: args.userId,
+        },
+    });
+
+    if (!item) {
+        throwCollectionNotFound(args.operation, args.message);
+    }
+
+    return item;
+}
+
+async function requireOwnedLibraryItems(
+    tx: CollectionTransaction,
+    args: {
+        itemIds: string[];
+        message: string;
+        operation: string;
+        userId: string;
+    }
+): Promise<Array<{ id: string; source: LibraryItemSource }>> {
+    const items = await tx.libraryItem.findMany({
+        select: { id: true, source: true },
+        where: {
+            id: { in: args.itemIds },
+            userId: args.userId,
+        },
+    });
+
+    if (items.length !== args.itemIds.length) {
+        throwCollectionNotFound(args.operation, args.message);
+    }
+
+    return items;
+}
+
 export async function downloadMedia(url: string): Promise<string> {
     const result = await resolveCobaltDownloadUrl(url);
     if (result.status === "ERROR") {
@@ -138,9 +217,6 @@ export async function downloadMedia(url: string): Promise<string> {
     return result.downloadUrl;
 }
 
-/**
- * Creates a new collection for a user.
- */
 export async function createCollection(args: {
     assignToItemId?: string;
     description?: string;
@@ -154,19 +230,14 @@ export async function createCollection(args: {
     const normalized = normalizeCollectionName(name);
 
     return await prisma.$transaction(async (tx) => {
-        if (assignToItemId) {
-            const item = await tx.libraryItem.findFirst({
-                select: { id: true },
-                where: { id: assignToItemId, userId },
-            });
-
-            if (!item) {
-                throwCollectionNotFound(
-                    "createCollection",
-                    "We couldn't find that saved item to tag it."
-                );
-            }
-        }
+        const assignedItem = assignToItemId
+            ? await requireOwnedLibraryItem(tx, {
+                  itemId: assignToItemId,
+                  message: "We couldn't find that saved item to tag it.",
+                  operation: "createCollection",
+                  userId,
+              })
+            : null;
 
         await ensureCollectionNameIsAvailable(tx, {
             normalizedNameKey: normalized.nameKey,
@@ -177,8 +248,8 @@ export async function createCollection(args: {
         const collection = await tx.collection.create({
             data: {
                 description,
-                items: assignToItemId
-                    ? { connect: { id: assignToItemId } }
+                items: assignedItem
+                    ? { connect: { id: assignedItem.id } }
                     : undefined,
                 name: normalized.name,
                 nameKey: normalized.nameKey,
@@ -188,19 +259,15 @@ export async function createCollection(args: {
         });
 
         return {
-            assignedItemId: assignToItemId ?? null,
-            collection: toLibraryCollectionSummary({
-                ...collection,
-                _count: { items: assignToItemId ? 1 : 0 },
-                items: [],
+            assignedItemId: assignedItem?.id ?? null,
+            collection: toCollectionSummary({
+                collection,
+                items: assignedItem ? [assignedItem] : [],
             }),
         };
     });
 }
 
-/**
- * Creates a new collection from a list of existing library items.
- */
 export async function createCollectionFromItems(args: {
     description?: string;
     itemIds: string[];
@@ -220,17 +287,12 @@ export async function createCollectionFromItems(args: {
             userId,
         });
 
-        const matchingItems = await tx.libraryItem.findMany({
-            select: { id: true, source: true },
-            where: { id: { in: itemIds }, userId },
+        const matchingItems = await requireOwnedLibraryItems(tx, {
+            itemIds,
+            message: "Some of those saved items are no longer available.",
+            operation: "createCollectionFromItems",
+            userId,
         });
-
-        if (matchingItems.length !== itemIds.length) {
-            throwCollectionNotFound(
-                "createCollectionFromItems",
-                "Some of those saved items are no longer available."
-            );
-        }
 
         const collection = await tx.collection.create({
             data: {
@@ -247,18 +309,14 @@ export async function createCollectionFromItems(args: {
 
         return {
             assignedItemIds: itemIds,
-            collection: toLibraryCollectionSummary({
-                ...collection,
-                _count: { items: itemIds.length },
-                items: matchingItems.map((item) => ({ source: item.source })),
+            collection: toCollectionSummary({
+                collection,
+                items: matchingItems,
             }),
         };
     });
 }
 
-/**
- * Deletes a collection.
- */
 export async function deleteCollection(args: {
     collectionId: string;
     userId: string;
@@ -281,9 +339,6 @@ export async function deleteCollection(args: {
     });
 }
 
-/**
- * Duplicates an existing collection and its items.
- */
 export async function duplicateCollection(args: {
     collectionId: string;
     userId: string;
@@ -346,20 +401,14 @@ export async function duplicateCollection(args: {
 
         return {
             assignedItemIds: sourceCollection.items.map((item) => item.id),
-            collection: toLibraryCollectionSummary({
-                ...duplicatedCollection,
-                _count: { items: sourceCollection.items.length },
-                items: sourceCollection.items.map((item) => ({
-                    source: item.source,
-                })),
+            collection: toCollectionSummary({
+                collection: duplicatedCollection,
+                items: sourceCollection.items,
             }),
         };
     });
 }
 
-/**
- * Updates the priority of a collection.
- */
 export async function updateCollectionPriority(args: {
     collectionId: string;
     priority: CollectionPriority;
@@ -385,9 +434,6 @@ export async function updateCollectionPriority(args: {
     });
 }
 
-/**
- * Renames a collection.
- */
 export async function renameCollection(args: {
     collectionId: string;
     name: string;
@@ -456,9 +502,6 @@ export async function deleteLibraryItem(args: {
     return itemId;
 }
 
-/**
- * Updates the collections assigned to a library item.
- */
 export async function updateLibraryItemCollections(args: {
     collectionIds: string[];
     itemId: string;
@@ -469,56 +512,53 @@ export async function updateLibraryItemCollections(args: {
 }> {
     const { collectionIds, itemId, userId } = args;
 
-    const item = await prisma.libraryItem.findFirst({
-        select: { id: true },
-        where: { id: itemId, userId },
-    });
+    return await prisma.$transaction(async (tx) => {
+        const item = await requireOwnedLibraryItem(tx, {
+            itemId,
+            message: "We couldn't find that saved item.",
+            operation: "updateLibraryItemCollections",
+            userId,
+        });
 
-    if (!item) {
-        throwCollectionNotFound(
-            "updateLibraryItemCollections",
-            "We couldn't find that saved item."
-        );
-    }
+        const ownedCollections = collectionIds.length
+            ? await tx.collection.findMany({
+                  orderBy: { name: "asc" },
+                  select: LIBRARY_COLLECTION_TAG_SELECT,
+                  where: {
+                      id: { in: collectionIds },
+                      userId,
+                  },
+              })
+            : [];
 
-    const ownedCollections = collectionIds.length
-        ? await prisma.collection.findMany({
-              orderBy: { name: "asc" },
-              select: LIBRARY_COLLECTION_TAG_SELECT,
-              where: {
-                  id: { in: collectionIds },
-                  userId,
-              },
-          })
-        : [];
+        if (ownedCollections.length !== collectionIds.length) {
+            throwCollectionNotFound(
+                "updateLibraryItemCollections",
+                "One of those collections is no longer available."
+            );
+        }
 
-    if (ownedCollections.length !== collectionIds.length) {
-        throwCollectionNotFound(
-            "updateLibraryItemCollections",
-            "One of those collections is no longer available."
-        );
-    }
-
-    const updatedItem = await prisma.libraryItem.update({
-        data: {
-            collections: {
-                set: ownedCollections.map((collection) => ({
-                    id: collection.id,
-                })),
+        const updatedItem = await tx.libraryItem.update({
+            data: {
+                collections: {
+                    set: ownedCollections.map((collection) => ({
+                        id: collection.id,
+                    })),
+                },
             },
-        },
-        select: {
-            collections: {
-                orderBy: { name: "asc" },
-                select: LIBRARY_COLLECTION_TAG_SELECT,
+            select: {
+                collections: {
+                    orderBy: { name: "asc" },
+                    select: LIBRARY_COLLECTION_TAG_SELECT,
+                },
+                id: true,
             },
-            id: true,
-        },
-        where: { id: itemId },
-    });
+            where: { id: item.id },
+        });
 
-    return {
-        collections: updatedItem.collections.map(toLibraryCollectionTag),
-        itemId: updatedItem.id,
-    };
+        return {
+            collections: updatedItem.collections.map(toLibraryCollectionTag),
+            itemId: updatedItem.id,
+        };
+    });
 }

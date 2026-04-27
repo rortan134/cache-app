@@ -1,10 +1,17 @@
 "use server";
 
 import { createLogger } from "@/lib/common/logs/console/logger";
-import { requireActionUserId } from "@/lib/common/procedure";
+import {
+    getValidationErrorMessage,
+    requireActionUserId,
+} from "@/lib/common/procedure";
+import * as z from "zod";
 import * as service from "./service";
 
 const log = createLogger("library:actions:media");
+const DownloadMediaInputSchema = z.object({
+    url: z.string().trim().min(1, "A valid URL is required to download media."),
+});
 
 export type DownloadMediaResult =
     | {
@@ -17,10 +24,13 @@ export type DownloadMediaResult =
       };
 
 export async function downloadMedia(url: string): Promise<DownloadMediaResult> {
-    const normalizedUrl = url.trim();
-    if (normalizedUrl.length === 0) {
+    const parsed = DownloadMediaInputSchema.safeParse({ url });
+    if (!parsed.success) {
         return {
-            message: "A valid URL is required to download media.",
+            message: getValidationErrorMessage(
+                parsed,
+                "A valid URL is required to download media."
+            ),
             status: "INVALID",
         };
     }
@@ -31,7 +41,7 @@ export async function downloadMedia(url: string): Promise<DownloadMediaResult> {
     }
 
     try {
-        const downloadUrl = await service.downloadMedia(normalizedUrl);
+        const downloadUrl = await service.downloadMedia(parsed.data.url);
         return {
             downloadUrl,
             status: "SUCCESS",

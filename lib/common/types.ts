@@ -5,22 +5,22 @@ import type {
 } from "@/prisma/client/enums";
 
 export interface LibraryCollectionTag {
-    readonly createdAt: Date;
-    readonly description?: string | null;
-    readonly id: string;
-    readonly name: string;
-    readonly priority: CollectionPriority;
-    readonly sharedAt: Date | null;
-    readonly shareId: string | null;
-    readonly updatedAt: Date;
+    createdAt: Date;
+    description?: string | null;
+    id: string;
+    name: string;
+    priority: CollectionPriority;
+    sharedAt: Date | null;
+    shareId: string | null;
+    updatedAt: Date;
 }
 
 export interface LibraryCollectionSummary extends LibraryCollectionTag {
-    readonly description: string | null;
-    readonly itemCount: number;
-    readonly sources: LibraryItemSource[];
+    description: string | null;
+    itemCount: number;
+    sources: LibraryItemSource[];
 }
 
 export interface LibraryItemWithCollections extends LibraryItem {
-    readonly collections: LibraryCollectionTag[];
+    collections: LibraryCollectionTag[];
 }
