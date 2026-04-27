@@ -3832,7 +3832,7 @@ function LibraryPaletteTrailing({
                             event.preventDefault();
                         }}
                         size="icon-sm"
-                        title="Add context"
+                        title="Add photos & files context"
                         variant="ghost"
                     >
                         <Plus className="size-4 shrink-0" />

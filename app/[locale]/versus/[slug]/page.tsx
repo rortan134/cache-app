@@ -2,15 +2,15 @@ import { Footer } from "@/components/ui/footer";
 import { PageShell } from "@/components/ui/page-shell";
 import { BASE_URL } from "@/lib/common/constants";
 import { buildLocaleAlternates } from "@/lib/i18n/alternates";
+import type { Metadata } from "next";
+import Link from "next/link";
+import { notFound } from "next/navigation";
 import {
     getEntriesByCategory,
     getVersusCategory,
     getVersusEntry,
     versusEntries,
 } from "../data";
-import type { Metadata } from "next";
-import Link from "next/link";
-import { notFound } from "next/navigation";
 
 interface VersusDetailPageProps {
     params: Promise<{
@@ -24,8 +24,6 @@ export function generateStaticParams() {
         slug: entry.slug,
     }));
 }
-
-export const dynamicParams = false;
 
 export async function generateMetadata({
     params,
