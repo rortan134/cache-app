@@ -369,6 +369,32 @@ function compareCollectionItemCount<
     return b.itemCount - a.itemCount;
 }
 
+const COLLECTION_SUMMARY_SORTERS = {
+    count: compareCollectionItemCount,
+    created: compareCollectionCreatedAt,
+    priority: compareCollectionPriorities,
+    updated: compareCollectionUpdatedAt,
+} satisfies Record<
+    CollectionSortField,
+    (
+        a: Pick<
+            LibraryCollectionSummary,
+            "createdAt" | "itemCount" | "name" | "priority" | "updatedAt"
+        >,
+        b: Pick<
+            LibraryCollectionSummary,
+            "createdAt" | "itemCount" | "name" | "priority" | "updatedAt"
+        >
+    ) => number
+>;
+
+function sortCollectionList<T>(
+    collections: T[],
+    compare: (a: T, b: T) => number
+) {
+    return [...collections].sort(compare);
+}
+
 function CollectionComboboxOptionRow({
     icon: Icon,
     label,
@@ -812,7 +838,7 @@ export function CollectionsListItemPriorityCombobox({
                 <ComboboxEmpty>No matching priorities</ComboboxEmpty>
                 <ComboboxList>
                     <ComboboxCollection>
-                        {(priorityOption) => (
+                        {(priorityOption: PriorityOption) => (
                             <ComboboxItem
                                 key={priorityOption.value}
                                 showIndicatorLast
@@ -1143,7 +1169,7 @@ export function CollectionsListNoticeCallout() {
 export function sortCollections<
     T extends Pick<LibraryCollectionSummary, "name" | "priority">,
 >(collections: T[]): T[] {
-    return [...collections].sort(compareCollectionPriorities);
+    return sortCollectionList(collections, compareCollectionPriorities);
 }
 
 export function sortCollectionSummaries<
@@ -1152,18 +1178,10 @@ export function sortCollectionSummaries<
         "createdAt" | "itemCount" | "name" | "priority" | "updatedAt"
     >,
 >(collections: T[], sortField: CollectionSortField): T[] {
-    switch (sortField) {
-        case "created":
-            return [...collections].sort(compareCollectionCreatedAt);
-        case "updated":
-            return [...collections].sort(compareCollectionUpdatedAt);
-        case "count":
-            return [...collections].sort(compareCollectionItemCount);
-        case "priority":
-            return sortCollections(collections);
-        default:
-            return [...collections].sort(compareCollectionNames);
-    }
+    return sortCollectionList(
+        collections,
+        COLLECTION_SUMMARY_SORTERS[sortField] ?? compareCollectionNames
+    );
 }
 
 export function CollectionsListSortingCombobox(
@@ -1220,7 +1238,7 @@ export function CollectionsListSortingCombobox(
                 <ComboboxEmpty>No matching sort options</ComboboxEmpty>
                 <ComboboxList>
                     <ComboboxCollection>
-                        {(sortOption) => (
+                        {(sortOption: SortingOption) => (
                             <ComboboxItem
                                 key={sortOption.value}
                                 showIndicatorLast

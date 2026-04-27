@@ -6,8 +6,8 @@ import {
 } from "@/lib/collections/utils";
 import { createLogger } from "@/lib/common/logs/console/logger";
 import { prisma } from "@/prisma";
-import { LibraryItemKind, type LibraryItemSource } from "@/prisma/client/enums";
 import { Prisma } from "@/prisma/client/client";
+import { LibraryItemKind, type LibraryItemSource } from "@/prisma/client/enums";
 import { nanoid } from "nanoid";
 import { CollectionShareError } from "./error";
 
@@ -16,26 +16,26 @@ const COLLECTION_SHARE_ID_LENGTH = 12;
 const COLLECTION_SHARE_ID_ATTEMPTS = 3;
 
 interface PublicCollectionShareItem {
-    readonly caption: string | null;
-    readonly createdAt: Date;
-    readonly id: string;
-    readonly kind: LibraryItemKind;
-    readonly noteContentText: string | null;
-    readonly postedAt: Date | null;
-    readonly scrapedAt: Date | null;
-    readonly source: LibraryItemSource;
-    readonly url: string;
+    caption: string | null;
+    createdAt: Date;
+    id: string;
+    kind: LibraryItemKind;
+    noteContentText: string | null;
+    postedAt: Date | null;
+    scrapedAt: Date | null;
+    source: LibraryItemSource;
+    url: string;
 }
 
 interface PublicCollectionShare {
-    readonly description: string | null;
-    readonly itemCount: number;
-    readonly items: PublicCollectionShareItem[];
-    readonly name: string;
-    readonly ownerName: string;
-    readonly sharedAt: Date;
-    readonly shareId: string;
-    readonly updatedAt: Date;
+    description: string | null;
+    itemCount: number;
+    items: PublicCollectionShareItem[];
+    name: string;
+    ownerName: string;
+    sharedAt: Date;
+    shareId: string;
+    updatedAt: Date;
 }
 
 function findOwnedCollectionTag(args: {
@@ -64,7 +64,6 @@ async function requireOwnedCollectionTag(args: {
             operation: args.operation,
         });
     }
-
     return collection;
 }
 

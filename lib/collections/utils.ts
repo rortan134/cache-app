@@ -38,22 +38,22 @@ export const LIBRARY_ITEM_COLLECTIONS_INCLUDE = {
 } as const;
 
 interface LibraryCollectionTagRecord {
-    readonly createdAt: Date;
-    readonly description: string | null;
-    readonly id: string;
-    readonly name: string;
-    readonly priority: LibraryCollectionTag["priority"];
-    readonly sharedAt: Date | null;
-    readonly shareId: string | null;
-    readonly updatedAt: Date;
+    createdAt: Date;
+    description: string | null;
+    id: string;
+    name: string;
+    priority: LibraryCollectionTag["priority"];
+    sharedAt: Date | null;
+    shareId: string | null;
+    updatedAt: Date;
 }
 
 interface LibraryCollectionSummaryRecord extends LibraryCollectionTagRecord {
-    readonly _count: {
-        readonly items: number;
+    _count: {
+        items: number;
     };
-    readonly items: ReadonlyArray<{
-        readonly source: LibraryItemSource;
+    items: Array<{
+        source: LibraryItemSource;
     }>;
 }
 

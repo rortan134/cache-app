@@ -1,7 +1,7 @@
 "use server";
 
-import { requireActionUserId } from "@/lib/collections/action-helpers";
 import { createLogger } from "@/lib/common/logs/console/logger";
+import { requireActionUserId } from "@/lib/common/procedure";
 import * as service from "./service";
 
 const log = createLogger("library:actions:media");
