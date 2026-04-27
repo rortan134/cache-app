@@ -1,5 +1,5 @@
 import { auth } from "@/lib/auth/server";
-import { autoTagLibraryItemsByIds } from "@/lib/collections/smart-collections";
+import { autoTagLibraryItemsByIds } from "@/lib/collections/intelligence";
 import { IntegrationApiError } from "@/lib/integrations/error";
 import { resolveProviderAccessToken } from "@/lib/integrations/provider-account";
 import { getXAccountId, importXBookmarks } from "@/lib/integrations/x/service";

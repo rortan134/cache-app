@@ -1,13 +1,13 @@
 "use client";
 
 import {
+    BlockPaywallBanner,
+    InlinePaywallBanner,
+} from "@/components/billing/paywall-banner";
+import {
     PrivilegedOnly,
     UnprivilegedOnly,
 } from "@/components/billing/privilege";
-import {
-    BlockPromotionBanner,
-    InlinePromotionBanner,
-} from "@/components/billing/promotion-banner";
 import { FeedbackWidget } from "@/components/feedback/feedback-widget";
 import {
     CollectionsList,
@@ -2615,7 +2615,6 @@ function renderLibraryGridBody({
     onUpdateItemCollections,
     onToggleSection,
     paywallTotalCount,
-    pendingCollectionItemIds,
     pendingDeleteItemId,
     sections,
     showEmptyLibraryPeek,
@@ -2636,7 +2635,6 @@ function renderLibraryGridBody({
     onUpdateItemCollections: (itemId: string, collectionIds: string[]) => void;
     onToggleSection: (key: string) => void;
     paywallTotalCount?: number;
-    pendingCollectionItemIds: string[];
     pendingDeleteItemId: string | null;
     sections: LibraryBrowserSection[];
     showEmptyLibraryPeek: boolean;
@@ -2685,7 +2683,6 @@ function renderLibraryGridBody({
                 onUpdateItemCollections={onUpdateItemCollections}
                 paywallPreviewCount={section.paywallPreviewCount}
                 paywallTotalCount={paywallTotalCount}
-                pendingCollectionItemIds={pendingCollectionItemIds}
                 pendingDeleteItemId={pendingDeleteItemId}
                 showPaywallBanner={section.showPaywallBanner}
                 title={section.title ?? "Results"}
@@ -2714,7 +2711,6 @@ function renderLibraryGridBody({
                     onUpdateItemCollections={onUpdateItemCollections}
                     paywallPreviewCount={section.paywallPreviewCount}
                     paywallTotalCount={paywallTotalCount}
-                    pendingCollectionItemIds={pendingCollectionItemIds}
                     pendingDeleteItemId={pendingDeleteItemId}
                     showPaywallBanner={section.showPaywallBanner}
                 />
@@ -3866,7 +3862,6 @@ interface LibraryProps {
     ) => void;
     onRemoveCollectionFilter: (id: string) => void;
     onUpdateItemCollections: (itemId: string, collectionIds: string[]) => void;
-    pendingCollectionItemIds: string[];
     selectedCollectionIds: string[];
 }
 
@@ -3993,7 +3988,6 @@ interface GridProps {
     onUpdateItemCollections: (itemId: string, collectionIds: string[]) => void;
     paywallPreviewCount?: number;
     paywallTotalCount?: number;
-    pendingCollectionItemIds: string[];
     pendingDeleteItemId?: string | null;
     showPaywallBanner?: boolean;
 }
@@ -4663,22 +4657,10 @@ function renderLibraryMasonry({
     onOpenNote,
     onOpenInNewTab,
     onUpdateItemCollections,
-    pendingCollectionItemIds,
     pendingDeleteItemId,
 }: GridProps & { locked?: boolean }): React.ReactElement {
     return (
-        <Masonry
-            columnCount={columnCount}
-            deps={[
-                collections,
-                items,
-                locked,
-                pendingCollectionItemIds,
-                pendingDeleteItemId,
-            ]}
-            gap={4}
-            linear
-        >
+        <Masonry columnCount={columnCount} gap={4} linear>
             {items.map((item) => {
                 const href = normalizeURL(item.url);
                 const alt = (item.caption ?? "").trim() || "Saved item";
@@ -4894,7 +4876,6 @@ function ExtensionLibraryGrid({
     onUpdateItemCollections,
     paywallPreviewCount,
     paywallTotalCount,
-    pendingCollectionItemIds,
     pendingDeleteItemId,
     showPaywallBanner,
 }: GridProps): React.ReactElement | null {
@@ -4929,7 +4910,6 @@ function ExtensionLibraryGrid({
                   onUpdateItemCollections,
                   paywallPreviewCount,
                   paywallTotalCount,
-                  pendingCollectionItemIds,
                   pendingDeleteItemId,
                   showPaywallBanner,
               })
@@ -4946,7 +4926,6 @@ function ExtensionLibraryGrid({
                   onUpdateItemCollections,
                   paywallPreviewCount,
                   paywallTotalCount,
-                  pendingCollectionItemIds,
                   pendingDeleteItemId,
                   showPaywallBanner,
               });
@@ -4961,7 +4940,7 @@ function ExtensionLibraryGrid({
             {lockedItems.length > 0 ? (
                 <div className="relative isolate">
                     {showPaywallBanner ? (
-                        <BlockPromotionBanner
+                        <BlockPaywallBanner
                             length={paywallTotalCount ?? items.length}
                         />
                     ) : null}
@@ -5044,7 +5023,6 @@ function ExtensionLibrarySection({
     onToggle,
     onCollapseAll,
     onExpandAll,
-    pendingCollectionItemIds,
     pendingDeleteItemId,
     title,
 }: SectionProps): React.ReactElement {
@@ -5094,7 +5072,6 @@ function ExtensionLibrarySection({
                     onOpenInNewTab={onOpenInNewTab}
                     onOpenNote={onOpenNote}
                     onUpdateItemCollections={onUpdateItemCollections}
-                    pendingCollectionItemIds={pendingCollectionItemIds}
                     pendingDeleteItemId={pendingDeleteItemId}
                 />
             </>
@@ -5198,7 +5175,6 @@ function LibraryBrowser({
     onItemsChange,
     onRemoveCollectionFilter,
     onUpdateItemCollections,
-    pendingCollectionItemIds,
     selectedCollectionIds,
 }: LibraryProps) {
     const systemControlKey = useClientOnlyValue(getSystemControlKey());
@@ -5885,7 +5861,6 @@ function LibraryBrowser({
         onToggleSection: toggleSection,
         onUpdateItemCollections,
         paywallTotalCount: filteredItems.length,
-        pendingCollectionItemIds,
         pendingDeleteItemId: pendingDeleteItem?.id ?? null,
         sections: gatedSections,
         showEmptyLibraryPeek,
@@ -6365,7 +6340,7 @@ function LibraryBrowser({
                 </div>
             ) : null}
             <UnprivilegedOnly>
-                <InlinePromotionBanner />
+                <InlinePaywallBanner />
             </UnprivilegedOnly>
             {libraryGridBody}
             <LibraryNoteDrawer
@@ -6389,6 +6364,7 @@ export function LibraryWorkspace({
     const [items, setItems] = React.useState<LibraryItemWithCollections[]>([
         ...initialItems,
     ]);
+
     const [collections, setCollections] = React.useState<
         LibraryCollectionTag[]
     >(
@@ -6405,11 +6381,10 @@ export function LibraryWorkspace({
             }))
         )
     );
+
     const [selectedCollectionIds, setSelectedCollectionIds] = React.useState<
         string[]
     >([]);
-    const [pendingCollectionItemIds, setPendingCollectionItemIds] =
-        React.useState<string[]>([]);
 
     const { collectionSortField } = useCollectionsSortStore();
 
@@ -6471,9 +6446,6 @@ export function LibraryWorkspace({
         setItems((current) =>
             replaceItemCollections(current, itemId, optimisticCollections)
         );
-        setPendingCollectionItemIds((current) =>
-            current.includes(itemId) ? current : [...current, itemId]
-        );
 
         const runUpdate = async () => {
             let result: UpdateLibraryItemCollectionsResult;
@@ -6499,18 +6471,11 @@ export function LibraryWorkspace({
                     replaceItemCollections(current, itemId, previousCollections)
                 );
             }
-
-            setPendingCollectionItemIds((current) =>
-                current.filter((id) => id !== itemId)
-            );
         };
 
         runUpdate().catch(() => {
             setItems((current) =>
                 replaceItemCollections(current, itemId, previousCollections)
-            );
-            setPendingCollectionItemIds((current) =>
-                current.filter((id) => id !== itemId)
             );
         });
     };
@@ -6595,7 +6560,6 @@ export function LibraryWorkspace({
                     onItemsChange={setItems}
                     onRemoveCollectionFilter={handleToggleCollectionSelection}
                     onUpdateItemCollections={handleUpdateItemCollections}
-                    pendingCollectionItemIds={pendingCollectionItemIds}
                     selectedCollectionIds={selectedCollectionIds}
                 />
             </div>

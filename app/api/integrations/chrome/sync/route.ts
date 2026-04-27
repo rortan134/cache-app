@@ -1,5 +1,5 @@
 import { auth } from "@/lib/auth/server";
-import { autoTagLibraryItemsByIds } from "@/lib/collections/smart-collections";
+import { autoTagLibraryItemsByIds } from "@/lib/collections/intelligence";
 import { createLogger } from "@/lib/common/logs/console/logger";
 import {
     applyChromeBookmarkSyncEvents,

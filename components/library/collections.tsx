@@ -583,7 +583,7 @@ export function CollectionsList({
     ...props
 }: React.ComponentProps<typeof Collapsible>) {
     const state = useCollectionsListOpenState();
-    const { isOpen, onOpenChange: handleOpenChange } = useListPanelOpenState({
+    const [isOpen, handleOpenChange] = useListPanelOpenState({
         hotkey: "mod+c",
         onOpenChange,
         open,

@@ -1,10 +1,10 @@
 "use client";
 
-import type { Collapsible as CollapsiblePrimitive } from "@base-ui/react/collapsible";
+import type { Collapsible } from "@base-ui/react/collapsible";
 import * as React from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 
-type OnOpenChange = CollapsiblePrimitive.Root.Props["onOpenChange"];
+type OnOpenChange = Collapsible.Root.Props["onOpenChange"];
 type OpenChangeDetails = Parameters<NonNullable<OnOpenChange>>[1];
 
 interface UseListPanelOpenStateOptions {
@@ -72,8 +72,5 @@ export function useListPanelOpenState({
         [handleOpenChange, resolvedOpen]
     );
 
-    return {
-        isOpen: resolvedOpen,
-        onOpenChange: handleOpenChange,
-    };
+    return [resolvedOpen, handleOpenChange] as const;
 }

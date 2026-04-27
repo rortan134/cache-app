@@ -1639,22 +1639,23 @@ function MasonryViewport({
         itemCount,
     ]);
 
-    const containerStyle = React.useMemo(
-        () => ({
-            height: estimatedHeight,
-            maxHeight: estimatedHeight,
-            maxWidth: "100%",
-            pointerEvents: context.isScrolling ? ("none" as const) : undefined,
-            position: "relative" as const,
-            width: "100%",
-            willChange: context.isScrolling ? "contents" : undefined,
-            ...style,
-        }),
-        [context.isScrolling, estimatedHeight, style]
-    );
-
     return (
-        <div {...props} data-version={layoutVersion} style={containerStyle}>
+        <div
+            {...props}
+            data-version={layoutVersion}
+            style={{
+                height: estimatedHeight,
+                maxHeight: estimatedHeight,
+                maxWidth: "100%",
+                pointerEvents: context.isScrolling
+                    ? ("none" as const)
+                    : undefined,
+                position: "relative" as const,
+                width: "100%",
+                willChange: context.isScrolling ? "contents" : undefined,
+                ...style,
+            }}
+        >
             {positionedChildren}
         </div>
     );

@@ -11,7 +11,7 @@ function useAccess() {
     } = useSession();
     const sessionUserId = session?.user?.id;
 
-    // Let error boundary catch
+    // We explicitly let the error boundary catch such errors
     if (sessionError) {
         throw sessionError;
     }

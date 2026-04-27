@@ -20,8 +20,8 @@ const initialFeedbackActionState: FeedbackActionState = {
 } satisfies FeedbackActionState;
 
 export function FeedbackWidget(
-    props: React.ComponentProps<typeof PopoverTrigger>
-): React.ReactElement {
+    props: React.ComponentProps<typeof PopoverTrigger> & { context?: string }
+) {
     const pathname = usePathname();
     const [isOpen, setIsOpen] = useState(false);
     const [state, formAction] = useActionState(

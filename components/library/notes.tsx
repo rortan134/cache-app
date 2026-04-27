@@ -43,7 +43,7 @@ import {
     HeadingNode,
 } from "@lexical/rich-text";
 import { $setBlocksType } from "@lexical/selection";
-import { T } from "gt-next";
+import { T, Var } from "gt-next";
 import {
     $createParagraphNode,
     $getRoot,
@@ -74,7 +74,6 @@ import {
 import Image from "next/image";
 import {
     useEffect,
-    useMemo,
     useRef,
     useState,
     type ClipboardEvent,
@@ -113,7 +112,7 @@ interface NoteTextMetrics {
 type NoteBlockType = "h1" | "h2" | "h3" | "paragraph";
 type NoteInlineFormatStateKey = Exclude<keyof FormatState, "blockType">;
 
-const EMPTY_FORMAT_STATE: FormatState = {
+const INITIAL_FORMAT_STATE: FormatState = {
     blockType: "paragraph",
     bold: false,
     italic: false,
@@ -199,7 +198,7 @@ const NOTE_TEXT_FORMAT_OPTIONS = [
     stateKey: NoteInlineFormatStateKey;
 }>;
 
-const CHAT_PROVIDERS = [
+const EXPORT_CONTENT_PROVIDERS = [
     {
         createUrl: (prompt: string) =>
             `https://chatgpt.com/?${new URLSearchParams({
@@ -344,14 +343,14 @@ function getInitialEditorState(
 
 function NoteFormattingToolbarPlugin() {
     const [editor] = useLexicalComposerContext();
-    const [formats, setFormats] = useState<FormatState>(EMPTY_FORMAT_STATE);
+    const [formats, setFormats] = useState<FormatState>(INITIAL_FORMAT_STATE);
 
     useEffect(() => {
         const updateToolbarState = () => {
             editor.getEditorState().read(() => {
                 const selection = $getSelection();
                 if (!$isRangeSelection(selection)) {
-                    setFormats(EMPTY_FORMAT_STATE);
+                    setFormats(INITIAL_FORMAT_STATE);
                     return;
                 }
 
@@ -469,11 +468,9 @@ function NoteContentPlugin({
     const handlePaste = async (event: ClipboardEvent<HTMLDivElement>) => {
         const pastedText = event.clipboardData.getData("text/plain");
         const parsedUrl = parseStandaloneUrl(pastedText);
-
         if (!parsedUrl) {
             return;
         }
-
         event.preventDefault();
         await onUrlPaste(parsedUrl.href);
     };
@@ -492,7 +489,7 @@ function NoteContentPlugin({
                     ErrorBoundary={LexicalErrorBoundary}
                     placeholder={
                         <div className="pointer-events-none absolute inset-0 text-base text-muted-foreground">
-                            Start typing or paste a URL...
+                            <T>Start typing or paste a URL...</T>
                         </div>
                     }
                 />
@@ -507,43 +504,6 @@ function NoteContentPlugin({
                 />
             </div>
         </>
-    );
-}
-
-// Lexical only consumes `initialConfig` on mount, so we keep this composer boundary
-// separate from the drawer's live draft state and remount it explicitly via `editorKey`.
-function NoteEditor({
-    editorKey,
-    initialDraft,
-    onDraftChange,
-    onUrlPaste,
-}: {
-    editorKey: number;
-    initialDraft: NoteDraft;
-    onDraftChange: (draft: NoteDraft) => void;
-    onUrlPaste: (url: string) => Promise<void> | void;
-}) {
-    const initialConfig = useMemo(
-        () =>
-            ({
-                editorState: getInitialEditorState(initialDraft),
-                namespace: NOTE_EDITOR_NAMESPACE,
-                nodes: NOTE_EDITOR_NODES,
-                onError(error: Error) {
-                    console.error("Unexpected note editor error", error);
-                },
-                theme: NOTE_EDITOR_THEME,
-            }) satisfies InitialConfigType,
-        [initialDraft]
-    );
-
-    return (
-        <LexicalComposer initialConfig={initialConfig} key={editorKey}>
-            <NoteContentPlugin
-                onDraftChange={onDraftChange}
-                onUrlPaste={onUrlPaste}
-            />
-        </LexicalComposer>
     );
 }
 
@@ -569,7 +529,6 @@ export function LibraryNoteDrawer({
             setIsExpanded(false);
             return;
         }
-
         const nextDraft = noteDraftFromItem(note);
         initialDraftRef.current = nextDraft;
         latestDraftRef.current = nextDraft;
@@ -670,9 +629,8 @@ export function LibraryNoteDrawer({
                                 <ChevronDownIcon className="size-3.5" />
                             </MenuTrigger>
                             <MenuPopup align="start" className="w-60">
-                                {CHAT_PROVIDERS.map((provider) => {
+                                {EXPORT_CONTENT_PROVIDERS.map((provider) => {
                                     const ProviderIcon = provider.icon;
-
                                     return (
                                         <MenuItem
                                             key={provider.title}
@@ -732,16 +690,49 @@ export function LibraryNoteDrawer({
                     allowSelection
                     className="flex min-h-0 flex-1 flex-col gap-4"
                 >
-                    <NoteEditor
-                        editorKey={editorKey}
-                        initialDraft={initialDraftRef.current}
-                        onDraftChange={handleDraftChange}
-                        onUrlPaste={onUrlPaste}
-                    />
+                    {/* Lexical only consumes `initialConfig` on mount, so we
+                    keep this composer boundary separate from the drawer's live
+                    draft state and remount it explicitly via `editorKey` */}
+                    <LexicalComposer
+                        initialConfig={{
+                            editorState: getInitialEditorState(
+                                initialDraftRef.current
+                            ),
+                            namespace: NOTE_EDITOR_NAMESPACE,
+                            nodes: NOTE_EDITOR_NODES,
+                            onError(error: Error) {
+                                console.error(
+                                    "Unexpected note editor error",
+                                    error
+                                );
+                            },
+                            theme: NOTE_EDITOR_THEME,
+                        }}
+                        key={editorKey}
+                    >
+                        <NoteContentPlugin
+                            onDraftChange={handleDraftChange}
+                            onUrlPaste={onUrlPaste}
+                        />
+                    </LexicalComposer>
                     <div className="flex items-center justify-end gap-4 border-border/60 border-t pt-3 text-muted-foreground text-xs">
-                        <span>{textMetrics.wordCount} words</span>
-                        <span>{textMetrics.paragraphCount} paragraphs</span>
-                        <span>{textMetrics.characterCount} characters</span>
+                        <T>
+                            <span>
+                                <Var>{textMetrics.wordCount}</Var> words
+                            </span>
+                        </T>
+                        <T>
+                            <span>
+                                <Var>{textMetrics.paragraphCount}</Var>{" "}
+                                paragraphs
+                            </span>
+                        </T>
+                        <T>
+                            <span>
+                                <Var>{textMetrics.characterCount}</Var>{" "}
+                                characters
+                            </span>
+                        </T>
                     </div>
                 </DrawerPanel>
             </DrawerPopup>

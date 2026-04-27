@@ -49,7 +49,7 @@ export function IntegrationsList({
     ...props
 }: React.ComponentProps<typeof Collapsible>) {
     const state = useIntegrationsListOpenState();
-    const { isOpen, onOpenChange: handleOpenChange } = useListPanelOpenState({
+    const [isOpen, handleOpenChange] = useListPanelOpenState({
         hotkey: "mod+i",
         onOpenChange,
         open,
@@ -165,10 +165,7 @@ export function IntegrationsListItem({
 }: React.ComponentProps<"div">) {
     return (
         <div
-            className={cn(
-                "flex items-center gap-2 pt-1.5 first:mt-3",
-                className
-            )}
+            className={cn("flex items-center gap-2 pt-1.5", className)}
             {...props}
         />
     );

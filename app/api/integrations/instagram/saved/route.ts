@@ -1,4 +1,4 @@
-import { autoTagLibraryItemsByIds } from "@/lib/collections/smart-collections";
+import { autoTagLibraryItemsByIds } from "@/lib/collections/intelligence";
 import {
     extensionIngestCorsHeaders,
     parseBearerToken,

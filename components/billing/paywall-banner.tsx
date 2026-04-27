@@ -14,7 +14,7 @@ function useLocaleParam(): string {
     return locale ?? "en";
 }
 
-function InlinePromotionBanner() {
+function InlinePaywallBanner() {
     const locale = useLocaleParam();
 
     return (
@@ -38,7 +38,7 @@ function InlinePromotionBanner() {
     );
 }
 
-function BlockPromotionBanner({ length }: { length: number }) {
+function BlockPaywallBanner({ length }: { length: number }) {
     const locale = useLocaleParam();
 
     return (
@@ -71,4 +71,4 @@ function BlockPromotionBanner({ length }: { length: number }) {
     );
 }
 
-export { BlockPromotionBanner, InlinePromotionBanner };
+export { BlockPaywallBanner, InlinePaywallBanner };

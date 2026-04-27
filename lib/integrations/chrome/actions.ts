@@ -1,7 +1,7 @@
 "use server";
 
 import { getSessionUserId } from "@/lib/auth/server";
-import { autoTagLibraryItemsByIds } from "@/lib/collections/smart-collections";
+import { autoTagLibraryItemsByIds } from "@/lib/collections/intelligence";
 import { LIBRARY_ITEM_COLLECTIONS_INCLUDE } from "@/lib/collections/utils";
 import { extractNamedErrorMessage } from "@/lib/common/error";
 import { createLogger } from "@/lib/common/logs/console/logger";

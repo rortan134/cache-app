@@ -43,7 +43,6 @@ function GoogleSignInButton({
     return (
         <div className="flex flex-col gap-1">
             <Button
-                aria-label="Continue with Google"
                 className={cn(
                     "border border-[#747775] bg-white text-[#1f1f1f] shadow-xs hover:bg-[#f8f9fa] dark:border-input dark:bg-popover dark:text-foreground dark:hover:bg-accent/50",
                     className
