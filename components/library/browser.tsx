@@ -2680,7 +2680,10 @@ function renderLibraryGridBody({
     onExpandAllSections?: () => void;
     onOpenNote: (item: LibraryItem) => void;
     onOpenInNewTab: (item: LibraryItem) => void;
-    onUpdateItemCollections: (itemId: string, collectionIds: string[]) => void;
+    onUpdateItemCollections: (
+        itemId: string,
+        collectionIds: string[]
+    ) => Promise<UpdateLibraryItemCollectionsResult>;
     onToggleSection: (key: string) => void;
     paywallTotalCount?: number;
     pendingDeleteItemId: string | null;
@@ -3909,7 +3912,10 @@ interface LibraryProps {
               ) => LibraryItemWithCollections[])
     ) => void;
     onRemoveCollectionFilter: (id: string) => void;
-    onUpdateItemCollections: (itemId: string, collectionIds: string[]) => void;
+    onUpdateItemCollections: (
+        itemId: string,
+        collectionIds: string[]
+    ) => Promise<UpdateLibraryItemCollectionsResult>;
     selectedCollectionIds: string[];
 }
 
@@ -4033,7 +4039,10 @@ interface GridProps {
     onDelete?: (item: LibraryItemWithCollections) => void;
     onOpenInNewTab?: (item: LibraryItemWithCollections) => void;
     onOpenNote?: (item: LibraryItemWithCollections) => void;
-    onUpdateItemCollections: (itemId: string, collectionIds: string[]) => void;
+    onUpdateItemCollections: (
+        itemId: string,
+        collectionIds: string[]
+    ) => Promise<UpdateLibraryItemCollectionsResult>;
     paywallPreviewCount?: number;
     paywallTotalCount?: number;
     pendingDeleteItemId?: string | null;
@@ -4062,7 +4071,10 @@ interface LibraryGridCardProps {
     onDelete?: (item: LibraryItemWithCollections) => void;
     onOpenInNewTab?: (item: LibraryItemWithCollections) => void;
     onOpenNote?: (item: LibraryItemWithCollections) => void;
-    onUpdateItemCollections: (itemId: string, collectionIds: string[]) => void;
+    onUpdateItemCollections: (
+        itemId: string,
+        collectionIds: string[]
+    ) => Promise<UpdateLibraryItemCollectionsResult>;
     pendingDeleteItemId?: string | null;
     previewDescription?: string;
     previewTitle: string;
@@ -4238,7 +4250,10 @@ function CollectionComboboxPicker({
 }: React.ComponentProps<typeof ComboboxTrigger> & {
     collections: LibraryCollectionSummary[];
     item: LibraryItemWithCollections | LibraryItemWithCollections[];
-    onUpdateItemCollections: (itemId: string, collectionIds: string[]) => void;
+    onUpdateItemCollections: (
+        itemId: string,
+        collectionIds: string[]
+    ) => Promise<UpdateLibraryItemCollectionsResult>;
     open?: boolean;
     onOpenChange?: (open: boolean) => void;
 }): React.ReactElement {
@@ -4270,10 +4285,12 @@ function CollectionComboboxPicker({
                         onUpdateItemCollections(
                             currentItem.id,
                             mergedCollectionIds
-                        );
+                        ).catch(() => undefined);
                     }
                 } else {
-                    onUpdateItemCollections(item.id, [...nextIds]);
+                    onUpdateItemCollections(item.id, [...nextIds]).catch(
+                        () => undefined
+                    );
                 }
             }}
             open={isOpen}
@@ -4426,11 +4443,9 @@ function LibraryGridCard({
                 link.click();
                 document.body.removeChild(link);
             } else {
-                // alert(result.message);
                 console.error(result.message);
             }
         } catch (error) {
-            // alert("An unexpected error occurred while starting the download.");
             console.error(error);
         } finally {
             setIsDownloading(false);
@@ -5827,6 +5842,20 @@ function LibraryBrowser({
         setIsNoteDrawerOpen(true);
     };
 
+    const handleUpdateItemCollectionsWithFeedback = async (
+        itemId: string,
+        collectionIds: string[]
+    ): Promise<UpdateLibraryItemCollectionsResult> => {
+        const result = await onUpdateItemCollections(itemId, collectionIds);
+        if (result.status !== "UPDATED") {
+            setActionFeedback({
+                message: result.message,
+                tone: "error",
+            });
+        }
+        return result;
+    };
+
     const handleSaveNote = async (draft: {
         contentHtml: string;
         contentState: unknown | null;
@@ -5934,7 +5963,7 @@ function LibraryBrowser({
         onOpenInNewTab: handleOpenInNewTab,
         onOpenNote: handleOpenNote,
         onToggleSection: toggleSection,
-        onUpdateItemCollections,
+        onUpdateItemCollections: handleUpdateItemCollectionsWithFeedback,
         paywallTotalCount: filteredItems.length,
         pendingDeleteItemId: pendingDeleteItem?.id ?? null,
         sections: gatedSections,
@@ -6509,7 +6538,7 @@ export function LibraryWorkspace({
     const handleUpdateItemCollections = (
         itemId: string,
         collectionIds: string[]
-    ) => {
+    ): Promise<UpdateLibraryItemCollectionsResult> => {
         const previousCollections =
             items.find((item) => item.id === itemId)?.collections ?? [];
         const optimisticCollections = sortCollections(
@@ -6546,12 +6575,18 @@ export function LibraryWorkspace({
                     replaceItemCollections(current, itemId, previousCollections)
                 );
             }
+
+            return result;
         };
 
-        runUpdate().catch(() => {
+        return runUpdate().catch(() => {
             setItems((current) =>
                 replaceItemCollections(current, itemId, previousCollections)
             );
+            return {
+                message: "We couldn't update collections for this item.",
+                status: "ERROR",
+            };
         });
     };
 
