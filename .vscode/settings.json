@@ -3,11 +3,6 @@
     "typescript.updateImportsOnFileMove.enabled": "always",
     "typescript.preferences.importModuleSpecifier": "non-relative",
     "typescript.preferences.useAliasesForRenames": false,
-    "typescript.reportStyleChecksAsWarnings": false,
-    "emmet.showExpandedAbbreviation": "never",
-    "tailwindCSS.experimental.classRegex": [
-        ["cn\\(([^)]*)\\)", "[\"'`]([^\"'`]*).*?[\"'`]"]
-    ],
     "search.exclude": {
         "prisma/client": true,
         "**/*.agents": true

@@ -59,6 +59,7 @@ import { getSourceLabel } from "@/lib/integrations/support";
 import type { CollectionPriority } from "@/prisma/client/enums";
 import SmartCollectionsBackgroundImg from "@/public/smart-collections-background-wide.webp";
 import { Toolbar } from "@base-ui/react/toolbar";
+import { useStableCallback } from "@base-ui/utils/useStableCallback";
 import {
     ArchiveIcon,
     Clock,
@@ -682,11 +683,10 @@ export function CollectionsListActionButton({
 }
 
 export function CollectionsListItemPreview({
-    onSelect,
+    onClick: onClickProp,
     thumbnails,
     ...props
 }: React.ComponentProps<typeof PreviewCardTrigger> & {
-    onSelect: () => void;
     thumbnails: string[];
 }) {
     const { collection } = useCollectionsListItemContext();
@@ -695,15 +695,19 @@ export function CollectionsListItemPreview({
         isOpen,
         thumbnails.length
     );
+    const onClick = useStableCallback(onClickProp);
 
     return (
         <PreviewCard onOpenChange={setIsOpen}>
             <PreviewCardTrigger
                 closeDelay={0}
+                onClick={(event) => {
+                    onClick?.(event);
+                    setIsOpen(false);
+                }}
                 render={
                     <Button
                         className="w-full min-w-0 flex-1 justify-start rounded-full border-(--focus-ring-color)/7 bg-(--collection-background) px-7.5 text-left focus-visible:ring-(--focus-ring-color) focus-visible:ring-1"
-                        onClick={onSelect}
                         variant="ghost"
                     />
                 }

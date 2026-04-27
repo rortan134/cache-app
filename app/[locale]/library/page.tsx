@@ -195,9 +195,9 @@ export default async function LibraryPage() {
                                     </div>
                                 </IntegrationsListTrigger>
                                 <IntegrationsListPanel>
-                                    <span className="mt-3 text-[11px] text-muted-foreground">
+                                    <span className="mt-4 text-[11px] text-muted-foreground">
                                         With Cache you can get more out of your
-                                        bookmarks.
+                                        bookmarks
                                     </span>
                                     {INTEGRATIONS.length > 0 ? (
                                         INTEGRATIONS.map(

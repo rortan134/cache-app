@@ -124,6 +124,7 @@ import { TruncateAfter } from "@/components/ui/truncate-after";
 import { useAccess } from "@/hooks/use-access";
 import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
 import { useIsomorphicLayoutEffect } from "@/hooks/use-isomorphic-effect";
+import { createLogger } from "@/lib/common/logs/console/logger";
 import {
     createCollection,
     createCollectionFromItems,
@@ -228,6 +229,47 @@ import {
 import Image from "next/image";
 import type { ReactNode } from "react";
 import * as React from "react";
+
+const masonryPerfLog = createLogger("masonry:caller");
+const MASONRY_DEBUG_STORAGE_KEY = "cache:masonry-debug";
+const MASONRY_DEBUG_WINDOW_KEY = "__CACHE_MASONRY_DEBUG__";
+
+function isMasonryDebugEnabled() {
+    if (process.env.NODE_ENV === "production") {
+        return false;
+    }
+    if (typeof window === "undefined") {
+        return false;
+    }
+
+    if (Reflect.get(window, MASONRY_DEBUG_WINDOW_KEY) === true) {
+        return true;
+    }
+
+    try {
+        return window.localStorage.getItem(MASONRY_DEBUG_STORAGE_KEY) === "1";
+    } catch {
+        return false;
+    }
+}
+
+function onMasonryProfilerRender(
+    id: string,
+    phase: "mount" | "nested-update" | "update",
+    actualDuration: number,
+    baseDuration: number
+) {
+    if (!isMasonryDebugEnabled()) {
+        return;
+    }
+
+    masonryPerfLog.debug("react-profiler", {
+        actualDurationMs: Number(actualDuration.toFixed(2)),
+        baseDurationMs: Number(baseDuration.toFixed(2)),
+        id,
+        phase,
+    });
+}
 import { useHotkeys } from "react-hotkeys-hook";
 import useSWR from "swr";
 
@@ -4660,47 +4702,59 @@ function renderLibraryMasonry({
     pendingDeleteItemId,
 }: GridProps & { locked?: boolean }): React.ReactElement {
     return (
-        <Masonry columnCount={columnCount} gap={4} linear>
-            {items.map((item) => {
-                const href = normalizeURL(item.url);
-                const alt = (item.caption ?? "").trim() || "Saved item";
-                const domain = itemDomain(item.url);
-                const previewTitle = alt === "Saved item" ? "Preview" : alt;
-                const previewDescription =
-                    domain === "Other" ? item.url : domain;
-                const createdLabel = itemDateLabel(item.createdAt);
-                const addedLabel = itemDateLabel(
-                    item.scrapedAt ?? item.createdAt
-                );
+        <React.Profiler
+            id={locked ? "library-masonry-locked" : "library-masonry"}
+            onRender={onMasonryProfilerRender}
+        >
+            <Masonry
+                columnCount={columnCount}
+                gap={4}
+                instrumentationLabel={
+                    locked ? "library-masonry-locked" : "library-masonry"
+                }
+                linear
+            >
+                {items.map((item) => {
+                    const href = normalizeURL(item.url);
+                    const alt = (item.caption ?? "").trim() || "Saved item";
+                    const domain = itemDomain(item.url);
+                    const previewTitle = alt === "Saved item" ? "Preview" : alt;
+                    const previewDescription =
+                        domain === "Other" ? item.url : domain;
+                    const createdLabel = itemDateLabel(item.createdAt);
+                    const addedLabel = itemDateLabel(
+                        item.scrapedAt ?? item.createdAt
+                    );
 
-                return (
-                    <MasonryItem key={item.id}>
-                        {locked ? (
-                            <LockedLibraryGridCard alt={alt} item={item} />
-                        ) : (
-                            <LibraryGridCard
-                                addedLabel={addedLabel}
-                                alt={alt}
-                                collections={collections}
-                                createdLabel={createdLabel}
-                                href={href}
-                                item={item}
-                                onCopyLink={onCopyLink}
-                                onDelete={onDelete}
-                                onOpenInNewTab={onOpenInNewTab}
-                                onOpenNote={onOpenNote}
-                                onUpdateItemCollections={
-                                    onUpdateItemCollections
-                                }
-                                pendingDeleteItemId={pendingDeleteItemId}
-                                previewDescription={previewDescription}
-                                previewTitle={previewTitle}
-                            />
-                        )}
-                    </MasonryItem>
-                );
-            })}
-        </Masonry>
+                    return (
+                        <MasonryItem key={item.id}>
+                            {locked ? (
+                                <LockedLibraryGridCard alt={alt} item={item} />
+                            ) : (
+                                <LibraryGridCard
+                                    addedLabel={addedLabel}
+                                    alt={alt}
+                                    collections={collections}
+                                    createdLabel={createdLabel}
+                                    href={href}
+                                    item={item}
+                                    onCopyLink={onCopyLink}
+                                    onDelete={onDelete}
+                                    onOpenInNewTab={onOpenInNewTab}
+                                    onOpenNote={onOpenNote}
+                                    onUpdateItemCollections={
+                                        onUpdateItemCollections
+                                    }
+                                    pendingDeleteItemId={pendingDeleteItemId}
+                                    previewDescription={previewDescription}
+                                    previewTitle={previewTitle}
+                                />
+                            )}
+                        </MasonryItem>
+                    );
+                })}
+            </Masonry>
+        </React.Profiler>
     );
 }
 
@@ -4840,27 +4894,42 @@ function renderLibraryKanban({
 
 function ExtensionLibraryEmptyMasonryPeek() {
     return (
-        <Masonry columnCount={5} gap={4} linear>
-            {EMPTY_LIBRARY_PEEK_PLACEHOLDERS.map(({ aspect, id }, index) => {
-                const opacity = Math.max(0.06, 1 - index * 0.095);
+        <React.Profiler
+            id="extension-library-empty-peek-masonry"
+            onRender={onMasonryProfilerRender}
+        >
+            <Masonry
+                columnCount={5}
+                gap={4}
+                instrumentationLabel="extension-library-empty-peek-masonry"
+                linear
+            >
+                {EMPTY_LIBRARY_PEEK_PLACEHOLDERS.map(
+                    ({ aspect, id }, index) => {
+                        const opacity = Math.max(0.06, 1 - index * 0.095);
 
-                return (
-                    <MasonryItem
-                        className="group flex flex-col overflow-hidden rounded-lg bg-card/40"
-                        key={id}
-                        style={{ opacity }}
-                    >
-                        <Skeleton
-                            className={cn("w-full rounded-none", aspect)}
-                        />
-                        <div className="flex min-h-14 flex-col gap-1.5 p-3">
-                            <Skeleton className="h-2.5 w-[92%]" />
-                            <Skeleton className="h-2.5 w-[72%]" />
-                        </div>
-                    </MasonryItem>
-                );
-            })}
-        </Masonry>
+                        return (
+                            <MasonryItem
+                                className="group flex flex-col overflow-hidden rounded-lg bg-card/40"
+                                key={id}
+                                style={{ opacity }}
+                            >
+                                <Skeleton
+                                    className={cn(
+                                        "w-full rounded-none",
+                                        aspect
+                                    )}
+                                />
+                                <div className="flex min-h-14 flex-col gap-1.5 p-3">
+                                    <Skeleton className="h-2.5 w-[92%]" />
+                                    <Skeleton className="h-2.5 w-[72%]" />
+                                </div>
+                            </MasonryItem>
+                        );
+                    }
+                )}
+            </Masonry>
+        </React.Profiler>
     );
 }
 
