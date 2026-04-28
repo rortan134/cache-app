@@ -124,7 +124,6 @@ import { TruncateAfter } from "@/components/ui/truncate-after";
 import { useAccess } from "@/hooks/use-access";
 import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
 import { useIsomorphicLayoutEffect } from "@/hooks/use-isomorphic-effect";
-import { createLogger } from "@/lib/common/logs/console/logger";
 import {
     createCollection,
     createCollectionFromItems,
@@ -164,6 +163,7 @@ import {
 } from "@/lib/common/file";
 import { filterValidImageUrls } from "@/lib/common/image";
 import { getImageColors } from "@/lib/common/image-colors";
+import { createLogger } from "@/lib/common/logs/console/logger";
 import { withMemoize } from "@/lib/common/memoize";
 import type {
     LibraryCollectionSummary,
@@ -229,6 +229,8 @@ import {
 import Image from "next/image";
 import type { ReactNode } from "react";
 import * as React from "react";
+import { useHotkeys } from "react-hotkeys-hook";
+import useSWR from "swr";
 
 const masonryPerfLog = createLogger("masonry:caller");
 const MASONRY_DEBUG_STORAGE_KEY = "cache:masonry-debug";
@@ -270,8 +272,6 @@ function onMasonryProfilerRender(
         phase,
     });
 }
-import { useHotkeys } from "react-hotkeys-hook";
-import useSWR from "swr";
 
 const SECTION_DESCRIPTION_CONTEXT_ITEMS_LIMIT = 20;
 const SECTION_DESCRIPTION_FALLBACK_TEXT =
@@ -285,19 +285,45 @@ interface CommandSuggestion {
 const SUGGESTION_LIMIT = 3;
 
 function buildCommandSuggestions({
+    clearLibraryPalette,
+    collectionMembershipFilter,
     collections,
     items,
+    onClearCollectionFilters,
+    searchTerms,
     selectedCollectionIds,
+    sourceFilters,
+    domainFilters,
+    groupBy,
+    sortMode,
+    setCollectionMembershipFilter,
+    setDomainFilters,
     setGroupBy,
+    setSearchTerms,
+    setSortMode,
     setSourceFilters,
     setPaletteInput,
     setCommandListOpen,
     onToggleCollectionSelection,
 }: {
+    clearLibraryPalette: () => void;
+    collectionMembershipFilter: CollectionMembershipFilter;
     collections: LibraryCollectionSummary[];
     items: LibraryItemWithCollections[];
+    onClearCollectionFilters: () => void;
+    searchTerms: string[];
     selectedCollectionIds: string[];
+    sourceFilters: SourceFilterValue[];
+    domainFilters: string[];
+    groupBy: GroupByMode;
+    sortMode: SortMode;
+    setCollectionMembershipFilter: (value: CollectionMembershipFilter) => void;
+    setDomainFilters: (
+        value: string[] | ((value: string[]) => string[])
+    ) => void;
     setGroupBy: (value: GroupByMode) => void;
+    setSearchTerms: (value: string[] | ((value: string[]) => string[])) => void;
+    setSortMode: (value: SortMode) => void;
     setSourceFilters: (
         value:
             | SourceFilterValue[]
@@ -310,74 +336,324 @@ function buildCommandSuggestions({
     onToggleCollectionSelection: (id: string) => void;
 }): CommandSuggestion[] {
     const suggestions: CommandSuggestion[] = [];
-
-    // Suggest filtering by the most populated unselected collection
-    const unselectedCollections = collections.filter(
-        (c) => !selectedCollectionIds.includes(c.id) && c.itemCount > 0
+    const suggestionLabels = new Set<string>();
+    const collectionById = new Map(
+        collections.map((collection) => [collection.id, collection])
     );
-    const topCollection = unselectedCollections.sort(
-        (a, b) => b.itemCount - a.itemCount
-    )[0];
-
-    if (topCollection) {
-        suggestions.push({
-            label: `Browse \u201c${topCollection.name}\u201d`,
-            onSelect: () => {
-                onToggleCollectionSelection(topCollection.id);
-                setPaletteInput("");
-                setCommandListOpen(false);
-            },
-        });
-    }
-
-    // Suggest filtering by the most common source
+    const collectionCounts = new Map<string, number>();
     const sourceCounts = new Map<LibraryItemSource, number>();
+    const domainCounts = new Map<string, number>();
+    const addedMonthKeys = new Set<string>();
+    const createdMonthKeys = new Set<string>();
+
     for (const item of items) {
+        const itemCollectionIds = new Set<string>();
+        for (const collection of item.collections) {
+            if (itemCollectionIds.has(collection.id)) {
+                continue;
+            }
+            itemCollectionIds.add(collection.id);
+            collectionCounts.set(
+                collection.id,
+                (collectionCounts.get(collection.id) ?? 0) + 1
+            );
+        }
         sourceCounts.set(item.source, (sourceCounts.get(item.source) ?? 0) + 1);
+        const domain = itemDomain(item.url);
+        domainCounts.set(domain, (domainCounts.get(domain) ?? 0) + 1);
+        addedMonthKeys.add(itemMonthKey(item, "added"));
+        createdMonthKeys.add(itemMonthKey(item, "created"));
     }
-    const topSource = Array.from(sourceCounts.entries()).sort(
-        ([, a], [, b]) => b - a
-    )[0];
 
-    if (topSource) {
-        suggestions.push({
-            label: `Filter by ${sourceLabel(topSource[0])}`,
-            onSelect: () => {
-                setSourceFilters([topSource[0]]);
-                setPaletteInput("");
-                setCommandListOpen(false);
-            },
+    const hasAnyRefinements =
+        searchTerms.length > 0 ||
+        selectedCollectionIds.length > 0 ||
+        sourceFilters.length > 0 ||
+        domainFilters.length > 0 ||
+        collectionMembershipFilter !== DEFAULT_COLLECTION_MEMBERSHIP_FILTER ||
+        groupBy !== "none" ||
+        sortMode !== DEFAULT_SORT_MODE;
+
+    const commitSelection = (fn: () => void) => () => {
+        fn();
+        setPaletteInput("");
+        setCommandListOpen(false);
+    };
+
+    const addSuggestion = (suggestion: CommandSuggestion | null) => {
+        if (
+            suggestion === null ||
+            suggestionLabels.has(suggestion.label) ||
+            suggestions.length >= SUGGESTION_LIMIT
+        ) {
+            return;
+        }
+
+        suggestionLabels.add(suggestion.label);
+        suggestions.push(suggestion);
+    };
+
+    const pickTopEntry = <T,>(
+        counts: Map<T, number>,
+        isAllowed: (value: T) => boolean,
+        getLabel: (value: T) => string
+    ): T | null => {
+        const entries = Array.from(counts.entries()).filter(([value]) =>
+            isAllowed(value)
+        );
+
+        entries.sort(
+            ([aValue, aCount], [bValue, bCount]) =>
+                bCount - aCount ||
+                NAME_COLLATOR.compare(getLabel(aValue), getLabel(bValue))
+        );
+
+        return entries[0]?.[0] ?? null;
+    };
+
+    const topCollectionId = pickTopEntry(
+        collectionCounts,
+        (collectionId) => !selectedCollectionIds.includes(collectionId),
+        (collectionId) => collectionById.get(collectionId)?.name ?? collectionId
+    );
+    const topSource = pickTopEntry(
+        sourceCounts,
+        (source) => !sourceFilters.includes(source),
+        (source) => sourceLabel(source)
+    );
+    const topDomain = pickTopEntry(
+        domainCounts,
+        (domain) => !domainFilters.includes(domain),
+        (domain) => domain
+    );
+
+    const topCollection =
+        topCollectionId === null ? null : collectionById.get(topCollectionId);
+
+    const currentGroupCount =
+        groupBy === "none"
+            ? 0
+            : new Set(
+                  items.map((item) => {
+                      if (groupBy === "source") {
+                          return item.source;
+                      }
+                      if (groupBy === "domain") {
+                          return itemDomain(item.url);
+                      }
+                      if (groupBy === "month-added") {
+                          return itemMonthKey(item, "added");
+                      }
+                      return itemMonthKey(item, "created");
+                  })
+              ).size;
+
+    const buildCollectionSuggestion = (): CommandSuggestion | null => {
+        if (!topCollection) {
+            return null;
+        }
+
+        const collectionLabel = truncateLabel(topCollection.name, 24);
+        let label = `Browse \u201c${collectionLabel}\u201d`;
+        if (selectedCollectionIds.length > 0) {
+            label = `Add \u201c${collectionLabel}\u201d collection`;
+        } else if (hasAnyRefinements) {
+            label = `Filter to \u201c${collectionLabel}\u201d`;
+        }
+
+        return {
+            label,
+            onSelect: commitSelection(() =>
+                onToggleCollectionSelection(topCollection.id)
+            ),
+        };
+    };
+
+    const buildSourceSuggestion = (): CommandSuggestion | null => {
+        if (!topSource) {
+            return null;
+        }
+
+        return {
+            label: `Filter by ${sourceLabel(topSource)}`,
+            onSelect: commitSelection(() =>
+                setSourceFilters((current) => toggleValue(current, topSource))
+            ),
+        };
+    };
+
+    const buildDomainSuggestion = (): CommandSuggestion | null => {
+        if (!topDomain) {
+            return null;
+        }
+
+        return {
+            label: `Filter to ${truncateLabel(topDomain, 24)}`,
+            onSelect: commitSelection(() =>
+                setDomainFilters((current) => toggleValue(current, topDomain))
+            ),
+        };
+    };
+
+    let groupingCandidates: GroupByMode[] = [
+        "source",
+        "domain",
+        "month-added",
+        "month-created",
+    ];
+    if (sourceFilters.length > 0) {
+        groupingCandidates = [
+            "domain",
+            "month-added",
+            "month-created",
+            "source",
+        ];
+    } else if (domainFilters.length > 0) {
+        groupingCandidates = [
+            "source",
+            "month-added",
+            "month-created",
+            "domain",
+        ];
+    }
+
+    const nextGroupBy =
+        groupingCandidates.find((mode) => {
+            if (mode === groupBy) {
+                return false;
+            }
+
+            if (mode === "source") {
+                return sourceCounts.size > 1;
+            }
+            if (mode === "domain") {
+                return domainCounts.size > 1;
+            }
+            if (mode === "month-added") {
+                return addedMonthKeys.size > 1;
+            }
+            return createdMonthKeys.size > 1;
+        }) ?? null;
+
+    const buildGroupingSuggestion = (): CommandSuggestion | null => {
+        if (!nextGroupBy) {
+            return null;
+        }
+
+        const label =
+            groupBy === "none"
+                ? `Group by ${groupByLabel(nextGroupBy).toLowerCase()}`
+                : `Try ${groupByLabel(nextGroupBy).toLowerCase()} groups`;
+
+        return {
+            label,
+            onSelect: commitSelection(() => setGroupBy(nextGroupBy)),
+        };
+    };
+
+    if (
+        groupBy !== "none" &&
+        sortMode !== "count-desc" &&
+        currentGroupCount > 1
+    ) {
+        addSuggestion({
+            label: "Sort groups by size",
+            onSelect: commitSelection(() => setSortMode("count-desc")),
         });
     }
 
-    // Suggest grouping by source when there are multiple sources
-    if (sourceCounts.size > 1) {
-        suggestions.push({
-            label: "Group by source",
-            onSelect: () => {
-                setGroupBy("source");
-                setPaletteInput("");
-                setCommandListOpen(false);
-            },
-        });
+    if (!hasAnyRefinements) {
+        addSuggestion(buildCollectionSuggestion());
+        addSuggestion(buildSourceSuggestion());
+        addSuggestion(buildGroupingSuggestion());
+        addSuggestion(buildDomainSuggestion());
+    } else if (selectedCollectionIds.length > 0) {
+        addSuggestion(buildSourceSuggestion());
+        addSuggestion(buildDomainSuggestion());
+        addSuggestion(buildGroupingSuggestion());
+        addSuggestion(buildCollectionSuggestion());
+    } else if (
+        sourceFilters.length > 0 ||
+        domainFilters.length > 0 ||
+        searchTerms.length > 0 ||
+        collectionMembershipFilter !== DEFAULT_COLLECTION_MEMBERSHIP_FILTER
+    ) {
+        addSuggestion(buildCollectionSuggestion());
+        addSuggestion(buildGroupingSuggestion());
+        addSuggestion(buildSourceSuggestion());
+        addSuggestion(buildDomainSuggestion());
+    } else {
+        addSuggestion(buildCollectionSuggestion());
+        addSuggestion(buildSourceSuggestion());
+        addSuggestion(buildGroupingSuggestion());
+        addSuggestion(buildDomainSuggestion());
     }
 
-    // Suggest grouping by domain as a fallback
-    if (suggestions.length < SUGGESTION_LIMIT) {
-        const domains = new Set(items.map((item) => itemDomain(item.url)));
-        if (domains.size > 1) {
-            suggestions.push({
-                label: "Group by domain",
-                onSelect: () => {
-                    setGroupBy("domain");
-                    setPaletteInput("");
-                    setCommandListOpen(false);
-                },
+    if (items.length === 0 || suggestions.length < SUGGESTION_LIMIT) {
+        if (searchTerms.length > 0) {
+            addSuggestion({
+                label: "Clear searches",
+                onSelect: commitSelection(() => setSearchTerms([])),
+            });
+        }
+
+        if (selectedCollectionIds.length > 0) {
+            addSuggestion({
+                label: "Show all collections",
+                onSelect: commitSelection(onClearCollectionFilters),
+            });
+        }
+
+        if (sourceFilters.length > 0) {
+            addSuggestion({
+                label: "Show all sources",
+                onSelect: commitSelection(() => setSourceFilters([])),
+            });
+        }
+
+        if (domainFilters.length > 0) {
+            addSuggestion({
+                label: "Show all domains",
+                onSelect: commitSelection(() => setDomainFilters([])),
+            });
+        }
+
+        if (
+            collectionMembershipFilter !== DEFAULT_COLLECTION_MEMBERSHIP_FILTER
+        ) {
+            addSuggestion({
+                label: "Show all items",
+                onSelect: commitSelection(() =>
+                    setCollectionMembershipFilter(
+                        DEFAULT_COLLECTION_MEMBERSHIP_FILTER
+                    )
+                ),
+            });
+        }
+
+        if (groupBy !== "none") {
+            addSuggestion({
+                label: "Clear grouping",
+                onSelect: commitSelection(() => setGroupBy("none")),
+            });
+        }
+
+        if (sortMode !== DEFAULT_SORT_MODE) {
+            addSuggestion({
+                label: "Reset sort",
+                onSelect: commitSelection(() => setSortMode(DEFAULT_SORT_MODE)),
+            });
+        }
+
+        if (hasAnyRefinements) {
+            addSuggestion({
+                label: "Reset browser",
+                onSelect: commitSelection(clearLibraryPalette),
             });
         }
     }
 
-    return suggestions.slice(0, SUGGESTION_LIMIT);
+    return suggestions;
 }
 
 interface SectionDescriptionResponse {
@@ -1534,7 +1810,7 @@ function LibraryWorkspaceSidebar({
                                                 }
                                             />
                                             <CollectionsListItemPreview
-                                                onSelect={() =>
+                                                onClick={() =>
                                                     onSelectCollection(
                                                         collection.id
                                                     )
@@ -5804,14 +6080,26 @@ function LibraryBrowser({
         (hasActiveFilters || hasNonDefaultView) && !showEmptyLibraryPeek;
 
     const commandSuggestions = buildCommandSuggestions({
+        clearLibraryPalette,
+        collectionMembershipFilter,
         collections,
-        items,
+        domainFilters,
+        groupBy,
+        items: filteredItems,
+        onClearCollectionFilters,
         onToggleCollectionSelection: onRemoveCollectionFilter,
+        searchTerms,
         selectedCollectionIds,
+        setCollectionMembershipFilter,
         setCommandListOpen,
+        setDomainFilters,
         setGroupBy,
         setPaletteInput,
+        setSearchTerms,
+        setSortMode,
         setSourceFilters,
+        sortMode,
+        sourceFilters,
     });
 
     const resultCollectionItemIds = visibleResultItems.map((item) => item.id);
@@ -6367,7 +6655,6 @@ function LibraryBrowser({
                             >
                                 <SquarePen className="inline-block size-3.5 shrink-0" />
                                 &nbsp;New
-                                <ChevronDown className="inline-block size-3.5 shrink-0" />
                             </Button>
                         }
                     />
@@ -6438,14 +6725,12 @@ function LibraryBrowser({
                             <PrivilegedOnly>
                                 <CrownFilledIcon className="mb-0.5 size-3.5 opacity-80" />
                             </PrivilegedOnly>
-                            &nbsp; CACHE
+                            &nbsp;CACHE
                         </span>
                     )}
                 </Toolbar.Group>
             </Toolbar.Root>
-            {canClear ||
-            actionFeedback ||
-            commandSuggestions.length === 0 ? null : (
+            {actionFeedback || commandSuggestions.length === 0 ? null : (
                 <div className="relative -mt-1 px-2.5">
                     <ScrollArea
                         className="max-w-full whitespace-nowrap"

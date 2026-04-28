@@ -862,7 +862,6 @@ export function CollectionsListItem({
     isSelected,
     ...props
 }: React.ComponentProps<"div"> & {
-    children: React.ReactNode;
     collection: LibraryCollectionSummary;
     isSelected: boolean;
 }) {

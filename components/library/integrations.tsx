@@ -121,7 +121,11 @@ export function IntegrationsListNoticeCallout() {
     const [isOpen, setIsOpen] = React.useState(true);
 
     return (
-        <Collapsible className="mt-2" onOpenChange={setIsOpen} open={isOpen}>
+        <Collapsible
+            className="-mx-0.5 mt-3"
+            onOpenChange={setIsOpen}
+            open={isOpen}
+        >
             <CollapsiblePanel>
                 <div className="flex gap-1.5">
                     <Info className="mt-0.5 inline-block size-3.5 shrink-0" />
@@ -130,7 +134,7 @@ export function IntegrationsListNoticeCallout() {
                         what you choose to save with connected apps. You can
                         always change your mind.{" "}
                         <Button
-                            className="h-fit! leading-tight sm:text-[11px]"
+                            className="h-fit! px-0 leading-tight sm:text-[11px]"
                             onClick={() => setIsOpen(false)}
                             size="xs"
                             variant="link"
@@ -139,7 +143,7 @@ export function IntegrationsListNoticeCallout() {
                         </Button>{" "}
                         or{" "}
                         <Button
-                            className="h-fit! leading-tight sm:text-[11px]"
+                            className="h-fit! px-0 leading-tight sm:text-[11px]"
                             render={
                                 <Link
                                     href="/legal/privacy-policy"
@@ -165,7 +169,10 @@ export function IntegrationsListItem({
 }: React.ComponentProps<"div">) {
     return (
         <div
-            className={cn("flex items-center gap-2 pt-1.5", className)}
+            className={cn(
+                "flex items-center gap-2.5 pt-1.5 first:mt-3",
+                className
+            )}
             {...props}
         />
     );

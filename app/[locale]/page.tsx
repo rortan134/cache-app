@@ -139,7 +139,7 @@ export default async function Home() {
                             src={HeroImage}
                         />
                     </div>
-                    <div className="flex flex-col gap-2">
+                    <div className="flex flex-col gap-1.5">
                         <p className="mx-auto text-center text-xs">
                             <T>Discover what Cache can do for you</T>
                         </p>

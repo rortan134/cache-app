@@ -195,10 +195,6 @@ export default async function LibraryPage() {
                                     </div>
                                 </IntegrationsListTrigger>
                                 <IntegrationsListPanel>
-                                    <span className="mt-4 text-[11px] text-muted-foreground">
-                                        With Cache you can get more out of your
-                                        bookmarks
-                                    </span>
                                     {INTEGRATIONS.length > 0 ? (
                                         INTEGRATIONS.map(
                                             ({
@@ -210,21 +206,21 @@ export default async function LibraryPage() {
                                                 <IntegrationsListItem key={id}>
                                                     <Avatar
                                                         aria-label={label}
-                                                        className="size-9 rounded-lg ring-1 ring-border/60"
+                                                        className="rounded-md"
                                                     >
-                                                        <AvatarFallback className="rounded-xl bg-card">
+                                                        <AvatarFallback className="rounded-md bg-muted/80">
                                                             <Icon
                                                                 aria-hidden="true"
-                                                                className="size-5 shrink-0"
+                                                                className="size-4.5 shrink-0 *:shadow"
                                                                 focusable="false"
                                                             />
                                                         </AvatarFallback>
                                                     </Avatar>
                                                     <div className="flex min-w-0 flex-1 flex-col">
-                                                        <span className="font-medium text-sm leading-tight">
+                                                        <span className="font-medium text-sm leading-snug">
                                                             {label}
                                                         </span>
-                                                        <span className="text-[11px] text-muted-foreground leading-tight">
+                                                        <span className="text-[11px] text-muted-foreground leading-snug">
                                                             {description}
                                                         </span>
                                                     </div>
