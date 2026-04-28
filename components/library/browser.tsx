@@ -4179,6 +4179,33 @@ function getSharedCollectionIds(items: LibraryItemWithCollections[]): string[] {
     );
 }
 
+function mergeBulkEditedCollectionIds({
+    currentCollectionIds,
+    nextCollectionIds,
+    sharedCollectionIds,
+}: {
+    currentCollectionIds: string[];
+    nextCollectionIds: string[];
+    sharedCollectionIds: string[];
+}): string[] {
+    const sharedCollectionIdSet = new Set(sharedCollectionIds);
+    const mergedCollectionIds = currentCollectionIds.filter(
+        (collectionId) => !sharedCollectionIdSet.has(collectionId)
+    );
+    const mergedCollectionIdSet = new Set(mergedCollectionIds);
+
+    for (const collectionId of nextCollectionIds) {
+        if (mergedCollectionIdSet.has(collectionId)) {
+            continue;
+        }
+
+        mergedCollectionIds.push(collectionId);
+        mergedCollectionIdSet.add(collectionId);
+    }
+
+    return mergedCollectionIds;
+}
+
 function getItemTitle(item: LibraryItemWithCollections): string {
     if (item.kind === "note") {
         return "";
@@ -4274,14 +4301,15 @@ function CollectionComboboxPicker({
             onValueChange={(nextIds) => {
                 if (Array.isArray(item)) {
                     for (const currentItem of item) {
-                        const mergedCollectionIds = Array.from(
-                            new Set([
-                                ...currentItem.collections.map(
-                                    (collection) => collection.id
-                                ),
-                                ...nextIds,
-                            ])
-                        );
+                        const mergedCollectionIds =
+                            mergeBulkEditedCollectionIds({
+                                currentCollectionIds:
+                                    currentItem.collections.map(
+                                        (collection) => collection.id
+                                    ),
+                                nextCollectionIds: [...nextIds],
+                                sharedCollectionIds: selectedCollectionIds,
+                            });
                         onUpdateItemCollections(
                             currentItem.id,
                             mergedCollectionIds
@@ -4414,6 +4442,7 @@ function LibraryGridCard({
     const canPreview = !isNote && toValidUrl(href) !== "about:blank";
     const noteExcerpt = getNoteExcerpt(item.noteContentText);
     const displayTitle = getItemTitle(item);
+    const isNewItem = !isNote && dayjs(itemDate(item)).isToday();
 
     useHotkeys("s", () => setIsCollectionPickerOpen(true), {
         enabled: isHovered && !isCollectionPickerOpen,
@@ -4621,7 +4650,7 @@ function LibraryGridCard({
                             </div>
                         )}
                     </a>
-                    {dayjs(addedLabel).isToday() && !isNote ? (
+                    {isNewItem ? (
                         <Badge
                             className="absolute top-3 left-3 bg-primary/50"
                             size="sm"
@@ -4677,6 +4706,7 @@ function LockedLibraryGridCard({
 }: LockedLibraryGridCardProps): React.ReactElement {
     const isNote = item.kind === "note";
     const previewImageUrl = opengraphPreviewUrl(item);
+    const displayTitle = isNote ? "Note" : alt;
 
     return (
         <div className="relative flex flex-col overflow-hidden rounded-xl ring-1 ring-border/30">
@@ -4703,7 +4733,7 @@ function LockedLibraryGridCard({
             )}
             <div className="relative flex flex-col gap-2 bg-background/75 px-3 py-2">
                 <p className="line-clamp-2 truncate text-foreground text-xs leading-tight">
-                    Note
+                    {displayTitle}
                 </p>
             </div>
         </div>
@@ -5312,6 +5342,9 @@ function LibraryBrowser({
     const createResultsDescriptionId = React.useId();
     /** Skips one combobox-driven close right after entering a drill-down section. */
     const suppressNextCommandCloseRef = React.useRef(false);
+    const collectionUpdateFeedbackVersionByItemIdRef = React.useRef(
+        new Map<string, number>()
+    );
     const {
         actionFeedback,
         handleConfirmDelete,
@@ -5846,8 +5879,25 @@ function LibraryBrowser({
         itemId: string,
         collectionIds: string[]
     ): Promise<UpdateLibraryItemCollectionsResult> => {
+        const requestVersion =
+            (collectionUpdateFeedbackVersionByItemIdRef.current.get(itemId) ??
+                0) + 1;
+        collectionUpdateFeedbackVersionByItemIdRef.current.set(
+            itemId,
+            requestVersion
+        );
         const result = await onUpdateItemCollections(itemId, collectionIds);
-        if (result.status !== "UPDATED") {
+
+        if (
+            collectionUpdateFeedbackVersionByItemIdRef.current.get(itemId) !==
+            requestVersion
+        ) {
+            return result;
+        }
+
+        if (result.status === "UPDATED") {
+            setActionFeedback(null);
+        } else {
             setActionFeedback({
                 message: result.message,
                 tone: "error",
@@ -6489,6 +6539,9 @@ export function LibraryWorkspace({
     const [selectedCollectionIds, setSelectedCollectionIds] = React.useState<
         string[]
     >([]);
+    const collectionUpdateVersionByItemIdRef = React.useRef(
+        new Map<string, number>()
+    );
 
     const { collectionSortField } = useCollectionsSortStore();
 
@@ -6539,6 +6592,9 @@ export function LibraryWorkspace({
         itemId: string,
         collectionIds: string[]
     ): Promise<UpdateLibraryItemCollectionsResult> => {
+        const requestVersion =
+            (collectionUpdateVersionByItemIdRef.current.get(itemId) ?? 0) + 1;
+        collectionUpdateVersionByItemIdRef.current.set(itemId, requestVersion);
         const previousCollections =
             items.find((item) => item.id === itemId)?.collections ?? [];
         const optimisticCollections = sortCollections(
@@ -6566,6 +6622,15 @@ export function LibraryWorkspace({
                 };
             }
 
+            // Ignore out-of-order responses so older requests can't clobber a
+            // newer selection for the same item.
+            if (
+                collectionUpdateVersionByItemIdRef.current.get(itemId) !==
+                requestVersion
+            ) {
+                return result;
+            }
+
             if (result.status === "UPDATED") {
                 setItems((current) =>
                     replaceItemCollections(current, itemId, result.collections)
@@ -6579,15 +6644,7 @@ export function LibraryWorkspace({
             return result;
         };
 
-        return runUpdate().catch(() => {
-            setItems((current) =>
-                replaceItemCollections(current, itemId, previousCollections)
-            );
-            return {
-                message: "We couldn't update collections for this item.",
-                status: "ERROR",
-            };
-        });
+        return runUpdate();
     };
 
     const handleCreateCollectionFromResults = async (input: {
