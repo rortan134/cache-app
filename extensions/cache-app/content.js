@@ -9,6 +9,8 @@ const MAX_ITEMS = 2000;
 const MAX_YOUTUBE_ITEMS = 10_000;
 const INNER_SCROLL_STEPS = 28;
 const INNER_SCROLL_STEP_PAUSE_MS = 72;
+const { MESSAGE_TYPES, isYouTubeWatchLaterUrl } =
+    globalThis.CacheExtensionRuntime;
 
 /**
  * @param {number} ms
@@ -204,7 +206,7 @@ function flushChunkToExtension(accumulated, source) {
         .sendMessage({
             items,
             source,
-            type: "BOOKMARKS_CHUNK",
+            type: MESSAGE_TYPES.BOOKMARKS_CHUNK,
         })
         .catch(() => {
             /* service worker may be restarting */
@@ -803,7 +805,7 @@ async function runInstagramSync() {
             code: "NOT_SAVED_PAGE",
             message: "Open Instagram → your profile → Saved, then try again.",
             source: "instagram",
-            type: "SYNC_ERROR",
+            type: MESSAGE_TYPES.SYNC_ERROR,
         });
         return;
     }
@@ -817,7 +819,7 @@ async function runInstagramSync() {
             message:
                 "No posts found. Scroll the Saved grid manually once, then sync again.",
             source: "instagram",
-            type: "SYNC_ERROR",
+            type: MESSAGE_TYPES.SYNC_ERROR,
         });
         return;
     }
@@ -825,7 +827,7 @@ async function runInstagramSync() {
     await chrome.runtime.sendMessage({
         items,
         source: "instagram",
-        type: "BOOKMARKS_COMPLETE",
+        type: MESSAGE_TYPES.BOOKMARKS_COMPLETE,
     });
 }
 
@@ -1196,7 +1198,7 @@ async function runTikTokSync() {
             message:
                 "Use your profile URL (/@username or /profile), open the Favorites tab, wait for videos to load, then sync. If this persists, TikTok may be using a view the extension cannot read.",
             source: "tiktok",
-            type: "SYNC_ERROR",
+            type: MESSAGE_TYPES.SYNC_ERROR,
         });
         return;
     }
@@ -1210,7 +1212,7 @@ async function runTikTokSync() {
             message:
                 "No videos found. Scroll the Favorites grid once, then sync again.",
             source: "tiktok",
-            type: "SYNC_ERROR",
+            type: MESSAGE_TYPES.SYNC_ERROR,
         });
         return;
     }
@@ -1218,7 +1220,7 @@ async function runTikTokSync() {
     await chrome.runtime.sendMessage({
         items,
         source: "tiktok",
-        type: "BOOKMARKS_COMPLETE",
+        type: MESSAGE_TYPES.BOOKMARKS_COMPLETE,
     });
 }
 
@@ -1228,19 +1230,6 @@ const YT_BOOTSTRAP_MESSAGE = "CACHE_YT_BOOTSTRAP";
 const YT_BROWSE_ENDPOINT = "https://www.youtube.com/youtubei/v1/browse";
 
 /** @typedef {{ availability: string, channelId: string, channelName: string, duration: string, playlistItemId: string, position: number | null, publishedAt: string | null, scrapedAt: string, thumbnailUrl: string, title: string, videoId: string, videoUrl: string }} YouTubeWatchLaterItem */
-
-function isYouTubeWatchLaterUrl(rawUrl) {
-    try {
-        const url = new URL(rawUrl, window.location.origin);
-        return (
-            url.hostname.replace(/^www\./, "") === "youtube.com" &&
-            url.pathname === "/playlist" &&
-            url.searchParams.get("list") === "WL"
-        );
-    } catch {
-        return false;
-    }
-}
 
 function isYouTubeWatchLaterPage() {
     return isYouTubeWatchLaterUrl(window.location.href);
@@ -1563,7 +1552,7 @@ async function runYouTubeWatchLaterSync() {
             code: "NOT_YOUTUBE_WATCH_LATER",
             message: `Open YouTube Watch Later (/playlist?list=WL) first.${titleHint}`,
             source: "youtube",
-            type: "SYNC_ERROR",
+            type: MESSAGE_TYPES.SYNC_ERROR,
         });
         return;
     }
@@ -1575,7 +1564,7 @@ async function runYouTubeWatchLaterSync() {
             message:
                 "Could not read YouTube playlist data from the page. Reload Watch Later and try again.",
             source: "youtube",
-            type: "SYNC_ERROR",
+            type: MESSAGE_TYPES.SYNC_ERROR,
         });
         return;
     }
@@ -1643,7 +1632,7 @@ async function runYouTubeWatchLaterSync() {
             message:
                 "No Watch Later videos were found. Let the playlist load, then try again.",
             source: "youtube",
-            type: "SYNC_ERROR",
+            type: MESSAGE_TYPES.SYNC_ERROR,
         });
         return;
     }
@@ -1651,14 +1640,14 @@ async function runYouTubeWatchLaterSync() {
     await chrome.runtime.sendMessage({
         items: [...accumulated.values()],
         source: "youtube",
-        type: "BOOKMARKS_COMPLETE",
+        type: MESSAGE_TYPES.BOOKMARKS_COMPLETE,
     });
 }
 
 // --- Router ---
 
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
-    if (msg?.type !== "START_SYNC") {
+    if (msg?.type !== MESSAGE_TYPES.START_SYNC) {
         return undefined;
     }
 
@@ -1678,14 +1667,14 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
                     code: "UNSUPPORTED_PAGE",
                     message:
                         "Open Instagram Saved, TikTok Favorites, or YouTube Watch Later in this tab.",
-                    type: "SYNC_ERROR",
+                    type: MESSAGE_TYPES.SYNC_ERROR,
                 });
             }
         } catch (err) {
             await chrome.runtime.sendMessage({
                 code: "SCRAPE_FAILED",
                 message: err instanceof Error ? err.message : String(err),
-                type: "SYNC_ERROR",
+                type: MESSAGE_TYPES.SYNC_ERROR,
             });
         }
     })();

@@ -1,18 +1,19 @@
 /** Runs only on Cache app pages (see manifest `matches`). */
 (function runCacheSiteBootstrap() {
+    const { MESSAGE_TYPES, defaultIngestEndpoint } =
+        globalThis.CacheExtensionRuntime;
     const origin = window.location.origin;
-    const TOKEN_MESSAGE_TYPE = "CACHE_SITE_TOKEN";
-    const BRIDGE_REQUEST_TYPE = "CACHE_SITE_BRIDGE_REQUEST";
-    const READY_EVENT_TYPE = "CACHE_EXTENSION_READY";
 
     function announceExtensionReady() {
         try {
             document.documentElement.dataset.cacheExtensionInstalled = "true";
             window.postMessage(
-                { type: READY_EVENT_TYPE },
+                { type: MESSAGE_TYPES.CACHE_EXTENSION_READY },
                 window.location.origin
             );
-            window.dispatchEvent(new CustomEvent(READY_EVENT_TYPE));
+            window.dispatchEvent(
+                new CustomEvent(MESSAGE_TYPES.CACHE_EXTENSION_READY)
+            );
         } catch {}
     }
 
@@ -44,7 +45,7 @@
                 if (!data || typeof data !== "object") {
                     return;
                 }
-                if (data.type !== TOKEN_MESSAGE_TYPE) {
+                if (data.type !== MESSAGE_TYPES.CACHE_SITE_TOKEN) {
                     return;
                 }
                 window.removeEventListener("message", once);
@@ -88,12 +89,14 @@
         if (!token) {
             return false;
         }
-        const endpoint = `${origin}/api/integrations/instagram/saved`;
+        const endpoint =
+            defaultIngestEndpoint(origin) ||
+            `${origin}/api/integrations/instagram/saved`;
         try {
             await chrome.runtime.sendMessage({
                 endpoint,
                 token,
-                type: "CACHE_SITE_BRIDGE",
+                type: MESSAGE_TYPES.CACHE_SITE_BRIDGE,
             });
             return true;
         } catch (err) {
@@ -103,7 +106,7 @@
     }
 
     chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
-        if (msg?.type !== BRIDGE_REQUEST_TYPE) {
+        if (msg?.type !== MESSAGE_TYPES.CACHE_SITE_BRIDGE_REQUEST) {
             return false;
         }
         void bridgeTokenToExtension().then((ok) => sendResponse({ ok }));

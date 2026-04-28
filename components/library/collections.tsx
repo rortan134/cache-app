@@ -87,6 +87,36 @@ import { useHotkeys } from "react-hotkeys-hook";
 import { createStore } from "stan-js";
 import { storage } from "stan-js/storage";
 
+type CollectionSortField = "count" | "created" | "priority" | "updated";
+type CollectionOptionIcon = React.ComponentType<{ className?: string }>;
+type CollectionsListStatusTone = "error" | "success";
+type SortableCollectionSummary = Pick<
+    LibraryCollectionSummary,
+    "createdAt" | "itemCount" | "name" | "priority" | "updatedAt"
+>;
+type CollectionListItemStyle = React.CSSProperties & {
+    "--collection-background"?: string;
+    "--focus-ring-color"?: string;
+    "--text-muted-color"?: string;
+};
+
+interface PriorityOption {
+    icon: CollectionOptionIcon;
+    label: string;
+    value: CollectionPriority;
+}
+
+interface SortingOption {
+    icon: CollectionOptionIcon;
+    label: string;
+    value: CollectionSortField;
+}
+
+interface CollectionsListItemContextValue {
+    collection: LibraryCollectionSummary;
+    isHovered: boolean;
+}
+
 const COLLECTION_ITEM_PREVIEW_SLIDESHOW_INTERVAL_MS = 600;
 
 const COMPACT_NUMBER_FORMATTER = new Intl.NumberFormat("en-US", {
@@ -106,58 +136,6 @@ export const NAME_COLLATOR = new Intl.Collator(undefined, {
     numeric: true,
     sensitivity: "base",
 });
-
-interface PriorityOption {
-    icon: React.ElementType;
-    label: string;
-    value: CollectionPriority;
-}
-
-type CollectionSortField = "count" | "created" | "priority" | "updated";
-
-interface SortingOption {
-    icon: React.ElementType;
-    label: string;
-    value: CollectionSortField;
-}
-
-interface CollectionsListItemContextValue {
-    collection: LibraryCollectionSummary;
-    isHovered: boolean;
-}
-
-interface CollectionsListItemMetaProps {
-    isSharePending: boolean;
-    onCopyLinks: () => void;
-    onCopyShareLink: () => void;
-    onCopyTitle: () => void;
-    onDelete: () => void;
-    onDisableShare: () => void;
-    onEnableShare: () => void;
-    onExportCsv: () => void;
-    onMakeCopy: () => void;
-    onOpenLinks: () => void;
-    onRename: () => void;
-    shareUrl: string | null;
-}
-
-interface CollectionsListSharePopoverProps {
-    collection: LibraryCollectionSummary;
-    isSharePending: boolean;
-    onCopyShareLink: () => void;
-    onDisableShare: () => void;
-    onEnableShare: () => void;
-    shareUrl: string | null;
-}
-
-interface CollectionsListExportMenuProps {
-    hasItems: boolean;
-    onCopyLinks: () => void;
-    onCopyTitle: () => void;
-    onExportCsv: () => void;
-    onMakeCopy: () => void;
-    onOpenLinks: () => void;
-}
 
 const DEFAULT_PRIORITY_OPTION: PriorityOption = {
     icon: PriorityNoneIcon,
@@ -253,17 +231,16 @@ function useCollectionItemHotkey(
     enabled = true
 ) {
     const { isHovered } = useCollectionsListItemContext();
+    const handleTrigger = useStableCallback(onTrigger);
 
     useHotkeys(
         keys,
-        () => {
-            onTrigger();
-        },
+        handleTrigger,
         {
             enabled: isHovered && enabled,
             preventDefault: true,
         },
-        [enabled, isHovered, onTrigger]
+        [enabled, handleTrigger, isHovered]
     );
 }
 
@@ -302,14 +279,14 @@ function useCollectionItemPreviewIndex(
             return;
         }
 
-        const interval = setInterval(() => {
+        const previewIntervalId = setInterval(() => {
             setActivePreviewIndex(
                 (currentIndex) => (currentIndex + 1) % thumbnailCount
             );
         }, COLLECTION_ITEM_PREVIEW_SLIDESHOW_INTERVAL_MS);
 
         return () => {
-            clearInterval(interval);
+            clearInterval(previewIntervalId);
         };
     }, [hasMultipleThumbnails, isOpen, thumbnailCount]);
 
@@ -328,17 +305,17 @@ function getCollectionsListItemStyle(name: string, isSelected: boolean) {
         "--collection-background": `color-mix(in srgb, ${assignedColor} ${backgroundOpacity}%, transparent)`,
         "--focus-ring-color": `color-mix(in srgb, ${assignedColor}, black 50%)`,
         "--text-muted-color": `color-mix(in srgb, ${assignedColor} 16%, black 18%)`,
-    } as React.CSSProperties;
+    } satisfies CollectionListItemStyle;
 }
 
 function compareCollectionNames<
-    T extends Pick<LibraryCollectionSummary, "name">,
+    T extends Pick<SortableCollectionSummary, "name">,
 >(a: T, b: T) {
     return NAME_COLLATOR.compare(a.name, b.name);
 }
 
 function compareCollectionPriorities<
-    T extends Pick<LibraryCollectionSummary, "name" | "priority">,
+    T extends Pick<SortableCollectionSummary, "name" | "priority">,
 >(a: T, b: T) {
     const priorityDifference =
         COLLECTION_PRIORITY_ORDER[a.priority] -
@@ -352,19 +329,19 @@ function compareCollectionPriorities<
 }
 
 function compareCollectionCreatedAt<
-    T extends Pick<LibraryCollectionSummary, "createdAt">,
+    T extends Pick<SortableCollectionSummary, "createdAt">,
 >(a: T, b: T) {
     return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
 }
 
 function compareCollectionUpdatedAt<
-    T extends Pick<LibraryCollectionSummary, "updatedAt">,
+    T extends Pick<SortableCollectionSummary, "updatedAt">,
 >(a: T, b: T) {
     return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
 }
 
 function compareCollectionItemCount<
-    T extends Pick<LibraryCollectionSummary, "itemCount">,
+    T extends Pick<SortableCollectionSummary, "itemCount">,
 >(a: T, b: T) {
     return b.itemCount - a.itemCount;
 }
@@ -376,20 +353,11 @@ const COLLECTION_SUMMARY_SORTERS = {
     updated: compareCollectionUpdatedAt,
 } satisfies Record<
     CollectionSortField,
-    (
-        a: Pick<
-            LibraryCollectionSummary,
-            "createdAt" | "itemCount" | "name" | "priority" | "updatedAt"
-        >,
-        b: Pick<
-            LibraryCollectionSummary,
-            "createdAt" | "itemCount" | "name" | "priority" | "updatedAt"
-        >
-    ) => number
+    (a: SortableCollectionSummary, b: SortableCollectionSummary) => number
 >;
 
 function sortCollectionList<T>(
-    collections: T[],
+    collections: readonly T[],
     compare: (a: T, b: T) => number
 ) {
     return [...collections].sort(compare);
@@ -399,7 +367,7 @@ function CollectionComboboxOptionRow({
     icon: Icon,
     label,
 }: {
-    icon: React.ElementType;
+    icon: CollectionOptionIcon;
     label: string;
 }) {
     return (
@@ -412,6 +380,14 @@ function CollectionComboboxOptionRow({
     );
 }
 
+function CollectionsListPreviewImageFallback() {
+    return (
+        <div className="flex size-full items-center justify-center bg-muted/40 text-[11px] text-muted-foreground">
+            No preview image
+        </div>
+    );
+}
+
 function CollectionsListItemPreviewImage({
     alt,
     src,
@@ -419,15 +395,25 @@ function CollectionsListItemPreviewImage({
     alt: string;
     src?: string;
 }) {
-    const [didFail, setDidFail] = React.useState(false);
-    const canRenderImage = !!src && !didFail;
+    if (!src) {
+        return <CollectionsListPreviewImageFallback />;
+    }
+    return (
+        <CollectionsListResolvedPreviewImage alt={alt} key={src} src={src} />
+    );
+}
 
-    if (!canRenderImage) {
-        return (
-            <div className="flex size-full items-center justify-center bg-muted/40 text-[11px] text-muted-foreground">
-                No preview image
-            </div>
-        );
+function CollectionsListResolvedPreviewImage({
+    alt,
+    src,
+}: {
+    alt: string;
+    src: string;
+}) {
+    const [didFail, setDidFail] = React.useState(false);
+
+    if (didFail) {
+        return <CollectionsListPreviewImageFallback />;
     }
 
     return (
@@ -442,6 +428,30 @@ function CollectionsListItemPreviewImage({
             width={288}
         />
     );
+}
+
+function CollectionsListInlineRow({
+    className,
+    ...props
+}: React.ComponentProps<"div">) {
+    return (
+        <div
+            className={cn(
+                "flex items-center justify-between gap-2 pr-1 pl-3.5",
+                className
+            )}
+            {...props}
+        />
+    );
+}
+
+interface CollectionsListSharePopoverProps {
+    collection: LibraryCollectionSummary;
+    isSharePending: boolean;
+    onCopyShareLink: () => void;
+    onDisableShare: () => void;
+    onEnableShare: () => void;
+    shareUrl: string | null;
 }
 
 function CollectionsListSharePopover({
@@ -560,6 +570,15 @@ function CollectionsListSharePopover({
     );
 }
 
+interface CollectionsListExportMenuProps {
+    hasItems: boolean;
+    onCopyLinks: () => void;
+    onCopyTitle: () => void;
+    onExportCsv: () => void;
+    onMakeCopy: () => void;
+    onOpenLinks: () => void;
+}
+
 function CollectionsListExportMenu({
     hasItems,
     onCopyLinks,
@@ -622,16 +641,21 @@ export function CollectionsList({
     );
 }
 
+type CollectionsListTriggerProps = React.ComponentProps<
+    typeof CollapsibleTrigger
+> & {
+    collectionLabels: string[];
+};
+
 export function CollectionsListTrigger({
     className,
     collectionLabels,
     ...props
-}: React.ComponentProps<typeof CollapsibleTrigger> & {
-    collectionLabels: string[];
-}) {
+}: CollectionsListTriggerProps) {
     const { isOpen } = useCollectionsListOpenState();
+    const collectionCount = collectionLabels.length;
     const collectionLabelsText =
-        collectionLabels.length > 0
+        collectionCount > 0
             ? collectionLabels.join(", ")
             : "No collections yet";
 
@@ -655,7 +679,7 @@ export function CollectionsListTrigger({
                                 focusable="false"
                             />
                             <span className="absolute -bottom-[6px] left-[16.2px] text-nowrap text-[10px] tabular-nums opacity-80">
-                                {collectionLabels.length}
+                                {collectionCount}
                             </span>
                         </div>
                         <span className="min-w-0 flex-1 font-medium text-sm leading-tight">
@@ -708,13 +732,17 @@ export function CollectionsListActionButton({
     );
 }
 
+type CollectionsListItemPreviewProps = React.ComponentProps<
+    typeof PreviewCardTrigger
+> & {
+    thumbnails: readonly string[];
+};
+
 export function CollectionsListItemPreview({
     onClick: onClickProp,
     thumbnails,
     ...props
-}: React.ComponentProps<typeof PreviewCardTrigger> & {
-    thumbnails: string[];
-}) {
+}: CollectionsListItemPreviewProps) {
     const { collection } = useCollectionsListItemContext();
     const [isOpen, setIsOpen] = React.useState(false);
     const activePreviewIndex = useCollectionItemPreviewIndex(
@@ -777,18 +805,21 @@ export function CollectionsListItemValue() {
     );
 }
 
+interface CollectionsListItemPriorityComboboxProps {
+    onOpenChange?: (open: boolean) => void;
+    onUpdatePriority: (priority: CollectionPriority) => void;
+    open?: boolean;
+}
+
 export function CollectionsListItemPriorityCombobox({
     open,
     onOpenChange,
     onUpdatePriority,
-}: {
-    open?: boolean;
-    onOpenChange?: (open: boolean) => void;
-    onUpdatePriority: (priority: CollectionPriority) => void;
-}) {
+}: CollectionsListItemPriorityComboboxProps) {
     const { collection } = useCollectionsListItemContext();
     const [isOpen, setIsOpen] = useControllableOpenState(open, onOpenChange);
     const selectedOption = getPriorityOption(collection.priority);
+    const SelectedPriorityIcon = selectedOption.icon;
 
     useCollectionItemHotkey(
         "p",
@@ -824,7 +855,7 @@ export function CollectionsListItemPriorityCombobox({
                     />
                 }
             >
-                <selectedOption.icon className="size-4" />
+                <SelectedPriorityIcon className="size-4" />
             </ComboboxTrigger>
             <ComboboxPopup positionMethod="fixed">
                 <ComboboxInput
@@ -857,14 +888,20 @@ export function CollectionsListItemPriorityCombobox({
     );
 }
 
-export function CollectionsListItem({
-    collection,
-    isSelected,
-    ...props
-}: React.ComponentProps<"div"> & {
+type CollectionsListItemProps = React.ComponentProps<"div"> & {
     collection: LibraryCollectionSummary;
     isSelected: boolean;
-}) {
+};
+
+export function CollectionsListItem({
+    className,
+    collection,
+    isSelected,
+    onMouseEnter,
+    onMouseLeave,
+    style: styleProp,
+    ...props
+}: CollectionsListItemProps) {
     const [isHovered, setIsHovered] = React.useState(false);
     const style = getCollectionsListItemStyle(collection.name, isSelected);
 
@@ -873,14 +910,38 @@ export function CollectionsListItem({
             {/* biome-ignore lint/a11y/noNoninteractiveElementInteractions: Hover tracking scopes collection-level keyboard shortcuts. */}
             {/* biome-ignore lint/a11y/noStaticElementInteractions: Same as above. */}
             <div
-                className="group relative flex select-none items-center"
-                onMouseEnter={() => setIsHovered(true)}
-                onMouseLeave={() => setIsHovered(false)}
-                style={{ ...style, ...props.style }}
                 {...props}
+                className={cn(
+                    "group relative flex select-none items-center",
+                    className
+                )}
+                onMouseEnter={(event) => {
+                    setIsHovered(true);
+                    onMouseEnter?.(event);
+                }}
+                onMouseLeave={(event) => {
+                    setIsHovered(false);
+                    onMouseLeave?.(event);
+                }}
+                style={{ ...style, ...styleProp }}
             />
         </CollectionsListItemContext>
     );
+}
+
+interface CollectionsListItemMetaProps {
+    isSharePending: boolean;
+    onCopyLinks: () => void;
+    onCopyShareLink: () => void;
+    onCopyTitle: () => void;
+    onDelete: () => void;
+    onDisableShare: () => void;
+    onEnableShare: () => void;
+    onExportCsv: () => void;
+    onMakeCopy: () => void;
+    onOpenLinks: () => void;
+    onRename: () => void;
+    shareUrl: string | null;
 }
 
 export function CollectionsListItemMeta({
@@ -902,15 +963,7 @@ export function CollectionsListItemMeta({
 
     useCollectionItemHotkey("e", onRename);
     useCollectionItemHotkey(["delete", "backspace"], onDelete);
-    useCollectionItemHotkey(
-        "c",
-        () => {
-            if (hasItems) {
-                onCopyLinks();
-            }
-        },
-        hasItems
-    );
+    useCollectionItemHotkey("c", onCopyLinks, hasItems);
 
     return (
         <div className="absolute top-1/2 right-0 flex size-8 -translate-y-1/2 items-center justify-center">
@@ -975,21 +1028,27 @@ export function CollectionsListItemMeta({
     );
 }
 
+type CollectionsListStatusProps = Omit<
+    React.ComponentProps<"p">,
+    "children"
+> & {
+    children: React.ReactNode;
+    onDismiss: () => void;
+    tone?: CollectionsListStatusTone;
+};
+
 export function CollectionsListStatus({
     className,
     onDismiss,
     tone = "success",
     ...props
-}: React.ComponentProps<"p"> & {
-    onDismiss: () => void;
-    tone?: "error" | "success";
-}) {
+}: CollectionsListStatusProps) {
     if (!props.children) {
         return null;
     }
 
     return (
-        <div className="flex items-center justify-between gap-2 pt-1 pr-1 pl-3.5">
+        <CollectionsListInlineRow className="pt-1">
             <p
                 aria-live="polite"
                 className={cn(
@@ -1005,22 +1064,24 @@ export function CollectionsListStatus({
             <Button onClick={onDismiss} size="xs" variant="ghost">
                 Dismiss
             </Button>
-        </div>
+        </CollectionsListInlineRow>
     );
 }
+
+type CollectionsListFilterClearProps = React.ComponentProps<typeof Button> & {
+    isVisible: boolean;
+};
 
 export function CollectionsListFilterClear({
     isVisible,
     ...props
-}: React.ComponentProps<typeof Button> & {
-    isVisible: boolean;
-}) {
+}: CollectionsListFilterClearProps) {
     if (!isVisible) {
         return null;
     }
 
     return (
-        <div className="flex items-center justify-between gap-2 pr-1 pl-3.5">
+        <CollectionsListInlineRow>
             <p className="text-muted-foreground text-xs">
                 Filtering by selected collection
             </p>
@@ -1032,16 +1093,14 @@ export function CollectionsListFilterClear({
             >
                 Clear
             </Button>
-        </div>
+        </CollectionsListInlineRow>
     );
 }
 
 export function CollectionsListFilterClearIcon({
     isVisible,
     ...props
-}: React.ComponentProps<typeof Button> & {
-    isVisible: boolean;
-}) {
+}: CollectionsListFilterClearProps) {
     if (!isVisible) {
         return null;
     }
@@ -1167,19 +1226,17 @@ export function CollectionsListNoticeCallout() {
 
 export function sortCollections<
     T extends Pick<LibraryCollectionSummary, "name" | "priority">,
->(collections: T[]): T[] {
+>(collections: readonly T[]): T[] {
     return sortCollectionList(collections, compareCollectionPriorities);
 }
 
-export function sortCollectionSummaries<
-    T extends Pick<
-        LibraryCollectionSummary,
-        "createdAt" | "itemCount" | "name" | "priority" | "updatedAt"
-    >,
->(collections: T[], sortField: CollectionSortField): T[] {
+export function sortCollectionSummaries<T extends SortableCollectionSummary>(
+    collections: readonly T[],
+    sortField: CollectionSortField
+): T[] {
     return sortCollectionList(
         collections,
-        COLLECTION_SUMMARY_SORTERS[sortField] ?? compareCollectionNames
+        COLLECTION_SUMMARY_SORTERS[sortField]
     );
 }
 

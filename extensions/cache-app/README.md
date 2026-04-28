@@ -27,6 +27,20 @@ The **content script** `cache-site-bootstrap.js` runs only on those origins. It 
 
 **Open Cache** opens `/{defaultLocale}` on `CACHE_APP_ORIGIN` (`en-US` in the popup).
 
+## Architecture overview
+
+- `cache-extension-runtime.js` is the shared runtime contract. It owns message names, shared storage keys, origin and endpoint resolution, and small cross-script helpers. Keep new cross-cutting constants here so popup, worker, and content scripts cannot drift.
+- `content.js` is the scraper boundary for Instagram Saved, TikTok Favorites, and YouTube Watch Later. It should only detect pages, collect rows, and emit progress or completion messages back to the extension runtime.
+- `cache-site-bootstrap.js` is the Cache-site bridge. It runs only on Cache origins, fetches or relays the ingest token from the signed-in app session, and stores the token in extension storage via the service worker.
+- `service-worker.js` is the orchestration boundary. It owns local persistence, Chrome bookmark event ingestion, source-specific merge policies, and all backend POSTs.
+- `popup.js` is UI-only. It should read sync metadata, request user-triggered work, and reflect link state, but it should not grow business logic that belongs in the worker.
+
+## Cleanup notes
+
+- Shared message names and storage keys now come from `cache-extension-runtime.js`, which removes repeated string literals across the popup, worker, and content/bootstrap scripts.
+- In `service-worker.js`, source-specific persistence is centralized in a single `BOOKMARK_SOURCE_CONFIG` map. Storage versioning, merge behavior, endpoint selection, and backend sync strategy now live together instead of being split across conditionals.
+- The popup and Cache-site bridge now resolve hosts and endpoints from shared config instead of mixing config-driven logic with hardcoded `cachd.app` assumptions.
+
 ## Server sync guardrails
 
 The service worker skips server POSTs when there is no ingest token or no Cache session cookie for the POST URL’s origin (same idea as the popup).

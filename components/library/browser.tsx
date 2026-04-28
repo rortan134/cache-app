@@ -4336,31 +4336,6 @@ interface SectionProps extends GridProps {
     title: string;
 }
 
-interface LibraryGridCardProps {
-    addedLabel: string;
-    alt: string;
-    collections: LibraryCollectionSummary[];
-    createdLabel: string;
-    href: string;
-    item: LibraryItemWithCollections;
-    onCopyLink?: (item: LibraryItemWithCollections) => void;
-    onDelete?: (item: LibraryItemWithCollections) => void;
-    onOpenInNewTab?: (item: LibraryItemWithCollections) => void;
-    onOpenNote?: (item: LibraryItemWithCollections) => void;
-    onUpdateItemCollections: (
-        itemId: string,
-        collectionIds: string[]
-    ) => Promise<UpdateLibraryItemCollectionsResult>;
-    pendingDeleteItemId?: string | null;
-    previewDescription?: string;
-    previewTitle: string;
-}
-
-interface LockedLibraryGridCardProps {
-    alt: string;
-    item: LibraryItemWithCollections;
-}
-
 interface KanbanColumnItem {
     item: LibraryItemWithCollections;
     value: string;
@@ -4370,6 +4345,55 @@ interface PreviewMediaProps {
     alt: string;
     fallbackLabel?: string;
     src: string | null;
+}
+
+type LibraryGridCardContextValue = Pick<
+    GridProps,
+    | "collections"
+    | "onCopyLink"
+    | "onDelete"
+    | "onOpenInNewTab"
+    | "onOpenNote"
+    | "onUpdateItemCollections"
+    | "pendingDeleteItemId"
+>;
+
+interface CollectionComboboxPickerProps
+    extends React.ComponentProps<typeof ComboboxTrigger> {
+    collections: LibraryCollectionSummary[];
+    items: LibraryItemWithCollections[];
+    onOpenChange?: (open: boolean) => void;
+    onUpdateItemCollections: (
+        itemId: string,
+        collectionIds: string[]
+    ) => Promise<UpdateLibraryItemCollectionsResult>;
+    open?: boolean;
+}
+
+interface LibraryGridCardProps {
+    item: LibraryItemWithCollections;
+}
+
+interface LibraryGridCardMenuProps {
+    addedLabel: string;
+    createdLabel: string;
+    href: string;
+    isDownloading: boolean;
+    item: LibraryItemWithCollections;
+    kind: "context" | "menu";
+    onDownload: () => void;
+    previewDescription: string;
+    previewImageUrl: string | null;
+    previewTitle: string;
+}
+
+interface LibraryGridLayoutProps {
+    items: LibraryItemWithCollections[];
+    locked?: boolean;
+}
+
+interface LibraryMasonryLayoutProps extends LibraryGridLayoutProps {
+    columnCount?: number;
 }
 
 function buildKanbanColumns(
@@ -4541,31 +4565,44 @@ function PreviewMedia({
     );
 }
 
+const LibraryGridCardContext =
+    React.createContext<LibraryGridCardContextValue | null>(null);
+
+function useLibraryGridCardContext(): LibraryGridCardContextValue {
+    const context = React.use(LibraryGridCardContext);
+    if (!context) {
+        throw new Error(
+            "Library grid cards must be used inside <LibraryGridCardProvider>."
+        );
+    }
+    return context;
+}
+
+function LibraryGridCardProvider({
+    children,
+    ...value
+}: React.PropsWithChildren<LibraryGridCardContextValue>): React.ReactElement {
+    return (
+        <LibraryGridCardContext.Provider value={value}>
+            {children}
+        </LibraryGridCardContext.Provider>
+    );
+}
+
 /** @internal */
 function CollectionComboboxPicker({
     collections,
-    item,
+    items,
     onUpdateItemCollections,
     open: openProp,
     onOpenChange,
     children,
     ...props
-}: React.ComponentProps<typeof ComboboxTrigger> & {
-    collections: LibraryCollectionSummary[];
-    item: LibraryItemWithCollections | LibraryItemWithCollections[];
-    onUpdateItemCollections: (
-        itemId: string,
-        collectionIds: string[]
-    ) => Promise<UpdateLibraryItemCollectionsResult>;
-    open?: boolean;
-    onOpenChange?: (open: boolean) => void;
-}): React.ReactElement {
+}: CollectionComboboxPickerProps): React.ReactElement {
     const [isOpenInternal, setIsOpenInternal] = React.useState(false);
     const isOpen = openProp ?? isOpenInternal;
     const setIsOpen = onOpenChange ?? setIsOpenInternal;
-    const selectedCollectionIds = Array.isArray(item)
-        ? getSharedCollectionIds(item)
-        : item.collections.map((collection) => collection.id);
+    const selectedCollectionIds = getSharedCollectionIds(items);
     const selectedCount = selectedCollectionIds.length;
 
     return (
@@ -4575,24 +4612,17 @@ function CollectionComboboxPicker({
             multiple
             onOpenChange={setIsOpen}
             onValueChange={(nextIds) => {
-                if (Array.isArray(item)) {
-                    for (const currentItem of item) {
-                        const mergedCollectionIds =
-                            mergeBulkEditedCollectionIds({
-                                currentCollectionIds:
-                                    currentItem.collections.map(
-                                        (collection) => collection.id
-                                    ),
-                                nextCollectionIds: [...nextIds],
-                                sharedCollectionIds: selectedCollectionIds,
-                            });
-                        onUpdateItemCollections(
-                            currentItem.id,
-                            mergedCollectionIds
-                        ).catch(() => undefined);
-                    }
-                } else {
-                    onUpdateItemCollections(item.id, [...nextIds]).catch(
+                const nextCollectionIds = [...nextIds];
+
+                for (const item of items) {
+                    const mergedCollectionIds = mergeBulkEditedCollectionIds({
+                        currentCollectionIds: item.collections.map(
+                            (collection) => collection.id
+                        ),
+                        nextCollectionIds,
+                        sharedCollectionIds: selectedCollectionIds,
+                    });
+                    onUpdateItemCollections(item.id, mergedCollectionIds).catch(
                         () => undefined
                     );
                 }
@@ -4652,6 +4682,29 @@ function CollectionComboboxPicker({
     );
 }
 
+function LibraryGridCardCollectionPicker({
+    item,
+    onOpenChange,
+    open,
+}: {
+    item: LibraryItemWithCollections;
+    onOpenChange?: (open: boolean) => void;
+    open?: boolean;
+}): React.ReactElement {
+    const { collections, onUpdateItemCollections } =
+        useLibraryGridCardContext();
+
+    return (
+        <CollectionComboboxPicker
+            collections={collections}
+            items={[item]}
+            onOpenChange={onOpenChange}
+            onUpdateItemCollections={onUpdateItemCollections}
+            open={open}
+        />
+    );
+}
+
 function PreviewColor({ value }: { value: string }) {
     const { copyToClipboard, isCopied } = useCopyToClipboard();
 
@@ -4692,72 +4745,53 @@ function PreviewColorPalette({ src }: { src: string }) {
     );
 }
 
-function LibraryGridCard({
+function LibraryGridCardMenu({
     addedLabel,
-    alt,
-    collections,
     createdLabel,
     href,
+    isDownloading,
     item,
-    onCopyLink,
-    onDelete,
-    onOpenNote,
-    onOpenInNewTab,
-    onUpdateItemCollections,
-    pendingDeleteItemId,
+    kind,
+    onDownload,
     previewDescription,
+    previewImageUrl,
     previewTitle,
-}: LibraryGridCardProps): React.ReactElement {
+}: LibraryGridCardMenuProps): React.ReactElement {
+    const {
+        onCopyLink,
+        onDelete,
+        onOpenInNewTab,
+        onOpenNote,
+        pendingDeleteItemId,
+    } = useLibraryGridCardContext();
+    const Item = kind === "context" ? ContextMenuItem : MenuItem;
+    const Separator = kind === "context" ? ContextMenuSeparator : MenuSeparator;
     const isNote = item.kind === "note";
     const isDeletePending = pendingDeleteItemId === item.id;
-    const [isDownloading, setIsDownloading] = React.useState(false);
-    const [isHovered, setIsHovered] = React.useState(false);
-    const [isCollectionPickerOpen, setIsCollectionPickerOpen] =
-        React.useState(false);
-    const previewImageUrl = opengraphPreviewUrl(item);
     const canPreview = !isNote && toValidUrl(href) !== "about:blank";
-    const noteExcerpt = getNoteExcerpt(item.noteContentText);
-    const displayTitle = getItemTitle(item);
-    const isNewItem = !isNote && dayjs(itemDate(item)).isToday();
 
-    useHotkeys("s", () => setIsCollectionPickerOpen(true), {
-        enabled: isHovered && !isCollectionPickerOpen,
-        preventDefault: true,
-    });
+    const deleteItem =
+        kind === "context" ? (
+            <ContextMenuItem
+                className="text-destructive data-highlighted:bg-destructive/10 data-highlighted:text-destructive"
+                disabled={isDeletePending}
+                onClick={() => onDelete?.(item)}
+            >
+                <Trash2Icon className="size-4.5" />
+                {isDeletePending ? "Deleting..." : "Delete"}
+            </ContextMenuItem>
+        ) : (
+            <MenuItem
+                disabled={isDeletePending}
+                onClick={() => onDelete?.(item)}
+                variant="destructive"
+            >
+                <Trash2Icon className="size-4.5" />
+                {isDeletePending ? "Deleting..." : "Delete"}
+            </MenuItem>
+        );
 
-    const handlePrimaryClick = (event: React.MouseEvent<HTMLAnchorElement>) => {
-        event.preventDefault();
-        if (isNote) {
-            onOpenNote?.(item);
-            return;
-        }
-        onOpenInNewTab?.(item);
-    };
-
-    const handleDownload = async () => {
-        setIsDownloading(true);
-        try {
-            const result = await downloadMedia(item.url);
-            if (result.status === "SUCCESS") {
-                // Use a hidden anchor to trigger download if possible, or just open in new tab
-                const link = document.createElement("a");
-                link.href = result.downloadUrl;
-                link.download = ""; // Cobalt usually provides a good filename or direct link
-                link.target = "_blank";
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-            } else {
-                console.error(result.message);
-            }
-        } catch (error) {
-            console.error(error);
-        } finally {
-            setIsDownloading(false);
-        }
-    };
-
-    const renderCardMenuMeta = () => (
+    return (
         <>
             <div className="relative mx-auto flex max-w-56 items-center gap-2 py-2 pl-2.5 opacity-50">
                 <span
@@ -4799,14 +4833,7 @@ function LibraryGridCard({
                     </div>
                 ) : null}
             </div>
-        </>
-    );
-
-    const renderPrimaryMenuItems = (
-        Item: typeof ContextMenuItem | typeof MenuItem,
-        Separator: typeof ContextMenuSeparator | typeof MenuSeparator
-    ) => (
-        <>
+            <Separator />
             {isNote ? (
                 <Item onClick={() => onOpenNote?.(item)}>
                     <FilePenLineIcon className="size-4.5 text-muted-foreground" />
@@ -4839,55 +4866,72 @@ function LibraryGridCard({
                         <LinkIcon className="size-4.5 text-muted-foreground" />
                         Copy URL link
                     </Item>
-                    <Item disabled={isDownloading} onClick={handleDownload}>
+                    <Item disabled={isDownloading} onClick={onDownload}>
                         <DownloadIcon className="size-4.5 text-muted-foreground" />
                         {isDownloading ? "Downloading..." : "Download media"}
                     </Item>
                     <Separator />
                 </>
             )}
+            {deleteItem}
         </>
     );
+}
 
-    const renderDeleteMenuItem = (menuKind: "context" | "menu") => {
-        if (menuKind === "context") {
-            return (
-                <ContextMenuItem
-                    className="text-destructive data-highlighted:bg-destructive/10 data-highlighted:text-destructive"
-                    disabled={isDeletePending}
-                    onClick={() => onDelete?.(item)}
-                >
-                    <Trash2Icon className="size-4.5" />
-                    {isDeletePending ? "Deleting..." : "Delete"}
-                </ContextMenuItem>
-            );
+function LibraryGridCard({ item }: LibraryGridCardProps): React.ReactElement {
+    const { onOpenInNewTab, onOpenNote } = useLibraryGridCardContext();
+    const isNote = item.kind === "note";
+    const [isDownloading, setIsDownloading] = React.useState(false);
+    const [isHovered, setIsHovered] = React.useState(false);
+    const [isCollectionPickerOpen, setIsCollectionPickerOpen] =
+        React.useState(false);
+    const href = normalizeURL(item.url);
+    const alt = (item.caption ?? "").trim() || "Saved item";
+    const domain = itemDomain(item.url);
+    const previewImageUrl = opengraphPreviewUrl(item);
+    const previewTitle = alt === "Saved item" ? "Preview" : alt;
+    const previewDescription = domain === "Other" ? item.url : domain;
+    const createdLabel = itemDateLabel(item.createdAt);
+    const addedLabel = itemDateLabel(item.scrapedAt ?? item.createdAt);
+    const noteExcerpt = getNoteExcerpt(item.noteContentText);
+    const displayTitle = getItemTitle(item);
+    const isNewItem = !isNote && dayjs(itemDate(item)).isToday();
+
+    useHotkeys("s", () => setIsCollectionPickerOpen(true), {
+        enabled: isHovered && !isCollectionPickerOpen,
+        preventDefault: true,
+    });
+
+    const handlePrimaryClick = (event: React.MouseEvent<HTMLAnchorElement>) => {
+        event.preventDefault();
+        if (isNote) {
+            onOpenNote?.(item);
+            return;
         }
-
-        return (
-            <MenuItem
-                disabled={isDeletePending}
-                onClick={() => onDelete?.(item)}
-                variant="destructive"
-            >
-                <Trash2Icon className="size-4.5" />
-                {isDeletePending ? "Deleting..." : "Delete"}
-            </MenuItem>
-        );
+        onOpenInNewTab?.(item);
     };
 
-    const renderCardMenuContent = (menuKind: "context" | "menu") => {
-        const Separator =
-            menuKind === "context" ? ContextMenuSeparator : MenuSeparator;
-        const Item = menuKind === "context" ? ContextMenuItem : MenuItem;
-
-        return (
-            <>
-                {renderCardMenuMeta()}
-                <Separator />
-                {renderPrimaryMenuItems(Item, Separator)}
-                {renderDeleteMenuItem(menuKind)}
-            </>
-        );
+    const handleDownload = async () => {
+        setIsDownloading(true);
+        try {
+            const result = await downloadMedia(item.url);
+            if (result.status === "SUCCESS") {
+                // Use a hidden anchor to trigger download if possible, or just open in new tab
+                const link = document.createElement("a");
+                link.href = result.downloadUrl;
+                link.download = ""; // Cobalt usually provides a good filename or direct link
+                link.target = "_blank";
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            } else {
+                console.error(result.message);
+            }
+        } catch (error) {
+            console.error(error);
+        } finally {
+            setIsDownloading(false);
+        }
     };
 
     return (
@@ -4943,11 +4987,9 @@ function LibraryGridCard({
                             }
                         )}
                     >
-                        <CollectionComboboxPicker
-                            collections={collections}
+                        <LibraryGridCardCollectionPicker
                             item={item}
                             onOpenChange={setIsCollectionPickerOpen}
-                            onUpdateItemCollections={onUpdateItemCollections}
                             open={isCollectionPickerOpen}
                         />
                         <Menu>
@@ -4963,24 +5005,46 @@ function LibraryGridCard({
                                 <Ticker>{displayTitle}</Ticker>
                             </MenuTrigger>
                             <MenuPopup>
-                                {renderCardMenuContent("menu")}
+                                <LibraryGridCardMenu
+                                    addedLabel={addedLabel}
+                                    createdLabel={createdLabel}
+                                    href={href}
+                                    isDownloading={isDownloading}
+                                    item={item}
+                                    kind="menu"
+                                    onDownload={handleDownload}
+                                    previewDescription={previewDescription}
+                                    previewImageUrl={previewImageUrl}
+                                    previewTitle={previewTitle}
+                                />
                             </MenuPopup>
                         </Menu>
                     </div>
                 </article>
             </ContextMenuTrigger>
             <ContextMenuPopup>
-                {renderCardMenuContent("context")}
+                <LibraryGridCardMenu
+                    addedLabel={addedLabel}
+                    createdLabel={createdLabel}
+                    href={href}
+                    isDownloading={isDownloading}
+                    item={item}
+                    kind="context"
+                    onDownload={handleDownload}
+                    previewDescription={previewDescription}
+                    previewImageUrl={previewImageUrl}
+                    previewTitle={previewTitle}
+                />
             </ContextMenuPopup>
         </ContextMenu>
     );
 }
 
 function LockedLibraryGridCard({
-    alt,
     item,
-}: LockedLibraryGridCardProps): React.ReactElement {
+}: LibraryGridCardProps): React.ReactElement {
     const isNote = item.kind === "note";
+    const alt = (item.caption ?? "").trim() || "Saved item";
     const previewImageUrl = opengraphPreviewUrl(item);
     const displayTitle = isNote ? "Note" : alt;
 
@@ -5016,18 +5080,11 @@ function LockedLibraryGridCard({
     );
 }
 
-function renderLibraryMasonry({
-    collections,
+function LibraryMasonryLayout({
     columnCount,
     items,
     locked = false,
-    onCopyLink,
-    onDelete,
-    onOpenNote,
-    onOpenInNewTab,
-    onUpdateItemCollections,
-    pendingDeleteItemId,
-}: GridProps & { locked?: boolean }): React.ReactElement {
+}: LibraryMasonryLayoutProps): React.ReactElement {
     return (
         <React.Profiler
             id={locked ? "library-masonry-locked" : "library-masonry"}
@@ -5041,61 +5098,25 @@ function renderLibraryMasonry({
                 }
                 linear
             >
-                {items.map((item) => {
-                    const href = normalizeURL(item.url);
-                    const alt = (item.caption ?? "").trim() || "Saved item";
-                    const domain = itemDomain(item.url);
-                    const previewTitle = alt === "Saved item" ? "Preview" : alt;
-                    const previewDescription =
-                        domain === "Other" ? item.url : domain;
-                    const createdLabel = itemDateLabel(item.createdAt);
-                    const addedLabel = itemDateLabel(
-                        item.scrapedAt ?? item.createdAt
-                    );
-
-                    return (
-                        <MasonryItem key={item.id}>
-                            {locked ? (
-                                <LockedLibraryGridCard alt={alt} item={item} />
-                            ) : (
-                                <LibraryGridCard
-                                    addedLabel={addedLabel}
-                                    alt={alt}
-                                    collections={collections}
-                                    createdLabel={createdLabel}
-                                    href={href}
-                                    item={item}
-                                    onCopyLink={onCopyLink}
-                                    onDelete={onDelete}
-                                    onOpenInNewTab={onOpenInNewTab}
-                                    onOpenNote={onOpenNote}
-                                    onUpdateItemCollections={
-                                        onUpdateItemCollections
-                                    }
-                                    pendingDeleteItemId={pendingDeleteItemId}
-                                    previewDescription={previewDescription}
-                                    previewTitle={previewTitle}
-                                />
-                            )}
-                        </MasonryItem>
-                    );
-                })}
+                {items.map((item) => (
+                    <MasonryItem key={item.id}>
+                        {locked ? (
+                            <LockedLibraryGridCard item={item} />
+                        ) : (
+                            <LibraryGridCard item={item} />
+                        )}
+                    </MasonryItem>
+                ))}
             </Masonry>
         </React.Profiler>
     );
 }
 
-function renderLibraryKanban({
-    collections,
+function LibraryKanbanLayout({
     items,
     locked = false,
-    onCopyLink,
-    onDelete,
-    onOpenNote,
-    onOpenInNewTab,
-    onUpdateItemCollections,
-    pendingDeleteItemId,
-}: GridProps & { locked?: boolean }): React.ReactElement {
+}: LibraryGridLayoutProps): React.ReactElement {
+    const { collections } = useLibraryGridCardContext();
     const kanbanColumns = buildKanbanColumns(collections, items);
     const columnIds = [
         UNASSIGNED_COLLECTION_COLUMN_ID,
@@ -5135,79 +5156,22 @@ function renderLibraryKanban({
                                             No items yet
                                         </p>
                                     ) : (
-                                        columnItems.map((columnItem) => {
-                                            const { item } = columnItem;
-                                            const href = normalizeURL(item.url);
-                                            const alt =
-                                                (item.caption ?? "").trim() ||
-                                                "Saved item";
-                                            const domain = itemDomain(item.url);
-                                            const previewTitle =
-                                                alt === "Saved item"
-                                                    ? "Preview"
-                                                    : alt;
-                                            const previewDescription =
-                                                domain === "Other"
-                                                    ? item.url
-                                                    : domain;
-                                            const createdLabel = itemDateLabel(
-                                                item.createdAt
-                                            );
-                                            const addedLabel = itemDateLabel(
-                                                item.scrapedAt ?? item.createdAt
-                                            );
-
-                                            return (
-                                                <KanbanItem
-                                                    key={columnItem.value}
-                                                    value={columnItem.value}
-                                                >
-                                                    {locked ? (
-                                                        <LockedLibraryGridCard
-                                                            alt={alt}
-                                                            item={item}
-                                                        />
-                                                    ) : (
-                                                        <LibraryGridCard
-                                                            addedLabel={
-                                                                addedLabel
-                                                            }
-                                                            alt={alt}
-                                                            collections={
-                                                                collections
-                                                            }
-                                                            createdLabel={
-                                                                createdLabel
-                                                            }
-                                                            href={href}
-                                                            item={item}
-                                                            onCopyLink={
-                                                                onCopyLink
-                                                            }
-                                                            onDelete={onDelete}
-                                                            onOpenInNewTab={
-                                                                onOpenInNewTab
-                                                            }
-                                                            onOpenNote={
-                                                                onOpenNote
-                                                            }
-                                                            onUpdateItemCollections={
-                                                                onUpdateItemCollections
-                                                            }
-                                                            pendingDeleteItemId={
-                                                                pendingDeleteItemId
-                                                            }
-                                                            previewDescription={
-                                                                previewDescription
-                                                            }
-                                                            previewTitle={
-                                                                previewTitle
-                                                            }
-                                                        />
-                                                    )}
-                                                </KanbanItem>
-                                            );
-                                        })
+                                        columnItems.map((columnItem) => (
+                                            <KanbanItem
+                                                key={columnItem.value}
+                                                value={columnItem.value}
+                                            >
+                                                {locked ? (
+                                                    <LockedLibraryGridCard
+                                                        item={columnItem.item}
+                                                    />
+                                                ) : (
+                                                    <LibraryGridCard
+                                                        item={columnItem.item}
+                                                    />
+                                                )}
+                                            </KanbanItem>
+                                        ))
                                     )}
                                 </div>
                             </KanbanColumn>
@@ -5292,61 +5256,49 @@ function ExtensionLibraryGrid({
         nextItems: LibraryItemWithCollections[],
         locked = false
     ) =>
-        layoutMode === "kanban"
-            ? renderLibraryKanban({
-                  collections,
-                  columnCount,
-                  items: nextItems,
-                  layoutMode,
-                  locked,
-                  onCopyLink,
-                  onDelete,
-                  onOpenInNewTab,
-                  onOpenNote,
-                  onUpdateItemCollections,
-                  paywallPreviewCount,
-                  paywallTotalCount,
-                  pendingDeleteItemId,
-                  showPaywallBanner,
-              })
-            : renderLibraryMasonry({
-                  collections,
-                  columnCount,
-                  items: nextItems,
-                  layoutMode,
-                  locked,
-                  onCopyLink,
-                  onDelete,
-                  onOpenInNewTab,
-                  onOpenNote,
-                  onUpdateItemCollections,
-                  paywallPreviewCount,
-                  paywallTotalCount,
-                  pendingDeleteItemId,
-                  showPaywallBanner,
-              });
-
-    if (!showPaywall) {
-        return renderLibraryLayout(items);
-    }
+        layoutMode === "kanban" ? (
+            <LibraryKanbanLayout items={nextItems} locked={locked} />
+        ) : (
+            <LibraryMasonryLayout
+                columnCount={columnCount}
+                items={nextItems}
+                locked={locked}
+            />
+        );
 
     return (
-        <div className="flex flex-col gap-8">
-            {previewItems.length > 0 ? renderLibraryLayout(previewItems) : null}
-            {lockedItems.length > 0 ? (
-                <div className="relative isolate">
-                    {showPaywallBanner ? (
-                        <BlockPaywallBanner
-                            length={paywallTotalCount ?? items.length}
-                        />
+        <LibraryGridCardProvider
+            collections={collections}
+            onCopyLink={onCopyLink}
+            onDelete={onDelete}
+            onOpenInNewTab={onOpenInNewTab}
+            onOpenNote={onOpenNote}
+            onUpdateItemCollections={onUpdateItemCollections}
+            pendingDeleteItemId={pendingDeleteItemId}
+        >
+            {showPaywall ? (
+                <div className="flex flex-col gap-8">
+                    {previewItems.length > 0
+                        ? renderLibraryLayout(previewItems)
+                        : null}
+                    {lockedItems.length > 0 ? (
+                        <div className="relative isolate">
+                            {showPaywallBanner ? (
+                                <BlockPaywallBanner
+                                    length={paywallTotalCount ?? items.length}
+                                />
+                            ) : null}
+                            <div className="pointer-events-none absolute inset-0 z-10 rounded-[2rem] bg-linear-to-b from-background/10 via-background/45 to-background/75" />
+                            <div className="select-none opacity-60 blur-[1.5px] saturate-75">
+                                {renderLibraryLayout(lockedItems, true)}
+                            </div>
+                        </div>
                     ) : null}
-                    <div className="pointer-events-none absolute inset-0 z-10 rounded-[2rem] bg-linear-to-b from-background/10 via-background/45 to-background/75" />
-                    <div className="select-none opacity-60 blur-[1.5px] saturate-75">
-                        {renderLibraryLayout(lockedItems, true)}
-                    </div>
                 </div>
-            ) : null}
-        </div>
+            ) : (
+                renderLibraryLayout(items)
+            )}
+        </LibraryGridCardProvider>
     );
 }
 
@@ -6446,7 +6398,7 @@ function LibraryBrowser({
                         <DialogFooter>
                             <CollectionComboboxPicker
                                 collections={collections}
-                                item={visibleResultItems}
+                                items={visibleResultItems}
                                 onUpdateItemCollections={
                                     onUpdateItemCollections
                                 }

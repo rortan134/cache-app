@@ -24,6 +24,7 @@ interface PublicCollectionShareItem {
     postedAt: Date | null;
     scrapedAt: Date | null;
     source: LibraryItemSource;
+    thumbnailUrl: string | null;
     url: string;
 }
 
@@ -215,6 +216,7 @@ export async function getPublicCollectionShareById(
                     postedAt: true,
                     scrapedAt: true,
                     source: true,
+                    thumbnailUrl: true,
                     url: true,
                 },
                 where: {

@@ -29,6 +29,16 @@ import * as React from "react";
 import { createStore } from "stan-js";
 import { storage } from "stan-js/storage";
 
+type IntegrationsListStatusTone = "error" | "success";
+
+const INTEGRATION_ACTION_ICON_BY_NAME: Record<
+    IntegrationActionIcon,
+    React.ComponentType<{ className?: string }>
+> = {
+    images: Images,
+    refresh: RefreshCw,
+};
+
 const { useStore: useIntegrationsPanelStore } = createStore({
     isIntegrationsListPanelOpen: storage(true),
 });
@@ -184,7 +194,7 @@ function IntegrationsListStatus({
     className,
     ...props
 }: React.ComponentProps<"p"> & {
-    tone?: "error" | "success";
+    tone?: IntegrationsListStatusTone;
 }) {
     if (!props.children) {
         return null;
@@ -205,6 +215,7 @@ function IntegrationsListStatus({
 }
 
 export function IntegrationsListEmpty({
+    children = "No integrations are available right now.",
     className,
     ...props
 }: React.ComponentProps<"p">) {
@@ -216,30 +227,9 @@ export function IntegrationsListEmpty({
             )}
             {...props}
         >
-            No integrations are available right now.
+            {children}
         </p>
     );
-}
-
-const ACTION_ICON_MAP: Record<
-    IntegrationActionIcon,
-    React.ComponentType<{ className?: string }>
-> = {
-    images: Images,
-    refresh: RefreshCw,
-};
-
-/** @internal */
-function IntegrationActionIconGlyph({
-    icon,
-}: {
-    icon?: IntegrationActionIcon;
-}) {
-    if (!icon) {
-        return null;
-    }
-    const Icon = ACTION_ICON_MAP[icon];
-    return Icon ? <Icon className="size-4" /> : null;
 }
 
 /** @internal */
@@ -273,33 +263,41 @@ export function IntegrationsListItemAction({
         id,
         isConnected,
     });
-    const hasStatusMessage = !!(errorMessage || successMessage);
 
-    if (actions.length === 0 && !hasStatusMessage) {
+    if (actions.length === 0 && !errorMessage && !successMessage) {
         return null;
     }
 
+    const hasActions = actions.length > 0;
+
     return (
         <div className="ml-auto flex flex-col items-start gap-1">
-            {actions.length > 0 && (
+            {hasActions && (
                 <div className="flex flex-wrap items-center gap-1">
-                    {actions.map((action) => (
-                        <IntegrationsListActionButton
-                            aria-label={
-                                action.size === "icon"
-                                    ? action.label
-                                    : undefined
-                            }
-                            key={`${id}-${direction}-${action.role}`}
-                            loading={action.isLoading}
-                            onClick={action.onClick}
-                            size={action.size}
-                            variant={action.variant}
-                        >
-                            <IntegrationActionIconGlyph icon={action.icon} />
-                            {action.size === "icon" ? null : action.label}
-                        </IntegrationsListActionButton>
-                    ))}
+                    {actions.map((action) => {
+                        const ActionIcon = action.icon
+                            ? INTEGRATION_ACTION_ICON_BY_NAME[action.icon]
+                            : null;
+                        const isIconOnly = action.size === "icon";
+
+                        return (
+                            <IntegrationsListActionButton
+                                aria-label={
+                                    isIconOnly ? action.label : undefined
+                                }
+                                key={`${id}-${direction}-${action.role}`}
+                                loading={action.isLoading}
+                                onClick={action.onClick}
+                                size={action.size}
+                                variant={action.variant}
+                            >
+                                {ActionIcon ? (
+                                    <ActionIcon className="size-4" />
+                                ) : null}
+                                {isIconOnly ? null : action.label}
+                            </IntegrationsListActionButton>
+                        );
+                    })}
                 </div>
             )}
             <IntegrationsListStatus tone="error">

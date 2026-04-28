@@ -4,17 +4,35 @@ const chromeSyncBtn = document.getElementById("chromeSync");
 const chromeContinuousEl = document.getElementById("chromeContinuous");
 const openCacheBtnEl = document.getElementById("openCache");
 
-const CACHE_APP_DEFAULT_LOCALE = "en-US";
+const {
+    CACHE_APP_DEFAULT_LOCALE,
+    CHROME_SYNC_MODES,
+    MESSAGE_TYPES,
+    STORAGE_KEYS,
+    getConfiguredCacheAppOrigin,
+    isYouTubeWatchLaterUrl,
+    resolveCacheOrigin,
+    sourceLabel,
+} = globalThis.CacheExtensionRuntime;
 
-function deriveOriginFromEndpoint(raw) {
-    const s = (raw ?? "").trim();
-    if (!s) {
-        return null;
+function readTrimmedStorageString(data, key) {
+    return typeof data?.[key] === "string" ? data[key].trim() : "";
+}
+
+function setActionButtonsDisabled(disabled) {
+    if (syncBtn) {
+        syncBtn.disabled = disabled;
     }
+    if (chromeSyncBtn) {
+        chromeSyncBtn.disabled = disabled;
+    }
+}
+
+function cacheHostLabel(origin) {
     try {
-        return new URL(s).origin;
+        return new URL(origin).host;
     } catch {
-        return null;
+        return "Cache";
     }
 }
 
@@ -26,10 +44,7 @@ function setOpenCacheVisible(visible) {
 }
 
 async function requestBridgeFromOpenCacheTab() {
-    const appOrigin = String(globalThis.CACHE_APP_ORIGIN ?? "").replace(
-        /\/$/,
-        ""
-    );
+    const appOrigin = getConfiguredCacheAppOrigin();
     if (!appOrigin) {
         return false;
     }
@@ -58,7 +73,7 @@ async function requestBridgeFromOpenCacheTab() {
         }
         try {
             const res = await chrome.tabs.sendMessage(tab.id, {
-                type: "CACHE_SITE_BRIDGE_REQUEST",
+                type: MESSAGE_TYPES.CACHE_SITE_BRIDGE_REQUEST,
             });
             if (res && typeof res === "object" && res.ok === true) {
                 return true;
@@ -99,22 +114,9 @@ function formatErrorMessage(code, message) {
     return map[code] ?? message ?? "Sync failed.";
 }
 
-function isYouTubeWatchLaterUrl(raw) {
-    try {
-        const url = new URL(raw);
-        return (
-            url.hostname.replace(/^www\./, "") === "youtube.com" &&
-            url.pathname === "/playlist" &&
-            url.searchParams.get("list") === "WL"
-        );
-    } catch {
-        return false;
-    }
-}
-
 async function loadMeta() {
     const response = await chrome.runtime.sendMessage({
-        type: "GET_SYNC_META",
+        type: MESSAGE_TYPES.GET_SYNC_META,
     });
     return response && typeof response === "object" ? response : {};
 }
@@ -132,13 +134,9 @@ async function refreshFromStorage() {
 }
 
 async function applyCacheSessionGate() {
-    const appOrigin = String(globalThis.CACHE_APP_ORIGIN ?? "").replace(
-        /\/$/,
-        ""
-    );
+    const appOrigin = getConfiguredCacheAppOrigin();
     if (!appOrigin) {
-        syncBtn.disabled = true;
-        chromeSyncBtn.disabled = true;
+        setActionButtonsDisabled(true);
         setOpenCacheVisible(true);
         setStatus(
             "Extension is missing CACHE_APP_ORIGIN in cache-config.js.",
@@ -147,30 +145,26 @@ async function applyCacheSessionGate() {
         return false;
     }
 
-    const keyData = await chrome.storage.local.get(["syncApiKey"]);
-    let token =
-        typeof keyData.syncApiKey === "string" ? keyData.syncApiKey.trim() : "";
+    const keyData = await chrome.storage.local.get([STORAGE_KEYS.syncApiKey]);
+    let token = readTrimmedStorageString(keyData, STORAGE_KEYS.syncApiKey);
     if (!token) {
         await requestBridgeFromOpenCacheTab();
-        const afterBridge = await chrome.storage.local.get(["syncApiKey"]);
-        token =
-            typeof afterBridge.syncApiKey === "string"
-                ? afterBridge.syncApiKey.trim()
-                : "";
+        const afterBridge = await chrome.storage.local.get([
+            STORAGE_KEYS.syncApiKey,
+        ]);
+        token = readTrimmedStorageString(afterBridge, STORAGE_KEYS.syncApiKey);
     }
     if (!token) {
-        syncBtn.disabled = true;
-        chromeSyncBtn.disabled = true;
+        setActionButtonsDisabled(true);
         setOpenCacheVisible(true);
         setStatus(
-            "Sign in to Cache and keep a cachd.app tab open, then reopen this popup.",
+            `Sign in to Cache and keep a ${cacheHostLabel(appOrigin)} tab open, then reopen this popup.`,
             "error"
         );
         return false;
     }
 
-    syncBtn.disabled = false;
-    chromeSyncBtn.disabled = false;
+    setActionButtonsDisabled(false);
     setOpenCacheVisible(false);
     if (statusEl && !statusEl.classList.contains("error")) {
         statusEl.textContent = "";
@@ -179,44 +173,25 @@ async function applyCacheSessionGate() {
 }
 
 function handleProgressMessage(msg) {
-    const activeMap = {
-        chrome: "Chrome bookmarks",
-        instagram: "Instagram Saved",
-        tiktok: "TikTok Favorites",
-        youtube: "YouTube Watch Later",
-    };
-    const active = activeMap[msg.activeSource] ?? "items";
-    setStatus(`Syncing ${active}…`, "idle");
+    setStatus(`Syncing ${sourceLabel(msg.activeSource)}…`, "idle");
 }
 
 function handleDoneMessage(msg) {
-    const sourceMap = {
-        chrome: "Chrome bookmarks",
-        instagram: "Instagram Saved",
-        tiktok: "TikTok Favorites",
-        youtube: "YouTube Watch Later",
-    };
-    const src = sourceMap[msg.completedSource] ?? "items";
-    setStatus(`Done. ${src} updated.`, "ok");
+    setStatus(`Done. ${sourceLabel(msg.completedSource)} updated.`, "ok");
 }
 
 chrome.runtime.onMessage.addListener((msg) => {
-    if (msg?.type === "SYNC_PROGRESS") {
+    if (msg?.type === MESSAGE_TYPES.SYNC_PROGRESS) {
         handleProgressMessage(msg);
         void refreshFromStorage();
     }
-    if (msg?.type === "SYNC_DONE") {
+    if (msg?.type === MESSAGE_TYPES.SYNC_DONE) {
         handleDoneMessage(msg);
-        if (syncBtn) {
-            syncBtn.disabled = false;
-        }
-        if (chromeSyncBtn) {
-            chromeSyncBtn.disabled = false;
-        }
+        setActionButtonsDisabled(false);
         void refreshFromStorage();
         void applyCacheSessionGate();
     }
-    if (msg?.type === "SYNC_ERROR") {
+    if (msg?.type === MESSAGE_TYPES.SYNC_ERROR) {
         setStatus(
             formatErrorMessage(
                 typeof msg.code === "string" ? msg.code : "UNKNOWN",
@@ -224,12 +199,7 @@ chrome.runtime.onMessage.addListener((msg) => {
             ),
             "error"
         );
-        if (syncBtn) {
-            syncBtn.disabled = false;
-        }
-        if (chromeSyncBtn) {
-            chromeSyncBtn.disabled = false;
-        }
+        setActionButtonsDisabled(false);
         void refreshFromStorage();
     }
 });
@@ -264,7 +234,9 @@ syncBtn?.addEventListener("click", async () => {
             );
         }
 
-        await chrome.tabs.sendMessage(tab.id, { type: "START_SYNC" });
+        await chrome.tabs.sendMessage(tab.id, {
+            type: MESSAGE_TYPES.START_SYNC,
+        });
     } catch (error) {
         setStatus(
             error instanceof Error
@@ -283,7 +255,7 @@ chromeSyncBtn?.addEventListener("click", async () => {
         return;
     }
 
-    const mode = "one_time_import";
+    const mode = CHROME_SYNC_MODES.oneTimeImport;
 
     setStatus("Importing Chrome bookmarks…", "idle");
     chromeSyncBtn.disabled = true;
@@ -291,7 +263,7 @@ chromeSyncBtn?.addEventListener("click", async () => {
     try {
         await chrome.runtime.sendMessage({
             mode,
-            type: "SYNC_CHROME_BOOKMARKS",
+            type: MESSAGE_TYPES.SYNC_CHROME_BOOKMARKS,
         });
     } catch (error) {
         setStatus(
@@ -309,21 +281,18 @@ chromeContinuousEl?.addEventListener("change", async () => {
     const enabled = chromeContinuousEl.checked;
     await chrome.runtime.sendMessage({
         enabled,
-        type: "TOGGLE_CHROME_SYNC",
+        type: MESSAGE_TYPES.TOGGLE_CHROME_SYNC,
     });
     void refreshFromStorage();
 });
 
 openCacheBtnEl?.addEventListener("click", async () => {
-    const appOrigin = String(globalThis.CACHE_APP_ORIGIN ?? "").replace(
-        /\/$/,
-        ""
+    const keyData = await chrome.storage.local.get([STORAGE_KEYS.syncEndpoint]);
+    const endpoint = readTrimmedStorageString(
+        keyData,
+        STORAGE_KEYS.syncEndpoint
     );
-    const keyData = await chrome.storage.local.get(["syncEndpoint"]);
-    const endpoint =
-        typeof keyData.syncEndpoint === "string" ? keyData.syncEndpoint : "";
-    const derivedOrigin = deriveOriginFromEndpoint(endpoint);
-    const originToOpen = derivedOrigin || appOrigin;
+    const originToOpen = resolveCacheOrigin(endpoint);
 
     if (!originToOpen) {
         return;
@@ -344,11 +313,11 @@ chrome.storage.onChanged.addListener((changes, area) => {
         return;
     }
     if (
-        changes.syncApiKey ||
-        changes.syncEndpoint ||
-        changes.chromeSyncEnabled ||
-        changes.chromeLastSyncAt ||
-        changes.chromePendingEvents
+        changes[STORAGE_KEYS.syncApiKey] ||
+        changes[STORAGE_KEYS.syncEndpoint] ||
+        changes[STORAGE_KEYS.chromeSyncEnabled] ||
+        changes[STORAGE_KEYS.chromeLastSyncAt] ||
+        changes[STORAGE_KEYS.chromePendingEvents]
     ) {
         void applyCacheSessionGate();
         void refreshFromStorage();

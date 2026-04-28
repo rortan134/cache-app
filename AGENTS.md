@@ -44,7 +44,7 @@ Follow the rationale that each function should have a single, named responsibili
 
 Strive for writing fully functional, bug-free code by using best practices and minimizing room for error by, for example, making illegal states unrepresentable.
 
-Avoid unnecessary code indirection unless an abstraction for DRY compliance is necessary. Duplicate logic across multiple files is a code smell and should be avoided.
+Avoid unnecessary code indirection unless an abstraction for DRY compliance is necessary. Duplicate logic across multiple files is a code smell and should be avoided. Extracting a className string into a constant just because it is used twice is not justified, that is code indirection.
 
 Composition over inheritance: Prefer dependency injection.
 
@@ -57,6 +57,8 @@ Declare variables at the smallest possible scope. Minimize the number of variabl
 Plugin architectures allow for extensibility and isolation; most functionality should live in plugins, not the core, enabling parallel development and future-proofing.
 
 Minimize risk by anticipating what’s most likely to fail (platforms, language changes, hardware, people) and insulating your system from those points of failure.
+
+Great names capture what a thing is or does. Append qualifiers to names. Units, bounds, and modifiers come at the end. This groups related variables together and makes scanning easier.
 
 ## On documentation
 

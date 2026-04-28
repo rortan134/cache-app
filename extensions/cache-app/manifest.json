@@ -36,7 +36,7 @@
                 "https://www.tiktok.com/*",
                 "https://www.youtube.com/*"
             ],
-            "js": ["content.js"],
+            "js": ["cache-extension-runtime.js", "content.js"],
             "run_at": "document_idle"
         },
         {
@@ -45,7 +45,11 @@
                 "https://cachd.app/*",
                 "https://*.cachd.app/*"
             ],
-            "js": ["cache-site-bootstrap.js"],
+            "js": [
+                "cache-config.js",
+                "cache-extension-runtime.js",
+                "cache-site-bootstrap.js"
+            ],
             "run_at": "document_idle"
         }
     ],
