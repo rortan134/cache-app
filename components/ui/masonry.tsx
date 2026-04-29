@@ -10,9 +10,43 @@ import * as React from "react";
 const perfLog = createLogger("masonry:perf");
 const MASONRY_DEBUG_STORAGE_KEY = "cache:masonry-debug";
 const MASONRY_DEBUG_WINDOW_KEY = "__CACHE_MASONRY_DEBUG__";
+const MASONRY_PERF_WINDOW_KEY = "__CACHE_MASONRY_PERF__";
 
 type MasonryTraceMetaValue = boolean | null | number | string | undefined;
 type MasonryTraceMeta = Record<string, MasonryTraceMetaValue>;
+
+interface MasonryPerfSample {
+    durationMs: number;
+    event: string;
+    label: string;
+    meta?: MasonryTraceMeta;
+}
+
+interface MasonryPerfSummaryRow {
+    averageMs: number;
+    count: number;
+    event: string;
+    label: string;
+    lastMs: number;
+    maxMs: number;
+    minMs: number;
+    relativePct: number;
+    totalMs: number;
+}
+
+interface MasonryPerfStats {
+    count: number;
+    lastMs: number;
+    maxMs: number;
+    minMs: number;
+    totalMs: number;
+}
+
+interface MasonryPerfAggregator {
+    record: (sample: MasonryPerfSample) => void;
+    reset: (label?: string) => void;
+    summary: (label?: string) => MasonryPerfSummaryRow[];
+}
 
 interface MasonryTrace {
     enabled: boolean;
@@ -34,6 +68,136 @@ const noopTrace: MasonryTrace = {
     },
     measure: (_event, _meta, callback) => callback(),
 };
+
+function roundPerfNumber(value: number) {
+    return Number(value.toFixed(2));
+}
+
+function createMasonryPerfAggregator(): MasonryPerfAggregator {
+    const statsByKey = new Map<string, MasonryPerfStats>();
+    const keySeparator = "\u0000";
+
+    function createKey(label: string, event: string) {
+        return `${label}${keySeparator}${event}`;
+    }
+
+    function readKey(key: string) {
+        const separatorIndex = key.indexOf(keySeparator);
+        return {
+            event: key.slice(separatorIndex + keySeparator.length),
+            label: key.slice(0, separatorIndex),
+        };
+    }
+
+    return {
+        record({ durationMs, event, label }) {
+            const key = createKey(label, event);
+            const stats = statsByKey.get(key);
+
+            if (stats) {
+                stats.count++;
+                stats.lastMs = durationMs;
+                stats.maxMs = Math.max(stats.maxMs, durationMs);
+                stats.minMs = Math.min(stats.minMs, durationMs);
+                stats.totalMs += durationMs;
+                return;
+            }
+
+            statsByKey.set(key, {
+                count: 1,
+                lastMs: durationMs,
+                maxMs: durationMs,
+                minMs: durationMs,
+                totalMs: durationMs,
+            });
+        },
+        reset(label) {
+            if (label === undefined) {
+                statsByKey.clear();
+                return;
+            }
+
+            for (const key of statsByKey.keys()) {
+                if (readKey(key).label === label) {
+                    statsByKey.delete(key);
+                }
+            }
+        },
+        summary(label) {
+            let totalMeasuredMs = 0;
+            const rows: MasonryPerfSummaryRow[] = [];
+
+            for (const [key, stats] of statsByKey) {
+                const keyParts = readKey(key);
+                if (label !== undefined && keyParts.label !== label) {
+                    continue;
+                }
+
+                totalMeasuredMs += stats.totalMs;
+                rows.push({
+                    averageMs: roundPerfNumber(stats.totalMs / stats.count),
+                    count: stats.count,
+                    event: keyParts.event,
+                    label: keyParts.label,
+                    lastMs: roundPerfNumber(stats.lastMs),
+                    maxMs: roundPerfNumber(stats.maxMs),
+                    minMs: roundPerfNumber(stats.minMs),
+                    relativePct: 0,
+                    totalMs: roundPerfNumber(stats.totalMs),
+                });
+            }
+
+            rows.sort((a, b) => b.totalMs - a.totalMs);
+
+            for (const row of rows) {
+                row.relativePct =
+                    totalMeasuredMs > 0
+                        ? roundPerfNumber((row.totalMs / totalMeasuredMs) * 100)
+                        : 0;
+            }
+
+            console.table(rows);
+            return rows;
+        },
+    };
+}
+
+function isMasonryPerfAggregator(
+    value: unknown
+): value is MasonryPerfAggregator {
+    if (typeof value !== "object" || value === null) {
+        return false;
+    }
+
+    return (
+        typeof Reflect.get(value, "record") === "function" &&
+        typeof Reflect.get(value, "reset") === "function" &&
+        typeof Reflect.get(value, "summary") === "function"
+    );
+}
+
+function getMasonryPerfAggregator() {
+    if (typeof window === "undefined") {
+        return null;
+    }
+
+    const existingAggregator = Reflect.get(window, MASONRY_PERF_WINDOW_KEY);
+    if (isMasonryPerfAggregator(existingAggregator)) {
+        return existingAggregator;
+    }
+
+    const nextAggregator = createMasonryPerfAggregator();
+    Reflect.set(window, MASONRY_PERF_WINDOW_KEY, nextAggregator);
+    return nextAggregator;
+}
+
+function recordMasonryPerfSample(sample: MasonryPerfSample) {
+    if (!isMasonryDebugEnabled()) {
+        return;
+    }
+
+    getMasonryPerfAggregator()?.record(sample);
+}
 
 function isMasonryDebugEnabled() {
     if (process.env.NODE_ENV === "production") {
@@ -69,11 +233,17 @@ function createMasonryTrace(label: string): MasonryTrace {
             const start = performance.now();
             const result = callback();
             const durationMs = performance.now() - start;
+            recordMasonryPerfSample({
+                durationMs,
+                event,
+                label,
+                meta,
+            });
 
             if (durationMs >= thresholdMs) {
                 perfLog.debug(event, {
                     ...meta,
-                    durationMs: Number(durationMs.toFixed(2)),
+                    durationMs: roundPerfNumber(durationMs),
                     label,
                 });
             }
@@ -827,89 +997,125 @@ function usePositioner(
                         },
                         get: (index: number) => items[index],
                         range: (low, high, onItemRender) =>
-                            intervalTree.search(
-                                low,
-                                high,
-                                (index: number, top: number) => {
-                                    const item = items[index];
-                                    if (!item) {
+                            trace.measure(
+                                "positioner.range",
+                                {
+                                    high,
+                                    low,
+                                    measuredCount: intervalTree.size,
+                                },
+                                () => {
+                                    intervalTree.search(
+                                        low,
+                                        high,
+                                        (index: number, top: number) => {
+                                            const item = items[index];
+                                            if (!item) {
+                                                return;
+                                            }
+                                            onItemRender(index, item.left, top);
+                                        }
+                                    );
+                                },
+                                2
+                            ),
+                        set: (index: number, height = 0) =>
+                            trace.measure(
+                                "positioner.set",
+                                { height, index },
+                                () => {
+                                    let columnIndex = 0;
+
+                                    if (linear) {
+                                        const preferredColumn =
+                                            index % computedColumnCount;
+
+                                        let shortestHeight =
+                                            columnHeights[0] ?? 0;
+                                        let tallestHeight = shortestHeight;
+                                        let shortestIndex = 0;
+
+                                        for (
+                                            let i = 0;
+                                            i < columnHeights.length;
+                                            i++
+                                        ) {
+                                            const currentHeight =
+                                                columnHeights[i] ?? 0;
+                                            if (
+                                                currentHeight < shortestHeight
+                                            ) {
+                                                shortestHeight = currentHeight;
+                                                shortestIndex = i;
+                                            }
+                                            if (currentHeight > tallestHeight) {
+                                                tallestHeight = currentHeight;
+                                            }
+                                        }
+
+                                        const preferredHeight =
+                                            (columnHeights[preferredColumn] ??
+                                                0) + height;
+
+                                        const maxAllowedHeight =
+                                            shortestHeight + height * 2.5;
+                                        columnIndex =
+                                            preferredHeight <= maxAllowedHeight
+                                                ? preferredColumn
+                                                : shortestIndex;
+                                    } else {
+                                        for (
+                                            let i = 1;
+                                            i < columnHeights.length;
+                                            i++
+                                        ) {
+                                            const currentHeight =
+                                                columnHeights[i];
+                                            const shortestHeight =
+                                                columnHeights[columnIndex];
+                                            if (
+                                                currentHeight !== undefined &&
+                                                shortestHeight !== undefined &&
+                                                currentHeight < shortestHeight
+                                            ) {
+                                                columnIndex = i;
+                                            }
+                                        }
+                                    }
+
+                                    const columnHeight =
+                                        columnHeights[columnIndex];
+                                    if (columnHeight === undefined) {
                                         return;
                                     }
-                                    onItemRender(index, item.left, top);
-                                }
+
+                                    const top = columnHeight;
+                                    columnHeights[columnIndex] =
+                                        top + height + (rowGap ?? columnGap);
+
+                                    const columnItemsList =
+                                        columnItems[columnIndex];
+                                    if (!columnItemsList) {
+                                        return;
+                                    }
+                                    columnItemsList.push(index);
+
+                                    items[index] = {
+                                        columnIndex,
+                                        height,
+                                        left:
+                                            columnIndex *
+                                            (computedColumnWidth + columnGap),
+                                        top,
+                                    };
+                                    intervalTree.insert(
+                                        top,
+                                        top + height,
+                                        index
+                                    );
+                                },
+                                2
                             ),
-                        set: (index: number, height = 0) => {
-                            let columnIndex = 0;
-
-                            if (linear) {
-                                const preferredColumn =
-                                    index % computedColumnCount;
-
-                                let shortestHeight = columnHeights[0] ?? 0;
-                                let tallestHeight = shortestHeight;
-                                let shortestIndex = 0;
-
-                                for (let i = 0; i < columnHeights.length; i++) {
-                                    const currentHeight = columnHeights[i] ?? 0;
-                                    if (currentHeight < shortestHeight) {
-                                        shortestHeight = currentHeight;
-                                        shortestIndex = i;
-                                    }
-                                    if (currentHeight > tallestHeight) {
-                                        tallestHeight = currentHeight;
-                                    }
-                                }
-
-                                const preferredHeight =
-                                    (columnHeights[preferredColumn] ?? 0) +
-                                    height;
-
-                                const maxAllowedHeight =
-                                    shortestHeight + height * 2.5;
-                                columnIndex =
-                                    preferredHeight <= maxAllowedHeight
-                                        ? preferredColumn
-                                        : shortestIndex;
-                            } else {
-                                for (let i = 1; i < columnHeights.length; i++) {
-                                    const currentHeight = columnHeights[i];
-                                    const shortestHeight =
-                                        columnHeights[columnIndex];
-                                    if (
-                                        currentHeight !== undefined &&
-                                        shortestHeight !== undefined &&
-                                        currentHeight < shortestHeight
-                                    ) {
-                                        columnIndex = i;
-                                    }
-                                }
-                            }
-
-                            const columnHeight = columnHeights[columnIndex];
-                            if (columnHeight === undefined) {
-                                return;
-                            }
-
-                            const top = columnHeight;
-                            columnHeights[columnIndex] =
-                                top + height + (rowGap ?? columnGap);
-
-                            const columnItemsList = columnItems[columnIndex];
-                            if (!columnItemsList) {
-                                return;
-                            }
-                            columnItemsList.push(index);
-
-                            items[index] = {
-                                columnIndex,
-                                height,
-                                left:
-                                    columnIndex *
-                                    (computedColumnWidth + columnGap),
-                                top,
-                            };
-                            intervalTree.insert(top, top + height, index);
-                        },
                         shortestColumn: () => {
                             if (columnHeights.length > 1) {
                                 return Math.min.apply(null, columnHeights);
@@ -919,120 +1125,140 @@ function usePositioner(
                         size(): number {
                             return intervalTree.size;
                         },
-                        update: (updates: number[]) => {
-                            const columns: (number | undefined)[] = new Array(
-                                computedColumnCount
-                            );
-                            let i = 0;
-                            let j = 0;
+                        update: (updates: number[]) =>
+                            trace.measure(
+                                "positioner.update",
+                                {
+                                    updatePairCount: Math.floor(
+                                        updates.length / 2
+                                    ),
+                                },
+                                () => {
+                                    const columns: (number | undefined)[] =
+                                        new Array(computedColumnCount);
+                                    let i = 0;
+                                    let j = 0;
 
-                            for (; i < updates.length - 1; i++) {
-                                const currentIndex = updates[i];
-                                if (typeof currentIndex !== "number") {
-                                    continue;
-                                }
+                                    for (; i < updates.length - 1; i++) {
+                                        const currentIndex = updates[i];
+                                        if (typeof currentIndex !== "number") {
+                                            continue;
+                                        }
 
-                                const item = items[currentIndex];
-                                if (!item) {
-                                    continue;
-                                }
+                                        const item = items[currentIndex];
+                                        if (!item) {
+                                            continue;
+                                        }
 
-                                const nextHeight = updates[++i];
-                                if (typeof nextHeight !== "number") {
-                                    continue;
-                                }
+                                        const nextHeight = updates[++i];
+                                        if (typeof nextHeight !== "number") {
+                                            continue;
+                                        }
 
-                                item.height = nextHeight;
-                                intervalTree.remove(currentIndex);
-                                intervalTree.insert(
-                                    item.top,
-                                    item.top + item.height,
-                                    currentIndex
-                                );
-                                columns[item.columnIndex] =
-                                    columns[item.columnIndex] === undefined
-                                        ? currentIndex
-                                        : Math.min(
-                                              currentIndex,
-                                              columns[item.columnIndex] ??
-                                                  currentIndex
-                                          );
-                            }
-
-                            for (i = 0; i < columns.length; i++) {
-                                const currentColumn = columns[i];
-                                if (currentColumn === undefined) {
-                                    continue;
-                                }
-
-                                const itemsInColumn = columnItems[i];
-                                if (!itemsInColumn) {
-                                    continue;
-                                }
-
-                                const startIndex = binarySearch(
-                                    itemsInColumn,
-                                    currentColumn
-                                );
-                                if (startIndex === -1) {
-                                    continue;
-                                }
-
-                                const currentItemIndex =
-                                    itemsInColumn[startIndex];
-                                if (typeof currentItemIndex !== "number") {
-                                    continue;
-                                }
-
-                                const startItem = items[currentItemIndex];
-                                if (!startItem) {
-                                    continue;
-                                }
-
-                                const currentHeight = columnHeights[i];
-                                if (typeof currentHeight !== "number") {
-                                    continue;
-                                }
-
-                                columnHeights[i] =
-                                    startItem.top +
-                                    startItem.height +
-                                    (rowGap ?? columnGap);
-
-                                for (
-                                    j = startIndex + 1;
-                                    j < itemsInColumn.length;
-                                    j++
-                                ) {
-                                    const currentIndex = itemsInColumn[j];
-                                    if (typeof currentIndex !== "number") {
-                                        continue;
+                                        item.height = nextHeight;
+                                        intervalTree.remove(currentIndex);
+                                        intervalTree.insert(
+                                            item.top,
+                                            item.top + item.height,
+                                            currentIndex
+                                        );
+                                        columns[item.columnIndex] =
+                                            columns[item.columnIndex] ===
+                                            undefined
+                                                ? currentIndex
+                                                : Math.min(
+                                                      currentIndex,
+                                                      columns[
+                                                          item.columnIndex
+                                                      ] ?? currentIndex
+                                                  );
                                     }
 
-                                    const item = items[currentIndex];
-                                    if (!item) {
-                                        continue;
-                                    }
+                                    for (i = 0; i < columns.length; i++) {
+                                        const currentColumn = columns[i];
+                                        if (currentColumn === undefined) {
+                                            continue;
+                                        }
 
-                                    const columnHeight = columnHeights[i];
-                                    if (typeof columnHeight !== "number") {
-                                        continue;
-                                    }
+                                        const itemsInColumn = columnItems[i];
+                                        if (!itemsInColumn) {
+                                            continue;
+                                        }
 
-                                    item.top = columnHeight;
-                                    columnHeights[i] =
-                                        item.top +
-                                        item.height +
-                                        (rowGap ?? columnGap);
-                                    intervalTree.remove(currentIndex);
-                                    intervalTree.insert(
-                                        item.top,
-                                        item.top + item.height,
-                                        currentIndex
-                                    );
-                                }
-                            }
-                        },
+                                        const startIndex = binarySearch(
+                                            itemsInColumn,
+                                            currentColumn
+                                        );
+                                        if (startIndex === -1) {
+                                            continue;
+                                        }
+
+                                        const currentItemIndex =
+                                            itemsInColumn[startIndex];
+                                        if (
+                                            typeof currentItemIndex !== "number"
+                                        ) {
+                                            continue;
+                                        }
+
+                                        const startItem =
+                                            items[currentItemIndex];
+                                        if (!startItem) {
+                                            continue;
+                                        }
+
+                                        const currentHeight = columnHeights[i];
+                                        if (typeof currentHeight !== "number") {
+                                            continue;
+                                        }
+
+                                        columnHeights[i] =
+                                            startItem.top +
+                                            startItem.height +
+                                            (rowGap ?? columnGap);
+
+                                        for (
+                                            j = startIndex + 1;
+                                            j < itemsInColumn.length;
+                                            j++
+                                        ) {
+                                            const currentIndex =
+                                                itemsInColumn[j];
+                                            if (
+                                                typeof currentIndex !== "number"
+                                            ) {
+                                                continue;
+                                            }
+
+                                            const item = items[currentIndex];
+                                            if (!item) {
+                                                continue;
+                                            }
+
+                                            const columnHeight =
+                                                columnHeights[i];
+                                            if (
+                                                typeof columnHeight !== "number"
+                                            ) {
+                                                continue;
+                                            }
+
+                                            item.top = columnHeight;
+                                            columnHeights[i] =
+                                                item.top +
+                                                item.height +
+                                                (rowGap ?? columnGap);
+                                            intervalTree.remove(currentIndex);
+                                            intervalTree.insert(
+                                                item.top,
+                                                item.top + item.height,
+                                                currentIndex
+                                            );
+                                        }
+                                    }
+                                },
+                                2
+                            ),
                     };
                 },
                 2
@@ -1874,4 +2100,4 @@ function MasonryItem(props: React.ComponentProps<"div">) {
 }
 // #endregion
 
-export { Masonry, MasonryItem };
+export { Masonry, MasonryItem, recordMasonryPerfSample };
