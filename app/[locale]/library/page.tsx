@@ -4,7 +4,8 @@ import {
     UserMenuFooter,
     UserMenuHeader,
 } from "@/components/auth/user-menu";
-import { LibraryWorkspace } from "@/components/library/browser";
+import { LibraryBrowser } from "@/components/library/browser";
+import { WorkspaceCollectionsList } from "@/components/library/collections-list";
 import {
     IntegrationsList,
     IntegrationsListEmpty,
@@ -14,12 +15,14 @@ import {
     IntegrationsListPanel,
     IntegrationsListTrigger,
 } from "@/components/library/integrations";
+import { LibraryWorkspaceProvider } from "@/components/library/workspace-context";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { BrandLogo } from "@/components/ui/brand-logo";
 import { ChevronDownFilledIcon } from "@/components/ui/icons";
 import { CtrlKbd, Kbd, KbdGroup } from "@/components/ui/kbd";
 import { PageShell } from "@/components/ui/page-shell";
 import { RadialChart } from "@/components/ui/radial-chart";
+import { Sidebar, SidebarFooter, SidebarHeader } from "@/components/ui/sidebar";
 import { getServerSession } from "@/lib/auth/server";
 import { userHasActiveSubscription } from "@/lib/auth/subscription-access";
 import {
@@ -211,20 +214,13 @@ export default async function LibraryPage() {
     return (
         <PageShell>
             <div className="flex flex-1 flex-col gap-8 lg:flex-row lg:justify-between">
-                <LibraryWorkspace
+                <LibraryWorkspaceProvider
                     hasAccess={hasAccess}
                     initialCollections={collections}
                     initialItems={items}
-                    lockedItemCount={lockedItemCount}
-                    sidebarBottom={
-                        <UserMenu>
-                            <UserMenuHeader />
-                            <UserMenuContent />
-                            <UserMenuFooter />
-                        </UserMenu>
-                    }
-                    sidebarHeader={
-                        <>
+                >
+                    <Sidebar>
+                        <SidebarHeader>
                             <BrandLogo href="/library" src={LogoIconImage} />
                             <IntegrationsList className="group">
                                 <IntegrationsListTrigger>
@@ -295,10 +291,23 @@ export default async function LibraryPage() {
                                     <IntegrationsListNoticeCallout />
                                 </IntegrationsListPanel>
                             </IntegrationsList>
-                        </>
-                    }
-                    totalItemCount={totalItemCount}
-                />
+                            <WorkspaceCollectionsList />
+                        </SidebarHeader>
+                        <SidebarFooter>
+                            <UserMenu>
+                                <UserMenuHeader />
+                                <UserMenuContent />
+                                <UserMenuFooter />
+                            </UserMenu>
+                        </SidebarFooter>
+                    </Sidebar>
+                    <div className="flex w-full max-w-[1024px] flex-col items-center gap-12 p-8 2xl:mx-auto">
+                        <LibraryBrowser
+                            lockedItemCount={lockedItemCount}
+                            totalItemCount={totalItemCount}
+                        />
+                    </div>
+                </LibraryWorkspaceProvider>
             </div>
         </PageShell>
     );
