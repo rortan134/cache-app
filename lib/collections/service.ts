@@ -30,6 +30,7 @@ import {
     LibraryItemPreviewProviderStatus as PreviewProviderStatus,
 } from "@/prisma/client/enums";
 import { LibraryCollectionError } from "./error";
+import { isHttpUrl, toValidUrl } from "@/lib/common/url";
 
 type CollectionTransaction = Prisma.TransactionClient;
 
@@ -482,7 +483,45 @@ export async function resolveLibraryItemPreview(args: {
         };
     }
 
-    const resolved = await resolveCobaltPreview(item.url);
+    const normalizedItemUrl = toValidUrl(item.url);
+    if (!isHttpUrl(normalizedItemUrl)) {
+        const preview = await prisma.libraryItemPreview.upsert({
+            create: {
+                errorCode: "invalid_url",
+                libraryItemId: item.id,
+                mediaType: PreviewMediaType.unknown,
+                providerStatus: PreviewProviderStatus.unavailable,
+                resolvedAt: new Date(),
+                sourceUrl: item.url,
+                staticImageUrl: item.preview?.staticImageUrl ?? null,
+                videoPreviewUrl: item.preview?.videoPreviewUrl ?? null,
+            },
+            update: {
+                errorCode: "invalid_url",
+                mediaType: PreviewMediaType.unknown,
+                providerStatus: PreviewProviderStatus.unavailable,
+                resolvedAt: new Date(),
+                sourceUrl: item.url,
+                staticImageUrl: item.preview?.staticImageUrl ?? null,
+                videoPreviewUrl: item.preview?.videoPreviewUrl ?? null,
+            },
+            where: {
+                libraryItemId: item.id,
+            },
+        });
+
+        return {
+            errorCode: preview.errorCode,
+            libraryItemId: item.id,
+            mediaType: preview.mediaType,
+            providerStatus: preview.providerStatus,
+            sourceUrl: preview.sourceUrl,
+            staticImageUrl: preview.staticImageUrl,
+            videoPreviewUrl: preview.videoPreviewUrl,
+        };
+    }
+
+    const resolved = await resolveCobaltPreview(normalizedItemUrl);
     const resolvedAt = new Date();
     const previewData =
         resolved.status === "SUCCESS"
@@ -491,8 +530,14 @@ export async function resolveLibraryItemPreview(args: {
                   mediaType: toPreviewMediaType(resolved.mediaType),
                   providerStatus: PreviewProviderStatus.success,
                   sourceUrl: resolved.sourceUrl,
-                  staticImageUrl: resolved.staticImageUrl,
-                  videoPreviewUrl: resolved.videoPreviewUrl,
+                  staticImageUrl:
+                      resolved.staticImageUrl ??
+                      item.preview?.staticImageUrl ??
+                      null,
+                  videoPreviewUrl:
+                      resolved.videoPreviewUrl ??
+                      item.preview?.videoPreviewUrl ??
+                      null,
               }
             : {
                   errorCode: resolved.errorCode,
@@ -501,9 +546,9 @@ export async function resolveLibraryItemPreview(args: {
                       resolved.status === "UNAVAILABLE"
                           ? PreviewProviderStatus.unavailable
                           : PreviewProviderStatus.error,
-                  sourceUrl: item.url,
-                  staticImageUrl: null,
-                  videoPreviewUrl: null,
+                  sourceUrl: normalizedItemUrl,
+                  staticImageUrl: item.preview?.staticImageUrl ?? null,
+                  videoPreviewUrl: item.preview?.videoPreviewUrl ?? null,
               };
 
     const preview = await prisma.libraryItemPreview.upsert({

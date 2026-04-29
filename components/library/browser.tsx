@@ -4612,16 +4612,16 @@ function getItemTitle(item: LibraryItemWithCollections): string {
     return item.url;
 }
 
-function opengraphPreviewUrl(item: LibraryItemWithCollections): string | null {
+function itemStaticPreviewUrl(item: LibraryItemWithCollections): string | null {
     if (item.preview?.staticImageUrl) {
         return item.preview.staticImageUrl;
     }
 
-    if (item.source !== LibraryItemSource.chrome_bookmarks) {
+    if (item.kind !== "bookmark") {
         return null;
     }
 
-    const href = normalizeURL(item.url);
+    const href = toValidUrl(item.url);
     if (href === "about:blank") {
         return null;
     }
@@ -4630,6 +4630,10 @@ function opengraphPreviewUrl(item: LibraryItemWithCollections): string | null {
 }
 
 function canResolveCobaltPreview(item: LibraryItemWithCollections): boolean {
+    if (item.kind !== "bookmark" || toValidUrl(item.url) === "about:blank") {
+        return false;
+    }
+
     switch (item.source) {
         case LibraryItemSource.google_photos:
         case LibraryItemSource.instagram:
@@ -4638,7 +4642,7 @@ function canResolveCobaltPreview(item: LibraryItemWithCollections): boolean {
         case LibraryItemSource.tiktok:
         case LibraryItemSource.x_bookmarks:
         case LibraryItemSource.youtube_watch_later:
-            return item.kind === "bookmark";
+            return true;
         default:
             return false;
     }
@@ -4809,8 +4813,8 @@ function PreviewMedia({
                 {canRenderVideo ? (
                     <video
                         className={cn(
-                            "absolute inset-0 size-full object-cover opacity-0 transition-opacity duration-150",
-                            isHovering && "opacity-100"
+                            "absolute inset-0 size-full object-cover opacity-100 transition-opacity duration-150",
+                            !isHovering && "brightness-95"
                         )}
                         loop
                         muted
@@ -5193,7 +5197,7 @@ function LibraryGridCard({ item }: LibraryGridCardProps) {
     const href = normalizeURL(item.url);
     const alt = (item.caption ?? "").trim() || "Saved item";
     const domain = itemDomain(item.url);
-    const previewImageUrl = opengraphPreviewUrl(item);
+    const previewImageUrl = itemStaticPreviewUrl(item);
     const previewVideoUrl = item.preview?.videoPreviewUrl ?? null;
     const previewTitle = alt === "Saved item" ? "Preview" : alt;
     const previewDescription = domain === "Other" ? item.url : domain;

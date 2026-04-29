@@ -228,6 +228,16 @@ export function resolveCobaltPreviewFromResponse(
     };
 }
 
+async function readCobaltJsonResponse(
+    response: Response
+): Promise<CobaltResponse | null> {
+    try {
+        return (await response.json()) as CobaltResponse;
+    } catch {
+        return null;
+    }
+}
+
 export async function resolveCobaltPreview(
     url: string
 ): Promise<ResolveCobaltPreviewResult> {
@@ -251,7 +261,13 @@ export async function resolveCobaltPreview(
             method: "POST",
         });
 
+        const data = await readCobaltJsonResponse(response);
+
         if (!response.ok) {
+            if (data?.status === "error") {
+                return resolveCobaltPreviewFromResponse(data);
+            }
+
             return {
                 errorCode: `http_${response.status}`,
                 message:
@@ -260,9 +276,7 @@ export async function resolveCobaltPreview(
             };
         }
 
-        const data = (await response.json()) as CobaltResponse;
-
-        return resolveCobaltPreviewFromResponse(data);
+        return resolveCobaltPreviewFromResponse(data ?? {});
     } catch (error) {
         return {
             errorCode: "unexpected",

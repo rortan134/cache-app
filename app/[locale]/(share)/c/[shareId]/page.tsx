@@ -42,7 +42,6 @@ function getSharedItemPreviewImageUrl(
         preview: {
             staticImageUrl: string | null;
         } | null;
-        source: string;
     },
     href: string | null
 ): string | null {
@@ -50,7 +49,7 @@ function getSharedItemPreviewImageUrl(
         return item.preview.staticImageUrl;
     }
 
-    if (item.source !== "chrome_bookmarks" || !href) {
+    if (!href) {
         return null;
     }
 
