@@ -29,7 +29,6 @@ export async function importXBookmarks(args: {
                 postedAt: bookmark.postedAt,
                 scrapedAt: importedAt,
                 sourceMetadata: bookmark.sourceMetadata,
-                thumbnailUrl: bookmark.thumbnailUrl,
                 url: bookmark.url,
             })),
             snapshotComplete: true,

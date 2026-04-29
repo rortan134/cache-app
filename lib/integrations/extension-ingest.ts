@@ -92,7 +92,6 @@ export interface IngestItemInput {
     sourceDeviceId?: string;
     sourceDeviceName?: string;
     sourceMetadata?: Prisma.InputJsonObject | null;
-    thumbnailUrl?: string;
     url: string;
 }
 
@@ -119,7 +118,6 @@ export async function upsertLibraryItemsFromIngest(
             sourceDeviceId: item.sourceDeviceId,
             sourceDeviceName: item.sourceDeviceName,
             sourceMetadata: item.sourceMetadata,
-            thumbnailUrl: item.thumbnailUrl,
             url: item.url,
         })),
         source,

@@ -29,7 +29,6 @@ export async function importPinterestBoards(args: {
             caption: string | null;
             externalId: string;
             scrapedAt: Date | null;
-            thumbnailUrl: string | null;
             url: string;
         }[] = [];
         let skippedCount = 0;

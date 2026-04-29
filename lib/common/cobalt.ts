@@ -1,6 +1,15 @@
 const COBALT_API_BASE = "https://cache-cobalt-cache.unkey.app";
 
 interface CobaltResponse {
+    error?: {
+        code?: string;
+        context?: unknown;
+    };
+    picker?: Array<{
+        thumb?: string;
+        type?: string;
+        url?: string;
+    }>;
     status?: string;
     text?: string;
     url?: string;
@@ -70,6 +79,186 @@ export async function resolveCobaltDownloadUrl(
         };
     } catch (error) {
         return {
+            message:
+                error instanceof Error
+                    ? error.message
+                    : "Unexpected media resolver failure.",
+            status: "ERROR",
+        };
+    }
+}
+
+export type CobaltPreviewMediaType = "gif" | "image" | "unknown" | "video";
+
+type ResolveCobaltPreviewResult =
+    | {
+          mediaType: CobaltPreviewMediaType;
+          sourceUrl: string;
+          staticImageUrl: string | null;
+          status: "SUCCESS";
+          videoPreviewUrl: string | null;
+      }
+    | {
+          errorCode: string | null;
+          message: string;
+          status: "ERROR" | "UNAVAILABLE";
+      };
+
+function normalizeCandidateType(
+    value: string | undefined
+): CobaltPreviewMediaType {
+    switch (value) {
+        case "gif":
+        case "photo":
+        case "image":
+            return value === "gif" ? "gif" : "image";
+        case "video":
+            return "video";
+        default:
+            return "unknown";
+    }
+}
+
+function previewFromDirectUrl(
+    url: string
+): Extract<ResolveCobaltPreviewResult, { status: "SUCCESS" }> {
+    return {
+        mediaType: "video",
+        sourceUrl: url,
+        staticImageUrl: null,
+        status: "SUCCESS",
+        videoPreviewUrl: url,
+    };
+}
+
+function previewFromPicker(
+    picker: NonNullable<CobaltResponse["picker"]>
+): ResolveCobaltPreviewResult {
+    const usableCandidates = picker
+        .map((candidate) => ({
+            mediaType: normalizeCandidateType(candidate.type),
+            thumb: candidate.thumb?.trim() || null,
+            url: candidate.url?.trim() || null,
+        }))
+        .filter((candidate) => candidate.url || candidate.thumb);
+
+    const videoCandidate = usableCandidates.find(
+        (candidate) =>
+            candidate.url &&
+            (candidate.mediaType === "video" || candidate.mediaType === "gif")
+    );
+    if (videoCandidate?.url) {
+        return {
+            mediaType: videoCandidate.mediaType,
+            sourceUrl: videoCandidate.url,
+            staticImageUrl: videoCandidate.thumb,
+            status: "SUCCESS",
+            videoPreviewUrl: videoCandidate.url,
+        };
+    }
+
+    const imageCandidate = usableCandidates.find(
+        (candidate) =>
+            (candidate.mediaType === "image" ||
+                candidate.mediaType === "unknown") &&
+            (candidate.url || candidate.thumb)
+    );
+    const staticImageUrl = imageCandidate?.thumb ?? imageCandidate?.url ?? null;
+    if (staticImageUrl) {
+        return {
+            mediaType: imageCandidate?.mediaType ?? "image",
+            sourceUrl: imageCandidate?.url ?? staticImageUrl,
+            staticImageUrl,
+            status: "SUCCESS",
+            videoPreviewUrl: null,
+        };
+    }
+
+    return {
+        errorCode: null,
+        message: "Could not find preview media for this item.",
+        status: "UNAVAILABLE",
+    };
+}
+
+export function resolveCobaltPreviewFromResponse(
+    data: CobaltResponse
+): ResolveCobaltPreviewResult {
+    if (data.status === "error") {
+        return {
+            errorCode: data.error?.code ?? null,
+            message:
+                data.text || "Failed to resolve preview media for this item.",
+            status: "ERROR",
+        };
+    }
+
+    if (data.status === "local-processing") {
+        return {
+            errorCode: "local_processing",
+            message: "This media requires local processing before previewing.",
+            status: "UNAVAILABLE",
+        };
+    }
+
+    if (data.status === "picker") {
+        return previewFromPicker(data.picker ?? []);
+    }
+
+    if (
+        (data.status === "redirect" ||
+            data.status === "tunnel" ||
+            data.status === "stream") &&
+        data.url
+    ) {
+        return previewFromDirectUrl(data.url);
+    }
+
+    return {
+        errorCode: null,
+        message: "Could not find preview media for this item.",
+        status: "UNAVAILABLE",
+    };
+}
+
+export async function resolveCobaltPreview(
+    url: string
+): Promise<ResolveCobaltPreviewResult> {
+    const normalizedUrl = url.trim();
+    if (normalizedUrl.length === 0) {
+        return {
+            errorCode: "invalid_url",
+            message: "A valid URL is required to resolve media.",
+            status: "ERROR",
+        };
+    }
+
+    try {
+        const response = await fetch(`${COBALT_API_BASE}/`, {
+            body: JSON.stringify({ url: normalizedUrl }),
+            cache: "no-store",
+            headers: {
+                Accept: "application/json",
+                "Content-Type": "application/json",
+            },
+            method: "POST",
+        });
+
+        if (!response.ok) {
+            return {
+                errorCode: `http_${response.status}`,
+                message:
+                    "The media resolver is currently unavailable right now.",
+                status: "ERROR",
+            };
+        }
+
+        const data = (await response.json()) as CobaltResponse;
+
+        return resolveCobaltPreviewFromResponse(data);
+    } catch (error) {
+        return {
+            errorCode: "unexpected",
             message:
                 error instanceof Error
                     ? error.message

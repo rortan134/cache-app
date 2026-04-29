@@ -17,7 +17,6 @@ export interface GitHubImportableRepository {
     readonly externalId: string;
     readonly postedAt: Date | null;
     readonly sourceMetadata: Prisma.InputJsonObject;
-    readonly thumbnailUrl: string | null;
     readonly url: string;
 }
 
@@ -128,7 +127,6 @@ function parseRepository(
                 topics,
             },
         },
-        thumbnailUrl: readPayloadString(owner?.avatar_url),
         url: htmlUrl,
     };
 }

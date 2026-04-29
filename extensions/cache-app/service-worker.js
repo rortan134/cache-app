@@ -8,9 +8,9 @@ const {
     ingestEndpointForSource,
 } = globalThis.CacheExtensionRuntime;
 
-/** @typedef {{ shortcode: string, url: string, thumbnailUrl: string, caption: string, postedAt: string, scrapedAt: string }} InstagramSavedItem */
-/** @typedef {{ id: string, url: string, thumbnailUrl: string, caption: string, postedAt: string, scrapedAt: string }} TikTokFavoriteItem */
-/** @typedef {{ videoId: string, videoUrl: string, title: string, thumbnailUrl: string, channelName: string, channelId: string, duration: string, playlistItemId: string, position: number | null, publishedAt: string | null, availability: string, scrapedAt: string }} YouTubeWatchLaterItem */
+/** @typedef {{ shortcode: string, url: string, caption: string, postedAt: string, scrapedAt: string }} InstagramSavedItem */
+/** @typedef {{ id: string, url: string, caption: string, postedAt: string, scrapedAt: string }} TikTokFavoriteItem */
+/** @typedef {{ videoId: string, videoUrl: string, title: string, channelName: string, channelId: string, duration: string, playlistItemId: string, position: number | null, publishedAt: string | null, availability: string, scrapedAt: string }} YouTubeWatchLaterItem */
 
 const INSTAGRAM_STORAGE_VERSION = 1;
 const TIKTOK_STORAGE_VERSION = 1;
@@ -640,7 +640,6 @@ function mergeByYouTubeVideoId(incoming, existing) {
             publishedAt: item.publishedAt || prev?.publishedAt || null,
             scrapedAt:
                 item.scrapedAt || prev?.scrapedAt || new Date().toISOString(),
-            thumbnailUrl: item.thumbnailUrl || prev?.thumbnailUrl || "",
             title: item.title || prev?.title || "",
             videoUrl:
                 item.videoUrl ||
@@ -661,11 +660,6 @@ function sanitizeYouTubeSnapshotItem(item) {
         typeof item?.videoUrl === "string" && item.videoUrl.trim()
             ? item.videoUrl.trim()
             : `https://www.youtube.com/watch?v=${encodeURIComponent(videoId)}`;
-    const thumbnailUrl =
-        typeof item?.thumbnailUrl === "string" && item.thumbnailUrl.trim()
-            ? item.thumbnailUrl.trim()
-            : undefined;
-
     return {
         availability:
             typeof item?.availability === "string" && item.availability.trim()
@@ -698,7 +692,6 @@ function sanitizeYouTubeSnapshotItem(item) {
             typeof item?.scrapedAt === "string" && item.scrapedAt.trim()
                 ? item.scrapedAt.trim()
                 : new Date().toISOString(),
-        thumbnailUrl,
         title:
             typeof item?.title === "string" && item.title.trim()
                 ? item.title.trim()

@@ -15,7 +15,6 @@ export interface YoutubeWatchLaterItemInput {
     position?: number;
     publishedAt?: string;
     scrapedAt?: string;
-    thumbnailUrl?: string;
     title?: string;
     videoId: string;
     videoUrl?: string;
@@ -68,7 +67,6 @@ export async function importYoutubeWatchLaterSnapshot(args: {
                         videoId: item.videoId,
                     },
                 },
-                thumbnailUrl: item.thumbnailUrl ?? null,
                 url:
                     item.videoUrl ??
                     `https://www.youtube.com/watch?v=${encodeURIComponent(item.videoId)}`,

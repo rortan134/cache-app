@@ -40,7 +40,6 @@ export interface GooglePhotosImportCandidate {
     readonly externalId: string;
     readonly scrapedAt: Date | null;
     readonly sourceMetadata: Prisma.InputJsonObject;
-    readonly thumbnailUrl: string | null;
     readonly url: string;
 }
 
@@ -55,16 +54,6 @@ export function mediaUrlFromItem(
         return `${baseUrl}=dv`;
     }
     return `${baseUrl}=w2048-h2048`;
-}
-
-export function mediaThumbnailFromItem(
-    item: GooglePhotosPickedMediaItem
-): string | null {
-    const baseUrl = item.mediaFile?.baseUrl;
-    if (!baseUrl) {
-        return null;
-    }
-    return `${baseUrl}=w640-h640-c`;
 }
 
 export function googlePhotosSourceMetadata(
@@ -91,7 +80,6 @@ export function buildGooglePhotosImportCandidate(
         externalId: item.id,
         scrapedAt: item.createTime ? new Date(item.createTime) : null,
         sourceMetadata: googlePhotosSourceMetadata(item),
-        thumbnailUrl: mediaThumbnailFromItem(item),
         url,
     };
 }
@@ -142,7 +130,6 @@ export async function importGooglePhotosCandidates(args: {
                 externalId: candidate.externalId,
                 scrapedAt: candidate.scrapedAt,
                 sourceMetadata: candidate.sourceMetadata,
-                thumbnailUrl: candidate.thumbnailUrl,
                 url: candidate.url,
             })),
             source: LibraryItemSource.google_photos,

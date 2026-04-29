@@ -141,7 +141,11 @@ import {
     type UpdateLibraryItemCollectionsResult,
     type UpdateLibraryItemsCollectionsResult,
 } from "@/lib/collections/items";
-import { downloadMedia } from "@/lib/collections/media";
+import {
+    downloadMedia,
+    resolveLibraryItemPreview,
+    type ResolveLibraryItemPreviewResult,
+} from "@/lib/collections/media";
 import {
     disableCollectionSharing,
     shareCollectionPublicly,
@@ -874,8 +878,10 @@ function getCollectionPreviewThumbnailUrls(
             (
                 item
             ): item is LibraryItemWithCollections & {
-                thumbnailUrl: string;
-            } => Boolean(item.thumbnailUrl)
+                preview: NonNullable<LibraryItemWithCollections["preview"]> & {
+                    staticImageUrl: string;
+                };
+            } => Boolean(item.preview?.staticImageUrl)
         )
         .sort(
             (left, right) =>
@@ -883,7 +889,7 @@ function getCollectionPreviewThumbnailUrls(
                 getPreviewOrderSeed(`${collectionId}:${right.id}`)
         )
         .slice(0, 5)
-        .map((item) => item.thumbnailUrl);
+        .map((item) => item.preview.staticImageUrl);
 }
 
 function replaceItemsCollectionPriority(
@@ -4440,9 +4446,23 @@ interface KanbanColumnItem {
 
 interface PreviewMediaProps {
     alt: string;
+    canResolveCobaltPreview: boolean;
     fallbackLabel?: string;
+    itemId: string;
     src: string | null;
+    videoPreviewUrl: string | null;
 }
+
+type CachedPreviewResult = Extract<
+    ResolveLibraryItemPreviewResult,
+    { status: "SUCCESS" }
+>;
+
+const previewResultCache = new Map<
+    string,
+    Promise<CachedPreviewResult | null>
+>();
+const HOVER_PREVIEW_INTENT_DELAY_MS = 250;
 
 type LibraryGridCardContextValue = Pick<
     GridProps,
@@ -4593,8 +4613,8 @@ function getItemTitle(item: LibraryItemWithCollections): string {
 }
 
 function opengraphPreviewUrl(item: LibraryItemWithCollections): string | null {
-    if (item.thumbnailUrl) {
-        return item.thumbnailUrl;
+    if (item.preview?.staticImageUrl) {
+        return item.preview.staticImageUrl;
     }
 
     if (item.source !== LibraryItemSource.chrome_bookmarks) {
@@ -4609,34 +4629,232 @@ function opengraphPreviewUrl(item: LibraryItemWithCollections): string | null {
     return `/api/library/opengraph-image?url=${encodeURIComponent(href)}`;
 }
 
+function canResolveCobaltPreview(item: LibraryItemWithCollections): boolean {
+    switch (item.source) {
+        case LibraryItemSource.google_photos:
+        case LibraryItemSource.instagram:
+        case LibraryItemSource.other:
+        case LibraryItemSource.pinterest:
+        case LibraryItemSource.tiktok:
+        case LibraryItemSource.x_bookmarks:
+        case LibraryItemSource.youtube_watch_later:
+            return item.kind === "bookmark";
+        default:
+            return false;
+    }
+}
+
 function PreviewMedia({
     alt,
+    canResolveCobaltPreview,
     fallbackLabel = "No preview",
+    itemId,
     src,
+    videoPreviewUrl,
 }: PreviewMediaProps) {
     const [didFail, setDidFail] = React.useState(false);
-    const imageSrc = src ?? undefined;
+    const [resolvedImageSrc, setResolvedImageSrc] = React.useState(src);
+    const [hoverVideoUrl, setHoverVideoUrl] = React.useState(videoPreviewUrl);
+    const [isHovering, setIsHovering] = React.useState(false);
+    const videoRef = React.useRef<HTMLVideoElement | null>(null);
+    const hoverTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(
+        null
+    );
+    const staticPreviewCacheKey = `static:${itemId}`;
+    const videoPreviewCacheKey = `video:${itemId}`;
+    const imageSrc = resolvedImageSrc ?? undefined;
     const canRenderImage = Boolean(imageSrc) && !didFail;
+    const canRenderVideo = Boolean(hoverVideoUrl);
+
+    React.useEffect(() => {
+        setResolvedImageSrc(src);
+        setDidFail(false);
+    }, [src]);
+
+    React.useEffect(() => {
+        setHoverVideoUrl(videoPreviewUrl);
+    }, [videoPreviewUrl]);
+
+    React.useEffect(() => {
+        if (!canResolveCobaltPreview) {
+            return;
+        }
+
+        if (src || previewResultCache.has(staticPreviewCacheKey)) {
+            const cached = previewResultCache.get(staticPreviewCacheKey);
+            cached?.then((result) => {
+                if (result?.staticImageUrl) {
+                    setResolvedImageSrc(result.staticImageUrl);
+                }
+                if (result?.videoPreviewUrl) {
+                    setHoverVideoUrl(result.videoPreviewUrl);
+                }
+            });
+            return;
+        }
+
+        const request = resolveLibraryItemPreview(itemId).then((result) => {
+            if (result.status !== "SUCCESS") {
+                return null;
+            }
+            return result;
+        });
+        previewResultCache.set(staticPreviewCacheKey, request);
+        request
+            .then((result) => {
+                if (result?.staticImageUrl) {
+                    setResolvedImageSrc(result.staticImageUrl);
+                }
+                if (result?.videoPreviewUrl) {
+                    setHoverVideoUrl(result.videoPreviewUrl);
+                }
+            })
+            .catch((error: unknown) => {
+                libraryBrowserLog.debug("Failed to resolve static preview", {
+                    error,
+                    itemId,
+                });
+                previewResultCache.delete(staticPreviewCacheKey);
+            });
+    }, [canResolveCobaltPreview, itemId, src, staticPreviewCacheKey]);
+
+    React.useEffect(() => {
+        if (!(isHovering && hoverVideoUrl)) {
+            videoRef.current?.pause();
+            return;
+        }
+
+        const playPromise = videoRef.current?.play();
+        playPromise?.catch((error: unknown) => {
+            libraryBrowserLog.debug("Failed to autoplay hover preview", {
+                error,
+                itemId,
+            });
+        });
+    }, [hoverVideoUrl, isHovering, itemId]);
+
+    React.useEffect(
+        () => () => {
+            if (hoverTimerRef.current) {
+                clearTimeout(hoverTimerRef.current);
+            }
+        },
+        []
+    );
+
+    const handlePointerEnter = () => {
+        if (window.matchMedia("(pointer: coarse)").matches) {
+            return;
+        }
+
+        setIsHovering(true);
+        if (!canResolveCobaltPreview) {
+            return;
+        }
+        if (hoverVideoUrl || previewResultCache.has(videoPreviewCacheKey)) {
+            const cached = previewResultCache.get(videoPreviewCacheKey);
+            cached?.then((result) => {
+                if (result?.videoPreviewUrl) {
+                    setHoverVideoUrl(result.videoPreviewUrl);
+                }
+            });
+            return;
+        }
+
+        hoverTimerRef.current = setTimeout(() => {
+            const request = resolveLibraryItemPreview(itemId, {
+                refreshIfMissingVideo: true,
+            }).then((result) => {
+                if (result.status !== "SUCCESS") {
+                    return null;
+                }
+                return result;
+            });
+            previewResultCache.set(videoPreviewCacheKey, request);
+            request
+                .then((result) => {
+                    if (result?.staticImageUrl) {
+                        setResolvedImageSrc(result.staticImageUrl);
+                    }
+                    if (result?.videoPreviewUrl) {
+                        setHoverVideoUrl(result.videoPreviewUrl);
+                    }
+                })
+                .catch((error: unknown) => {
+                    libraryBrowserLog.debug("Failed to resolve hover preview", {
+                        error,
+                        itemId,
+                    });
+                    previewResultCache.delete(videoPreviewCacheKey);
+                });
+        }, HOVER_PREVIEW_INTENT_DELAY_MS);
+    };
+
+    const handlePointerLeave = () => {
+        setIsHovering(false);
+        if (hoverTimerRef.current) {
+            clearTimeout(hoverTimerRef.current);
+            hoverTimerRef.current = null;
+        }
+    };
 
     if (!canRenderImage) {
         return (
-            <div className="flex size-full items-center justify-center bg-muted/30 text-muted-foreground text-xs">
+            <div
+                className="relative flex size-full items-center justify-center bg-muted/30 text-muted-foreground text-xs"
+                onPointerEnter={handlePointerEnter}
+                onPointerLeave={handlePointerLeave}
+            >
                 {fallbackLabel}
+                {canRenderVideo ? (
+                    <video
+                        className={cn(
+                            "absolute inset-0 size-full object-cover opacity-0 transition-opacity duration-150",
+                            isHovering && "opacity-100"
+                        )}
+                        loop
+                        muted
+                        playsInline
+                        preload="metadata"
+                        ref={videoRef}
+                        src={hoverVideoUrl ?? undefined}
+                    />
+                ) : null}
             </div>
         );
     }
 
     return (
-        // biome-ignore lint/a11y/noNoninteractiveElementInteractions: image load failures drive the visual fallback state
-        <img
-            alt={alt}
-            className="size-full object-cover"
-            height={400}
-            loading="lazy"
-            onError={() => setDidFail(true)}
-            src={imageSrc}
-            width={300}
-        />
+        <div
+            className="relative size-full"
+            onPointerEnter={handlePointerEnter}
+            onPointerLeave={handlePointerLeave}
+        >
+            {/** biome-ignore lint/a11y/noNoninteractiveElementInteractions: image load failures drive the visual fallback state */}
+            <img
+                alt={alt}
+                className="size-full object-cover"
+                height={400}
+                loading="lazy"
+                onError={() => setDidFail(true)}
+                src={imageSrc}
+                width={300}
+            />
+            {canRenderVideo ? (
+                <video
+                    className={cn(
+                        "absolute inset-0 size-full object-cover opacity-0 transition-opacity duration-150",
+                        isHovering && "opacity-100"
+                    )}
+                    loop
+                    muted
+                    playsInline
+                    preload="metadata"
+                    ref={videoRef}
+                    src={hoverVideoUrl ?? undefined}
+                />
+            ) : null}
+        </div>
     );
 }
 
@@ -4976,6 +5194,7 @@ function LibraryGridCard({ item }: LibraryGridCardProps) {
     const alt = (item.caption ?? "").trim() || "Saved item";
     const domain = itemDomain(item.url);
     const previewImageUrl = opengraphPreviewUrl(item);
+    const previewVideoUrl = item.preview?.videoPreviewUrl ?? null;
     const previewTitle = alt === "Saved item" ? "Preview" : alt;
     const previewDescription = domain === "Other" ? item.url : domain;
     const createdLabel = itemDateLabel(item.createdAt);
@@ -5080,8 +5299,13 @@ function LibraryGridCard({ item }: LibraryGridCardProps) {
                             <div className="relative aspect-3/4 w-full overflow-hidden">
                                 <PreviewMedia
                                     alt={alt}
+                                    canResolveCobaltPreview={canResolveCobaltPreview(
+                                        item
+                                    )}
+                                    itemId={item.id}
                                     key={previewImageUrl ?? `empty-${item.id}`}
                                     src={previewImageUrl}
+                                    videoPreviewUrl={previewVideoUrl}
                                 />
                             </div>
                         )}

@@ -30,7 +30,6 @@ const youtubeWatchLaterItemSchema = z.object({
     position: z.number().int().nonnegative().optional(),
     publishedAt: optionalStringField,
     scrapedAt: optionalStringField,
-    thumbnailUrl: optionalUrlField,
     title: optionalStringField,
     videoId: z.string().min(1),
     videoUrl: optionalUrlField,

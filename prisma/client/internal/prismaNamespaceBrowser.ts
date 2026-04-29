@@ -54,6 +54,7 @@ export const ModelName = {
   User: 'User',
   Collection: 'Collection',
   LibraryItem: 'LibraryItem',
+  LibraryItemPreview: 'LibraryItemPreview',
   Session: 'Session',
   Account: 'Account',
   Verification: 'Verification',
@@ -124,7 +125,6 @@ export const LibraryItemScalarFieldEnum = {
   noteContentHtml: 'noteContentHtml',
   noteContentState: 'noteContentState',
   noteContentText: 'noteContentText',
-  thumbnailUrl: 'thumbnailUrl',
   sourceMetadata: 'sourceMetadata',
   postedAt: 'postedAt',
   scrapedAt: 'scrapedAt',
@@ -133,6 +133,23 @@ export const LibraryItemScalarFieldEnum = {
 } as const
 
 export type LibraryItemScalarFieldEnum = (typeof LibraryItemScalarFieldEnum)[keyof typeof LibraryItemScalarFieldEnum]
+
+
+export const LibraryItemPreviewScalarFieldEnum = {
+  id: 'id',
+  libraryItemId: 'libraryItemId',
+  sourceUrl: 'sourceUrl',
+  staticImageUrl: 'staticImageUrl',
+  videoPreviewUrl: 'videoPreviewUrl',
+  mediaType: 'mediaType',
+  providerStatus: 'providerStatus',
+  errorCode: 'errorCode',
+  resolvedAt: 'resolvedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type LibraryItemPreviewScalarFieldEnum = (typeof LibraryItemPreviewScalarFieldEnum)[keyof typeof LibraryItemPreviewScalarFieldEnum]
 
 
 export const SessionScalarFieldEnum = {

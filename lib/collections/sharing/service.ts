@@ -22,9 +22,11 @@ interface PublicCollectionShareItem {
     kind: LibraryItemKind;
     noteContentText: string | null;
     postedAt: Date | null;
+    preview: {
+        staticImageUrl: string | null;
+    } | null;
     scrapedAt: Date | null;
     source: LibraryItemSource;
-    thumbnailUrl: string | null;
     url: string;
 }
 
@@ -214,9 +216,13 @@ export async function getPublicCollectionShareById(
                     kind: true,
                     noteContentText: true,
                     postedAt: true,
+                    preview: {
+                        select: {
+                            staticImageUrl: true,
+                        },
+                    },
                     scrapedAt: true,
                     source: true,
-                    thumbnailUrl: true,
                     url: true,
                 },
                 where: {

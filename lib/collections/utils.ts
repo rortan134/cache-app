@@ -35,6 +35,7 @@ export const LIBRARY_ITEM_COLLECTIONS_INCLUDE = {
         },
         select: LIBRARY_COLLECTION_TAG_SELECT,
     },
+    preview: true,
 } as const;
 
 export function uniqueStrings(values: string[]): string[] {

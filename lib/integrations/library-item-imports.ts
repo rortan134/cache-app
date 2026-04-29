@@ -21,7 +21,6 @@ export interface LibraryItemImportRow extends LibraryItemImportIdentity {
     sourceDeviceId: string | null;
     sourceDeviceName: string | null;
     sourceMetadata: Prisma.InputJsonObject | null;
-    thumbnailUrl: string | null;
     url: string;
 }
 
@@ -37,7 +36,6 @@ export interface LibraryItemImportRowInput {
     sourceDeviceId?: string | null;
     sourceDeviceName?: string | null;
     sourceMetadata?: Prisma.InputJsonObject | null;
-    thumbnailUrl?: string | null;
     url: string;
 }
 
@@ -70,7 +68,6 @@ export function buildLibraryItemImportRow(
         sourceDeviceId: input.sourceDeviceId ?? null,
         sourceDeviceName: input.sourceDeviceName ?? null,
         sourceMetadata: input.sourceMetadata ?? null,
-        thumbnailUrl: input.thumbnailUrl ?? null,
         url: input.url,
     };
 }
@@ -99,7 +96,6 @@ export function buildLibraryItemUpdateData(
         sourceDeviceId: row.sourceDeviceId,
         sourceDeviceName: row.sourceDeviceName,
         sourceMetadata: row.sourceMetadata ?? Prisma.DbNull,
-        thumbnailUrl: row.thumbnailUrl,
         url: row.url,
     };
 }

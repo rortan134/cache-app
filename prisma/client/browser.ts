@@ -33,6 +33,11 @@ export type Collection = Prisma.CollectionModel
  */
 export type LibraryItem = Prisma.LibraryItemModel
 /**
+ * Model LibraryItemPreview
+ * 
+ */
+export type LibraryItemPreview = Prisma.LibraryItemPreviewModel
+/**
  * Model Session
  * Managed by better-auth core. Do not rename fields.
  */

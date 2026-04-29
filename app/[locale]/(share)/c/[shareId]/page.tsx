@@ -39,13 +39,15 @@ function getSharedItemHref(item: { kind: string; url: string }): string | null {
 
 function getSharedItemPreviewImageUrl(
     item: {
+        preview: {
+            staticImageUrl: string | null;
+        } | null;
         source: string;
-        thumbnailUrl: string | null;
     },
     href: string | null
 ): string | null {
-    if (item.thumbnailUrl) {
-        return item.thumbnailUrl;
+    if (item.preview?.staticImageUrl) {
+        return item.preview.staticImageUrl;
     }
 
     if (item.source !== "chrome_bookmarks" || !href) {

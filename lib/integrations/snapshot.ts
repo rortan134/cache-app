@@ -26,7 +26,6 @@ interface SnapshotImportItemInput {
     sourceDeviceId?: string | null;
     sourceDeviceName?: string | null;
     sourceMetadata?: Prisma.InputJsonObject | null;
-    thumbnailUrl?: string | null;
     url: string;
 }
 
@@ -60,7 +59,6 @@ function normalizeSnapshotRow(
         sourceDeviceId: item.sourceDeviceId,
         sourceDeviceName: item.sourceDeviceName,
         sourceMetadata: item.sourceMetadata,
-        thumbnailUrl: item.thumbnailUrl,
         url: item.url,
     });
 }

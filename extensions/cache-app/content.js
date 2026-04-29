@@ -258,95 +258,6 @@ function walkObjectTree(root, visitor) {
 }
 
 /**
- * @param {string | null | undefined} value
- * @param {string} origin
- * @returns {string}
- */
-function normalizeImageCandidate(value, origin) {
-    const candidate = (value ?? "").trim();
-    if (!candidate || candidate.startsWith("data:")) {
-        return "";
-    }
-    try {
-        return new URL(candidate, origin).href;
-    } catch {
-        return candidate;
-    }
-}
-
-/**
- * @param {string | null | undefined} srcset
- * @param {string} origin
- * @returns {string}
- */
-function bestImageUrlFromSrcset(srcset, origin) {
-    if (srcset) {
-        const parts = srcset.split(",").map((s) => s.trim().split(/\s+/));
-        let best = "";
-        let bestW = 0;
-        for (const [url, w] of parts) {
-            if (!url || url.startsWith("data:")) {
-                continue;
-            }
-            const num = Number.parseInt(w?.replace("w", "") ?? "0", 10) || 0;
-            if (num >= bestW) {
-                bestW = num;
-                best = url;
-            }
-        }
-        if (best) {
-            return normalizeImageCandidate(best, origin);
-        }
-    }
-    return "";
-}
-
-/**
- * @param {HTMLImageElement} img
- * @param {string} origin
- * @returns {string}
- */
-function bestImageUrl(img, origin) {
-    const directCandidates = [
-        img.currentSrc,
-        img.getAttribute("src"),
-        img.getAttribute("data-src"),
-        img.getAttribute("data-lazy-src"),
-        img.getAttribute("data-lazy-img"),
-        img.getAttribute("data-delayed-url"),
-        img.getAttribute("data-expand"),
-    ];
-    for (const candidate of directCandidates) {
-        const resolved = normalizeImageCandidate(candidate, origin);
-        if (resolved) {
-            return resolved;
-        }
-    }
-
-    const srcsetCandidates = [
-        img.getAttribute("srcset"),
-        img.getAttribute("data-srcset"),
-        img.getAttribute("data-lazy-srcset"),
-    ];
-    for (const candidate of srcsetCandidates) {
-        const resolved = bestImageUrlFromSrcset(candidate, origin);
-        if (resolved) {
-            return resolved;
-        }
-    }
-
-    return "";
-}
-
-/**
- * @param {string | null | undefined} url
- * @returns {boolean}
- */
-function hasUsableImageUrl(url) {
-    return Boolean(url && !url.startsWith("data:"));
-}
-
-/**
  * TikTok IDs are Snowflake IDs. The first 32 bits are the Unix timestamp in seconds.
  * @param {string} id
  * @returns {string | null}
@@ -651,7 +562,7 @@ function parseInstagramPostHref(href) {
     }
 }
 
-/** @typedef {{ shortcode: string, url: string, thumbnailUrl: string, caption: string, postedAt: string | null, scrapedAt: string }} InstagramRow */
+/** @typedef {{ shortcode: string, url: string, caption: string, postedAt: string | null, scrapedAt: string }} InstagramRow */
 
 /**
  * @param {Map<string, InstagramRow>} accumulated
@@ -677,10 +588,6 @@ function mergeInstagramDomIntoAccumulated(accumulated) {
         }
 
         const img = findInstagramImageForAnchor(a);
-        const thumbnailUrl =
-            img instanceof HTMLImageElement
-                ? bestImageUrl(img, "https://www.instagram.com")
-                : "";
         const caption = (
             img?.getAttribute("alt") ??
             a.getAttribute("aria-label") ??
@@ -692,29 +599,19 @@ function mergeInstagramDomIntoAccumulated(accumulated) {
             postedAt,
             scrapedAt: new Date().toISOString(),
             shortcode: parsed.shortcode,
-            thumbnailUrl,
             url: `https://www.instagram.com${parsed.pathname}`,
         };
 
         if (accumulated.has(parsed.shortcode)) {
             const prev = accumulated.get(parsed.shortcode);
-            const shouldFillThumbnail =
-                prev &&
-                !hasUsableImageUrl(prev.thumbnailUrl) &&
-                hasUsableImageUrl(thumbnailUrl);
             const shouldFillCaption = prev && !prev.caption && Boolean(caption);
             const shouldFillPostedAt =
                 prev && !prev.postedAt && Boolean(postedAt);
-            if (
-                shouldFillThumbnail ||
-                shouldFillCaption ||
-                shouldFillPostedAt
-            ) {
+            if (shouldFillCaption || shouldFillPostedAt) {
                 accumulated.set(parsed.shortcode, {
                     ...prev,
                     caption: prev.caption || caption,
                     postedAt: prev.postedAt || postedAt,
-                    thumbnailUrl: prev.thumbnailUrl || thumbnailUrl,
                 });
             }
         } else {
@@ -1115,7 +1012,7 @@ function parseTikTokVideoHref(href) {
     }
 }
 
-/** @typedef {{ id: string, url: string, thumbnailUrl: string, caption: string, scrapedAt: string }} TikTokRow */
+/** @typedef {{ id: string, url: string, caption: string, scrapedAt: string }} TikTokRow */
 
 /**
  * @param {Map<string, TikTokRow>} accumulated
@@ -1147,10 +1044,6 @@ function mergeTikTokDomIntoAccumulated(accumulated) {
         const img =
             a.querySelector("img") ??
             (scope instanceof Element ? scope.querySelector("img") : null);
-        const thumbnailUrl =
-            img instanceof HTMLImageElement
-                ? bestImageUrl(img, "https://www.tiktok.com")
-                : "";
         const caption = (
             img?.getAttribute("alt") ??
             a.getAttribute("aria-label") ??
@@ -1161,20 +1054,10 @@ function mergeTikTokDomIntoAccumulated(accumulated) {
             id: parsed.id,
             postedAt: getPostedAtFromTikTokId(parsed.id),
             scrapedAt: new Date().toISOString(),
-            thumbnailUrl,
             url: parsed.url,
         };
 
-        if (accumulated.has(parsed.id)) {
-            const prev = accumulated.get(parsed.id);
-            const shouldFillThumbnail =
-                prev &&
-                !hasUsableImageUrl(prev.thumbnailUrl) &&
-                hasUsableImageUrl(thumbnailUrl);
-            if (shouldFillThumbnail) {
-                accumulated.set(parsed.id, { ...prev, thumbnailUrl });
-            }
-        } else {
+        if (!accumulated.has(parsed.id)) {
             accumulated.set(parsed.id, row);
         }
     }
@@ -1229,23 +1112,10 @@ async function runTikTokSync() {
 const YT_BOOTSTRAP_MESSAGE = "CACHE_YT_BOOTSTRAP";
 const YT_BROWSE_ENDPOINT = "https://www.youtube.com/youtubei/v1/browse";
 
-/** @typedef {{ availability: string, channelId: string, channelName: string, duration: string, playlistItemId: string, position: number | null, publishedAt: string | null, scrapedAt: string, thumbnailUrl: string, title: string, videoId: string, videoUrl: string }} YouTubeWatchLaterItem */
+/** @typedef {{ availability: string, channelId: string, channelName: string, duration: string, playlistItemId: string, position: number | null, publishedAt: string | null, scrapedAt: string, title: string, videoId: string, videoUrl: string }} YouTubeWatchLaterItem */
 
 function isYouTubeWatchLaterPage() {
     return isYouTubeWatchLaterUrl(window.location.href);
-}
-
-function readLastThumbnailUrl(thumbnails) {
-    if (!Array.isArray(thumbnails) || thumbnails.length === 0) {
-        return "";
-    }
-    const usable = thumbnails.filter(
-        (thumb) =>
-            thumb &&
-            typeof thumb.url === "string" &&
-            !thumb.url.startsWith("data:")
-    );
-    return usable.length > 0 ? usable[usable.length - 1].url : "";
 }
 
 function normalizeYouTubeAvailability(renderer, title) {
@@ -1366,7 +1236,6 @@ function parseYouTubePlaylistVideoRenderer(renderer, fallbackIndex) {
         position: extractYouTubePlaylistPosition(renderer, fallbackIndex),
         publishedAt: null,
         scrapedAt: new Date().toISOString(),
-        thumbnailUrl: readLastThumbnailUrl(renderer?.thumbnail?.thumbnails),
         title,
         videoId,
         videoUrl: `https://www.youtube.com/watch?v=${encodeURIComponent(videoId)}`,
@@ -1425,7 +1294,6 @@ function mergeYouTubeRowsIntoAccumulated(accumulated, rows) {
             publishedAt: row.publishedAt || prev.publishedAt || null,
             scrapedAt:
                 row.scrapedAt || prev.scrapedAt || new Date().toISOString(),
-            thumbnailUrl: row.thumbnailUrl || prev.thumbnailUrl || "",
             title: row.title || prev.title || "",
             videoUrl: row.videoUrl || prev.videoUrl || "",
         });

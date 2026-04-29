@@ -97,7 +97,6 @@ interface ChromeBookmarkRecord {
     sourceDeviceId: string | null;
     sourceDeviceName: string | null;
     sourceMetadata: Prisma.InputJsonObject;
-    thumbnailUrl: null;
     url: string;
 }
 
@@ -254,7 +253,6 @@ function normalizeChromeBookmarkRecord(
         sourceDeviceId: device?.id ?? null,
         sourceDeviceName: device?.name ?? null,
         sourceMetadata: metadata,
-        thumbnailUrl: null,
         url:
             bookmark.kind === "folder"
                 ? chromeFolderUrl(browserProfileId, bookmark.externalId)

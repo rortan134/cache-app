@@ -1,4 +1,4 @@
-import type { LibraryItem } from "@/prisma/client/client";
+import type { LibraryItem, LibraryItemPreview } from "@/prisma/client/client";
 import type {
     CollectionPriority,
     LibraryItemSource,
@@ -23,4 +23,5 @@ export interface LibraryCollectionSummary extends LibraryCollectionTag {
 
 export interface LibraryItemWithCollections extends LibraryItem {
     collections: LibraryCollectionTag[];
+    preview: LibraryItemPreview | null;
 }

@@ -29,7 +29,6 @@ export interface XImportableBookmark {
     readonly externalId: string;
     readonly postedAt: Date | null;
     readonly sourceMetadata: Prisma.InputJsonObject;
-    readonly thumbnailUrl: string | null;
     readonly url: string;
 }
 
@@ -128,29 +127,6 @@ function userMapFromIncludes(includes: ProviderPayloadRecord | null) {
     return byId;
 }
 
-function firstThumbnailUrl(
-    mediaKeys: string[],
-    mediaByKey: Map<string, ProviderPayloadRecord>
-) {
-    for (const mediaKey of mediaKeys) {
-        const media = mediaByKey.get(mediaKey);
-        const type = readPayloadString(media?.type);
-        if (type === "photo") {
-            const url = readPayloadString(media?.url);
-            if (url) {
-                return url;
-            }
-        }
-
-        const previewImageUrl = readPayloadString(media?.preview_image_url);
-        if (previewImageUrl) {
-            return previewImageUrl;
-        }
-    }
-
-    return null;
-}
-
 function noteTweetText(record: ProviderPayloadRecord | null): string | null {
     const direct = readPayloadString(record?.text);
     if (direct) {
@@ -229,7 +205,6 @@ function parseBookmark(
                 possiblySensitive: Boolean(record?.possibly_sensitive),
             },
         },
-        thumbnailUrl: firstThumbnailUrl(mediaKeys, includesLookup.mediaByKey),
         url: username
             ? `https://x.com/${encodeURIComponent(username)}/status/${encodeURIComponent(externalId)}`
             : `https://x.com/i/web/status/${encodeURIComponent(externalId)}`,

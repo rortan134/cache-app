@@ -32,7 +32,6 @@ export async function importGitHubStarredRepositories(args: {
                 postedAt: repository.postedAt,
                 scrapedAt: importedAt,
                 sourceMetadata: repository.sourceMetadata,
-                thumbnailUrl: repository.thumbnailUrl,
                 url: repository.url,
             })),
             snapshotComplete: true,

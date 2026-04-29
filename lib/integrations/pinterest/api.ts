@@ -26,7 +26,6 @@ export interface PinterestImportablePin {
     caption: string | null;
     externalId: string;
     scrapedAt: Date | null;
-    thumbnailUrl: string | null;
     url: string;
 }
 
@@ -107,50 +106,6 @@ async function listPinterestCollection(
     return items;
 }
 
-function readImageUrl(value: unknown): string | null {
-    if (typeof value === "string" && value.startsWith("http")) {
-        return value;
-    }
-
-    const record = asProviderPayloadRecord(value);
-    if (!record) {
-        return null;
-    }
-
-    const directUrl =
-        readPayloadString(record.url) ??
-        readPayloadString(record.image_url) ??
-        readPayloadString(record.image_thumbnail_url) ??
-        readPayloadString(record.image_cover_url);
-    if (directUrl?.startsWith("http")) {
-        return directUrl;
-    }
-
-    const hintedKeys = [
-        "media",
-        "images",
-        "image",
-        "cover",
-        "thumbnail",
-        "image_cover_url",
-    ] as const;
-    for (const key of hintedKeys) {
-        const nested = readImageUrl(record[key]);
-        if (nested) {
-            return nested;
-        }
-    }
-
-    for (const nested of Object.values(record)) {
-        const candidate = readImageUrl(nested);
-        if (candidate) {
-            return candidate;
-        }
-    }
-
-    return null;
-}
-
 function parseBoard(candidate: unknown): PinterestBoardSummary | null {
     const record = asProviderPayloadRecord(candidate);
     const id = readPayloadString(record?.id);
@@ -198,7 +153,6 @@ function parsePin(
             readPayloadDate(record?.created_at) ??
             readPayloadDate(record?.updated_at) ??
             null,
-        thumbnailUrl: readImageUrl(record),
         url: destinationUrl,
     };
 }

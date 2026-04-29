@@ -22,7 +22,6 @@ const itemSchema = z
         sourceDeviceId: z.string().optional(),
         sourceDeviceName: z.string().optional(),
         sourceMetadata: z.record(z.string(), z.unknown()).nullable().optional(),
-        thumbnailUrl: z.string().optional(),
         url: z.string(),
     })
     .refine((row) => Boolean(row.shortcode || row.id), {

@@ -34,6 +34,19 @@ enum CollectionPriority {
     archive
 }
 
+enum LibraryItemPreviewMediaType {
+    image
+    video
+    gif
+    unknown
+}
+
+enum LibraryItemPreviewProviderStatus {
+    success
+    unavailable
+    error
+}
+
 enum CollectionTemplate {
     reading_list
     inspiration
@@ -106,8 +119,8 @@ model LibraryItem {
     noteContentHtml  String?
     noteContentState Json?
     noteContentText  String?
-    thumbnailUrl     String?
     sourceMetadata   Json?
+    preview          LibraryItemPreview?
     postedAt         DateTime?
     scrapedAt        DateTime?
     collections      Collection[]
@@ -119,6 +132,25 @@ model LibraryItem {
     @@index([userId, source, browserProfileId])
     @@index([userId, source, browserProfileId, parentExternalId], map: "library_item_user_source_profile_parent_idx")
     @@map("library_item")
+}
+
+model LibraryItemPreview {
+    id             String                           @id @default(cuid())
+    libraryItemId  String                           @unique
+    libraryItem    LibraryItem                      @relation(fields: [libraryItemId], references: [id], onDelete: Cascade)
+    sourceUrl      String
+    staticImageUrl String?
+    videoPreviewUrl String?
+    mediaType      LibraryItemPreviewMediaType      @default(unknown)
+    providerStatus LibraryItemPreviewProviderStatus
+    errorCode      String?
+    resolvedAt     DateTime
+    createdAt      DateTime                         @default(now())
+    updatedAt      DateTime                         @updatedAt
+
+    @@index([providerStatus])
+    @@index([resolvedAt])
+    @@map("library_item_preview")
 }
 
 /// Managed by better-auth core. Do not rename fields.
