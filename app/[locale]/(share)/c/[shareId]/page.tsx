@@ -1,5 +1,6 @@
 import { PageShell } from "@/components/ui/page-shell";
 import { getPublicCollectionShareById } from "@/lib/collections/sharing/service";
+import { toUsableStaticPreviewUrl } from "@/lib/common/preview-url";
 import { normalizeURL } from "@/lib/common/url";
 import { getNoteExcerpt } from "@/lib/integrations/notes/utils";
 import type { Metadata } from "next";
@@ -45,8 +46,11 @@ function getSharedItemPreviewImageUrl(
     },
     href: string | null
 ): string | null {
-    if (item.preview?.staticImageUrl) {
-        return item.preview.staticImageUrl;
+    const staticImageUrl = toUsableStaticPreviewUrl(
+        item.preview?.staticImageUrl
+    );
+    if (staticImageUrl) {
+        return staticImageUrl;
     }
 
     if (!href) {

@@ -10,6 +10,7 @@ import {
 } from "@/lib/collections/intelligence/protection";
 import { resolveCobaltDownloadUrl } from "@/lib/common/cobalt";
 import { createLogger } from "@/lib/common/logs/console/logger";
+import { toUsableStaticPreviewUrl } from "@/lib/common/preview-url";
 import {
     decodeHtmlEntities,
     normalizeCollectionName,
@@ -344,7 +345,7 @@ function buildPrompt(
         `Item source: ${sourceLabel(item.source)}`,
         `Item URL: ${item.url}`,
         `Item caption: ${item.caption ?? "None"}`,
-        `Item preview URL: ${item.preview?.staticImageUrl ?? item.preview?.videoPreviewUrl ?? "None"}`,
+        `Item preview URL: ${toUsableStaticPreviewUrl(item.preview?.staticImageUrl) ?? item.preview?.videoPreviewUrl ?? "None"}`,
         `Already assigned collections: ${currentCollectionNames.length > 0 ? currentCollectionNames.join(", ") : "None"}`,
         sourceMetadata.length > 0
             ? `Item source metadata: ${sourceMetadata}`
@@ -545,10 +546,10 @@ async function resolveContentCandidates(
         case LibraryItemSource.google_photos:
         case LibraryItemSource.github_starred_repositories:
             addUrl(item.url);
-            addUrl(item.preview?.staticImageUrl);
+            addUrl(toUsableStaticPreviewUrl(item.preview?.staticImageUrl));
             break;
         case LibraryItemSource.pinterest:
-            addUrl(item.preview?.staticImageUrl);
+            addUrl(toUsableStaticPreviewUrl(item.preview?.staticImageUrl));
             addUrl(item.url);
             break;
         case LibraryItemSource.chrome_bookmarks:
@@ -561,7 +562,7 @@ async function resolveContentCandidates(
                     candidates.push(cobaltResult.downloadUrl);
                 }
             }
-            addUrl(item.preview?.staticImageUrl);
+            addUrl(toUsableStaticPreviewUrl(item.preview?.staticImageUrl));
             if (item.source === LibraryItemSource.other) {
                 addUrl(item.url);
             }

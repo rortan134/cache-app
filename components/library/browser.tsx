@@ -166,6 +166,7 @@ import { filterValidImageUrls } from "@/lib/common/image";
 import { getImageColors } from "@/lib/common/image-colors";
 import { createLogger } from "@/lib/common/logs/console/logger";
 import { withMemoize } from "@/lib/common/memoize";
+import { toUsableStaticPreviewUrl } from "@/lib/common/preview-url";
 import type {
     LibraryCollectionSummary,
     LibraryCollectionTag,
@@ -874,22 +875,18 @@ function getCollectionPreviewThumbnailUrls(
     items: LibraryItemWithCollections[]
 ): string[] {
     return [...items]
-        .filter(
-            (
-                item
-            ): item is LibraryItemWithCollections & {
-                preview: NonNullable<LibraryItemWithCollections["preview"]> & {
-                    staticImageUrl: string;
-                };
-            } => Boolean(item.preview?.staticImageUrl)
-        )
         .sort(
             (left, right) =>
                 getPreviewOrderSeed(`${collectionId}:${left.id}`) -
                 getPreviewOrderSeed(`${collectionId}:${right.id}`)
         )
-        .slice(0, 5)
-        .map((item) => item.preview.staticImageUrl);
+        .flatMap((item) => {
+            const staticImageUrl = toUsableStaticPreviewUrl(
+                item.preview?.staticImageUrl
+            );
+            return staticImageUrl ? [staticImageUrl] : [];
+        })
+        .slice(0, 5);
 }
 
 function replaceItemsCollectionPriority(
@@ -4447,7 +4444,6 @@ interface KanbanColumnItem {
 interface PreviewMediaProps {
     alt: string;
     canResolveCobaltPreview: boolean;
-    fallbackLabel?: string;
     itemId: string;
     src: string | null;
     videoPreviewUrl: string | null;
@@ -4613,8 +4609,11 @@ function getItemTitle(item: LibraryItemWithCollections): string {
 }
 
 function itemStaticPreviewUrl(item: LibraryItemWithCollections): string | null {
-    if (item.preview?.staticImageUrl) {
-        return item.preview.staticImageUrl;
+    const staticImageUrl = toUsableStaticPreviewUrl(
+        item.preview?.staticImageUrl
+    );
+    if (staticImageUrl) {
+        return staticImageUrl;
     }
 
     if (item.kind !== "bookmark") {
@@ -4651,7 +4650,6 @@ function canResolveCobaltPreview(item: LibraryItemWithCollections): boolean {
 function PreviewMedia({
     alt,
     canResolveCobaltPreview,
-    fallbackLabel = "No preview",
     itemId,
     src,
     videoPreviewUrl,
@@ -4667,6 +4665,7 @@ function PreviewMedia({
     const staticPreviewCacheKey = `static:${itemId}`;
     const videoPreviewCacheKey = `video:${itemId}`;
     const imageSrc = resolvedImageSrc ?? undefined;
+
     const canRenderImage = Boolean(imageSrc) && !didFail;
     const canRenderVideo = Boolean(hoverVideoUrl);
 
@@ -4691,8 +4690,11 @@ function PreviewMedia({
         if (previewResultCache.has(staticPreviewCacheKey)) {
             const cached = previewResultCache.get(staticPreviewCacheKey);
             cached?.then((result) => {
-                if (result?.staticImageUrl) {
-                    setResolvedImageSrc(result.staticImageUrl);
+                const staticImageUrl = toUsableStaticPreviewUrl(
+                    result?.staticImageUrl
+                );
+                if (staticImageUrl) {
+                    setResolvedImageSrc(staticImageUrl);
                 }
                 if (result?.videoPreviewUrl) {
                     setHoverVideoUrl(result.videoPreviewUrl);
@@ -4710,8 +4712,11 @@ function PreviewMedia({
         previewResultCache.set(staticPreviewCacheKey, request);
         request
             .then((result) => {
-                if (result?.staticImageUrl) {
-                    setResolvedImageSrc(result.staticImageUrl);
+                const staticImageUrl = toUsableStaticPreviewUrl(
+                    result?.staticImageUrl
+                );
+                if (staticImageUrl) {
+                    setResolvedImageSrc(staticImageUrl);
                 }
                 if (result?.videoPreviewUrl) {
                     setHoverVideoUrl(result.videoPreviewUrl);
@@ -4787,8 +4792,11 @@ function PreviewMedia({
             previewResultCache.set(videoPreviewCacheKey, request);
             request
                 .then((result) => {
-                    if (result?.staticImageUrl) {
-                        setResolvedImageSrc(result.staticImageUrl);
+                    const staticImageUrl = toUsableStaticPreviewUrl(
+                        result?.staticImageUrl
+                    );
+                    if (staticImageUrl) {
+                        setResolvedImageSrc(staticImageUrl);
                     }
                     if (result?.videoPreviewUrl) {
                         setHoverVideoUrl(result.videoPreviewUrl);
@@ -4812,48 +4820,24 @@ function PreviewMedia({
         }
     };
 
-    if (!canRenderImage) {
-        return (
-            <div
-                className="relative flex size-full items-center justify-center bg-muted/30 text-muted-foreground text-xs"
-                onPointerEnter={handlePointerEnter}
-                onPointerLeave={handlePointerLeave}
-            >
-                {fallbackLabel}
-                {canRenderVideo ? (
-                    <video
-                        className={cn(
-                            "absolute inset-0 size-full object-cover opacity-100 transition-opacity duration-150",
-                            !isHovering && "brightness-95"
-                        )}
-                        loop
-                        muted
-                        playsInline
-                        preload="metadata"
-                        ref={videoRef}
-                        src={hoverVideoUrl ?? undefined}
-                    />
-                ) : null}
-            </div>
-        );
-    }
-
     return (
         <div
             className="relative size-full"
             onPointerEnter={handlePointerEnter}
             onPointerLeave={handlePointerLeave}
         >
-            {/** biome-ignore lint/a11y/noNoninteractiveElementInteractions: image load failures drive the visual fallback state */}
-            <img
-                alt={alt}
-                className="size-full object-cover"
-                height={400}
-                loading="lazy"
-                onError={() => setDidFail(true)}
-                src={imageSrc}
-                width={300}
-            />
+            {canRenderImage ? (
+                // biome-ignore lint/a11y/noNoninteractiveElementInteractions: image load failures drive the visual fallback state
+                <img
+                    alt={alt}
+                    className="size-full object-cover"
+                    height={400}
+                    loading="lazy"
+                    onError={() => setDidFail(true)}
+                    src={imageSrc}
+                    width={300}
+                />
+            ) : null}
             {canRenderVideo ? (
                 <video
                     className={cn(

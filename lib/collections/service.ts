@@ -9,10 +9,12 @@ import {
     resolveCobaltDownloadUrl,
     resolveCobaltPreview,
 } from "@/lib/common/cobalt";
+import { toUsableStaticPreviewUrl } from "@/lib/common/preview-url";
 import {
     getIncrementedName,
     normalizeCollectionName,
 } from "@/lib/common/strings";
+import { isHttpUrl, toValidUrl } from "@/lib/common/url";
 import type {
     LibraryCollectionSummary,
     LibraryCollectionTag,
@@ -30,7 +32,6 @@ import {
     LibraryItemPreviewProviderStatus as PreviewProviderStatus,
 } from "@/prisma/client/enums";
 import { LibraryCollectionError } from "./error";
-import { isHttpUrl, toValidUrl } from "@/lib/common/url";
 
 type CollectionTransaction = Prisma.TransactionClient;
 
@@ -493,7 +494,9 @@ export async function resolveLibraryItemPreview(args: {
                 providerStatus: PreviewProviderStatus.unavailable,
                 resolvedAt: new Date(),
                 sourceUrl: item.url,
-                staticImageUrl: item.preview?.staticImageUrl ?? null,
+                staticImageUrl: toUsableStaticPreviewUrl(
+                    item.preview?.staticImageUrl
+                ),
                 videoPreviewUrl: item.preview?.videoPreviewUrl ?? null,
             },
             update: {
@@ -502,7 +505,9 @@ export async function resolveLibraryItemPreview(args: {
                 providerStatus: PreviewProviderStatus.unavailable,
                 resolvedAt: new Date(),
                 sourceUrl: item.url,
-                staticImageUrl: item.preview?.staticImageUrl ?? null,
+                staticImageUrl: toUsableStaticPreviewUrl(
+                    item.preview?.staticImageUrl
+                ),
                 videoPreviewUrl: item.preview?.videoPreviewUrl ?? null,
             },
             where: {
@@ -532,8 +537,7 @@ export async function resolveLibraryItemPreview(args: {
                   sourceUrl: resolved.sourceUrl,
                   staticImageUrl:
                       resolved.staticImageUrl ??
-                      item.preview?.staticImageUrl ??
-                      null,
+                      toUsableStaticPreviewUrl(item.preview?.staticImageUrl),
                   videoPreviewUrl:
                       resolved.videoPreviewUrl ??
                       item.preview?.videoPreviewUrl ??
@@ -547,7 +551,9 @@ export async function resolveLibraryItemPreview(args: {
                           ? PreviewProviderStatus.unavailable
                           : PreviewProviderStatus.error,
                   sourceUrl: normalizedItemUrl,
-                  staticImageUrl: item.preview?.staticImageUrl ?? null,
+                  staticImageUrl: toUsableStaticPreviewUrl(
+                      item.preview?.staticImageUrl
+                  ),
                   videoPreviewUrl: item.preview?.videoPreviewUrl ?? null,
               };
 

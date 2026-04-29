@@ -1,3 +1,5 @@
+import { toUsableStaticPreviewUrl } from "@/lib/common/preview-url";
+
 const COBALT_API_BASE = "https://cache-cobalt-cache.unkey.app";
 
 interface CobaltResponse {
@@ -158,7 +160,7 @@ function previewFromPicker(
         return {
             mediaType: videoCandidate.mediaType,
             sourceUrl: videoCandidate.url,
-            staticImageUrl: videoCandidate.thumb,
+            staticImageUrl: toUsableStaticPreviewUrl(videoCandidate.thumb),
             status: "SUCCESS",
             videoPreviewUrl: videoCandidate.url,
         };
@@ -170,7 +172,9 @@ function previewFromPicker(
                 candidate.mediaType === "unknown") &&
             (candidate.url || candidate.thumb)
     );
-    const staticImageUrl = imageCandidate?.thumb ?? imageCandidate?.url ?? null;
+    const staticImageUrl = toUsableStaticPreviewUrl(
+        imageCandidate?.thumb ?? imageCandidate?.url
+    );
     if (staticImageUrl) {
         return {
             mediaType: imageCandidate?.mediaType ?? "image",
