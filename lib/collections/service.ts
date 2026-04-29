@@ -55,6 +55,22 @@ interface OwnedItemCollectionRecord {
     id: string;
 }
 
+const ITEM_COLLECTION_TAGS_SELECT = {
+    collections: {
+        orderBy: {
+            name: "asc",
+        },
+        select: LIBRARY_COLLECTION_TAG_SELECT,
+    },
+    id: true,
+} as const satisfies Prisma.LibraryItemSelect;
+
+function toCollectionConnections(collectionIds: string[]): Array<{
+    id: string;
+}> {
+    return collectionIds.map((id) => ({ id }));
+}
+
 function createCollectionError(args: {
     code: "duplicate_name" | "not_found";
     message: string;
@@ -82,14 +98,16 @@ function throwDuplicateCollectionName(
     });
 }
 
-function findOwnedCollection(
+async function requireOwnedCollection(
     tx: CollectionTransaction,
     args: {
         collectionId: string;
+        message: string;
+        operation: string;
         userId: string;
     }
-): Promise<OwnedCollectionLookup | null> {
-    return tx.collection.findFirst({
+): Promise<OwnedCollectionLookup> {
+    const collection = await tx.collection.findFirst({
         select: {
             id: true,
             name: true,
@@ -100,18 +118,7 @@ function findOwnedCollection(
             userId: args.userId,
         },
     });
-}
 
-async function requireOwnedCollection(
-    tx: CollectionTransaction,
-    args: {
-        collectionId: string;
-        message: string;
-        operation: string;
-        userId: string;
-    }
-): Promise<OwnedCollectionLookup> {
-    const collection = await findOwnedCollection(tx, args);
     if (!collection) {
         throwCollectionNotFound(args.operation, args.message);
     }
@@ -268,6 +275,37 @@ async function requireOwnedItemsWithCollectionIds(
         }
         return item;
     });
+}
+
+async function requireOwnedItemWithCollectionIds(
+    tx: CollectionTransaction,
+    args: {
+        itemId: string;
+        message: string;
+        operation: string;
+        userId: string;
+    }
+): Promise<OwnedItemCollectionRecord> {
+    const item = await tx.libraryItem.findFirst({
+        select: {
+            collections: {
+                select: {
+                    id: true,
+                },
+            },
+            id: true,
+        },
+        where: {
+            id: args.itemId,
+            userId: args.userId,
+        },
+    });
+
+    if (!item) {
+        throwCollectionNotFound(args.operation, args.message);
+    }
+
+    return item;
 }
 
 function mergeCollectionIds(args: {
@@ -434,7 +472,7 @@ export async function createCollectionFromItems(args: {
             data: {
                 description,
                 items: {
-                    connect: itemIds.map((id) => ({ id })),
+                    connect: toCollectionConnections(itemIds),
                 },
                 name: normalized.name,
                 nameKey: normalized.nameKey,
@@ -522,9 +560,9 @@ export async function duplicateCollection(args: {
                 items:
                     sourceCollection.items.length > 0
                         ? {
-                              connect: sourceCollection.items.map((item) => ({
-                                  id: item.id,
-                              })),
+                              connect: toCollectionConnections(
+                                  sourceCollection.items.map((item) => item.id)
+                              ),
                           }
                         : undefined,
                 name: normalized.name,
@@ -615,9 +653,6 @@ export async function renameCollection(args: {
     });
 }
 
-/**
- * Deletes a library item.
- */
 export async function deleteLibraryItem(args: {
     itemId: string;
     userId: string;
@@ -628,27 +663,12 @@ export async function deleteLibraryItem(args: {
     const { itemId, userId } = args;
 
     return await prisma.$transaction(async (tx) => {
-        const item = await tx.libraryItem.findFirst({
-            select: {
-                collections: {
-                    select: {
-                        id: true,
-                    },
-                },
-                id: true,
-            },
-            where: {
-                id: itemId,
-                userId,
-            },
+        const item = await requireOwnedItemWithCollectionIds(tx, {
+            itemId,
+            message: "This saved item was already removed.",
+            operation: "deleteLibraryItem",
+            userId,
         });
-
-        if (!item) {
-            throwCollectionNotFound(
-                "deleteLibraryItem",
-                "This saved item was already removed."
-            );
-        }
 
         await tx.libraryItem.delete({
             where: {
@@ -680,20 +700,12 @@ export async function updateLibraryItemCollections(args: {
     const { collectionIds, itemId, userId } = args;
 
     return await prisma.$transaction(async (tx) => {
-        const ownedItems = await requireOwnedItemsWithCollectionIds(tx, {
-            itemIds: [itemId],
+        const item = await requireOwnedItemWithCollectionIds(tx, {
+            itemId,
             message: "We couldn't find that saved item.",
             operation: "updateLibraryItemCollections",
             userId,
         });
-        const item = ownedItems[0];
-
-        if (!item) {
-            throwCollectionNotFound(
-                "updateLibraryItemCollections",
-                "We couldn't find that saved item."
-            );
-        }
 
         const ownedCollections = await findOwnedCollectionTagsByIds(tx, {
             collectionIds,
@@ -710,18 +722,12 @@ export async function updateLibraryItemCollections(args: {
         const updatedItem = await tx.libraryItem.update({
             data: {
                 collections: {
-                    set: ownedCollections.map((collection) => ({
-                        id: collection.id,
-                    })),
+                    set: toCollectionConnections(
+                        ownedCollections.map((collection) => collection.id)
+                    ),
                 },
             },
-            select: {
-                collections: {
-                    orderBy: { name: "asc" },
-                    select: LIBRARY_COLLECTION_TAG_SELECT,
-                },
-                id: true,
-            },
+            select: ITEM_COLLECTION_TAGS_SELECT,
             where: { id: item.id },
         });
 
@@ -804,20 +810,10 @@ export async function updateLibraryItemsCollections(args: {
             const updatedItem = await tx.libraryItem.update({
                 data: {
                     collections: {
-                        set: nextCollectionIds.map((collectionId) => ({
-                            id: collectionId,
-                        })),
+                        set: toCollectionConnections(nextCollectionIds),
                     },
                 },
-                select: {
-                    collections: {
-                        orderBy: {
-                            name: "asc",
-                        },
-                        select: LIBRARY_COLLECTION_TAG_SELECT,
-                    },
-                    id: true,
-                },
+                select: ITEM_COLLECTION_TAGS_SELECT,
                 where: {
                     id: item.id,
                 },

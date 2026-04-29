@@ -37,6 +37,10 @@ export const LIBRARY_ITEM_COLLECTIONS_INCLUDE = {
     },
 } as const;
 
+export function uniqueStrings(values: string[]): string[] {
+    return Array.from(new Set(values));
+}
+
 interface LibraryCollectionTagRecord {
     createdAt: Date;
     description: string | null;

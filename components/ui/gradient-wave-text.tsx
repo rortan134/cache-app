@@ -245,6 +245,7 @@ function GradientWaveText({
                     display: "inline-block",
                     MozOsxFontSmoothing: "grayscale",
                     marginBottom: `-${bottomOffset}%`,
+                    marginInline: -2,
                     paddingBottom: `${bottomOffset}%`,
                     paddingInline: 2,
                     textAlign: align,

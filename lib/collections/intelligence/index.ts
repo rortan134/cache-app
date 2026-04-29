@@ -3,6 +3,11 @@ import "server-only";
 import { COLLECTION_NAME_MAX_LENGTH } from "@/lib/collections/utils";
 
 import { serverEnv } from "@/env/server";
+import { GenAiProtectionError } from "@/lib/collections/intelligence/error";
+import {
+    estimateGenAiTokens,
+    protectGenAiRequest,
+} from "@/lib/collections/intelligence/protection";
 import { resolveCobaltDownloadUrl } from "@/lib/common/cobalt";
 import { createLogger } from "@/lib/common/logs/console/logger";
 import {
@@ -11,20 +16,15 @@ import {
     normalizeWhitespace,
 } from "@/lib/common/strings";
 import { isHttpUrl } from "@/lib/common/url";
-import {
-    estimateGenAiTokens,
-    GenAiProtectionError,
-    protectGenAiRequest,
-} from "@/lib/intelligence/protection";
 import { prisma } from "@/prisma";
 import { LibraryItemSource } from "@/prisma/client/enums";
 import {
     ApiError,
+    createPartFromText,
+    createPartFromUri,
     FileState,
     GoogleGenAI,
     type Part,
-    createPartFromText,
-    createPartFromUri,
 } from "@google/genai";
 import { randomUUID } from "node:crypto";
 import { open, readFile, rm } from "node:fs/promises";

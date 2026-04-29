@@ -19,7 +19,7 @@ function SidebarHeader({ className, ...props }: React.ComponentProps<"div">) {
         <div
             {...props}
             className={cn(
-                "no-scrollbar flex max-h-full min-h-0 w-full flex-col gap-6 overflow-auto px-0.5 sm:max-h-[calc(100vh-7.5rem)] lg:sticky lg:top-8",
+                "no-scrollbar -mx-1 flex max-h-full min-h-0 w-full flex-col gap-6 overflow-auto px-1 sm:max-h-[calc(100vh-7.5rem)] lg:sticky lg:top-8",
                 className
             )}
             data-sidebar="header"

@@ -3,7 +3,7 @@ import "server-only";
 import { serverEnv } from "@/env/server";
 import { getUserPlanType } from "@/lib/auth/subscription-access";
 import { GEN_AI_QUOTAS, type PlanType } from "@/lib/billing/prices";
-import { NamedError } from "@/lib/common/error";
+import { GenAiProtectionError } from "@/lib/collections/intelligence/error";
 import { createLogger } from "@/lib/common/logs/console/logger";
 import arcjet, {
     detectPromptInjection,
@@ -11,24 +11,10 @@ import arcjet, {
     tokenBucket,
 } from "@arcjet/next";
 import type { ArcjetDecision } from "arcjet";
-import * as z from "zod";
 
 const log = createLogger("intelligence:protection");
 const USER_ID_CHARACTERISTIC = "userId";
 const CHARS_PER_TOKEN_ESTIMATE = 4;
-
-export const GenAiProtectionError = NamedError.create(
-    "GenAiProtectionError",
-    z.object({
-        feature: z.string(),
-        message: z.string(),
-        operation: z.string(),
-        plan: z.enum(["free", "monthly", "yearly"]),
-        reason: z.enum(["quota_exceeded", "prompt_injection", "forbidden"]),
-        requestedTokens: z.int().positive(),
-        userId: z.string(),
-    })
-);
 
 export function estimateGenAiTokens(
     input: string,

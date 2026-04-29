@@ -1,6 +1,6 @@
 "use server";
 
-import { collectionNameSchema } from "@/lib/collections/utils";
+import { collectionNameSchema, uniqueStrings } from "@/lib/collections/utils";
 import { createLogger } from "@/lib/common/logs/console/logger";
 import {
     getValidationErrorMessage,
@@ -364,7 +364,7 @@ export async function createCollectionFromItems(input: {
 }): Promise<CreateCollectionFromItemsResult> {
     const parsed = CreateCollectionFromItemsInputSchema.safeParse({
         ...input,
-        itemIds: Array.from(new Set(input.itemIds)),
+        itemIds: uniqueStrings(input.itemIds),
     });
 
     if (!parsed.success) {

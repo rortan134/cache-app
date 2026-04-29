@@ -1,11 +1,11 @@
 import { serverEnv } from "@/env/server";
 import { auth } from "@/lib/auth/server";
-import { createLogger } from "@/lib/common/logs/console/logger";
+import { GenAiProtectionError } from "@/lib/collections/intelligence/error";
 import {
     estimateGenAiTokens,
-    GenAiProtectionError,
     protectGenAiRequest,
-} from "@/lib/intelligence/protection";
+} from "@/lib/collections/intelligence/protection";
+import { createLogger } from "@/lib/common/logs/console/logger";
 import {
     SectionDescriptionRequestSchema,
     type SectionDescriptionRequest,

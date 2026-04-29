@@ -245,7 +245,7 @@ function useCollectionItemHotkey(
 }
 
 function useControllableOpenState(
-    open: boolean | undefined,
+    open?: boolean | undefined,
     onOpenChange?: (open: boolean) => void
 ) {
     const [uncontrolledOpen, setUncontrolledOpen] = React.useState(false);
@@ -299,7 +299,7 @@ function getPriorityOption(priority: CollectionPriority): PriorityOption {
 
 function getCollectionsListItemStyle(name: string, isSelected: boolean) {
     const assignedColor = getHexColorFromName(name);
-    const backgroundOpacity = isSelected ? 25 : 5;
+    const backgroundOpacity = isSelected ? 15 : 9;
 
     return {
         "--collection-background": `color-mix(in srgb, ${assignedColor} ${backgroundOpacity}%, transparent)`,
@@ -437,7 +437,7 @@ function CollectionsListInlineRow({
     return (
         <div
             className={cn(
-                "flex items-center justify-between gap-2 pr-1 pl-3.5",
+                "flex items-center justify-between gap-2 pr-0.5 pl-1",
                 className
             )}
             {...props}
@@ -759,7 +759,7 @@ export function CollectionsListItemPreview({
                 }}
                 render={
                     <Button
-                        className="w-full min-w-0 flex-1 justify-start rounded-full border-(--focus-ring-color)/7 bg-(--collection-background) px-7.5 text-left focus-visible:ring-(--focus-ring-color) focus-visible:ring-1"
+                        className="w-full min-w-0 flex-1 justify-start pr-8 pl-9.5 text-left focus-visible:ring-(--focus-ring-color) focus-visible:ring-2"
                         variant="ghost"
                     />
                 }
@@ -804,18 +804,14 @@ export function CollectionsListItemValue() {
 }
 
 interface CollectionsListItemPriorityComboboxProps {
-    onOpenChange?: (open: boolean) => void;
-    onUpdatePriority: (priority: CollectionPriority) => void;
-    open?: boolean;
+    onValueChange: (priority: CollectionPriority) => void;
 }
 
 export function CollectionsListItemPriorityCombobox({
-    open,
-    onOpenChange,
-    onUpdatePriority,
+    onValueChange,
 }: CollectionsListItemPriorityComboboxProps) {
     const { collection } = useCollectionsListItemContext();
-    const [isOpen, setIsOpen] = useControllableOpenState(open, onOpenChange);
+    const [isOpen, setIsOpen] = useControllableOpenState();
     const selectedOption = getPriorityOption(collection.priority);
     const SelectedPriorityIcon = selectedOption.icon;
 
@@ -836,8 +832,7 @@ export function CollectionsListItemPriorityCombobox({
                 if (!nextPriority || nextPriority === collection.priority) {
                     return;
                 }
-
-                onUpdatePriority(nextPriority);
+                onValueChange(nextPriority);
                 setIsOpen(false);
             }}
             open={isOpen}
@@ -847,8 +842,8 @@ export function CollectionsListItemPriorityCombobox({
                 render={
                     <Button
                         aria-label={`Change priority for ${collection.name}`}
-                        className="absolute top-1/2 left-0.5 z-10 -translate-y-1/2 rounded-full opacity-80 group-hover:opacity-100"
-                        size="icon-sm"
+                        className="absolute top-1/2 left-1 z-10 -translate-y-1/2 border-none bg-(--collection-background) text-(--focus-ring-color)"
+                        size="icon-xs"
                         variant="ghost"
                     />
                 }
@@ -972,7 +967,7 @@ export function CollectionsListItemMeta({
                 <MenuTrigger
                     render={
                         <Button
-                            className="absolute rounded-full opacity-0 transition-opacity focus-visible:opacity-100 group-focus-within:opacity-100 group-hover:opacity-100 group-focus:opacity-100"
+                            className="absolute opacity-0 transition-opacity focus-visible:opacity-100 group-focus-within:opacity-100 group-hover:opacity-100 group-focus:opacity-100"
                             size="icon-sm"
                             title={`Collection actions for ${collection.name}`}
                             variant="ghost"
@@ -1136,7 +1131,7 @@ export function CollectionsListToolbar({
     return (
         <Toolbar.Root
             className={cn(
-                "mt-4 mb-1 flex items-center justify-between",
+                "mx-1 mt-4 mb-1 flex items-center justify-between",
                 className
             )}
             {...props}

@@ -102,7 +102,11 @@ import {
     KanbanItem,
 } from "@/components/ui/kanban";
 import { CtrlKbd, Kbd, KbdGroup } from "@/components/ui/kbd";
-import { Masonry, MasonryItem } from "@/components/ui/masonry";
+import {
+    Masonry,
+    MasonryItem,
+    recordMasonryPerfSample,
+} from "@/components/ui/masonry";
 import {
     Menu,
     MenuItem,
@@ -221,6 +225,7 @@ import {
     Grid2x2X,
     Info,
     LinkIcon,
+    ListChevronsUpDown,
     NotebookPenIcon,
     Plus,
     PlusIcon,
@@ -270,6 +275,16 @@ function onMasonryProfilerRender(
     if (!isMasonryDebugEnabled()) {
         return;
     }
+
+    recordMasonryPerfSample({
+        durationMs: actualDuration,
+        event: "react-profiler.actual",
+        label: id,
+        meta: {
+            baseDurationMs: Number(baseDuration.toFixed(2)),
+            phase,
+        },
+    });
 
     masonryPerfLog.debug("react-profiler", {
         actualDurationMs: Number(actualDuration.toFixed(2)),
@@ -1942,7 +1957,7 @@ function LibraryWorkspaceSidebar({
                                             key={collection.id}
                                         >
                                             <CollectionsListItemPriorityCombobox
-                                                onUpdatePriority={(priority) =>
+                                                onValueChange={(priority) =>
                                                     handleUpdateCollectionPriority(
                                                         collection.id,
                                                         priority
@@ -1950,6 +1965,11 @@ function LibraryWorkspaceSidebar({
                                                 }
                                             />
                                             <CollectionsListItemPreview
+                                                {...(selectedCollectionIds.includes(
+                                                    collection.id
+                                                )
+                                                    ? { "data-pressed": true }
+                                                    : {})}
                                                 onClick={() =>
                                                     onSelectCollection(
                                                         collection.id
@@ -4049,6 +4069,7 @@ function LibraryPaletteTrailing({
     columnCountMode,
     domainFilters,
     groupBy,
+    isCommandInputFocused,
     layoutMode,
     onAttachFiles,
     onRemoveCollectionFilter,
@@ -4072,6 +4093,7 @@ function LibraryPaletteTrailing({
     columnCountMode: ColumnCountMode;
     domainFilters: string[];
     groupBy: GroupByMode;
+    isCommandInputFocused: boolean;
     layoutMode: LayoutMode;
     onAttachFiles: () => void | Promise<void>;
     onRemoveCollectionFilter: (id: string) => void;
@@ -4217,7 +4239,7 @@ function LibraryPaletteTrailing({
 
     return (
         <>
-            {chips.length === 0 && (
+            {chips.length === 0 && !isCommandInputFocused && (
                 <Kbd className="border-none opacity-80">
                     <CtrlKbd />G
                 </Kbd>
@@ -5545,7 +5567,15 @@ function SectionDescription({
         <p className="fade-in-0 block w-full animate-in text-xs leading-snug motion-reduce:animate-none">
             {summary && summary.length > 0
                 ? summary
-                : SECTION_DESCRIPTION_FALLBACK_TEXT}
+                : SECTION_DESCRIPTION_FALLBACK_TEXT}{" "}
+            <Button
+                className="h-fit! text-xs leading-snug sm:text-xs"
+                size="xs"
+                variant="link"
+            >
+                More&nbsp;
+                <ListChevronsUpDown className="inline-block size-3.5" />
+            </Button>
         </p>
     );
 }
@@ -5763,6 +5793,8 @@ function LibraryBrowser({
     >(null);
     const [commandListOpen, setCommandListOpen] = React.useState(false);
     const [isPaletteFocused, setIsPaletteFocused] = React.useState(false);
+    const [isCommandInputFocused, setIsCommandInputFocused] =
+        React.useState(false);
 
     const commandPanelContainerRef = React.useRef<HTMLDivElement>(null);
     const paletteInputRef = React.useRef<HTMLInputElement>(null);
@@ -6241,6 +6273,7 @@ function LibraryBrowser({
         layoutMode === "masonry" && columnCountMode !== "auto"
             ? Number(columnCountMode)
             : undefined;
+
     const collapsedSectionKeySet = React.useMemo(
         () => new Set(collapsedSectionKeys),
         [collapsedSectionKeys]
@@ -6259,8 +6292,11 @@ function LibraryBrowser({
     }
 
     const visibleResultItems = sections.flatMap((section) => section.items);
+
     const canCreateCollectionFromResults =
-        searchTerms.length > 0 && visibleResultItems.length > 0;
+        (searchTerms.length > 0 || hasNonDefaultView) &&
+        visibleResultItems.length > 0;
+
     const showLockedPreview =
         isPreviewOnly && !hasActiveFilters && groupBy === "none";
 
@@ -6734,6 +6770,9 @@ function LibraryBrowser({
                                             }
                                             domainFilters={domainFilters}
                                             groupBy={groupBy}
+                                            isCommandInputFocused={
+                                                isCommandInputFocused
+                                            }
                                             layoutMode={layoutMode}
                                             onAttachFiles={
                                                 handleAttachCommandFiles
@@ -6763,6 +6802,12 @@ function LibraryBrowser({
                                             sortMode={sortMode}
                                             sourceFilters={sourceFilters}
                                         />
+                                    }
+                                    onBlur={() =>
+                                        setIsCommandInputFocused(false)
+                                    }
+                                    onFocus={() =>
+                                        setIsCommandInputFocused(true)
                                     }
                                     onKeyDown={handlePaletteInputKeyDown}
                                     placeholder={inputPlaceholder}
@@ -6901,25 +6946,6 @@ function LibraryBrowser({
                             </FeedbackWidget>
                         }
                     />
-                    {canCreateCollectionFromResults ? (
-                        <Toolbar.Button
-                            render={
-                                <Button
-                                    className="rounded-full"
-                                    onClick={() =>
-                                        handleCreateResultsDialogOpenChange(
-                                            true
-                                        )
-                                    }
-                                    size="xs"
-                                    variant="ghost"
-                                >
-                                    <CircleFadingPlus className="inline-block size-4 shrink-0" />
-                                    &nbsp;Collection with results
-                                </Button>
-                            }
-                        />
-                    ) : null}
                     <Toolbar.Button
                         render={
                             <Button
@@ -6946,7 +6972,25 @@ function LibraryBrowser({
                             </Button>
                         }
                     />
-                    {canCreateCollectionFromResults ? null : (
+                    {canCreateCollectionFromResults ? (
+                        <Toolbar.Button
+                            render={
+                                <Button
+                                    className="rounded-full"
+                                    onClick={() =>
+                                        handleCreateResultsDialogOpenChange(
+                                            true
+                                        )
+                                    }
+                                    size="xs"
+                                    variant="ghost"
+                                >
+                                    <CircleFadingPlus className="inline-block size-4 shrink-0" />
+                                    &nbsp;Collection with results
+                                </Button>
+                            }
+                        />
+                    ) : (
                         <span className="pointer-events-none mr-2 ml-auto select-none font-semibold text-[10px] text-muted-foreground uppercase">
                             {hasAccess ? (
                                 <CrownFilledIcon className="mb-0.5 size-3.5 opacity-80" />

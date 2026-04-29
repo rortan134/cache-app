@@ -1,5 +1,6 @@
 "use server";
 
+import { uniqueStrings } from "@/lib/collections/utils";
 import { createLogger } from "@/lib/common/logs/console/logger";
 import {
     getValidationErrorMessage,
@@ -119,12 +120,10 @@ export async function updateLibraryItemsCollections(input: {
     previousSharedCollectionIds: string[];
 }): Promise<UpdateLibraryItemsCollectionsResult> {
     const parsed = UpdateLibraryItemsCollectionsInputSchema.safeParse({
-        itemIds: Array.from(new Set(input.itemIds)),
-        nextSharedCollectionIds: Array.from(
-            new Set(input.nextSharedCollectionIds)
-        ),
-        previousSharedCollectionIds: Array.from(
-            new Set(input.previousSharedCollectionIds)
+        itemIds: uniqueStrings(input.itemIds),
+        nextSharedCollectionIds: uniqueStrings(input.nextSharedCollectionIds),
+        previousSharedCollectionIds: uniqueStrings(
+            input.previousSharedCollectionIds
         ),
     });
 
@@ -171,7 +170,7 @@ export async function updateLibraryItemCollections(input: {
     itemId: string;
 }): Promise<UpdateLibraryItemCollectionsResult> {
     const parsed = UpdateLibraryItemCollectionsInputSchema.safeParse({
-        collectionIds: Array.from(new Set(input.collectionIds)),
+        collectionIds: uniqueStrings(input.collectionIds),
         itemId: input.itemId,
     });
 
