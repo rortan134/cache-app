@@ -4684,7 +4684,11 @@ function PreviewMedia({
             return;
         }
 
-        if (src || previewResultCache.has(staticPreviewCacheKey)) {
+        if (src && hoverVideoUrl) {
+            return;
+        }
+
+        if (previewResultCache.has(staticPreviewCacheKey)) {
             const cached = previewResultCache.get(staticPreviewCacheKey);
             cached?.then((result) => {
                 if (result?.staticImageUrl) {
@@ -4720,7 +4724,13 @@ function PreviewMedia({
                 });
                 previewResultCache.delete(staticPreviewCacheKey);
             });
-    }, [canResolveCobaltPreview, itemId, src, staticPreviewCacheKey]);
+    }, [
+        canResolveCobaltPreview,
+        hoverVideoUrl,
+        itemId,
+        src,
+        staticPreviewCacheKey,
+    ]);
 
     React.useEffect(() => {
         if (!(isHovering && hoverVideoUrl)) {
