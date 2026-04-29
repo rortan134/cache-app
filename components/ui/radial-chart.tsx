@@ -5,7 +5,7 @@ import { PolarAngleAxis, RadialBar, RadialBarChart } from "recharts";
 
 interface RadialChartProps extends React.ComponentProps<"div"> {
     /**
-     * Fill colour for the progress bar, e.g. '#22c55e'. Defaults to brand blue.
+     * Fill color for the progress bar, e.g. '#22c55e'. Defaults to brand blue.
      */
     color?: string;
     /**
@@ -18,23 +18,24 @@ interface RadialChartProps extends React.ComponentProps<"div"> {
     value: number;
 }
 
-const RadialChartImpl = ({
+function clampProgressValue(value: number) {
+    if (Number.isNaN(value) || value < 0) {
+        return 0;
+    }
+    if (value > 100) {
+        return 100;
+    }
+    return value;
+}
+
+function RadialChartImpl({
     value,
     size = 50,
     color = "#2563eb",
     ...props
-}: RadialChartProps) => {
-    const normalizedValue = React.useMemo(() => {
-        if (Number.isNaN(value) || value < 0) {
-            return 0;
-        }
-        if (value > 100) {
-            return 100;
-        }
-        return value;
-    }, [value]);
-
-    const data = [{ name: "progress", value: normalizedValue }];
+}: RadialChartProps) {
+    const progressValue = clampProgressValue(value);
+    const data = [{ name: "progress", value: progressValue }];
     const innerRadius = size * 0.24;
     const outerRadius = size * 0.36;
     const barSize = size * 0.08;
@@ -73,7 +74,7 @@ const RadialChartImpl = ({
             </RadialBarChart>
         </div>
     );
-};
+}
 
 const RadialChart = React.memo(RadialChartImpl);
 RadialChart.displayName = "RadialChart";

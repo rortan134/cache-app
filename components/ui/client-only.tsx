@@ -3,31 +3,35 @@
 import * as React from "react";
 
 // biome-ignore lint/suspicious/noEmptyBlockStatements: NOOP
-const doNothing = () => {};
+function doNothing() {}
 
-const useClientOnlyValue = <T,>(value: T, fallback?: T): T | null => {
-    const getSnapshots = React.useMemo(
-        () => [() => "client", () => "server"] as const,
-        []
+function getClientSnapshot() {
+    return "client";
+}
+
+function getServerSnapshot() {
+    return "server";
+}
+
+function subscribeClientBoundaryStore() {
+    return doNothing;
+}
+
+function useClientBoundaryValue() {
+    return React.useSyncExternalStore(
+        subscribeClientBoundaryStore,
+        getClientSnapshot,
+        getServerSnapshot
     );
-    const boundaryValue = React.useSyncExternalStore(
-        () => doNothing,
-        getSnapshots[0],
-        getSnapshots[1]
-    );
+}
+
+function useClientOnlyValue<T>(value: T, fallback?: T): T | null {
+    const boundaryValue = useClientBoundaryValue();
     return boundaryValue === "server" ? (fallback ?? null) : value;
-};
+}
 
 function ClientOnly(props: React.PropsWithChildren) {
-    const getSnapshots = React.useMemo(
-        () => [() => "client", () => "server"] as const,
-        []
-    );
-    const boundaryValue = React.useSyncExternalStore(
-        () => doNothing,
-        getSnapshots[0],
-        getSnapshots[1]
-    );
+    const boundaryValue = useClientBoundaryValue();
     return boundaryValue === "server" ? null : <React.Fragment {...props} />;
 }
 

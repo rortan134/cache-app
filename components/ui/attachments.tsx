@@ -42,13 +42,9 @@ const mediaCategoryIcons: Record<AttachmentMediaCategory, typeof ImageIcon> = {
     video: VideoIcon,
 };
 
-// ============================================================================
-// Utility Functions
-// ============================================================================
-
-export const getMediaCategory = (
+export function getMediaCategory(
     data: AttachmentData
-): AttachmentMediaCategory => {
+): AttachmentMediaCategory {
     if (data.type === "source-document") {
         return "source";
     }
@@ -69,23 +65,23 @@ export const getMediaCategory = (
     }
 
     return "unknown";
-};
+}
 
-export const getAttachmentLabel = (data: AttachmentData): string => {
+export function getAttachmentLabel(data: AttachmentData): string {
     if (data.type === "source-document") {
         return data.title || data.filename || "Source";
     }
 
     const category = getMediaCategory(data);
     return data.filename || (category === "image" ? "Image" : "Attachment");
-};
+}
 
-const renderAttachmentImage = (
+function renderAttachmentImage(
     url: string,
     filename: string | undefined,
     isGrid: boolean
-) =>
-    isGrid ? (
+) {
+    return isGrid ? (
         <img
             alt={filename || "Image"}
             className="size-full object-cover"
@@ -102,6 +98,36 @@ const renderAttachmentImage = (
             width={20}
         />
     );
+}
+
+function renderAttachmentIcon(Icon: typeof ImageIcon, iconClassName: string) {
+    return <Icon className={cn(iconClassName, "text-muted-foreground")} />;
+}
+
+function renderAttachmentPreviewContent(
+    data: AttachmentData,
+    mediaCategory: AttachmentMediaCategory,
+    variant: AttachmentVariant,
+    fallbackIcon: React.ReactNode
+) {
+    if (mediaCategory === "image" && data.type === "file" && data.url) {
+        return renderAttachmentImage(
+            data.url,
+            data.filename,
+            variant === "grid"
+        );
+    }
+
+    if (mediaCategory === "video" && data.type === "file" && data.url) {
+        return (
+            <video className="size-full object-cover" muted src={data.url} />
+        );
+    }
+
+    const Icon = mediaCategoryIcons[mediaCategory];
+    const iconClassName = variant === "inline" ? "size-3" : "size-4";
+    return fallbackIcon ?? renderAttachmentIcon(Icon, iconClassName);
+}
 
 interface AttachmentsContextValue {
     variant: AttachmentVariant;
@@ -122,10 +148,11 @@ const AttachmentContext = React.createContext<AttachmentContextValue | null>(
     null
 );
 
-const useAttachmentsContext = () =>
-    React.use(AttachmentsContext) ?? { variant: "grid" as const };
+function useAttachmentsContext() {
+    return React.use(AttachmentsContext) ?? { variant: "grid" as const };
+}
 
-const useAttachmentContext = () => {
+function useAttachmentContext() {
     const context = React.use(AttachmentContext);
     if (!context) {
         throw new Error(
@@ -133,7 +160,7 @@ const useAttachmentContext = () => {
         );
     }
     return context;
-};
+}
 
 interface AttachmentsProps extends React.ComponentProps<"div"> {
     variant?: AttachmentVariant;
@@ -215,35 +242,6 @@ export const AttachmentPreview = ({
 }: AttachmentPreviewProps) => {
     const { data, mediaCategory, variant } = useAttachmentContext();
 
-    const iconSize = variant === "inline" ? "size-3" : "size-4";
-
-    const renderIcon = (Icon: typeof ImageIcon) => (
-        <Icon className={cn(iconSize, "text-muted-foreground")} />
-    );
-
-    const renderContent = () => {
-        if (mediaCategory === "image" && data.type === "file" && data.url) {
-            return renderAttachmentImage(
-                data.url,
-                data.filename,
-                variant === "grid"
-            );
-        }
-
-        if (mediaCategory === "video" && data.type === "file" && data.url) {
-            return (
-                <video
-                    className="size-full object-cover"
-                    muted
-                    src={data.url}
-                />
-            );
-        }
-
-        const Icon = mediaCategoryIcons[mediaCategory];
-        return fallbackIcon ?? renderIcon(Icon);
-    };
-
     return (
         <div
             className={cn(
@@ -255,7 +253,12 @@ export const AttachmentPreview = ({
             )}
             {...props}
         >
-            {renderContent()}
+            {renderAttachmentPreviewContent(
+                data,
+                mediaCategory,
+                variant,
+                fallbackIcon
+            )}
         </div>
     );
 };

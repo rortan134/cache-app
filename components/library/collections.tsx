@@ -299,7 +299,7 @@ function getPriorityOption(priority: CollectionPriority): PriorityOption {
 
 function getCollectionsListItemStyle(name: string, isSelected: boolean) {
     const assignedColor = getHexColorFromName(name);
-    const backgroundOpacity = isSelected ? 15 : 9;
+    const backgroundOpacity = isSelected ? 15 : 10;
 
     return {
         "--collection-background": `color-mix(in srgb, ${assignedColor} ${backgroundOpacity}%, transparent)`,

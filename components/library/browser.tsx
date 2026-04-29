@@ -3194,17 +3194,21 @@ function ValidCategoryThumbnail({ urls }: { urls: string[] }) {
         };
     }, [urls]);
 
-    if (validUrls.length === 0) {
+    const src = validUrls[0];
+
+    if (validUrls.length === 0 || !src) {
         return null;
     }
 
     return (
         <img
             alt=""
-            className="absolute inset-0 z-10 size-full object-cover opacity-80 mix-blend-overlay"
-            height={225}
-            src={validUrls[0]}
-            width={300}
+            className="absolute top-11 left-3 z-10 h-full w-auto rounded-sm object-cover transition-transform group-data-highlighted:-translate-y-1"
+            fetchPriority="high"
+            height={104}
+            loading="lazy"
+            src={src}
+            width={140}
         />
     );
 }
@@ -3314,7 +3318,7 @@ function buildSearchPaletteGroups({
                             ) ?? [];
                         return thumbnails.length > 1;
                     })
-                    .slice(0, 3)
+                    .slice(0, 4)
                     .map((collection) => {
                         const thumbnails =
                             collectionPreviewThumbnailUrlsById.get(
@@ -3330,14 +3334,13 @@ function buildSearchPaletteGroups({
                                 onToggleCollectionSelection(collection.id)
                             ),
                             render: () => (
-                                <div className="group relative flex size-full flex-col overflow-hidden rounded-3xl">
+                                <div className="flex aspect-square size-full flex-1 flex-col">
                                     {thumbnails.length > 0 && (
                                         <ValidCategoryThumbnail
                                             urls={thumbnails}
                                         />
                                     )}
-                                    <div className="absolute inset-0 z-20 bg-linear-to-b from-black/40 via-black/15 to-black/5" />
-                                    <span className="relative z-30 p-3 font-medium text-base text-white">
+                                    <span className="z-30 truncate p-1 font-medium">
                                         {collection.name}
                                     </span>
                                 </div>
@@ -6766,7 +6769,7 @@ function LibraryBrowser({
                                         <div
                                             className={
                                                 group.layout === "horizontal"
-                                                    ? "-mx-1 flex gap-3 overflow-x-auto px-1 pt-1 pb-4 [&::-webkit-scrollbar]:hidden"
+                                                    ? "flex gap-2 pr-2 pb-4"
                                                     : ""
                                             }
                                         >
@@ -6776,7 +6779,7 @@ function LibraryBrowser({
                                                         className={
                                                             group.layout ===
                                                             "horizontal"
-                                                                ? "relative h-[104px] w-[140px] shrink-0 p-0 outline-none data-active:ring-2 data-active:ring-ring data-active:ring-offset-2 data-active:ring-offset-background"
+                                                                ? "group relative flex-1 overflow-hidden rounded-xl bg-accent text-accent-foreground shadow-xs"
                                                                 : undefined
                                                         }
                                                         key={item.value}
@@ -6823,6 +6826,14 @@ function LibraryBrowser({
                                 ))}
                             </CommandList>
                             <CommandFooter>
+                                {canClear ? (
+                                    <div className="mr-auto flex items-center gap-1.5">
+                                        <span className="font-medium">
+                                            Close
+                                        </span>
+                                        <Kbd>Esc</Kbd>
+                                    </div>
+                                ) : null}
                                 <div className="flex items-center gap-1.5">
                                     <span className="font-medium">
                                         Navigate
@@ -6956,6 +6967,7 @@ function LibraryBrowser({
                                         variant="ghost"
                                     >
                                         {suggestion.icon}
+                                        &nbsp;
                                         {suggestion.label}
                                     </Button>
                                     <span className="font-medium text-muted-foreground text-xs last:hidden">

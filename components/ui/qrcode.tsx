@@ -1,11 +1,11 @@
 "use client";
 
 import { cn } from "@/lib/common/cn";
+import { useComposedRefs } from "@/hooks/compose-refs";
 import { mergeProps } from "@base-ui/react/merge-props";
 import { useRender } from "@base-ui/react/use-render";
-import { useComposedRefs } from "@/hooks/compose-refs";
-import * as React from "react";
 import { useRefWithInit } from "@base-ui/utils/useRefWithInit";
+import * as React from "react";
 
 const ROOT_NAME = "QRCode";
 const IMAGE_NAME = "QRCodeImage";
@@ -103,6 +103,59 @@ interface QRCodeProps extends Omit<useRender.ComponentProps<"div">, "onError"> {
     value: string;
 }
 
+const storeStateKeys = [
+    "dataUrl",
+    "error",
+    "generationKey",
+    "isGenerating",
+    "svgString",
+] as const satisfies readonly (keyof StoreState)[];
+
+function createQRCodeStore(
+    stateRef: React.RefObject<StoreState>,
+    listenersRef: React.RefObject<Set<() => void>>
+): Store {
+    const notify = () => {
+        for (const listener of listenersRef.current) {
+            listener();
+        }
+    };
+
+    return {
+        getState: () => stateRef.current,
+        notify,
+        setState: (key, value) => {
+            if (Object.is(stateRef.current[key], value)) {
+                return;
+            }
+            stateRef.current[key] = value;
+            notify();
+        },
+        setStates: (updates) => {
+            let hasChanged = false;
+
+            for (const key of storeStateKeys) {
+                const value = updates[key];
+                if (
+                    value !== undefined &&
+                    !Object.is(stateRef.current[key], value)
+                ) {
+                    Object.assign(stateRef.current, { [key]: value });
+                    hasChanged = true;
+                }
+            }
+
+            if (hasChanged) {
+                notify();
+            }
+        },
+        subscribe: (listener) => {
+            listenersRef.current.add(listener);
+            return () => listenersRef.current.delete(listener);
+        },
+    };
+}
+
 /**
  * Usage
  * ```tsx
@@ -145,46 +198,8 @@ function QRCode(props: QRCodeProps) {
         svgString: null,
     }));
 
-    const store = React.useMemo<Store>(
-        () => ({
-            getState: () => stateRef.current,
-            notify: () => {
-                for (const cb of listenersRef.current) {
-                    cb();
-                }
-            },
-            setState: (key, value) => {
-                if (Object.is(stateRef.current[key], value)) {
-                    return;
-                }
-                stateRef.current[key] = value;
-                store.notify();
-            },
-            setStates: (updates) => {
-                let hasChanged = false;
-
-                for (const key of Object.keys(updates) as Array<
-                    keyof StoreState
-                >) {
-                    const value = updates[key];
-                    if (
-                        value !== undefined &&
-                        !Object.is(stateRef.current[key], value)
-                    ) {
-                        Object.assign(stateRef.current, { [key]: value });
-                        hasChanged = true;
-                    }
-                }
-
-                if (hasChanged) {
-                    store.notify();
-                }
-            },
-            subscribe: (cb) => {
-                listenersRef.current.add(cb);
-                return () => listenersRef.current.delete(cb);
-            },
-        }),
+    const store = React.useMemo(
+        () => createQRCodeStore(stateRef, listenersRef),
         [listenersRef, stateRef]
     );
 

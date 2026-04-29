@@ -1,18 +1,22 @@
 import { cn } from "@/lib/common/cn";
 import type * as React from "react";
 
-const Ticker = ({
+interface TickerProps extends React.ComponentProps<"div"> {
+    direction?: "up" | "down" | "left" | "right";
+    repeatInstances?: number;
+}
+
+function Ticker({
     direction = "left",
     repeatInstances = 2,
     className,
     children,
     ...props
-}: React.ComponentProps<"div"> & {
-    direction?: "up" | "down" | "left" | "right";
-    repeatInstances?: number;
-}) => {
+}: TickerProps) {
     const isHorizontal = direction === "left" || direction === "right";
     const isVertical = direction === "up" || direction === "down";
+    const repeatCount = Math.max(1, Math.ceil(repeatInstances));
+    const animationDistance = `${-100 / repeatCount}%`;
 
     return (
         <span
@@ -37,17 +41,17 @@ const Ticker = ({
                 })}
                 style={
                     {
-                        "--animation-distance": `${-100 / repeatInstances}%`,
+                        "--animation-distance": animationDistance,
                     } as React.CSSProperties
                 }
             >
-                {[...(new Array(repeatInstances) as never[])].map((_, i) => (
+                {Array.from({ length: repeatCount }, (_, index) => (
                     <span
                         className={cn("flex shrink-0 gap-(--gap)", {
                             "flex-col": isVertical,
                             "flex-row": isHorizontal,
                         })}
-                        key={i}
+                        key={index}
                     >
                         {children}
                     </span>
@@ -55,6 +59,6 @@ const Ticker = ({
             </span>
         </span>
     );
-};
+}
 
 export { Ticker };

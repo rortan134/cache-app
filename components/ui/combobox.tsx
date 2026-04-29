@@ -8,16 +8,18 @@ import { Combobox as ComboboxPrimitive } from "@base-ui/react/combobox";
 import { XIcon } from "lucide-react";
 import * as React from "react";
 
-export const ComboboxContext: React.Context<{
+type ComboboxSize = "sm" | "default" | "lg" | number;
+
+interface ComboboxContextValue {
     chipsRef: React.RefObject<Element | null> | null;
     multiple: boolean;
-}> = React.createContext<{
-    chipsRef: React.RefObject<Element | null> | null;
-    multiple: boolean;
-}>({
-    chipsRef: null,
-    multiple: false,
-});
+}
+
+export const ComboboxContext: React.Context<ComboboxContextValue> =
+    React.createContext<ComboboxContextValue>({
+        chipsRef: null,
+        multiple: false,
+    });
 
 export function Combobox<Value, Multiple extends boolean | undefined = false>(
     props: ComboboxPrimitive.Root.Props<Value, Multiple>
@@ -32,24 +34,22 @@ export function Combobox<Value, Multiple extends boolean | undefined = false>(
 
 export function ComboboxChipsInput({
     className,
-    size,
+    size = "default",
     ...props
 }: Omit<ComboboxPrimitive.Input.Props, "size"> & {
-    size?: "sm" | "default" | "lg" | number;
+    size?: ComboboxSize;
     ref?: React.Ref<HTMLInputElement>;
 }) {
-    const sizeValue = (size ?? "default") as "sm" | "default" | "lg" | number;
-
     return (
         <ComboboxPrimitive.Input
             className={cn(
                 "min-w-12 flex-1 text-base outline-none sm:text-sm [[data-slot=combobox-chip]+&]:ps-0.5",
-                sizeValue === "sm" ? "ps-1.5" : "ps-2",
+                size === "sm" ? "ps-1.5" : "ps-2",
                 className
             )}
-            data-size={typeof sizeValue === "string" ? sizeValue : undefined}
+            data-size={typeof size === "string" ? size : undefined}
             data-slot="combobox-chips-input"
-            size={typeof sizeValue === "number" ? sizeValue : undefined}
+            size={typeof size === "number" ? size : undefined}
             {...props}
         />
     );
@@ -60,7 +60,7 @@ export function ComboboxInput({
     showClear = false,
     startAddon,
     endAddon,
-    size,
+    size = "default",
     triggerProps,
     clearProps,
     ...props
@@ -68,13 +68,11 @@ export function ComboboxInput({
     showClear?: boolean;
     startAddon?: React.ReactNode;
     endAddon?: React.ReactNode;
-    size?: "sm" | "default" | "lg" | number;
+    size?: ComboboxSize;
     ref?: React.Ref<HTMLInputElement>;
     triggerProps?: ComboboxPrimitive.Trigger.Props;
     clearProps?: ComboboxPrimitive.Clear.Props;
 }) {
-    const sizeValue = (size ?? "default") as "sm" | "default" | "lg" | number;
-
     return (
         <ComboboxPrimitive.InputGroup
             className="relative not-has-[>*.w-full]:w-fit w-full border-b text-foreground has-disabled:opacity-64"
@@ -98,7 +96,7 @@ export function ComboboxInput({
                     endAddon &&
                         showClear &&
                         "data-[size=sm]:*:data-[slot=combobox-input]:pe-[calc(--spacing(13.5)-1px)] *:data-[slot=combobox-input]:pe-[calc(--spacing(14.5)-1px)] sm:data-[size=sm]:*:data-[slot=combobox-input]:pe-[calc(--spacing(12.5)-1px)] sm:*:data-[slot=combobox-input]:pe-[calc(--spacing(13.5)-1px)]",
-                    sizeValue === "sm"
+                    size === "sm"
                         ? "has-[+[data-slot=combobox-trigger],+[data-slot=combobox-clear]]:*:data-[slot=combobox-input]:pe-6.5"
                         : "has-[+[data-slot=combobox-trigger],+[data-slot=combobox-clear]]:*:data-[slot=combobox-input]:pe-7",
                     "border-none! ring-0!",
@@ -109,7 +107,7 @@ export function ComboboxInput({
                     <Input
                         className="has-disabled:opacity-100"
                         nativeInput
-                        size={sizeValue}
+                        size={size}
                     />
                 }
                 {...props}
@@ -119,8 +117,7 @@ export function ComboboxInput({
                     aria-hidden="true"
                     className={cn(
                         "pointer-events-none absolute inset-y-0 end-px z-10 flex items-center pe-[calc(--spacing(3)-1px)] opacity-80 has-[+[data-size=sm]]:pe-[calc(--spacing(2.5)-1px)] [&_svg:not([class*='size-'])]:size-4.5 sm:[&_svg:not([class*='size-'])]:size-4 [&_svg]:-mx-0.5",
-                        showClear &&
-                            (sizeValue === "sm" ? "inset-e-7" : "end-8.5")
+                        showClear && (size === "sm" ? "inset-e-7" : "end-8.5")
                     )}
                     data-slot="combobox-end-addon"
                 >
@@ -131,7 +128,7 @@ export function ComboboxInput({
                 <ComboboxClear
                     className={cn(
                         "absolute top-1/2 inline-flex size-8 shrink-0 -translate-y-1/2 cursor-pointer items-center justify-center rounded-md border border-transparent opacity-80 outline-none transition-opacity pointer-coarse:after:absolute pointer-coarse:after:min-h-11 pointer-coarse:after:min-w-11 hover:opacity-100 has-[+[data-slot=combobox-clear]]:hidden sm:size-7 [&_svg:not([class*='size-'])]:size-4.5 sm:[&_svg:not([class*='size-'])]:size-4 [&_svg]:pointer-events-none [&_svg]:shrink-0",
-                        sizeValue === "sm" ? "inset-e-0" : "inset-e-0.5"
+                        size === "sm" ? "inset-e-0" : "inset-e-0.5"
                     )}
                     {...clearProps}
                 >

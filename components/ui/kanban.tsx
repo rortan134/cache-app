@@ -216,6 +216,113 @@ type KanbanProps<T> = Omit<DndContextProps, "collisionDetection"> &
         flatCursor?: boolean;
     };
 
+function getColumnIds<T>(items: Record<UniqueIdentifier, T[]>) {
+    return Object.keys(items);
+}
+
+function getColumnIndex<T>(
+    items: Record<UniqueIdentifier, T[]>,
+    id: UniqueIdentifier
+) {
+    return getColumnIds(items).indexOf(String(id));
+}
+
+function getItemIndex<T>(
+    items: T[],
+    id: UniqueIdentifier,
+    getItemValue: (item: T) => UniqueIdentifier
+) {
+    return items.findIndex((item) => getItemValue(item) === id);
+}
+
+function getDragAnnouncementPosition<T>({
+    id,
+    isColumn,
+    items,
+    getColumn,
+    getItemValue,
+}: {
+    id: UniqueIdentifier;
+    isColumn: boolean;
+    items: Record<UniqueIdentifier, T[]>;
+    getColumn: (id: UniqueIdentifier) => UniqueIdentifier | null;
+    getItemValue: (item: T) => UniqueIdentifier;
+}) {
+    if (isColumn) {
+        return getColumnIndex(items, id) + 1;
+    }
+
+    const column = getColumn(id);
+    if (!(column && items[column])) {
+        return 1;
+    }
+
+    return getItemIndex(items[column], id, getItemValue) + 1;
+}
+
+function getDragAnnouncementTotal<T>({
+    id,
+    isColumn,
+    items,
+    getColumn,
+}: {
+    id: UniqueIdentifier;
+    isColumn: boolean;
+    items: Record<UniqueIdentifier, T[]>;
+    getColumn: (id: UniqueIdentifier) => UniqueIdentifier | null;
+}) {
+    if (isColumn) {
+        return getColumnIds(items).length;
+    }
+
+    const column = getColumn(id);
+    return column ? (items[column]?.length ?? 0) : 0;
+}
+
+function getDragAnnouncement<T>({
+    activeId,
+    overId,
+    action,
+    items,
+    getColumn,
+    getItemValue,
+}: {
+    activeId: UniqueIdentifier;
+    overId: UniqueIdentifier;
+    action: "dropped" | "moved";
+    items: Record<UniqueIdentifier, T[]>;
+    getColumn: (id: UniqueIdentifier) => UniqueIdentifier | null;
+    getItemValue: (item: T) => UniqueIdentifier;
+}) {
+    const isColumn = activeId in items;
+    const itemType = isColumn ? "column" : "item";
+    const position = getDragAnnouncementPosition({
+        getColumn,
+        getItemValue,
+        id: overId,
+        isColumn,
+        items,
+    });
+    const total = getDragAnnouncementTotal({
+        getColumn,
+        id: overId,
+        isColumn,
+        items,
+    });
+
+    if (isColumn) {
+        return `${itemType} ${action === "dropped" ? "was dropped" : "is now"} at position ${position} of ${total}`;
+    }
+
+    const overColumn = getColumn(overId);
+    const activeColumn = getColumn(activeId);
+    if (activeColumn !== overColumn) {
+        return `${itemType} ${action === "dropped" ? "was dropped" : "is now"} at position ${position} of ${total} in ${overColumn}`;
+    }
+
+    return `${itemType} ${action === "dropped" ? "was dropped" : "is now"} at position ${position} of ${total}`;
+}
+
 function Kanban<T>(props: KanbanProps<T>) {
     const {
         value,
@@ -435,21 +542,18 @@ function Kanban<T>(props: KanbanProps<T>) {
             }
 
             if (active.id in value && over.id in value) {
-                const activeIndex = Object.keys(value).indexOf(
-                    active.id as string
-                );
-                const overIndex = Object.keys(value).indexOf(over.id as string);
+                const activeIndex = getColumnIndex(value, active.id);
+                const overIndex = getColumnIndex(value, over.id);
 
                 if (activeIndex !== overIndex) {
-                    const orderedColumns = Object.keys(value);
-                    const newOrder = arrayMove(
-                        orderedColumns,
+                    const orderedColumns = arrayMove(
+                        getColumnIds(value),
                         activeIndex,
                         overIndex
                     );
 
                     const newColumns: Record<UniqueIdentifier, T[]> = {};
-                    for (const key of newOrder) {
+                    for (const key of orderedColumns) {
                         const items = value[key];
                         if (items) {
                             newColumns[key] = items;
@@ -544,103 +648,45 @@ function Kanban<T>(props: KanbanProps<T>) {
                     return;
                 }
 
-                const isColumn = active.id in value;
-                const itemType = isColumn ? "column" : "item";
-                const position = isColumn
-                    ? Object.keys(value).indexOf(over.id as string) + 1
-                    : (() => {
-                          const column = getColumn(over.id);
-                          if (!(column && value[column])) {
-                              return 1;
-                          }
-                          return (
-                              value[column].findIndex(
-                                  (item) => getItemValue(item) === over.id
-                              ) + 1
-                          );
-                      })();
-                const total = isColumn
-                    ? Object.keys(value).length
-                    : (() => {
-                          const column = getColumn(over.id);
-                          return column ? (value[column]?.length ?? 0) : 0;
-                      })();
-
-                const overColumn = getColumn(over.id);
-                const activeColumn = getColumn(active.id);
-
-                if (isColumn) {
-                    return `${itemType} was dropped at position ${position} of ${total}`;
-                }
-
-                if (activeColumn !== overColumn) {
-                    return `${itemType} was dropped at position ${position} of ${total} in ${overColumn}`;
-                }
-
-                return `${itemType} was dropped at position ${position} of ${total}`;
+                return getDragAnnouncement({
+                    action: "dropped",
+                    activeId: active.id,
+                    getColumn,
+                    getItemValue,
+                    items: value,
+                    overId: over.id,
+                });
             },
             onDragOver({ active, over }) {
                 if (!over) {
                     return;
                 }
 
-                const isColumn = active.id in value;
-                const itemType = isColumn ? "column" : "item";
-                const position = isColumn
-                    ? Object.keys(value).indexOf(over.id as string) + 1
-                    : (() => {
-                          const column = getColumn(over.id);
-                          if (!(column && value[column])) {
-                              return 1;
-                          }
-                          return (
-                              value[column].findIndex(
-                                  (item) => getItemValue(item) === over.id
-                              ) + 1
-                          );
-                      })();
-                const total = isColumn
-                    ? Object.keys(value).length
-                    : (() => {
-                          const column = getColumn(over.id);
-                          return column ? (value[column]?.length ?? 0) : 0;
-                      })();
-
-                const overColumn = getColumn(over.id);
-                const activeColumn = getColumn(active.id);
-
-                if (isColumn) {
-                    return `${itemType} is now at position ${position} of ${total}`;
-                }
-
-                if (activeColumn !== overColumn) {
-                    return `${itemType} is now at position ${position} of ${total} in ${overColumn}`;
-                }
-
-                return `${itemType} is now at position ${position} of ${total}`;
+                return getDragAnnouncement({
+                    action: "moved",
+                    activeId: active.id,
+                    getColumn,
+                    getItemValue,
+                    items: value,
+                    overId: over.id,
+                });
             },
             onDragStart({ active }) {
                 const isColumn = active.id in value;
                 const itemType = isColumn ? "column" : "item";
-                const position = isColumn
-                    ? Object.keys(value).indexOf(active.id as string) + 1
-                    : (() => {
-                          const column = getColumn(active.id);
-                          if (!(column && value[column])) {
-                              return 1;
-                          }
-                          return (
-                              value[column].findIndex(
-                                  (item) => getItemValue(item) === active.id
-                              ) + 1
-                          );
-                      })();
-                const total = isColumn
-                    ? Object.keys(value).length
-                    : (() => {
-                          const column = getColumn(active.id);
-                          return column ? (value[column]?.length ?? 0) : 0;
-                      })();
+                const position = getDragAnnouncementPosition({
+                    getColumn,
+                    getItemValue,
+                    id: active.id,
+                    isColumn,
+                    items: value,
+                });
+                const total = getDragAnnouncementTotal({
+                    getColumn,
+                    id: active.id,
+                    isColumn,
+                    items: value,
+                });
 
                 return `Picked up ${itemType} at position ${position} of ${total}`;
             },
