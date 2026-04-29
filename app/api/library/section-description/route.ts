@@ -5,11 +5,11 @@ import {
     estimateGenAiTokens,
     protectGenAiRequest,
 } from "@/lib/collections/intelligence/protection";
-import { createLogger } from "@/lib/common/logs/console/logger";
 import {
     SectionDescriptionRequestSchema,
     type SectionDescriptionRequest,
-} from "@/lib/library/section-description";
+} from "@/lib/collections/intelligence/summary";
+import { createLogger } from "@/lib/common/logs/console/logger";
 import { ApiError, GoogleGenAI } from "@google/genai";
 import { headers } from "next/headers";
 

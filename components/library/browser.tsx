@@ -134,6 +134,14 @@ import {
     type UpdateCollectionPriorityResult,
 } from "@/lib/collections/actions";
 import {
+    SECTION_DESCRIPTION_CONTEXT_ITEMS_LIMIT,
+    SECTION_DESCRIPTION_DOMAIN_MAX_LENGTH,
+    SECTION_DESCRIPTION_TEXT_MAX_LENGTH,
+    SECTION_DESCRIPTION_TITLE_MAX_LENGTH,
+    SECTION_DESCRIPTION_URL_MAX_LENGTH,
+    type SectionDescriptionContextItem,
+} from "@/lib/collections/intelligence/summary";
+import {
     deleteLibraryItem,
     updateLibraryItemCollections,
     updateLibraryItemsCollections,
@@ -173,7 +181,6 @@ import type {
     LibraryItemWithCollections,
 } from "@/lib/common/types";
 import { normalizeURL, parseDisplayUrl, toValidUrl } from "@/lib/common/url";
-import { dayjs } from "@/lib/dayjs";
 import {
     createChromeBookmarkFromUrl,
     type CreateChromeBookmarkFromUrlResult,
@@ -184,14 +191,6 @@ import {
     type NoteMutationResult,
 } from "@/lib/integrations/notes/actions";
 import { getNoteExcerpt } from "@/lib/integrations/notes/utils";
-import { SECTION_DESCRIPTION_CONTEXT_ITEMS_LIMIT } from "@/lib/library/constants";
-import {
-    SECTION_DESCRIPTION_DOMAIN_MAX_LENGTH,
-    SECTION_DESCRIPTION_TEXT_MAX_LENGTH,
-    SECTION_DESCRIPTION_TITLE_MAX_LENGTH,
-    SECTION_DESCRIPTION_URL_MAX_LENGTH,
-    type SectionDescriptionContextItem,
-} from "@/lib/library/section-description";
 import {
     LibraryItemSource,
     type CollectionPriority,
@@ -5199,7 +5198,6 @@ function LibraryGridCard({ item }: LibraryGridCardProps) {
     const addedLabel = itemDateLabel(item.scrapedAt ?? item.createdAt);
     const noteExcerpt = getNoteExcerpt(item.noteContentText);
     const displayTitle = getItemTitle(item);
-    const isNewItem = !isNote && dayjs(itemDate(item)).isToday();
 
     const handlePrimaryClick = (event: React.MouseEvent<HTMLAnchorElement>) => {
         event.preventDefault();
@@ -5308,14 +5306,6 @@ function LibraryGridCard({ item }: LibraryGridCardProps) {
                             </div>
                         )}
                     </a>
-                    {isNewItem ? (
-                        <Badge
-                            className="absolute top-3 left-3 bg-primary/50"
-                            size="sm"
-                        >
-                            NEW
-                        </Badge>
-                    ) : null}
                     <div
                         className={cn(
                             "overflow-fade-top absolute inset-x-0 bottom-0 flex items-center gap-1 overflow-hidden bg-black/35 px-1.5 pt-2 pb-1 backdrop-blur-[2.5px]",

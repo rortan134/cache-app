@@ -44,12 +44,13 @@ import {
     listConnectedIntegrationIds,
     listIntegrationAccountProviderIds,
 } from "@/lib/integrations/support";
-import { FREE_LIBRARY_PREVIEW_ITEMS } from "@/lib/library/constants";
 import { prisma } from "@/prisma";
 import LogoIconImage from "@/public/cache-app-icon.png";
 import { T } from "gt-next";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
+
+const FREE_LIBRARY_PREVIEW_ITEMS = 12;
 
 async function getUserLibraryPageData(args: {
     hasAccess: boolean;
@@ -177,6 +178,7 @@ export default async function LibraryPage() {
             },
         }),
     ]);
+
     const { collections, itemSources, items, lockedItemCount, totalItemCount } =
         await getUserLibraryPageData({
             hasAccess,

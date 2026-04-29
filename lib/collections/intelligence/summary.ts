@@ -1,15 +1,15 @@
-import { SECTION_DESCRIPTION_CONTEXT_ITEMS_LIMIT } from "@/lib/library/constants";
 import { LibraryItemSource } from "@/prisma/client/enums";
 import * as z from "zod";
 
+export const SECTION_DESCRIPTION_CONTEXT_ITEMS_LIMIT = 20;
 export const SECTION_DESCRIPTION_TEXT_MAX_LENGTH = 180;
 export const SECTION_DESCRIPTION_URL_MAX_LENGTH = 240;
 export const SECTION_DESCRIPTION_DOMAIN_MAX_LENGTH = 80;
 export const SECTION_DESCRIPTION_TITLE_MAX_LENGTH = 140;
 
 export const SectionDescriptionContextItemSchema = z.object({
-    addedAt: z.string().trim().datetime().optional(),
-    createdAt: z.string().trim().datetime().optional(),
+    addedAt: z.iso.datetime().optional(),
+    createdAt: z.iso.datetime().optional(),
     domain: z
         .string()
         .trim()
@@ -26,7 +26,7 @@ export const SectionDescriptionContextItemSchema = z.object({
         .trim()
         .min(1)
         .max(SECTION_DESCRIPTION_TEXT_MAX_LENGTH),
-    source: z.nativeEnum(LibraryItemSource),
+    source: z.enum(LibraryItemSource),
     title: z.string().trim().min(1).max(SECTION_DESCRIPTION_TITLE_MAX_LENGTH),
     url: z.string().trim().max(SECTION_DESCRIPTION_URL_MAX_LENGTH).optional(),
 });

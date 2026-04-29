@@ -103,14 +103,14 @@ model Collection {
 
 /// Application-owned. User's saved content items.
 model LibraryItem {
-    id               String            @id @default(cuid())
+    id               String              @id @default(cuid())
     userId           String
-    user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+    user             User                @relation(fields: [userId], references: [id], onDelete: Cascade)
     source           LibraryItemSource
-    kind             LibraryItemKind   @default(bookmark)
+    kind             LibraryItemKind     @default(bookmark)
     externalId       String
-    sourceAliasIds   String[]          @default([])
-    browserProfileId String            @default("default")
+    sourceAliasIds   String[]            @default([])
+    browserProfileId String              @default("default")
     parentExternalId String?
     sourceDeviceId   String?
     sourceDeviceName String?
@@ -124,8 +124,8 @@ model LibraryItem {
     postedAt         DateTime?
     scrapedAt        DateTime?
     collections      Collection[]
-    createdAt        DateTime          @default(now())
-    updatedAt        DateTime          @updatedAt
+    createdAt        DateTime            @default(now())
+    updatedAt        DateTime            @updatedAt
 
     @@unique([userId, source, browserProfileId, externalId])
     @@index([userId])
@@ -134,19 +134,20 @@ model LibraryItem {
     @@map("library_item")
 }
 
+/// Application-owned. User's content previews.
 model LibraryItemPreview {
-    id             String                           @id @default(cuid())
-    libraryItemId  String                           @unique
-    libraryItem    LibraryItem                      @relation(fields: [libraryItemId], references: [id], onDelete: Cascade)
-    sourceUrl      String
-    staticImageUrl String?
+    id              String                           @id @default(cuid())
+    libraryItemId   String                           @unique
+    libraryItem     LibraryItem                      @relation(fields: [libraryItemId], references: [id], onDelete: Cascade)
+    sourceUrl       String
+    staticImageUrl  String?
     videoPreviewUrl String?
-    mediaType      LibraryItemPreviewMediaType      @default(unknown)
-    providerStatus LibraryItemPreviewProviderStatus
-    errorCode      String?
-    resolvedAt     DateTime
-    createdAt      DateTime                         @default(now())
-    updatedAt      DateTime                         @updatedAt
+    mediaType       LibraryItemPreviewMediaType      @default(unknown)
+    providerStatus  LibraryItemPreviewProviderStatus
+    errorCode       String?
+    resolvedAt      DateTime
+    createdAt       DateTime                         @default(now())
+    updatedAt       DateTime                         @updatedAt
 
     @@index([providerStatus])
     @@index([resolvedAt])

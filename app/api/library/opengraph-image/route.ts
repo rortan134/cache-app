@@ -1,11 +1,11 @@
 import { createLogger } from "@/lib/common/logs/console/logger";
+import { fetchWithTimeout } from "@/lib/common/timeout";
 import { toValidUrl } from "@/lib/common/url";
 
 const log = createLogger("api:library:opengraph-image");
 
 const CACHE_CONTROL_HEADER = "public, max-age=86400, s-maxage=604800";
-const HTML_FETCH_TIMEOUT_MS = 6000;
-const IMAGE_FETCH_TIMEOUT_MS = 8000;
+const FETCH_TIMEOUT_MS = 5000;
 const OG_META_KEYS = [
     "og:image",
     "og:image:url",
@@ -35,7 +35,7 @@ export async function GET(request: Request): Promise<Response> {
                 },
                 redirect: "follow",
             },
-            HTML_FETCH_TIMEOUT_MS
+            FETCH_TIMEOUT_MS
         );
 
         if (!pageResponse.ok) {
@@ -71,7 +71,7 @@ export async function GET(request: Request): Promise<Response> {
                 },
                 redirect: "follow",
             },
-            IMAGE_FETCH_TIMEOUT_MS
+            FETCH_TIMEOUT_MS
         );
 
         if (!imageResponse.ok) {
@@ -82,6 +82,7 @@ export async function GET(request: Request): Promise<Response> {
 
         const imageContentType =
             imageResponse.headers.get("content-type") ?? "";
+
         if (!imageContentType.startsWith("image/")) {
             return new Response("Unsupported preview", {
                 status: 415,
@@ -240,22 +241,4 @@ function resolvePreviewImageUrl(html: string, pageUrl: string): string | null {
     }
 
     return null;
-}
-
-async function fetchWithTimeout(
-    input: string,
-    init: RequestInit,
-    timeoutMs: number
-): Promise<Response> {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), timeoutMs);
-
-    try {
-        return await fetch(input, {
-            ...init,
-            signal: controller.signal,
-        });
-    } finally {
-        clearTimeout(timeout);
-    }
 }

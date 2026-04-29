@@ -34,7 +34,7 @@ export type Collection = Prisma.CollectionModel
 export type LibraryItem = Prisma.LibraryItemModel
 /**
  * Model LibraryItemPreview
- * 
+ * Application-owned. User's content previews.
  */
 export type LibraryItemPreview = Prisma.LibraryItemPreviewModel
 /**

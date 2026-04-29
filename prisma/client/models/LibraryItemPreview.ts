@@ -14,7 +14,7 @@ import type * as Prisma from "../internal/prismaNamespace.ts"
 
 /**
  * Model LibraryItemPreview
- * 
+ * Application-owned. User's content previews.
  */
 export type LibraryItemPreviewModel = runtime.Types.Result.DefaultSelection<Prisma.$LibraryItemPreviewPayload>
 
