@@ -5,7 +5,7 @@ import type * as React from "react";
 export function Spinner({
     className,
     ...props
-}: React.ComponentProps<typeof Loader2Icon>): React.ReactElement {
+}: React.ComponentProps<typeof Loader2Icon>) {
     return (
         <Loader2Icon
             aria-label="Loading"

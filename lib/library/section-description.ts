@@ -1,0 +1,48 @@
+import { SECTION_DESCRIPTION_CONTEXT_ITEMS_LIMIT } from "@/lib/library/constants";
+import { LibraryItemSource } from "@/prisma/client/enums";
+import * as z from "zod";
+
+export const SECTION_DESCRIPTION_TEXT_MAX_LENGTH = 180;
+export const SECTION_DESCRIPTION_URL_MAX_LENGTH = 240;
+export const SECTION_DESCRIPTION_DOMAIN_MAX_LENGTH = 80;
+export const SECTION_DESCRIPTION_TITLE_MAX_LENGTH = 140;
+
+export const SectionDescriptionContextItemSchema = z.object({
+    addedAt: z.string().trim().datetime().optional(),
+    createdAt: z.string().trim().datetime().optional(),
+    domain: z
+        .string()
+        .trim()
+        .max(SECTION_DESCRIPTION_DOMAIN_MAX_LENGTH)
+        .optional(),
+    kind: z.enum(["bookmark", "note"]),
+    noteExcerpt: z
+        .string()
+        .trim()
+        .max(SECTION_DESCRIPTION_TEXT_MAX_LENGTH)
+        .optional(),
+    primaryText: z
+        .string()
+        .trim()
+        .min(1)
+        .max(SECTION_DESCRIPTION_TEXT_MAX_LENGTH),
+    source: z.nativeEnum(LibraryItemSource),
+    title: z.string().trim().min(1).max(SECTION_DESCRIPTION_TITLE_MAX_LENGTH),
+    url: z.string().trim().max(SECTION_DESCRIPTION_URL_MAX_LENGTH).optional(),
+});
+
+export const SectionDescriptionRequestSchema = z.object({
+    items: z
+        .array(SectionDescriptionContextItemSchema)
+        .min(1)
+        .max(SECTION_DESCRIPTION_CONTEXT_ITEMS_LIMIT),
+    sectionTitle: z.string().trim().min(1).max(120),
+});
+
+export type SectionDescriptionContextItem = z.infer<
+    typeof SectionDescriptionContextItemSchema
+>;
+
+export type SectionDescriptionRequest = z.infer<
+    typeof SectionDescriptionRequestSchema
+>;

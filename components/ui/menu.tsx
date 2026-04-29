@@ -10,9 +10,7 @@ export const MenuCreateHandle: typeof MenuPrimitive.createHandle =
 
 export const Menu: typeof MenuPrimitive.Root = MenuPrimitive.Root;
 
-export function MenuTrigger(
-    props: MenuPrimitive.Trigger.Props
-): React.ReactElement {
+export function MenuTrigger(props: MenuPrimitive.Trigger.Props) {
     return <MenuPrimitive.Trigger data-slot="menu-trigger" {...props} />;
 }
 
@@ -33,7 +31,7 @@ export function MenuPopup({
     side?: MenuPrimitive.Positioner.Props["side"];
     anchor?: MenuPrimitive.Positioner.Props["anchor"];
     portalProps?: MenuPrimitive.Portal.Props;
-}): React.ReactElement {
+}) {
     return (
         <MenuPrimitive.Portal {...portalProps}>
             <MenuPrimitive.Positioner
@@ -62,9 +60,7 @@ export function MenuPopup({
     );
 }
 
-export function MenuGroup(
-    props: MenuPrimitive.Group.Props
-): React.ReactElement {
+export function MenuGroup(props: MenuPrimitive.Group.Props) {
     return <MenuPrimitive.Group data-slot="menu-group" {...props} />;
 }
 
@@ -74,7 +70,7 @@ export function MenuGroupLabel({
     ...props
 }: MenuPrimitive.GroupLabel.Props & {
     inset?: boolean;
-}): React.ReactElement {
+}) {
     return (
         <MenuPrimitive.GroupLabel
             className={cn(
@@ -91,7 +87,7 @@ export function MenuGroupLabel({
 export function MenuShortcut({
     className,
     ...props
-}: React.ComponentProps<"kbd">): React.ReactElement {
+}: React.ComponentProps<"kbd">) {
     return (
         <kbd
             className={cn(
@@ -110,7 +106,7 @@ export function MenuItem({
     ...props
 }: MenuPrimitive.Item.Props & {
     variant?: "default" | "destructive";
-}): React.ReactElement {
+}) {
     return (
         <MenuPrimitive.Item
             className={cn(
@@ -130,7 +126,7 @@ export function MenuItem({
 export function MenuSeparator({
     className,
     ...props
-}: MenuPrimitive.Separator.Props): React.ReactElement {
+}: MenuPrimitive.Separator.Props) {
     return (
         <MenuPrimitive.Separator
             className={cn("my-0.5 h-px bg-border/50", className)}
@@ -140,9 +136,7 @@ export function MenuSeparator({
     );
 }
 
-export function MenuSub(
-    props: MenuPrimitive.SubmenuRoot.Props
-): React.ReactElement {
+export function MenuSub(props: MenuPrimitive.SubmenuRoot.Props) {
     return <MenuPrimitive.SubmenuRoot data-slot="menu-sub" {...props} />;
 }
 
@@ -150,7 +144,7 @@ export function MenuSubTrigger({
     children,
     className,
     ...props
-}: MenuPrimitive.SubmenuTrigger.Props): React.ReactElement {
+}: MenuPrimitive.SubmenuTrigger.Props) {
     return (
         <MenuPrimitive.SubmenuTrigger
             className={cn(
@@ -176,7 +170,7 @@ export function MenuSubPopup({
     align?: MenuPrimitive.Positioner.Props["align"];
     sideOffset?: MenuPrimitive.Positioner.Props["sideOffset"];
     alignOffset?: MenuPrimitive.Positioner.Props["alignOffset"];
-}): React.ReactElement {
+}) {
     const defaultAlignOffset = align === "center" ? undefined : -5;
 
     return (

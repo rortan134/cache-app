@@ -21,6 +21,7 @@ import { CtrlKbd, Kbd, KbdGroup } from "@/components/ui/kbd";
 import { PageShell } from "@/components/ui/page-shell";
 import { RadialChart } from "@/components/ui/radial-chart";
 import { getServerSession } from "@/lib/auth/server";
+import { userHasActiveSubscription } from "@/lib/auth/subscription-access";
 import {
     LIBRARY_COLLECTION_TAG_SELECT,
     LIBRARY_ITEM_COLLECTIONS_INCLUDE,
@@ -43,53 +44,99 @@ import {
     listConnectedIntegrationIds,
     listIntegrationAccountProviderIds,
 } from "@/lib/integrations/support";
+import { FREE_LIBRARY_PREVIEW_ITEMS } from "@/lib/library/constants";
 import { prisma } from "@/prisma";
 import LogoIconImage from "@/public/cache-app-icon.png";
 import { T } from "gt-next";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
-async function getUserLibraryItems(userId: string) {
-    const [items, collections] = await Promise.all([
-        prisma.libraryItem.findMany({
-            include: LIBRARY_ITEM_COLLECTIONS_INCLUDE,
-            orderBy: [{ scrapedAt: "desc" }, { updatedAt: "desc" }],
-            where: {
-                kind: {
-                    not: "folder",
-                },
-                userId,
-            },
-        }) as Promise<LibraryItemWithCollections[]>,
-        prisma.collection.findMany({
-            orderBy: {
-                name: "asc",
-            },
-            select: {
-                _count: {
-                    select: {
-                        items: true,
-                    },
-                },
-                ...LIBRARY_COLLECTION_TAG_SELECT,
-                items: {
-                    select: {
-                        source: true,
-                    },
+async function getUserLibraryPageData(args: {
+    hasAccess: boolean;
+    userId: string;
+}) {
+    const { hasAccess, userId } = args;
+    const itemWhere = {
+        kind: {
+            not: "folder" as const,
+        },
+        userId,
+    };
+    const collectionsPromise = prisma.collection.findMany({
+        orderBy: {
+            name: "asc",
+        },
+        select: {
+            _count: {
+                select: {
+                    items: true,
                 },
             },
-            where: {
-                userId,
+            ...LIBRARY_COLLECTION_TAG_SELECT,
+            items: {
+                select: {
+                    source: true,
+                },
             },
-        }),
-    ]);
+        },
+        where: {
+            userId,
+        },
+    });
+
+    if (hasAccess) {
+        const [items, collections] = await Promise.all([
+            prisma.libraryItem.findMany({
+                include: LIBRARY_ITEM_COLLECTIONS_INCLUDE,
+                orderBy: [{ scrapedAt: "desc" }, { updatedAt: "desc" }],
+                where: itemWhere,
+            }) as Promise<LibraryItemWithCollections[]>,
+            collectionsPromise,
+        ]);
+
+        return {
+            collections: collections.map(
+                (collection): LibraryCollectionSummary =>
+                    toLibraryCollectionSummary(collection)
+            ),
+            itemSources: items.map((item) => ({ source: item.source })),
+            items,
+            lockedItemCount: 0,
+            totalItemCount: items.length,
+        };
+    }
+
+    const [items, totalItemCount, itemSources, collections] = await Promise.all(
+        [
+            prisma.libraryItem.findMany({
+                include: LIBRARY_ITEM_COLLECTIONS_INCLUDE,
+                orderBy: [{ scrapedAt: "desc" }, { updatedAt: "desc" }],
+                take: FREE_LIBRARY_PREVIEW_ITEMS,
+                where: itemWhere,
+            }) as Promise<LibraryItemWithCollections[]>,
+            prisma.libraryItem.count({
+                where: itemWhere,
+            }),
+            prisma.libraryItem.findMany({
+                distinct: ["source"],
+                select: {
+                    source: true,
+                },
+                where: itemWhere,
+            }),
+            collectionsPromise,
+        ]
+    );
 
     return {
         collections: collections.map(
             (collection): LibraryCollectionSummary =>
                 toLibraryCollectionSummary(collection)
         ),
+        itemSources,
         items,
+        lockedItemCount: Math.max(totalItemCount - items.length, 0),
+        totalItemCount,
     };
 }
 
@@ -118,8 +165,8 @@ export default async function LibraryPage() {
         return redirect("/");
     }
 
-    const [{ collections, items }, linkedAccounts] = await Promise.all([
-        getUserLibraryItems(userId),
+    const [hasAccess, linkedAccounts] = await Promise.all([
+        userHasActiveSubscription(userId),
         prisma.account.findMany({
             select: { providerId: true },
             where: {
@@ -130,16 +177,21 @@ export default async function LibraryPage() {
             },
         }),
     ]);
+    const { collections, itemSources, items, lockedItemCount, totalItemCount } =
+        await getUserLibraryPageData({
+            hasAccess,
+            userId,
+        });
 
     const connectedIntegrationIds = listConnectedIntegrationIds("source", {
-        libraryItemSources: items.map((item) => item.source),
+        libraryItemSources: itemSources.map((item) => item.source),
         linkedProviderIds: linkedAccounts.map((account) => account.providerId),
     });
     const connectedIntegrationIdSet = new Set(connectedIntegrationIds);
 
     const syncable = syncableLibrarySourceTotal();
     const { connectedLabels, missingLabels } = partitionLibrarySyncLabels(
-        items,
+        itemSources,
         connectedIntegrationIds
     );
     const connectedCount = connectedLabels.length;
@@ -158,8 +210,10 @@ export default async function LibraryPage() {
         <PageShell>
             <div className="flex flex-1 flex-col gap-8 lg:flex-row lg:justify-between">
                 <LibraryWorkspace
+                    hasAccess={hasAccess}
                     initialCollections={collections}
                     initialItems={items}
+                    lockedItemCount={lockedItemCount}
                     sidebarBottom={
                         <UserMenu>
                             <UserMenuHeader />
@@ -241,6 +295,7 @@ export default async function LibraryPage() {
                             </IntegrationsList>
                         </>
                     }
+                    totalItemCount={totalItemCount}
                 />
             </div>
         </PageShell>

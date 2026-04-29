@@ -11,6 +11,11 @@ import {
     normalizeWhitespace,
 } from "@/lib/common/strings";
 import { isHttpUrl } from "@/lib/common/url";
+import {
+    estimateGenAiTokens,
+    GenAiProtectionError,
+    protectGenAiRequest,
+} from "@/lib/intelligence/protection";
 import { prisma } from "@/prisma";
 import { LibraryItemSource } from "@/prisma/client/enums";
 import {
@@ -95,6 +100,7 @@ interface DownloadedRemoteAsset {
 interface SmartCollectionAttachment {
     cleanup?: () => Promise<void>;
     parts: Part[];
+    protectionText?: string;
 }
 
 interface SmartCollectionsModelErrorInfo {
@@ -609,6 +615,10 @@ async function createAttachmentForItem(
                             `Attached textual content (truncated if necessary):\n${extractedText.slice(0, SMART_COLLECTIONS_MAX_TEXT_LENGTH)}`
                         ),
                     ],
+                    protectionText: extractedText.slice(
+                        0,
+                        SMART_COLLECTIONS_MAX_TEXT_LENGTH
+                    ),
                 };
             } catch {
                 await asset.cleanup();
@@ -647,10 +657,15 @@ async function createAttachmentForItem(
 async function decideCollectionsForItem(
     ai: GoogleGenAI,
     item: SmartCollectionItem,
-    collections: SmartCollectionCatalogEntry[]
+    collections: SmartCollectionCatalogEntry[],
+    userId: string
 ): Promise<SmartCollectionDecision | null> {
     const attachment = await createAttachmentForItem(ai, item);
-    const prompt = createPartFromText(buildPrompt(item, collections));
+    const promptText = buildPrompt(item, collections);
+    const prompt = createPartFromText(promptText);
+    const protectionPrompt = [promptText, attachment?.protectionText]
+        .filter((segment) => segment && segment.length > 0)
+        .join("\n\n");
     const contentVariants = [
         ...(attachment
             ? [
@@ -667,6 +682,16 @@ async function decideCollectionsForItem(
     ];
 
     try {
+        await protectGenAiRequest({
+            feature: "smart_collections",
+            prompt: protectionPrompt,
+            request: new Request(
+                "https://cache.local/internal/smart-collections"
+            ),
+            requestedTokens: estimateGenAiTokens(protectionPrompt, 256),
+            userId,
+        });
+
         for (const model of resolveSmartCollectionsModels()) {
             for (const variant of contentVariants) {
                 try {
@@ -939,7 +964,26 @@ export async function autoTagLibraryItemsByIds(args: {
             continue;
         }
 
-        const decision = await decideCollectionsForItem(ai, item, collections);
+        let decision: SmartCollectionDecision | null;
+        try {
+            decision = await decideCollectionsForItem(
+                ai,
+                item,
+                collections,
+                args.userId
+            );
+        } catch (error) {
+            if (error instanceof GenAiProtectionError) {
+                log.warn("Smart collections request denied", {
+                    itemId: item.id,
+                    reason: error.data.reason,
+                    userId: args.userId,
+                });
+                break;
+            }
+            throw error;
+        }
+
         if (!decision) {
             continue;
         }

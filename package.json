@@ -91,7 +91,8 @@
         "lint:fix": "ultracite fix",
         "analyze": "next experimental-analyze",
         "type-check": "tsc --noEmit --emitDeclarationOnly false",
-        "validate": "knip --cache --strict"
+        "validate": "knip --cache --strict",
+        "prepare": "husky"
     },
     "type": "module",
     "private": true,

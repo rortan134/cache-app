@@ -641,11 +641,10 @@ export function CollectionsList({
     );
 }
 
-type CollectionsListTriggerProps = React.ComponentProps<
-    typeof CollapsibleTrigger
-> & {
+interface CollectionsListTriggerProps
+    extends React.ComponentProps<typeof CollapsibleTrigger> {
     collectionLabels: string[];
-};
+}
 
 export function CollectionsListTrigger({
     className,
@@ -732,11 +731,10 @@ export function CollectionsListActionButton({
     );
 }
 
-type CollectionsListItemPreviewProps = React.ComponentProps<
-    typeof PreviewCardTrigger
-> & {
+interface CollectionsListItemPreviewProps
+    extends React.ComponentProps<typeof PreviewCardTrigger> {
     thumbnails: readonly string[];
-};
+}
 
 export function CollectionsListItemPreview({
     onClick: onClickProp,
@@ -888,10 +886,10 @@ export function CollectionsListItemPriorityCombobox({
     );
 }
 
-type CollectionsListItemProps = React.ComponentProps<"div"> & {
+interface CollectionsListItemProps extends React.ComponentProps<"div"> {
     collection: LibraryCollectionSummary;
     isSelected: boolean;
-};
+}
 
 export function CollectionsListItem({
     className,
@@ -1028,14 +1026,10 @@ export function CollectionsListItemMeta({
     );
 }
 
-type CollectionsListStatusProps = Omit<
-    React.ComponentProps<"p">,
-    "children"
-> & {
-    children: React.ReactNode;
+interface CollectionsListStatusProps extends React.ComponentProps<"p"> {
     onDismiss: () => void;
     tone?: CollectionsListStatusTone;
-};
+}
 
 export function CollectionsListStatus({
     className,
@@ -1068,9 +1062,10 @@ export function CollectionsListStatus({
     );
 }
 
-type CollectionsListFilterClearProps = React.ComponentProps<typeof Button> & {
+interface CollectionsListFilterClearProps
+    extends React.ComponentProps<typeof Button> {
     isVisible: boolean;
-};
+}
 
 export function CollectionsListFilterClear({
     isVisible,

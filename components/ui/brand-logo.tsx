@@ -12,7 +12,6 @@ import { DownloadIcon } from "lucide-react";
 import type { StaticImageData } from "next/image";
 import Image from "next/image";
 import Link from "next/link";
-import type * as React from "react";
 
 const log = createLogger("logo-context-menu");
 
@@ -21,7 +20,7 @@ interface LogoContextMenuProps {
     src: StaticImageData;
 }
 
-function BrandLogo({ href, src }: LogoContextMenuProps): React.ReactElement {
+function BrandLogo({ href, src }: LogoContextMenuProps) {
     const handleSaveLogo = async () => {
         try {
             await saveFile(

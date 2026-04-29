@@ -4,10 +4,7 @@ import { cn } from "@/lib/common/cn";
 import { Avatar as AvatarPrimitive } from "@base-ui/react/avatar";
 import type * as React from "react";
 
-export function Avatar({
-    className,
-    ...props
-}: AvatarPrimitive.Root.Props): React.ReactElement {
+export function Avatar({ className, ...props }: AvatarPrimitive.Root.Props) {
     return (
         <AvatarPrimitive.Root
             className={cn(
@@ -23,7 +20,7 @@ export function Avatar({
 export function AvatarImage({
     className,
     ...props
-}: AvatarPrimitive.Image.Props): React.ReactElement {
+}: AvatarPrimitive.Image.Props) {
     return (
         <AvatarPrimitive.Image
             className={cn("size-full object-cover", className)}
@@ -36,7 +33,7 @@ export function AvatarImage({
 export function AvatarFallback({
     className,
     ...props
-}: AvatarPrimitive.Fallback.Props): React.ReactElement {
+}: AvatarPrimitive.Fallback.Props) {
     return (
         <AvatarPrimitive.Fallback
             className={cn(

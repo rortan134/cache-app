@@ -17,7 +17,7 @@ export function Textarea({
     unstyled = false,
     ref,
     ...props
-}: TextareaProps): React.ReactElement {
+}: TextareaProps) {
     return (
         <span
             className={

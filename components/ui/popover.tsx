@@ -2,16 +2,13 @@
 
 import { cn } from "@/lib/common/cn";
 import { Popover as PopoverPrimitive } from "@base-ui/react/popover";
-import type * as React from "react";
 
 export const PopoverCreateHandle: typeof PopoverPrimitive.createHandle =
     PopoverPrimitive.createHandle;
 
 export const Popover: typeof PopoverPrimitive.Root = PopoverPrimitive.Root;
 
-export function PopoverTrigger(
-    props: PopoverPrimitive.Trigger.Props
-): React.ReactElement {
+export function PopoverTrigger(props: PopoverPrimitive.Trigger.Props) {
     return <PopoverPrimitive.Trigger data-slot="popover-trigger" {...props} />;
 }
 
@@ -36,7 +33,7 @@ export function PopoverPopup({
     anchor?: PopoverPrimitive.Positioner.Props["anchor"];
     positionMethod?: PopoverPrimitive.Positioner.Props["positionMethod"];
     positionerClassname?: string;
-}): React.ReactElement {
+}) {
     return (
         <PopoverPrimitive.Portal>
             <PopoverPrimitive.Positioner
@@ -79,16 +76,14 @@ export function PopoverPopup({
     );
 }
 
-export function PopoverClose(
-    props: PopoverPrimitive.Close.Props
-): React.ReactElement {
+export function PopoverClose(props: PopoverPrimitive.Close.Props) {
     return <PopoverPrimitive.Close data-slot="popover-close" {...props} />;
 }
 
 export function PopoverTitle({
     className,
     ...props
-}: PopoverPrimitive.Title.Props): React.ReactElement {
+}: PopoverPrimitive.Title.Props) {
     return (
         <PopoverPrimitive.Title
             className={cn("font-semibold text-lg leading-none", className)}
@@ -101,7 +96,7 @@ export function PopoverTitle({
 export function PopoverDescription({
     className,
     ...props
-}: PopoverPrimitive.Description.Props): React.ReactElement {
+}: PopoverPrimitive.Description.Props) {
     return (
         <PopoverPrimitive.Description
             className={cn("text-muted-foreground text-sm", className)}

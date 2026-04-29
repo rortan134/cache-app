@@ -4,10 +4,6 @@ import {
     BlockPaywallBanner,
     InlinePaywallBanner,
 } from "@/components/billing/paywall-banner";
-import {
-    PrivilegedOnly,
-    UnprivilegedOnly,
-} from "@/components/billing/privilege";
 import { FeedbackWidget } from "@/components/feedback/feedback-widget";
 import {
     CollectionsList,
@@ -121,7 +117,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { Ticker } from "@/components/ui/ticker";
 import { TruncateAfter } from "@/components/ui/truncate-after";
-import { useAccess } from "@/hooks/use-access";
 import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
 import { useIsomorphicLayoutEffect } from "@/hooks/use-isomorphic-effect";
 import {
@@ -141,8 +136,10 @@ import {
 import {
     deleteLibraryItem,
     updateLibraryItemCollections,
+    updateLibraryItemsCollections,
     type DeleteLibraryItemResult,
     type UpdateLibraryItemCollectionsResult,
+    type UpdateLibraryItemsCollectionsResult,
 } from "@/lib/collections/items";
 import { downloadMedia } from "@/lib/collections/media";
 import {
@@ -182,6 +179,14 @@ import {
     type NoteMutationResult,
 } from "@/lib/integrations/notes/actions";
 import { getNoteExcerpt } from "@/lib/integrations/notes/utils";
+import { SECTION_DESCRIPTION_CONTEXT_ITEMS_LIMIT } from "@/lib/library/constants";
+import {
+    SECTION_DESCRIPTION_DOMAIN_MAX_LENGTH,
+    SECTION_DESCRIPTION_TEXT_MAX_LENGTH,
+    SECTION_DESCRIPTION_TITLE_MAX_LENGTH,
+    SECTION_DESCRIPTION_URL_MAX_LENGTH,
+    type SectionDescriptionContextItem,
+} from "@/lib/library/section-description";
 import {
     LibraryItemSource,
     type CollectionPriority,
@@ -216,7 +221,6 @@ import {
     Grid2x2X,
     Info,
     LinkIcon,
-    ListChevronsUpDown,
     NotebookPenIcon,
     Plus,
     PlusIcon,
@@ -227,11 +231,13 @@ import {
     XIcon,
 } from "lucide-react";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import type { ReactNode } from "react";
 import * as React from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 import useSWR from "swr";
 
+const libraryBrowserLog = createLogger("library:browser");
 const masonryPerfLog = createLogger("masonry:caller");
 const MASONRY_DEBUG_STORAGE_KEY = "cache:masonry-debug";
 const MASONRY_DEBUG_WINDOW_KEY = "__CACHE_MASONRY_DEBUG__";
@@ -273,7 +279,6 @@ function onMasonryProfilerRender(
     });
 }
 
-const SECTION_DESCRIPTION_CONTEXT_ITEMS_LIMIT = 20;
 const SECTION_DESCRIPTION_FALLBACK_TEXT =
     "Description is unavailable right now.";
 
@@ -693,10 +698,13 @@ async function fetchSectionDescription([
 }
 
 interface Props {
+    hasAccess: boolean;
     initialCollections: LibraryCollectionSummary[];
     initialItems: LibraryItemWithCollections[];
+    lockedItemCount: number;
     sidebarBottom?: ReactNode;
     sidebarHeader?: ReactNode;
+    totalItemCount: number;
 }
 
 interface CollectionActionFeedback {
@@ -705,12 +713,14 @@ interface CollectionActionFeedback {
 }
 
 interface CollectionSidebarActionDependencies {
-    collections: LibraryCollectionTag[];
+    collections: LibraryCollectionSummary[];
     itemsByCollectionId: Map<string, LibraryItemWithCollections[]>;
     setCollections: (
         value:
-            | LibraryCollectionTag[]
-            | ((current: LibraryCollectionTag[]) => LibraryCollectionTag[])
+            | LibraryCollectionSummary[]
+            | ((
+                  current: LibraryCollectionSummary[]
+              ) => LibraryCollectionSummary[])
     ) => void;
     setItems: (
         value:
@@ -725,6 +735,7 @@ interface LibraryWorkspaceSidebarProps {
     actionDependencies: CollectionSidebarActionDependencies;
     collectionPreviewThumbnailUrlsById: Map<string, string[]>;
     collectionSummaries: LibraryCollectionSummary[];
+    hasAccess: boolean;
     onClearCollectionFilters: () => void;
     onSelectCollection: (collectionId: string) => void;
     selectedCollectionIds: string[];
@@ -787,6 +798,32 @@ function appendCollectionToItems(
             ...item,
             collections: sortCollections([...item.collections, collection]),
         };
+    });
+}
+
+function replaceMultipleItemCollections(
+    items: LibraryItemWithCollections[],
+    itemCollections: Array<{
+        collections: LibraryCollectionTag[];
+        itemId: string;
+    }>
+): LibraryItemWithCollections[] {
+    if (itemCollections.length === 0) {
+        return items;
+    }
+
+    const collectionsByItemId = new Map(
+        itemCollections.map((entry) => [entry.itemId, entry.collections])
+    );
+
+    return items.map((item) => {
+        const nextCollections = collectionsByItemId.get(item.id);
+        return nextCollections
+            ? {
+                  ...item,
+                  collections: [...nextCollections],
+              }
+            : item;
     });
 }
 
@@ -912,37 +949,106 @@ function replaceItemsCollectionShareState(
     }));
 }
 
-function deriveCollectionSummaries(
-    collections: LibraryCollectionTag[],
-    items: LibraryItemWithCollections[]
+function mergeCollectionSummaries(
+    collections: LibraryCollectionSummary[],
+    nextCollections: LibraryCollectionSummary[]
 ): LibraryCollectionSummary[] {
-    const counts = new Map<string, number>();
-    const collectionSources = new Map<string, Set<LibraryItemSource>>();
-
-    for (const item of items) {
-        for (const collection of item.collections) {
-            counts.set(collection.id, (counts.get(collection.id) ?? 0) + 1);
-
-            const sources = collectionSources.get(collection.id) ?? new Set();
-            sources.add(item.source);
-            collectionSources.set(collection.id, sources);
-        }
+    if (nextCollections.length === 0) {
+        return collections;
     }
 
-    return sortCollections(
-        collections.map((collection) => ({
-            createdAt: collection.createdAt,
-            description: collection.description ?? null,
-            id: collection.id,
-            itemCount: counts.get(collection.id) ?? 0,
-            name: collection.name,
-            priority: collection.priority,
-            sharedAt: collection.sharedAt,
-            shareId: collection.shareId,
-            sources: Array.from(collectionSources.get(collection.id) ?? []),
-            updatedAt: collection.updatedAt,
-        }))
+    const nextCollectionById = new Map(
+        nextCollections.map((collection) => [collection.id, collection])
     );
+    const mergedCollections = collections.map(
+        (collection) => nextCollectionById.get(collection.id) ?? collection
+    );
+
+    return sortCollections([
+        ...mergedCollections,
+        ...nextCollections.filter(
+            (collection) =>
+                !mergedCollections.some((entry) => entry.id === collection.id)
+        ),
+    ]);
+}
+
+function normalizeSectionDescriptionText(
+    value: string | null | undefined,
+    maxLength: number
+): string {
+    const normalized = (value ?? "").trim().replace(/\s+/g, " ");
+
+    if (normalized.length <= maxLength) {
+        return normalized;
+    }
+
+    return `${normalized.slice(0, maxLength - 1).trimEnd()}…`;
+}
+
+function toIsoTimestamp(value: Date | string | null | undefined) {
+    if (!value) {
+        return;
+    }
+
+    const date = value instanceof Date ? value : new Date(value);
+    if (Number.isNaN(date.getTime())) {
+        return;
+    }
+
+    return date.toISOString();
+}
+
+function buildSectionDescriptionContextItem(
+    item: LibraryItemWithCollections
+): SectionDescriptionContextItem {
+    const title =
+        normalizeSectionDescriptionText(
+            getItemTitle(item),
+            SECTION_DESCRIPTION_TITLE_MAX_LENGTH
+        ) || "Untitled";
+    const noteExcerpt =
+        item.kind === "note"
+            ? normalizeSectionDescriptionText(
+                  getNoteExcerpt(item.noteContentText),
+                  SECTION_DESCRIPTION_TEXT_MAX_LENGTH
+              ) || undefined
+            : undefined;
+    const primaryText =
+        noteExcerpt ??
+        (normalizeSectionDescriptionText(
+            itemPrimaryText(item),
+            SECTION_DESCRIPTION_TEXT_MAX_LENGTH
+        ) ||
+            title);
+    const normalizedUrl =
+        item.kind === "note"
+            ? undefined
+            : normalizeSectionDescriptionText(
+                  normalizeURL(item.url),
+                  SECTION_DESCRIPTION_URL_MAX_LENGTH
+              ) || undefined;
+    const domain =
+        item.kind === "note"
+            ? undefined
+            : normalizeSectionDescriptionText(
+                  itemDomain(item.url),
+                  SECTION_DESCRIPTION_DOMAIN_MAX_LENGTH
+              ) || undefined;
+
+    return {
+        addedAt: toIsoTimestamp(item.scrapedAt ?? item.createdAt),
+        createdAt: toIsoTimestamp(
+            item.postedAt ?? item.scrapedAt ?? item.createdAt
+        ),
+        domain,
+        kind: item.kind === "note" ? "note" : "bookmark",
+        noteExcerpt,
+        primaryText,
+        source: item.source,
+        title,
+        url: normalizedUrl,
+    };
 }
 
 function openSavedItemsInNewTabs(urls: string[]): void {
@@ -1008,12 +1114,13 @@ function LibraryWorkspaceSidebar({
     actionDependencies,
     collectionPreviewThumbnailUrlsById,
     collectionSummaries,
+    hasAccess,
     selectedCollectionIds,
     onClearCollectionFilters,
     onSelectCollection,
     sidebarBottom,
     sidebarHeader,
-}: LibraryWorkspaceSidebarProps): React.ReactElement {
+}: LibraryWorkspaceSidebarProps) {
     const [isCreateDialogOpen, setIsCreateDialogOpen] = React.useState(false);
     const [createDialogDraft, setCreateDialogDraft] = React.useState("");
     const [createDialogDescriptionDraft, setCreateDialogDescriptionDraft] =
@@ -1048,6 +1155,28 @@ function LibraryWorkspaceSidebar({
     const { collections, itemsByCollectionId, setCollections, setItems } =
         actionDependencies;
     const { copyToClipboard } = useCopyToClipboard();
+
+    const collectionHasHiddenItems = (
+        collection: LibraryCollectionSummary
+    ): boolean =>
+        !hasAccess &&
+        (itemsByCollectionId.get(collection.id)?.length ?? 0) <
+            collection.itemCount;
+
+    const ensureCollectionActionAccess = (
+        collection: LibraryCollectionSummary,
+        actionLabel: string
+    ) => {
+        if (!collectionHasHiddenItems(collection)) {
+            return true;
+        }
+
+        setCollectionActionFeedback({
+            message: `Upgrade to ${actionLabel} every item in ${collection.name}.`,
+            tone: "error",
+        });
+        return false;
+    };
 
     const resetCreateDialog = () => {
         setCreateDialogDraft("");
@@ -1121,6 +1250,10 @@ function LibraryWorkspaceSidebar({
     const handleCopyCollectionLinks = (
         collection: LibraryCollectionSummary
     ) => {
+        if (!ensureCollectionActionAccess(collection, "copy")) {
+            return;
+        }
+
         const collectionItems = itemsByCollectionId.get(collection.id) ?? [];
         const urls = getCollectionItemUrls(collectionItems);
 
@@ -1285,6 +1418,10 @@ function LibraryWorkspaceSidebar({
     const handleOpenCollectionLinks = (
         collection: LibraryCollectionSummary
     ) => {
+        if (!ensureCollectionActionAccess(collection, "open")) {
+            return;
+        }
+
         const collectionItems = itemsByCollectionId.get(collection.id) ?? [];
         const urls = getCollectionItemUrls(collectionItems);
 
@@ -1307,6 +1444,10 @@ function LibraryWorkspaceSidebar({
     const handleExportCollectionToCsv = (
         collection: LibraryCollectionSummary
     ) => {
+        if (!ensureCollectionActionAccess(collection, "export")) {
+            return;
+        }
+
         const collectionItems = itemsByCollectionId.get(collection.id) ?? [];
 
         if (collectionItems.length === 0) {
@@ -1581,7 +1722,8 @@ function LibraryWorkspaceSidebar({
         assignedItemIds: string[];
         collection: LibraryCollectionSummary;
     }) => {
-        const nextCollection = {
+        const nextCollection = input.collection;
+        const nextCollectionTag = {
             createdAt: input.collection.createdAt,
             description: input.collection.description,
             id: input.collection.id,
@@ -1593,9 +1735,7 @@ function LibraryWorkspaceSidebar({
         } satisfies LibraryCollectionTag;
 
         setCollections((current) =>
-            current.some((collection) => collection.id === nextCollection.id)
-                ? current
-                : sortCollections([...current, nextCollection])
+            mergeCollectionSummaries(current, [nextCollection])
         );
 
         if (input.assignedItemIds.length > 0) {
@@ -1605,12 +1745,12 @@ function LibraryWorkspaceSidebar({
                     ? appendCollectionToItem(
                           current,
                           firstAssignedItemId,
-                          nextCollection
+                          nextCollectionTag
                       )
                     : appendCollectionToItems(
                           current,
                           input.assignedItemIds,
-                          nextCollection
+                          nextCollectionTag
                       )
             );
         }
@@ -2203,7 +2343,6 @@ const SEARCH_HOTKEYS = [
 ] as const;
 const SEARCH_CANCEL_KEYS = ["esc", "tab"] as const;
 
-const FREE_LIBRARY_PREVIEW_ITEMS = 12;
 const COLLECTION_NAME_MAX_LENGTH = 64;
 
 interface CollectionTemplateOption {
@@ -2427,8 +2566,6 @@ interface CommandPaletteGroup {
 interface LibraryBrowserSection {
     items: LibraryItemWithCollections[];
     key: string;
-    paywallPreviewCount?: number;
-    showPaywallBanner?: boolean;
     title: string | null;
 }
 interface LibraryCommandAttachment
@@ -2923,6 +3060,31 @@ function PaletteChip({
     );
 }
 
+interface LibraryResultsProps {
+    clearLibraryPalette: () => void;
+    collapsedSectionKeys: Set<string>;
+    collections: LibraryCollectionSummary[];
+    columnCount?: number;
+    enableSectionCollapse: boolean;
+    layoutMode: LayoutMode;
+    onCollapseAllSections?: () => void;
+    onCopyLink: (item: LibraryItem) => void;
+    onDelete: (item: LibraryItem) => void;
+    onExpandAllSections?: () => void;
+    onOpenInNewTab: (item: LibraryItem) => void;
+    onOpenNote: (item: LibraryItem) => void;
+    onSetActionFeedback: (feedback: LibraryActionFeedback | null) => void;
+    onToggleSection: (key: string) => void;
+    onUpdateItemCollections: (
+        itemId: string,
+        collectionIds: string[]
+    ) => Promise<UpdateLibraryItemCollectionsResult>;
+    pendingDeleteItemId: string | null;
+    sections: LibraryBrowserSection[];
+    showEmptyLibraryPeek: boolean;
+    showNoFilteredResults: boolean;
+}
+
 function renderLibraryGridBody({
     collapsedSectionKeys,
     collections,
@@ -2936,37 +3098,14 @@ function renderLibraryGridBody({
     onExpandAllSections,
     onOpenNote,
     onOpenInNewTab,
+    onSetActionFeedback,
     onUpdateItemCollections,
     onToggleSection,
-    paywallTotalCount,
     pendingDeleteItemId,
     sections,
     showEmptyLibraryPeek,
     showNoFilteredResults,
-}: {
-    collapsedSectionKeys: Set<string>;
-    collections: LibraryCollectionSummary[];
-    clearLibraryPalette: () => void;
-    columnCount?: number;
-    layoutMode: LayoutMode;
-    enableSectionCollapse: boolean;
-    onCollapseAllSections?: () => void;
-    onCopyLink: (item: LibraryItem) => void;
-    onDelete: (item: LibraryItem) => void;
-    onExpandAllSections?: () => void;
-    onOpenNote: (item: LibraryItem) => void;
-    onOpenInNewTab: (item: LibraryItem) => void;
-    onUpdateItemCollections: (
-        itemId: string,
-        collectionIds: string[]
-    ) => Promise<UpdateLibraryItemCollectionsResult>;
-    onToggleSection: (key: string) => void;
-    paywallTotalCount?: number;
-    pendingDeleteItemId: string | null;
-    sections: LibraryBrowserSection[];
-    showEmptyLibraryPeek: boolean;
-    showNoFilteredResults: boolean;
-}): React.ReactNode {
+}: LibraryResultsProps): React.ReactNode {
     if (showEmptyLibraryPeek) {
         return <ExtensionLibraryEmptyMasonryPeek />;
     }
@@ -3006,12 +3145,10 @@ function renderLibraryGridBody({
                 onExpandAll={onExpandAllSections}
                 onOpenInNewTab={onOpenInNewTab}
                 onOpenNote={onOpenNote}
+                onSetActionFeedback={onSetActionFeedback}
                 onToggle={() => onToggleSection(section.key)}
                 onUpdateItemCollections={onUpdateItemCollections}
-                paywallPreviewCount={section.paywallPreviewCount}
-                paywallTotalCount={paywallTotalCount}
                 pendingDeleteItemId={pendingDeleteItemId}
-                showPaywallBanner={section.showPaywallBanner}
                 title={section.title ?? "Results"}
             />
         ) : (
@@ -3035,28 +3172,31 @@ function renderLibraryGridBody({
                     onDelete={onDelete}
                     onOpenInNewTab={onOpenInNewTab}
                     onOpenNote={onOpenNote}
+                    onSetActionFeedback={onSetActionFeedback}
                     onUpdateItemCollections={onUpdateItemCollections}
-                    paywallPreviewCount={section.paywallPreviewCount}
-                    paywallTotalCount={paywallTotalCount}
                     pendingDeleteItemId={pendingDeleteItemId}
-                    showPaywallBanner={section.showPaywallBanner}
                 />
             </section>
         )
     );
 }
 
+const LibraryResults = React.memo(function LibraryResults(
+    props: LibraryResultsProps
+) {
+    return <>{renderLibraryGridBody(props)}</>;
+});
+
 function ValidCategoryThumbnail({ urls }: { urls: string[] }) {
     const [validUrls, setValidUrls] = React.useState<string[]>([]);
-    const urlsKey = urls.join(",");
 
     React.useEffect(() => {
-        if (!urlsKey) {
+        if (urls.length === 0) {
             setValidUrls([]);
             return;
         }
         let isMounted = true;
-        filterValidImageUrls(urlsKey.split(",")).then((valid) => {
+        filterValidImageUrls(urls).then((valid) => {
             if (isMounted) {
                 setValidUrls(valid);
             }
@@ -3064,7 +3204,7 @@ function ValidCategoryThumbnail({ urls }: { urls: string[] }) {
         return () => {
             isMounted = false;
         };
-    }, [urlsKey]);
+    }, [urls]);
 
     if (validUrls.length === 0) {
         return null;
@@ -3791,60 +3931,6 @@ async function createLibraryBookmarkFromPastedUrl({
     }
 }
 
-function gateLibraryBrowserSections(
-    sections: LibraryBrowserSection[],
-    shouldGate: boolean
-): LibraryBrowserSection[] {
-    if (!shouldGate) {
-        return sections as LibraryBrowserSection[];
-    }
-
-    let remainingPreviewItems = FREE_LIBRARY_PREVIEW_ITEMS;
-    let shouldShowPaywallBanner = true;
-
-    return sections.map((section) => {
-        const paywallPreviewCount = Math.min(
-            section.items.length,
-            remainingPreviewItems
-        );
-        const hasLockedItems = paywallPreviewCount < section.items.length;
-
-        remainingPreviewItems = Math.max(
-            0,
-            remainingPreviewItems - paywallPreviewCount
-        );
-
-        if (hasLockedItems && shouldShowPaywallBanner) {
-            shouldShowPaywallBanner = false;
-
-            return {
-                ...section,
-                paywallPreviewCount,
-                showPaywallBanner: true,
-            };
-        }
-
-        return {
-            ...section,
-            paywallPreviewCount,
-        };
-    });
-}
-
-function getVisibleSectionItems(
-    section: LibraryBrowserSection
-): LibraryItemWithCollections[] {
-    const resolvedPreviewCount = Math.max(
-        0,
-        Math.min(
-            section.paywallPreviewCount ?? section.items.length,
-            section.items.length
-        )
-    );
-
-    return section.items.slice(0, resolvedPreviewCount);
-}
-
 function libraryBrowserHasActiveFilters(input: {
     collectionMembershipFilter: CollectionMembershipFilter;
     domainFilters: string[];
@@ -3931,21 +4017,21 @@ function useSectionCollapseState({
         }
     }, [enableSectionCollapse]);
 
-    const toggleSection = (key: string) => {
+    const toggleSection = useStableCallback((key: string) => {
         setCollapsedSectionKeys((current) =>
             current.includes(key)
                 ? current.filter((entry) => entry !== key)
                 : [...current, key]
         );
-    };
+    });
 
-    const collapseAllSections = () => {
+    const collapseAllSections = useStableCallback(() => {
         setCollapsedSectionKeys(sections.map((section) => section.key));
-    };
+    });
 
-    const expandAllSections = () => {
+    const expandAllSections = useStableCallback(() => {
         setCollapsedSectionKeys([]);
-    };
+    });
 
     return {
         collapseAllSections,
@@ -4173,13 +4259,18 @@ function LibraryPaletteTrailing({
 interface LibraryProps {
     collectionPreviewThumbnailUrlsById: Map<string, string[]>;
     collections: LibraryCollectionSummary[];
+    hasAccess: boolean;
     items: LibraryItemWithCollections[];
+    lockedItemCount: number;
     onClearCollectionFilters: () => void;
     onCreateCollectionFromResults: (input: {
         description?: string;
         itemIds: string[];
         name: string;
     }) => Promise<CreateCollectionFromItemsResult>;
+    onDeleteItemSuccess: (
+        result: Extract<DeleteLibraryItemResult, { status: "DELETED" }>
+    ) => void;
     onItemsChange: (
         value:
             | LibraryItemWithCollections[]
@@ -4192,7 +4283,13 @@ interface LibraryProps {
         itemId: string,
         collectionIds: string[]
     ) => Promise<UpdateLibraryItemCollectionsResult>;
+    onUpdateItemsCollections: (input: {
+        itemIds: string[];
+        nextSharedCollectionIds: string[];
+        previousSharedCollectionIds: string[];
+    }) => Promise<UpdateLibraryItemsCollectionsResult>;
     selectedCollectionIds: string[];
+    totalItemCount: number;
 }
 
 interface LibraryActionFeedback {
@@ -4213,15 +4310,18 @@ function openSavedItemInNewTab(url: string) {
     window.open(url, "_blank", "noopener,noreferrer");
 }
 
-function useLibraryItemActions(
+function useLibraryItemActions(args: {
+    onDeleteSuccess?: (
+        result: Extract<DeleteLibraryItemResult, { status: "DELETED" }>
+    ) => void;
     setVisibleItems: (
         value:
             | LibraryItemWithCollections[]
             | ((
                   current: LibraryItemWithCollections[]
               ) => LibraryItemWithCollections[])
-    ) => void
-) {
+    ) => void;
+}) {
     const [pendingDeleteItem, setPendingDeleteItem] =
         React.useState<LibraryItem | null>(null);
     const [actionFeedback, setActionFeedback] =
@@ -4236,27 +4336,27 @@ function useLibraryItemActions(
         },
     });
 
-    const handleOpenInNewTab = (item: LibraryItem) => {
+    const handleOpenInNewTab = useStableCallback((item: LibraryItem) => {
         setActionFeedback(null);
         openSavedItemInNewTab(normalizeURL(item.url));
-    };
+    });
 
-    const handleCopyLink = (item: LibraryItem) => {
+    const handleCopyLink = useStableCallback((item: LibraryItem) => {
         copyToClipboard(normalizeURL(item.url));
-    };
+    });
 
-    const handleRequestDelete = (item: LibraryItem) => {
+    const handleRequestDelete = useStableCallback((item: LibraryItem) => {
         setActionFeedback(null);
         setPendingDeleteItem(item);
-    };
+    });
 
-    const handleDeleteDialogOpenChange = (open: boolean) => {
+    const handleDeleteDialogOpenChange = useStableCallback((open: boolean) => {
         if (!(open || isDeletePending)) {
             setPendingDeleteItem(null);
         }
-    };
+    });
 
-    const handleConfirmDelete = () => {
+    const handleConfirmDelete = useStableCallback(() => {
         const targetItem = pendingDeleteItem;
         if (!targetItem) {
             return;
@@ -4275,9 +4375,10 @@ function useLibraryItemActions(
             }
 
             if (result.status === "DELETED") {
-                setVisibleItems((current) =>
+                args.setVisibleItems((current) =>
                     current.filter((item) => item.id !== result.itemId)
                 );
+                args.onDeleteSuccess?.(result);
                 setPendingDeleteItem(null);
                 setActionFeedback({
                     message: "Saved item deleted from Cache.",
@@ -4291,7 +4392,7 @@ function useLibraryItemActions(
                 tone: "error",
             });
         });
-    };
+    });
 
     return {
         actionFeedback,
@@ -4315,14 +4416,17 @@ interface GridProps {
     onDelete?: (item: LibraryItemWithCollections) => void;
     onOpenInNewTab?: (item: LibraryItemWithCollections) => void;
     onOpenNote?: (item: LibraryItemWithCollections) => void;
+    onSetActionFeedback?: (feedback: LibraryActionFeedback | null) => void;
     onUpdateItemCollections: (
         itemId: string,
         collectionIds: string[]
     ) => Promise<UpdateLibraryItemCollectionsResult>;
-    paywallPreviewCount?: number;
-    paywallTotalCount?: number;
+    onUpdateItemsCollections?: (input: {
+        itemIds: string[];
+        nextSharedCollectionIds: string[];
+        previousSharedCollectionIds: string[];
+    }) => Promise<UpdateLibraryItemsCollectionsResult>;
     pendingDeleteItemId?: string | null;
-    showPaywallBanner?: boolean;
 }
 
 interface SectionProps extends GridProps {
@@ -4354,6 +4458,7 @@ type LibraryGridCardContextValue = Pick<
     | "onDelete"
     | "onOpenInNewTab"
     | "onOpenNote"
+    | "onSetActionFeedback"
     | "onUpdateItemCollections"
     | "pendingDeleteItemId"
 >;
@@ -4367,6 +4472,11 @@ interface CollectionComboboxPickerProps
         itemId: string,
         collectionIds: string[]
     ) => Promise<UpdateLibraryItemCollectionsResult>;
+    onUpdateItemsCollections?: (input: {
+        itemIds: string[];
+        nextSharedCollectionIds: string[];
+        previousSharedCollectionIds: string[];
+    }) => Promise<UpdateLibraryItemsCollectionsResult>;
     open?: boolean;
 }
 
@@ -4389,7 +4499,6 @@ interface LibraryGridCardMenuProps {
 
 interface LibraryGridLayoutProps {
     items: LibraryItemWithCollections[];
-    locked?: boolean;
 }
 
 interface LibraryMasonryLayoutProps extends LibraryGridLayoutProps {
@@ -4479,33 +4588,6 @@ function getSharedCollectionIds(items: LibraryItemWithCollections[]): string[] {
     );
 }
 
-function mergeBulkEditedCollectionIds({
-    currentCollectionIds,
-    nextCollectionIds,
-    sharedCollectionIds,
-}: {
-    currentCollectionIds: string[];
-    nextCollectionIds: string[];
-    sharedCollectionIds: string[];
-}): string[] {
-    const sharedCollectionIdSet = new Set(sharedCollectionIds);
-    const mergedCollectionIds = currentCollectionIds.filter(
-        (collectionId) => !sharedCollectionIdSet.has(collectionId)
-    );
-    const mergedCollectionIdSet = new Set(mergedCollectionIds);
-
-    for (const collectionId of nextCollectionIds) {
-        if (mergedCollectionIdSet.has(collectionId)) {
-            continue;
-        }
-
-        mergedCollectionIds.push(collectionId);
-        mergedCollectionIdSet.add(collectionId);
-    }
-
-    return mergedCollectionIds;
-}
-
 function getItemTitle(item: LibraryItemWithCollections): string {
     if (item.kind === "note") {
         return "";
@@ -4538,7 +4620,7 @@ function PreviewMedia({
     alt,
     fallbackLabel = "No preview",
     src,
-}: PreviewMediaProps): React.ReactElement {
+}: PreviewMediaProps) {
     const [didFail, setDidFail] = React.useState(false);
     const imageSrc = src ?? undefined;
     const canRenderImage = Boolean(imageSrc) && !didFail;
@@ -4581,7 +4663,7 @@ function useLibraryGridCardContext(): LibraryGridCardContextValue {
 function LibraryGridCardProvider({
     children,
     ...value
-}: React.PropsWithChildren<LibraryGridCardContextValue>): React.ReactElement {
+}: React.PropsWithChildren<LibraryGridCardContextValue>) {
     return (
         <LibraryGridCardContext.Provider value={value}>
             {children}
@@ -4593,12 +4675,13 @@ function LibraryGridCardProvider({
 function CollectionComboboxPicker({
     collections,
     items,
+    onUpdateItemsCollections,
     onUpdateItemCollections,
     open: openProp,
     onOpenChange,
     children,
     ...props
-}: CollectionComboboxPickerProps): React.ReactElement {
+}: CollectionComboboxPickerProps) {
     const [isOpenInternal, setIsOpenInternal] = React.useState(false);
     const isOpen = openProp ?? isOpenInternal;
     const setIsOpen = onOpenChange ?? setIsOpenInternal;
@@ -4614,18 +4697,29 @@ function CollectionComboboxPicker({
             onValueChange={(nextIds) => {
                 const nextCollectionIds = [...nextIds];
 
-                for (const item of items) {
-                    const mergedCollectionIds = mergeBulkEditedCollectionIds({
-                        currentCollectionIds: item.collections.map(
-                            (collection) => collection.id
-                        ),
-                        nextCollectionIds,
-                        sharedCollectionIds: selectedCollectionIds,
-                    });
-                    onUpdateItemCollections(item.id, mergedCollectionIds).catch(
+                if (items.length === 1) {
+                    const [item] = items;
+                    if (!item) {
+                        return;
+                    }
+
+                    onUpdateItemCollections(item.id, nextCollectionIds).catch(
                         () => undefined
                     );
+                    return;
                 }
+
+                if (!onUpdateItemsCollections) {
+                    throw new Error(
+                        "Bulk collection updates require onUpdateItemsCollections."
+                    );
+                }
+
+                onUpdateItemsCollections({
+                    itemIds: items.map((item) => item.id),
+                    nextSharedCollectionIds: nextCollectionIds,
+                    previousSharedCollectionIds: selectedCollectionIds,
+                }).catch(() => undefined);
             }}
             open={isOpen}
             value={selectedCollectionIds}
@@ -4690,7 +4784,7 @@ function LibraryGridCardCollectionPicker({
     item: LibraryItemWithCollections;
     onOpenChange?: (open: boolean) => void;
     open?: boolean;
-}): React.ReactElement {
+}) {
     const { collections, onUpdateItemCollections } =
         useLibraryGridCardContext();
 
@@ -4756,7 +4850,7 @@ function LibraryGridCardMenu({
     previewDescription,
     previewImageUrl,
     previewTitle,
-}: LibraryGridCardMenuProps): React.ReactElement {
+}: LibraryGridCardMenuProps) {
     const {
         onCopyLink,
         onDelete,
@@ -4878,11 +4972,11 @@ function LibraryGridCardMenu({
     );
 }
 
-function LibraryGridCard({ item }: LibraryGridCardProps): React.ReactElement {
-    const { onOpenInNewTab, onOpenNote } = useLibraryGridCardContext();
+function LibraryGridCard({ item }: LibraryGridCardProps) {
+    const { onOpenInNewTab, onOpenNote, onSetActionFeedback } =
+        useLibraryGridCardContext();
     const isNote = item.kind === "note";
     const [isDownloading, setIsDownloading] = React.useState(false);
-    const [isHovered, setIsHovered] = React.useState(false);
     const [isCollectionPickerOpen, setIsCollectionPickerOpen] =
         React.useState(false);
     const href = normalizeURL(item.url);
@@ -4897,11 +4991,6 @@ function LibraryGridCard({ item }: LibraryGridCardProps): React.ReactElement {
     const displayTitle = getItemTitle(item);
     const isNewItem = !isNote && dayjs(itemDate(item)).isToday();
 
-    useHotkeys("s", () => setIsCollectionPickerOpen(true), {
-        enabled: isHovered && !isCollectionPickerOpen,
-        preventDefault: true,
-    });
-
     const handlePrimaryClick = (event: React.MouseEvent<HTMLAnchorElement>) => {
         event.preventDefault();
         if (isNote) {
@@ -4911,7 +5000,21 @@ function LibraryGridCard({ item }: LibraryGridCardProps): React.ReactElement {
         onOpenInNewTab?.(item);
     };
 
+    const reportDownloadFailure = useStableCallback(
+        (message: string, error?: unknown) => {
+            libraryBrowserLog.error("Failed to prepare media download", error, {
+                itemId: item.id,
+                url: item.url,
+            });
+            onSetActionFeedback?.({
+                message,
+                tone: "error",
+            });
+        }
+    );
+
     const handleDownload = async () => {
+        onSetActionFeedback?.(null);
         setIsDownloading(true);
         try {
             const result = await downloadMedia(item.url);
@@ -4925,13 +5028,34 @@ function LibraryGridCard({ item }: LibraryGridCardProps): React.ReactElement {
                 link.click();
                 document.body.removeChild(link);
             } else {
-                console.error(result.message);
+                reportDownloadFailure(result.message);
             }
         } catch (error) {
-            console.error(error);
+            reportDownloadFailure(
+                "We couldn't download this media right now.",
+                error
+            );
         } finally {
             setIsDownloading(false);
         }
+    };
+
+    const handleCardKeyDown = (event: React.KeyboardEvent<HTMLElement>) => {
+        if (
+            event.defaultPrevented ||
+            event.nativeEvent.isComposing ||
+            event.metaKey ||
+            event.ctrlKey ||
+            event.altKey ||
+            isCollectionPickerOpen ||
+            isTextEntryTarget(event.target) ||
+            event.key.toLowerCase() !== "s"
+        ) {
+            return;
+        }
+
+        event.preventDefault();
+        setIsCollectionPickerOpen(true);
     };
 
     return (
@@ -4939,9 +5063,8 @@ function LibraryGridCard({ item }: LibraryGridCardProps): React.ReactElement {
             <ContextMenuTrigger render={<div className="contents" />}>
                 {/** biome-ignore lint/a11y/noNoninteractiveElementInteractions: TEMP */}
                 <article
-                    className="group relative flex flex-col overflow-hidden rounded-xl ring-1 ring-border/50 hover:z-10"
-                    onMouseEnter={() => setIsHovered(true)}
-                    onMouseLeave={() => setIsHovered(false)}
+                    className="group relative flex flex-col overflow-hidden rounded-xl ring-1 ring-border/50 hover:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
+                    onKeyDown={handleCardKeyDown}
                 >
                     <a
                         className="flex flex-col focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
@@ -5040,40 +5163,98 @@ function LibraryGridCard({ item }: LibraryGridCardProps): React.ReactElement {
     );
 }
 
-function LockedLibraryGridCard({
-    item,
-}: LibraryGridCardProps): React.ReactElement {
-    const isNote = item.kind === "note";
-    const alt = (item.caption ?? "").trim() || "Saved item";
-    const previewImageUrl = opengraphPreviewUrl(item);
-    const displayTitle = isNote ? "Note" : alt;
+interface LockedLibraryPreviewPlaceholder {
+    aspect: string;
+    id: string;
+    kind: "bookmark" | "note";
+}
 
+const LOCKED_LIBRARY_PREVIEW_PLACEHOLDERS: LockedLibraryPreviewPlaceholder[] = [
+    {
+        aspect: "aspect-[4/5]",
+        id: "locked-library-preview-1",
+        kind: "bookmark",
+    },
+    { aspect: "aspect-[3/4]", id: "locked-library-preview-2", kind: "note" },
+    {
+        aspect: "aspect-square",
+        id: "locked-library-preview-3",
+        kind: "bookmark",
+    },
+    {
+        aspect: "aspect-[5/6]",
+        id: "locked-library-preview-4",
+        kind: "bookmark",
+    },
+    { aspect: "aspect-[4/5]", id: "locked-library-preview-5", kind: "note" },
+    {
+        aspect: "aspect-[3/4]",
+        id: "locked-library-preview-6",
+        kind: "bookmark",
+    },
+    {
+        aspect: "aspect-square",
+        id: "locked-library-preview-7",
+        kind: "bookmark",
+    },
+    { aspect: "aspect-[5/6]", id: "locked-library-preview-8", kind: "note" },
+    {
+        aspect: "aspect-[4/5]",
+        id: "locked-library-preview-9",
+        kind: "bookmark",
+    },
+];
+
+function LockedLibraryPreviewCard({
+    placeholder,
+}: {
+    placeholder: LockedLibraryPreviewPlaceholder;
+}) {
     return (
         <div className="relative flex flex-col overflow-hidden rounded-xl ring-1 ring-border/30">
-            {isNote ? (
-                <div className="relative min-h-72 bg-linear-to-br from-amber-50 via-background to-stone-100 px-4 py-4">
-                    <div className="absolute inset-0 bg-background/45 backdrop-blur-md" />
-                    <div className="relative flex flex-col gap-3">
+            {placeholder.kind === "note" ? (
+                <div className="relative min-h-72 bg-linear-to-br from-amber-50 via-background to-stone-100 p-4">
+                    <div className="absolute inset-0 bg-background/30 backdrop-blur-sm" />
+                    <div className="relative flex h-full flex-col gap-3">
                         <span className="inline-flex w-fit items-center gap-1 rounded-full border border-amber-500/20 bg-white/70 px-2.5 py-1 font-medium text-[11px] text-stone-700">
                             <NotebookPenIcon className="size-3.5" />
-                            Note
+                            Locked note
                         </span>
+                        <div className="space-y-2">
+                            <Skeleton className="h-3 w-[86%]" />
+                            <Skeleton className="h-3 w-[74%]" />
+                            <Skeleton className="h-3 w-[68%]" />
+                            <Skeleton className="h-3 w-[56%]" />
+                        </div>
                     </div>
                 </div>
             ) : (
-                <div className="relative aspect-3/4 w-full overflow-hidden bg-muted/30">
-                    <PreviewMedia
-                        alt={alt}
-                        fallbackLabel="Locked preview"
-                        key={previewImageUrl ?? `locked-empty-${item.id}`}
-                        src={previewImageUrl}
-                    />
-                    <div className="absolute inset-0 bg-background/35 backdrop-blur-md" />
+                <div
+                    className={cn(
+                        "relative overflow-hidden bg-linear-to-br from-muted/75 via-card to-muted/45",
+                        placeholder.aspect
+                    )}
+                >
+                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.45),transparent_38%)]" />
+                    <div className="absolute inset-0 bg-background/25 backdrop-blur-sm" />
+                    <div className="relative flex h-full flex-col justify-between p-4">
+                        <Badge
+                            className="w-fit bg-background/80"
+                            size="sm"
+                            variant="secondary"
+                        >
+                            Locked preview
+                        </Badge>
+                        <div className="space-y-2">
+                            <Skeleton className="h-3 w-[88%]" />
+                            <Skeleton className="h-3 w-[62%]" />
+                        </div>
+                    </div>
                 </div>
             )}
-            <div className="relative flex flex-col gap-2 bg-background/75 px-3 py-2">
-                <p className="line-clamp-2 truncate text-foreground text-xs leading-tight">
-                    {displayTitle}
+            <div className="border-border/30 border-t bg-background/75 px-3 py-2">
+                <p className="text-muted-foreground text-xs">
+                    Upgrade to reveal this item.
                 </p>
             </div>
         </div>
@@ -5083,28 +5264,18 @@ function LockedLibraryGridCard({
 function LibraryMasonryLayout({
     columnCount,
     items,
-    locked = false,
-}: LibraryMasonryLayoutProps): React.ReactElement {
+}: LibraryMasonryLayoutProps) {
     return (
-        <React.Profiler
-            id={locked ? "library-masonry-locked" : "library-masonry"}
-            onRender={onMasonryProfilerRender}
-        >
+        <React.Profiler id="library-masonry" onRender={onMasonryProfilerRender}>
             <Masonry
                 columnCount={columnCount}
                 gap={4}
-                instrumentationLabel={
-                    locked ? "library-masonry-locked" : "library-masonry"
-                }
+                instrumentationLabel="library-masonry"
                 linear
             >
                 {items.map((item) => (
                     <MasonryItem key={item.id}>
-                        {locked ? (
-                            <LockedLibraryGridCard item={item} />
-                        ) : (
-                            <LibraryGridCard item={item} />
-                        )}
+                        <LibraryGridCard item={item} />
                     </MasonryItem>
                 ))}
             </Masonry>
@@ -5112,10 +5283,7 @@ function LibraryMasonryLayout({
     );
 }
 
-function LibraryKanbanLayout({
-    items,
-    locked = false,
-}: LibraryGridLayoutProps): React.ReactElement {
+function LibraryKanbanLayout({ items }: LibraryGridLayoutProps) {
     const { collections } = useLibraryGridCardContext();
     const kanbanColumns = buildKanbanColumns(collections, items);
     const columnIds = [
@@ -5161,15 +5329,9 @@ function LibraryKanbanLayout({
                                                 key={columnItem.value}
                                                 value={columnItem.value}
                                             >
-                                                {locked ? (
-                                                    <LockedLibraryGridCard
-                                                        item={columnItem.item}
-                                                    />
-                                                ) : (
-                                                    <LibraryGridCard
-                                                        item={columnItem.item}
-                                                    />
-                                                )}
+                                                <LibraryGridCard
+                                                    item={columnItem.item}
+                                                />
                                             </KanbanItem>
                                         ))
                                     )}
@@ -5179,6 +5341,76 @@ function LibraryKanbanLayout({
                     })}
                 </KanbanBoard>
             </Kanban>
+        </div>
+    );
+}
+
+function LockedLibraryPreview({
+    columnCount,
+    layoutMode,
+    totalItemCount,
+}: {
+    columnCount?: number;
+    layoutMode: LayoutMode;
+    totalItemCount: number;
+}) {
+    const previewBody =
+        layoutMode === "kanban" ? (
+            <div className="grid gap-3 md:grid-cols-3">
+                {["Locked", "Preview", "Upgrade"].map((label, index) => (
+                    <div
+                        className="rounded-2xl border border-border/50 bg-card/35 p-3"
+                        key={label}
+                    >
+                        <div className="mb-3 flex items-center justify-between gap-3">
+                            <h3 className="font-medium text-sm">{label}</h3>
+                            <span className="font-medium text-muted-foreground text-xs tabular-nums">
+                                3
+                            </span>
+                        </div>
+                        <div className="flex flex-col gap-3">
+                            {LOCKED_LIBRARY_PREVIEW_PLACEHOLDERS.slice(
+                                index * 3,
+                                index * 3 + 3
+                            ).map((placeholder) => (
+                                <LockedLibraryPreviewCard
+                                    key={placeholder.id}
+                                    placeholder={placeholder}
+                                />
+                            ))}
+                        </div>
+                    </div>
+                ))}
+            </div>
+        ) : (
+            <React.Profiler
+                id="library-masonry-locked-preview"
+                onRender={onMasonryProfilerRender}
+            >
+                <Masonry
+                    columnCount={columnCount}
+                    gap={4}
+                    instrumentationLabel="library-masonry-locked-preview"
+                    linear
+                >
+                    {LOCKED_LIBRARY_PREVIEW_PLACEHOLDERS.map((placeholder) => (
+                        <MasonryItem key={placeholder.id}>
+                            <LockedLibraryPreviewCard
+                                placeholder={placeholder}
+                            />
+                        </MasonryItem>
+                    ))}
+                </Masonry>
+            </React.Profiler>
+        );
+
+    return (
+        <div className="relative isolate flex flex-col gap-8">
+            <BlockPaywallBanner length={totalItemCount} />
+            <div className="pointer-events-none absolute inset-0 z-10 rounded-[2rem] bg-linear-to-b from-background/10 via-background/45 to-background/75" />
+            <div className="select-none opacity-70 blur-[1.5px] saturate-75">
+                {previewBody}
+            </div>
         </div>
     );
 }
@@ -5233,37 +5465,19 @@ function ExtensionLibraryGrid({
     onDelete,
     onOpenNote,
     onOpenInNewTab,
+    onSetActionFeedback,
     onUpdateItemCollections,
-    paywallPreviewCount,
-    paywallTotalCount,
     pendingDeleteItemId,
-    showPaywallBanner,
-}: GridProps): React.ReactElement | null {
+}: GridProps) {
     if (items.length === 0) {
         return null;
     }
 
-    const resolvedPreviewCount = Math.max(
-        0,
-        Math.min(paywallPreviewCount ?? items.length, items.length)
-    );
-    const showPaywall = resolvedPreviewCount < items.length;
-    const previewItems = showPaywall
-        ? items.slice(0, resolvedPreviewCount)
-        : items;
-    const lockedItems = showPaywall ? items.slice(resolvedPreviewCount) : [];
-    const renderLibraryLayout = (
-        nextItems: LibraryItemWithCollections[],
-        locked = false
-    ) =>
+    const renderLibraryLayout = (nextItems: LibraryItemWithCollections[]) =>
         layoutMode === "kanban" ? (
-            <LibraryKanbanLayout items={nextItems} locked={locked} />
+            <LibraryKanbanLayout items={nextItems} />
         ) : (
-            <LibraryMasonryLayout
-                columnCount={columnCount}
-                items={nextItems}
-                locked={locked}
-            />
+            <LibraryMasonryLayout columnCount={columnCount} items={nextItems} />
         );
 
     return (
@@ -5273,31 +5487,11 @@ function ExtensionLibraryGrid({
             onDelete={onDelete}
             onOpenInNewTab={onOpenInNewTab}
             onOpenNote={onOpenNote}
+            onSetActionFeedback={onSetActionFeedback}
             onUpdateItemCollections={onUpdateItemCollections}
             pendingDeleteItemId={pendingDeleteItemId}
         >
-            {showPaywall ? (
-                <div className="flex flex-col gap-8">
-                    {previewItems.length > 0
-                        ? renderLibraryLayout(previewItems)
-                        : null}
-                    {lockedItems.length > 0 ? (
-                        <div className="relative isolate">
-                            {showPaywallBanner ? (
-                                <BlockPaywallBanner
-                                    length={paywallTotalCount ?? items.length}
-                                />
-                            ) : null}
-                            <div className="pointer-events-none absolute inset-0 z-10 rounded-[2rem] bg-linear-to-b from-background/10 via-background/45 to-background/75" />
-                            <div className="select-none opacity-60 blur-[1.5px] saturate-75">
-                                {renderLibraryLayout(lockedItems, true)}
-                            </div>
-                        </div>
-                    ) : null}
-                </div>
-            ) : (
-                renderLibraryLayout(items)
-            )}
+            {renderLibraryLayout(items)}
         </LibraryGridCardProvider>
     );
 }
@@ -5309,14 +5503,24 @@ function SectionDescription({
     items: LibraryItemWithCollections[];
     title: string;
 }) {
-    const requestBody = JSON.stringify({
-        items: items.slice(0, SECTION_DESCRIPTION_CONTEXT_ITEMS_LIMIT),
-        sectionTitle: title,
-    });
+    const requestBody = React.useMemo(
+        () =>
+            JSON.stringify({
+                items: items
+                    .slice(0, SECTION_DESCRIPTION_CONTEXT_ITEMS_LIMIT)
+                    .map(buildSectionDescriptionContextItem),
+                sectionTitle: title,
+            }),
+        [items, title]
+    );
+    const deferredRequestBody = React.useDeferredValue(requestBody);
 
     const { data, error, isLoading } = useSWR<SectionDescriptionResponse>(
         items.length > 0
-            ? (["/api/library/section-description", requestBody] as const)
+            ? ([
+                  "/api/library/section-description",
+                  deferredRequestBody,
+              ] as const)
             : null,
         fetchSectionDescription,
         {
@@ -5341,15 +5545,7 @@ function SectionDescription({
         <p className="fade-in-0 block w-full animate-in text-xs leading-snug motion-reduce:animate-none">
             {summary && summary.length > 0
                 ? summary
-                : SECTION_DESCRIPTION_FALLBACK_TEXT}{" "}
-            <Button
-                className="h-fit! text-xs leading-snug sm:text-xs"
-                size="xs"
-                variant="link"
-            >
-                More&nbsp;
-                <ListChevronsUpDown className="inline-block size-3" />
-            </Button>
+                : SECTION_DESCRIPTION_FALLBACK_TEXT}
         </p>
     );
 }
@@ -5373,7 +5569,7 @@ function ExtensionLibrarySection({
     onExpandAll,
     pendingDeleteItemId,
     title,
-}: SectionProps): React.ReactElement {
+}: SectionProps) {
     const canToggle = collapsible && onToggle;
     const headerGradient = collapsible
         ? getColorGradientFromName(accentKey ?? title)
@@ -5517,14 +5713,20 @@ function ExtensionLibrarySection({
 function LibraryBrowser({
     collectionPreviewThumbnailUrlsById,
     collections,
+    hasAccess,
     items,
+    lockedItemCount,
     onClearCollectionFilters,
     onCreateCollectionFromResults,
+    onDeleteItemSuccess,
     onItemsChange,
     onRemoveCollectionFilter,
     onUpdateItemCollections,
+    onUpdateItemsCollections,
     selectedCollectionIds,
+    totalItemCount,
 }: LibraryProps) {
+    const router = useRouter();
     const systemControlKey = useClientOnlyValue(getSystemControlKey());
     const [searchTerms, setSearchTerms] = React.useState<string[]>([]);
     const [paletteInput, setPaletteInput] = React.useState("");
@@ -5583,7 +5785,15 @@ function LibraryBrowser({
         isDeletePending,
         pendingDeleteItem,
         setActionFeedback,
-    } = useLibraryItemActions(onItemsChange);
+    } = useLibraryItemActions({
+        onDeleteSuccess: (result) => {
+            onDeleteItemSuccess(result);
+            if (!hasAccess) {
+                router.refresh();
+            }
+        },
+        setVisibleItems: onItemsChange,
+    });
     const [isSavingNote, startSavingNoteTransition] = React.useTransition();
     const [isSavingPastedUrl, startSavingPastedUrlTransition] =
         React.useTransition();
@@ -5592,7 +5802,10 @@ function LibraryBrowser({
         startCreateResultsCollectionTransition,
     ] = React.useTransition();
 
-    const domainOptions = buildDomainPaletteOptions(items);
+    const domainOptions = React.useMemo(
+        () => buildDomainPaletteOptions(items),
+        [items]
+    );
 
     const focusPaletteInput = useStableCallback((select = false) => {
         setCommandListOpen(true);
@@ -5820,7 +6033,7 @@ function LibraryBrowser({
         }
     };
 
-    const clearLibraryPalette = () => {
+    const clearLibraryPalette = useStableCallback(() => {
         setPaletteInput("");
         setSearchTerms([]);
         setSourceFilters([]);
@@ -5834,7 +6047,7 @@ function LibraryBrowser({
         setLayoutMode(DEFAULT_LAYOUT_MODE);
         setPaletteSection("search");
         setCommandListOpen(false);
-    };
+    });
 
     const handlePaletteInputKeyDown = (
         event: React.KeyboardEvent<HTMLInputElement>
@@ -5951,40 +6164,52 @@ function LibraryBrowser({
         inputPlaceholder = "Change the layout…";
     }
 
-    const filteredItems = filterLibraryBrowserItems(items, {
-        collectionMembershipFilter,
-        domainFilters,
-        searchTerms,
-        selectedCollectionIds,
-        sourceFilters,
-    });
-
-    const sortedItems = sortLibraryBrowserItems(filteredItems, sortMode);
-
-    const sections = buildLibraryBrowserSections(
-        sortedItems,
-        groupBy,
-        sortMode
+    const filteredItems = React.useMemo(
+        () =>
+            filterLibraryBrowserItems(items, {
+                collectionMembershipFilter,
+                domainFilters,
+                searchTerms,
+                selectedCollectionIds,
+                sourceFilters,
+            }),
+        [
+            collectionMembershipFilter,
+            domainFilters,
+            items,
+            searchTerms,
+            selectedCollectionIds,
+            sourceFilters,
+        ]
     );
 
-    const { hasAccess, isLoading: isAccessLoading } = useAccess();
-
-    const shouldGateResults =
-        !(isAccessLoading || hasAccess) &&
-        filteredItems.length > FREE_LIBRARY_PREVIEW_ITEMS;
-
-    const gatedSections = gateLibraryBrowserSections(
-        sections,
-        shouldGateResults
+    const sortedItems = React.useMemo(
+        () => sortLibraryBrowserItems(filteredItems, sortMode),
+        [filteredItems, sortMode]
     );
 
-    const hasActiveFilters = libraryBrowserHasActiveFilters({
-        collectionMembershipFilter,
-        domainFilters,
-        searchTerms,
-        selectedCollectionIds,
-        sourceFilters,
-    });
+    const sections = React.useMemo(
+        () => buildLibraryBrowserSections(sortedItems, groupBy, sortMode),
+        [groupBy, sortedItems, sortMode]
+    );
+
+    const hasActiveFilters = React.useMemo(
+        () =>
+            libraryBrowserHasActiveFilters({
+                collectionMembershipFilter,
+                domainFilters,
+                searchTerms,
+                selectedCollectionIds,
+                sourceFilters,
+            }),
+        [
+            collectionMembershipFilter,
+            domainFilters,
+            searchTerms,
+            selectedCollectionIds,
+            sourceFilters,
+        ]
+    );
 
     const hasNonDefaultView =
         groupBy !== "none" ||
@@ -6007,7 +6232,7 @@ function LibraryBrowser({
     } = useSectionCollapseState({
         groupBy,
         hasActiveFilters,
-        sections: gatedSections,
+        sections,
         showEmptyLibraryPeek,
         showNoFilteredResults,
     });
@@ -6016,17 +6241,28 @@ function LibraryBrowser({
         layoutMode === "masonry" && columnCountMode !== "auto"
             ? Number(columnCountMode)
             : undefined;
-
-    const resultsSummary =
-        filteredItems.length === items.length
-            ? `${items.length} item${items.length === 1 ? "" : "s"}`
-            : `${filteredItems.length} of ${items.length} items`;
-
-    const visibleResultItems = gatedSections.flatMap((section) =>
-        getVisibleSectionItems(section)
+    const collapsedSectionKeySet = React.useMemo(
+        () => new Set(collapsedSectionKeys),
+        [collapsedSectionKeys]
     );
+
+    const isPreviewOnly = !hasAccess && lockedItemCount > 0;
+    let resultsSummary = `${filteredItems.length} of ${items.length} items`;
+    if (filteredItems.length === items.length) {
+        resultsSummary = `${items.length} item${items.length === 1 ? "" : "s"}`;
+    }
+    if (isPreviewOnly) {
+        resultsSummary =
+            filteredItems.length === items.length
+                ? `${items.length} preview item${items.length === 1 ? "" : "s"} of ${totalItemCount}`
+                : `${filteredItems.length} preview result${filteredItems.length === 1 ? "" : "s"} from ${items.length} visible`;
+    }
+
+    const visibleResultItems = sections.flatMap((section) => section.items);
     const canCreateCollectionFromResults =
         searchTerms.length > 0 && visibleResultItems.length > 0;
+    const showLockedPreview =
+        isPreviewOnly && !hasActiveFilters && groupBy === "none";
 
     const canClear =
         (hasActiveFilters || hasNonDefaultView) && !showEmptyLibraryPeek;
@@ -6109,42 +6345,69 @@ function LibraryBrowser({
         });
     };
 
-    const handleOpenNote = (item: LibraryItemWithCollections) => {
-        setActionFeedback(null);
-        setActiveNote(item);
-        setIsNoteDrawerOpen(true);
-    };
+    const handleOpenNote = useStableCallback(
+        (item: LibraryItemWithCollections) => {
+            setActionFeedback(null);
+            setActiveNote(item);
+            setIsNoteDrawerOpen(true);
+        }
+    );
 
-    const handleUpdateItemCollectionsWithFeedback = async (
-        itemId: string,
-        collectionIds: string[]
-    ): Promise<UpdateLibraryItemCollectionsResult> => {
-        const requestVersion =
-            (collectionUpdateFeedbackVersionByItemIdRef.current.get(itemId) ??
-                0) + 1;
-        collectionUpdateFeedbackVersionByItemIdRef.current.set(
-            itemId,
-            requestVersion
-        );
-        const result = await onUpdateItemCollections(itemId, collectionIds);
+    const handleUpdateItemCollectionsWithFeedback = useStableCallback(
+        async (
+            itemId: string,
+            collectionIds: string[]
+        ): Promise<UpdateLibraryItemCollectionsResult> => {
+            const requestVersion =
+                (collectionUpdateFeedbackVersionByItemIdRef.current.get(
+                    itemId
+                ) ?? 0) + 1;
+            collectionUpdateFeedbackVersionByItemIdRef.current.set(
+                itemId,
+                requestVersion
+            );
+            const result = await onUpdateItemCollections(itemId, collectionIds);
 
-        if (
-            collectionUpdateFeedbackVersionByItemIdRef.current.get(itemId) !==
-            requestVersion
-        ) {
+            if (
+                collectionUpdateFeedbackVersionByItemIdRef.current.get(
+                    itemId
+                ) !== requestVersion
+            ) {
+                return result;
+            }
+
+            if (result.status === "UPDATED") {
+                setActionFeedback(null);
+            } else {
+                setActionFeedback({
+                    message: result.message,
+                    tone: "error",
+                });
+            }
             return result;
         }
+    );
 
-        if (result.status === "UPDATED") {
-            setActionFeedback(null);
-        } else {
-            setActionFeedback({
-                message: result.message,
-                tone: "error",
-            });
+    const handleUpdateItemsCollectionsWithFeedback = useStableCallback(
+        async (input: {
+            itemIds: string[];
+            nextSharedCollectionIds: string[];
+            previousSharedCollectionIds: string[];
+        }): Promise<UpdateLibraryItemsCollectionsResult> => {
+            const result = await onUpdateItemsCollections(input);
+
+            if (result.status === "UPDATED") {
+                setActionFeedback(null);
+            } else {
+                setActionFeedback({
+                    message: result.message,
+                    tone: "error",
+                });
+            }
+
+            return result;
         }
-        return result;
-    };
+    );
 
     const handleSaveNote = async (draft: {
         contentHtml: string;
@@ -6186,6 +6449,9 @@ function LibraryBrowser({
                         : "Note created in your library.",
                     tone: "success",
                 });
+                if (!hasAccess) {
+                    router.refresh();
+                }
                 resolve(true);
             });
         });
@@ -6235,31 +6501,36 @@ function LibraryBrowser({
                     message,
                     tone: "success",
                 });
+                if (!hasAccess) {
+                    router.refresh();
+                }
                 resolve();
             });
         });
 
-    const libraryGridBody = renderLibraryGridBody({
-        clearLibraryPalette,
-        collapsedSectionKeys: new Set(collapsedSectionKeys),
-        collections,
-        columnCount: resolvedColumnCount,
-        enableSectionCollapse,
-        layoutMode,
-        onCollapseAllSections: collapseAllSections,
-        onCopyLink: handleCopyLink,
-        onDelete: handleRequestDelete,
-        onExpandAllSections: expandAllSections,
-        onOpenInNewTab: handleOpenInNewTab,
-        onOpenNote: handleOpenNote,
-        onToggleSection: toggleSection,
-        onUpdateItemCollections: handleUpdateItemCollectionsWithFeedback,
-        paywallTotalCount: filteredItems.length,
-        pendingDeleteItemId: pendingDeleteItem?.id ?? null,
-        sections: gatedSections,
-        showEmptyLibraryPeek,
-        showNoFilteredResults,
-    });
+    const libraryGridBody = (
+        <LibraryResults
+            clearLibraryPalette={clearLibraryPalette}
+            collapsedSectionKeys={collapsedSectionKeySet}
+            collections={collections}
+            columnCount={resolvedColumnCount}
+            enableSectionCollapse={enableSectionCollapse}
+            layoutMode={layoutMode}
+            onCollapseAllSections={collapseAllSections}
+            onCopyLink={handleCopyLink}
+            onDelete={handleRequestDelete}
+            onExpandAllSections={expandAllSections}
+            onOpenInNewTab={handleOpenInNewTab}
+            onOpenNote={handleOpenNote}
+            onSetActionFeedback={setActionFeedback}
+            onToggleSection={toggleSection}
+            onUpdateItemCollections={handleUpdateItemCollectionsWithFeedback}
+            pendingDeleteItemId={pendingDeleteItem?.id ?? null}
+            sections={sections}
+            showEmptyLibraryPeek={showEmptyLibraryPeek}
+            showNoFilteredResults={showNoFilteredResults}
+        />
+    );
 
     return (
         <div
@@ -6400,7 +6671,10 @@ function LibraryBrowser({
                                 collections={collections}
                                 items={visibleResultItems}
                                 onUpdateItemCollections={
-                                    onUpdateItemCollections
+                                    handleUpdateItemCollectionsWithFeedback
+                                }
+                                onUpdateItemsCollections={
+                                    handleUpdateItemsCollectionsWithFeedback
                                 }
                                 render={
                                     <Button
@@ -6674,9 +6948,9 @@ function LibraryBrowser({
                     />
                     {canCreateCollectionFromResults ? null : (
                         <span className="pointer-events-none mr-2 ml-auto select-none font-semibold text-[10px] text-muted-foreground uppercase">
-                            <PrivilegedOnly>
+                            {hasAccess ? (
                                 <CrownFilledIcon className="mb-0.5 size-3.5 opacity-80" />
-                            </PrivilegedOnly>
+                            ) : null}
                             &nbsp;CACHE
                         </span>
                     )}
@@ -6730,10 +7004,15 @@ function LibraryBrowser({
                     {actionFeedback.message}
                 </div>
             ) : null}
-            <UnprivilegedOnly>
-                <InlinePaywallBanner />
-            </UnprivilegedOnly>
+            {isPreviewOnly ? <InlinePaywallBanner /> : null}
             {libraryGridBody}
+            {showLockedPreview ? (
+                <LockedLibraryPreview
+                    columnCount={resolvedColumnCount}
+                    layoutMode={layoutMode}
+                    totalItemCount={totalItemCount}
+                />
+            ) : null}
             <LibraryNoteDrawer
                 note={activeNote}
                 onOpenChange={setIsNoteDrawerOpen}
@@ -6747,31 +7026,21 @@ function LibraryBrowser({
 }
 
 export function LibraryWorkspace({
+    hasAccess,
     initialCollections,
     initialItems,
+    lockedItemCount,
     sidebarBottom,
     sidebarHeader,
-}: Props): React.ReactElement {
+    totalItemCount,
+}: Props) {
     const [items, setItems] = React.useState<LibraryItemWithCollections[]>([
         ...initialItems,
     ]);
 
     const [collections, setCollections] = React.useState<
-        LibraryCollectionTag[]
-    >(
-        sortCollections(
-            initialCollections.map((collection) => ({
-                createdAt: collection.createdAt,
-                description: collection.description,
-                id: collection.id,
-                name: collection.name,
-                priority: collection.priority,
-                sharedAt: collection.sharedAt,
-                shareId: collection.shareId,
-                updatedAt: collection.updatedAt,
-            }))
-        )
-    );
+        LibraryCollectionSummary[]
+    >([...initialCollections]);
 
     const [selectedCollectionIds, setSelectedCollectionIds] = React.useState<
         string[]
@@ -6781,11 +7050,30 @@ export function LibraryWorkspace({
     );
 
     const { collectionSortField } = useCollectionsSortStore();
-
-    const collectionSummaries = sortCollectionSummaries(
-        deriveCollectionSummaries(collections, items),
-        collectionSortField
+    const collectionSummaries = React.useMemo(
+        () => sortCollectionSummaries(collections, collectionSortField),
+        [collectionSortField, collections]
     );
+
+    React.useEffect(() => {
+        setItems([...initialItems]);
+    }, [initialItems]);
+
+    React.useEffect(() => {
+        setCollections([...initialCollections]);
+    }, [initialCollections]);
+
+    React.useEffect(() => {
+        const validCollectionIds = new Set(
+            collections.map((collection) => collection.id)
+        );
+        setSelectedCollectionIds((current) => {
+            const next = current.filter((collectionId) =>
+                validCollectionIds.has(collectionId)
+            );
+            return next.length === current.length ? current : next;
+        });
+    }, [collections]);
 
     const itemsByCollectionId = React.useMemo(() => {
         const map = new Map<string, LibraryItemWithCollections[]>();
@@ -6825,64 +7113,125 @@ export function LibraryWorkspace({
         );
     };
 
-    const handleUpdateItemCollections = (
-        itemId: string,
-        collectionIds: string[]
-    ): Promise<UpdateLibraryItemCollectionsResult> => {
-        const requestVersion =
-            (collectionUpdateVersionByItemIdRef.current.get(itemId) ?? 0) + 1;
-        collectionUpdateVersionByItemIdRef.current.set(itemId, requestVersion);
-        const previousCollections =
-            items.find((item) => item.id === itemId)?.collections ?? [];
-        const optimisticCollections = sortCollections(
-            collections.filter((collection) =>
-                collectionIds.includes(collection.id)
-            )
-        );
+    const handleUpdateItemCollections = useStableCallback(
+        (
+            itemId: string,
+            collectionIds: string[]
+        ): Promise<UpdateLibraryItemCollectionsResult> => {
+            const requestVersion =
+                (collectionUpdateVersionByItemIdRef.current.get(itemId) ?? 0) +
+                1;
+            collectionUpdateVersionByItemIdRef.current.set(
+                itemId,
+                requestVersion
+            );
+            const previousCollections =
+                items.find((item) => item.id === itemId)?.collections ?? [];
+            const optimisticCollections = sortCollections(
+                collections.filter((collection) =>
+                    collectionIds.includes(collection.id)
+                )
+            );
 
-        setItems((current) =>
-            replaceItemCollections(current, itemId, optimisticCollections)
-        );
+            setItems((current) =>
+                replaceItemCollections(current, itemId, optimisticCollections)
+            );
 
-        const runUpdate = async () => {
-            let result: UpdateLibraryItemCollectionsResult;
+            const runUpdate = async () => {
+                let result: UpdateLibraryItemCollectionsResult;
+
+                try {
+                    result = await updateLibraryItemCollections({
+                        collectionIds,
+                        itemId,
+                    });
+                } catch {
+                    result = {
+                        message:
+                            "We couldn't update collections for this item.",
+                        status: "ERROR",
+                    };
+                }
+
+                // Ignore out-of-order responses so older requests can't clobber a
+                // newer selection for the same item.
+                if (
+                    collectionUpdateVersionByItemIdRef.current.get(itemId) !==
+                    requestVersion
+                ) {
+                    return result;
+                }
+
+                if (result.status === "UPDATED") {
+                    setCollections((current) =>
+                        mergeCollectionSummaries(
+                            current,
+                            result.collectionSummaries
+                        )
+                    );
+                    setItems((current) =>
+                        replaceItemCollections(
+                            current,
+                            itemId,
+                            result.collections
+                        )
+                    );
+                } else {
+                    setItems((current) =>
+                        replaceItemCollections(
+                            current,
+                            itemId,
+                            previousCollections
+                        )
+                    );
+                }
+
+                return result;
+            };
+
+            return runUpdate();
+        }
+    );
+
+    const handleUpdateItemsCollections = useStableCallback(
+        async (input: {
+            itemIds: string[];
+            nextSharedCollectionIds: string[];
+            previousSharedCollectionIds: string[];
+        }): Promise<UpdateLibraryItemsCollectionsResult> => {
+            let result: UpdateLibraryItemsCollectionsResult;
 
             try {
-                result = await updateLibraryItemCollections({
-                    collectionIds,
-                    itemId,
-                });
+                result = await updateLibraryItemsCollections(input);
             } catch {
                 result = {
-                    message: "We couldn't update collections for this item.",
+                    message: "We couldn't update collections for those items.",
                     status: "ERROR",
                 };
             }
 
-            // Ignore out-of-order responses so older requests can't clobber a
-            // newer selection for the same item.
-            if (
-                collectionUpdateVersionByItemIdRef.current.get(itemId) !==
-                requestVersion
-            ) {
+            if (result.status !== "UPDATED") {
                 return result;
             }
 
-            if (result.status === "UPDATED") {
-                setItems((current) =>
-                    replaceItemCollections(current, itemId, result.collections)
-                );
-            } else {
-                setItems((current) =>
-                    replaceItemCollections(current, itemId, previousCollections)
-                );
-            }
+            setCollections((current) =>
+                mergeCollectionSummaries(current, result.collectionSummaries)
+            );
+            setItems((current) =>
+                replaceMultipleItemCollections(current, result.itemCollections)
+            );
 
             return result;
-        };
+        }
+    );
 
-        return runUpdate();
-    };
+    const handleDeleteItemSuccess = useStableCallback(
+        (result: Extract<DeleteLibraryItemResult, { status: "DELETED" }>) => {
+            setCollections((current) =>
+                mergeCollectionSummaries(current, result.collectionSummaries)
+            );
+        }
+    );
 
     const handleCreateCollectionFromResults = async (input: {
         description?: string;
@@ -6916,9 +7265,7 @@ export function LibraryWorkspace({
         } satisfies LibraryCollectionTag;
 
         setCollections((current) =>
-            current.some((collection) => collection.id === nextCollection.id)
-                ? current
-                : sortCollections([...current, nextCollection])
+            mergeCollectionSummaries(current, [result.collection])
         );
         setItems((current) =>
             appendCollectionToItems(
@@ -6944,6 +7291,7 @@ export function LibraryWorkspace({
                     collectionPreviewThumbnailUrlsById
                 }
                 collectionSummaries={collectionSummaries}
+                hasAccess={hasAccess}
                 onClearCollectionFilters={clearCollectionFilters}
                 onSelectCollection={handleToggleCollectionSelection}
                 selectedCollectionIds={selectedCollectionIds}
@@ -6956,15 +7304,20 @@ export function LibraryWorkspace({
                         collectionPreviewThumbnailUrlsById
                     }
                     collections={collectionSummaries}
+                    hasAccess={hasAccess}
                     items={items}
+                    lockedItemCount={lockedItemCount}
                     onClearCollectionFilters={clearCollectionFilters}
                     onCreateCollectionFromResults={
                         handleCreateCollectionFromResults
                     }
+                    onDeleteItemSuccess={handleDeleteItemSuccess}
                     onItemsChange={setItems}
                     onRemoveCollectionFilter={handleToggleCollectionSelection}
                     onUpdateItemCollections={handleUpdateItemCollections}
+                    onUpdateItemsCollections={handleUpdateItemsCollections}
                     selectedCollectionIds={selectedCollectionIds}
+                    totalItemCount={totalItemCount}
                 />
             </div>
         </>

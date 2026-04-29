@@ -62,7 +62,7 @@ export function Button({
     loading = false,
     disabled: disabledProp,
     ...props
-}: ButtonProps): React.ReactElement {
+}: ButtonProps) {
     const isDisabled: boolean = Boolean(loading || disabledProp);
     const typeValue: React.ButtonHTMLAttributes<HTMLButtonElement>["type"] =
         render ? undefined : "button";

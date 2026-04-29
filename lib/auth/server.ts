@@ -234,12 +234,8 @@ export const auth = betterAuth({
     },
     plugins: [
         nextCookies(),
-        oneTap({
-            clientId: requiredEnv("GOOGLE_CLIENT_ID"),
-        }),
-        genericOAuth({
-            config: genericOAuthConfig,
-        }),
+        oneTap({ clientId: requiredEnv("GOOGLE_CLIENT_ID") }),
+        genericOAuth({ config: genericOAuthConfig }),
         stripe({
             createCustomerOnSignUp: true,
             stripeClient: getStripeClient(),

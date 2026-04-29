@@ -2,14 +2,11 @@
 
 import { cn } from "@/lib/common/cn";
 import { ContextMenu as ContextMenuPrimitive } from "@base-ui/react/context-menu";
-import type * as React from "react";
 
 export const ContextMenu: typeof ContextMenuPrimitive.Root =
     ContextMenuPrimitive.Root;
 
-export function ContextMenuTrigger(
-    props: ContextMenuPrimitive.Trigger.Props
-): React.ReactElement {
+export function ContextMenuTrigger(props: ContextMenuPrimitive.Trigger.Props) {
     return (
         <ContextMenuPrimitive.Trigger
             data-slot="context-menu-trigger"
@@ -25,7 +22,7 @@ export function ContextMenuPopup({
     ...props
 }: ContextMenuPrimitive.Popup.Props & {
     sideOffset?: ContextMenuPrimitive.Positioner.Props["sideOffset"];
-}): React.ReactElement {
+}) {
     return (
         <ContextMenuPrimitive.Portal>
             <ContextMenuPrimitive.Positioner
@@ -53,7 +50,7 @@ export function ContextMenuPopup({
 export function ContextMenuItem({
     className,
     ...props
-}: ContextMenuPrimitive.Item.Props): React.ReactElement {
+}: ContextMenuPrimitive.Item.Props) {
     return (
         <ContextMenuPrimitive.Item
             className={cn(
@@ -69,7 +66,7 @@ export function ContextMenuItem({
 export function ContextMenuSeparator({
     className,
     ...props
-}: ContextMenuPrimitive.Separator.Props): React.ReactElement {
+}: ContextMenuPrimitive.Separator.Props) {
     return (
         <ContextMenuPrimitive.Separator
             className={cn("my-1 h-px bg-border/70", className)}

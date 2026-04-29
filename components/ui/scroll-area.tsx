@@ -2,7 +2,6 @@
 
 import { cn } from "@/lib/common/cn";
 import { ScrollArea as ScrollAreaPrimitive } from "@base-ui/react/scroll-area";
-import type * as React from "react";
 
 export function ScrollArea({
     className,
@@ -13,7 +12,7 @@ export function ScrollArea({
 }: ScrollAreaPrimitive.Root.Props & {
     scrollFade?: boolean;
     scrollbarGutter?: boolean;
-}): React.ReactElement {
+}) {
     return (
         <ScrollAreaPrimitive.Root
             className={cn("size-full min-h-0", className)}
@@ -42,7 +41,7 @@ export function ScrollBar({
     className,
     orientation = "vertical",
     ...props
-}: ScrollAreaPrimitive.Scrollbar.Props): React.ReactElement {
+}: ScrollAreaPrimitive.Scrollbar.Props) {
     return (
         <ScrollAreaPrimitive.Scrollbar
             className={cn(

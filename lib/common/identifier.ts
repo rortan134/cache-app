@@ -17,18 +17,27 @@ export const identifier = z
 const TRAILING_SLASHES = /\/+$/;
 const LEADING_SLASHES = /^\/+/;
 
-type IdentifierEnvironment =
-    | "cache/app" /* client */
-    | "wh" /* webhook */
-    | "cache"; /* caching layer such as redis or in-memory */
+const prefixes = {
+    benchmark: "ben",
+    caching: "cache" /* caching layer such as redis or in-memory */,
+    client: "app" /* client */,
+    webhook: "wh",
+} as const;
+
+type IdentifierEnvironmentKeys = keyof typeof prefixes;
+type IdentifierEnvironment = (typeof prefixes)[IdentifierEnvironmentKeys];
 
 export function buildIdentifierKey(
     key: string,
-    environment: IdentifierEnvironment = "cache/app"
+    environment: IdentifierEnvironment = "app"
 ): string {
     const env = environment.replace(TRAILING_SLASHES, "");
     const k = key.replace(LEADING_SLASHES, "");
     return `${env}/${k}`;
+}
+
+export function identifierKeySchema(prefix: IdentifierEnvironmentKeys) {
+    return identifier.startsWith(prefixes[prefix]);
 }
 
 const nanoid = customAlphabet(

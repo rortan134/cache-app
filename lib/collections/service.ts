@@ -50,6 +50,11 @@ interface CollectionSummarySourceRecord {
     source: LibraryItemSource;
 }
 
+interface OwnedItemCollectionRecord {
+    collections: Array<{ id: string }>;
+    id: string;
+}
+
 function createCollectionError(args: {
     code: "duplicate_name" | "not_found";
     message: string;
@@ -157,6 +162,137 @@ function toCollectionSummary(args: {
         _count: { items: args.items.length },
         items: args.items.map((item) => ({ source: item.source })),
     });
+}
+
+async function findOwnedCollectionSummariesByIds(
+    tx: CollectionTransaction,
+    args: {
+        collectionIds: string[];
+        userId: string;
+    }
+): Promise<LibraryCollectionSummary[]> {
+    if (args.collectionIds.length === 0) {
+        return [];
+    }
+
+    const collections = await tx.collection.findMany({
+        orderBy: {
+            name: "asc",
+        },
+        select: {
+            _count: {
+                select: {
+                    items: true,
+                },
+            },
+            ...LIBRARY_COLLECTION_TAG_SELECT,
+            items: {
+                select: {
+                    source: true,
+                },
+            },
+        },
+        where: {
+            id: {
+                in: args.collectionIds,
+            },
+            userId: args.userId,
+        },
+    });
+
+    return collections.map((collection) =>
+        toLibraryCollectionSummary(collection)
+    );
+}
+
+async function findOwnedCollectionTagsByIds(
+    tx: CollectionTransaction,
+    args: {
+        collectionIds: string[];
+        userId: string;
+    }
+): Promise<CollectionTagRecord[]> {
+    if (args.collectionIds.length === 0) {
+        return [];
+    }
+
+    return await tx.collection.findMany({
+        orderBy: {
+            name: "asc",
+        },
+        select: LIBRARY_COLLECTION_TAG_SELECT,
+        where: {
+            id: {
+                in: args.collectionIds,
+            },
+            userId: args.userId,
+        },
+    });
+}
+
+async function requireOwnedItemsWithCollectionIds(
+    tx: CollectionTransaction,
+    args: {
+        itemIds: string[];
+        message: string;
+        operation: string;
+        userId: string;
+    }
+): Promise<OwnedItemCollectionRecord[]> {
+    const items = await tx.libraryItem.findMany({
+        select: {
+            collections: {
+                select: {
+                    id: true,
+                },
+            },
+            id: true,
+        },
+        where: {
+            id: {
+                in: args.itemIds,
+            },
+            userId: args.userId,
+        },
+    });
+
+    if (items.length !== args.itemIds.length) {
+        throwCollectionNotFound(args.operation, args.message);
+    }
+
+    const itemById = new Map(items.map((item) => [item.id, item]));
+    return args.itemIds.map((itemId) => {
+        const item = itemById.get(itemId);
+        if (!item) {
+            throwCollectionNotFound(args.operation, args.message);
+        }
+        return item;
+    });
+}
+
+function mergeCollectionIds(args: {
+    currentCollectionIds: string[];
+    nextSharedCollectionIds: string[];
+    previousSharedCollectionIds: string[];
+}): string[] {
+    const previousSharedCollectionIdSet = new Set(
+        args.previousSharedCollectionIds
+    );
+    const mergedCollectionIds = args.currentCollectionIds.filter(
+        (collectionId) => !previousSharedCollectionIdSet.has(collectionId)
+    );
+    const mergedCollectionIdSet = new Set(mergedCollectionIds);
+
+    for (const collectionId of args.nextSharedCollectionIds) {
+        if (mergedCollectionIdSet.has(collectionId)) {
+            continue;
+        }
+
+        mergedCollectionIds.push(collectionId);
+        mergedCollectionIdSet.add(collectionId);
+    }
+
+    return mergedCollectionIds;
 }
 
 async function requireOwnedLibraryItem(
@@ -485,21 +621,51 @@ export async function renameCollection(args: {
 export async function deleteLibraryItem(args: {
     itemId: string;
     userId: string;
-}): Promise<string> {
+}): Promise<{
+    collectionSummaries: LibraryCollectionSummary[];
+    itemId: string;
+}> {
     const { itemId, userId } = args;
 
-    const result = await prisma.libraryItem.deleteMany({
-        where: { id: itemId, userId },
+    return await prisma.$transaction(async (tx) => {
+        const item = await tx.libraryItem.findFirst({
+            select: {
+                collections: {
+                    select: {
+                        id: true,
+                    },
+                },
+                id: true,
+            },
+            where: {
+                id: itemId,
+                userId,
+            },
+        });
+
+        if (!item) {
+            throwCollectionNotFound(
+                "deleteLibraryItem",
+                "This saved item was already removed."
+            );
+        }
+
+        await tx.libraryItem.delete({
+            where: {
+                id: item.id,
+            },
+        });
+
+        return {
+            collectionSummaries: await findOwnedCollectionSummariesByIds(tx, {
+                collectionIds: item.collections.map(
+                    (collection) => collection.id
+                ),
+                userId,
+            }),
+            itemId: item.id,
+        };
     });
-
-    if (result.count === 0) {
-        throwCollectionNotFound(
-            "deleteLibraryItem",
-            "This saved item was already removed."
-        );
-    }
-
-    return itemId;
 }
 
 export async function updateLibraryItemCollections(args: {
@@ -507,29 +673,32 @@ export async function updateLibraryItemCollections(args: {
     itemId: string;
     userId: string;
 }): Promise<{
+    collectionSummaries: LibraryCollectionSummary[];
     collections: LibraryCollectionTag[];
     itemId: string;
 }> {
     const { collectionIds, itemId, userId } = args;
 
     return await prisma.$transaction(async (tx) => {
-        const item = await requireOwnedLibraryItem(tx, {
-            itemId,
+        const ownedItems = await requireOwnedItemsWithCollectionIds(tx, {
+            itemIds: [itemId],
             message: "We couldn't find that saved item.",
             operation: "updateLibraryItemCollections",
             userId,
         });
+        const item = ownedItems[0];
 
-        const ownedCollections = collectionIds.length
-            ? await tx.collection.findMany({
-                  orderBy: { name: "asc" },
-                  select: LIBRARY_COLLECTION_TAG_SELECT,
-                  where: {
-                      id: { in: collectionIds },
-                      userId,
-                  },
-              })
-            : [];
+        if (!item) {
+            throwCollectionNotFound(
+                "updateLibraryItemCollections",
+                "We couldn't find that saved item."
+            );
+        }
+
+        const ownedCollections = await findOwnedCollectionTagsByIds(tx, {
+            collectionIds,
+            userId,
+        });
 
         if (ownedCollections.length !== collectionIds.length) {
             throwCollectionNotFound(
@@ -556,9 +725,118 @@ export async function updateLibraryItemCollections(args: {
             where: { id: item.id },
         });
 
+        const affectedCollectionIds = Array.from(
+            new Set([
+                ...item.collections.map((collection) => collection.id),
+                ...updatedItem.collections.map((collection) => collection.id),
+            ])
+        );
+
         return {
+            collectionSummaries: await findOwnedCollectionSummariesByIds(tx, {
+                collectionIds: affectedCollectionIds,
+                userId,
+            }),
             collections: updatedItem.collections.map(toLibraryCollectionTag),
             itemId: updatedItem.id,
+        };
+    });
+}
+
+export async function updateLibraryItemsCollections(args: {
+    itemIds: string[];
+    nextSharedCollectionIds: string[];
+    previousSharedCollectionIds: string[];
+    userId: string;
+}): Promise<{
+    collectionSummaries: LibraryCollectionSummary[];
+    itemCollections: Array<{
+        collections: LibraryCollectionTag[];
+        itemId: string;
+    }>;
+}> {
+    const {
+        itemIds,
+        nextSharedCollectionIds,
+        previousSharedCollectionIds,
+        userId,
+    } = args;
+
+    return await prisma.$transaction(async (tx) => {
+        const items = await requireOwnedItemsWithCollectionIds(tx, {
+            itemIds,
+            message: "Some of those saved items are no longer available.",
+            operation: "updateLibraryItemsCollections",
+            userId,
+        });
+        const referencedCollectionIds = Array.from(
+            new Set([
+                ...previousSharedCollectionIds,
+                ...nextSharedCollectionIds,
+            ])
+        );
+        const ownedCollections = await findOwnedCollectionTagsByIds(tx, {
+            collectionIds: referencedCollectionIds,
+            userId,
+        });
+
+        if (ownedCollections.length !== referencedCollectionIds.length) {
+            throwCollectionNotFound(
+                "updateLibraryItemsCollections",
+                "One of those collections is no longer available."
+            );
+        }
+
+        const updatedItems: Array<{
+            collections: LibraryCollectionTag[];
+            itemId: string;
+        }> = [];
+
+        for (const item of items) {
+            const nextCollectionIds = mergeCollectionIds({
+                currentCollectionIds: item.collections.map(
+                    (collection) => collection.id
+                ),
+                nextSharedCollectionIds,
+                previousSharedCollectionIds,
+            });
+
+            const updatedItem = await tx.libraryItem.update({
+                data: {
+                    collections: {
+                        set: nextCollectionIds.map((collectionId) => ({
+                            id: collectionId,
+                        })),
+                    },
+                },
+                select: {
+                    collections: {
+                        orderBy: {
+                            name: "asc",
+                        },
+                        select: LIBRARY_COLLECTION_TAG_SELECT,
+                    },
+                    id: true,
+                },
+                where: {
+                    id: item.id,
+                },
+            });
+
+            updatedItems.push({
+                collections: updatedItem.collections.map(
+                    toLibraryCollectionTag
+                ),
+                itemId: updatedItem.id,
+            });
+        }
+
+        return {
+            collectionSummaries: await findOwnedCollectionSummariesByIds(tx, {
+                collectionIds: referencedCollectionIds,
+                userId,
+            }),
+            itemCollections: updatedItems,
         };
     });
 }

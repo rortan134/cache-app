@@ -2,7 +2,6 @@
 
 import { cn } from "@/lib/common/cn";
 import { PreviewCard as PreviewCardPrimitive } from "@base-ui/react/preview-card";
-import type * as React from "react";
 
 export const PreviewCardCreateHandle: typeof PreviewCardPrimitive.createHandle =
     PreviewCardPrimitive.createHandle;
@@ -10,9 +9,7 @@ export const PreviewCardCreateHandle: typeof PreviewCardPrimitive.createHandle =
 export const PreviewCard: typeof PreviewCardPrimitive.Root =
     PreviewCardPrimitive.Root;
 
-export function PreviewCardTrigger(
-    props: PreviewCardPrimitive.Trigger.Props
-): React.ReactElement {
+export function PreviewCardTrigger(props: PreviewCardPrimitive.Trigger.Props) {
     return (
         <PreviewCardPrimitive.Trigger
             data-slot="preview-card-trigger"
@@ -40,7 +37,7 @@ export function PreviewCardPopup({
     anchor?: PreviewCardPrimitive.Positioner.Props["anchor"];
     positionMethod?: PreviewCardPrimitive.Positioner.Props["positionMethod"];
     portalProps?: PreviewCardPrimitive.Portal.Props;
-}): React.ReactElement {
+}) {
     return (
         <PreviewCardPrimitive.Portal {...portalProps}>
             <PreviewCardPrimitive.Positioner

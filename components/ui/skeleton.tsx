@@ -1,10 +1,7 @@
 import { cn } from "@/lib/common/cn";
 import type * as React from "react";
 
-export function Skeleton({
-    className,
-    ...props
-}: React.ComponentProps<"div">): React.ReactElement {
+export function Skeleton({ className, ...props }: React.ComponentProps<"div">) {
     return (
         <div
             className={cn(

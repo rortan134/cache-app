@@ -98,7 +98,7 @@ export function FeedbackWidget(
     );
 }
 
-function SubmitButton(): React.ReactElement {
+function SubmitButton() {
     const { pending } = useFormStatus();
     const { fire } = useConfetti();
 

@@ -1,13 +1,20 @@
 import { serverEnv } from "@/env/server";
 import { auth } from "@/lib/auth/server";
 import { createLogger } from "@/lib/common/logs/console/logger";
+import {
+    estimateGenAiTokens,
+    GenAiProtectionError,
+    protectGenAiRequest,
+} from "@/lib/intelligence/protection";
+import {
+    SectionDescriptionRequestSchema,
+    type SectionDescriptionRequest,
+} from "@/lib/library/section-description";
 import { ApiError, GoogleGenAI } from "@google/genai";
 import { headers } from "next/headers";
-import * as z from "zod";
 
 const log = createLogger("api:library:section-description");
 const SECTION_DESCRIPTION_MODEL = "gemini-2.5-flash-lite";
-const SECTION_DESCRIPTION_MAX_CONTEXT_ITEMS = 20;
 const SECTION_DESCRIPTION_OUTPUT_TOKEN_LIMIT = 96;
 const SECTION_DESCRIPTION_TIMEOUT_MS = 12_000;
 const SECTION_DESCRIPTION_RESPONSE_MAX_LENGTH = 220;
@@ -23,18 +30,6 @@ const SECTION_DESCRIPTION_FIRST_SENTENCE_PATTERN = /^.+?[.!?](?=\s|$)/;
 const SECTION_DESCRIPTION_WHITESPACE_PATTERN = /\s+/g;
 const SECTION_DESCRIPTION_SUMMARY_PREFIX_PATTERN = /^summary:\s*/i;
 const SECTION_DESCRIPTION_SURROUNDING_QUOTES_PATTERN = /^["']|["']$/g;
-
-const SectionDescriptionRequestSchema = z.object({
-    items: z
-        .array(z.record(z.string(), z.unknown()))
-        .min(1)
-        .max(SECTION_DESCRIPTION_MAX_CONTEXT_ITEMS),
-    sectionTitle: z.string().trim().min(1).max(120),
-});
-
-type SectionDescriptionRequest = z.infer<
-    typeof SectionDescriptionRequestSchema
->;
 
 function buildPrompt({
     items,
@@ -139,8 +134,20 @@ export async function POST(request: Request): Promise<Response> {
     }
 
     const { items, sectionTitle } = parsedBody.data;
+    const prompt = buildPrompt(parsedBody.data);
 
     try {
+        await protectGenAiRequest({
+            feature: "section_description",
+            prompt,
+            request,
+            requestedTokens: estimateGenAiTokens(
+                prompt,
+                SECTION_DESCRIPTION_OUTPUT_TOKEN_LIMIT
+            ),
+            userId: session.user.id,
+        });
+
         const ai = new GoogleGenAI({
             apiKey: serverEnv.GEMINI_API_KEY,
         });
@@ -157,7 +164,7 @@ export async function POST(request: Request): Promise<Response> {
                     "You write one-sentence UI summaries. Return plain text only, with no preamble. Never mention item counts or platform names, and avoid stock lead-ins.",
                 temperature: 0.2,
             },
-            contents: buildPrompt(parsedBody.data),
+            contents: prompt,
             model: SECTION_DESCRIPTION_MODEL,
         });
 
@@ -167,6 +174,17 @@ export async function POST(request: Request): Promise<Response> {
                 SECTION_DESCRIPTION_FALLBACK_TEXT,
         });
     } catch (error) {
+        if (error instanceof GenAiProtectionError) {
+            const status = error.data.reason === "quota_exceeded" ? 429 : 403;
+            return Response.json(
+                {
+                    error: error.data.message,
+                    reason: error.data.reason,
+                },
+                { status }
+            );
+        }
+
         const message = modelErrorMessage(error);
 
         log.warn("Failed to generate library section description", {

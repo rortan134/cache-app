@@ -6,7 +6,10 @@ import {
     handleActionError,
     requireActionUserId,
 } from "@/lib/common/procedure";
-import type { LibraryCollectionTag } from "@/lib/common/types";
+import type {
+    LibraryCollectionSummary,
+    LibraryCollectionTag,
+} from "@/lib/common/types";
 import * as z from "zod";
 import { LibraryCollectionError } from "./error";
 import * as service from "./service";
@@ -18,6 +21,12 @@ const UpdateLibraryItemCollectionsInputSchema = z.object({
     itemId: z.string().trim().min(1),
 });
 
+const UpdateLibraryItemsCollectionsInputSchema = z.object({
+    itemIds: z.array(z.string().trim().min(1)).min(1).max(500),
+    nextSharedCollectionIds: z.array(z.string().trim().min(1)).max(100),
+    previousSharedCollectionIds: z.array(z.string().trim().min(1)).max(100),
+});
+
 const DeleteLibraryItemInputSchema = z.object({
     itemId: z
         .string()
@@ -27,6 +36,7 @@ const DeleteLibraryItemInputSchema = z.object({
 
 export type DeleteLibraryItemResult =
     | {
+          collectionSummaries: LibraryCollectionSummary[];
           itemId: string;
           status: "DELETED";
       }
@@ -37,8 +47,23 @@ export type DeleteLibraryItemResult =
 
 export type UpdateLibraryItemCollectionsResult =
     | {
+          collectionSummaries: LibraryCollectionSummary[];
           collections: LibraryCollectionTag[];
           itemId: string;
+          status: "UPDATED";
+      }
+    | {
+          message: string;
+          status: "ERROR" | "INVALID" | "NOT_FOUND" | "UNAUTHORIZED";
+      };
+
+export type UpdateLibraryItemsCollectionsResult =
+    | {
+          collectionSummaries: LibraryCollectionSummary[];
+          itemCollections: Array<{
+              collections: LibraryCollectionTag[];
+              itemId: string;
+          }>;
           status: "UPDATED";
       }
     | {
@@ -68,13 +93,13 @@ export async function deleteLibraryItem(
     }
 
     try {
-        const id = await service.deleteLibraryItem({
+        const result = await service.deleteLibraryItem({
             itemId: parsed.data.itemId,
             userId: auth.userId,
         });
 
         return {
-            itemId: id,
+            ...result,
             status: "DELETED",
         };
     } catch (error) {
@@ -83,6 +108,59 @@ export async function deleteLibraryItem(
             error,
             errorFactory: LibraryCollectionError,
             fallbackMessage: "We couldn't delete this saved item right now.",
+            log,
+        });
+    }
+}
+
+export async function updateLibraryItemsCollections(input: {
+    itemIds: string[];
+    nextSharedCollectionIds: string[];
+    previousSharedCollectionIds: string[];
+}): Promise<UpdateLibraryItemsCollectionsResult> {
+    const parsed = UpdateLibraryItemsCollectionsInputSchema.safeParse({
+        itemIds: Array.from(new Set(input.itemIds)),
+        nextSharedCollectionIds: Array.from(
+            new Set(input.nextSharedCollectionIds)
+        ),
+        previousSharedCollectionIds: Array.from(
+            new Set(input.previousSharedCollectionIds)
+        ),
+    });
+
+    if (!parsed.success) {
+        return {
+            message: "Pick valid collections and saved items before saving.",
+            status: "INVALID",
+        };
+    }
+
+    const auth = await requireActionUserId(
+        "Sign in again to manage collections."
+    );
+    if ("status" in auth) {
+        return auth;
+    }
+
+    try {
+        const result = await service.updateLibraryItemsCollections({
+            itemIds: parsed.data.itemIds,
+            nextSharedCollectionIds: parsed.data.nextSharedCollectionIds,
+            previousSharedCollectionIds:
+                parsed.data.previousSharedCollectionIds,
+            userId: auth.userId,
+        });
+
+        return {
+            ...result,
+            status: "UPDATED",
+        };
+    } catch (error) {
+        return handleActionError({
+            codeToStatus: { not_found: "NOT_FOUND" },
+            error,
+            errorFactory: LibraryCollectionError,
+            fallbackMessage: "We couldn't update collections for those items.",
             log,
         });
     }

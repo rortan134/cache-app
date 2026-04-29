@@ -1,11 +1,10 @@
 import { cn } from "@/lib/common/cn";
 import { Collapsible as CollapsiblePrimitive } from "@base-ui/react/collapsible";
-import type React from "react";
 
 export function Collapsible({
     className,
     ...props
-}: CollapsiblePrimitive.Root.Props): React.ReactElement {
+}: CollapsiblePrimitive.Root.Props) {
     return (
         <CollapsiblePrimitive.Root
             className={cn("flex flex-col", className)}
@@ -18,7 +17,7 @@ export function Collapsible({
 export function CollapsibleTrigger({
     className,
     ...props
-}: CollapsiblePrimitive.Trigger.Props): React.ReactElement {
+}: CollapsiblePrimitive.Trigger.Props) {
     return (
         <CollapsiblePrimitive.Trigger
             className={cn("group w-full cursor-pointer", className)}
@@ -31,7 +30,7 @@ export function CollapsibleTrigger({
 export function CollapsiblePanel({
     className,
     ...props
-}: CollapsiblePrimitive.Panel.Props): React.ReactElement {
+}: CollapsiblePrimitive.Panel.Props) {
     return (
         <CollapsiblePrimitive.Panel
             className={cn(
