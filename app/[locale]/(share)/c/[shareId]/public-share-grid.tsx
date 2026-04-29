@@ -109,7 +109,7 @@ function PublicShareGrid({
     }
 
     return (
-        <Masonry gap={4} instrumentationLabel="public-share-grid" linear>
+        <Masonry gap={4} linear>
             {items.map((item) => (
                 <MasonryItem key={item.id}>
                     <PublicShareGridCard item={item} />

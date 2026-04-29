@@ -102,11 +102,7 @@ import {
     KanbanItem,
 } from "@/components/ui/kanban";
 import { CtrlKbd, Kbd, KbdGroup } from "@/components/ui/kbd";
-import {
-    Masonry,
-    MasonryItem,
-    recordMasonryPerfSample,
-} from "@/components/ui/masonry";
+import { Masonry, MasonryItem } from "@/components/ui/masonry";
 import {
     Menu,
     MenuItem,
@@ -204,6 +200,7 @@ import {
 import { useStableCallback } from "@base-ui/utils/useStableCallback";
 import {
     ArrowDownIcon,
+    ArrowDownWideNarrow,
     ArrowUpIcon,
     Check,
     ChevronDown,
@@ -220,18 +217,24 @@ import {
     ExternalLinkIcon,
     EyeIcon,
     FilePenLineIcon,
+    Folder,
+    Funnel,
     Globe,
     Grid2x2,
     Grid2x2X,
     Info,
+    Layers3,
     LinkIcon,
     ListChevronsUpDown,
     NotebookPenIcon,
     Plus,
     PlusIcon,
+    RotateCcw,
+    SearchX,
     Shapes,
     Sparkles,
     SquarePen,
+    Tags,
     Trash2Icon,
     XIcon,
 } from "lucide-react";
@@ -243,66 +246,18 @@ import { useHotkeys } from "react-hotkeys-hook";
 import useSWR from "swr";
 
 const libraryBrowserLog = createLogger("library:browser");
-const masonryPerfLog = createLogger("masonry:caller");
-const MASONRY_DEBUG_STORAGE_KEY = "cache:masonry-debug";
-const MASONRY_DEBUG_WINDOW_KEY = "__CACHE_MASONRY_DEBUG__";
-
-function isMasonryDebugEnabled() {
-    if (process.env.NODE_ENV === "production") {
-        return false;
-    }
-    if (typeof window === "undefined") {
-        return false;
-    }
-
-    if (Reflect.get(window, MASONRY_DEBUG_WINDOW_KEY) === true) {
-        return true;
-    }
-
-    try {
-        return window.localStorage.getItem(MASONRY_DEBUG_STORAGE_KEY) === "1";
-    } catch {
-        return false;
-    }
-}
-
-function onMasonryProfilerRender(
-    id: string,
-    phase: "mount" | "nested-update" | "update",
-    actualDuration: number,
-    baseDuration: number
-) {
-    if (!isMasonryDebugEnabled()) {
-        return;
-    }
-
-    recordMasonryPerfSample({
-        durationMs: actualDuration,
-        event: "react-profiler.actual",
-        label: id,
-        meta: {
-            baseDurationMs: Number(baseDuration.toFixed(2)),
-            phase,
-        },
-    });
-
-    masonryPerfLog.debug("react-profiler", {
-        actualDurationMs: Number(actualDuration.toFixed(2)),
-        baseDurationMs: Number(baseDuration.toFixed(2)),
-        id,
-        phase,
-    });
-}
 
 const SECTION_DESCRIPTION_FALLBACK_TEXT =
     "Description is unavailable right now.";
 
 interface CommandSuggestion {
+    icon: ReactNode;
     label: string;
     onSelect: () => void;
 }
 
 const SUGGESTION_LIMIT = 3;
+const SUGGESTION_ICON_CLASS = "size-3.5 shrink-0";
 
 function buildCommandSuggestions({
     clearLibraryPalette,
@@ -482,6 +437,7 @@ function buildCommandSuggestions({
         }
 
         return {
+            icon: <Folder className={SUGGESTION_ICON_CLASS} />,
             label,
             onSelect: commitSelection(() =>
                 onToggleCollectionSelection(topCollection.id)
@@ -495,6 +451,7 @@ function buildCommandSuggestions({
         }
 
         return {
+            icon: <Funnel className={SUGGESTION_ICON_CLASS} />,
             label: `Filter by ${sourceLabel(topSource)}`,
             onSelect: commitSelection(() =>
                 setSourceFilters((current) => toggleValue(current, topSource))
@@ -508,6 +465,7 @@ function buildCommandSuggestions({
         }
 
         return {
+            icon: <Globe className={SUGGESTION_ICON_CLASS} />,
             label: `Filter to ${truncateLabel(topDomain, 24)}`,
             onSelect: commitSelection(() =>
                 setDomainFilters((current) => toggleValue(current, topDomain))
@@ -566,6 +524,7 @@ function buildCommandSuggestions({
                 : `Try ${groupByLabel(nextGroupBy).toLowerCase()} groups`;
 
         return {
+            icon: <Layers3 className={SUGGESTION_ICON_CLASS} />,
             label,
             onSelect: commitSelection(() => setGroupBy(nextGroupBy)),
         };
@@ -577,6 +536,7 @@ function buildCommandSuggestions({
         currentGroupCount > 1
     ) {
         addSuggestion({
+            icon: <ArrowDownWideNarrow className={SUGGESTION_ICON_CLASS} />,
             label: "Sort groups by size",
             onSelect: commitSelection(() => setSortMode("count-desc")),
         });
@@ -612,6 +572,7 @@ function buildCommandSuggestions({
     if (items.length === 0 || suggestions.length < SUGGESTION_LIMIT) {
         if (searchTerms.length > 0) {
             addSuggestion({
+                icon: <SearchX className={SUGGESTION_ICON_CLASS} />,
                 label: "Clear searches",
                 onSelect: commitSelection(() => setSearchTerms([])),
             });
@@ -619,6 +580,7 @@ function buildCommandSuggestions({
 
         if (selectedCollectionIds.length > 0) {
             addSuggestion({
+                icon: <Folder className={SUGGESTION_ICON_CLASS} />,
                 label: "Show all collections",
                 onSelect: commitSelection(onClearCollectionFilters),
             });
@@ -626,6 +588,7 @@ function buildCommandSuggestions({
 
         if (sourceFilters.length > 0) {
             addSuggestion({
+                icon: <Funnel className={SUGGESTION_ICON_CLASS} />,
                 label: "Show all sources",
                 onSelect: commitSelection(() => setSourceFilters([])),
             });
@@ -633,6 +596,7 @@ function buildCommandSuggestions({
 
         if (domainFilters.length > 0) {
             addSuggestion({
+                icon: <Globe className={SUGGESTION_ICON_CLASS} />,
                 label: "Show all domains",
                 onSelect: commitSelection(() => setDomainFilters([])),
             });
@@ -642,6 +606,7 @@ function buildCommandSuggestions({
             collectionMembershipFilter !== DEFAULT_COLLECTION_MEMBERSHIP_FILTER
         ) {
             addSuggestion({
+                icon: <Tags className={SUGGESTION_ICON_CLASS} />,
                 label: "Show all items",
                 onSelect: commitSelection(() =>
                     setCollectionMembershipFilter(
@@ -653,6 +618,7 @@ function buildCommandSuggestions({
 
         if (groupBy !== "none") {
             addSuggestion({
+                icon: <Layers3 className={SUGGESTION_ICON_CLASS} />,
                 label: "Clear grouping",
                 onSelect: commitSelection(() => setGroupBy("none")),
             });
@@ -660,6 +626,7 @@ function buildCommandSuggestions({
 
         if (sortMode !== DEFAULT_SORT_MODE) {
             addSuggestion({
+                icon: <ArrowDownWideNarrow className={SUGGESTION_ICON_CLASS} />,
                 label: "Reset sort",
                 onSelect: commitSelection(() => setSortMode(DEFAULT_SORT_MODE)),
             });
@@ -667,6 +634,7 @@ function buildCommandSuggestions({
 
         if (hasAnyRefinements) {
             addSuggestion({
+                icon: <RotateCcw className={SUGGESTION_ICON_CLASS} />,
                 label: "Reset browser",
                 onSelect: commitSelection(clearLibraryPalette),
             });
@@ -5288,20 +5256,13 @@ function LibraryMasonryLayout({
     items,
 }: LibraryMasonryLayoutProps) {
     return (
-        <React.Profiler id="library-masonry" onRender={onMasonryProfilerRender}>
-            <Masonry
-                columnCount={columnCount}
-                gap={4}
-                instrumentationLabel="library-masonry"
-                linear
-            >
-                {items.map((item) => (
-                    <MasonryItem key={item.id}>
-                        <LibraryGridCard item={item} />
-                    </MasonryItem>
-                ))}
-            </Masonry>
-        </React.Profiler>
+        <Masonry columnCount={columnCount} gap={4} linear>
+            {items.map((item) => (
+                <MasonryItem key={item.id}>
+                    <LibraryGridCard item={item} />
+                </MasonryItem>
+            ))}
+        </Masonry>
     );
 }
 
@@ -5405,25 +5366,13 @@ function LockedLibraryPreview({
                 ))}
             </div>
         ) : (
-            <React.Profiler
-                id="library-masonry-locked-preview"
-                onRender={onMasonryProfilerRender}
-            >
-                <Masonry
-                    columnCount={columnCount}
-                    gap={4}
-                    instrumentationLabel="library-masonry-locked-preview"
-                    linear
-                >
-                    {LOCKED_LIBRARY_PREVIEW_PLACEHOLDERS.map((placeholder) => (
-                        <MasonryItem key={placeholder.id}>
-                            <LockedLibraryPreviewCard
-                                placeholder={placeholder}
-                            />
-                        </MasonryItem>
-                    ))}
-                </Masonry>
-            </React.Profiler>
+            <Masonry columnCount={columnCount} gap={4} linear>
+                {LOCKED_LIBRARY_PREVIEW_PLACEHOLDERS.map((placeholder) => (
+                    <MasonryItem key={placeholder.id}>
+                        <LockedLibraryPreviewCard placeholder={placeholder} />
+                    </MasonryItem>
+                ))}
+            </Masonry>
         );
 
     return (
@@ -5439,42 +5388,27 @@ function LockedLibraryPreview({
 
 function ExtensionLibraryEmptyMasonryPeek() {
     return (
-        <React.Profiler
-            id="extension-library-empty-peek-masonry"
-            onRender={onMasonryProfilerRender}
-        >
-            <Masonry
-                columnCount={5}
-                gap={4}
-                instrumentationLabel="extension-library-empty-peek-masonry"
-                linear
-            >
-                {EMPTY_LIBRARY_PEEK_PLACEHOLDERS.map(
-                    ({ aspect, id }, index) => {
-                        const opacity = Math.max(0.06, 1 - index * 0.095);
+        <Masonry columnCount={5} gap={4} linear>
+            {EMPTY_LIBRARY_PEEK_PLACEHOLDERS.map(({ aspect, id }, index) => {
+                const opacity = Math.max(0.06, 1 - index * 0.095);
 
-                        return (
-                            <MasonryItem
-                                className="group flex flex-col overflow-hidden rounded-lg bg-card/40"
-                                key={id}
-                                style={{ opacity }}
-                            >
-                                <Skeleton
-                                    className={cn(
-                                        "w-full rounded-none",
-                                        aspect
-                                    )}
-                                />
-                                <div className="flex min-h-14 flex-col gap-1.5 p-3">
-                                    <Skeleton className="h-2.5 w-[92%]" />
-                                    <Skeleton className="h-2.5 w-[72%]" />
-                                </div>
-                            </MasonryItem>
-                        );
-                    }
-                )}
-            </Masonry>
-        </React.Profiler>
+                return (
+                    <MasonryItem
+                        className="group flex flex-col overflow-hidden rounded-lg bg-card/40"
+                        key={id}
+                        style={{ opacity }}
+                    >
+                        <Skeleton
+                            className={cn("w-full rounded-none", aspect)}
+                        />
+                        <div className="flex min-h-14 flex-col gap-1.5 p-3">
+                            <Skeleton className="h-2.5 w-[92%]" />
+                            <Skeleton className="h-2.5 w-[72%]" />
+                        </div>
+                    </MasonryItem>
+                );
+            })}
+        </Masonry>
     );
 }
 
@@ -7021,6 +6955,7 @@ function LibraryBrowser({
                                         size="xs"
                                         variant="ghost"
                                     >
+                                        {suggestion.icon}
                                         {suggestion.label}
                                     </Button>
                                     <span className="font-medium text-muted-foreground text-xs last:hidden">

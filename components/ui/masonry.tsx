@@ -2,256 +2,9 @@
 
 import { useComposedRefs } from "@/hooks/compose-refs";
 import { useIsomorphicLayoutEffect } from "@/hooks/use-isomorphic-effect";
-import { createLogger } from "@/lib/common/logs/console/logger";
 import { useStableCallback } from "@base-ui/utils/useStableCallback";
 import { useValueAsRef } from "@base-ui/utils/useValueAsRef";
 import * as React from "react";
-
-const perfLog = createLogger("masonry:perf");
-const MASONRY_DEBUG_STORAGE_KEY = "cache:masonry-debug";
-const MASONRY_DEBUG_WINDOW_KEY = "__CACHE_MASONRY_DEBUG__";
-const MASONRY_PERF_WINDOW_KEY = "__CACHE_MASONRY_PERF__";
-
-type MasonryTraceMetaValue = boolean | null | number | string | undefined;
-type MasonryTraceMeta = Record<string, MasonryTraceMetaValue>;
-
-interface MasonryPerfSample {
-    durationMs: number;
-    event: string;
-    label: string;
-    meta?: MasonryTraceMeta;
-}
-
-interface MasonryPerfSummaryRow {
-    averageMs: number;
-    count: number;
-    event: string;
-    label: string;
-    lastMs: number;
-    maxMs: number;
-    minMs: number;
-    relativePct: number;
-    totalMs: number;
-}
-
-interface MasonryPerfStats {
-    count: number;
-    lastMs: number;
-    maxMs: number;
-    minMs: number;
-    totalMs: number;
-}
-
-interface MasonryPerfAggregator {
-    record: (sample: MasonryPerfSample) => void;
-    reset: (label?: string) => void;
-    summary: (label?: string) => MasonryPerfSummaryRow[];
-}
-
-interface MasonryTrace {
-    enabled: boolean;
-    label: string;
-    log: (event: string, meta?: MasonryTraceMeta) => void;
-    measure: <T>(
-        event: string,
-        meta: MasonryTraceMeta,
-        callback: () => T,
-        thresholdMs?: number
-    ) => T;
-}
-
-const noopTrace: MasonryTrace = {
-    enabled: false,
-    label: "disabled",
-    log: () => {
-        /* intentionally empty when tracing is disabled */
-    },
-    measure: (_event, _meta, callback) => callback(),
-};
-
-function roundPerfNumber(value: number) {
-    return Number(value.toFixed(2));
-}
-
-function createMasonryPerfAggregator(): MasonryPerfAggregator {
-    const statsByKey = new Map<string, MasonryPerfStats>();
-    const keySeparator = "\u0000";
-
-    function createKey(label: string, event: string) {
-        return `${label}${keySeparator}${event}`;
-    }
-
-    function readKey(key: string) {
-        const separatorIndex = key.indexOf(keySeparator);
-        return {
-            event: key.slice(separatorIndex + keySeparator.length),
-            label: key.slice(0, separatorIndex),
-        };
-    }
-
-    return {
-        record({ durationMs, event, label }) {
-            const key = createKey(label, event);
-            const stats = statsByKey.get(key);
-
-            if (stats) {
-                stats.count++;
-                stats.lastMs = durationMs;
-                stats.maxMs = Math.max(stats.maxMs, durationMs);
-                stats.minMs = Math.min(stats.minMs, durationMs);
-                stats.totalMs += durationMs;
-                return;
-            }
-
-            statsByKey.set(key, {
-                count: 1,
-                lastMs: durationMs,
-                maxMs: durationMs,
-                minMs: durationMs,
-                totalMs: durationMs,
-            });
-        },
-        reset(label) {
-            if (label === undefined) {
-                statsByKey.clear();
-                return;
-            }
-
-            for (const key of statsByKey.keys()) {
-                if (readKey(key).label === label) {
-                    statsByKey.delete(key);
-                }
-            }
-        },
-        summary(label) {
-            let totalMeasuredMs = 0;
-            const rows: MasonryPerfSummaryRow[] = [];
-
-            for (const [key, stats] of statsByKey) {
-                const keyParts = readKey(key);
-                if (label !== undefined && keyParts.label !== label) {
-                    continue;
-                }
-
-                totalMeasuredMs += stats.totalMs;
-                rows.push({
-                    averageMs: roundPerfNumber(stats.totalMs / stats.count),
-                    count: stats.count,
-                    event: keyParts.event,
-                    label: keyParts.label,
-                    lastMs: roundPerfNumber(stats.lastMs),
-                    maxMs: roundPerfNumber(stats.maxMs),
-                    minMs: roundPerfNumber(stats.minMs),
-                    relativePct: 0,
-                    totalMs: roundPerfNumber(stats.totalMs),
-                });
-            }
-
-            rows.sort((a, b) => b.totalMs - a.totalMs);
-
-            for (const row of rows) {
-                row.relativePct =
-                    totalMeasuredMs > 0
-                        ? roundPerfNumber((row.totalMs / totalMeasuredMs) * 100)
-                        : 0;
-            }
-
-            console.table(rows);
-            return rows;
-        },
-    };
-}
-
-function isMasonryPerfAggregator(
-    value: unknown
-): value is MasonryPerfAggregator {
-    if (typeof value !== "object" || value === null) {
-        return false;
-    }
-
-    return (
-        typeof Reflect.get(value, "record") === "function" &&
-        typeof Reflect.get(value, "reset") === "function" &&
-        typeof Reflect.get(value, "summary") === "function"
-    );
-}
-
-function getMasonryPerfAggregator() {
-    if (typeof window === "undefined") {
-        return null;
-    }
-
-    const existingAggregator = Reflect.get(window, MASONRY_PERF_WINDOW_KEY);
-    if (isMasonryPerfAggregator(existingAggregator)) {
-        return existingAggregator;
-    }
-
-    const nextAggregator = createMasonryPerfAggregator();
-    Reflect.set(window, MASONRY_PERF_WINDOW_KEY, nextAggregator);
-    return nextAggregator;
-}
-
-function recordMasonryPerfSample(sample: MasonryPerfSample) {
-    if (!isMasonryDebugEnabled()) {
-        return;
-    }
-
-    getMasonryPerfAggregator()?.record(sample);
-}
-
-function isMasonryDebugEnabled() {
-    if (process.env.NODE_ENV === "production") {
-        return false;
-    }
-    if (typeof window === "undefined") {
-        return false;
-    }
-
-    if (Reflect.get(window, MASONRY_DEBUG_WINDOW_KEY) === true) {
-        return true;
-    }
-
-    try {
-        return window.localStorage.getItem(MASONRY_DEBUG_STORAGE_KEY) === "1";
-    } catch {
-        return false;
-    }
-}
-
-function createMasonryTrace(label: string): MasonryTrace {
-    if (!isMasonryDebugEnabled()) {
-        return noopTrace;
-    }
-
-    return {
-        enabled: true,
-        label,
-        log(event, meta = {}) {
-            perfLog.debug(event, { ...meta, label });
-        },
-        measure(event, meta, callback, thresholdMs = 0) {
-            const start = performance.now();
-            const result = callback();
-            const durationMs = performance.now() - start;
-            recordMasonryPerfSample({
-                durationMs,
-                event,
-                label,
-                meta,
-            });
-
-            if (durationMs >= thresholdMs) {
-                perfLog.debug(event, {
-                    ...meta,
-                    durationMs: roundPerfNumber(durationMs),
-                    label,
-                });
-            }
-
-            return result;
-        },
-    };
-}
 
 // #region Interval tree definitions
 const NODE_COLOR = {
@@ -890,7 +643,6 @@ interface UsePositionerOptions {
     linear?: boolean;
     maxColumnCount?: number;
     rowGap?: number;
-    trace?: MasonryTrace;
     width: number;
 }
 
@@ -903,377 +655,268 @@ function usePositioner(
         columnCount,
         maxColumnCount,
         linear = false,
-        trace = noopTrace,
     }: UsePositionerOptions,
     deps: React.DependencyList = []
 ): Positioner {
-    const initPositioner = React.useCallback(
-        (): Positioner =>
-            trace.measure(
-                "positioner.init",
-                {
-                    columnCount: columnCount ?? null,
-                    columnGap: columnGap ?? null,
-                    columnWidth,
-                    linear,
-                    maxColumnCount: maxColumnCount ?? null,
-                    rowGap: rowGap ?? null,
-                    width,
-                },
-                () => {
-                    function binarySearch(a: number[], y: number): number {
-                        let l = 0;
-                        let h = a.length - 1;
+    const initPositioner = React.useCallback((): Positioner => {
+        function binarySearch(a: number[], y: number): number {
+            let l = 0;
+            let h = a.length - 1;
 
-                        while (l <= h) {
-                            const m = Math.floor((l + h) / 2);
-                            const x = a[m];
-                            if (x === y) {
-                                return m;
-                            }
-                            if (x === undefined || x <= y) {
-                                l = m + 1;
-                            } else {
-                                h = m - 1;
-                            }
-                        }
+            while (l <= h) {
+                const m = Math.floor((l + h) / 2);
+                const x = a[m];
+                if (x === y) {
+                    return m;
+                }
+                if (x === undefined || x <= y) {
+                    l = m + 1;
+                } else {
+                    h = m - 1;
+                }
+            }
 
-                        return -1;
+            return -1;
+        }
+
+        const computedColumnCount =
+            columnCount ||
+            Math.min(
+                Math.floor((width + columnGap) / (columnWidth + columnGap)),
+                maxColumnCount || Number.POSITIVE_INFINITY
+            ) ||
+            1;
+        const computedColumnWidth = Math.floor(
+            (width - columnGap * (computedColumnCount - 1)) /
+                computedColumnCount
+        );
+
+        const intervalTree = createIntervalTree();
+        const columnHeights: number[] = new Array(computedColumnCount);
+        const items: (PositionerItem | undefined)[] = [];
+        const columnItems: number[][] = new Array(computedColumnCount);
+        const itemGap = rowGap ?? columnGap;
+
+        for (let i = 0; i < computedColumnCount; i++) {
+            columnHeights[i] = 0;
+            columnItems[i] = [];
+        }
+
+        return {
+            all(): PositionerItem[] {
+                return items.filter(Boolean) as PositionerItem[];
+            },
+            columnCount: computedColumnCount,
+            columnWidth: computedColumnWidth,
+            estimateHeight: (itemCount, defaultItemHeight): number => {
+                const tallestColumn = Math.max(
+                    0,
+                    Math.max.apply(null, columnHeights)
+                );
+
+                return itemCount === intervalTree.size
+                    ? tallestColumn
+                    : tallestColumn +
+                          Math.ceil(
+                              (itemCount - intervalTree.size) /
+                                  computedColumnCount
+                          ) *
+                              defaultItemHeight;
+            },
+            get: (index: number) => items[index],
+            range: (low, high, onItemRender) => {
+                intervalTree.search(low, high, (index: number, top: number) => {
+                    const item = items[index];
+                    if (!item) {
+                        return;
                     }
+                    onItemRender(index, item.left, top);
+                });
+            },
+            set: (index: number, height = 0) => {
+                let columnIndex = 0;
 
-                    const computedColumnCount =
-                        columnCount ||
-                        Math.min(
-                            Math.floor(
-                                (width + columnGap) / (columnWidth + columnGap)
-                            ),
-                            maxColumnCount || Number.POSITIVE_INFINITY
-                        ) ||
-                        1;
-                    const computedColumnWidth = Math.floor(
-                        (width - columnGap * (computedColumnCount - 1)) /
-                            computedColumnCount
-                    );
+                if (linear) {
+                    const preferredColumn = index % computedColumnCount;
 
-                    const intervalTree = createIntervalTree();
-                    const columnHeights: number[] = new Array(
-                        computedColumnCount
-                    ).fill(0);
-                    const items: (PositionerItem | undefined)[] = [];
-                    const columnItems: number[][] = new Array(
-                        computedColumnCount
-                    )
-                        .fill(0)
-                        .map(() => []);
+                    let shortestHeight = columnHeights[0] ?? 0;
+                    let shortestIndex = 0;
 
                     for (let i = 0; i < computedColumnCount; i++) {
-                        columnHeights[i] = 0;
-                        columnItems[i] = [];
+                        const currentHeight = columnHeights[i] ?? 0;
+                        if (currentHeight < shortestHeight) {
+                            shortestHeight = currentHeight;
+                            shortestIndex = i;
+                        }
                     }
 
-                    return {
-                        all(): PositionerItem[] {
-                            return items.filter(Boolean) as PositionerItem[];
-                        },
-                        columnCount: computedColumnCount,
-                        columnWidth: computedColumnWidth,
-                        estimateHeight: (
-                            itemCount,
-                            defaultItemHeight
-                        ): number => {
-                            const tallestColumn = Math.max(
-                                0,
-                                Math.max.apply(null, columnHeights)
-                            );
+                    const preferredHeight =
+                        (columnHeights[preferredColumn] ?? 0) + height;
 
-                            return itemCount === intervalTree.size
-                                ? tallestColumn
-                                : tallestColumn +
-                                      Math.ceil(
-                                          (itemCount - intervalTree.size) /
-                                              computedColumnCount
-                                      ) *
-                                          defaultItemHeight;
-                        },
-                        get: (index: number) => items[index],
-                        range: (low, high, onItemRender) =>
-                            trace.measure(
-                                "positioner.range",
-                                {
-                                    high,
-                                    low,
-                                    measuredCount: intervalTree.size,
-                                },
-                                () => {
-                                    intervalTree.search(
-                                        low,
-                                        high,
-                                        (index: number, top: number) => {
-                                            const item = items[index];
-                                            if (!item) {
-                                                return;
-                                            }
-                                            onItemRender(index, item.left, top);
-                                        }
-                                    );
-                                },
-                                2
-                            ),
-                        set: (index: number, height = 0) =>
-                            trace.measure(
-                                "positioner.set",
-                                { height, index },
-                                () => {
-                                    let columnIndex = 0;
+                    const maxAllowedHeight = shortestHeight + height * 2.5;
+                    columnIndex =
+                        preferredHeight <= maxAllowedHeight
+                            ? preferredColumn
+                            : shortestIndex;
+                } else {
+                    for (let i = 1; i < columnHeights.length; i++) {
+                        const currentHeight = columnHeights[i];
+                        const shortestHeight = columnHeights[columnIndex];
+                        if (
+                            currentHeight !== undefined &&
+                            shortestHeight !== undefined &&
+                            currentHeight < shortestHeight
+                        ) {
+                            columnIndex = i;
+                        }
+                    }
+                }
 
-                                    if (linear) {
-                                        const preferredColumn =
-                                            index % computedColumnCount;
+                const columnHeight = columnHeights[columnIndex];
+                if (columnHeight === undefined) {
+                    return;
+                }
 
-                                        let shortestHeight =
-                                            columnHeights[0] ?? 0;
-                                        let tallestHeight = shortestHeight;
-                                        let shortestIndex = 0;
+                const top = columnHeight;
+                columnHeights[columnIndex] = top + height + itemGap;
 
-                                        for (
-                                            let i = 0;
-                                            i < columnHeights.length;
-                                            i++
-                                        ) {
-                                            const currentHeight =
-                                                columnHeights[i] ?? 0;
-                                            if (
-                                                currentHeight < shortestHeight
-                                            ) {
-                                                shortestHeight = currentHeight;
-                                                shortestIndex = i;
-                                            }
-                                            if (currentHeight > tallestHeight) {
-                                                tallestHeight = currentHeight;
-                                            }
-                                        }
+                const columnItemsList = columnItems[columnIndex];
+                if (!columnItemsList) {
+                    return;
+                }
+                columnItemsList.push(index);
 
-                                        const preferredHeight =
-                                            (columnHeights[preferredColumn] ??
-                                                0) + height;
+                items[index] = {
+                    columnIndex,
+                    height,
+                    left: columnIndex * (computedColumnWidth + columnGap),
+                    top,
+                };
+                intervalTree.insert(top, top + height, index);
+            },
+            shortestColumn: () => {
+                if (columnHeights.length > 1) {
+                    return Math.min.apply(null, columnHeights);
+                }
+                return columnHeights[0] ?? 0;
+            },
+            size(): number {
+                return intervalTree.size;
+            },
+            update: (updates: number[]) => {
+                const columns: (number | undefined)[] = new Array(
+                    computedColumnCount
+                );
+                let i = 0;
+                let j = 0;
+                const updateCount = updates.length;
 
-                                        const maxAllowedHeight =
-                                            shortestHeight + height * 2.5;
-                                        columnIndex =
-                                            preferredHeight <= maxAllowedHeight
-                                                ? preferredColumn
-                                                : shortestIndex;
-                                    } else {
-                                        for (
-                                            let i = 1;
-                                            i < columnHeights.length;
-                                            i++
-                                        ) {
-                                            const currentHeight =
-                                                columnHeights[i];
-                                            const shortestHeight =
-                                                columnHeights[columnIndex];
-                                            if (
-                                                currentHeight !== undefined &&
-                                                shortestHeight !== undefined &&
-                                                currentHeight < shortestHeight
-                                            ) {
-                                                columnIndex = i;
-                                            }
-                                        }
-                                    }
+                for (; i < updateCount - 1; i++) {
+                    const currentIndex = updates[i];
+                    if (typeof currentIndex !== "number") {
+                        continue;
+                    }
 
-                                    const columnHeight =
-                                        columnHeights[columnIndex];
-                                    if (columnHeight === undefined) {
-                                        return;
-                                    }
+                    const item = items[currentIndex];
+                    if (!item) {
+                        continue;
+                    }
 
-                                    const top = columnHeight;
-                                    columnHeights[columnIndex] =
-                                        top + height + (rowGap ?? columnGap);
+                    const nextHeight = updates[++i];
+                    if (typeof nextHeight !== "number") {
+                        continue;
+                    }
 
-                                    const columnItemsList =
-                                        columnItems[columnIndex];
-                                    if (!columnItemsList) {
-                                        return;
-                                    }
-                                    columnItemsList.push(index);
+                    item.height = nextHeight;
+                    intervalTree.remove(currentIndex);
+                    intervalTree.insert(
+                        item.top,
+                        item.top + item.height,
+                        currentIndex
+                    );
+                    const columnIndex = item.columnIndex;
+                    const firstChangedIndex = columns[columnIndex];
+                    columns[columnIndex] =
+                        firstChangedIndex === undefined ||
+                        currentIndex < firstChangedIndex
+                            ? currentIndex
+                            : firstChangedIndex;
+                }
 
-                                    items[index] = {
-                                        columnIndex,
-                                        height,
-                                        left:
-                                            columnIndex *
-                                            (computedColumnWidth + columnGap),
-                                        top,
-                                    };
-                                    intervalTree.insert(
-                                        top,
-                                        top + height,
-                                        index
-                                    );
-                                },
-                                2
-                            ),
-                        shortestColumn: () => {
-                            if (columnHeights.length > 1) {
-                                return Math.min.apply(null, columnHeights);
-                            }
-                            return columnHeights[0] ?? 0;
-                        },
-                        size(): number {
-                            return intervalTree.size;
-                        },
-                        update: (updates: number[]) =>
-                            trace.measure(
-                                "positioner.update",
-                                {
-                                    updatePairCount: Math.floor(
-                                        updates.length / 2
-                                    ),
-                                },
-                                () => {
-                                    const columns: (number | undefined)[] =
-                                        new Array(computedColumnCount);
-                                    let i = 0;
-                                    let j = 0;
+                for (i = 0; i < computedColumnCount; i++) {
+                    const currentColumn = columns[i];
+                    if (currentColumn === undefined) {
+                        continue;
+                    }
 
-                                    for (; i < updates.length - 1; i++) {
-                                        const currentIndex = updates[i];
-                                        if (typeof currentIndex !== "number") {
-                                            continue;
-                                        }
+                    const itemsInColumn = columnItems[i];
+                    if (!itemsInColumn) {
+                        continue;
+                    }
 
-                                        const item = items[currentIndex];
-                                        if (!item) {
-                                            continue;
-                                        }
+                    const startIndex = binarySearch(
+                        itemsInColumn,
+                        currentColumn
+                    );
+                    if (startIndex === -1) {
+                        continue;
+                    }
 
-                                        const nextHeight = updates[++i];
-                                        if (typeof nextHeight !== "number") {
-                                            continue;
-                                        }
+                    const currentItemIndex = itemsInColumn[startIndex];
+                    if (typeof currentItemIndex !== "number") {
+                        continue;
+                    }
 
-                                        item.height = nextHeight;
-                                        intervalTree.remove(currentIndex);
-                                        intervalTree.insert(
-                                            item.top,
-                                            item.top + item.height,
-                                            currentIndex
-                                        );
-                                        columns[item.columnIndex] =
-                                            columns[item.columnIndex] ===
-                                            undefined
-                                                ? currentIndex
-                                                : Math.min(
-                                                      currentIndex,
-                                                      columns[
-                                                          item.columnIndex
-                                                      ] ?? currentIndex
-                                                  );
-                                    }
+                    const startItem = items[currentItemIndex];
+                    if (!startItem) {
+                        continue;
+                    }
 
-                                    for (i = 0; i < columns.length; i++) {
-                                        const currentColumn = columns[i];
-                                        if (currentColumn === undefined) {
-                                            continue;
-                                        }
+                    const currentHeight = columnHeights[i];
+                    if (typeof currentHeight !== "number") {
+                        continue;
+                    }
 
-                                        const itemsInColumn = columnItems[i];
-                                        if (!itemsInColumn) {
-                                            continue;
-                                        }
+                    columnHeights[i] =
+                        startItem.top + startItem.height + itemGap;
 
-                                        const startIndex = binarySearch(
-                                            itemsInColumn,
-                                            currentColumn
-                                        );
-                                        if (startIndex === -1) {
-                                            continue;
-                                        }
+                    for (j = startIndex + 1; j < itemsInColumn.length; j++) {
+                        const currentIndex = itemsInColumn[j];
+                        if (typeof currentIndex !== "number") {
+                            continue;
+                        }
 
-                                        const currentItemIndex =
-                                            itemsInColumn[startIndex];
-                                        if (
-                                            typeof currentItemIndex !== "number"
-                                        ) {
-                                            continue;
-                                        }
+                        const item = items[currentIndex];
+                        if (!item) {
+                            continue;
+                        }
 
-                                        const startItem =
-                                            items[currentItemIndex];
-                                        if (!startItem) {
-                                            continue;
-                                        }
+                        const columnHeight = columnHeights[i];
+                        if (typeof columnHeight !== "number") {
+                            continue;
+                        }
 
-                                        const currentHeight = columnHeights[i];
-                                        if (typeof currentHeight !== "number") {
-                                            continue;
-                                        }
-
-                                        columnHeights[i] =
-                                            startItem.top +
-                                            startItem.height +
-                                            (rowGap ?? columnGap);
-
-                                        for (
-                                            j = startIndex + 1;
-                                            j < itemsInColumn.length;
-                                            j++
-                                        ) {
-                                            const currentIndex =
-                                                itemsInColumn[j];
-                                            if (
-                                                typeof currentIndex !== "number"
-                                            ) {
-                                                continue;
-                                            }
-
-                                            const item = items[currentIndex];
-                                            if (!item) {
-                                                continue;
-                                            }
-
-                                            const columnHeight =
-                                                columnHeights[i];
-                                            if (
-                                                typeof columnHeight !== "number"
-                                            ) {
-                                                continue;
-                                            }
-
-                                            item.top = columnHeight;
-                                            columnHeights[i] =
-                                                item.top +
-                                                item.height +
-                                                (rowGap ?? columnGap);
-                                            intervalTree.remove(currentIndex);
-                                            intervalTree.insert(
-                                                item.top,
-                                                item.top + item.height,
-                                                currentIndex
-                                            );
-                                        }
-                                    }
-                                },
-                                2
-                            ),
-                    };
-                },
-                2
-            ),
-        [
-            width,
-            columnWidth,
-            columnGap,
-            rowGap,
-            columnCount,
-            maxColumnCount,
-            linear,
-            trace,
-        ]
-    );
+                        item.top = columnHeight;
+                        columnHeights[i] = item.top + item.height + itemGap;
+                        intervalTree.remove(currentIndex);
+                        intervalTree.insert(
+                            item.top,
+                            item.top + item.height,
+                            currentIndex
+                        );
+                    }
+                }
+            },
+        };
+    }, [
+        width,
+        columnWidth,
+        columnGap,
+        rowGap,
+        columnCount,
+        maxColumnCount,
+        linear,
+    ]);
 
     const positionerRef = React.useRef<Positioner | null>(null);
     if (positionerRef.current === null) {
@@ -1417,7 +1060,7 @@ function onRafSchedule<T extends unknown[]>(
     return onCallback;
 }
 
-function useResizeObserver(positioner: Positioner, trace: MasonryTrace) {
+function useResizeObserver(positioner: Positioner) {
     const [, setLayoutVersion] = React.useState(0);
 
     const createResizeObserver = React.useMemo(() => {
@@ -1437,26 +1080,13 @@ function useResizeObserver(positioner: Positioner, trace: MasonryTrace) {
 
         return onDeepMemo(
             [WeakMap],
-            (
-                positioner: Positioner,
-                onUpdate: () => void,
-                trace: MasonryTrace
-            ) => {
+            (positioner: Positioner, onUpdate: () => void) => {
                 const updates: number[] = [];
 
                 const update = onRafSchedule(() => {
                     if (updates.length > 0) {
-                        trace.measure(
-                            "resize-observer.flush",
-                            {
-                                updatePairCount: Math.floor(updates.length / 2),
-                            },
-                            () => {
-                                positioner.update(updates);
-                                onUpdate();
-                            },
-                            2
-                        );
+                        positioner.update(updates);
+                        onUpdate();
                     }
                     updates.length = 0;
                 });
@@ -1483,9 +1113,6 @@ function useResizeObserver(positioner: Positioner, trace: MasonryTrace) {
                     OnRafScheduleReturn<[ItemElement]>
                 >();
                 function onResizeObserver(entries: ResizeObserverEntry[]) {
-                    trace.log("resize-observer.entries", {
-                        entryCount: entries.length,
-                    });
                     for (const entry of entries) {
                         if (!entry) {
                             continue;
@@ -1520,10 +1147,8 @@ function useResizeObserver(positioner: Positioner, trace: MasonryTrace) {
         );
     }, []);
 
-    const resizeObserver = createResizeObserver(
-        positioner,
-        () => setLayoutVersion((prev) => prev + 1),
-        trace
+    const resizeObserver = createResizeObserver(positioner, () =>
+        setLayoutVersion((prev) => prev + 1)
     );
 
     React.useEffect(() => () => resizeObserver.disconnect(), [resizeObserver]);
@@ -1701,8 +1326,19 @@ interface MasonryContextValue {
     positioner: Positioner;
     resizeObserver?: ResizeObserver;
     scrollTop: number;
-    trace: MasonryTrace;
     windowHeight: number;
+}
+
+interface ItemRegisterCallbackCache {
+    callbacks: React.RefCallback<ItemElement>[];
+    positioner: Positioner;
+    resizeObserver: ResizeObserver;
+}
+
+interface ItemRegistrationCache {
+    nodes: (ItemElement | undefined)[];
+    positioner: Positioner;
+    resizeObserver: ResizeObserver;
 }
 
 const MasonryContext = React.createContext<MasonryContextValue | null>(null);
@@ -1723,7 +1359,6 @@ interface MasonryProps extends React.ComponentProps<"div"> {
     deps?: React.DependencyList;
     fallback?: React.ReactNode;
     gap?: number | { column: number; row: number };
-    instrumentationLabel?: string;
     itemHeight?: number;
     linear?: boolean;
     maxColumnCount?: number;
@@ -1746,7 +1381,6 @@ function Masonry({
     itemHeight = ITEM_HEIGHT,
     defaultWidth,
     defaultHeight,
-    instrumentationLabel = "masonry",
     overscan = OVERSCAN,
     scrollFps = SCROLL_FPS,
     fallback,
@@ -1757,11 +1391,6 @@ function Masonry({
     ref,
     ...props
 }: MasonryProps) {
-    const instanceId = React.useId();
-    const trace = React.useMemo(
-        () => createMasonryTrace(`${instrumentationLabel}:${instanceId}`),
-        [instanceId, instrumentationLabel]
-    );
     const { rowGap, columnGap } = parseGapValue(gap);
     const containerRef = React.useRef<RootElement | null>(null);
     const composedRef = useComposedRefs(ref, containerRef);
@@ -1779,43 +1408,32 @@ function Masonry({
     });
 
     useIsomorphicLayoutEffect(() => {
-        trace.measure(
-            "masonry.layout-effect",
-            {
-                measuredWidth: containerPosition.width,
-                offset: containerPosition.offset,
-            },
-            () => {
-                if (!containerRef.current) {
-                    return;
-                }
+        if (!containerRef.current) {
+            return;
+        }
 
-                let scrollOffset = 0;
-                if (typeof globalThis.window !== "undefined") {
-                    scrollOffset =
-                        globalThis.window.scrollY ??
-                        document.documentElement.scrollTop ??
-                        0;
-                }
+        let scrollOffset = 0;
+        if (typeof globalThis.window !== "undefined") {
+            scrollOffset =
+                globalThis.window.scrollY ??
+                document.documentElement.scrollTop ??
+                0;
+        }
 
-                const offset =
-                    containerRef.current.getBoundingClientRect().top +
-                    scrollOffset;
-                const width = containerRef.current.offsetWidth;
+        const offset =
+            containerRef.current.getBoundingClientRect().top + scrollOffset;
+        const width = containerRef.current.offsetWidth;
 
-                if (
-                    offset !== containerPosition.offset ||
-                    width !== containerPosition.width
-                ) {
-                    setContainerPosition({
-                        offset,
-                        width,
-                    });
-                }
-            },
-            2
-        );
-    });
+        if (
+            offset !== containerPosition.offset ||
+            width !== containerPosition.width
+        ) {
+            setContainerPosition({
+                offset,
+                width,
+            });
+        }
+    }, [containerPosition.offset, containerPosition.width, size.width]);
 
     const positioner = usePositioner(
         {
@@ -1825,44 +1443,89 @@ function Masonry({
             linear,
             maxColumnCount,
             rowGap,
-            trace,
             width: containerPosition.width ?? size.width,
         },
         deps
     );
-    const resizeObserver = useResizeObserver(positioner, trace);
+    const resizeObserver = useResizeObserver(positioner);
     const { scrollTop, isScrolling } = useScroller({
         fps: scrollFps,
         offset: containerPosition.offset,
     });
+    const itemRegistrationCacheRef = React.useRef<ItemRegistrationCache | null>(
+        null
+    );
+    if (
+        itemRegistrationCacheRef.current === null ||
+        itemRegistrationCacheRef.current.positioner !== positioner ||
+        itemRegistrationCacheRef.current.resizeObserver !== resizeObserver
+    ) {
+        itemRegistrationCacheRef.current = {
+            nodes: [],
+            positioner,
+            resizeObserver,
+        };
+    }
 
-    const onItemRegister = React.useCallback(
-        (index: number) => (node: ItemElement | null) => {
+    const registerItemNode = useStableCallback(
+        (index: number, node: ItemElement | null) => {
             if (!node) {
                 return;
             }
-            trace.measure(
-                "masonry.item-register",
-                { index },
-                () => {
-                    if (resizeObserver) {
-                        resizeObserver.observe(node);
-                    }
-                    if (positioner.get(index) === undefined) {
-                        positioner.set(index, node.offsetHeight);
-                    }
-                },
-                1
-            );
-        },
-        [positioner, resizeObserver, trace]
+            const itemRegistrationCache = itemRegistrationCacheRef.current;
+            if (
+                itemRegistrationCache?.nodes[index] === node &&
+                positioner.get(index) !== undefined
+            ) {
+                return;
+            }
+            resizeObserver.observe(node);
+            const currentRegistrationCache = itemRegistrationCacheRef.current;
+            if (currentRegistrationCache) {
+                currentRegistrationCache.nodes[index] = node;
+            }
+            if (positioner.get(index) === undefined) {
+                positioner.set(index, node.offsetHeight);
+            }
+        }
     );
 
-    trace.log("masonry.render", {
-        columnCount: positioner.columnCount,
-        containerWidth: containerPosition.width,
-        viewportHeight: size.height,
-    });
+    const itemRegisterCallbacksRef =
+        React.useRef<ItemRegisterCallbackCache | null>(null);
+    if (
+        itemRegisterCallbacksRef.current === null ||
+        itemRegisterCallbacksRef.current.positioner !== positioner ||
+        itemRegisterCallbacksRef.current.resizeObserver !== resizeObserver
+    ) {
+        itemRegisterCallbacksRef.current = {
+            callbacks: [],
+            positioner,
+            resizeObserver,
+        };
+    }
+
+    const onItemRegister = React.useCallback(
+        (index: number) => {
+            const itemRegisterCallbacks =
+                itemRegisterCallbacksRef.current?.callbacks;
+            if (!itemRegisterCallbacks) {
+                return (node: ItemElement | null) => {
+                    registerItemNode(index, node);
+                };
+            }
+            const existingCallback = itemRegisterCallbacks[index];
+            if (existingCallback) {
+                return existingCallback;
+            }
+
+            const nextCallback: React.RefCallback<ItemElement> = (node) => {
+                registerItemNode(index, node);
+            };
+            itemRegisterCallbacks[index] = nextCallback;
+            return nextCallback;
+        },
+        [registerItemNode]
+    );
 
     return (
         <MasonryContext
@@ -1875,7 +1538,6 @@ function Masonry({
                 positioner,
                 resizeObserver,
                 scrollTop,
-                trace,
                 windowHeight: size.height,
             }}
         >
@@ -1905,9 +1567,13 @@ function MasonryViewport({
     const [layoutVersion, setLayoutVersion] = React.useState(0);
     const rafId = React.useRef<number | null>(null);
 
-    const validChildren = React.Children.toArray(
-        children
-    ) as React.ReactElement<React.ComponentProps<"div">>[];
+    const validChildren = React.useMemo(
+        () =>
+            React.Children.toArray(children) as React.ReactElement<
+                React.ComponentProps<"div">
+            >[],
+        [children]
+    );
     const itemCount = validChildren.length;
     const shortestColumnSize = context.positioner.shortestColumn();
     const measuredCount = context.positioner.size();
@@ -1941,44 +1607,28 @@ function MasonryViewport({
         [context.columnWidth]
     );
 
-    context.trace.measure(
-        "viewport.range-render",
-        {
-            itemCount,
-            measuredCount,
-            rangeEnd: Math.round(rangeEnd),
-            rangeStart: Math.round(rangeStart),
-        },
-        () => {
-            context.positioner.range(
-                rangeStart,
-                rangeEnd,
-                (index, left, top) => {
-                    const child = validChildren[index];
-                    if (!child) {
-                        return;
-                    }
-                    const itemStyle = {
-                        ...visibleItemStyle,
-                        left,
-                        top,
-                        ...child.props.style,
-                    };
-                    const onItemRegister = context.onItemRegister;
+    context.positioner.range(rangeStart, rangeEnd, (index, left, top) => {
+        const child = validChildren[index];
+        if (!child) {
+            return;
+        }
+        const itemStyle = {
+            ...visibleItemStyle,
+            left,
+            top,
+            ...child.props.style,
+        };
+        const onItemRegister = context.onItemRegister;
 
-                    positionedChildren.push(
-                        React.cloneElement(child, {
-                            ["data-index" as string]: index,
-                            key: child.key ?? index,
-                            ref: onItemRegister(index),
-                            style: itemStyle,
-                        })
-                    );
-                }
-            );
-        },
-        2
-    );
+        positionedChildren.push(
+            React.cloneElement(child, {
+                ["data-index" as string]: index,
+                key: child.key ?? index,
+                ref: onItemRegister(index),
+                style: itemStyle,
+            })
+        );
+    });
 
     if (isLayoutOutdated) {
         const batchSize = Math.min(
@@ -1991,11 +1641,6 @@ function MasonryViewport({
         );
 
         if (batchSize > 0) {
-            context.trace.log("viewport.hidden-batch", {
-                batchSize,
-                itemCount,
-                measuredCount,
-            });
             const end = Math.min(itemCount, measuredCount + batchSize);
             const onItemRegister = context.onItemRegister;
 
@@ -2024,11 +1669,6 @@ function MasonryViewport({
 
     React.useEffect(() => {
         if (isLayoutOutdated) {
-            context.trace.log("viewport.layout-outdated", {
-                itemCount,
-                measuredCount,
-                shortestColumnSize: Math.round(shortestColumnSize),
-            });
             if (rafId.current) {
                 cancelAnimationFrame(rafId.current);
             }
@@ -2041,13 +1681,7 @@ function MasonryViewport({
                 cancelAnimationFrame(rafId.current);
             }
         };
-    }, [
-        context.trace,
-        isLayoutOutdated,
-        itemCount,
-        measuredCount,
-        shortestColumnSize,
-    ]);
+    }, [isLayoutOutdated]);
 
     const estimateHeight = useValueAsRef(context.positioner.estimateHeight);
 
@@ -2100,4 +1734,4 @@ function MasonryItem(props: React.ComponentProps<"div">) {
 }
 // #endregion
 
-export { Masonry, MasonryItem, recordMasonryPerfSample };
+export { Masonry, MasonryItem };
