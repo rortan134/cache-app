@@ -105,7 +105,7 @@ export function AutocompletePopup({
                     )}
                 >
                     <AutocompletePrimitive.Popup
-                        className="flex max-h-[min(var(--available-height),23rem)] flex-1 flex-col text-foreground"
+                        className="flex max-h-[min(var(--available-height),32rem)] flex-1 flex-col text-foreground"
                         data-slot="autocomplete-popup"
                         {...props}
                     />

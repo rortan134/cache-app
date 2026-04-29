@@ -93,7 +93,7 @@ import {
     DialogTitle,
 } from "@/components/ui/dialog";
 import { GradientWaveText } from "@/components/ui/gradient-wave-text";
-import { ChevronDownFilledIcon, CrownFilledIcon } from "@/components/ui/icons";
+import { ChevronDownFilledIcon } from "@/components/ui/icons";
 import { Input } from "@/components/ui/input";
 import {
     Kanban,
@@ -3203,10 +3203,10 @@ function ValidCategoryThumbnail({ urls }: { urls: string[] }) {
     return (
         <img
             alt=""
-            className="absolute top-11 left-3 z-10 h-full w-auto rounded-sm object-cover transition-transform group-data-highlighted:-translate-y-1"
+            className="absolute top-10 left-3 z-10 h-full w-auto rounded-sm object-cover transition-transform group-data-highlighted:-translate-y-1"
             fetchPriority="high"
             height={104}
-            loading="lazy"
+            loading="eager"
             src={src}
             width={140}
         />
@@ -3334,7 +3334,7 @@ function buildSearchPaletteGroups({
                                 onToggleCollectionSelection(collection.id)
                             ),
                             render: () => (
-                                <div className="flex aspect-square size-full flex-1 flex-col">
+                                <div className="flex aspect-4/3 size-full flex-1 flex-col">
                                     {thumbnails.length > 0 && (
                                         <ValidCategoryThumbnail
                                             urls={thumbnails}
@@ -4211,7 +4211,7 @@ function LibraryPaletteTrailing({
     return (
         <>
             {chips.length === 0 && !isCommandInputFocused && (
-                <Kbd className="border-none opacity-80">
+                <Kbd className="border-none text-muted-foreground opacity-50">
                     <CtrlKbd />G
                 </Kbd>
             )}
@@ -6769,7 +6769,7 @@ function LibraryBrowser({
                                         <div
                                             className={
                                                 group.layout === "horizontal"
-                                                    ? "flex gap-2 pr-2 pb-4"
+                                                    ? "flex gap-2 pt-1 pr-2 pb-4"
                                                     : ""
                                             }
                                         >
@@ -6935,14 +6935,7 @@ function LibraryBrowser({
                                 </Button>
                             }
                         />
-                    ) : (
-                        <span className="pointer-events-none mr-2 ml-auto select-none font-semibold text-[10px] text-muted-foreground uppercase">
-                            {hasAccess ? (
-                                <CrownFilledIcon className="mb-0.5 size-3.5 opacity-80" />
-                            ) : null}
-                            &nbsp;CACHE
-                        </span>
-                    )}
+                    ) : null}
                 </Toolbar.Group>
             </Toolbar.Root>
             {actionFeedback || commandSuggestions.length === 0 ? null : (
@@ -7040,10 +7033,16 @@ export function LibraryWorkspace({
         new Map<string, number>()
     );
 
-    const { collectionSortField } = useCollectionsSortStore();
+    const { collectionSortField, collectionTextMatchQuery } =
+        useCollectionsSortStore();
     const collectionSummaries = React.useMemo(
-        () => sortCollectionSummaries(collections, collectionSortField),
-        [collectionSortField, collections]
+        () =>
+            sortCollectionSummaries(
+                collections,
+                collectionSortField,
+                collectionTextMatchQuery
+            ),
+        [collectionSortField, collectionTextMatchQuery, collections]
     );
 
     React.useEffect(() => {

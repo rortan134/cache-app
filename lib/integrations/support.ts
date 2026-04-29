@@ -59,7 +59,7 @@ export interface SupportedIntegrationAction {
     role: IntegrationActionRole;
     size: IntegrationActionSize;
     variant: IntegrationActionVariant;
-    visibleWhen?: "always" | "connected";
+    visibleWhen?: "always" | "connected" | "disconnected";
 }
 
 export interface ExtensionOpenBehavior {
@@ -221,13 +221,14 @@ export const INTEGRATIONS = [
                 role: "connect",
                 size: "sm",
                 variant: "ghost",
+                visibleWhen: "disconnected",
             },
             {
                 for: "source",
                 icon: "images",
                 role: "sync",
                 size: "icon",
-                variant: "outline",
+                variant: "ghost",
                 visibleWhen: "connected",
             },
         ],

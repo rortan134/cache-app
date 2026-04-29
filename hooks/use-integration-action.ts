@@ -159,7 +159,15 @@ function isActionVisible(
     action: SupportedIntegrationAction,
     isConnected: boolean
 ): boolean {
-    return action.visibleWhen !== "connected" || Boolean(isConnected);
+    if (action.visibleWhen === "connected") {
+        return isConnected;
+    }
+
+    if (action.visibleWhen === "disconnected") {
+        return !isConnected;
+    }
+
+    return true;
 }
 
 function createActionViewModel(args: {

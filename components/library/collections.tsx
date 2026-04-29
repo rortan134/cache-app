@@ -87,7 +87,12 @@ import { useHotkeys } from "react-hotkeys-hook";
 import { createStore } from "stan-js";
 import { storage } from "stan-js/storage";
 
-type CollectionSortField = "count" | "created" | "priority" | "updated";
+type CollectionSortField =
+    | "count"
+    | "created"
+    | "priority"
+    | "text-match"
+    | "updated";
 type CollectionOptionIcon = React.ComponentType<{ className?: string }>;
 type CollectionsListStatusTone = "error" | "success";
 type SortableCollectionSummary = Pick<
@@ -109,8 +114,17 @@ interface PriorityOption {
 interface SortingOption {
     icon: CollectionOptionIcon;
     label: string;
-    value: CollectionSortField;
+    value: Exclude<CollectionSortField, "text-match">;
 }
+
+type SortingComboboxOption =
+    | SortingOption
+    | {
+          icon: CollectionOptionIcon;
+          label: string;
+          query: string;
+          value: "text-match";
+      };
 
 interface CollectionsListItemContextValue {
     collection: LibraryCollectionSummary;
@@ -130,6 +144,7 @@ const { useStore: useCollectionsListStateStore } = createStore({
 
 export const { useStore: useCollectionsSortStore } = createStore({
     collectionSortField: storage<CollectionSortField>("priority"),
+    collectionTextMatchQuery: storage(""),
 });
 
 export const NAME_COLLATOR = new Intl.Collator(undefined, {
@@ -193,6 +208,10 @@ const SORTING_OPTIONS = [
         value: "count",
     },
 ] satisfies SortingOption[];
+
+const SORTING_OPTION_BY_VALUE = new Map(
+    SORTING_OPTIONS.map((option) => [option.value, option])
+);
 
 const COLLECTION_PRIORITY_ORDER: Record<CollectionPriority, number> = {
     archive: 3,
@@ -346,13 +365,48 @@ function compareCollectionItemCount<
     return b.itemCount - a.itemCount;
 }
 
+function collectionTextMatchScore(
+    collection: Pick<SortableCollectionSummary, "name">,
+    query: string
+) {
+    const normalizedName = collection.name.trim().toLowerCase();
+    const normalizedQuery = query.trim().toLowerCase();
+
+    if (normalizedQuery.length === 0) {
+        return 0;
+    }
+
+    if (normalizedName === normalizedQuery) {
+        return 3;
+    }
+
+    if (normalizedName.startsWith(normalizedQuery)) {
+        return 2;
+    }
+
+    if (normalizedName.includes(normalizedQuery)) {
+        return 1;
+    }
+
+    return 0;
+}
+
+function compareCollectionTextMatch(
+    query: string
+): (a: SortableCollectionSummary, b: SortableCollectionSummary) => number {
+    return (a, b) =>
+        collectionTextMatchScore(b, query) -
+            collectionTextMatchScore(a, query) ||
+        NAME_COLLATOR.compare(a.name, b.name);
+}
+
 const COLLECTION_SUMMARY_SORTERS = {
     count: compareCollectionItemCount,
     created: compareCollectionCreatedAt,
     priority: compareCollectionPriorities,
     updated: compareCollectionUpdatedAt,
 } satisfies Record<
-    CollectionSortField,
+    Exclude<CollectionSortField, "text-match">,
     (a: SortableCollectionSummary, b: SortableCollectionSummary) => number
 >;
 
@@ -795,7 +849,7 @@ export function CollectionsListItemValue() {
                 {collection.name}
             </span>
             {sourceLabels ? (
-                <span className="max-w-full flex-1 truncate text-[11px] text-muted-foreground opacity-0 transition-opacity group-hover:opacity-80">
+                <span className="max-w-full flex-1 truncate text-[11px] text-muted-foreground opacity-0 group-hover:opacity-80">
                     {sourceLabels}
                 </span>
             ) : null}
@@ -960,14 +1014,14 @@ export function CollectionsListItemMeta({
 
     return (
         <div className="absolute top-1/2 right-0 flex size-8 -translate-y-1/2 items-center justify-center">
-            <span className="pointer-events-none text-nowrap text-(--text-muted-color) text-xs tabular-nums transition-opacity focus-visible:opacity-0 group-focus-within:opacity-0 group-hover:opacity-0">
+            <span className="pointer-events-none text-nowrap text-(--text-muted-color) text-xs tabular-nums focus-visible:opacity-0 group-focus-within:opacity-0 group-hover:opacity-0">
                 {COMPACT_NUMBER_FORMATTER.format(collection.itemCount)}
             </span>
             <Menu>
                 <MenuTrigger
                     render={
                         <Button
-                            className="absolute opacity-0 transition-opacity focus-visible:opacity-100 group-focus-within:opacity-100 group-hover:opacity-100 group-focus:opacity-100"
+                            className="absolute opacity-0 focus-visible:opacity-100 group-focus-within:opacity-100 group-hover:opacity-100 group-focus:opacity-100"
                             size="icon-sm"
                             title={`Collection actions for ${collection.name}`}
                             variant="ghost"
@@ -1222,8 +1276,16 @@ export function sortCollections<
 
 export function sortCollectionSummaries<T extends SortableCollectionSummary>(
     collections: readonly T[],
-    sortField: CollectionSortField
+    sortField: CollectionSortField,
+    textMatchQuery = ""
 ): T[] {
+    if (sortField === "text-match") {
+        return sortCollectionList(
+            collections,
+            compareCollectionTextMatch(textMatchQuery)
+        );
+    }
+
     return sortCollectionList(
         collections,
         COLLECTION_SUMMARY_SORTERS[sortField]
@@ -1233,9 +1295,30 @@ export function sortCollectionSummaries<T extends SortableCollectionSummary>(
 export function CollectionsListSortingCombobox(
     props: React.ComponentProps<typeof ComboboxTrigger>
 ) {
-    const { collectionSortField, setCollectionSortField } =
-        useCollectionsSortStore();
+    const {
+        collectionSortField,
+        collectionTextMatchQuery,
+        setCollectionSortField,
+        setCollectionTextMatchQuery,
+    } = useCollectionsSortStore();
     const [isOpen, setIsOpen] = React.useState(false);
+    const [inputValue, setInputValue] = React.useState("");
+    const normalizedInputValue = inputValue.trim().toLowerCase();
+    const matchingSortingOptions = SORTING_OPTIONS.filter((option) =>
+        option.label.toLowerCase().includes(normalizedInputValue)
+    );
+    const textMatchOption =
+        normalizedInputValue.length > 0 && matchingSortingOptions.length === 0
+            ? ({
+                  icon: ListFilter,
+                  label: `Sort by "${inputValue.trim()}"`,
+                  query: inputValue.trim(),
+                  value: "text-match",
+              } satisfies SortingComboboxOption)
+            : null;
+    const sortingOptions: SortingComboboxOption[] = textMatchOption
+        ? [textMatchOption]
+        : matchingSortingOptions;
 
     useHotkeys(
         "mod+f",
@@ -1250,20 +1333,57 @@ export function CollectionsListSortingCombobox(
     );
 
     return (
-        <Combobox
+        <Combobox<SortingComboboxOption>
             autoHighlight
-            items={SORTING_OPTIONS}
+            filter={null}
+            inputValue={inputValue}
+            items={sortingOptions}
+            itemToStringLabel={(option) =>
+                option.value === "text-match"
+                    ? option.query
+                    : (SORTING_OPTION_BY_VALUE.get(option.value)?.label ?? "")
+            }
+            itemToStringValue={(option) => option.value}
+            onInputValueChange={setInputValue}
             onOpenChange={setIsOpen}
-            onValueChange={(nextField) => {
-                if (!nextField || nextField === collectionSortField) {
+            onValueChange={(nextOption) => {
+                if (!nextOption) {
                     return;
                 }
 
-                setCollectionSortField(nextField);
+                if (nextOption.value === "text-match") {
+                    if (nextOption.query === collectionTextMatchQuery) {
+                        setIsOpen(false);
+                        return;
+                    }
+
+                    setCollectionTextMatchQuery(nextOption.query);
+                    setCollectionSortField(nextOption.value);
+                    setInputValue("");
+                    setIsOpen(false);
+                    return;
+                }
+
+                if (nextOption.value === collectionSortField) {
+                    setIsOpen(false);
+                    return;
+                }
+
+                setCollectionSortField(nextOption.value);
+                setInputValue("");
                 setIsOpen(false);
             }}
             open={isOpen}
-            value={collectionSortField}
+            value={
+                collectionSortField === "text-match"
+                    ? {
+                          icon: ListFilter,
+                          label: `Search by "${collectionTextMatchQuery}"`,
+                          query: collectionTextMatchQuery,
+                          value: "text-match",
+                      }
+                    : SORTING_OPTION_BY_VALUE.get(collectionSortField)
+            }
         >
             <ComboboxTrigger
                 render={<Button size="icon-xs" variant="ghost" />}
@@ -1281,14 +1401,13 @@ export function CollectionsListSortingCombobox(
                     }
                     placeholder="Sort by..."
                 />
-                <ComboboxEmpty>No matching sort options</ComboboxEmpty>
                 <ComboboxList>
                     <ComboboxCollection>
-                        {(sortOption: SortingOption) => (
+                        {(sortOption: SortingComboboxOption) => (
                             <ComboboxItem
                                 key={sortOption.value}
                                 showIndicatorLast
-                                value={sortOption.value}
+                                value={sortOption}
                             >
                                 <CollectionComboboxOptionRow
                                     icon={sortOption.icon}
