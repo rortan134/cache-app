@@ -119,15 +119,20 @@ function normalizeCandidateType(
     }
 }
 
+function normalizeCobaltMediaUrl(url: string): string {
+    return new URL(url, COBALT_API_BASE).href;
+}
+
 function previewFromDirectUrl(
     url: string
 ): Extract<ResolveCobaltPreviewResult, { status: "SUCCESS" }> {
+    const sourceUrl = normalizeCobaltMediaUrl(url);
     return {
         mediaType: "video",
-        sourceUrl: url,
+        sourceUrl,
         staticImageUrl: null,
         status: "SUCCESS",
-        videoPreviewUrl: url,
+        videoPreviewUrl: sourceUrl,
     };
 }
 
@@ -137,8 +142,10 @@ function previewFromPicker(
     const usableCandidates = picker
         .map((candidate) => ({
             mediaType: normalizeCandidateType(candidate.type),
-            thumb: candidate.thumb?.trim() || null,
-            url: candidate.url?.trim() || null,
+            thumb: candidate.thumb
+                ? normalizeCobaltMediaUrl(candidate.thumb)
+                : null,
+            url: candidate.url ? normalizeCobaltMediaUrl(candidate.url) : null,
         }))
         .filter((candidate) => candidate.url || candidate.thumb);
 

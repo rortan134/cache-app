@@ -109,7 +109,6 @@ export const parseToHex = (color: string): string => {
 
 export const parseToRgb = (color: string) => {
     const parsed = parse(color);
-    console.log("attempted", color, parsed);
     if (!parsed) {
         throw new Error(`Invalid color format: ${color}`);
     }
