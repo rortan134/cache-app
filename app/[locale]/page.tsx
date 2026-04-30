@@ -150,6 +150,9 @@ export default async function Home() {
                                 <span className="opacity-50"> at volume</span>
                             </T>
                         </p>
+                        <p className="mx-auto text-center text-xs">
+                            <T>Starting from $5/month</T>
+                        </p>
                     </div>
                     <div className="grid w-full grid-cols-1 gap-2 md:grid-cols-2 md:gap-[40px]">
                         <div className="flex max-w-[340px] flex-col gap-[12px] py-[20px] md:gap-[16px]">
