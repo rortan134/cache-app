@@ -93,17 +93,15 @@ type CollectionSortField =
     | "priority"
     | "text-match"
     | "updated";
+
 type CollectionOptionIcon = React.ComponentType<{ className?: string }>;
+
 type CollectionsListStatusTone = "error" | "success";
+
 type SortableCollectionSummary = Pick<
     LibraryCollectionSummary,
     "createdAt" | "itemCount" | "name" | "priority" | "updatedAt"
 >;
-type CollectionListItemStyle = React.CSSProperties & {
-    "--collection-background"?: string;
-    "--focus-ring-color"?: string;
-    "--text-muted-color"?: string;
-};
 
 interface PriorityOption {
     icon: CollectionOptionIcon;
@@ -228,10 +226,7 @@ function useCollectionsListOpenState() {
     const { isCollectionsListOpen, setIsCollectionsListOpen } =
         useCollectionsListStateStore();
 
-    return {
-        isOpen: isCollectionsListOpen,
-        setIsOpen: setIsCollectionsListOpen,
-    };
+    return [isCollectionsListOpen, setIsCollectionsListOpen] as const;
 }
 
 function useCollectionsListItemContext() {
@@ -276,7 +271,6 @@ function useControllableOpenState(
             if (!isControlled) {
                 setUncontrolledOpen(nextOpen);
             }
-
             onOpenChange?.(nextOpen);
         },
         [isControlled, onOpenChange]
@@ -319,12 +313,11 @@ function getPriorityOption(priority: CollectionPriority): PriorityOption {
 function getCollectionsListItemStyle(name: string, isSelected: boolean) {
     const assignedColor = getHexColorFromName(name);
     const backgroundOpacity = isSelected ? 15 : 10;
-
     return {
         "--collection-background": `color-mix(in srgb, ${assignedColor} ${backgroundOpacity}%, transparent)`,
         "--focus-ring-color": `color-mix(in srgb, ${assignedColor}, black 50%)`,
         "--text-muted-color": `color-mix(in srgb, ${assignedColor} 16%, black 18%)`,
-    } satisfies CollectionListItemStyle;
+    } as React.CSSProperties;
 }
 
 function compareCollectionNames<
@@ -705,7 +698,7 @@ export function CollectionsListTrigger({
     collectionLabels,
     ...props
 }: CollectionsListTriggerProps) {
-    const { isOpen } = useCollectionsListOpenState();
+    const [isOpen] = useCollectionsListOpenState();
     const collectionCount = collectionLabels.length;
     const collectionLabelsText =
         collectionCount > 0
@@ -1285,7 +1278,6 @@ export function sortCollectionSummaries<T extends SortableCollectionSummary>(
             compareCollectionTextMatch(textMatchQuery)
         );
     }
-
     return sortCollectionList(
         collections,
         COLLECTION_SUMMARY_SORTERS[sortField]

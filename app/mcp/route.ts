@@ -41,6 +41,7 @@ const handler = createMcpHandler(async (server) => {
         title: "Show Content",
         widgetDomain: BASE_URL,
     };
+
     server.registerResource(
         "content-widget",
         contentWidget.templateUri,
@@ -76,6 +77,7 @@ const handler = createMcpHandler(async (server) => {
             description:
                 "Fetch and display the homepage content with the name of the user",
             inputSchema: {
+                // @ts-expect-error TODO: fix types
                 name: z
                     .string()
                     .describe(
@@ -84,6 +86,7 @@ const handler = createMcpHandler(async (server) => {
             },
             title: contentWidget.title,
         },
+        // @ts-expect-error TODO: fix types
         async ({ name }) =>
             await Promise.resolve({
                 _meta: widgetMeta(contentWidget),

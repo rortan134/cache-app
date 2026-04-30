@@ -47,10 +47,10 @@ function useIntegrationsListOpenState() {
     const { isIntegrationsListPanelOpen, setIsIntegrationsListPanelOpen } =
         useIntegrationsPanelStore();
 
-    return {
-        isOpen: isIntegrationsListPanelOpen,
-        setIsOpen: setIsIntegrationsListPanelOpen,
-    };
+    return [
+        isIntegrationsListPanelOpen,
+        setIsIntegrationsListPanelOpen,
+    ] as const;
 }
 
 export function IntegrationsList({
@@ -75,7 +75,7 @@ export function IntegrationsListTrigger({
     className,
     ...props
 }: React.ComponentProps<typeof CollapsibleTrigger>) {
-    const { isOpen } = useIntegrationsListOpenState();
+    const [isOpen] = useIntegrationsListOpenState();
 
     return (
         <Popover>
@@ -259,7 +259,7 @@ export function IntegrationsListItemAction({
     isConnected,
 }: IntegrationsListItemActionProps) {
     const { actions, errorMessage, successMessage } = useIntegrationAction({
-        direction,
+        direction: "source",
         id,
         isConnected,
     });

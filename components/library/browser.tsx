@@ -12,7 +12,7 @@ import {
     PreviewDrawerContent,
     PreviewDrawerTrigger,
 } from "@/components/library/preview-drawer";
-import { useLibraryWorkspace } from "@/components/library/workspace-context";
+import { useWorkspace } from "@/components/library/workspace-provider";
 import {
     Attachment,
     AttachmentInfo,
@@ -133,7 +133,12 @@ import type {
     LibraryCollectionSummary,
     LibraryItemWithCollections,
 } from "@/lib/common/types";
-import { normalizeURL, parseDisplayUrl, toValidUrl } from "@/lib/common/url";
+import {
+    normalizeURL,
+    openSavedItemInNewTab,
+    parseDisplayUrl,
+    toValidUrl,
+} from "@/lib/common/url";
 import {
     createChromeBookmarkFromUrl,
     type CreateChromeBookmarkFromUrlResult,
@@ -1245,6 +1250,33 @@ function buildCollectionPaletteItems({
     ];
 }
 
+function PaletteChip({
+    label,
+    onRemove,
+}: {
+    label: string;
+    onRemove: () => void;
+}) {
+    return (
+        <span className="palette-chip-enter inline-flex max-w-[min(100%,12rem)] items-center gap-0.5 rounded-full border border-border/60 bg-background/90 py-0.5 ps-2 pe-0.5 font-medium text-foreground text-xs shadow-xs/5">
+            <span className="min-w-0 max-w-full truncate text-xs">{label}</span>
+            <Button
+                aria-label={`Remove ${label}`}
+                className="rounded-full"
+                onClick={(event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    onRemove();
+                }}
+                size="icon-xs"
+                variant="ghost"
+            >
+                <XIcon className="size-3.5 shrink-0" />
+            </Button>
+        </span>
+    );
+}
+
 function PaletteAttachmentChip({
     attachment,
     onRemove,
@@ -1306,31 +1338,17 @@ function PaletteAttachmentChip({
     );
 }
 
-function PaletteChip({
-    label,
-    onRemove,
-}: {
-    label: string;
-    onRemove: () => void;
-}) {
-    return (
-        <span className="palette-chip-enter inline-flex max-w-[min(100%,12rem)] items-center gap-0.5 rounded-full border border-border/60 bg-background/90 py-0.5 ps-2 pe-0.5 font-medium text-foreground text-xs shadow-xs/5">
-            <span className="min-w-0 max-w-full truncate text-xs">{label}</span>
-            <Button
-                aria-label={`Remove ${label}`}
-                className="rounded-full"
-                onClick={(event) => {
-                    event.preventDefault();
-                    event.stopPropagation();
-                    onRemove();
-                }}
-                size="icon-xs"
-                variant="ghost"
-            >
-                <XIcon className="size-3.5 shrink-0" />
-            </Button>
-        </span>
-    );
+const LibraryGridCardContext =
+    React.createContext<LibraryGridCardContextValue | null>(null);
+
+function useLibraryGridCardContext(): LibraryGridCardContextValue {
+    const context = React.use(LibraryGridCardContext);
+    if (!context) {
+        throw new Error(
+            "Library grid cards must be used inside <LibraryGridCardProvider>."
+        );
+    }
+    return context;
 }
 
 interface LibraryResultsProps {
@@ -1378,9 +1396,9 @@ function renderLibraryGridBody({
     sections,
     showEmptyLibraryPeek,
     showNoFilteredResults,
-}: LibraryResultsProps): React.ReactNode {
+}: LibraryResultsProps) {
     if (showEmptyLibraryPeek) {
-        return <ExtensionLibraryEmptyMasonryPeek />;
+        return <Empty />;
     }
 
     if (showNoFilteredResults) {
@@ -1402,7 +1420,7 @@ function renderLibraryGridBody({
 
     return sections.map((section) =>
         enableSectionCollapse ? (
-            <ExtensionLibrarySection
+            <Section
                 accentKey={section.key}
                 collapsed={collapsedSectionKeys.has(section.key)}
                 collapsible
@@ -1436,19 +1454,27 @@ function renderLibraryGridBody({
                         </span>
                     </div>
                 ) : null}
-                <ExtensionLibraryGrid
-                    collections={collections}
-                    columnCount={columnCount}
-                    items={section.items}
-                    layoutMode={layoutMode}
-                    onCopyLink={onCopyLink}
-                    onDelete={onDelete}
-                    onOpenInNewTab={onOpenInNewTab}
-                    onOpenNote={onOpenNote}
-                    onSetActionFeedback={onSetActionFeedback}
-                    onUpdateItemCollections={onUpdateItemCollections}
-                    pendingDeleteItemId={pendingDeleteItemId}
-                />
+                <LibraryGridCardContext
+                    value={{
+                        collections,
+                        onCopyLink,
+                        onDelete,
+                        onOpenInNewTab,
+                        onOpenNote,
+                        onSetActionFeedback,
+                        onUpdateItemCollections,
+                        pendingDeleteItemId,
+                    }}
+                >
+                    {layoutMode === "kanban" ? (
+                        <KanbanLayout items={section.items} />
+                    ) : (
+                        <MasonryLayout
+                            columnCount={columnCount}
+                            items={section.items}
+                        />
+                    )}
+                </LibraryGridCardContext>
             </section>
         )
     );
@@ -1457,7 +1483,7 @@ function renderLibraryGridBody({
 const LibraryResults = React.memo(function LibraryResults(
     props: LibraryResultsProps
 ) {
-    return <>{renderLibraryGridBody(props)}</>;
+    return renderLibraryGridBody(props);
 });
 
 function ValidCategoryThumbnail({ urls }: { urls: string[] }) {
@@ -2544,19 +2570,6 @@ interface LibraryActionFeedback {
     tone: "error" | "success";
 }
 
-function openSavedItemInNewTab(url: string) {
-    try {
-        if (typeof window.openai !== "undefined") {
-            window.openai.openExternal({ href: url });
-            return;
-        }
-    } catch {
-        // Fall back to a regular browser tab when the desktop bridge is unavailable.
-    }
-
-    window.open(url, "_blank", "noopener,noreferrer");
-}
-
 function useLibraryItemActions(args: {
     onDeleteSuccess?: (
         result: Extract<DeleteLibraryItemResult, { status: "DELETED" }>
@@ -2663,16 +2676,11 @@ interface GridProps {
     onDelete?: (item: LibraryItemWithCollections) => void;
     onOpenInNewTab?: (item: LibraryItemWithCollections) => void;
     onOpenNote?: (item: LibraryItemWithCollections) => void;
-    onSetActionFeedback?: (feedback: LibraryActionFeedback | null) => void;
+    onSetActionFeedback: (feedback: LibraryActionFeedback | null) => void;
     onUpdateItemCollections: (
         itemId: string,
         collectionIds: string[]
     ) => Promise<UpdateLibraryItemCollectionsResult>;
-    onUpdateItemsCollections?: (input: {
-        itemIds: string[];
-        nextSharedCollectionIds: string[];
-        previousSharedCollectionIds: string[];
-    }) => Promise<UpdateLibraryItemsCollectionsResult>;
     pendingDeleteItemId?: string | null;
 }
 
@@ -3107,30 +3115,6 @@ function PreviewMedia({
     );
 }
 
-const LibraryGridCardContext =
-    React.createContext<LibraryGridCardContextValue | null>(null);
-
-function useLibraryGridCardContext(): LibraryGridCardContextValue {
-    const context = React.use(LibraryGridCardContext);
-    if (!context) {
-        throw new Error(
-            "Library grid cards must be used inside <LibraryGridCardProvider>."
-        );
-    }
-    return context;
-}
-
-function LibraryGridCardProvider({
-    children,
-    ...value
-}: React.PropsWithChildren<LibraryGridCardContextValue>) {
-    return (
-        <LibraryGridCardContext.Provider value={value}>
-            {children}
-        </LibraryGridCardContext.Provider>
-    );
-}
-
 /** @internal */
 function CollectionComboboxPicker({
     collections,
@@ -3162,7 +3146,6 @@ function CollectionComboboxPicker({
                     if (!item) {
                         return;
                     }
-
                     onUpdateItemCollections(item.id, nextCollectionIds).catch(
                         () => undefined
                     );
@@ -3236,7 +3219,7 @@ function CollectionComboboxPicker({
     );
 }
 
-function LibraryGridCardCollectionPicker({
+function CardCollectionPicker({
     item,
     onOpenChange,
     open,
@@ -3299,7 +3282,7 @@ function PreviewColorPalette({ src }: { src: string }) {
     );
 }
 
-function LibraryGridCardMenu({
+function CardMenu({
     addedLabel,
     createdLabel,
     href,
@@ -3432,7 +3415,7 @@ function LibraryGridCardMenu({
     );
 }
 
-function LibraryGridCard({ item }: LibraryGridCardProps) {
+function Card({ item }: LibraryGridCardProps) {
     const { onOpenInNewTab, onOpenNote, onSetActionFeedback } =
         useLibraryGridCardContext();
     const isNote = item.kind === "note";
@@ -3523,7 +3506,7 @@ function LibraryGridCard({ item }: LibraryGridCardProps) {
             <ContextMenuTrigger render={<div className="contents" />}>
                 {/** biome-ignore lint/a11y/noNoninteractiveElementInteractions: TEMP */}
                 <article
-                    className="group relative flex flex-col overflow-hidden rounded-xl ring-1 ring-border/50 hover:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
+                    className="group relative flex flex-col overflow-hidden rounded-xl ring-1 ring-border/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
                     onKeyDown={handleCardKeyDown}
                 >
                     <a
@@ -3567,7 +3550,7 @@ function LibraryGridCard({ item }: LibraryGridCardProps) {
                             }
                         )}
                     >
-                        <LibraryGridCardCollectionPicker
+                        <CardCollectionPicker
                             item={item}
                             onOpenChange={setIsCollectionPickerOpen}
                             open={isCollectionPickerOpen}
@@ -3585,7 +3568,7 @@ function LibraryGridCard({ item }: LibraryGridCardProps) {
                                 <Ticker>{displayTitle}</Ticker>
                             </MenuTrigger>
                             <MenuPopup>
-                                <LibraryGridCardMenu
+                                <CardMenu
                                     addedLabel={addedLabel}
                                     createdLabel={createdLabel}
                                     href={href}
@@ -3603,7 +3586,7 @@ function LibraryGridCard({ item }: LibraryGridCardProps) {
                 </article>
             </ContextMenuTrigger>
             <ContextMenuPopup>
-                <LibraryGridCardMenu
+                <CardMenu
                     addedLabel={addedLabel}
                     createdLabel={createdLabel}
                     href={href}
@@ -3620,13 +3603,85 @@ function LibraryGridCard({ item }: LibraryGridCardProps) {
     );
 }
 
+function MasonryLayout({ columnCount, items }: LibraryMasonryLayoutProps) {
+    return (
+        <Masonry columnCount={columnCount} gap={4} linear>
+            {items.map((item) => (
+                <MasonryItem key={item.id}>
+                    <Card item={item} />
+                </MasonryItem>
+            ))}
+        </Masonry>
+    );
+}
+
+function KanbanLayout({ items }: LibraryGridLayoutProps) {
+    const { collections } = useLibraryGridCardContext();
+    const kanbanColumns = buildKanbanColumns(collections, items);
+    const columnIds = [
+        UNASSIGNED_COLLECTION_COLUMN_ID,
+        ...collections.map((collection) => collection.id),
+    ];
+
+    return (
+        <div className="overflow-x-auto pb-1">
+            <Kanban getItemValue={(entry) => entry.value} value={kanbanColumns}>
+                <KanbanBoard className="min-w-max items-start gap-3">
+                    {columnIds.map((columnId) => {
+                        const columnName =
+                            columnId === UNASSIGNED_COLLECTION_COLUMN_ID
+                                ? "No collection"
+                                : (collections.find(
+                                      (item) => item.id === columnId
+                                  )?.name ?? "Collection");
+                        const columnItems = kanbanColumns[columnId] ?? [];
+
+                        return (
+                            <KanbanColumn
+                                className="w-76"
+                                key={columnId}
+                                value={columnId}
+                            >
+                                <div className="mb-2 flex items-center gap-3">
+                                    <h3 className="truncate font-medium text-sm">
+                                        {columnName}
+                                    </h3>
+                                    <span className="shrink-0 font-medium text-muted-foreground text-xs tabular-nums">
+                                        {columnItems.length}
+                                    </span>
+                                </div>
+                                <div className="flex min-h-24 flex-col gap-3">
+                                    {columnItems.length === 0 ? (
+                                        <p className="rounded-lg border border-border/60 border-dashed px-3 py-4 text-center text-muted-foreground text-xs">
+                                            No items yet
+                                        </p>
+                                    ) : (
+                                        columnItems.map((columnItem) => (
+                                            <KanbanItem
+                                                key={columnItem.value}
+                                                value={columnItem.value}
+                                            >
+                                                <Card item={columnItem.item} />
+                                            </KanbanItem>
+                                        ))
+                                    )}
+                                </div>
+                            </KanbanColumn>
+                        );
+                    })}
+                </KanbanBoard>
+            </Kanban>
+        </div>
+    );
+}
+
 interface LockedLibraryPreviewPlaceholder {
     aspect: string;
     id: string;
     kind: "bookmark" | "note";
 }
 
-const LOCKED_LIBRARY_PREVIEW_PLACEHOLDERS: LockedLibraryPreviewPlaceholder[] = [
+const LOCKED_LIBRARY_PREVIEW_PLACEHOLDERS = [
     {
         aspect: "aspect-[4/5]",
         id: "locked-library-preview-1",
@@ -3660,9 +3715,9 @@ const LOCKED_LIBRARY_PREVIEW_PLACEHOLDERS: LockedLibraryPreviewPlaceholder[] = [
         id: "locked-library-preview-9",
         kind: "bookmark",
     },
-];
+] satisfies LockedLibraryPreviewPlaceholder[];
 
-function LockedLibraryPreviewCard({
+function LockedPreviewCard({
     placeholder,
 }: {
     placeholder: LockedLibraryPreviewPlaceholder;
@@ -3718,84 +3773,7 @@ function LockedLibraryPreviewCard({
     );
 }
 
-function LibraryMasonryLayout({
-    columnCount,
-    items,
-}: LibraryMasonryLayoutProps) {
-    return (
-        <Masonry columnCount={columnCount} gap={4} linear>
-            {items.map((item) => (
-                <MasonryItem key={item.id}>
-                    <LibraryGridCard item={item} />
-                </MasonryItem>
-            ))}
-        </Masonry>
-    );
-}
-
-function LibraryKanbanLayout({ items }: LibraryGridLayoutProps) {
-    const { collections } = useLibraryGridCardContext();
-    const kanbanColumns = buildKanbanColumns(collections, items);
-    const columnIds = [
-        UNASSIGNED_COLLECTION_COLUMN_ID,
-        ...collections.map((collection) => collection.id),
-    ];
-
-    return (
-        <div className="overflow-x-auto pb-1">
-            <Kanban getItemValue={(entry) => entry.value} value={kanbanColumns}>
-                <KanbanBoard className="min-w-max items-start gap-3">
-                    {columnIds.map((columnId) => {
-                        const columnName =
-                            columnId === UNASSIGNED_COLLECTION_COLUMN_ID
-                                ? "No collection"
-                                : (collections.find(
-                                      (item) => item.id === columnId
-                                  )?.name ?? "Collection");
-                        const columnItems = kanbanColumns[columnId] ?? [];
-
-                        return (
-                            <KanbanColumn
-                                className="w-76"
-                                key={columnId}
-                                value={columnId}
-                            >
-                                <div className="mb-2 flex items-center gap-3">
-                                    <h3 className="truncate font-medium text-sm">
-                                        {columnName}
-                                    </h3>
-                                    <span className="shrink-0 font-medium text-muted-foreground text-xs tabular-nums">
-                                        {columnItems.length}
-                                    </span>
-                                </div>
-                                <div className="flex min-h-24 flex-col gap-3">
-                                    {columnItems.length === 0 ? (
-                                        <p className="rounded-lg border border-border/60 border-dashed px-3 py-4 text-center text-muted-foreground text-xs">
-                                            No items yet
-                                        </p>
-                                    ) : (
-                                        columnItems.map((columnItem) => (
-                                            <KanbanItem
-                                                key={columnItem.value}
-                                                value={columnItem.value}
-                                            >
-                                                <LibraryGridCard
-                                                    item={columnItem.item}
-                                                />
-                                            </KanbanItem>
-                                        ))
-                                    )}
-                                </div>
-                            </KanbanColumn>
-                        );
-                    })}
-                </KanbanBoard>
-            </Kanban>
-        </div>
-    );
-}
-
-function LockedLibraryPreview({
+function LockedResults({
     columnCount,
     layoutMode,
     totalItemCount,
@@ -3804,56 +3782,61 @@ function LockedLibraryPreview({
     layoutMode: LayoutMode;
     totalItemCount: number;
 }) {
-    const previewBody =
-        layoutMode === "kanban" ? (
-            <div className="grid gap-3 md:grid-cols-3">
-                {["Locked", "Preview", "Upgrade"].map((label, index) => (
-                    <div
-                        className="rounded-2xl border border-border/50 bg-card/35 p-3"
-                        key={label}
-                    >
-                        <div className="mb-3 flex items-center justify-between gap-3">
-                            <h3 className="font-medium text-sm">{label}</h3>
-                            <span className="font-medium text-muted-foreground text-xs tabular-nums">
-                                3
-                            </span>
-                        </div>
-                        <div className="flex flex-col gap-3">
-                            {LOCKED_LIBRARY_PREVIEW_PLACEHOLDERS.slice(
-                                index * 3,
-                                index * 3 + 3
-                            ).map((placeholder) => (
-                                <LockedLibraryPreviewCard
-                                    key={placeholder.id}
-                                    placeholder={placeholder}
-                                />
-                            ))}
-                        </div>
-                    </div>
-                ))}
-            </div>
-        ) : (
-            <Masonry columnCount={columnCount} gap={4} linear>
-                {LOCKED_LIBRARY_PREVIEW_PLACEHOLDERS.map((placeholder) => (
-                    <MasonryItem key={placeholder.id}>
-                        <LockedLibraryPreviewCard placeholder={placeholder} />
-                    </MasonryItem>
-                ))}
-            </Masonry>
-        );
-
     return (
         <div className="relative isolate flex flex-col gap-8">
             <BlockPaywallBanner length={totalItemCount} />
             <div className="pointer-events-none absolute inset-0 z-10 rounded-[2rem] bg-linear-to-b from-background/10 via-background/45 to-background/75" />
             <div className="select-none opacity-70 blur-[1.5px] saturate-75">
-                {previewBody}
+                {layoutMode === "kanban" ? (
+                    <div className="grid gap-3 md:grid-cols-3">
+                        {["Locked", "Preview", "Upgrade"].map(
+                            (label, index) => (
+                                <div
+                                    className="rounded-2xl border border-border/50 bg-card/35 p-3"
+                                    key={label}
+                                >
+                                    <div className="mb-3 flex items-center justify-between gap-3">
+                                        <h3 className="font-medium text-sm">
+                                            {label}
+                                        </h3>
+                                        <span className="font-medium text-muted-foreground text-xs tabular-nums">
+                                            3
+                                        </span>
+                                    </div>
+                                    <div className="flex flex-col gap-3">
+                                        {LOCKED_LIBRARY_PREVIEW_PLACEHOLDERS.slice(
+                                            index * 3,
+                                            index * 3 + 3
+                                        ).map((placeholder) => (
+                                            <LockedPreviewCard
+                                                key={placeholder.id}
+                                                placeholder={placeholder}
+                                            />
+                                        ))}
+                                    </div>
+                                </div>
+                            )
+                        )}
+                    </div>
+                ) : (
+                    <Masonry columnCount={columnCount} gap={4} linear>
+                        {LOCKED_LIBRARY_PREVIEW_PLACEHOLDERS.map(
+                            (placeholder) => (
+                                <MasonryItem key={placeholder.id}>
+                                    <LockedPreviewCard
+                                        placeholder={placeholder}
+                                    />
+                                </MasonryItem>
+                            )
+                        )}
+                    </Masonry>
+                )}
             </div>
         </div>
     );
 }
 
-function ExtensionLibraryEmptyMasonryPeek() {
+function Empty() {
     return (
         <Masonry columnCount={5} gap={4} linear>
             {EMPTY_LIBRARY_PEEK_PLACEHOLDERS.map(({ aspect, id }, index) => {
@@ -3876,46 +3859,6 @@ function ExtensionLibraryEmptyMasonryPeek() {
                 );
             })}
         </Masonry>
-    );
-}
-
-function ExtensionLibraryGrid({
-    collections,
-    columnCount,
-    items,
-    layoutMode,
-    onCopyLink,
-    onDelete,
-    onOpenNote,
-    onOpenInNewTab,
-    onSetActionFeedback,
-    onUpdateItemCollections,
-    pendingDeleteItemId,
-}: GridProps) {
-    if (items.length === 0) {
-        return null;
-    }
-
-    const renderLibraryLayout = (nextItems: LibraryItemWithCollections[]) =>
-        layoutMode === "kanban" ? (
-            <LibraryKanbanLayout items={nextItems} />
-        ) : (
-            <LibraryMasonryLayout columnCount={columnCount} items={nextItems} />
-        );
-
-    return (
-        <LibraryGridCardProvider
-            collections={collections}
-            onCopyLink={onCopyLink}
-            onDelete={onDelete}
-            onOpenInNewTab={onOpenInNewTab}
-            onOpenNote={onOpenNote}
-            onSetActionFeedback={onSetActionFeedback}
-            onUpdateItemCollections={onUpdateItemCollections}
-            pendingDeleteItemId={pendingDeleteItemId}
-        >
-            {renderLibraryLayout(items)}
-        </LibraryGridCardProvider>
     );
 }
 
@@ -3981,7 +3924,7 @@ function SectionDescription({
     );
 }
 
-function ExtensionLibrarySection({
+function Section({
     accentKey,
     collapsed = false,
     collapsible = false,
@@ -3990,6 +3933,7 @@ function ExtensionLibrarySection({
     emptyHint,
     items,
     layoutMode,
+    onSetActionFeedback,
     onCopyLink,
     onDelete,
     onOpenNote,
@@ -4037,18 +3981,27 @@ function ExtensionLibrarySection({
                         </div>
                     </div>
                 ) : null}
-                <ExtensionLibraryGrid
-                    collections={collections}
-                    columnCount={columnCount}
-                    items={items}
-                    layoutMode={layoutMode}
-                    onCopyLink={onCopyLink}
-                    onDelete={onDelete}
-                    onOpenInNewTab={onOpenInNewTab}
-                    onOpenNote={onOpenNote}
-                    onUpdateItemCollections={onUpdateItemCollections}
-                    pendingDeleteItemId={pendingDeleteItemId}
-                />
+                <LibraryGridCardContext
+                    value={{
+                        collections,
+                        onCopyLink,
+                        onDelete,
+                        onOpenInNewTab,
+                        onOpenNote,
+                        onSetActionFeedback,
+                        onUpdateItemCollections,
+                        pendingDeleteItemId,
+                    }}
+                >
+                    {layoutMode === "kanban" ? (
+                        <KanbanLayout items={items} />
+                    ) : (
+                        <MasonryLayout
+                            columnCount={columnCount}
+                            items={items}
+                        />
+                    )}
+                </LibraryGridCardContext>
             </>
         );
     }
@@ -4141,10 +4094,7 @@ function ExtensionLibrarySection({
     );
 }
 
-export function LibraryBrowser({
-    lockedItemCount,
-    totalItemCount,
-}: LibraryProps) {
+export function Root({ lockedItemCount, totalItemCount }: LibraryProps) {
     const {
         collectionPreviewThumbnailUrlsById,
         collectionSummaries: collections,
@@ -4158,7 +4108,7 @@ export function LibraryBrowser({
         onUpdateItemsCollections,
         selectedCollectionIds,
         setItems: onItemsChange,
-    } = useLibraryWorkspace();
+    } = useWorkspace();
     const router = useRouter();
     const systemControlKey = useClientOnlyValue(getSystemControlKey());
     const [searchTerms, setSearchTerms] = React.useState<string[]>([]);
@@ -4947,30 +4897,6 @@ export function LibraryBrowser({
             });
         });
 
-    const libraryGridBody = (
-        <LibraryResults
-            clearLibraryPalette={clearLibraryPalette}
-            collapsedSectionKeys={collapsedSectionKeySet}
-            collections={collections}
-            columnCount={resolvedColumnCount}
-            enableSectionCollapse={enableSectionCollapse}
-            layoutMode={layoutMode}
-            onCollapseAllSections={collapseAllSections}
-            onCopyLink={handleCopyLink}
-            onDelete={handleRequestDelete}
-            onExpandAllSections={expandAllSections}
-            onOpenInNewTab={handleOpenInNewTab}
-            onOpenNote={handleOpenNote}
-            onSetActionFeedback={setActionFeedback}
-            onToggleSection={toggleSection}
-            onUpdateItemCollections={handleUpdateItemCollectionsWithFeedback}
-            pendingDeleteItemId={pendingDeleteItem?.id ?? null}
-            sections={sections}
-            showEmptyLibraryPeek={showEmptyLibraryPeek}
-            showNoFilteredResults={showNoFilteredResults}
-        />
-    );
-
     return (
         <div
             className="relative z-0 flex w-full flex-col gap-4"
@@ -4980,169 +4906,6 @@ export function LibraryBrowser({
                 } as React.CSSProperties
             }
         >
-            <Dialog
-                onOpenChange={handleDeleteDialogOpenChange}
-                open={pendingDeleteItem !== null}
-            >
-                <DialogPopup>
-                    <DialogHeader>
-                        <DialogTitle>Delete saved item?</DialogTitle>
-                        <DialogDescription>
-                            Remove{" "}
-                            {pendingDeleteItem?.noteContentText?.trim() ||
-                                pendingDeleteItem?.caption?.trim() ||
-                                pendingDeleteItem?.url ||
-                                "this saved item"}{" "}
-                            from Cache. This only deletes it from your library,
-                            not from the original platform.
-                        </DialogDescription>
-                    </DialogHeader>
-                    <DialogFooter>
-                        <DialogClose
-                            disabled={isDeletePending}
-                            render={<Button variant="ghost" />}
-                        >
-                            Cancel
-                        </DialogClose>
-                        <Button
-                            loading={isDeletePending}
-                            onClick={handleConfirmDelete}
-                            variant="destructive"
-                        >
-                            Delete
-                        </Button>
-                    </DialogFooter>
-                </DialogPopup>
-            </Dialog>
-            <Dialog
-                onOpenChange={handleCreateResultsDialogOpenChange}
-                open={isCreateResultsDialogOpen}
-            >
-                <DialogPopup>
-                    <form
-                        className="contents"
-                        onSubmit={(event) => {
-                            event.preventDefault();
-                            handleCreateCollectionFromResultsSubmit();
-                        }}
-                    >
-                        <DialogHeader>
-                            <div className="flex items-center gap-1">
-                                <Badge size="lg" variant="outline">
-                                    <Image
-                                        alt=""
-                                        height={12}
-                                        src={AppIconSmall}
-                                        width={12}
-                                    />
-                                    Cache
-                                </Badge>
-                                <ChevronRight className="inline-block size-3.5 shrink-0" />
-                                <DialogTitle className="font-medium text-sm">
-                                    New collection with{" "}
-                                    {resultCollectionItemIds.length} current
-                                    result
-                                    {resultCollectionItemIds.length === 1
-                                        ? ""
-                                        : "s"}
-                                </DialogTitle>
-                            </div>
-                        </DialogHeader>
-                        <DialogPanel className="space-y-2">
-                            <div>
-                                <label
-                                    className="sr-only font-medium text-sm"
-                                    htmlFor={createResultsNameInputId}
-                                >
-                                    Name
-                                </label>
-                                <Input
-                                    autoFocus
-                                    className="-mx-[calc(--spacing(3)-1px)] font-semibold text-xl"
-                                    id={createResultsNameInputId}
-                                    maxLength={COLLECTION_NAME_MAX_LENGTH}
-                                    onChange={(event) => {
-                                        setCreateResultsNameDraft(
-                                            event.currentTarget.value
-                                        );
-                                        if (createResultsError) {
-                                            setCreateResultsError(null);
-                                        }
-                                    }}
-                                    placeholder="Collection title"
-                                    required
-                                    size="lg"
-                                    type="text"
-                                    unstyled
-                                    value={createResultsNameDraft}
-                                />
-                            </div>
-                            <div>
-                                <label
-                                    className="sr-only font-medium text-sm"
-                                    htmlFor={createResultsDescriptionId}
-                                >
-                                    Description (optional)
-                                </label>
-                                <Textarea
-                                    className="-mx-[calc(--spacing(3)-1px)] *:resize-none"
-                                    id={createResultsDescriptionId}
-                                    maxLength={1024}
-                                    onChange={(event) => {
-                                        setCreateResultsDescriptionDraft(
-                                            event.currentTarget.value
-                                        );
-                                    }}
-                                    placeholder="Add description..."
-                                    size="lg"
-                                    unstyled
-                                    value={createResultsDescriptionDraft}
-                                />
-                            </div>
-                            {createResultsError ? (
-                                <p className="text-destructive text-sm">
-                                    {createResultsError}
-                                </p>
-                            ) : null}
-                        </DialogPanel>
-                        <DialogFooter>
-                            <CollectionComboboxPicker
-                                collections={collections}
-                                items={visibleResultItems}
-                                onUpdateItemCollections={
-                                    handleUpdateItemCollectionsWithFeedback
-                                }
-                                onUpdateItemsCollections={
-                                    handleUpdateItemsCollectionsWithFeedback
-                                }
-                                render={
-                                    <Button
-                                        className="mr-auto -ml-2"
-                                        size="xs"
-                                        variant="link"
-                                    />
-                                }
-                            >
-                                <Component className="mr-0.5! size-4" />
-                                Add to existing
-                            </CollectionComboboxPicker>
-                            <DialogClose
-                                disabled={isCreatingResultsCollection}
-                                render={<Button size="sm" variant="ghost" />}
-                            >
-                                Cancel
-                            </DialogClose>
-                            <Button
-                                loading={isCreatingResultsCollection}
-                                size="sm"
-                                type="submit"
-                            >
-                                Create collection
-                            </Button>
-                        </DialogFooter>
-                    </form>
-                </DialogPopup>
-            </Dialog>
             <Toolbar.Root className="max-w-xl rounded-t-4xl rounded-b-2xl bg-muted/80">
                 <Command
                     filter={null}
@@ -5219,7 +4982,7 @@ export function LibraryBrowser({
                                 />
                             }
                         />
-                        <AutocompletePopup positionMethod="fixed">
+                        <AutocompletePopup>
                             <CommandEmpty>
                                 No matching commands found.
                             </CommandEmpty>
@@ -5455,9 +5218,31 @@ export function LibraryBrowser({
                 </div>
             ) : null}
             {isPreviewOnly ? <InlinePaywallBanner /> : null}
-            {libraryGridBody}
+            <LibraryResults
+                clearLibraryPalette={clearLibraryPalette}
+                collapsedSectionKeys={collapsedSectionKeySet}
+                collections={collections}
+                columnCount={resolvedColumnCount}
+                enableSectionCollapse={enableSectionCollapse}
+                layoutMode={layoutMode}
+                onCollapseAllSections={collapseAllSections}
+                onCopyLink={handleCopyLink}
+                onDelete={handleRequestDelete}
+                onExpandAllSections={expandAllSections}
+                onOpenInNewTab={handleOpenInNewTab}
+                onOpenNote={handleOpenNote}
+                onSetActionFeedback={setActionFeedback}
+                onToggleSection={toggleSection}
+                onUpdateItemCollections={
+                    handleUpdateItemCollectionsWithFeedback
+                }
+                pendingDeleteItemId={pendingDeleteItem?.id ?? null}
+                sections={sections}
+                showEmptyLibraryPeek={showEmptyLibraryPeek}
+                showNoFilteredResults={showNoFilteredResults}
+            />
             {showLockedPreview ? (
-                <LockedLibraryPreview
+                <LockedResults
                     columnCount={resolvedColumnCount}
                     layoutMode={layoutMode}
                     totalItemCount={totalItemCount}
@@ -5471,6 +5256,169 @@ export function LibraryBrowser({
                 open={isNoteDrawerOpen}
                 saving={isSavingNote || isSavingPastedUrl}
             />
+            <Dialog
+                onOpenChange={handleDeleteDialogOpenChange}
+                open={pendingDeleteItem !== null}
+            >
+                <DialogPopup>
+                    <DialogHeader>
+                        <DialogTitle>Delete saved item?</DialogTitle>
+                        <DialogDescription>
+                            Remove{" "}
+                            {pendingDeleteItem?.noteContentText?.trim() ||
+                                pendingDeleteItem?.caption?.trim() ||
+                                pendingDeleteItem?.url ||
+                                "this saved item"}{" "}
+                            from Cache. This only deletes it from your library,
+                            not from the original platform.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter>
+                        <DialogClose
+                            disabled={isDeletePending}
+                            render={<Button variant="ghost" />}
+                        >
+                            Cancel
+                        </DialogClose>
+                        <Button
+                            loading={isDeletePending}
+                            onClick={handleConfirmDelete}
+                            variant="destructive"
+                        >
+                            Delete
+                        </Button>
+                    </DialogFooter>
+                </DialogPopup>
+            </Dialog>
+            <Dialog
+                onOpenChange={handleCreateResultsDialogOpenChange}
+                open={isCreateResultsDialogOpen}
+            >
+                <DialogPopup>
+                    <form
+                        className="contents"
+                        onSubmit={(event) => {
+                            event.preventDefault();
+                            handleCreateCollectionFromResultsSubmit();
+                        }}
+                    >
+                        <DialogHeader>
+                            <div className="flex items-center gap-1">
+                                <Badge size="lg" variant="outline">
+                                    <Image
+                                        alt=""
+                                        height={12}
+                                        src={AppIconSmall}
+                                        width={12}
+                                    />
+                                    Cache
+                                </Badge>
+                                <ChevronRight className="inline-block size-3.5 shrink-0" />
+                                <DialogTitle className="font-medium text-sm">
+                                    New collection with{" "}
+                                    {resultCollectionItemIds.length} current
+                                    result
+                                    {resultCollectionItemIds.length === 1
+                                        ? ""
+                                        : "s"}
+                                </DialogTitle>
+                            </div>
+                        </DialogHeader>
+                        <DialogPanel className="space-y-2">
+                            <div>
+                                <label
+                                    className="sr-only font-medium text-sm"
+                                    htmlFor={createResultsNameInputId}
+                                >
+                                    Name
+                                </label>
+                                <Input
+                                    autoFocus
+                                    className="-mx-[calc(--spacing(3)-1px)] font-semibold text-xl"
+                                    id={createResultsNameInputId}
+                                    maxLength={COLLECTION_NAME_MAX_LENGTH}
+                                    onChange={(event) => {
+                                        setCreateResultsNameDraft(
+                                            event.currentTarget.value
+                                        );
+                                        if (createResultsError) {
+                                            setCreateResultsError(null);
+                                        }
+                                    }}
+                                    placeholder="Collection title"
+                                    required
+                                    size="lg"
+                                    type="text"
+                                    unstyled
+                                    value={createResultsNameDraft}
+                                />
+                            </div>
+                            <div>
+                                <label
+                                    className="sr-only font-medium text-sm"
+                                    htmlFor={createResultsDescriptionId}
+                                >
+                                    Description (optional)
+                                </label>
+                                <Textarea
+                                    className="-mx-[calc(--spacing(3)-1px)] *:resize-none"
+                                    id={createResultsDescriptionId}
+                                    maxLength={1024}
+                                    onChange={(event) => {
+                                        setCreateResultsDescriptionDraft(
+                                            event.currentTarget.value
+                                        );
+                                    }}
+                                    placeholder="Add description..."
+                                    size="lg"
+                                    unstyled
+                                    value={createResultsDescriptionDraft}
+                                />
+                            </div>
+                            {createResultsError ? (
+                                <p className="text-destructive text-sm">
+                                    {createResultsError}
+                                </p>
+                            ) : null}
+                        </DialogPanel>
+                        <DialogFooter>
+                            <CollectionComboboxPicker
+                                collections={collections}
+                                items={visibleResultItems}
+                                onUpdateItemCollections={
+                                    handleUpdateItemCollectionsWithFeedback
+                                }
+                                onUpdateItemsCollections={
+                                    handleUpdateItemsCollectionsWithFeedback
+                                }
+                                render={
+                                    <Button
+                                        className="mr-auto -ml-2"
+                                        size="xs"
+                                        variant="link"
+                                    />
+                                }
+                            >
+                                <Component className="mr-0.5! size-4" />
+                                Add to existing
+                            </CollectionComboboxPicker>
+                            <DialogClose
+                                disabled={isCreatingResultsCollection}
+                                render={<Button size="sm" variant="ghost" />}
+                            >
+                                Cancel
+                            </DialogClose>
+                            <Button
+                                loading={isCreatingResultsCollection}
+                                size="sm"
+                                type="submit"
+                            >
+                                Create collection
+                            </Button>
+                        </DialogFooter>
+                    </form>
+                </DialogPopup>
+            </Dialog>
         </div>
     );
 }

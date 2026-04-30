@@ -130,3 +130,15 @@ export function isHttpUrl(value: string | null | undefined): value is string {
         return false;
     }
 }
+
+export function openSavedItemInNewTab(url: string) {
+    try {
+        if (typeof window.openai !== "undefined") {
+            window.openai.openExternal({ href: url });
+            return;
+        }
+    } catch {
+        // Fall back to a regular browser tab when the desktop bridge is unavailable.
+    }
+    window.open(url, "_blank", "noopener,noreferrer");
+}

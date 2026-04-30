@@ -11,10 +11,7 @@ interface UseListPanelOpenStateOptions {
     hotkey: string;
     onOpenChange?: OnOpenChange;
     open?: boolean;
-    state: {
-        isOpen: boolean;
-        setIsOpen: (open: boolean) => void;
-    };
+    state: readonly [isOpen: boolean, setIsOpen: (open: boolean) => void];
 }
 
 function createHotkeyOpenChangeDetails(
@@ -43,7 +40,7 @@ export function useListPanelOpenState({
     open,
     state,
 }: UseListPanelOpenStateOptions) {
-    const { isOpen: uncontrolledOpen, setIsOpen } = state;
+    const [uncontrolledOpen, setIsOpen] = state;
     const isControlled = open !== undefined;
     const resolvedOpen = isControlled ? open : uncontrolledOpen;
 

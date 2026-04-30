@@ -1,11 +1,8 @@
+import { useIsomorphicLayoutEffect } from "@/hooks/use-isomorphic-effect";
 import { CACHE_EXTENSION_READY_EVENT } from "@/lib/common/constants";
 import { canUseDOM, getOwnerWindow } from "@/lib/common/dom";
 import { asRecord } from "@/lib/common/objects";
 import * as React from "react";
-
-const useClientLayoutEffect = canUseDOM
-    ? React.useLayoutEffect
-    : React.useEffect;
 
 function readExtensionInstalledFlag(ownerWindow: Window): boolean {
     return (
@@ -21,7 +18,7 @@ function hasExtensionReadyMessage(payload: unknown): boolean {
 export function useIsExtensionInstalled(): boolean {
     const [isInstalled, setIsInstalled] = React.useState(false);
 
-    useClientLayoutEffect(() => {
+    useIsomorphicLayoutEffect(() => {
         if (!canUseDOM) {
             return;
         }

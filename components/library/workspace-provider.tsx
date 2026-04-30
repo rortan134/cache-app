@@ -59,11 +59,11 @@ interface LibraryWorkspaceContextValue {
     >;
 }
 
-const LibraryWorkspaceContext =
+const WorkspaceContext =
     React.createContext<LibraryWorkspaceContextValue | null>(null);
 
-export function useLibraryWorkspace(): LibraryWorkspaceContextValue {
-    const context = React.use(LibraryWorkspaceContext);
+export function useWorkspace(): LibraryWorkspaceContextValue {
+    const context = React.use(WorkspaceContext);
     if (!context) {
         throw new Error(
             "Library workspace context is required for library workspace controls."
@@ -78,7 +78,7 @@ interface LibraryWorkspaceProviderProps {
     initialItems: LibraryItemWithCollections[];
 }
 
-export function LibraryWorkspaceProvider({
+export function WorkspaceProvider({
     hasAccess,
     initialCollections,
     initialItems,
@@ -303,7 +303,7 @@ export function LibraryWorkspaceProvider({
     };
 
     return (
-        <LibraryWorkspaceContext
+        <WorkspaceContext
             value={{
                 collectionPreviewThumbnailUrlsById,
                 collectionSummaries,
@@ -324,7 +324,7 @@ export function LibraryWorkspaceProvider({
             }}
         >
             {children}
-        </LibraryWorkspaceContext>
+        </WorkspaceContext>
     );
 }
 

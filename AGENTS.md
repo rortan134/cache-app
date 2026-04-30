@@ -84,6 +84,40 @@ When to include specific details:
 
   Context: Document context behavior only if it is non-standard.
 
+## On React components
+
+Always prefer a headless, multi-part compound component composition pattern where a single logical widget is decomposed into many small, focused parts that communicate through shared internal state rather than props drilling. Every component should use a common, composable interface, making them predictable. Composable components naturally fit with one another. Each component is built to match the others, keeping the UI consistent.
+
+You mount a root controller (e.g. ‎`Combobox.Root` / ‎`ComboboxRoot`) that owns centralized state, behavior and semantics (value, inputValue, items, open, highlight, async status) and exposes it via context to leaf parts like ‎`Input`, ‎`InputGroup`, ‎`Trigger`, ‎`Icon`, ‎`List`, ‎`Item`, ‎`ItemIndicator`, ‎`Chips`, ‎`Group`, ‎`Portal`, ‎`Positioner`, ‎`Popup`, ‎`Status`, and ‎`Empty` exported as many headless part components bound together by the shared store/context layer
+
+Leaf components may also layer on local responsibilities that are intrinsically per-item tightly scoped to how one item registers itself with the store and translates global state.
+
+Always use the shadow DOM-safe utilities for DOM traversal and event targeting: contains, getTarget, and activeElement. Always use the owner utilities ownerDocument and ownerWindow instead of global document/window lookups when the code is tied to a DOM node, including realm-sensitive checks such as instanceof.
+
+Avoid duplicating logic where necessary. If two components can share logic (such as event handlers), define the logic/handlers in the parent and share it through a context to the child; use the existing context if it exists.
+
+Never render items directly inside the content container.
+
+**Incorrect:**
+
+```tsx
+<SelectContent>
+  <SelectItem value="apple">Apple</SelectItem>
+  <SelectItem value="banana">Banana</SelectItem>
+</SelectContent>
+```
+
+**Correct:**
+
+```tsx
+<SelectContent>
+  <SelectGroup>
+    <SelectItem value="apple">Apple</SelectItem>
+    <SelectItem value="banana">Banana</SelectItem>
+  </SelectGroup>
+</SelectContent>
+```
+
 ## On this project
 
 Before adding a new utility, check if a similar one exists in the `lib/` directory or nearby module scope as utils.

@@ -4,18 +4,17 @@ import {
     UserMenuFooter,
     UserMenuHeader,
 } from "@/components/auth/user-menu";
-import { LibraryBrowser } from "@/components/library/browser";
+import { Root } from "@/components/library/browser";
 import { WorkspaceCollectionsList } from "@/components/library/collections-list";
 import {
     IntegrationsList,
-    IntegrationsListEmpty,
     IntegrationsListItem,
     IntegrationsListItemAction,
     IntegrationsListNoticeCallout,
     IntegrationsListPanel,
     IntegrationsListTrigger,
 } from "@/components/library/integrations";
-import { LibraryWorkspaceProvider } from "@/components/library/workspace-context";
+import { WorkspaceProvider } from "@/components/library/workspace-provider";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { BrandLogo } from "@/components/ui/brand-logo";
 import { ChevronDownFilledIcon } from "@/components/ui/icons";
@@ -52,6 +51,24 @@ import LogoIconImage from "@/public/cache-app-icon.png";
 import { T } from "gt-next";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
+
+export async function generateMetadata({
+    params,
+}: {
+    params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+    const { locale } = await params;
+
+    return {
+        alternates: buildLocaleAlternates("/library"),
+        description: gtPublicString(
+            locale,
+            "library.metadata.description",
+            "Saved items from your connected accounts and extension imports appear below by source."
+        ),
+        title: gtPublicString(locale, "library.metadata.title", "My library"),
+    };
+}
 
 const FREE_LIBRARY_PREVIEW_ITEMS = 12;
 
@@ -144,23 +161,6 @@ async function getUserLibraryPageData(args: {
     };
 }
 
-export async function generateMetadata({
-    params,
-}: {
-    params: Promise<{ locale: string }>;
-}): Promise<Metadata> {
-    const { locale } = await params;
-    return {
-        alternates: buildLocaleAlternates("/library"),
-        description: gtPublicString(
-            locale,
-            "library.metadata.description",
-            "Saved items from your connected accounts and extension imports appear below by source."
-        ),
-        title: gtPublicString(locale, "library.metadata.title", "My library"),
-    };
-}
-
 export default async function LibraryPage() {
     const session = await getServerSession();
     const userId = session?.user?.id;
@@ -214,7 +214,7 @@ export default async function LibraryPage() {
     return (
         <PageShell>
             <div className="flex flex-1 flex-col gap-8 lg:flex-row lg:justify-between">
-                <LibraryWorkspaceProvider
+                <WorkspaceProvider
                     hasAccess={hasAccess}
                     initialCollections={collections}
                     initialItems={items}
@@ -247,46 +247,37 @@ export default async function LibraryPage() {
                                     </div>
                                 </IntegrationsListTrigger>
                                 <IntegrationsListPanel>
-                                    {INTEGRATIONS.length > 0 ? (
-                                        INTEGRATIONS.map(
-                                            ({
-                                                id,
-                                                label,
-                                                description,
-                                                Icon,
-                                            }) => (
-                                                <IntegrationsListItem key={id}>
-                                                    <Avatar
-                                                        aria-label={label}
-                                                        className="rounded-md"
-                                                    >
-                                                        <AvatarFallback className="rounded-md bg-muted/80">
-                                                            <Icon
-                                                                aria-hidden="true"
-                                                                className="size-4.5 shrink-0 *:shadow"
-                                                                focusable="false"
-                                                            />
-                                                        </AvatarFallback>
-                                                    </Avatar>
-                                                    <div className="flex min-w-0 flex-1 flex-col">
-                                                        <span className="font-medium text-sm leading-snug">
-                                                            {label}
-                                                        </span>
-                                                        <span className="text-[11px] text-muted-foreground leading-snug">
-                                                            {description}
-                                                        </span>
-                                                    </div>
-                                                    <IntegrationsListItemAction
-                                                        id={id}
-                                                        isConnected={connectedIntegrationIdSet.has(
-                                                            id
-                                                        )}
-                                                    />
-                                                </IntegrationsListItem>
-                                            )
+                                    {INTEGRATIONS.map(
+                                        ({ id, label, description, Icon }) => (
+                                            <IntegrationsListItem key={id}>
+                                                <Avatar
+                                                    aria-label={label}
+                                                    className="rounded-md"
+                                                >
+                                                    <AvatarFallback className="rounded-md bg-muted/80">
+                                                        <Icon
+                                                            aria-hidden="true"
+                                                            className="size-4.5 shrink-0"
+                                                            focusable="false"
+                                                        />
+                                                    </AvatarFallback>
+                                                </Avatar>
+                                                <div className="flex min-w-0 flex-1 flex-col">
+                                                    <span className="font-medium text-sm leading-snug">
+                                                        {label}
+                                                    </span>
+                                                    <span className="text-[11px] text-muted-foreground leading-snug">
+                                                        {description}
+                                                    </span>
+                                                </div>
+                                                <IntegrationsListItemAction
+                                                    id={id}
+                                                    isConnected={connectedIntegrationIdSet.has(
+                                                        id
+                                                    )}
+                                                />
+                                            </IntegrationsListItem>
                                         )
-                                    ) : (
-                                        <IntegrationsListEmpty />
                                     )}
                                     <IntegrationsListNoticeCallout />
                                 </IntegrationsListPanel>
@@ -302,12 +293,12 @@ export default async function LibraryPage() {
                         </SidebarFooter>
                     </Sidebar>
                     <div className="flex w-full max-w-[1024px] flex-col items-center gap-12 p-8 2xl:mx-auto">
-                        <LibraryBrowser
+                        <Root
                             lockedItemCount={lockedItemCount}
                             totalItemCount={totalItemCount}
                         />
                     </div>
-                </LibraryWorkspaceProvider>
+                </WorkspaceProvider>
             </div>
         </PageShell>
     );

@@ -6,6 +6,7 @@ import { mergeProps } from "@base-ui/react/merge-props";
 import { useRender } from "@base-ui/react/use-render";
 import { useRefWithInit } from "@base-ui/utils/useRefWithInit";
 import * as React from "react";
+import { useIsomorphicLayoutEffect } from "@/hooks/use-isomorphic-effect";
 
 const ROOT_NAME = "QRCode";
 const IMAGE_NAME = "QRCodeImage";
@@ -62,7 +63,7 @@ interface QRCodeContextValue {
 const StoreContext = React.createContext<Store | null>(null);
 
 function useStore<T>(selector: (state: StoreState) => T): T {
-    const store = React.useContext(StoreContext);
+    const store = React.use(StoreContext);
     if (!store) {
         throw new Error(`\`useQRCode\` must be used within \`${ROOT_NAME}\``);
     }
@@ -82,7 +83,7 @@ function useStore<T>(selector: (state: StoreState) => T): T {
 const QRCodeContext = React.createContext<QRCodeContextValue | null>(null);
 
 function useQRCodeContext(consumerName: string) {
-    const context = React.useContext(QRCodeContext);
+    const context = React.use(QRCodeContext);
     if (!context) {
         throw new Error(
             `\`${consumerName}\` must be used within \`${ROOT_NAME}\``
@@ -312,12 +313,11 @@ function QRCode(props: QRCodeProps) {
         [value, size, backgroundColor, foregroundColor, level, margin]
     );
 
-    React.useLayoutEffect(() => {
+    useIsomorphicLayoutEffect(() => {
         if (generationKey) {
             const rafId = requestAnimationFrame(() => {
                 onQRCodeGenerate(generationKey);
             });
-
             return () => cancelAnimationFrame(rafId);
         }
     }, [generationKey, onQRCodeGenerate]);

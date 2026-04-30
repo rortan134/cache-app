@@ -1,6 +1,7 @@
 import { APP_NAME } from "@/lib/common/constants";
 import { getLocales } from "gt-next/server";
 import type { Metadata } from "next";
+import { NuqsAdapter } from "nuqs/adapters/next/app";
 import * as React from "react";
 
 export function generateStaticParams() {
@@ -14,5 +15,9 @@ export function generateMetadata(): Metadata {
 }
 
 export default function LocaleLayout({ children }: React.PropsWithChildren) {
-    return <React.Suspense>{children}</React.Suspense>;
+    return (
+        <React.Suspense>
+            <NuqsAdapter>{children}</NuqsAdapter>
+        </React.Suspense>
+    );
 }

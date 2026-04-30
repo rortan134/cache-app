@@ -1,5 +1,26 @@
 import { Badge } from "@/components/ui/badge";
+import { buildLocaleAlternates } from "@/lib/i18n/alternates";
+import { gtPublicString } from "@/lib/i18n/gt-public-json";
 import { ArrowUpRight } from "lucide-react";
+import type { Metadata } from "next";
+
+export async function generateMetadata({
+    params,
+}: {
+    params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+    const { locale } = await params;
+
+    return {
+        alternates: buildLocaleAlternates("/changelog"),
+        description: gtPublicString(
+            locale,
+            "library.metadata.description",
+            "Changelog."
+        ),
+        title: gtPublicString(locale, "library.metadata.title", "Changelog"),
+    };
+}
 
 interface ChangelogEntry {
     button?: {

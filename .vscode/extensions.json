@@ -1,3 +1,9 @@
 {
-    "recommendations": ["biomejs.biome", "oven.bun-vscode", "Prisma.prisma"]
+    "recommendations": [
+        "biomejs.biome",
+        "oven.bun-vscode",
+        "Prisma.prisma",
+        "bradlc.vscode-tailwindcss",
+        "yoavbls.pretty-ts-errors"
+    ]
 }

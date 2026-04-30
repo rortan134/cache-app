@@ -13,6 +13,7 @@ export async function generateMetadata({
     params: Promise<{ locale: string }>;
 }): Promise<Metadata> {
     const { locale } = await params;
+
     return {
         alternates: buildLocaleAlternates("/legal"),
         description: gtPublicString(
