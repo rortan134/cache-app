@@ -26,7 +26,7 @@ import {
     type SupportedIntegrationAction,
 } from "@/lib/integrations/support";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import * as React from "react";
 
 const log = createLogger("integration-actions");
 
@@ -54,11 +54,11 @@ interface UseIntegrationActionResult {
 
 function resolveActionLabel(args: {
     connectBehavior?: OAuthLinkConnectBehavior | SocialSignInConnectBehavior;
+    explicitLabel?: string;
     extensionInstalled: boolean;
     isConnected: boolean;
-    role: IntegrationActionRole;
     openBehavior?: ExtensionOpenBehavior;
-    explicitLabel?: string;
+    role: IntegrationActionRole;
 }): string {
     const {
         connectBehavior,
@@ -139,6 +139,7 @@ async function executeIntegrationAction(args: {
         return { refresh: false, successMessage: null };
     }
 
+    // role === "sync"
     if (!integration.behaviors.sync) {
         throw createCapabilityMissingError({
             capability: "sync",
@@ -207,6 +208,10 @@ function createActionViewModel(args: {
     };
 }
 
+/**
+ * Builds view models and handlers for integration action buttons (connect,
+ * open, sync) based on the integration's capabilities and connection state.
+ */
 export function useIntegrationAction({
     direction,
     id,
@@ -216,10 +221,12 @@ export function useIntegrationAction({
     const extensionInstalled = useIsExtensionInstalled();
     const integration = getIntegration(id);
     const { behaviors } = integration;
-    const [errorMessage, setErrorMessage] = useState<string | null>(null);
+    const [errorMessage, setErrorMessage] = React.useState<string | null>(null);
     const [pendingRole, setPendingRole] =
-        useState<IntegrationActionRole | null>(null);
-    const [successMessage, setSuccessMessage] = useState<string | null>(null);
+        React.useState<IntegrationActionRole | null>(null);
+    const [successMessage, setSuccessMessage] = React.useState<string | null>(
+        null
+    );
 
     const handleAction = async (role: IntegrationActionRole) => {
         setErrorMessage(null);

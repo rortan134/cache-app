@@ -14,6 +14,10 @@ interface UseCopyToClipboardResult {
     isCopied: boolean;
 }
 
+/**
+ * Copies text to the clipboard and provides a transient `isCopied` state.
+ * Resets automatically after the configured timeout.
+ */
 export function useCopyToClipboard({
     timeout = 2000,
     onCopy,

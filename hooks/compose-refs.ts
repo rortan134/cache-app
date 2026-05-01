@@ -1,3 +1,5 @@
+"use client";
+
 /**
  * @see https://github.com/radix-ui/primitives/blob/main/packages/react/compose-refs/src/compose-refs.tsx
  */
@@ -29,20 +31,13 @@ function composeRefs<T>(
     ...refs: readonly PossibleRef<T>[]
 ): React.RefCallback<T> {
     return (node) => {
-        let hasCleanup = false;
-        const cleanups = refs.map((ref) => {
-            const cleanup = setRef(ref, node);
-            if (!hasCleanup && typeof cleanup === "function") {
-                hasCleanup = true;
-            }
-            return cleanup;
-        });
+        const cleanups = refs.map((ref) => setRef(ref, node));
 
         // React <19 will log an error to the console if a callback ref returns a
         // value. We don't use ref cleanups internally so this will only happen if a
         // user's ref callback returns a value, which we only expect if they are
         // using the cleanup functionality added in React 19.
-        if (hasCleanup) {
+        if (cleanups.some((cleanup) => typeof cleanup === "function")) {
             return () => {
                 for (let i = 0; i < cleanups.length; i++) {
                     const cleanup = cleanups[i];

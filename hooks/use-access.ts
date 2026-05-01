@@ -2,6 +2,10 @@ import { useSession } from "@/lib/auth/client";
 import { getActiveSubscription } from "@/lib/auth/subscriptions";
 import useSWR from "swr";
 
+/**
+ * Returns the user's subscription access status, derived from session and
+ * active subscription data. Throws session errors to be caught by error boundaries.
+ */
 function useAccess() {
     const {
         data: session,

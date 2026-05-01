@@ -1,6 +1,6 @@
 import { useIsomorphicLayoutEffect } from "@/hooks/use-isomorphic-effect";
 import { CACHE_EXTENSION_READY_EVENT } from "@/lib/common/constants";
-import { canUseDOM, getOwnerWindow } from "@/lib/common/dom";
+import { getOwnerWindow } from "@/lib/common/dom";
 import { asRecord } from "@/lib/common/objects";
 import * as React from "react";
 
@@ -15,24 +15,20 @@ function hasExtensionReadyMessage(payload: unknown): boolean {
     return asRecord(payload)?.type === CACHE_EXTENSION_READY_EVENT;
 }
 
+/**
+ * Tracks whether the Cache browser extension is installed by checking a DOM
+ * data attribute and listening for extension readiness events.
+ */
 export function useIsExtensionInstalled(): boolean {
     const [isInstalled, setIsInstalled] = React.useState(false);
 
     useIsomorphicLayoutEffect(() => {
-        if (!canUseDOM) {
-            return;
-        }
-
         if (readExtensionInstalledFlag(getOwnerWindow())) {
             setIsInstalled(true);
         }
     }, []);
 
     React.useEffect(() => {
-        if (!canUseDOM) {
-            return;
-        }
-
         const ownerWindow = getOwnerWindow();
         const markInstalled = () => setIsInstalled(true);
 

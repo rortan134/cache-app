@@ -34,6 +34,10 @@ function createHotkeyOpenChangeDetails(
     return details;
 }
 
+/**
+ * Manages open/close state for a collapsible list panel, including hotkey
+ * support with proper Base UI Collapsible event details.
+ */
 export function useListPanelOpenState({
     hotkey,
     onOpenChange,
