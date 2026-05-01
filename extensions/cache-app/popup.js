@@ -223,25 +223,39 @@ syncBtn?.addEventListener("click", async () => {
         }
         const url = tab.url ?? "";
         if (
-            !(
-                url.startsWith("https://www.instagram.com/") ||
-                url.startsWith("https://www.tiktok.com/") ||
-                isYouTubeWatchLaterUrl(url)
-            )
+            url.startsWith("https://www.instagram.com/") ||
+            url.startsWith("https://www.tiktok.com/") ||
+            isYouTubeWatchLaterUrl(url)
         ) {
-            throw new Error(
-                "Open Instagram Saved, TikTok Favorites, or YouTube Watch Later in this tab."
-            );
+            await chrome.tabs.sendMessage(tab.id, {
+                type: MESSAGE_TYPES.START_SYNC,
+            });
+            return;
         }
 
-        await chrome.tabs.sendMessage(tab.id, {
-            type: MESSAGE_TYPES.START_SYNC,
+        if (!url) {
+            throw new Error("This tab has no URL to save.");
+        }
+        if (
+            url.startsWith("chrome://") ||
+            url.startsWith("chrome-extension://") ||
+            url.startsWith("javascript:") ||
+            url.startsWith("data:")
+        ) {
+            throw new Error("This type of page cannot be bookmarked.");
+        }
+
+        await chrome.bookmarks.create({
+            title: tab.title || url,
+            url,
         });
+        // The service worker handles chrome.bookmarks.onCreated and syncs it.
+        // The popup UI updates via SYNC_PROGRESS / SYNC_DONE messages.
     } catch (error) {
         setStatus(
             error instanceof Error
                 ? error.message
-                : "Could not reach this page. Reload the tab and try again.",
+                : "Could not save this page. Reload the tab and try again.",
             "error"
         );
         syncBtn.disabled = false;

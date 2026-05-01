@@ -50,6 +50,18 @@ const CHROME_KEYS = {
     syncEnabled: "chromeSyncEnabled",
 };
 
+// chrome.storage.local does not support atomic read-modify-write.
+// We serialize every queue mutation through a single Promise chain so
+// that flushes cannot overwrite enqueues that happen between a flush’s
+// read and its subsequent write.
+let queueMutationPromise = Promise.resolve();
+
+function withQueueLock(operation) {
+    const promise = queueMutationPromise.then(operation);
+    queueMutationPromise = promise.catch(() => {});
+    return promise;
+}
+
 let chromeFlushInFlight = null;
 
 function messageSource(msg) {
@@ -371,10 +383,12 @@ async function enqueueChromeEvents(events, mode) {
     if (!Array.isArray(events) || events.length === 0) {
         return;
     }
-    const current = await readChromeQueueState();
-    await chrome.storage.local.set({
-        [CHROME_KEYS.pendingEvents]: [...current.events, ...events],
-        [CHROME_KEYS.pendingMode]: mode ?? current.mode,
+    await withQueueLock(async () => {
+        const current = await readChromeQueueState();
+        await chrome.storage.local.set({
+            [CHROME_KEYS.pendingEvents]: [...current.events, ...events],
+            [CHROME_KEYS.pendingMode]: mode ?? current.mode,
+        });
     });
     await notifySyncProgress("chrome");
 }
@@ -385,88 +399,136 @@ async function flushChromeBookmarkQueue() {
     }
 
     chromeFlushInFlight = (async () => {
-        const settings = await chrome.storage.local.get([
-            CHROME_KEYS.bookmarkCount,
-            CHROME_KEYS.pendingEvents,
-            CHROME_KEYS.pendingMode,
-            STORAGE_KEYS.syncApiKey,
-            STORAGE_KEYS.syncEndpoint,
-        ]);
-        const pendingEvents = Array.isArray(settings[CHROME_KEYS.pendingEvents])
-            ? settings[CHROME_KEYS.pendingEvents]
-            : [];
-        if (pendingEvents.length === 0) {
-            chromeFlushInFlight = null;
-            return;
-        }
-
-        const identity = await ensureChromeIdentity();
-        const apiKey =
-            typeof settings[STORAGE_KEYS.syncApiKey] === "string"
-                ? settings[STORAGE_KEYS.syncApiKey]
-                : "";
-        const storedEndpoint =
-            typeof settings[STORAGE_KEYS.syncEndpoint] === "string"
-                ? settings[STORAGE_KEYS.syncEndpoint]
-                : "";
-        const endpoint =
-            ingestEndpointForSource(storedEndpoint, "chrome") ||
-            defaultChromeSyncEndpoint();
-        const mode =
-            settings[CHROME_KEYS.pendingMode] === CHROME_SYNC_MODES.oneTimeImport
-                ? CHROME_SYNC_MODES.oneTimeImport
-                : CHROME_SYNC_MODES.continuous;
-
         try {
-            await notifySyncProgress("chrome");
-
-            let offset = 0;
-            while (offset < pendingEvents.length) {
-                const batch = pendingEvents.slice(
-                    offset,
-                    offset + CHROME_SYNC_BATCH_SIZE
+            while (true) {
+                const { pendingEvents, settings } = await withQueueLock(
+                    async () => {
+                        const settings = await chrome.storage.local.get([
+                            CHROME_KEYS.bookmarkCount,
+                            CHROME_KEYS.pendingEvents,
+                            CHROME_KEYS.pendingMode,
+                            STORAGE_KEYS.syncApiKey,
+                            STORAGE_KEYS.syncEndpoint,
+                        ]);
+                        const pendingEvents = Array.isArray(
+                            settings[CHROME_KEYS.pendingEvents]
+                        )
+                            ? settings[CHROME_KEYS.pendingEvents]
+                            : [];
+                        return { pendingEvents, settings };
+                    }
                 );
-                await postChromeSyncBatch(endpoint, apiKey, {
-                    browserProfileId:
-                        identity.profileId || DEFAULT_BROWSER_PROFILE_ID,
-                    device: {
-                        id: identity.deviceId,
-                        name: identity.deviceName,
-                    },
-                    events: batch,
-                    mode,
-                    syncedAt: new Date().toISOString(),
-                });
-                offset += batch.length;
-            }
 
-            const bookmarkCount = pendingEvents.reduce((count, event) => {
-                if (event?.type === "upsert" || event?.type === "move") {
-                    return (
-                        count + (event.bookmark?.kind === "bookmark" ? 1 : 0)
-                    );
+                if (pendingEvents.length === 0) {
+                    break;
                 }
-                return count;
-            }, 0);
 
-            await chrome.storage.local.set({
-                [CHROME_KEYS.bookmarkCount]: Math.max(
-                    typeof settings[CHROME_KEYS.bookmarkCount] === "number"
-                        ? settings[CHROME_KEYS.bookmarkCount]
-                        : 0,
-                    bookmarkCount
-                ),
-                [CHROME_KEYS.lastError]: "",
-                [CHROME_KEYS.lastSyncAt]: new Date().toISOString(),
-                [CHROME_KEYS.pendingEvents]: [],
-            });
-            await notifySyncDone("chrome");
-        } catch (error) {
-            const message =
-                error instanceof Error ? error.message : String(error);
-            console.warn("[Cache App] Chrome bookmark sync error:", error);
-            await setChromeLastError(message);
-            await notifySyncError("CHROME_SYNC_FAILED", message);
+                try {
+                    const identity = await ensureChromeIdentity();
+                    const apiKey =
+                        typeof settings[STORAGE_KEYS.syncApiKey] === "string"
+                            ? settings[STORAGE_KEYS.syncApiKey]
+                            : "";
+                    const storedEndpoint =
+                        typeof settings[STORAGE_KEYS.syncEndpoint] === "string"
+                            ? settings[STORAGE_KEYS.syncEndpoint]
+                            : "";
+                    const endpoint =
+                        ingestEndpointForSource(storedEndpoint, "chrome") ||
+                        defaultChromeSyncEndpoint();
+                    const mode =
+                        settings[CHROME_KEYS.pendingMode] ===
+                        CHROME_SYNC_MODES.oneTimeImport
+                            ? CHROME_SYNC_MODES.oneTimeImport
+                            : CHROME_SYNC_MODES.continuous;
+
+                    await notifySyncProgress("chrome");
+
+                    let offset = 0;
+                    while (offset < pendingEvents.length) {
+                        const batch = pendingEvents.slice(
+                            offset,
+                            offset + CHROME_SYNC_BATCH_SIZE
+                        );
+                        await postChromeSyncBatch(endpoint, apiKey, {
+                            browserProfileId:
+                                identity.profileId ||
+                                DEFAULT_BROWSER_PROFILE_ID,
+                            device: {
+                                id: identity.deviceId,
+                                name: identity.deviceName,
+                            },
+                            events: batch,
+                            mode,
+                            syncedAt: new Date().toISOString(),
+                        });
+                        offset += batch.length;
+                    }
+
+                    const bookmarkCount = pendingEvents.reduce(
+                        (count, event) => {
+                            if (
+                                event?.type === "upsert" ||
+                                event?.type === "move"
+                            ) {
+                                return (
+                                    count +
+                                    (event.bookmark?.kind === "bookmark"
+                                        ? 1
+                                        : 0)
+                                );
+                            }
+                            return count;
+                        },
+                        0
+                    );
+
+                    const { remaining } = await withQueueLock(async () => {
+                        const afterFlush = await chrome.storage.local.get([
+                            CHROME_KEYS.bookmarkCount,
+                            CHROME_KEYS.pendingEvents,
+                        ]);
+                        const afterPending = Array.isArray(
+                            afterFlush[CHROME_KEYS.pendingEvents]
+                        )
+                            ? afterFlush[CHROME_KEYS.pendingEvents]
+                            : [];
+                        const remaining = afterPending.slice(
+                            pendingEvents.length
+                        );
+
+                        await chrome.storage.local.set({
+                            [CHROME_KEYS.bookmarkCount]: Math.max(
+                                typeof afterFlush[CHROME_KEYS.bookmarkCount] ===
+                                    "number"
+                                    ? afterFlush[CHROME_KEYS.bookmarkCount]
+                                    : 0,
+                                bookmarkCount
+                            ),
+                            [CHROME_KEYS.lastError]: "",
+                            [CHROME_KEYS.lastSyncAt]: new Date().toISOString(),
+                            [CHROME_KEYS.pendingEvents]: remaining,
+                        });
+                        return { remaining };
+                    });
+                    await notifySyncDone("chrome");
+
+                    if (remaining.length === 0) {
+                        break;
+                    }
+                    // Continue to flush any events that arrived mid-flight.
+                } catch (error) {
+                    const message =
+                        error instanceof Error ? error.message : String(error);
+                    console.warn(
+                        "[Cache App] Chrome bookmark sync error:",
+                        error
+                    );
+                    await setChromeLastError(message);
+                    await notifySyncError("CHROME_SYNC_FAILED", message);
+                    break;
+                }
+            }
         } finally {
             chromeFlushInFlight = null;
         }
