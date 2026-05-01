@@ -1,5 +1,6 @@
 "use client";
 
+import { FeedbackWidget } from "@/components/feedback/feedback-widget";
 import { Button } from "@/components/ui/button";
 import {
     Collapsible,
@@ -13,6 +14,7 @@ import {
     PopoverTitle,
     PopoverTrigger,
 } from "@/components/ui/popover";
+import { SidebarItem } from "@/components/ui/sidebar";
 import { useIntegrationAction } from "@/hooks/use-integration-action";
 import { useListPanelOpenState } from "@/hooks/use-list-panel-open-state";
 import { cn } from "@/lib/common/cn";
@@ -22,7 +24,7 @@ import type {
     IntegrationId,
 } from "@/lib/integrations/support";
 import IntegrationsPreviewImage from "@/public/integrations-preview.webp";
-import { ArrowUpRight, Images, Info, RefreshCw } from "lucide-react";
+import { ArrowUpRight, Images, RefreshCw } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import * as React from "react";
@@ -71,10 +73,9 @@ export function IntegrationsList({
     );
 }
 
-export function IntegrationsListTrigger({
-    className,
-    ...props
-}: React.ComponentProps<typeof CollapsibleTrigger>) {
+export function IntegrationsListTrigger(
+    props: React.ComponentProps<typeof CollapsibleTrigger>
+) {
     const [isOpen] = useIntegrationsListOpenState();
 
     return (
@@ -83,10 +84,7 @@ export function IntegrationsListTrigger({
                 openOnHover
                 render={
                     <CollapsibleTrigger
-                        className={cn(
-                            "flex select-none items-center gap-1.5 rounded-full bg-muted px-3 py-2 text-left text-foreground leading-none hover:bg-input/50 active:bg-input/30",
-                            className
-                        )}
+                        render={<SidebarItem />}
                         title={isOpen ? "Collapse panel" : "Expand panel"}
                         {...props}
                     />
@@ -131,45 +129,60 @@ export function IntegrationsListNoticeCallout() {
     const [isOpen, setIsOpen] = React.useState(true);
 
     return (
-        <Collapsible
-            className="-mx-0.5 mt-3"
-            onOpenChange={setIsOpen}
-            open={isOpen}
-        >
-            <CollapsiblePanel>
-                <div className="flex gap-1.5">
-                    <Info className="mt-0.5 inline-block size-3.5 shrink-0" />
-                    <p className="text-[11px] text-muted-foreground leading-tight">
-                        Please only connect accounts you trust. Cache can access
-                        what you choose to save with connected apps. You can
-                        always change your mind.{" "}
-                        <Button
-                            className="h-fit! px-0 leading-tight sm:text-[11px]"
-                            onClick={() => setIsOpen(false)}
-                            size="xs"
-                            variant="link"
-                        >
-                            Dismiss
-                        </Button>{" "}
-                        or{" "}
-                        <Button
-                            className="h-fit! px-0 leading-tight sm:text-[11px]"
-                            render={
-                                <Link
-                                    href="/legal/privacy-policy"
-                                    target="_blank"
-                                />
-                            }
-                            size="xs"
-                            variant="link"
-                        >
-                            Cache Privacy
-                            <ArrowUpRight className="inline-block size-3 text-muted-foreground" />
-                        </Button>
-                    </p>
-                </div>
-            </CollapsiblePanel>
-        </Collapsible>
+        <>
+            <FeedbackWidget className="mx-2.5 mt-1 mb-0.5">
+                <p className="text-left text-[11px] text-muted-foreground leading-tight">
+                    Can't find the integration you need most?{" "}
+                    <Button
+                        className="h-fit! px-0 leading-tight sm:text-[11px]"
+                        render={<span />}
+                        size="xs"
+                        variant="link"
+                    >
+                        Request it
+                    </Button>
+                </p>
+            </FeedbackWidget>
+            <Collapsible
+                className="mx-2.5 pb-1"
+                onOpenChange={setIsOpen}
+                open={isOpen}
+            >
+                <CollapsiblePanel>
+                    <div className="flex gap-1.5">
+                        {/* <Info className="mt-0.5 inline-block size-3.5 shrink-0" /> */}
+                        <p className="text-[11px] text-muted-foreground leading-tight">
+                            Please only connect accounts you trust. Cache can
+                            access what you choose to save with connected apps.
+                            You can always change your mind.{" "}
+                            <Button
+                                className="h-fit! px-0 leading-tight sm:text-[11px]"
+                                onClick={() => setIsOpen(false)}
+                                size="xs"
+                                variant="link"
+                            >
+                                Dismiss
+                            </Button>{" "}
+                            or{" "}
+                            <Button
+                                className="h-fit! px-0 leading-tight sm:text-[11px]"
+                                render={
+                                    <Link
+                                        href="/legal/privacy-policy"
+                                        target="_blank"
+                                    />
+                                }
+                                size="xs"
+                                variant="link"
+                            >
+                                Cache Privacy
+                                <ArrowUpRight className="inline-block size-3 text-muted-foreground" />
+                            </Button>
+                        </p>
+                    </div>
+                </CollapsiblePanel>
+            </Collapsible>
+        </>
     );
 }
 
@@ -178,11 +191,8 @@ export function IntegrationsListItem({
     ...props
 }: React.ComponentProps<"div">) {
     return (
-        <div
-            className={cn(
-                "flex items-center gap-2.5 pt-1.5 first:mt-3",
-                className
-            )}
+        <SidebarItem
+            className={cn("gap-2.5 py-0.5 opacity-100", className)}
             {...props}
         />
     );
@@ -232,22 +242,8 @@ export function IntegrationsListEmpty({
     );
 }
 
-/** @internal */
-function IntegrationsListActionButton({
-    className,
-    variant = "ghost",
-    ...props
-}: React.ComponentProps<typeof Button>) {
-    return (
-        <Button
-            className={cn("rounded-full", className)}
-            variant={variant}
-            {...props}
-        />
-    );
-}
-
 interface IntegrationsListItemActionProps {
+    className?: string;
     direction?: IntegrationDirection;
     id: IntegrationId;
     isConnected: boolean;
@@ -257,21 +253,21 @@ export function IntegrationsListItemAction({
     direction = "source",
     id,
     isConnected,
+    className,
 }: IntegrationsListItemActionProps) {
     const { actions, errorMessage, successMessage } = useIntegrationAction({
         direction: "source",
         id,
         isConnected,
     });
+    const hasActions = actions.length > 0;
 
-    if (actions.length === 0 && !errorMessage && !successMessage) {
+    if (!(hasActions || errorMessage || successMessage)) {
         return null;
     }
 
-    const hasActions = actions.length > 0;
-
     return (
-        <div className="ml-auto flex flex-col items-start gap-1">
+        <div className={cn("ml-auto flex flex-col items-end gap-1", className)}>
             {hasActions && (
                 <div className="flex flex-wrap items-center gap-1">
                     {actions.map((action) => {
@@ -281,21 +277,22 @@ export function IntegrationsListItemAction({
                         const isIconOnly = action.size === "icon";
 
                         return (
-                            <IntegrationsListActionButton
+                            <Button
                                 aria-label={
                                     isIconOnly ? action.label : undefined
                                 }
+                                className="rounded-full text-xs!"
                                 key={`${id}-${direction}-${action.role}`}
                                 loading={action.isLoading}
                                 onClick={action.onClick}
                                 size={action.size}
-                                variant={action.variant}
+                                variant={action.variant ?? "ghost"}
                             >
                                 {ActionIcon ? (
                                     <ActionIcon className="size-4" />
                                 ) : null}
                                 {isIconOnly ? null : action.label}
-                            </IntegrationsListActionButton>
+                            </Button>
                         );
                     })}
                 </div>

@@ -10,6 +10,7 @@
  */
 export type * from './models/User.ts'
 export type * from './models/Collection.ts'
+export type * from './models/LibraryActivityEvent.ts'
 export type * from './models/LibraryItem.ts'
 export type * from './models/LibraryItemPreview.ts'
 export type * from './models/Session.ts'

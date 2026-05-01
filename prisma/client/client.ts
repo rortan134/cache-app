@@ -52,6 +52,11 @@ export type User = Prisma.UserModel
  */
 export type Collection = Prisma.CollectionModel
 /**
+ * Model LibraryActivityEvent
+ * Application-owned. Append-only activity events for the user's library timeline.
+ */
+export type LibraryActivityEvent = Prisma.LibraryActivityEventModel
+/**
  * Model LibraryItem
  * Application-owned. User's saved content items.
  */

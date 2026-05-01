@@ -6,7 +6,7 @@ import {
 } from "@/components/billing/paywall-banner";
 import { FeedbackWidget } from "@/components/feedback/feedback-widget";
 import { NAME_COLLATOR } from "@/components/library/collections";
-import { LibraryNoteDrawer } from "@/components/library/notes";
+import { Note } from "@/components/library/notes";
 import {
     PreviewDrawer,
     PreviewDrawerContent,
@@ -70,6 +70,13 @@ import {
     DialogPopup,
     DialogTitle,
 } from "@/components/ui/dialog";
+import {
+    Drawer,
+    DrawerHeader,
+    DrawerPanel,
+    DrawerPopup,
+    DrawerTitle,
+} from "@/components/ui/drawer";
 import { GradientWaveText } from "@/components/ui/gradient-wave-text";
 import { ChevronDownFilledIcon } from "@/components/ui/icons";
 import { Input } from "@/components/ui/input";
@@ -118,6 +125,7 @@ import {
 } from "@/lib/collections/media";
 import { cn } from "@/lib/common/cn";
 import { getColorGradientFromName } from "@/lib/common/colors";
+import { getOwnerWindow } from "@/lib/common/dom";
 import { getSystemControlKey } from "@/lib/common/environment";
 import {
     createFileAttachment,
@@ -193,6 +201,8 @@ import {
     SquarePen,
     Tags,
     Trash2Icon,
+    Volume2Icon,
+    VolumeXIcon,
     XIcon,
 } from "lucide-react";
 import Image from "next/image";
@@ -2917,6 +2927,7 @@ function PreviewMedia({
     const [resolvedImageSrc, setResolvedImageSrc] = React.useState(src);
     const [hoverVideoUrl, setHoverVideoUrl] = React.useState(videoPreviewUrl);
     const [isHovering, setIsHovering] = React.useState(false);
+    const [isSoundEnabled, setIsSoundEnabled] = React.useState(false);
     const videoRef = React.useRef<HTMLVideoElement | null>(null);
     const hoverTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(
         null
@@ -3020,8 +3031,11 @@ function PreviewMedia({
         []
     );
 
-    const handlePointerEnter = () => {
-        if (window.matchMedia("(pointer: coarse)").matches) {
+    const handlePointerEnter = (event: React.PointerEvent<HTMLDivElement>) => {
+        if (
+            getOwnerWindow(event.currentTarget).matchMedia("(pointer: coarse)")
+                .matches
+        ) {
             return;
         }
 
@@ -3079,6 +3093,27 @@ function PreviewMedia({
         }
     };
 
+    const handleSoundToggle = (event: React.MouseEvent<HTMLButtonElement>) => {
+        event.preventDefault();
+        event.stopPropagation();
+
+        setIsSoundEnabled((wasSoundEnabled) => {
+            const shouldEnableSound = !wasSoundEnabled;
+            if (shouldEnableSound) {
+                const playPromise = videoRef.current?.play();
+                playPromise?.catch((error: unknown) => {
+                    logger.debug("Failed to play hover preview with sound", {
+                        error,
+                        itemId,
+                    });
+                });
+            }
+            return shouldEnableSound;
+        });
+    };
+
+    const SoundIcon = isSoundEnabled ? Volume2Icon : VolumeXIcon;
+
     return (
         <div
             className="relative size-full"
@@ -3104,12 +3139,35 @@ function PreviewMedia({
                         isHovering && "opacity-100"
                     )}
                     loop
-                    muted
+                    muted={!isSoundEnabled}
                     playsInline
                     preload="metadata"
                     ref={videoRef}
                     src={hoverVideoUrl ?? undefined}
                 />
+            ) : null}
+            {canRenderVideo ? (
+                <Button
+                    aria-label={
+                        isSoundEnabled
+                            ? "Mute video preview"
+                            : "Enable video preview sound"
+                    }
+                    aria-pressed={isSoundEnabled}
+                    className={cn(
+                        "absolute top-2 right-2 z-10 rounded-full border-white/15 bg-black/45 text-white opacity-0 shadow-sm backdrop-blur-sm transition-opacity hover:bg-black/60 focus-visible:opacity-100 focus-visible:ring-white/70",
+                        isHovering && "opacity-100"
+                    )}
+                    onClick={handleSoundToggle}
+                    onPointerDown={(event) => {
+                        event.preventDefault();
+                        event.stopPropagation();
+                    }}
+                    size="icon-sm"
+                    variant="ghost"
+                >
+                    <SoundIcon className="size-4" />
+                </Button>
             ) : null}
         </div>
     );
@@ -4091,6 +4149,40 @@ function Section({
             </ContextMenu>
             {body}
         </section>
+    );
+}
+
+function NoteDrawer({ open }: { open: boolean }) {
+    const { onOpenChange, isExpanded } = Note.useContext();
+
+    return (
+        <Drawer onOpenChange={onOpenChange} open={open} position="right">
+            <DrawerPopup
+                className={cn(
+                    "max-w-2xl",
+                    isExpanded &&
+                        "w-[min(96vw,120rem)] max-w-[min(96vw,120rem)]"
+                )}
+                variant="straight"
+            >
+                <DrawerHeader
+                    allowSelection
+                    className="flex-row items-center justify-between"
+                >
+                    <DrawerTitle className="sr-only">
+                        <Note.Title />
+                    </DrawerTitle>
+                    <Note.Header />
+                </DrawerHeader>
+                <DrawerPanel
+                    allowSelection
+                    className="flex min-h-0 flex-1 flex-col gap-4"
+                >
+                    <Note.Editor />
+                    <Note.Metrics />
+                </DrawerPanel>
+            </DrawerPopup>
+        </Drawer>
     );
 }
 
@@ -5089,7 +5181,7 @@ export function Root({ lockedItemCount, totalItemCount }: LibraryProps) {
                         </AutocompletePopup>
                     </CommandPanel>
                 </Command>
-                <Toolbar.Group className="flex items-center gap-2 px-2.5 py-2">
+                <Toolbar.Group className="flex items-center gap-2 px-3 py-2">
                     <Toolbar.Button
                         render={
                             <Button
@@ -5168,18 +5260,12 @@ export function Root({ lockedItemCount, totalItemCount }: LibraryProps) {
                 </Toolbar.Group>
             </Toolbar.Root>
             {actionFeedback || commandSuggestions.length === 0 ? null : (
-                <div className="relative -mt-1 px-2.5">
+                <div className="relative -mt-1 px-3">
                     <ScrollArea
                         className="max-w-full whitespace-nowrap"
                         scrollFade
                     >
                         <div className="flex w-max flex-nowrap items-center gap-1.5">
-                            <span className="pr-2 font-medium text-muted-foreground text-xs">
-                                Suggestions
-                            </span>
-                            <span className="font-medium text-muted-foreground text-xs">
-                                ·
-                            </span>
                             {commandSuggestions.map((suggestion) => (
                                 <React.Fragment key={suggestion.label}>
                                     <Button
@@ -5248,14 +5334,16 @@ export function Root({ lockedItemCount, totalItemCount }: LibraryProps) {
                     totalItemCount={totalItemCount}
                 />
             ) : null}
-            <LibraryNoteDrawer
+            <Note.Root
                 note={activeNote}
                 onOpenChange={setIsNoteDrawerOpen}
                 onSave={handleSaveNote}
                 onUrlPaste={handlePasteUrlIntoLibrary}
                 open={isNoteDrawerOpen}
                 saving={isSavingNote || isSavingPastedUrl}
-            />
+            >
+                <NoteDrawer open={isNoteDrawerOpen} />
+            </Note.Root>
             <Dialog
                 onOpenChange={handleDeleteDialogOpenChange}
                 open={pendingDeleteItem !== null}

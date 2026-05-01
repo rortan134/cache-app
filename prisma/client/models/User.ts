@@ -218,6 +218,7 @@ export type UserWhereInput = {
   accounts?: Prisma.AccountListRelationFilter
   libraryItems?: Prisma.LibraryItemListRelationFilter
   collections?: Prisma.CollectionListRelationFilter
+  libraryActivityEvents?: Prisma.LibraryActivityEventListRelationFilter
   feedbackEntries?: Prisma.FeedbackListRelationFilter
 }
 
@@ -235,6 +236,7 @@ export type UserOrderByWithRelationInput = {
   accounts?: Prisma.AccountOrderByRelationAggregateInput
   libraryItems?: Prisma.LibraryItemOrderByRelationAggregateInput
   collections?: Prisma.CollectionOrderByRelationAggregateInput
+  libraryActivityEvents?: Prisma.LibraryActivityEventOrderByRelationAggregateInput
   feedbackEntries?: Prisma.FeedbackOrderByRelationAggregateInput
 }
 
@@ -255,6 +257,7 @@ export type UserWhereUniqueInput = Prisma.AtLeast<{
   accounts?: Prisma.AccountListRelationFilter
   libraryItems?: Prisma.LibraryItemListRelationFilter
   collections?: Prisma.CollectionListRelationFilter
+  libraryActivityEvents?: Prisma.LibraryActivityEventListRelationFilter
   feedbackEntries?: Prisma.FeedbackListRelationFilter
 }, "id" | "email" | "extensionIngestToken">
 
@@ -302,6 +305,7 @@ export type UserCreateInput = {
   accounts?: Prisma.AccountCreateNestedManyWithoutUserInput
   libraryItems?: Prisma.LibraryItemCreateNestedManyWithoutUserInput
   collections?: Prisma.CollectionCreateNestedManyWithoutUserInput
+  libraryActivityEvents?: Prisma.LibraryActivityEventCreateNestedManyWithoutUserInput
   feedbackEntries?: Prisma.FeedbackCreateNestedManyWithoutUserInput
 }
 
@@ -319,6 +323,7 @@ export type UserUncheckedCreateInput = {
   accounts?: Prisma.AccountUncheckedCreateNestedManyWithoutUserInput
   libraryItems?: Prisma.LibraryItemUncheckedCreateNestedManyWithoutUserInput
   collections?: Prisma.CollectionUncheckedCreateNestedManyWithoutUserInput
+  libraryActivityEvents?: Prisma.LibraryActivityEventUncheckedCreateNestedManyWithoutUserInput
   feedbackEntries?: Prisma.FeedbackUncheckedCreateNestedManyWithoutUserInput
 }
 
@@ -336,6 +341,7 @@ export type UserUpdateInput = {
   accounts?: Prisma.AccountUpdateManyWithoutUserNestedInput
   libraryItems?: Prisma.LibraryItemUpdateManyWithoutUserNestedInput
   collections?: Prisma.CollectionUpdateManyWithoutUserNestedInput
+  libraryActivityEvents?: Prisma.LibraryActivityEventUpdateManyWithoutUserNestedInput
   feedbackEntries?: Prisma.FeedbackUpdateManyWithoutUserNestedInput
 }
 
@@ -353,6 +359,7 @@ export type UserUncheckedUpdateInput = {
   accounts?: Prisma.AccountUncheckedUpdateManyWithoutUserNestedInput
   libraryItems?: Prisma.LibraryItemUncheckedUpdateManyWithoutUserNestedInput
   collections?: Prisma.CollectionUncheckedUpdateManyWithoutUserNestedInput
+  libraryActivityEvents?: Prisma.LibraryActivityEventUncheckedUpdateManyWithoutUserNestedInput
   feedbackEntries?: Prisma.FeedbackUncheckedUpdateManyWithoutUserNestedInput
 }
 
@@ -468,6 +475,20 @@ export type UserUpdateOneRequiredWithoutCollectionsNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutCollectionsInput, Prisma.UserUpdateWithoutCollectionsInput>, Prisma.UserUncheckedUpdateWithoutCollectionsInput>
 }
 
+export type UserCreateNestedOneWithoutLibraryActivityEventsInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutLibraryActivityEventsInput, Prisma.UserUncheckedCreateWithoutLibraryActivityEventsInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutLibraryActivityEventsInput
+  connect?: Prisma.UserWhereUniqueInput
+}
+
+export type UserUpdateOneRequiredWithoutLibraryActivityEventsNestedInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutLibraryActivityEventsInput, Prisma.UserUncheckedCreateWithoutLibraryActivityEventsInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutLibraryActivityEventsInput
+  upsert?: Prisma.UserUpsertWithoutLibraryActivityEventsInput
+  connect?: Prisma.UserWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutLibraryActivityEventsInput, Prisma.UserUpdateWithoutLibraryActivityEventsInput>, Prisma.UserUncheckedUpdateWithoutLibraryActivityEventsInput>
+}
+
 export type UserCreateNestedOneWithoutLibraryItemsInput = {
   create?: Prisma.XOR<Prisma.UserCreateWithoutLibraryItemsInput, Prisma.UserUncheckedCreateWithoutLibraryItemsInput>
   connectOrCreate?: Prisma.UserCreateOrConnectWithoutLibraryItemsInput
@@ -539,6 +560,7 @@ export type UserCreateWithoutCollectionsInput = {
   sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
   accounts?: Prisma.AccountCreateNestedManyWithoutUserInput
   libraryItems?: Prisma.LibraryItemCreateNestedManyWithoutUserInput
+  libraryActivityEvents?: Prisma.LibraryActivityEventCreateNestedManyWithoutUserInput
   feedbackEntries?: Prisma.FeedbackCreateNestedManyWithoutUserInput
 }
 
@@ -555,6 +577,7 @@ export type UserUncheckedCreateWithoutCollectionsInput = {
   sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
   accounts?: Prisma.AccountUncheckedCreateNestedManyWithoutUserInput
   libraryItems?: Prisma.LibraryItemUncheckedCreateNestedManyWithoutUserInput
+  libraryActivityEvents?: Prisma.LibraryActivityEventUncheckedCreateNestedManyWithoutUserInput
   feedbackEntries?: Prisma.FeedbackUncheckedCreateNestedManyWithoutUserInput
 }
 
@@ -587,6 +610,7 @@ export type UserUpdateWithoutCollectionsInput = {
   sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
   accounts?: Prisma.AccountUpdateManyWithoutUserNestedInput
   libraryItems?: Prisma.LibraryItemUpdateManyWithoutUserNestedInput
+  libraryActivityEvents?: Prisma.LibraryActivityEventUpdateManyWithoutUserNestedInput
   feedbackEntries?: Prisma.FeedbackUpdateManyWithoutUserNestedInput
 }
 
@@ -603,6 +627,91 @@ export type UserUncheckedUpdateWithoutCollectionsInput = {
   sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
   accounts?: Prisma.AccountUncheckedUpdateManyWithoutUserNestedInput
   libraryItems?: Prisma.LibraryItemUncheckedUpdateManyWithoutUserNestedInput
+  libraryActivityEvents?: Prisma.LibraryActivityEventUncheckedUpdateManyWithoutUserNestedInput
+  feedbackEntries?: Prisma.FeedbackUncheckedUpdateManyWithoutUserNestedInput
+}
+
+export type UserCreateWithoutLibraryActivityEventsInput = {
+  id: string
+  name: string
+  email: string
+  emailVerified?: boolean
+  image?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  stripeCustomerId?: string | null
+  extensionIngestToken?: string | null
+  sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
+  accounts?: Prisma.AccountCreateNestedManyWithoutUserInput
+  libraryItems?: Prisma.LibraryItemCreateNestedManyWithoutUserInput
+  collections?: Prisma.CollectionCreateNestedManyWithoutUserInput
+  feedbackEntries?: Prisma.FeedbackCreateNestedManyWithoutUserInput
+}
+
+export type UserUncheckedCreateWithoutLibraryActivityEventsInput = {
+  id: string
+  name: string
+  email: string
+  emailVerified?: boolean
+  image?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  stripeCustomerId?: string | null
+  extensionIngestToken?: string | null
+  sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
+  accounts?: Prisma.AccountUncheckedCreateNestedManyWithoutUserInput
+  libraryItems?: Prisma.LibraryItemUncheckedCreateNestedManyWithoutUserInput
+  collections?: Prisma.CollectionUncheckedCreateNestedManyWithoutUserInput
+  feedbackEntries?: Prisma.FeedbackUncheckedCreateNestedManyWithoutUserInput
+}
+
+export type UserCreateOrConnectWithoutLibraryActivityEventsInput = {
+  where: Prisma.UserWhereUniqueInput
+  create: Prisma.XOR<Prisma.UserCreateWithoutLibraryActivityEventsInput, Prisma.UserUncheckedCreateWithoutLibraryActivityEventsInput>
+}
+
+export type UserUpsertWithoutLibraryActivityEventsInput = {
+  update: Prisma.XOR<Prisma.UserUpdateWithoutLibraryActivityEventsInput, Prisma.UserUncheckedUpdateWithoutLibraryActivityEventsInput>
+  create: Prisma.XOR<Prisma.UserCreateWithoutLibraryActivityEventsInput, Prisma.UserUncheckedCreateWithoutLibraryActivityEventsInput>
+  where?: Prisma.UserWhereInput
+}
+
+export type UserUpdateToOneWithWhereWithoutLibraryActivityEventsInput = {
+  where?: Prisma.UserWhereInput
+  data: Prisma.XOR<Prisma.UserUpdateWithoutLibraryActivityEventsInput, Prisma.UserUncheckedUpdateWithoutLibraryActivityEventsInput>
+}
+
+export type UserUpdateWithoutLibraryActivityEventsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  stripeCustomerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  extensionIngestToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
+  accounts?: Prisma.AccountUpdateManyWithoutUserNestedInput
+  libraryItems?: Prisma.LibraryItemUpdateManyWithoutUserNestedInput
+  collections?: Prisma.CollectionUpdateManyWithoutUserNestedInput
+  feedbackEntries?: Prisma.FeedbackUpdateManyWithoutUserNestedInput
+}
+
+export type UserUncheckedUpdateWithoutLibraryActivityEventsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  stripeCustomerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  extensionIngestToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
+  accounts?: Prisma.AccountUncheckedUpdateManyWithoutUserNestedInput
+  libraryItems?: Prisma.LibraryItemUncheckedUpdateManyWithoutUserNestedInput
+  collections?: Prisma.CollectionUncheckedUpdateManyWithoutUserNestedInput
   feedbackEntries?: Prisma.FeedbackUncheckedUpdateManyWithoutUserNestedInput
 }
 
@@ -619,6 +728,7 @@ export type UserCreateWithoutLibraryItemsInput = {
   sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
   accounts?: Prisma.AccountCreateNestedManyWithoutUserInput
   collections?: Prisma.CollectionCreateNestedManyWithoutUserInput
+  libraryActivityEvents?: Prisma.LibraryActivityEventCreateNestedManyWithoutUserInput
   feedbackEntries?: Prisma.FeedbackCreateNestedManyWithoutUserInput
 }
 
@@ -635,6 +745,7 @@ export type UserUncheckedCreateWithoutLibraryItemsInput = {
   sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
   accounts?: Prisma.AccountUncheckedCreateNestedManyWithoutUserInput
   collections?: Prisma.CollectionUncheckedCreateNestedManyWithoutUserInput
+  libraryActivityEvents?: Prisma.LibraryActivityEventUncheckedCreateNestedManyWithoutUserInput
   feedbackEntries?: Prisma.FeedbackUncheckedCreateNestedManyWithoutUserInput
 }
 
@@ -667,6 +778,7 @@ export type UserUpdateWithoutLibraryItemsInput = {
   sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
   accounts?: Prisma.AccountUpdateManyWithoutUserNestedInput
   collections?: Prisma.CollectionUpdateManyWithoutUserNestedInput
+  libraryActivityEvents?: Prisma.LibraryActivityEventUpdateManyWithoutUserNestedInput
   feedbackEntries?: Prisma.FeedbackUpdateManyWithoutUserNestedInput
 }
 
@@ -683,6 +795,7 @@ export type UserUncheckedUpdateWithoutLibraryItemsInput = {
   sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
   accounts?: Prisma.AccountUncheckedUpdateManyWithoutUserNestedInput
   collections?: Prisma.CollectionUncheckedUpdateManyWithoutUserNestedInput
+  libraryActivityEvents?: Prisma.LibraryActivityEventUncheckedUpdateManyWithoutUserNestedInput
   feedbackEntries?: Prisma.FeedbackUncheckedUpdateManyWithoutUserNestedInput
 }
 
@@ -699,6 +812,7 @@ export type UserCreateWithoutSessionsInput = {
   accounts?: Prisma.AccountCreateNestedManyWithoutUserInput
   libraryItems?: Prisma.LibraryItemCreateNestedManyWithoutUserInput
   collections?: Prisma.CollectionCreateNestedManyWithoutUserInput
+  libraryActivityEvents?: Prisma.LibraryActivityEventCreateNestedManyWithoutUserInput
   feedbackEntries?: Prisma.FeedbackCreateNestedManyWithoutUserInput
 }
 
@@ -715,6 +829,7 @@ export type UserUncheckedCreateWithoutSessionsInput = {
   accounts?: Prisma.AccountUncheckedCreateNestedManyWithoutUserInput
   libraryItems?: Prisma.LibraryItemUncheckedCreateNestedManyWithoutUserInput
   collections?: Prisma.CollectionUncheckedCreateNestedManyWithoutUserInput
+  libraryActivityEvents?: Prisma.LibraryActivityEventUncheckedCreateNestedManyWithoutUserInput
   feedbackEntries?: Prisma.FeedbackUncheckedCreateNestedManyWithoutUserInput
 }
 
@@ -747,6 +862,7 @@ export type UserUpdateWithoutSessionsInput = {
   accounts?: Prisma.AccountUpdateManyWithoutUserNestedInput
   libraryItems?: Prisma.LibraryItemUpdateManyWithoutUserNestedInput
   collections?: Prisma.CollectionUpdateManyWithoutUserNestedInput
+  libraryActivityEvents?: Prisma.LibraryActivityEventUpdateManyWithoutUserNestedInput
   feedbackEntries?: Prisma.FeedbackUpdateManyWithoutUserNestedInput
 }
 
@@ -763,6 +879,7 @@ export type UserUncheckedUpdateWithoutSessionsInput = {
   accounts?: Prisma.AccountUncheckedUpdateManyWithoutUserNestedInput
   libraryItems?: Prisma.LibraryItemUncheckedUpdateManyWithoutUserNestedInput
   collections?: Prisma.CollectionUncheckedUpdateManyWithoutUserNestedInput
+  libraryActivityEvents?: Prisma.LibraryActivityEventUncheckedUpdateManyWithoutUserNestedInput
   feedbackEntries?: Prisma.FeedbackUncheckedUpdateManyWithoutUserNestedInput
 }
 
@@ -779,6 +896,7 @@ export type UserCreateWithoutAccountsInput = {
   sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
   libraryItems?: Prisma.LibraryItemCreateNestedManyWithoutUserInput
   collections?: Prisma.CollectionCreateNestedManyWithoutUserInput
+  libraryActivityEvents?: Prisma.LibraryActivityEventCreateNestedManyWithoutUserInput
   feedbackEntries?: Prisma.FeedbackCreateNestedManyWithoutUserInput
 }
 
@@ -795,6 +913,7 @@ export type UserUncheckedCreateWithoutAccountsInput = {
   sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
   libraryItems?: Prisma.LibraryItemUncheckedCreateNestedManyWithoutUserInput
   collections?: Prisma.CollectionUncheckedCreateNestedManyWithoutUserInput
+  libraryActivityEvents?: Prisma.LibraryActivityEventUncheckedCreateNestedManyWithoutUserInput
   feedbackEntries?: Prisma.FeedbackUncheckedCreateNestedManyWithoutUserInput
 }
 
@@ -827,6 +946,7 @@ export type UserUpdateWithoutAccountsInput = {
   sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
   libraryItems?: Prisma.LibraryItemUpdateManyWithoutUserNestedInput
   collections?: Prisma.CollectionUpdateManyWithoutUserNestedInput
+  libraryActivityEvents?: Prisma.LibraryActivityEventUpdateManyWithoutUserNestedInput
   feedbackEntries?: Prisma.FeedbackUpdateManyWithoutUserNestedInput
 }
 
@@ -843,6 +963,7 @@ export type UserUncheckedUpdateWithoutAccountsInput = {
   sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
   libraryItems?: Prisma.LibraryItemUncheckedUpdateManyWithoutUserNestedInput
   collections?: Prisma.CollectionUncheckedUpdateManyWithoutUserNestedInput
+  libraryActivityEvents?: Prisma.LibraryActivityEventUncheckedUpdateManyWithoutUserNestedInput
   feedbackEntries?: Prisma.FeedbackUncheckedUpdateManyWithoutUserNestedInput
 }
 
@@ -860,6 +981,7 @@ export type UserCreateWithoutFeedbackEntriesInput = {
   accounts?: Prisma.AccountCreateNestedManyWithoutUserInput
   libraryItems?: Prisma.LibraryItemCreateNestedManyWithoutUserInput
   collections?: Prisma.CollectionCreateNestedManyWithoutUserInput
+  libraryActivityEvents?: Prisma.LibraryActivityEventCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutFeedbackEntriesInput = {
@@ -876,6 +998,7 @@ export type UserUncheckedCreateWithoutFeedbackEntriesInput = {
   accounts?: Prisma.AccountUncheckedCreateNestedManyWithoutUserInput
   libraryItems?: Prisma.LibraryItemUncheckedCreateNestedManyWithoutUserInput
   collections?: Prisma.CollectionUncheckedCreateNestedManyWithoutUserInput
+  libraryActivityEvents?: Prisma.LibraryActivityEventUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutFeedbackEntriesInput = {
@@ -908,6 +1031,7 @@ export type UserUpdateWithoutFeedbackEntriesInput = {
   accounts?: Prisma.AccountUpdateManyWithoutUserNestedInput
   libraryItems?: Prisma.LibraryItemUpdateManyWithoutUserNestedInput
   collections?: Prisma.CollectionUpdateManyWithoutUserNestedInput
+  libraryActivityEvents?: Prisma.LibraryActivityEventUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutFeedbackEntriesInput = {
@@ -924,6 +1048,7 @@ export type UserUncheckedUpdateWithoutFeedbackEntriesInput = {
   accounts?: Prisma.AccountUncheckedUpdateManyWithoutUserNestedInput
   libraryItems?: Prisma.LibraryItemUncheckedUpdateManyWithoutUserNestedInput
   collections?: Prisma.CollectionUncheckedUpdateManyWithoutUserNestedInput
+  libraryActivityEvents?: Prisma.LibraryActivityEventUncheckedUpdateManyWithoutUserNestedInput
 }
 
 
@@ -936,6 +1061,7 @@ export type UserCountOutputType = {
   accounts: number
   libraryItems: number
   collections: number
+  libraryActivityEvents: number
   feedbackEntries: number
 }
 
@@ -944,6 +1070,7 @@ export type UserCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.I
   accounts?: boolean | UserCountOutputTypeCountAccountsArgs
   libraryItems?: boolean | UserCountOutputTypeCountLibraryItemsArgs
   collections?: boolean | UserCountOutputTypeCountCollectionsArgs
+  libraryActivityEvents?: boolean | UserCountOutputTypeCountLibraryActivityEventsArgs
   feedbackEntries?: boolean | UserCountOutputTypeCountFeedbackEntriesArgs
 }
 
@@ -988,6 +1115,13 @@ export type UserCountOutputTypeCountCollectionsArgs<ExtArgs extends runtime.Type
 /**
  * UserCountOutputType without action
  */
+export type UserCountOutputTypeCountLibraryActivityEventsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.LibraryActivityEventWhereInput
+}
+
+/**
+ * UserCountOutputType without action
+ */
 export type UserCountOutputTypeCountFeedbackEntriesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   where?: Prisma.FeedbackWhereInput
 }
@@ -1007,6 +1141,7 @@ export type UserSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   accounts?: boolean | Prisma.User$accountsArgs<ExtArgs>
   libraryItems?: boolean | Prisma.User$libraryItemsArgs<ExtArgs>
   collections?: boolean | Prisma.User$collectionsArgs<ExtArgs>
+  libraryActivityEvents?: boolean | Prisma.User$libraryActivityEventsArgs<ExtArgs>
   feedbackEntries?: boolean | Prisma.User$feedbackEntriesArgs<ExtArgs>
   _count?: boolean | Prisma.UserCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["user"]>
@@ -1053,6 +1188,7 @@ export type UserInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
   accounts?: boolean | Prisma.User$accountsArgs<ExtArgs>
   libraryItems?: boolean | Prisma.User$libraryItemsArgs<ExtArgs>
   collections?: boolean | Prisma.User$collectionsArgs<ExtArgs>
+  libraryActivityEvents?: boolean | Prisma.User$libraryActivityEventsArgs<ExtArgs>
   feedbackEntries?: boolean | Prisma.User$feedbackEntriesArgs<ExtArgs>
   _count?: boolean | Prisma.UserCountOutputTypeDefaultArgs<ExtArgs>
 }
@@ -1066,6 +1202,7 @@ export type $UserPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
     accounts: Prisma.$AccountPayload<ExtArgs>[]
     libraryItems: Prisma.$LibraryItemPayload<ExtArgs>[]
     collections: Prisma.$CollectionPayload<ExtArgs>[]
+    libraryActivityEvents: Prisma.$LibraryActivityEventPayload<ExtArgs>[]
     feedbackEntries: Prisma.$FeedbackPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
@@ -1476,6 +1613,7 @@ export interface Prisma__UserClient<T, Null = never, ExtArgs extends runtime.Typ
   accounts<T extends Prisma.User$accountsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$accountsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$AccountPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   libraryItems<T extends Prisma.User$libraryItemsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$libraryItemsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$LibraryItemPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   collections<T extends Prisma.User$collectionsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$collectionsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$CollectionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  libraryActivityEvents<T extends Prisma.User$libraryActivityEventsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$libraryActivityEventsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$LibraryActivityEventPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   feedbackEntries<T extends Prisma.User$feedbackEntriesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$feedbackEntriesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$FeedbackPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
@@ -2001,6 +2139,30 @@ export type User$collectionsArgs<ExtArgs extends runtime.Types.Extensions.Intern
   take?: number
   skip?: number
   distinct?: Prisma.CollectionScalarFieldEnum | Prisma.CollectionScalarFieldEnum[]
+}
+
+/**
+ * User.libraryActivityEvents
+ */
+export type User$libraryActivityEventsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the LibraryActivityEvent
+   */
+  select?: Prisma.LibraryActivityEventSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the LibraryActivityEvent
+   */
+  omit?: Prisma.LibraryActivityEventOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.LibraryActivityEventInclude<ExtArgs> | null
+  where?: Prisma.LibraryActivityEventWhereInput
+  orderBy?: Prisma.LibraryActivityEventOrderByWithRelationInput | Prisma.LibraryActivityEventOrderByWithRelationInput[]
+  cursor?: Prisma.LibraryActivityEventWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.LibraryActivityEventScalarFieldEnum | Prisma.LibraryActivityEventScalarFieldEnum[]
 }
 
 /**

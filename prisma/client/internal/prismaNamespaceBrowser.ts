@@ -53,6 +53,7 @@ export const AnyNull = runtime.AnyNull
 export const ModelName = {
   User: 'User',
   Collection: 'Collection',
+  LibraryActivityEvent: 'LibraryActivityEvent',
   LibraryItem: 'LibraryItem',
   LibraryItemPreview: 'LibraryItemPreview',
   Session: 'Session',
@@ -107,6 +108,20 @@ export const CollectionScalarFieldEnum = {
 } as const
 
 export type CollectionScalarFieldEnum = (typeof CollectionScalarFieldEnum)[keyof typeof CollectionScalarFieldEnum]
+
+
+export const LibraryActivityEventScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  kind: 'kind',
+  libraryItemId: 'libraryItemId',
+  collectionId: 'collectionId',
+  metadata: 'metadata',
+  occurredAt: 'occurredAt',
+  createdAt: 'createdAt'
+} as const
+
+export type LibraryActivityEventScalarFieldEnum = (typeof LibraryActivityEventScalarFieldEnum)[keyof typeof LibraryActivityEventScalarFieldEnum]
 
 
 export const LibraryItemScalarFieldEnum = {

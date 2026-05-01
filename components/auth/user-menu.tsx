@@ -13,6 +13,7 @@ import { Group } from "@/components/ui/group";
 import { CrownFilledIcon } from "@/components/ui/icons";
 import { Popover, PopoverPopup, PopoverTrigger } from "@/components/ui/popover";
 import { Separator } from "@/components/ui/separator";
+import { SidebarItem } from "@/components/ui/sidebar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAccess } from "@/hooks/use-access";
 import { authClient } from "@/lib/auth/client";
@@ -20,7 +21,7 @@ import { getInitials } from "@/lib/common/strings";
 import { LocaleSelector, T, Var, useLocale } from "gt-next";
 import {
     ArrowUpRight,
-    ChevronsUpDown,
+    ChevronDown,
     LogOut,
     Monitor,
     Moon,
@@ -256,16 +257,13 @@ function MenuSection({ children }: { children: ReactNode }) {
 
 function UserMenuSkeleton() {
     return (
-        <div className="flex w-full items-center justify-between px-4 py-2">
-            <div className="flex items-center gap-3">
+        <SidebarItem className="mb-3 justify-between px-2">
+            <div className="flex min-w-0 items-center gap-2">
                 <Skeleton className="size-8 rounded-full" />
-                <div className="flex flex-col gap-1">
-                    <Skeleton className="h-4 w-24" />
-                    <Skeleton className="h-3 w-32" />
-                </div>
+                <Skeleton className="h-4 w-24" />
             </div>
             <Skeleton className="size-4" />
-        </div>
+        </SidebarItem>
     );
 }
 
@@ -417,16 +415,16 @@ export function UserMenu({ children }: { children: ReactNode }) {
     return (
         <Popover>
             <PopoverTrigger
-                className="w-full justify-between"
-                render={<Button size="xl" variant="ghost" />}
+                className="justify-between px-2 opacity-100"
+                render={<SidebarItem />}
             >
                 <span className="flex min-w-0 items-center gap-2">
-                    <Avatar className="size-8 ring-1 ring-border/50">
+                    <Avatar className="size-5.5 rounded-md">
                         <AvatarImage
                             alt={user.name ?? user.email}
                             src={user.image ?? undefined}
                         />
-                        <AvatarFallback>
+                        <AvatarFallback className="rounded-md">
                             {getInitials(user.name, user.email)}
                         </AvatarFallback>
                     </Avatar>
@@ -434,14 +432,11 @@ export function UserMenu({ children }: { children: ReactNode }) {
                         <span className="truncate font-medium text-sm">
                             {user.name ?? <T>Account</T>}
                         </span>
-                        <span className="truncate text-muted-foreground text-xs">
-                            {user.email}
-                        </span>
                     </span>
                 </span>
-                <ChevronsUpDown
+                <ChevronDown
                     aria-hidden
-                    className="size-4 text-muted-foreground"
+                    className="pointer-events-none inline-block size-3.5 shrink-0 opacity-80"
                 />
             </PopoverTrigger>
             <PopoverPopup align="start" positionMethod="fixed" side="top">

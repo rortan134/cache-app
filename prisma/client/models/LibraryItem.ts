@@ -293,6 +293,7 @@ export type LibraryItemWhereInput = {
   user?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
   preview?: Prisma.XOR<Prisma.LibraryItemPreviewNullableScalarRelationFilter, Prisma.LibraryItemPreviewWhereInput> | null
   collections?: Prisma.CollectionListRelationFilter
+  activityEvents?: Prisma.LibraryActivityEventListRelationFilter
 }
 
 export type LibraryItemOrderByWithRelationInput = {
@@ -319,6 +320,7 @@ export type LibraryItemOrderByWithRelationInput = {
   user?: Prisma.UserOrderByWithRelationInput
   preview?: Prisma.LibraryItemPreviewOrderByWithRelationInput
   collections?: Prisma.CollectionOrderByRelationAggregateInput
+  activityEvents?: Prisma.LibraryActivityEventOrderByRelationAggregateInput
 }
 
 export type LibraryItemWhereUniqueInput = Prisma.AtLeast<{
@@ -349,6 +351,7 @@ export type LibraryItemWhereUniqueInput = Prisma.AtLeast<{
   user?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
   preview?: Prisma.XOR<Prisma.LibraryItemPreviewNullableScalarRelationFilter, Prisma.LibraryItemPreviewWhereInput> | null
   collections?: Prisma.CollectionListRelationFilter
+  activityEvents?: Prisma.LibraryActivityEventListRelationFilter
 }, "id" | "userId_source_browserProfileId_externalId">
 
 export type LibraryItemOrderByWithAggregationInput = {
@@ -426,6 +429,7 @@ export type LibraryItemCreateInput = {
   user: Prisma.UserCreateNestedOneWithoutLibraryItemsInput
   preview?: Prisma.LibraryItemPreviewCreateNestedOneWithoutLibraryItemInput
   collections?: Prisma.CollectionCreateNestedManyWithoutItemsInput
+  activityEvents?: Prisma.LibraryActivityEventCreateNestedManyWithoutLibraryItemInput
 }
 
 export type LibraryItemUncheckedCreateInput = {
@@ -451,6 +455,7 @@ export type LibraryItemUncheckedCreateInput = {
   updatedAt?: Date | string
   preview?: Prisma.LibraryItemPreviewUncheckedCreateNestedOneWithoutLibraryItemInput
   collections?: Prisma.CollectionUncheckedCreateNestedManyWithoutItemsInput
+  activityEvents?: Prisma.LibraryActivityEventUncheckedCreateNestedManyWithoutLibraryItemInput
 }
 
 export type LibraryItemUpdateInput = {
@@ -476,6 +481,7 @@ export type LibraryItemUpdateInput = {
   user?: Prisma.UserUpdateOneRequiredWithoutLibraryItemsNestedInput
   preview?: Prisma.LibraryItemPreviewUpdateOneWithoutLibraryItemNestedInput
   collections?: Prisma.CollectionUpdateManyWithoutItemsNestedInput
+  activityEvents?: Prisma.LibraryActivityEventUpdateManyWithoutLibraryItemNestedInput
 }
 
 export type LibraryItemUncheckedUpdateInput = {
@@ -501,6 +507,7 @@ export type LibraryItemUncheckedUpdateInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   preview?: Prisma.LibraryItemPreviewUncheckedUpdateOneWithoutLibraryItemNestedInput
   collections?: Prisma.CollectionUncheckedUpdateManyWithoutItemsNestedInput
+  activityEvents?: Prisma.LibraryActivityEventUncheckedUpdateManyWithoutLibraryItemNestedInput
 }
 
 export type LibraryItemCreateManyInput = {
@@ -579,6 +586,11 @@ export type LibraryItemListRelationFilter = {
 
 export type LibraryItemOrderByRelationAggregateInput = {
   _count?: Prisma.SortOrder
+}
+
+export type LibraryItemNullableScalarRelationFilter = {
+  is?: Prisma.LibraryItemWhereInput | null
+  isNot?: Prisma.LibraryItemWhereInput | null
 }
 
 export type StringNullableListFilter<$PrismaModel = never> = {
@@ -744,6 +756,22 @@ export type LibraryItemUncheckedUpdateManyWithoutCollectionsNestedInput = {
   deleteMany?: Prisma.LibraryItemScalarWhereInput | Prisma.LibraryItemScalarWhereInput[]
 }
 
+export type LibraryItemCreateNestedOneWithoutActivityEventsInput = {
+  create?: Prisma.XOR<Prisma.LibraryItemCreateWithoutActivityEventsInput, Prisma.LibraryItemUncheckedCreateWithoutActivityEventsInput>
+  connectOrCreate?: Prisma.LibraryItemCreateOrConnectWithoutActivityEventsInput
+  connect?: Prisma.LibraryItemWhereUniqueInput
+}
+
+export type LibraryItemUpdateOneWithoutActivityEventsNestedInput = {
+  create?: Prisma.XOR<Prisma.LibraryItemCreateWithoutActivityEventsInput, Prisma.LibraryItemUncheckedCreateWithoutActivityEventsInput>
+  connectOrCreate?: Prisma.LibraryItemCreateOrConnectWithoutActivityEventsInput
+  upsert?: Prisma.LibraryItemUpsertWithoutActivityEventsInput
+  disconnect?: Prisma.LibraryItemWhereInput | boolean
+  delete?: Prisma.LibraryItemWhereInput | boolean
+  connect?: Prisma.LibraryItemWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.LibraryItemUpdateToOneWithWhereWithoutActivityEventsInput, Prisma.LibraryItemUpdateWithoutActivityEventsInput>, Prisma.LibraryItemUncheckedUpdateWithoutActivityEventsInput>
+}
+
 export type LibraryItemCreatesourceAliasIdsInput = {
   set: string[]
 }
@@ -797,6 +825,7 @@ export type LibraryItemCreateWithoutUserInput = {
   updatedAt?: Date | string
   preview?: Prisma.LibraryItemPreviewCreateNestedOneWithoutLibraryItemInput
   collections?: Prisma.CollectionCreateNestedManyWithoutItemsInput
+  activityEvents?: Prisma.LibraryActivityEventCreateNestedManyWithoutLibraryItemInput
 }
 
 export type LibraryItemUncheckedCreateWithoutUserInput = {
@@ -821,6 +850,7 @@ export type LibraryItemUncheckedCreateWithoutUserInput = {
   updatedAt?: Date | string
   preview?: Prisma.LibraryItemPreviewUncheckedCreateNestedOneWithoutLibraryItemInput
   collections?: Prisma.CollectionUncheckedCreateNestedManyWithoutItemsInput
+  activityEvents?: Prisma.LibraryActivityEventUncheckedCreateNestedManyWithoutLibraryItemInput
 }
 
 export type LibraryItemCreateOrConnectWithoutUserInput = {
@@ -897,6 +927,7 @@ export type LibraryItemCreateWithoutCollectionsInput = {
   updatedAt?: Date | string
   user: Prisma.UserCreateNestedOneWithoutLibraryItemsInput
   preview?: Prisma.LibraryItemPreviewCreateNestedOneWithoutLibraryItemInput
+  activityEvents?: Prisma.LibraryActivityEventCreateNestedManyWithoutLibraryItemInput
 }
 
 export type LibraryItemUncheckedCreateWithoutCollectionsInput = {
@@ -921,6 +952,7 @@ export type LibraryItemUncheckedCreateWithoutCollectionsInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   preview?: Prisma.LibraryItemPreviewUncheckedCreateNestedOneWithoutLibraryItemInput
+  activityEvents?: Prisma.LibraryActivityEventUncheckedCreateNestedManyWithoutLibraryItemInput
 }
 
 export type LibraryItemCreateOrConnectWithoutCollectionsInput = {
@@ -942,6 +974,122 @@ export type LibraryItemUpdateWithWhereUniqueWithoutCollectionsInput = {
 export type LibraryItemUpdateManyWithWhereWithoutCollectionsInput = {
   where: Prisma.LibraryItemScalarWhereInput
   data: Prisma.XOR<Prisma.LibraryItemUpdateManyMutationInput, Prisma.LibraryItemUncheckedUpdateManyWithoutCollectionsInput>
+}
+
+export type LibraryItemCreateWithoutActivityEventsInput = {
+  id?: string
+  source: $Enums.LibraryItemSource
+  kind?: $Enums.LibraryItemKind
+  externalId: string
+  sourceAliasIds?: Prisma.LibraryItemCreatesourceAliasIdsInput | string[]
+  browserProfileId?: string
+  parentExternalId?: string | null
+  sourceDeviceId?: string | null
+  sourceDeviceName?: string | null
+  url: string
+  caption?: string | null
+  noteContentHtml?: string | null
+  noteContentState?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  noteContentText?: string | null
+  sourceMetadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  postedAt?: Date | string | null
+  scrapedAt?: Date | string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  user: Prisma.UserCreateNestedOneWithoutLibraryItemsInput
+  preview?: Prisma.LibraryItemPreviewCreateNestedOneWithoutLibraryItemInput
+  collections?: Prisma.CollectionCreateNestedManyWithoutItemsInput
+}
+
+export type LibraryItemUncheckedCreateWithoutActivityEventsInput = {
+  id?: string
+  userId: string
+  source: $Enums.LibraryItemSource
+  kind?: $Enums.LibraryItemKind
+  externalId: string
+  sourceAliasIds?: Prisma.LibraryItemCreatesourceAliasIdsInput | string[]
+  browserProfileId?: string
+  parentExternalId?: string | null
+  sourceDeviceId?: string | null
+  sourceDeviceName?: string | null
+  url: string
+  caption?: string | null
+  noteContentHtml?: string | null
+  noteContentState?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  noteContentText?: string | null
+  sourceMetadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  postedAt?: Date | string | null
+  scrapedAt?: Date | string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  preview?: Prisma.LibraryItemPreviewUncheckedCreateNestedOneWithoutLibraryItemInput
+  collections?: Prisma.CollectionUncheckedCreateNestedManyWithoutItemsInput
+}
+
+export type LibraryItemCreateOrConnectWithoutActivityEventsInput = {
+  where: Prisma.LibraryItemWhereUniqueInput
+  create: Prisma.XOR<Prisma.LibraryItemCreateWithoutActivityEventsInput, Prisma.LibraryItemUncheckedCreateWithoutActivityEventsInput>
+}
+
+export type LibraryItemUpsertWithoutActivityEventsInput = {
+  update: Prisma.XOR<Prisma.LibraryItemUpdateWithoutActivityEventsInput, Prisma.LibraryItemUncheckedUpdateWithoutActivityEventsInput>
+  create: Prisma.XOR<Prisma.LibraryItemCreateWithoutActivityEventsInput, Prisma.LibraryItemUncheckedCreateWithoutActivityEventsInput>
+  where?: Prisma.LibraryItemWhereInput
+}
+
+export type LibraryItemUpdateToOneWithWhereWithoutActivityEventsInput = {
+  where?: Prisma.LibraryItemWhereInput
+  data: Prisma.XOR<Prisma.LibraryItemUpdateWithoutActivityEventsInput, Prisma.LibraryItemUncheckedUpdateWithoutActivityEventsInput>
+}
+
+export type LibraryItemUpdateWithoutActivityEventsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  source?: Prisma.EnumLibraryItemSourceFieldUpdateOperationsInput | $Enums.LibraryItemSource
+  kind?: Prisma.EnumLibraryItemKindFieldUpdateOperationsInput | $Enums.LibraryItemKind
+  externalId?: Prisma.StringFieldUpdateOperationsInput | string
+  sourceAliasIds?: Prisma.LibraryItemUpdatesourceAliasIdsInput | string[]
+  browserProfileId?: Prisma.StringFieldUpdateOperationsInput | string
+  parentExternalId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sourceDeviceId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sourceDeviceName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  url?: Prisma.StringFieldUpdateOperationsInput | string
+  caption?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  noteContentHtml?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  noteContentState?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  noteContentText?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sourceMetadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  postedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  scrapedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  user?: Prisma.UserUpdateOneRequiredWithoutLibraryItemsNestedInput
+  preview?: Prisma.LibraryItemPreviewUpdateOneWithoutLibraryItemNestedInput
+  collections?: Prisma.CollectionUpdateManyWithoutItemsNestedInput
+}
+
+export type LibraryItemUncheckedUpdateWithoutActivityEventsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  userId?: Prisma.StringFieldUpdateOperationsInput | string
+  source?: Prisma.EnumLibraryItemSourceFieldUpdateOperationsInput | $Enums.LibraryItemSource
+  kind?: Prisma.EnumLibraryItemKindFieldUpdateOperationsInput | $Enums.LibraryItemKind
+  externalId?: Prisma.StringFieldUpdateOperationsInput | string
+  sourceAliasIds?: Prisma.LibraryItemUpdatesourceAliasIdsInput | string[]
+  browserProfileId?: Prisma.StringFieldUpdateOperationsInput | string
+  parentExternalId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sourceDeviceId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sourceDeviceName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  url?: Prisma.StringFieldUpdateOperationsInput | string
+  caption?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  noteContentHtml?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  noteContentState?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  noteContentText?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sourceMetadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  postedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  scrapedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  preview?: Prisma.LibraryItemPreviewUncheckedUpdateOneWithoutLibraryItemNestedInput
+  collections?: Prisma.CollectionUncheckedUpdateManyWithoutItemsNestedInput
 }
 
 export type LibraryItemCreateWithoutPreviewInput = {
@@ -966,6 +1114,7 @@ export type LibraryItemCreateWithoutPreviewInput = {
   updatedAt?: Date | string
   user: Prisma.UserCreateNestedOneWithoutLibraryItemsInput
   collections?: Prisma.CollectionCreateNestedManyWithoutItemsInput
+  activityEvents?: Prisma.LibraryActivityEventCreateNestedManyWithoutLibraryItemInput
 }
 
 export type LibraryItemUncheckedCreateWithoutPreviewInput = {
@@ -990,6 +1139,7 @@ export type LibraryItemUncheckedCreateWithoutPreviewInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   collections?: Prisma.CollectionUncheckedCreateNestedManyWithoutItemsInput
+  activityEvents?: Prisma.LibraryActivityEventUncheckedCreateNestedManyWithoutLibraryItemInput
 }
 
 export type LibraryItemCreateOrConnectWithoutPreviewInput = {
@@ -1030,6 +1180,7 @@ export type LibraryItemUpdateWithoutPreviewInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   user?: Prisma.UserUpdateOneRequiredWithoutLibraryItemsNestedInput
   collections?: Prisma.CollectionUpdateManyWithoutItemsNestedInput
+  activityEvents?: Prisma.LibraryActivityEventUpdateManyWithoutLibraryItemNestedInput
 }
 
 export type LibraryItemUncheckedUpdateWithoutPreviewInput = {
@@ -1054,6 +1205,7 @@ export type LibraryItemUncheckedUpdateWithoutPreviewInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   collections?: Prisma.CollectionUncheckedUpdateManyWithoutItemsNestedInput
+  activityEvents?: Prisma.LibraryActivityEventUncheckedUpdateManyWithoutLibraryItemNestedInput
 }
 
 export type LibraryItemCreateManyUserInput = {
@@ -1100,6 +1252,7 @@ export type LibraryItemUpdateWithoutUserInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   preview?: Prisma.LibraryItemPreviewUpdateOneWithoutLibraryItemNestedInput
   collections?: Prisma.CollectionUpdateManyWithoutItemsNestedInput
+  activityEvents?: Prisma.LibraryActivityEventUpdateManyWithoutLibraryItemNestedInput
 }
 
 export type LibraryItemUncheckedUpdateWithoutUserInput = {
@@ -1124,6 +1277,7 @@ export type LibraryItemUncheckedUpdateWithoutUserInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   preview?: Prisma.LibraryItemPreviewUncheckedUpdateOneWithoutLibraryItemNestedInput
   collections?: Prisma.CollectionUncheckedUpdateManyWithoutItemsNestedInput
+  activityEvents?: Prisma.LibraryActivityEventUncheckedUpdateManyWithoutLibraryItemNestedInput
 }
 
 export type LibraryItemUncheckedUpdateManyWithoutUserInput = {
@@ -1170,6 +1324,7 @@ export type LibraryItemUpdateWithoutCollectionsInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   user?: Prisma.UserUpdateOneRequiredWithoutLibraryItemsNestedInput
   preview?: Prisma.LibraryItemPreviewUpdateOneWithoutLibraryItemNestedInput
+  activityEvents?: Prisma.LibraryActivityEventUpdateManyWithoutLibraryItemNestedInput
 }
 
 export type LibraryItemUncheckedUpdateWithoutCollectionsInput = {
@@ -1194,6 +1349,7 @@ export type LibraryItemUncheckedUpdateWithoutCollectionsInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   preview?: Prisma.LibraryItemPreviewUncheckedUpdateOneWithoutLibraryItemNestedInput
+  activityEvents?: Prisma.LibraryActivityEventUncheckedUpdateManyWithoutLibraryItemNestedInput
 }
 
 export type LibraryItemUncheckedUpdateManyWithoutCollectionsInput = {
@@ -1226,10 +1382,12 @@ export type LibraryItemUncheckedUpdateManyWithoutCollectionsInput = {
 
 export type LibraryItemCountOutputType = {
   collections: number
+  activityEvents: number
 }
 
 export type LibraryItemCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   collections?: boolean | LibraryItemCountOutputTypeCountCollectionsArgs
+  activityEvents?: boolean | LibraryItemCountOutputTypeCountActivityEventsArgs
 }
 
 /**
@@ -1247,6 +1405,13 @@ export type LibraryItemCountOutputTypeDefaultArgs<ExtArgs extends runtime.Types.
  */
 export type LibraryItemCountOutputTypeCountCollectionsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   where?: Prisma.CollectionWhereInput
+}
+
+/**
+ * LibraryItemCountOutputType without action
+ */
+export type LibraryItemCountOutputTypeCountActivityEventsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.LibraryActivityEventWhereInput
 }
 
 
@@ -1274,6 +1439,7 @@ export type LibraryItemSelect<ExtArgs extends runtime.Types.Extensions.InternalA
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
   preview?: boolean | Prisma.LibraryItem$previewArgs<ExtArgs>
   collections?: boolean | Prisma.LibraryItem$collectionsArgs<ExtArgs>
+  activityEvents?: boolean | Prisma.LibraryItem$activityEventsArgs<ExtArgs>
   _count?: boolean | Prisma.LibraryItemCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["libraryItem"]>
 
@@ -1353,6 +1519,7 @@ export type LibraryItemInclude<ExtArgs extends runtime.Types.Extensions.Internal
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
   preview?: boolean | Prisma.LibraryItem$previewArgs<ExtArgs>
   collections?: boolean | Prisma.LibraryItem$collectionsArgs<ExtArgs>
+  activityEvents?: boolean | Prisma.LibraryItem$activityEventsArgs<ExtArgs>
   _count?: boolean | Prisma.LibraryItemCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type LibraryItemIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -1368,6 +1535,7 @@ export type $LibraryItemPayload<ExtArgs extends runtime.Types.Extensions.Interna
     user: Prisma.$UserPayload<ExtArgs>
     preview: Prisma.$LibraryItemPreviewPayload<ExtArgs> | null
     collections: Prisma.$CollectionPayload<ExtArgs>[]
+    activityEvents: Prisma.$LibraryActivityEventPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -1787,6 +1955,7 @@ export interface Prisma__LibraryItemClient<T, Null = never, ExtArgs extends runt
   user<T extends Prisma.UserDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.UserDefaultArgs<ExtArgs>>): Prisma.Prisma__UserClient<runtime.Types.Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   preview<T extends Prisma.LibraryItem$previewArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.LibraryItem$previewArgs<ExtArgs>>): Prisma.Prisma__LibraryItemPreviewClient<runtime.Types.Result.GetResult<Prisma.$LibraryItemPreviewPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   collections<T extends Prisma.LibraryItem$collectionsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.LibraryItem$collectionsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$CollectionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  activityEvents<T extends Prisma.LibraryItem$activityEventsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.LibraryItem$activityEventsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$LibraryActivityEventPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -2277,6 +2446,30 @@ export type LibraryItem$collectionsArgs<ExtArgs extends runtime.Types.Extensions
   take?: number
   skip?: number
   distinct?: Prisma.CollectionScalarFieldEnum | Prisma.CollectionScalarFieldEnum[]
+}
+
+/**
+ * LibraryItem.activityEvents
+ */
+export type LibraryItem$activityEventsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the LibraryActivityEvent
+   */
+  select?: Prisma.LibraryActivityEventSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the LibraryActivityEvent
+   */
+  omit?: Prisma.LibraryActivityEventOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.LibraryActivityEventInclude<ExtArgs> | null
+  where?: Prisma.LibraryActivityEventWhereInput
+  orderBy?: Prisma.LibraryActivityEventOrderByWithRelationInput | Prisma.LibraryActivityEventOrderByWithRelationInput[]
+  cursor?: Prisma.LibraryActivityEventWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.LibraryActivityEventScalarFieldEnum | Prisma.LibraryActivityEventScalarFieldEnum[]
 }
 
 /**

@@ -6,21 +6,20 @@ import {
     ContextMenuPopup,
     ContextMenuTrigger,
 } from "@/components/ui/context-menu";
+import { cn } from "@/lib/common/cn";
 import { saveFile } from "@/lib/common/file";
-import { createLogger } from "@/lib/common/logs/console/logger";
 import { DownloadIcon } from "lucide-react";
 import type { StaticImageData } from "next/image";
 import Image from "next/image";
 import Link from "next/link";
+import type * as React from "react";
 
-const log = createLogger("logo-context-menu");
-
-interface LogoContextMenuProps {
+interface LogoContextMenuProps extends React.ComponentProps<typeof Link> {
     href: string;
     src: StaticImageData;
 }
 
-function BrandLogo({ href, src }: LogoContextMenuProps) {
+function BrandLogo({ href, src, className, ...props }: LogoContextMenuProps) {
     const handleSaveLogo = async () => {
         try {
             await saveFile(
@@ -39,7 +38,7 @@ function BrandLogo({ href, src }: LogoContextMenuProps) {
                 }
             );
         } catch (error) {
-            log.error("Failed to save logo image", error);
+            console.error("Failed to save logo image", error);
         }
     };
 
@@ -48,9 +47,13 @@ function BrandLogo({ href, src }: LogoContextMenuProps) {
             <ContextMenuTrigger
                 render={
                     <Link
-                        className="group w-fit rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
+                        className={cn(
+                            "group w-fit rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60",
+                            className
+                        )}
                         draggable={false}
                         href={href}
+                        {...props}
                     />
                 }
             >

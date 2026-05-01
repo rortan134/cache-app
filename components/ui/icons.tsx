@@ -6,8 +6,10 @@ export const GithubIcon = ({
     ...props
 }: SVGProps<SVGSVGElement>) => (
     <svg
+        aria-hidden="true"
         aria-label="GitHub"
         className={cn("size-6 shrink-0", className)}
+        focusable="false"
         role="img"
         viewBox="0 0 24 24"
         {...props}
@@ -24,8 +26,10 @@ export const TikTokIcon = ({
     ...props
 }: SVGProps<SVGSVGElement>) => (
     <svg
+        aria-hidden="true"
         aria-label="TikTok"
         className={cn("size-6 shrink-0", className)}
+        focusable="false"
         role="img"
         viewBox="0 0 352.28 398.67"
         {...props}
@@ -60,8 +64,10 @@ export const InstagramIcon = ({
     ...props
 }: SVGProps<SVGSVGElement>) => (
     <svg
+        aria-hidden="true"
         aria-label="Instagram"
         className={cn("size-6 shrink-0", className)}
+        focusable="false"
         role="img"
         viewBox="0 0 24 24"
         {...props}
@@ -79,8 +85,10 @@ export const PinterestIcon = ({
     ...props
 }: SVGProps<SVGSVGElement>) => (
     <svg
+        aria-hidden="true"
         aria-label="Pinterest"
         className={cn("size-6 shrink-0", className)}
+        focusable="false"
         role="img"
         viewBox="0 0 256 256"
         {...props}
@@ -97,8 +105,10 @@ export const PhotosIcon = ({
     ...props
 }: SVGProps<SVGSVGElement>) => (
     <svg
+        aria-hidden="true"
         aria-label="Google Photos"
         className={cn("size-6 shrink-0", className)}
+        focusable="false"
         preserveAspectRatio="xMidYMid"
         role="img"
         viewBox="0 0 256 256"
@@ -130,9 +140,11 @@ export const XSocialIcon = ({
     ...props
 }: SVGProps<SVGSVGElement>) => (
     <svg
+        aria-hidden="true"
         aria-label="X"
         className={cn("size-6 shrink-0", className)}
         fill="none"
+        focusable="false"
         role="img"
         viewBox="0 0 1200 1227"
         {...props}
@@ -149,8 +161,10 @@ export const YouTubeIcon = ({
     ...props
 }: SVGProps<SVGSVGElement>) => (
     <svg
+        aria-hidden="true"
         aria-label="YouTube"
         className={cn("size-6 shrink-0", className)}
+        focusable="false"
         role="img"
         viewBox="0 0 24 24"
         {...props}
@@ -168,8 +182,11 @@ export const ChromeIcon = ({
     ...props
 }: SVGProps<SVGSVGElement>) => (
     <svg
+        aria-hidden="true"
         aria-label="Chrome"
         className={cn("size-6 shrink-0", className)}
+        focusable="false"
+        role="img"
         {...props}
         preserveAspectRatio="xMidYMid"
         viewBox="0 0 190.5 190.5"
@@ -202,8 +219,10 @@ export const GoogleIcon = ({
     ...props
 }: SVGProps<SVGSVGElement>) => (
     <svg
+        aria-hidden="true"
         aria-label="Google"
         className={cn("size-5 shrink-0", className)}
+        focusable="false"
         role="img"
         viewBox="0 0 48 48"
         {...props}
@@ -287,7 +306,9 @@ export const CheckmarkIcon = ({
         aria-hidden="true"
         className={cn("size-6 shrink-0", className)}
         fill="none"
+        focusable="false"
         height="24"
+        role="img"
         stroke="currentColor"
         strokeWidth="2"
         viewBox="0 0 24 24"
@@ -303,6 +324,7 @@ export const PriorityNoneIcon = ({
     ...props
 }: SVGProps<SVGSVGElement>) => (
     <svg
+        aria-hidden="true"
         aria-label="No Priority"
         className={cn("size-6 shrink-0", className)}
         focusable="false"
@@ -349,7 +371,7 @@ export const ChevronDownFilledIcon = ({
     <svg
         aria-hidden="true"
         className={cn(
-            "pointer-events-none inline-block size-5 shrink-0 opacity-80 transition-[opacity,transform] group-hover:opacity-80! group-data-panel-open:rotate-90 group-data-panel-open:opacity-30",
+            "pointer-events-none inline-block size-4 shrink-0 opacity-80 transition-[opacity,transform] group-hover:opacity-80! group-data-panel-open:rotate-90 group-data-panel-open:opacity-30",
             className
         )}
         fill="currentColor"

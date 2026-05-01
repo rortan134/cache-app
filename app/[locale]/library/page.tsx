@@ -5,7 +5,7 @@ import {
     UserMenuHeader,
 } from "@/components/auth/user-menu";
 import { Root } from "@/components/library/browser";
-import { WorkspaceCollectionsList } from "@/components/library/collections-list";
+import { CollectionsListRoot } from "@/components/library/collections";
 import {
     IntegrationsList,
     IntegrationsListItem,
@@ -16,12 +16,14 @@ import {
 } from "@/components/library/integrations";
 import { WorkspaceProvider } from "@/components/library/workspace-provider";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { BrandLogo } from "@/components/ui/brand-logo";
 import { ChevronDownFilledIcon } from "@/components/ui/icons";
-import { CtrlKbd, Kbd, KbdGroup } from "@/components/ui/kbd";
 import { PageShell } from "@/components/ui/page-shell";
-import { RadialChart } from "@/components/ui/radial-chart";
-import { Sidebar, SidebarFooter, SidebarHeader } from "@/components/ui/sidebar";
+import {
+    Sidebar,
+    SidebarGroup,
+    SidebarHeader,
+    SidebarItem,
+} from "@/components/ui/sidebar";
 import { getServerSession } from "@/lib/auth/server";
 import { userHasActiveSubscription } from "@/lib/auth/subscription-access";
 import {
@@ -36,19 +38,13 @@ import type {
 import { buildLocaleAlternates } from "@/lib/i18n/alternates";
 import { gtPublicString } from "@/lib/i18n/gt-public-json";
 import {
-    integrationSetupHeadingText,
-    integrationSetupProgressPercent,
-    partitionLibrarySyncLabels,
-    syncableLibrarySourceTotal,
-} from "@/lib/integrations/progress";
-import {
     INTEGRATIONS,
     listConnectedIntegrationIds,
     listIntegrationAccountProviderIds,
 } from "@/lib/integrations/support";
 import { prisma } from "@/prisma";
-import LogoIconImage from "@/public/cache-app-icon.png";
 import { T } from "gt-next";
+import { BookmarkCheck, History, House } from "lucide-react";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
@@ -194,23 +190,6 @@ export default async function LibraryPage() {
     });
     const connectedIntegrationIdSet = new Set(connectedIntegrationIds);
 
-    const syncable = syncableLibrarySourceTotal();
-    const { connectedLabels, missingLabels } = partitionLibrarySyncLabels(
-        itemSources,
-        connectedIntegrationIds
-    );
-    const connectedCount = connectedLabels.length;
-    const progressPercent = integrationSetupProgressPercent(
-        connectedCount,
-        syncable
-    );
-    const setupText = integrationSetupHeadingText({
-        connectedCount,
-        connectedLabels,
-        missingLabels,
-        syncable,
-    });
-
     return (
         <PageShell>
             <div className="flex flex-1 flex-col gap-8 lg:flex-row lg:justify-between">
@@ -220,77 +199,93 @@ export default async function LibraryPage() {
                     initialItems={items}
                 >
                     <Sidebar>
-                        <SidebarHeader>
-                            <BrandLogo href="/library" src={LogoIconImage} />
-                            <IntegrationsList className="group">
-                                <IntegrationsListTrigger>
-                                    <RadialChart
-                                        className="pointer-events-none inline-block shrink-0 select-none"
-                                        size={32}
-                                        value={progressPercent}
+                        <SidebarHeader className="gap-3">
+                            <UserMenu>
+                                <UserMenuHeader />
+                                <UserMenuContent />
+                                <UserMenuFooter />
+                            </UserMenu>
+                            <SidebarGroup>
+                                <SidebarItem>
+                                    <House
+                                        aria-hidden
+                                        className="inline-block size-4 shrink-0"
+                                        focusable="false"
                                     />
-                                    <div className="relative">
-                                        <span className="min-w-0 flex-1 truncate font-medium text-sm leading-none transition-opacity group-data-open:opacity-0 group-data-closed:duration-300 group-data-open:duration-400">
-                                            <T>Integrations</T>
-                                        </span>
-                                        <span className="absolute top-1/2 left-0 min-w-0 flex-1 -translate-y-1/2 truncate font-medium text-sm leading-none opacity-0 transition-opacity group-data-open:opacity-100 group-data-closed:duration-300 group-data-open:duration-400">
-                                            {setupText}
-                                        </span>
-                                    </div>
-                                    <div className="ml-auto flex items-center justify-end gap-1">
-                                        <KbdGroup className="opacity-0 group-hover:opacity-100 group-data-open:opacity-0!">
-                                            <Kbd>
-                                                <CtrlKbd />I
-                                            </Kbd>
-                                        </KbdGroup>
-                                        <ChevronDownFilledIcon />
-                                    </div>
+                                    <span>
+                                        <T>Home</T>
+                                    </span>
+                                </SidebarItem>
+                                <SidebarItem>
+                                    <History
+                                        aria-hidden
+                                        className="inline-block size-4 shrink-0"
+                                        focusable="false"
+                                    />
+                                    <span>
+                                        <T>Activity</T>
+                                    </span>
+                                </SidebarItem>
+                                <SidebarItem>
+                                    <BookmarkCheck
+                                        aria-hidden
+                                        className="inline-block size-4 shrink-0"
+                                        focusable="false"
+                                    />
+                                    <span>
+                                        <T>Review</T>
+                                    </span>
+                                </SidebarItem>
+                            </SidebarGroup>
+                            <IntegrationsList>
+                                <IntegrationsListTrigger>
+                                    <span className="min-w-0 text-xs">
+                                        <T>Integrations</T>
+                                    </span>
+                                    <ChevronDownFilledIcon className="-ml-0.5" />
                                 </IntegrationsListTrigger>
                                 <IntegrationsListPanel>
                                     {INTEGRATIONS.map(
                                         ({ id, label, description, Icon }) => (
-                                            <IntegrationsListItem key={id}>
+                                            <IntegrationsListItem
+                                                className="group"
+                                                key={id}
+                                            >
                                                 <Avatar
                                                     aria-label={label}
-                                                    className="rounded-md"
+                                                    className="size-6 rounded-md"
                                                 >
-                                                    <AvatarFallback className="rounded-md bg-muted/80">
+                                                    <AvatarFallback className="rounded-md">
                                                         <Icon
                                                             aria-hidden="true"
-                                                            className="size-4.5 shrink-0"
+                                                            className="size-3.5 shrink-0"
                                                             focusable="false"
                                                         />
                                                     </AvatarFallback>
                                                 </Avatar>
-                                                <div className="flex min-w-0 flex-1 flex-col">
-                                                    <span className="font-medium text-sm leading-snug">
-                                                        {label}
-                                                    </span>
-                                                    <span className="text-[11px] text-muted-foreground leading-snug">
+                                                <span className="min-w-0 flex-1 font-medium text-sm leading-snug">
+                                                    {label}
+                                                </span>
+                                                <span className="relative flex items-center text-muted-foreground leading-snug">
+                                                    <span className="absolute right-0 text-[11px] group-hover:opacity-0">
                                                         {description}
                                                     </span>
-                                                </div>
-                                                <IntegrationsListItemAction
-                                                    id={id}
-                                                    isConnected={connectedIntegrationIdSet.has(
-                                                        id
-                                                    )}
-                                                />
+                                                    <IntegrationsListItemAction
+                                                        className="absolute right-0 opacity-0 group-hover:opacity-100"
+                                                        id={id}
+                                                        isConnected={connectedIntegrationIdSet.has(
+                                                            id
+                                                        )}
+                                                    />
+                                                </span>
                                             </IntegrationsListItem>
                                         )
                                     )}
                                     <IntegrationsListNoticeCallout />
                                 </IntegrationsListPanel>
                             </IntegrationsList>
-                            <WorkspaceCollectionsList />
+                            <CollectionsListRoot />
                         </SidebarHeader>
-                        <SidebarFooter>
-                            <UserMenu>
-                                <UserMenuHeader />
-                                <UserMenuContent />
-                                <UserMenuFooter />
-                            </UserMenu>
-                        </SidebarFooter>
                     </Sidebar>
                     <div className="flex w-full max-w-[1024px] flex-col items-center gap-12 p-8 2xl:mx-auto">
                         <Root

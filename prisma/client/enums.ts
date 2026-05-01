@@ -64,6 +64,18 @@ export const LibraryItemPreviewProviderStatus = {
 export type LibraryItemPreviewProviderStatus = (typeof LibraryItemPreviewProviderStatus)[keyof typeof LibraryItemPreviewProviderStatus]
 
 
+export const LibraryActivityEventKind = {
+  collection_created: 'collection_created',
+  collection_shared: 'collection_shared',
+  item_added: 'item_added',
+  item_collected: 'item_collected',
+  item_updated: 'item_updated',
+  source_connected: 'source_connected'
+} as const
+
+export type LibraryActivityEventKind = (typeof LibraryActivityEventKind)[keyof typeof LibraryActivityEventKind]
+
+
 export const CollectionTemplate = {
   reading_list: 'reading_list',
   inspiration: 'inspiration',

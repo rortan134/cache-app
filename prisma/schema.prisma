@@ -47,6 +47,15 @@ enum LibraryItemPreviewProviderStatus {
     error
 }
 
+enum LibraryActivityEventKind {
+    collection_created
+    collection_shared
+    item_added
+    item_collected
+    item_updated
+    source_connected
+}
+
 enum CollectionTemplate {
     reading_list
     inspiration
@@ -75,6 +84,7 @@ model User {
     accounts             Account[]
     libraryItems         LibraryItem[]
     collections          Collection[]
+    libraryActivityEvents LibraryActivityEvent[]
 
     feedbackEntries Feedback[]
 
@@ -92,13 +102,34 @@ model Collection {
     priority    CollectionPriority @default(none)
     shareId     String?            @unique
     sharedAt    DateTime?
-    items       LibraryItem[]
-    createdAt   DateTime           @default(now())
+    items          LibraryItem[]
+    activityEvents LibraryActivityEvent[]
+    createdAt      DateTime           @default(now())
     updatedAt   DateTime           @updatedAt
 
     @@unique([userId, nameKey])
     @@index([userId])
     @@map("collection")
+}
+
+/// Application-owned. Append-only activity events for the user's library timeline.
+model LibraryActivityEvent {
+    id            String                   @id @default(cuid())
+    userId        String
+    user          User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
+    kind          LibraryActivityEventKind
+    libraryItemId String?
+    libraryItem   LibraryItem?             @relation(fields: [libraryItemId], references: [id], onDelete: SetNull)
+    collectionId  String?
+    collection    Collection?              @relation(fields: [collectionId], references: [id], onDelete: SetNull)
+    metadata      Json?
+    occurredAt    DateTime                 @default(now())
+    createdAt     DateTime                 @default(now())
+
+    @@index([userId, occurredAt])
+    @@index([libraryItemId])
+    @@index([collectionId])
+    @@map("library_activity_event")
 }
 
 /// Application-owned. User's saved content items.
@@ -124,6 +155,7 @@ model LibraryItem {
     postedAt         DateTime?
     scrapedAt        DateTime?
     collections      Collection[]
+    activityEvents   LibraryActivityEvent[]
     createdAt        DateTime            @default(now())
     updatedAt        DateTime            @updatedAt
 

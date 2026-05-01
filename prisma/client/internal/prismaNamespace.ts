@@ -386,6 +386,7 @@ type FieldRefInputType<Model, FieldType> = Model extends never ? never : FieldRe
 export const ModelName = {
   User: 'User',
   Collection: 'Collection',
+  LibraryActivityEvent: 'LibraryActivityEvent',
   LibraryItem: 'LibraryItem',
   LibraryItemPreview: 'LibraryItemPreview',
   Session: 'Session',
@@ -408,7 +409,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "collection" | "libraryItem" | "libraryItemPreview" | "session" | "account" | "verification" | "subscription" | "feedback"
+    modelProps: "user" | "collection" | "libraryActivityEvent" | "libraryItem" | "libraryItemPreview" | "session" | "account" | "verification" | "subscription" | "feedback"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -557,6 +558,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         count: {
           args: Prisma.CollectionCountArgs<ExtArgs>
           result: runtime.Types.Utils.Optional<Prisma.CollectionCountAggregateOutputType> | number
+        }
+      }
+    }
+    LibraryActivityEvent: {
+      payload: Prisma.$LibraryActivityEventPayload<ExtArgs>
+      fields: Prisma.LibraryActivityEventFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.LibraryActivityEventFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LibraryActivityEventPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.LibraryActivityEventFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LibraryActivityEventPayload>
+        }
+        findFirst: {
+          args: Prisma.LibraryActivityEventFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LibraryActivityEventPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.LibraryActivityEventFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LibraryActivityEventPayload>
+        }
+        findMany: {
+          args: Prisma.LibraryActivityEventFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LibraryActivityEventPayload>[]
+        }
+        create: {
+          args: Prisma.LibraryActivityEventCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LibraryActivityEventPayload>
+        }
+        createMany: {
+          args: Prisma.LibraryActivityEventCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.LibraryActivityEventCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LibraryActivityEventPayload>[]
+        }
+        delete: {
+          args: Prisma.LibraryActivityEventDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LibraryActivityEventPayload>
+        }
+        update: {
+          args: Prisma.LibraryActivityEventUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LibraryActivityEventPayload>
+        }
+        deleteMany: {
+          args: Prisma.LibraryActivityEventDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.LibraryActivityEventUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.LibraryActivityEventUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LibraryActivityEventPayload>[]
+        }
+        upsert: {
+          args: Prisma.LibraryActivityEventUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LibraryActivityEventPayload>
+        }
+        aggregate: {
+          args: Prisma.LibraryActivityEventAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateLibraryActivityEvent>
+        }
+        groupBy: {
+          args: Prisma.LibraryActivityEventGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.LibraryActivityEventGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.LibraryActivityEventCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.LibraryActivityEventCountAggregateOutputType> | number
         }
       }
     }
@@ -1148,6 +1223,20 @@ export const CollectionScalarFieldEnum = {
 export type CollectionScalarFieldEnum = (typeof CollectionScalarFieldEnum)[keyof typeof CollectionScalarFieldEnum]
 
 
+export const LibraryActivityEventScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  kind: 'kind',
+  libraryItemId: 'libraryItemId',
+  collectionId: 'collectionId',
+  metadata: 'metadata',
+  occurredAt: 'occurredAt',
+  createdAt: 'createdAt'
+} as const
+
+export type LibraryActivityEventScalarFieldEnum = (typeof LibraryActivityEventScalarFieldEnum)[keyof typeof LibraryActivityEventScalarFieldEnum]
+
+
 export const LibraryItemScalarFieldEnum = {
   id: 'id',
   userId: 'userId',
@@ -1367,6 +1456,34 @@ export type ListEnumCollectionPriorityFieldRefInput<$PrismaModel> = FieldRefInpu
 
 
 /**
+ * Reference to a field of type 'LibraryActivityEventKind'
+ */
+export type EnumLibraryActivityEventKindFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'LibraryActivityEventKind'>
+    
+
+
+/**
+ * Reference to a field of type 'LibraryActivityEventKind[]'
+ */
+export type ListEnumLibraryActivityEventKindFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'LibraryActivityEventKind[]'>
+    
+
+
+/**
+ * Reference to a field of type 'Json'
+ */
+export type JsonFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Json'>
+    
+
+
+/**
+ * Reference to a field of type 'QueryMode'
+ */
+export type EnumQueryModeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'QueryMode'>
+    
+
+
+/**
  * Reference to a field of type 'LibraryItemSource'
  */
 export type EnumLibraryItemSourceFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'LibraryItemSource'>
@@ -1391,20 +1508,6 @@ export type EnumLibraryItemKindFieldRefInput<$PrismaModel> = FieldRefInputType<$
  * Reference to a field of type 'LibraryItemKind[]'
  */
 export type ListEnumLibraryItemKindFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'LibraryItemKind[]'>
-    
-
-
-/**
- * Reference to a field of type 'Json'
- */
-export type JsonFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Json'>
-    
-
-
-/**
- * Reference to a field of type 'QueryMode'
- */
-export type EnumQueryModeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'QueryMode'>
     
 
 
@@ -1575,6 +1678,7 @@ export type PrismaClientOptions = ({
 export type GlobalOmitConfig = {
   user?: Prisma.UserOmit
   collection?: Prisma.CollectionOmit
+  libraryActivityEvent?: Prisma.LibraryActivityEventOmit
   libraryItem?: Prisma.LibraryItemOmit
   libraryItemPreview?: Prisma.LibraryItemPreviewOmit
   session?: Prisma.SessionOmit

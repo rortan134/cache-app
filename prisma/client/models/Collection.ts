@@ -224,6 +224,7 @@ export type CollectionWhereInput = {
   updatedAt?: Prisma.DateTimeFilter<"Collection"> | Date | string
   user?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
   items?: Prisma.LibraryItemListRelationFilter
+  activityEvents?: Prisma.LibraryActivityEventListRelationFilter
 }
 
 export type CollectionOrderByWithRelationInput = {
@@ -239,6 +240,7 @@ export type CollectionOrderByWithRelationInput = {
   updatedAt?: Prisma.SortOrder
   user?: Prisma.UserOrderByWithRelationInput
   items?: Prisma.LibraryItemOrderByRelationAggregateInput
+  activityEvents?: Prisma.LibraryActivityEventOrderByRelationAggregateInput
 }
 
 export type CollectionWhereUniqueInput = Prisma.AtLeast<{
@@ -258,6 +260,7 @@ export type CollectionWhereUniqueInput = Prisma.AtLeast<{
   updatedAt?: Prisma.DateTimeFilter<"Collection"> | Date | string
   user?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
   items?: Prisma.LibraryItemListRelationFilter
+  activityEvents?: Prisma.LibraryActivityEventListRelationFilter
 }, "id" | "shareId" | "userId_nameKey">
 
 export type CollectionOrderByWithAggregationInput = {
@@ -304,6 +307,7 @@ export type CollectionCreateInput = {
   updatedAt?: Date | string
   user: Prisma.UserCreateNestedOneWithoutCollectionsInput
   items?: Prisma.LibraryItemCreateNestedManyWithoutCollectionsInput
+  activityEvents?: Prisma.LibraryActivityEventCreateNestedManyWithoutCollectionInput
 }
 
 export type CollectionUncheckedCreateInput = {
@@ -318,6 +322,7 @@ export type CollectionUncheckedCreateInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   items?: Prisma.LibraryItemUncheckedCreateNestedManyWithoutCollectionsInput
+  activityEvents?: Prisma.LibraryActivityEventUncheckedCreateNestedManyWithoutCollectionInput
 }
 
 export type CollectionUpdateInput = {
@@ -332,6 +337,7 @@ export type CollectionUpdateInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   user?: Prisma.UserUpdateOneRequiredWithoutCollectionsNestedInput
   items?: Prisma.LibraryItemUpdateManyWithoutCollectionsNestedInput
+  activityEvents?: Prisma.LibraryActivityEventUpdateManyWithoutCollectionNestedInput
 }
 
 export type CollectionUncheckedUpdateInput = {
@@ -346,6 +352,7 @@ export type CollectionUncheckedUpdateInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   items?: Prisma.LibraryItemUncheckedUpdateManyWithoutCollectionsNestedInput
+  activityEvents?: Prisma.LibraryActivityEventUncheckedUpdateManyWithoutCollectionNestedInput
 }
 
 export type CollectionCreateManyInput = {
@@ -440,6 +447,11 @@ export type CollectionMinOrderByAggregateInput = {
   updatedAt?: Prisma.SortOrder
 }
 
+export type CollectionNullableScalarRelationFilter = {
+  is?: Prisma.CollectionWhereInput | null
+  isNot?: Prisma.CollectionWhereInput | null
+}
+
 export type CollectionCreateNestedManyWithoutUserInput = {
   create?: Prisma.XOR<Prisma.CollectionCreateWithoutUserInput, Prisma.CollectionUncheckedCreateWithoutUserInput> | Prisma.CollectionCreateWithoutUserInput[] | Prisma.CollectionUncheckedCreateWithoutUserInput[]
   connectOrCreate?: Prisma.CollectionCreateOrConnectWithoutUserInput | Prisma.CollectionCreateOrConnectWithoutUserInput[]
@@ -488,6 +500,22 @@ export type EnumCollectionPriorityFieldUpdateOperationsInput = {
 
 export type NullableDateTimeFieldUpdateOperationsInput = {
   set?: Date | string | null
+}
+
+export type CollectionCreateNestedOneWithoutActivityEventsInput = {
+  create?: Prisma.XOR<Prisma.CollectionCreateWithoutActivityEventsInput, Prisma.CollectionUncheckedCreateWithoutActivityEventsInput>
+  connectOrCreate?: Prisma.CollectionCreateOrConnectWithoutActivityEventsInput
+  connect?: Prisma.CollectionWhereUniqueInput
+}
+
+export type CollectionUpdateOneWithoutActivityEventsNestedInput = {
+  create?: Prisma.XOR<Prisma.CollectionCreateWithoutActivityEventsInput, Prisma.CollectionUncheckedCreateWithoutActivityEventsInput>
+  connectOrCreate?: Prisma.CollectionCreateOrConnectWithoutActivityEventsInput
+  upsert?: Prisma.CollectionUpsertWithoutActivityEventsInput
+  disconnect?: Prisma.CollectionWhereInput | boolean
+  delete?: Prisma.CollectionWhereInput | boolean
+  connect?: Prisma.CollectionWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.CollectionUpdateToOneWithWhereWithoutActivityEventsInput, Prisma.CollectionUpdateWithoutActivityEventsInput>, Prisma.CollectionUncheckedUpdateWithoutActivityEventsInput>
 }
 
 export type CollectionCreateNestedManyWithoutItemsInput = {
@@ -539,6 +567,7 @@ export type CollectionCreateWithoutUserInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   items?: Prisma.LibraryItemCreateNestedManyWithoutCollectionsInput
+  activityEvents?: Prisma.LibraryActivityEventCreateNestedManyWithoutCollectionInput
 }
 
 export type CollectionUncheckedCreateWithoutUserInput = {
@@ -552,6 +581,7 @@ export type CollectionUncheckedCreateWithoutUserInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   items?: Prisma.LibraryItemUncheckedCreateNestedManyWithoutCollectionsInput
+  activityEvents?: Prisma.LibraryActivityEventUncheckedCreateNestedManyWithoutCollectionInput
 }
 
 export type CollectionCreateOrConnectWithoutUserInput = {
@@ -596,6 +626,78 @@ export type CollectionScalarWhereInput = {
   updatedAt?: Prisma.DateTimeFilter<"Collection"> | Date | string
 }
 
+export type CollectionCreateWithoutActivityEventsInput = {
+  id?: string
+  name: string
+  nameKey: string
+  description?: string | null
+  priority?: $Enums.CollectionPriority
+  shareId?: string | null
+  sharedAt?: Date | string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  user: Prisma.UserCreateNestedOneWithoutCollectionsInput
+  items?: Prisma.LibraryItemCreateNestedManyWithoutCollectionsInput
+}
+
+export type CollectionUncheckedCreateWithoutActivityEventsInput = {
+  id?: string
+  userId: string
+  name: string
+  nameKey: string
+  description?: string | null
+  priority?: $Enums.CollectionPriority
+  shareId?: string | null
+  sharedAt?: Date | string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  items?: Prisma.LibraryItemUncheckedCreateNestedManyWithoutCollectionsInput
+}
+
+export type CollectionCreateOrConnectWithoutActivityEventsInput = {
+  where: Prisma.CollectionWhereUniqueInput
+  create: Prisma.XOR<Prisma.CollectionCreateWithoutActivityEventsInput, Prisma.CollectionUncheckedCreateWithoutActivityEventsInput>
+}
+
+export type CollectionUpsertWithoutActivityEventsInput = {
+  update: Prisma.XOR<Prisma.CollectionUpdateWithoutActivityEventsInput, Prisma.CollectionUncheckedUpdateWithoutActivityEventsInput>
+  create: Prisma.XOR<Prisma.CollectionCreateWithoutActivityEventsInput, Prisma.CollectionUncheckedCreateWithoutActivityEventsInput>
+  where?: Prisma.CollectionWhereInput
+}
+
+export type CollectionUpdateToOneWithWhereWithoutActivityEventsInput = {
+  where?: Prisma.CollectionWhereInput
+  data: Prisma.XOR<Prisma.CollectionUpdateWithoutActivityEventsInput, Prisma.CollectionUncheckedUpdateWithoutActivityEventsInput>
+}
+
+export type CollectionUpdateWithoutActivityEventsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  nameKey?: Prisma.StringFieldUpdateOperationsInput | string
+  description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  priority?: Prisma.EnumCollectionPriorityFieldUpdateOperationsInput | $Enums.CollectionPriority
+  shareId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sharedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  user?: Prisma.UserUpdateOneRequiredWithoutCollectionsNestedInput
+  items?: Prisma.LibraryItemUpdateManyWithoutCollectionsNestedInput
+}
+
+export type CollectionUncheckedUpdateWithoutActivityEventsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  userId?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  nameKey?: Prisma.StringFieldUpdateOperationsInput | string
+  description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  priority?: Prisma.EnumCollectionPriorityFieldUpdateOperationsInput | $Enums.CollectionPriority
+  shareId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sharedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  items?: Prisma.LibraryItemUncheckedUpdateManyWithoutCollectionsNestedInput
+}
+
 export type CollectionCreateWithoutItemsInput = {
   id?: string
   name: string
@@ -607,6 +709,7 @@ export type CollectionCreateWithoutItemsInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   user: Prisma.UserCreateNestedOneWithoutCollectionsInput
+  activityEvents?: Prisma.LibraryActivityEventCreateNestedManyWithoutCollectionInput
 }
 
 export type CollectionUncheckedCreateWithoutItemsInput = {
@@ -620,6 +723,7 @@ export type CollectionUncheckedCreateWithoutItemsInput = {
   sharedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  activityEvents?: Prisma.LibraryActivityEventUncheckedCreateNestedManyWithoutCollectionInput
 }
 
 export type CollectionCreateOrConnectWithoutItemsInput = {
@@ -666,6 +770,7 @@ export type CollectionUpdateWithoutUserInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   items?: Prisma.LibraryItemUpdateManyWithoutCollectionsNestedInput
+  activityEvents?: Prisma.LibraryActivityEventUpdateManyWithoutCollectionNestedInput
 }
 
 export type CollectionUncheckedUpdateWithoutUserInput = {
@@ -679,6 +784,7 @@ export type CollectionUncheckedUpdateWithoutUserInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   items?: Prisma.LibraryItemUncheckedUpdateManyWithoutCollectionsNestedInput
+  activityEvents?: Prisma.LibraryActivityEventUncheckedUpdateManyWithoutCollectionNestedInput
 }
 
 export type CollectionUncheckedUpdateManyWithoutUserInput = {
@@ -704,6 +810,7 @@ export type CollectionUpdateWithoutItemsInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   user?: Prisma.UserUpdateOneRequiredWithoutCollectionsNestedInput
+  activityEvents?: Prisma.LibraryActivityEventUpdateManyWithoutCollectionNestedInput
 }
 
 export type CollectionUncheckedUpdateWithoutItemsInput = {
@@ -717,6 +824,7 @@ export type CollectionUncheckedUpdateWithoutItemsInput = {
   sharedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  activityEvents?: Prisma.LibraryActivityEventUncheckedUpdateManyWithoutCollectionNestedInput
 }
 
 export type CollectionUncheckedUpdateManyWithoutItemsInput = {
@@ -739,10 +847,12 @@ export type CollectionUncheckedUpdateManyWithoutItemsInput = {
 
 export type CollectionCountOutputType = {
   items: number
+  activityEvents: number
 }
 
 export type CollectionCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   items?: boolean | CollectionCountOutputTypeCountItemsArgs
+  activityEvents?: boolean | CollectionCountOutputTypeCountActivityEventsArgs
 }
 
 /**
@@ -762,6 +872,13 @@ export type CollectionCountOutputTypeCountItemsArgs<ExtArgs extends runtime.Type
   where?: Prisma.LibraryItemWhereInput
 }
 
+/**
+ * CollectionCountOutputType without action
+ */
+export type CollectionCountOutputTypeCountActivityEventsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.LibraryActivityEventWhereInput
+}
+
 
 export type CollectionSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -776,6 +893,7 @@ export type CollectionSelect<ExtArgs extends runtime.Types.Extensions.InternalAr
   updatedAt?: boolean
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
   items?: boolean | Prisma.Collection$itemsArgs<ExtArgs>
+  activityEvents?: boolean | Prisma.Collection$activityEventsArgs<ExtArgs>
   _count?: boolean | Prisma.CollectionCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["collection"]>
 
@@ -824,6 +942,7 @@ export type CollectionOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs
 export type CollectionInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
   items?: boolean | Prisma.Collection$itemsArgs<ExtArgs>
+  activityEvents?: boolean | Prisma.Collection$activityEventsArgs<ExtArgs>
   _count?: boolean | Prisma.CollectionCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type CollectionIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -838,6 +957,7 @@ export type $CollectionPayload<ExtArgs extends runtime.Types.Extensions.Internal
   objects: {
     user: Prisma.$UserPayload<ExtArgs>
     items: Prisma.$LibraryItemPayload<ExtArgs>[]
+    activityEvents: Prisma.$LibraryActivityEventPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -1246,6 +1366,7 @@ export interface Prisma__CollectionClient<T, Null = never, ExtArgs extends runti
   readonly [Symbol.toStringTag]: "PrismaPromise"
   user<T extends Prisma.UserDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.UserDefaultArgs<ExtArgs>>): Prisma.Prisma__UserClient<runtime.Types.Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   items<T extends Prisma.Collection$itemsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Collection$itemsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$LibraryItemPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  activityEvents<T extends Prisma.Collection$activityEventsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Collection$activityEventsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$LibraryActivityEventPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -1707,6 +1828,30 @@ export type Collection$itemsArgs<ExtArgs extends runtime.Types.Extensions.Intern
   take?: number
   skip?: number
   distinct?: Prisma.LibraryItemScalarFieldEnum | Prisma.LibraryItemScalarFieldEnum[]
+}
+
+/**
+ * Collection.activityEvents
+ */
+export type Collection$activityEventsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the LibraryActivityEvent
+   */
+  select?: Prisma.LibraryActivityEventSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the LibraryActivityEvent
+   */
+  omit?: Prisma.LibraryActivityEventOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.LibraryActivityEventInclude<ExtArgs> | null
+  where?: Prisma.LibraryActivityEventWhereInput
+  orderBy?: Prisma.LibraryActivityEventOrderByWithRelationInput | Prisma.LibraryActivityEventOrderByWithRelationInput[]
+  cursor?: Prisma.LibraryActivityEventWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.LibraryActivityEventScalarFieldEnum | Prisma.LibraryActivityEventScalarFieldEnum[]
 }
 
 /**

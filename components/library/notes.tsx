@@ -2,14 +2,6 @@
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-    Drawer,
-    DrawerClose,
-    DrawerHeader,
-    DrawerPanel,
-    DrawerPopup,
-    DrawerTitle,
-} from "@/components/ui/drawer";
 import { Group } from "@/components/ui/group";
 import { GoogleDocsIcon, NotionIcon } from "@/components/ui/icons";
 import { Menu, MenuItem, MenuPopup, MenuTrigger } from "@/components/ui/menu";
@@ -73,27 +65,47 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import {
+    createContext,
     startTransition,
+    use,
     useDeferredValue,
     useEffect,
     useRef,
     useState,
     type ClipboardEvent,
+    type ReactNode,
     type SVGProps,
 } from "react";
+
+// #region Domain/view types
 
 interface NoteDraft {
     contentHtml: string;
     contentState: NoteSerializedEditorState | null;
 }
 
-interface LibraryNoteDrawerProps {
+interface NoteProps {
+    children: ReactNode;
     note: LibraryItemWithCollections | null;
     onOpenChange: (open: boolean) => void;
     onSave: (draft: NoteDraft) => Promise<boolean> | boolean;
     onUrlPaste: (url: string) => Promise<void> | void;
     open: boolean;
     saving: boolean;
+}
+
+interface NoteContextValue {
+    editorKey: number;
+    initialDraft: NoteDraft;
+    isBusy: boolean;
+    isExpanded: boolean;
+    onDraftChange: (draft: NoteDraft) => void;
+    onOpenChange: (open: boolean) => Promise<void>;
+    onUrlPaste: (url: string) => Promise<void> | void;
+    query: string;
+    textMetrics: NoteTextMetrics;
+    title: string;
+    toggleExpanded: () => void;
 }
 
 interface FormatState {
@@ -113,6 +125,10 @@ interface NoteTextMetrics {
 
 type NoteBlockType = "h1" | "h2" | "h3" | "paragraph";
 type NoteInlineFormatStateKey = Exclude<keyof FormatState, "blockType">;
+
+// #endregion Domain/view types
+
+// #region Constants
 
 const INITIAL_FORMAT_STATE: FormatState = {
     blockType: "paragraph",
@@ -141,6 +157,7 @@ const NOTE_EDITOR_THEME = {
 const NOTE_EDITOR_NODES = [HeadingNode];
 const NOTE_EDITOR_NAMESPACE = "cache-library-note";
 const NOTE_WORD_SEPARATOR = /\s+/;
+
 const NOTE_BLOCK_OPTIONS = [
     {
         ariaLabel: "Paragraph",
@@ -263,6 +280,30 @@ const EXPORT_CONTENT_PROVIDERS = [
     },
 ];
 
+const NOTE_NON_EMPTY_BLOCK_TAG =
+    /<(h[1-3]|p)>(?!(?:\s|<br\s*\/?>)*<\/\1>)[\s\S]*?<\/\1>/gi;
+
+// #endregion Constants
+
+// #region Local stores/context
+
+const NoteContext = createContext<NoteContextValue | null>(null);
+
+function useNoteContext(): NoteContextValue {
+    const context = use(NoteContext);
+    if (!context) {
+        throw new Error(
+            "Note compound components must be rendered inside Note.Root."
+        );
+    }
+
+    return context;
+}
+
+// #endregion Local stores/context
+
+// #region Pure helpers
+
 function normalizeDraft(draft: NoteDraft): NoteDraft {
     return {
         contentHtml: normalizeNoteHtml(draft.contentHtml),
@@ -293,9 +334,6 @@ function noteDraftFromItem(note: LibraryItemWithCollections | null): NoteDraft {
         contentState: null,
     });
 }
-
-const NOTE_NON_EMPTY_BLOCK_TAG =
-    /<(h[1-3]|p)>(?!(?:\s|<br\s*\/?>)*<\/\1>)[\s\S]*?<\/\1>/gi;
 
 function areFormatStatesEqual(left: FormatState, right: FormatState): boolean {
     return (
@@ -352,6 +390,21 @@ function getInitialEditorState(
         }
     };
 }
+
+function haveDraftsChanged(left: NoteDraft, right: NoteDraft): boolean {
+    return (
+        normalizeNoteHtml(left.contentHtml) !==
+        normalizeNoteHtml(right.contentHtml)
+    );
+}
+
+function isDraftEmpty(draft: NoteDraft): boolean {
+    return extractNoteText(draft.contentHtml).length === 0;
+}
+
+// #endregion Pure helpers
+
+// #region Plugin components
 
 function NoteFormattingToolbarPlugin() {
     const [editor] = useLexicalComposerContext();
@@ -524,25 +577,19 @@ function NoteContentPlugin({
     );
 }
 
-function haveDraftsChanged(left: NoteDraft, right: NoteDraft): boolean {
-    return (
-        normalizeNoteHtml(left.contentHtml) !==
-        normalizeNoteHtml(right.contentHtml)
-    );
-}
+// #endregion Plugin components
 
-function isDraftEmpty(draft: NoteDraft): boolean {
-    return extractNoteText(draft.contentHtml).length === 0;
-}
+// #region Main components
 
-export function LibraryNoteDrawer({
+function NoteRoot({
+    children,
     note,
     onOpenChange,
     onSave,
     onUrlPaste,
     open,
     saving,
-}: LibraryNoteDrawerProps) {
+}: NoteProps) {
     const [draft, setDraft] = useState<NoteDraft>(() =>
         noteDraftFromItem(note)
     );
@@ -617,168 +664,198 @@ export function LibraryNoteDrawer({
     const deferredContentHtml = useDeferredValue(draft.contentHtml);
     const textMetrics = getNoteTextMetrics(deferredContentHtml);
     const query = textMetrics.plainText;
-    const ExpandIcon = isExpanded ? Minimize2 : Maximize2;
+    const title = note ? "Edit note" : "New entry";
     const isBusy = saving || isClosing;
 
     return (
-        <Drawer onOpenChange={handleOpenChange} open={open} position="right">
-            <DrawerPopup
-                className={cn(
-                    "max-w-2xl",
-                    isExpanded &&
-                        "w-[min(96vw,120rem)] max-w-[min(96vw,120rem)]"
-                )}
-                variant="straight"
-            >
-                <DrawerHeader
-                    allowSelection
-                    className="flex-row items-center justify-between"
-                >
-                    <div className="flex items-center gap-1">
-                        <Badge size="lg" variant="outline">
-                            <Image
-                                alt=""
-                                height={12}
-                                src={AppIconSmall}
-                                width={12}
-                            />
-                            Cache
-                        </Badge>
-                        <ChevronRight className="inline-block size-3.5 shrink-0" />
-                        <DrawerTitle className="font-medium text-sm">
-                            {note ? "Edit note" : "New entry"}
-                        </DrawerTitle>
-                    </div>
-                    <div className="flex items-center justify-end gap-2">
-                        <Menu>
-                            <MenuTrigger
-                                render={
-                                    <Button
-                                        className="rounded-full"
-                                        disabled={query.length === 0}
-                                        size="xs"
-                                        variant="outline"
-                                    />
-                                }
-                            >
-                                <MessageCircleIcon className="inline-block size-3.5" />
-                                <T>Open in...</T>
-                                <ChevronDownIcon className="size-3.5" />
-                            </MenuTrigger>
-                            <MenuPopup align="start" className="w-60">
-                                {EXPORT_CONTENT_PROVIDERS.map((provider) => {
-                                    const ProviderIcon = provider.icon;
-                                    return (
-                                        <MenuItem
-                                            disabled={query.length === 0}
-                                            key={provider.title}
-                                            render={(props) => (
-                                                <a
-                                                    {...props}
-                                                    href={provider.createUrl(
-                                                        query
-                                                    )}
-                                                    rel="noopener noreferrer"
-                                                    target="_blank"
-                                                />
-                                            )}
-                                        >
-                                            <ProviderIcon className="size-4 text-muted-foreground" />
-                                            <span className="flex-1">
-                                                {provider.title}
-                                            </span>
-                                            <ExternalLinkIcon className="size-4 text-muted-foreground" />
-                                        </MenuItem>
-                                    );
-                                })}
-                            </MenuPopup>
-                        </Menu>
-                        <Group aria-label="Panel actions">
-                            <Button
-                                aria-label={
-                                    isExpanded
-                                        ? "Restore drawer width"
-                                        : "Expand drawer width"
-                                }
-                                aria-pressed={isExpanded}
-                                className="rounded-full"
-                                disabled={isBusy}
-                                onClick={() =>
-                                    setIsExpanded((current) => !current)
-                                }
-                                size="icon-sm"
-                                variant="secondary"
-                            >
-                                <ExpandIcon className="inline-block size-3.5" />
-                            </Button>
-                            <DrawerClose
-                                render={
-                                    <Button
-                                        className="rounded-full"
-                                        loading={isBusy}
-                                        size="icon-sm"
-                                        variant="secondary"
-                                    >
-                                        <XIcon className="inline-block size-3.5" />
-                                    </Button>
-                                }
-                            />
-                        </Group>
-                    </div>
-                </DrawerHeader>
-                <DrawerPanel
-                    allowSelection
-                    className="flex min-h-0 flex-1 flex-col gap-4"
-                >
-                    {/* Lexical only consumes `initialConfig` on mount, so we
-                    keep this composer boundary separate from the drawer's live
-                    draft state and remount it explicitly via `editorKey` */}
-                    <LexicalComposer
-                        initialConfig={{
-                            editorState: getInitialEditorState(
-                                initialDraftRef.current
-                            ),
-                            namespace: NOTE_EDITOR_NAMESPACE,
-                            nodes: NOTE_EDITOR_NODES,
-                            onError(error: Error) {
-                                console.error(
-                                    "Unexpected note editor error",
-                                    error
-                                );
-                            },
-                            theme: NOTE_EDITOR_THEME,
-                        }}
-                        key={editorKey}
-                    >
-                        <NoteContentPlugin
-                            onDraftChange={handleDraftChange}
-                            onUrlPaste={onUrlPaste}
-                        />
-                    </LexicalComposer>
-                    <div className="flex items-center justify-end gap-4 border-border/60 border-t pt-3 text-muted-foreground text-xs">
-                        <T>
-                            <span>
-                                <Var>{textMetrics.wordCount}</Var> words
-                            </span>
-                        </T>
-                        <T>
-                            <span>
-                                <Var>{textMetrics.paragraphCount}</Var>{" "}
-                                paragraphs
-                            </span>
-                        </T>
-                        <T>
-                            <span>
-                                <Var>{textMetrics.characterCount}</Var>{" "}
-                                characters
-                            </span>
-                        </T>
-                    </div>
-                </DrawerPanel>
-            </DrawerPopup>
-        </Drawer>
+        <NoteContext
+            value={{
+                editorKey,
+                initialDraft: initialDraftRef.current,
+                isBusy,
+                isExpanded,
+                onDraftChange: handleDraftChange,
+                onOpenChange: handleOpenChange,
+                onUrlPaste,
+                query,
+                textMetrics,
+                title,
+                toggleExpanded: () =>
+                    setIsExpanded((currentExpanded) => !currentExpanded),
+            }}
+        >
+            {children}
+        </NoteContext>
     );
 }
+
+function NoteTitle() {
+    const { title } = useNoteContext();
+
+    return title;
+}
+
+function NoteHeader() {
+    const { isBusy, isExpanded, onOpenChange, query, title, toggleExpanded } =
+        useNoteContext();
+    const ExpandIcon = isExpanded ? Minimize2 : Maximize2;
+
+    return (
+        <>
+            <div className="flex items-center gap-1">
+                <Badge size="lg" variant="outline">
+                    <Image alt="" height={12} src={AppIconSmall} width={12} />
+                    Cache
+                </Badge>
+                <ChevronRight className="inline-block size-3.5 shrink-0" />
+                <span className="font-medium text-sm">{title}</span>
+            </div>
+            <div className="flex items-center justify-end gap-2">
+                <Menu>
+                    <MenuTrigger
+                        render={
+                            <Button
+                                className="rounded-full"
+                                disabled={query.length === 0}
+                                size="xs"
+                                variant="outline"
+                            />
+                        }
+                    >
+                        <MessageCircleIcon className="inline-block size-3.5" />
+                        <T>Open in...</T>
+                        <ChevronDownIcon className="size-3.5" />
+                    </MenuTrigger>
+                    <MenuPopup align="start" className="w-60">
+                        {EXPORT_CONTENT_PROVIDERS.map((provider) => {
+                            const ProviderIcon = provider.icon;
+                            return (
+                                <MenuItem
+                                    disabled={query.length === 0}
+                                    key={provider.title}
+                                    render={(props) => (
+                                        <a
+                                            {...props}
+                                            href={provider.createUrl(query)}
+                                            rel="noopener noreferrer"
+                                            target="_blank"
+                                        />
+                                    )}
+                                >
+                                    <ProviderIcon className="size-4 text-muted-foreground" />
+                                    <span className="flex-1">
+                                        {provider.title}
+                                    </span>
+                                    <ExternalLinkIcon className="size-4 text-muted-foreground" />
+                                </MenuItem>
+                            );
+                        })}
+                    </MenuPopup>
+                </Menu>
+                <Group aria-label="Panel actions">
+                    <Button
+                        aria-label={
+                            isExpanded
+                                ? "Restore note width"
+                                : "Expand note width"
+                        }
+                        aria-pressed={isExpanded}
+                        className="rounded-full"
+                        disabled={isBusy}
+                        onClick={toggleExpanded}
+                        size="icon-sm"
+                        variant="secondary"
+                    >
+                        <ExpandIcon className="inline-block size-3.5" />
+                    </Button>
+                    <Button
+                        aria-label="Close note"
+                        className="rounded-full"
+                        loading={isBusy}
+                        onClick={async () => {
+                            await onOpenChange(false);
+                        }}
+                        size="icon-sm"
+                        variant="secondary"
+                    >
+                        <XIcon className="inline-block size-3.5" />
+                    </Button>
+                </Group>
+            </div>
+        </>
+    );
+}
+
+function NoteEditor() {
+    const { editorKey, initialDraft, onDraftChange, onUrlPaste } =
+        useNoteContext();
+
+    return (
+        <>
+            {/* Lexical only consumes initialConfig on mount, so we keep this
+            composer boundary separate from the shell's live draft state and
+            remount it explicitly via editorKey. */}
+            <LexicalComposer
+                initialConfig={{
+                    editorState: getInitialEditorState(initialDraft),
+                    namespace: NOTE_EDITOR_NAMESPACE,
+                    nodes: NOTE_EDITOR_NODES,
+                    onError(error: Error) {
+                        console.error("Unexpected note editor error", error);
+                    },
+                    theme: NOTE_EDITOR_THEME,
+                }}
+                key={editorKey}
+            >
+                <NoteContentPlugin
+                    onDraftChange={onDraftChange}
+                    onUrlPaste={onUrlPaste}
+                />
+            </LexicalComposer>
+        </>
+    );
+}
+
+function NoteMetrics() {
+    const { textMetrics } = useNoteContext();
+
+    return (
+        <div className="flex items-center justify-end gap-4 border-border/60 border-t pt-3 text-muted-foreground text-xs">
+            <T>
+                <span>
+                    <Var>{textMetrics.wordCount}</Var> words
+                </span>
+            </T>
+            <T>
+                <span>
+                    <Var>{textMetrics.paragraphCount}</Var> paragraphs
+                </span>
+            </T>
+            <T>
+                <span>
+                    <Var>{textMetrics.characterCount}</Var> characters
+                </span>
+            </T>
+        </div>
+    );
+}
+
+// #endregion Main components
+
+// #region Exported object
+
+export const Note = Object.assign(NoteRoot, {
+    Editor: NoteEditor,
+    Header: NoteHeader,
+    Metrics: NoteMetrics,
+    Root: NoteRoot,
+    Title: NoteTitle,
+    useContext: useNoteContext,
+});
+
+// #endregion Exported object
+
+// #region Icons
 
 function OpenAIIcon({ className, ...props }: SVGProps<SVGSVGElement>) {
     return (
@@ -913,3 +990,5 @@ function V0Icon({ className, ...props }: SVGProps<SVGSVGElement>) {
         </svg>
     );
 }
+
+// #endregion Icons
