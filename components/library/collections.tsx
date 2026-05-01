@@ -77,8 +77,8 @@ import {
     type CollectionCreateResult,
     type CollectionDeleteResult,
     type CollectionDuplicateResult,
-    type CollectionRenameResult,
     type CollectionPriorityUpdateResult,
+    type CollectionRenameResult,
 } from "@/lib/collections/actions";
 import {
     disableCollectionSharing,
@@ -534,9 +534,13 @@ function getPriorityOption(priority: CollectionPriority): PriorityOption {
 
 function getCollectionsListItemStyle(name: string, isSelected: boolean) {
     const assignedColor = getHexColorFromName(name);
-    const backgroundOpacity = isSelected ? 15 : 10;
+    const backgroundOpacity = isSelected ? 20 : 10;
+    const baseBackground = `color-mix(in srgb, ${assignedColor} ${backgroundOpacity}%, transparent)`;
+
     return {
-        "--collection-background": `color-mix(in srgb, ${assignedColor} ${backgroundOpacity}%, transparent)`,
+        "--collection-background": isSelected
+            ? `color-mix(in srgb, ${baseBackground}, white 3%)`
+            : `color-mix(in srgb, ${baseBackground}, black 3%)`,
         "--focus-ring-color": `color-mix(in srgb, ${assignedColor}, black 50%)`,
         "--text-muted-color": `color-mix(in srgb, ${assignedColor} 16%, black 18%)`,
     } as React.CSSProperties;
@@ -1253,7 +1257,7 @@ interface CollectionsListItemPreviewProps
 }
 
 function CollectionsListItemPreview({
-    onClick: onClickProp,
+    onClick,
     thumbnails,
     ...props
 }: CollectionsListItemPreviewProps) {
@@ -1263,10 +1267,9 @@ function CollectionsListItemPreview({
         isOpen,
         thumbnails.length
     );
-    const onClick = useStableCallback(onClickProp);
 
     return (
-        <PreviewCard onOpenChange={setIsOpen}>
+        <PreviewCard onOpenChange={setIsOpen} open={isOpen}>
             <PreviewCardTrigger
                 closeDelay={0}
                 onClick={(event) => {
@@ -1275,7 +1278,7 @@ function CollectionsListItemPreview({
                 }}
                 render={
                     <Button
-                        className="w-full min-w-0 flex-1 justify-start pr-8 pl-9.5 text-left focus-visible:ring-(--focus-ring-color) focus-visible:ring-2"
+                        className="w-full min-w-0 flex-1 justify-start pr-8 pl-10 text-left focus-visible:ring-(--focus-ring-color) focus-visible:ring-2"
                         variant="ghost"
                     />
                 }
@@ -1358,7 +1361,7 @@ function CollectionsListItemPriorityCombobox({
                 render={
                     <Button
                         aria-label={`Change priority for ${collection.name}`}
-                        className="absolute top-1/2 left-1 z-10 -translate-y-1/2 border-none bg-(--collection-background) text-(--focus-ring-color)"
+                        className="absolute top-1/2 left-1.5 z-10 -translate-y-1/2 border-none bg-(--collection-background) text-(--focus-ring-color)"
                         size="icon-xs"
                         variant="ghost"
                     />
@@ -1676,10 +1679,9 @@ function CollectionsListNoticeCallout() {
                 Smart Collections is active
             </span>
             <PopoverTrigger
-                className="group not-sr-only flex items-center text-nowrap px-1.5 pt-1 pb-1.5 font-medium text-[11px] opacity-70"
+                className="group not-sr-only flex items-center text-nowrap p-1.5 pt-1 font-medium text-[11px] opacity-70"
                 openOnHover
             >
-                <Component className="mr-1.5 mb-px inline-block size-3 shrink-0" />
                 <GradientWaveText
                     ariaLabel="Smart Collections"
                     className="w-fit underline decoration-muted-foreground/20 decoration-dotted underline-offset-2"

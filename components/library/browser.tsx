@@ -247,6 +247,8 @@ function buildCommandSuggestions({
     setPaletteInput,
     setCommandListOpen,
     onToggleCollectionSelection,
+    layoutMode,
+    setLayoutMode,
 }: {
     clearLibraryPalette: () => void;
     collectionMembershipFilter: CollectionMembershipFilter;
@@ -276,6 +278,8 @@ function buildCommandSuggestions({
         value: boolean | ((previous: boolean) => boolean)
     ) => void;
     onToggleCollectionSelection: (id: string) => void;
+    layoutMode: LayoutMode;
+    setLayoutMode: (value: LayoutMode) => void;
 }): CommandSuggestion[] {
     const suggestions: CommandSuggestion[] = [];
     const suggestionLabels = new Set<string>();
@@ -606,6 +610,14 @@ function buildCommandSuggestions({
                 onSelect: commitSelection(clearLibraryPalette),
             });
         }
+    }
+
+    if (layoutMode === "masonry" && !hasAnyRefinements) {
+        addSuggestion({
+            icon: <Component className={SUGGESTION_ICON_CLASS} />,
+            label: "Try Kanban layout",
+            onSelect: commitSelection(() => setLayoutMode("kanban")),
+        });
     }
 
     return suggestions;
@@ -4755,6 +4767,7 @@ export function Root({ lockedItemCount, totalItemCount }: LibraryProps) {
         domainFilters,
         groupBy,
         items: filteredItems,
+        layoutMode,
         onClearCollectionFilters,
         onToggleCollectionSelection: onRemoveCollectionFilter,
         searchTerms,
@@ -4763,6 +4776,7 @@ export function Root({ lockedItemCount, totalItemCount }: LibraryProps) {
         setCommandListOpen,
         setDomainFilters,
         setGroupBy,
+        setLayoutMode,
         setPaletteInput,
         setSearchTerms,
         setSortMode,

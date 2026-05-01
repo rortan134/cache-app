@@ -7,11 +7,13 @@ const ActivePathname = ({
     href,
     match = "exact",
     reverse,
+    children,
     ...props
-}: React.ComponentProps<"div"> & {
+}: Omit<React.ComponentProps<"div">, "children"> & {
     href: string;
     match?: "exact" | "prefix";
     reverse?: boolean;
+    children: React.ReactElement;
 }) => {
     const pathname = usePathname();
     const normalizedHref = String(href);
@@ -22,28 +24,13 @@ const ActivePathname = ({
             : pathname === normalizedHref;
     const _active = reverse ? !isPathnameActive : isPathnameActive;
 
-    const arr = React.Children.toArray(props.children);
-    const single =
-        arr.length === 1 && React.isValidElement(arr[0]) ? arr[0] : null;
+    const child = React.Children.only(children);
 
-    if (single) {
-        return React.cloneElement(single, {
-            ...props,
-            "aria-current": isPathnameActive ? "page" : undefined,
-            "data-active": _active,
-        } as Record<string, unknown>);
-    }
-
-    return (
-        <span
-            aria-current={isPathnameActive ? "page" : undefined}
-            data-active={_active}
-            {...props}
-            style={
-                { display: "contents", ...props.style } as React.CSSProperties
-            }
-        />
-    );
+    return React.cloneElement(child, {
+        ...props,
+        "aria-current": isPathnameActive ? "page" : undefined,
+        "data-active": _active,
+    } as Record<string, unknown>);
 };
 
 export { ActivePathname };

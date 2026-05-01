@@ -216,7 +216,11 @@ export default async function LibraryPage() {
                                 <UserMenuFooter />
                             </UserMenu>
                             <SidebarGroup>
-                                <Link className="contents" href="/library">
+                                <Link
+                                    className="contents"
+                                    href="/library"
+                                    prefetch
+                                >
                                     <ActivePathname href="/library">
                                         <SidebarItem>
                                             <House
@@ -230,7 +234,11 @@ export default async function LibraryPage() {
                                         </SidebarItem>
                                     </ActivePathname>
                                 </Link>
-                                <Link className="contents" href="/activity">
+                                <Link
+                                    className="contents"
+                                    href="/activity"
+                                    prefetch
+                                >
                                     <ActivePathname href="/activity">
                                         <SidebarItem>
                                             <History

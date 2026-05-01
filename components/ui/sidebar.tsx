@@ -47,7 +47,7 @@ function SidebarItem({ className, ...props }: React.ComponentProps<"div">) {
         <div
             {...props}
             className={cn(
-                "flex h-8 max-h-8 min-h-8 flex-1 cursor-default select-none items-center gap-1.5 truncate rounded-lg px-2.5 text-left font-medium text-[13px] text-foreground leading-normal opacity-70 hover:bg-muted hover:opacity-100 focus-visible:opacity-100 active:bg-muted/80 data-[active=true]:bg-muted data-[active=true]:opacity-100",
+                "group relative flex h-8 max-h-8 min-h-8 flex-1 cursor-default select-none items-center gap-1.5 truncate rounded-lg px-2.5 text-left font-medium text-[13px] text-foreground leading-normal opacity-70 before:absolute before:inset-0 before:-z-10 before:rounded-lg before:bg-muted before:opacity-0 before:transition-transform before:will-change-transform hover:opacity-100 hover:before:opacity-100 focus-visible:opacity-100 active:before:scale-x-[0.99] active:before:scale-y-[0.97] active:before:opacity-80! data-[active=true]:before:opacity-100",
                 className
             )}
             data-sidebar="item"

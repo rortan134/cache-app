@@ -439,7 +439,12 @@ export function UserMenu({ children }: { children: ReactNode }) {
                     className="pointer-events-none inline-block size-3.5 shrink-0 opacity-80"
                 />
             </PopoverTrigger>
-            <PopoverPopup align="start" positionMethod="fixed" side="top">
+            <PopoverPopup
+                align="start"
+                className="min-w-[240px]"
+                positionMethod="fixed"
+                side="top"
+            >
                 <div className="flex flex-col gap-4">{children}</div>
             </PopoverPopup>
         </Popover>

@@ -104,6 +104,8 @@ framework: Next.js 16 (App Router, This is NOT the Next.js you know, This versio
 
 ui: React 19, Base-UI (@base-ui/react), lucide-react
 
+react compiler: babel-plugin-react-compiler is enabled. It automatically memoizes components and values. Do not add manual `useMemo` or `useCallback`; they add noise without benefit and can interfere with compiler optimization.
+
 styling: Tailwind CSS 4
 
 validation: zod schemas
