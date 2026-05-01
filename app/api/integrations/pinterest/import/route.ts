@@ -1,13 +1,6 @@
-import { auth } from "@/lib/auth/server";
-import { autoTagLibraryItemsByIds } from "@/lib/collections/intelligence";
-import { IntegrationApiError } from "@/lib/integrations/error";
-import {
-    getIntegrationAccountId,
-    resolveProviderAccessToken,
-} from "@/lib/integrations/provider-account";
+import { runOAuthImport } from "@/lib/integrations/route-utils";
 import { importPinterestBoards } from "@/lib/integrations/pinterest/service";
-import { headers } from "next/headers";
-import { after } from "next/server";
+import type { IntegrationApiError } from "@/lib/integrations/error";
 
 function messageForPinterestApiError(error: IntegrationApiError): string {
     if (error.data.status === 401) {
@@ -19,71 +12,15 @@ function messageForPinterestApiError(error: IntegrationApiError): string {
     return error.message;
 }
 
-export async function POST() {
-    const session = await auth.api.getSession({
-        headers: await headers(),
-    });
-    const userId = session?.user?.id;
-    if (!userId) {
-        return Response.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const accountId = await getIntegrationAccountId(userId, "pinterest");
-    if (!accountId) {
-        return Response.json(
-            { error: "Connect Pinterest before importing pins." },
-            { status: 404 }
-        );
-    }
-
-    const accessToken = await resolveProviderAccessToken({
-        accountId,
+export function POST() {
+    return runOAuthImport({
+        importFn: importPinterestBoards,
+        messages: {
+            apiError: messageForPinterestApiError,
+            genericError: "Failed to import Pinterest pins",
+            noToken: "Reconnect Pinterest before importing pins.",
+            notConnected: "Connect Pinterest before importing pins.",
+        },
         providerId: "pinterest",
     });
-    if (!accessToken) {
-        return Response.json(
-            { error: "Reconnect Pinterest before importing pins." },
-            { status: 403 }
-        );
-    }
-
-    try {
-        const result = await importPinterestBoards({
-            accessToken,
-            userId,
-        });
-
-        const { smartCollectionItemIds, ...response } = result;
-
-        if (smartCollectionItemIds.length > 0) {
-            after(async () => {
-                await autoTagLibraryItemsByIds({
-                    itemIds: smartCollectionItemIds,
-                    userId,
-                });
-            });
-        }
-
-        return Response.json(response);
-    } catch (error) {
-        if (
-            error instanceof IntegrationApiError &&
-            error.data.integrationId === "pinterest"
-        ) {
-            return Response.json(
-                { error: messageForPinterestApiError(error) },
-                { status: error.data.status ?? 500 }
-            );
-        }
-
-        return Response.json(
-            {
-                error:
-                    error instanceof Error
-                        ? error.message
-                        : "Failed to import Pinterest pins",
-            },
-            { status: 500 }
-        );
-    }
 }

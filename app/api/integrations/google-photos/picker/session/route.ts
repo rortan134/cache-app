@@ -1,4 +1,3 @@
-import { auth } from "@/lib/auth/server";
 import { IntegrationApiError } from "@/lib/integrations/error";
 import {
     createPickerSession,
@@ -6,14 +5,12 @@ import {
 } from "@/lib/integrations/google-photos/api";
 import { mapPickerSessionToViewModel } from "@/lib/integrations/google-photos/service";
 import { resolveProviderAccessToken } from "@/lib/integrations/provider-account";
-import { headers } from "next/headers";
+import { requireSessionUserId } from "@/lib/integrations/route-utils";
 
 export async function POST() {
-    const session = await auth.api.getSession({
-        headers: await headers(),
-    });
-    if (!session?.user?.id) {
-        return Response.json({ error: "Unauthorized" }, { status: 401 });
+    const sessionResult = await requireSessionUserId();
+    if (sessionResult instanceof Response) {
+        return sessionResult;
     }
 
     const accessToken = await resolveProviderAccessToken({
@@ -48,11 +45,9 @@ export async function POST() {
 }
 
 export async function GET(request: Request) {
-    const session = await auth.api.getSession({
-        headers: await headers(),
-    });
-    if (!session?.user?.id) {
-        return Response.json({ error: "Unauthorized" }, { status: 401 });
+    const sessionResult = await requireSessionUserId();
+    if (sessionResult instanceof Response) {
+        return sessionResult;
     }
 
     const url = new URL(request.url);

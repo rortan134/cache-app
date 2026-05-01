@@ -1,6 +1,6 @@
 import { Badge } from "@/components/ui/badge";
-import { buildLocaleAlternates } from "@/lib/i18n/alternates";
 import { gtPublicString } from "@/lib/i18n/gt-public-json";
+import { buildPageMetadata } from "@/lib/seo/metadata";
 import { ArrowUpRight } from "lucide-react";
 import type { Metadata } from "next";
 
@@ -11,15 +11,17 @@ export async function generateMetadata({
 }): Promise<Metadata> {
     const { locale } = await params;
 
-    return {
-        alternates: buildLocaleAlternates("/changelog"),
+    return buildPageMetadata({
         description: gtPublicString(
             locale,
-            "library.metadata.description",
-            "Changelog."
+            "changelog.metadata.description",
+            "Changelog — See what's new in Cache App."
         ),
-        title: gtPublicString(locale, "library.metadata.title", "Changelog"),
-    };
+        keywords: ["changelog", "product updates", "Cache App releases"],
+        locale,
+        path: "/changelog",
+        title: gtPublicString(locale, "changelog.metadata.title", "Changelog"),
+    });
 }
 
 interface ChangelogEntry {

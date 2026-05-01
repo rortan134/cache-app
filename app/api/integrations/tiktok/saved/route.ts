@@ -4,9 +4,9 @@ import {
     scheduleAutoTagging,
 } from "@/lib/integrations/route-utils";
 import {
-    importInstagramSaved,
-    instagramSavedBodySchema,
-} from "@/lib/integrations/instagram/service";
+    importTiktokSaved,
+    tiktokSavedBodySchema,
+} from "@/lib/integrations/tiktok/service";
 
 export function OPTIONS() {
     return new Response(null, {
@@ -32,7 +32,7 @@ export async function POST(request: Request) {
         );
     }
 
-    const parsed = instagramSavedBodySchema.safeParse(json);
+    const parsed = tiktokSavedBodySchema.safeParse(json);
     if (!parsed.success) {
         return Response.json(
             { error: parsed.error.flatten() },
@@ -41,7 +41,7 @@ export async function POST(request: Request) {
     }
 
     try {
-        const result = await importInstagramSaved({
+        const result = await importTiktokSaved({
             items: parsed.data.items,
             userId,
         });
@@ -56,7 +56,7 @@ export async function POST(request: Request) {
                 error:
                     error instanceof Error
                         ? error.message
-                        : "Failed to import items from Instagram",
+                        : "Failed to import items from TikTok",
             },
             { headers: cors, status: 500 }
         );

@@ -9,8 +9,8 @@ import {
 } from "@/components/ui/accordion";
 import { Footer } from "@/components/ui/footer";
 import { PageShell } from "@/components/ui/page-shell";
-import { buildLocaleAlternates } from "@/lib/i18n/alternates";
 import { gtPublicString } from "@/lib/i18n/gt-public-json";
+import { buildPageMetadata } from "@/lib/seo/metadata";
 import { T } from "gt-next";
 import { Check, Lock, ShieldCheck, TrendingDown } from "lucide-react";
 import type { Metadata } from "next";
@@ -22,15 +22,22 @@ export async function generateMetadata({
 }): Promise<Metadata> {
     const { locale } = await params;
 
-    return {
-        alternates: buildLocaleAlternates("/pricing"),
+    return buildPageMetadata({
         description: gtPublicString(
             locale,
             "pricing.metadata.description",
             "Simple pricing for power users who want one place to organize and rediscover everything they save."
         ),
+        keywords: [
+            "pricing",
+            "bookmark manager subscription",
+            "Cache App pricing",
+            "Pro plan",
+        ],
+        locale,
+        path: "/pricing",
         title: gtPublicString(locale, "pricing.metadata.title", "Pricing"),
-    };
+    });
 }
 
 export default async function PricingPage({

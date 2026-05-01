@@ -37,13 +37,13 @@ import type {
     LibraryCollectionSummary,
     LibraryItemWithCollections,
 } from "@/lib/common/types";
-import { buildLocaleAlternates } from "@/lib/i18n/alternates";
 import { gtPublicString } from "@/lib/i18n/gt-public-json";
 import {
     INTEGRATIONS,
     listConnectedIntegrationIds,
     listIntegrationAccountProviderIds,
 } from "@/lib/integrations/support";
+import { buildPageMetadata } from "@/lib/seo/metadata";
 import { prisma } from "@/prisma";
 import { T } from "gt-next";
 import { BookmarkCheck, History, House } from "lucide-react";
@@ -57,15 +57,23 @@ export async function generateMetadata({
 }): Promise<Metadata> {
     const { locale } = await params;
 
-    return {
-        alternates: buildLocaleAlternates("/library"),
+    return buildPageMetadata({
         description: gtPublicString(
             locale,
             "library.metadata.description",
             "Saved items from your connected accounts and extension imports appear below by source."
         ),
+        keywords: [
+            "my library",
+            "saved content",
+            "bookmark library",
+            "collections",
+            "Cache App",
+        ],
+        locale,
+        path: "/library",
         title: gtPublicString(locale, "library.metadata.title", "My library"),
-    };
+    });
 }
 
 const FREE_LIBRARY_PREVIEW_ITEMS = 12;

@@ -10,8 +10,8 @@ import { Footer } from "@/components/ui/footer";
 import { GradientWaveText } from "@/components/ui/gradient-wave-text";
 import { PageShell } from "@/components/ui/page-shell";
 import { Sidebar, SidebarFooter, SidebarHeader } from "@/components/ui/sidebar";
-import { buildLocaleAlternates } from "@/lib/i18n/alternates";
 import { gtPublicString } from "@/lib/i18n/gt-public-json";
+import { buildPageMetadata } from "@/lib/seo/metadata";
 import LogoIconImage from "@/public/cache-app-icon.png";
 import { LocaleSelector, T } from "gt-next";
 import { ChevronRight } from "lucide-react";
@@ -26,12 +26,26 @@ export async function generateMetadata({
     const { locale } = await params;
 
     return {
-        alternates: buildLocaleAlternates("/manifesto"),
-        description: gtPublicString(
+        ...buildPageMetadata({
+            description: gtPublicString(
+                locale,
+                "manifesto.metadata.description",
+                "Meaning isn't in the feed. It's in what you choose to keep."
+            ),
+            keywords: [
+                "manifesto",
+                "bookmark manager philosophy",
+                "save with intention",
+                "Cache App",
+            ],
             locale,
-            "manifesto.metadata.description",
-            "Meaning isn't in the feed. It's in what you choose to keep."
-        ),
+            path: "/manifesto",
+            title: gtPublicString(
+                locale,
+                "manifesto.metadata.title",
+                "Manifesto"
+            ),
+        }),
         openGraph: {
             images: [
                 {
@@ -42,7 +56,6 @@ export async function generateMetadata({
                 },
             ],
         },
-        title: gtPublicString(locale, "manifesto.metadata.title", "Manifesto"),
     };
 }
 

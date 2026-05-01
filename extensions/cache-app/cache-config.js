@@ -5,5 +5,4 @@
  */
 (function initCacheExtensionConfig(global) {
     global.CACHE_APP_ORIGIN = "https://cachd.app";
-    global.CACHE_INGEST_PATH = "/api/integrations/instagram/saved";
 })(globalThis);

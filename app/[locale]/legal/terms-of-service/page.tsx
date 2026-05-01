@@ -1,13 +1,14 @@
 import { APP_NAME } from "@/lib/common/constants";
-import { buildLocaleAlternates } from "@/lib/i18n/alternates";
+import { buildPageMetadata } from "@/lib/seo/metadata";
 import type { Metadata } from "next";
 
 export async function generateMetadata(): Promise<Metadata> {
-    return {
-        alternates: buildLocaleAlternates("/legal/terms-of-service"),
-        description: `Terms of Service for ${APP_NAME}.`,
+    return buildPageMetadata({
+        description: `Terms of Service for ${APP_NAME} — rules for using the service, accounts, and acceptable use.`,
+        keywords: ["terms of service", "terms", APP_NAME],
+        path: "/legal/terms-of-service",
         title: "Terms of Service",
-    };
+    });
 }
 
 export default function TermsOfServicePage() {

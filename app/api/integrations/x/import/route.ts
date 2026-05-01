@@ -1,13 +1,6 @@
-import { auth } from "@/lib/auth/server";
-import { autoTagLibraryItemsByIds } from "@/lib/collections/intelligence";
-import { IntegrationApiError } from "@/lib/integrations/error";
-import {
-    getIntegrationAccountId,
-    resolveProviderAccessToken,
-} from "@/lib/integrations/provider-account";
+import { runOAuthImport } from "@/lib/integrations/route-utils";
 import { importXBookmarks } from "@/lib/integrations/x/service";
-import { headers } from "next/headers";
-import { after } from "next/server";
+import type { IntegrationApiError } from "@/lib/integrations/error";
 
 function messageForXApiError(error: IntegrationApiError): string {
     if (error.data.status === 401) {
@@ -19,71 +12,15 @@ function messageForXApiError(error: IntegrationApiError): string {
     return error.message;
 }
 
-export async function POST() {
-    const session = await auth.api.getSession({
-        headers: await headers(),
-    });
-    const userId = session?.user?.id;
-    if (!userId) {
-        return Response.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const accountId = await getIntegrationAccountId(userId, "x");
-    if (!accountId) {
-        return Response.json(
-            { error: "Connect X before importing bookmarks." },
-            { status: 404 }
-        );
-    }
-
-    const accessToken = await resolveProviderAccessToken({
-        accountId,
+export function POST() {
+    return runOAuthImport({
+        importFn: importXBookmarks,
+        messages: {
+            apiError: messageForXApiError,
+            genericError: "Failed to import X bookmarks",
+            noToken: "Reconnect X before importing bookmarks.",
+            notConnected: "Connect X before importing bookmarks.",
+        },
         providerId: "x",
     });
-    if (!accessToken) {
-        return Response.json(
-            { error: "Reconnect X before importing bookmarks." },
-            { status: 403 }
-        );
-    }
-
-    try {
-        const result = await importXBookmarks({
-            accessToken,
-            userId,
-        });
-
-        const { smartCollectionItemIds, ...response } = result;
-
-        if (smartCollectionItemIds.length > 0) {
-            after(async () => {
-                await autoTagLibraryItemsByIds({
-                    itemIds: smartCollectionItemIds,
-                    userId,
-                });
-            });
-        }
-
-        return Response.json(response);
-    } catch (error) {
-        if (
-            error instanceof IntegrationApiError &&
-            error.data.integrationId === "x"
-        ) {
-            return Response.json(
-                { error: messageForXApiError(error) },
-                { status: error.data.status ?? 500 }
-            );
-        }
-
-        return Response.json(
-            {
-                error:
-                    error instanceof Error
-                        ? error.message
-                        : "Failed to import X bookmarks",
-            },
-            { status: 500 }
-        );
-    }
 }

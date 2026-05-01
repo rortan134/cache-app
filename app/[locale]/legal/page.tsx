@@ -1,6 +1,6 @@
 import { APP_NAME } from "@/lib/common/constants";
-import { buildLocaleAlternates } from "@/lib/i18n/alternates";
 import { gtPublicString } from "@/lib/i18n/gt-public-json";
+import { buildPageMetadata } from "@/lib/seo/metadata";
 import { T, Var } from "gt-next";
 import { ArrowRight, Cookie, Scale, Shield } from "lucide-react";
 import type { Metadata } from "next";
@@ -14,15 +14,17 @@ export async function generateMetadata({
 }): Promise<Metadata> {
     const { locale } = await params;
 
-    return {
-        alternates: buildLocaleAlternates("/legal"),
+    return buildPageMetadata({
         description: gtPublicString(
             locale,
             "legal.index.metadata.description",
             `Legal documents, policies, and disclosures for ${APP_NAME}.`
         ),
+        keywords: ["legal", "policies", APP_NAME],
+        locale,
+        path: "/legal",
         title: gtPublicString(locale, "legal.index.metadata.title", "Legal"),
-    };
+    });
 }
 
 interface LegalDoc {

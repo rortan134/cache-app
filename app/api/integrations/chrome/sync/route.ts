@@ -1,4 +1,3 @@
-import { auth } from "@/lib/auth/server";
 import { autoTagLibraryItemsByIds } from "@/lib/collections/intelligence";
 import { createLogger } from "@/lib/common/logs/console/logger";
 import {
@@ -7,11 +6,28 @@ import {
     purgeChromeBookmarksForUser,
 } from "@/lib/integrations/chrome/service";
 import { extensionIngestCorsHeaders } from "@/lib/integrations/extension-ingest";
-import { authenticateExtensionIngest } from "@/lib/integrations/route-utils";
-import { headers } from "next/headers";
+import {
+    authenticateExtensionIngest,
+    requireSessionUserId,
+} from "@/lib/integrations/route-utils";
 import { after } from "next/server";
 
 const log = createLogger("api:sync:chrome-bookmarks");
+
+const MISSING_SCHEMA_HINTS = [
+    "LibraryItemSource",
+    "chrome_bookmarks",
+    "browserProfileId",
+    "sourceAliasIds",
+    "postedAt",
+];
+
+function isMissingSchemaError(error: unknown): boolean {
+    if (!(error instanceof Error)) {
+        return false;
+    }
+    return MISSING_SCHEMA_HINTS.some((hint) => error.message.includes(hint));
+}
 
 export function OPTIONS() {
     return new Response(null, {
@@ -60,45 +76,33 @@ export async function POST(request: Request) {
 
         return Response.json({ ok: true, ...syncResult }, { headers: cors });
     } catch (error) {
-        const message =
-            error instanceof Error
-                ? error.message
-                : "Unknown Chrome sync error";
-        log.error("Chrome bookmark sync failed", {
-            error,
-            userId,
-        });
+        log.error("Chrome bookmark sync failed", { error, userId });
 
-        const missingSchemaHint =
-            message.includes("LibraryItemSource") ||
-            message.includes("chrome_bookmarks") ||
-            message.includes("browserProfileId") ||
-            message.includes("sourceAliasIds") ||
-            message.includes("postedAt");
+        let message: string;
+        if (isMissingSchemaError(error)) {
+            message =
+                "Chrome bookmark sync requires the latest database migrations. Run Prisma migrations, then try again.";
+        } else if (error instanceof Error) {
+            message = error.message;
+        } else {
+            message = "Unknown Chrome sync error";
+        }
 
         return Response.json(
-            {
-                error: missingSchemaHint
-                    ? "Chrome bookmark sync requires the latest database migrations. Run Prisma migrations, then try again."
-                    : message,
-            },
+            { error: message },
             { headers: cors, status: 500 }
         );
     }
 }
 
 export async function DELETE() {
-    const requestHeaders = await headers();
-    const session = await auth.api.getSession({
-        headers: requestHeaders,
-    });
-
-    if (!session?.user?.id) {
-        return Response.json({ error: "Unauthorized" }, { status: 401 });
+    const sessionResult = await requireSessionUserId();
+    if (sessionResult instanceof Response) {
+        return sessionResult;
     }
 
     try {
-        const purged = await purgeChromeBookmarksForUser(session.user.id);
+        const purged = await purgeChromeBookmarksForUser(sessionResult.userId);
         return Response.json({ ok: true, purged });
     } catch (error) {
         log.error("Failed to purge Chrome bookmarks", error);

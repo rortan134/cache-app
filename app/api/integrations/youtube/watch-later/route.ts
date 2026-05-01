@@ -1,44 +1,10 @@
-import { autoTagLibraryItemsByIds } from "@/lib/collections/intelligence";
 import { extensionIngestCorsHeaders } from "@/lib/integrations/extension-ingest";
 import { authenticateExtensionIngest } from "@/lib/integrations/route-utils";
-import { importYoutubeWatchLaterSnapshot } from "@/lib/integrations/youtube/service";
-import { after } from "next/server";
-import * as z from "zod";
-
-const optionalStringField = z
-    .string()
-    .transform((value) => value.trim())
-    .optional()
-    .transform((value) => (value && value.length > 0 ? value : undefined));
-
-const optionalUrlField = z
-    .string()
-    .transform((value) => value.trim())
-    .optional()
-    .transform((value) => (value && value.length > 0 ? value : undefined))
-    .pipe(z.url().optional());
-
-const youtubeWatchLaterItemSchema = z.object({
-    availability: optionalStringField,
-    channelId: optionalStringField,
-    channelName: optionalStringField,
-    duration: optionalStringField,
-    playlistItemId: optionalStringField,
-    position: z.number().int().nonnegative().optional(),
-    publishedAt: optionalStringField,
-    scrapedAt: optionalStringField,
-    title: optionalStringField,
-    videoId: z.string().min(1),
-    videoUrl: optionalUrlField,
-});
-
-const bodySchema = z.object({
-    browserProfileId: z.string().min(1).optional(),
-    items: z.array(youtubeWatchLaterItemSchema),
-    snapshotComplete: z.boolean().default(false),
-    sourceDeviceId: z.string().optional(),
-    sourceDeviceName: z.string().optional(),
-});
+import { scheduleAutoTagging } from "@/lib/integrations/route-utils";
+import {
+    importYoutubeWatchLaterSnapshot,
+    youtubeWatchLaterBodySchema,
+} from "@/lib/integrations/youtube/service";
 
 export function OPTIONS() {
     return new Response(null, {
@@ -64,7 +30,7 @@ export async function POST(request: Request) {
         );
     }
 
-    const parsed = bodySchema.safeParse(json);
+    const parsed = youtubeWatchLaterBodySchema.safeParse(json);
     if (!parsed.success) {
         return Response.json(
             { error: parsed.error.flatten() },
@@ -74,24 +40,12 @@ export async function POST(request: Request) {
 
     try {
         const result = await importYoutubeWatchLaterSnapshot({
-            browserProfileId: parsed.data.browserProfileId,
-            items: parsed.data.items,
-            snapshotComplete: parsed.data.snapshotComplete,
-            sourceDeviceId: parsed.data.sourceDeviceId,
-            sourceDeviceName: parsed.data.sourceDeviceName,
+            ...parsed.data,
             userId,
         });
 
         const { smartCollectionItemIds, ...snapshotResult } = result;
-
-        if (smartCollectionItemIds.length > 0) {
-            after(async () => {
-                await autoTagLibraryItemsByIds({
-                    itemIds: smartCollectionItemIds,
-                    userId,
-                });
-            });
-        }
+        scheduleAutoTagging(userId, smartCollectionItemIds);
 
         return Response.json(
             {

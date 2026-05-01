@@ -8,8 +8,8 @@ import { PageShell } from "@/components/ui/page-shell";
 import { Sidebar, SidebarFooter, SidebarHeader } from "@/components/ui/sidebar";
 import { getServerSession } from "@/lib/auth/server";
 import { APP_NAME } from "@/lib/common/constants";
-import { buildLocaleAlternates } from "@/lib/i18n/alternates";
 import { gtPublicString } from "@/lib/i18n/gt-public-json";
+import { buildPageMetadata } from "@/lib/seo/metadata";
 import LogoIconImage from "@/public/cache-app-icon.png";
 import { LocaleSelector } from "gt-next";
 import {
@@ -39,15 +39,22 @@ export async function generateMetadata({
 }): Promise<Metadata> {
     const { locale } = await params;
 
-    return {
-        alternates: buildLocaleAlternates("/security"),
+    return buildPageMetadata({
         description: gtPublicString(
             locale,
             "security.metadata.description",
             "How Cache approaches authentication, data access, logging, payments, platform integrations, and responsible security disclosure."
         ),
+        keywords: [
+            "security",
+            "data protection",
+            "privacy",
+            "Cache App security",
+        ],
+        locale,
+        path: "/security",
         title: gtPublicString(locale, "security.metadata.title", "Security"),
-    };
+    });
 }
 
 interface SecurityCard {

@@ -5,8 +5,44 @@ import { DEFAULT_BROWSER_PROFILE_ID } from "@/lib/integrations/browser-profiles"
 import { parseOptionalDate } from "@/lib/integrations/dates";
 import { importLibraryItemSnapshot } from "@/lib/integrations/snapshot";
 import { LibraryItemSource } from "@/prisma/client/enums";
+import * as z from "zod";
 
 const log = createLogger("integrations:youtube");
+
+const optionalStringField = z
+    .string()
+    .transform((value) => value.trim())
+    .optional()
+    .transform((value) => (value && value.length > 0 ? value : undefined));
+
+const optionalUrlField = z
+    .string()
+    .transform((value) => value.trim())
+    .optional()
+    .transform((value) => (value && value.length > 0 ? value : undefined))
+    .pipe(z.url().optional());
+
+export const youtubeWatchLaterItemSchema = z.object({
+    availability: optionalStringField,
+    channelId: optionalStringField,
+    channelName: optionalStringField,
+    duration: optionalStringField,
+    playlistItemId: optionalStringField,
+    position: z.number().int().nonnegative().optional(),
+    publishedAt: optionalStringField,
+    scrapedAt: optionalStringField,
+    title: optionalStringField,
+    videoId: z.string().min(1),
+    videoUrl: optionalUrlField,
+});
+
+export const youtubeWatchLaterBodySchema = z.object({
+    browserProfileId: z.string().min(1).optional(),
+    items: z.array(youtubeWatchLaterItemSchema),
+    snapshotComplete: z.boolean().default(false),
+    sourceDeviceId: z.string().optional(),
+    sourceDeviceName: z.string().optional(),
+});
 
 export interface YoutubeWatchLaterItemInput {
     availability?: string;

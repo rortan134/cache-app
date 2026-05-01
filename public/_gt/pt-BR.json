@@ -1,5 +1,6 @@
 {
   "019869a6c0157892": "Terms of Service",
+  "051acc34eaf9d1df": "Atividade",
   "062b5e45e86d2cc4": {
     "c": [
       {
@@ -65,6 +66,19 @@
       "t": "p"
     }
   ],
+  "122ce38b5f93c178": [
+    {
+      "c": "Uma ferramenta para",
+      "i": 1,
+      "t": "span"
+    },
+    " gerenciar todo o conhecimento que você acumula",
+    {
+      "c": " em grande escala",
+      "i": 2,
+      "t": "span"
+    }
+  ],
   "15833184c459d240": {
     "c": "Terms of Service",
     "i": 1,
@@ -74,6 +88,22 @@
   "20529ca475e73f99": "Tema",
   "2589956983dbe009": "Claro. Você pode cancelar sua assinatura Pro a qualquer momento nas configurações da sua conta. Você continuará tendo acesso aos recursos Pro até o fim do período de cobrança.",
   "26fe9d3e34588477": "Sair",
+  "274354ac541c8aa9": [
+    {
+      "c": {
+        "c": "Unifique seus favoritos.",
+        "i": 2,
+        "t": "GradientWaveText"
+      },
+      "i": 1,
+      "t": "h1"
+    },
+    {
+      "c": "Conheça o Cache — um novo tipo de gerenciador de favoritos. Colete, organize e redescubra tudo o que você salvou em diferentes plataformas.",
+      "i": 3,
+      "t": "p"
+    }
+  ],
   "2aa22ec9498b27cb": "Fazer upgrade do plano",
   "2e739c6c3531ee7e": {
     "c": "Economize na assinatura anual",
@@ -81,18 +111,6 @@
     "t": "p"
   },
   "331304248ca3c976": "Vocês oferecem descontos para estudantes?",
-  "3420ef376bd4a03c": {
-    "c": [
-      {
-        "i": 2,
-        "k": "_gt_value_2",
-        "v": "v"
-      },
-      " caracteres"
-    ],
-    "i": 1,
-    "t": "span"
-  },
   "344353d6bbaf365c": {
     "c": [
       {
@@ -120,6 +138,18 @@
     "i": 1,
     "t": "div"
   },
+  "347995ccf3b1c5d0": [
+    {
+      "c": "Pesquise e explore em um feed único e rápido",
+      "i": 1,
+      "t": "h2"
+    },
+    {
+      "c": "Simplifique a forma como você consome e revisita seu conteúdo salvo em uma interface única, limpa e poderosa, direto no seu navegador.",
+      "i": 2,
+      "t": "p"
+    }
+  ],
   "35d79362a091d51d": "Posso cancelar minha assinatura?",
   "3c61319be1bc2db7": "*As plataformas de terceiros às quais você se conecta por meio do Serviço são operadas de forma independente da Cache. A Cache não controla as políticas dessas plataformas nem a maneira como elas são aplicadas, e não se responsabiliza pelas decisões que essas plataformas tomam em relação às suas contas ou ao seu acesso aos serviços delas — incluindo, sem limitação, alterações na disponibilidade — estejam ou não relacionadas ao seu uso da Cache. Você é responsável por cumprir os termos, as políticas e as diretrizes da comunidade de cada plataforma. A Cache não se responsabiliza por qualquer transtorno, perda ou outro resultado decorrente da sua relação com essas plataformas ou do seu uso do Serviço em conexão com elas. Mais detalhes podem ser encontrados",
   "3d26c791d3bcb69a": "Segurança",
@@ -156,18 +186,6 @@
   ],
   "48de21dffb27aea4": "Registro de alterações",
   "600433e7972a7e75": "Cobrança",
-  "627bafce1f587e82": [
-    {
-      "c": "Mantenha tudo organizado. Identifique o que ficou obsoleto e guarde o que é útil",
-      "i": 1,
-      "t": "h2"
-    },
-    {
-      "c": "Crie uma base de conhecimento com o conteúdo que você já considerou importante. Importe uma vez e transforme a bagunça em organização em minutos.",
-      "i": 2,
-      "t": "p"
-    }
-  ],
   "634fd36cce8909a0": "Instale a extensão",
   "69a327815dc1270a": "Cookie Policy",
   "6c231374bfad8483": {
@@ -186,101 +204,8 @@
     "t": "p"
   },
   "738fa38eb9feb364": "Vocês oferecem planos para equipes?",
-  "73a5a263b00ef6d2": [
-    {
-      "c": "Pare de deixar para \"depois\"",
-      "i": 1,
-      "t": "h2"
-    },
-    {
-      "c": "Crie mais oportunidades de agir mantendo em destaque o seu conteúdo salvo mais valioso, em vez de perdê-lo numa fila de favoritos esquecidos.",
-      "i": 2,
-      "t": "p"
-    }
-  ],
   "7721d8d00edabeda": "Saindo…",
-  "7a117c8a1862a892": [
-    {
-      "c": [
-        {
-          "i": 2,
-          "t": "Component"
-        },
-        {
-          "c": [
-            {
-              "c": "Smart Collections",
-              "i": 4,
-              "t": "span"
-            },
-            " ajuda você a separar o que é acionável do que é inspiração"
-          ],
-          "i": 3,
-          "t": "span"
-        }
-      ],
-      "i": 1,
-      "t": "li"
-    },
-    {
-      "c": [
-        {
-          "i": 6,
-          "t": "Search"
-        },
-        {
-          "c": "Encontre qualquer coisa com busca associativa e OCR",
-          "i": 7,
-          "t": "span"
-        }
-      ],
-      "i": 5,
-      "t": "li"
-    },
-    {
-      "c": [
-        {
-          "i": 9,
-          "t": "CloudDownload"
-        },
-        {
-          "c": "Compartilhe ou exporte coleções do Cache quando quiser",
-          "i": 10,
-          "t": "span"
-        }
-      ],
-      "i": 8,
-      "t": "li"
-    },
-    {
-      "c": [
-        {
-          "i": 12,
-          "t": "Sparkles"
-        },
-        {
-          "c": "Use a IA para ter insights melhores sobre seu conteúdo",
-          "i": 13,
-          "t": "span"
-        }
-      ],
-      "i": 11,
-      "t": "li"
-    }
-  ],
   "7a6c957300c408f9": "Privacidade",
-  "7a92071630ef5b70": [
-    {
-      "c": "Pesquise e explore em um único feed rápido",
-      "i": 1,
-      "t": "h2"
-    },
-    {
-      "c": "Simplifique a forma como você consome e revisita seu conteúdo salvo em uma interface única, limpa e poderosa, direto no seu navegador.",
-      "i": 2,
-      "t": "p"
-    }
-  ],
   "817e49763f46cca2": {
     "c": "Manifesto",
     "i": 1,
@@ -311,8 +236,33 @@
     }
   ],
   "8d088a9a26ac644e": "Preços",
+  "8d9f4068b3b7ff49": "A partir de US$ 5/mês",
+  "8dce8ff73ffc32be": [
+    {
+      "c": "Pare de deixar para \"depois\"",
+      "i": 1,
+      "t": "h2"
+    },
+    {
+      "c": "Transforme mais conteúdo em ação ao manter sempre à vista o seu conteúdo salvo mais valioso, em vez de perdê-lo em uma fila de favoritos esquecidos.",
+      "i": 2,
+      "t": "p"
+    }
+  ],
   "9289a45309fee6c6": "Continuar com o Google",
   "94c20ff6b75d8acb": "Como coletamos, usamos e protegemos seus dados pessoais.",
+  "97f68bd29d3d4247": {
+    "c": [
+      {
+        "i": 2,
+        "k": "_gt_value_2",
+        "v": "v"
+      },
+      " caracteres"
+    ],
+    "i": 1,
+    "t": "span"
+  },
   "9ac6f2ad3c7e5207": {
     "c": "Perguntas frequentes",
     "i": 1,
@@ -336,17 +286,16 @@
   },
   "a4ecc2d52fb9c50b": "Privacy Policy",
   "a54a73f960eb0874": "Qual é a política de reembolso?",
-  "ab9e07271e5efe93": [
+  "a578e8ffdd1a8e9b": [
     {
-      "c": "Uma ferramenta para",
+      "c": "Monte uma biblioteca com todo o conteúdo que você ama",
       "i": 1,
-      "t": "span"
+      "t": "h2"
     },
-    " gerenciar todo o seu conhecimento pessoal",
     {
-      "c": " em escala",
+      "c": "Inspire-se e encontre aquela lição, conselho, receita ou ideia que você estava procurando em uma pausa para o café.",
       "i": 2,
-      "t": "span"
+      "t": "p"
     }
   ],
   "b0218088cb0cf61f": "Atalhos de teclado",
@@ -369,6 +318,18 @@
     {
       "c": "Cache não é uma cura. É uma memória.",
       "i": 4,
+      "t": "p"
+    }
+  ],
+  "b1a14182eaaf2f15": [
+    {
+      "c": "Mantenha tudo organizado. Veja o que ficou desatualizado e mantenha o que ainda é útil",
+      "i": 1,
+      "t": "h2"
+    },
+    {
+      "c": "Construa uma base de conhecimento com o conteúdo que você já considerou importante. Importe uma vez e passe da bagunça à organização em minutos.",
+      "i": 2,
       "t": "p"
     }
   ],
@@ -425,20 +386,9 @@
   ],
   "c26fd6852bfece9e": "Continuar com o Google",
   "c32cdf292e34e453": "Comece a digitar ou cole uma URL...",
-  "c4330b282e9cc217": [
-    {
-      "c": "Conecte suas plataformas favoritas — faça a importação retroativa de tudo o que você já salvou",
-      "i": 1,
-      "t": "h2"
-    },
-    {
-      "c": "Reúna automaticamente favoritos das redes sociais, de plataformas de vídeo e do navegador. Deixe para trás a rolagem infinita e o vai e vem entre várias plataformas para encontrar o que realmente importa para você.",
-      "i": 2,
-      "t": "p"
-    }
-  ],
   "c6e026105239022b": "Quais formas de pagamento vocês aceitam?",
   "c884609397b72df2": "anual",
+  "ca749b12449e9284": "Início",
   "cca6a310f45ce736": [
     {
       "i": 1,
@@ -466,35 +416,115 @@
       "v": "v"
     }
   ],
-  "cdec264a0fff8ddf": [
+  "d011ae1a9a04132e": "Oferecemos uma garantia de reembolso de 30 dias. Se o Cache não for a opção certa para você, é só nos avisar em até 30 dias após a compra inicial para receber o reembolso integral.",
+  "d1526ef45744d297": "Sim! Acreditamos em apoiar estudantes e educadores. Entre em contato com nossa equipe de suporte usando seu e-mail acadêmico para receber um código de desconto especial.",
+  "d2edacbe592e9608": [
     {
-      "c": "Monte uma biblioteca com todo o conteúdo que você adora",
+      "c": "Conecte suas plataformas favoritas — importe tudo o que você já salvou",
       "i": 1,
       "t": "h2"
     },
     {
-      "c": "Inspire-se e encontre aquela lição, dica, receita ou ideia que você estava procurando até numa simples pausa para o café.",
+      "c": "Reúna automaticamente favoritos de redes sociais, plataformas de vídeo e do navegador. Deixe para trás a rolagem sem fim e a troca entre várias plataformas para encontrar o que importa para você.",
       "i": 2,
       "t": "p"
     }
   ],
-  "d011ae1a9a04132e": "Oferecemos uma garantia de reembolso de 30 dias. Se o Cache não for a opção certa para você, é só nos avisar em até 30 dias após a compra inicial para receber o reembolso integral.",
-  "d1526ef45744d297": "Sim! Acreditamos em apoiar estudantes e educadores. Entre em contato com nossa equipe de suporte usando seu e-mail acadêmico para receber um código de desconto especial.",
   "d353ed81b71684aa": "Integrações",
-  "da283aa45e4fe9e4": [
-    {
-      "c": {
-        "c": "Unifique seus favoritos.",
+  "d70e4938efa65780": {
+    "c": [
+      {
         "i": 2,
-        "t": "GradientWaveText"
+        "k": "_gt_value_2",
+        "v": "v"
       },
+      " parágrafos"
+    ],
+    "i": 1,
+    "t": "span"
+  },
+  "d9a21a467c1a1a6f": [
+    {
+      "c": [
+        {
+          "i": 2,
+          "t": "Component"
+        },
+        {
+          "c": [
+            {
+              "c": "Smart Collections",
+              "i": 4,
+              "t": "span"
+            },
+            " ajudam você a separar o que é acionável do que é inspiração"
+          ],
+          "i": 3,
+          "t": "span"
+        }
+      ],
       "i": 1,
-      "t": "h1"
+      "t": "li"
     },
     {
-      "c": "Conheça o Cache — um novo tipo de gerenciador de favoritos. Reúna, organize e redescubra tudo o que você salvou em diferentes plataformas.",
-      "i": 3,
-      "t": "p"
+      "c": [
+        {
+          "i": 6,
+          "t": "Search"
+        },
+        {
+          "c": "Encontre qualquer coisa com busca associativa em texto completo e OCR",
+          "i": 7,
+          "t": "span"
+        }
+      ],
+      "i": 5,
+      "t": "li"
+    },
+    {
+      "c": [
+        {
+          "i": 9,
+          "t": "CloudDownload"
+        },
+        {
+          "c": "Compartilhe ou exporte coleções do Cache a qualquer momento",
+          "i": 10,
+          "t": "span"
+        }
+      ],
+      "i": 8,
+      "t": "li"
+    },
+    {
+      "c": [
+        {
+          "i": 12,
+          "t": "Unlink"
+        },
+        {
+          "c": "Remova duplicatas e links quebrados",
+          "i": 13,
+          "t": "span"
+        }
+      ],
+      "i": 11,
+      "t": "li"
+    },
+    {
+      "c": [
+        {
+          "i": 15,
+          "t": "Sparkles"
+        },
+        {
+          "c": "Obtenha insights sobre seu conteúdo com tecnologia de IA",
+          "i": 16,
+          "t": "span"
+        }
+      ],
+      "i": 14,
+      "t": "li"
     }
   ],
   "daf8daec701f0863": "Conta",
@@ -555,6 +585,7 @@
     "i": 1,
     "t": "div"
   },
+  "e39a57514be028e9": "Revisão",
   "e768c8a859e016d2": [
     {
       "c": "Se você vai continuar rolando, pelo menos faça isso te render alguma coisa.",
@@ -585,18 +616,6 @@
     "t": "p"
   },
   "f676d126c8fd832f": "O que é o Cache?",
-  "f6875325d3e95c0c": {
-    "c": [
-      {
-        "i": 2,
-        "k": "_gt_value_2",
-        "v": "v"
-      },
-      " parágrafos"
-    ],
-    "i": 1,
-    "t": "span"
-  },
   "f76f62457e672828": "Estas páginas podem ser atualizadas periodicamente. A versão publicada neste site é a válida no momento da sua visita.",
   "f8c57a3d7d964dde": {
     "c": [

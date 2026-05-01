@@ -1,4 +1,5 @@
 import { createLogger } from "@/lib/common/logs/console/logger";
+import { isBlockedHostname } from "@/lib/common/net";
 import { fetchWithTimeout } from "@/lib/common/timeout";
 import { toValidUrl } from "@/lib/common/url";
 import { preview } from "openlink";
@@ -15,9 +16,7 @@ export async function GET(request: Request): Promise<Response> {
     const targetUrl = readTargetUrl(request.url);
 
     if (!targetUrl) {
-        return new Response("Invalid URL", {
-            status: 400,
-        });
+        return new Response("Invalid URL", { status: 400 });
     }
 
     try {
@@ -32,17 +31,13 @@ export async function GET(request: Request): Promise<Response> {
         });
 
         if (!page.image) {
-            return new Response("Preview not found", {
-                status: 404,
-            });
+            return new Response("Preview not found", { status: 404 });
         }
 
         const imageUrl = readTargetHref(page.image);
 
         if (!imageUrl) {
-            return new Response("Preview not found", {
-                status: 404,
-            });
+            return new Response("Preview not found", { status: 404 });
         }
 
         const pageUrl = readTargetHref(page.url) ?? targetUrl;
@@ -59,18 +54,14 @@ export async function GET(request: Request): Promise<Response> {
         );
 
         if (!imageResponse.ok) {
-            return new Response("Preview not found", {
-                status: 404,
-            });
+            return new Response("Preview not found", { status: 404 });
         }
 
         const imageContentType =
             imageResponse.headers.get("content-type") ?? "";
 
         if (!imageContentType.startsWith("image/")) {
-            return new Response("Unsupported preview", {
-                status: 415,
-            });
+            return new Response("Unsupported preview", { status: 415 });
         }
 
         return new Response(imageResponse.body, {
@@ -86,9 +77,7 @@ export async function GET(request: Request): Promise<Response> {
             targetUrl,
         });
 
-        return new Response("Preview not found", {
-            status: 404,
-        });
+        return new Response("Preview not found", { status: 404 });
     }
 }
 
@@ -96,24 +85,18 @@ const fetchPreviewPage: typeof fetch = async (input, init) => {
     const requestUrl = readFetchUrl(input);
 
     if (!requestUrl) {
-        return new Response("Invalid URL", {
-            status: 400,
-        });
+        return new Response("Invalid URL", { status: 400 });
     }
 
     const response = await fetchExternalWithTimeout(
         requestUrl,
-        {
-            ...init,
-        },
+        { ...init },
         FETCH_TIMEOUT_MS
     );
 
     const responseUrl = readTargetHref(response.url || requestUrl);
     if (!responseUrl) {
-        return new Response("Invalid URL", {
-            status: 400,
-        });
+        return new Response("Invalid URL", { status: 400 });
     }
 
     if (!response.ok) {
@@ -122,9 +105,7 @@ const fetchPreviewPage: typeof fetch = async (input, init) => {
 
     const contentType = response.headers.get("content-type") ?? "";
     if (!contentType.includes("text/html")) {
-        return new Response("Unsupported content", {
-            status: 415,
-        });
+        return new Response("Unsupported content", { status: 415 });
     }
 
     return response;
@@ -162,17 +143,13 @@ async function fetchExternalWithTimeout(
 
         const redirectUrl = readRedirectHref(location, requestUrl);
         if (!redirectUrl) {
-            return new Response("Invalid redirect", {
-                status: 400,
-            });
+            return new Response("Invalid redirect", { status: 400 });
         }
 
         requestUrl = redirectUrl;
     }
 
-    return new Response("Too many redirects", {
-        status: 508,
-    });
+    return new Response("Too many redirects", { status: 508 });
 }
 
 function readFetchUrl(input: RequestInfo | URL): string | null {
@@ -232,49 +209,4 @@ function isSupportedProtocol(protocol: string): boolean {
 
 function isRedirectResponse(status: number): boolean {
     return status >= 300 && status < 400;
-}
-
-function isBlockedHostname(hostname: string): boolean {
-    const normalizedHost = hostname.trim().toLowerCase();
-    if (!normalizedHost) {
-        return true;
-    }
-
-    if (
-        normalizedHost === "localhost" ||
-        normalizedHost.endsWith(".localhost") ||
-        normalizedHost === "0.0.0.0" ||
-        normalizedHost === "::1" ||
-        normalizedHost === "[::1]"
-    ) {
-        return true;
-    }
-
-    const ipv4Segments = normalizedHost.split(".");
-    if (ipv4Segments.length !== 4) {
-        return false;
-    }
-
-    const octets = ipv4Segments.map((segment) => Number(segment));
-    if (
-        octets.some(
-            (octet) => !Number.isInteger(octet) || octet < 0 || octet > 255
-        )
-    ) {
-        return false;
-    }
-
-    const first = octets[0];
-    const second = octets[1];
-    if (first === undefined || second === undefined) {
-        return false;
-    }
-
-    return (
-        first === 10 ||
-        first === 127 ||
-        (first === 169 && second === 254) ||
-        (first === 172 && second >= 16 && second <= 31) ||
-        (first === 192 && second === 168)
-    );
 }

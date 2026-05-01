@@ -8,10 +8,12 @@ import { ChromeIcon, TikTokIcon } from "@/components/ui/icons";
 import { PageShell } from "@/components/ui/page-shell";
 import { Sidebar, SidebarFooter, SidebarHeader } from "@/components/ui/sidebar";
 import { getServerSession } from "@/lib/auth/server";
+import { BASE_URL } from "@/lib/common/constants";
 import { cn } from "@/lib/common/cn";
-import { buildLocaleAlternates } from "@/lib/i18n/alternates";
 import { gtPublicString } from "@/lib/i18n/gt-public-json";
 import { INTEGRATIONS } from "@/lib/integrations/support";
+import { buildPageMetadata } from "@/lib/seo/metadata";
+import { JsonLdScript } from "@/components/seo/json-ld-script";
 import LogoIconImage from "@/public/cache-app-icon.png";
 import IconSmallImage from "@/public/cache-icon-small.png";
 import CollectionsSectionImage from "@/public/collections-section-image.webp";
@@ -40,26 +42,57 @@ export async function generateMetadata({
     params: Promise<{ locale: string }>;
 }): Promise<Metadata> {
     const { locale } = await params;
-    return {
-        alternates: buildLocaleAlternates("/"),
+    return buildPageMetadata({
         description: gtPublicString(
             locale,
             "home.metadata.description",
             "View, manage, and organize bookmarks across browsers and platforms — built for power users who save at scale."
         ),
+        keywords: [
+            "bookmark manager",
+            "unify bookmarks",
+            "save content",
+            "personal knowledge library",
+            "Cache App",
+        ],
+        locale,
+        path: "/",
         title: gtPublicString(
             locale,
             "home.metadata.title",
             "Unify your bookmarks across every platform"
         ),
-    };
+    });
 }
 
 export default async function Home() {
     const session = await getServerSession();
 
+    const jsonLd = {
+        "@context": "https://schema.org",
+        "@graph": [
+            {
+                "@type": "WebSite",
+                name: "Cache App",
+                url: BASE_URL,
+            },
+            {
+                "@type": "SoftwareApplication",
+                applicationCategory: "ProductivityApplication",
+                name: "Cache App",
+                offers: {
+                    "@type": "Offer",
+                    price: "5",
+                    priceCurrency: "EUR",
+                },
+                operatingSystem: "Any",
+            },
+        ],
+    };
+
     return (
         <PageShell>
+            <JsonLdScript data={jsonLd} />
             <GoogleOneTapTrigger />
             <div className="flex flex-1 flex-col gap-8 lg:flex-row lg:justify-between">
                 <Sidebar>

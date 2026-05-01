@@ -1,4 +1,3 @@
-import { auth } from "@/lib/auth/server";
 import { autoTagLibraryItemsByIds } from "@/lib/collections/intelligence";
 import { IntegrationApiError } from "@/lib/integrations/error";
 import {
@@ -11,7 +10,7 @@ import {
     importGooglePhotosCandidates,
 } from "@/lib/integrations/google-photos/service";
 import { resolveProviderAccessToken } from "@/lib/integrations/provider-account";
-import { headers } from "next/headers";
+import { requireSessionUserId } from "@/lib/integrations/route-utils";
 import { after } from "next/server";
 import * as z from "zod";
 
@@ -20,12 +19,11 @@ const bodySchema = z.object({
 });
 
 export async function POST(request: Request) {
-    const session = await auth.api.getSession({
-        headers: await headers(),
-    });
-    if (!session?.user?.id) {
-        return Response.json({ error: "Unauthorized" }, { status: 401 });
+    const sessionResult = await requireSessionUserId();
+    if (sessionResult instanceof Response) {
+        return sessionResult;
     }
+    const { userId } = sessionResult;
 
     const bodyRaw = await request.json().catch(() => null);
     const parsedBody = bodySchema.safeParse(bodyRaw);
@@ -67,7 +65,7 @@ export async function POST(request: Request) {
         const { importedCount, smartCollectionItemIds } =
             await importGooglePhotosCandidates({
                 candidates,
-                userId: session.user.id,
+                userId,
             });
 
         await deletePickerSession(accessToken, parsedBody.data.sessionId);
@@ -76,7 +74,7 @@ export async function POST(request: Request) {
             after(async () => {
                 await autoTagLibraryItemsByIds({
                     itemIds: smartCollectionItemIds,
-                    userId: session.user.id,
+                    userId,
                 });
             });
         }

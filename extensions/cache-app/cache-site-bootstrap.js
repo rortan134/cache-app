@@ -89,9 +89,7 @@
         if (!token) {
             return false;
         }
-        const endpoint =
-            defaultIngestEndpoint(origin) ||
-            `${origin}/api/integrations/instagram/saved`;
+        const endpoint = defaultIngestEndpoint(origin) || origin;
         try {
             await chrome.runtime.sendMessage({
                 endpoint,

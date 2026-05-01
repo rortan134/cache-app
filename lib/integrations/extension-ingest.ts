@@ -4,7 +4,7 @@ import { parseOptionalDate } from "@/lib/integrations/dates";
 import { upsertLibraryItemImports } from "@/lib/integrations/upsert";
 import { prisma } from "@/prisma";
 import type { Prisma } from "@/prisma/client/client";
-import { LibraryItemSource } from "@/prisma/client/enums";
+import type { LibraryItemSource } from "@/prisma/client/enums";
 
 const CORS_HEADERS = {
     "Access-Control-Allow-Headers": "authorization, content-type",
@@ -63,39 +63,17 @@ async function resolveFallbackExtensionIngestUserId(
     return user?.id ?? null;
 }
 
-export function normalizeLibrarySource(
-    raw: string | undefined
-): LibraryItemSource {
-    switch (raw?.trim().toLowerCase()) {
-        case "tiktok":
-            return LibraryItemSource.tiktok;
-        case "chrome":
-        case "chrome_bookmarks":
-            return LibraryItemSource.chrome_bookmarks;
-        default:
-            return LibraryItemSource.instagram;
-    }
-}
-
-function resolveIngestExternalId(
-    source: LibraryItemSource,
-    item: IngestItemInput
-): string | undefined {
-    return source === LibraryItemSource.instagram ? item.shortcode : item.id;
-}
-
 export interface IngestItemInput {
     browserProfileId?: string;
     caption?: string;
-    id?: string;
+    externalId?: string;
     kind?: "bookmark" | "folder";
     parentExternalId?: string;
     postedAt?: string;
     scrapedAt?: string;
-    shortcode?: string;
     sourceDeviceId?: string;
     sourceDeviceName?: string;
-    sourceMetadata?: Prisma.InputJsonObject | null;
+    sourceMetadata?: Record<string, unknown> | null;
     url: string;
 }
 
@@ -114,14 +92,15 @@ export async function upsertLibraryItemsFromIngest(
         items: items.map((item) => ({
             browserProfileId: item.browserProfileId,
             caption: item.caption,
-            externalId: resolveIngestExternalId(source, item),
+            externalId: item.externalId,
             kind: item.kind,
             parentExternalId: item.parentExternalId,
             postedAt: parseOptionalDate(item.postedAt),
             scrapedAt: parseOptionalDate(item.scrapedAt),
             sourceDeviceId: item.sourceDeviceId,
             sourceDeviceName: item.sourceDeviceName,
-            sourceMetadata: item.sourceMetadata,
+            sourceMetadata:
+                item.sourceMetadata as Prisma.InputJsonObject | null,
             url: item.url,
         })),
         source,

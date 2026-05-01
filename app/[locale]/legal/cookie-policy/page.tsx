@@ -1,13 +1,14 @@
 import { APP_NAME } from "@/lib/common/constants";
-import { buildLocaleAlternates } from "@/lib/i18n/alternates";
+import { buildPageMetadata } from "@/lib/seo/metadata";
 import type { Metadata } from "next";
 
 export async function generateMetadata(): Promise<Metadata> {
-    return {
-        alternates: buildLocaleAlternates("/legal/cookie-policy"),
-        description: `Cookie Policy for ${APP_NAME}.`,
+    return buildPageMetadata({
+        description: `Cookie Policy for ${APP_NAME} — cookies and similar technologies used on our sites and products.`,
+        keywords: ["cookie policy", "cookies", APP_NAME],
+        path: "/legal/cookie-policy",
         title: "Cookie Policy",
-    };
+    });
 }
 
 export default function CookiePolicyPage() {

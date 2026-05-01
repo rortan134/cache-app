@@ -1,5 +1,5 @@
-import { buildLocaleAlternates } from "@/lib/i18n/alternates";
 import { gtPublicString } from "@/lib/i18n/gt-public-json";
+import { buildPageMetadata } from "@/lib/seo/metadata";
 import type { Metadata } from "next";
 import { LogoutPageClient } from "./client";
 
@@ -11,13 +11,21 @@ export async function generateMetadata({
     const { locale } = await params;
 
     return {
-        alternates: buildLocaleAlternates("/logout"),
-        description: gtPublicString(
+        ...buildPageMetadata({
+            description: gtPublicString(
+                locale,
+                "logout.metadata.description",
+                "You are being signed out securely."
+            ),
+            keywords: ["sign out", "logout", "Cache App"],
             locale,
-            "logout.metadata.description",
-            "You are being signed out securely."
-        ),
-        title: gtPublicString(locale, "logout.metadata.title", "Sign out"),
+            path: "/logout",
+            title: gtPublicString(locale, "logout.metadata.title", "Sign out"),
+        }),
+        robots: {
+            follow: false,
+            index: false,
+        },
     };
 }
 

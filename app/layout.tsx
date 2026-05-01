@@ -17,13 +17,23 @@ export async function generateMetadata(props: {
     const locale = localeParam ?? (await getLocale());
 
     return {
+        applicationName: APP_NAME,
         metadataBase: new URL(BASE_URL),
         openGraph: {
             locale,
+            siteName: APP_NAME,
+            type: "website",
+        },
+        robots: {
+            follow: true,
+            index: true,
         },
         title: {
             default: SITE_DEFAULT_TITLE,
             template: `%s | ${APP_NAME}`,
+        },
+        twitter: {
+            card: "summary_large_image",
         },
     };
 }

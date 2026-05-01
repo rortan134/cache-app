@@ -9,9 +9,6 @@ const IntegrationErrorData = z.object({
     operation: z.string().optional(),
 });
 
-/**
- * Generic error for when an integration connection fails.
- */
 export const IntegrationConnectionError = NamedError.create(
     "IntegrationConnectionError",
     IntegrationErrorData
@@ -20,18 +17,12 @@ export type IntegrationConnectionError = InstanceType<
     typeof IntegrationConnectionError
 >;
 
-/**
- * Generic error for when an integration authentication fails.
- */
 export const IntegrationAuthError = NamedError.create(
     "IntegrationAuthError",
     IntegrationErrorData
 );
 export type IntegrationAuthError = InstanceType<typeof IntegrationAuthError>;
 
-/**
- * Generic error for when an integration API request fails.
- */
 export const IntegrationApiError = NamedError.create(
     "IntegrationApiError",
     IntegrationErrorData.extend({
@@ -40,9 +31,6 @@ export const IntegrationApiError = NamedError.create(
 );
 export type IntegrationApiError = InstanceType<typeof IntegrationApiError>;
 
-/**
- * Generic error for when an integration is not connected.
- */
 export const IntegrationNotConnectedError = NamedError.create(
     "IntegrationNotConnectedError",
     IntegrationErrorData
@@ -51,9 +39,6 @@ export type IntegrationNotConnectedError = InstanceType<
     typeof IntegrationNotConnectedError
 >;
 
-/**
- * Generic error for when an integration session has expired.
- */
 export const IntegrationSessionExpiredError = NamedError.create(
     "IntegrationSessionExpiredError",
     IntegrationErrorData
@@ -62,9 +47,6 @@ export type IntegrationSessionExpiredError = InstanceType<
     typeof IntegrationSessionExpiredError
 >;
 
-/**
- * Generic error for when access is denied by the user or provider.
- */
 export const IntegrationAccessDeniedError = NamedError.create(
     "IntegrationAccessDeniedError",
     IntegrationErrorData
@@ -73,9 +55,6 @@ export type IntegrationAccessDeniedError = InstanceType<
     typeof IntegrationAccessDeniedError
 >;
 
-/**
- * Generic error for when an integration provider rate limits requests.
- */
 export const IntegrationRateLimitError = NamedError.create(
     "IntegrationRateLimitError",
     IntegrationErrorData.extend({
@@ -86,9 +65,6 @@ export type IntegrationRateLimitError = InstanceType<
     typeof IntegrationRateLimitError
 >;
 
-/**
- * Generic error for when an integration provider has an internal error.
- */
 export const IntegrationInternalError = NamedError.create(
     "IntegrationInternalError",
     IntegrationErrorData
@@ -97,9 +73,6 @@ export type IntegrationInternalError = InstanceType<
     typeof IntegrationInternalError
 >;
 
-/**
- * Generic error for when a required integration capability is missing.
- */
 export const IntegrationCapabilityMissingError = NamedError.create(
     "IntegrationCapabilityMissingError",
     IntegrationErrorData.extend({
@@ -110,9 +83,6 @@ export type IntegrationCapabilityMissingError = InstanceType<
     typeof IntegrationCapabilityMissingError
 >;
 
-/**
- * Generic error for when an integration-related resource could not be found.
- */
 export const IntegrationResourceNotFoundError = NamedError.create(
     "IntegrationResourceNotFoundError",
     IntegrationErrorData.extend({
@@ -123,9 +93,6 @@ export type IntegrationResourceNotFoundError = InstanceType<
     typeof IntegrationResourceNotFoundError
 >;
 
-/**
- * Generic error for when the integration provider is down or unavailable.
- */
 export const IntegrationProviderDownError = NamedError.create(
     "IntegrationProviderDownError",
     IntegrationErrorData
@@ -134,9 +101,6 @@ export type IntegrationProviderDownError = InstanceType<
     typeof IntegrationProviderDownError
 >;
 
-/**
- * Generic error for when an account is already connected for the same integration.
- */
 export const IntegrationAccountAlreadyConnectedError = NamedError.create(
     "IntegrationAccountAlreadyConnectedError",
     IntegrationErrorData.extend({

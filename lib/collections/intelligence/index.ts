@@ -26,6 +26,7 @@ import {
     FileState,
     GoogleGenAI,
     type Part,
+    Type,
 } from "@google/genai";
 import { randomUUID } from "node:crypto";
 import { open, readFile, rm } from "node:fs/promises";
@@ -997,4 +998,66 @@ export async function autoTagLibraryItemsByIds(args: {
             userId: args.userId,
         });
     }
+}
+
+// ---------------------------------------------------------------------------
+// Section description generation
+// ---------------------------------------------------------------------------
+
+const SECTION_DESCRIPTION_MODEL = "gemini-2.5-flash-lite";
+const SECTION_DESCRIPTION_OUTPUT_TOKEN_LIMIT = 96;
+const SECTION_DESCRIPTION_TIMEOUT_MS = 12_000;
+
+interface SectionDescriptionResult {
+    rawSummary: string | undefined;
+}
+
+export async function generateSectionDescription(args: {
+    prompt: string;
+    requestedTokens: number;
+}): Promise<SectionDescriptionResult> {
+    const ai = new GoogleGenAI({ apiKey: serverEnv.GEMINI_API_KEY });
+
+    const modelResponse = await ai.models.generateContent({
+        config: {
+            httpOptions: {
+                retryOptions: {
+                    attempts: 2,
+                },
+                timeout: SECTION_DESCRIPTION_TIMEOUT_MS,
+            },
+            maxOutputTokens: SECTION_DESCRIPTION_OUTPUT_TOKEN_LIMIT,
+            responseMimeType: "application/json",
+            responseSchema: {
+                description:
+                    "A single-sentence summary of the shared themes across the provided items.",
+                properties: {
+                    summary: {
+                        description:
+                            "One brief sentence summarizing the shared themes and intent. Plain text only, no markdown, no item counts, no platform names, no quotes.",
+                        maxLength: "220",
+                        type: Type.STRING,
+                    },
+                },
+                required: ["summary"],
+                type: Type.OBJECT,
+            },
+            systemInstruction:
+                "You write one-sentence UI summaries. Return plain text only, with no preamble. Never mention item counts or platform names, and avoid stock lead-ins.",
+            temperature: 0.2,
+        },
+        contents: args.prompt,
+        model: SECTION_DESCRIPTION_MODEL,
+    });
+
+    let rawSummary: string | undefined;
+    try {
+        const parsed = JSON.parse(modelResponse.text ?? "{}");
+        rawSummary =
+            typeof parsed.summary === "string" ? parsed.summary : undefined;
+    } catch {
+        rawSummary = modelResponse.text ?? undefined;
+    }
+
+    return { rawSummary };
 }

@@ -1,7 +1,7 @@
 import { Footer } from "@/components/ui/footer";
 import { PageShell } from "@/components/ui/page-shell";
 import { BASE_URL } from "@/lib/common/constants";
-import { buildLocaleAlternates } from "@/lib/i18n/alternates";
+import { buildPageMetadata } from "@/lib/seo/metadata";
 import {
     getEntriesByCategory,
     versusCategories,
@@ -16,14 +16,13 @@ export async function generateMetadata({
 }: {
     params: Promise<{ locale: string }>;
 }): Promise<Metadata> {
-    await params;
+    const { locale } = await params;
 
     const title = "Cache App vs alternatives";
     const description =
         "Compare Cache App with AI bookmark managers, read-it-later apps, visual curation tools, traditional bookmark managers, and PKM tools.";
 
-    return {
-        alternates: buildLocaleAlternates("/versus"),
+    return buildPageMetadata({
         description,
         keywords: [
             "Cache App alternatives",
@@ -32,18 +31,10 @@ export async function generateMetadata({
             "read-it-later alternatives",
             "PKM alternatives",
         ],
-        openGraph: {
-            description,
-            title,
-            type: "website",
-        },
+        locale,
+        path: "/versus",
         title,
-        twitter: {
-            card: "summary_large_image",
-            description,
-            title,
-        },
-    };
+    });
 }
 
 function buildItemListJsonLd() {

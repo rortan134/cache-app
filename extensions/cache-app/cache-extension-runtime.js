@@ -73,6 +73,18 @@
         return buildOriginPath(origin, String(global.CACHE_INGEST_PATH ?? ""));
     }
 
+    function defaultInstagramSyncEndpoint(
+        origin = getConfiguredCacheAppOrigin()
+    ) {
+        return buildOriginPath(origin, "/api/integrations/instagram/saved");
+    }
+
+    function defaultTikTokSyncEndpoint(
+        origin = getConfiguredCacheAppOrigin()
+    ) {
+        return buildOriginPath(origin, "/api/integrations/tiktok/saved");
+    }
+
     function defaultYouTubeSyncEndpoint(
         origin = getConfiguredCacheAppOrigin()
     ) {
@@ -84,16 +96,19 @@
     }
 
     function ingestEndpointForSource(storedEndpoint, source) {
-        const stored =
-            typeof storedEndpoint === "string" ? storedEndpoint.trim() : "";
+        const origin = resolveCacheOrigin(storedEndpoint);
 
-        if (source === "youtube") {
-            return defaultYouTubeSyncEndpoint(resolveCacheOrigin(stored));
+        switch (source) {
+            case "youtube":
+                return defaultYouTubeSyncEndpoint(origin);
+            case "chrome":
+            case "chrome_bookmarks":
+                return defaultChromeSyncEndpoint(origin);
+            case "tiktok":
+                return defaultTikTokSyncEndpoint(origin);
+            default:
+                return defaultInstagramSyncEndpoint(origin);
         }
-        if (source === "chrome") {
-            return defaultChromeSyncEndpoint(resolveCacheOrigin(stored));
-        }
-        return stored || defaultIngestEndpoint(resolveCacheOrigin(stored));
     }
 
     function isYouTubeWatchLaterUrl(rawUrl) {
@@ -123,6 +138,8 @@
         buildOriginPath,
         defaultChromeSyncEndpoint,
         defaultIngestEndpoint,
+        defaultInstagramSyncEndpoint,
+        defaultTikTokSyncEndpoint,
         defaultYouTubeSyncEndpoint,
         getConfiguredCacheAppOrigin,
         ingestEndpointForSource,

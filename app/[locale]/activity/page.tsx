@@ -18,9 +18,9 @@ import Link from "next/link";
 import { getServerSession } from "@/lib/auth/server";
 import { cn } from "@/lib/common/cn";
 import { parseDisplayUrl } from "@/lib/common/url";
-import { buildLocaleAlternates } from "@/lib/i18n/alternates";
 import { gtPublicString } from "@/lib/i18n/gt-public-json";
 import { INTEGRATIONS } from "@/lib/integrations/support";
+import { buildPageMetadata } from "@/lib/seo/metadata";
 import { prisma } from "@/prisma";
 import type {
     LibraryActivityEventKind,
@@ -50,15 +50,22 @@ export async function generateMetadata({
 }): Promise<Metadata> {
     const { locale } = await params;
 
-    return {
-        alternates: buildLocaleAlternates("/activity"),
+    return buildPageMetadata({
         description: gtPublicString(
             locale,
             "activity.metadata.description",
             "A chronological history of recent saves, updates, and collection changes in your library."
         ),
+        keywords: [
+            "activity",
+            "library timeline",
+            "saved items history",
+            "Cache App",
+        ],
+        locale,
+        path: "/activity",
         title: gtPublicString(locale, "activity.metadata.title", "Activity"),
-    };
+    });
 }
 
 const ACTIVITY_LIMIT = 80;

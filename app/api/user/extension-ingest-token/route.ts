@@ -1,22 +1,17 @@
-import { auth } from "@/lib/auth/server";
+import { requireSessionUserId } from "@/lib/integrations/route-utils";
 import { prisma } from "@/prisma";
-import { headers } from "next/headers";
 import { nanoid } from "nanoid";
 
-/**
- * Returns the extension ingest token for the signed-in user, creating one if missing.
- */
 export async function GET() {
-    const session = await auth.api.getSession({
-        headers: await headers(),
-    });
-    if (!session?.user?.id) {
-        return Response.json({ error: "Unauthorized" }, { status: 401 });
+    const sessionResult = await requireSessionUserId();
+    if (sessionResult instanceof Response) {
+        return sessionResult;
     }
+    const { userId } = sessionResult;
 
     const user = await prisma.user.findUnique({
         select: { extensionIngestToken: true },
-        where: { id: session.user.id },
+        where: { id: userId },
     });
 
     if (user?.extensionIngestToken) {
@@ -26,27 +21,23 @@ export async function GET() {
     const token = nanoid(48);
     await prisma.user.update({
         data: { extensionIngestToken: token },
-        where: { id: session.user.id },
+        where: { id: userId },
     });
 
     return Response.json({ token });
 }
 
-/**
- * Generates a new random ingest token and replaces any previous one.
- */
 export async function POST() {
-    const session = await auth.api.getSession({
-        headers: await headers(),
-    });
-    if (!session?.user?.id) {
-        return Response.json({ error: "Unauthorized" }, { status: 401 });
+    const sessionResult = await requireSessionUserId();
+    if (sessionResult instanceof Response) {
+        return sessionResult;
     }
+    const { userId } = sessionResult;
 
     const token = nanoid(48);
     await prisma.user.update({
         data: { extensionIngestToken: token },
-        where: { id: session.user.id },
+        where: { id: userId },
     });
 
     return Response.json({ token });
