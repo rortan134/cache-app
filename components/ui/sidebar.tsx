@@ -6,7 +6,7 @@ function Sidebar({ className, ...props }: React.ComponentProps<"aside">) {
         <aside
             {...props}
             className={cn(
-                "relative flex min-h-full w-full shrink-0 flex-col gap-8 px-8 py-7 lg:max-w-[400px] lg:justify-between",
+                "relative flex min-h-full w-full shrink-0 flex-col gap-8 overscroll-contain px-8 py-7 lg:max-w-[400px] lg:justify-between",
                 className
             )}
             data-slot="sidebar"
@@ -19,7 +19,7 @@ function SidebarHeader({ className, ...props }: React.ComponentProps<"div">) {
         <div
             {...props}
             className={cn(
-                "no-scrollbar -mx-1 flex max-h-full min-h-0 w-full flex-col gap-6 overflow-auto overscroll-contain p-1 sm:max-h-[calc(100vh-(var(--spacing)*8))] lg:sticky lg:top-8",
+                "no-scrollbar -mx-1 flex max-h-full min-h-0 w-full flex-col gap-6 overflow-auto p-1 sm:max-h-[calc(100vh-(var(--spacing)*8))] lg:sticky lg:top-8",
                 className
             )}
             data-sidebar="header"

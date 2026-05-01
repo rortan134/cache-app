@@ -149,36 +149,34 @@ export function IntegrationsListNoticeCallout() {
                 open={isOpen}
             >
                 <CollapsiblePanel>
-                    <div className="flex gap-1.5">
-                        <p className="text-[11px] text-muted-foreground leading-tight">
-                            Please only connect accounts you trust. Cache can
-                            access what you choose to save with connected apps.
-                            You can always change your mind.{" "}
-                            <Button
-                                className="h-fit! px-0 leading-tight sm:text-[11px]"
-                                onClick={() => setIsOpen(false)}
-                                size="xs"
-                                variant="link"
-                            >
-                                Dismiss
-                            </Button>{" "}
-                            or{" "}
-                            <Button
-                                className="h-fit! px-0 leading-tight sm:text-[11px]"
-                                render={
-                                    <Link
-                                        href="/legal/privacy-policy"
-                                        target="_blank"
-                                    />
-                                }
-                                size="xs"
-                                variant="link"
-                            >
-                                Cache Privacy
-                                <ArrowUpRight className="inline-block size-3 text-muted-foreground" />
-                            </Button>
-                        </p>
-                    </div>
+                    <p className="text-[11px] text-muted-foreground leading-tight">
+                        Please only connect accounts you trust. Cache can access
+                        what you choose to save with connected apps. You can
+                        always change your mind.{" "}
+                        <Button
+                            className="h-fit! px-0 leading-tight sm:text-[11px]"
+                            onClick={() => setIsOpen(false)}
+                            size="xs"
+                            variant="link"
+                        >
+                            Dismiss
+                        </Button>{" "}
+                        or{" "}
+                        <Button
+                            className="h-fit! px-0 leading-tight sm:text-[11px]"
+                            render={
+                                <Link
+                                    href="/legal/privacy-policy"
+                                    target="_blank"
+                                />
+                            }
+                            size="xs"
+                            variant="link"
+                        >
+                            Cache Privacy
+                            <ArrowUpRight className="inline-block size-3 text-muted-foreground" />
+                        </Button>
+                    </p>
                 </CollapsiblePanel>
             </Collapsible>
         </>
@@ -215,7 +213,6 @@ export function IntegrationsListEmpty({
     );
 }
 
-/** @internal */
 function IntegrationsListStatus({
     tone = "success",
     className,

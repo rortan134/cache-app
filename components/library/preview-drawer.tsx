@@ -67,10 +67,7 @@ const DEFAULT_PREVIEW_TIMEOUT_MS = 8000;
 const DEFAULT_PREVIEW_ERROR_DESCRIPTION =
     "This site can't be previewed here. It may block embedding inside other sites or be taking too long to load.";
 
-const PREVIEW_POPUP_POSITION_CLASS_NAMES: Record<
-    PreviewDrawerPosition,
-    string
-> = {
+const PREVIEW_POPUP_POSITION_CLASSES: Record<PreviewDrawerPosition, string> = {
     bottom: "w-full sm:mx-auto sm:max-w-[min(96vw,78rem)]",
     left: "w-[min(96vw,68rem)] max-w-none sm:w-[min(92vw,72rem)]",
     right: "w-[min(96vw,68rem)] max-w-none sm:w-[min(92vw,72rem)]",
@@ -95,6 +92,8 @@ function usePreviewDrawerContext(): PreviewDrawerContextValue {
     return context;
 }
 
+// Enforce a preview timeout so users aren't left waiting indefinitely
+// for sites that block embedding or fail to load.
 function usePreviewStatus(open: boolean, url: string, timeoutMs: number) {
     const [status, setStatus] = React.useState<PreviewDrawerStatus>("loading");
 
@@ -156,7 +155,7 @@ export function PreviewDrawer({
 }: PreviewDrawerProps): ReactElement {
     const [uncontrolledOpen, setUncontrolledOpen] = React.useState(defaultOpen);
     const isControlled = open !== undefined;
-    const resolvedOpen = isControlled ? open : uncontrolledOpen;
+    const isOpen = open ?? uncontrolledOpen;
 
     const handleOpenChange: PreviewDrawerOpenChange = (
         nextOpen,
@@ -172,16 +171,12 @@ export function PreviewDrawer({
         <PreviewDrawerContext
             value={{
                 description,
-                open: resolvedOpen,
+                open: isOpen,
                 title,
                 url,
             }}
         >
-            <Drawer
-                onOpenChange={handleOpenChange}
-                open={resolvedOpen}
-                {...props}
-            />
+            <Drawer onOpenChange={handleOpenChange} open={isOpen} {...props} />
         </PreviewDrawerContext>
     );
 }
@@ -201,19 +196,18 @@ export function PreviewDrawerContent({
 }: PreviewDrawerContentProps): ReactElement {
     const { description, open, title, url } = usePreviewDrawerContext();
     const iframeKey = React.useId();
-    const previewDescription = description ?? parseDisplayUrl(url);
-    const canOpenInNewTab = url !== PREVIEW_BLOCKED_URL;
     const { markAsBlocked, markAsLoaded, status } = usePreviewStatus(
         open,
         url,
         timeoutMs
     );
+    const canOpenInNewTab = url !== PREVIEW_BLOCKED_URL;
 
     return (
         <DrawerPopup
             className={cn(
                 "h-[min(88vh,58rem)] sm:h-[min(82vh,56rem)]",
-                PREVIEW_POPUP_POSITION_CLASS_NAMES[position],
+                PREVIEW_POPUP_POSITION_CLASSES[position],
                 className
             )}
             position={position}
@@ -227,7 +221,7 @@ export function PreviewDrawerContent({
                     {title}
                 </DrawerTitle>
                 <DrawerDescription className="line-clamp-2 text-sm">
-                    {previewDescription}
+                    {description ?? parseDisplayUrl(url)}
                 </DrawerDescription>
             </DrawerHeader>
             <DrawerPanel
@@ -242,7 +236,7 @@ export function PreviewDrawerContent({
                         bodyClassName
                     )}
                 >
-                    {status === "loading" ? (
+                    {status === "loading" && (
                         <div
                             aria-live="polite"
                             className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 bg-background/92 text-center backdrop-blur-xs"
@@ -259,8 +253,8 @@ export function PreviewDrawerContent({
                                 </p>
                             </div>
                         </div>
-                    ) : null}
-                    {status === "blocked" ? (
+                    )}
+                    {status === "blocked" && (
                         <div
                             className="flex size-full flex-col items-center justify-center gap-4 bg-muted/20 px-6 text-center"
                             role="alert"
@@ -276,20 +270,22 @@ export function PreviewDrawerContent({
                                     {errorDescription}
                                 </p>
                             </div>
-                            {canOpenInNewTab ? (
+                            {canOpenInNewTab && (
                                 <PreviewDrawerLinkButton size="sm" url={url}>
                                     <ExternalLinkIcon className="size-4" />
                                     Open in new tab
                                 </PreviewDrawerLinkButton>
-                            ) : null}
+                            )}
                         </div>
-                    ) : null}
+                    )}
                     {/* biome-ignore lint/a11y/noNoninteractiveElementInteractions: iframe load and error events are required to track preview readiness. */}
                     <iframe
                         className={cn(
                             "size-full border-0 bg-background",
                             status === "blocked" && "hidden"
                         )}
+                        // Remount the iframe whenever the drawer opens or the
+                        // target URL changes so the preview always starts fresh.
                         key={`${iframeKey}-${open ? "open" : "closed"}-${url}`}
                         onError={markAsBlocked}
                         onLoad={markAsLoaded}
@@ -306,7 +302,7 @@ export function PreviewDrawerContent({
                     footerClassName
                 )}
             >
-                {canOpenInNewTab ? (
+                {canOpenInNewTab && (
                     <PreviewDrawerLinkButton
                         className="justify-start sm:justify-center"
                         size="sm"
@@ -316,7 +312,7 @@ export function PreviewDrawerContent({
                         <GlobeIcon className="size-4" />
                         Open in new tab
                     </PreviewDrawerLinkButton>
-                ) : null}
+                )}
                 <DrawerClose render={<Button size="sm" variant="outline" />}>
                     Close
                 </DrawerClose>
