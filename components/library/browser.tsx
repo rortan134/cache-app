@@ -3986,7 +3986,7 @@ function SectionSummaryContent({
                 variant="link"
             >
                 More&nbsp;
-                <ListChevronsUpDown className="inline-block size-3.5" />
+                <ListChevronsUpDown className="mb-px inline-block size-3.5 shrink-0" />
             </Button>
             or
             <Button
@@ -3994,8 +3994,8 @@ function SectionSummaryContent({
                 size="xs"
                 variant="link"
             >
-                Ask a question&nbsp;
-                <MessageCircleQuestionMark className="inline-block size-3.5" />
+                Ask anything&nbsp;
+                <MessageCircleQuestionMark className="mb-px inline-block size-3.5 shrink-0" />
             </Button>
         </span>
     );

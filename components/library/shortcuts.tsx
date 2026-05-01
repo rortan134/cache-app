@@ -13,7 +13,7 @@ import type * as React from "react";
 
 const KEYBOARD_SHORTCUTS = [
     {
-        keys: "⌘/Ctrl+K",
+        keys: "⌘/Ctrl+G",
         label: "Search library",
     },
     {
@@ -29,12 +29,12 @@ const KEYBOARD_SHORTCUTS = [
         label: "Open priority picker for hovered collection",
     },
     {
-        keys: "⌘/Ctrl+C",
-        label: "Toggle collections panel",
-    },
-    {
         keys: "⌘/Ctrl+I",
         label: "Toggle integrations panel",
+    },
+    {
+        keys: "⌘/Ctrl+C",
+        label: "Toggle collections panel",
     },
     {
         keys: "⌘/Ctrl+N",

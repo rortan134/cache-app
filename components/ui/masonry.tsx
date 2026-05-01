@@ -6,6 +6,24 @@ import { useStableCallback } from "@base-ui/utils/useStableCallback";
 import { useValueAsRef } from "@base-ui/utils/useValueAsRef";
 import * as React from "react";
 
+interface RequestTimeoutHandle {
+    id: number;
+}
+
+function requestTimeout(fn: () => void, delay: number): RequestTimeoutHandle {
+    const start = performance.now();
+    const handle: RequestTimeoutHandle = {
+        id: requestAnimationFrame(function tick(timestamp) {
+            if (timestamp - start >= delay) {
+                fn();
+            } else {
+                handle.id = requestAnimationFrame(tick);
+            }
+        }),
+    };
+    return handle;
+}
+
 // #region Interval tree definitions
 const NODE_COLOR = {
     BLACK: 1,
@@ -985,7 +1003,7 @@ function useDebouncedWindowSize(options: DebouncedWindowSizeOptions) {
     }, [defaultWidth, defaultHeight]);
 
     const [size, setSize] = React.useState(getDocumentSize());
-    const timeoutRef = React.useRef<NodeJS.Timeout | null>(null);
+    const timeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const setDebouncedSize = React.useCallback(
         (value: { width: number; height: number }) => {
@@ -1201,20 +1219,6 @@ function useScroller({
 
         setIsScrolling(true);
         let didUnsubscribe = false;
-
-        function requestTimeout(fn: () => void, delay: number) {
-            const start = performance.now();
-            const handle = {
-                id: requestAnimationFrame(function tick(timestamp) {
-                    if (timestamp - start >= delay) {
-                        fn();
-                    } else {
-                        handle.id = requestAnimationFrame(tick);
-                    }
-                }),
-            };
-            return handle;
-        }
 
         const timeout = requestTimeout(
             () => {
@@ -1574,108 +1578,146 @@ function MasonryViewport({
             >[],
         [children]
     );
+
+    const {
+        columnWidth,
+        isScrolling,
+        itemHeight,
+        onItemRegister,
+        overscan,
+        positioner,
+        scrollTop,
+        windowHeight,
+    } = context;
+
     const itemCount = validChildren.length;
-    const shortestColumnSize = context.positioner.shortestColumn();
-    const measuredCount = context.positioner.size();
-    const overscanPixels = context.windowHeight * context.overscan;
-    const rangeStart = Math.max(0, context.scrollTop - overscanPixels / 2);
-    const rangeEnd = context.scrollTop + overscanPixels;
+    const shortestColumnSize = positioner.shortestColumn();
+    const measuredCount = positioner.size();
+    const overscanPixels = windowHeight * overscan;
+    const rangeEnd = scrollTop + overscanPixels;
     const isLayoutOutdated =
         shortestColumnSize < rangeEnd && measuredCount < itemCount;
-    const positionedChildren: React.ReactElement[] = [];
 
     const visibleItemStyle = React.useMemo(
         (): React.CSSProperties => ({
             position: "absolute",
-            transform: context.isScrolling ? "translateZ(0)" : undefined,
+            transform: isScrolling ? "translateZ(0)" : undefined,
             visibility: "visible",
-            width: context.columnWidth,
-            willChange: context.isScrolling ? "transform" : undefined,
+            width: columnWidth,
+            willChange: isScrolling ? "transform" : undefined,
             writingMode: "horizontal-tb",
         }),
-        [context.columnWidth, context.isScrolling]
+        [columnWidth, isScrolling]
     );
 
     const hiddenItemStyle = React.useMemo(
         (): React.CSSProperties => ({
             position: "absolute",
             visibility: "hidden",
-            width: context.columnWidth,
+            width: columnWidth,
             writingMode: "horizontal-tb",
             zIndex: -1000,
         }),
-        [context.columnWidth]
+        [columnWidth]
     );
 
-    context.positioner.range(rangeStart, rangeEnd, (index, left, top) => {
-        const child = validChildren[index];
-        if (!child) {
-            return;
-        }
-        const itemStyle = {
-            ...visibleItemStyle,
-            left,
-            top,
-            ...child.props.style,
-        };
-        const onItemRegister = context.onItemRegister;
-
-        positionedChildren.push(
-            React.cloneElement(child, {
-                ["data-index" as string]: index,
-                key: child.key ?? index,
-                ref: onItemRegister(index),
-                style: itemStyle,
-            })
+    const positionedChildren = React.useMemo(() => {
+        const result: React.ReactElement[] = [];
+        const currentMeasuredCount = positioner.size();
+        const currentShortestColumnSize = positioner.shortestColumn();
+        const currentOverscanPixels = windowHeight * overscan;
+        const currentRangeStart = Math.max(
+            0,
+            scrollTop - currentOverscanPixels / 2
         );
-    });
+        const currentRangeEnd = scrollTop + currentOverscanPixels;
 
-    if (isLayoutOutdated) {
-        const batchSize = Math.min(
-            itemCount - measuredCount,
-            Math.ceil(
-                ((context.scrollTop + overscanPixels - shortestColumnSize) /
-                    context.itemHeight) *
-                    context.positioner.columnCount
-            )
-        );
-
-        if (batchSize > 0) {
-            const end = Math.min(itemCount, measuredCount + batchSize);
-            const onItemRegister = context.onItemRegister;
-
-            for (let index = measuredCount; index < end; index++) {
+        positioner.range(
+            currentRangeStart,
+            currentRangeEnd,
+            (index, left, top) => {
                 const child = validChildren[index];
                 if (!child) {
-                    continue;
+                    return;
                 }
-
-                const itemStyle = {
-                    ...hiddenItemStyle,
-                    ...child.props.style,
-                };
-
-                positionedChildren.push(
+                result.push(
                     React.cloneElement(child, {
                         ["data-index" as string]: index,
                         key: child.key ?? index,
                         ref: onItemRegister(index),
-                        style: itemStyle,
+                        style: {
+                            ...visibleItemStyle,
+                            left,
+                            top,
+                            ...child.props.style,
+                        },
                     })
                 );
             }
+        );
+
+        const layoutOutdated =
+            currentShortestColumnSize < currentRangeEnd &&
+            currentMeasuredCount < itemCount;
+
+        if (layoutOutdated) {
+            const batchSize = Math.min(
+                itemCount - currentMeasuredCount,
+                Math.ceil(
+                    ((scrollTop +
+                        currentOverscanPixels -
+                        currentShortestColumnSize) /
+                        itemHeight) *
+                        positioner.columnCount
+                )
+            );
+
+            if (batchSize > 0) {
+                const end = Math.min(
+                    itemCount,
+                    currentMeasuredCount + batchSize
+                );
+                for (let index = currentMeasuredCount; index < end; index++) {
+                    const child = validChildren[index];
+                    if (!child) {
+                        continue;
+                    }
+                    result.push(
+                        React.cloneElement(child, {
+                            ["data-index" as string]: index,
+                            key: child.key ?? index,
+                            ref: onItemRegister(index),
+                            style: { ...hiddenItemStyle, ...child.props.style },
+                        })
+                    );
+                }
+            }
         }
-    }
+
+        return result;
+    }, [
+        positioner,
+        onItemRegister,
+        validChildren,
+        itemCount,
+        visibleItemStyle,
+        hiddenItemStyle,
+        scrollTop,
+        windowHeight,
+        overscan,
+        itemHeight,
+    ]);
 
     React.useEffect(() => {
-        if (isLayoutOutdated) {
-            if (rafId.current) {
-                cancelAnimationFrame(rafId.current);
-            }
-            rafId.current = requestAnimationFrame(() => {
-                setLayoutVersion((v) => v + 1);
-            });
+        if (!isLayoutOutdated) {
+            return;
         }
+        if (rafId.current) {
+            cancelAnimationFrame(rafId.current);
+        }
+        rafId.current = requestAnimationFrame(() => {
+            setLayoutVersion((v) => v + 1);
+        });
         return () => {
             if (rafId.current) {
                 cancelAnimationFrame(rafId.current);
@@ -1683,28 +1725,27 @@ function MasonryViewport({
         };
     }, [isLayoutOutdated]);
 
-    const estimateHeight = useValueAsRef(context.positioner.estimateHeight);
+    const estimateHeight = useValueAsRef(positioner.estimateHeight);
 
     const estimatedHeight = React.useMemo(() => {
         const measuredHeight = estimateHeight.current(
             measuredCount,
-            context.itemHeight
+            itemHeight
         );
         if (measuredCount === itemCount) {
             return measuredHeight;
         }
         const remainingItems = itemCount - measuredCount;
         const estimatedRemainingHeight = Math.ceil(
-            (remainingItems / context.positioner.columnCount) *
-                context.itemHeight
+            (remainingItems / positioner.columnCount) * itemHeight
         );
         return Math.ceil(measuredHeight + estimatedRemainingHeight);
     }, [
         estimateHeight,
-        context.positioner.columnCount,
-        context.itemHeight,
         measuredCount,
+        itemHeight,
         itemCount,
+        positioner.columnCount,
     ]);
 
     return (
@@ -1715,12 +1756,10 @@ function MasonryViewport({
                 height: estimatedHeight,
                 maxHeight: estimatedHeight,
                 maxWidth: "100%",
-                pointerEvents: context.isScrolling
-                    ? ("none" as const)
-                    : undefined,
+                pointerEvents: isScrolling ? ("none" as const) : undefined,
                 position: "relative" as const,
                 width: "100%",
-                willChange: context.isScrolling ? "contents" : undefined,
+                willChange: isScrolling ? "contents" : undefined,
                 ...style,
             }}
         >

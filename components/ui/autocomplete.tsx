@@ -24,7 +24,7 @@ export function AutocompleteInput({
     triggerProps?: AutocompletePrimitive.Trigger.Props;
     endAddon?: React.ReactNode;
 }) {
-    const sizeValue = (size ?? "default") as "sm" | "default" | "lg" | number;
+    const sizeValue = size ?? "default";
 
     return (
         <AutocompletePrimitive.InputGroup

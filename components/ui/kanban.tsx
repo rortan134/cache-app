@@ -43,7 +43,7 @@ import {
     useSortable,
     verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
+import { CSS, type Transform } from "@dnd-kit/utilities";
 import * as React from "react";
 import * as ReactDOM from "react-dom";
 
@@ -321,6 +321,74 @@ function getDragAnnouncement<T>({
     }
 
     return `${itemType} ${action === "dropped" ? "was dropped" : "is now"} at position ${position} of ${total}`;
+}
+
+function assertNonEmptyValue(value: UniqueIdentifier, name: string) {
+    if (value === "") {
+        throw new Error(`\`${name}\` value cannot be an empty string`);
+    }
+}
+
+interface KanbanSortableResult<T extends HTMLElement> {
+    attributes: DraggableAttributes;
+    composedRef: React.RefCallback<T>;
+    composedStyle: React.CSSProperties;
+    isDragging: boolean;
+    listeners: DraggableSyntheticListeners | undefined;
+    setActivatorNodeRef: (node: HTMLElement | null) => void;
+    setNodeRef: (node: HTMLElement | null) => void;
+    transform: Transform | null;
+    transition: string | undefined;
+}
+
+function useKanbanSortable<T extends HTMLElement>(
+    value: UniqueIdentifier,
+    disabled: boolean | undefined,
+    ref: React.Ref<T> | undefined,
+    style?: React.CSSProperties,
+    options?: { animateLayoutChanges?: AnimateLayoutChanges }
+): KanbanSortableResult<T> {
+    const {
+        attributes,
+        listeners,
+        setNodeRef,
+        setActivatorNodeRef,
+        transform,
+        transition,
+        isDragging,
+    } = useSortable({
+        animateLayoutChanges: options?.animateLayoutChanges,
+        disabled,
+        id: value,
+    });
+
+    const composedRef = useComposedRefs(ref, (node) => {
+        if (disabled) {
+            return;
+        }
+        setNodeRef(node);
+    });
+
+    const composedStyle = React.useMemo<React.CSSProperties>(
+        () => ({
+            transform: CSS.Transform.toString(transform),
+            transition,
+            ...style,
+        }),
+        [transform, transition, style]
+    );
+
+    return {
+        attributes,
+        composedRef,
+        composedStyle,
+        isDragging,
+        listeners,
+        setActivatorNodeRef,
+        setNodeRef,
+        transform,
+        transition,
+    };
 }
 
 function Kanban<T>(props: KanbanProps<T>) {
@@ -754,12 +822,11 @@ function Kanban<T>(props: KanbanProps<T>) {
 const KanbanBoardContext = React.createContext<boolean>(false);
 
 interface KanbanBoardProps extends React.ComponentProps<"div"> {
-    asChild?: boolean;
     children: React.ReactNode;
 }
 
 function KanbanBoard(props: KanbanBoardProps) {
-    const { asChild, className, ref, ...boardProps } = props;
+    const { className, ref, ...boardProps } = props;
 
     const context = useKanbanContext(BOARD_NAME);
 
@@ -767,8 +834,6 @@ function KanbanBoard(props: KanbanBoardProps) {
         () => Object.keys(context.items),
         [context.items]
     );
-
-    const BoardPrimitive = "div";
 
     return (
         <KanbanBoardContext value={true}>
@@ -780,8 +845,7 @@ function KanbanBoard(props: KanbanBoardProps) {
                         : verticalListSortingStrategy
                 }
             >
-                <BoardPrimitive
-                    aria-orientation={context.orientation}
+                <div
                     data-orientation={context.orientation}
                     data-slot="kanban-board"
                     {...boardProps}
@@ -799,7 +863,7 @@ function KanbanBoard(props: KanbanBoardProps) {
     );
 }
 
-interface KanbanColumnContextValue {
+interface KanbanSortableContextValue {
     attributes: DraggableAttributes;
     disabled?: boolean;
     id: string;
@@ -809,7 +873,7 @@ interface KanbanColumnContextValue {
 }
 
 const KanbanColumnContext =
-    React.createContext<KanbanColumnContextValue | null>(null);
+    React.createContext<KanbanSortableContextValue | null>(null);
 
 function useKanbanColumnContext(consumerName: string) {
     const context = React.useContext(KanbanColumnContext);
@@ -825,7 +889,6 @@ const animateLayoutChanges: AnimateLayoutChanges = (args) =>
     defaultAnimateLayoutChanges({ ...args, wasDragging: true });
 
 interface KanbanColumnProps extends React.ComponentProps<"div"> {
-    asChild?: boolean;
     asHandle?: boolean;
     children: React.ReactNode;
     disabled?: boolean;
@@ -833,16 +896,8 @@ interface KanbanColumnProps extends React.ComponentProps<"div"> {
 }
 
 function KanbanColumn(props: KanbanColumnProps) {
-    const {
-        value,
-        asChild,
-        asHandle,
-        disabled,
-        className,
-        style,
-        ref,
-        ...columnProps
-    } = props;
+    const { value, asHandle, disabled, className, style, ref, ...columnProps } =
+        props;
 
     const id = React.useId();
     const context = useKanbanContext(COLUMN_NAME);
@@ -855,46 +910,25 @@ function KanbanColumn(props: KanbanColumnProps) {
         );
     }
 
-    if (value === "") {
-        throw new Error(`\`${COLUMN_NAME}\` value cannot be an empty string`);
-    }
+    assertNonEmptyValue(value, COLUMN_NAME);
 
     const {
         attributes,
         listeners,
-        setNodeRef,
         setActivatorNodeRef,
-        transform,
-        transition,
         isDragging,
-    } = useSortable({
+        composedRef,
+        composedStyle,
+    } = useKanbanSortable(value, disabled, ref, style, {
         animateLayoutChanges,
-        disabled,
-        id: value,
     });
-
-    const composedRef = useComposedRefs(ref, (node) => {
-        if (disabled) {
-            return;
-        }
-        setNodeRef(node);
-    });
-
-    const composedStyle = React.useMemo<React.CSSProperties>(
-        () => ({
-            transform: CSS.Transform.toString(transform),
-            transition,
-            ...style,
-        }),
-        [transform, transition, style]
-    );
 
     const items = React.useMemo(() => {
         const items = context.items[value] ?? [];
         return items.map((item) => context.getItemValue(item));
     }, [context.items, value, context.getItemValue]);
 
-    const columnContext = React.useMemo<KanbanColumnContextValue>(
+    const columnContext = React.useMemo<KanbanSortableContextValue>(
         () => ({
             attributes,
             disabled,
@@ -906,8 +940,6 @@ function KanbanColumn(props: KanbanColumnProps) {
         [id, attributes, listeners, setActivatorNodeRef, isDragging, disabled]
     );
 
-    const ColumnPrimitive = "div";
-
     return (
         <KanbanColumnContext value={columnContext}>
             <SortableContext
@@ -918,7 +950,7 @@ function KanbanColumn(props: KanbanColumnProps) {
                         : verticalListSortingStrategy
                 }
             >
-                <ColumnPrimitive
+                <div
                     data-disabled={disabled}
                     data-dragging={isDragging ? "" : undefined}
                     data-slot="kanban-column"
@@ -948,12 +980,10 @@ function KanbanColumn(props: KanbanColumnProps) {
     );
 }
 
-interface KanbanColumnHandleProps extends React.ComponentProps<"button"> {
-    asChild?: boolean;
-}
+interface KanbanColumnHandleProps extends React.ComponentProps<"button"> {}
 
 function KanbanColumnHandle(props: KanbanColumnHandleProps) {
-    const { asChild, disabled, className, ref, ...columnHandleProps } = props;
+    const { disabled, className, ref, ...columnHandleProps } = props;
 
     const context = useKanbanContext(COLUMN_NAME);
     const columnContext = useKanbanColumnContext(COLUMN_HANDLE_NAME);
@@ -967,10 +997,8 @@ function KanbanColumnHandle(props: KanbanColumnHandleProps) {
         columnContext.setActivatorNodeRef(node);
     });
 
-    const HandlePrimitive = "button";
-
     return (
-        <HandlePrimitive
+        <button
             aria-controls={columnContext.id}
             data-disabled={isDisabled}
             data-dragging={columnContext.isDragging ? "" : undefined}
@@ -992,18 +1020,8 @@ function KanbanColumnHandle(props: KanbanColumnHandleProps) {
     );
 }
 
-interface KanbanItemContextValue {
-    attributes: DraggableAttributes;
-    disabled?: boolean;
-    id: string;
-    isDragging?: boolean;
-    listeners: DraggableSyntheticListeners | undefined;
-    setActivatorNodeRef: (node: HTMLElement | null) => void;
-}
-
-const KanbanItemContext = React.createContext<KanbanItemContextValue | null>(
-    null
-);
+const KanbanItemContext =
+    React.createContext<KanbanSortableContextValue | null>(null);
 
 function useKanbanItemContext(consumerName: string) {
     const context = React.useContext(KanbanItemContext);
@@ -1016,23 +1034,14 @@ function useKanbanItemContext(consumerName: string) {
 }
 
 interface KanbanItemProps extends React.ComponentProps<"div"> {
-    asChild?: boolean;
     asHandle?: boolean;
     disabled?: boolean;
     value: UniqueIdentifier;
 }
 
 function KanbanItem(props: KanbanItemProps) {
-    const {
-        value,
-        style,
-        asHandle,
-        asChild,
-        disabled,
-        className,
-        ref,
-        ...itemProps
-    } = props;
+    const { value, style, asHandle, disabled, className, ref, ...itemProps } =
+        props;
 
     const id = React.useId();
     const context = useKanbanContext(ITEM_NAME);
@@ -1045,37 +1054,18 @@ function KanbanItem(props: KanbanItemProps) {
         );
     }
 
+    assertNonEmptyValue(value, ITEM_NAME);
+
     const {
         attributes,
         listeners,
-        setNodeRef,
         setActivatorNodeRef,
-        transform,
-        transition,
         isDragging,
-    } = useSortable({ disabled, id: value });
+        composedRef,
+        composedStyle,
+    } = useKanbanSortable(value, disabled, ref, style);
 
-    if (value === "") {
-        throw new Error(`\`${ITEM_NAME}\` value cannot be an empty string`);
-    }
-
-    const composedRef = useComposedRefs(ref, (node) => {
-        if (disabled) {
-            return;
-        }
-        setNodeRef(node);
-    });
-
-    const composedStyle = React.useMemo<React.CSSProperties>(
-        () => ({
-            transform: CSS.Transform.toString(transform),
-            transition,
-            ...style,
-        }),
-        [transform, transition, style]
-    );
-
-    const itemContext = React.useMemo<KanbanItemContextValue>(
+    const itemContext = React.useMemo<KanbanSortableContextValue>(
         () => ({
             attributes,
             disabled,
@@ -1087,11 +1077,9 @@ function KanbanItem(props: KanbanItemProps) {
         [id, attributes, listeners, setActivatorNodeRef, isDragging, disabled]
     );
 
-    const ItemPrimitive = "div";
-
     return (
         <KanbanItemContext value={itemContext}>
-            <ItemPrimitive
+            <div
                 data-disabled={disabled}
                 data-dragging={isDragging ? "" : undefined}
                 data-slot="kanban-item"
@@ -1119,12 +1107,10 @@ function KanbanItem(props: KanbanItemProps) {
     );
 }
 
-interface KanbanItemHandleProps extends React.ComponentProps<"button"> {
-    asChild?: boolean;
-}
+interface KanbanItemHandleProps extends React.ComponentProps<"button"> {}
 
 function KanbanItemHandle(props: KanbanItemHandleProps) {
-    const { asChild, disabled, className, ref, ...itemHandleProps } = props;
+    const { disabled, className, ref, ...itemHandleProps } = props;
 
     const context = useKanbanContext(ITEM_HANDLE_NAME);
     const itemContext = useKanbanItemContext(ITEM_HANDLE_NAME);
@@ -1138,10 +1124,8 @@ function KanbanItemHandle(props: KanbanItemHandleProps) {
         itemContext.setActivatorNodeRef(node);
     });
 
-    const HandlePrimitive = "button";
-
     return (
-        <HandlePrimitive
+        <button
             aria-controls={itemContext.id}
             data-disabled={isDisabled}
             data-dragging={itemContext.isDragging ? "" : undefined}
@@ -1207,6 +1191,18 @@ function KanbanOverlay(props: KanbanOverlayProps) {
             ? "column"
             : "item";
 
+    let overlayChild: React.ReactNode = null;
+    if (context.activeId && children) {
+        if (typeof children === "function") {
+            overlayChild = children({
+                value: context.activeId,
+                variant,
+            });
+        } else {
+            overlayChild = children;
+        }
+    }
+
     return ReactDOM.createPortal(
         <DragOverlay
             className={cn(!context.flatCursor && "cursor-grabbing")}
@@ -1215,15 +1211,7 @@ function KanbanOverlay(props: KanbanOverlayProps) {
             {...overlayProps}
         >
             <KanbanOverlayContext value={true}>
-                {context.activeId && children
-                    ? // biome-ignore lint/style/noNestedTernary: Ignore
-                      typeof children === "function"
-                        ? children({
-                              value: context.activeId,
-                              variant,
-                          })
-                        : children
-                    : null}
+                {overlayChild}
             </KanbanOverlayContext>
         </DragOverlay>,
         container

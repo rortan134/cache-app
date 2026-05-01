@@ -1507,8 +1507,13 @@ function CollectionsListItemMeta({
                         </MenuItem>
                     </MenuGroup>
                     <MenuSeparator />
-                    <p className="text-nowrap p-2 text-[10px] text-muted-foreground leading-none">
+                    <p className="text-nowrap p-2 pb-0 text-[10px] text-muted-foreground leading-none">
                         Last updated {dayjs(collection.updatedAt).fromNow()}
+                    </p>
+                    <p className="text-nowrap p-2 pt-1 text-[10px] text-muted-foreground leading-none">
+                        {dayjs(collection.updatedAt).format(
+                            "MMM DD, YYYY, h:mm A"
+                        )}
                     </p>
                 </MenuPopup>
             </Menu>
@@ -2762,12 +2767,17 @@ export function CollectionsListRoot() {
     return (
         <>
             <CollectionsList>
-                <CollectionsListToolbar>
+                <CollectionsListToolbar className="group">
                     <CollectionsListTrigger collectionLabels={collectionLabels}>
                         <span className="min-w-0 text-xs">My collections</span>
                         <ChevronDownFilledIcon className="-ml-0.5" />
                     </CollectionsListTrigger>
                     <CollectionsListToolbarGroup className="absolute right-2">
+                        {isCollectionsListOpen ? null : (
+                            <Kbd className="bg-transparent opacity-0 group-hover:opacity-50">
+                                <CtrlKbd />C
+                            </Kbd>
+                        )}
                         <CollectionsListToolbarButton
                             render={
                                 <CollectionsListFilterClearButton

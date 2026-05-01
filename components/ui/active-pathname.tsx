@@ -16,20 +16,16 @@ const ActivePathname = ({
     children: React.ReactElement;
 }) => {
     const pathname = usePathname();
-    const normalizedHref = String(href);
+    const href_ = String(href);
     const isPathnameActive =
         match === "prefix"
-            ? pathname === normalizedHref ||
-              pathname.startsWith(`${normalizedHref}/`)
-            : pathname === normalizedHref;
-    const _active = reverse ? !isPathnameActive : isPathnameActive;
+            ? pathname === href_ || pathname.startsWith(`${href_}/`)
+            : pathname === href_;
 
-    const child = React.Children.only(children);
-
-    return React.cloneElement(child, {
+    return React.cloneElement(React.Children.only(children), {
         ...props,
         "aria-current": isPathnameActive ? "page" : undefined,
-        "data-active": _active,
+        "data-active": reverse ? !isPathnameActive : isPathnameActive,
     } as Record<string, unknown>);
 };
 

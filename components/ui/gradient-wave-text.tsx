@@ -1,7 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/common/cn";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 type Align = "left" | "center" | "right";
 
@@ -14,9 +14,17 @@ const defaultColors = [
     "#c77dff",
 ];
 
+const justifyContentByAlign: Record<
+    Align,
+    React.CSSProperties["justifyContent"]
+> = {
+    center: "center",
+    left: "flex-start",
+    right: "flex-end",
+};
+
 interface GradientWaveTextProps {
     align?: Align;
-
     ariaLabel: string;
     bandCount?: number;
     bandGap?: number;
@@ -26,13 +34,10 @@ interface GradientWaveTextProps {
     customColors?: string[];
     delay?: number;
     inView?: boolean;
-
     once?: boolean;
     paused?: boolean;
-
     radial?: boolean;
     repeat?: boolean;
-
     speed?: number;
 }
 
@@ -40,20 +45,17 @@ function GradientWaveText({
     children,
     align = "left",
     className,
-
     speed = 1.6,
     paused = false,
     delay = 0,
     repeat = false,
     inView = false,
     once = true,
-
     radial = true,
     bottomOffset = 20,
     bandGap = 5,
     bandCount = 8,
     customColors,
-
     ariaLabel,
 }: GradientWaveTextProps) {
     const elRef = useRef<HTMLDivElement | null>(null);
@@ -101,12 +103,9 @@ function GradientWaveText({
         return () => observer.disconnect();
     }, [inView, once]);
 
-    const resolvedColors = useMemo(
-        () => (customColors?.length ? customColors : defaultColors),
-        [customColors]
-    );
+    const resolvedColors = customColors?.length ? customColors : defaultColors;
 
-    const stops = useMemo(() => {
+    const stops = (() => {
         const arr: string[] = [];
         const baseColor = "var(--gradient-wave-base, rgb(29,29,31))";
         arr.push(`${baseColor} calc((var(--gi) + 0) * 1%)`);
@@ -118,22 +117,11 @@ function GradientWaveText({
         const endOffset = (bandCount + 2) * bandGap;
         arr.push(`${baseColor} calc((var(--gi) + ${endOffset}) * 1%)`);
         return arr.join(", ");
-    }, [resolvedColors, bandGap, bandCount]);
+    })();
 
-    const gradient = useMemo(
-        () =>
-            radial
-                ? `radial-gradient(circle at left top, ${stops})`
-                : `linear-gradient(to bottom right, ${stops})`,
-        [radial, stops]
-    );
-
-    useEffect(() => {
-        const node = elRef.current;
-        if (node) {
-            node.style.setProperty("--gi", "-25");
-        }
-    }, []);
+    const gradient = radial
+        ? `radial-gradient(circle at left top, ${stops})`
+        : `linear-gradient(to bottom right, ${stops})`;
 
     useEffect(() => {
         if (!isInView) {
@@ -217,13 +205,24 @@ function GradientWaveText({
         return () => cancelAnimationFrame(rafRef.current);
     }, [speed, paused, cycles, isInView]);
 
-    const justifyContent =
-        align === "left"
-            ? "flex-start"
-            : // biome-ignore lint/style/noNestedTernary: ignore
-              align === "right"
-              ? "flex-end"
-              : "center";
+    const spanStyle: React.CSSProperties = {
+        backfaceVisibility: "hidden",
+        backgroundClip: "text",
+        backgroundImage: gradient,
+        color: "transparent",
+        display: "inline-block",
+        MozOsxFontSmoothing: "grayscale",
+        marginBottom: `-${bottomOffset}%`,
+        marginInline: -1,
+        paddingBottom: `${bottomOffset}%`,
+        paddingInline: 1,
+        textAlign: align,
+        transform: "translateZ(0)",
+        WebkitBackfaceVisibility: "hidden",
+        WebkitBackgroundClip: "text",
+        WebkitFontSmoothing: "antialiased",
+        WebkitTextFillColor: "transparent",
+    };
 
     return (
         <div
@@ -234,30 +233,14 @@ function GradientWaveText({
             )}
             ref={elRef}
             role="img"
-            style={{ "--gi": -25, justifyContent } as React.CSSProperties}
+            style={
+                {
+                    "--gi": -25,
+                    justifyContent: justifyContentByAlign[align],
+                } as React.CSSProperties
+            }
         >
-            <span
-                style={{
-                    backfaceVisibility: "hidden",
-                    backgroundClip: "text",
-                    backgroundImage: gradient,
-                    color: "transparent",
-                    display: "inline-block",
-                    MozOsxFontSmoothing: "grayscale",
-                    marginBottom: `-${bottomOffset}%`,
-                    marginInline: -1,
-                    paddingBottom: `${bottomOffset}%`,
-                    paddingInline: 1,
-                    textAlign: align,
-                    transform: "translateZ(0)",
-                    WebkitBackfaceVisibility: "hidden",
-                    WebkitBackgroundClip: "text",
-                    WebkitFontSmoothing: "antialiased",
-                    WebkitTextFillColor: "transparent",
-                }}
-            >
-                {children}
-            </span>
+            <span style={spanStyle}>{children}</span>
         </div>
     );
 }
