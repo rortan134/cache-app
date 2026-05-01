@@ -2,7 +2,7 @@ import { createLogger } from "@/lib/common/logs/console/logger";
 import Stripe from "stripe";
 import { StripeError } from "./error";
 
-const logger = createLogger("Stripe:client");
+const log = createLogger("Stripe:client");
 
 let stripeInstance: Stripe | null = null;
 
@@ -44,7 +44,7 @@ export const withStripe = async <T>(
         const client = getStripeClient();
         return await callbackFn(client);
     } catch (error) {
-        logger.error("Stripe operation failed:", error);
+        log.error("Stripe operation failed:", error);
 
         if (error instanceof StripeError) {
             throw error;

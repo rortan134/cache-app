@@ -212,7 +212,7 @@ import * as React from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 import useSWR from "swr";
 
-const logger = createLogger("library:browser");
+const log = createLogger("library:browser");
 
 const SECTION_DESCRIPTION_FALLBACK_TEXT =
     "Description is unavailable right now.";
@@ -2894,7 +2894,7 @@ function itemStaticPreviewUrl(item: LibraryItemWithCollections): string | null {
         return null;
     }
 
-    return `/api/library/opengraph-image?url=${encodeURIComponent(href)}`;
+    return `/api/library/preview?url=${encodeURIComponent(href)}`;
 }
 
 function canResolveCobaltPreview(item: LibraryItemWithCollections): boolean {
@@ -2993,7 +2993,7 @@ function PreviewMedia({
                 }
             })
             .catch((error: unknown) => {
-                logger.debug("Failed to resolve static preview", {
+                log.debug("Failed to resolve static preview", {
                     error,
                     itemId,
                 });
@@ -3015,7 +3015,7 @@ function PreviewMedia({
 
         const playPromise = videoRef.current?.play();
         playPromise?.catch((error: unknown) => {
-            logger.debug("Failed to autoplay hover preview", {
+            log.debug("Failed to autoplay hover preview", {
                 error,
                 itemId,
             });
@@ -3076,7 +3076,7 @@ function PreviewMedia({
                     }
                 })
                 .catch((error: unknown) => {
-                    logger.debug("Failed to resolve hover preview", {
+                    log.debug("Failed to resolve hover preview", {
                         error,
                         itemId,
                     });
@@ -3102,7 +3102,7 @@ function PreviewMedia({
             if (shouldEnableSound) {
                 const playPromise = videoRef.current?.play();
                 playPromise?.catch((error: unknown) => {
-                    logger.debug("Failed to play hover preview with sound", {
+                    log.debug("Failed to play hover preview with sound", {
                         error,
                         itemId,
                     });
@@ -3503,7 +3503,7 @@ function Card({ item }: LibraryGridCardProps) {
 
     const reportDownloadFailure = useStableCallback(
         (message: string, error?: unknown) => {
-            logger.error("Failed to prepare media download", error, {
+            log.error("Failed to prepare media download", error, {
                 itemId: item.id,
                 url: item.url,
             });

@@ -57,7 +57,7 @@ function getSharedItemPreviewImageUrl(
         return null;
     }
 
-    return `/api/library/opengraph-image?url=${encodeURIComponent(href)}`;
+    return `/api/library/preview?url=${encodeURIComponent(href)}`;
 }
 
 export async function generateMetadata(

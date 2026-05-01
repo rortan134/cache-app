@@ -12,7 +12,7 @@ import type { GenericOAuthConfig } from "better-auth/plugins";
 import { genericOAuth, oneTap } from "better-auth/plugins";
 import { headers } from "next/headers";
 
-const logger = createLogger("Auth:server");
+const log = createLogger("Auth:server");
 
 interface OAuthUserProfile {
     email?: string | null;
@@ -303,7 +303,7 @@ export const withSession = async <T>(
         const session = getServerSession();
         return await callbackFn(session);
     } catch (error) {
-        logger.error("Stripe operation failed:", error);
+        log.error("Stripe operation failed:", error);
 
         if (error instanceof SessionError) {
             throw error;

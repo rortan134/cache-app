@@ -24,7 +24,6 @@ import type { Prisma } from "@/prisma/client/client";
 import type {
     CollectionPriority,
     LibraryItemPreviewMediaType,
-    LibraryItemPreviewProviderStatus,
     LibraryItemSource,
 } from "@/prisma/client/enums";
 import {
@@ -423,21 +422,11 @@ function toPreviewMediaType(
     }
 }
 
-interface ResolveLibraryItemPreviewResult {
-    errorCode: string | null;
-    libraryItemId: string;
-    mediaType: LibraryItemPreviewMediaType;
-    providerStatus: LibraryItemPreviewProviderStatus;
-    sourceUrl: string;
-    staticImageUrl: string | null;
-    videoPreviewUrl: string | null;
-}
-
 export async function resolveLibraryItemPreview(args: {
     itemId: string;
     refreshIfMissingVideo?: boolean;
     userId: string;
-}): Promise<ResolveLibraryItemPreviewResult> {
+}) {
     const item = await prisma.libraryItem.findFirst({
         select: {
             id: true,
