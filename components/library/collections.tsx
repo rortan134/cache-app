@@ -1728,7 +1728,8 @@ function CollectionsListNoticeCallout() {
 function CollectionsListSortingCombobox(
     props: React.ComponentProps<typeof ComboboxTrigger>
 ) {
-    const [isCollectionsListOpen] = useCollectionsListOpenState();
+    const [isCollectionsListOpen, setIsCollectionsListOpen] =
+        useCollectionsListOpenState();
     const {
         collectionSortField,
         collectionTextMatchQuery,
@@ -1758,12 +1759,15 @@ function CollectionsListSortingCombobox(
         "mod+f",
         (event) => {
             event.preventDefault();
+            if (!isCollectionsListOpen) {
+                setIsCollectionsListOpen(true);
+            }
             setIsOpen(true);
         },
         {
-            enabled: isCollectionsListOpen && !isOpen,
+            enabled: !isOpen,
         },
-        [isCollectionsListOpen, isOpen]
+        [isCollectionsListOpen, isOpen, setIsCollectionsListOpen]
     );
 
     return (
@@ -2505,11 +2509,12 @@ export function CollectionsListRoot() {
                                 />
                             }
                         />
-                        {isCollectionsListOpen ? (
-                            <CollectionsListToolbarButton
-                                render={<CollectionsListSortingCombobox />}
-                            />
-                        ) : null}
+                        <CollectionsListToolbarButton
+                            className={
+                                isCollectionsListOpen ? undefined : "hidden"
+                            }
+                            render={<CollectionsListSortingCombobox />}
+                        />
                         <CollectionsListToolbarButton
                             render={
                                 <Button

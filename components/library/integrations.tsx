@@ -150,7 +150,6 @@ export function IntegrationsListNoticeCallout() {
             >
                 <CollapsiblePanel>
                     <div className="flex gap-1.5">
-                        {/* <Info className="mt-0.5 inline-block size-3.5 shrink-0" /> */}
                         <p className="text-[11px] text-muted-foreground leading-tight">
                             Please only connect accounts you trust. Cache can
                             access what you choose to save with connected apps.
@@ -198,6 +197,24 @@ export function IntegrationsListItem({
     );
 }
 
+export function IntegrationsListEmpty({
+    children = "No integrations are available right now.",
+    className,
+    ...props
+}: React.ComponentProps<"p">) {
+    return (
+        <p
+            className={cn(
+                "rounded-xl border border-border/30 border-dashed px-4 py-6 text-center text-muted-foreground text-xs",
+                className
+            )}
+            {...props}
+        >
+            {children}
+        </p>
+    );
+}
+
 /** @internal */
 function IntegrationsListStatus({
     tone = "success",
@@ -224,24 +241,6 @@ function IntegrationsListStatus({
     );
 }
 
-export function IntegrationsListEmpty({
-    children = "No integrations are available right now.",
-    className,
-    ...props
-}: React.ComponentProps<"p">) {
-    return (
-        <p
-            className={cn(
-                "rounded-xl border border-border/30 border-dashed px-4 py-6 text-center text-muted-foreground text-xs",
-                className
-            )}
-            {...props}
-        >
-            {children}
-        </p>
-    );
-}
-
 interface IntegrationsListItemActionProps {
     className?: string;
     direction?: IntegrationDirection;
@@ -256,7 +255,7 @@ export function IntegrationsListItemAction({
     className,
 }: IntegrationsListItemActionProps) {
     const { actions, errorMessage, successMessage } = useIntegrationAction({
-        direction: "source",
+        direction,
         id,
         isConnected,
     });
