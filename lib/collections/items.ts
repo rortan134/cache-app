@@ -17,25 +17,29 @@ import * as service from "./service";
 
 const log = createLogger("library:actions:items");
 
-const UpdateLibraryItemCollectionsInputSchema = z.object({
+const STATUS_MAP_NOT_FOUND = {
+    not_found: "NOT_FOUND",
+} as const;
+
+const LibraryItemCollectionsUpdateInputSchema = z.object({
     collectionIds: z.array(z.string().trim().min(1)).max(100),
     itemId: z.string().trim().min(1),
 });
 
-const UpdateLibraryItemsCollectionsInputSchema = z.object({
+const LibraryItemsCollectionsUpdateInputSchema = z.object({
     itemIds: z.array(z.string().trim().min(1)).min(1).max(500),
     nextSharedCollectionIds: z.array(z.string().trim().min(1)).max(100),
     previousSharedCollectionIds: z.array(z.string().trim().min(1)).max(100),
 });
 
-const DeleteLibraryItemInputSchema = z.object({
+const LibraryItemDeleteInputSchema = z.object({
     itemId: z
         .string()
         .trim()
         .min(1, "Select a saved item before trying to delete it."),
 });
 
-export type DeleteLibraryItemResult =
+export type LibraryItemDeleteResult =
     | {
           collectionSummaries: LibraryCollectionSummary[];
           itemId: string;
@@ -46,7 +50,7 @@ export type DeleteLibraryItemResult =
           status: "ERROR" | "INVALID" | "NOT_FOUND" | "UNAUTHORIZED";
       };
 
-export type UpdateLibraryItemCollectionsResult =
+export type LibraryItemCollectionsUpdateResult =
     | {
           collectionSummaries: LibraryCollectionSummary[];
           collections: LibraryCollectionTag[];
@@ -58,7 +62,7 @@ export type UpdateLibraryItemCollectionsResult =
           status: "ERROR" | "INVALID" | "NOT_FOUND" | "UNAUTHORIZED";
       };
 
-export type UpdateLibraryItemsCollectionsResult =
+export type LibraryItemsCollectionsUpdateResult =
     | {
           collectionSummaries: LibraryCollectionSummary[];
           itemCollections: Array<{
@@ -74,8 +78,8 @@ export type UpdateLibraryItemsCollectionsResult =
 
 export async function deleteLibraryItem(
     itemId: string
-): Promise<DeleteLibraryItemResult> {
-    const parsed = DeleteLibraryItemInputSchema.safeParse({ itemId });
+): Promise<LibraryItemDeleteResult> {
+    const parsed = LibraryItemDeleteInputSchema.safeParse({ itemId });
     if (!parsed.success) {
         return {
             message: getValidationErrorMessage(
@@ -105,7 +109,7 @@ export async function deleteLibraryItem(
         };
     } catch (error) {
         return handleActionError({
-            codeToStatus: { not_found: "NOT_FOUND" },
+            codeToStatus: STATUS_MAP_NOT_FOUND,
             error,
             errorFactory: LibraryCollectionError,
             fallbackMessage: "We couldn't delete this saved item right now.",
@@ -118,8 +122,8 @@ export async function updateLibraryItemsCollections(input: {
     itemIds: string[];
     nextSharedCollectionIds: string[];
     previousSharedCollectionIds: string[];
-}): Promise<UpdateLibraryItemsCollectionsResult> {
-    const parsed = UpdateLibraryItemsCollectionsInputSchema.safeParse({
+}): Promise<LibraryItemsCollectionsUpdateResult> {
+    const parsed = LibraryItemsCollectionsUpdateInputSchema.safeParse({
         itemIds: uniqueStrings(input.itemIds),
         nextSharedCollectionIds: uniqueStrings(input.nextSharedCollectionIds),
         previousSharedCollectionIds: uniqueStrings(
@@ -156,7 +160,7 @@ export async function updateLibraryItemsCollections(input: {
         };
     } catch (error) {
         return handleActionError({
-            codeToStatus: { not_found: "NOT_FOUND" },
+            codeToStatus: STATUS_MAP_NOT_FOUND,
             error,
             errorFactory: LibraryCollectionError,
             fallbackMessage: "We couldn't update collections for those items.",
@@ -168,8 +172,8 @@ export async function updateLibraryItemsCollections(input: {
 export async function updateLibraryItemCollections(input: {
     collectionIds: string[];
     itemId: string;
-}): Promise<UpdateLibraryItemCollectionsResult> {
-    const parsed = UpdateLibraryItemCollectionsInputSchema.safeParse({
+}): Promise<LibraryItemCollectionsUpdateResult> {
+    const parsed = LibraryItemCollectionsUpdateInputSchema.safeParse({
         collectionIds: uniqueStrings(input.collectionIds),
         itemId: input.itemId,
     });
@@ -201,7 +205,7 @@ export async function updateLibraryItemCollections(input: {
         };
     } catch (error) {
         return handleActionError({
-            codeToStatus: { not_found: "NOT_FOUND" },
+            codeToStatus: STATUS_MAP_NOT_FOUND,
             error,
             errorFactory: LibraryCollectionError,
             fallbackMessage: "We couldn't update collections for this item.",

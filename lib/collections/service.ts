@@ -3,7 +3,9 @@ import "server-only";
 import {
     LIBRARY_COLLECTION_TAG_SELECT,
     toLibraryCollectionSummary,
+    toLibraryCollectionSummaryFromTagRecord,
     toLibraryCollectionTag,
+    type LibraryCollectionTagRecord,
 } from "@/lib/collections/utils";
 import {
     resolveCobaltDownloadUrl,
@@ -34,38 +36,23 @@ import { LibraryCollectionError } from "./error";
 
 type CollectionTransaction = Prisma.TransactionClient;
 
-interface OwnedCollectionLookup {
+interface CollectionLookupOwned {
     id: string;
     name: string;
     nameKey: string;
 }
 
-interface OwnedLibraryItemLookup {
+interface LibraryItemLookupOwned {
     id: string;
     source: LibraryItemSource;
 }
 
-interface CollectionTagRecord {
-    createdAt: Date;
-    description: string | null;
-    id: string;
-    name: string;
-    priority: LibraryCollectionTag["priority"];
-    sharedAt: Date | null;
-    shareId: string | null;
-    updatedAt: Date;
-}
-
-interface CollectionSummarySourceRecord {
-    source: LibraryItemSource;
-}
-
-interface OwnedItemCollectionRecord {
+interface LibraryItemCollectionsOwned {
     collections: Array<{ id: string }>;
     id: string;
 }
 
-const ITEM_COLLECTION_TAGS_SELECT = {
+const LIBRARY_ITEM_COLLECTIONS_SELECT = {
     collections: {
         orderBy: {
             name: "asc",
@@ -74,6 +61,8 @@ const ITEM_COLLECTION_TAGS_SELECT = {
     },
     id: true,
 } as const satisfies Prisma.LibraryItemSelect;
+
+const PREVIEW_CACHE_TTL_MS = 1000 * 60 * 60 * 24;
 
 function toCollectionConnections(collectionIds: string[]): Array<{
     id: string;
@@ -97,7 +86,7 @@ function throwCollectionNotFound(operation: string, message: string): never {
     });
 }
 
-function throwDuplicateCollectionName(
+function throwCollectionNameDuplicate(
     operation: string,
     message = "A collection with that name already exists."
 ): never {
@@ -108,7 +97,59 @@ function throwDuplicateCollectionName(
     });
 }
 
-async function requireOwnedCollection(
+function buildCollectionNameDuplicate(
+    sourceName: string,
+    existingNames: string[]
+): string {
+    const uniqueName = getIncrementedName(sourceName, [...existingNames]);
+    return normalizeCollectionName(uniqueName).name;
+}
+
+function isPreviewFresh(resolvedAt: Date): boolean {
+    return Date.now() - resolvedAt.getTime() < PREVIEW_CACHE_TTL_MS;
+}
+
+function toPreviewMediaType(
+    value: "gif" | "image" | "unknown" | "video"
+): LibraryItemPreviewMediaType {
+    switch (value) {
+        case "gif":
+            return PreviewMediaType.gif;
+        case "image":
+            return PreviewMediaType.image;
+        case "video":
+            return PreviewMediaType.video;
+        default:
+            return PreviewMediaType.unknown;
+    }
+}
+
+function mergeCollectionIds(args: {
+    currentCollectionIds: string[];
+    nextSharedCollectionIds: string[];
+    previousSharedCollectionIds: string[];
+}): string[] {
+    const previousSharedCollectionIdSet = new Set(
+        args.previousSharedCollectionIds
+    );
+    const mergedCollectionIds = args.currentCollectionIds.filter(
+        (collectionId) => !previousSharedCollectionIdSet.has(collectionId)
+    );
+    const mergedCollectionIdSet = new Set(mergedCollectionIds);
+
+    for (const collectionId of args.nextSharedCollectionIds) {
+        if (mergedCollectionIdSet.has(collectionId)) {
+            continue;
+        }
+
+        mergedCollectionIds.push(collectionId);
+        mergedCollectionIdSet.add(collectionId);
+    }
+
+    return mergedCollectionIds;
+}
+
+async function requireCollectionOwned(
     tx: CollectionTransaction,
     args: {
         collectionId: string;
@@ -116,7 +157,7 @@ async function requireOwnedCollection(
         operation: string;
         userId: string;
     }
-): Promise<OwnedCollectionLookup> {
+): Promise<CollectionLookupOwned> {
     const collection = await tx.collection.findFirst({
         select: {
             id: true,
@@ -136,7 +177,7 @@ async function requireOwnedCollection(
     return collection;
 }
 
-async function ensureCollectionNameIsAvailable(
+async function ensureCollectionNameAvailable(
     tx: CollectionTransaction,
     args: {
         excludeCollectionId?: string;
@@ -158,30 +199,11 @@ async function ensureCollectionNameIsAvailable(
     });
 
     if (existingCollection) {
-        throwDuplicateCollectionName(args.operation, args.message);
+        throwCollectionNameDuplicate(args.operation, args.message);
     }
 }
 
-function buildDuplicateCollectionName(
-    sourceName: string,
-    existingNames: string[]
-): string {
-    const uniqueName = getIncrementedName(sourceName, [...existingNames]);
-    return normalizeCollectionName(uniqueName).name;
-}
-
-function toCollectionSummary(args: {
-    collection: CollectionTagRecord;
-    items: CollectionSummarySourceRecord[];
-}): LibraryCollectionSummary {
-    return toLibraryCollectionSummary({
-        ...args.collection,
-        _count: { items: args.items.length },
-        items: args.items.map((item) => ({ source: item.source })),
-    });
-}
-
-async function findOwnedCollectionSummariesByIds(
+async function findCollectionSummariesOwnedByIds(
     tx: CollectionTransaction,
     args: {
         collectionIds: string[];
@@ -222,13 +244,13 @@ async function findOwnedCollectionSummariesByIds(
     );
 }
 
-async function findOwnedCollectionTagsByIds(
+async function findCollectionTagsOwnedByIds(
     tx: CollectionTransaction,
     args: {
         collectionIds: string[];
         userId: string;
     }
-): Promise<CollectionTagRecord[]> {
+): Promise<LibraryCollectionTagRecord[]> {
     if (args.collectionIds.length === 0) {
         return [];
     }
@@ -247,7 +269,7 @@ async function findOwnedCollectionTagsByIds(
     });
 }
 
-async function requireOwnedItemsWithCollectionIds(
+async function requireLibraryItemsOwnedWithCollections(
     tx: CollectionTransaction,
     args: {
         itemIds: string[];
@@ -255,7 +277,7 @@ async function requireOwnedItemsWithCollectionIds(
         operation: string;
         userId: string;
     }
-): Promise<OwnedItemCollectionRecord[]> {
+): Promise<LibraryItemCollectionsOwned[]> {
     const items = await tx.libraryItem.findMany({
         select: {
             collections: {
@@ -287,7 +309,7 @@ async function requireOwnedItemsWithCollectionIds(
     });
 }
 
-async function requireOwnedItemWithCollectionIds(
+async function requireLibraryItemOwnedWithCollections(
     tx: CollectionTransaction,
     args: {
         itemId: string;
@@ -295,7 +317,7 @@ async function requireOwnedItemWithCollectionIds(
         operation: string;
         userId: string;
     }
-): Promise<OwnedItemCollectionRecord> {
+): Promise<LibraryItemCollectionsOwned> {
     const item = await tx.libraryItem.findFirst({
         select: {
             collections: {
@@ -318,32 +340,7 @@ async function requireOwnedItemWithCollectionIds(
     return item;
 }
 
-function mergeCollectionIds(args: {
-    currentCollectionIds: string[];
-    nextSharedCollectionIds: string[];
-    previousSharedCollectionIds: string[];
-}): string[] {
-    const previousSharedCollectionIdSet = new Set(
-        args.previousSharedCollectionIds
-    );
-    const mergedCollectionIds = args.currentCollectionIds.filter(
-        (collectionId) => !previousSharedCollectionIdSet.has(collectionId)
-    );
-    const mergedCollectionIdSet = new Set(mergedCollectionIds);
-
-    for (const collectionId of args.nextSharedCollectionIds) {
-        if (mergedCollectionIdSet.has(collectionId)) {
-            continue;
-        }
-
-        mergedCollectionIds.push(collectionId);
-        mergedCollectionIdSet.add(collectionId);
-    }
-
-    return mergedCollectionIds;
-}
-
-async function requireOwnedLibraryItem(
+async function requireLibraryItemOwned(
     tx: CollectionTransaction,
     args: {
         itemId: string;
@@ -351,7 +348,7 @@ async function requireOwnedLibraryItem(
         operation: string;
         userId: string;
     }
-): Promise<OwnedLibraryItemLookup> {
+): Promise<LibraryItemLookupOwned> {
     const item = await tx.libraryItem.findFirst({
         select: { id: true, source: true },
         where: {
@@ -367,7 +364,7 @@ async function requireOwnedLibraryItem(
     return item;
 }
 
-async function requireOwnedLibraryItems(
+async function requireLibraryItemsOwned(
     tx: CollectionTransaction,
     args: {
         itemIds: string[];
@@ -375,7 +372,7 @@ async function requireOwnedLibraryItems(
         operation: string;
         userId: string;
     }
-): Promise<Array<{ id: string; source: LibraryItemSource }>> {
+): Promise<LibraryItemLookupOwned[]> {
     const items = await tx.libraryItem.findMany({
         select: { id: true, source: true },
         where: {
@@ -401,28 +398,11 @@ export async function downloadMedia(url: string): Promise<string> {
     return result.downloadUrl;
 }
 
-const PREVIEW_CACHE_TTL_MS = 1000 * 60 * 60 * 24;
-
-function isFreshPreview(resolvedAt: Date): boolean {
-    return Date.now() - resolvedAt.getTime() < PREVIEW_CACHE_TTL_MS;
-}
-
-function toPreviewMediaType(
-    value: "gif" | "image" | "unknown" | "video"
-): LibraryItemPreviewMediaType {
-    switch (value) {
-        case "gif":
-            return PreviewMediaType.gif;
-        case "image":
-            return PreviewMediaType.image;
-        case "video":
-            return PreviewMediaType.video;
-        default:
-            return PreviewMediaType.unknown;
-    }
-}
-
-export async function resolveLibraryItemPreview(args: {
+export async function resolveLibraryItemPreview({
+    itemId,
+    refreshIfMissingVideo,
+    userId,
+}: {
     itemId: string;
     refreshIfMissingVideo?: boolean;
     userId: string;
@@ -444,8 +424,8 @@ export async function resolveLibraryItemPreview(args: {
             url: true,
         },
         where: {
-            id: args.itemId,
-            userId: args.userId,
+            id: itemId,
+            userId,
         },
     });
 
@@ -456,10 +436,15 @@ export async function resolveLibraryItemPreview(args: {
         );
     }
 
+    const existingStaticImageUrl = toUsableStaticPreviewUrl(
+        item.preview?.staticImageUrl
+    );
+    const existingVideoPreviewUrl = item.preview?.videoPreviewUrl ?? null;
+
     const shouldUseFreshPreview =
         item.preview &&
-        isFreshPreview(item.preview.resolvedAt) &&
-        !(args.refreshIfMissingVideo && !item.preview.videoPreviewUrl);
+        isPreviewFresh(item.preview.resolvedAt) &&
+        !(refreshIfMissingVideo && !existingVideoPreviewUrl);
 
     if (item.preview && shouldUseFreshPreview) {
         return {
@@ -468,36 +453,31 @@ export async function resolveLibraryItemPreview(args: {
             mediaType: item.preview.mediaType,
             providerStatus: item.preview.providerStatus,
             sourceUrl: item.preview.sourceUrl,
-            staticImageUrl: item.preview.staticImageUrl,
-            videoPreviewUrl: item.preview.videoPreviewUrl,
+            staticImageUrl: existingStaticImageUrl,
+            videoPreviewUrl: existingVideoPreviewUrl,
         };
     }
 
     const normalizedItemUrl = toValidUrl(item.url);
     if (!isHttpUrl(normalizedItemUrl)) {
+        const invalidPayload = {
+            errorCode: "invalid_url" as const,
+            mediaType: PreviewMediaType.unknown,
+            providerStatus: PreviewProviderStatus.unavailable,
+            sourceUrl: item.url,
+            staticImageUrl: existingStaticImageUrl,
+            videoPreviewUrl: existingVideoPreviewUrl,
+        };
+
         const preview = await prisma.libraryItemPreview.upsert({
             create: {
-                errorCode: "invalid_url",
+                ...invalidPayload,
                 libraryItemId: item.id,
-                mediaType: PreviewMediaType.unknown,
-                providerStatus: PreviewProviderStatus.unavailable,
                 resolvedAt: new Date(),
-                sourceUrl: item.url,
-                staticImageUrl: toUsableStaticPreviewUrl(
-                    item.preview?.staticImageUrl
-                ),
-                videoPreviewUrl: item.preview?.videoPreviewUrl ?? null,
             },
             update: {
-                errorCode: "invalid_url",
-                mediaType: PreviewMediaType.unknown,
-                providerStatus: PreviewProviderStatus.unavailable,
+                ...invalidPayload,
                 resolvedAt: new Date(),
-                sourceUrl: item.url,
-                staticImageUrl: toUsableStaticPreviewUrl(
-                    item.preview?.staticImageUrl
-                ),
-                videoPreviewUrl: item.preview?.videoPreviewUrl ?? null,
             },
             where: {
                 libraryItemId: item.id,
@@ -525,12 +505,9 @@ export async function resolveLibraryItemPreview(args: {
                   providerStatus: PreviewProviderStatus.success,
                   sourceUrl: resolved.sourceUrl,
                   staticImageUrl:
-                      resolved.staticImageUrl ??
-                      toUsableStaticPreviewUrl(item.preview?.staticImageUrl),
+                      resolved.staticImageUrl ?? existingStaticImageUrl,
                   videoPreviewUrl:
-                      resolved.videoPreviewUrl ??
-                      item.preview?.videoPreviewUrl ??
-                      null,
+                      resolved.videoPreviewUrl ?? existingVideoPreviewUrl,
               }
             : {
                   errorCode: resolved.errorCode,
@@ -540,10 +517,8 @@ export async function resolveLibraryItemPreview(args: {
                           ? PreviewProviderStatus.unavailable
                           : PreviewProviderStatus.error,
                   sourceUrl: normalizedItemUrl,
-                  staticImageUrl: toUsableStaticPreviewUrl(
-                      item.preview?.staticImageUrl
-                  ),
-                  videoPreviewUrl: item.preview?.videoPreviewUrl ?? null,
+                  staticImageUrl: existingStaticImageUrl,
+                  videoPreviewUrl: existingVideoPreviewUrl,
               };
 
     const preview = await prisma.libraryItemPreview.upsert({
@@ -572,7 +547,12 @@ export async function resolveLibraryItemPreview(args: {
     };
 }
 
-export async function createCollection(args: {
+export async function createCollection({
+    assignToItemId,
+    description,
+    name,
+    userId,
+}: {
     assignToItemId?: string;
     description?: string;
     name: string;
@@ -581,12 +561,11 @@ export async function createCollection(args: {
     assignedItemId: string | null;
     collection: LibraryCollectionSummary;
 }> {
-    const { assignToItemId, description, name, userId } = args;
     const normalized = normalizeCollectionName(name);
 
     return await prisma.$transaction(async (tx) => {
         const assignedItem = assignToItemId
-            ? await requireOwnedLibraryItem(tx, {
+            ? await requireLibraryItemOwned(tx, {
                   itemId: assignToItemId,
                   message: "We couldn't find that saved item to tag it.",
                   operation: "createCollection",
@@ -594,7 +573,7 @@ export async function createCollection(args: {
               })
             : null;
 
-        await ensureCollectionNameIsAvailable(tx, {
+        await ensureCollectionNameAvailable(tx, {
             normalizedNameKey: normalized.nameKey,
             operation: "createCollection",
             userId,
@@ -615,15 +594,20 @@ export async function createCollection(args: {
 
         return {
             assignedItemId: assignedItem?.id ?? null,
-            collection: toCollectionSummary({
+            collection: toLibraryCollectionSummaryFromTagRecord(
                 collection,
-                items: assignedItem ? [assignedItem] : [],
-            }),
+                assignedItem ? [assignedItem] : []
+            ),
         };
     });
 }
 
-export async function createCollectionFromItems(args: {
+export async function createCollectionFromItems({
+    description,
+    itemIds,
+    name,
+    userId,
+}: {
     description?: string;
     itemIds: string[];
     name: string;
@@ -632,17 +616,16 @@ export async function createCollectionFromItems(args: {
     assignedItemIds: string[];
     collection: LibraryCollectionSummary;
 }> {
-    const { description, itemIds, name, userId } = args;
     const normalized = normalizeCollectionName(name);
 
     return await prisma.$transaction(async (tx) => {
-        await ensureCollectionNameIsAvailable(tx, {
+        await ensureCollectionNameAvailable(tx, {
             normalizedNameKey: normalized.nameKey,
             operation: "createCollectionFromItems",
             userId,
         });
 
-        const matchingItems = await requireOwnedLibraryItems(tx, {
+        const matchingItems = await requireLibraryItemsOwned(tx, {
             itemIds,
             message: "Some of those saved items are no longer available.",
             operation: "createCollectionFromItems",
@@ -664,22 +647,23 @@ export async function createCollectionFromItems(args: {
 
         return {
             assignedItemIds: itemIds,
-            collection: toCollectionSummary({
+            collection: toLibraryCollectionSummaryFromTagRecord(
                 collection,
-                items: matchingItems,
-            }),
+                matchingItems
+            ),
         };
     });
 }
 
-export async function deleteCollection(args: {
+export async function deleteCollection({
+    collectionId,
+    userId,
+}: {
     collectionId: string;
     userId: string;
 }): Promise<Pick<LibraryCollectionSummary, "id" | "name">> {
-    const { collectionId, userId } = args;
-
     return await prisma.$transaction(async (tx) => {
-        const collection = await requireOwnedCollection(tx, {
+        const collection = await requireCollectionOwned(tx, {
             collectionId,
             message: "This collection was already removed.",
             operation: "deleteCollection",
@@ -694,14 +678,16 @@ export async function deleteCollection(args: {
     });
 }
 
-export async function duplicateCollection(args: {
+export async function duplicateCollection({
+    collectionId,
+    userId,
+}: {
     collectionId: string;
     userId: string;
 }): Promise<{
     assignedItemIds: string[];
     collection: LibraryCollectionSummary;
 }> {
-    const { collectionId, userId } = args;
     const operation = "duplicateCollection";
 
     return await prisma.$transaction(async (tx) => {
@@ -729,7 +715,7 @@ export async function duplicateCollection(args: {
             where: { userId },
         });
 
-        const nextName = buildDuplicateCollectionName(
+        const nextName = buildCollectionNameDuplicate(
             sourceCollection.name,
             existingNames.map((collection) => collection.name)
         );
@@ -756,23 +742,25 @@ export async function duplicateCollection(args: {
 
         return {
             assignedItemIds: sourceCollection.items.map((item) => item.id),
-            collection: toCollectionSummary({
-                collection: duplicatedCollection,
-                items: sourceCollection.items,
-            }),
+            collection: toLibraryCollectionSummaryFromTagRecord(
+                duplicatedCollection,
+                sourceCollection.items
+            ),
         };
     });
 }
 
-export async function updateCollectionPriority(args: {
+export async function updateCollectionPriority({
+    collectionId,
+    priority,
+    userId,
+}: {
     collectionId: string;
     priority: CollectionPriority;
     userId: string;
 }): Promise<LibraryCollectionTag> {
-    const { collectionId, priority, userId } = args;
-
     return await prisma.$transaction(async (tx) => {
-        const collection = await requireOwnedCollection(tx, {
+        const collection = await requireCollectionOwned(tx, {
             collectionId,
             message: "That collection is no longer available.",
             operation: "updateCollectionPriority",
@@ -789,12 +777,15 @@ export async function updateCollectionPriority(args: {
     });
 }
 
-export async function renameCollection(args: {
+export async function renameCollection({
+    collectionId,
+    name,
+    userId,
+}: {
     collectionId: string;
     name: string;
     userId: string;
 }): Promise<LibraryCollectionTag> {
-    const { collectionId, name, userId } = args;
     const normalized = normalizeCollectionName(name);
 
     return await prisma.$transaction(async (tx) => {
@@ -814,7 +805,7 @@ export async function renameCollection(args: {
             return toLibraryCollectionTag(collection);
         }
 
-        await ensureCollectionNameIsAvailable(tx, {
+        await ensureCollectionNameAvailable(tx, {
             excludeCollectionId: collection.id,
             normalizedNameKey: normalized.nameKey,
             operation: "renameCollection",
@@ -834,17 +825,18 @@ export async function renameCollection(args: {
     });
 }
 
-export async function deleteLibraryItem(args: {
+export async function deleteLibraryItem({
+    itemId,
+    userId,
+}: {
     itemId: string;
     userId: string;
 }): Promise<{
     collectionSummaries: LibraryCollectionSummary[];
     itemId: string;
 }> {
-    const { itemId, userId } = args;
-
     return await prisma.$transaction(async (tx) => {
-        const item = await requireOwnedItemWithCollectionIds(tx, {
+        const item = await requireLibraryItemOwnedWithCollections(tx, {
             itemId,
             message: "This saved item was already removed.",
             operation: "deleteLibraryItem",
@@ -858,7 +850,7 @@ export async function deleteLibraryItem(args: {
         });
 
         return {
-            collectionSummaries: await findOwnedCollectionSummariesByIds(tx, {
+            collectionSummaries: await findCollectionSummariesOwnedByIds(tx, {
                 collectionIds: item.collections.map(
                     (collection) => collection.id
                 ),
@@ -869,7 +861,11 @@ export async function deleteLibraryItem(args: {
     });
 }
 
-export async function updateLibraryItemCollections(args: {
+export async function updateLibraryItemCollections({
+    collectionIds,
+    itemId,
+    userId,
+}: {
     collectionIds: string[];
     itemId: string;
     userId: string;
@@ -878,17 +874,15 @@ export async function updateLibraryItemCollections(args: {
     collections: LibraryCollectionTag[];
     itemId: string;
 }> {
-    const { collectionIds, itemId, userId } = args;
-
     return await prisma.$transaction(async (tx) => {
-        const item = await requireOwnedItemWithCollectionIds(tx, {
+        const item = await requireLibraryItemOwnedWithCollections(tx, {
             itemId,
             message: "We couldn't find that saved item.",
             operation: "updateLibraryItemCollections",
             userId,
         });
 
-        const ownedCollections = await findOwnedCollectionTagsByIds(tx, {
+        const ownedCollections = await findCollectionTagsOwnedByIds(tx, {
             collectionIds,
             userId,
         });
@@ -908,7 +902,7 @@ export async function updateLibraryItemCollections(args: {
                     ),
                 },
             },
-            select: ITEM_COLLECTION_TAGS_SELECT,
+            select: LIBRARY_ITEM_COLLECTIONS_SELECT,
             where: { id: item.id },
         });
 
@@ -920,7 +914,7 @@ export async function updateLibraryItemCollections(args: {
         );
 
         return {
-            collectionSummaries: await findOwnedCollectionSummariesByIds(tx, {
+            collectionSummaries: await findCollectionSummariesOwnedByIds(tx, {
                 collectionIds: affectedCollectionIds,
                 userId,
             }),
@@ -930,7 +924,12 @@ export async function updateLibraryItemCollections(args: {
     });
 }
 
-export async function updateLibraryItemsCollections(args: {
+export async function updateLibraryItemsCollections({
+    itemIds,
+    nextSharedCollectionIds,
+    previousSharedCollectionIds,
+    userId,
+}: {
     itemIds: string[];
     nextSharedCollectionIds: string[];
     previousSharedCollectionIds: string[];
@@ -942,27 +941,22 @@ export async function updateLibraryItemsCollections(args: {
         itemId: string;
     }>;
 }> {
-    const {
-        itemIds,
-        nextSharedCollectionIds,
-        previousSharedCollectionIds,
-        userId,
-    } = args;
-
     return await prisma.$transaction(async (tx) => {
-        const items = await requireOwnedItemsWithCollectionIds(tx, {
+        const items = await requireLibraryItemsOwnedWithCollections(tx, {
             itemIds,
             message: "Some of those saved items are no longer available.",
             operation: "updateLibraryItemsCollections",
             userId,
         });
+
         const referencedCollectionIds = Array.from(
             new Set([
                 ...previousSharedCollectionIds,
                 ...nextSharedCollectionIds,
             ])
         );
-        const ownedCollections = await findOwnedCollectionTagsByIds(tx, {
+
+        const ownedCollections = await findCollectionTagsOwnedByIds(tx, {
             collectionIds: referencedCollectionIds,
             userId,
         });
@@ -994,7 +988,7 @@ export async function updateLibraryItemsCollections(args: {
                         set: toCollectionConnections(nextCollectionIds),
                     },
                 },
-                select: ITEM_COLLECTION_TAGS_SELECT,
+                select: LIBRARY_ITEM_COLLECTIONS_SELECT,
                 where: {
                     id: item.id,
                 },
@@ -1009,7 +1003,7 @@ export async function updateLibraryItemsCollections(args: {
         }
 
         return {
-            collectionSummaries: await findOwnedCollectionSummariesByIds(tx, {
+            collectionSummaries: await findCollectionSummariesOwnedByIds(tx, {
                 collectionIds: referencedCollectionIds,
                 userId,
             }),

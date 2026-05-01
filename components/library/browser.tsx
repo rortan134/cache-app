@@ -103,7 +103,7 @@ import { Ticker } from "@/components/ui/ticker";
 import { TruncateAfter } from "@/components/ui/truncate-after";
 import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
 import { useIsomorphicLayoutEffect } from "@/hooks/use-isomorphic-effect";
-import type { CreateCollectionFromItemsResult } from "@/lib/collections/actions";
+import type { CollectionCreateFromItemsResult } from "@/lib/collections/actions";
 import {
     SECTION_DESCRIPTION_CONTEXT_ITEMS_LIMIT,
     SECTION_DESCRIPTION_DOMAIN_MAX_LENGTH,
@@ -114,14 +114,14 @@ import {
 } from "@/lib/collections/intelligence/summary";
 import {
     deleteLibraryItem,
-    type DeleteLibraryItemResult,
-    type UpdateLibraryItemCollectionsResult,
-    type UpdateLibraryItemsCollectionsResult,
+    type LibraryItemDeleteResult,
+    type LibraryItemCollectionsUpdateResult,
+    type LibraryItemsCollectionsUpdateResult,
 } from "@/lib/collections/items";
 import {
     downloadMedia,
     resolveLibraryItemPreview,
-    type ResolveLibraryItemPreviewResult,
+    type LibraryItemPreviewResolveResult,
 } from "@/lib/collections/media";
 import { cn } from "@/lib/common/cn";
 import { getColorGradientFromName } from "@/lib/common/colors";
@@ -1379,7 +1379,7 @@ interface LibraryResultsProps {
     onUpdateItemCollections: (
         itemId: string,
         collectionIds: string[]
-    ) => Promise<UpdateLibraryItemCollectionsResult>;
+    ) => Promise<LibraryItemCollectionsUpdateResult>;
     pendingDeleteItemId: string | null;
     sections: LibraryBrowserSection[];
     showEmptyLibraryPeek: boolean;
@@ -2582,7 +2582,7 @@ interface LibraryActionFeedback {
 
 function useLibraryItemActions(args: {
     onDeleteSuccess?: (
-        result: Extract<DeleteLibraryItemResult, { status: "DELETED" }>
+        result: Extract<LibraryItemDeleteResult, { status: "DELETED" }>
     ) => void;
     setVisibleItems: (
         value:
@@ -2633,7 +2633,7 @@ function useLibraryItemActions(args: {
         }
 
         startDeleteTransition(async () => {
-            let result: DeleteLibraryItemResult;
+            let result: LibraryItemDeleteResult;
 
             try {
                 result = await deleteLibraryItem(targetItem.id);
@@ -2690,7 +2690,7 @@ interface GridProps {
     onUpdateItemCollections: (
         itemId: string,
         collectionIds: string[]
-    ) => Promise<UpdateLibraryItemCollectionsResult>;
+    ) => Promise<LibraryItemCollectionsUpdateResult>;
     pendingDeleteItemId?: string | null;
 }
 
@@ -2719,7 +2719,7 @@ interface PreviewMediaProps {
 }
 
 type CachedPreviewResult = Extract<
-    ResolveLibraryItemPreviewResult,
+    LibraryItemPreviewResolveResult,
     { status: "SUCCESS" }
 >;
 
@@ -2749,12 +2749,12 @@ interface CollectionComboboxPickerProps
     onUpdateItemCollections: (
         itemId: string,
         collectionIds: string[]
-    ) => Promise<UpdateLibraryItemCollectionsResult>;
+    ) => Promise<LibraryItemCollectionsUpdateResult>;
     onUpdateItemsCollections?: (input: {
         itemIds: string[];
         nextSharedCollectionIds: string[];
         previousSharedCollectionIds: string[];
-    }) => Promise<UpdateLibraryItemsCollectionsResult>;
+    }) => Promise<LibraryItemsCollectionsUpdateResult>;
     open?: boolean;
 }
 
@@ -4797,7 +4797,7 @@ export function Root({ lockedItemCount, totalItemCount }: LibraryProps) {
 
     const handleCreateCollectionFromResultsSubmit = () => {
         startCreateResultsCollectionTransition(async () => {
-            let result: CreateCollectionFromItemsResult;
+            let result: CollectionCreateFromItemsResult;
 
             try {
                 result = await onCreateCollectionFromResults({
@@ -4838,7 +4838,7 @@ export function Root({ lockedItemCount, totalItemCount }: LibraryProps) {
         async (
             itemId: string,
             collectionIds: string[]
-        ): Promise<UpdateLibraryItemCollectionsResult> => {
+        ): Promise<LibraryItemCollectionsUpdateResult> => {
             const requestVersion =
                 (collectionUpdateFeedbackVersionByItemIdRef.current.get(
                     itemId
@@ -4874,7 +4874,7 @@ export function Root({ lockedItemCount, totalItemCount }: LibraryProps) {
             itemIds: string[];
             nextSharedCollectionIds: string[];
             previousSharedCollectionIds: string[];
-        }): Promise<UpdateLibraryItemsCollectionsResult> => {
+        }): Promise<LibraryItemsCollectionsUpdateResult> => {
             const result = await onUpdateItemsCollections(input);
 
             if (result.status === "UPDATED") {

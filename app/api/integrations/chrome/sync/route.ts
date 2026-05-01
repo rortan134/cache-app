@@ -6,11 +6,8 @@ import {
     chromeBookmarkSyncBodySchema,
     purgeChromeBookmarksForUser,
 } from "@/lib/integrations/chrome/service";
-import {
-    extensionIngestCorsHeaders,
-    parseBearerToken,
-    resolveExtensionIngestUserId,
-} from "@/lib/integrations/extension-ingest";
+import { extensionIngestCorsHeaders } from "@/lib/integrations/extension-ingest";
+import { authenticateExtensionIngest } from "@/lib/integrations/route-utils";
 import { headers } from "next/headers";
 import { after } from "next/server";
 
@@ -24,22 +21,11 @@ export function OPTIONS() {
 }
 
 export async function POST(request: Request) {
-    const cors = extensionIngestCorsHeaders();
-    const bearer = parseBearerToken(request);
-    if (!bearer) {
-        return Response.json(
-            { error: "Missing Authorization: Bearer <extension ingest token>" },
-            { headers: cors, status: 401 }
-        );
+    const authResult = await authenticateExtensionIngest(request);
+    if (authResult instanceof Response) {
+        return authResult;
     }
-
-    const userId = await resolveExtensionIngestUserId(bearer);
-    if (!userId) {
-        return Response.json(
-            { error: "Unauthorized" },
-            { headers: cors, status: 401 }
-        );
-    }
+    const { cors, userId } = authResult;
 
     let json: unknown;
     try {

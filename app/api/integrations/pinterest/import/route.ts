@@ -2,10 +2,10 @@ import { auth } from "@/lib/auth/server";
 import { autoTagLibraryItemsByIds } from "@/lib/collections/intelligence";
 import { IntegrationApiError } from "@/lib/integrations/error";
 import {
-    getPinterestAccountId,
-    importPinterestBoards,
-} from "@/lib/integrations/pinterest/service";
-import { resolveProviderAccessToken } from "@/lib/integrations/provider-account";
+    getIntegrationAccountId,
+    resolveProviderAccessToken,
+} from "@/lib/integrations/provider-account";
+import { importPinterestBoards } from "@/lib/integrations/pinterest/service";
 import { headers } from "next/headers";
 import { after } from "next/server";
 
@@ -28,7 +28,7 @@ export async function POST() {
         return Response.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const accountId = await getPinterestAccountId(userId);
+    const accountId = await getIntegrationAccountId(userId, "pinterest");
     if (!accountId) {
         return Response.json(
             { error: "Connect Pinterest before importing pins." },

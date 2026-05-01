@@ -28,6 +28,7 @@ import {
     Component,
     Search,
     Sparkles,
+    Unlink,
 } from "lucide-react";
 import type { Metadata } from "next";
 import Image from "next/image";
@@ -44,7 +45,7 @@ export async function generateMetadata({
         description: gtPublicString(
             locale,
             "home.metadata.description",
-            "View, manage, and organize bookmarks across browsers and platforms — built for power users who save at volume."
+            "View, manage, and organize bookmarks across browsers and platforms — built for power users who save at scale."
         ),
         title: gtPublicString(
             locale,
@@ -72,9 +73,9 @@ export default async function Home() {
                                     </GradientWaveText>
                                 </h1>
                                 <p className="font-medium text-[#0A0B0D] text-[1rem] leading-[1.22] tracking-[-3%] opacity-50 lg:max-w-[320px]">
-                                    Meet Cache – A new kind of bookmark manager.
+                                    Meet Cache — A new kind of bookmark manager.
                                     Collect, organize, and rediscover everything
-                                    you’ve saved across platforms.
+                                    you've saved across platforms.
                                 </p>
                             </T>
                         </div>
@@ -146,8 +147,8 @@ export default async function Home() {
                         <p className="mx-auto text-center font-medium text-xs">
                             <T>
                                 <span className="opacity-50">A tool for</span>{" "}
-                                managing all of your personal knowledge
-                                <span className="opacity-50"> at volume</span>
+                                managing all your personal knowledge
+                                <span className="opacity-50"> at scale</span>
                             </T>
                         </p>
                         <p className="mx-auto text-center text-xs">
@@ -160,10 +161,10 @@ export default async function Home() {
                                 <h2 className="font-medium text-[#0A0B0D] text-[28px] leading-[1.1] tracking-[-1.28px] lg:text-[32px]">
                                     Curate a library of all the content you love
                                 </h2>
-                                <p className="tracking=[-3%] text-pretty font-medium font-regular text-[#0A0B0D] text-[16px] leading-[1.2] opacity-50">
-                                    Get inspired, find that one lesson, advice,
-                                    recipe, or idea you've been looking for, in
-                                    the span of a coffee break.
+                                <p className="text-pretty font-medium font-regular text-[#0A0B0D] text-[16px] leading-[1.2] tracking-[-3%] opacity-50">
+                                    Get inspired, find that one lesson, piece of
+                                    advice, recipe, or idea you've been looking
+                                    for in the span of a coffee break.
                                 </p>
                             </T>
                         </div>
@@ -184,10 +185,10 @@ export default async function Home() {
                         <div className="flex max-w-[340px] flex-col gap-[12px] py-[20px] md:gap-[16px]">
                             <T context="Integrations">
                                 <h2 className="font-medium text-[#0A0B0D] text-[28px] leading-[1.1] tracking-[-1.28px] lg:text-[32px]">
-                                    Connect your favorite platforms – Backfill
+                                    Connect your favorite platforms — Import
                                     everything you've ever saved
                                 </h2>
-                                <p className="tracking=[-3%] text-pretty font-medium font-regular text-[#0A0B0D] text-[16px] leading-[1.2] opacity-50">
+                                <p className="text-pretty font-medium font-regular text-[#0A0B0D] text-[16px] leading-[1.2] tracking-[-3%] opacity-50">
                                     Bring together bookmarks from social, video,
                                     and the browser automatically. Ditch the
                                     endless scrolling and tabbing through
@@ -267,11 +268,11 @@ export default async function Home() {
                                 <h2 className="font-medium text-[#0A0B0D] text-[28px] leading-[1.1] tracking-[-1.28px] lg:text-[32px]">
                                     Stop leaving it for "later"
                                 </h2>
-                                <p className="tracking=[-3%] text-pretty font-medium font-regular text-[#0A0B0D] text-[16px] leading-[1.2] opacity-50">
+                                <p className="text-pretty font-medium font-regular text-[#0A0B0D] text-[16px] leading-[1.2] tracking-[-3%] opacity-50">
                                     Create more actionable opportunities for
-                                    yourself by having your most insightful
+                                    yourself by keeping your most insightful
                                     saved content top of mind instead of losing
-                                    them in a backlog of forgotten bookmarks.
+                                    it in a backlog of forgotten bookmarks.
                                 </p>
                             </T>
                         </div>
@@ -292,10 +293,10 @@ export default async function Home() {
                                 <h2 className="font-medium text-[#0A0B0D] text-[28px] leading-[1.1] tracking-[-1.28px] lg:text-[32px]">
                                     Search and explore from a single, fast feed
                                 </h2>
-                                <p className="tracking=[-3%] text-pretty font-medium font-regular text-[#0A0B0D] text-[16px] leading-[1.2] opacity-50">
-                                    Streamline the way you consume and reengage
-                                    with your saved content from a single clean
-                                    and powerful interface, right in your
+                                <p className="text-pretty font-medium font-regular text-[#0A0B0D] text-[16px] leading-[1.2] tracking-[-3%] opacity-50">
+                                    Streamline the way you consume and re-engage
+                                    with your saved content from a single,
+                                    clean, and powerful interface, right in your
                                     browser.
                                 </p>
                             </T>
@@ -316,9 +317,9 @@ export default async function Home() {
                             <T>
                                 <h2 className="font-medium text-[#0A0B0D] text-[28px] leading-[1.1] tracking-[-1.28px] lg:text-[32px]">
                                     Stay organized. Spot the stale, keep the
-                                    useful
+                                    useful ones
                                 </h2>
-                                <p className="tracking=[-3%] text-pretty font-medium font-regular text-[#0A0B0D] text-[16px] leading-[1.2] opacity-50">
+                                <p className="text-pretty font-medium font-regular text-[#0A0B0D] text-[16px] leading-[1.2] tracking-[-3%] opacity-50">
                                     Build a knowledge base with the content
                                     you've already deemed important. Import once
                                     and go from messy to organized in minutes.
@@ -340,21 +341,27 @@ export default async function Home() {
                                         <Search className="inline-block size-4 shrink-0" />
                                         <span>
                                             Find anything with associative
-                                            search with OCR
+                                            full-text search and OCR
                                         </span>
                                     </li>
                                     <li className="flex items-center gap-2 text-xs">
                                         <CloudDownload className="inline-block size-4 shrink-0" />
                                         <span>
                                             Share or export collections from
-                                            Cache at any time you want
+                                            Cache anytime
+                                        </span>
+                                    </li>
+                                    <li className="flex items-center gap-2 text-xs">
+                                        <Unlink className="inline-block size-4 shrink-0" />
+                                        <span>
+                                            Remove duplicates and broken links
                                         </span>
                                     </li>
                                     <li className="flex items-center gap-2 text-xs">
                                         <Sparkles className="inline-block size-4 shrink-0" />
                                         <span>
-                                            Leverage AI for better insights on
-                                            your content
+                                            Gain AI-powered insights into your
+                                            content
                                         </span>
                                     </li>
                                 </T>
@@ -375,7 +382,7 @@ export default async function Home() {
                                         <div className="flex items-center gap-2 rounded-xl border bg-background p-3 shadow-sm">
                                             <CircleCheck className="size-4.5 fill-emerald-500/15 text-emerald-500" />
                                             <span className="font-medium text-foreground text-sm">
-                                                All done - Content library
+                                                All done — Content library
                                                 organized
                                             </span>
                                         </div>

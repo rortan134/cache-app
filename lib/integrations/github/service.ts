@@ -1,5 +1,6 @@
+import "server-only";
+
 import { createLogger } from "@/lib/common/logs/console/logger";
-import { getIntegrationAccountId } from "@/lib/integrations/provider-account";
 import { importLibraryItemSnapshot } from "@/lib/integrations/snapshot";
 import { LibraryItemSource } from "@/prisma/client/enums";
 import {
@@ -8,10 +9,6 @@ import {
 } from "./api";
 
 const log = createLogger("integrations:github");
-
-export function getGitHubAccountId(userId: string): Promise<string | null> {
-    return getIntegrationAccountId(userId, "github");
-}
 
 export async function importGitHubStarredRepositories(args: {
     accessToken: string;

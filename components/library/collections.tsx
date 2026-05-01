@@ -74,17 +74,17 @@ import {
     duplicateCollection,
     renameCollection,
     updateCollectionPriority,
-    type CreateCollectionResult,
-    type DeleteCollectionResult,
-    type DuplicateCollectionResult,
-    type RenameCollectionResult,
-    type UpdateCollectionPriorityResult,
+    type CollectionCreateResult,
+    type CollectionDeleteResult,
+    type CollectionDuplicateResult,
+    type CollectionRenameResult,
+    type CollectionPriorityUpdateResult,
 } from "@/lib/collections/actions";
 import {
     disableCollectionSharing,
     shareCollectionPublicly,
-    type DisableCollectionPublicShareResult,
-    type ShareCollectionPubliclyResult,
+    type CollectionPublicShareDisableResult,
+    type CollectionPublicShareResult,
 } from "@/lib/collections/sharing/actions";
 import { buildPublicCollectionShareUrl } from "@/lib/collections/sharing/url";
 import { cn } from "@/lib/common/cn";
@@ -815,7 +815,7 @@ function normalizeCollectionName(name: string): string {
 }
 
 function getCreateCollectionAssignedItemIds(
-    result: Extract<CreateCollectionResult, { status: "CREATED" }>
+    result: Extract<CollectionCreateResult, { status: "CREATED" }>
 ): string[] {
     return result.assignedItemId ? [result.assignedItemId] : [];
 }
@@ -826,7 +826,7 @@ function getCreateCollectionAssignedItemIds(
 
 async function createCollectionSafely(
     input: Parameters<typeof createCollection>[0]
-): Promise<CreateCollectionResult> {
+): Promise<CollectionCreateResult> {
     try {
         return await createCollection(input);
     } catch {
@@ -839,7 +839,7 @@ async function createCollectionSafely(
 
 async function deleteCollectionSafely(
     input: Parameters<typeof deleteCollection>[0]
-): Promise<DeleteCollectionResult> {
+): Promise<CollectionDeleteResult> {
     try {
         return await deleteCollection(input);
     } catch {
@@ -852,7 +852,7 @@ async function deleteCollectionSafely(
 
 async function duplicateCollectionSafely(
     input: Parameters<typeof duplicateCollection>[0]
-): Promise<DuplicateCollectionResult> {
+): Promise<CollectionDuplicateResult> {
     try {
         return await duplicateCollection(input);
     } catch {
@@ -865,7 +865,7 @@ async function duplicateCollectionSafely(
 
 async function renameCollectionSafely(
     input: Parameters<typeof renameCollection>[0]
-): Promise<RenameCollectionResult> {
+): Promise<CollectionRenameResult> {
     try {
         return await renameCollection(input);
     } catch {
@@ -878,7 +878,7 @@ async function renameCollectionSafely(
 
 async function updateCollectionPrioritySafely(
     input: Parameters<typeof updateCollectionPriority>[0]
-): Promise<UpdateCollectionPriorityResult> {
+): Promise<CollectionPriorityUpdateResult> {
     try {
         return await updateCollectionPriority(input);
     } catch {
@@ -891,7 +891,7 @@ async function updateCollectionPrioritySafely(
 
 async function shareCollectionPubliclySafely(
     input: Parameters<typeof shareCollectionPublicly>[0]
-): Promise<ShareCollectionPubliclyResult> {
+): Promise<CollectionPublicShareResult> {
     try {
         return await shareCollectionPublicly(input);
     } catch {
@@ -904,7 +904,7 @@ async function shareCollectionPubliclySafely(
 
 async function disableCollectionSharingSafely(
     input: Parameters<typeof disableCollectionSharing>[0]
-): Promise<DisableCollectionPublicShareResult> {
+): Promise<CollectionPublicShareDisableResult> {
     try {
         return await disableCollectionSharing(input);
     } catch {

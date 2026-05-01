@@ -1,6 +1,6 @@
 import { SessionError } from "@/lib/auth/error";
 import { getStripeClient, getStripeWebhookSecret } from "@/lib/billing/client";
-import { APP_NAME } from "@/lib/common/constants";
+import { APP_NAME, BASE_URL } from "@/lib/common/constants";
 import { createLogger } from "@/lib/common/logs/console/logger";
 import { prisma } from "@/prisma";
 import type { OAuth2Tokens } from "@better-auth/core/oauth2";
@@ -13,6 +13,27 @@ import { genericOAuth, oneTap } from "better-auth/plugins";
 import { headers } from "next/headers";
 
 const log = createLogger("Auth:server");
+
+// ---------------------------------------------------------------------------
+// Environment helpers
+// ---------------------------------------------------------------------------
+
+function requiredEnv(name: string): string {
+    const value = process.env[name];
+    if (value === undefined || value === "") {
+        throw new Error(`Missing required environment variable: ${name}`);
+    }
+    return value;
+}
+
+function optionalEnv(name: string): string | null {
+    const value = process.env[name];
+    return value === undefined || value === "" ? null : value;
+}
+
+// ---------------------------------------------------------------------------
+// OAuth user profile abstraction
+// ---------------------------------------------------------------------------
 
 interface OAuthUserProfile {
     email?: string | null;
@@ -32,13 +53,15 @@ async function fetchOAuthUser<T>(
     extraHeaders: Record<string, string>,
     mapUser: (data: T) => OAuthUserProfile | null
 ): Promise<OAuthUserProfile | null> {
-    const { accessToken } = tokens;
-    if (!accessToken) {
+    if (!tokens.accessToken) {
         return null;
     }
 
     const response = await fetch(url, {
-        headers: { Authorization: `Bearer ${accessToken}`, ...extraHeaders },
+        headers: {
+            Authorization: `Bearer ${tokens.accessToken}`,
+            ...extraHeaders,
+        },
     });
     if (!response.ok) {
         return null;
@@ -47,26 +70,14 @@ async function fetchOAuthUser<T>(
     return mapUser((await response.json()) as T);
 }
 
+// ---------------------------------------------------------------------------
+// Pinterest OAuth
+// ---------------------------------------------------------------------------
+
 interface PinterestUserAccount {
     id?: string;
     profile_image?: string;
     username?: string;
-}
-
-interface XUserAccount {
-    data?: {
-        id?: string;
-        name?: string;
-        profile_image_url?: string;
-        username?: string;
-    };
-}
-
-interface GitHubUserAccount {
-    avatar_url?: string;
-    id?: number;
-    login?: string;
-    name?: string;
 }
 
 function mapPinterestUser(data: PinterestUserAccount): OAuthUserProfile | null {
@@ -74,13 +85,53 @@ function mapPinterestUser(data: PinterestUserAccount): OAuthUserProfile | null {
     if (!id) {
         return null;
     }
-    const sid = String(id);
+    const idStr = String(id);
     return {
-        email: `pinterest.${sid}.integration@placeholder.cache`,
+        email: `pinterest.${idStr}.integration@placeholder.cache`,
         emailVerified: false,
-        id: sid,
+        id: idStr,
         image: data.profile_image,
-        name: data.username ?? sid,
+        name: data.username ?? idStr,
+    };
+}
+
+function buildPinterestOAuthConfig(): GenericOAuthConfig | null {
+    const clientId = optionalEnv("PINTEREST_CLIENT_ID");
+    const clientSecret = optionalEnv("PINTEREST_CLIENT_SECRET");
+    if (!(clientId && clientSecret)) {
+        return null;
+    }
+
+    return {
+        authentication: "basic",
+        authorizationUrl: "https://www.pinterest.com/oauth/",
+        clientId,
+        clientSecret,
+        disableSignUp: true,
+        getUserInfo: (tokens) =>
+            fetchOAuthUser(
+                tokens,
+                "https://api.pinterest.com/v5/user_account",
+                {},
+                mapPinterestUser
+            ),
+        pkce: true,
+        providerId: "pinterest",
+        scopes: ["user_accounts:read", "boards:read", "pins:read"],
+        tokenUrl: "https://api.pinterest.com/v5/oauth/token",
+    };
+}
+
+// ---------------------------------------------------------------------------
+// X (Twitter) OAuth
+// ---------------------------------------------------------------------------
+
+interface XUserAccount {
+    data?: {
+        id?: string;
+        name?: string;
+        profile_image_url?: string;
+        username?: string;
     };
 }
 
@@ -98,6 +149,44 @@ function mapXUser(payload: XUserAccount): OAuthUserProfile | null {
     };
 }
 
+function buildXOAuthConfig(): GenericOAuthConfig | null {
+    const clientId = optionalEnv("X_CLIENT_ID");
+    const clientSecret = optionalEnv("X_CLIENT_SECRET");
+    if (!(clientId && clientSecret)) {
+        return null;
+    }
+
+    return {
+        authentication: "basic",
+        authorizationUrl: "https://x.com/i/oauth2/authorize",
+        clientId,
+        clientSecret,
+        disableSignUp: true,
+        getUserInfo: (tokens) =>
+            fetchOAuthUser(
+                tokens,
+                "https://api.x.com/2/users/me?user.fields=profile_image_url",
+                { Accept: "application/json" },
+                mapXUser
+            ),
+        pkce: true,
+        providerId: "x",
+        scopes: ["bookmark.read", "offline.access", "tweet.read", "users.read"],
+        tokenUrl: "https://api.x.com/2/oauth2/token",
+    };
+}
+
+// ---------------------------------------------------------------------------
+// GitHub OAuth
+// ---------------------------------------------------------------------------
+
+interface GitHubUserAccount {
+    avatar_url?: string;
+    id?: number;
+    login?: string;
+    name?: string;
+}
+
 function mapGitHubUser(payload: GitHubUserAccount): OAuthUserProfile | null {
     const id = typeof payload.id === "number" ? String(payload.id) : undefined;
     if (!id) {
@@ -112,88 +201,18 @@ function mapGitHubUser(payload: GitHubUserAccount): OAuthUserProfile | null {
     };
 }
 
-function requiredEnv(name: string): string {
-    const value = process.env[name];
-    if (value === undefined || value === "") {
-        throw new Error(`Missing required environment variable: ${name}`);
+function buildGitHubOAuthConfig(): GenericOAuthConfig | null {
+    const clientId = optionalEnv("GITHUB_CLIENT_ID");
+    const clientSecret = optionalEnv("GITHUB_CLIENT_SECRET");
+    if (!(clientId && clientSecret)) {
+        return null;
     }
-    return value;
-}
 
-function optionalEnv(name: string): string | null {
-    const value = process.env[name];
-    return value === undefined || value === "" ? null : value;
-}
-
-const baseURL =
-    process.env.BETTER_AUTH_URL ??
-    process.env.NEXT_PUBLIC_APP_URL ??
-    "http://localhost:3000";
-
-const trustedOrigins = [
-    baseURL,
-    ...(process.env.TRUSTED_ORIGINS?.split(",")
-        .map((s) => s.trim())
-        .filter(Boolean) ?? []),
-];
-
-const pinterestClientId = optionalEnv("PINTEREST_CLIENT_ID");
-const pinterestClientSecret = optionalEnv("PINTEREST_CLIENT_SECRET");
-const xClientId = optionalEnv("X_CLIENT_ID");
-const xClientSecret = optionalEnv("X_CLIENT_SECRET");
-const githubClientId = optionalEnv("GITHUB_CLIENT_ID");
-const githubClientSecret = optionalEnv("GITHUB_CLIENT_SECRET");
-
-const genericOAuthConfig: GenericOAuthConfig[] = [];
-
-if (pinterestClientId && pinterestClientSecret) {
-    genericOAuthConfig.push({
-        authentication: "basic",
-        authorizationUrl: "https://www.pinterest.com/oauth/",
-        clientId: pinterestClientId,
-        clientSecret: pinterestClientSecret,
-        disableSignUp: true,
-        getUserInfo: (tokens) =>
-            fetchOAuthUser(
-                tokens,
-                "https://api.pinterest.com/v5/user_account",
-                {},
-                mapPinterestUser
-            ),
-        pkce: true,
-        providerId: "pinterest",
-        scopes: ["user_accounts:read", "boards:read", "pins:read"],
-        tokenUrl: "https://api.pinterest.com/v5/oauth/token",
-    });
-}
-
-if (xClientId && xClientSecret) {
-    genericOAuthConfig.push({
-        authentication: "basic",
-        authorizationUrl: "https://x.com/i/oauth2/authorize",
-        clientId: xClientId,
-        clientSecret: xClientSecret,
-        disableSignUp: true,
-        getUserInfo: (tokens) =>
-            fetchOAuthUser(
-                tokens,
-                "https://api.x.com/2/users/me?user.fields=profile_image_url",
-                { Accept: "application/json" },
-                mapXUser
-            ),
-        pkce: true,
-        providerId: "x",
-        scopes: ["bookmark.read", "offline.access", "tweet.read", "users.read"],
-        tokenUrl: "https://api.x.com/2/oauth2/token",
-    });
-}
-
-if (githubClientId && githubClientSecret) {
-    genericOAuthConfig.push({
+    return {
         authentication: "basic",
         authorizationUrl: "https://github.com/login/oauth/authorize",
-        clientId: githubClientId,
-        clientSecret: githubClientSecret,
+        clientId,
+        clientSecret,
         disableSignUp: true,
         getUserInfo: (tokens) =>
             fetchOAuthUser(
@@ -208,8 +227,27 @@ if (githubClientId && githubClientSecret) {
         providerId: "github",
         scopes: ["read:user"],
         tokenUrl: "https://github.com/login/oauth/access_token",
-    });
+    };
 }
+
+// ---------------------------------------------------------------------------
+// Auth configuration
+// ---------------------------------------------------------------------------
+
+const baseURL = process.env.BETTER_AUTH_URL ?? BASE_URL;
+
+const trustedOrigins = [
+    baseURL,
+    ...(process.env.TRUSTED_ORIGINS?.split(",")
+        .map((s) => s.trim())
+        .filter(Boolean) ?? []),
+];
+
+const genericOAuthConfig = [
+    buildPinterestOAuthConfig(),
+    buildXOAuthConfig(),
+    buildGitHubOAuthConfig(),
+].filter((c): c is GenericOAuthConfig => c !== null);
 
 const trustedProviders = [
     "google",
@@ -240,6 +278,10 @@ export const auth = betterAuth({
             createCustomerOnSignUp: true,
             stripeClient: getStripeClient(),
             stripeWebhookSecret: getStripeWebhookSecret(),
+            // NOTE: The @better-auth/stripe plugin registers its webhook handler
+            // implicitly at /api/auth/stripe/webhook via the catch-all [...all]
+            // route in app/api/auth/[...all]/route.ts. Configure the Stripe
+            // Dashboard endpoint to exactly: {baseURL}/api/auth/stripe/webhook
             subscription: {
                 enabled: true,
                 plans: [
@@ -278,18 +320,22 @@ export const auth = betterAuth({
     trustedOrigins,
 });
 
+// ---------------------------------------------------------------------------
+// Session utilities
+// ---------------------------------------------------------------------------
+
 export async function getServerSession() {
     return await auth.api.getSession({
         headers: await headers(),
     });
 }
 
+export type Session = Awaited<ReturnType<typeof getServerSession>>;
+
 export async function getSessionUserId(): Promise<string | null> {
     const session = await getServerSession();
     return session?.user?.id ?? null;
 }
-
-export type Session = ReturnType<typeof getServerSession>;
 
 type WithSessionCallback<T> = (client: Session) => Promise<T> | T;
 
@@ -300,10 +346,10 @@ export const withSession = async <T>(
     callbackFn: WithSessionCallback<T>
 ): Promise<T> => {
     try {
-        const session = getServerSession();
+        const session = await getServerSession();
         return await callbackFn(session);
     } catch (error) {
-        log.error("Stripe operation failed:", error);
+        log.error("Session operation failed:", error);
 
         if (error instanceof SessionError) {
             throw error;
@@ -312,7 +358,7 @@ export const withSession = async <T>(
         throw new SessionError({
             cause: error,
             message: error instanceof Error ? error.message : String(error),
-            operation: "core::withStripe",
+            operation: "auth::withSession",
         });
     }
 };

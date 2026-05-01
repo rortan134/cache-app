@@ -1,14 +1,11 @@
+import "server-only";
+
 import { createLogger } from "@/lib/common/logs/console/logger";
-import { getIntegrationAccountId } from "@/lib/integrations/provider-account";
 import { importLibraryItemSnapshot } from "@/lib/integrations/snapshot";
 import { LibraryItemSource } from "@/prisma/client/enums";
 import { getXAuthenticatedUser, listXBookmarks } from "./api";
 
 const log = createLogger("integrations:x");
-
-export function getXAccountId(userId: string): Promise<string | null> {
-    return getIntegrationAccountId(userId, "x");
-}
 
 export async function importXBookmarks(args: {
     accessToken: string;

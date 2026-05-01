@@ -7,14 +7,14 @@ import {
 } from "@/components/library/collections";
 import {
     createCollectionFromItems,
-    type CreateCollectionFromItemsResult,
+    type CollectionCreateFromItemsResult,
 } from "@/lib/collections/actions";
 import {
     updateLibraryItemCollections,
     updateLibraryItemsCollections,
-    type DeleteLibraryItemResult,
-    type UpdateLibraryItemCollectionsResult,
-    type UpdateLibraryItemsCollectionsResult,
+    type LibraryItemDeleteResult,
+    type LibraryItemCollectionsUpdateResult,
+    type LibraryItemsCollectionsUpdateResult,
 } from "@/lib/collections/items";
 import { toUsableStaticPreviewUrl } from "@/lib/common/preview-url";
 import type {
@@ -36,20 +36,20 @@ interface LibraryWorkspaceContextValue {
         description?: string;
         itemIds: string[];
         name: string;
-    }) => Promise<CreateCollectionFromItemsResult>;
+    }) => Promise<CollectionCreateFromItemsResult>;
     onDeleteItemSuccess: (
-        result: Extract<DeleteLibraryItemResult, { status: "DELETED" }>
+        result: Extract<LibraryItemDeleteResult, { status: "DELETED" }>
     ) => void;
     onSelectCollection: (collectionId: string) => void;
     onUpdateItemCollections: (
         itemId: string,
         collectionIds: string[]
-    ) => Promise<UpdateLibraryItemCollectionsResult>;
+    ) => Promise<LibraryItemCollectionsUpdateResult>;
     onUpdateItemsCollections: (input: {
         itemIds: string[];
         nextSharedCollectionIds: string[];
         previousSharedCollectionIds: string[];
-    }) => Promise<UpdateLibraryItemsCollectionsResult>;
+    }) => Promise<LibraryItemsCollectionsUpdateResult>;
     selectedCollectionIds: string[];
     setCollections: React.Dispatch<
         React.SetStateAction<LibraryCollectionSummary[]>
@@ -157,7 +157,7 @@ export function WorkspaceProvider({
     const handleUpdateItemCollections = (
         itemId: string,
         collectionIds: string[]
-    ): Promise<UpdateLibraryItemCollectionsResult> => {
+    ): Promise<LibraryItemCollectionsUpdateResult> => {
         const requestVersion =
             (collectionUpdateVersionByItemIdRef.current.get(itemId) ?? 0) + 1;
         collectionUpdateVersionByItemIdRef.current.set(itemId, requestVersion);
@@ -174,7 +174,7 @@ export function WorkspaceProvider({
         );
 
         const runUpdate = async () => {
-            let result: UpdateLibraryItemCollectionsResult;
+            let result: LibraryItemCollectionsUpdateResult;
 
             try {
                 result = await updateLibraryItemCollections({
@@ -223,8 +223,8 @@ export function WorkspaceProvider({
         itemIds: string[];
         nextSharedCollectionIds: string[];
         previousSharedCollectionIds: string[];
-    }): Promise<UpdateLibraryItemsCollectionsResult> => {
-        let result: UpdateLibraryItemsCollectionsResult;
+    }): Promise<LibraryItemsCollectionsUpdateResult> => {
+        let result: LibraryItemsCollectionsUpdateResult;
 
         try {
             result = await updateLibraryItemsCollections(input);
@@ -250,7 +250,7 @@ export function WorkspaceProvider({
     };
 
     const handleDeleteItemSuccess = (
-        result: Extract<DeleteLibraryItemResult, { status: "DELETED" }>
+        result: Extract<LibraryItemDeleteResult, { status: "DELETED" }>
     ) => {
         setCollections((current) =>
             mergeCollectionSummaries(current, result.collectionSummaries)
@@ -261,8 +261,8 @@ export function WorkspaceProvider({
         description?: string;
         itemIds: string[];
         name: string;
-    }): Promise<CreateCollectionFromItemsResult> => {
-        let result: CreateCollectionFromItemsResult;
+    }): Promise<CollectionCreateFromItemsResult> => {
+        let result: CollectionCreateFromItemsResult;
 
         try {
             result = await createCollectionFromItems(input);

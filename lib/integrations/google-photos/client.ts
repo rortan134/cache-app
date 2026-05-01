@@ -26,12 +26,19 @@ interface ImportResponse {
     importedCount: number;
 }
 
+const DURATION_SECONDS_PATTERN = /^(\d+)(\.\d+)?s$/;
+
 function parseDurationMs(value: string | null): number | null {
-    if (!value?.endsWith("s")) {
+    if (!value) {
         return null;
     }
 
-    const seconds = Number(value.slice(0, -1));
+    const match = DURATION_SECONDS_PATTERN.exec(value);
+    if (!match) {
+        return null;
+    }
+
+    const seconds = Number(match[1]);
     return Number.isNaN(seconds) ? null : Math.round(seconds * 1000);
 }
 

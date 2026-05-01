@@ -1,14 +1,11 @@
+import "server-only";
+
 import { createLogger } from "@/lib/common/logs/console/logger";
-import { getIntegrationAccountId } from "@/lib/integrations/provider-account";
 import { upsertLibraryItemImports } from "@/lib/integrations/upsert";
 import { LibraryItemSource } from "@/prisma/client/enums";
 import { listPinterestBoardPins, listPinterestBoards } from "./api";
 
 const log = createLogger("integrations:pinterest");
-
-export function getPinterestAccountId(userId: string): Promise<string | null> {
-    return getIntegrationAccountId(userId, "pinterest");
-}
 
 export async function importPinterestBoards(args: {
     accessToken: string;

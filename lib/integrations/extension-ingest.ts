@@ -22,8 +22,8 @@ export function parseBearerToken(request: Request): string | null {
     if (!raw?.startsWith("Bearer ")) {
         return null;
     }
-    const t = raw.slice("Bearer ".length).trim();
-    return t.length > 0 ? t : null;
+    const token = raw.slice("Bearer ".length).trim();
+    return token.length > 0 ? token : null;
 }
 
 /**
@@ -47,8 +47,12 @@ async function resolveFallbackExtensionIngestUserId(
     bearerToken: string
 ): Promise<string | null> {
     const envToken = process.env.INSTAGRAM_SAVED_INGEST_TOKEN?.trim();
+    if (!envToken || bearerToken !== envToken) {
+        return null;
+    }
+
     const fallbackUserId = process.env.EXTENSION_FALLBACK_USER_ID;
-    if (!(envToken && fallbackUserId) || bearerToken !== envToken) {
+    if (!fallbackUserId) {
         return null;
     }
 

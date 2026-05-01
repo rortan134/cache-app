@@ -3,16 +3,20 @@
 import { createLogger } from "@/lib/common/logs/console/logger";
 import {
     getValidationErrorMessage,
+    handleActionError,
     requireActionUserId,
 } from "@/lib/common/procedure";
 import * as z from "zod";
+import { LibraryCollectionError } from "./error";
 import * as service from "./service";
 
 const log = createLogger("library:actions:media");
-const DownloadMediaInputSchema = z.object({
+
+const MediaDownloadInputSchema = z.object({
     url: z.string().trim().min(1, "A valid URL is required to download media."),
 });
-const ResolveLibraryItemPreviewInputSchema = z.object({
+
+const LibraryItemPreviewResolveInputSchema = z.object({
     itemId: z
         .string()
         .trim()
@@ -20,7 +24,7 @@ const ResolveLibraryItemPreviewInputSchema = z.object({
     refreshIfMissingVideo: z.boolean().optional(),
 });
 
-export type DownloadMediaResult =
+export type MediaDownloadResult =
     | {
           downloadUrl: string;
           status: "SUCCESS";
@@ -30,7 +34,7 @@ export type DownloadMediaResult =
           status: "ERROR" | "INVALID" | "UNAUTHORIZED";
       };
 
-export type ResolveLibraryItemPreviewResult =
+export type LibraryItemPreviewResolveResult =
     | {
           errorCode: string | null;
           mediaType: "gif" | "image" | "unknown" | "video";
@@ -42,11 +46,11 @@ export type ResolveLibraryItemPreviewResult =
       }
     | {
           message: string;
-          status: "ERROR" | "INVALID" | "UNAUTHORIZED";
+          status: "ERROR" | "INVALID" | "NOT_FOUND" | "UNAUTHORIZED";
       };
 
-export async function downloadMedia(url: string): Promise<DownloadMediaResult> {
-    const parsed = DownloadMediaInputSchema.safeParse({ url });
+export async function downloadMedia(url: string): Promise<MediaDownloadResult> {
+    const parsed = MediaDownloadInputSchema.safeParse({ url });
     if (!parsed.success) {
         return {
             message: getValidationErrorMessage(
@@ -83,8 +87,8 @@ export async function downloadMedia(url: string): Promise<DownloadMediaResult> {
 export async function resolveLibraryItemPreview(
     itemId: string,
     options?: { refreshIfMissingVideo?: boolean }
-): Promise<ResolveLibraryItemPreviewResult> {
-    const parsed = ResolveLibraryItemPreviewInputSchema.safeParse({
+): Promise<LibraryItemPreviewResolveResult> {
+    const parsed = LibraryItemPreviewResolveInputSchema.safeParse({
         itemId,
         refreshIfMissingVideo: options?.refreshIfMissingVideo,
     });
@@ -120,13 +124,13 @@ export async function resolveLibraryItemPreview(
             videoPreviewUrl: preview.videoPreviewUrl,
         };
     } catch (error) {
-        log.error("Unexpected preview resolution failure", error);
-        return {
-            message:
-                error instanceof Error
-                    ? error.message
-                    : "We hit an unexpected error while preparing your preview.",
-            status: "ERROR",
-        };
+        return handleActionError({
+            codeToStatus: { not_found: "NOT_FOUND" },
+            error,
+            errorFactory: LibraryCollectionError,
+            fallbackMessage:
+                "We hit an unexpected error while preparing your preview.",
+            log,
+        });
     }
 }

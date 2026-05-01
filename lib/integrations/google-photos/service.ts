@@ -1,3 +1,5 @@
+import "server-only";
+
 import { createLogger } from "@/lib/common/logs/console/logger";
 import { DEFAULT_BROWSER_PROFILE_ID } from "@/lib/integrations/browser-profiles";
 import { upsertLibraryItemImports } from "@/lib/integrations/upsert";

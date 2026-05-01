@@ -13,7 +13,7 @@ import arcjet, {
 import type { ArcjetDecision } from "arcjet";
 
 const log = createLogger("intelligence:protection");
-const USER_ID_CHARACTERISTIC = "userId";
+const CHARACTERISTIC_USER_ID = "userId";
 const CHARS_PER_TOKEN_ESTIMATE = 4;
 
 export function estimateGenAiTokens(
@@ -40,7 +40,7 @@ function createPlanClient(plan: PlanType, key: string) {
             }),
             tokenBucket({
                 capacity: quota.fixedLimit,
-                characteristics: [USER_ID_CHARACTERISTIC],
+                characteristics: [CHARACTERISTIC_USER_ID],
                 interval: quota.rollingWindow,
                 mode: "LIVE",
                 refillRate: quota.rollingLimit,

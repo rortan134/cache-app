@@ -8,8 +8,6 @@ This document provides essential information for working in this repository.
 
 Cache App has a zero technical debt policy. Do it right the first time. A problem solved in design costs less than one solved in implementation, which costs less than one solved in production. The cost of fixing problems grows exponentially over time.
 
-Fix problems when they are discovered. Do not allow issues to slip through with a "fix it later" comment.
-
 Minimize any low-value prose. Offer nuanced, factual, and accurate solutions with brilliant critical reasoning. Suggest solutions or alternatives I didn’t think about and anticipate my needs.
 
 When the user request is suggesting an approach that is not ideal or wouldn't work, you must reject it and offer alternatives or different perspectives on the problem at hand. Reframe problems and perspectives whenever adequate in order to reach the most optimal answer. Break them down into smaller, logical steps from first principles.
@@ -18,11 +16,9 @@ Consider new technologies and contrarian ideas, not just conventional wisdom.
 
 If you do not know the answer or think there might not be a correct answer, say so instead of guessing.
 
-Learn from existing code: Study and plan before implementing. Identify recurring patterns and design influences in the code. Always keep rules or constraints of the task in mind.
+Learn from existing code: Study and plan before implementing. Identify recurring patterns and design influences in the code. Keep rules or constraints of the task in mind.
 
-Always trace how parts connect, such as data flow between functions, stage dependencies, or what module owns what.
-
-Do not jump to conclusions. Question your assumptions so that you can achieve the most optimal solutions.
+Trace how parts connect, such as data flow between functions, stage dependencies, or what module owns what.
 
 If a tradeoff is required, choose correctness and robustness over short-term convenience or shortcuts.
 
@@ -30,7 +26,7 @@ If a tradeoff is required, choose correctness and robustness over short-term con
 
 It is not about formatting or syntax. Linters handle that. It is about how to think, how to make decisions, and what to value when building software.
 
-Finish code so it never needs to be revisited. Fight entropy. Leave the codebase better than you found it.
+Fight entropy. Leave the codebase better than you found it.
 
 Make minimal, surgical changes.
 
@@ -86,37 +82,15 @@ When to include specific details:
 
 ## On React components
 
-Always prefer a headless, multi-part compound component composition pattern where a single logical widget is decomposed into many small, focused parts that communicate through shared internal state rather than props drilling. Every component should use a common, composable interface, making them predictable. Composable components naturally fit with one another. Each component is built to match the others, keeping the UI consistent. Please see `vercel-composition-patterns` for more.
+Prefer a headless, multi-part compound component composition pattern where a single logical widget is decomposed into many small, focused parts that communicate through shared internal state rather than props drilling. Every component should use a common, composable interface, making them predictable. Composable components naturally fit with one another. Each component is built to match the others, keeping the UI consistent. Please see `vercel-composition-patterns` for more.
 
 You mount a root controller (e.g. ‎`Combobox.Root` / ‎`ComboboxRoot`) that owns centralized state, behavior and semantics (value, inputValue, items, open, highlight, async status) and exposes it via context to leaf parts like ‎`Input`, ‎`InputGroup`, ‎`Trigger`, ‎`Icon`, ‎`List`, ‎`Item`, ‎`ItemIndicator`, ‎`Chips`, ‎`Group`, ‎`Portal`, ‎`Positioner`, ‎`Popup`, ‎`Status`, and ‎`Empty` exported as many headless part components bound together by the shared store/context layer
 
 Leaf components may also layer on local responsibilities that are intrinsically per-item tightly scoped to how one item registers itself with the store and translates global state.
 
-Always use the shadow DOM-safe utilities for DOM traversal and event targeting: contains, getTarget, and activeElement. Always use the owner utilities ownerDocument and ownerWindow instead of global document/window lookups when the code is tied to a DOM node, including realm-sensitive checks such as instanceof.
+Use the shadow DOM-safe utilities for DOM traversal and event targeting: contains, getTarget, and activeElement. Use the owner utilities ownerDocument and ownerWindow instead of global document/window lookups when the code is tied to a DOM node, including realm-sensitive checks such as instanceof.
 
 Avoid duplicating logic where necessary. If two components can share logic (such as event handlers), define the logic/handlers in the parent and share it through a context to the child; use the existing context if it exists.
-
-Never render items directly inside the content container.
-
-**Incorrect:**
-
-```tsx
-<SelectContent>
-  <SelectItem value="apple">Apple</SelectItem>
-  <SelectItem value="banana">Banana</SelectItem>
-</SelectContent>
-```
-
-**Correct:**
-
-```tsx
-<SelectContent>
-  <SelectGroup>
-    <SelectItem value="apple">Apple</SelectItem>
-    <SelectItem value="banana">Banana</SelectItem>
-  </SelectGroup>
-</SelectContent>
-```
 
 ## On this project
 
@@ -138,7 +112,7 @@ database: PostgreSQL via Prisma 6
 
 auth: better-auth with better-auth/stripe (Stripe subscriptions)
 
-tooling: TypeScript 6 (strict typing), Biome via Ultracite
+tooling: TypeScript 6 (strict typing), Biome via Ultracite (run via `bun lint`/`bun lint:fix`)
 
 ### Procedure module patterns (server actions + services)
 

@@ -1,3 +1,5 @@
+import "server-only";
+
 import { IntegrationApiError } from "@/lib/integrations/error";
 
 const GOOGLE_PHOTOS_PICKER_API = "https://photospicker.googleapis.com/v1";

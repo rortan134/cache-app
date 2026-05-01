@@ -1,6 +1,6 @@
 import "server-only";
 
-import { COLLECTION_NAME_MAX_LENGTH } from "@/lib/collections/utils";
+import { COLLECTION_NAME_LENGTH_MAX } from "@/lib/collections/utils";
 
 import { serverEnv } from "@/env/server";
 import { GenAiProtectionError } from "@/lib/collections/intelligence/error";
@@ -34,30 +34,30 @@ import { basename, extname, join } from "node:path";
 import * as z from "zod";
 
 const log = createLogger("library:smart-collections");
-const SMART_COLLECTIONS_DEFAULT_MODEL = "gemini-2.5-flash";
-const SMART_COLLECTIONS_FALLBACK_MODELS = [
+const SMART_COLLECTIONS_MODEL_DEFAULT = "gemini-2.5-flash";
+const SMART_COLLECTIONS_MODELS_FALLBACK = [
     "gemini-2.5-flash-lite",
     "gemini-3-flash-preview",
 ] as const;
-const SMART_COLLECTIONS_MAX_APPLY_COLLECTIONS = 4;
-const SMART_COLLECTIONS_MAX_NEW_COLLECTIONS = 2;
-const SMART_COLLECTIONS_MAX_DOWNLOAD_BYTES = 100 * 1024 * 1024;
-const SMART_COLLECTIONS_MAX_TEXT_LENGTH = 12_000;
-const SMART_COLLECTIONS_FILE_READY_ATTEMPTS = 20;
+const SMART_COLLECTIONS_APPLY_COLLECTION_COUNT_MAX = 4;
+const SMART_COLLECTIONS_NEW_COLLECTION_COUNT_MAX = 2;
+const SMART_COLLECTIONS_DOWNLOAD_BYTES_MAX = 100 * 1024 * 1024;
+const SMART_COLLECTIONS_TEXT_LENGTH_MAX = 12_000;
+const SMART_COLLECTIONS_FILE_READY_ATTEMPT_COUNT_MAX = 20;
 const SMART_COLLECTIONS_FILE_READY_DELAY_MS = 1500;
 const SMART_COLLECTIONS_FETCH_TIMEOUT_MS = 20_000;
 const SMART_COLLECTIONS_MODEL_TIMEOUT_MS = 45_000;
-const HTML_TITLE_PATTERN = /<title[^>]*>([\s\S]*?)<\/title>/i;
-const HTML_DESCRIPTION_PATTERN =
+const PATTERN_HTML_TITLE = /<title[^>]*>([\s\S]*?)<\/title>/i;
+const PATTERN_HTML_DESCRIPTION =
     /<meta[^>]+name=["']description["'][^>]+content=["']([\s\S]*?)["'][^>]*>/i;
 
 const SmartCollectionDecisionSchema = z.object({
     applyCollectionNames: z
         .array(z.string().trim().min(1))
-        .max(SMART_COLLECTIONS_MAX_APPLY_COLLECTIONS),
+        .max(SMART_COLLECTIONS_APPLY_COLLECTION_COUNT_MAX),
     createCollectionNames: z
-        .array(z.string().trim().min(1).max(COLLECTION_NAME_MAX_LENGTH))
-        .max(SMART_COLLECTIONS_MAX_NEW_COLLECTIONS),
+        .array(z.string().trim().min(1).max(COLLECTION_NAME_LENGTH_MAX))
+        .max(SMART_COLLECTIONS_NEW_COLLECTION_COUNT_MAX),
 });
 
 const smartCollectionDecisionJsonSchema = (() => {
@@ -107,7 +107,7 @@ interface SmartCollectionAttachment {
     protectionText?: string;
 }
 
-interface SmartCollectionsModelErrorInfo {
+interface SmartCollectionModelErrorInfo {
     details?: unknown;
     message: string;
     status: number | null;
@@ -117,12 +117,12 @@ function resolveGeminiApiKey(): string | null {
     return serverEnv.GEMINI_API_KEY ?? null;
 }
 
-function resolveSmartCollectionsModels(): string[] {
+function resolveSmartCollectionModels(): string[] {
     return [
         ...new Set(
             [
-                SMART_COLLECTIONS_DEFAULT_MODEL,
-                ...SMART_COLLECTIONS_FALLBACK_MODELS,
+                SMART_COLLECTIONS_MODEL_DEFAULT,
+                ...SMART_COLLECTIONS_MODELS_FALLBACK,
             ].filter((model): model is string =>
                 Boolean(model && model.length > 0)
             )
@@ -130,9 +130,9 @@ function resolveSmartCollectionsModels(): string[] {
     ];
 }
 
-function getSmartCollectionsModelErrorInfo(
+function getSmartCollectionModelErrorInfo(
     error: unknown
-): SmartCollectionsModelErrorInfo {
+): SmartCollectionModelErrorInfo {
     if (error instanceof ApiError) {
         return {
             message: error.message,
@@ -171,7 +171,7 @@ function normalizeMimeType(value: string | null | undefined): string | null {
     return normalized && normalized.length > 0 ? normalized : null;
 }
 
-const MIME_TYPE_TO_EXTENSION: Record<string, string> = {
+const EXTENSION_BY_MIME_TYPE: Record<string, string> = {
     "application/json": ".json",
     "application/pdf": ".pdf",
     "application/xml": ".xml",
@@ -189,7 +189,7 @@ const MIME_TYPE_TO_EXTENSION: Record<string, string> = {
     "video/webm": ".webm",
 };
 
-const EXTENSION_TO_MIME_TYPE: Record<string, string> = {
+const MIME_TYPE_BY_EXTENSION: Record<string, string> = {
     ".avif": "image/avif",
     ".csv": "text/csv",
     ".gif": "image/gif",
@@ -212,20 +212,19 @@ const EXTENSION_TO_MIME_TYPE: Record<string, string> = {
 function inferMimeTypeFromUrl(url: string): string | null {
     try {
         const extension = extname(new URL(url).pathname).toLocaleLowerCase();
-        return EXTENSION_TO_MIME_TYPE[extension] ?? null;
+        return MIME_TYPE_BY_EXTENSION[extension] ?? null;
     } catch {
         return null;
     }
 }
 
-function tempExtensionForMimeType(mimeType: string): string {
-    return MIME_TYPE_TO_EXTENSION[mimeType] ?? ".bin";
+function extensionForMimeType(mimeType: string): string {
+    return EXTENSION_BY_MIME_TYPE[mimeType] ?? ".bin";
 }
 
 function extractHtmlContent(input: string): string {
-    const title = input.match(HTML_TITLE_PATTERN)?.[1]?.trim() ?? "";
-    const description =
-        input.match(HTML_DESCRIPTION_PATTERN)?.[1]?.trim() ?? "";
+    const title = input.match(PATTERN_HTML_TITLE)?.[1]?.trim();
+    const description = input.match(PATTERN_HTML_DESCRIPTION)?.[1]?.trim();
     const body = input
         .replace(/<script[\s\S]*?<\/script>/gi, " ")
         .replace(/<style[\s\S]*?<\/style>/gi, " ")
@@ -338,7 +337,7 @@ function buildPrompt(
         "Always return both arrays, even when they are empty.",
         "Use applyCollectionNames only for exact matches from AVAILABLE_COLLECTIONS.",
         "Prefer existing collections over creating new ones.",
-        `Choose at most ${SMART_COLLECTIONS_MAX_APPLY_COLLECTIONS} existing collections and at most ${SMART_COLLECTIONS_MAX_NEW_COLLECTIONS} new collections.`,
+        `Choose at most ${SMART_COLLECTIONS_APPLY_COLLECTION_COUNT_MAX} existing collections and at most ${SMART_COLLECTIONS_NEW_COLLECTION_COUNT_MAX} new collections.`,
         "Create a new collection only if it is clearly reusable for future items and not a near-duplicate of an existing collection.",
         "Avoid vague names like Misc, Random, or Interesting.",
         "",
@@ -347,14 +346,12 @@ function buildPrompt(
         `Item caption: ${item.caption ?? "None"}`,
         `Item preview URL: ${toUsableStaticPreviewUrl(item.preview?.staticImageUrl) ?? item.preview?.videoPreviewUrl ?? "None"}`,
         `Already assigned collections: ${currentCollectionNames.length > 0 ? currentCollectionNames.join(", ") : "None"}`,
-        sourceMetadata.length > 0
-            ? `Item source metadata: ${sourceMetadata}`
-            : "",
+        sourceMetadata && `Item source metadata: ${sourceMetadata}`,
         "",
         "AVAILABLE_COLLECTIONS:",
         JSON.stringify(collectionCatalog),
     ]
-        .filter((segment) => segment.length > 0)
+        .filter(Boolean)
         .join("\n");
 }
 
@@ -380,13 +377,14 @@ async function downloadRemoteAsset(
             return null;
         }
 
+        const resolvedUrl = response.url || url;
         const mimeType =
             normalizeMimeType(response.headers.get("content-type")) ??
-            inferMimeTypeFromUrl(response.url || url) ??
+            inferMimeTypeFromUrl(resolvedUrl) ??
             "application/octet-stream";
         const filePath = join(
             /* turbopackIgnore: true */ tmpdir(),
-            `cache-smart-collections-${randomUUID()}${tempExtensionForMimeType(mimeType)}`
+            `cache-smart-collections-${randomUUID()}${extensionForMimeType(mimeType)}`
         );
         const fileHandle = await open(
             /* turbopackIgnore: true */ filePath,
@@ -407,7 +405,7 @@ async function downloadRemoteAsset(
                 }
 
                 downloadedBytes += value.byteLength;
-                if (downloadedBytes > SMART_COLLECTIONS_MAX_DOWNLOAD_BYTES) {
+                if (downloadedBytes > SMART_COLLECTIONS_DOWNLOAD_BYTES_MAX) {
                     await reader.cancel(
                         "Smart collections asset exceeded the maximum download size."
                     );
@@ -432,7 +430,7 @@ async function downloadRemoteAsset(
             },
             mimeType,
             path: filePath,
-            sourceUrl: response.url || url,
+            sourceUrl: resolvedUrl,
         };
     } catch {
         return null;
@@ -462,7 +460,7 @@ async function waitForGeminiFile(
     let currentFile = file;
     for (
         let attempt = 0;
-        attempt < SMART_COLLECTIONS_FILE_READY_ATTEMPTS;
+        attempt < SMART_COLLECTIONS_FILE_READY_ATTEMPT_COUNT_MAX;
         attempt += 1
     ) {
         if (
@@ -616,12 +614,12 @@ async function createAttachmentForItem(
                 return {
                     parts: [
                         createPartFromText(
-                            `Attached textual content (truncated if necessary):\n${extractedText.slice(0, SMART_COLLECTIONS_MAX_TEXT_LENGTH)}`
+                            `Attached textual content (truncated if necessary):\n${extractedText.slice(0, SMART_COLLECTIONS_TEXT_LENGTH_MAX)}`
                         ),
                     ],
                     protectionText: extractedText.slice(
                         0,
-                        SMART_COLLECTIONS_MAX_TEXT_LENGTH
+                        SMART_COLLECTIONS_TEXT_LENGTH_MAX
                     ),
                 };
             } catch {
@@ -670,20 +668,16 @@ async function decideCollectionsForItem(
     const protectionPrompt = [promptText, attachment?.protectionText]
         .filter((segment) => segment && segment.length > 0)
         .join("\n\n");
-    const contentVariants = [
-        ...(attachment
-            ? [
-                  {
-                      contents: [prompt, ...attachment.parts],
-                      label: "with_attachment",
-                  },
-              ]
-            : []),
-        {
-            contents: [prompt],
-            label: "metadata_only",
-        },
+
+    const contentVariants: Array<{ contents: Part[]; label: string }> = [
+        { contents: [prompt], label: "metadata_only" },
     ];
+    if (attachment) {
+        contentVariants.unshift({
+            contents: [prompt, ...attachment.parts],
+            label: "with_attachment",
+        });
+    }
 
     try {
         await protectGenAiRequest({
@@ -696,7 +690,7 @@ async function decideCollectionsForItem(
             userId,
         });
 
-        for (const model of resolveSmartCollectionsModels()) {
+        for (const model of resolveSmartCollectionModels()) {
             for (const variant of contentVariants) {
                 try {
                     const response = await ai.models.generateContent({
@@ -737,7 +731,7 @@ async function decideCollectionsForItem(
                         JSON.parse(responseText)
                     );
                 } catch (error) {
-                    const errorInfo = getSmartCollectionsModelErrorInfo(error);
+                    const errorInfo = getSmartCollectionModelErrorInfo(error);
 
                     log.warn("Smart collections decision attempt failed", {
                         details: errorInfo.details,
@@ -784,21 +778,23 @@ async function applyDecisionToItem(args: {
         args.collections.map((collection) => [collection.nameKey, collection])
     );
     const desiredCollectionIds = new Set<string>();
-    const normalizedNewCollectionNames = [
-        ...new Map(
-            args.decision.createCollectionNames
-                .map((name) =>
-                    normalizeCollectionName(
-                        name.slice(0, COLLECTION_NAME_MAX_LENGTH)
-                    )
-                )
-                .filter((collection) => collection.name.length > 0)
-                .map((collection) => [collection.nameKey, collection])
-        ).values(),
-    ];
 
-    for (const collectionName of args.decision.applyCollectionNames) {
-        const normalized = normalizeCollectionName(collectionName);
+    const normalizedNewNamesByKey = new Map(
+        args.decision.createCollectionNames
+            .map((name) =>
+                normalizeCollectionName(
+                    name.slice(0, COLLECTION_NAME_LENGTH_MAX)
+                )
+            )
+            .filter((normalized) => normalized.name.length > 0)
+            .map((normalized) => [normalized.nameKey, normalized])
+    );
+    const normalizedNewCollectionNames = Array.from(
+        normalizedNewNamesByKey.values()
+    );
+
+    for (const name of args.decision.applyCollectionNames) {
+        const normalized = normalizeCollectionName(name);
         const match = collectionsByNameKey.get(normalized.nameKey);
         if (match) {
             desiredCollectionIds.add(match.id);
@@ -808,11 +804,11 @@ async function applyDecisionToItem(args: {
     const createdCollections = await prisma.$transaction(async (tx) => {
         const upsertedCollections: SmartCollectionCatalogEntry[] = [];
 
-        for (const nextCollection of normalizedNewCollectionNames) {
+        for (const newCollection of normalizedNewCollectionNames) {
             const collection = await tx.collection.upsert({
                 create: {
-                    name: nextCollection.name,
-                    nameKey: nextCollection.nameKey,
+                    name: newCollection.name,
+                    nameKey: newCollection.nameKey,
                     userId: args.userId,
                 },
                 select: {
@@ -824,7 +820,7 @@ async function applyDecisionToItem(args: {
                 update: {},
                 where: {
                     userId_nameKey: {
-                        nameKey: nextCollection.nameKey,
+                        nameKey: newCollection.nameKey,
                         userId: args.userId,
                     },
                 },
@@ -860,10 +856,7 @@ async function applyDecisionToItem(args: {
             ]),
         ];
 
-        if (
-            nextCollectionIds.length !== item.collections.length &&
-            nextCollectionIds.length > 0
-        ) {
+        if (nextCollectionIds.length > item.collections.length) {
             await tx.libraryItem.update({
                 data: {
                     collections: {

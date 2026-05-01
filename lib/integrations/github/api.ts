@@ -1,3 +1,5 @@
+import "server-only";
+
 import { IntegrationApiError } from "@/lib/integrations/error";
 import {
     asProviderPayloadRecord,
@@ -6,7 +8,6 @@ import {
     readPayloadString,
 } from "@/lib/integrations/provider-payload";
 import type { Prisma } from "@/prisma/client/client";
-import "server-only";
 
 const GITHUB_API_BASE_URL = "https://api.github.com";
 const GITHUB_PAGE_SIZE = 100;

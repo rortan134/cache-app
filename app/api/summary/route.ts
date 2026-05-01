@@ -6,105 +6,88 @@ import {
     protectGenAiRequest,
 } from "@/lib/collections/intelligence/protection";
 import {
+    buildSummaryPrompt,
+    normalizeSummary,
+    SECTION_DESCRIPTION_FALLBACK_TEXT,
     SectionDescriptionRequestSchema,
-    type SectionDescriptionRequest,
+    truncateSummaryContextItems,
 } from "@/lib/collections/intelligence/summary";
 import { createLogger } from "@/lib/common/logs/console/logger";
-import { ApiError, GoogleGenAI } from "@google/genai";
+import { ApiError, GoogleGenAI, Type } from "@google/genai";
 import { headers } from "next/headers";
 
-const log = createLogger("api:library:section-description");
-const SECTION_DESCRIPTION_MODEL = "gemini-2.5-flash-lite";
-const SECTION_DESCRIPTION_OUTPUT_TOKEN_LIMIT = 96;
-const SECTION_DESCRIPTION_TIMEOUT_MS = 12_000;
-const SECTION_DESCRIPTION_RESPONSE_MAX_LENGTH = 220;
-const SECTION_DESCRIPTION_FALLBACK_TEXT =
-    "A brief summary is unavailable right now.";
-const SECTION_DESCRIPTION_DISALLOWED_START_PATTERN =
-    /^(?:this\s+(?:library|collection|section)\s+contains|these\s+items|the\s+items)\b/i;
-const SECTION_DESCRIPTION_DISALLOWED_PLATFORM_PATTERN =
-    /\b(?:youtube|x|twitter|instagram|pinterest|github|google\s+photos|chrome\s+bookmarks?)\b/i;
-const SECTION_DESCRIPTION_DISALLOWED_COUNT_PATTERN =
-    /\b(?:\d+|one|two|three|four|five|six|seven|eight|nine|ten|dozen|several|many|multiple)\s+(?:saved\s+)?(?:items?|entries|bookmarks?|results|links?)\b/i;
-const SECTION_DESCRIPTION_FIRST_SENTENCE_PATTERN = /^.+?[.!?](?=\s|$)/;
-const SECTION_DESCRIPTION_WHITESPACE_PATTERN = /\s+/g;
-const SECTION_DESCRIPTION_SUMMARY_PREFIX_PATTERN = /^summary:\s*/i;
-const SECTION_DESCRIPTION_SURROUNDING_QUOTES_PATTERN = /^["']|["']$/g;
+const log = createLogger("api:library:summary");
 
-function buildPrompt({
-    items,
-    sectionTitle,
-}: SectionDescriptionRequest): string {
-    return [
-        `Section title: ${sectionTitle}`,
-        "Write one brief sentence that summarizes the shared themes and intent.",
-        "Output rules:",
-        "- Return only the summary sentence and nothing else.",
-        "- Keep it high-level, neutral, and easy to skim.",
-        "- Keep it under 22 words.",
-        "- Do not mention counts, totals, quantities, or how many entries exist.",
-        "- Do not mention source platforms or platform names.",
-        '- Do not start with: "This library contains", "This collection contains", "This section contains", "These items", or "The items".',
-        "- Do not use markdown, bullets, headings, labels, or code fences.",
-        "",
-        "Item context JSON:",
-        JSON.stringify(
-            {
-                items,
-            },
-            null,
-            2
-        ),
-    ].join("\n");
-}
-function firstSentence(value: string): string {
-    const match = value.match(SECTION_DESCRIPTION_FIRST_SENTENCE_PATTERN);
-    return match?.[0]?.trim() ?? value.trim();
-}
+const MODEL = "gemini-2.5-flash-lite";
+const OUTPUT_TOKEN_LIMIT = 96;
+const TIMEOUT_MS = 12_000;
 
-function hasDisallowedSummaryContent(value: string): boolean {
-    return (
-        SECTION_DESCRIPTION_DISALLOWED_START_PATTERN.test(value) ||
-        SECTION_DESCRIPTION_DISALLOWED_PLATFORM_PATTERN.test(value) ||
-        SECTION_DESCRIPTION_DISALLOWED_COUNT_PATTERN.test(value)
-    );
-}
-
-function normalizeSummary(value: string | undefined): string | null {
-    const normalized = value
-        ?.replace(SECTION_DESCRIPTION_WHITESPACE_PATTERN, " ")
-        .replace(SECTION_DESCRIPTION_SUMMARY_PREFIX_PATTERN, "")
-        .trim();
-    const singleSentence = firstSentence(normalized ?? "");
-    const cleaned = singleSentence
-        .replace(SECTION_DESCRIPTION_SURROUNDING_QUOTES_PATTERN, "")
-        .trim();
-
-    if (hasDisallowedSummaryContent(cleaned)) {
-        return null;
-    }
-    if (cleaned.length === 0) {
-        return null;
-    }
-    if (cleaned.length <= SECTION_DESCRIPTION_RESPONSE_MAX_LENGTH) {
-        return cleaned;
-    }
-
-    const truncated = `${cleaned.slice(0, SECTION_DESCRIPTION_RESPONSE_MAX_LENGTH - 3).trimEnd()}...`;
-    if (hasDisallowedSummaryContent(truncated)) {
-        return null;
-    }
-    return truncated;
-}
-
-function modelErrorMessage(error: unknown): string {
+/**
+ * Classifies API errors into specific HTTP status codes and messages.
+ *
+ * Distinguishes timeouts, quota issues, safety blocks, and upstream failures
+ * so the client can react appropriately.
+ */
+function classifyApiError(error: unknown): { message: string; status: number } {
     if (error instanceof ApiError) {
-        return error.message;
+        const message = error.message.toLowerCase();
+
+        if (
+            message.includes("timeout") ||
+            message.includes("deadline exceeded")
+        ) {
+            return {
+                message: "Request timed out. Please try again.",
+                status: 408,
+            };
+        }
+        if (
+            error.status === 429 ||
+            message.includes("quota") ||
+            message.includes("rate limit")
+        ) {
+            return {
+                message: "AI service quota exceeded. Please try again later.",
+                status: 429,
+            };
+        }
+        if (
+            error.status === 400 &&
+            (message.includes("safety") || message.includes("content"))
+        ) {
+            return {
+                message:
+                    "Content could not be processed due to safety settings.",
+                status: 400,
+            };
+        }
+        if (error.status >= 500) {
+            return {
+                message: "AI service temporarily unavailable.",
+                status: 502,
+            };
+        }
+
+        return {
+            message: error.message,
+            status: error.status ?? 500,
+        };
     }
+
     if (error instanceof Error) {
-        return error.message;
+        const message = error.message.toLowerCase();
+        if (message.includes("timeout") || message.includes("abort")) {
+            return {
+                message: "Request timed out. Please try again.",
+                status: 408,
+            };
+        }
     }
-    return "Unknown error";
+
+    return {
+        message: "Unknown error",
+        status: 500,
+    };
 }
 
 export async function POST(request: Request): Promise<Response> {
@@ -134,44 +117,97 @@ export async function POST(request: Request): Promise<Response> {
     }
 
     const { items, sectionTitle } = parsedBody.data;
-    const prompt = buildPrompt(parsedBody.data);
+
+    // Truncate items if needed to stay within the model's prompt token budget
+    const truncatedRequest = truncateSummaryContextItems(parsedBody.data);
+    const prompt = buildSummaryPrompt(truncatedRequest);
+    const estimatedTokens = estimateGenAiTokens(prompt, OUTPUT_TOKEN_LIMIT);
+
+    log.debug("Generating section description", {
+        estimatedTokens,
+        itemCount: items.length,
+        sectionTitle,
+        truncatedItemCount: truncatedRequest.items.length,
+        userId: session.user.id,
+    });
+
+    const span = log.time("generate-section-description", {
+        itemCount: items.length,
+        sectionTitle,
+        userId: session.user.id,
+    });
 
     try {
         await protectGenAiRequest({
             feature: "section_description",
             prompt,
             request,
-            requestedTokens: estimateGenAiTokens(
-                prompt,
-                SECTION_DESCRIPTION_OUTPUT_TOKEN_LIMIT
-            ),
+            requestedTokens: estimatedTokens,
             userId: session.user.id,
         });
 
         const ai = new GoogleGenAI({
             apiKey: serverEnv.GEMINI_API_KEY,
         });
+
         const modelResponse = await ai.models.generateContent({
             config: {
                 httpOptions: {
                     retryOptions: {
                         attempts: 2,
                     },
-                    timeout: SECTION_DESCRIPTION_TIMEOUT_MS,
+                    timeout: TIMEOUT_MS,
                 },
-                maxOutputTokens: SECTION_DESCRIPTION_OUTPUT_TOKEN_LIMIT,
+                maxOutputTokens: OUTPUT_TOKEN_LIMIT,
+                responseMimeType: "application/json",
+                responseSchema: {
+                    description:
+                        "A single-sentence summary of the shared themes across the provided items.",
+                    properties: {
+                        summary: {
+                            description:
+                                "One brief sentence summarizing the shared themes and intent. Plain text only, no markdown, no item counts, no platform names, no quotes.",
+                            maxLength: "220",
+                            type: Type.STRING,
+                        },
+                    },
+                    required: ["summary"],
+                    type: Type.OBJECT,
+                },
                 systemInstruction:
                     "You write one-sentence UI summaries. Return plain text only, with no preamble. Never mention item counts or platform names, and avoid stock lead-ins.",
                 temperature: 0.2,
             },
             contents: prompt,
-            model: SECTION_DESCRIPTION_MODEL,
+            model: MODEL,
         });
 
+        let rawSummary: string | undefined;
+        try {
+            const parsed = JSON.parse(modelResponse.text ?? "{}");
+            rawSummary =
+                typeof parsed.summary === "string" ? parsed.summary : undefined;
+        } catch {
+            // Fallback to treating raw text as summary if JSON parsing fails
+            rawSummary = modelResponse.text ?? undefined;
+        }
+
+        const summary = normalizeSummary(rawSummary);
+
+        if (!summary) {
+            log.warn(
+                "Section description normalization rejected model output",
+                {
+                    itemCount: items.length,
+                    rawSummary: modelResponse.text,
+                    sectionTitle,
+                    userId: session.user.id,
+                }
+            );
+        }
+
         return Response.json({
-            summary:
-                normalizeSummary(modelResponse.text) ??
-                SECTION_DESCRIPTION_FALLBACK_TEXT,
+            summary: summary ?? SECTION_DESCRIPTION_FALLBACK_TEXT,
         });
     } catch (error) {
         if (error instanceof GenAiProtectionError) {
@@ -185,17 +221,24 @@ export async function POST(request: Request): Promise<Response> {
             );
         }
 
-        const message = modelErrorMessage(error);
+        const { message, status } = classifyApiError(error);
 
         log.warn("Failed to generate library section description", {
             error: message,
             itemCount: items.length,
             sectionTitle,
+            status,
             userId: session.user.id,
         });
 
-        return Response.json({
-            summary: SECTION_DESCRIPTION_FALLBACK_TEXT,
-        });
+        return Response.json(
+            {
+                error: message,
+                summary: SECTION_DESCRIPTION_FALLBACK_TEXT,
+            },
+            { status }
+        );
+    } finally {
+        span.stop();
     }
 }

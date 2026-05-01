@@ -22,7 +22,7 @@ const CollectionShareInputSchema = z.object({
     collectionId: z.string().trim().min(1, "Select a collection to share."),
 });
 
-export type ShareCollectionPubliclyResult =
+export type CollectionPublicShareResult =
     | {
           collection: SharedLibraryCollectionTag;
           shareUrl: string;
@@ -33,7 +33,7 @@ export type ShareCollectionPubliclyResult =
           status: "ERROR" | "INVALID" | "NOT_FOUND" | "UNAUTHORIZED";
       };
 
-export type DisableCollectionPublicShareResult =
+export type CollectionPublicShareDisableResult =
     | {
           collection: LibraryCollectionTag;
           status: "DISABLED";
@@ -45,7 +45,7 @@ export type DisableCollectionPublicShareResult =
 
 export async function shareCollectionPublicly(input: {
     collectionId: string;
-}): Promise<ShareCollectionPubliclyResult> {
+}): Promise<CollectionPublicShareResult> {
     const parsed = CollectionShareInputSchema.safeParse(input);
     if (!parsed.success) {
         return {
@@ -88,7 +88,7 @@ export async function shareCollectionPublicly(input: {
 
 export async function disableCollectionSharing(input: {
     collectionId: string;
-}): Promise<DisableCollectionPublicShareResult> {
+}): Promise<CollectionPublicShareDisableResult> {
     const parsed = CollectionShareInputSchema.safeParse(input);
     if (!parsed.success) {
         return {

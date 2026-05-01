@@ -6,15 +6,15 @@ import type { Prisma } from "@/prisma/client/client";
 import type { LibraryItemSource } from "@/prisma/client/enums";
 import * as z from "zod";
 
-export const COLLECTION_NAME_MAX_LENGTH = 64;
+export const COLLECTION_NAME_LENGTH_MAX = 64;
 
 export const collectionNameSchema = z
     .string()
     .trim()
     .min(1, "Enter a collection name.")
     .max(
-        COLLECTION_NAME_MAX_LENGTH,
-        `Collection names can be up to ${COLLECTION_NAME_MAX_LENGTH} characters.`
+        COLLECTION_NAME_LENGTH_MAX,
+        `Collection names can be up to ${COLLECTION_NAME_LENGTH_MAX} characters.`
     );
 
 export const LIBRARY_COLLECTION_TAG_SELECT = {
@@ -42,7 +42,7 @@ export function uniqueStrings(values: string[]): string[] {
     return Array.from(new Set(values));
 }
 
-interface LibraryCollectionTagRecord {
+export interface LibraryCollectionTagRecord {
     createdAt: Date;
     description: string | null;
     id: string;
@@ -53,7 +53,8 @@ interface LibraryCollectionTagRecord {
     updatedAt: Date;
 }
 
-interface LibraryCollectionSummaryRecord extends LibraryCollectionTagRecord {
+export interface LibraryCollectionSummaryRecord
+    extends LibraryCollectionTagRecord {
     _count: {
         items: number;
     };
@@ -87,5 +88,17 @@ export function toLibraryCollectionSummary(
         sources: Array.from(
             new Set(collection.items.map((item) => item.source))
         ),
+    };
+}
+
+export function toLibraryCollectionSummaryFromTagRecord(
+    collection: LibraryCollectionTagRecord,
+    items: Array<{ source: LibraryItemSource }>
+): LibraryCollectionSummary {
+    return {
+        ...toLibraryCollectionTag(collection),
+        description: collection.description,
+        itemCount: items.length,
+        sources: Array.from(new Set(items.map((item) => item.source))),
     };
 }

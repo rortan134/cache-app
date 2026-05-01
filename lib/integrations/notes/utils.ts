@@ -1,3 +1,4 @@
+import { isRecord } from "@/lib/common/objects";
 import { decodeHtmlEntities } from "@/lib/common/strings";
 import type { SerializedHeadingNode } from "@lexical/rich-text";
 import {
@@ -60,10 +61,6 @@ function escapeNoteHtml(value: string): string {
         .replaceAll(">", "&gt;")
         .replaceAll('"', "&quot;")
         .replaceAll("'", "&#39;");
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-    return typeof value === "object" && value !== null;
 }
 
 function isNoteSerializedElementNode(
@@ -236,7 +233,6 @@ export function sanitizeNoteHtml(input: string): string {
 
     const normalizedParagraphs = sanitized
         .replaceAll(/\r\n?/g, "\n")
-        .replaceAll(/<p><\/p>/gi, "")
         .replaceAll(NOTE_EMPTY_PARAGRAPHS, "")
         .trim();
 

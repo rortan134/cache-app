@@ -1,10 +1,11 @@
+import "server-only";
+
 import { IntegrationApiError } from "@/lib/integrations/error";
 import {
     asProviderPayloadRecord,
     readPayloadDate,
     readPayloadString,
 } from "@/lib/integrations/provider-payload";
-import "server-only";
 
 const PINTEREST_API_BASE_URL = "https://api.pinterest.com/v5";
 const PINTEREST_PAGE_SIZE = 100;

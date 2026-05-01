@@ -1,5 +1,6 @@
 import "server-only";
 
+import { chunkArray } from "@/lib/common/arrays";
 import { DEFAULT_BROWSER_PROFILE_ID } from "@/lib/integrations/browser-profiles";
 import {
     buildLibraryItemCreateData,
@@ -14,6 +15,10 @@ import type { LibraryItemSource } from "@/prisma/client/enums";
 const SNAPSHOT_UPSERT_BATCH_SIZE = 50;
 const SNAPSHOT_IMPORT_TRANSACTION_TIMEOUT_MS = 60_000;
 const SNAPSHOT_IMPORT_TRANSACTION_MAX_WAIT_MS = 10_000;
+
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
 
 interface SnapshotImportItemInput {
     browserProfileId?: string;
@@ -42,7 +47,10 @@ type LibraryItemDelegate = Pick<
     "deleteMany" | "findMany" | "upsert"
 >;
 
-/** @internal */
+// ---------------------------------------------------------------------------
+// Internal helpers
+// ---------------------------------------------------------------------------
+
 function normalizeSnapshotRow(
     source: LibraryItemSource,
     item: SnapshotImportItemInput
@@ -63,7 +71,6 @@ function normalizeSnapshotRow(
     });
 }
 
-/** @internal */
 function groupRowsByProfile(rows: LibraryItemImportRow[]) {
     const grouped = new Map<string, Map<string, LibraryItemImportRow>>();
 
@@ -82,16 +89,6 @@ function groupRowsByProfile(rows: LibraryItemImportRow[]) {
     return grouped;
 }
 
-/** @internal */
-function chunkRows<T>(rows: readonly T[], size: number): T[][] {
-    const chunks: T[][] = [];
-    for (let index = 0; index < rows.length; index += size) {
-        chunks.push(rows.slice(index, index + size));
-    }
-    return chunks;
-}
-
-/** @internal */
 async function importSnapshotProfileRows(args: {
     browserProfileId: string;
     libraryItemDelegate: LibraryItemDelegate;
@@ -122,7 +119,7 @@ async function importSnapshotProfileRows(args: {
     const updatedCount = args.rows.length - importedCount;
     const smartCollectionItemIds = new Set<string>();
 
-    for (const batch of chunkRows(args.rows, SNAPSHOT_UPSERT_BATCH_SIZE)) {
+    for (const batch of chunkArray(args.rows, SNAPSHOT_UPSERT_BATCH_SIZE)) {
         const savedRows = await Promise.all(
             batch.map((row) =>
                 args.libraryItemDelegate.upsert({
@@ -188,7 +185,10 @@ async function importSnapshotProfileRows(args: {
     };
 }
 
-/** @public */
+// ---------------------------------------------------------------------------
+// Exports
+// ---------------------------------------------------------------------------
+
 export async function importLibraryItemSnapshot(args: {
     browserProfileIdsToSync?: string[];
     items: SnapshotImportItemInput[];

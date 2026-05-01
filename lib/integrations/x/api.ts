@@ -1,3 +1,5 @@
+import "server-only";
+
 import { IntegrationApiError } from "@/lib/integrations/error";
 import {
     asProviderPayloadRecord,
@@ -7,7 +9,6 @@ import {
     type ProviderPayloadRecord,
 } from "@/lib/integrations/provider-payload";
 import type { Prisma } from "@/prisma/client/client";
-import "server-only";
 
 const X_API_BASE_URL = "https://api.x.com/2";
 const X_BOOKMARKS_PAGE_SIZE = 100;

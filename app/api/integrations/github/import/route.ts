@@ -2,10 +2,10 @@ import { auth } from "@/lib/auth/server";
 import { autoTagLibraryItemsByIds } from "@/lib/collections/intelligence";
 import { IntegrationApiError } from "@/lib/integrations/error";
 import {
-    getGitHubAccountId,
-    importGitHubStarredRepositories,
-} from "@/lib/integrations/github/service";
-import { resolveProviderAccessToken } from "@/lib/integrations/provider-account";
+    getIntegrationAccountId,
+    resolveProviderAccessToken,
+} from "@/lib/integrations/provider-account";
+import { importGitHubStarredRepositories } from "@/lib/integrations/github/service";
 import { headers } from "next/headers";
 import { after } from "next/server";
 
@@ -31,7 +31,7 @@ export async function POST() {
         return Response.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const accountId = await getGitHubAccountId(userId);
+    const accountId = await getIntegrationAccountId(userId, "github");
     if (!accountId) {
         return Response.json(
             { error: "Connect GitHub before importing starred repositories." },

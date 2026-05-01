@@ -13,7 +13,7 @@ import { CollectionShareError } from "./error";
 
 const log = createLogger("collection-sharing:service");
 const COLLECTION_SHARE_ID_LENGTH = 12;
-const COLLECTION_SHARE_ID_ATTEMPTS = 3;
+const COLLECTION_SHARE_ID_ATTEMPT_COUNT_MAX = 3;
 
 interface PublicCollectionShareItem {
     caption: string | null;
@@ -48,7 +48,7 @@ export type SharedLibraryCollectionTag = ReturnType<
     sharedAt: Date;
 };
 
-function findOwnedCollectionTag(args: {
+function findCollectionTagOwned(args: {
     collectionId: string;
     userId: string;
 }) {
@@ -61,12 +61,12 @@ function findOwnedCollectionTag(args: {
     });
 }
 
-async function requireOwnedCollectionTag(args: {
+async function requireCollectionTagOwned(args: {
     collectionId: string;
     operation: string;
     userId: string;
 }) {
-    const collection = await findOwnedCollectionTag(args);
+    const collection = await findCollectionTagOwned(args);
     if (!collection) {
         throw new CollectionShareError({
             code: "not_found",
@@ -77,7 +77,7 @@ async function requireOwnedCollectionTag(args: {
     return collection;
 }
 
-function requireSharedCollectionTag(
+function requireCollectionTagShared(
     collection: ReturnType<typeof toLibraryCollectionTag>,
     operation: string
 ): SharedLibraryCollectionTag {
@@ -107,14 +107,14 @@ export async function enablePublicCollectionShare(input: {
     collectionId: string;
     userId: string;
 }): Promise<SharedLibraryCollectionTag> {
-    const existingCollection = await requireOwnedCollectionTag({
+    const existingCollection = await requireCollectionTagOwned({
         collectionId: input.collectionId,
         operation: "enablePublicCollectionShare",
         userId: input.userId,
     });
 
     if (existingCollection.shareId && existingCollection.sharedAt) {
-        return requireSharedCollectionTag(
+        return requireCollectionTagShared(
             toLibraryCollectionTag(existingCollection),
             "enablePublicCollectionShare"
         );
@@ -122,7 +122,7 @@ export async function enablePublicCollectionShare(input: {
 
     for (
         let attempt = 0;
-        attempt < COLLECTION_SHARE_ID_ATTEMPTS;
+        attempt < COLLECTION_SHARE_ID_ATTEMPT_COUNT_MAX;
         attempt += 1
     ) {
         try {
@@ -143,7 +143,7 @@ export async function enablePublicCollectionShare(input: {
                 userId: input.userId,
             });
 
-            return requireSharedCollectionTag(
+            return requireCollectionTagShared(
                 toLibraryCollectionTag(sharedCollection),
                 "enablePublicCollectionShare"
             );
@@ -167,7 +167,7 @@ export async function disablePublicCollectionShare(input: {
     collectionId: string;
     userId: string;
 }) {
-    const existingCollection = await requireOwnedCollectionTag({
+    const existingCollection = await requireCollectionTagOwned({
         collectionId: input.collectionId,
         operation: "disablePublicCollectionShare",
         userId: input.userId,

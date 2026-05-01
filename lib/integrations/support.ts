@@ -12,6 +12,10 @@ import { CACHE_EXTENSION_DOWNLOAD_URL } from "@/lib/common/constants";
 import { LibraryItemSource } from "@/prisma/client/enums";
 import type { ComponentType, SVGProps } from "react";
 
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
+
 export type IntegrationCategory = "developer" | "media" | "social";
 export type IntegrationDirection = "destination" | "source";
 export type IntegrationIcon = ComponentType<SVGProps<SVGSVGElement>>;
@@ -115,6 +119,10 @@ export interface IntegrationConnectionContext {
     libraryItemSources: Iterable<LibraryItemSource>;
     linkedProviderIds: Iterable<string>;
 }
+
+// ---------------------------------------------------------------------------
+// Constants
+// ---------------------------------------------------------------------------
 
 const LIBRARY_CALLBACK_URL = "/library";
 
@@ -493,6 +501,10 @@ export const LIBRARY_BOOKMARK_SYNC_INTEGRATION_IDS = INTEGRATIONS.filter(
     (item) => item.source?.syncable
 ).map((item) => item.id);
 
+// ---------------------------------------------------------------------------
+// Internal helpers
+// ---------------------------------------------------------------------------
+
 function listDirectionDefinitions(
     integration: SupportedIntegration
 ): IntegrationDirectionDefinition[] {
@@ -515,20 +527,6 @@ function getDirectionDefinition(
         : integration.destination;
 }
 
-function integrationMatchesSignal(
-    signal: IntegrationConnectionSignal,
-    context: {
-        libraryItemSources: Set<LibraryItemSource>;
-        linkedProviderIds: Set<string>;
-    }
-): boolean {
-    if (signal.kind === "library-item-source") {
-        return context.libraryItemSources.has(signal.source);
-    }
-
-    return context.linkedProviderIds.has(signal.providerId);
-}
-
 function buildConnectionSets(context: IntegrationConnectionContext): {
     libraryItemSources: Set<LibraryItemSource>;
     linkedProviderIds: Set<string>;
@@ -544,6 +542,24 @@ function buildConnectionSets(context: IntegrationConnectionContext): {
                 : new Set(context.linkedProviderIds),
     };
 }
+
+function integrationMatchesSignal(
+    signal: IntegrationConnectionSignal,
+    context: {
+        libraryItemSources: Set<LibraryItemSource>;
+        linkedProviderIds: Set<string>;
+    }
+): boolean {
+    if (signal.kind === "library-item-source") {
+        return context.libraryItemSources.has(signal.source);
+    }
+
+    return context.linkedProviderIds.has(signal.providerId);
+}
+
+// ---------------------------------------------------------------------------
+// Exports
+// ---------------------------------------------------------------------------
 
 export function isIntegrationId(value: unknown): value is IntegrationId {
     return (

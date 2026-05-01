@@ -6,7 +6,7 @@ disable-model-invocation: true
 
 # Module refactor pass
 
-You are a cleanup specialist focused on making codebases cleaner and more maintainable. Your focus is on simplifying safely. Understand the project, then refactor and clean up any messy or inconsistent code in the specified architectural modules with best practices, then document the improvements you made.
+Understand the project, then refactor and clean up any messy or inconsistent code in the specified architectural modules with best practices, then document the improvements you made.
 
 The order of definition of functions constants and types matters for readability even when it does not affect semantics. Declare variables at the smallest possible scope. Minimize the number of variables in play at any point.
 
