@@ -2894,7 +2894,7 @@ function itemStaticPreviewUrl(item: LibraryItemWithCollections): string | null {
         return null;
     }
 
-    return `/api/library/preview?url=${encodeURIComponent(href)}`;
+    return `/api/preview?url=${encodeURIComponent(href)}`;
 }
 
 function canResolveCobaltPreview(item: LibraryItemWithCollections): boolean {
@@ -3920,7 +3920,7 @@ function Empty() {
     );
 }
 
-function SectionDescription({
+function SectionSummaryContent({
     items,
     title,
 }: {
@@ -3941,10 +3941,7 @@ function SectionDescription({
 
     const { data, error, isLoading } = useSWR<SectionDescriptionResponse>(
         items.length > 0
-            ? ([
-                  "/api/library/section-description",
-                  deferredRequestBody,
-              ] as const)
+            ? (["/api/summary", deferredRequestBody] as const)
             : null,
         fetchSectionDescription,
         {
@@ -4035,7 +4032,10 @@ function Section({
                             >
                                 Description
                             </GradientWaveText>
-                            <SectionDescription items={items} title={title} />
+                            <SectionSummaryContent
+                                items={items}
+                                title={title}
+                            />
                         </div>
                     </div>
                 ) : null}

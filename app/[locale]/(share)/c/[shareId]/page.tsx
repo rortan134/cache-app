@@ -57,7 +57,7 @@ function getSharedItemPreviewImageUrl(
         return null;
     }
 
-    return `/api/library/preview?url=${encodeURIComponent(href)}`;
+    return `/api/preview?url=${encodeURIComponent(href)}`;
 }
 
 export async function generateMetadata(
