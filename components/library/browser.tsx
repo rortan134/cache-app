@@ -114,8 +114,8 @@ import {
 } from "@/lib/collections/intelligence/summary";
 import {
     deleteLibraryItem,
-    type LibraryItemDeleteResult,
     type LibraryItemCollectionsUpdateResult,
+    type LibraryItemDeleteResult,
     type LibraryItemsCollectionsUpdateResult,
 } from "@/lib/collections/items";
 import {
@@ -193,6 +193,7 @@ import {
     Layers3,
     LinkIcon,
     ListChevronsUpDown,
+    MessageCircleQuestionMark,
     NotebookPenIcon,
     Plus,
     RotateCcw,
@@ -3975,7 +3976,7 @@ function SectionSummaryContent({
 
     const summary = data?.summary?.trim();
     return (
-        <p className="fade-in-0 block w-full animate-in text-xs leading-snug motion-reduce:animate-none">
+        <span className="fade-in-0 block w-full animate-in text-xs leading-snug motion-reduce:animate-none">
             {summary && summary.length > 0
                 ? summary
                 : SECTION_DESCRIPTION_FALLBACK_TEXT}{" "}
@@ -3987,7 +3988,16 @@ function SectionSummaryContent({
                 More&nbsp;
                 <ListChevronsUpDown className="inline-block size-3.5" />
             </Button>
-        </p>
+            or
+            <Button
+                className="h-fit! text-xs leading-snug sm:text-xs"
+                size="xs"
+                variant="link"
+            >
+                Ask a question&nbsp;
+                <MessageCircleQuestionMark className="inline-block size-3.5" />
+            </Button>
+        </span>
     );
 }
 
