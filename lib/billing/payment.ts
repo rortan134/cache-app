@@ -77,12 +77,14 @@ export async function createStripeCheckoutSession({
     successUrl,
     cancelUrl,
     metadata = {},
+    mode = "subscription",
 }: {
     customerId: string;
     priceId: string;
     successUrl: string;
     cancelUrl: string;
     metadata?: Record<string, string>;
+    mode?: "subscription" | "payment";
 }) {
     const session = await withStripe((stripe) =>
         stripe.checkout.sessions.create({
@@ -95,7 +97,7 @@ export async function createStripeCheckoutSession({
                 },
             ],
             metadata,
-            mode: "payment",
+            mode,
             success_url: successUrl,
         })
     );
@@ -135,31 +137,4 @@ export async function createBillingPortalSession({
     }
 
     return { url: session.url };
-}
-
-export async function cancelSubscription(customerId?: string) {
-    if (!customerId) {
-        return;
-    }
-
-    return await withStripe(async (stripe) => {
-        const { data: subscriptions } = await stripe.subscriptions.list({
-            customer: customerId,
-        });
-        const subscriptionId = subscriptions[0]?.id;
-
-        if (!subscriptionId) {
-            throw new StripeError({
-                message: "Subscription not found",
-                operation: "payment::cancelSubscription",
-            });
-        }
-
-        return stripe.subscriptions.update(subscriptionId, {
-            cancel_at_period_end: true,
-            cancellation_details: {
-                comment: "Customer deleted their workspace.",
-            },
-        });
-    });
 }

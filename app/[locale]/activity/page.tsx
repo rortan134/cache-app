@@ -6,6 +6,7 @@ import {
 } from "@/components/auth/user-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { ActivePathname } from "@/components/ui/active-pathname";
 import { PageShell } from "@/components/ui/page-shell";
 import {
     Sidebar,
@@ -13,6 +14,7 @@ import {
     SidebarHeader,
     SidebarItem,
 } from "@/components/ui/sidebar";
+import Link from "next/link";
 import { getServerSession } from "@/lib/auth/server";
 import { cn } from "@/lib/common/cn";
 import { parseDisplayUrl } from "@/lib/common/url";
@@ -32,6 +34,7 @@ import {
     ExternalLink,
     FolderPlus,
     GitBranch,
+    House,
     Link2,
     Share2,
     Sparkles,
@@ -522,22 +525,42 @@ export default async function ActivityPage({
                             <UserMenuFooter />
                         </UserMenu>
                         <SidebarGroup>
-                            <SidebarItem className="bg-muted opacity-100">
-                                <Activity
-                                    aria-hidden
-                                    className="inline-block size-4 shrink-0"
-                                    focusable="false"
-                                />
-                                <span>Activity</span>
-                            </SidebarItem>
-                            <SidebarItem>
-                                <BookmarkCheck
-                                    aria-hidden
-                                    className="inline-block size-4 shrink-0"
-                                    focusable="false"
-                                />
-                                <span>Review</span>
-                            </SidebarItem>
+                            <Link className="contents" href="/library">
+                                <ActivePathname href="/library">
+                                    <SidebarItem>
+                                        <House
+                                            aria-hidden
+                                            className="inline-block size-4 shrink-0"
+                                            focusable="false"
+                                        />
+                                        <span>Home</span>
+                                    </SidebarItem>
+                                </ActivePathname>
+                            </Link>
+                            <Link className="contents" href="/activity">
+                                <ActivePathname href="/activity">
+                                    <SidebarItem>
+                                        <Activity
+                                            aria-hidden
+                                            className="inline-block size-4 shrink-0"
+                                            focusable="false"
+                                        />
+                                        <span>Activity</span>
+                                    </SidebarItem>
+                                </ActivePathname>
+                            </Link>
+                            <Link className="contents" href="/review">
+                                <ActivePathname href="/review">
+                                    <SidebarItem>
+                                        <BookmarkCheck
+                                            aria-hidden
+                                            className="inline-block size-4 shrink-0"
+                                            focusable="false"
+                                        />
+                                        <span>Review</span>
+                                    </SidebarItem>
+                                </ActivePathname>
+                            </Link>
                         </SidebarGroup>
                     </SidebarHeader>
                 </Sidebar>

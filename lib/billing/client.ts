@@ -16,14 +16,25 @@ export const getStripeClient = (): Stripe => {
         return stripeInstance;
     }
 
-    if (!process.env.STRIPE_SECRET_KEY) {
+    const key = process.env.STRIPE_SECRET_KEY;
+
+    if (!key) {
         throw new StripeError({
             message: "Stripe disabled: Missing STRIPE_SECRET_KEY",
             operation: "core::getStripeClient",
         });
     }
 
-    stripeInstance = new Stripe(process.env.STRIPE_SECRET_KEY, {
+    if (key.startsWith("sk_live_") && process.env.NODE_ENV !== "production") {
+        throw new StripeError({
+            message:
+                "Live Stripe secret key detected in a non-production environment. " +
+                "Use a test key (sk_test_*) for development and CI.",
+            operation: "core::getStripeClient",
+        });
+    }
+
+    stripeInstance = new Stripe(key, {
         apiVersion: "2026-04-22.dahlia",
         typescript: true,
     });

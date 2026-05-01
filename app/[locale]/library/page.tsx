@@ -17,6 +17,7 @@ import {
 import { WorkspaceProvider } from "@/components/library/workspace-provider";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ChevronDownFilledIcon } from "@/components/ui/icons";
+import { ActivePathname } from "@/components/ui/active-pathname";
 import { PageShell } from "@/components/ui/page-shell";
 import {
     Sidebar,
@@ -24,6 +25,7 @@ import {
     SidebarHeader,
     SidebarItem,
 } from "@/components/ui/sidebar";
+import Link from "next/link";
 import { getServerSession } from "@/lib/auth/server";
 import { userHasActiveSubscription } from "@/lib/auth/subscription-access";
 import {
@@ -206,36 +208,48 @@ export default async function LibraryPage() {
                                 <UserMenuFooter />
                             </UserMenu>
                             <SidebarGroup>
-                                <SidebarItem>
-                                    <House
-                                        aria-hidden
-                                        className="inline-block size-4 shrink-0"
-                                        focusable="false"
-                                    />
-                                    <span>
-                                        <T>Home</T>
-                                    </span>
-                                </SidebarItem>
-                                <SidebarItem>
-                                    <History
-                                        aria-hidden
-                                        className="inline-block size-4 shrink-0"
-                                        focusable="false"
-                                    />
-                                    <span>
-                                        <T>Activity</T>
-                                    </span>
-                                </SidebarItem>
-                                <SidebarItem>
-                                    <BookmarkCheck
-                                        aria-hidden
-                                        className="inline-block size-4 shrink-0"
-                                        focusable="false"
-                                    />
-                                    <span>
-                                        <T>Review</T>
-                                    </span>
-                                </SidebarItem>
+                                <Link className="contents" href="/library">
+                                    <ActivePathname href="/library">
+                                        <SidebarItem>
+                                            <House
+                                                aria-hidden
+                                                className="inline-block size-4 shrink-0"
+                                                focusable="false"
+                                            />
+                                            <span>
+                                                <T>Home</T>
+                                            </span>
+                                        </SidebarItem>
+                                    </ActivePathname>
+                                </Link>
+                                <Link className="contents" href="/activity">
+                                    <ActivePathname href="/activity">
+                                        <SidebarItem>
+                                            <History
+                                                aria-hidden
+                                                className="inline-block size-4 shrink-0"
+                                                focusable="false"
+                                            />
+                                            <span>
+                                                <T>Activity</T>
+                                            </span>
+                                        </SidebarItem>
+                                    </ActivePathname>
+                                </Link>
+                                <Link className="contents" href="/review">
+                                    <ActivePathname href="/review">
+                                        <SidebarItem>
+                                            <BookmarkCheck
+                                                aria-hidden
+                                                className="inline-block size-4 shrink-0"
+                                                focusable="false"
+                                            />
+                                            <span>
+                                                <T>Review</T>
+                                            </span>
+                                        </SidebarItem>
+                                    </ActivePathname>
+                                </Link>
                             </SidebarGroup>
                             <IntegrationsList>
                                 <IntegrationsListTrigger>
