@@ -157,6 +157,7 @@ model LibraryItem {
     scrapedAt        DateTime?
     collections      Collection[]
     activityEvents   LibraryActivityEvent[]
+    reviewedAt       DateTime?
     createdAt        DateTime            @default(now())
     updatedAt        DateTime            @updatedAt
 
@@ -164,6 +165,7 @@ model LibraryItem {
     @@index([userId])
     @@index([userId, source, browserProfileId])
     @@index([userId, source, browserProfileId, parentExternalId], map: "library_item_user_source_profile_parent_idx")
+    @@index([userId, reviewedAt])
     @@map("library_item")
 }
 

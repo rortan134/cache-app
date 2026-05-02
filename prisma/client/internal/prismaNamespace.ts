@@ -1257,6 +1257,7 @@ export const LibraryItemScalarFieldEnum = {
   sourceMetadata: 'sourceMetadata',
   postedAt: 'postedAt',
   scrapedAt: 'scrapedAt',
+  reviewedAt: 'reviewedAt',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const

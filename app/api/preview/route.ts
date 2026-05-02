@@ -12,16 +12,24 @@ const MAX_REDIRECTS = 3;
 const USER_AGENT =
     "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)";
 
-export async function GET(request: Request): Promise<Response> {
-    const targetUrl = readTargetUrl(request.url);
+const RESPONSE_NOT_FOUND = new Response("Preview not found", { status: 404 });
+const RESPONSE_UNSUPPORTED = new Response("Unsupported preview", {
+    status: 415,
+});
+const RESPONSE_INVALID_URL = new Response("Invalid URL", { status: 400 });
+const RESPONSE_TOO_MANY_REDIRECTS = new Response("Too many redirects", {
+    status: 508,
+});
 
+export async function GET(request: Request): Promise<Response> {
+    const targetUrl = extractTargetUrl(request.url);
     if (!targetUrl) {
-        return new Response("Invalid URL", { status: 400 });
+        return RESPONSE_INVALID_URL;
     }
 
     try {
         const page = await preview(targetUrl, {
-            fetch: fetchPreviewPage,
+            fetch: fetchHtmlPage,
             headers: {
                 Accept: "text/html,application/xhtml+xml",
                 "User-Agent": USER_AGENT,
@@ -30,38 +38,28 @@ export async function GET(request: Request): Promise<Response> {
             timeout: FETCH_TIMEOUT_MS,
         });
 
-        if (!page.image) {
-            return new Response("Preview not found", { status: 404 });
-        }
-
-        const imageUrl = readTargetHref(page.image);
-
+        const imageUrl = toSafeUrl(page.image);
         if (!imageUrl) {
-            return new Response("Preview not found", { status: 404 });
+            return RESPONSE_NOT_FOUND;
         }
 
-        const pageUrl = readTargetHref(page.url) ?? targetUrl;
-        const imageResponse = await fetchExternalWithTimeout(
-            imageUrl,
-            {
-                headers: {
-                    Accept: "image/*",
-                    Referer: pageUrl,
-                    "User-Agent": USER_AGENT,
-                },
+        const pageUrl = toSafeUrl(page.url) ?? targetUrl;
+        const imageResponse = await fetchWithRedirects(imageUrl, {
+            headers: {
+                Accept: "image/*",
+                Referer: pageUrl,
+                "User-Agent": USER_AGENT,
             },
-            FETCH_TIMEOUT_MS
-        );
+        });
 
         if (!imageResponse.ok) {
-            return new Response("Preview not found", { status: 404 });
+            return RESPONSE_NOT_FOUND;
         }
 
         const imageContentType =
             imageResponse.headers.get("content-type") ?? "";
-
         if (!imageContentType.startsWith("image/")) {
-            return new Response("Unsupported preview", { status: 415 });
+            return RESPONSE_UNSUPPORTED;
         }
 
         return new Response(imageResponse.body, {
@@ -77,26 +75,20 @@ export async function GET(request: Request): Promise<Response> {
             targetUrl,
         });
 
-        return new Response("Preview not found", { status: 404 });
+        return RESPONSE_NOT_FOUND;
     }
 }
 
-const fetchPreviewPage: typeof fetch = async (input, init) => {
-    const requestUrl = readFetchUrl(input);
-
+const fetchHtmlPage: typeof fetch = async (input, init) => {
+    const requestUrl = extractFetchUrl(input);
     if (!requestUrl) {
-        return new Response("Invalid URL", { status: 400 });
+        return RESPONSE_INVALID_URL;
     }
 
-    const response = await fetchExternalWithTimeout(
-        requestUrl,
-        { ...init },
-        FETCH_TIMEOUT_MS
-    );
-
-    const responseUrl = readTargetHref(response.url || requestUrl);
+    const response = await fetchWithRedirects(requestUrl, { ...init });
+    const responseUrl = toSafeUrl(response.url || requestUrl);
     if (!responseUrl) {
-        return new Response("Invalid URL", { status: 400 });
+        return RESPONSE_INVALID_URL;
     }
 
     if (!response.ok) {
@@ -111,28 +103,24 @@ const fetchPreviewPage: typeof fetch = async (input, init) => {
     return response;
 };
 
-async function fetchExternalWithTimeout(
+async function fetchWithRedirects(
     initialUrl: string,
-    init: RequestInit,
-    timeoutMs: number
+    init: RequestInit
 ): Promise<Response> {
     let requestUrl = initialUrl;
 
     for (
         let redirectCount = 0;
         redirectCount <= MAX_REDIRECTS;
-        redirectCount += 1
+        redirectCount++
     ) {
         const response = await fetchWithTimeout(
             requestUrl,
-            {
-                ...init,
-                redirect: "manual",
-            },
-            timeoutMs
+            { ...init, redirect: "manual" },
+            FETCH_TIMEOUT_MS
         );
 
-        if (!isRedirectResponse(response.status)) {
+        if (!isRedirectStatus(response.status)) {
             return response;
         }
 
@@ -141,38 +129,52 @@ async function fetchExternalWithTimeout(
             return response;
         }
 
-        const redirectUrl = readRedirectHref(location, requestUrl);
+        const redirectUrl = resolveRedirectUrl(location, requestUrl);
         if (!redirectUrl) {
-            return new Response("Invalid redirect", { status: 400 });
+            return RESPONSE_INVALID_URL;
         }
 
         requestUrl = redirectUrl;
     }
 
-    return new Response("Too many redirects", { status: 508 });
+    return RESPONSE_TOO_MANY_REDIRECTS;
 }
 
-function readFetchUrl(input: RequestInfo | URL): string | null {
+function extractFetchUrl(input: RequestInfo | URL): string | null {
+    let rawUrl: string;
     if (typeof input === "string") {
-        return readTargetHref(input);
+        rawUrl = input;
+    } else if (input instanceof URL) {
+        rawUrl = input.href;
+    } else {
+        rawUrl = input.url;
     }
-
-    if (input instanceof URL) {
-        return readTargetHref(input.href);
-    }
-
-    return readTargetHref(input.url);
+    return toSafeUrl(rawUrl);
 }
 
-function readRedirectHref(location: string, baseUrl: string): string | null {
+function resolveRedirectUrl(location: string, baseUrl: string): string | null {
     try {
-        return readTargetHref(new URL(location, baseUrl).href);
+        return toSafeUrl(new URL(location, baseUrl).href);
     } catch {
         return null;
     }
 }
 
-function readTargetHref(rawUrl: string): string | null {
+function extractTargetUrl(requestUrl: string): string | null {
+    const rawUrl = new URL(requestUrl).searchParams.get("url")?.trim();
+    if (!rawUrl) {
+        return null;
+    }
+
+    const normalizedUrl = toValidUrl(rawUrl);
+    if (normalizedUrl === "about:blank") {
+        return null;
+    }
+
+    return toSafeUrl(normalizedUrl);
+}
+
+function toSafeUrl(rawUrl: string): string | null {
     try {
         const parsedUrl = new URL(rawUrl);
         if (!isSupportedProtocol(parsedUrl.protocol)) {
@@ -189,24 +191,10 @@ function readTargetHref(rawUrl: string): string | null {
     }
 }
 
-function readTargetUrl(requestUrl: string): string | null {
-    const rawUrl = new URL(requestUrl).searchParams.get("url")?.trim();
-    if (!rawUrl) {
-        return null;
-    }
-
-    const normalizedUrl = toValidUrl(rawUrl);
-    if (normalizedUrl === "about:blank") {
-        return null;
-    }
-
-    return readTargetHref(normalizedUrl);
-}
-
 function isSupportedProtocol(protocol: string): boolean {
     return protocol === "http:" || protocol === "https:";
 }
 
-function isRedirectResponse(status: number): boolean {
+function isRedirectStatus(status: number): boolean {
     return status >= 300 && status < 400;
 }

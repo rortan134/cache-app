@@ -40,6 +40,7 @@ export type LibraryItemMinAggregateOutputType = {
   noteContentText: string | null
   postedAt: Date | null
   scrapedAt: Date | null
+  reviewedAt: Date | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -60,6 +61,7 @@ export type LibraryItemMaxAggregateOutputType = {
   noteContentText: string | null
   postedAt: Date | null
   scrapedAt: Date | null
+  reviewedAt: Date | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -83,6 +85,7 @@ export type LibraryItemCountAggregateOutputType = {
   sourceMetadata: number
   postedAt: number
   scrapedAt: number
+  reviewedAt: number
   createdAt: number
   updatedAt: number
   _all: number
@@ -105,6 +108,7 @@ export type LibraryItemMinAggregateInputType = {
   noteContentText?: true
   postedAt?: true
   scrapedAt?: true
+  reviewedAt?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -125,6 +129,7 @@ export type LibraryItemMaxAggregateInputType = {
   noteContentText?: true
   postedAt?: true
   scrapedAt?: true
+  reviewedAt?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -148,6 +153,7 @@ export type LibraryItemCountAggregateInputType = {
   sourceMetadata?: true
   postedAt?: true
   scrapedAt?: true
+  reviewedAt?: true
   createdAt?: true
   updatedAt?: true
   _all?: true
@@ -244,6 +250,7 @@ export type LibraryItemGroupByOutputType = {
   sourceMetadata: runtime.JsonValue | null
   postedAt: Date | null
   scrapedAt: Date | null
+  reviewedAt: Date | null
   createdAt: Date
   updatedAt: Date
   _count: LibraryItemCountAggregateOutputType | null
@@ -288,6 +295,7 @@ export type LibraryItemWhereInput = {
   sourceMetadata?: Prisma.JsonNullableFilter<"LibraryItem">
   postedAt?: Prisma.DateTimeNullableFilter<"LibraryItem"> | Date | string | null
   scrapedAt?: Prisma.DateTimeNullableFilter<"LibraryItem"> | Date | string | null
+  reviewedAt?: Prisma.DateTimeNullableFilter<"LibraryItem"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"LibraryItem"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"LibraryItem"> | Date | string
   user?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
@@ -315,6 +323,7 @@ export type LibraryItemOrderByWithRelationInput = {
   sourceMetadata?: Prisma.SortOrderInput | Prisma.SortOrder
   postedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   scrapedAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  reviewedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   user?: Prisma.UserOrderByWithRelationInput
@@ -346,6 +355,7 @@ export type LibraryItemWhereUniqueInput = Prisma.AtLeast<{
   sourceMetadata?: Prisma.JsonNullableFilter<"LibraryItem">
   postedAt?: Prisma.DateTimeNullableFilter<"LibraryItem"> | Date | string | null
   scrapedAt?: Prisma.DateTimeNullableFilter<"LibraryItem"> | Date | string | null
+  reviewedAt?: Prisma.DateTimeNullableFilter<"LibraryItem"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"LibraryItem"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"LibraryItem"> | Date | string
   user?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
@@ -373,6 +383,7 @@ export type LibraryItemOrderByWithAggregationInput = {
   sourceMetadata?: Prisma.SortOrderInput | Prisma.SortOrder
   postedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   scrapedAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  reviewedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   _count?: Prisma.LibraryItemCountOrderByAggregateInput
@@ -402,6 +413,7 @@ export type LibraryItemScalarWhereWithAggregatesInput = {
   sourceMetadata?: Prisma.JsonNullableWithAggregatesFilter<"LibraryItem">
   postedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"LibraryItem"> | Date | string | null
   scrapedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"LibraryItem"> | Date | string | null
+  reviewedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"LibraryItem"> | Date | string | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"LibraryItem"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"LibraryItem"> | Date | string
 }
@@ -424,6 +436,7 @@ export type LibraryItemCreateInput = {
   sourceMetadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   postedAt?: Date | string | null
   scrapedAt?: Date | string | null
+  reviewedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   user: Prisma.UserCreateNestedOneWithoutLibraryItemsInput
@@ -451,6 +464,7 @@ export type LibraryItemUncheckedCreateInput = {
   sourceMetadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   postedAt?: Date | string | null
   scrapedAt?: Date | string | null
+  reviewedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   preview?: Prisma.LibraryItemPreviewUncheckedCreateNestedOneWithoutLibraryItemInput
@@ -476,6 +490,7 @@ export type LibraryItemUpdateInput = {
   sourceMetadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   postedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   scrapedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  reviewedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   user?: Prisma.UserUpdateOneRequiredWithoutLibraryItemsNestedInput
@@ -503,6 +518,7 @@ export type LibraryItemUncheckedUpdateInput = {
   sourceMetadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   postedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   scrapedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  reviewedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   preview?: Prisma.LibraryItemPreviewUncheckedUpdateOneWithoutLibraryItemNestedInput
@@ -529,6 +545,7 @@ export type LibraryItemCreateManyInput = {
   sourceMetadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   postedAt?: Date | string | null
   scrapedAt?: Date | string | null
+  reviewedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -551,6 +568,7 @@ export type LibraryItemUpdateManyMutationInput = {
   sourceMetadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   postedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   scrapedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  reviewedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -574,6 +592,7 @@ export type LibraryItemUncheckedUpdateManyInput = {
   sourceMetadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   postedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   scrapedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  reviewedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -627,6 +646,7 @@ export type LibraryItemCountOrderByAggregateInput = {
   sourceMetadata?: Prisma.SortOrder
   postedAt?: Prisma.SortOrder
   scrapedAt?: Prisma.SortOrder
+  reviewedAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -647,6 +667,7 @@ export type LibraryItemMaxOrderByAggregateInput = {
   noteContentText?: Prisma.SortOrder
   postedAt?: Prisma.SortOrder
   scrapedAt?: Prisma.SortOrder
+  reviewedAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -667,6 +688,7 @@ export type LibraryItemMinOrderByAggregateInput = {
   noteContentText?: Prisma.SortOrder
   postedAt?: Prisma.SortOrder
   scrapedAt?: Prisma.SortOrder
+  reviewedAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -821,6 +843,7 @@ export type LibraryItemCreateWithoutUserInput = {
   sourceMetadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   postedAt?: Date | string | null
   scrapedAt?: Date | string | null
+  reviewedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   preview?: Prisma.LibraryItemPreviewCreateNestedOneWithoutLibraryItemInput
@@ -846,6 +869,7 @@ export type LibraryItemUncheckedCreateWithoutUserInput = {
   sourceMetadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   postedAt?: Date | string | null
   scrapedAt?: Date | string | null
+  reviewedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   preview?: Prisma.LibraryItemPreviewUncheckedCreateNestedOneWithoutLibraryItemInput
@@ -901,6 +925,7 @@ export type LibraryItemScalarWhereInput = {
   sourceMetadata?: Prisma.JsonNullableFilter<"LibraryItem">
   postedAt?: Prisma.DateTimeNullableFilter<"LibraryItem"> | Date | string | null
   scrapedAt?: Prisma.DateTimeNullableFilter<"LibraryItem"> | Date | string | null
+  reviewedAt?: Prisma.DateTimeNullableFilter<"LibraryItem"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"LibraryItem"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"LibraryItem"> | Date | string
 }
@@ -923,6 +948,7 @@ export type LibraryItemCreateWithoutCollectionsInput = {
   sourceMetadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   postedAt?: Date | string | null
   scrapedAt?: Date | string | null
+  reviewedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   user: Prisma.UserCreateNestedOneWithoutLibraryItemsInput
@@ -949,6 +975,7 @@ export type LibraryItemUncheckedCreateWithoutCollectionsInput = {
   sourceMetadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   postedAt?: Date | string | null
   scrapedAt?: Date | string | null
+  reviewedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   preview?: Prisma.LibraryItemPreviewUncheckedCreateNestedOneWithoutLibraryItemInput
@@ -994,6 +1021,7 @@ export type LibraryItemCreateWithoutActivityEventsInput = {
   sourceMetadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   postedAt?: Date | string | null
   scrapedAt?: Date | string | null
+  reviewedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   user: Prisma.UserCreateNestedOneWithoutLibraryItemsInput
@@ -1020,6 +1048,7 @@ export type LibraryItemUncheckedCreateWithoutActivityEventsInput = {
   sourceMetadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   postedAt?: Date | string | null
   scrapedAt?: Date | string | null
+  reviewedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   preview?: Prisma.LibraryItemPreviewUncheckedCreateNestedOneWithoutLibraryItemInput
@@ -1060,6 +1089,7 @@ export type LibraryItemUpdateWithoutActivityEventsInput = {
   sourceMetadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   postedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   scrapedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  reviewedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   user?: Prisma.UserUpdateOneRequiredWithoutLibraryItemsNestedInput
@@ -1086,6 +1116,7 @@ export type LibraryItemUncheckedUpdateWithoutActivityEventsInput = {
   sourceMetadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   postedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   scrapedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  reviewedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   preview?: Prisma.LibraryItemPreviewUncheckedUpdateOneWithoutLibraryItemNestedInput
@@ -1110,6 +1141,7 @@ export type LibraryItemCreateWithoutPreviewInput = {
   sourceMetadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   postedAt?: Date | string | null
   scrapedAt?: Date | string | null
+  reviewedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   user: Prisma.UserCreateNestedOneWithoutLibraryItemsInput
@@ -1136,6 +1168,7 @@ export type LibraryItemUncheckedCreateWithoutPreviewInput = {
   sourceMetadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   postedAt?: Date | string | null
   scrapedAt?: Date | string | null
+  reviewedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   collections?: Prisma.CollectionUncheckedCreateNestedManyWithoutItemsInput
@@ -1176,6 +1209,7 @@ export type LibraryItemUpdateWithoutPreviewInput = {
   sourceMetadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   postedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   scrapedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  reviewedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   user?: Prisma.UserUpdateOneRequiredWithoutLibraryItemsNestedInput
@@ -1202,6 +1236,7 @@ export type LibraryItemUncheckedUpdateWithoutPreviewInput = {
   sourceMetadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   postedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   scrapedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  reviewedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   collections?: Prisma.CollectionUncheckedUpdateManyWithoutItemsNestedInput
@@ -1226,6 +1261,7 @@ export type LibraryItemCreateManyUserInput = {
   sourceMetadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   postedAt?: Date | string | null
   scrapedAt?: Date | string | null
+  reviewedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -1248,6 +1284,7 @@ export type LibraryItemUpdateWithoutUserInput = {
   sourceMetadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   postedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   scrapedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  reviewedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   preview?: Prisma.LibraryItemPreviewUpdateOneWithoutLibraryItemNestedInput
@@ -1273,6 +1310,7 @@ export type LibraryItemUncheckedUpdateWithoutUserInput = {
   sourceMetadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   postedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   scrapedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  reviewedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   preview?: Prisma.LibraryItemPreviewUncheckedUpdateOneWithoutLibraryItemNestedInput
@@ -1298,6 +1336,7 @@ export type LibraryItemUncheckedUpdateManyWithoutUserInput = {
   sourceMetadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   postedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   scrapedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  reviewedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -1320,6 +1359,7 @@ export type LibraryItemUpdateWithoutCollectionsInput = {
   sourceMetadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   postedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   scrapedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  reviewedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   user?: Prisma.UserUpdateOneRequiredWithoutLibraryItemsNestedInput
@@ -1346,6 +1386,7 @@ export type LibraryItemUncheckedUpdateWithoutCollectionsInput = {
   sourceMetadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   postedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   scrapedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  reviewedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   preview?: Prisma.LibraryItemPreviewUncheckedUpdateOneWithoutLibraryItemNestedInput
@@ -1371,6 +1412,7 @@ export type LibraryItemUncheckedUpdateManyWithoutCollectionsInput = {
   sourceMetadata?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   postedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   scrapedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  reviewedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -1434,6 +1476,7 @@ export type LibraryItemSelect<ExtArgs extends runtime.Types.Extensions.InternalA
   sourceMetadata?: boolean
   postedAt?: boolean
   scrapedAt?: boolean
+  reviewedAt?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
@@ -1462,6 +1505,7 @@ export type LibraryItemSelectCreateManyAndReturn<ExtArgs extends runtime.Types.E
   sourceMetadata?: boolean
   postedAt?: boolean
   scrapedAt?: boolean
+  reviewedAt?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
@@ -1486,6 +1530,7 @@ export type LibraryItemSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.E
   sourceMetadata?: boolean
   postedAt?: boolean
   scrapedAt?: boolean
+  reviewedAt?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
@@ -1510,11 +1555,12 @@ export type LibraryItemSelectScalar = {
   sourceMetadata?: boolean
   postedAt?: boolean
   scrapedAt?: boolean
+  reviewedAt?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }
 
-export type LibraryItemOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "userId" | "source" | "kind" | "externalId" | "sourceAliasIds" | "browserProfileId" | "parentExternalId" | "sourceDeviceId" | "sourceDeviceName" | "url" | "caption" | "noteContentHtml" | "noteContentState" | "noteContentText" | "sourceMetadata" | "postedAt" | "scrapedAt" | "createdAt" | "updatedAt", ExtArgs["result"]["libraryItem"]>
+export type LibraryItemOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "userId" | "source" | "kind" | "externalId" | "sourceAliasIds" | "browserProfileId" | "parentExternalId" | "sourceDeviceId" | "sourceDeviceName" | "url" | "caption" | "noteContentHtml" | "noteContentState" | "noteContentText" | "sourceMetadata" | "postedAt" | "scrapedAt" | "reviewedAt" | "createdAt" | "updatedAt", ExtArgs["result"]["libraryItem"]>
 export type LibraryItemInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
   preview?: boolean | Prisma.LibraryItem$previewArgs<ExtArgs>
@@ -1556,6 +1602,7 @@ export type $LibraryItemPayload<ExtArgs extends runtime.Types.Extensions.Interna
     sourceMetadata: runtime.JsonValue | null
     postedAt: Date | null
     scrapedAt: Date | null
+    reviewedAt: Date | null
     createdAt: Date
     updatedAt: Date
   }, ExtArgs["result"]["libraryItem"]>
@@ -2003,6 +2050,7 @@ export interface LibraryItemFieldRefs {
   readonly sourceMetadata: Prisma.FieldRef<"LibraryItem", 'Json'>
   readonly postedAt: Prisma.FieldRef<"LibraryItem", 'DateTime'>
   readonly scrapedAt: Prisma.FieldRef<"LibraryItem", 'DateTime'>
+  readonly reviewedAt: Prisma.FieldRef<"LibraryItem", 'DateTime'>
   readonly createdAt: Prisma.FieldRef<"LibraryItem", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"LibraryItem", 'DateTime'>
 }

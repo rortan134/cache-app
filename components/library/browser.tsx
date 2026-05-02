@@ -2929,7 +2929,7 @@ function canResolveCobaltPreview(item: LibraryItemWithCollections): boolean {
     }
 }
 
-function PreviewMedia({
+export function PreviewMedia({
     alt,
     canResolveCobaltPreview,
     itemId,
@@ -3187,7 +3187,7 @@ function PreviewMedia({
 }
 
 /** @internal */
-function CollectionComboboxPicker({
+export function CollectionComboboxPicker({
     collections,
     items,
     onUpdateItemsCollections,
