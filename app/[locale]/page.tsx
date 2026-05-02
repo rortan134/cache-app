@@ -77,6 +77,12 @@ export default async function Home() {
                 url: BASE_URL,
             },
             {
+                "@type": "Organization",
+                logo: `${BASE_URL}/icon1.png`,
+                name: "CachdApp, Inc",
+                url: BASE_URL,
+            },
+            {
                 "@type": "SoftwareApplication",
                 applicationCategory: "ProductivityApplication",
                 name: "Cache App",

@@ -9,6 +9,8 @@ import {
 } from "@/components/ui/accordion";
 import { Footer } from "@/components/ui/footer";
 import { PageShell } from "@/components/ui/page-shell";
+import { JsonLdScript } from "@/components/seo/json-ld-script";
+import { BASE_URL } from "@/lib/common/constants";
 import { gtPublicString } from "@/lib/i18n/gt-public-json";
 import { buildPageMetadata } from "@/lib/seo/metadata";
 import { T } from "gt-next";
@@ -47,8 +49,40 @@ export default async function PricingPage({
 }>) {
     const { locale } = await params;
 
+    const jsonLd = {
+        "@context": "https://schema.org",
+        "@type": "Product",
+        brand: {
+            "@type": "Brand",
+            name: "Cache App",
+        },
+        description: "One subscription for your entire saved-content workflow",
+        name: "Cache App Pro",
+        offers: [
+            {
+                "@type": "Offer",
+                availability: "https://schema.org/InStock",
+                name: "Monthly",
+                price: "5",
+                priceCurrency: "EUR",
+                priceValidUntil: "2027-12-31",
+                url: `${BASE_URL}/pricing`,
+            },
+            {
+                "@type": "Offer",
+                availability: "https://schema.org/InStock",
+                name: "Yearly",
+                price: "50",
+                priceCurrency: "EUR",
+                priceValidUntil: "2027-12-31",
+                url: `${BASE_URL}/pricing`,
+            },
+        ],
+    };
+
     return (
         <PageShell>
+            <JsonLdScript data={jsonLd} />
             <section className="relative overflow-hidden px-6 pt-16 md:px-10 md:pt-24">
                 <div className="absolute inset-x-0 top-0 -z-10 h-80 bg-linear-to-b from-muted via-muted/50 to-transparent" />
                 <div className="mx-auto flex w-full max-w-6xl flex-col gap-10">

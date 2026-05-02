@@ -1,4 +1,4 @@
-import { APP_NAME, BASE_URL } from "@/lib/common/constants";
+import { APP_NAME, BASE_URL, DEFAULT_LOCALE } from "@/lib/common/constants";
 import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
@@ -23,7 +23,7 @@ export default function manifest(): MetadataRoute.Manifest {
                 type: "image/png",
             },
         ],
-        lang: "en-US",
+        lang: DEFAULT_LOCALE,
         name: APP_NAME,
         orientation: "any",
         prefer_related_applications: true,

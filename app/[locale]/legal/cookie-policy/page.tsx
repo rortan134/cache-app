@@ -1,13 +1,29 @@
 import { APP_NAME } from "@/lib/common/constants";
+import { gtPublicString } from "@/lib/i18n/gt-public-json";
 import { buildPageMetadata } from "@/lib/seo/metadata";
 import type { Metadata } from "next";
 
-export async function generateMetadata(): Promise<Metadata> {
+export async function generateMetadata({
+    params,
+}: {
+    params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+    const { locale } = await params;
+
     return buildPageMetadata({
-        description: `Cookie Policy for ${APP_NAME} — cookies and similar technologies used on our sites and products.`,
+        description: gtPublicString(
+            locale,
+            "legal.cookies.metadata.description",
+            `Cookie Policy for ${APP_NAME} — cookies and similar technologies used on our sites and products.`
+        ),
         keywords: ["cookie policy", "cookies", APP_NAME],
+        locale,
         path: "/legal/cookie-policy",
-        title: "Cookie Policy",
+        title: gtPublicString(
+            locale,
+            "legal.cookies.metadata.title",
+            "Cookie Policy"
+        ),
     });
 }
 

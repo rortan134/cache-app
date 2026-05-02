@@ -1,17 +1,21 @@
 import { BASE_URL } from "@/lib/common/constants";
 import { normalizeURL } from "@/lib/common/url";
-import { versusEntries } from "./[locale]/versus/data";
 import { getDefaultLocale, getLocales } from "gt-next/server";
 import type { MetadataRoute } from "next";
+import { versusEntries } from "./[locale]/versus/data";
 
 interface SitemapRoute {
     path: `/${string}`;
     priority: number;
 }
 
+/**
+ * Public static routes that do not require authentication.
+ * Authenticated-only routes (e.g. /library) are intentionally excluded
+ * because they redirect anonymous users and should not be indexed.
+ */
 const PUBLIC_STATIC_ROUTES = [
     { path: "/", priority: 1 },
-    { path: "/library", priority: 0.9 },
     { path: "/pricing", priority: 0.8 },
     { path: "/versus", priority: 0.85 },
     { path: "/changelog", priority: 0.7 },

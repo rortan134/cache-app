@@ -1,13 +1,29 @@
 import { APP_NAME } from "@/lib/common/constants";
+import { gtPublicString } from "@/lib/i18n/gt-public-json";
 import { buildPageMetadata } from "@/lib/seo/metadata";
 import type { Metadata } from "next";
 
-export async function generateMetadata(): Promise<Metadata> {
+export async function generateMetadata({
+    params,
+}: {
+    params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+    const { locale } = await params;
+
     return buildPageMetadata({
-        description: `Privacy Policy for ${APP_NAME} — how we collect, use, and protect personal data.`,
+        description: gtPublicString(
+            locale,
+            "legal.privacy.metadata.description",
+            `Privacy Policy for ${APP_NAME} — how we collect, use, and protect personal data.`
+        ),
         keywords: ["privacy policy", "data privacy", APP_NAME],
+        locale,
         path: "/legal/privacy-policy",
-        title: "Privacy Policy",
+        title: gtPublicString(
+            locale,
+            "legal.privacy.metadata.title",
+            "Privacy Policy"
+        ),
     });
 }
 

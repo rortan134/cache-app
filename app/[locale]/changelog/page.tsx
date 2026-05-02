@@ -1,8 +1,12 @@
+import { JsonLdScript } from "@/components/seo/json-ld-script";
 import { Badge } from "@/components/ui/badge";
+import { BASE_URL } from "@/lib/common/constants";
+import { changelogEntries } from "@/lib/changelog/data";
 import { gtPublicString } from "@/lib/i18n/gt-public-json";
 import { buildPageMetadata } from "@/lib/seo/metadata";
 import { ArrowUpRight } from "lucide-react";
 import type { Metadata } from "next";
+import Image from "next/image";
 
 export async function generateMetadata({
     params,
@@ -24,43 +28,27 @@ export async function generateMetadata({
     });
 }
 
-interface ChangelogEntry {
-    button?: {
-        url: string;
-        text: string;
-    };
-    date: string;
-    description: string;
-    image?: string;
-    items?: string[];
-    title: string;
-    version: string;
-}
-
-const entries = [
-    {
-        button: {
-            text: "Explore Cache",
-            url: "/",
-        },
-        date: "9 April 2026",
-        description:
-            "Cache is officially live. This first release delivers the core experience for saving, organizing, and searching your personal knowledge library.",
-        image: "https://cachd.app/opengraph-image.png",
-        items: [
-            "Unified bookmark import and management across multiple sources",
-            "Fast library browsing with collection-based organization",
-            "Actionable search to quickly find saved content",
-            "Foundational sharing and workspace-ready collaboration flows",
-        ],
-        title: "Product launch",
-        version: "Version 1.0.0",
-    },
-] satisfies ChangelogEntry[];
-
 export default function ChangelogPage() {
+    const jsonLd = {
+        "@context": "https://schema.org",
+        "@type": "ItemList",
+        itemListElement: changelogEntries.map((entry, index) => ({
+            "@type": "ListItem",
+            item: {
+                "@type": "TechArticle",
+                datePublished: new Date(entry.date).toISOString(),
+                description: entry.description,
+                headline: entry.title,
+                image: entry.image ? `${BASE_URL}${entry.image}` : undefined,
+                url: `${BASE_URL}/changelog`,
+            },
+            position: index + 1,
+        })),
+    };
+
     return (
         <section className="py-32">
+            <JsonLdScript data={jsonLd} />
             <div className="container">
                 <div className="mx-auto max-w-3xl">
                     <h1 className="mb-4 font-bold text-3xl tracking-tight md:text-5xl">
@@ -68,7 +56,7 @@ export default function ChangelogPage() {
                     </h1>
                 </div>
                 <div className="mx-auto mt-16 max-w-3xl space-y-16 md:mt-24 md:space-y-24">
-                    {entries.map((entry, index) => (
+                    {changelogEntries.map((entry, index) => (
                         <div
                             className="relative flex flex-col gap-4 md:flex-row md:gap-16"
                             key={index}
@@ -101,7 +89,7 @@ export default function ChangelogPage() {
                                     </ul>
                                 )}
                                 {entry.image && (
-                                    <img
+                                    <Image
                                         alt={`${entry.version} visual`}
                                         className="mt-8 w-full rounded-lg object-cover"
                                         height={675}
