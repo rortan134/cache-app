@@ -32,6 +32,7 @@ export type UserMinAggregateOutputType = {
   image: string | null
   createdAt: Date | null
   updatedAt: Date | null
+  smartCollectionsDisabled: boolean | null
   stripeCustomerId: string | null
   extensionIngestToken: string | null
 }
@@ -44,6 +45,7 @@ export type UserMaxAggregateOutputType = {
   image: string | null
   createdAt: Date | null
   updatedAt: Date | null
+  smartCollectionsDisabled: boolean | null
   stripeCustomerId: string | null
   extensionIngestToken: string | null
 }
@@ -56,6 +58,7 @@ export type UserCountAggregateOutputType = {
   image: number
   createdAt: number
   updatedAt: number
+  smartCollectionsDisabled: number
   stripeCustomerId: number
   extensionIngestToken: number
   _all: number
@@ -70,6 +73,7 @@ export type UserMinAggregateInputType = {
   image?: true
   createdAt?: true
   updatedAt?: true
+  smartCollectionsDisabled?: true
   stripeCustomerId?: true
   extensionIngestToken?: true
 }
@@ -82,6 +86,7 @@ export type UserMaxAggregateInputType = {
   image?: true
   createdAt?: true
   updatedAt?: true
+  smartCollectionsDisabled?: true
   stripeCustomerId?: true
   extensionIngestToken?: true
 }
@@ -94,6 +99,7 @@ export type UserCountAggregateInputType = {
   image?: true
   createdAt?: true
   updatedAt?: true
+  smartCollectionsDisabled?: true
   stripeCustomerId?: true
   extensionIngestToken?: true
   _all?: true
@@ -179,6 +185,7 @@ export type UserGroupByOutputType = {
   image: string | null
   createdAt: Date
   updatedAt: Date
+  smartCollectionsDisabled: boolean
   stripeCustomerId: string | null
   extensionIngestToken: string | null
   _count: UserCountAggregateOutputType | null
@@ -212,6 +219,7 @@ export type UserWhereInput = {
   image?: Prisma.StringNullableFilter<"User"> | string | null
   createdAt?: Prisma.DateTimeFilter<"User"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"User"> | Date | string
+  smartCollectionsDisabled?: Prisma.BoolFilter<"User"> | boolean
   stripeCustomerId?: Prisma.StringNullableFilter<"User"> | string | null
   extensionIngestToken?: Prisma.StringNullableFilter<"User"> | string | null
   sessions?: Prisma.SessionListRelationFilter
@@ -230,6 +238,7 @@ export type UserOrderByWithRelationInput = {
   image?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  smartCollectionsDisabled?: Prisma.SortOrder
   stripeCustomerId?: Prisma.SortOrderInput | Prisma.SortOrder
   extensionIngestToken?: Prisma.SortOrderInput | Prisma.SortOrder
   sessions?: Prisma.SessionOrderByRelationAggregateInput
@@ -252,6 +261,7 @@ export type UserWhereUniqueInput = Prisma.AtLeast<{
   image?: Prisma.StringNullableFilter<"User"> | string | null
   createdAt?: Prisma.DateTimeFilter<"User"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"User"> | Date | string
+  smartCollectionsDisabled?: Prisma.BoolFilter<"User"> | boolean
   stripeCustomerId?: Prisma.StringNullableFilter<"User"> | string | null
   sessions?: Prisma.SessionListRelationFilter
   accounts?: Prisma.AccountListRelationFilter
@@ -269,6 +279,7 @@ export type UserOrderByWithAggregationInput = {
   image?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  smartCollectionsDisabled?: Prisma.SortOrder
   stripeCustomerId?: Prisma.SortOrderInput | Prisma.SortOrder
   extensionIngestToken?: Prisma.SortOrderInput | Prisma.SortOrder
   _count?: Prisma.UserCountOrderByAggregateInput
@@ -287,6 +298,7 @@ export type UserScalarWhereWithAggregatesInput = {
   image?: Prisma.StringNullableWithAggregatesFilter<"User"> | string | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"User"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"User"> | Date | string
+  smartCollectionsDisabled?: Prisma.BoolWithAggregatesFilter<"User"> | boolean
   stripeCustomerId?: Prisma.StringNullableWithAggregatesFilter<"User"> | string | null
   extensionIngestToken?: Prisma.StringNullableWithAggregatesFilter<"User"> | string | null
 }
@@ -299,6 +311,7 @@ export type UserCreateInput = {
   image?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  smartCollectionsDisabled?: boolean
   stripeCustomerId?: string | null
   extensionIngestToken?: string | null
   sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
@@ -317,6 +330,7 @@ export type UserUncheckedCreateInput = {
   image?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  smartCollectionsDisabled?: boolean
   stripeCustomerId?: string | null
   extensionIngestToken?: string | null
   sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
@@ -335,6 +349,7 @@ export type UserUpdateInput = {
   image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  smartCollectionsDisabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   stripeCustomerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   extensionIngestToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
@@ -353,6 +368,7 @@ export type UserUncheckedUpdateInput = {
   image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  smartCollectionsDisabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   stripeCustomerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   extensionIngestToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
@@ -371,6 +387,7 @@ export type UserCreateManyInput = {
   image?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  smartCollectionsDisabled?: boolean
   stripeCustomerId?: string | null
   extensionIngestToken?: string | null
 }
@@ -383,6 +400,7 @@ export type UserUpdateManyMutationInput = {
   image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  smartCollectionsDisabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   stripeCustomerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   extensionIngestToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
@@ -395,6 +413,7 @@ export type UserUncheckedUpdateManyInput = {
   image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  smartCollectionsDisabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   stripeCustomerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   extensionIngestToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
@@ -407,6 +426,7 @@ export type UserCountOrderByAggregateInput = {
   image?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  smartCollectionsDisabled?: Prisma.SortOrder
   stripeCustomerId?: Prisma.SortOrder
   extensionIngestToken?: Prisma.SortOrder
 }
@@ -419,6 +439,7 @@ export type UserMaxOrderByAggregateInput = {
   image?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  smartCollectionsDisabled?: Prisma.SortOrder
   stripeCustomerId?: Prisma.SortOrder
   extensionIngestToken?: Prisma.SortOrder
 }
@@ -431,6 +452,7 @@ export type UserMinOrderByAggregateInput = {
   image?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  smartCollectionsDisabled?: Prisma.SortOrder
   stripeCustomerId?: Prisma.SortOrder
   extensionIngestToken?: Prisma.SortOrder
 }
@@ -555,6 +577,7 @@ export type UserCreateWithoutCollectionsInput = {
   image?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  smartCollectionsDisabled?: boolean
   stripeCustomerId?: string | null
   extensionIngestToken?: string | null
   sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
@@ -572,6 +595,7 @@ export type UserUncheckedCreateWithoutCollectionsInput = {
   image?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  smartCollectionsDisabled?: boolean
   stripeCustomerId?: string | null
   extensionIngestToken?: string | null
   sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
@@ -605,6 +629,7 @@ export type UserUpdateWithoutCollectionsInput = {
   image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  smartCollectionsDisabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   stripeCustomerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   extensionIngestToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
@@ -622,6 +647,7 @@ export type UserUncheckedUpdateWithoutCollectionsInput = {
   image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  smartCollectionsDisabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   stripeCustomerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   extensionIngestToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
@@ -639,6 +665,7 @@ export type UserCreateWithoutLibraryActivityEventsInput = {
   image?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  smartCollectionsDisabled?: boolean
   stripeCustomerId?: string | null
   extensionIngestToken?: string | null
   sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
@@ -656,6 +683,7 @@ export type UserUncheckedCreateWithoutLibraryActivityEventsInput = {
   image?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  smartCollectionsDisabled?: boolean
   stripeCustomerId?: string | null
   extensionIngestToken?: string | null
   sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
@@ -689,6 +717,7 @@ export type UserUpdateWithoutLibraryActivityEventsInput = {
   image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  smartCollectionsDisabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   stripeCustomerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   extensionIngestToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
@@ -706,6 +735,7 @@ export type UserUncheckedUpdateWithoutLibraryActivityEventsInput = {
   image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  smartCollectionsDisabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   stripeCustomerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   extensionIngestToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
@@ -723,6 +753,7 @@ export type UserCreateWithoutLibraryItemsInput = {
   image?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  smartCollectionsDisabled?: boolean
   stripeCustomerId?: string | null
   extensionIngestToken?: string | null
   sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
@@ -740,6 +771,7 @@ export type UserUncheckedCreateWithoutLibraryItemsInput = {
   image?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  smartCollectionsDisabled?: boolean
   stripeCustomerId?: string | null
   extensionIngestToken?: string | null
   sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
@@ -773,6 +805,7 @@ export type UserUpdateWithoutLibraryItemsInput = {
   image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  smartCollectionsDisabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   stripeCustomerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   extensionIngestToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
@@ -790,6 +823,7 @@ export type UserUncheckedUpdateWithoutLibraryItemsInput = {
   image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  smartCollectionsDisabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   stripeCustomerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   extensionIngestToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
@@ -807,6 +841,7 @@ export type UserCreateWithoutSessionsInput = {
   image?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  smartCollectionsDisabled?: boolean
   stripeCustomerId?: string | null
   extensionIngestToken?: string | null
   accounts?: Prisma.AccountCreateNestedManyWithoutUserInput
@@ -824,6 +859,7 @@ export type UserUncheckedCreateWithoutSessionsInput = {
   image?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  smartCollectionsDisabled?: boolean
   stripeCustomerId?: string | null
   extensionIngestToken?: string | null
   accounts?: Prisma.AccountUncheckedCreateNestedManyWithoutUserInput
@@ -857,6 +893,7 @@ export type UserUpdateWithoutSessionsInput = {
   image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  smartCollectionsDisabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   stripeCustomerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   extensionIngestToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   accounts?: Prisma.AccountUpdateManyWithoutUserNestedInput
@@ -874,6 +911,7 @@ export type UserUncheckedUpdateWithoutSessionsInput = {
   image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  smartCollectionsDisabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   stripeCustomerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   extensionIngestToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   accounts?: Prisma.AccountUncheckedUpdateManyWithoutUserNestedInput
@@ -891,6 +929,7 @@ export type UserCreateWithoutAccountsInput = {
   image?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  smartCollectionsDisabled?: boolean
   stripeCustomerId?: string | null
   extensionIngestToken?: string | null
   sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
@@ -908,6 +947,7 @@ export type UserUncheckedCreateWithoutAccountsInput = {
   image?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  smartCollectionsDisabled?: boolean
   stripeCustomerId?: string | null
   extensionIngestToken?: string | null
   sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
@@ -941,6 +981,7 @@ export type UserUpdateWithoutAccountsInput = {
   image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  smartCollectionsDisabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   stripeCustomerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   extensionIngestToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
@@ -958,6 +999,7 @@ export type UserUncheckedUpdateWithoutAccountsInput = {
   image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  smartCollectionsDisabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   stripeCustomerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   extensionIngestToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
@@ -975,6 +1017,7 @@ export type UserCreateWithoutFeedbackEntriesInput = {
   image?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  smartCollectionsDisabled?: boolean
   stripeCustomerId?: string | null
   extensionIngestToken?: string | null
   sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
@@ -992,6 +1035,7 @@ export type UserUncheckedCreateWithoutFeedbackEntriesInput = {
   image?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  smartCollectionsDisabled?: boolean
   stripeCustomerId?: string | null
   extensionIngestToken?: string | null
   sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
@@ -1025,6 +1069,7 @@ export type UserUpdateWithoutFeedbackEntriesInput = {
   image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  smartCollectionsDisabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   stripeCustomerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   extensionIngestToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
@@ -1042,6 +1087,7 @@ export type UserUncheckedUpdateWithoutFeedbackEntriesInput = {
   image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  smartCollectionsDisabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   stripeCustomerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   extensionIngestToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
@@ -1135,6 +1181,7 @@ export type UserSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   image?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  smartCollectionsDisabled?: boolean
   stripeCustomerId?: boolean
   extensionIngestToken?: boolean
   sessions?: boolean | Prisma.User$sessionsArgs<ExtArgs>
@@ -1154,6 +1201,7 @@ export type UserSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensio
   image?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  smartCollectionsDisabled?: boolean
   stripeCustomerId?: boolean
   extensionIngestToken?: boolean
 }, ExtArgs["result"]["user"]>
@@ -1166,6 +1214,7 @@ export type UserSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensio
   image?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  smartCollectionsDisabled?: boolean
   stripeCustomerId?: boolean
   extensionIngestToken?: boolean
 }, ExtArgs["result"]["user"]>
@@ -1178,11 +1227,12 @@ export type UserSelectScalar = {
   image?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  smartCollectionsDisabled?: boolean
   stripeCustomerId?: boolean
   extensionIngestToken?: boolean
 }
 
-export type UserOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "email" | "emailVerified" | "image" | "createdAt" | "updatedAt" | "stripeCustomerId" | "extensionIngestToken", ExtArgs["result"]["user"]>
+export type UserOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "email" | "emailVerified" | "image" | "createdAt" | "updatedAt" | "smartCollectionsDisabled" | "stripeCustomerId" | "extensionIngestToken", ExtArgs["result"]["user"]>
 export type UserInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   sessions?: boolean | Prisma.User$sessionsArgs<ExtArgs>
   accounts?: boolean | Prisma.User$accountsArgs<ExtArgs>
@@ -1213,6 +1263,7 @@ export type $UserPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
     image: string | null
     createdAt: Date
     updatedAt: Date
+    smartCollectionsDisabled: boolean
     stripeCustomerId: string | null
     extensionIngestToken: string | null
   }, ExtArgs["result"]["user"]>
@@ -1651,6 +1702,7 @@ export interface UserFieldRefs {
   readonly image: Prisma.FieldRef<"User", 'String'>
   readonly createdAt: Prisma.FieldRef<"User", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"User", 'DateTime'>
+  readonly smartCollectionsDisabled: Prisma.FieldRef<"User", 'Boolean'>
   readonly stripeCustomerId: Prisma.FieldRef<"User", 'String'>
   readonly extensionIngestToken: Prisma.FieldRef<"User", 'String'>
 }

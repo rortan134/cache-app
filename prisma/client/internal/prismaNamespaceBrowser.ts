@@ -87,6 +87,7 @@ export const UserScalarFieldEnum = {
   image: 'image',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt',
+  smartCollectionsDisabled: 'smartCollectionsDisabled',
   stripeCustomerId: 'stripeCustomerId',
   extensionIngestToken: 'extensionIngestToken'
 } as const

@@ -15,9 +15,9 @@ import {
     IntegrationsListTrigger,
 } from "@/components/library/integrations";
 import { WorkspaceProvider } from "@/components/library/workspace-provider";
+import { ActivePathname } from "@/components/ui/active-pathname";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ChevronDownFilledIcon } from "@/components/ui/icons";
-import { ActivePathname } from "@/components/ui/active-pathname";
 import { PageShell } from "@/components/ui/page-shell";
 import {
     Sidebar,
@@ -25,7 +25,6 @@ import {
     SidebarHeader,
     SidebarItem,
 } from "@/components/ui/sidebar";
-import Link from "next/link";
 import { getServerSession } from "@/lib/auth/server";
 import { userHasActiveSubscription } from "@/lib/auth/subscription-access";
 import {
@@ -46,8 +45,9 @@ import {
 import { buildPageMetadata } from "@/lib/seo/metadata";
 import { prisma } from "@/prisma";
 import { T } from "gt-next";
-import { BookmarkCheck, History, House } from "lucide-react";
+import { Compass, History, House } from "lucide-react";
 import type { Metadata } from "next";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 
 export async function generateMetadata({
@@ -175,7 +175,7 @@ export default async function LibraryPage() {
         return redirect("/");
     }
 
-    const [hasAccess, linkedAccounts] = await Promise.all([
+    const [hasAccess, linkedAccounts, userPreferences] = await Promise.all([
         userHasActiveSubscription(userId),
         prisma.account.findMany({
             select: { providerId: true },
@@ -185,6 +185,10 @@ export default async function LibraryPage() {
                 },
                 userId,
             },
+        }),
+        prisma.user.findUnique({
+            select: { smartCollectionsDisabled: true },
+            where: { id: userId },
         }),
     ]);
 
@@ -236,6 +240,24 @@ export default async function LibraryPage() {
                                 </Link>
                                 <Link
                                     className="contents"
+                                    href="/review"
+                                    prefetch
+                                >
+                                    <ActivePathname href="/review">
+                                        <SidebarItem>
+                                            <Compass
+                                                aria-hidden
+                                                className="inline-block size-4 shrink-0"
+                                                focusable="false"
+                                            />
+                                            <span>
+                                                <T>Review</T>
+                                            </span>
+                                        </SidebarItem>
+                                    </ActivePathname>
+                                </Link>
+                                <Link
+                                    className="contents"
                                     href="/activity"
                                     prefetch
                                 >
@@ -248,20 +270,6 @@ export default async function LibraryPage() {
                                             />
                                             <span>
                                                 <T>Activity</T>
-                                            </span>
-                                        </SidebarItem>
-                                    </ActivePathname>
-                                </Link>
-                                <Link className="contents" href="/review">
-                                    <ActivePathname href="/review">
-                                        <SidebarItem>
-                                            <BookmarkCheck
-                                                aria-hidden
-                                                className="inline-block size-4 shrink-0"
-                                                focusable="false"
-                                            />
-                                            <span>
-                                                <T>Review</T>
                                             </span>
                                         </SidebarItem>
                                     </ActivePathname>
@@ -314,7 +322,12 @@ export default async function LibraryPage() {
                                     <IntegrationsListNoticeCallout />
                                 </IntegrationsListPanel>
                             </IntegrationsList>
-                            <CollectionsListRoot />
+                            <CollectionsListRoot
+                                isSmartCollectionsDisabled={
+                                    userPreferences?.smartCollectionsDisabled ??
+                                    false
+                                }
+                            />
                         </SidebarHeader>
                     </Sidebar>
                     <div className="flex w-full max-w-[1024px] flex-col items-center gap-12 p-8 2xl:mx-auto">

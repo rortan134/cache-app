@@ -410,3 +410,28 @@ export async function updateCollectionPriority(input: {
         });
     }
 }
+
+export async function disableSmartCollections(): Promise<
+    | { status: "DISABLED" }
+    | { message: string; status: "ERROR" | "UNAUTHORIZED" }
+> {
+    const auth = await requireActionUserId(
+        "Sign in again to manage smart collections."
+    );
+    if ("status" in auth) {
+        return auth;
+    }
+
+    try {
+        await service.disableSmartCollectionsForUser(auth.userId);
+
+        return { status: "DISABLED" };
+    } catch (error) {
+        log.error("Failed to disable smart collections", error);
+
+        return {
+            message: "We couldn't disable smart collections right now.",
+            status: "ERROR",
+        };
+    }
+}

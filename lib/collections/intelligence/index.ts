@@ -894,7 +894,7 @@ export async function autoTagLibraryItemsByIds(args: {
         return;
     }
 
-    const [items, initialCollections] = await Promise.all([
+    const [items, initialCollections, user] = await Promise.all([
         prisma.libraryItem.findMany({
             orderBy: {
                 createdAt: "asc",
@@ -943,9 +943,13 @@ export async function autoTagLibraryItemsByIds(args: {
                 userId: args.userId,
             },
         }),
+        prisma.user.findUnique({
+            select: { smartCollectionsDisabled: true },
+            where: { id: args.userId },
+        }),
     ]);
 
-    if (items.length === 0) {
+    if (user?.smartCollectionsDisabled || items.length === 0) {
         return;
     }
 

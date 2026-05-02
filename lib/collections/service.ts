@@ -1011,3 +1011,12 @@ export async function updateLibraryItemsCollections({
         };
     });
 }
+
+export async function disableSmartCollectionsForUser(
+    userId: string
+): Promise<void> {
+    await prisma.user.update({
+        data: { smartCollectionsDisabled: true },
+        where: { id: userId },
+    });
+}

@@ -416,6 +416,7 @@ export function UserMenu({ children }: { children: ReactNode }) {
         <Popover>
             <PopoverTrigger
                 className="justify-between px-2 opacity-100"
+                nativeButton={false}
                 render={<SidebarItem />}
             >
                 <span className="flex min-w-0 items-center gap-2">

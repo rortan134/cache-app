@@ -71,6 +71,7 @@ import { useListPanelOpenState } from "@/hooks/use-list-panel-open-state";
 import {
     createCollection,
     deleteCollection,
+    disableSmartCollections,
     duplicateCollection,
     renameCollection,
     updateCollectionPriority,
@@ -97,6 +98,7 @@ import type {
     LibraryItemWithCollections,
 } from "@/lib/common/types";
 import { normalizeURL, openSavedItemInNewTab } from "@/lib/common/url";
+import Link from "next/link";
 import { dayjs } from "@/lib/dayjs";
 import { getSourceLabel } from "@/lib/integrations/support";
 import type { CollectionPriority } from "@/prisma/client/enums";
@@ -1184,9 +1186,11 @@ function CollectionsListTrigger({
     return (
         <Popover>
             <PopoverTrigger
+                nativeButton={false}
                 openOnHover
                 render={
                     <CollapsibleTrigger
+                        nativeButton={false}
                         render={<SidebarItem />}
                         title={isOpen ? "Collapse group" : "Expand group"}
                         {...props}
@@ -1642,7 +1646,11 @@ function CollectionsListToolbarButton({
     );
 }
 
-function CollectionsListNoticeCallout() {
+function CollectionsListNoticeCallout({
+    onDisable,
+}: {
+    onDisable: () => Promise<void>;
+}) {
     return (
         <Popover>
             <span aria-live="polite" className="sr-only" role="status">
@@ -1681,11 +1689,19 @@ function CollectionsListNoticeCallout() {
                         also learns your preferences with time.
                     </PopoverDescription>
                     <div className="ml-auto flex items-center justify-end gap-2">
-                        <Button size="xs" variant="ghost">
+                        <Button
+                            render={<Link href="/activity" />}
+                            size="xs"
+                            variant="ghost"
+                        >
                             Activity
                             <ArrowUpRight className="inline-block size-3.5 shrink-0 text-muted-foreground" />
                         </Button>
-                        <Button size="xs" variant="destructive-outline">
+                        <Button
+                            onClick={onDisable}
+                            size="xs"
+                            variant="destructive-outline"
+                        >
                             Disable
                         </Button>
                     </div>
@@ -2144,8 +2160,16 @@ function DeleteCollectionDialog({
 
 // #region Workspace-bound feature component
 
-export function CollectionsListRoot() {
+interface CollectionsListRootProps {
+    isSmartCollectionsDisabled: boolean;
+}
+
+export function CollectionsListRoot({
+    isSmartCollectionsDisabled: isSmartCollectionsDisabledProp,
+}: CollectionsListRootProps) {
     const [isCollectionsListOpen] = useCollectionsListOpenState();
+    const [isSmartCollectionsDisabled, setIsSmartCollectionsDisabled] =
+        React.useState(isSmartCollectionsDisabledProp);
 
     // Create dialog state
     const [isCreateDialogOpen, setIsCreateDialogOpen] = React.useState(false);
@@ -2321,7 +2345,7 @@ export function CollectionsListRoot() {
     };
 
     useHotkeys(
-        "mod+n",
+        "mod+n, v",
         () => {
             if (isCreateDialogOpen) {
                 setIsCreateDialogOpen(false);
@@ -2813,7 +2837,18 @@ export function CollectionsListRoot() {
                     </CollectionsListToolbarGroup>
                 </CollectionsListToolbar>
                 <CollectionsListPanel>
-                    <CollectionsListNoticeCallout />
+                    {!isSmartCollectionsDisabled && (
+                        <CollectionsListNoticeCallout
+                            onDisable={async () => {
+                                setIsSmartCollectionsDisabled(true);
+                                const result = await disableSmartCollections();
+                                if (result.status !== "DISABLED") {
+                                    setIsSmartCollectionsDisabled(false);
+                                    showCollectionActionError(result.message);
+                                }
+                            }}
+                        />
+                    )}
                     {collectionSummaries.length === 0 ? (
                         <CollectionsListEmpty>
                             No collections found. Create your first collection

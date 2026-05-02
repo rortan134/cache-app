@@ -4,9 +4,8 @@ import {
     UserMenuFooter,
     UserMenuHeader,
 } from "@/components/auth/user-menu";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
 import { ActivePathname } from "@/components/ui/active-pathname";
+import { Badge } from "@/components/ui/badge";
 import { PageShell } from "@/components/ui/page-shell";
 import {
     Sidebar,
@@ -14,7 +13,6 @@ import {
     SidebarHeader,
     SidebarItem,
 } from "@/components/ui/sidebar";
-import Link from "next/link";
 import { getServerSession } from "@/lib/auth/server";
 import { cn } from "@/lib/common/cn";
 import { parseDisplayUrl } from "@/lib/common/url";
@@ -26,20 +24,23 @@ import type {
     LibraryActivityEventKind,
     LibraryItemSource,
 } from "@/prisma/client/enums";
+import { T } from "gt-next";
 import {
     Activity,
     Bookmark,
-    BookmarkCheck,
     Boxes,
+    Compass,
     ExternalLink,
     FolderPlus,
     GitBranch,
+    History,
     House,
     Link2,
     Share2,
     Sparkles,
 } from "lucide-react";
 import type { Metadata } from "next";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import type { ComponentType, SVGProps } from "react";
 
@@ -514,12 +515,6 @@ export default async function ActivityPage({
     }
 
     const events = await getActivityTimeline(userId);
-    const itemEventCount = events.filter(
-        (event) => event.type === "item"
-    ).length;
-    const collectionEventCount = events.filter(
-        (event) => event.type === "collection"
-    ).length;
 
     return (
         <PageShell>
@@ -532,7 +527,7 @@ export default async function ActivityPage({
                             <UserMenuFooter />
                         </UserMenu>
                         <SidebarGroup>
-                            <Link className="contents" href="/library">
+                            <Link className="contents" href="/library" prefetch>
                                 <ActivePathname href="/library">
                                     <SidebarItem>
                                         <House
@@ -540,31 +535,41 @@ export default async function ActivityPage({
                                             className="inline-block size-4 shrink-0"
                                             focusable="false"
                                         />
-                                        <span>Home</span>
+                                        <span>
+                                            <T>Home</T>
+                                        </span>
                                     </SidebarItem>
                                 </ActivePathname>
                             </Link>
-                            <Link className="contents" href="/activity">
-                                <ActivePathname href="/activity">
-                                    <SidebarItem>
-                                        <Activity
-                                            aria-hidden
-                                            className="inline-block size-4 shrink-0"
-                                            focusable="false"
-                                        />
-                                        <span>Activity</span>
-                                    </SidebarItem>
-                                </ActivePathname>
-                            </Link>
-                            <Link className="contents" href="/review">
+                            <Link className="contents" href="/review" prefetch>
                                 <ActivePathname href="/review">
                                     <SidebarItem>
-                                        <BookmarkCheck
+                                        <Compass
                                             aria-hidden
                                             className="inline-block size-4 shrink-0"
                                             focusable="false"
                                         />
-                                        <span>Review</span>
+                                        <span>
+                                            <T>Review</T>
+                                        </span>
+                                    </SidebarItem>
+                                </ActivePathname>
+                            </Link>
+                            <Link
+                                className="contents"
+                                href="/activity"
+                                prefetch
+                            >
+                                <ActivePathname href="/activity">
+                                    <SidebarItem>
+                                        <History
+                                            aria-hidden
+                                            className="inline-block size-4 shrink-0"
+                                            focusable="false"
+                                        />
+                                        <span>
+                                            <T>Activity</T>
+                                        </span>
                                     </SidebarItem>
                                 </ActivePathname>
                             </Link>
@@ -575,52 +580,9 @@ export default async function ActivityPage({
                     <header className="flex flex-col gap-6 border-border border-b pb-6">
                         <div className="flex items-start justify-between gap-6">
                             <div className="flex min-w-0 flex-col gap-2">
-                                <p className="font-medium text-muted-foreground text-xs uppercase tracking-normal">
-                                    Library
-                                </p>
                                 <h1 className="font-semibold text-2xl text-foreground">
                                     Activity
                                 </h1>
-                                <p className="max-w-2xl text-muted-foreground text-sm leading-6">
-                                    A concise timeline of saves, edits,
-                                    collection changes, and shares across your
-                                    library.
-                                </p>
-                            </div>
-                            <Avatar className="hidden size-10 rounded-md border border-border bg-muted sm:flex">
-                                <AvatarFallback className="rounded-md">
-                                    <Link2
-                                        aria-hidden
-                                        className="size-5 text-muted-foreground"
-                                        focusable="false"
-                                    />
-                                </AvatarFallback>
-                            </Avatar>
-                        </div>
-                        <div className="grid gap-3 sm:grid-cols-3">
-                            <div className="flex min-h-20 flex-col justify-between rounded-md border border-border bg-background p-4">
-                                <span className="text-muted-foreground text-xs">
-                                    Events
-                                </span>
-                                <strong className="font-semibold text-2xl tabular-nums">
-                                    {events.length}
-                                </strong>
-                            </div>
-                            <div className="flex min-h-20 flex-col justify-between rounded-md border border-border bg-background p-4">
-                                <span className="text-muted-foreground text-xs">
-                                    Item changes
-                                </span>
-                                <strong className="font-semibold text-2xl tabular-nums">
-                                    {itemEventCount}
-                                </strong>
-                            </div>
-                            <div className="flex min-h-20 flex-col justify-between rounded-md border border-border bg-background p-4">
-                                <span className="text-muted-foreground text-xs">
-                                    Collection changes
-                                </span>
-                                <strong className="font-semibold text-2xl tabular-nums">
-                                    {collectionEventCount}
-                                </strong>
                             </div>
                         </div>
                     </header>
