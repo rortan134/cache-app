@@ -2624,8 +2624,8 @@ function useLibraryItemActions(args: {
         openSavedItemInNewTab(normalizeURL(item.url));
     });
 
-    const handleCopyLink = useStableCallback((item: LibraryItem) => {
-        copyToClipboard(normalizeURL(item.url));
+    const handleCopyLink = useStableCallback(async (item: LibraryItem) => {
+        await copyToClipboard(normalizeURL(item.url));
     });
 
     const handleRequestDelete = useStableCallback((item: LibraryItem) => {

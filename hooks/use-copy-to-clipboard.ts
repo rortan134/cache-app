@@ -10,7 +10,7 @@ interface UseCopyToClipboardOptions {
 }
 
 interface UseCopyToClipboardResult {
-    copyToClipboard: (value: string) => boolean;
+    copyToClipboard: (value: string) => Promise<boolean>;
     isCopied: boolean;
 }
 
@@ -27,17 +27,17 @@ export function useCopyToClipboard({
     const onCopyRef = useValueAsRef(onCopy);
     const timeoutRef = useValueAsRef(timeout);
 
-    const copyToClipboard = (value: string) => {
+    const copyToClipboard = async (value: string) => {
         if (!(canUseDOM && value)) {
             return false;
         }
 
-        const success = copy(value);
+        timeoutManager.clear();
+
+        const success = await copy(value);
         if (!success) {
             return false;
         }
-
-        timeoutManager.clear();
 
         setIsCopied(true);
         onCopyRef.current?.();

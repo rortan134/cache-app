@@ -238,11 +238,7 @@ export default async function LibraryPage() {
                                         </SidebarItem>
                                     </ActivePathname>
                                 </Link>
-                                <Link
-                                    className="contents"
-                                    href="/review"
-                                    prefetch
-                                >
+                                <Link className="contents" href="/review">
                                     <ActivePathname href="/review">
                                         <SidebarItem>
                                             <Compass

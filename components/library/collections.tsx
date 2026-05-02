@@ -2388,7 +2388,7 @@ export function CollectionsListRoot({
         }
     };
 
-    const handleCopyCollectionLinks = (
+    const handleCopyCollectionLinks = async (
         collection: LibraryCollectionSummary
     ) => {
         if (!ensureCollectionActionAccess(collection, "copy")) {
@@ -2403,7 +2403,7 @@ export function CollectionsListRoot({
             return;
         }
 
-        if (copyToClipboard(urls.join("\n"))) {
+        if (await copyToClipboard(urls.join("\n"))) {
             showCollectionActionSuccess(
                 `Links from ${collection.name} copied to the clipboard.`
             );
@@ -2413,10 +2413,10 @@ export function CollectionsListRoot({
         showCollectionActionError("We couldn't copy these links right now.");
     };
 
-    const handleCopyCollectionTitle = (
+    const handleCopyCollectionTitle = async (
         collection: LibraryCollectionSummary
     ) => {
-        if (copyToClipboard(collection.name)) {
+        if (await copyToClipboard(collection.name)) {
             showCollectionActionSuccess(
                 `${collection.name} title copied to the clipboard.`
             );
@@ -2428,7 +2428,7 @@ export function CollectionsListRoot({
         );
     };
 
-    const handleCopyCollectionShareLink = (
+    const handleCopyCollectionShareLink = async (
         collection: LibraryCollectionSummary
     ) => {
         if (!collection.shareId) {
@@ -2440,7 +2440,7 @@ export function CollectionsListRoot({
 
         const shareUrl = buildPublicCollectionShareUrl(collection.shareId);
 
-        if (copyToClipboard(shareUrl)) {
+        if (await copyToClipboard(shareUrl)) {
             showCollectionActionSuccess(
                 `Public link for ${collection.name} copied to the clipboard.`
             );
@@ -2472,7 +2472,7 @@ export function CollectionsListRoot({
             syncCollectionShareState(result.collection);
             setPendingShareCollectionId(null);
             showCollectionActionSuccess(
-                copyToClipboard(result.shareUrl)
+                (await copyToClipboard(result.shareUrl))
                     ? `${collection.name} is now publicly shared. Link copied to the clipboard.`
                     : `${collection.name} is now publicly shared.`
             );
