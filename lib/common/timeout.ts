@@ -1,14 +1,11 @@
-import { abortAfterAny } from "@/lib/common/abort";
+import { abortAfter } from "@/lib/common/abort";
 
 export async function fetchWithTimeout(
     input: string,
     options: RequestInit,
     timeoutMs: number
 ): Promise<Response> {
-    const { signal, clearTimeout } = abortAfterAny(
-        timeoutMs,
-        new AbortController().signal
-    );
+    const { signal, clearTimeout } = abortAfter(timeoutMs);
     try {
         return await fetch(input, { ...options, signal });
     } finally {

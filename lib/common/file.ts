@@ -20,7 +20,6 @@ export const fileOpen = <M extends boolean | undefined = false>(options: {
     return _fileOpen({
         description: options.description,
         extensions,
-        // mimeTypes,
         multiple: options.multiple ?? false,
     });
 };
@@ -53,7 +52,7 @@ export function revokeFileAttachmentObjectUrl(url: string): void {
     URL.revokeObjectURL(url);
 }
 
-export const saveFile = (
+export function saveFile(
     blob: Blob | Promise<Blob>,
     options: {
         /** supply without the extension */
@@ -65,7 +64,7 @@ export const saveFile = (
         fileHandle?: FileSystemFileHandle | null;
         onError?: (error: unknown) => void;
     }
-) => {
+) {
     try {
         return _fileSave(
             blob,
@@ -74,12 +73,13 @@ export const saveFile = (
                 extensions: [`.${options.extension}`],
                 fileName: `${options.name}.${options.extension}`,
             },
-            options.fileHandle
+            options.fileHandle ?? null
         );
     } catch (error) {
         options.onError?.(error);
+        return null;
     }
-};
+}
 
 // export { supported as nativeFileSystemSupported } from "browser-fs-access";
 export type { FileSystemHandle } from "browser-fs-access";

@@ -1,9 +1,10 @@
-// biome-ignore-all lint/suspicious/noExplicitAny: any
+import { isRecord } from "@/lib/common/objects";
 import * as z from "zod";
 
 export abstract class NamedError extends Error {
+    abstract readonly data: unknown;
     abstract schema(): z.ZodSchema;
-    abstract toObject(): { name: string; data: any };
+    abstract toObject(): { name: string; data: unknown };
 
     static create<Name extends string, Data extends z.ZodSchema>(
         name: Name,
@@ -21,17 +22,19 @@ export abstract class NamedError extends Error {
             readonly data: z.input<Data>;
 
             constructor(errorData: z.input<Data>, options?: ErrorOptions) {
+                const record =
+                    errorData && typeof errorData === "object"
+                        ? (errorData as Record<string, unknown>)
+                        : null;
                 const message =
-                    errorData && typeof (errorData as any).message === "string"
-                        ? (errorData as any).message
-                        : name;
-                super(message ?? name, options);
+                    typeof record?.message === "string" ? record.message : name;
+                super(message, options);
                 this.name = name;
                 this.data = errorData;
             }
 
             static isInstance(
-                input: any
+                input: unknown
             ): input is InstanceType<typeof result> {
                 return (
                     typeof input === "object" &&
@@ -71,12 +74,11 @@ export function extractNamedErrorMessage(e: unknown): {
     message: string;
 } {
     if (e instanceof NamedError) {
-        const data = (e as unknown as { data?: Record<string, unknown> }).data;
+        const data = isRecord(e.data) ? e.data : undefined;
         const operation =
             typeof data?.operation === "string" ? data.operation : undefined;
         const message =
-            (typeof data?.message === "string" && data.message) ||
-            (e as Error).message;
+            (typeof data?.message === "string" && data.message) || e.message;
         return { message, name: e.name, operation };
     }
 

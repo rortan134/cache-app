@@ -10,10 +10,6 @@ export function asRecord(value: unknown): Record<string, unknown> | null {
     return isRecord(value) ? value : null;
 }
 
-export function isObject(value: object) {
-    return value && typeof value === "object" && !Array.isArray(value);
-}
-
 export function denyPropertyAccess<T extends object>() {
     return new Proxy<T>(Object.create(null), {
         get: (_target, prop) => {

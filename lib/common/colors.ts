@@ -78,8 +78,7 @@ const COLORS: readonly string[] = [
 
 export const isValidColor = (color: string): boolean => {
     try {
-        const parsed = parse(color);
-        return parsed !== null && parsed !== undefined;
+        return parse(color) != null;
     } catch {
         return false;
     }
@@ -150,8 +149,10 @@ function getColorIndex(value: string, arrayLength: number): number {
 export function getHexColorFromName(value: string): string {
     const index = getColorIndex(value, COLORS.length);
     const color = COLORS[index];
-    if (color === undefined || color === null) {
-        throw new Error(`Color at index ${index} is undefined`);
+    if (!color) {
+        throw new Error(
+            `Invariant violated: no color at computed index ${index}`
+        );
     }
     return color;
 }
@@ -163,8 +164,10 @@ export function getHexColorFromName(value: string): string {
 export function getRandomHexColor(): string {
     const randomIndex = Math.floor(Math.random() * COLORS.length);
     const color = COLORS[randomIndex];
-    if (color === undefined || color === null) {
-        throw new Error(`Color at index ${randomIndex} is undefined`);
+    if (!color) {
+        throw new Error(
+            `Invariant violated: no color at computed index ${randomIndex}`
+        );
     }
     return color;
 }
@@ -197,9 +200,11 @@ export function getColorGradientFromName(name: string): string {
     const color = parseToRgb(getHexColorFromName(name));
     const rgb = [color.r, color.g, color.b] as const;
     const hue = rgbToHue(rgb[0], rgb[1], rgb[2]);
-    const chromaBias = rgb
-        ? clamp((Math.max(...rgb) - Math.min(...rgb)) / 255, 0.6, 2.2)
-        : 1;
+    const chromaBias = clamp(
+        (Math.max(...rgb) - Math.min(...rgb)) / 255,
+        0.6,
+        2.2
+    );
     const start = `lch(97 ${Number((2.4 + chromaBias * 0.7).toFixed(3))} ${Number(hue.toFixed(3))})`;
     const end = `lch(97 ${Number((0.8 + chromaBias * 0.2).toFixed(3))} ${Number(((hue + 10) % 360).toFixed(3))})`;
     return `linear-gradient(90deg, ${start} 0%, ${end} 100%), ${end}`;

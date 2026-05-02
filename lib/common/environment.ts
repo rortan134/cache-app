@@ -42,18 +42,15 @@ export const IS_SAFARI =
     /Version\/[\d.]+.*Safari/.test(navigator.userAgent) &&
     !IS_ANDROID;
 
-// Keep these in case we need to use them in the future.
-// export const IS_WINDOWS = canUseDOM && /Win/.test(navigator.platform);
+export const IS_WINDOWS = canUseDOM && /Win/.test(navigator.platform);
 export const IS_CHROME =
     canUseDOM && /^(?=.*Chrome).*/i.test(navigator.userAgent);
-// export const canUseTextInputEvent = canUseDOM && 'TextEvent' in window && !documentMode;
-
 export const IS_ANDROID_CHROME = canUseDOM && IS_ANDROID && IS_CHROME;
 
 export const IS_WEBKIT =
-    typeof CSS === "undefined" || !CSS.supports
-        ? false
-        : CSS.supports("-webkit-backdrop-filter:none");
+    canUseDOM &&
+    typeof CSS !== "undefined" &&
+    CSS.supports("-webkit-backdrop-filter:none");
 
 export const IS_APPLE_WEBKIT =
     canUseDOM &&
