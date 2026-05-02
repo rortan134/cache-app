@@ -13,14 +13,11 @@ export const parseValidUrl = (url: string): URL | null => {
 };
 
 export const normalizeURL = (link: string | null | undefined) => {
-    if (typeof link === "string") {
-        const newLink = link?.trim();
-        if (!newLink) {
-            return newLink;
-        }
-        return sanitizeUrl(newLink);
+    if (typeof link !== "string") {
+        return "about:blank";
     }
-    return "about:blank";
+    const trimmed = link.trim();
+    return trimmed ? sanitizeUrl(trimmed) : trimmed;
 };
 
 function getSafeOrigin() {
@@ -35,34 +32,33 @@ function getSafeOrigin() {
 const protocolsRegex = /^[a-zA-Z]+:\/\//;
 
 export const toValidUrl = (link: string) => {
-    if (!link?.trim()) {
+    const trimmed = link.trim();
+    if (!trimmed) {
         return "about:blank";
     }
 
-    let newLink = link;
-
     // Transform relative links to absolute urls
-    if (newLink.startsWith("/")) {
+    if (trimmed.startsWith("/")) {
         const origin = getSafeOrigin();
-        if (typeof origin === "string") {
-            newLink = `${origin}${newLink}`;
-        } else {
+        if (typeof origin !== "string") {
             return "about:blank";
         }
+        return parseValidUrl(`${origin}${trimmed}`)?.href ?? "about:blank";
     }
 
-    if (link.startsWith("http://") || link.startsWith("https://")) {
-        newLink = normalizeURL(link);
-    } else if (link.includes("://")) {
-        // Replace invalid protocol
-        const replaced = link.replace(protocolsRegex, "");
-        newLink = normalizeURL(replaced);
-    } else {
-        newLink = normalizeURL(`https://${link}`);
+    if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
+        const normalized = normalizeURL(trimmed);
+        return parseValidUrl(normalized)?.href ?? "about:blank";
     }
 
-    // if newLink does not parse as URL, assume invalid and return blank page
-    return parseValidUrl(newLink)?.href ?? "about:blank";
+    if (trimmed.includes("://")) {
+        const replaced = trimmed.replace(protocolsRegex, "");
+        const normalized = normalizeURL(replaced);
+        return parseValidUrl(normalized)?.href ?? "about:blank";
+    }
+
+    const normalized = normalizeURL(`https://${trimmed}`);
+    return parseValidUrl(normalized)?.href ?? "about:blank";
 };
 
 export const parseStandaloneUrl = (input: string): URL | null => {
@@ -85,8 +81,18 @@ export const parseStandaloneUrl = (input: string): URL | null => {
     return parsedUrl;
 };
 
-export const isLocalUrl = (link: string | null) =>
-    !!(link?.includes(location.origin) ?? link?.startsWith("/"));
+export const isLocalUrl = (link: string | null) => {
+    if (!link) {
+        return false;
+    }
+    if (link.startsWith("/")) {
+        return true;
+    }
+    if (typeof location !== "undefined") {
+        return link.includes(location.origin);
+    }
+    return false;
+};
 
 export const parseUrlSearchParams = (url: string) => {
     if (!url) {
@@ -132,6 +138,10 @@ export function isHttpUrl(value: string | null | undefined): value is string {
 }
 
 export function openSavedItemInNewTab(url: string) {
+    if (typeof window === "undefined") {
+        return;
+    }
+
     try {
         if (typeof window.openai !== "undefined") {
             window.openai.openExternal({ href: url });
