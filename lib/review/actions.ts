@@ -6,6 +6,7 @@ import {
     requireActionUserId,
 } from "@/lib/common/procedure";
 import { prisma } from "@/prisma";
+import { revalidatePath } from "next/cache";
 import * as z from "zod";
 
 const log = createLogger("library:actions:review");
@@ -60,6 +61,7 @@ export async function markLibraryItemAsReviewed(
             };
         }
 
+        revalidatePath("/review");
         return { status: "REVIEWED" };
     } catch (error) {
         log.error("Failed to mark item as reviewed", error);

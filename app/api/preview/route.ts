@@ -38,7 +38,7 @@ export async function GET(request: Request): Promise<Response> {
             timeout: FETCH_TIMEOUT_MS,
         });
 
-        const imageUrl = toSafeUrl(page.image);
+        const imageUrl = page.image ? toSafeUrl(page.image) : null;
         if (!imageUrl) {
             return RESPONSE_NOT_FOUND;
         }

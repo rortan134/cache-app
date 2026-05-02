@@ -141,6 +141,7 @@ function ReviewSession({
     const [deletingItemIds, setDeletingItemIds] = React.useState<Set<string>>(
         new Set()
     );
+    const [actionError, setActionError] = React.useState<string | null>(null);
     const currentItemRef = React.useRef<LibraryItemWithCollections | null>(
         null
     );
@@ -175,10 +176,13 @@ function ReviewSession({
 
     const handleUpdateItemCollections = React.useCallback(
         async (itemId: string, collectionIds: string[]) => {
-            const result = await updateLibraryItemCollections({
-                collectionIds,
-                itemId,
-            });
+            const [result] = await Promise.all([
+                updateLibraryItemCollections({
+                    collectionIds,
+                    itemId,
+                }),
+                markLibraryItemAsReviewed(itemId).catch(() => undefined),
+            ]);
             if (result.status === "UPDATED") {
                 removeItem(itemId);
             }
@@ -222,7 +226,20 @@ function ReviewSession({
             }
             if (event.key.toLowerCase() === "k") {
                 event.preventDefault();
-                removeItem(liveItem.id);
+                markLibraryItemAsReviewed(liveItem.id)
+                    .then((result) => {
+                        if (result.status !== "REVIEWED") {
+                            setActionError(result.message);
+                            return;
+                        }
+                        setActionError(null);
+                        removeItem(liveItem.id);
+                    })
+                    .catch(() => {
+                        setActionError(
+                            "We couldn't mark this item as reviewed right now."
+                        );
+                    });
             }
             if (event.key.toLowerCase() === "d") {
                 event.preventDefault();
@@ -275,6 +292,11 @@ function ReviewSession({
                     </span>
                 ) : null}
             </div>
+            {actionError ? (
+                <div className="mx-6 rounded-xl border border-destructive/25 bg-destructive/6 px-4 py-2 text-foreground text-sm">
+                    {actionError}
+                </div>
+            ) : null}
 
             {/* Horizontal carousel */}
             <div className="relative flex-1 overflow-hidden">
@@ -302,10 +324,15 @@ function ReviewSession({
                             : item.caption || domain;
 
                         // Per-item action handlers avoid stale closures.
-                        const onKeep = () => {
-                            markLibraryItemAsReviewed(item.id).catch(
-                                () => undefined
+                        const onKeep = async () => {
+                            const result = await markLibraryItemAsReviewed(
+                                item.id
                             );
+                            if (result.status !== "REVIEWED") {
+                                setActionError(result.message);
+                                return;
+                            }
+                            setActionError(null);
                             removeItem(item.id);
                         };
                         const onDelete = async () => {
@@ -504,7 +531,7 @@ function ReviewCompletionState() {
                     }}
                     variant="default"
                 >
-                    Review again
+                    Continue reviewing
                 </Button>
             </div>
         </div>

@@ -7,11 +7,11 @@ import * as React from "react";
 
 interface TruncateAfterProps extends React.ComponentProps<"div"> {
     badgeRender?: React.ReactElement;
-    count?: number;
+    maxVisible?: number;
 }
 
 const TruncateAfter = ({
-    count = 5,
+    maxVisible = 5,
     children,
     className,
     badgeRender,
@@ -27,7 +27,7 @@ const TruncateAfter = ({
     const remaining: React.ReactNode[] = [];
 
     React.Children.map(children, (child, index) => {
-        if (index < count) {
+        if (index < maxVisible) {
             displayed.push(child);
         } else {
             remaining.push(child);

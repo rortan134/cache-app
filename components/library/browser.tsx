@@ -2558,7 +2558,7 @@ function LibraryPaletteTrailing({
                     />
                 }
                 className="justify-end"
-                count={1}
+                maxVisible={1}
             >
                 {chips}
             </TruncateAfter>

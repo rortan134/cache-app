@@ -1,13 +1,12 @@
 import "server-only";
 
-import { COLLECTION_NAME_LENGTH_MAX } from "@/lib/collections/utils";
-
 import { serverEnv } from "@/env/server";
 import { GenAiProtectionError } from "@/lib/collections/intelligence/error";
 import {
     estimateGenAiTokens,
     protectGenAiRequest,
 } from "@/lib/collections/intelligence/protection";
+import { COLLECTION_NAME_LENGTH_MAX } from "@/lib/collections/utils";
 import { resolveCobaltDownloadUrl } from "@/lib/common/cobalt";
 import { createLogger } from "@/lib/common/logs/console/logger";
 import { toUsableStaticPreviewUrl } from "@/lib/common/preview-url";
@@ -35,6 +34,7 @@ import { basename, extname, join } from "node:path";
 import * as z from "zod";
 
 const log = createLogger("library:smart-collections");
+
 const SMART_COLLECTIONS_MODEL_DEFAULT = "gemini-2.5-flash";
 const SMART_COLLECTIONS_MODELS_FALLBACK = [
     "gemini-2.5-flash-lite",
