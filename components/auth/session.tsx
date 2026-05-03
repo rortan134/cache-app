@@ -49,11 +49,7 @@ function SignedOutOnly({
         return loadingRender;
     }
 
-    if (session) {
-        return null;
-    }
-
-    return children;
+    return session ? null : children;
 }
 
 function SignedInOnly({
@@ -66,21 +62,13 @@ function SignedInOnly({
         return loadingRender;
     }
 
-    if (session) {
-        return children;
-    }
-
-    return null;
+    return session ? children : null;
 }
 
 function SessionLoadingOnly({ children }: PropsWithChildren) {
     const { isPending } = useSession();
 
-    if (isPending) {
-        return children;
-    }
-
-    return null;
+    return isPending ? children : null;
 }
 
 function SessionHint({ serverSession }: { serverSession?: Session | null }) {
@@ -91,13 +79,12 @@ function SessionHint({ serverSession }: { serverSession?: Session | null }) {
         return null;
     }
 
-    const email = session.user.email;
-
     return (
         <div className="flex items-center gap-2">
             <Info className="size-4 opacity-50" />
             <p className="font-medium text-xs leading-[1.22] tracking-[-3%] opacity-50">
-                You are signed in as {email ?? <Skeleton>Placeholder</Skeleton>}
+                You are signed in as{" "}
+                {session.user.email ?? <Skeleton>Placeholder</Skeleton>}
                 <Button
                     loading={isPending}
                     render={<Link href="/logout">Log out</Link>}
@@ -111,8 +98,8 @@ function SessionHint({ serverSession }: { serverSession?: Session | null }) {
 
 export {
     GoogleOneTapTrigger,
-    SessionHint,
-    SessionLoadingOnly,
     SignedInOnly,
     SignedOutOnly,
+    SessionLoadingOnly,
+    SessionHint,
 };

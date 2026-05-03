@@ -47,6 +47,7 @@ export function Input({
                     className={inputClassName}
                     data-slot="input"
                     size={typeof size === "number" ? size : undefined}
+                    translate="no"
                     {...props}
                     style={
                         typeof props.style === "function"

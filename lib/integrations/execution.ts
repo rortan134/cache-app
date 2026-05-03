@@ -20,42 +20,6 @@ function navigateTo(url: string) {
     window.location.assign(url);
 }
 
-function createConnectionError(args: {
-    cause?: unknown;
-    message: string;
-    operation: string;
-}): InstanceType<typeof IntegrationConnectionError> {
-    return new IntegrationConnectionError(
-        {
-            cause: args.cause,
-            message: args.message,
-            operation: args.operation,
-        },
-        {
-            cause: args.cause,
-        }
-    );
-}
-
-function createApiError(args: {
-    cause?: unknown;
-    message: string;
-    operation: string;
-    status: number;
-}): InstanceType<typeof IntegrationApiError> {
-    return new IntegrationApiError(
-        {
-            cause: args.cause,
-            message: args.message,
-            operation: args.operation,
-            status: args.status,
-        },
-        {
-            cause: args.cause,
-        }
-    );
-}
-
 function extractRedirectUrl(payload: unknown): string | null {
     const root = asRecord(payload);
     const data = asRecord(root?.data) ?? root;
@@ -97,11 +61,15 @@ export async function executeConnectBehavior(
         });
 
         if (result.error) {
-            throw createConnectionError({
-                cause: result.error,
-                message: result.error.message ?? CONNECTION_FLOW_ERROR_MESSAGE,
-                operation: "executeConnectBehavior.socialSignIn",
-            });
+            throw new IntegrationConnectionError(
+                {
+                    cause: result.error,
+                    message:
+                        result.error.message ?? CONNECTION_FLOW_ERROR_MESSAGE,
+                    operation: "executeConnectBehavior.socialSignIn",
+                },
+                { cause: result.error }
+            );
         }
 
         return;
@@ -119,11 +87,14 @@ export async function executeConnectBehavior(
 
     const url = extractRedirectUrl(response);
     if (!url) {
-        throw createConnectionError({
-            cause: response,
-            message: CONNECTION_FLOW_ERROR_MESSAGE,
-            operation: "executeConnectBehavior.oauthLink",
-        });
+        throw new IntegrationConnectionError(
+            {
+                cause: response,
+                message: CONNECTION_FLOW_ERROR_MESSAGE,
+                operation: "executeConnectBehavior.oauthLink",
+            },
+            { cause: response }
+        );
     }
 
     navigateTo(url);
@@ -148,12 +119,15 @@ export async function executeRouteSyncBehavior(
             Object.hasOwn(payloadRecord, behavior.successKey)
         )
     ) {
-        throw createApiError({
-            cause: payload,
-            message: getErrorMessage(payload, behavior.errorMessage),
-            operation: "executeRouteSyncBehavior",
-            status: response.status,
-        });
+        throw new IntegrationApiError(
+            {
+                cause: payload,
+                message: getErrorMessage(payload, behavior.errorMessage),
+                operation: "executeRouteSyncBehavior",
+                status: response.status,
+            },
+            { cause: payload }
+        );
     }
 
     return behavior.successMessage?.(payloadRecord) ?? null;
@@ -167,7 +141,7 @@ export async function executeCopyPromptBehavior(
 ): Promise<void> {
     const response = await fetch(behavior.path, { method: "POST" });
     if (!response.ok) {
-        throw createConnectionError({
+        throw new IntegrationConnectionError({
             message: "Could not retrieve the setup prompt.",
             operation: "executeCopyPromptBehavior",
         });
@@ -179,7 +153,7 @@ export async function executeCopyPromptBehavior(
         typeof record?.prompt === "string" ? record.prompt : undefined;
 
     if (!prompt) {
-        throw createConnectionError({
+        throw new IntegrationConnectionError({
             message: "Setup prompt is unavailable.",
             operation: "executeCopyPromptBehavior",
         });

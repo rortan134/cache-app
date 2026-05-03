@@ -6,12 +6,8 @@ import { ArrowUpRight } from "lucide-react";
 import { useParams } from "next/navigation";
 
 function useLocaleParam(): string {
-    const params = useParams<{ locale?: string | string[] }>();
-    const locale = params.locale;
-    if (Array.isArray(locale)) {
-        return locale[0] ?? "en";
-    }
-    return locale ?? "en";
+    const { locale } = useParams<{ locale?: string | string[] }>();
+    return Array.isArray(locale) ? (locale[0] ?? "en") : (locale ?? "en");
 }
 
 function InlinePaywallBanner() {
@@ -71,4 +67,4 @@ function BlockPaywallBanner({ length }: { length: number }) {
     );
 }
 
-export { BlockPaywallBanner, InlinePaywallBanner };
+export { InlinePaywallBanner, BlockPaywallBanner };

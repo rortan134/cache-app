@@ -10,7 +10,6 @@ const nextConfig: NextConfig = {
             "@base-ui/react",
             "@base-ui/utils",
             "zod",
-            "recharts",
             "@lexical/*",
             "lexical",
         ],

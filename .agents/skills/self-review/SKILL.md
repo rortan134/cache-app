@@ -1,6 +1,6 @@
 ---
 name: self-review
-description: Self-review your own work before committing. Fight entropy, ensure quality, leave the codebase better than you found it.
+description: Final self-review your own work before committing. Fight entropy, ensure quality, leave the codebase better than you found it.
 disable-model-invocation: true
 allowed-tools: [Read, Edit, Glob, Grep, Bash, Agent]
 ---

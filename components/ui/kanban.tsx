@@ -1,6 +1,5 @@
 "use client";
 
-import { useIsomorphicLayoutEffect } from "@/hooks/use-isomorphic-effect";
 import { useMergedRefs } from "@base-ui/utils/useMergedRefs";
 import { cn } from "@/lib/common/cn";
 import {
@@ -1118,7 +1117,7 @@ function KanbanOverlay(props: KanbanOverlayProps) {
 
     const [mounted, setMounted] = React.useState(false);
 
-    useIsomorphicLayoutEffect(() => setMounted(true), []);
+    React.useLayoutEffect(() => setMounted(true), []);
 
     const container =
         containerProp ?? (mounted ? globalThis.document?.body : null);

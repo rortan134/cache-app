@@ -1,40 +1,32 @@
 "use client";
 
 import { useAccess } from "@/hooks/use-access";
-import type * as React from "react";
+import type { PropsWithChildren, ReactNode } from "react";
 
 function PrivilegedOnly({
     children,
     loadingRender = null,
-}: React.PropsWithChildren<{ loadingRender?: React.ReactNode }>) {
+}: PropsWithChildren<{ loadingRender?: ReactNode }>) {
     const { hasAccess, isLoading } = useAccess();
 
-    if (isLoading && typeof loadingRender !== "undefined") {
+    if (isLoading) {
         return loadingRender;
     }
 
-    if (hasAccess) {
-        return children;
-    }
-
-    return null;
+    return hasAccess ? children : null;
 }
 
 function UnprivilegedOnly({
     children,
     loadingRender = null,
-}: React.PropsWithChildren<{ loadingRender?: React.ReactNode }>) {
+}: PropsWithChildren<{ loadingRender?: ReactNode }>) {
     const { hasAccess, isLoading } = useAccess();
 
-    if (isLoading && typeof loadingRender !== "undefined") {
+    if (isLoading) {
         return loadingRender;
     }
 
-    if (hasAccess) {
-        return null;
-    }
-
-    return children;
+    return hasAccess ? null : children;
 }
 
 export { PrivilegedOnly, UnprivilegedOnly };

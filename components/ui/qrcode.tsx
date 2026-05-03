@@ -5,8 +5,8 @@ import { mergeProps } from "@base-ui/react/merge-props";
 import { useMergedRefs } from "@base-ui/utils/useMergedRefs";
 import { useRender } from "@base-ui/react/use-render";
 import { useRefWithInit } from "@base-ui/utils/useRefWithInit";
+import { useStableCallback } from "@base-ui/utils/useStableCallback";
 import * as React from "react";
-import { useIsomorphicLayoutEffect } from "@/hooks/use-isomorphic-effect";
 
 const ROOT_NAME = "QRCode";
 const IMAGE_NAME = "QRCodeImage";
@@ -220,67 +220,69 @@ function QRCode(props: QRCodeProps) {
           })
         : "";
 
-    async function onQRCodeGenerate(targetGenerationKey: string) {
-        if (!(value && targetGenerationKey)) {
-            return;
-        }
+    const onQRCodeGenerate = useStableCallback(
+        async (targetGenerationKey: string) => {
+            if (!(value && targetGenerationKey)) {
+                return;
+            }
 
-        const currentState = store.getState();
-        if (
-            currentState.isGenerating ||
-            currentState.generationKey === targetGenerationKey
-        ) {
-            return;
-        }
+            const currentState = store.getState();
+            if (
+                currentState.isGenerating ||
+                currentState.generationKey === targetGenerationKey
+            ) {
+                return;
+            }
 
-        store.setStates({
-            error: null,
-            isGenerating: true,
-        });
-
-        try {
-            const QRCode = (await import("qrcode")).default;
-
-            let dataUrl: string | null = null;
+            store.setStates({
+                error: null,
+                isGenerating: true,
+            });
 
             try {
-                dataUrl = await QRCode.toDataURL(value, canvasOpts);
-            } catch {
-                dataUrl = null;
+                const QRCode = (await import("qrcode")).default;
+
+                let dataUrl: string | null = null;
+
+                try {
+                    dataUrl = await QRCode.toDataURL(value, canvasOpts);
+                } catch {
+                    dataUrl = null;
+                }
+
+                if (canvasRef.current) {
+                    await QRCode.toCanvas(canvasRef.current, value, canvasOpts);
+                }
+
+                const svgString = await QRCode.toString(value, {
+                    color: canvasOpts.color,
+                    errorCorrectionLevel: canvasOpts.errorCorrectionLevel,
+                    margin: canvasOpts.margin,
+                    type: "svg",
+                    width: canvasOpts.width,
+                });
+
+                store.setStates({
+                    dataUrl,
+                    generationKey: targetGenerationKey,
+                    isGenerating: false,
+                    svgString,
+                });
+
+                onGenerated?.();
+            } catch (error) {
+                const parsedError =
+                    error instanceof Error
+                        ? error
+                        : new Error("Failed to generate QR code");
+                store.setStates({
+                    error: parsedError,
+                    isGenerating: false,
+                });
+                onError?.(parsedError);
             }
-
-            if (canvasRef.current) {
-                await QRCode.toCanvas(canvasRef.current, value, canvasOpts);
-            }
-
-            const svgString = await QRCode.toString(value, {
-                color: canvasOpts.color,
-                errorCorrectionLevel: canvasOpts.errorCorrectionLevel,
-                margin: canvasOpts.margin,
-                type: "svg",
-                width: canvasOpts.width,
-            });
-
-            store.setStates({
-                dataUrl,
-                generationKey: targetGenerationKey,
-                isGenerating: false,
-                svgString,
-            });
-
-            onGenerated?.();
-        } catch (error) {
-            const parsedError =
-                error instanceof Error
-                    ? error
-                    : new Error("Failed to generate QR code");
-            store.setStates({
-                error: parsedError,
-                isGenerating: false,
-            });
-            onError?.(parsedError);
         }
-    }
+    );
 
     const contextValue: QRCodeContextValue = {
         backgroundColor,
@@ -292,7 +294,7 @@ function QRCode(props: QRCodeProps) {
         value,
     };
 
-    useIsomorphicLayoutEffect(() => {
+    React.useLayoutEffect(() => {
         if (generationKey) {
             const rafId = requestAnimationFrame(() => {
                 onQRCodeGenerate(generationKey);

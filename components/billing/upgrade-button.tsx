@@ -3,8 +3,10 @@
 import { Button, type ButtonProps } from "@/components/ui/button";
 import { authClient } from "@/lib/auth/client";
 import { cn } from "@/lib/common/cn";
-import type * as React from "react";
+import type { ReactNode } from "react";
 import { useState, useTransition } from "react";
+
+const CHECKOUT_ERROR = "We couldn't open checkout right now.";
 
 export function UpgradeButton({
     children = "Upgrade to Pro",
@@ -14,7 +16,7 @@ export function UpgradeButton({
     size = "xl",
     variant,
 }: Readonly<{
-    children?: React.ReactNode;
+    children?: ReactNode;
     className?: string;
     fullWidth?: boolean;
     locale: string;
@@ -37,9 +39,7 @@ export function UpgradeButton({
                 });
 
                 if (error) {
-                    setErrorMessage(
-                        error.message ?? "We couldn't open checkout right now."
-                    );
+                    setErrorMessage(error.message ?? CHECKOUT_ERROR);
                     return;
                 }
 
@@ -48,9 +48,9 @@ export function UpgradeButton({
                     return;
                 }
 
-                setErrorMessage("We couldn't open checkout right now.");
+                setErrorMessage(CHECKOUT_ERROR);
             } catch {
-                setErrorMessage("We couldn't open checkout right now.");
+                setErrorMessage(CHECKOUT_ERROR);
             }
         });
     };

@@ -1,6 +1,5 @@
 "use client";
 
-import { useIsomorphicLayoutEffect } from "@/hooks/use-isomorphic-effect";
 import { useMergedRefs } from "@base-ui/utils/useMergedRefs";
 import { useStableCallback } from "@base-ui/utils/useStableCallback";
 import { useValueAsRef } from "@base-ui/utils/useValueAsRef";
@@ -1411,7 +1410,7 @@ function Masonry({
         width: 0,
     });
 
-    useIsomorphicLayoutEffect(() => {
+    React.useLayoutEffect(() => {
         if (!containerRef.current) {
             return;
         }
@@ -1437,7 +1436,7 @@ function Masonry({
                 width,
             });
         }
-    }, [containerPosition.offset, containerPosition.width, size.width]);
+    }, [containerPosition.offset, containerPosition.width]);
 
     const positioner = usePositioner(
         {

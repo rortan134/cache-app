@@ -102,7 +102,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Ticker } from "@/components/ui/ticker";
 import { TruncateAfter } from "@/components/ui/truncate-after";
 import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
-import { useIsomorphicLayoutEffect } from "@/hooks/use-isomorphic-effect";
 import type { CollectionCreateFromItemsResult } from "@/lib/collections/actions";
 import {
     SECTION_DESCRIPTION_CONTEXT_ITEMS_LIMIT,
@@ -4351,7 +4350,7 @@ export function Root({ lockedItemCount, totalItemCount }: LibraryProps) {
         });
     };
 
-    useIsomorphicLayoutEffect(() => {
+    React.useLayoutEffect(() => {
         const el = commandPanelContainerRef.current;
         if (!el) {
             return;

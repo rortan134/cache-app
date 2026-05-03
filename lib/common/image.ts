@@ -2,7 +2,7 @@
  * Tests if an image URL returns a successful response.
  * Useful for filtering out thumbnails that return 403 Forbidden or 404 Not Found.
  */
-export async function testValidImageResponse(url: string): Promise<boolean> {
+async function testValidImageResponse(url: string): Promise<boolean> {
     try {
         // We use fetch to test the response status directly.
         const response = await fetch(url, { method: "HEAD" });
