@@ -335,7 +335,9 @@ export function IntegrationsListItemAction({
     }
 
     return (
-        <div className={cn("ml-auto flex flex-col items-end gap-1", className)}>
+        <div
+            className={cn("ml-auto flex flex-col items-end gap-0.5", className)}
+        >
             {hasActions && (
                 <div className="flex flex-wrap items-center gap-1">
                     {actions.map((action) => {
