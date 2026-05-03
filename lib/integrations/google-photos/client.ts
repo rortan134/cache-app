@@ -2,8 +2,7 @@ import { getErrorMessage } from "@/lib/common/error";
 import { withRetry } from "@/lib/common/retry";
 import {
     IntegrationApiError,
-    IntegrationInternalError,
-    IntegrationSessionExpiredError,
+    IntegrationConnectionError,
 } from "@/lib/integrations/error";
 import { PickerNotReadyError } from "./error";
 
@@ -62,12 +61,12 @@ function createGooglePhotosApiError(args: {
     );
 }
 
-function createGooglePhotosInternalError(args: {
+function createGooglePhotosConnectionError(args: {
     cause?: unknown;
     message: string;
     operation: string;
-}): IntegrationInternalError {
-    return new IntegrationInternalError(
+}): IntegrationConnectionError {
+    return new IntegrationConnectionError(
         {
             cause: args.cause,
             integrationId: "google-photos",
@@ -78,17 +77,6 @@ function createGooglePhotosInternalError(args: {
             cause: args.cause,
         }
     );
-}
-
-function createGooglePhotosSessionExpiredError(args: {
-    message: string;
-    operation: string;
-}): IntegrationSessionExpiredError {
-    return new IntegrationSessionExpiredError({
-        integrationId: "google-photos",
-        message: args.message,
-        operation: args.operation,
-    });
 }
 
 async function createPickerSessionRequest(): Promise<SessionCreateResponse> {
@@ -128,7 +116,7 @@ async function pollUntilMediaSelected(
     await withRetry(
         async () => {
             if (Date.now() - startedAt >= timeoutMs) {
-                throw createGooglePhotosSessionExpiredError({
+                throw createGooglePhotosConnectionError({
                     message:
                         "Selection timed out. Open the picker again and confirm your media.",
                     operation: "pollUntilMediaSelected",
@@ -213,10 +201,11 @@ export async function executeGooglePhotosPickerFlow(): Promise<string> {
     const createPayload = await createPickerSessionRequest();
 
     if (!createPayload.pickerUri) {
-        throw createGooglePhotosInternalError({
+        throw createGooglePhotosApiError({
             cause: createPayload,
             message: "Picker URL is missing. Please try again.",
             operation: "executeGooglePhotosPickerFlow",
+            status: 502,
         });
     }
 

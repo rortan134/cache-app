@@ -1,6 +1,6 @@
 ---
-title: "Testing"
-description: "Testing standards and patterns"
+title: Testing
+description: Testing standards and patterns
 ---
 
 ## Why we test

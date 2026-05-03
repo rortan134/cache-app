@@ -5,7 +5,7 @@ import {
     type LibraryItemWithCollections,
 } from "@/lib/collections/utils";
 import { DEFAULT_BROWSER_PROFILE_ID } from "@/lib/integrations/browser-profiles";
-import { IntegrationResourceNotFoundError } from "@/lib/integrations/error";
+import { IntegrationUserError } from "@/lib/integrations/error";
 import {
     extractNoteText,
     isNoteSerializedEditorState,
@@ -79,7 +79,7 @@ export async function createNote(
 
     const item = await getNoteItemForUser(userId, created.id);
     if (!item) {
-        throw new IntegrationResourceNotFoundError({
+        throw new IntegrationUserError({
             message: "We created the note but couldn't load it back.",
             operation: "createNote",
             resource: "note",
@@ -109,7 +109,7 @@ export async function updateNote(
     });
 
     if (updated.count === 0) {
-        throw new IntegrationResourceNotFoundError({
+        throw new IntegrationUserError({
             message: "This note no longer exists.",
             operation: "updateNote",
             resource: "note",
@@ -118,7 +118,7 @@ export async function updateNote(
 
     const item = await getNoteItemForUser(userId, itemId);
     if (!item) {
-        throw new IntegrationResourceNotFoundError({
+        throw new IntegrationUserError({
             message: "We couldn't reload this note after saving it.",
             operation: "updateNote",
             resource: "note",

@@ -2,6 +2,7 @@
 
 import { getSessionUserId } from "@/lib/auth/server";
 import { extractNamedErrorMessage } from "@/lib/common/error";
+import { IntegrationUserError } from "@/lib/integrations/error";
 import { createLogger } from "@/lib/common/logs/console/logger";
 import {
     createNote as createNoteService,
@@ -108,7 +109,7 @@ export async function updateNote(input: {
         };
     } catch (error) {
         const details = extractNamedErrorMessage(error);
-        if (details.name === "IntegrationResourceNotFoundError") {
+        if (error instanceof IntegrationUserError && error.data.resource) {
             return {
                 message: details.message,
                 status: "NOT_FOUND",

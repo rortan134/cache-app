@@ -11,7 +11,7 @@ import {
     applyChromeBookmarkSyncEvents,
     getChromeBookmarkItemForUserByExternalId,
 } from "@/lib/integrations/chrome/service";
-import { IntegrationResourceNotFoundError } from "@/lib/integrations/error";
+import { IntegrationUserError } from "@/lib/integrations/error";
 
 import { after } from "next/server";
 import * as z from "zod";
@@ -95,7 +95,7 @@ export async function createChromeBookmarkFromUrl(input: {
             externalId
         );
         if (!item) {
-            throw new IntegrationResourceNotFoundError({
+            throw new IntegrationUserError({
                 integrationId: "chrome",
                 message:
                     "We saved the bookmark but couldn't load it back into the library.",

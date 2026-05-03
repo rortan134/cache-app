@@ -3,7 +3,7 @@
 import { useIsExtensionInstalled } from "@/hooks/use-extension-installed";
 import { getErrorMessage } from "@/lib/common/error";
 import { createLogger } from "@/lib/common/logs/console/logger";
-import { IntegrationCapabilityMissingError } from "@/lib/integrations/error";
+import { IntegrationUserError } from "@/lib/integrations/error";
 import {
     executeConnectBehavior,
     executeCopyPromptBehavior,
@@ -99,8 +99,8 @@ function createCapabilityMissingError(args: {
     capability: "connect" | "copy" | "open" | "sync";
     integrationId: IntegrationId;
     message: string;
-}): InstanceType<typeof IntegrationCapabilityMissingError> {
-    return new IntegrationCapabilityMissingError({
+}): IntegrationUserError {
+    return new IntegrationUserError({
         capability: args.capability,
         integrationId: args.integrationId,
         message: args.message,
