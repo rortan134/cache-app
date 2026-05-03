@@ -53,7 +53,6 @@ export function useListPanelOpenState({
             if (!isControlled) {
                 setIsOpen(nextOpen);
             }
-
             onOpenChange?.(nextOpen, eventDetails);
         },
         [isControlled, onOpenChange, setIsOpen]
@@ -67,9 +66,7 @@ export function useListPanelOpenState({
                 createHotkeyOpenChangeDetails(event)
             );
         },
-        {
-            preventDefault: true,
-        },
+        { preventDefault: true },
         [handleOpenChange, resolvedOpen]
     );
 

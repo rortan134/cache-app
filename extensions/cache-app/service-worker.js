@@ -313,7 +313,6 @@ async function postYouTubeSnapshot(endpoint, apiKey, payload) {
     }
     const res = await fetch(endpoint.trim(), {
         body: JSON.stringify(payload),
-        credentials: "include",
         headers: {
             Accept: "application/json",
             Authorization: `Bearer ${apiKey.trim()}`,

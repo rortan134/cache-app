@@ -31,7 +31,6 @@ export function useCopyToClipboard({
         if (!(canUseDOM && value)) {
             return false;
         }
-
         timeoutManager.clear();
 
         const success = await copy(value);

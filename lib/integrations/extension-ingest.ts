@@ -21,6 +21,40 @@ export function extensionIngestCorsHeaders(): HeadersInit {
     return CORS_HEADERS;
 }
 
+const TRUSTED_EXTENSION_ORIGIN_PATTERNS = [
+    /^https:\/\/cachd\.app$/,
+    /^https:\/\/[a-z0-9-]+\.cachd\.app$/,
+    /^http:\/\/localhost:\d+$/,
+    /^chrome-extension:\/\/.+$/,
+];
+
+function isTrustedExtensionOrigin(origin: string): boolean {
+    return TRUSTED_EXTENSION_ORIGIN_PATTERNS.some((pattern) =>
+        pattern.test(origin)
+    );
+}
+
+/**
+ * CORS headers for endpoints that rely on cookie/session credentials
+ * (e.g. the extension ingest token endpoint). Reflects the request origin
+ * when it matches a trusted extension origin so that credentialed
+ * cross-origin requests from the extension content script succeed.
+ */
+export function extensionTokenCorsHeaders(request?: Request): HeadersInit {
+    const origin = request?.headers.get("origin") ?? "";
+    const allowOrigin =
+        origin && isTrustedExtensionOrigin(origin) ? origin : "*";
+
+    return {
+        "Access-Control-Allow-Credentials": "true",
+        "Access-Control-Allow-Headers": "content-type",
+        "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+        "Access-Control-Allow-Origin": allowOrigin,
+        "Access-Control-Max-Age": "86400",
+        Vary: "Origin",
+    };
+}
+
 export function parseBearerToken(request: Request): string | null {
     const raw = request.headers.get("authorization");
     if (!raw?.startsWith("Bearer ")) {

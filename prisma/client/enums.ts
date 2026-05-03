@@ -74,19 +74,3 @@ export const LibraryActivityEventKind = {
 } as const
 
 export type LibraryActivityEventKind = (typeof LibraryActivityEventKind)[keyof typeof LibraryActivityEventKind]
-
-
-export const CollectionTemplate = {
-  reading_list: 'reading_list',
-  inspiration: 'inspiration',
-  tutorials_guides: 'tutorials_guides',
-  watch_later: 'watch_later',
-  recipes: 'recipes',
-  research_notes: 'research_notes',
-  product_ideas: 'product_ideas',
-  travel_plans: 'travel_plans',
-  career_growth: 'career_growth',
-  life_admin: 'life_admin'
-} as const
-
-export type CollectionTemplate = (typeof CollectionTemplate)[keyof typeof CollectionTemplate]
