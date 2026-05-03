@@ -1113,6 +1113,7 @@ function CollectionsListExportMenu({
 function CollectionsList({
     onOpenChange,
     open,
+    className,
     ...props
 }: React.ComponentProps<typeof Collapsible>) {
     const state = useCollectionsListOpenState();
@@ -1124,7 +1125,12 @@ function CollectionsList({
     });
 
     return (
-        <Collapsible onOpenChange={handleOpenChange} open={isOpen} {...props} />
+        <Collapsible
+            className={cn("relative", className)}
+            onOpenChange={handleOpenChange}
+            open={isOpen}
+            {...props}
+        />
     );
 }
 
@@ -1324,13 +1330,6 @@ function CollectionsListItemPriorityCombobox({
                         )}
                     </ComboboxCollection>
                 </ComboboxList>
-                <div className="flex max-w-xs gap-2 px-3 py-2">
-                    <Info className="inline-block size-3.5 shrink-0" />
-                    <p className="text-[11px] text-muted-foreground leading-tight">
-                        Tell Cache what to keep detailed, summarize lightly, or
-                        leave out when turning saved content into useful notes.
-                    </p>
-                </div>
             </ComboboxPopup>
         </Combobox>
     );
@@ -2658,7 +2657,7 @@ export function CollectionsListRoot({
                         </span>
                         <ChevronDownFilledIcon className="-ml-0.5" />
                     </CollectionsListTrigger>
-                    <CollectionsListToolbarGroup className="absolute right-2">
+                    <CollectionsListToolbarGroup className="absolute right-1">
                         {isListOpen ? null : (
                             <Kbd className="bg-transparent opacity-0 group-hover:opacity-50">
                                 <CtrlKbd />C
