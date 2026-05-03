@@ -56,6 +56,19 @@ Minimize risk by anticipating what’s most likely to fail (platforms, language 
 
 Great names capture what a thing is or does. Append qualifiers to names. Units, bounds, and modifiers come at the end. This groups related variables together and makes scanning easier.
 
+Avoid else statements. Prefer early returns.
+
+Reduce total variable count by inlining when a value is only used once.
+
+```ts
+// Good
+const journal = await Bun.file(path.join(dir, "journal.json")).json()
+
+// Bad
+const journalPath = path.join(dir, "journal.json")
+const journal = await Bun.file(journalPath).json()
+```
+
 ## On documentation
 
 Document the why, not the what: The code shows what it does. Documentation should explain why it exists, why it works this way, and what could go wrong.

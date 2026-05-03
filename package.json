@@ -75,6 +75,7 @@
         "gt": "^2.14.30",
         "husky": "^9.1.7",
         "knip": "^6.11.0",
+        "mitata": "^1.0.34",
         "prisma": "^7.8.0",
         "tailwindcss": "^4",
         "typescript": "^6",

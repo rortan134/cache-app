@@ -5,8 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Group } from "@/components/ui/group";
 import { GoogleDocsIcon, NotionIcon } from "@/components/ui/icons";
 import { Menu, MenuItem, MenuPopup, MenuTrigger } from "@/components/ui/menu";
-import { cn } from "@/lib/common/cn";
 import type { LibraryItemWithCollections } from "@/lib/collections/utils";
+import { cn } from "@/lib/common/cn";
 import { parseStandaloneUrl } from "@/lib/common/url";
 import {
     NOTE_EMPTY_HTML,
@@ -689,12 +689,11 @@ function NoteHeader() {
                             <Button
                                 className="rounded-full"
                                 disabled={!hasQuery}
-                                size="xs"
-                                variant="outline"
+                                size="sm"
+                                variant="secondary"
                             />
                         }
                     >
-                        <MessageCircleIcon className="inline-block size-3.5" />
                         <T>Open in...</T>
                         <ChevronDownIcon className="size-3.5" />
                     </MenuTrigger>
@@ -732,7 +731,7 @@ function NoteHeader() {
                                 : "Expand note width"
                         }
                         aria-pressed={isExpanded}
-                        className="rounded-full"
+                        className="ml-0.5 rounded-full"
                         disabled={isBusy}
                         onClick={toggleExpanded}
                         size="icon-sm"
@@ -742,7 +741,7 @@ function NoteHeader() {
                     </Button>
                     <Button
                         aria-label="Close note"
-                        className="rounded-full"
+                        className="mr-0.5 rounded-full"
                         loading={isBusy}
                         onClick={async () => {
                             await onOpenChange(false);
@@ -761,7 +760,6 @@ function NoteHeader() {
 function NoteEditor() {
     const { editorKey, initialDraft, onDraftChange, onUrlPaste } =
         useNoteContext();
-
     const initialEditorState = getInitialEditorState(initialDraft);
 
     return (
