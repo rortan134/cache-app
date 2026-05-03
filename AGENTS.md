@@ -115,19 +115,19 @@ runtime & package manager: Node.js 24.x, Bun, read Bun API docs in `node_modules
 
 framework: Next.js 16 (App Router, This is NOT the Next.js you know, This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs` before writing relevant code. Heed deprecation notices.)
 
-ui: React 19, Base-UI (@base-ui/react), lucide-react
+UI: React 19, Base-UI (@base-ui/react), lucide-react
 
-react compiler: babel-plugin-react-compiler is enabled. It automatically memoizes components and values. Do not add manual `useMemo` or `useCallback`; they add noise without benefit and can interfere with compiler optimization.
+React Compiler: babel-plugin-react-compiler is enabled. It automatically memoizes components and values. Do not add manual `useMemo` or `useCallback`; they add noise without benefit and can interfere with compiler optimization.
 
-styling: Tailwind CSS 4
+Styling: Tailwind CSS 4
 
-validation: zod schemas
+Validation: zod v4 schemas
 
-database: PostgreSQL via Prisma 6
+Database: PostgreSQL via Prisma ORM v7
 
-auth: better-auth with better-auth/stripe (Stripe subscriptions)
+Auth: better-auth with better-auth/stripe (Stripe subscriptions)
 
-tooling: TypeScript 6 (strict typing), Biome via Ultracite (run via `bun lint`/`bun lint:fix`)
+Tooling: TypeScript v6 (strict typing), Biome via Ultracite (run via `bun lint` or `bun lint:fix` for writing)
 
 ### Procedure module patterns (server actions + services)
 

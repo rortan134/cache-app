@@ -14,7 +14,7 @@ If a side effect is triggered by a specific user action (submit, click, drag), r
 ```tsx
 function Form() {
   const [submitted, setSubmitted] = useState(false)
-  const theme = useContext(ThemeContext)
+  const theme = use(ThemeContext)
 
   useEffect(() => {
     if (submitted) {
@@ -31,7 +31,7 @@ function Form() {
 
 ```tsx
 function Form() {
-  const theme = useContext(ThemeContext)
+  const theme = use(ThemeContext)
 
   function handleSubmit() {
     post('/api/register')
