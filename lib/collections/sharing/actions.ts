@@ -1,12 +1,15 @@
 "use server";
 
+import type {
+    ActionError,
+    LibraryCollectionTag,
+} from "@/lib/collections/utils";
 import { createLogger } from "@/lib/common/logs/console/logger";
 import {
     getValidationErrorMessage,
     handleActionError,
     requireActionUserId,
 } from "@/lib/common/procedure";
-import type { LibraryCollectionTag } from "@/lib/collections/utils";
 import * as z from "zod";
 import { CollectionShareError } from "./error";
 import {
@@ -28,20 +31,14 @@ export type CollectionPublicShareResult =
           shareUrl: string;
           status: "SHARED";
       }
-    | {
-          message: string;
-          status: "ERROR" | "INVALID" | "NOT_FOUND" | "UNAUTHORIZED";
-      };
+    | ActionError;
 
 export type CollectionPublicShareDisableResult =
     | {
           collection: LibraryCollectionTag;
           status: "DISABLED";
       }
-    | {
-          message: string;
-          status: "ERROR" | "INVALID" | "NOT_FOUND" | "UNAUTHORIZED";
-      };
+    | ActionError;
 
 export async function shareCollectionPublicly(input: {
     collectionId: string;

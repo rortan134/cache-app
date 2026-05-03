@@ -1,16 +1,19 @@
 "use server";
 
-import { collectionNameSchema, uniqueStrings } from "@/lib/collections/utils";
+import {
+    collectionNameSchema,
+    uniqueStrings,
+    type ActionError,
+    type ActionErrorWithDuplicate,
+    type LibraryCollectionSummary,
+    type LibraryCollectionTag,
+} from "@/lib/collections/utils";
 import { createLogger } from "@/lib/common/logs/console/logger";
 import {
     getValidationErrorMessage,
     handleActionError,
     requireActionUserId,
 } from "@/lib/common/procedure";
-import type {
-    LibraryCollectionSummary,
-    LibraryCollectionTag,
-} from "@/lib/collections/utils";
 import type { CollectionPriority } from "@/prisma/client/enums";
 import * as z from "zod";
 import { LibraryCollectionError } from "./error";
@@ -69,15 +72,7 @@ export type CollectionCreateResult =
           collection: LibraryCollectionSummary;
           status: "CREATED";
       }
-    | {
-          message: string;
-          status:
-              | "DUPLICATE"
-              | "ERROR"
-              | "INVALID"
-              | "NOT_FOUND"
-              | "UNAUTHORIZED";
-      };
+    | ActionErrorWithDuplicate;
 
 export type CollectionCreateFromItemsResult =
     | {
@@ -85,25 +80,14 @@ export type CollectionCreateFromItemsResult =
           collection: LibraryCollectionSummary;
           status: "CREATED";
       }
-    | {
-          message: string;
-          status:
-              | "DUPLICATE"
-              | "ERROR"
-              | "INVALID"
-              | "NOT_FOUND"
-              | "UNAUTHORIZED";
-      };
+    | ActionErrorWithDuplicate;
 
 export type CollectionDeleteResult =
     | {
           collection: Pick<LibraryCollectionSummary, "id" | "name">;
           status: "DELETED";
       }
-    | {
-          message: string;
-          status: "ERROR" | "INVALID" | "NOT_FOUND" | "UNAUTHORIZED";
-      };
+    | ActionError;
 
 export type CollectionDuplicateResult =
     | {
@@ -111,35 +95,21 @@ export type CollectionDuplicateResult =
           collection: LibraryCollectionSummary;
           status: "CREATED";
       }
-    | {
-          message: string;
-          status: "ERROR" | "INVALID" | "NOT_FOUND" | "UNAUTHORIZED";
-      };
+    | ActionError;
 
 export type CollectionPriorityUpdateResult =
     | {
           collection: LibraryCollectionTag;
           status: "UPDATED";
       }
-    | {
-          message: string;
-          status: "ERROR" | "INVALID" | "NOT_FOUND" | "UNAUTHORIZED";
-      };
+    | ActionError;
 
 export type CollectionRenameResult =
     | {
           collection: LibraryCollectionTag;
           status: "UPDATED";
       }
-    | {
-          message: string;
-          status:
-              | "DUPLICATE"
-              | "ERROR"
-              | "INVALID"
-              | "NOT_FOUND"
-              | "UNAUTHORIZED";
-      };
+    | ActionErrorWithDuplicate;
 
 export async function createCollection(input: {
     assignToItemId?: string;

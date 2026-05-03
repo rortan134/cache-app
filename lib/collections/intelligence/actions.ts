@@ -35,7 +35,7 @@ export type GenerateSectionDescriptionResult =
  * intelligence service. Returns a serializable result so callers can
  * handle errors without catching.
  */
-export async function generateSectionDescriptionAction(
+export async function generateSummaryAction(
     input: unknown
 ): Promise<GenerateSectionDescriptionResult> {
     const parsed = SectionDescriptionRequestSchema.safeParse(input);

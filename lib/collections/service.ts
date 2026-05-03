@@ -3,9 +3,11 @@ import "server-only";
 import {
     LIBRARY_COLLECTION_TAG_SELECT,
     LIBRARY_ITEM_COLLECTIONS_INCLUDE,
+    LIBRARY_ITEM_COLLECTIONS_SELECT,
     toLibraryCollectionSummary,
     toLibraryCollectionSummaryFromTagRecord,
     toLibraryCollectionTag,
+    toLibraryItemWithCollections,
     type LibraryCollectionTagRecord,
     type LibraryCollectionSummary,
     type LibraryCollectionTag,
@@ -52,16 +54,6 @@ interface LibraryItemCollectionsOwned {
     id: string;
 }
 
-const LIBRARY_ITEM_COLLECTIONS_SELECT = {
-    collections: {
-        orderBy: {
-            name: "asc",
-        },
-        select: LIBRARY_COLLECTION_TAG_SELECT,
-    },
-    id: true,
-} as const satisfies Prisma.LibraryItemSelect;
-
 const PREVIEW_CACHE_TTL_MS = 1000 * 60 * 60 * 24;
 
 function toCollectionConnections(collectionIds: string[]): Array<{
@@ -97,7 +89,7 @@ function throwCollectionNameDuplicate(
     });
 }
 
-function buildCollectionNameDuplicate(
+function buildUniqueCollectionName(
     sourceName: string,
     existingNames: string[]
 ): string {
@@ -547,7 +539,7 @@ export async function resolveLibraryItemPreview({
     };
 }
 
-export async function createCollection({
+export function createCollection({
     assignToItemId,
     description,
     name,
@@ -563,7 +555,7 @@ export async function createCollection({
 }> {
     const normalized = normalizeCollectionName(name);
 
-    return await prisma.$transaction(async (tx) => {
+    return prisma.$transaction(async (tx) => {
         const assignedItem = assignToItemId
             ? await requireLibraryItemOwned(tx, {
                   itemId: assignToItemId,
@@ -602,7 +594,7 @@ export async function createCollection({
     });
 }
 
-export async function createCollectionFromItems({
+export function createCollectionFromItems({
     description,
     itemIds,
     name,
@@ -618,7 +610,7 @@ export async function createCollectionFromItems({
 }> {
     const normalized = normalizeCollectionName(name);
 
-    return await prisma.$transaction(async (tx) => {
+    return prisma.$transaction(async (tx) => {
         await ensureCollectionNameAvailable(tx, {
             normalizedNameKey: normalized.nameKey,
             operation: "createCollectionFromItems",
@@ -655,14 +647,14 @@ export async function createCollectionFromItems({
     });
 }
 
-export async function deleteCollection({
+export function deleteCollection({
     collectionId,
     userId,
 }: {
     collectionId: string;
     userId: string;
 }): Promise<Pick<LibraryCollectionSummary, "id" | "name">> {
-    return await prisma.$transaction(async (tx) => {
+    return prisma.$transaction(async (tx) => {
         const collection = await requireCollectionOwned(tx, {
             collectionId,
             message: "This collection was already removed.",
@@ -678,7 +670,7 @@ export async function deleteCollection({
     });
 }
 
-export async function duplicateCollection({
+export function duplicateCollection({
     collectionId,
     userId,
 }: {
@@ -690,7 +682,7 @@ export async function duplicateCollection({
 }> {
     const operation = "duplicateCollection";
 
-    return await prisma.$transaction(async (tx) => {
+    return prisma.$transaction(async (tx) => {
         const sourceCollection = await tx.collection.findFirst({
             select: {
                 description: true,
@@ -715,7 +707,7 @@ export async function duplicateCollection({
             where: { userId },
         });
 
-        const nextName = buildCollectionNameDuplicate(
+        const nextName = buildUniqueCollectionName(
             sourceCollection.name,
             existingNames.map((collection) => collection.name)
         );
@@ -750,7 +742,7 @@ export async function duplicateCollection({
     });
 }
 
-export async function updateCollectionPriority({
+export function updateCollectionPriority({
     collectionId,
     priority,
     userId,
@@ -759,7 +751,7 @@ export async function updateCollectionPriority({
     priority: CollectionPriority;
     userId: string;
 }): Promise<LibraryCollectionTag> {
-    return await prisma.$transaction(async (tx) => {
+    return prisma.$transaction(async (tx) => {
         const collection = await requireCollectionOwned(tx, {
             collectionId,
             message: "That collection is no longer available.",
@@ -777,7 +769,7 @@ export async function updateCollectionPriority({
     });
 }
 
-export async function renameCollection({
+export function renameCollection({
     collectionId,
     name,
     userId,
@@ -788,7 +780,7 @@ export async function renameCollection({
 }): Promise<LibraryCollectionTag> {
     const normalized = normalizeCollectionName(name);
 
-    return await prisma.$transaction(async (tx) => {
+    return prisma.$transaction(async (tx) => {
         const collection = await tx.collection.findFirst({
             select: LIBRARY_COLLECTION_TAG_SELECT,
             where: { id: collectionId, userId },
@@ -825,7 +817,7 @@ export async function renameCollection({
     });
 }
 
-export async function deleteLibraryItem({
+export function deleteLibraryItem({
     itemId,
     userId,
 }: {
@@ -835,7 +827,7 @@ export async function deleteLibraryItem({
     collectionSummaries: LibraryCollectionSummary[];
     itemId: string;
 }> {
-    return await prisma.$transaction(async (tx) => {
+    return prisma.$transaction(async (tx) => {
         const item = await requireLibraryItemOwnedWithCollections(tx, {
             itemId,
             message: "This saved item was already removed.",
@@ -861,7 +853,7 @@ export async function deleteLibraryItem({
     });
 }
 
-export async function updateLibraryItemCollections({
+export function updateLibraryItemCollections({
     collectionIds,
     itemId,
     userId,
@@ -874,7 +866,7 @@ export async function updateLibraryItemCollections({
     collections: LibraryCollectionTag[];
     itemId: string;
 }> {
-    return await prisma.$transaction(async (tx) => {
+    return prisma.$transaction(async (tx) => {
         const item = await requireLibraryItemOwnedWithCollections(tx, {
             itemId,
             message: "We couldn't find that saved item.",
@@ -924,7 +916,7 @@ export async function updateLibraryItemCollections({
     });
 }
 
-export async function updateLibraryItemsCollections({
+export function updateLibraryItemsCollections({
     itemIds,
     nextSharedCollectionIds,
     previousSharedCollectionIds,
@@ -941,7 +933,7 @@ export async function updateLibraryItemsCollections({
         itemId: string;
     }>;
 }> {
-    return await prisma.$transaction(async (tx) => {
+    return prisma.$transaction(async (tx) => {
         const items = await requireLibraryItemsOwnedWithCollections(tx, {
             itemIds,
             message: "Some of those saved items are no longer available.",
@@ -1019,9 +1011,6 @@ interface ListLibraryItemsArgs {
     userId: string;
 }
 
-/**
- * Lists library items for the authenticated user with optional search and filtering.
- */
 export async function listLibraryItems(
     args: ListLibraryItemsArgs
 ): Promise<LibraryItemWithCollections[]> {
@@ -1050,7 +1039,7 @@ export async function listLibraryItems(
         where,
     });
 
-    return items as LibraryItemWithCollections[];
+    return items.map(toLibraryItemWithCollections);
 }
 
 interface GetLibraryItemArgs {
@@ -1058,9 +1047,6 @@ interface GetLibraryItemArgs {
     userId: string;
 }
 
-/**
- * Retrieves a single library item by ID for the given user.
- */
 export async function getLibraryItem(
     args: GetLibraryItemArgs
 ): Promise<LibraryItemWithCollections | null> {
@@ -1069,16 +1055,13 @@ export async function getLibraryItem(
         where: { id: args.itemId, userId: args.userId },
     });
 
-    return item as LibraryItemWithCollections | null;
+    return item ? toLibraryItemWithCollections(item) : null;
 }
 
 interface ListCollectionsArgs {
     userId: string;
 }
 
-/**
- * Lists the user's collections with item counts.
- */
 export async function listCollections(
     args: ListCollectionsArgs
 ): Promise<LibraryCollectionSummary[]> {
@@ -1109,10 +1092,8 @@ export async function disableSmartCollectionsForUser(
     });
 }
 
-export async function countLibraryItems(args: {
-    userId: string;
-}): Promise<number> {
-    return await prisma.libraryItem.count({
+export function countLibraryItems(args: { userId: string }): Promise<number> {
+    return prisma.libraryItem.count({
         where: {
             kind: { not: "folder" },
             userId: args.userId,
@@ -1120,10 +1101,10 @@ export async function countLibraryItems(args: {
     });
 }
 
-export async function listLibraryItemSources(args: {
+export function listLibraryItemSources(args: {
     userId: string;
 }): Promise<Array<{ source: LibraryItemSource }>> {
-    return await prisma.libraryItem.findMany({
+    return prisma.libraryItem.findMany({
         distinct: ["source"],
         select: { source: true },
         where: {
@@ -1146,24 +1127,26 @@ export async function getLibraryPageData(args: {
     lockedItemCount: number;
     totalItemCount: number;
 }> {
-    const itemWhere = {
-        kind: { not: "folder" as const },
+    const itemWhere: Prisma.LibraryItemWhereInput = {
+        kind: { not: "folder" },
         userId: args.userId,
     };
 
     const collections = await listCollections({ userId: args.userId });
 
     if (args.hasAccess) {
-        const items = (await prisma.libraryItem.findMany({
+        const items = await prisma.libraryItem.findMany({
             include: LIBRARY_ITEM_COLLECTIONS_INCLUDE,
             orderBy: [{ scrapedAt: "desc" }, { updatedAt: "desc" }],
             where: itemWhere,
-        })) as LibraryItemWithCollections[];
+        });
 
         return {
             collections,
-            itemSources: items.map((item) => ({ source: item.source })),
-            items,
+            itemSources: Array.from(
+                new Set(items.map((item) => item.source))
+            ).map((source) => ({ source })),
+            items: items.map(toLibraryItemWithCollections),
             lockedItemCount: 0,
             totalItemCount: items.length,
         };
@@ -1177,7 +1160,7 @@ export async function getLibraryPageData(args: {
             orderBy: [{ scrapedAt: "desc" }, { updatedAt: "desc" }],
             take: limit,
             where: itemWhere,
-        }) as Promise<LibraryItemWithCollections[]>,
+        }),
         prisma.libraryItem.count({ where: itemWhere }),
         prisma.libraryItem.findMany({
             distinct: ["source"],
@@ -1189,7 +1172,7 @@ export async function getLibraryPageData(args: {
     return {
         collections,
         itemSources,
-        items,
+        items: items.map(toLibraryItemWithCollections),
         lockedItemCount: Math.max(totalItemCount - items.length, 0),
         totalItemCount,
     };

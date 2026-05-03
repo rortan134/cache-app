@@ -1,16 +1,17 @@
 "use server";
 
-import { uniqueStrings } from "@/lib/collections/utils";
+import {
+    uniqueStrings,
+    type ActionError,
+    type LibraryCollectionSummary,
+    type LibraryCollectionTag,
+} from "@/lib/collections/utils";
 import { createLogger } from "@/lib/common/logs/console/logger";
 import {
     getValidationErrorMessage,
     handleActionError,
     requireActionUserId,
 } from "@/lib/common/procedure";
-import type {
-    LibraryCollectionSummary,
-    LibraryCollectionTag,
-} from "@/lib/collections/utils";
 import * as z from "zod";
 import { LibraryCollectionError } from "./error";
 import * as service from "./service";
@@ -45,10 +46,7 @@ export type LibraryItemDeleteResult =
           itemId: string;
           status: "DELETED";
       }
-    | {
-          message: string;
-          status: "ERROR" | "INVALID" | "NOT_FOUND" | "UNAUTHORIZED";
-      };
+    | ActionError;
 
 export type LibraryItemCollectionsUpdateResult =
     | {
@@ -57,10 +55,7 @@ export type LibraryItemCollectionsUpdateResult =
           itemId: string;
           status: "UPDATED";
       }
-    | {
-          message: string;
-          status: "ERROR" | "INVALID" | "NOT_FOUND" | "UNAUTHORIZED";
-      };
+    | ActionError;
 
 export type LibraryItemsCollectionsUpdateResult =
     | {
@@ -71,10 +66,7 @@ export type LibraryItemsCollectionsUpdateResult =
           }>;
           status: "UPDATED";
       }
-    | {
-          message: string;
-          status: "ERROR" | "INVALID" | "NOT_FOUND" | "UNAUTHORIZED";
-      };
+    | ActionError;
 
 export async function deleteLibraryItem(
     itemId: string

@@ -1,5 +1,9 @@
 "use server";
 
+import type {
+    ActionError,
+    ActionErrorWithoutNotFound,
+} from "@/lib/collections/utils";
 import { createLogger } from "@/lib/common/logs/console/logger";
 import {
     getValidationErrorMessage,
@@ -29,10 +33,7 @@ export type MediaDownloadResult =
           downloadUrl: string;
           status: "SUCCESS";
       }
-    | {
-          message: string;
-          status: "ERROR" | "INVALID" | "UNAUTHORIZED";
-      };
+    | ActionErrorWithoutNotFound;
 
 export type LibraryItemPreviewResolveResult =
     | {
@@ -44,10 +45,7 @@ export type LibraryItemPreviewResolveResult =
           status: "SUCCESS";
           videoPreviewUrl: string | null;
       }
-    | {
-          message: string;
-          status: "ERROR" | "INVALID" | "NOT_FOUND" | "UNAUTHORIZED";
-      };
+    | ActionError;
 
 export async function downloadMedia(url: string): Promise<MediaDownloadResult> {
     const parsed = MediaDownloadInputSchema.safeParse({ url });

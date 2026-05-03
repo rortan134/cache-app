@@ -6,7 +6,7 @@ import {
     handleActionError,
     requireActionUserId,
 } from "@/lib/common/procedure";
-import { markLibraryItemAsReviewed as markLibraryItemAsReviewedService } from "@/lib/review/service";
+import { markLibraryItemAsReviewed as markLibraryItemAsReviewedService } from "./service";
 import { revalidatePath } from "next/cache";
 import * as z from "zod";
 import { ReviewError } from "./error";

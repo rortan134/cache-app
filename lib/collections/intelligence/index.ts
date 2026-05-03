@@ -7,7 +7,6 @@ import {
     protectGenAiRequest,
 } from "@/lib/collections/intelligence/protection";
 import { COLLECTION_NAME_LENGTH_MAX } from "@/lib/collections/utils";
-import { resolveCobaltDownloadUrl } from "@/lib/integrations/cobalt";
 import { createLogger } from "@/lib/common/logs/console/logger";
 import { toUsableStaticPreviewUrl } from "@/lib/common/preview-url";
 import {
@@ -16,6 +15,7 @@ import {
     normalizeWhitespace,
 } from "@/lib/common/strings";
 import { isHttpUrl } from "@/lib/common/url";
+import { resolveCobaltDownloadUrl } from "@/lib/integrations/cobalt";
 import { prisma } from "@/prisma";
 import { LibraryItemSource } from "@/prisma/client/enums";
 import {
@@ -120,14 +120,10 @@ function resolveGeminiApiKey(): string | null {
 
 function resolveSmartCollectionModels(): string[] {
     return [
-        ...new Set(
-            [
-                SMART_COLLECTIONS_MODEL_DEFAULT,
-                ...SMART_COLLECTIONS_MODELS_FALLBACK,
-            ].filter((model): model is string =>
-                Boolean(model && model.length > 0)
-            )
-        ),
+        ...new Set([
+            SMART_COLLECTIONS_MODEL_DEFAULT,
+            ...SMART_COLLECTIONS_MODELS_FALLBACK,
+        ]),
     ];
 }
 
@@ -887,10 +883,10 @@ export async function autoTagLibraryItemsByIds(args: {
         return;
     }
 
-    const itemIds = [
+    const validItemIds = [
         ...new Set(args.itemIds.filter((itemId) => itemId.trim().length > 0)),
     ];
-    if (itemIds.length === 0) {
+    if (validItemIds.length === 0) {
         return;
     }
 
@@ -924,7 +920,7 @@ export async function autoTagLibraryItemsByIds(args: {
             },
             where: {
                 id: {
-                    in: itemIds,
+                    in: validItemIds,
                 },
                 userId: args.userId,
             },
@@ -956,7 +952,7 @@ export async function autoTagLibraryItemsByIds(args: {
     const ai = new GoogleGenAI({ apiKey });
     let collections = initialCollections;
 
-    for (const itemId of itemIds) {
+    for (const itemId of validItemIds) {
         const rawItem = items.find((i) => i.id === itemId);
         if (!rawItem) {
             continue;

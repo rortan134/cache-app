@@ -9,9 +9,13 @@ import type {
 } from "@/prisma/client/enums";
 import * as z from "zod";
 
+// ---------------------------------------------------------------------------
+// Domain types
+// ---------------------------------------------------------------------------
+
 export interface LibraryCollectionTag {
     createdAt: Date;
-    description?: string | null;
+    description: string | null;
     id: string;
     name: string;
     priority: CollectionPriority;
@@ -21,7 +25,6 @@ export interface LibraryCollectionTag {
 }
 
 export interface LibraryCollectionSummary extends LibraryCollectionTag {
-    description: string | null;
     itemCount: number;
     sources: LibraryItemSource[];
 }
@@ -29,42 +32,6 @@ export interface LibraryCollectionSummary extends LibraryCollectionTag {
 export interface LibraryItemWithCollections extends LibraryItem {
     collections: LibraryCollectionTag[];
     preview: LibraryItemPreview | null;
-}
-
-export const COLLECTION_NAME_LENGTH_MAX = 64;
-
-export const collectionNameSchema = z
-    .string()
-    .trim()
-    .min(1, "Enter a collection name.")
-    .max(
-        COLLECTION_NAME_LENGTH_MAX,
-        `Collection names can be up to ${COLLECTION_NAME_LENGTH_MAX} characters.`
-    );
-
-export const LIBRARY_COLLECTION_TAG_SELECT = {
-    createdAt: true,
-    description: true,
-    id: true,
-    name: true,
-    priority: true,
-    sharedAt: true,
-    shareId: true,
-    updatedAt: true,
-} as const satisfies Prisma.CollectionSelect;
-
-export const LIBRARY_ITEM_COLLECTIONS_INCLUDE = {
-    collections: {
-        orderBy: {
-            name: "asc" as const,
-        },
-        select: LIBRARY_COLLECTION_TAG_SELECT,
-    },
-    preview: true,
-} as const;
-
-export function uniqueStrings(values: string[]): string[] {
-    return Array.from(new Set(values));
 }
 
 export interface LibraryCollectionTagRecord {
@@ -88,6 +55,87 @@ export interface LibraryCollectionSummaryRecord
     }>;
 }
 
+// ---------------------------------------------------------------------------
+// Shared action error shapes
+// ---------------------------------------------------------------------------
+
+export interface ActionError {
+    message: string;
+    status: "ERROR" | "INVALID" | "NOT_FOUND" | "UNAUTHORIZED";
+}
+
+export interface ActionErrorWithDuplicate {
+    message: string;
+    status: "DUPLICATE" | "ERROR" | "INVALID" | "NOT_FOUND" | "UNAUTHORIZED";
+}
+
+export interface ActionErrorWithoutNotFound {
+    message: string;
+    status: "ERROR" | "INVALID" | "UNAUTHORIZED";
+}
+
+// ---------------------------------------------------------------------------
+// Validation
+// ---------------------------------------------------------------------------
+
+export const COLLECTION_NAME_LENGTH_MAX = 64;
+
+export const collectionNameSchema = z
+    .string()
+    .trim()
+    .min(1, "Enter a collection name.")
+    .max(
+        COLLECTION_NAME_LENGTH_MAX,
+        `Collection names can be up to ${COLLECTION_NAME_LENGTH_MAX} characters.`
+    );
+
+// ---------------------------------------------------------------------------
+// Prisma selections
+// ---------------------------------------------------------------------------
+
+export const LIBRARY_COLLECTION_TAG_SELECT = {
+    createdAt: true,
+    description: true,
+    id: true,
+    name: true,
+    priority: true,
+    sharedAt: true,
+    shareId: true,
+    updatedAt: true,
+} as const satisfies Prisma.CollectionSelect;
+
+export const LIBRARY_ITEM_COLLECTIONS_INCLUDE = {
+    collections: {
+        orderBy: {
+            name: "asc" as const,
+        },
+        select: LIBRARY_COLLECTION_TAG_SELECT,
+    },
+    preview: true,
+} as const;
+
+export const LIBRARY_ITEM_COLLECTIONS_SELECT = {
+    collections: {
+        orderBy: {
+            name: "asc",
+        },
+        select: LIBRARY_COLLECTION_TAG_SELECT,
+    },
+    id: true,
+} as const satisfies Prisma.LibraryItemSelect;
+
+// ---------------------------------------------------------------------------
+// Utilities
+// ---------------------------------------------------------------------------
+
+export function uniqueStrings(values: string[]): string[] {
+    return Array.from(new Set(values));
+}
+
+// ---------------------------------------------------------------------------
+// Mappers
+// ---------------------------------------------------------------------------
+
 export function toLibraryCollectionTag(
     collection: LibraryCollectionTagRecord
 ): LibraryCollectionTag {
@@ -108,7 +156,6 @@ export function toLibraryCollectionSummary(
 ): LibraryCollectionSummary {
     return {
         ...toLibraryCollectionTag(collection),
-        description: collection.description,
         itemCount: collection._count.items,
         sources: Array.from(
             new Set(collection.items.map((item) => item.source))
@@ -122,8 +169,18 @@ export function toLibraryCollectionSummaryFromTagRecord(
 ): LibraryCollectionSummary {
     return {
         ...toLibraryCollectionTag(collection),
-        description: collection.description,
         itemCount: items.length,
         sources: Array.from(new Set(items.map((item) => item.source))),
+    };
+}
+
+export function toLibraryItemWithCollections(
+    item: Prisma.LibraryItemGetPayload<{
+        include: typeof LIBRARY_ITEM_COLLECTIONS_INCLUDE;
+    }>
+): LibraryItemWithCollections {
+    return {
+        ...item,
+        collections: item.collections.map(toLibraryCollectionTag),
     };
 }

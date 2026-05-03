@@ -7,10 +7,10 @@ import {
     type LibraryCollectionSummary,
     type LibraryItemWithCollections,
 } from "@/lib/collections/utils";
-import { ReviewError } from "@/lib/review/error";
+import { ReviewError } from "./error";
 import { prisma } from "@/prisma";
 
-export async function getReviewData(args: { userId: string }): Promise<{
+export async function getReviewData({ userId }: { userId: string }): Promise<{
     collections: LibraryCollectionSummary[];
     items: LibraryItemWithCollections[];
 }> {
@@ -32,9 +32,9 @@ export async function getReviewData(args: { userId: string }): Promise<{
                     { reviewedAt: null },
                     { reviewedAt: { lt: sevenDaysAgo } },
                 ],
-                userId: args.userId,
+                userId,
             },
-        }) as Promise<LibraryItemWithCollections[]>,
+        }),
         prisma.collection.findMany({
             orderBy: {
                 name: "asc",
@@ -53,7 +53,7 @@ export async function getReviewData(args: { userId: string }): Promise<{
                 },
             },
             where: {
-                userId: args.userId,
+                userId,
             },
         }),
     ]);
