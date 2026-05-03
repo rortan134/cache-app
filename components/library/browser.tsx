@@ -1105,6 +1105,243 @@ function toggleValue<T>(values: T[], next: T): T[] {
         : [...values, next];
 }
 
+interface PaletteStackEntry {
+    chip: ReactNode;
+    key: string;
+    onRemove: () => void;
+}
+
+/**
+ * Build the ordered palette stack entries that both the trailing chips
+ * and the Backspace-removal logic consume.  Keeping the shape in one
+ * place guarantees that removing the last entry always corresponds to
+ * the right-most visible chip.
+ */
+function buildPaletteStackEntries({
+    collectionMembershipFilter,
+    collections,
+    columnCountMode,
+    commandAttachments,
+    domainFilters,
+    groupBy,
+    layoutMode,
+    onRemoveCollectionFilter,
+    onRemoveCommandAttachment,
+    searchTerms,
+    selectedCollectionIds,
+    setCollectionMembershipFilter,
+    setColumnCountMode,
+    setDomainFilters,
+    setGroupBy,
+    setLayoutMode,
+    setSearchTerms,
+    setSortMode,
+    setSourceFilters,
+    sortMode,
+    sourceFilters,
+}: {
+    collectionMembershipFilter: CollectionMembershipFilter;
+    collections: LibraryCollectionSummary[];
+    columnCountMode: ColumnCountMode;
+    commandAttachments: LibraryCommandAttachment[];
+    domainFilters: string[];
+    groupBy: GroupByMode;
+    layoutMode: LayoutMode;
+    onRemoveCollectionFilter: (id: string) => void;
+    onRemoveCommandAttachment: (id: string) => void;
+    searchTerms: string[];
+    selectedCollectionIds: string[];
+    setCollectionMembershipFilter: (value: CollectionMembershipFilter) => void;
+    setColumnCountMode: (value: ColumnCountMode) => void;
+    setDomainFilters: (
+        value: string[] | ((value: string[]) => string[])
+    ) => void;
+    setGroupBy: (value: GroupByMode) => void;
+    setLayoutMode: (value: LayoutMode) => void;
+    setSearchTerms: (value: string[] | ((value: string[]) => string[])) => void;
+    setSortMode: (value: SortMode) => void;
+    setSourceFilters: (
+        value:
+            | SourceFilterValue[]
+            | ((value: SourceFilterValue[]) => SourceFilterValue[])
+    ) => void;
+    sortMode: SortMode;
+    sourceFilters: SourceFilterValue[];
+}): PaletteStackEntry[] {
+    const entries: PaletteStackEntry[] = [];
+
+    for (const collectionId of selectedCollectionIds) {
+        const collection = collections.find((c) => c.id === collectionId);
+        if (collection) {
+            const onRemove = () => onRemoveCollectionFilter(collectionId);
+            entries.push({
+                chip: (
+                    <PaletteChip
+                        key={`collection-${collectionId}`}
+                        label={`Collection: ${truncateLabel(collection.name)}`}
+                        onRemove={onRemove}
+                    />
+                ),
+                key: `collection-${collectionId}`,
+                onRemove,
+            });
+        }
+    }
+
+    for (const attachment of commandAttachments) {
+        const onRemove = () => onRemoveCommandAttachment(attachment.id);
+        entries.push({
+            chip: (
+                <PaletteAttachmentChip
+                    attachment={attachment}
+                    key={`attachment-${attachment.id}`}
+                    onRemove={onRemoveCommandAttachment}
+                />
+            ),
+            key: `attachment-${attachment.id}`,
+            onRemove,
+        });
+    }
+
+    for (const term of searchTerms) {
+        const onRemove = () =>
+            setSearchTerms((current) => removeValue(current, term));
+        entries.push({
+            chip: (
+                <PaletteChip
+                    key={`search-${term}`}
+                    label={`Search: ${truncateLabel(term)}`}
+                    onRemove={onRemove}
+                />
+            ),
+            key: `search-${term}`,
+            onRemove,
+        });
+    }
+
+    for (const source of sourceFilters) {
+        const onRemove = () =>
+            setSourceFilters((current) => removeValue(current, source));
+        entries.push({
+            chip: (
+                <PaletteChip
+                    key={`source-${source}`}
+                    label={`Source: ${sourceLabel(source)}`}
+                    onRemove={onRemove}
+                />
+            ),
+            key: `source-${source}`,
+            onRemove,
+        });
+    }
+
+    for (const domainFilter of domainFilters) {
+        const onRemove = () =>
+            setDomainFilters((current) => removeValue(current, domainFilter));
+        entries.push({
+            chip: (
+                <PaletteChip
+                    key={`domain-${domainFilter}`}
+                    label={`Domain: ${truncateLabel(domainFilter)}`}
+                    onRemove={onRemove}
+                />
+            ),
+            key: `domain-${domainFilter}`,
+            onRemove,
+        });
+    }
+
+    if (collectionMembershipFilter !== DEFAULT_COLLECTION_MEMBERSHIP_FILTER) {
+        const onRemove = () =>
+            setCollectionMembershipFilter(DEFAULT_COLLECTION_MEMBERSHIP_FILTER);
+        entries.push({
+            chip: (
+                <PaletteChip
+                    key="collection-membership"
+                    label={`Collections: ${collectionMembershipFilterLabel(collectionMembershipFilter)}`}
+                    onRemove={onRemove}
+                />
+            ),
+            key: "collection-membership",
+            onRemove,
+        });
+    }
+
+    if (groupBy !== "none") {
+        const onRemove = () => setGroupBy("none");
+        entries.push({
+            chip: (
+                <PaletteChip
+                    key="group"
+                    label={`Group: ${groupByLabel(groupBy)}`}
+                    onRemove={onRemove}
+                />
+            ),
+            key: "group",
+            onRemove,
+        });
+    }
+
+    if (sortMode !== DEFAULT_SORT_MODE) {
+        const onRemove = () => setSortMode(DEFAULT_SORT_MODE);
+        entries.push({
+            chip: (
+                <PaletteChip
+                    key="sort"
+                    label={`Sort: ${sortModeLabel(sortMode)}`}
+                    onRemove={onRemove}
+                />
+            ),
+            key: "sort",
+            onRemove,
+        });
+    }
+
+    if (layoutMode !== DEFAULT_LAYOUT_MODE) {
+        const onRemove = () => setLayoutMode(DEFAULT_LAYOUT_MODE);
+        entries.push({
+            chip: (
+                <PaletteChip
+                    key="layout-mode"
+                    label={`Layout: ${layoutModeLabel(layoutMode)}`}
+                    onRemove={onRemove}
+                />
+            ),
+            key: "layout-mode",
+            onRemove,
+        });
+    }
+
+    if (
+        layoutMode === "masonry" &&
+        columnCountMode !== DEFAULT_COLUMN_COUNT_MODE
+    ) {
+        const onRemove = () => setColumnCountMode(DEFAULT_COLUMN_COUNT_MODE);
+        entries.push({
+            chip: (
+                <PaletteChip
+                    key="columns"
+                    label={`Columns: ${columnCountLabel(columnCountMode)}`}
+                    onRemove={onRemove}
+                />
+            ),
+            key: "columns",
+            onRemove,
+        });
+    }
+
+    return entries;
+}
+
+function removeLastPaletteStackEntry(entries: PaletteStackEntry[]): boolean {
+    const lastEntry = entries.at(-1);
+    if (!lastEntry) {
+        return false;
+    }
+    lastEntry.onRemove();
+    return true;
+}
+
 function isSearchHotkey(event: KeyboardEvent): boolean {
     const key = event.key.toLowerCase();
     const hasMeta = event.metaKey;
@@ -2384,183 +2621,17 @@ function useSectionCollapseState({
 }
 
 function LibraryPaletteTrailing({
-    commandAttachments,
-    collectionMembershipFilter,
-    collections,
-    columnCountMode,
-    domainFilters,
-    groupBy,
+    entries,
     isCommandInputFocused,
-    layoutMode,
     onAttachFiles,
-    onRemoveCollectionFilter,
-    onRemoveCommandAttachment,
-    searchTerms,
-    selectedCollectionIds,
-    setCollectionMembershipFilter,
-    setColumnCountMode,
-    setDomainFilters,
-    setGroupBy,
-    setLayoutMode,
-    setSearchTerms,
-    setSortMode,
-    setSourceFilters,
-    sortMode,
-    sourceFilters,
 }: {
-    commandAttachments: LibraryCommandAttachment[];
-    collectionMembershipFilter: CollectionMembershipFilter;
-    collections: LibraryCollectionSummary[];
-    columnCountMode: ColumnCountMode;
-    domainFilters: string[];
-    groupBy: GroupByMode;
+    entries: PaletteStackEntry[];
     isCommandInputFocused: boolean;
-    layoutMode: LayoutMode;
     onAttachFiles: () => void | Promise<void>;
-    onRemoveCollectionFilter: (id: string) => void;
-    onRemoveCommandAttachment: (id: string) => void;
-    searchTerms: string[];
-    selectedCollectionIds: string[];
-    setCollectionMembershipFilter: (value: CollectionMembershipFilter) => void;
-    setColumnCountMode: (value: ColumnCountMode) => void;
-    setDomainFilters: (
-        value: string[] | ((value: string[]) => string[])
-    ) => void;
-    setGroupBy: (value: GroupByMode) => void;
-    setLayoutMode: (value: LayoutMode) => void;
-    setSearchTerms: (value: string[] | ((value: string[]) => string[])) => void;
-    setSortMode: (value: SortMode) => void;
-    setSourceFilters: (
-        value:
-            | SourceFilterValue[]
-            | ((value: SourceFilterValue[]) => SourceFilterValue[])
-    ) => void;
-    sortMode: SortMode;
-    sourceFilters: SourceFilterValue[];
 }) {
-    const chips: React.ReactNode[] = [];
-
-    for (const collectionId of selectedCollectionIds) {
-        const collection = collections.find((c) => c.id === collectionId);
-        if (collection) {
-            chips.push(
-                <PaletteChip
-                    key={`collection-${collectionId}`}
-                    label={`Collection: ${truncateLabel(collection.name)}`}
-                    onRemove={() => onRemoveCollectionFilter(collectionId)}
-                />
-            );
-        }
-    }
-
-    for (const attachment of commandAttachments) {
-        chips.push(
-            <PaletteAttachmentChip
-                attachment={attachment}
-                key={`attachment-${attachment.id}`}
-                onRemove={onRemoveCommandAttachment}
-            />
-        );
-    }
-
-    for (const term of searchTerms) {
-        chips.push(
-            <PaletteChip
-                key={`search-${term}`}
-                label={`Search: ${truncateLabel(term)}`}
-                onRemove={() =>
-                    setSearchTerms((current) => removeValue(current, term))
-                }
-            />
-        );
-    }
-
-    for (const source of sourceFilters) {
-        chips.push(
-            <PaletteChip
-                key={`source-${source}`}
-                label={`Source: ${sourceLabel(source)}`}
-                onRemove={() =>
-                    setSourceFilters((current) => removeValue(current, source))
-                }
-            />
-        );
-    }
-
-    for (const domainFilter of domainFilters) {
-        chips.push(
-            <PaletteChip
-                key={`domain-${domainFilter}`}
-                label={`Domain: ${truncateLabel(domainFilter)}`}
-                onRemove={() =>
-                    setDomainFilters((current) =>
-                        removeValue(current, domainFilter)
-                    )
-                }
-            />
-        );
-    }
-
-    if (collectionMembershipFilter !== DEFAULT_COLLECTION_MEMBERSHIP_FILTER) {
-        chips.push(
-            <PaletteChip
-                key="collection-membership"
-                label={`Collections: ${collectionMembershipFilterLabel(collectionMembershipFilter)}`}
-                onRemove={() =>
-                    setCollectionMembershipFilter(
-                        DEFAULT_COLLECTION_MEMBERSHIP_FILTER
-                    )
-                }
-            />
-        );
-    }
-
-    if (groupBy !== "none") {
-        chips.push(
-            <PaletteChip
-                key="group"
-                label={`Group: ${groupByLabel(groupBy)}`}
-                onRemove={() => setGroupBy("none")}
-            />
-        );
-    }
-
-    if (sortMode !== DEFAULT_SORT_MODE) {
-        chips.push(
-            <PaletteChip
-                key="sort"
-                label={`Sort: ${sortModeLabel(sortMode)}`}
-                onRemove={() => setSortMode(DEFAULT_SORT_MODE)}
-            />
-        );
-    }
-
-    if (layoutMode !== DEFAULT_LAYOUT_MODE) {
-        chips.push(
-            <PaletteChip
-                key="layout-mode"
-                label={`Layout: ${layoutModeLabel(layoutMode)}`}
-                onRemove={() => setLayoutMode(DEFAULT_LAYOUT_MODE)}
-            />
-        );
-    }
-
-    if (
-        layoutMode === "masonry" &&
-        columnCountMode !== DEFAULT_COLUMN_COUNT_MODE
-    ) {
-        chips.push(
-            <PaletteChip
-                key="columns"
-                label={`Columns: ${columnCountLabel(columnCountMode)}`}
-                onRemove={() => setColumnCountMode(DEFAULT_COLUMN_COUNT_MODE)}
-            />
-        );
-    }
-
     return (
         <>
-            {chips.length === 0 && !isCommandInputFocused && (
+            {entries.length === 0 && !isCommandInputFocused && (
                 <Kbd className="border-none text-muted-foreground opacity-50">
                     <CtrlKbd />G
                 </Kbd>
@@ -2576,7 +2647,7 @@ function LibraryPaletteTrailing({
                 className="justify-end"
                 maxVisible={1}
             >
-                {chips}
+                {entries.map((entry) => entry.chip)}
             </TruncateAfter>
             <Toolbar.Button
                 render={
@@ -4591,13 +4662,37 @@ export function Root({ lockedItemCount, totalItemCount }: LibraryProps) {
             return;
         }
 
-        if (
-            event.key === "Backspace" &&
-            paletteSection !== "search" &&
-            paletteInput.trim() === ""
-        ) {
+        if (event.key === "Backspace" && paletteInput.trim() === "") {
             event.preventDefault();
-            returnToSearchSection();
+            if (paletteSection !== "search") {
+                returnToSearchSection();
+                return;
+            }
+            removeLastPaletteStackEntry(
+                buildPaletteStackEntries({
+                    collectionMembershipFilter,
+                    collections,
+                    columnCountMode,
+                    commandAttachments,
+                    domainFilters,
+                    groupBy,
+                    layoutMode,
+                    onRemoveCollectionFilter,
+                    onRemoveCommandAttachment: removeCommandAttachment,
+                    searchTerms,
+                    selectedCollectionIds,
+                    setCollectionMembershipFilter,
+                    setColumnCountMode,
+                    setDomainFilters,
+                    setGroupBy,
+                    setLayoutMode,
+                    setSearchTerms,
+                    setSortMode,
+                    setSourceFilters,
+                    sortMode,
+                    sourceFilters,
+                })
+            );
             return;
         }
 
@@ -5061,47 +5156,36 @@ export function Root({ lockedItemCount, totalItemCount }: LibraryProps) {
                                 <CommandInput
                                     endAddon={
                                         <LibraryPaletteTrailing
-                                            collectionMembershipFilter={
-                                                collectionMembershipFilter
-                                            }
-                                            collections={collections}
-                                            columnCountMode={columnCountMode}
-                                            commandAttachments={
-                                                commandAttachments
-                                            }
-                                            domainFilters={domainFilters}
-                                            groupBy={groupBy}
+                                            entries={buildPaletteStackEntries({
+                                                collectionMembershipFilter,
+                                                collections,
+                                                columnCountMode,
+                                                commandAttachments,
+                                                domainFilters,
+                                                groupBy,
+                                                layoutMode,
+                                                onRemoveCollectionFilter,
+                                                onRemoveCommandAttachment:
+                                                    removeCommandAttachment,
+                                                searchTerms,
+                                                selectedCollectionIds,
+                                                setCollectionMembershipFilter,
+                                                setColumnCountMode,
+                                                setDomainFilters,
+                                                setGroupBy,
+                                                setLayoutMode,
+                                                setSearchTerms,
+                                                setSortMode,
+                                                setSourceFilters,
+                                                sortMode,
+                                                sourceFilters,
+                                            })}
                                             isCommandInputFocused={
                                                 isCommandInputFocused
                                             }
-                                            layoutMode={layoutMode}
                                             onAttachFiles={
                                                 handleAttachCommandFiles
                                             }
-                                            onRemoveCollectionFilter={
-                                                onRemoveCollectionFilter
-                                            }
-                                            onRemoveCommandAttachment={
-                                                removeCommandAttachment
-                                            }
-                                            searchTerms={searchTerms}
-                                            selectedCollectionIds={
-                                                selectedCollectionIds
-                                            }
-                                            setCollectionMembershipFilter={
-                                                setCollectionMembershipFilter
-                                            }
-                                            setColumnCountMode={
-                                                setColumnCountMode
-                                            }
-                                            setDomainFilters={setDomainFilters}
-                                            setGroupBy={setGroupBy}
-                                            setLayoutMode={setLayoutMode}
-                                            setSearchTerms={setSearchTerms}
-                                            setSortMode={setSortMode}
-                                            setSourceFilters={setSourceFilters}
-                                            sortMode={sortMode}
-                                            sourceFilters={sourceFilters}
                                         />
                                     }
                                     onBlur={() =>
