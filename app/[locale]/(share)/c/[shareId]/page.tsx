@@ -7,7 +7,10 @@ import { getNoteExcerpt } from "@/lib/integrations/notes/utils";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import React, { cache } from "react";
-import { PublicShareGrid, type PublicShareGridItem } from "./public-share-grid";
+import {
+    PublicShareGrid,
+    type PublicShareGridItem,
+} from "../../../../../components/share/public-share-grid";
 
 interface CollectionSharePageProps {
     params: Promise<{

@@ -1,5 +1,37 @@
 "use client";
 
+import { Toolbar } from "@base-ui/react/toolbar";
+import { useStableCallback } from "@base-ui/utils/useStableCallback";
+import {
+    ArchiveIcon,
+    ArrowUpRight,
+    ChevronRight,
+    Clock,
+    Component,
+    CopyIcon,
+    CopyPlus,
+    EllipsisIcon,
+    ExternalLinkIcon,
+    FileSpreadsheetIcon,
+    Forward,
+    Info,
+    LinkIcon,
+    ListFilter,
+    LockKeyhole,
+    PencilIcon,
+    Shapes,
+    SignalHigh,
+    SignalMedium,
+    Sparkle,
+    Trash2Icon,
+    UserRoundPlus,
+    X,
+} from "lucide-react";
+import Image from "next/image";
+import Link from "next/link";
+import * as React from "react";
+import { useHotkeys } from "react-hotkeys-hook";
+
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -70,37 +102,6 @@ import { getSourceLabel } from "@/lib/integrations/support";
 import type { CollectionPriority } from "@/prisma/client/enums";
 import AppIconSmall from "@/public/cache-icon-small.png";
 import SmartCollectionsBackgroundImg from "@/public/smart-collections-background-wide.webp";
-import { Toolbar } from "@base-ui/react/toolbar";
-import { useStableCallback } from "@base-ui/utils/useStableCallback";
-import {
-    ArchiveIcon,
-    ArrowUpRight,
-    ChevronRight,
-    Clock,
-    Component,
-    CopyIcon,
-    CopyPlus,
-    EllipsisIcon,
-    ExternalLinkIcon,
-    FileSpreadsheetIcon,
-    Forward,
-    Info,
-    LinkIcon,
-    ListFilter,
-    LockKeyhole,
-    PencilIcon,
-    Shapes,
-    SignalHigh,
-    SignalMedium,
-    Sparkle,
-    Trash2Icon,
-    UserRoundPlus,
-    X,
-} from "lucide-react";
-import Image from "next/image";
-import Link from "next/link";
-import * as React from "react";
-import { useHotkeys } from "react-hotkeys-hook";
 
 type CollectionSortField =
     | "count"
@@ -113,18 +114,6 @@ type CollectionOptionIcon = React.ComponentType<{ className?: string }>;
 
 type FeedbackTone = "error" | "success";
 
-interface PriorityOption {
-    icon: CollectionOptionIcon;
-    label: string;
-    value: CollectionPriority;
-}
-
-interface SortingOption {
-    icon: CollectionOptionIcon;
-    label: string;
-    value: Exclude<CollectionSortField, "text-match">;
-}
-
 type SortingComboboxOption =
     | SortingOption
     | {
@@ -134,10 +123,7 @@ type SortingComboboxOption =
           value: "text-match";
       };
 
-interface CollectionsListItemContextValue {
-    collection: LibraryCollectionSummary;
-    isHovered: boolean;
-}
+type TemplateValue = (typeof TEMPLATES)[number]["value"];
 
 interface CollectionFeedback {
     message: string;
@@ -148,6 +134,23 @@ interface CollectionTemplateOption {
     description: string;
     name: string;
     value: string;
+}
+
+interface CollectionsListItemContextValue {
+    collection: LibraryCollectionSummary;
+    isHovered: boolean;
+}
+
+interface PriorityOption {
+    icon: CollectionOptionIcon;
+    label: string;
+    value: CollectionPriority;
+}
+
+interface SortingOption {
+    icon: CollectionOptionIcon;
+    label: string;
+    value: Exclude<CollectionSortField, "text-match">;
 }
 
 const PREVIEW_SLIDE_INTERVAL_MS = 600;
@@ -323,8 +326,6 @@ const TEMPLATES = [
     },
 ] as const satisfies readonly CollectionTemplateOption[];
 
-type TemplateValue = (typeof TEMPLATES)[number]["value"];
-
 const CollectionsListItemContext =
     React.createContext<CollectionsListItemContextValue | null>(null);
 
@@ -390,8 +391,7 @@ function getPriorityOption(priority: CollectionPriority): PriorityOption {
 
 function getItemStyle(name: string, isSelected: boolean): React.CSSProperties {
     const color = getHexColorFromName(name);
-    const opacity = isSelected ? 20 : 10;
-    const base = `color-mix(in srgb, ${color} ${opacity}%, transparent)`;
+    const base = `color-mix(in srgb, ${color} ${isSelected ? 20 : 10}%, transparent)`;
 
     return {
         "--collection-background": isSelected
@@ -402,11 +402,6 @@ function getItemStyle(name: string, isSelected: boolean): React.CSSProperties {
     } as React.CSSProperties;
 }
 
-/**
- * A single row inside a collection combobox dropdown.
- *
- * Displays an icon and a label side by side with truncation support.
- */
 function CollectionComboboxOptionRow({
     icon: Icon,
     label,
@@ -415,18 +410,13 @@ function CollectionComboboxOptionRow({
     label: string;
 }) {
     return (
-        <div className="flex min-w-0 items-center justify-between gap-3">
-            <span className="flex min-w-0 items-center gap-2 text-foreground text-sm">
-                <Icon className="size-4 text-muted-foreground" />
-                <span className="truncate">{label}</span>
-            </span>
-        </div>
+        <span className="flex min-w-0 items-center gap-2 text-foreground text-sm">
+            <Icon className="size-4 text-muted-foreground" />
+            <span className="truncate">{label}</span>
+        </span>
     );
 }
 
-/**
- * The fallback shown when a collection has no preview thumbnail.
- */
 function CollectionsListPreviewImageFallback() {
     return (
         <div className="flex size-full items-center justify-center bg-muted/40 text-[11px] text-muted-foreground">
@@ -435,9 +425,6 @@ function CollectionsListPreviewImageFallback() {
     );
 }
 
-/**
- * A preview image that falls back when the source is missing or fails to load.
- */
 function CollectionsListItemPreviewImage({
     alt,
     src,
@@ -449,15 +436,11 @@ function CollectionsListItemPreviewImage({
         return <CollectionsListPreviewImageFallback />;
     }
     return (
+        // key ensures the component remounts when src changes, resetting error state.
         <CollectionsListResolvedPreviewImage alt={alt} key={src} src={src} />
     );
 }
 
-/**
- * A resolved preview image with error handling.
- *
- * Swaps in `CollectionsListPreviewImageFallback` if the image fails to load.
- */
 function CollectionsListResolvedPreviewImage({
     alt,
     src,
@@ -485,11 +468,6 @@ function CollectionsListResolvedPreviewImage({
     );
 }
 
-/**
- * A small layout helper for inline rows inside the collections list.
- *
- * Applies standard flex and gap styles. Used by `CollectionsListStatus`.
- */
 function CollectionsListInlineRow({
     className,
     ...props
@@ -505,6 +483,553 @@ function CollectionsListInlineRow({
     );
 }
 
+function CollectionsList({
+    className,
+    ...props
+}: React.ComponentProps<typeof Collapsible>) {
+    return <Collapsible className={cn("relative", className)} {...props} />;
+}
+
+interface CollectionsListTriggerProps
+    extends React.ComponentProps<typeof CollapsibleTrigger> {
+    collectionLabels: string[];
+    isOpen: boolean;
+}
+
+function CollectionsListTrigger({
+    collectionLabels,
+    isOpen,
+    ...props
+}: CollectionsListTriggerProps) {
+    return (
+        <Popover>
+            <PopoverTrigger
+                openOnHover
+                render={
+                    <CollapsibleTrigger
+                        render={
+                            <SidebarItem render={<button type="button" />} />
+                        }
+                        title={isOpen ? "Collapse group" : "Expand group"}
+                        {...props}
+                    />
+                }
+            />
+            <PopoverPopup
+                align="start"
+                positionerClassname={cn(
+                    isOpen && "pointer-events-none! hidden!"
+                )}
+                positionMethod="fixed"
+                tooltipStyle
+            >
+                <p className="wrap-break-word w-full whitespace-normal font-medium leading-tight">
+                    {collectionLabels.length > 0
+                        ? collectionLabels.join(", ")
+                        : "No collections yet"}
+                </p>
+            </PopoverPopup>
+        </Popover>
+    );
+}
+
+function CollectionsListPanel({
+    className,
+    ...props
+}: React.ComponentProps<typeof CollapsiblePanel>) {
+    return <CollapsiblePanel className={cn("pl-1", className)} {...props} />;
+}
+
+function CollectionsListToolbar({
+    className,
+    ...props
+}: React.ComponentProps<typeof Toolbar.Root>) {
+    return (
+        <Toolbar.Root
+            className={cn(
+                "flex w-full items-center justify-between",
+                className
+            )}
+            {...props}
+        />
+    );
+}
+
+function CollectionsListToolbarGroup({
+    className,
+    ...props
+}: React.ComponentProps<typeof Toolbar.Group>) {
+    return (
+        <Toolbar.Group
+            className={cn("flex items-center justify-end gap-1", className)}
+            {...props}
+        />
+    );
+}
+
+function CollectionsListToolbarButton({
+    className,
+    ...props
+}: React.ComponentProps<typeof Toolbar.Button>) {
+    return (
+        <Toolbar.Button
+            className={cn("opacity-80 hover:opacity-100", className)}
+            {...props}
+        />
+    );
+}
+
+function CollectionsListEmpty({
+    className,
+    ...props
+}: React.ComponentProps<"p">) {
+    return (
+        <div className="flex flex-col items-center justify-center gap-4 rounded-2xl border border-border/30 border-dashed px-4 py-7 text-center">
+            <p
+                className={cn(
+                    "font-medium text-foreground text-sm leading-tight",
+                    className
+                )}
+                {...props}
+            />
+        </div>
+    );
+}
+
+interface CollectionsListStatusProps extends React.ComponentProps<"p"> {
+    onDismiss: () => void;
+    tone?: FeedbackTone;
+}
+
+/**
+ * Accessibility-friendly status message for collection operations.
+ *
+ * Returns `null` when there are no children so assistive technologies do not
+ * announce silent updates.
+ */
+function CollectionsListStatus({
+    className,
+    onDismiss,
+    tone = "success",
+    ...props
+}: CollectionsListStatusProps) {
+    if (!props.children) {
+        return null;
+    }
+
+    return (
+        <CollectionsListInlineRow className="pt-1">
+            <p
+                aria-live="polite"
+                className={cn(
+                    "text-xs leading-tight",
+                    tone === "error"
+                        ? "text-destructive"
+                        : "text-muted-foreground",
+                    className
+                )}
+                role={tone === "error" ? "alert" : "status"}
+                {...props}
+            />
+            <Button onClick={onDismiss} size="xs" variant="ghost">
+                Dismiss
+            </Button>
+        </CollectionsListInlineRow>
+    );
+}
+
+interface CollectionsListFilterClearProps
+    extends React.ComponentProps<typeof Button> {
+    isVisible: boolean;
+}
+
+function CollectionsListFilterClearButton({
+    isVisible,
+    ...props
+}: CollectionsListFilterClearProps) {
+    if (!isVisible) {
+        return null;
+    }
+
+    return (
+        <Button
+            aria-label="Clear selected collections"
+            size="icon-xs"
+            variant="ghost"
+            {...props}
+        >
+            <X
+                aria-hidden
+                className="inline-block size-3.5 shrink-0"
+                focusable="false"
+            />
+        </Button>
+    );
+}
+
+interface CollectionsListSortingComboboxProps
+    extends Omit<React.ComponentProps<typeof ComboboxTrigger>, "value"> {
+    inputValue: string;
+    isOpen: boolean;
+    onInputValueChange: (value: string) => void;
+    onOpenChange: (isOpen: boolean) => void;
+    onValueChange: (option: SortingComboboxOption | null) => void;
+    value: SortingComboboxOption | null;
+}
+
+/**
+ * Combobox for sorting collections or filtering by text match.
+ *
+ * Supports fixed sort fields and a dynamic text-match mode when the input
+ * does not match any field label.
+ */
+function CollectionsListSortingCombobox({
+    inputValue,
+    isOpen,
+    onInputValueChange,
+    onOpenChange,
+    onValueChange,
+    value,
+    ...props
+}: CollectionsListSortingComboboxProps) {
+    const trimmed = inputValue.trim();
+    const normalized = trimmed.toLowerCase();
+    const matching = SORT_OPTIONS.filter((option) =>
+        option.label.toLowerCase().includes(normalized)
+    );
+    const isTextMatch = normalized.length > 0 && matching.length === 0;
+
+    const options: SortingComboboxOption[] = isTextMatch
+        ? [
+              {
+                  icon: ListFilter,
+                  label: `Sort by "${trimmed}"`,
+                  query: trimmed,
+                  value: "text-match",
+              },
+          ]
+        : matching;
+
+    return (
+        <Combobox<SortingComboboxOption>
+            autoHighlight
+            filter={null}
+            inputValue={inputValue}
+            items={options}
+            itemToStringLabel={(option) =>
+                option.value === "text-match"
+                    ? option.query
+                    : (SORT_OPTION_BY_VALUE.get(option.value)?.label ?? "")
+            }
+            itemToStringValue={(option) => option.value}
+            onInputValueChange={onInputValueChange}
+            onOpenChange={onOpenChange}
+            onValueChange={onValueChange}
+            open={isOpen}
+            value={value}
+        >
+            <ComboboxTrigger
+                render={<Button size="icon-xs" variant="ghost" />}
+                title="Sort and organize collections"
+                {...props}
+            >
+                <ListFilter
+                    aria-hidden
+                    className="inline-block size-3 shrink-0"
+                    focusable="false"
+                />
+            </ComboboxTrigger>
+            <ComboboxPopup align="end" positionMethod="fixed">
+                <ComboboxInput
+                    endAddon={
+                        <Kbd>
+                            <CtrlKbd />F
+                        </Kbd>
+                    }
+                    placeholder="Sort by..."
+                />
+                <ComboboxEmpty>No matching sort options</ComboboxEmpty>
+                <ComboboxList>
+                    <ComboboxCollection>
+                        {(sortOption: SortingComboboxOption) => (
+                            <ComboboxItem
+                                key={sortOption.value}
+                                showIndicatorLast
+                                value={sortOption}
+                            >
+                                <CollectionComboboxOptionRow
+                                    icon={sortOption.icon}
+                                    label={sortOption.label}
+                                />
+                            </ComboboxItem>
+                        )}
+                    </ComboboxCollection>
+                </ComboboxList>
+            </ComboboxPopup>
+        </Combobox>
+    );
+}
+
+function CollectionsListNoticeCallout({
+    isDisabled,
+    onDisable,
+}: {
+    isDisabled: boolean;
+    onDisable: () => Promise<void>;
+}) {
+    return (
+        <Popover>
+            <span aria-live="polite" className="sr-only" role="status">
+                {isDisabled
+                    ? "Smart Collections"
+                    : "Smart Collections is active"}
+            </span>
+            <PopoverTrigger
+                className="group not-sr-only flex items-center text-nowrap font-medium text-[11px] opacity-70"
+                openOnHover
+            >
+                <GradientWaveText
+                    ariaLabel="Smart Collections"
+                    className="w-fit underline decoration-muted-foreground/20 decoration-dotted underline-offset-2"
+                    speed={2.2}
+                >
+                    Smart Collections
+                </GradientWaveText>
+                &nbsp;is active{" "}
+                <ChevronDownFilledIcon className="mb-px size-4 rotate-90 group-data-popup-open:opacity-10!" />
+            </PopoverTrigger>
+            <PopoverPopup align="start" positionMethod="fixed">
+                <Image
+                    alt=""
+                    aria-hidden
+                    className="-mx-(--viewport-inline-padding) -mt-4 aspect-32/9 h-auto max-h-24 w-(--positioner-width) min-w-0 max-w-(--positioner-width) rounded-t-lg"
+                    loading="eager"
+                    priority
+                    src={SmartCollectionsBackgroundImg}
+                />
+                <div className="mt-4 flex max-w-64 flex-col gap-2">
+                    <PopoverTitle className="font-medium text-sm">
+                        Let Cache do the organizing
+                    </PopoverTitle>
+                    <PopoverDescription className="text-foreground text-xs">
+                        As you add new entries, Cache AI groups your related
+                        saves into contextual collections intuitively. Cache
+                        also learns your preferences with time.
+                    </PopoverDescription>
+                    <div className="ml-auto flex items-center justify-end gap-2">
+                        <Button
+                            render={<Link href="/activity" />}
+                            size="xs"
+                            variant="ghost"
+                        >
+                            Activity
+                            <ArrowUpRight className="inline-block size-3.5 shrink-0 text-muted-foreground" />
+                        </Button>
+                        <Button
+                            onClick={onDisable}
+                            size="xs"
+                            variant="destructive-outline"
+                        >
+                            Disable
+                        </Button>
+                    </div>
+                </div>
+            </PopoverPopup>
+        </Popover>
+    );
+}
+
+interface CollectionsListItemProps extends React.ComponentProps<"div"> {
+    collection: LibraryCollectionSummary;
+    isSelected: boolean;
+}
+
+/**
+ * A single row in the collections list.
+ *
+ * Provides `CollectionsListItemContext` to its children so compound parts
+ * can read the collection and hover state without prop drilling.
+ */
+function CollectionsListItem({
+    className,
+    collection,
+    isSelected,
+    onMouseEnter,
+    onMouseLeave,
+    style: styleProp,
+    ...props
+}: CollectionsListItemProps) {
+    const [isHovered, setIsHovered] = React.useState(false);
+    const style = getItemStyle(collection.name, isSelected);
+
+    return (
+        <CollectionsListItemContext value={{ collection, isHovered }}>
+            {/* biome-ignore lint/a11y/noNoninteractiveElementInteractions: Hover tracking scopes collection-level keyboard shortcuts. */}
+            {/* biome-ignore lint/a11y/noStaticElementInteractions: Same as above. */}
+            <div
+                {...props}
+                className={cn(
+                    "group relative flex select-none items-center",
+                    className
+                )}
+                onMouseEnter={(event) => {
+                    setIsHovered(true);
+                    onMouseEnter?.(event);
+                }}
+                onMouseLeave={(event) => {
+                    setIsHovered(false);
+                    onMouseLeave?.(event);
+                }}
+                style={{ ...style, ...styleProp }}
+            />
+        </CollectionsListItemContext>
+    );
+}
+
+interface CollectionsListItemPreviewProps
+    extends React.ComponentProps<typeof PreviewCardTrigger> {
+    thumbnails: readonly string[];
+}
+
+function CollectionsListItemPreview({
+    onClick,
+    thumbnails,
+    ...props
+}: CollectionsListItemPreviewProps) {
+    const { collection } = useCollectionsListItemContext();
+    const [isOpen, setIsOpen] = React.useState(false);
+    const activePreviewIndex = useCollectionItemPreviewIndex(
+        isOpen,
+        thumbnails.length
+    );
+
+    return (
+        <PreviewCard onOpenChange={setIsOpen} open={isOpen}>
+            <PreviewCardTrigger
+                closeDelay={0}
+                onClick={(event) => {
+                    onClick?.(event);
+                    setIsOpen(false);
+                }}
+                render={
+                    <SidebarItem
+                        className="w-full min-w-0 flex-1 justify-start pr-8 pl-10 text-left hover:bg-transparent focus-visible:ring-(--focus-ring-color)"
+                        render={<Button variant="ghost" />}
+                    />
+                }
+                {...props}
+            />
+            <PreviewCardPopup
+                className="pointer-events-none aspect-3/2 p-0"
+                positionMethod="fixed"
+                side="right"
+            >
+                <CollectionsListItemPreviewImage
+                    alt={`${collection.name} preview`}
+                    src={thumbnails[activePreviewIndex]}
+                />
+            </PreviewCardPopup>
+        </PreviewCard>
+    );
+}
+
+function CollectionsListItemValue() {
+    const { collection } = useCollectionsListItemContext();
+
+    return (
+        <div className="flex min-w-0 flex-1 items-center gap-3 leading-none">
+            <span
+                className="max-w-full shrink-0 truncate font-medium text-sm"
+                title={collection.description ?? undefined}
+            >
+                {collection.name}
+            </span>
+            {collection.sources.length > 0 && (
+                <span className="max-w-full flex-1 truncate text-[11px] text-muted-foreground opacity-0 group-hover:opacity-80">
+                    {collection.sources.map(getSourceLabel).join(", ")}
+                </span>
+            )}
+        </div>
+    );
+}
+
+interface CollectionsListItemPriorityComboboxProps {
+    onValueChange: (priority: CollectionPriority) => void;
+}
+
+function CollectionsListItemPriorityCombobox({
+    onValueChange,
+}: CollectionsListItemPriorityComboboxProps) {
+    const { collection } = useCollectionsListItemContext();
+    const [isOpen, setIsOpen] = React.useState(false);
+    const SelectedPriorityIcon = getPriorityOption(collection.priority).icon;
+
+    useCollectionItemHotkey(
+        "p",
+        () => {
+            setIsOpen(true);
+        },
+        !isOpen
+    );
+
+    return (
+        <Combobox
+            autoHighlight
+            items={PRIORITIES}
+            onOpenChange={setIsOpen}
+            onValueChange={(nextPriority) => {
+                if (!nextPriority || nextPriority === collection.priority) {
+                    return;
+                }
+                onValueChange(nextPriority);
+                setIsOpen(false);
+            }}
+            open={isOpen}
+            value={collection.priority}
+        >
+            <ComboboxTrigger
+                render={
+                    <Button
+                        aria-label={`Change priority for ${collection.name}`}
+                        className="absolute top-1/2 left-1.5 z-10 -translate-y-1/2 border-none bg-(--collection-background) text-(--focus-ring-color)"
+                        size="icon-xs"
+                        variant="ghost"
+                    />
+                }
+            >
+                <SelectedPriorityIcon className="size-4" />
+            </ComboboxTrigger>
+            <ComboboxPopup positionMethod="fixed">
+                <ComboboxInput
+                    endAddon={<Kbd>P</Kbd>}
+                    placeholder={
+                        collection.priority === "none"
+                            ? "Set priority to..."
+                            : "Change priority to..."
+                    }
+                />
+                <ComboboxEmpty>No matching priorities</ComboboxEmpty>
+                <ComboboxList>
+                    <ComboboxCollection>
+                        {(priorityOption: PriorityOption) => (
+                            <ComboboxItem
+                                key={priorityOption.value}
+                                showIndicatorLast
+                                value={priorityOption.value}
+                            >
+                                <CollectionComboboxOptionRow
+                                    icon={priorityOption.icon}
+                                    label={priorityOption.label}
+                                />
+                            </ComboboxItem>
+                        )}
+                    </ComboboxCollection>
+                </ComboboxList>
+            </ComboboxPopup>
+        </Combobox>
+    );
+}
+
 interface CollectionsListSharePopoverProps {
     collection: LibraryCollectionSummary;
     isSharePending: boolean;
@@ -514,13 +1039,6 @@ interface CollectionsListSharePopoverProps {
     shareUrl: string | null;
 }
 
-/**
- * A nested menu for managing public sharing of a collection.
- *
- * Renders a `MenuSub` with controls to enable or disable a public share link,
- * copy the link, and view sharing metadata. Used inside
- * `CollectionsListItemMeta`.
- */
 function CollectionsListSharePopover({
     collection,
     isSharePending,
@@ -647,14 +1165,6 @@ interface CollectionsListExportMenuProps {
     onOpenLinks: () => void;
 }
 
-/**
- * A nested menu with export and duplication actions for a collection.
- *
- * Renders a `MenuSub` with items for copying the title, copying or opening
- * all links, exporting to CSV, making a copy, and sending to Notion. Some
- * items are disabled when the collection has no items. Used inside
- * `CollectionsListItemMeta`.
- */
 function CollectionsListExportMenu({
     hasItems,
     onCopyLinks,
@@ -699,301 +1209,6 @@ function CollectionsListExportMenu({
     );
 }
 
-/**
- * The root collapsible container for the collections list.
- *
- * Renders a `Collapsible`. Compose `CollectionsListToolbar` and
- * `CollectionsListPanel` inside it.
- */
-function CollectionsList({
-    className,
-    ...props
-}: React.ComponentProps<typeof Collapsible>) {
-    return <Collapsible className={cn("relative", className)} {...props} />;
-}
-
-interface CollectionsListTriggerProps
-    extends React.ComponentProps<typeof CollapsibleTrigger> {
-    collectionLabels: string[];
-    isOpen: boolean;
-}
-
-/**
- * A button that toggles the collections list panel.
- *
- * Renders a `Popover` around a `CollapsibleTrigger`. The popover displays the
- * full list of collection labels on hover, and is hidden while the panel is
- * open to avoid overlapping content.
- */
-function CollectionsListTrigger({
-    collectionLabels,
-    isOpen,
-    ...props
-}: CollectionsListTriggerProps) {
-    const collectionLabelsText =
-        collectionLabels.length > 0
-            ? collectionLabels.join(", ")
-            : "No collections yet";
-
-    return (
-        <Popover>
-            <PopoverTrigger
-                openOnHover
-                render={
-                    <CollapsibleTrigger
-                        render={
-                            <SidebarItem render={<button type="button" />} />
-                        }
-                        title={isOpen ? "Collapse group" : "Expand group"}
-                        {...props}
-                    />
-                }
-            />
-            <PopoverPopup
-                align="start"
-                positionerClassname={cn(
-                    isOpen && "pointer-events-none! hidden!"
-                )}
-                positionMethod="fixed"
-                tooltipStyle
-            >
-                <p className="wrap-break-word w-full whitespace-normal font-medium leading-tight">
-                    {collectionLabelsText}
-                </p>
-            </PopoverPopup>
-        </Popover>
-    );
-}
-
-/**
- * The collapsible panel that holds the list of collections.
- *
- * Renders a `CollapsiblePanel` with left padding. Compose it inside
- * `CollectionsList`.
- */
-function CollectionsListPanel({
-    className,
-    ...props
-}: React.ComponentProps<typeof CollapsiblePanel>) {
-    return <CollapsiblePanel className={cn("pl-1", className)} {...props} />;
-}
-
-interface CollectionsListItemPreviewProps
-    extends React.ComponentProps<typeof PreviewCardTrigger> {
-    thumbnails: readonly string[];
-}
-
-/**
- * A previewable trigger for a collection list item.
- *
- * Wraps the collection name in a `PreviewCard` that shows a cycling thumbnail
- * popup on hover. Clicking selects the collection and closes the preview.
- */
-function CollectionsListItemPreview({
-    onClick,
-    thumbnails,
-    ...props
-}: CollectionsListItemPreviewProps) {
-    const { collection } = useCollectionsListItemContext();
-    const [isOpen, setIsOpen] = React.useState(false);
-    const activePreviewIndex = useCollectionItemPreviewIndex(
-        isOpen,
-        thumbnails.length
-    );
-
-    return (
-        <PreviewCard onOpenChange={setIsOpen} open={isOpen}>
-            <PreviewCardTrigger
-                closeDelay={0}
-                onClick={(event) => {
-                    onClick?.(event);
-                    setIsOpen(false);
-                }}
-                render={
-                    <SidebarItem
-                        className="w-full min-w-0 flex-1 justify-start pr-8 pl-10 text-left hover:bg-transparent focus-visible:ring-(--focus-ring-color)"
-                        render={<Button variant="ghost" />}
-                    />
-                }
-                {...props}
-            />
-            <PreviewCardPopup
-                className="pointer-events-none aspect-3/2 p-0"
-                positionMethod="fixed"
-                side="right"
-            >
-                <CollectionsListItemPreviewImage
-                    alt={`${collection.name} preview`}
-                    src={thumbnails[activePreviewIndex]}
-                />
-            </PreviewCardPopup>
-        </PreviewCard>
-    );
-}
-
-/**
- * The label area of a collection list item.
- *
- * Displays the collection name and, on hover, a comma-separated list of
- * source labels. Reads from `CollectionsListItemContext`.
- */
-function CollectionsListItemValue() {
-    const { collection } = useCollectionsListItemContext();
-    const sourceLabels =
-        collection.sources.length > 0
-            ? collection.sources.map(getSourceLabel).join(", ")
-            : null;
-
-    return (
-        <div className="flex min-w-0 flex-1 items-center gap-3 leading-none">
-            <span
-                className="max-w-full shrink-0 truncate font-medium text-sm"
-                title={collection.description ?? undefined}
-            >
-                {collection.name}
-            </span>
-            {sourceLabels ? (
-                <span className="max-w-full flex-1 truncate text-[11px] text-muted-foreground opacity-0 group-hover:opacity-80">
-                    {sourceLabels}
-                </span>
-            ) : null}
-        </div>
-    );
-}
-
-interface CollectionsListItemPriorityComboboxProps {
-    onValueChange: (priority: CollectionPriority) => void;
-}
-
-/**
- * A priority picker for a single collection item.
- *
- * Renders a `Combobox` bound to the collection in
- * `CollectionsListItemContext`. The "P" hotkey opens the dropdown when the
- * item is hovered.
- */
-function CollectionsListItemPriorityCombobox({
-    onValueChange,
-}: CollectionsListItemPriorityComboboxProps) {
-    const { collection } = useCollectionsListItemContext();
-    const [isOpen, setIsOpen] = React.useState(false);
-    const selectedOption = getPriorityOption(collection.priority);
-    const SelectedPriorityIcon = selectedOption.icon;
-
-    useCollectionItemHotkey(
-        "p",
-        () => {
-            setIsOpen(true);
-        },
-        !isOpen
-    );
-
-    return (
-        <Combobox
-            autoHighlight
-            items={PRIORITIES}
-            onOpenChange={setIsOpen}
-            onValueChange={(nextPriority) => {
-                if (!nextPriority || nextPriority === collection.priority) {
-                    return;
-                }
-                onValueChange(nextPriority);
-                setIsOpen(false);
-            }}
-            open={isOpen}
-            value={collection.priority}
-        >
-            <ComboboxTrigger
-                render={
-                    <Button
-                        aria-label={`Change priority for ${collection.name}`}
-                        className="absolute top-1/2 left-1.5 z-10 -translate-y-1/2 border-none bg-(--collection-background) text-(--focus-ring-color)"
-                        size="icon-xs"
-                        variant="ghost"
-                    />
-                }
-            >
-                <SelectedPriorityIcon className="size-4" />
-            </ComboboxTrigger>
-            <ComboboxPopup positionMethod="fixed">
-                <ComboboxInput
-                    endAddon={<Kbd>P</Kbd>}
-                    placeholder={
-                        collection.priority === "none"
-                            ? "Set priority to..."
-                            : "Change priority to..."
-                    }
-                />
-                <ComboboxEmpty>No matching priorities</ComboboxEmpty>
-                <ComboboxList>
-                    <ComboboxCollection>
-                        {(priorityOption: PriorityOption) => (
-                            <ComboboxItem
-                                key={priorityOption.value}
-                                showIndicatorLast
-                                value={priorityOption.value}
-                            >
-                                <CollectionComboboxOptionRow
-                                    icon={priorityOption.icon}
-                                    label={priorityOption.label}
-                                />
-                            </ComboboxItem>
-                        )}
-                    </ComboboxCollection>
-                </ComboboxList>
-            </ComboboxPopup>
-        </Combobox>
-    );
-}
-
-interface CollectionsListItemProps extends React.ComponentProps<"div"> {
-    collection: LibraryCollectionSummary;
-    isSelected: boolean;
-}
-
-/**
- * A single row in the collections list.
- *
- * Provides `CollectionsListItemContext` to its children so compound parts
- * like `CollectionsListItemPreview`, `CollectionsListItemPriorityCombobox`,
- * and `CollectionsListItemMeta` can read the collection and hover state.
- */
-function CollectionsListItem({
-    className,
-    collection,
-    isSelected,
-    onMouseEnter,
-    onMouseLeave,
-    style: styleProp,
-    ...props
-}: CollectionsListItemProps) {
-    const [isHovered, setIsHovered] = React.useState(false);
-    const style = getItemStyle(collection.name, isSelected);
-
-    return (
-        <CollectionsListItemContext value={{ collection, isHovered }}>
-            {/* biome-ignore lint/a11y/noNoninteractiveElementInteractions: Hover tracking scopes collection-level keyboard shortcuts. */}
-            {/* biome-ignore lint/a11y/noStaticElementInteractions: Same as above. */}
-            <div
-                {...props}
-                className={cn(
-                    "group relative flex select-none items-center",
-                    className
-                )}
-                onMouseEnter={(event) => {
-                    setIsHovered(true);
-                    onMouseEnter?.(event);
-                }}
-                onMouseLeave={(event) => {
-                    setIsHovered(false);
-                    onMouseLeave?.(event);
-                }}
-                style={{ ...style, ...styleProp }}
-            />
-        </CollectionsListItemContext>
-    );
-}
-
 interface CollectionsListItemMetaProps {
     isSharePending: boolean;
     onCopyLinks: () => void;
@@ -1010,11 +1225,10 @@ interface CollectionsListItemMetaProps {
 }
 
 /**
- * The action menu and metadata for a collection list item.
+ * Action menu and metadata for a collection list item.
  *
  * Renders a count badge that hides on hover, replacing it with an ellipsis
- * menu. Keyboard shortcuts (E, Delete/Backspace, C) are active while the
- * item is hovered. Reads from `CollectionsListItemContext`.
+ * menu. Keyboard shortcuts (E, Delete/Backspace, C) are active while hovered.
  */
 function CollectionsListItemMeta({
     isSharePending,
@@ -1109,338 +1323,6 @@ function CollectionsListItemMeta({
     );
 }
 
-interface CollectionsListStatusProps extends React.ComponentProps<"p"> {
-    onDismiss: () => void;
-    tone?: FeedbackTone;
-}
-
-/**
- * An accessibility-friendly status message for collection operations.
- *
- * Returns `null` when there are no children so assistive technologies do not
- * announce silent updates. Includes a dismiss button.
- */
-function CollectionsListStatus({
-    className,
-    onDismiss,
-    tone = "success",
-    ...props
-}: CollectionsListStatusProps) {
-    if (!props.children) {
-        return null;
-    }
-
-    return (
-        <CollectionsListInlineRow className="pt-1">
-            <p
-                aria-live="polite"
-                className={cn(
-                    "text-xs leading-tight",
-                    tone === "error"
-                        ? "text-destructive"
-                        : "text-muted-foreground",
-                    className
-                )}
-                role={tone === "error" ? "alert" : "status"}
-                {...props}
-            />
-            <Button onClick={onDismiss} size="xs" variant="ghost">
-                Dismiss
-            </Button>
-        </CollectionsListInlineRow>
-    );
-}
-
-interface CollectionsListFilterClearProps
-    extends React.ComponentProps<typeof Button> {
-    isVisible: boolean;
-}
-
-/**
- * A button that clears the active collection filters.
- *
- * Returns `null` when `isVisible` is `false` so it does not take up layout
- * space while hidden.
- */
-function CollectionsListFilterClearButton({
-    isVisible,
-    ...props
-}: CollectionsListFilterClearProps) {
-    if (!isVisible) {
-        return null;
-    }
-
-    return (
-        <Button
-            aria-label="Clear selected collections"
-            size="icon-xs"
-            variant="ghost"
-            {...props}
-        >
-            <X
-                aria-hidden
-                className="inline-block size-3.5 shrink-0"
-                focusable="false"
-            />
-        </Button>
-    );
-}
-
-/**
- * The empty state shown when no collections exist.
- *
- * Renders a centered message inside a dashed border container.
- */
-function CollectionsListEmpty({
-    className,
-    ...props
-}: React.ComponentProps<"p">) {
-    return (
-        <div className="flex flex-col items-center justify-center gap-4 rounded-2xl border border-border/30 border-dashed px-4 py-7 text-center">
-            <p
-                className={cn(
-                    "font-medium text-foreground text-sm leading-tight",
-                    className
-                )}
-                {...props}
-            />
-        </div>
-    );
-}
-
-/**
- * The toolbar that sits above the collections list panel.
- *
- * Renders a `Toolbar.Root` with flex layout. Compose
- * `CollectionsListTrigger`, `CollectionsListToolbarGroup`, and action
- * buttons inside it.
- */
-function CollectionsListToolbar({
-    className,
-    ...props
-}: React.ComponentProps<typeof Toolbar.Root>) {
-    return (
-        <Toolbar.Root
-            className={cn(
-                "flex w-full items-center justify-between",
-                className
-            )}
-            {...props}
-        />
-    );
-}
-
-/**
- * A group of toolbar controls aligned to the right.
- *
- * Renders a `Toolbar.Group` with flex end alignment.
- */
-function CollectionsListToolbarGroup({
-    className,
-    ...props
-}: React.ComponentProps<typeof Toolbar.Group>) {
-    return (
-        <Toolbar.Group
-            className={cn("flex items-center justify-end gap-1", className)}
-            {...props}
-        />
-    );
-}
-
-/**
- * A single button inside the collections toolbar.
- *
- * Renders a `Toolbar.Button` with reduced opacity that increases on hover.
- */
-function CollectionsListToolbarButton({
-    className,
-    ...props
-}: React.ComponentProps<typeof Toolbar.Button>) {
-    return (
-        <Toolbar.Button
-            className={cn("opacity-80 hover:opacity-100", className)}
-            {...props}
-        />
-    );
-}
-
-/**
- * A callout that informs users when Smart Collections is active.
- *
- * Renders a `Popover` trigger with a gradient wave text label. The popover
- * explains the feature and provides a link to Activity and a Disable button.
- */
-function CollectionsListNoticeCallout({
-    isDisabled,
-    onDisable,
-}: {
-    isDisabled: boolean;
-    onDisable: () => Promise<void>;
-}) {
-    return (
-        <Popover>
-            <span aria-live="polite" className="sr-only" role="status">
-                Smart Collections{isDisabled ? null : " is active"}
-            </span>
-            <PopoverTrigger
-                className="group not-sr-only flex items-center text-nowrap font-medium text-[11px] opacity-70"
-                openOnHover
-            >
-                <GradientWaveText
-                    ariaLabel="Smart Collections"
-                    className="w-fit underline decoration-muted-foreground/20 decoration-dotted underline-offset-2"
-                    speed={2.2}
-                >
-                    Smart Collections
-                </GradientWaveText>
-                &nbsp;is active{" "}
-                <ChevronDownFilledIcon className="mb-px size-4 rotate-90 group-data-popup-open:opacity-10!" />
-            </PopoverTrigger>
-            <PopoverPopup align="start" positionMethod="fixed">
-                <Image
-                    alt=""
-                    aria-hidden
-                    className="-mx-(--viewport-inline-padding) -mt-4 aspect-32/9 h-auto max-h-24 w-(--positioner-width) min-w-0 max-w-(--positioner-width) rounded-t-lg"
-                    loading="eager"
-                    priority
-                    src={SmartCollectionsBackgroundImg}
-                />
-                <div className="mt-4 flex max-w-64 flex-col gap-2">
-                    <PopoverTitle className="font-medium text-sm">
-                        Let Cache do the organizing
-                    </PopoverTitle>
-                    <PopoverDescription className="text-foreground text-xs">
-                        As you add new entries, Cache AI groups your related
-                        saves into contextual collections intuitively. Cache
-                        also learns your preferences with time.
-                    </PopoverDescription>
-                    <div className="ml-auto flex items-center justify-end gap-2">
-                        <Button
-                            render={<Link href="/activity" />}
-                            size="xs"
-                            variant="ghost"
-                        >
-                            Activity
-                            <ArrowUpRight className="inline-block size-3.5 shrink-0 text-muted-foreground" />
-                        </Button>
-                        <Button
-                            onClick={onDisable}
-                            size="xs"
-                            variant="destructive-outline"
-                        >
-                            Disable
-                        </Button>
-                    </div>
-                </div>
-            </PopoverPopup>
-        </Popover>
-    );
-}
-
-interface CollectionsListSortingComboboxProps
-    extends Omit<React.ComponentProps<typeof ComboboxTrigger>, "value"> {
-    inputValue: string;
-    isOpen: boolean;
-    onInputValueChange: (value: string) => void;
-    onOpenChange: (isOpen: boolean) => void;
-    onValueChange: (option: SortingComboboxOption | null) => void;
-    value: SortingComboboxOption | null;
-}
-
-/**
- * A combobox for sorting collections or filtering by text match.
- *
- * Supports fixed sort fields (priority, created, updated, count) and a
- * dynamic text-match mode when the input does not match any field label.
- * Fully controlled via props.
- */
-function CollectionsListSortingCombobox({
-    inputValue,
-    isOpen,
-    onInputValueChange,
-    onOpenChange,
-    onValueChange,
-    value,
-    ...props
-}: CollectionsListSortingComboboxProps) {
-    const trimmed = inputValue.trim();
-    const normalized = trimmed.toLowerCase();
-    const matching = SORT_OPTIONS.filter((option) =>
-        option.label.toLowerCase().includes(normalized)
-    );
-    const isTextMatch = normalized.length > 0 && matching.length === 0;
-
-    const options: SortingComboboxOption[] = isTextMatch
-        ? [
-              {
-                  icon: ListFilter,
-                  label: `Sort by "${trimmed}"`,
-                  query: trimmed,
-                  value: "text-match",
-              },
-          ]
-        : matching;
-
-    return (
-        <Combobox<SortingComboboxOption>
-            autoHighlight
-            filter={null}
-            inputValue={inputValue}
-            items={options}
-            itemToStringLabel={(option) =>
-                option.value === "text-match"
-                    ? option.query
-                    : (SORT_OPTION_BY_VALUE.get(option.value)?.label ?? "")
-            }
-            itemToStringValue={(option) => option.value}
-            onInputValueChange={onInputValueChange}
-            onOpenChange={onOpenChange}
-            onValueChange={onValueChange}
-            open={isOpen}
-            value={value}
-        >
-            <ComboboxTrigger
-                render={<Button size="icon-xs" variant="ghost" />}
-                title="Sort and organize collections"
-                {...props}
-            >
-                <ListFilter
-                    aria-hidden
-                    className="inline-block size-3 shrink-0"
-                    focusable="false"
-                />
-            </ComboboxTrigger>
-            <ComboboxPopup align="end" positionMethod="fixed">
-                <ComboboxInput
-                    endAddon={
-                        <Kbd>
-                            <CtrlKbd />F
-                        </Kbd>
-                    }
-                    placeholder="Sort by..."
-                />
-                <ComboboxEmpty>No matching sort options</ComboboxEmpty>
-                <ComboboxList>
-                    <ComboboxCollection>
-                        {(sortOption: SortingComboboxOption) => (
-                            <ComboboxItem
-                                key={sortOption.value}
-                                showIndicatorLast
-                                value={sortOption}
-                            >
-                                <CollectionComboboxOptionRow
-                                    icon={sortOption.icon}
-                                    label={sortOption.label}
-                                />
-                            </ComboboxItem>
-                        )}
-                    </ComboboxCollection>
-                </ComboboxList>
-            </ComboboxPopup>
-        </Combobox>
-    );
-}
-
 interface RenameDialogProps {
     errorMessage: string | null;
     isOpen: boolean;
@@ -1451,12 +1333,6 @@ interface RenameDialogProps {
     onSubmit: () => void;
 }
 
-/**
- * A dialog for renaming an existing collection.
- *
- * Fully controlled via props. Validates that the name is non-empty and
- * distinct from the current name before calling `onSubmit`.
- */
 function RenameDialog({
     errorMessage,
     isOpen,
@@ -1542,12 +1418,6 @@ interface CreateDialogProps {
     onSubmit: () => void;
 }
 
-/**
- * A dialog for creating a new collection.
- *
- * Fully controlled via props. Includes fields for name and an optional
- * description, plus a template picker that pre-fills both fields.
- */
 function CreateDialog({
     descriptionDraft,
     errorMessage,
@@ -1721,12 +1591,6 @@ interface DeleteDialogProps {
     onOpenChange: (isOpen: boolean) => void;
 }
 
-/**
- * A confirmation dialog for deleting a collection.
- *
- * Fully controlled via props. Displays the collection name when available.
- * Calls `onConfirm` when the user presses the Delete button.
- */
 function DeleteDialog({
     collection,
     isPending,

@@ -1,8 +1,8 @@
+import { JsonLdScript } from "@/app/json-ld-script";
 import { buildPageMetadata } from "@/app/metadata";
 import { GoogleSignInButton } from "@/components/auth/google-sign-in-button";
 import { SignedInOnly, SignedOutOnly } from "@/components/auth/session";
 import { UpgradeButton } from "@/components/billing/upgrade-button";
-import { JsonLdScript } from "@/components/seo/json-ld-script";
 import {
     Accordion,
     AccordionItem,

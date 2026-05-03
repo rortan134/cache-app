@@ -1,7 +1,7 @@
+import { JsonLdScript } from "@/app/json-ld-script";
 import { buildPageMetadata } from "@/app/metadata";
 import { GoogleSignInButton } from "@/components/auth/google-sign-in-button";
 import { GoogleOneTapTrigger, SessionHint } from "@/components/auth/session";
-import { JsonLdScript } from "@/components/seo/json-ld-script";
 import { BrandLogo } from "@/components/ui/brand-logo";
 import { Button } from "@/components/ui/button";
 import { Carousel } from "@/components/ui/carousel";
