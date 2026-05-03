@@ -1,9 +1,9 @@
+import { changelogEntries } from "@/app/[locale]/changelog/data";
+import { buildPageMetadata } from "@/app/metadata";
 import { JsonLdScript } from "@/components/seo/json-ld-script";
 import { Badge } from "@/components/ui/badge";
 import { BASE_URL } from "@/lib/common/constants";
-import { changelogEntries } from "@/lib/changelog/data";
 import { gtPublicString } from "@/lib/i18n/gt-public-json";
-import { buildPageMetadata } from "@/lib/seo/metadata";
 import { ArrowUpRight } from "lucide-react";
 import type { Metadata } from "next";
 import Image from "next/image";

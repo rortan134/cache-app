@@ -1,6 +1,5 @@
 import { buildLocaleAlternates } from "@/lib/i18n/alternates";
 import type { Metadata } from "next";
-import "server-only";
 
 interface BuildPageMetadataArgs {
     description: string;

@@ -1,78 +1,12 @@
 import "server-only";
 
-import { auth } from "@/lib/auth/server";
-import { autoTagLibraryItemsByIds } from "@/lib/collections/intelligence";
-import {
-    extensionIngestCorsHeaders,
-    parseBearerToken,
-    resolveExtensionIngestUserId,
-} from "@/lib/integrations/extension-ingest";
+import { scheduleAutoTagging } from "@/lib/collections/intelligence/schedule";
 import { IntegrationApiError } from "@/lib/integrations/error";
 import {
     getIntegrationAccountId,
     resolveProviderAccessToken,
 } from "@/lib/integrations/provider-account";
-import { headers } from "next/headers";
-import { after } from "next/server";
-
-/**
- * Authenticates an extension ingest request by Bearer token.
- *
- * @returns The CORS headers and resolved user id, or a 401 Response if authentication fails.
- */
-export async function authenticateExtensionIngest(
-    request: Request
-): Promise<{ cors: HeadersInit; userId: string } | Response> {
-    const cors = extensionIngestCorsHeaders();
-    const bearer = parseBearerToken(request);
-    if (!bearer) {
-        return Response.json(
-            { error: "Missing Authorization: Bearer <extension ingest token>" },
-            { headers: cors, status: 401 }
-        );
-    }
-
-    const userId = await resolveExtensionIngestUserId(bearer);
-    if (!userId) {
-        return Response.json(
-            { error: "Unauthorized" },
-            { headers: cors, status: 401 }
-        );
-    }
-
-    return { cors, userId };
-}
-
-/**
- * Resolves the current session user id for API routes.
- *
- * @returns The user id, or a 401 Response if the session is missing.
- */
-export async function requireSessionUserId(): Promise<
-    { userId: string } | Response
-> {
-    const session = await auth.api.getSession({ headers: await headers() });
-    const userId = session?.user?.id;
-    if (!userId) {
-        return Response.json({ error: "Unauthorized" }, { status: 401 });
-    }
-    return { userId };
-}
-
-/**
- * Schedules background auto-tagging for newly imported items.
- *
- * Uses `after()` so it only works inside Next.js route handlers or server actions.
- */
-export function scheduleAutoTagging(userId: string, itemIds: string[]): void {
-    if (itemIds.length === 0) {
-        return;
-    }
-
-    after(async () => {
-        await autoTagLibraryItemsByIds({ itemIds, userId });
-    });
-}
+import { requireSessionUserId } from "@/lib/auth/api";
 
 interface OAuthImportConfig<T> {
     importFn: (args: {

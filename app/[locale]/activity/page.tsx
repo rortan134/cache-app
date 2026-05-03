@@ -1,3 +1,4 @@
+import { buildPageMetadata } from "@/app/metadata";
 import {
     UserMenu,
     UserMenuContent,
@@ -13,13 +14,12 @@ import {
     SidebarHeader,
     SidebarItem,
 } from "@/components/ui/sidebar";
+import { getActivityTimelineData } from "@/lib/activity/service";
 import { getServerSession } from "@/lib/auth/server";
 import { cn } from "@/lib/common/cn";
 import { parseDisplayUrl } from "@/lib/common/url";
 import { gtPublicString } from "@/lib/i18n/gt-public-json";
 import { INTEGRATIONS } from "@/lib/integrations/support";
-import { buildPageMetadata } from "@/lib/seo/metadata";
-import { prisma } from "@/prisma";
 import type {
     LibraryActivityEventKind,
     LibraryItemSource,
@@ -70,7 +70,6 @@ export async function generateMetadata({
 }
 
 const ACTIVITY_LIMIT = 80;
-const RECENT_COLLECTION_LIMIT = 20;
 
 type ActivityTone = "blue" | "green" | "neutral" | "purple" | "yellow";
 
@@ -193,112 +192,37 @@ function getPersistedEventCopy(kind: LibraryActivityEventKind) {
 }
 
 async function getActivityTimeline(userId: string): Promise<TimelineEvent[]> {
-    const activityEvents = await prisma.libraryActivityEvent.findMany({
-        orderBy: {
-            occurredAt: "desc",
-        },
-        select: {
-            collection: {
-                select: {
-                    name: true,
-                },
-            },
-            id: true,
-            kind: true,
-            libraryItem: {
-                select: {
-                    caption: true,
-                    source: true,
-                    url: true,
-                },
-            },
-            occurredAt: true,
-        },
-        take: ACTIVITY_LIMIT,
-        where: {
-            userId,
-        },
-    });
+    const { persistedEvents, recentCollections, recentItems } =
+        await getActivityTimelineData({ userId });
 
-    if (activityEvents.length > 0) {
-        return activityEvents.map((event): TimelineEvent => {
+    if (persistedEvents.length > 0) {
+        return persistedEvents.map((event): TimelineEvent => {
             const copy = getPersistedEventCopy(event.kind);
-            const item = event.libraryItem;
-            const collection = event.collection;
 
             return {
                 detail:
-                    collection && copy.type === "collection"
-                        ? `${copy.detail}: ${collection.name}`
+                    event.collectionName && copy.type === "collection"
+                        ? `${copy.detail}: ${event.collectionName}`
                         : copy.detail,
-                href: item?.url,
+                href: event.url ?? undefined,
                 Icon: copy.Icon,
                 id: `persisted-${event.id}`,
                 occurredAt: event.occurredAt,
-                source: item?.source,
+                source: event.source ?? undefined,
                 title:
-                    item === null
-                        ? (collection?.name ?? "Library")
-                        : getItemLabel(item),
+                    event.url === null
+                        ? (event.collectionName ?? "Library")
+                        : getItemLabel({
+                              caption: event.caption,
+                              url: event.url,
+                          }),
                 tone: copy.tone,
                 type: copy.type,
             };
         });
     }
 
-    const [items, collections] = await Promise.all([
-        prisma.libraryItem.findMany({
-            orderBy: [{ updatedAt: "desc" }, { createdAt: "desc" }],
-            select: {
-                caption: true,
-                collections: {
-                    orderBy: {
-                        updatedAt: "desc",
-                    },
-                    select: {
-                        id: true,
-                        name: true,
-                        updatedAt: true,
-                    },
-                    take: 1,
-                },
-                createdAt: true,
-                id: true,
-                kind: true,
-                source: true,
-                updatedAt: true,
-                url: true,
-            },
-            take: ACTIVITY_LIMIT,
-            where: {
-                kind: {
-                    not: "folder",
-                },
-                userId,
-            },
-        }),
-        prisma.collection.findMany({
-            orderBy: [{ updatedAt: "desc" }, { createdAt: "desc" }],
-            select: {
-                _count: {
-                    select: {
-                        items: true,
-                    },
-                },
-                createdAt: true,
-                id: true,
-                name: true,
-                sharedAt: true,
-                updatedAt: true,
-            },
-            take: RECENT_COLLECTION_LIMIT,
-            where: {
-                userId,
-            },
-        }),
-    ]);
-
-    const itemEvents = items.flatMap((item): TimelineEvent[] => {
+    const itemEvents = recentItems.flatMap((item): TimelineEvent[] => {
         const label = getItemLabel(item);
         const sourceLabel = getSourceLabel(item.source);
         const events: TimelineEvent[] = [
@@ -332,14 +256,17 @@ async function getActivityTimeline(userId: string): Promise<TimelineEvent[]> {
             });
         }
 
-        const [collection] = item.collections;
-        if (collection && collection.updatedAt > item.createdAt) {
+        if (
+            item.collectionName &&
+            item.collectionUpdatedAt &&
+            item.collectionUpdatedAt > item.createdAt
+        ) {
             events.push({
-                detail: `Added to ${collection.name}`,
+                detail: `Added to ${item.collectionName}`,
                 href: item.url,
                 Icon: Boxes,
-                id: `item-collected-${item.id}-${collection.id}`,
-                occurredAt: collection.updatedAt,
+                id: `item-collected-${item.id}-${item.collectionId}`,
+                occurredAt: item.collectionUpdatedAt,
                 source: item.source,
                 title: label,
                 tone: "green",
@@ -350,12 +277,12 @@ async function getActivityTimeline(userId: string): Promise<TimelineEvent[]> {
         return events;
     });
 
-    const collectionEvents = collections.flatMap(
+    const collectionEvents = recentCollections.flatMap(
         (collection): TimelineEvent[] => {
             const events: TimelineEvent[] = [
                 {
-                    detail: `${collection._count.items} saved ${
-                        collection._count.items === 1 ? "item" : "items"
+                    detail: `${collection.itemCount} saved ${
+                        collection.itemCount === 1 ? "item" : "items"
                     }`,
                     Icon: FolderPlus,
                     id: `collection-created-${collection.id}`,

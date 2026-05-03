@@ -1,6 +1,8 @@
-import { extensionIngestCorsHeaders } from "@/lib/integrations/extension-ingest";
-import { authenticateExtensionIngest } from "@/lib/integrations/route-utils";
-import { scheduleAutoTagging } from "@/lib/integrations/route-utils";
+import {
+    authenticateExtensionIngest,
+    extensionIngestCorsHeaders,
+} from "@/lib/integrations/extension-ingest";
+import { scheduleAutoTagging } from "@/lib/collections/intelligence/schedule";
 import {
     importYoutubeWatchLaterSnapshot,
     youtubeWatchLaterBodySchema,

@@ -1,3 +1,4 @@
+import { buildPageMetadata } from "@/app/metadata";
 import {
     UserMenu,
     UserMenuContent,
@@ -15,16 +16,8 @@ import {
 } from "@/components/ui/sidebar";
 import { getServerSession } from "@/lib/auth/server";
 import { userHasActiveSubscription } from "@/lib/auth/subscription-access";
-import {
-    LIBRARY_COLLECTION_TAG_SELECT,
-    LIBRARY_ITEM_COLLECTIONS_INCLUDE,
-    toLibraryCollectionSummary,
-    type LibraryCollectionSummary,
-    type LibraryItemWithCollections,
-} from "@/lib/collections/utils";
 import { gtPublicString } from "@/lib/i18n/gt-public-json";
-import { buildPageMetadata } from "@/lib/seo/metadata";
-import { prisma } from "@/prisma";
+import { getReviewData } from "@/lib/review/service";
 import { T } from "gt-next";
 import { Compass, History, House } from "lucide-react";
 import type { Metadata } from "next";
@@ -63,53 +56,7 @@ export default async function ReviewPage() {
 
     const hasAccess = await userHasActiveSubscription(userId);
 
-    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-
-    const [items, collections] = await Promise.all([
-        prisma.libraryItem.findMany({
-            include: LIBRARY_ITEM_COLLECTIONS_INCLUDE,
-            orderBy: [{ scrapedAt: "desc" }, { updatedAt: "desc" }],
-            take: 100,
-            where: {
-                collections: {
-                    none: {},
-                },
-                kind: {
-                    not: "folder",
-                },
-                OR: [
-                    { reviewedAt: null },
-                    { reviewedAt: { lt: sevenDaysAgo } },
-                ],
-                userId,
-            },
-        }) as Promise<LibraryItemWithCollections[]>,
-        prisma.collection.findMany({
-            orderBy: {
-                name: "asc",
-            },
-            select: {
-                _count: {
-                    select: {
-                        items: true,
-                    },
-                },
-                ...LIBRARY_COLLECTION_TAG_SELECT,
-                items: {
-                    select: {
-                        source: true,
-                    },
-                },
-            },
-            where: {
-                userId,
-            },
-        }),
-    ]);
-
-    const collectionSummaries: LibraryCollectionSummary[] = collections.map(
-        (collection) => toLibraryCollectionSummary(collection)
-    );
+    const { collections, items } = await getReviewData({ userId });
 
     return (
         <PageShell>
@@ -173,7 +120,7 @@ export default async function ReviewPage() {
                 </Sidebar>
                 <div className="flex w-full flex-1 flex-col overflow-hidden">
                     <ReviewDigest
-                        collections={collectionSummaries}
+                        collections={collections}
                         hasAccess={hasAccess}
                         initialItems={items}
                     />

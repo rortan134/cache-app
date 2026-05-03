@@ -1,3 +1,4 @@
+import { buildPageMetadata } from "@/app/metadata";
 import {
     UserMenu,
     UserMenuContent,
@@ -26,22 +27,15 @@ import {
     SidebarItem,
 } from "@/components/ui/sidebar";
 import { getServerSession } from "@/lib/auth/server";
+import { getUserSmartCollectionsPreference } from "@/lib/auth/service";
 import { userHasActiveSubscription } from "@/lib/auth/subscription-access";
-import {
-    LIBRARY_COLLECTION_TAG_SELECT,
-    LIBRARY_ITEM_COLLECTIONS_INCLUDE,
-    toLibraryCollectionSummary,
-    type LibraryCollectionSummary,
-    type LibraryItemWithCollections,
-} from "@/lib/collections/utils";
+import { getLibraryPageData } from "@/lib/collections/service";
 import { gtPublicString } from "@/lib/i18n/gt-public-json";
+import { listLinkedIntegrationAccounts } from "@/lib/integrations/service";
 import {
     INTEGRATIONS,
     listConnectedIntegrationIds,
-    listIntegrationAccountProviderIds,
 } from "@/lib/integrations/support";
-import { buildPageMetadata } from "@/lib/seo/metadata";
-import { prisma } from "@/prisma";
 import { T } from "gt-next";
 import { Compass, History, House } from "lucide-react";
 import type { Metadata } from "next";
@@ -74,97 +68,6 @@ export async function generateMetadata({
     });
 }
 
-const FREE_LIBRARY_PREVIEW_ITEMS = 12;
-
-async function getUserLibraryPageData(args: {
-    hasAccess: boolean;
-    userId: string;
-}) {
-    const { hasAccess, userId } = args;
-    const itemWhere = {
-        kind: {
-            not: "folder" as const,
-        },
-        userId,
-    };
-    const collectionsPromise = prisma.collection.findMany({
-        orderBy: {
-            name: "asc",
-        },
-        select: {
-            _count: {
-                select: {
-                    items: true,
-                },
-            },
-            ...LIBRARY_COLLECTION_TAG_SELECT,
-            items: {
-                select: {
-                    source: true,
-                },
-            },
-        },
-        where: {
-            userId,
-        },
-    });
-
-    if (hasAccess) {
-        const [items, collections] = await Promise.all([
-            prisma.libraryItem.findMany({
-                include: LIBRARY_ITEM_COLLECTIONS_INCLUDE,
-                orderBy: [{ scrapedAt: "desc" }, { updatedAt: "desc" }],
-                where: itemWhere,
-            }) as Promise<LibraryItemWithCollections[]>,
-            collectionsPromise,
-        ]);
-
-        return {
-            collections: collections.map(
-                (collection): LibraryCollectionSummary =>
-                    toLibraryCollectionSummary(collection)
-            ),
-            itemSources: items.map((item) => ({ source: item.source })),
-            items,
-            lockedItemCount: 0,
-            totalItemCount: items.length,
-        };
-    }
-
-    const [items, totalItemCount, itemSources, collections] = await Promise.all(
-        [
-            prisma.libraryItem.findMany({
-                include: LIBRARY_ITEM_COLLECTIONS_INCLUDE,
-                orderBy: [{ scrapedAt: "desc" }, { updatedAt: "desc" }],
-                take: FREE_LIBRARY_PREVIEW_ITEMS,
-                where: itemWhere,
-            }) as Promise<LibraryItemWithCollections[]>,
-            prisma.libraryItem.count({
-                where: itemWhere,
-            }),
-            prisma.libraryItem.findMany({
-                distinct: ["source"],
-                select: {
-                    source: true,
-                },
-                where: itemWhere,
-            }),
-            collectionsPromise,
-        ]
-    );
-
-    return {
-        collections: collections.map(
-            (collection): LibraryCollectionSummary =>
-                toLibraryCollectionSummary(collection)
-        ),
-        itemSources,
-        items,
-        lockedItemCount: Math.max(totalItemCount - items.length, 0),
-        totalItemCount,
-    };
-}
-
 export default async function LibraryPage() {
     const session = await getServerSession();
     const userId = session?.user?.id;
@@ -173,25 +76,15 @@ export default async function LibraryPage() {
         return redirect("/");
     }
 
-    const [hasAccess, linkedAccounts, userPreferences] = await Promise.all([
-        userHasActiveSubscription(userId),
-        prisma.account.findMany({
-            select: { providerId: true },
-            where: {
-                providerId: {
-                    in: listIntegrationAccountProviderIds(),
-                },
-                userId,
-            },
-        }),
-        prisma.user.findUnique({
-            select: { smartCollectionsDisabled: true },
-            where: { id: userId },
-        }),
-    ]);
+    const [hasAccess, linkedAccounts, smartCollectionsDisabled] =
+        await Promise.all([
+            userHasActiveSubscription(userId),
+            listLinkedIntegrationAccounts({ userId }),
+            getUserSmartCollectionsPreference({ userId }),
+        ]);
 
     const { collections, itemSources, items, lockedItemCount, totalItemCount } =
-        await getUserLibraryPageData({
+        await getLibraryPageData({
             hasAccess,
             userId,
         });
@@ -318,8 +211,7 @@ export default async function LibraryPage() {
                             </IntegrationsList>
                             <CollectionsListRoot
                                 isSmartCollectionsDisabled={
-                                    userPreferences?.smartCollectionsDisabled ??
-                                    false
+                                    smartCollectionsDisabled
                                 }
                             />
                         </SidebarHeader>

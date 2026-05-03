@@ -31,6 +31,14 @@ function optionalEnv(name: string): string | null {
     return value === undefined || value === "" ? null : value;
 }
 
+function getOAuthCredentials(
+    envPrefix: string
+): { clientId: string; clientSecret: string } | null {
+    const clientId = optionalEnv(`${envPrefix}_CLIENT_ID`);
+    const clientSecret = optionalEnv(`${envPrefix}_CLIENT_SECRET`);
+    return clientId && clientSecret ? { clientId, clientSecret } : null;
+}
+
 // ---------------------------------------------------------------------------
 // OAuth user profile abstraction
 // ---------------------------------------------------------------------------
@@ -50,8 +58,8 @@ interface OAuthUserProfile {
 async function fetchOAuthUser<T>(
     tokens: OAuth2Tokens,
     url: string,
-    extraHeaders: Record<string, string>,
-    mapUser: (data: T) => OAuthUserProfile | null
+    mapUser: (data: T) => OAuthUserProfile | null,
+    extraHeaders: Record<string, string> = {}
 ): Promise<OAuthUserProfile | null> {
     if (!tokens.accessToken) {
         return null;
@@ -85,34 +93,31 @@ function mapPinterestUser(data: PinterestUserAccount): OAuthUserProfile | null {
     if (!id) {
         return null;
     }
-    const idStr = String(id);
+    const idString = String(id);
     return {
-        email: `pinterest.${idStr}.integration@placeholder.cache`,
+        email: `pinterest.${idString}.integration@placeholder.cache`,
         emailVerified: false,
-        id: idStr,
+        id: idString,
         image: data.profile_image,
-        name: data.username ?? idStr,
+        name: data.username ?? idString,
     };
 }
 
 function buildPinterestOAuthConfig(): GenericOAuthConfig | null {
-    const clientId = optionalEnv("PINTEREST_CLIENT_ID");
-    const clientSecret = optionalEnv("PINTEREST_CLIENT_SECRET");
-    if (!(clientId && clientSecret)) {
+    const creds = getOAuthCredentials("PINTEREST");
+    if (!creds) {
         return null;
     }
 
     return {
         authentication: "basic",
         authorizationUrl: "https://www.pinterest.com/oauth/",
-        clientId,
-        clientSecret,
+        ...creds,
         disableSignUp: true,
         getUserInfo: (tokens) =>
             fetchOAuthUser(
                 tokens,
                 "https://api.pinterest.com/v5/user_account",
-                {},
                 mapPinterestUser
             ),
         pkce: true,
@@ -135,8 +140,8 @@ interface XUserAccount {
     };
 }
 
-function mapXUser(payload: XUserAccount): OAuthUserProfile | null {
-    const id = payload.data?.id;
+function mapXUser(data: XUserAccount): OAuthUserProfile | null {
+    const id = data.data?.id;
     if (!id) {
         return null;
     }
@@ -144,30 +149,28 @@ function mapXUser(payload: XUserAccount): OAuthUserProfile | null {
         email: `x.${id}.integration@placeholder.cache`,
         emailVerified: false,
         id,
-        image: payload.data?.profile_image_url,
-        name: payload.data?.name ?? payload.data?.username ?? id,
+        image: data.data?.profile_image_url,
+        name: data.data?.name ?? data.data?.username ?? id,
     };
 }
 
 function buildXOAuthConfig(): GenericOAuthConfig | null {
-    const clientId = optionalEnv("X_CLIENT_ID");
-    const clientSecret = optionalEnv("X_CLIENT_SECRET");
-    if (!(clientId && clientSecret)) {
+    const creds = getOAuthCredentials("X");
+    if (!creds) {
         return null;
     }
 
     return {
         authentication: "basic",
         authorizationUrl: "https://x.com/i/oauth2/authorize",
-        clientId,
-        clientSecret,
+        ...creds,
         disableSignUp: true,
         getUserInfo: (tokens) =>
             fetchOAuthUser(
                 tokens,
                 "https://api.x.com/2/users/me?user.fields=profile_image_url",
-                { Accept: "application/json" },
-                mapXUser
+                mapXUser,
+                { Accept: "application/json" }
             ),
         pkce: true,
         providerId: "x",
@@ -187,8 +190,8 @@ interface GitHubUserAccount {
     name?: string;
 }
 
-function mapGitHubUser(payload: GitHubUserAccount): OAuthUserProfile | null {
-    const id = typeof payload.id === "number" ? String(payload.id) : undefined;
+function mapGitHubUser(data: GitHubUserAccount): OAuthUserProfile | null {
+    const id = typeof data.id === "number" ? String(data.id) : undefined;
     if (!id) {
         return null;
     }
@@ -196,33 +199,31 @@ function mapGitHubUser(payload: GitHubUserAccount): OAuthUserProfile | null {
         email: `github.${id}.integration@placeholder.cache`,
         emailVerified: false,
         id,
-        image: payload.avatar_url,
-        name: payload.name ?? payload.login ?? id,
+        image: data.avatar_url,
+        name: data.name ?? data.login ?? id,
     };
 }
 
 function buildGitHubOAuthConfig(): GenericOAuthConfig | null {
-    const clientId = optionalEnv("GITHUB_CLIENT_ID");
-    const clientSecret = optionalEnv("GITHUB_CLIENT_SECRET");
-    if (!(clientId && clientSecret)) {
+    const creds = getOAuthCredentials("GITHUB");
+    if (!creds) {
         return null;
     }
 
     return {
         authentication: "basic",
         authorizationUrl: "https://github.com/login/oauth/authorize",
-        clientId,
-        clientSecret,
+        ...creds,
         disableSignUp: true,
         getUserInfo: (tokens) =>
             fetchOAuthUser(
                 tokens,
                 "https://api.github.com/user",
+                mapGitHubUser,
                 {
                     Accept: "application/vnd.github+json",
                     "User-Agent": APP_NAME,
-                },
-                mapGitHubUser
+                }
             ),
         providerId: "github",
         scopes: ["read:user"],
@@ -325,7 +326,7 @@ export const auth = betterAuth({
 // ---------------------------------------------------------------------------
 
 export async function getServerSession() {
-    return await auth.api.getSession({
+    return auth.api.getSession({
         headers: await headers(),
     });
 }
@@ -337,17 +338,17 @@ export async function getSessionUserId(): Promise<string | null> {
     return session?.user?.id ?? null;
 }
 
-type WithSessionCallback<T> = (client: Session) => Promise<T> | T;
+type WithSessionCallback<T> = (session: Session) => Promise<T> | T;
 
 /**
- * Executes a callback with the Session client, normalizing errors to SessionError.
+ * Executes a callback with the current session, normalizing errors to SessionError.
  */
-export const withSession = async <T>(
-    callbackFn: WithSessionCallback<T>
-): Promise<T> => {
+export async function withSession<T>(
+    callback: WithSessionCallback<T>
+): Promise<T> {
     try {
         const session = await getServerSession();
-        return await callbackFn(session);
+        return await callback(session);
     } catch (error) {
         log.error("Session operation failed:", error);
 
@@ -356,9 +357,9 @@ export const withSession = async <T>(
         }
 
         throw new SessionError({
-            cause: error,
+            cause: error instanceof Error ? error : undefined,
             message: error instanceof Error ? error.message : String(error),
             operation: "auth::withSession",
         });
     }
-};
+}

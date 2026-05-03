@@ -1,3 +1,4 @@
+import { buildPageMetadata } from "@/app/metadata";
 import { GoogleSignInButton } from "@/components/auth/google-sign-in-button";
 import { GoogleOneTapTrigger, SessionHint } from "@/components/auth/session";
 import { JsonLdScript } from "@/components/seo/json-ld-script";
@@ -14,7 +15,6 @@ import { cn } from "@/lib/common/cn";
 import { BASE_URL } from "@/lib/common/constants";
 import { gtPublicString } from "@/lib/i18n/gt-public-json";
 import { INTEGRATIONS } from "@/lib/integrations/support";
-import { buildPageMetadata } from "@/lib/seo/metadata";
 import LogoIconImage from "@/public/cache-app-icon.png";
 import IconSmallImage from "@/public/cache-icon-small.png";
 import CollectionsSectionImage from "@/public/collections-section-image.webp";

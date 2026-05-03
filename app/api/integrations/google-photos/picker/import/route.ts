@@ -10,7 +10,7 @@ import {
     importGooglePhotosCandidates,
 } from "@/lib/integrations/google-photos/service";
 import { resolveProviderAccessToken } from "@/lib/integrations/provider-account";
-import { requireSessionUserId } from "@/lib/integrations/route-utils";
+import { requireSessionUserId } from "@/lib/auth/api";
 import { after } from "next/server";
 import * as z from "zod";
 

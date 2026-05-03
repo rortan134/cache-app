@@ -7,7 +7,7 @@ import {
     protectGenAiRequest,
 } from "@/lib/collections/intelligence/protection";
 import { COLLECTION_NAME_LENGTH_MAX } from "@/lib/collections/utils";
-import { resolveCobaltDownloadUrl } from "@/lib/common/cobalt";
+import { resolveCobaltDownloadUrl } from "@/lib/integrations/cobalt";
 import { createLogger } from "@/lib/common/logs/console/logger";
 import { toUsableStaticPreviewUrl } from "@/lib/common/preview-url";
 import {

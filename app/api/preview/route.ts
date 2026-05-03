@@ -2,7 +2,7 @@ import { createLogger } from "@/lib/common/logs/console/logger";
 import { isBlockedHostname } from "@/lib/common/net";
 import { fetchWithTimeout } from "@/lib/common/timeout";
 import { toValidUrl } from "@/lib/common/url";
-import { preview } from "openlink";
+import { PreviewError, preview } from "openlink";
 
 const log = createLogger("api:library:preview");
 
@@ -12,53 +12,48 @@ const MAX_REDIRECTS = 3;
 const USER_AGENT =
     "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)";
 
-const RESPONSE_NOT_FOUND = new Response("Preview not found", { status: 404 });
-const RESPONSE_UNSUPPORTED = new Response("Unsupported preview", {
-    status: 415,
-});
-const RESPONSE_INVALID_URL = new Response("Invalid URL", { status: 400 });
-const RESPONSE_TOO_MANY_REDIRECTS = new Response("Too many redirects", {
-    status: 508,
-});
-
 export async function GET(request: Request): Promise<Response> {
     const targetUrl = extractTargetUrl(request.url);
     if (!targetUrl) {
-        return RESPONSE_INVALID_URL;
+        return new Response("Invalid URL", { status: 400 });
     }
 
     try {
         const page = await preview(targetUrl, {
-            fetch: fetchHtmlPage,
+            fetch: safeFetch,
             headers: {
                 Accept: "text/html,application/xhtml+xml",
                 "User-Agent": USER_AGENT,
             },
+            retry: 2,
             timeout: FETCH_TIMEOUT_MS,
         });
 
-        const imageUrl = page.image ? toSafeUrl(page.image) : null;
-        if (!imageUrl) {
-            return RESPONSE_NOT_FOUND;
+        if (!page.image) {
+            return new Response("Preview not found", { status: 404 });
         }
 
-        const pageUrl = toSafeUrl(page.url) ?? targetUrl;
+        const imageUrl = toSafeUrl(page.image);
+        if (!imageUrl) {
+            return new Response("Preview not found", { status: 404 });
+        }
+
         const imageResponse = await fetchWithRedirects(imageUrl, {
             headers: {
                 Accept: "image/*",
-                Referer: pageUrl,
+                Referer: toSafeUrl(page.url) ?? targetUrl,
                 "User-Agent": USER_AGENT,
             },
         });
 
         if (!imageResponse.ok) {
-            return RESPONSE_NOT_FOUND;
+            return new Response("Preview not found", { status: 404 });
         }
 
         const imageContentType =
             imageResponse.headers.get("content-type") ?? "";
         if (!imageContentType.startsWith("image/")) {
-            return RESPONSE_UNSUPPORTED;
+            return new Response("Unsupported preview", { status: 415 });
         }
 
         return new Response(imageResponse.body, {
@@ -69,42 +64,48 @@ export async function GET(request: Request): Promise<Response> {
             status: 200,
         });
     } catch (error) {
-        log.warn("Failed to resolve Open Graph image", {
-            error: error instanceof Error ? error.message : String(error),
-            targetUrl,
-        });
+        if (error instanceof PreviewError) {
+            log.warn("Preview failed", {
+                code: error.code,
+                message: error.message,
+                targetUrl,
+            });
 
-        return RESPONSE_NOT_FOUND;
+            if (error.code === "INVALID_URL") {
+                return new Response("Invalid URL", { status: 400 });
+            }
+        } else {
+            log.warn("Failed to resolve preview", {
+                error: error instanceof Error ? error.message : String(error),
+                targetUrl,
+            });
+        }
+
+        return new Response("Preview not found", { status: 404 });
     }
 }
 
-const fetchHtmlPage: typeof fetch = async (input, init) => {
-    const requestUrl = extractFetchUrl(input);
-    if (!requestUrl) {
-        return RESPONSE_INVALID_URL;
+const safeFetch: typeof fetch = (input, init) => {
+    let rawUrl: string;
+    if (typeof input === "string") {
+        rawUrl = input;
+    } else if (input instanceof URL) {
+        rawUrl = input.href;
+    } else {
+        rawUrl = input.url;
     }
 
-    const response = await fetchWithRedirects(requestUrl, { ...init });
-    const responseUrl = toSafeUrl(response.url || requestUrl);
-    if (!responseUrl) {
-        return RESPONSE_INVALID_URL;
+    const safeUrl = toSafeUrl(rawUrl);
+    if (!safeUrl) {
+        return Promise.resolve(new Response("Invalid URL", { status: 400 }));
     }
 
-    if (!response.ok) {
-        return response;
-    }
-
-    const contentType = response.headers.get("content-type") ?? "";
-    if (!contentType.includes("text/html")) {
-        return new Response("Unsupported content", { status: 415 });
-    }
-
-    return response;
+    return fetchWithRedirects(safeUrl, init);
 };
 
 async function fetchWithRedirects(
     initialUrl: string,
-    init: RequestInit
+    init: RequestInit | undefined
 ): Promise<Response> {
     let requestUrl = initialUrl;
 
@@ -130,25 +131,13 @@ async function fetchWithRedirects(
 
         const redirectUrl = resolveRedirectUrl(location, requestUrl);
         if (!redirectUrl) {
-            return RESPONSE_INVALID_URL;
+            return new Response("Invalid URL", { status: 400 });
         }
 
         requestUrl = redirectUrl;
     }
 
-    return RESPONSE_TOO_MANY_REDIRECTS;
-}
-
-function extractFetchUrl(input: RequestInfo | URL): string | null {
-    let rawUrl: string;
-    if (typeof input === "string") {
-        rawUrl = input;
-    } else if (input instanceof URL) {
-        rawUrl = input.href;
-    } else {
-        rawUrl = input.url;
-    }
-    return toSafeUrl(rawUrl);
+    return new Response("Too many redirects", { status: 508 });
 }
 
 function resolveRedirectUrl(location: string, baseUrl: string): string | null {
@@ -176,7 +165,7 @@ function extractTargetUrl(requestUrl: string): string | null {
 function toSafeUrl(rawUrl: string): string | null {
     try {
         const parsedUrl = new URL(rawUrl);
-        if (!isSupportedProtocol(parsedUrl.protocol)) {
+        if (parsedUrl.protocol !== "http:" && parsedUrl.protocol !== "https:") {
             return null;
         }
 
@@ -188,10 +177,6 @@ function toSafeUrl(rawUrl: string): string | null {
     } catch {
         return null;
     }
-}
-
-function isSupportedProtocol(protocol: string): boolean {
-    return protocol === "http:" || protocol === "https:";
 }
 
 function isRedirectStatus(status: number): boolean {

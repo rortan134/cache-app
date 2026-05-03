@@ -1,5 +1,5 @@
+import { changelogEntries } from "@/app/[locale]/changelog/data";
 import { APP_NAME, BASE_URL } from "@/lib/common/constants";
-import { changelogEntries } from "@/lib/changelog/data";
 
 const CACHE_CONTROL_HEADER = "public, max-age=3600";
 

@@ -1,15 +1,15 @@
+import { buildPageMetadata } from "@/app/metadata";
 import { Footer } from "@/components/ui/footer";
 import { PageShell } from "@/components/ui/page-shell";
 import { BASE_URL } from "@/lib/common/constants";
-import { buildPageMetadata } from "@/lib/seo/metadata";
+import type { Metadata } from "next";
+import Link from "next/link";
 import {
     getEntriesByCategory,
     versusCategories,
     versusEntries,
     versusEntryCount,
 } from "./data";
-import type { Metadata } from "next";
-import Link from "next/link";
 
 export async function generateMetadata({
     params,

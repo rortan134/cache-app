@@ -1,5 +1,5 @@
+import { buildPageMetadata } from "@/app/metadata";
 import { gtPublicString } from "@/lib/i18n/gt-public-json";
-import { buildPageMetadata } from "@/lib/seo/metadata";
 import type { Metadata } from "next";
 import { LogoutPageClient } from "./client";
 

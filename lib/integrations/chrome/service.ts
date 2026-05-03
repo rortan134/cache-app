@@ -8,6 +8,10 @@ import { prisma } from "@/prisma";
 import type { LibraryItem, Prisma } from "@/prisma/client/client";
 import { type LibraryItemKind, LibraryItemSource } from "@/prisma/client/enums";
 import * as z from "zod";
+import {
+    LIBRARY_ITEM_COLLECTIONS_INCLUDE,
+    type LibraryItemWithCollections,
+} from "@/lib/collections/utils";
 
 const log = createLogger("library:chrome-bookmarks");
 const CHROME_FOLDER_URL_PREFIX = "cache://chrome-bookmarks/folder/";
@@ -672,4 +676,28 @@ export async function purgeChromeBookmarksForUser(
     });
 
     return result.count;
+}
+
+export async function getChromeBookmarkItemForUserByExternalId(
+    userId: string,
+    externalId: string
+): Promise<LibraryItemWithCollections | null> {
+    return (await prisma.libraryItem.findFirst({
+        include: LIBRARY_ITEM_COLLECTIONS_INCLUDE,
+        where: {
+            browserProfileId: DEFAULT_BROWSER_PROFILE_ID,
+            OR: [
+                {
+                    externalId,
+                },
+                {
+                    sourceAliasIds: {
+                        has: externalId,
+                    },
+                },
+            ],
+            source: LibraryItemSource.chrome_bookmarks,
+            userId,
+        },
+    })) as LibraryItemWithCollections | null;
 }

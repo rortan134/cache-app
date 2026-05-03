@@ -1,4 +1,4 @@
-import { runOAuthImport } from "@/lib/integrations/route-utils";
+import { runOAuthImport } from "@/lib/integrations/oauth-import";
 import { importXBookmarks } from "@/lib/integrations/x/service";
 import type { IntegrationApiError } from "@/lib/integrations/error";
 

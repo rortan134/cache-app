@@ -1,27 +1,15 @@
 "use server";
 
 import { getSessionUserId } from "@/lib/auth/server";
-import {
-    LIBRARY_ITEM_COLLECTIONS_INCLUDE,
-    type LibraryItemWithCollections,
-} from "@/lib/collections/utils";
 import { extractNamedErrorMessage } from "@/lib/common/error";
 import { createLogger } from "@/lib/common/logs/console/logger";
-import { DEFAULT_BROWSER_PROFILE_ID } from "@/lib/integrations/browser-profiles";
-import { IntegrationResourceNotFoundError } from "@/lib/integrations/error";
 import {
-    extractNoteText,
-    isNoteSerializedEditorState,
-    sanitizeNoteHtml,
-    serializeNoteEditorStateToHtml,
-} from "@/lib/integrations/notes/utils";
-import { prisma } from "@/prisma";
-import { LibraryItemSource } from "@/prisma/client/enums";
-import {
-    DbNull,
-    type InputJsonValue,
-} from "@/prisma/client/internal/prismaNamespace";
+    createNote as createNoteService,
+    normalizeNotePayload,
+    updateNote as updateNoteService,
+} from "@/lib/integrations/notes/service";
 import * as z from "zod";
+import type { LibraryItemWithCollections } from "@/lib/collections/utils";
 
 const log = createLogger("integrations:notes:actions");
 const NOTE_CONTENT_HTML_MAX_LENGTH = 100_000;
@@ -47,43 +35,6 @@ export type NoteMutationResult =
           status: "ERROR" | "INVALID" | "NOT_FOUND" | "UNAUTHORIZED";
       };
 
-function normalizeNotePayload(input: {
-    contentHtml?: string;
-    contentState?: unknown;
-}): {
-    contentHtml: string;
-    contentState: InputJsonValue | null;
-    contentText: string;
-} {
-    const contentState = isNoteSerializedEditorState(input.contentState)
-        ? JSON.parse(JSON.stringify(input.contentState))
-        : null;
-    const contentHtml = contentState
-        ? serializeNoteEditorStateToHtml(contentState)
-        : sanitizeNoteHtml(input.contentHtml ?? "");
-    const contentText = extractNoteText(contentHtml);
-
-    return {
-        contentHtml,
-        contentState,
-        contentText,
-    };
-}
-
-async function getNoteItemForUser(
-    userId: string,
-    itemId: string
-): Promise<LibraryItemWithCollections | null> {
-    return (await prisma.libraryItem.findFirst({
-        include: LIBRARY_ITEM_COLLECTIONS_INCLUDE,
-        where: {
-            id: itemId,
-            kind: "note",
-            userId,
-        },
-    })) as LibraryItemWithCollections | null;
-}
-
 export async function createNote(
     input: { contentHtml?: string; contentState?: unknown } = {}
 ): Promise<NoteMutationResult> {
@@ -108,30 +59,7 @@ export async function createNote(
     const note = normalizeNotePayload(parsed.data);
 
     try {
-        const created = await prisma.libraryItem.create({
-            data: {
-                browserProfileId: DEFAULT_BROWSER_PROFILE_ID,
-                caption: null,
-                externalId: `note_${crypto.randomUUID()}`,
-                kind: "note",
-                noteContentHtml: note.contentHtml,
-                noteContentState: note.contentState ?? DbNull,
-                noteContentText: note.contentText,
-                source: LibraryItemSource.cache_note,
-                url: "about:blank",
-                userId,
-            },
-        });
-
-        const item = await getNoteItemForUser(userId, created.id);
-        if (!item) {
-            throw new IntegrationResourceNotFoundError({
-                message: "We created the note but couldn't load it back.",
-                operation: "createNote",
-                resource: "note",
-            });
-        }
-
+        const item = await createNoteService(userId, note);
         return {
             item,
             status: "SUCCESS",
@@ -173,37 +101,7 @@ export async function updateNote(input: {
     const note = normalizeNotePayload(parsed.data);
 
     try {
-        const updated = await prisma.libraryItem.updateMany({
-            data: {
-                caption: null,
-                noteContentHtml: note.contentHtml,
-                noteContentState: note.contentState ?? DbNull,
-                noteContentText: note.contentText,
-            },
-            where: {
-                id: parsed.data.itemId,
-                kind: "note",
-                userId,
-            },
-        });
-
-        if (updated.count === 0) {
-            throw new IntegrationResourceNotFoundError({
-                message: "This note no longer exists.",
-                operation: "updateNote",
-                resource: "note",
-            });
-        }
-
-        const item = await getNoteItemForUser(userId, parsed.data.itemId);
-        if (!item) {
-            throw new IntegrationResourceNotFoundError({
-                message: "We couldn't reload this note after saving it.",
-                operation: "updateNote",
-                resource: "note",
-            });
-        }
-
+        const item = await updateNoteService(userId, parsed.data.itemId, note);
         return {
             item,
             status: "SUCCESS",

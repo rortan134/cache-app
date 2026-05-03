@@ -1,6 +1,6 @@
+import { buildPageMetadata } from "@/app/metadata";
 import { APP_NAME } from "@/lib/common/constants";
 import { gtPublicString } from "@/lib/i18n/gt-public-json";
-import { buildPageMetadata } from "@/lib/seo/metadata";
 import { T, Var } from "gt-next";
 import { ArrowRight, Cookie, Scale, Shield } from "lucide-react";
 import type { Metadata } from "next";

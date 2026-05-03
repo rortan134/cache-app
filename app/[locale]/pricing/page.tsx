@@ -1,6 +1,8 @@
+import { buildPageMetadata } from "@/app/metadata";
 import { GoogleSignInButton } from "@/components/auth/google-sign-in-button";
 import { SignedInOnly, SignedOutOnly } from "@/components/auth/session";
 import { UpgradeButton } from "@/components/billing/upgrade-button";
+import { JsonLdScript } from "@/components/seo/json-ld-script";
 import {
     Accordion,
     AccordionItem,
@@ -9,10 +11,8 @@ import {
 } from "@/components/ui/accordion";
 import { Footer } from "@/components/ui/footer";
 import { PageShell } from "@/components/ui/page-shell";
-import { JsonLdScript } from "@/components/seo/json-ld-script";
 import { BASE_URL } from "@/lib/common/constants";
 import { gtPublicString } from "@/lib/i18n/gt-public-json";
-import { buildPageMetadata } from "@/lib/seo/metadata";
 import { T } from "gt-next";
 import { Check, Lock, ShieldCheck, TrendingDown } from "lucide-react";
 import type { Metadata } from "next";

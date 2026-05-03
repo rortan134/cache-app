@@ -1,4 +1,4 @@
-import { runOAuthImport } from "@/lib/integrations/route-utils";
+import { runOAuthImport } from "@/lib/integrations/oauth-import";
 import { importGitHubStarredRepositories } from "@/lib/integrations/github/service";
 import type { IntegrationApiError } from "@/lib/integrations/error";
 

@@ -1,8 +1,8 @@
-import { extensionIngestCorsHeaders } from "@/lib/integrations/extension-ingest";
 import {
     authenticateExtensionIngest,
-    scheduleAutoTagging,
-} from "@/lib/integrations/route-utils";
+    extensionIngestCorsHeaders,
+} from "@/lib/integrations/extension-ingest";
+import { scheduleAutoTagging } from "@/lib/collections/intelligence/schedule";
 import {
     importInstagramSaved,
     instagramSavedBodySchema,

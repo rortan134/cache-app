@@ -484,7 +484,7 @@ export const INTEGRATIONS = [
         behaviors: {
             copy: {
                 kind: "copy-prompt",
-                path: "/api/mcp/prompt",
+                path: "/mcp/prompt",
             },
         },
         category: "developer",

@@ -1,3 +1,4 @@
+import { buildPageMetadata } from "@/app/metadata";
 import { GoogleSignInButton } from "@/components/auth/google-sign-in-button";
 import { SessionHint } from "@/components/auth/session";
 import { BrandLogo } from "@/components/ui/brand-logo";
@@ -9,7 +10,6 @@ import { Sidebar, SidebarFooter, SidebarHeader } from "@/components/ui/sidebar";
 import { getServerSession } from "@/lib/auth/server";
 import { APP_NAME } from "@/lib/common/constants";
 import { gtPublicString } from "@/lib/i18n/gt-public-json";
-import { buildPageMetadata } from "@/lib/seo/metadata";
 import LogoIconImage from "@/public/cache-app-icon.png";
 import { LocaleSelector } from "gt-next";
 import {

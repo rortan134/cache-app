@@ -6,10 +6,8 @@ import {
     purgeChromeBookmarksForUser,
 } from "@/lib/integrations/chrome/service";
 import { extensionIngestCorsHeaders } from "@/lib/integrations/extension-ingest";
-import {
-    authenticateExtensionIngest,
-    requireSessionUserId,
-} from "@/lib/integrations/route-utils";
+import { authenticateExtensionIngest } from "@/lib/integrations/extension-ingest";
+import { requireSessionUserId } from "@/lib/auth/api";
 import { after } from "next/server";
 
 const log = createLogger("api:sync:chrome-bookmarks");

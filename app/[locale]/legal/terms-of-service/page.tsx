@@ -1,6 +1,6 @@
+import { buildPageMetadata } from "@/app/metadata";
 import { APP_NAME } from "@/lib/common/constants";
 import { gtPublicString } from "@/lib/i18n/gt-public-json";
-import { buildPageMetadata } from "@/lib/seo/metadata";
 import type { Metadata } from "next";
 
 export async function generateMetadata({

@@ -2,18 +2,16 @@
 
 import { getSessionUserId } from "@/lib/auth/server";
 import { autoTagLibraryItemsByIds } from "@/lib/collections/intelligence";
-import {
-    LIBRARY_ITEM_COLLECTIONS_INCLUDE,
-    type LibraryItemWithCollections,
-} from "@/lib/collections/utils";
+import type { LibraryItemWithCollections } from "@/lib/collections/utils";
 import { extractNamedErrorMessage } from "@/lib/common/error";
 import { createLogger } from "@/lib/common/logs/console/logger";
 import { parseStandaloneUrl } from "@/lib/common/url";
 import { DEFAULT_BROWSER_PROFILE_ID } from "@/lib/integrations/browser-profiles";
-import { applyChromeBookmarkSyncEvents } from "@/lib/integrations/chrome/service";
+import {
+    applyChromeBookmarkSyncEvents,
+    getChromeBookmarkItemForUserByExternalId,
+} from "@/lib/integrations/chrome/service";
 import { IntegrationResourceNotFoundError } from "@/lib/integrations/error";
-import { prisma } from "@/prisma";
-import { LibraryItemSource } from "@/prisma/client/enums";
 
 import { after } from "next/server";
 import * as z from "zod";
@@ -36,30 +34,6 @@ export type CreateChromeBookmarkFromUrlResult =
           message: string;
           status: "ERROR" | "INVALID" | "UNAUTHORIZED";
       };
-
-async function getChromeBookmarkItemForUserByExternalId(
-    userId: string,
-    externalId: string
-): Promise<LibraryItemWithCollections | null> {
-    return (await prisma.libraryItem.findFirst({
-        include: LIBRARY_ITEM_COLLECTIONS_INCLUDE,
-        where: {
-            browserProfileId: DEFAULT_BROWSER_PROFILE_ID,
-            OR: [
-                {
-                    externalId,
-                },
-                {
-                    sourceAliasIds: {
-                        has: externalId,
-                    },
-                },
-            ],
-            source: LibraryItemSource.chrome_bookmarks,
-            userId,
-        },
-    })) as LibraryItemWithCollections | null;
-}
 
 function pastedChromeBookmarkExternalId(url: string): string {
     return `${NOTE_PASTED_BOOKMARK_EXTERNAL_ID_PREFIX}${url}`;

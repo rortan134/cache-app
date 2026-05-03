@@ -125,11 +125,11 @@ Actions are the only networking boundary: they parse/validate inputs, guard with
 
 Instrument critical paths. Log errors with context. Emit metrics for failure rates. Trace requests across service boundaries.
 
-Logging lives at `lib/logs/console/logger.ts`:
+Logging lives at `lib/common/logs/console/logger.ts`:
 
   `createLogger(module)` returns a scoped logger with `.debug/.info/.warn/.error` and a `.time()` helper for spans.
 
-Named error module lives at `lib/error.ts`:
+Named error module lives at `lib/common/error.ts`:
 
   `NamedError.create("SomeDomainError", z.object({...}))` creates a typed error class with runtime-validated `data` and a stable `name`.
 

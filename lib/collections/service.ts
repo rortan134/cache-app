@@ -14,7 +14,7 @@ import {
 import {
     resolveCobaltDownloadUrl,
     resolveCobaltPreview,
-} from "@/lib/common/cobalt";
+} from "@/lib/integrations/cobalt";
 import { toUsableStaticPreviewUrl } from "@/lib/common/preview-url";
 import {
     getIncrementedName,
@@ -1107,4 +1107,90 @@ export async function disableSmartCollectionsForUser(
         data: { smartCollectionsDisabled: true },
         where: { id: userId },
     });
+}
+
+export async function countLibraryItems(args: {
+    userId: string;
+}): Promise<number> {
+    return await prisma.libraryItem.count({
+        where: {
+            kind: { not: "folder" },
+            userId: args.userId,
+        },
+    });
+}
+
+export async function listLibraryItemSources(args: {
+    userId: string;
+}): Promise<Array<{ source: LibraryItemSource }>> {
+    return await prisma.libraryItem.findMany({
+        distinct: ["source"],
+        select: { source: true },
+        where: {
+            kind: { not: "folder" },
+            userId: args.userId,
+        },
+    });
+}
+
+const FREE_LIBRARY_PREVIEW_ITEMS = 12;
+
+export async function getLibraryPageData(args: {
+    hasAccess: boolean;
+    limit?: number;
+    userId: string;
+}): Promise<{
+    collections: LibraryCollectionSummary[];
+    itemSources: Array<{ source: LibraryItemSource }>;
+    items: LibraryItemWithCollections[];
+    lockedItemCount: number;
+    totalItemCount: number;
+}> {
+    const itemWhere = {
+        kind: { not: "folder" as const },
+        userId: args.userId,
+    };
+
+    const collections = await listCollections({ userId: args.userId });
+
+    if (args.hasAccess) {
+        const items = (await prisma.libraryItem.findMany({
+            include: LIBRARY_ITEM_COLLECTIONS_INCLUDE,
+            orderBy: [{ scrapedAt: "desc" }, { updatedAt: "desc" }],
+            where: itemWhere,
+        })) as LibraryItemWithCollections[];
+
+        return {
+            collections,
+            itemSources: items.map((item) => ({ source: item.source })),
+            items,
+            lockedItemCount: 0,
+            totalItemCount: items.length,
+        };
+    }
+
+    const limit = args.limit ?? FREE_LIBRARY_PREVIEW_ITEMS;
+
+    const [items, totalItemCount, itemSources] = await Promise.all([
+        prisma.libraryItem.findMany({
+            include: LIBRARY_ITEM_COLLECTIONS_INCLUDE,
+            orderBy: [{ scrapedAt: "desc" }, { updatedAt: "desc" }],
+            take: limit,
+            where: itemWhere,
+        }) as Promise<LibraryItemWithCollections[]>,
+        prisma.libraryItem.count({ where: itemWhere }),
+        prisma.libraryItem.findMany({
+            distinct: ["source"],
+            select: { source: true },
+            where: itemWhere,
+        }),
+    ]);
+
+    return {
+        collections,
+        itemSources,
+        items,
+        lockedItemCount: Math.max(totalItemCount - items.length, 0),
+        totalItemCount,
+    };
 }

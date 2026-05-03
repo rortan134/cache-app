@@ -1,6 +1,8 @@
-import { requireSessionUserId } from "@/lib/integrations/route-utils";
-import { prisma } from "@/prisma";
-import { nanoid } from "nanoid";
+import { requireSessionUserId } from "@/lib/auth/api";
+import {
+    getOrCreateExtensionIngestToken,
+    rotateExtensionIngestToken,
+} from "@/lib/auth/service";
 
 export async function GET() {
     const sessionResult = await requireSessionUserId();
@@ -9,21 +11,7 @@ export async function GET() {
     }
     const { userId } = sessionResult;
 
-    const user = await prisma.user.findUnique({
-        select: { extensionIngestToken: true },
-        where: { id: userId },
-    });
-
-    if (user?.extensionIngestToken) {
-        return Response.json({ token: user.extensionIngestToken });
-    }
-
-    const token = nanoid(48);
-    await prisma.user.update({
-        data: { extensionIngestToken: token },
-        where: { id: userId },
-    });
-
+    const token = await getOrCreateExtensionIngestToken({ userId });
     return Response.json({ token });
 }
 
@@ -34,11 +22,6 @@ export async function POST() {
     }
     const { userId } = sessionResult;
 
-    const token = nanoid(48);
-    await prisma.user.update({
-        data: { extensionIngestToken: token },
-        where: { id: userId },
-    });
-
+    const token = await rotateExtensionIngestToken({ userId });
     return Response.json({ token });
 }
