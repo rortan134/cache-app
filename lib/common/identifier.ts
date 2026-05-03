@@ -1,3 +1,4 @@
+import { ID_LENGTH } from "@/lib/common/constants";
 import { customAlphabet } from "nanoid";
 import * as z from "zod";
 
@@ -45,5 +46,5 @@ const nanoid = customAlphabet(
 );
 
 export function newId<TPrefix extends IdentifierEnvironment>(prefix: TPrefix) {
-    return `${prefix}_${nanoid(12)}` as const;
+    return `${prefix}_${nanoid(ID_LENGTH)}` as const;
 }

@@ -13,6 +13,7 @@ import {
     serializeNoteEditorStateToHtml,
 } from "@/lib/integrations/notes/utils";
 import { prisma } from "@/prisma";
+import { FALLBACK_URL, ITEM_KIND_NOTE } from "@/lib/common/constants";
 import { LibraryItemSource } from "@/prisma/client/enums";
 import {
     DbNull,
@@ -52,7 +53,7 @@ export async function getNoteItemForUser(
         include: LIBRARY_ITEM_COLLECTIONS_INCLUDE,
         where: {
             id: itemId,
-            kind: "note",
+            kind: ITEM_KIND_NOTE,
             userId,
         },
     })) as LibraryItemWithCollections | null;
@@ -67,12 +68,12 @@ export async function createNote(
             browserProfileId: DEFAULT_BROWSER_PROFILE_ID,
             caption: null,
             externalId: `note_${crypto.randomUUID()}`,
-            kind: "note",
+            kind: ITEM_KIND_NOTE,
             noteContentHtml: note.contentHtml,
             noteContentState: note.contentState ?? DbNull,
             noteContentText: note.contentText,
             source: LibraryItemSource.cache_note,
-            url: "about:blank",
+            url: FALLBACK_URL,
             userId,
         },
     });
@@ -103,7 +104,7 @@ export async function updateNote(
         },
         where: {
             id: itemId,
-            kind: "note",
+            kind: ITEM_KIND_NOTE,
             userId,
         },
     });

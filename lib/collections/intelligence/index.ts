@@ -6,6 +6,7 @@ import {
     estimateGenAiTokens,
     protectGenAiRequest,
 } from "@/lib/collections/intelligence/protection";
+import { SECTION_DESCRIPTION_RESPONSE_MAX_LENGTH } from "@/lib/collections/intelligence/summary";
 import { COLLECTION_NAME_LENGTH_MAX } from "@/lib/collections/utils";
 import { createLogger } from "@/lib/common/logs/console/logger";
 import { toUsableStaticPreviewUrl } from "@/lib/common/preview-url";
@@ -17,6 +18,13 @@ import {
 import { isHttpUrl } from "@/lib/common/url";
 import { resolveCobaltDownloadUrl } from "@/lib/integrations/cobalt";
 import { prisma } from "@/prisma";
+import {
+    ITEM_KIND_BOOKMARK,
+    type ITEM_KIND_FOLDER,
+    type ITEM_KIND_NOTE,
+    SORT_ASC,
+} from "@/lib/common/constants";
+
 import { LibraryItemSource } from "@/prisma/client/enums";
 import {
     ApiError,
@@ -48,6 +56,13 @@ const SMART_COLLECTIONS_FILE_READY_ATTEMPT_COUNT_MAX = 20;
 const SMART_COLLECTIONS_FILE_READY_DELAY_MS = 1500;
 const SMART_COLLECTIONS_FETCH_TIMEOUT_MS = 20_000;
 const SMART_COLLECTIONS_MODEL_TIMEOUT_MS = 45_000;
+const DEFAULT_SUMMARIZE_MAX_LENGTH = 1500;
+const DISPLAY_NAME_MAX_LENGTH = 128;
+const ESTIMATED_OUTPUT_TOKENS = 256;
+const MODEL_RETRY_ATTEMPTS = 2;
+const MODEL_TEMPERATURE = 0.1;
+const SECTION_RETRY_ATTEMPTS = 2;
+const SECTION_TEMPERATURE = 0.2;
 const PATTERN_HTML_TITLE = /<title[^>]*>([\s\S]*?)<\/title>/i;
 const PATTERN_HTML_DESCRIPTION =
     /<meta[^>]+name=["']description["'][^>]+content=["']([\s\S]*?)["'][^>]*>/i;
@@ -85,7 +100,10 @@ interface SmartCollectionItem {
         name: string;
     }>;
     id: string;
-    kind: "bookmark" | "folder" | "note";
+    kind:
+        | typeof ITEM_KIND_BOOKMARK
+        | typeof ITEM_KIND_FOLDER
+        | typeof ITEM_KIND_NOTE;
     preview: {
         staticImageUrl: string | null;
         videoPreviewUrl: string | null;
@@ -266,7 +284,8 @@ function isTextLikeMimeType(mimeType: string): boolean {
 
 function isTaggableItem(item: SmartCollectionItem): boolean {
     return (
-        item.kind === "bookmark" && item.source !== LibraryItemSource.cache_note
+        item.kind === ITEM_KIND_BOOKMARK &&
+        item.source !== LibraryItemSource.cache_note
     );
 }
 
@@ -297,7 +316,10 @@ function sourceLabel(source: LibraryItemSource): string {
     }
 }
 
-function summarizeJson(value: unknown, maxLength = 1500): string {
+function summarizeJson(
+    value: unknown,
+    maxLength = DEFAULT_SUMMARIZE_MAX_LENGTH
+): string {
     if (!value) {
         return "";
     }
@@ -524,7 +546,7 @@ function displayNameForItem(item: SmartCollectionItem, url: string): string {
         basename(new URL(url).pathname) ||
         `${sourceLabel(item.source)}-${item.id}`;
 
-    return base.slice(0, 128);
+    return base.slice(0, DISPLAY_NAME_MAX_LENGTH);
 }
 
 async function resolveContentCandidates(
@@ -683,7 +705,10 @@ async function decideCollectionsForItem(
             request: new Request(
                 "https://cache.local/internal/smart-collections"
             ),
-            requestedTokens: estimateGenAiTokens(protectionPrompt, 256),
+            requestedTokens: estimateGenAiTokens(
+                protectionPrompt,
+                ESTIMATED_OUTPUT_TOKENS
+            ),
             userId,
         });
 
@@ -694,17 +719,17 @@ async function decideCollectionsForItem(
                         config: {
                             httpOptions: {
                                 retryOptions: {
-                                    attempts: 2,
+                                    attempts: MODEL_RETRY_ATTEMPTS,
                                 },
                                 timeout: SMART_COLLECTIONS_MODEL_TIMEOUT_MS,
                             },
-                            maxOutputTokens: 256,
+                            maxOutputTokens: ESTIMATED_OUTPUT_TOKENS,
                             responseJsonSchema:
                                 smartCollectionDecisionJsonSchema,
                             responseMimeType: "application/json",
                             systemInstruction:
                                 "You organize a user's saved media into focused collections. Be conservative, prefer existing collections, and create new collections only when there is a strong reusable theme.",
-                            temperature: 0.1,
+                            temperature: MODEL_TEMPERATURE,
                         },
                         contents: variant.contents,
                         model,
@@ -893,13 +918,13 @@ export async function autoTagLibraryItemsByIds(args: {
     const [items, initialCollections, user] = await Promise.all([
         prisma.libraryItem.findMany({
             orderBy: {
-                createdAt: "asc",
+                createdAt: SORT_ASC,
             },
             select: {
                 caption: true,
                 collections: {
                     orderBy: {
-                        name: "asc",
+                        name: SORT_ASC,
                     },
                     select: {
                         id: true,
@@ -927,7 +952,7 @@ export async function autoTagLibraryItemsByIds(args: {
         }),
         prisma.collection.findMany({
             orderBy: {
-                name: "asc",
+                name: SORT_ASC,
             },
             select: {
                 description: true,
@@ -1022,7 +1047,7 @@ export async function generateSectionDescription(args: {
         config: {
             httpOptions: {
                 retryOptions: {
-                    attempts: 2,
+                    attempts: SECTION_RETRY_ATTEMPTS,
                 },
                 timeout: SECTION_DESCRIPTION_TIMEOUT_MS,
             },
@@ -1035,7 +1060,9 @@ export async function generateSectionDescription(args: {
                     summary: {
                         description:
                             "One brief sentence summarizing the shared themes and intent. Plain text only, no markdown, no item counts, no platform names, no quotes.",
-                        maxLength: "220",
+                        maxLength: String(
+                            SECTION_DESCRIPTION_RESPONSE_MAX_LENGTH
+                        ),
                         type: Type.STRING,
                     },
                 },
@@ -1044,7 +1071,7 @@ export async function generateSectionDescription(args: {
             },
             systemInstruction:
                 "You write one-sentence UI summaries. Return plain text only, with no preamble. Never mention item counts or platform names, and avoid stock lead-ins.",
-            temperature: 0.2,
+            temperature: SECTION_TEMPERATURE,
         },
         contents: args.prompt,
         model: SECTION_DESCRIPTION_MODEL,

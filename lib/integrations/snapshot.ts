@@ -8,6 +8,10 @@ import {
     buildLibraryItemUpdateData,
     type LibraryItemImportRow,
 } from "@/lib/integrations/library-item-imports";
+import {
+    type ITEM_KIND_BOOKMARK,
+    ITEM_KIND_FOLDER,
+} from "@/lib/common/constants";
 import { prisma } from "@/prisma";
 import type { Prisma } from "@/prisma/client/client";
 import type { LibraryItemSource } from "@/prisma/client/enums";
@@ -24,7 +28,7 @@ interface SnapshotImportItemInput {
     browserProfileId?: string;
     caption?: string | null;
     externalId?: string | null;
-    kind?: "bookmark" | "folder";
+    kind?: typeof ITEM_KIND_BOOKMARK | typeof ITEM_KIND_FOLDER;
     parentExternalId?: string | null;
     postedAt?: Date | null;
     scrapedAt?: Date | null;
@@ -144,7 +148,7 @@ async function importSnapshotProfileRows(args: {
             const sourceRow = batch[index];
             if (
                 sourceRow &&
-                sourceRow.kind !== "folder" &&
+                sourceRow.kind !== ITEM_KIND_FOLDER &&
                 !existingExternalIds.has(sourceRow.externalId)
             ) {
                 smartCollectionItemIds.add(savedRow.id);

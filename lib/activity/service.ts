@@ -1,5 +1,6 @@
 import "server-only";
 
+import { ITEM_KIND_FOLDER, SORT_DESC } from "@/lib/common/constants";
 import { prisma } from "@/prisma";
 import type {
     LibraryActivityEventKind,
@@ -60,7 +61,7 @@ export async function getActivityTimelineData(args: {
 }): Promise<ActivityTimelineData> {
     const persistedEvents = await prisma.libraryActivityEvent.findMany({
         orderBy: {
-            occurredAt: "desc",
+            occurredAt: SORT_DESC,
         },
         select: {
             collection: {
@@ -103,12 +104,12 @@ export async function getActivityTimelineData(args: {
 
     const [items, collections] = await Promise.all([
         prisma.libraryItem.findMany({
-            orderBy: [{ updatedAt: "desc" }, { createdAt: "desc" }],
+            orderBy: [{ updatedAt: SORT_DESC }, { createdAt: SORT_DESC }],
             select: {
                 caption: true,
                 collections: {
                     orderBy: {
-                        updatedAt: "desc",
+                        updatedAt: SORT_DESC,
                     },
                     select: {
                         id: true,
@@ -127,13 +128,13 @@ export async function getActivityTimelineData(args: {
             take: ACTIVITY_LIMIT,
             where: {
                 kind: {
-                    not: "folder",
+                    not: ITEM_KIND_FOLDER,
                 },
                 userId: args.userId,
             },
         }),
         prisma.collection.findMany({
-            orderBy: [{ updatedAt: "desc" }, { createdAt: "desc" }],
+            orderBy: [{ updatedAt: SORT_DESC }, { createdAt: SORT_DESC }],
             select: {
                 _count: {
                     select: {

@@ -1,3 +1,4 @@
+import { FALLBACK_URL } from "@/lib/common/constants";
 import { buildIdentifierKey } from "@/lib/common/identifier";
 import { createLogger } from "@/lib/common/logs/console/logger";
 import { isBlockedHostname } from "@/lib/common/net";
@@ -208,7 +209,7 @@ function extractTargetUrl(requestUrl: string): string | null {
     }
 
     const normalizedUrl = toValidUrl(rawUrl);
-    if (normalizedUrl === "about:blank") {
+    if (normalizedUrl === FALLBACK_URL) {
         return null;
     }
 

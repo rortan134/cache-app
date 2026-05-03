@@ -4,6 +4,7 @@ import { getSessionUserId } from "@/lib/auth/server";
 import { autoTagLibraryItemsByIds } from "@/lib/collections/intelligence";
 import type { LibraryItemWithCollections } from "@/lib/collections/utils";
 import { extractNamedErrorMessage } from "@/lib/common/error";
+import { ITEM_KIND_BOOKMARK } from "@/lib/common/constants";
 import { createLogger } from "@/lib/common/logs/console/logger";
 import { parseStandaloneUrl } from "@/lib/common/url";
 import { DEFAULT_BROWSER_PROFILE_ID } from "@/lib/integrations/browser-profiles";
@@ -79,7 +80,7 @@ export async function createChromeBookmarkFromUrl(input: {
                     bookmark: {
                         dateAdded: Date.now(),
                         externalId,
-                        kind: "bookmark",
+                        kind: ITEM_KIND_BOOKMARK,
                         url: normalizedUrl.href,
                     },
                     occurredAt,

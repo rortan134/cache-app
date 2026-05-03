@@ -1,9 +1,10 @@
+import { DEFAULT_CURRENCY } from "@/lib/common/constants";
 import { withStripe } from "@/lib/billing/client";
 import { StripeError } from "@/lib/billing/error";
 
 export async function createPaymentIntent({
     amountInCents,
-    currency = "usd",
+    currency = DEFAULT_CURRENCY,
     description,
     metadata,
     customerId,

@@ -16,6 +16,7 @@ import {
 } from "@/lib/common/procedure";
 import type { CollectionPriority } from "@/prisma/client/enums";
 import * as z from "zod";
+import { DESCRIPTION_MAX_LENGTH } from "@/lib/common/constants";
 import { LibraryCollectionError } from "./error";
 import * as service from "./service";
 
@@ -32,12 +33,12 @@ const STATUS_MAP_DUPLICATE_OR_NOT_FOUND = {
 
 const CollectionCreateInputSchema = z.object({
     assignToItemId: z.string().trim().min(1).optional(),
-    description: z.string().trim().max(1024).optional(),
+    description: z.string().trim().max(DESCRIPTION_MAX_LENGTH).optional(),
     name: collectionNameSchema,
 });
 
 const CollectionCreateFromItemsInputSchema = z.object({
-    description: z.string().trim().max(1024).optional(),
+    description: z.string().trim().max(DESCRIPTION_MAX_LENGTH).optional(),
     itemIds: z.array(z.string().trim().min(1)).min(1).max(500),
     name: collectionNameSchema,
 });

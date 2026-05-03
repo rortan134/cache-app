@@ -34,8 +34,10 @@ export const getStripeClient = (): Stripe => {
         });
     }
 
+    const STRIPE_API_VERSION = "2026-04-22.dahlia";
+
     stripeInstance = new Stripe(key, {
-        apiVersion: "2026-04-22.dahlia",
+        apiVersion: STRIPE_API_VERSION,
         typescript: true,
     });
 

@@ -5,9 +5,7 @@ disable-model-invocation: true
 allowed-tools: [Read, Edit, Glob, Grep, Bash, Agent]
 ---
 
-# Self-review before commit
-
-You just finished some work. Before committing, step back and review it with a critical eye.
+You just finished some work. Before committing, step back and review it with a critical eye. Use subagents to review code if available.
 
 The goal is NOT to rubber-stamp what you did. The goal is to catch the shortcuts, the entropy, the "good enough" choices that erode a codebase over time. Every quick fix has a cost in maintainability. Fight that.
 

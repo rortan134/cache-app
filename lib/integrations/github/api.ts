@@ -5,6 +5,7 @@ import { IntegrationApiError } from "@/lib/integrations/error";
 import type { Prisma } from "@/prisma/client/client";
 
 const GITHUB_API_BASE_URL = "https://api.github.com";
+const GITHUB_API_VERSION = "2022-11-28";
 const GITHUB_PAGE_SIZE = 100;
 const MAX_GITHUB_STARRED_PAGES = 20;
 
@@ -84,7 +85,7 @@ async function fetchGitHub(
             headers: {
                 Accept: "application/vnd.github+json",
                 Authorization: `Bearer ${accessToken}`,
-                "X-GitHub-Api-Version": "2022-11-28",
+                "X-GitHub-Api-Version": GITHUB_API_VERSION,
             },
         }
     );

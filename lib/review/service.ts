@@ -8,25 +8,31 @@ import {
     type LibraryItemWithCollections,
 } from "@/lib/collections/utils";
 import { ReviewError } from "./error";
+import {
+    ITEM_KIND_FOLDER,
+    SORT_ASC,
+    SORT_DESC,
+    REVIEW_WINDOW_MS,
+} from "@/lib/common/constants";
 import { prisma } from "@/prisma";
 
 export async function getReviewData({ userId }: { userId: string }): Promise<{
     collections: LibraryCollectionSummary[];
     items: LibraryItemWithCollections[];
 }> {
-    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    const sevenDaysAgo = new Date(Date.now() - REVIEW_WINDOW_MS);
 
     const [items, collections] = await Promise.all([
         prisma.libraryItem.findMany({
             include: LIBRARY_ITEM_COLLECTIONS_INCLUDE,
-            orderBy: [{ scrapedAt: "desc" }, { updatedAt: "desc" }],
+            orderBy: [{ scrapedAt: SORT_DESC }, { updatedAt: SORT_DESC }],
             take: 100,
             where: {
                 collections: {
                     none: {},
                 },
                 kind: {
-                    not: "folder",
+                    not: ITEM_KIND_FOLDER,
                 },
                 OR: [
                     { reviewedAt: null },
@@ -37,7 +43,7 @@ export async function getReviewData({ userId }: { userId: string }): Promise<{
         }),
         prisma.collection.findMany({
             orderBy: {
-                name: "asc",
+                name: SORT_ASC,
             },
             select: {
                 _count: {

@@ -1,3 +1,4 @@
+import { FALLBACK_URL } from "@/lib/common/constants";
 import { sanitizeUrl } from "@braintree/sanitize-url";
 
 const URL_ONLY_WHITESPACE = /\s/;
@@ -14,7 +15,7 @@ export const parseValidUrl = (url: string): URL | null => {
 
 export const normalizeURL = (link: string | null | undefined) => {
     if (typeof link !== "string") {
-        return "about:blank";
+        return FALLBACK_URL;
     }
     const trimmed = link.trim();
     return trimmed ? sanitizeUrl(trimmed) : trimmed;
@@ -34,31 +35,31 @@ const protocolsRegex = /^[a-zA-Z]+:\/\//;
 export const toValidUrl = (link: string) => {
     const trimmed = link.trim();
     if (!trimmed) {
-        return "about:blank";
+        return FALLBACK_URL;
     }
 
     // Transform relative links to absolute urls
     if (trimmed.startsWith("/")) {
         const origin = getSafeOrigin();
         if (typeof origin !== "string") {
-            return "about:blank";
+            return FALLBACK_URL;
         }
-        return parseValidUrl(`${origin}${trimmed}`)?.href ?? "about:blank";
+        return parseValidUrl(`${origin}${trimmed}`)?.href ?? FALLBACK_URL;
     }
 
     if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
         const normalized = normalizeURL(trimmed);
-        return parseValidUrl(normalized)?.href ?? "about:blank";
+        return parseValidUrl(normalized)?.href ?? FALLBACK_URL;
     }
 
     if (trimmed.includes("://")) {
         const replaced = trimmed.replace(protocolsRegex, "");
         const normalized = normalizeURL(replaced);
-        return parseValidUrl(normalized)?.href ?? "about:blank";
+        return parseValidUrl(normalized)?.href ?? FALLBACK_URL;
     }
 
     const normalized = normalizeURL(`https://${trimmed}`);
-    return parseValidUrl(normalized)?.href ?? "about:blank";
+    return parseValidUrl(normalized)?.href ?? FALLBACK_URL;
 };
 
 export const parseStandaloneUrl = (input: string): URL | null => {
@@ -69,7 +70,7 @@ export const parseStandaloneUrl = (input: string): URL | null => {
     }
 
     const normalizedUrl = toValidUrl(trimmedInput);
-    if (normalizedUrl === "about:blank") {
+    if (normalizedUrl === FALLBACK_URL) {
         return null;
     }
 

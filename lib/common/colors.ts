@@ -114,6 +114,23 @@ export const parseToRgb = (color: string) => {
     return converter("rgb")(parsed);
 };
 
+const DJB2_HASH_INIT = 5381;
+const RGB_MAX = 255;
+const HUE_DEFAULT = 272;
+const HUE_SECTOR_DEGREES = 60;
+const HUE_FULL_CIRCLE = 360;
+const LUMINANCE_THRESHOLD = 0.55;
+
+const GRADIENT_CHROMA_CLAMP_MIN = 0.6;
+const GRADIENT_CHROMA_CLAMP_MAX = 2.2;
+const GRADIENT_START_CHROMA = 2.4;
+const GRADIENT_START_CHROMA_BIAS = 0.7;
+const GRADIENT_END_CHROMA = 0.8;
+const GRADIENT_END_CHROMA_BIAS = 0.2;
+const GRADIENT_LIGHTNESS = 97;
+const GRADIENT_HUE_OFFSET = 10;
+const GRADIENT_ANGLE = "90deg";
+
 /**
  * Generates a hash for a given string using the DJB2 algorithm.
  * @param value - The string to hash.
@@ -121,7 +138,7 @@ export const parseToRgb = (color: string) => {
  * @internal
  */
 function djb2Hash(value: string): number {
-    let hash = 5381;
+    let hash = DJB2_HASH_INIT;
     const len = value.length;
     for (let i = 0; i < len; i += 1) {
         hash = (hash << 5) + hash + value.charCodeAt(i); // hash * 33 + char code
@@ -173,15 +190,15 @@ export function getRandomHexColor(): string {
 }
 
 export function rgbToHue(r: number, g: number, b: number): number {
-    const rn = r / 255;
-    const gn = g / 255;
-    const bn = b / 255;
+    const rn = r / RGB_MAX;
+    const gn = g / RGB_MAX;
+    const bn = b / RGB_MAX;
     const max = Math.max(rn, gn, bn);
     const min = Math.min(rn, gn, bn);
     const delta = max - min;
 
     if (delta === 0) {
-        return 272;
+        return HUE_DEFAULT;
     }
 
     let hue = 0;
@@ -193,7 +210,7 @@ export function rgbToHue(r: number, g: number, b: number): number {
         hue = (rn - gn) / delta + 4;
     }
 
-    return (hue * 60 + 360) % 360;
+    return (hue * HUE_SECTOR_DEGREES + HUE_FULL_CIRCLE) % HUE_FULL_CIRCLE;
 }
 
 export function getColorGradientFromName(name: string): string {
@@ -201,13 +218,13 @@ export function getColorGradientFromName(name: string): string {
     const rgb = [color.r, color.g, color.b] as const;
     const hue = rgbToHue(rgb[0], rgb[1], rgb[2]);
     const chromaBias = clamp(
-        (Math.max(...rgb) - Math.min(...rgb)) / 255,
-        0.6,
-        2.2
+        (Math.max(...rgb) - Math.min(...rgb)) / RGB_MAX,
+        GRADIENT_CHROMA_CLAMP_MIN,
+        GRADIENT_CHROMA_CLAMP_MAX
     );
-    const start = `lch(97 ${Number((2.4 + chromaBias * 0.7).toFixed(3))} ${Number(hue.toFixed(3))})`;
-    const end = `lch(97 ${Number((0.8 + chromaBias * 0.2).toFixed(3))} ${Number(((hue + 10) % 360).toFixed(3))})`;
-    return `linear-gradient(90deg, ${start} 0%, ${end} 100%), ${end}`;
+    const start = `lch(${GRADIENT_LIGHTNESS} ${Number((GRADIENT_START_CHROMA + chromaBias * GRADIENT_START_CHROMA_BIAS).toFixed(3))} ${Number(hue.toFixed(3))})`;
+    const end = `lch(${GRADIENT_LIGHTNESS} ${Number((GRADIENT_END_CHROMA + chromaBias * GRADIENT_END_CHROMA_BIAS).toFixed(3))} ${Number(((hue + GRADIENT_HUE_OFFSET) % HUE_FULL_CIRCLE).toFixed(3))})`;
+    return `linear-gradient(${GRADIENT_ANGLE}, ${start} 0%, ${end} 100%), ${end}`;
 }
 
 /**
@@ -221,7 +238,7 @@ export const getContrastColor = (hexColor: string) => {
     const r = Number.parseInt(hexColor.slice(1, 3), 16) / 255;
     const g = Number.parseInt(hexColor.slice(3, 5), 16) / 255;
     const b = Number.parseInt(hexColor.slice(5, 7), 16) / 255;
-    return (Math.min(r, g, b) + Math.max(r, g, b)) / 2 < 0.55
+    return (Math.min(r, g, b) + Math.max(r, g, b)) / 2 < LUMINANCE_THRESHOLD
         ? "#FFFFFF"
         : "#000000";
 };

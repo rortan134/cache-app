@@ -126,6 +126,11 @@ import type {
     LibraryCollectionSummary,
     LibraryItemWithCollections,
 } from "@/lib/collections/utils";
+import {
+    FALLBACK_URL,
+    ITEM_KIND_BOOKMARK,
+    ITEM_KIND_NOTE,
+} from "@/lib/common/constants";
 import { cn } from "@/lib/common/cn";
 import { getColorGradientFromName } from "@/lib/common/colors";
 import { getOwnerWindow } from "@/lib/common/dom";
@@ -2897,12 +2902,12 @@ function itemStaticPreviewUrl(item: LibraryItemWithCollections): string | null {
         return staticImageUrl;
     }
 
-    if (item.kind !== "bookmark") {
+    if (item.kind !== ITEM_KIND_BOOKMARK) {
         return null;
     }
 
     const href = toValidUrl(item.url);
-    if (href === "about:blank") {
+    if (href === FALLBACK_URL) {
         return null;
     }
 
@@ -2910,7 +2915,10 @@ function itemStaticPreviewUrl(item: LibraryItemWithCollections): string | null {
 }
 
 function canResolveCobaltPreview(item: LibraryItemWithCollections): boolean {
-    if (item.kind !== "bookmark" || toValidUrl(item.url) === "about:blank") {
+    if (
+        item.kind !== ITEM_KIND_BOOKMARK ||
+        toValidUrl(item.url) === FALLBACK_URL
+    ) {
         return false;
     }
 
@@ -3373,9 +3381,9 @@ function CardMenu({
     } = useLibraryGridCardContext();
     const Item = kind === "context" ? ContextMenuItem : MenuItem;
     const Separator = kind === "context" ? ContextMenuSeparator : MenuSeparator;
-    const isNote = item.kind === "note";
+    const isNote = item.kind === ITEM_KIND_NOTE;
     const isDeletePending = pendingDeleteItemId === item.id;
-    const canPreview = !isNote && toValidUrl(href) !== "about:blank";
+    const canPreview = !isNote && toValidUrl(href) !== FALLBACK_URL;
 
     const deleteItem =
         kind === "context" ? (

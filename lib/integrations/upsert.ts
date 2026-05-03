@@ -8,6 +8,7 @@ import {
     type LibraryItemImportRow,
     type LibraryItemImportRowInput,
 } from "@/lib/integrations/library-item-imports";
+import { ITEM_KIND_FOLDER } from "@/lib/common/constants";
 import { prisma } from "@/prisma";
 import type { LibraryItemSource } from "@/prisma/client/enums";
 
@@ -85,7 +86,7 @@ export async function upsertLibraryItemImports(
     const smartCollectionItemIds = new Set<string>();
     const shouldAddToSmartCollections =
         args.shouldAddToSmartCollections ??
-        ((row: LibraryItemImportRow) => row.kind !== "folder");
+        ((row: LibraryItemImportRow) => row.kind !== ITEM_KIND_FOLDER);
 
     for (const row of rows) {
         const savedRow = await prisma.libraryItem.upsert({

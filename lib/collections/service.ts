@@ -34,6 +34,7 @@ import {
     LibraryItemPreviewMediaType as PreviewMediaType,
     LibraryItemPreviewProviderStatus as PreviewProviderStatus,
 } from "@/prisma/client/enums";
+import { ITEM_KIND_FOLDER, SORT_ASC, SORT_DESC } from "@/lib/common/constants";
 import { LibraryCollectionError } from "./error";
 
 type CollectionTransaction = Prisma.TransactionClient;
@@ -208,7 +209,7 @@ async function findCollectionSummariesOwnedByIds(
 
     const collections = await tx.collection.findMany({
         orderBy: {
-            name: "asc",
+            name: SORT_ASC,
         },
         select: {
             _count: {
@@ -249,7 +250,7 @@ async function findCollectionTagsOwnedByIds(
 
     return await tx.collection.findMany({
         orderBy: {
-            name: "asc",
+            name: SORT_ASC,
         },
         select: LIBRARY_COLLECTION_TAG_SELECT,
         where: {
@@ -1016,7 +1017,7 @@ export async function listLibraryItems(
 ): Promise<LibraryItemWithCollections[]> {
     const limit = Math.min(args.limit ?? 20, 50);
     const where: Prisma.LibraryItemWhereInput = {
-        kind: { not: "folder" },
+        kind: { not: ITEM_KIND_FOLDER },
         userId: args.userId,
     };
 
@@ -1034,7 +1035,7 @@ export async function listLibraryItems(
 
     const items = await prisma.libraryItem.findMany({
         include: LIBRARY_ITEM_COLLECTIONS_INCLUDE,
-        orderBy: [{ scrapedAt: "desc" }, { updatedAt: "desc" }],
+        orderBy: [{ scrapedAt: SORT_DESC }, { updatedAt: SORT_DESC }],
         take: limit,
         where,
     });
@@ -1074,7 +1075,7 @@ export async function listCollections(
                 select: { source: true },
             },
         },
-        orderBy: { name: "asc" },
+        orderBy: { name: SORT_ASC },
         where: { userId: args.userId },
     });
 
@@ -1109,7 +1110,7 @@ export async function disableSmartCollectionsForUser(
 export function countLibraryItems(args: { userId: string }): Promise<number> {
     return prisma.libraryItem.count({
         where: {
-            kind: { not: "folder" },
+            kind: { not: ITEM_KIND_FOLDER },
             userId: args.userId,
         },
     });
@@ -1122,7 +1123,7 @@ export function listLibraryItemSources(args: {
         distinct: ["source"],
         select: { source: true },
         where: {
-            kind: { not: "folder" },
+            kind: { not: ITEM_KIND_FOLDER },
             userId: args.userId,
         },
     });
@@ -1142,7 +1143,7 @@ export async function getLibraryPageData(args: {
     totalItemCount: number;
 }> {
     const itemWhere: Prisma.LibraryItemWhereInput = {
-        kind: { not: "folder" },
+        kind: { not: ITEM_KIND_FOLDER },
         userId: args.userId,
     };
 
@@ -1151,7 +1152,7 @@ export async function getLibraryPageData(args: {
     if (args.hasAccess) {
         const items = await prisma.libraryItem.findMany({
             include: LIBRARY_ITEM_COLLECTIONS_INCLUDE,
-            orderBy: [{ scrapedAt: "desc" }, { updatedAt: "desc" }],
+            orderBy: [{ scrapedAt: SORT_DESC }, { updatedAt: SORT_DESC }],
             where: itemWhere,
         });
 
@@ -1171,7 +1172,7 @@ export async function getLibraryPageData(args: {
     const [items, totalItemCount, itemSources] = await Promise.all([
         prisma.libraryItem.findMany({
             include: LIBRARY_ITEM_COLLECTIONS_INCLUDE,
-            orderBy: [{ scrapedAt: "desc" }, { updatedAt: "desc" }],
+            orderBy: [{ scrapedAt: SORT_DESC }, { updatedAt: SORT_DESC }],
             take: limit,
             where: itemWhere,
         }),

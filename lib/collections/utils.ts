@@ -7,6 +7,7 @@ import type {
     CollectionPriority,
     LibraryItemSource,
 } from "@/prisma/client/enums";
+import { SORT_ASC } from "@/lib/common/constants";
 import * as z from "zod";
 
 // ---------------------------------------------------------------------------
@@ -107,7 +108,7 @@ export const LIBRARY_COLLECTION_TAG_SELECT = {
 export const LIBRARY_ITEM_COLLECTIONS_INCLUDE = {
     collections: {
         orderBy: {
-            name: "asc" as const,
+            name: SORT_ASC,
         },
         select: LIBRARY_COLLECTION_TAG_SELECT,
     },
@@ -117,7 +118,7 @@ export const LIBRARY_ITEM_COLLECTIONS_INCLUDE = {
 export const LIBRARY_ITEM_COLLECTIONS_SELECT = {
     collections: {
         orderBy: {
-            name: "asc",
+            name: SORT_ASC,
         },
         select: LIBRARY_COLLECTION_TAG_SELECT,
     },

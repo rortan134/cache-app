@@ -1,5 +1,11 @@
 import "server-only";
 
+import {
+    FALLBACK_URL,
+    ITEM_KIND_BOOKMARK,
+    ITEM_KIND_NOTE,
+    SORT_ASC,
+} from "@/lib/common/constants";
 import { deleteLibraryItem } from "@/lib/collections/service";
 import { parseStandaloneUrl } from "@/lib/common/url";
 import { IntegrationApiError } from "@/lib/integrations/error";
@@ -37,16 +43,16 @@ export async function addLibraryItem(
                 browserProfileId: DEFAULT_BROWSER_PROFILE_ID,
                 caption: null,
                 externalId: `mcp_${nanoid()}`,
-                kind: "note",
+                kind: ITEM_KIND_NOTE,
                 noteContentHtml: `<p>${escapeHtmlText(args.noteContentText)}</p>`,
                 noteContentText: args.noteContentText,
                 source: LibraryItemSource.cache_note,
-                url: "about:blank",
+                url: FALLBACK_URL,
                 userId: args.userId,
             },
             include: {
                 collections: {
-                    orderBy: { name: "asc" },
+                    orderBy: { name: SORT_ASC },
                     select: { id: true, name: true },
                 },
                 preview: true,
@@ -70,14 +76,14 @@ export async function addLibraryItem(
             browserProfileId: DEFAULT_BROWSER_PROFILE_ID,
             caption: args.caption ?? null,
             externalId: nanoid(),
-            kind: "bookmark",
+            kind: ITEM_KIND_BOOKMARK,
             source: LibraryItemSource.other,
             url: validatedUrl.href,
             userId: args.userId,
         },
         include: {
             collections: {
-                orderBy: { name: "asc" },
+                orderBy: { name: SORT_ASC },
                 select: { id: true, name: true },
             },
             preview: true,

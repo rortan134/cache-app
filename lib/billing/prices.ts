@@ -31,21 +31,23 @@ export const QuotaSchema = z.object<{
     }),
 });
 
+const ONE_HOUR_SECONDS = 60 * 60;
+
 export const GEN_AI_QUOTAS = QuotaSchema.parse({
     free: {
         fixedLimit: 12_000,
         rollingLimit: 2000,
-        rollingWindow: 60 * 60,
+        rollingWindow: ONE_HOUR_SECONDS,
     },
     monthly: {
         fixedLimit: 120_000,
         rollingLimit: 20_000,
-        rollingWindow: 60 * 60,
+        rollingWindow: ONE_HOUR_SECONDS,
     },
     yearly: {
         fixedLimit: 120_000,
         rollingLimit: 20_000,
-        rollingWindow: 60 * 60,
+        rollingWindow: ONE_HOUR_SECONDS,
     },
 });
 
@@ -95,9 +97,17 @@ export async function getPlanPrices(): Promise<{
     return { monthly, yearly };
 }
 
+const STRIPE_FEE_PERCENT = 0.044;
+const STRIPE_FEE_FLAT_CENTS = 30;
+const STRIPE_FEE_NET_MULTIPLIER = 1 - STRIPE_FEE_PERCENT;
+
 export function calculateFeeInCents(x: number) {
-    // math: x = total - (total * 0.044 + 0.30)
-    // math: x = total * (1-0.044) - 0.30
-    // math: (x + 0.30) / 0.956 = total
-    return Math.round(((x + 30) / 0.956) * 0.044 + 30);
+    // math: x = total - (total * STRIPE_FEE_PERCENT + STRIPE_FEE_FLAT_CENTS)
+    // math: x = total * STRIPE_FEE_NET_MULTIPLIER - STRIPE_FEE_FLAT_CENTS
+    // math: (x + STRIPE_FEE_FLAT_CENTS) / STRIPE_FEE_NET_MULTIPLIER = total
+    return Math.round(
+        ((x + STRIPE_FEE_FLAT_CENTS) / STRIPE_FEE_NET_MULTIPLIER) *
+            STRIPE_FEE_PERCENT +
+            STRIPE_FEE_FLAT_CENTS
+    );
 }

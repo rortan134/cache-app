@@ -13,6 +13,11 @@ import {
     requireActionUserId,
 } from "@/lib/common/procedure";
 import * as z from "zod";
+import {
+    BATCH_UPDATE_MAX_ITEMS,
+    MAX_COLLECTIONS_PER_BATCH,
+    MAX_COLLECTIONS_PER_ITEM,
+} from "@/lib/common/constants";
 import { LibraryCollectionError } from "./error";
 import * as service from "./service";
 
@@ -23,14 +28,23 @@ const STATUS_MAP_NOT_FOUND = {
 } as const;
 
 const LibraryItemCollectionsUpdateInputSchema = z.object({
-    collectionIds: z.array(z.string().trim().min(1)).max(100),
+    collectionIds: z
+        .array(z.string().trim().min(1))
+        .max(MAX_COLLECTIONS_PER_ITEM),
     itemId: z.string().trim().min(1),
 });
 
 const LibraryItemsCollectionsUpdateInputSchema = z.object({
-    itemIds: z.array(z.string().trim().min(1)).min(1).max(500),
-    nextSharedCollectionIds: z.array(z.string().trim().min(1)).max(100),
-    previousSharedCollectionIds: z.array(z.string().trim().min(1)).max(100),
+    itemIds: z
+        .array(z.string().trim().min(1))
+        .min(1)
+        .max(BATCH_UPDATE_MAX_ITEMS),
+    nextSharedCollectionIds: z
+        .array(z.string().trim().min(1))
+        .max(MAX_COLLECTIONS_PER_BATCH),
+    previousSharedCollectionIds: z
+        .array(z.string().trim().min(1))
+        .max(MAX_COLLECTIONS_PER_BATCH),
 });
 
 const LibraryItemDeleteInputSchema = z.object({

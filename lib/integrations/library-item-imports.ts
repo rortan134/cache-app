@@ -1,10 +1,13 @@
 import "server-only";
 
 import { DEFAULT_BROWSER_PROFILE_ID } from "@/lib/integrations/browser-profiles";
+import { ITEM_KIND_BOOKMARK, ITEM_KIND_FOLDER } from "@/lib/common/constants";
 import { Prisma } from "@/prisma/client/client";
 import type { LibraryItemSource } from "@/prisma/client/enums";
 
-export type LibraryItemImportKind = "bookmark" | "folder";
+export type LibraryItemImportKind =
+    | typeof ITEM_KIND_BOOKMARK
+    | typeof ITEM_KIND_FOLDER;
 
 export interface LibraryItemImportIdentity {
     browserProfileId: string;
@@ -60,7 +63,10 @@ export function buildLibraryItemImportRow(
         browserProfileId: normalizeBrowserProfileId(input.browserProfileId),
         caption: normalizeOptionalTrimmedText(input.caption),
         externalId,
-        kind: input.kind === "folder" ? "folder" : "bookmark",
+        kind:
+            input.kind === ITEM_KIND_FOLDER
+                ? ITEM_KIND_FOLDER
+                : ITEM_KIND_BOOKMARK,
         parentExternalId: input.parentExternalId ?? null,
         postedAt: input.postedAt ?? null,
         scrapedAt: input.scrapedAt ?? null,

@@ -1,6 +1,7 @@
 import { PageShell } from "@/components/ui/page-shell";
 import { getPublicCollectionShareById } from "@/lib/collections/sharing/service";
 import { toUsableStaticPreviewUrl } from "@/lib/common/preview-url";
+import { FALLBACK_URL, ITEM_KIND_NOTE } from "@/lib/common/constants";
 import { normalizeURL } from "@/lib/common/url";
 import { getNoteExcerpt } from "@/lib/integrations/notes/utils";
 import type { Metadata } from "next";
@@ -25,7 +26,7 @@ function getSharedItemTitle(item: {
     noteContentText: string | null;
     url: string;
 }): string {
-    if (item.kind === "note") {
+    if (item.kind === ITEM_KIND_NOTE) {
         return getNoteExcerpt(item.noteContentText, 80) || "Untitled note";
     }
 
@@ -35,7 +36,7 @@ function getSharedItemTitle(item: {
 
 function getSharedItemHref(item: { kind: string; url: string }): string | null {
     const href = normalizeURL(item.url);
-    return item.kind === "note" || href === "about:blank" ? null : href;
+    return item.kind === ITEM_KIND_NOTE || href === FALLBACK_URL ? null : href;
 }
 
 function getSharedItemPreviewImageUrl(

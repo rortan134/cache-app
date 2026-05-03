@@ -1,5 +1,6 @@
 import "server-only";
 
+import { ITEM_KIND_BOOKMARK, ITEM_KIND_FOLDER } from "@/lib/common/constants";
 import { chunkArray } from "@/lib/common/arrays";
 import { createLogger } from "@/lib/common/logs/console/logger";
 import { DEFAULT_BROWSER_PROFILE_ID } from "@/lib/integrations/browser-profiles";
@@ -26,7 +27,7 @@ const chromeBookmarkNodeSchema = z.object({
     dateGroupModified: z.number().int().nonnegative().optional(),
     externalId: z.string().min(1),
     index: z.number().int().nonnegative().optional(),
-    kind: z.enum(["bookmark", "folder"]),
+    kind: z.enum([ITEM_KIND_BOOKMARK, ITEM_KIND_FOLDER]),
     parentExternalId: z.string().min(1).optional(),
     title: z.string().optional(),
     url: z.url().optional(),
@@ -96,7 +97,7 @@ export type ChromeBookmarkSyncBody = z.infer<
 // Types
 // ---------------------------------------------------------------------------
 
-type ChromeItemKind = "bookmark" | "folder";
+type ChromeItemKind = typeof ITEM_KIND_BOOKMARK | typeof ITEM_KIND_FOLDER;
 
 interface ChromeBookmarkRecord {
     browserProfileId: string;
@@ -159,7 +160,7 @@ function chromeDuplicateKey(
     url: string,
     caption: string | null
 ): string | null {
-    if (kind !== "bookmark") {
+    if (kind !== ITEM_KIND_BOOKMARK) {
         return null;
     }
     return `${url}\u0000${normalizeChromeCaption(caption)}`;
@@ -195,7 +196,10 @@ function normalizeChromeBookmarkRecord(
         browserProfileId,
         caption: title && title.length > 0 ? title : null,
         externalId: bookmark.externalId,
-        kind: bookmark.kind === "folder" ? "folder" : "bookmark",
+        kind:
+            bookmark.kind === ITEM_KIND_FOLDER
+                ? ITEM_KIND_FOLDER
+                : ITEM_KIND_BOOKMARK,
         parentExternalId: bookmark.parentExternalId ?? null,
         postedAt:
             typeof bookmark.dateAdded === "number"
@@ -207,7 +211,7 @@ function normalizeChromeBookmarkRecord(
         sourceDeviceName: device?.name ?? null,
         sourceMetadata: metadata,
         url:
-            bookmark.kind === "folder"
+            bookmark.kind === ITEM_KIND_FOLDER
                 ? chromeFolderUrl(browserProfileId, bookmark.externalId)
                 : (bookmark.url ??
                   chromeFolderUrl(browserProfileId, bookmark.externalId)),
@@ -472,7 +476,7 @@ async function handleChromeBookmarkWriteEvent(args: {
     return {
         deduped: false,
         smartCollectionItemId:
-            created.kind === "bookmark" ? created.id : undefined,
+            created.kind === ITEM_KIND_BOOKMARK ? created.id : undefined,
     };
 }
 

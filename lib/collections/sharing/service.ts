@@ -9,6 +9,10 @@ import { prisma } from "@/prisma";
 import { Prisma } from "@/prisma/client/client";
 import { LibraryItemKind, type LibraryItemSource } from "@/prisma/client/enums";
 import { nanoid } from "nanoid";
+import {
+    PRISMA_UNIQUE_CONSTRAINT_ERROR,
+    SORT_DESC,
+} from "@/lib/common/constants";
 import { CollectionShareError } from "./error";
 
 const log = createLogger("collection-sharing:service");
@@ -99,7 +103,7 @@ function requireCollectionTagShared(
 function isPrismaUniqueConstraintError(error: unknown): boolean {
     return (
         error instanceof Prisma.PrismaClientKnownRequestError &&
-        error.code === "P2002"
+        error.code === PRISMA_UNIQUE_CONSTRAINT_ERROR
     );
 }
 
@@ -208,7 +212,7 @@ export async function getPublicCollectionShareById(
         select: {
             description: true,
             items: {
-                orderBy: [{ scrapedAt: "desc" }, { updatedAt: "desc" }],
+                orderBy: [{ scrapedAt: SORT_DESC }, { updatedAt: SORT_DESC }],
                 select: {
                     caption: true,
                     createdAt: true,

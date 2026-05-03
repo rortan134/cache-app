@@ -2,6 +2,7 @@ import "server-only";
 
 import type { PlanType } from "@/lib/billing/prices";
 import { prisma } from "@/prisma";
+import { SORT_DESC } from "@/lib/common/constants";
 import { isActiveSubscriptionStatus } from "./subscription-status";
 
 export async function userHasActiveSubscription(
@@ -22,7 +23,7 @@ export async function userHasActiveSubscription(
 export async function getUserPlanType(userId: string): Promise<PlanType> {
     const subscription = await prisma.subscription.findFirst({
         orderBy: {
-            periodEnd: "desc",
+            periodEnd: SORT_DESC,
         },
         select: {
             billingInterval: true,

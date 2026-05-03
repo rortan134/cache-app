@@ -2,6 +2,10 @@ import "server-only";
 
 import { parseOptionalDate } from "@/lib/integrations/dates";
 import { upsertLibraryItemImports } from "@/lib/integrations/upsert";
+import type {
+    ITEM_KIND_BOOKMARK,
+    ITEM_KIND_FOLDER,
+} from "@/lib/common/constants";
 import { prisma } from "@/prisma";
 import type { Prisma } from "@/prisma/client/client";
 import type { LibraryItemSource } from "@/prisma/client/enums";
@@ -95,7 +99,7 @@ export interface IngestItemInput {
     browserProfileId?: string;
     caption?: string;
     externalId?: string;
-    kind?: "bookmark" | "folder";
+    kind?: typeof ITEM_KIND_BOOKMARK | typeof ITEM_KIND_FOLDER;
     parentExternalId?: string;
     postedAt?: string;
     scrapedAt?: string;

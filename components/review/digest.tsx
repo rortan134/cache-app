@@ -16,6 +16,7 @@ import type {
     LibraryItemWithCollections,
 } from "@/lib/collections/utils";
 import { toUsableStaticPreviewUrl } from "@/lib/common/preview-url";
+import { FALLBACK_URL, ITEM_KIND_BOOKMARK } from "@/lib/common/constants";
 import { parseDisplayUrl, toValidUrl } from "@/lib/common/url";
 import { LibraryItemSource } from "@/prisma/client/enums";
 import {
@@ -42,12 +43,12 @@ function itemStaticPreviewUrl(item: LibraryItemWithCollections): string | null {
         return staticImageUrl;
     }
 
-    if (item.kind !== "bookmark") {
+    if (item.kind !== ITEM_KIND_BOOKMARK) {
         return null;
     }
 
     const href = toValidUrl(item.url);
-    if (href === "about:blank") {
+    if (href === FALLBACK_URL) {
         return null;
     }
 
@@ -55,7 +56,10 @@ function itemStaticPreviewUrl(item: LibraryItemWithCollections): string | null {
 }
 
 function canResolveCobaltPreview(item: LibraryItemWithCollections): boolean {
-    if (item.kind !== "bookmark" || toValidUrl(item.url) === "about:blank") {
+    if (
+        item.kind !== ITEM_KIND_BOOKMARK ||
+        toValidUrl(item.url) === FALLBACK_URL
+    ) {
         return false;
     }
 
