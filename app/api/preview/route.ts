@@ -34,7 +34,6 @@ export async function GET(request: Request): Promise<Response> {
                 Accept: "text/html,application/xhtml+xml",
                 "User-Agent": USER_AGENT,
             },
-            includeOembed: true,
             timeout: FETCH_TIMEOUT_MS,
         });
 

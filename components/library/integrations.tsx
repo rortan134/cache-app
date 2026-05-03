@@ -81,12 +81,12 @@ export function IntegrationsListTrigger(
     return (
         <Popover>
             <PopoverTrigger
-                nativeButton={false}
                 openOnHover
                 render={
                     <CollapsibleTrigger
-                        nativeButton={false}
-                        render={<SidebarItem />}
+                        render={
+                            <SidebarItem render={<button type="button" />} />
+                        }
                         title={isOpen ? "Collapse panel" : "Expand panel"}
                         {...props}
                     />

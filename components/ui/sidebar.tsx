@@ -1,4 +1,8 @@
+"use client";
+
 import { cn } from "@/lib/common/cn";
+import { mergeProps } from "@base-ui/react/merge-props";
+import { useRender } from "@base-ui/react/use-render";
 import type * as React from "react";
 
 function Sidebar({ className, ...props }: React.ComponentProps<"aside">) {
@@ -42,18 +46,23 @@ function SidebarFooter({ className, ...props }: React.ComponentProps<"div">) {
     );
 }
 
-function SidebarItem({ className, ...props }: React.ComponentProps<"div">) {
-    return (
-        <div
-            {...props}
-            className={cn(
-                "group relative flex h-8 max-h-8 min-h-8 flex-1 cursor-default select-none items-center gap-1.5 truncate rounded-lg px-2.5 text-left font-medium text-[13px] text-foreground leading-normal opacity-70 before:absolute before:inset-0 before:-z-10 before:rounded-lg before:bg-muted before:opacity-0 before:transition-transform before:will-change-transform hover:opacity-100 hover:before:opacity-100 focus-visible:opacity-100 active:before:scale-x-[0.99] active:before:scale-y-[0.97] active:before:opacity-80! data-[active=true]:before:opacity-100",
-                className
-            )}
-            data-sidebar="item"
-            data-slot="sidebar-item"
-        />
-    );
+export interface SidebarItemProps extends useRender.ComponentProps<"div"> {}
+
+function SidebarItem({ className, render, ...props }: SidebarItemProps) {
+    const defaultProps = {
+        className: cn(
+            "group relative flex h-8 max-h-8 min-h-8 flex-1 cursor-default select-none items-center gap-1.5 truncate rounded-lg px-2.5 text-left font-medium text-[13px] text-foreground leading-normal opacity-70 before:absolute before:inset-0 before:-z-10 before:rounded-lg before:bg-muted before:opacity-0 before:transition-transform before:will-change-transform hover:opacity-100 hover:before:opacity-100 focus-visible:opacity-100 active:before:scale-x-[0.99] active:before:scale-y-[0.97] active:before:opacity-80! data-[active=true]:before:opacity-100",
+            className
+        ),
+        "data-sidebar": "item",
+        "data-slot": "sidebar-item",
+    };
+
+    return useRender({
+        defaultTagName: "div",
+        props: mergeProps<"div">(defaultProps, props),
+        render,
+    });
 }
 
 function SidebarGroup({ className, ...props }: React.ComponentProps<"div">) {

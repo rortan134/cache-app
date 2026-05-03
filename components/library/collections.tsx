@@ -1146,12 +1146,12 @@ function CollectionsListTrigger({
     return (
         <Popover>
             <PopoverTrigger
-                nativeButton={false}
                 openOnHover
                 render={
                     <CollapsibleTrigger
-                        nativeButton={false}
-                        render={<SidebarItem />}
+                        render={
+                            <SidebarItem render={<button type="button" />} />
+                        }
                         title={isOpen ? "Collapse group" : "Expand group"}
                         {...props}
                     />
@@ -1206,9 +1206,9 @@ function CollectionsListItemPreview({
                     setIsOpen(false);
                 }}
                 render={
-                    <Button
-                        className="w-full min-w-0 flex-1 justify-start pr-8 pl-10 text-left focus-visible:ring-(--focus-ring-color) focus-visible:ring-2"
-                        variant="ghost"
+                    <SidebarItem
+                        className="w-full min-w-0 flex-1 justify-start pr-8 pl-10 text-left focus-visible:ring-(--focus-ring-color)"
+                        render={<Button variant="ghost" />}
                     />
                 }
                 {...props}
