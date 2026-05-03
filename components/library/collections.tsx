@@ -1,9 +1,5 @@
 "use client";
 
-import {
-    mergeCollectionSummaries,
-    useWorkspace,
-} from "@/components/library/workspace-provider";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -52,7 +48,6 @@ import {
     MenuSubTrigger,
     MenuTrigger,
 } from "@/components/ui/menu";
-import { DisclosureList } from "@/components/ui/disclosure-list";
 import {
     Popover,
     PopoverDescription,
@@ -67,32 +62,9 @@ import {
 } from "@/components/ui/preview-card";
 import { SidebarItem } from "@/components/ui/sidebar";
 import { Textarea } from "@/components/ui/textarea";
-import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
-import { useListPanelOpenState } from "@/hooks/use-list-panel-open-state";
-import {
-    createCollection,
-    deleteCollection,
-    disableSmartCollections,
-    duplicateCollection,
-    renameCollection,
-    updateCollectionPriority,
-    type CollectionCreateResult,
-} from "@/lib/collections/actions";
-import {
-    disableCollectionSharing,
-    shareCollectionPublicly,
-} from "@/lib/collections/sharing/actions";
-import { buildPublicCollectionShareUrl } from "@/lib/collections/sharing/url";
-import type {
-    LibraryCollectionSummary,
-    LibraryCollectionTag,
-    LibraryItemWithCollections,
-} from "@/lib/collections/utils";
+import type { LibraryCollectionSummary } from "@/lib/collections/utils";
 import { cn } from "@/lib/common/cn";
 import { getHexColorFromName } from "@/lib/common/colors";
-import { getSystemControlKey } from "@/lib/common/environment";
-import { saveFile } from "@/lib/common/file";
-import { normalizeURL, openExternal } from "@/lib/common/url";
 import { dayjs } from "@/lib/dayjs";
 import { getSourceLabel } from "@/lib/integrations/support";
 import type { CollectionPriority } from "@/prisma/client/enums";
@@ -117,7 +89,6 @@ import {
     ListFilter,
     LockKeyhole,
     PencilIcon,
-    PlusIcon,
     Shapes,
     SignalHigh,
     SignalMedium,
@@ -130,10 +101,6 @@ import Image from "next/image";
 import Link from "next/link";
 import * as React from "react";
 import { useHotkeys } from "react-hotkeys-hook";
-import { createStore } from "stan-js";
-import { storage } from "stan-js/storage";
-
-// #region Domain/view types
 
 type CollectionSortField =
     | "count"
@@ -145,11 +112,6 @@ type CollectionSortField =
 type CollectionOptionIcon = React.ComponentType<{ className?: string }>;
 
 type FeedbackTone = "error" | "success";
-
-type SortableCollectionSummary = Pick<
-    LibraryCollectionSummary,
-    "createdAt" | "itemCount" | "name" | "priority" | "updatedAt"
->;
 
 interface PriorityOption {
     icon: CollectionOptionIcon;
@@ -182,61 +144,19 @@ interface CollectionFeedback {
     tone: FeedbackTone;
 }
 
-type CollectionShareState = Pick<
-    LibraryCollectionTag,
-    "id" | "shareId" | "sharedAt" | "updatedAt"
->;
-
 interface CollectionTemplateOption {
     description: string;
     name: string;
     value: string;
 }
 
-interface SyncCreatedCollectionInput {
-    assignedItemIds: string[];
-    collection: LibraryCollectionSummary;
-}
-
-// #endregion Domain/view types
-
-// #region Constants
-
 const PREVIEW_SLIDE_INTERVAL_MS = 600;
-const CSV_CONTENT_TYPE = "text/csv;charset=utf-8";
-
-const CSV_HEADERS = [
-    "Collection",
-    "Caption",
-    "URL",
-    "Source",
-    "Kind",
-    "Saved At",
-    "Posted At",
-] as const;
 
 const NAME_MAX_LENGTH = 64;
-
-const CREATE_ERROR_MESSAGE = "We couldn't create this collection right now.";
-const DELETE_ERROR_MESSAGE = "We couldn't delete this collection right now.";
-const DUPLICATE_ERROR_MESSAGE =
-    "We couldn't make a copy of this collection right now.";
-const EMPTY_LINKS_MESSAGE = "There are no links in this collection yet.";
-const RENAME_ERROR_MESSAGE = "We couldn't rename this collection right now.";
-const SHARE_ERROR_MESSAGE = "We couldn't create a public link right now.";
-const STOP_SHARING_ERROR_MESSAGE =
-    "We couldn't stop sharing this collection right now.";
-const UPDATE_PRIORITY_ERROR_MESSAGE =
-    "We couldn't update this collection priority right now.";
 
 const COMPACT_NUMBER_FORMATTER = new Intl.NumberFormat("en-US", {
     compactDisplay: "short",
     notation: "compact",
-});
-
-export const NAME_COLLATOR = new Intl.Collator(undefined, {
-    numeric: true,
-    sensitivity: "base",
 });
 
 const DEFAULT_PRIORITY: PriorityOption = {
@@ -405,36 +325,8 @@ const TEMPLATES = [
 
 type TemplateValue = (typeof TEMPLATES)[number]["value"];
 
-const PRIORITY_RANK: Record<CollectionPriority, number> = {
-    archive: 3,
-    none: 4,
-    peripheral: 2,
-    relevant: 1,
-    very_relevant: 0,
-};
-
-// #endregion Constants
-
-// #region Local stores/context
-
-const { useStore: useCollectionsListStateStore } = createStore({
-    isCollectionsListOpen: storage(false),
-});
-
-export const { useStore: useCollectionsSortStore } = createStore({
-    collectionSortField: storage<CollectionSortField>("priority"),
-    collectionTextMatchQuery: storage(""),
-});
-
 const CollectionsListItemContext =
     React.createContext<CollectionsListItemContextValue | null>(null);
-
-function useCollectionsListOpenState() {
-    const { isCollectionsListOpen, setIsCollectionsListOpen } =
-        useCollectionsListStateStore();
-
-    return [isCollectionsListOpen, setIsCollectionsListOpen] as const;
-}
 
 function useCollectionsListItemContext() {
     const context = React.use(CollectionsListItemContext);
@@ -492,10 +384,6 @@ function useCollectionItemPreviewIndex(
     return activePreviewIndex;
 }
 
-// #endregion Local stores/context
-
-// #region Pure helpers
-
 function getPriorityOption(priority: CollectionPriority): PriorityOption {
     return PRIORITY_BY_VALUE.get(priority) ?? DEFAULT_PRIORITY;
 }
@@ -514,343 +402,11 @@ function getItemStyle(name: string, isSelected: boolean): React.CSSProperties {
     } as React.CSSProperties;
 }
 
-function compareNames<T extends Pick<SortableCollectionSummary, "name">>(
-    a: T,
-    b: T
-) {
-    return NAME_COLLATOR.compare(a.name, b.name);
-}
-
-function comparePriorities<
-    T extends Pick<SortableCollectionSummary, "name" | "priority">,
->(a: T, b: T) {
-    const diff = PRIORITY_RANK[a.priority] - PRIORITY_RANK[b.priority];
-    return diff === 0 ? compareNames(a, b) : diff;
-}
-
-function compareCreatedAt<
-    T extends Pick<SortableCollectionSummary, "createdAt">,
->(a: T, b: T) {
-    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-}
-
-function compareUpdatedAt<
-    T extends Pick<SortableCollectionSummary, "updatedAt">,
->(a: T, b: T) {
-    return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
-}
-
-function compareItemCount<
-    T extends Pick<SortableCollectionSummary, "itemCount">,
->(a: T, b: T) {
-    return b.itemCount - a.itemCount;
-}
-
-function textMatchScore(
-    collection: Pick<SortableCollectionSummary, "name">,
-    query: string
-) {
-    const name = collection.name.trim().toLowerCase();
-    const q = query.trim().toLowerCase();
-
-    if (q.length === 0) {
-        return 0;
-    }
-    if (name === q) {
-        return 3;
-    }
-    if (name.startsWith(q)) {
-        return 2;
-    }
-    if (name.includes(q)) {
-        return 1;
-    }
-    return 0;
-}
-
-function compareTextMatch(query: string) {
-    return (a: SortableCollectionSummary, b: SortableCollectionSummary) =>
-        textMatchScore(b, query) - textMatchScore(a, query) ||
-        compareNames(a, b);
-}
-
-const SUMMARY_SORTERS = {
-    count: compareItemCount,
-    created: compareCreatedAt,
-    priority: comparePriorities,
-    updated: compareUpdatedAt,
-} satisfies Record<
-    Exclude<CollectionSortField, "text-match">,
-    (a: SortableCollectionSummary, b: SortableCollectionSummary) => number
->;
-
-function sortList<T>(list: readonly T[], compare: (a: T, b: T) => number): T[] {
-    return [...list].sort(compare);
-}
-
-export function sortCollections<
-    T extends Pick<LibraryCollectionSummary, "name" | "priority">,
->(collections: readonly T[]): T[] {
-    return sortList(collections, comparePriorities);
-}
-
-export function sortCollectionSummaries<T extends SortableCollectionSummary>(
-    collections: readonly T[],
-    sortField: CollectionSortField,
-    textMatchQuery = ""
-): T[] {
-    if (sortField === "text-match") {
-        return sortList(collections, compareTextMatch(textMatchQuery));
-    }
-    return sortList(collections, SUMMARY_SORTERS[sortField]);
-}
-
-/** Strip summary-specific fields so a collection can be stored as a tag on items. */
-function toCollectionTag({
-    createdAt,
-    description,
-    id,
-    name,
-    priority,
-    sharedAt,
-    shareId,
-    updatedAt,
-}: LibraryCollectionSummary): LibraryCollectionTag {
-    return {
-        createdAt,
-        description,
-        id,
-        name,
-        priority,
-        sharedAt,
-        shareId,
-        updatedAt,
-    };
-}
-
-function updateById<T extends LibraryCollectionTag>(
-    collections: T[],
-    id: string,
-    updater: (collection: T) => T
-): T[] {
-    return collections.map((collection) =>
-        collection.id === id ? updater(collection) : collection
-    );
-}
-
-function updateItemTags(
-    items: LibraryItemWithCollections[],
-    updater: (tags: LibraryCollectionTag[]) => LibraryCollectionTag[]
-): LibraryItemWithCollections[] {
-    return items.map((item) => ({
-        ...item,
-        collections: updater(item.collections),
-    }));
-}
-
-function replaceShareState<T extends LibraryCollectionTag>(
-    collections: T[],
-    next: CollectionShareState
-): T[] {
-    return sortCollections(
-        updateById(collections, next.id, (collection) => ({
-            ...collection,
-            sharedAt: next.sharedAt,
-            shareId: next.shareId,
-            updatedAt: next.updatedAt,
-        }))
-    );
-}
-
-function replacePriority<T extends LibraryCollectionTag>(
-    collections: T[],
-    id: string,
-    priority: CollectionPriority
-): T[] {
-    return sortCollections(
-        updateById(collections, id, (collection) => ({
-            ...collection,
-            priority,
-        }))
-    );
-}
-
-function replaceName<T extends LibraryCollectionTag>(
-    collections: T[],
-    id: string,
-    name: string
-): T[] {
-    return sortCollections(
-        updateById(collections, id, (collection) => ({
-            ...collection,
-            name,
-        }))
-    );
-}
-
-function replaceItemCollectionNames(
-    items: LibraryItemWithCollections[],
-    id: string,
-    name: string
-): LibraryItemWithCollections[] {
-    return updateItemTags(items, (tags) => replaceName(tags, id, name));
-}
-
-function appendCollection(
-    items: LibraryItemWithCollections[],
-    itemIds: string[],
-    collection: LibraryCollectionTag
-): LibraryItemWithCollections[] {
-    const idSet = new Set(itemIds);
-    if (idSet.size === 0) {
-        return items;
-    }
-
-    return items.map((item) => {
-        if (!idSet.has(item.id)) {
-            return item;
-        }
-        if (item.collections.some((entry) => entry.id === collection.id)) {
-            return item;
-        }
-        return {
-            ...item,
-            collections: sortCollections([...item.collections, collection]),
-        };
-    });
-}
-
-function getItemUrls(items: LibraryItemWithCollections[]): string[] {
-    return items.map((item) => normalizeURL(item.url));
-}
-
-function escapeCsv(value: string): string {
-    return `"${value.replaceAll('"', '""')}"`;
-}
-
-function buildCsv(
-    collection: LibraryCollectionSummary,
-    items: LibraryItemWithCollections[]
-): string {
-    const rows = items.map((item) => [
-        collection.name,
-        item.caption ?? "",
-        normalizeURL(item.url),
-        item.source,
-        item.kind,
-        item.createdAt.toISOString(),
-        item.postedAt?.toISOString() ?? "",
-    ]);
-
-    return [CSV_HEADERS, ...rows]
-        .map((row) => row.map(escapeCsv).join(","))
-        .join("\n");
-}
-
-function getExportFileName(name: string): string {
-    const slug = name
-        .trim()
-        .toLowerCase()
-        .replaceAll(/[^a-z0-9]+/g, "-")
-        .replaceAll(/^-+|-+$/g, "");
-
-    return slug.length > 0 ? `${slug}-links` : "collection-links";
-}
-
-function normalizeName(name: string): string {
-    return name.trim().replace(/\s+/g, " ");
-}
-
-function getCreatedAssignedItemIds(
-    result: Extract<CollectionCreateResult, { status: "CREATED" }>
-): string[] {
-    return result.assignedItemId ? [result.assignedItemId] : [];
-}
-
-// #endregion Pure helpers
-
-// #region Safe action adapters
-
-async function createCollectionSafely(
-    input: Parameters<typeof createCollection>[0]
-) {
-    try {
-        return await createCollection(input);
-    } catch {
-        return { message: CREATE_ERROR_MESSAGE, status: "ERROR" as const };
-    }
-}
-
-async function deleteCollectionSafely(
-    input: Parameters<typeof deleteCollection>[0]
-) {
-    try {
-        return await deleteCollection(input);
-    } catch {
-        return { message: DELETE_ERROR_MESSAGE, status: "ERROR" as const };
-    }
-}
-
-async function duplicateCollectionSafely(
-    input: Parameters<typeof duplicateCollection>[0]
-) {
-    try {
-        return await duplicateCollection(input);
-    } catch {
-        return { message: DUPLICATE_ERROR_MESSAGE, status: "ERROR" as const };
-    }
-}
-
-async function renameCollectionSafely(
-    input: Parameters<typeof renameCollection>[0]
-) {
-    try {
-        return await renameCollection(input);
-    } catch {
-        return { message: RENAME_ERROR_MESSAGE, status: "ERROR" as const };
-    }
-}
-
-async function updateCollectionPrioritySafely(
-    input: Parameters<typeof updateCollectionPriority>[0]
-) {
-    try {
-        return await updateCollectionPriority(input);
-    } catch {
-        return {
-            message: UPDATE_PRIORITY_ERROR_MESSAGE,
-            status: "ERROR" as const,
-        };
-    }
-}
-
-async function shareCollectionPubliclySafely(
-    input: Parameters<typeof shareCollectionPublicly>[0]
-) {
-    try {
-        return await shareCollectionPublicly(input);
-    } catch {
-        return { message: SHARE_ERROR_MESSAGE, status: "ERROR" as const };
-    }
-}
-
-async function disableCollectionSharingSafely(
-    input: Parameters<typeof disableCollectionSharing>[0]
-) {
-    try {
-        return await disableCollectionSharing(input);
-    } catch {
-        return {
-            message: STOP_SHARING_ERROR_MESSAGE,
-            status: "ERROR" as const,
-        };
-    }
-}
-
-// #endregion Safe action adapters
-
-// #region Headless/compound list parts
-
+/**
+ * A single row inside a collection combobox dropdown.
+ *
+ * Displays an icon and a label side by side with truncation support.
+ */
 function CollectionComboboxOptionRow({
     icon: Icon,
     label,
@@ -868,6 +424,9 @@ function CollectionComboboxOptionRow({
     );
 }
 
+/**
+ * The fallback shown when a collection has no preview thumbnail.
+ */
 function CollectionsListPreviewImageFallback() {
     return (
         <div className="flex size-full items-center justify-center bg-muted/40 text-[11px] text-muted-foreground">
@@ -876,6 +435,9 @@ function CollectionsListPreviewImageFallback() {
     );
 }
 
+/**
+ * A preview image that falls back when the source is missing or fails to load.
+ */
 function CollectionsListItemPreviewImage({
     alt,
     src,
@@ -891,6 +453,11 @@ function CollectionsListItemPreviewImage({
     );
 }
 
+/**
+ * A resolved preview image with error handling.
+ *
+ * Swaps in `CollectionsListPreviewImageFallback` if the image fails to load.
+ */
 function CollectionsListResolvedPreviewImage({
     alt,
     src,
@@ -918,6 +485,11 @@ function CollectionsListResolvedPreviewImage({
     );
 }
 
+/**
+ * A small layout helper for inline rows inside the collections list.
+ *
+ * Applies standard flex and gap styles. Used by `CollectionsListStatus`.
+ */
 function CollectionsListInlineRow({
     className,
     ...props
@@ -942,6 +514,13 @@ interface CollectionsListSharePopoverProps {
     shareUrl: string | null;
 }
 
+/**
+ * A nested menu for managing public sharing of a collection.
+ *
+ * Renders a `MenuSub` with controls to enable or disable a public share link,
+ * copy the link, and view sharing metadata. Used inside
+ * `CollectionsListItemMeta`.
+ */
 function CollectionsListSharePopover({
     collection,
     isSharePending,
@@ -1044,6 +623,7 @@ function CollectionsListSharePopover({
                                 collection can be browsed without signing in.
                             </p>
                             <Button
+                                autoFocus
                                 loading={isSharePending}
                                 onClick={onEnableShare}
                                 size="sm"
@@ -1067,6 +647,14 @@ interface CollectionsListExportMenuProps {
     onOpenLinks: () => void;
 }
 
+/**
+ * A nested menu with export and duplication actions for a collection.
+ *
+ * Renders a `MenuSub` with items for copying the title, copying or opening
+ * all links, exporting to CSV, making a copy, and sending to Notion. Some
+ * items are disabled when the collection has no items. Used inside
+ * `CollectionsListItemMeta`.
+ */
 function CollectionsListExportMenu({
     hasItems,
     onCopyLinks,
@@ -1111,40 +699,37 @@ function CollectionsListExportMenu({
     );
 }
 
+/**
+ * The root collapsible container for the collections list.
+ *
+ * Renders a `Collapsible`. Compose `CollectionsListToolbar` and
+ * `CollectionsListPanel` inside it.
+ */
 function CollectionsList({
-    onOpenChange,
-    open,
     className,
     ...props
 }: React.ComponentProps<typeof Collapsible>) {
-    const state = useCollectionsListOpenState();
-    const [isOpen, handleOpenChange] = useListPanelOpenState({
-        hotkey: "mod+c",
-        onOpenChange,
-        open,
-        state,
-    });
-
-    return (
-        <Collapsible
-            className={cn("relative", className)}
-            onOpenChange={handleOpenChange}
-            open={isOpen}
-            {...props}
-        />
-    );
+    return <Collapsible className={cn("relative", className)} {...props} />;
 }
 
 interface CollectionsListTriggerProps
     extends React.ComponentProps<typeof CollapsibleTrigger> {
     collectionLabels: string[];
+    isOpen: boolean;
 }
 
+/**
+ * A button that toggles the collections list panel.
+ *
+ * Renders a `Popover` around a `CollapsibleTrigger`. The popover displays the
+ * full list of collection labels on hover, and is hidden while the panel is
+ * open to avoid overlapping content.
+ */
 function CollectionsListTrigger({
     collectionLabels,
+    isOpen,
     ...props
 }: CollectionsListTriggerProps) {
-    const [isOpen] = useCollectionsListOpenState();
     const collectionLabelsText =
         collectionLabels.length > 0
             ? collectionLabels.join(", ")
@@ -1180,6 +765,12 @@ function CollectionsListTrigger({
     );
 }
 
+/**
+ * The collapsible panel that holds the list of collections.
+ *
+ * Renders a `CollapsiblePanel` with left padding. Compose it inside
+ * `CollectionsList`.
+ */
 function CollectionsListPanel({
     className,
     ...props
@@ -1192,6 +783,12 @@ interface CollectionsListItemPreviewProps
     thumbnails: readonly string[];
 }
 
+/**
+ * A previewable trigger for a collection list item.
+ *
+ * Wraps the collection name in a `PreviewCard` that shows a cycling thumbnail
+ * popup on hover. Clicking selects the collection and closes the preview.
+ */
 function CollectionsListItemPreview({
     onClick,
     thumbnails,
@@ -1214,7 +811,7 @@ function CollectionsListItemPreview({
                 }}
                 render={
                     <SidebarItem
-                        className="w-full min-w-0 flex-1 justify-start pr-8 pl-10 text-left focus-visible:ring-(--focus-ring-color)"
+                        className="w-full min-w-0 flex-1 justify-start pr-8 pl-10 text-left hover:bg-transparent focus-visible:ring-(--focus-ring-color)"
                         render={<Button variant="ghost" />}
                     />
                 }
@@ -1234,6 +831,12 @@ function CollectionsListItemPreview({
     );
 }
 
+/**
+ * The label area of a collection list item.
+ *
+ * Displays the collection name and, on hover, a comma-separated list of
+ * source labels. Reads from `CollectionsListItemContext`.
+ */
 function CollectionsListItemValue() {
     const { collection } = useCollectionsListItemContext();
     const sourceLabels =
@@ -1262,6 +865,13 @@ interface CollectionsListItemPriorityComboboxProps {
     onValueChange: (priority: CollectionPriority) => void;
 }
 
+/**
+ * A priority picker for a single collection item.
+ *
+ * Renders a `Combobox` bound to the collection in
+ * `CollectionsListItemContext`. The "P" hotkey opens the dropdown when the
+ * item is hovered.
+ */
 function CollectionsListItemPriorityCombobox({
     onValueChange,
 }: CollectionsListItemPriorityComboboxProps) {
@@ -1341,6 +951,13 @@ interface CollectionsListItemProps extends React.ComponentProps<"div"> {
     isSelected: boolean;
 }
 
+/**
+ * A single row in the collections list.
+ *
+ * Provides `CollectionsListItemContext` to its children so compound parts
+ * like `CollectionsListItemPreview`, `CollectionsListItemPriorityCombobox`,
+ * and `CollectionsListItemMeta` can read the collection and hover state.
+ */
 function CollectionsListItem({
     className,
     collection,
@@ -1392,6 +1009,13 @@ interface CollectionsListItemMetaProps {
     shareUrl: string | null;
 }
 
+/**
+ * The action menu and metadata for a collection list item.
+ *
+ * Renders a count badge that hides on hover, replacing it with an ellipsis
+ * menu. Keyboard shortcuts (E, Delete/Backspace, C) are active while the
+ * item is hovered. Reads from `CollectionsListItemContext`.
+ */
 function CollectionsListItemMeta({
     isSharePending,
     onCopyLinks,
@@ -1422,7 +1046,7 @@ function CollectionsListItemMeta({
                 <MenuTrigger
                     render={
                         <Button
-                            className="absolute opacity-0 hover:bg-transparent focus-visible:opacity-100 group-focus-within:opacity-100 group-hover:opacity-100 group-focus:opacity-100"
+                            className="absolute opacity-0 focus-visible:opacity-100 group-focus-within:opacity-100 group-hover:opacity-100 group-focus:opacity-100"
                             size="icon-xs"
                             title={`Collection actions for ${collection.name}`}
                             variant="ghost"
@@ -1490,6 +1114,12 @@ interface CollectionsListStatusProps extends React.ComponentProps<"p"> {
     tone?: FeedbackTone;
 }
 
+/**
+ * An accessibility-friendly status message for collection operations.
+ *
+ * Returns `null` when there are no children so assistive technologies do not
+ * announce silent updates. Includes a dismiss button.
+ */
 function CollectionsListStatus({
     className,
     onDismiss,
@@ -1526,6 +1156,12 @@ interface CollectionsListFilterClearProps
     isVisible: boolean;
 }
 
+/**
+ * A button that clears the active collection filters.
+ *
+ * Returns `null` when `isVisible` is `false` so it does not take up layout
+ * space while hidden.
+ */
 function CollectionsListFilterClearButton({
     isVisible,
     ...props
@@ -1550,6 +1186,11 @@ function CollectionsListFilterClearButton({
     );
 }
 
+/**
+ * The empty state shown when no collections exist.
+ *
+ * Renders a centered message inside a dashed border container.
+ */
 function CollectionsListEmpty({
     className,
     ...props
@@ -1567,6 +1208,13 @@ function CollectionsListEmpty({
     );
 }
 
+/**
+ * The toolbar that sits above the collections list panel.
+ *
+ * Renders a `Toolbar.Root` with flex layout. Compose
+ * `CollectionsListTrigger`, `CollectionsListToolbarGroup`, and action
+ * buttons inside it.
+ */
 function CollectionsListToolbar({
     className,
     ...props
@@ -1582,6 +1230,11 @@ function CollectionsListToolbar({
     );
 }
 
+/**
+ * A group of toolbar controls aligned to the right.
+ *
+ * Renders a `Toolbar.Group` with flex end alignment.
+ */
 function CollectionsListToolbarGroup({
     className,
     ...props
@@ -1594,6 +1247,11 @@ function CollectionsListToolbarGroup({
     );
 }
 
+/**
+ * A single button inside the collections toolbar.
+ *
+ * Renders a `Toolbar.Button` with reduced opacity that increases on hover.
+ */
 function CollectionsListToolbarButton({
     className,
     ...props
@@ -1606,6 +1264,12 @@ function CollectionsListToolbarButton({
     );
 }
 
+/**
+ * A callout that informs users when Smart Collections is active.
+ *
+ * Renders a `Popover` trigger with a gradient wave text label. The popover
+ * explains the feature and provides a link to Activity and a Disable button.
+ */
 function CollectionsListNoticeCallout({
     isDisabled,
     onDisable,
@@ -1673,24 +1337,39 @@ function CollectionsListNoticeCallout({
     );
 }
 
-function CollectionsListSortingCombobox(
-    props: React.ComponentProps<typeof ComboboxTrigger>
-) {
-    const [isListOpen, setIsListOpen] = useCollectionsListOpenState();
-    const {
-        collectionSortField,
-        collectionTextMatchQuery,
-        setCollectionSortField,
-        setCollectionTextMatchQuery,
-    } = useCollectionsSortStore();
-    const [isOpen, setIsOpen] = React.useState(false);
-    const [inputValue, setInputValue] = React.useState("");
+interface CollectionsListSortingComboboxProps
+    extends Omit<React.ComponentProps<typeof ComboboxTrigger>, "value"> {
+    inputValue: string;
+    isOpen: boolean;
+    onInputValueChange: (value: string) => void;
+    onOpenChange: (isOpen: boolean) => void;
+    onValueChange: (option: SortingComboboxOption | null) => void;
+    value: SortingComboboxOption | null;
+}
+
+/**
+ * A combobox for sorting collections or filtering by text match.
+ *
+ * Supports fixed sort fields (priority, created, updated, count) and a
+ * dynamic text-match mode when the input does not match any field label.
+ * Fully controlled via props.
+ */
+function CollectionsListSortingCombobox({
+    inputValue,
+    isOpen,
+    onInputValueChange,
+    onOpenChange,
+    onValueChange,
+    value,
+    ...props
+}: CollectionsListSortingComboboxProps) {
     const trimmed = inputValue.trim();
     const normalized = trimmed.toLowerCase();
     const matching = SORT_OPTIONS.filter((option) =>
         option.label.toLowerCase().includes(normalized)
     );
     const isTextMatch = normalized.length > 0 && matching.length === 0;
+
     const options: SortingComboboxOption[] = isTextMatch
         ? [
               {
@@ -1701,21 +1380,6 @@ function CollectionsListSortingCombobox(
               },
           ]
         : matching;
-
-    useHotkeys(
-        "mod+f",
-        (event) => {
-            event.preventDefault();
-            if (!isListOpen) {
-                setIsListOpen(true);
-            }
-            setIsOpen(true);
-        },
-        {
-            enabled: !isOpen,
-        },
-        [isListOpen, isOpen, setIsListOpen]
-    );
 
     return (
         <Combobox<SortingComboboxOption>
@@ -1729,40 +1393,11 @@ function CollectionsListSortingCombobox(
                     : (SORT_OPTION_BY_VALUE.get(option.value)?.label ?? "")
             }
             itemToStringValue={(option) => option.value}
-            onInputValueChange={setInputValue}
-            onOpenChange={setIsOpen}
-            onValueChange={(nextOption) => {
-                if (!nextOption) {
-                    return;
-                }
-
-                if (nextOption.value === "text-match") {
-                    if (nextOption.query !== collectionTextMatchQuery) {
-                        setCollectionTextMatchQuery(nextOption.query);
-                        setCollectionSortField(nextOption.value);
-                        setInputValue("");
-                    }
-                    setIsOpen(false);
-                    return;
-                }
-
-                if (nextOption.value !== collectionSortField) {
-                    setCollectionSortField(nextOption.value);
-                    setInputValue("");
-                }
-                setIsOpen(false);
-            }}
+            onInputValueChange={onInputValueChange}
+            onOpenChange={onOpenChange}
+            onValueChange={onValueChange}
             open={isOpen}
-            value={
-                collectionSortField === "text-match"
-                    ? {
-                          icon: ListFilter,
-                          label: `Search by "${collectionTextMatchQuery}"`,
-                          query: collectionTextMatchQuery,
-                          value: "text-match",
-                      }
-                    : SORT_OPTION_BY_VALUE.get(collectionSortField)
-            }
+            value={value}
         >
             <ComboboxTrigger
                 render={<Button size="icon-xs" variant="ghost" />}
@@ -1806,10 +1441,6 @@ function CollectionsListSortingCombobox(
     );
 }
 
-// #endregion Headless/compound list parts
-
-// #region Dialog subcomponents
-
 interface RenameDialogProps {
     errorMessage: string | null;
     isOpen: boolean;
@@ -1820,6 +1451,12 @@ interface RenameDialogProps {
     onSubmit: () => void;
 }
 
+/**
+ * A dialog for renaming an existing collection.
+ *
+ * Fully controlled via props. Validates that the name is non-empty and
+ * distinct from the current name before calling `onSubmit`.
+ */
 function RenameDialog({
     errorMessage,
     isOpen,
@@ -1905,6 +1542,12 @@ interface CreateDialogProps {
     onSubmit: () => void;
 }
 
+/**
+ * A dialog for creating a new collection.
+ *
+ * Fully controlled via props. Includes fields for name and an optional
+ * description, plus a template picker that pre-fills both fields.
+ */
 function CreateDialog({
     descriptionDraft,
     errorMessage,
@@ -2078,6 +1721,12 @@ interface DeleteDialogProps {
     onOpenChange: (isOpen: boolean) => void;
 }
 
+/**
+ * A confirmation dialog for deleting a collection.
+ *
+ * Fully controlled via props. Displays the collection name when available.
+ * Calls `onConfirm` when the user presses the Delete button.
+ */
 function DeleteDialog({
     collection,
     isPending,
@@ -2115,745 +1764,44 @@ function DeleteDialog({
     );
 }
 
-// #endregion Dialog subcomponents
-
-// #region Workspace-bound feature component
-
-interface CollectionsListRootProps {
-    isSmartCollectionsDisabled: boolean;
-}
-
-export function CollectionsListRoot({
-    isSmartCollectionsDisabled: isSmartCollectionsDisabledProp,
-}: CollectionsListRootProps) {
-    const [isListOpen] = useCollectionsListOpenState();
-    const [isSmartCollectionsDisabled, setIsSmartCollectionsDisabled] =
-        React.useState(() => isSmartCollectionsDisabledProp);
-
-    // Create dialog state
-    const [isCreateOpen, setIsCreateOpen] = React.useState(false);
-    const [createName, setCreateName] = React.useState("");
-    const [createDescription, setCreateDescription] = React.useState("");
-    const [createItemId, setCreateItemId] = React.useState<string | null>(null);
-    const [createError, setCreateError] = React.useState<string | null>(null);
-    const [isCreatePending, startCreate] = React.useTransition();
-
-    // Rename dialog state
-    const [pendingRename, setPendingRename] =
-        React.useState<LibraryCollectionSummary | null>(null);
-    const [renameDraft, setRenameDraft] = React.useState("");
-    const [renameError, setRenameError] = React.useState<string | null>(null);
-    const [isRenamePending, startRename] = React.useTransition();
-
-    // Delete dialog state
-    const [pendingDelete, setPendingDelete] =
-        React.useState<LibraryCollectionSummary | null>(null);
-    const [isDeletePending, startDelete] = React.useTransition();
-
-    // Share state
-    const [pendingShareId, setPendingShareId] = React.useState<string | null>(
-        null
-    );
-    const [isSharePending, startShare] = React.useTransition();
-
-    // Duplicate transition
-    const [, startDuplicate] = React.useTransition();
-
-    // Feedback
-    const [feedback, setFeedback] = React.useState<CollectionFeedback | null>(
-        null
-    );
-
-    const {
-        collectionPreviewThumbnailUrlsById,
-        collectionSummaries,
-        collections,
-        hasAccess,
-        itemsByCollectionId,
-        onClearCollectionFilters,
-        onSelectCollection,
-        selectedCollectionIds,
-        setCollections,
-        setItems,
-    } = useWorkspace();
-    const { copyToClipboard } = useCopyToClipboard();
-
-    const showError = (message: string) =>
-        setFeedback({ message, tone: "error" });
-    const showSuccess = (message: string) =>
-        setFeedback({ message, tone: "success" });
-
-    const hasHiddenItems = (collection: LibraryCollectionSummary) =>
-        !hasAccess &&
-        (itemsByCollectionId.get(collection.id)?.length ?? 0) <
-            collection.itemCount;
-
-    const ensureAccess = (
-        collection: LibraryCollectionSummary,
-        action: string
-    ) => {
-        if (!hasHiddenItems(collection)) {
-            return true;
-        }
-        showError(`Upgrade to ${action} every item in ${collection.name}.`);
-        return false;
-    };
-
-    const resetCreate = () => {
-        setCreateName("");
-        setCreateDescription("");
-        setCreateError(null);
-        setCreateItemId(null);
-    };
-
-    const resetRename = () => {
-        setPendingRename(null);
-        setRenameDraft("");
-        setRenameError(null);
-    };
-
-    const syncShare = (next: CollectionShareState) => {
-        setCollections((current) => replaceShareState(current, next));
-        setItems((current) =>
-            updateItemTags(current, (tags) => replaceShareState(tags, next))
-        );
-    };
-
-    const syncPriority = (id: string, priority: CollectionPriority) => {
-        setCollections((current) => replacePriority(current, id, priority));
-        setItems((current) =>
-            updateItemTags(current, (tags) =>
-                replacePriority(tags, id, priority)
-            )
-        );
-    };
-
-    const syncCreated = (input: SyncCreatedCollectionInput) => {
-        setCollections((current) =>
-            mergeCollectionSummaries(current, [input.collection])
-        );
-
-        if (input.assignedItemIds.length === 0) {
-            return;
-        }
-
-        const tag = toCollectionTag(input.collection);
-        setItems((current) =>
-            appendCollection(current, input.assignedItemIds, tag)
-        );
-    };
-
-    const startCreateCollection = (
-        input: Parameters<typeof createCollection>[0],
-        onSuccess?: () => void
-    ) => {
-        startCreate(async () => {
-            const result = await createCollectionSafely(input);
-
-            if (result.status !== "CREATED") {
-                setCreateError(result.message);
-                return;
-            }
-
-            syncCreated({
-                assignedItemIds: getCreatedAssignedItemIds(result),
-                collection: result.collection,
-            });
-            onSuccess?.();
-            resetCreate();
-            setIsCreateOpen(false);
-        });
-    };
-
-    const requestCreate = (itemId?: string) => {
-        setCreateItemId(itemId ?? null);
-        setCreateName("");
-        setCreateDescription("");
-        setCreateError(null);
-        setIsCreateOpen(true);
-    };
-
-    useHotkeys(
-        "mod+n, v",
-        () => {
-            if (isCreateOpen) {
-                setIsCreateOpen(false);
-            } else {
-                requestCreate();
-            }
-        },
-        {
-            enableOnFormTags: true,
-            preventDefault: true,
-        },
-        [isCreateOpen]
-    );
-
-    const requestDelete = (collection: LibraryCollectionSummary) => {
-        setFeedback(null);
-        setPendingDelete(collection);
-    };
-
-    const requestRename = (collection: LibraryCollectionSummary) => {
-        setFeedback(null);
-        setRenameDraft(collection.name);
-        setRenameError(null);
-        setPendingRename(collection);
-    };
-
-    const copyWithFeedback = async (
-        text: string,
-        success: string,
-        error: string
-    ) => {
-        if (await copyToClipboard(text)) {
-            showSuccess(success);
-        } else {
-            showError(error);
-        }
-    };
-
-    const handleCopyLinks = async (collection: LibraryCollectionSummary) => {
-        if (!ensureAccess(collection, "copy")) {
-            return;
-        }
-
-        const items = itemsByCollectionId.get(collection.id) ?? [];
-        const urls = getItemUrls(items);
-
-        if (urls.length === 0) {
-            showError(EMPTY_LINKS_MESSAGE);
-            return;
-        }
-
-        await copyWithFeedback(
-            urls.join("\n"),
-            `Links from ${collection.name} copied to the clipboard.`,
-            "We couldn't copy these links right now."
-        );
-    };
-
-    const handleCopyTitle = async (collection: LibraryCollectionSummary) => {
-        await copyWithFeedback(
-            collection.name,
-            `${collection.name} title copied to the clipboard.`,
-            "We couldn't copy this collection title right now."
-        );
-    };
-
-    const handleCopyShareLink = async (
-        collection: LibraryCollectionSummary
-    ) => {
-        if (!collection.shareId) {
-            showError("Create a public link before trying to copy it.");
-            return;
-        }
-
-        const url = buildPublicCollectionShareUrl(collection.shareId);
-        await copyWithFeedback(
-            url,
-            `Public link for ${collection.name} copied to the clipboard.`,
-            "We couldn't copy this public link right now."
-        );
-    };
-
-    const handleEnableShare = (collection: LibraryCollectionSummary) => {
-        setFeedback(null);
-        setPendingShareId(collection.id);
-
-        startShare(async () => {
-            const result = await shareCollectionPubliclySafely({
-                collectionId: collection.id,
-            });
-
-            if (result.status !== "SHARED") {
-                showError(result.message);
-                setPendingShareId(null);
-                return;
-            }
-
-            syncShare(result.collection);
-            setPendingShareId(null);
-            const linkCopied = await copyToClipboard(result.shareUrl);
-            showSuccess(
-                linkCopied
-                    ? `${collection.name} is now publicly shared. Link copied to the clipboard.`
-                    : `${collection.name} is now publicly shared.`
-            );
-        });
-    };
-
-    const handleDisableShare = (collection: LibraryCollectionSummary) => {
-        setFeedback(null);
-        setPendingShareId(collection.id);
-
-        startShare(async () => {
-            const result = await disableCollectionSharingSafely({
-                collectionId: collection.id,
-            });
-
-            if (result.status !== "DISABLED") {
-                showError(result.message);
-                setPendingShareId(null);
-                return;
-            }
-
-            syncShare(result.collection);
-            setPendingShareId(null);
-            showSuccess(`${collection.name} is no longer publicly shared.`);
-        });
-    };
-
-    const handleOpenLinks = (collection: LibraryCollectionSummary) => {
-        if (!ensureAccess(collection, "open")) {
-            return;
-        }
-
-        const items = itemsByCollectionId.get(collection.id) ?? [];
-        const urls = getItemUrls(items);
-
-        if (urls.length === 0) {
-            showError(EMPTY_LINKS_MESSAGE);
-            return;
-        }
-
-        showSuccess(
-            `Opening ${urls.length} link${urls.length === 1 ? "" : "s"} from ${collection.name}.`
-        );
-
-        for (const url of urls) {
-            openExternal(url);
-        }
-    };
-
-    const handleExportCsv = (collection: LibraryCollectionSummary) => {
-        if (!ensureAccess(collection, "export")) {
-            return;
-        }
-
-        const items = itemsByCollectionId.get(collection.id) ?? [];
-
-        if (items.length === 0) {
-            showError(EMPTY_LINKS_MESSAGE);
-            return;
-        }
-
-        React.startTransition(async () => {
-            try {
-                await saveFile(
-                    new Blob([buildCsv(collection, items)], {
-                        type: CSV_CONTENT_TYPE,
-                    }),
-                    {
-                        description: "CSV file",
-                        extension: "csv",
-                        name: getExportFileName(collection.name),
-                    }
-                );
-
-                showSuccess(`${collection.name} exported as CSV.`);
-            } catch {
-                showError("We couldn't export this collection right now.");
-            }
-        });
-    };
-
-    const handleConfirmDelete = () => {
-        const target = pendingDelete;
-        if (!target) {
-            return;
-        }
-
-        startDelete(async () => {
-            const result = await deleteCollectionSafely({
-                collectionId: target.id,
-            });
-
-            if (result.status !== "DELETED") {
-                showError(result.message);
-                return;
-            }
-
-            setCollections((current) =>
-                current.filter((c) => c.id !== result.collection.id)
-            );
-            setItems((current) =>
-                updateItemTags(current, (tags) =>
-                    tags.filter((c) => c.id !== result.collection.id)
-                )
-            );
-            setPendingDelete(null);
-            showSuccess(`${result.collection.name} deleted.`);
-        });
-    };
-
-    const handleUpdatePriority = async (
-        collectionId: string,
-        priority: CollectionPriority
-    ) => {
-        const previous = collections.find(
-            (c) => c.id === collectionId
-        )?.priority;
-
-        if (!previous || previous === priority) {
-            return;
-        }
-
-        syncPriority(collectionId, priority);
-
-        const result = await updateCollectionPrioritySafely({
-            collectionId,
-            priority,
-        });
-
-        if (result.status === "UPDATED") {
-            syncPriority(result.collection.id, result.collection.priority);
-        } else {
-            syncPriority(collectionId, previous);
-            showError(result.message);
-        }
-    };
-
-    const handleRenameSubmit = () => {
-        const target = pendingRename;
-        if (!target) {
-            return;
-        }
-
-        const previousName = target.name;
-        const nextName = normalizeName(renameDraft);
-
-        if (nextName.length === 0) {
-            setRenameError("Enter a collection name.");
-            return;
-        }
-
-        if (nextName === previousName) {
-            resetRename();
-            return;
-        }
-
-        setCollections((current) => replaceName(current, target.id, nextName));
-        setItems((current) =>
-            replaceItemCollectionNames(current, target.id, nextName)
-        );
-
-        startRename(async () => {
-            const result = await renameCollectionSafely({
-                collectionId: target.id,
-                name: nextName,
-            });
-
-            if (result.status === "UPDATED") {
-                setCollections((current) =>
-                    replaceName(
-                        current,
-                        result.collection.id,
-                        result.collection.name
-                    )
-                );
-                setItems((current) =>
-                    replaceItemCollectionNames(
-                        current,
-                        result.collection.id,
-                        result.collection.name
-                    )
-                );
-                resetRename();
-                showSuccess(`${result.collection.name} renamed.`);
-                return;
-            }
-
-            setCollections((current) =>
-                replaceName(current, target.id, previousName)
-            );
-            setItems((current) =>
-                replaceItemCollectionNames(current, target.id, previousName)
-            );
-            setRenameError(result.message);
-        });
-    };
-
-    const handleDuplicate = (collection: LibraryCollectionSummary) => {
-        setFeedback(null);
-
-        startDuplicate(async () => {
-            const result = await duplicateCollectionSafely({
-                collectionId: collection.id,
-            });
-
-            if (result.status !== "CREATED") {
-                showError(result.message);
-                return;
-            }
-
-            syncCreated({
-                assignedItemIds: result.assignedItemIds,
-                collection: result.collection,
-            });
-            showSuccess(
-                `${collection.name} copied as ${result.collection.name}.`
-            );
-        });
-    };
-
-    const handleCreateSubmit = () => {
-        startCreateCollection({
-            assignToItemId: createItemId ?? undefined,
-            description: createDescription || undefined,
-            name: createName,
-        });
-    };
-
-    const handleCreateFromTemplate = (value: TemplateValue | null) => {
-        if (!value) {
-            return;
-        }
-        const template = TEMPLATES.find((t) => t.value === value);
-        if (!template) {
-            return;
-        }
-        setCreateError(null);
-        startCreateCollection(
-            {
-                assignToItemId: createItemId ?? undefined,
-                description: template.description,
-                name: template.name,
-            },
-            () => showSuccess(`${template.name} created from template.`)
-        );
-    };
-
-    const handleCreateNameChange = (draft: string) => {
-        setCreateName(draft);
-        if (createError) {
-            setCreateError(null);
-        }
-    };
-
-    const handleRenameDraftChange = (draft: string) => {
-        setRenameDraft(draft);
-        if (renameError) {
-            setRenameError(null);
-        }
-    };
-
-    const handleCreateOpenChange = (open: boolean) => {
-        if (!(open || isCreatePending)) {
-            resetCreate();
-        }
-        setIsCreateOpen(open);
-    };
-
-    const hasAnySelected = selectedCollectionIds.length > 0;
-    const collectionLabels = collectionSummaries.map((c) => c.name);
-
-    return (
-        <>
-            <CollectionsList>
-                <CollectionsListToolbar className="group">
-                    <CollectionsListTrigger collectionLabels={collectionLabels}>
-                        <span className="min-w-0 text-xs">
-                            My collections ({collectionSummaries.length})
-                        </span>
-                        <ChevronDownFilledIcon className="-ml-0.5" />
-                    </CollectionsListTrigger>
-                    <CollectionsListToolbarGroup className="absolute right-1">
-                        {isListOpen ? null : (
-                            <Kbd className="bg-transparent opacity-0 group-hover:opacity-50">
-                                <CtrlKbd />C
-                            </Kbd>
-                        )}
-                        <CollectionsListToolbarButton
-                            render={
-                                <CollectionsListFilterClearButton
-                                    isVisible={hasAnySelected}
-                                    onClick={onClearCollectionFilters}
-                                />
-                            }
-                        />
-                        <CollectionsListToolbarButton
-                            className={isListOpen ? undefined : "hidden"}
-                            render={<CollectionsListSortingCombobox />}
-                        />
-                        <CollectionsListToolbarButton
-                            render={
-                                <Button
-                                    onClick={() => requestCreate()}
-                                    size="icon-xs"
-                                    title={`Create a new collection (${getSystemControlKey()}N)`}
-                                    variant="ghost"
-                                >
-                                    <PlusIcon
-                                        aria-hidden
-                                        className="inline-block size-3.5 shrink-0"
-                                        focusable="false"
-                                    />
-                                </Button>
-                            }
-                        />
-                    </CollectionsListToolbarGroup>
-                </CollectionsListToolbar>
-                <CollectionsListPanel>
-                    <div className="p-1.5 pt-1">
-                        <CollectionsListNoticeCallout
-                            isDisabled={isSmartCollectionsDisabled}
-                            onDisable={async () => {
-                                setIsSmartCollectionsDisabled(true);
-                                const result = await disableSmartCollections();
-                                if (result.status !== "DISABLED") {
-                                    setIsSmartCollectionsDisabled(false);
-                                    showError(result.message);
-                                }
-                            }}
-                        />
-                    </div>
-                    {collectionSummaries.length === 0 ? (
-                        <CollectionsListEmpty>
-                            No collections found. Create your first collection
-                            to start grouping saved items.
-                        </CollectionsListEmpty>
-                    ) : (
-                        <>
-                            <DisclosureList maxVisible={15}>
-                                {collectionSummaries.map((collection) => {
-                                    const isSelected =
-                                        selectedCollectionIds.includes(
-                                            collection.id
-                                        );
-
-                                    return (
-                                        <CollectionsListItem
-                                            collection={collection}
-                                            isSelected={isSelected}
-                                            key={collection.id}
-                                        >
-                                            <CollectionsListItemPriorityCombobox
-                                                onValueChange={(priority) =>
-                                                    handleUpdatePriority(
-                                                        collection.id,
-                                                        priority
-                                                    )
-                                                }
-                                            />
-                                            <CollectionsListItemPreview
-                                                {...(isSelected
-                                                    ? { "data-pressed": true }
-                                                    : {})}
-                                                onClick={() =>
-                                                    onSelectCollection(
-                                                        collection.id
-                                                    )
-                                                }
-                                                thumbnails={
-                                                    collectionPreviewThumbnailUrlsById.get(
-                                                        collection.id
-                                                    ) ?? []
-                                                }
-                                            >
-                                                <CollectionsListItemValue />
-                                            </CollectionsListItemPreview>
-                                            <CollectionsListItemMeta
-                                                isSharePending={
-                                                    pendingShareId ===
-                                                        collection.id &&
-                                                    isSharePending
-                                                }
-                                                onCopyLinks={() =>
-                                                    handleCopyLinks(collection)
-                                                }
-                                                onCopyShareLink={() =>
-                                                    handleCopyShareLink(
-                                                        collection
-                                                    )
-                                                }
-                                                onCopyTitle={() =>
-                                                    handleCopyTitle(collection)
-                                                }
-                                                onDelete={() =>
-                                                    requestDelete(collection)
-                                                }
-                                                onDisableShare={() =>
-                                                    handleDisableShare(
-                                                        collection
-                                                    )
-                                                }
-                                                onEnableShare={() =>
-                                                    handleEnableShare(
-                                                        collection
-                                                    )
-                                                }
-                                                onExportCsv={() =>
-                                                    handleExportCsv(collection)
-                                                }
-                                                onMakeCopy={() =>
-                                                    handleDuplicate(collection)
-                                                }
-                                                onOpenLinks={() =>
-                                                    handleOpenLinks(collection)
-                                                }
-                                                onRename={() =>
-                                                    requestRename(collection)
-                                                }
-                                                shareUrl={
-                                                    collection.shareId
-                                                        ? buildPublicCollectionShareUrl(
-                                                              collection.shareId
-                                                          )
-                                                        : null
-                                                }
-                                            />
-                                        </CollectionsListItem>
-                                    );
-                                })}
-                            </DisclosureList>
-                            <CollectionsListStatus
-                                onDismiss={() => setFeedback(null)}
-                                tone={feedback?.tone}
-                            >
-                                {feedback?.message}
-                            </CollectionsListStatus>
-                        </>
-                    )}
-                </CollectionsListPanel>
-            </CollectionsList>
-            <RenameDialog
-                errorMessage={renameError}
-                isOpen={pendingRename !== null}
-                isPending={isRenamePending}
-                nameDraft={renameDraft}
-                onNameDraftChange={handleRenameDraftChange}
-                onOpenChange={(open) => {
-                    if (!(open || isRenamePending)) {
-                        resetRename();
-                    }
-                }}
-                onSubmit={handleRenameSubmit}
-            />
-            <CreateDialog
-                descriptionDraft={createDescription}
-                errorMessage={createError}
-                isOpen={isCreateOpen}
-                isPending={isCreatePending}
-                nameDraft={createName}
-                onCreateFromTemplate={handleCreateFromTemplate}
-                onDescriptionDraftChange={setCreateDescription}
-                onNameDraftChange={handleCreateNameChange}
-                onOpenChange={handleCreateOpenChange}
-                onSubmit={handleCreateSubmit}
-            />
-            <DeleteDialog
-                collection={pendingDelete}
-                isPending={isDeletePending}
-                onConfirm={handleConfirmDelete}
-                onOpenChange={(open) => {
-                    if (!(open || isDeletePending)) {
-                        setPendingDelete(null);
-                    }
-                }}
-            />
-        </>
-    );
-}
-
-// #endregion Workspace-bound feature component
+export {
+    CollectionsList,
+    CollectionsListEmpty,
+    CollectionsListFilterClearButton,
+    CollectionsListInlineRow,
+    CollectionsListItem,
+    CollectionsListItemMeta,
+    CollectionsListItemPreview,
+    CollectionsListItemPriorityCombobox,
+    CollectionsListItemValue,
+    CollectionsListNoticeCallout,
+    CollectionsListPanel,
+    CollectionsListSharePopover,
+    CollectionsListSortingCombobox,
+    CollectionsListStatus,
+    CollectionsListToolbar,
+    CollectionsListToolbarButton,
+    CollectionsListToolbarGroup,
+    CollectionsListTrigger,
+    CreateDialog,
+    DeleteDialog,
+    RenameDialog,
+    SORT_OPTION_BY_VALUE,
+    TEMPLATES,
+    type CollectionFeedback,
+    type CollectionsListItemContextValue,
+    type CollectionsListItemMetaProps,
+    type CollectionsListItemPreviewProps,
+    type CollectionsListItemProps,
+    type CollectionsListSharePopoverProps,
+    type CollectionsListSortingComboboxProps,
+    type CollectionsListStatusProps,
+    type CollectionsListTriggerProps,
+    type CollectionSortField,
+    type CreateDialogProps,
+    type DeleteDialogProps,
+    type PriorityOption,
+    type RenameDialogProps,
+    type SortingComboboxOption,
+    type TemplateValue,
+};

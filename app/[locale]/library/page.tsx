@@ -6,7 +6,10 @@ import {
     UserMenuHeader,
 } from "@/components/auth/user-menu";
 import { Root } from "@/components/library/browser";
-import { CollectionsListRoot } from "@/components/library/collections";
+import {
+    CollectionsListWorkspaceRoot,
+    WorkspaceProvider,
+} from "@/components/library/workspace-provider";
 import {
     IntegrationsList,
     IntegrationsListFeedback,
@@ -16,7 +19,6 @@ import {
     IntegrationsListPrivacyNotice,
     IntegrationsListTrigger,
 } from "@/components/library/integrations";
-import { WorkspaceProvider } from "@/components/library/workspace-provider";
 import { ActivePathname } from "@/components/ui/active-pathname";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ChevronDownFilledIcon } from "@/components/ui/icons";
@@ -30,10 +32,7 @@ import {
 } from "@/components/ui/sidebar";
 import { getServerSession } from "@/lib/auth/server";
 import { userHasActiveSubscription } from "@/lib/billing/subscriptions/subscription-access";
-import {
-    getLibraryPageData,
-    getUserSmartCollectionsPreference,
-} from "@/lib/collections/service";
+import { getLibraryPageData } from "@/lib/collections/service";
 import { gtPublicString } from "@/lib/i18n/gt-public-json";
 import { listLinkedIntegrationAccounts } from "@/lib/integrations/service";
 import {
@@ -80,12 +79,10 @@ export default async function LibraryPage() {
         return redirect("/");
     }
 
-    const [hasAccess, linkedAccounts, smartCollectionsDisabled] =
-        await Promise.all([
-            userHasActiveSubscription(userId),
-            listLinkedIntegrationAccounts({ userId }),
-            getUserSmartCollectionsPreference({ userId }),
-        ]);
+    const [hasAccess, linkedAccounts] = await Promise.all([
+        userHasActiveSubscription(userId),
+        listLinkedIntegrationAccounts({ userId }),
+    ]);
 
     const { collections, itemSources, items, lockedItemCount, totalItemCount } =
         await getLibraryPageData({
@@ -217,11 +214,7 @@ export default async function LibraryPage() {
                                     <IntegrationsListPrivacyNotice />
                                 </IntegrationsListPanel>
                             </IntegrationsList>
-                            <CollectionsListRoot
-                                isSmartCollectionsDisabled={
-                                    smartCollectionsDisabled
-                                }
-                            />
+                            <CollectionsListWorkspaceRoot />
                         </SidebarHeader>
                     </Sidebar>
                     <div className="flex w-full max-w-[1024px] flex-col items-center gap-12 p-8 2xl:mx-auto">

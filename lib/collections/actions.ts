@@ -406,3 +406,30 @@ export async function disableSmartCollections(): Promise<
         };
     }
 }
+
+export async function getSmartCollectionsPreference(): Promise<
+    | { disabled: boolean; status: "OK" }
+    | { message: string; status: "ERROR" | "UNAUTHORIZED" }
+> {
+    const auth = await requireActionUserId(
+        "Sign in again to manage smart collections."
+    );
+    if ("status" in auth) {
+        return auth;
+    }
+
+    try {
+        const disabled = await service.getUserSmartCollectionsPreference({
+            userId: auth.userId,
+        });
+
+        return { disabled, status: "OK" };
+    } catch (error) {
+        log.error("Failed to get smart collections preference", error);
+
+        return {
+            message: "We couldn't fetch your smart collections preference.",
+            status: "ERROR",
+        };
+    }
+}

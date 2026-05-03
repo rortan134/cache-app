@@ -5,14 +5,16 @@ import {
     InlinePaywallBanner,
 } from "@/components/billing/paywall-banner";
 import { FeedbackWidget } from "@/components/feedback/feedback-widget";
-import { NAME_COLLATOR } from "@/components/library/collections";
 import { Note } from "@/components/library/notes";
 import {
     PreviewDrawer,
     PreviewDrawerContent,
     PreviewDrawerTrigger,
 } from "@/components/library/preview-drawer";
-import { useWorkspace } from "@/components/library/workspace-provider";
+import {
+    NAME_COLLATOR,
+    useWorkspace,
+} from "@/components/library/workspace-provider";
 import {
     Attachment,
     AttachmentInfo,
@@ -126,13 +128,13 @@ import type {
     LibraryCollectionSummary,
     LibraryItemWithCollections,
 } from "@/lib/collections/utils";
+import { cn } from "@/lib/common/cn";
+import { getColorGradientFromName } from "@/lib/common/colors";
 import {
     FALLBACK_URL,
     ITEM_KIND_BOOKMARK,
     ITEM_KIND_NOTE,
 } from "@/lib/common/constants";
-import { cn } from "@/lib/common/cn";
-import { getColorGradientFromName } from "@/lib/common/colors";
 import { getOwnerWindow } from "@/lib/common/dom";
 import { getSystemControlKey } from "@/lib/common/environment";
 import {
@@ -853,6 +855,7 @@ const PALETTE_LAYOUT_MODE_OPTIONS = [
 interface CommandPaletteItem {
     active?: boolean;
     description?: string;
+    disabled?: boolean;
     label: string;
     onSelect: (
         event: BaseUIEvent<React.MouseEvent> | KeyboardEvent
@@ -1615,6 +1618,15 @@ function buildSearchPaletteGroups({
                     shortcut: "Enter",
                     value: `add search ${draft}`,
                 },
+                {
+                    description: "AI Search",
+                    disabled: true,
+                    label: "Ask Cache",
+                    // biome-ignore lint/suspicious/noEmptyBlockStatements: TODO: intentionally disabled for now
+                    onSelect: () => {},
+                    shortcut: "Tab",
+                    value: `ask cache ${draft}`,
+                },
             ],
             label: "Search",
         });
@@ -2296,7 +2308,7 @@ function applyVisiblePaletteShortcuts(
         ...group,
         items: group.items.map((item) => {
             globalIndex++;
-            if (globalIndex <= 9) {
+            if (globalIndex <= 9 && !item.shortcut) {
                 return {
                     ...item,
                     shortcut: systemControlKey
@@ -3992,7 +4004,7 @@ function SectionSummaryContent({
                 size="xs"
                 variant="link"
             >
-                More&nbsp;
+                Expand&nbsp;
                 <ListChevronsUpDown className="mb-px inline-block size-3.5 shrink-0" />
             </Button>
             or
@@ -5134,6 +5146,7 @@ export function Root({ lockedItemCount, totalItemCount }: LibraryProps) {
                                                                 ? "group relative flex-1 overflow-hidden rounded-xl bg-accent text-accent-foreground shadow-xs"
                                                                 : undefined
                                                         }
+                                                        disabled={item.disabled}
                                                         key={item.value}
                                                         onClick={item.onSelect}
                                                         value={item.value}
