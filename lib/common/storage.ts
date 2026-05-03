@@ -1,5 +1,5 @@
 export function setItem<T>(key: string, data: T, session?: boolean): void {
-    if (typeof window !== "undefined" && data) {
+    if (typeof window !== "undefined" && data !== null && data !== undefined) {
         (session ? sessionStorage : localStorage).setItem(
             key,
             JSON.stringify(data)

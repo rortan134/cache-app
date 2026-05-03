@@ -77,7 +77,7 @@ export function saveFile(
         );
     } catch (error) {
         options.onError?.(error);
-        return null;
+        return Promise.resolve(null);
     }
 }
 

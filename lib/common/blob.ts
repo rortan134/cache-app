@@ -46,5 +46,7 @@ export const blobToText = async (blob: Blob): Promise<string> =>
                 reject(error);
             };
             reader.readAsText(blob);
+        } else {
+            reject(new Error("Invalid blob"));
         }
     });

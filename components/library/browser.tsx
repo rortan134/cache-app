@@ -123,6 +123,10 @@ import {
     resolveLibraryItemPreview,
     type LibraryItemPreviewResolveResult,
 } from "@/lib/collections/media";
+import type {
+    LibraryCollectionSummary,
+    LibraryItemWithCollections,
+} from "@/lib/collections/utils";
 import { cn } from "@/lib/common/cn";
 import { getColorGradientFromName } from "@/lib/common/colors";
 import { getOwnerWindow } from "@/lib/common/dom";
@@ -137,10 +141,6 @@ import { getImageColors } from "@/lib/common/image-colors";
 import { createLogger } from "@/lib/common/logs/console/logger";
 import { withMemoize } from "@/lib/common/memoize";
 import { toUsableStaticPreviewUrl } from "@/lib/common/preview-url";
-import type {
-    LibraryCollectionSummary,
-    LibraryItemWithCollections,
-} from "@/lib/collections/utils";
 import {
     normalizeURL,
     openSavedItemInNewTab,
@@ -5134,25 +5134,21 @@ export function Root({ lockedItemCount, totalItemCount }: LibraryProps) {
                                                         {item.render ? (
                                                             item.render(item)
                                                         ) : (
-                                                            <div className="flex min-w-0 flex-1 items-center gap-3">
-                                                                <div className="min-w-0 flex-1">
-                                                                    <div className="truncate">
-                                                                        {
-                                                                            item.label
-                                                                        }
-                                                                    </div>
-                                                                    {item.description ? (
-                                                                        <p className="truncate text-muted-foreground text-xs">
-                                                                            {
-                                                                                item.description
-                                                                            }
-                                                                        </p>
-                                                                    ) : null}
+                                                            <div className="flex min-w-0 flex-1 items-center gap-2.5">
+                                                                <div className="truncate">
+                                                                    {item.label}
                                                                 </div>
-                                                                {item.active ? (
-                                                                    <span className="shrink-0 rounded-full bg-accent px-2 py-0.5 font-medium text-[11px] text-accent-foreground">
-                                                                        Active
+                                                                {item.description ? (
+                                                                    <span className="max-w-xs truncate text-muted-foreground/80 text-xs">
+                                                                        {
+                                                                            item.description
+                                                                        }
                                                                     </span>
+                                                                ) : null}
+                                                                {item.active ? (
+                                                                    <Badge variant="secondary">
+                                                                        Active
+                                                                    </Badge>
                                                                 ) : null}
                                                                 {item.shortcut ? (
                                                                     <CommandShortcut>

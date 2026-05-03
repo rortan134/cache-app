@@ -123,7 +123,7 @@ export function CommandShortcut({
     return (
         <kbd
             className={cn(
-                "ms-auto font-medium font-sans text-muted-foreground/72 text-xs tracking-wider",
+                "ms-auto font-sans text-muted-foreground/50 text-xs tracking-wider",
                 className
             )}
             data-slot="command-shortcut"

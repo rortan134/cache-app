@@ -73,11 +73,10 @@ import {
     useRef,
     useState,
     type ClipboardEvent,
+    type ComponentType,
     type ReactNode,
     type SVGProps,
 } from "react";
-
-// #region Domain/view types
 
 interface NoteDraft {
     contentHtml: string;
@@ -87,7 +86,7 @@ interface NoteDraft {
 interface NoteProps {
     children: ReactNode;
     note: LibraryItemWithCollections | null;
-    onOpenChange: (open: boolean) => void;
+    onOpenChange: (open: boolean) => void | Promise<void>;
     onSave: (draft: NoteDraft) => Promise<boolean> | boolean;
     onUrlPaste: (url: string) => Promise<void> | void;
     open: boolean;
@@ -125,10 +124,6 @@ interface NoteTextMetrics {
 
 type NoteBlockType = "h1" | "h2" | "h3" | "paragraph";
 type NoteInlineFormatStateKey = Exclude<keyof FormatState, "blockType">;
-
-// #endregion Domain/view types
-
-// #region Constants
 
 const INITIAL_FORMAT_STATE: FormatState = {
     blockType: "paragraph",
@@ -196,21 +191,27 @@ const NOTE_TEXT_FORMAT_OPTIONS = [
     stateKey: NoteInlineFormatStateKey;
 }>;
 
-const EXPORT_CONTENT_PROVIDERS = [
+interface ExportContentProvider {
+    createUrl: (query: string) => string;
+    icon: ComponentType<SVGProps<SVGSVGElement>>;
+    title: string;
+}
+
+const EXPORT_CONTENT_PROVIDERS: readonly ExportContentProvider[] = [
     {
-        createUrl: (query: string) =>
+        createUrl: (query) =>
             `https://chatgpt.com/?${new URLSearchParams({ hints: "search", prompt: query })}`,
         icon: OpenAIIcon,
         title: "Open in ChatGPT",
     },
     {
-        createUrl: (query: string) =>
+        createUrl: (query) =>
             `https://claude.ai/new?${new URLSearchParams({ q: query })}`,
         icon: ClaudeIcon,
         title: "Open in Claude",
     },
     {
-        createUrl: (query: string) => {
+        createUrl: (query) => {
             const url = new URL("https://cursor.com/link/prompt");
             url.searchParams.set("text", query);
             return url.toString();
@@ -219,30 +220,30 @@ const EXPORT_CONTENT_PROVIDERS = [
         title: "Open in Cursor",
     },
     {
-        createUrl: (query: string) =>
+        createUrl: (query) =>
             `https://scira.ai/?${new URLSearchParams({ q: query })}`,
         icon: SciraIcon,
         title: "Open in Scira",
     },
     {
-        createUrl: (query: string) =>
+        createUrl: (query) =>
             `https://t3.chat/new?${new URLSearchParams({ q: query })}`,
         icon: T3ChatIcon,
         title: "Open in T3 Chat",
     },
     {
-        createUrl: (query: string) =>
+        createUrl: (query) =>
             `https://v0.app?${new URLSearchParams({ q: query })}`,
         icon: V0Icon,
         title: "Open in v0",
     },
     {
-        createUrl: () => "https://docs.new",
+        createUrl: (_query) => "https://docs.new",
         icon: GoogleDocsIcon,
         title: "Open in Google Docs",
     },
     {
-        createUrl: () => "https://notion.new",
+        createUrl: (_query) => "https://notion.new",
         icon: NotionIcon,
         title: "Open in Notion",
     },
@@ -250,10 +251,6 @@ const EXPORT_CONTENT_PROVIDERS = [
 
 const NOTE_NON_EMPTY_BLOCK_TAG_REGEX =
     /<(h[1-3]|p)>(?!(?:\s|<br\s*\/?>)*<\/\1>)[\s\S]*?<\/\1>/gi;
-
-// #endregion Constants
-
-// #region Local stores/context
 
 const NoteContext = createContext<NoteContextValue | null>(null);
 
@@ -266,10 +263,6 @@ function useNoteContext(): NoteContextValue {
     }
     return context;
 }
-
-// #endregion Local stores/context
-
-// #region Pure helpers
 
 function normalizeDraft(draft: NoteDraft): NoteDraft {
     return {
@@ -314,17 +307,15 @@ function areFormatStatesEqual(left: FormatState, right: FormatState): boolean {
 
 function getNoteTextMetrics(contentHtml: string): NoteTextMetrics {
     const plainText = extractNoteText(contentHtml);
-    const paragraphCount = (
-        contentHtml.match(NOTE_NON_EMPTY_BLOCK_TAG_REGEX) ?? []
-    ).length;
+    const matchedBlocks = contentHtml.match(NOTE_NON_EMPTY_BLOCK_TAG_REGEX);
 
     // If there is text but no matched block tags, treat it as a single implicit paragraph.
-    const normalizedParagraphCount =
-        paragraphCount > 0 || plainText.length === 0 ? paragraphCount : 1;
+    const paragraphCount =
+        plainText.length === 0 ? 0 : Math.max(1, matchedBlocks?.length ?? 0);
 
     return {
         characterCount: plainText.length,
-        paragraphCount: normalizedParagraphCount,
+        paragraphCount,
         plainText,
         wordCount:
             plainText.length === 0
@@ -371,10 +362,6 @@ function haveDraftsChanged(left: NoteDraft, right: NoteDraft): boolean {
 function isDraftEmpty(draft: NoteDraft): boolean {
     return extractNoteText(draft.contentHtml).length === 0;
 }
-
-// #endregion Pure helpers
-
-// #region Plugin components
 
 function NoteFormattingToolbarPlugin() {
     const [editor] = useLexicalComposerContext();
@@ -546,10 +533,6 @@ function NoteContentPlugin({
     );
 }
 
-// #endregion Plugin components
-
-// #region Main components
-
 function NoteRoot({
     children,
     note,
@@ -630,9 +613,7 @@ function NoteRoot({
         }
     };
 
-    const toggleExpanded = () => {
-        setIsExpanded((prev) => !prev);
-    };
+    const toggleExpanded = () => setIsExpanded((prev) => !prev);
 
     const deferredContentHtml = useDeferredValue(draft.contentHtml);
     const textMetrics = getNoteTextMetrics(deferredContentHtml);
@@ -807,10 +788,6 @@ function NoteMetrics() {
     );
 }
 
-// #endregion Main components
-
-// #region Exported object
-
 export const Note = Object.assign(NoteRoot, {
     Editor: NoteEditor,
     Header: NoteHeader,
@@ -819,10 +796,6 @@ export const Note = Object.assign(NoteRoot, {
     Title: NoteTitle,
     useContext: useNoteContext,
 });
-
-// #endregion Exported object
-
-// #region Icons
 
 function BrandIcon({
     children,
@@ -954,5 +927,3 @@ function V0Icon(props: SVGProps<SVGSVGElement>) {
         </BrandIcon>
     );
 }
-
-// #endregion Icons
