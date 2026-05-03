@@ -1,6 +1,6 @@
-import { requireSessionUserId } from "@/lib/auth/api";
 import {
     getOrCreateExtensionIngestToken,
+    requireSessionUserId,
     rotateExtensionIngestToken,
 } from "@/lib/auth/service";
 

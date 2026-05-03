@@ -1,3 +1,4 @@
+import { requireSessionUserId } from "@/lib/auth/service";
 import { autoTagLibraryItemsByIds } from "@/lib/collections/intelligence";
 import { createLogger } from "@/lib/common/logs/console/logger";
 import {
@@ -5,9 +6,10 @@ import {
     chromeBookmarkSyncBodySchema,
     purgeChromeBookmarksForUser,
 } from "@/lib/integrations/chrome/service";
-import { extensionIngestCorsHeaders } from "@/lib/integrations/extension-ingest";
-import { authenticateExtensionIngest } from "@/lib/integrations/extension-ingest";
-import { requireSessionUserId } from "@/lib/auth/api";
+import {
+    authenticateExtensionIngest,
+    extensionIngestCorsHeaders,
+} from "@/lib/integrations/extension-ingest";
 import { after } from "next/server";
 
 const log = createLogger("api:sync:chrome-bookmarks");

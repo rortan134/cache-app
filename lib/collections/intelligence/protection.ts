@@ -1,7 +1,7 @@
 import "server-only";
 
 import { serverEnv } from "@/env/server";
-import { getUserPlanType } from "@/lib/auth/subscription-access";
+import { getUserPlanType } from "@/lib/billing/subscriptions/subscription-access";
 import { GEN_AI_QUOTAS, type PlanType } from "@/lib/billing/prices";
 import { GenAiProtectionError } from "@/lib/collections/intelligence/error";
 import { createLogger } from "@/lib/common/logs/console/logger";

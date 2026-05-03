@@ -1,12 +1,7 @@
 import "server-only";
 
+import { z } from "zod";
 import { IntegrationApiError } from "@/lib/integrations/error";
-import {
-    asProviderPayloadRecord,
-    readPayloadDate,
-    readPayloadNumber,
-    readPayloadString,
-} from "@/lib/integrations/provider-payload";
 import type { Prisma } from "@/prisma/client/client";
 
 const GITHUB_API_BASE_URL = "https://api.github.com";
@@ -28,13 +23,45 @@ export interface GitHubAuthenticatedUser {
     readonly name: string | null;
 }
 
+const GitHubApiErrorSchema = z.object({
+    message: z.string().optional(),
+});
+
+const GitHubUserSchema = z.object({
+    avatar_url: z.string().optional(),
+    id: z.number(),
+    login: z.string().optional(),
+    name: z.string().optional(),
+});
+
+const GitHubOwnerSchema = z.object({
+    avatar_url: z.string().optional(),
+    id: z.number(),
+    login: z.string().optional(),
+});
+
+const GitHubRepositorySchema = z.object({
+    default_branch: z.string().optional(),
+    description: z.string().optional(),
+    fork: z.boolean().optional(),
+    full_name: z.string().optional(),
+    html_url: z.string(),
+    id: z.number(),
+    language: z.string().optional(),
+    owner: GitHubOwnerSchema.optional(),
+    private: z.boolean().optional(),
+    stargazers_count: z.number().optional(),
+    topics: z.array(z.string()).optional(),
+    updated_at: z.string().optional(),
+});
+
 function parseGitHubApiError(
     payload: unknown,
     status: number
 ): IntegrationApiError {
-    const record = asProviderPayloadRecord(payload);
+    const parsed = GitHubApiErrorSchema.safeParse(payload);
     const message =
-        readPayloadString(record?.message) ??
+        parsed.data?.message ||
         `GitHub API request failed with status ${status}.`;
 
     return new IntegrationApiError({
@@ -73,62 +100,55 @@ async function fetchGitHub(
 function parseAuthenticatedUser(
     payload: unknown
 ): GitHubAuthenticatedUser | null {
-    const record = asProviderPayloadRecord(payload);
-    const numericId = readPayloadNumber(record?.id);
-    if (numericId === null) {
+    const parsed = GitHubUserSchema.safeParse(payload);
+    if (!parsed.success) {
         return null;
     }
 
     return {
-        avatarUrl: readPayloadString(record?.avatar_url),
-        id: String(numericId),
-        login: readPayloadString(record?.login),
-        name: readPayloadString(record?.name),
+        avatarUrl: parsed.data.avatar_url ?? null,
+        id: String(parsed.data.id),
+        login: parsed.data.login ?? null,
+        name: parsed.data.name ?? null,
     };
 }
 
 function parseRepository(
     candidate: unknown
 ): GitHubImportableRepository | null {
-    const record = asProviderPayloadRecord(candidate);
-    const numericId = readPayloadNumber(record?.id);
-    const htmlUrl = readPayloadString(record?.html_url);
-
-    if (numericId === null || !htmlUrl) {
+    const parsed = GitHubRepositorySchema.safeParse(candidate);
+    if (!parsed.success) {
         return null;
     }
 
-    const owner = asProviderPayloadRecord(record?.owner);
-    const fullName = readPayloadString(record?.full_name);
-    const language = readPayloadString(record?.language);
-    const topics = Array.isArray(record?.topics)
-        ? record.topics.filter(
-              (topic): topic is string => typeof topic === "string"
-          )
-        : [];
+    const record = parsed.data;
+    const owner = record.owner;
+    const fullName = record.full_name ?? null;
+    const language = record.language ?? null;
+    const topics = record.topics ?? [];
 
     return {
-        caption: readPayloadString(record?.description) ?? fullName,
-        externalId: String(numericId),
-        postedAt: readPayloadDate(record?.updated_at),
+        caption: record.description ?? fullName,
+        externalId: String(record.id),
+        postedAt: record.updated_at ? new Date(record.updated_at) : null,
         sourceMetadata: {
             github: {
-                defaultBranch: readPayloadString(record?.default_branch),
-                fork: Boolean(record?.fork),
+                defaultBranch: record.default_branch ?? null,
+                fork: record.fork ?? false,
                 fullName,
                 importTimestamp: new Date().toISOString(),
                 language,
                 owner: {
-                    avatarUrl: readPayloadString(owner?.avatar_url),
-                    id: readPayloadNumber(owner?.id),
-                    login: readPayloadString(owner?.login),
+                    avatarUrl: owner?.avatar_url ?? null,
+                    id: owner?.id ?? null,
+                    login: owner?.login ?? null,
                 },
-                private: Boolean(record?.private),
-                stargazersCount: readPayloadNumber(record?.stargazers_count),
+                private: record.private ?? false,
+                stargazersCount: record.stargazers_count ?? null,
                 topics,
             },
         },
-        url: htmlUrl,
+        url: record.html_url,
     };
 }
 

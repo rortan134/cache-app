@@ -1,7 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/common/cn";
-import { useEffect, useRef, useState } from "react";
+import * as React from "react";
 
 type Align = "left" | "center" | "right";
 
@@ -58,20 +58,20 @@ function GradientWaveText({
     customColors,
     ariaLabel,
 }: GradientWaveTextProps) {
-    const elRef = useRef<HTMLDivElement | null>(null);
-    const rafRef = useRef(0);
-    const tRef = useRef(0);
-    const cyclesDoneRef = useRef(0);
-    const finishedRef = useRef(false);
-    const startedRef = useRef(false);
-    const startAtRef = useRef(0);
-    const hasPlayedRef = useRef(false);
+    const elRef = React.useRef<HTMLDivElement | null>(null);
+    const rafRef = React.useRef(0);
+    const tRef = React.useRef(0);
+    const cyclesDoneRef = React.useRef(0);
+    const finishedRef = React.useRef(false);
+    const startedRef = React.useRef(false);
+    const startAtRef = React.useRef(0);
+    const hasPlayedRef = React.useRef(false);
 
-    const [isInView, setIsInView] = useState(!inView);
+    const [isInView, setIsInView] = React.useState(!inView);
 
     const cycles = repeat ? 0 : 1;
 
-    useEffect(() => {
+    React.useEffect(() => {
         if (!inView) {
             setIsInView(true);
             return;
@@ -123,7 +123,7 @@ function GradientWaveText({
         ? `radial-gradient(circle at left top, ${stops})`
         : `linear-gradient(to bottom right, ${stops})`;
 
-    useEffect(() => {
+    React.useEffect(() => {
         if (!isInView) {
             return;
         }
@@ -142,7 +142,7 @@ function GradientWaveText({
         node.style.setProperty("--gi", "-25");
     }, [isInView, delay]);
 
-    useEffect(() => {
+    React.useEffect(() => {
         const node = elRef.current;
         if (!(node && isInView)) {
             return;

@@ -1,8 +1,8 @@
 "use client";
 
 import { cn } from "@/lib/common/cn";
-import { useComposedRefs } from "@/hooks/compose-refs";
 import { mergeProps } from "@base-ui/react/merge-props";
+import { useMergedRefs } from "@base-ui/utils/useMergedRefs";
 import { useRender } from "@base-ui/react/use-render";
 import { useRefWithInit } from "@base-ui/utils/useRefWithInit";
 import * as React from "react";
@@ -68,15 +68,10 @@ function useStore<T>(selector: (state: StoreState) => T): T {
         throw new Error(`\`useQRCode\` must be used within \`${ROOT_NAME}\``);
     }
 
-    const getSnapshot = React.useCallback(
-        () => selector(store.getState()),
-        [store, selector]
-    );
-
     return React.useSyncExternalStore(
         store.subscribe,
-        getSnapshot,
-        getSnapshot
+        () => selector(store.getState()),
+        () => selector(store.getState())
     );
 }
 
@@ -199,119 +194,103 @@ function QRCode(props: QRCodeProps) {
         svgString: null,
     }));
 
-    const store = React.useMemo(
-        () => createQRCodeStore(stateRef, listenersRef),
-        [listenersRef, stateRef]
-    );
+    const store = createQRCodeStore(stateRef, listenersRef);
 
-    const canvasOpts = React.useMemo<QRCodeCanvasOpts>(
-        () => ({
-            color: {
-                dark: foregroundColor,
-                light: backgroundColor,
-            },
-            errorCorrectionLevel: level,
-            margin,
-            quality,
-            type: "image/png",
-            width: size,
-        }),
-        [level, margin, foregroundColor, backgroundColor, size, quality]
-    );
+    const canvasOpts: QRCodeCanvasOpts = {
+        color: {
+            dark: foregroundColor,
+            light: backgroundColor,
+        },
+        errorCorrectionLevel: level,
+        margin,
+        quality,
+        type: "image/png",
+        width: size,
+    };
 
-    const generationKey = React.useMemo(() => {
-        if (!value) {
-            return "";
+    const generationKey = value
+        ? JSON.stringify({
+              backgroundColor,
+              foregroundColor,
+              level,
+              margin,
+              quality,
+              size,
+              value,
+          })
+        : "";
+
+    async function onQRCodeGenerate(targetGenerationKey: string) {
+        if (!(value && targetGenerationKey)) {
+            return;
         }
 
-        return JSON.stringify({
-            backgroundColor,
-            foregroundColor,
-            level,
-            margin,
-            quality,
-            size,
-            value,
+        const currentState = store.getState();
+        if (
+            currentState.isGenerating ||
+            currentState.generationKey === targetGenerationKey
+        ) {
+            return;
+        }
+
+        store.setStates({
+            error: null,
+            isGenerating: true,
         });
-    }, [value, level, margin, foregroundColor, backgroundColor, size, quality]);
 
-    const onQRCodeGenerate = React.useCallback(
-        async (targetGenerationKey: string) => {
-            if (!(value && targetGenerationKey)) {
-                return;
-            }
+        try {
+            const QRCode = (await import("qrcode")).default;
 
-            const currentState = store.getState();
-            if (
-                currentState.isGenerating ||
-                currentState.generationKey === targetGenerationKey
-            ) {
-                return;
-            }
-
-            store.setStates({
-                error: null,
-                isGenerating: true,
-            });
+            let dataUrl: string | null = null;
 
             try {
-                const QRCode = (await import("qrcode")).default;
-
-                let dataUrl: string | null = null;
-
-                try {
-                    dataUrl = await QRCode.toDataURL(value, canvasOpts);
-                } catch {
-                    dataUrl = null;
-                }
-
-                if (canvasRef.current) {
-                    await QRCode.toCanvas(canvasRef.current, value, canvasOpts);
-                }
-
-                const svgString = await QRCode.toString(value, {
-                    color: canvasOpts.color,
-                    errorCorrectionLevel: canvasOpts.errorCorrectionLevel,
-                    margin: canvasOpts.margin,
-                    type: "svg",
-                    width: canvasOpts.width,
-                });
-
-                store.setStates({
-                    dataUrl,
-                    generationKey: targetGenerationKey,
-                    isGenerating: false,
-                    svgString,
-                });
-
-                onGenerated?.();
-            } catch (error) {
-                const parsedError =
-                    error instanceof Error
-                        ? error
-                        : new Error("Failed to generate QR code");
-                store.setStates({
-                    error: parsedError,
-                    isGenerating: false,
-                });
-                onError?.(parsedError);
+                dataUrl = await QRCode.toDataURL(value, canvasOpts);
+            } catch {
+                dataUrl = null;
             }
-        },
-        [value, canvasOpts, store, onError, onGenerated]
-    );
 
-    const contextValue = React.useMemo<QRCodeContextValue>(
-        () => ({
-            backgroundColor,
-            canvasRef,
-            foregroundColor,
-            level,
-            margin,
-            size,
-            value,
-        }),
-        [value, size, backgroundColor, foregroundColor, level, margin]
-    );
+            if (canvasRef.current) {
+                await QRCode.toCanvas(canvasRef.current, value, canvasOpts);
+            }
+
+            const svgString = await QRCode.toString(value, {
+                color: canvasOpts.color,
+                errorCorrectionLevel: canvasOpts.errorCorrectionLevel,
+                margin: canvasOpts.margin,
+                type: "svg",
+                width: canvasOpts.width,
+            });
+
+            store.setStates({
+                dataUrl,
+                generationKey: targetGenerationKey,
+                isGenerating: false,
+                svgString,
+            });
+
+            onGenerated?.();
+        } catch (error) {
+            const parsedError =
+                error instanceof Error
+                    ? error
+                    : new Error("Failed to generate QR code");
+            store.setStates({
+                error: parsedError,
+                isGenerating: false,
+            });
+            onError?.(parsedError);
+        }
+    }
+
+    const contextValue: QRCodeContextValue = {
+        backgroundColor,
+        canvasRef,
+        foregroundColor,
+        level,
+        margin,
+        size,
+        value,
+    };
 
     useIsomorphicLayoutEffect(() => {
         if (generationKey) {
@@ -363,7 +342,7 @@ function QRCodeCanvas({
     const context = useQRCodeContext(CANVAS_NAME);
     const generationKey = useStore((state) => state.generationKey);
 
-    const composedRef = useComposedRefs(ref, context.canvasRef);
+    const composedRef = useMergedRefs(ref, context.canvasRef);
 
     return useRender({
         defaultTagName: "canvas",
@@ -480,36 +459,33 @@ function QRCodeDownload(props: QRCodeDownloadProps) {
     const dataUrl = useStore((state) => state.dataUrl);
     const svgString = useStore((state) => state.svgString);
 
-    const onClick = React.useCallback(
-        (event: React.MouseEvent<HTMLButtonElement>) => {
-            buttonProps.onClick?.(event);
-            if (event.defaultPrevented) {
-                return;
-            }
+    function onClick(event: React.MouseEvent<HTMLButtonElement>) {
+        buttonProps.onClick?.(event);
+        if (event.defaultPrevented) {
+            return;
+        }
 
-            const link = document.createElement("a");
+        const link = document.createElement("a");
 
-            if (format === "png" && dataUrl) {
-                link.href = dataUrl;
-                link.download = `${filename}.png`;
-            } else if (format === "svg" && svgString) {
-                const blob = new Blob([svgString], { type: "image/svg+xml" });
-                link.href = URL.createObjectURL(blob);
-                link.download = `${filename}.svg`;
-            } else {
-                return;
-            }
+        if (format === "png" && dataUrl) {
+            link.href = dataUrl;
+            link.download = `${filename}.png`;
+        } else if (format === "svg" && svgString) {
+            const blob = new Blob([svgString], { type: "image/svg+xml" });
+            link.href = URL.createObjectURL(blob);
+            link.download = `${filename}.svg`;
+        } else {
+            return;
+        }
 
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
 
-            if (format === "svg" && svgString) {
-                URL.revokeObjectURL(link.href);
-            }
-        },
-        [dataUrl, svgString, filename, format, buttonProps.onClick]
-    );
+        if (format === "svg" && svgString) {
+            URL.revokeObjectURL(link.href);
+        }
+    }
 
     return useRender({
         defaultTagName: "button",

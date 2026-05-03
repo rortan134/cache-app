@@ -107,6 +107,7 @@ export function DialogHeader({
         render,
     });
 }
+
 export function DialogPanel({
     className,
     scrollFade = true,

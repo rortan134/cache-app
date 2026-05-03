@@ -1,7 +1,7 @@
 "use client";
 
-import { useComposedRefs } from "@/hooks/compose-refs";
 import { useIsomorphicLayoutEffect } from "@/hooks/use-isomorphic-effect";
+import { useMergedRefs } from "@base-ui/utils/useMergedRefs";
 import { useStableCallback } from "@base-ui/utils/useStableCallback";
 import { useValueAsRef } from "@base-ui/utils/useValueAsRef";
 import * as React from "react";
@@ -1397,7 +1397,7 @@ function Masonry({
 }: MasonryProps) {
     const { rowGap, columnGap } = parseGapValue(gap);
     const containerRef = React.useRef<RootElement | null>(null);
-    const composedRef = useComposedRefs(ref, containerRef);
+    const composedRef = useMergedRefs(ref, containerRef);
 
     const size = useDebouncedWindowSize({
         containerRef,
@@ -1571,13 +1571,9 @@ function MasonryViewport({
     const [layoutVersion, setLayoutVersion] = React.useState(0);
     const rafId = React.useRef<number | null>(null);
 
-    const validChildren = React.useMemo(
-        () =>
-            React.Children.toArray(children) as React.ReactElement<
-                React.ComponentProps<"div">
-            >[],
-        [children]
-    );
+    const validChildren = React.Children.toArray(
+        children
+    ) as React.ReactElement<React.ComponentProps<"div">>[];
 
     const {
         columnWidth,

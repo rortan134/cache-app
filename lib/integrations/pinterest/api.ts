@@ -1,21 +1,12 @@
 import "server-only";
 
+import { z } from "zod";
 import { IntegrationApiError } from "@/lib/integrations/error";
-import {
-    asProviderPayloadRecord,
-    readPayloadDate,
-    readPayloadString,
-} from "@/lib/integrations/provider-payload";
 
 const PINTEREST_API_BASE_URL = "https://api.pinterest.com/v5";
 const PINTEREST_PAGE_SIZE = 100;
 const MAX_BOARD_PAGES = 20;
 const MAX_PIN_PAGES_PER_BOARD = 20;
-
-interface PinterestPaginatedResponse {
-    bookmark?: string | null;
-    items?: unknown[];
-}
 
 export interface PinterestBoardSummary {
     id: string;
@@ -30,15 +21,47 @@ export interface PinterestImportablePin {
     url: string;
 }
 
+const PinterestApiErrorSchema = z.object({
+    error: z
+        .object({
+            message: z.string().optional(),
+        })
+        .optional(),
+    message: z.string().optional(),
+});
+
+const PinterestPaginatedResponseSchema = z.object({
+    bookmark: z.string().optional(),
+    items: z.array(z.unknown()).optional(),
+});
+
+const PinterestBoardSchema = z.object({
+    created_at: z.string().optional(),
+    id: z.string(),
+    name: z.string().optional(),
+    updated_at: z.string().optional(),
+});
+
+const PinterestPinSchema = z.object({
+    created_at: z.string().optional(),
+    description: z.string().optional(),
+    id: z.string(),
+    link: z.string().optional(),
+    original_link: z.string().optional(),
+    title: z.string().optional(),
+    updated_at: z.string().optional(),
+});
+
 function parsePinterestApiError(
     payload: unknown,
     status: number
 ): IntegrationApiError {
-    const record = asProviderPayloadRecord(payload);
+    const parsed = PinterestApiErrorSchema.safeParse(payload);
     const message =
-        readPayloadString(record?.message) ??
-        readPayloadString(asProviderPayloadRecord(record?.error)?.message) ??
+        parsed.data?.message ||
+        parsed.data?.error?.message ||
         `Pinterest API request failed with status ${status}.`;
+
     return new IntegrationApiError({
         integrationId: "pinterest",
         message,
@@ -51,7 +74,7 @@ async function fetchPinterestPage(
     path: string,
     accessToken: string,
     searchParams: URLSearchParams
-): Promise<PinterestPaginatedResponse> {
+): Promise<{ bookmark: string | null; items: unknown[] }> {
     const response = await fetch(
         `${PINTEREST_API_BASE_URL}${path}?${searchParams.toString()}`,
         {
@@ -68,10 +91,10 @@ async function fetchPinterestPage(
         throw parsePinterestApiError(payload, response.status);
     }
 
-    const record = asProviderPayloadRecord(payload);
+    const parsed = PinterestPaginatedResponseSchema.safeParse(payload);
     return {
-        bookmark: readPayloadString(record?.bookmark),
-        items: Array.isArray(record?.items) ? record.items : [],
+        bookmark: parsed.data?.bookmark ?? null,
+        items: parsed.data?.items ?? [],
     };
 }
 
@@ -96,10 +119,10 @@ async function listPinterestCollection(
             accessToken,
             searchParams
         );
-        items.push(...(payload.items ?? []));
+        items.push(...payload.items);
 
-        bookmark = payload.bookmark ?? null;
-        if (!bookmark || (payload.items?.length ?? 0) === 0) {
+        bookmark = payload.bookmark;
+        if (!bookmark || payload.items.length === 0) {
             break;
         }
     }
@@ -108,18 +131,21 @@ async function listPinterestCollection(
 }
 
 function parseBoard(candidate: unknown): PinterestBoardSummary | null {
-    const record = asProviderPayloadRecord(candidate);
-    const id = readPayloadString(record?.id);
-    if (!id) {
+    const parsed = PinterestBoardSchema.safeParse(candidate);
+    if (!parsed.success) {
         return null;
     }
 
     return {
-        id,
-        name: readPayloadString(record?.name),
+        id: parsed.data.id,
+        name: parsed.data.name ?? null,
         updatedAt:
-            readPayloadDate(record?.updated_at) ??
-            readPayloadDate(record?.created_at) ??
+            (parsed.data.updated_at
+                ? new Date(parsed.data.updated_at)
+                : null) ??
+            (parsed.data.created_at
+                ? new Date(parsed.data.created_at)
+                : null) ??
             null,
     };
 }
@@ -128,31 +154,29 @@ function parsePin(
     candidate: unknown,
     boardName: string | null
 ): PinterestImportablePin | null {
-    const record = asProviderPayloadRecord(candidate);
-    const externalId = readPayloadString(record?.id);
-    if (!externalId) {
+    const parsed = PinterestPinSchema.safeParse(candidate);
+    if (!parsed.success) {
         return null;
     }
 
-    const title = readPayloadString(record?.title);
-    const description = readPayloadString(record?.description);
+    const record = parsed.data;
     const destinationUrl =
-        readPayloadString(record?.link) ??
-        readPayloadString(record?.original_link) ??
-        `https://www.pinterest.com/pin/${externalId}/`;
+        record.link ||
+        record.original_link ||
+        `https://www.pinterest.com/pin/${record.id}/`;
 
-    const captionBase = title ?? description ?? null;
+    const captionBase = record.title || record.description || null;
     const caption =
         captionBase && boardName
             ? `${captionBase} • ${boardName}`
-            : (captionBase ?? boardName);
+            : captionBase || boardName;
 
     return {
-        caption,
-        externalId,
+        caption: caption ?? null,
+        externalId: record.id,
         scrapedAt:
-            readPayloadDate(record?.created_at) ??
-            readPayloadDate(record?.updated_at) ??
+            (record.created_at ? new Date(record.created_at) : null) ??
+            (record.updated_at ? new Date(record.updated_at) : null) ??
             null,
         url: destinationUrl,
     };

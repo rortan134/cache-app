@@ -1,13 +1,7 @@
 import "server-only";
 
+import { z } from "zod";
 import { IntegrationApiError } from "@/lib/integrations/error";
-import {
-    asProviderPayloadRecord,
-    readPayloadDate,
-    readPayloadString,
-    readPayloadStringArray,
-    type ProviderPayloadRecord,
-} from "@/lib/integrations/provider-payload";
 import type { Prisma } from "@/prisma/client/client";
 
 const X_API_BASE_URL = "https://api.x.com/2";
@@ -20,9 +14,20 @@ interface XApiListResponse {
     readonly nextToken: string | null;
 }
 
+interface XMediaItem {
+    readonly media_key?: string;
+}
+
+interface XUserItem {
+    readonly id: string;
+    readonly name?: string;
+    readonly profile_image_url?: string;
+    readonly username?: string;
+}
+
 interface XIncludesLookup {
-    readonly mediaByKey: Map<string, ProviderPayloadRecord>;
-    readonly userById: Map<string, ProviderPayloadRecord>;
+    readonly mediaByKey: Map<string, XMediaItem>;
+    readonly userById: Map<string, XUserItem>;
 }
 
 export interface XImportableBookmark {
@@ -40,15 +45,93 @@ export interface XAuthenticatedUser {
     readonly username: string | null;
 }
 
+const XApiErrorSchema = z.object({
+    errors: z
+        .array(
+            z.object({
+                detail: z.string().optional(),
+                title: z.string().optional(),
+            })
+        )
+        .optional(),
+    title: z.string().optional(),
+});
+
+const XUserSchema = z.object({
+    id: z.string(),
+    name: z.string().optional(),
+    profile_image_url: z.string().optional(),
+    username: z.string().optional(),
+});
+
+const XBookmarksPageSchema = z.object({
+    data: z.array(z.unknown()).optional(),
+    includes: z
+        .object({
+            media: z
+                .array(
+                    z.object({
+                        media_key: z.string().optional(),
+                    })
+                )
+                .optional(),
+            users: z.array(XUserSchema).optional(),
+        })
+        .optional(),
+    meta: z
+        .object({
+            next_token: z.string().optional(),
+        })
+        .optional(),
+});
+
+const XTweetSchema = z.object({
+    attachments: z
+        .object({
+            media_keys: z.array(z.string()).optional(),
+        })
+        .optional(),
+    author_id: z.string().optional(),
+    created_at: z.string().optional(),
+    entities: z
+        .object({
+            urls: z
+                .array(
+                    z.object({
+                        expanded_url: z.string().optional(),
+                    })
+                )
+                .optional(),
+        })
+        .optional(),
+    id: z.string(),
+    note_tweet: z
+        .object({
+            note_tweet_results: z
+                .object({
+                    result: z
+                        .object({
+                            text: z.string().optional(),
+                        })
+                        .optional(),
+                })
+                .optional(),
+            text: z.string().optional(),
+        })
+        .optional(),
+    possibly_sensitive: z.boolean().optional(),
+    text: z.string().optional(),
+});
+
 function parseXApiError(payload: unknown, status: number): IntegrationApiError {
-    const record = asProviderPayloadRecord(payload);
-    const errors = Array.isArray(record?.errors) ? record.errors : [];
-    const firstError = asProviderPayloadRecord(errors[0]);
+    const parsed = XApiErrorSchema.safeParse(payload);
+    const firstError = parsed.data?.errors?.[0];
     const message =
-        readPayloadString(firstError?.detail) ??
-        readPayloadString(firstError?.title) ??
-        readPayloadString(record?.title) ??
+        firstError?.detail ||
+        firstError?.title ||
+        parsed.data?.title ||
         `X API request failed with status ${status}.`;
+
     return new IntegrationApiError({
         integrationId: "x",
         message,
@@ -82,83 +165,50 @@ async function fetchX(
 }
 
 function parseAuthenticatedUser(payload: unknown): XAuthenticatedUser | null {
-    const data = asProviderPayloadRecord(
-        asProviderPayloadRecord(payload)?.data
-    );
-    const id = readPayloadString(data?.id);
-    if (!id) {
+    const outer = z.object({ data: XUserSchema.optional() }).safeParse(payload);
+    if (!outer.success) {
+        return null;
+    }
+
+    const data = outer.data.data;
+    if (!data) {
         return null;
     }
 
     return {
-        id,
-        name: readPayloadString(data?.name),
-        profileImageUrl: readPayloadString(data?.profile_image_url),
-        username: readPayloadString(data?.username),
+        id: data.id,
+        name: data.name ?? null,
+        profileImageUrl: data.profile_image_url ?? null,
+        username: data.username ?? null,
     };
 }
 
-function mediaMapFromIncludes(includes: ProviderPayloadRecord | null) {
-    const mediaItems = Array.isArray(includes?.media) ? includes.media : [];
-    const byMediaKey = new Map<string, ProviderPayloadRecord>();
+function parseBookmarksPage(payload: unknown): XApiListResponse {
+    const parsed = XBookmarksPageSchema.safeParse(payload);
+    if (!parsed.success) {
+        return {
+            data: [],
+            includesLookup: { mediaByKey: new Map(), userById: new Map() },
+            nextToken: null,
+        };
+    }
 
-    for (const item of mediaItems) {
-        const record = asProviderPayloadRecord(item);
-        const mediaKey = readPayloadString(record?.media_key);
-        if (mediaKey && record) {
-            byMediaKey.set(mediaKey, record);
+    const mediaByKey = new Map<string, XMediaItem>();
+    for (const item of parsed.data.includes?.media ?? []) {
+        if (item.media_key) {
+            mediaByKey.set(item.media_key, item);
         }
     }
 
-    return byMediaKey;
-}
-
-function userMapFromIncludes(includes: ProviderPayloadRecord | null) {
-    const users = Array.isArray(includes?.users) ? includes.users : [];
-    const byId = new Map<string, ProviderPayloadRecord>();
-
-    for (const item of users) {
-        const record = asProviderPayloadRecord(item);
-        const id = readPayloadString(record?.id);
-        if (id && record) {
-            byId.set(id, record);
-        }
+    const userById = new Map<string, XUserItem>();
+    for (const item of parsed.data.includes?.users ?? []) {
+        userById.set(item.id, item);
     }
 
-    return byId;
-}
-
-function noteTweetText(record: ProviderPayloadRecord | null): string | null {
-    const direct = readPayloadString(record?.text);
-    if (direct) {
-        return direct;
-    }
-
-    return readPayloadString(
-        asProviderPayloadRecord(
-            asProviderPayloadRecord(record?.note_tweet_results)?.result
-        )?.text
-    );
-}
-
-function entityUrls(record: ProviderPayloadRecord | null): string[] {
-    const entities = asProviderPayloadRecord(record?.entities);
-    const urls = Array.isArray(entities?.urls) ? entities.urls : [];
-
-    return urls.flatMap((item) => {
-        const url = readPayloadString(
-            asProviderPayloadRecord(item)?.expanded_url
-        );
-        return url ? [url] : [];
-    });
-}
-
-function buildIncludesLookup(
-    includes: ProviderPayloadRecord | null
-): XIncludesLookup {
     return {
-        mediaByKey: mediaMapFromIncludes(includes),
-        userById: userMapFromIncludes(includes),
+        data: parsed.data.data ?? [],
+        includesLookup: { mediaByKey, userById },
+        nextToken: parsed.data.meta?.next_token ?? null,
     };
 }
 
@@ -166,61 +216,49 @@ function parseBookmark(
     candidate: unknown,
     includesLookup: XIncludesLookup
 ): XImportableBookmark | null {
-    const record = asProviderPayloadRecord(candidate);
-    const externalId = readPayloadString(record?.id);
-    if (!externalId) {
+    const parsed = XTweetSchema.safeParse(candidate);
+    if (!parsed.success) {
         return null;
     }
 
-    const authorId = readPayloadString(record?.author_id);
+    const record = parsed.data;
+    const authorId = record.author_id;
     const author = authorId
         ? (includesLookup.userById.get(authorId) ?? null)
         : null;
-    const username = readPayloadString(author?.username);
-    const mediaKeys = readPayloadStringArray(
-        asProviderPayloadRecord(record?.attachments)?.media_keys
-    );
+    const username = author?.username ?? null;
+    const mediaKeys = record.attachments?.media_keys ?? [];
     const caption =
-        noteTweetText(asProviderPayloadRecord(record?.note_tweet)) ??
-        readPayloadString(record?.text);
+        record.note_tweet?.text ||
+        record.note_tweet?.note_tweet_results?.result?.text ||
+        record.text ||
+        null;
 
     return {
         caption,
-        externalId,
-        postedAt: readPayloadDate(record?.created_at),
+        externalId: record.id,
+        postedAt: record.created_at ? new Date(record.created_at) : null,
         sourceMetadata: {
             x: {
                 author: authorId
                     ? {
                           id: authorId,
-                          name: readPayloadString(author?.name),
-                          profileImageUrl: readPayloadString(
-                              author?.profile_image_url
-                          ),
+                          name: author?.name ?? null,
+                          profileImageUrl: author?.profile_image_url ?? null,
                           username,
                       }
                     : null,
-                entityUrls: entityUrls(record),
+                entityUrls: (record.entities?.urls ?? [])
+                    .map((u) => u.expanded_url)
+                    .filter((u): u is string => !!u),
                 importTimestamp: new Date().toISOString(),
                 mediaKeys,
-                possiblySensitive: Boolean(record?.possibly_sensitive),
+                possiblySensitive: record.possibly_sensitive ?? false,
             },
         },
         url: username
-            ? `https://x.com/${encodeURIComponent(username)}/status/${encodeURIComponent(externalId)}`
-            : `https://x.com/i/web/status/${encodeURIComponent(externalId)}`,
-    };
-}
-
-function parseBookmarksPage(payload: unknown): XApiListResponse {
-    const record = asProviderPayloadRecord(payload);
-    const meta = asProviderPayloadRecord(record?.meta);
-    const includes = asProviderPayloadRecord(record?.includes);
-
-    return {
-        data: Array.isArray(record?.data) ? record.data : [],
-        includesLookup: buildIncludesLookup(includes),
-        nextToken: readPayloadString(meta?.next_token),
+            ? `https://x.com/${encodeURIComponent(username)}/status/${encodeURIComponent(record.id)}`
+            : `https://x.com/i/web/status/${encodeURIComponent(record.id)}`,
     };
 }
 

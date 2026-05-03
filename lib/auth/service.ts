@@ -1,7 +1,25 @@
 import "server-only";
 
+import { auth } from "@/lib/auth/server";
 import { prisma } from "@/prisma";
 import { nanoid } from "nanoid";
+import { headers } from "next/headers";
+
+/**
+ * Resolves the current session user id for API routes.
+ *
+ * @returns The user id, or a 401 Response if the session is missing.
+ */
+export async function requireSessionUserId(): Promise<
+    { userId: string } | Response
+> {
+    const session = await auth.api.getSession({ headers: await headers() });
+    const userId = session?.user?.id;
+    if (!userId) {
+        return Response.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    return { userId };
+}
 
 /**
  * Returns the user's existing extension ingest token, generating and
@@ -41,18 +59,4 @@ export async function rotateExtensionIngestToken(args: {
     });
 
     return token;
-}
-
-/**
- * Reads whether the user has disabled smart collections.
- */
-export async function getUserSmartCollectionsPreference(args: {
-    userId: string;
-}): Promise<boolean> {
-    const user = await prisma.user.findUnique({
-        select: { smartCollectionsDisabled: true },
-        where: { id: args.userId },
-    });
-
-    return user?.smartCollectionsDisabled ?? false;
 }

@@ -15,7 +15,7 @@ import {
     SidebarItem,
 } from "@/components/ui/sidebar";
 import { getServerSession } from "@/lib/auth/server";
-import { userHasActiveSubscription } from "@/lib/auth/subscription-access";
+import { userHasActiveSubscription } from "@/lib/billing/subscriptions/subscription-access";
 import { gtPublicString } from "@/lib/i18n/gt-public-json";
 import { getReviewData } from "@/lib/review/service";
 import { T } from "gt-next";

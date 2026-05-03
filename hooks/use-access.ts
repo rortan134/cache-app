@@ -1,5 +1,5 @@
 import { useSession } from "@/lib/auth/client";
-import { getActiveSubscription } from "@/lib/auth/subscriptions";
+import { getActiveSubscription } from "@/lib/billing/subscriptions/subscriptions";
 import useSWR from "swr";
 
 /**

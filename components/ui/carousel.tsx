@@ -26,7 +26,7 @@ interface CarouselProps
     slideClassName?: string;
 }
 
-const Carousel = ({
+function Carousel({
     children,
     className,
     freeMode = false,
@@ -36,7 +36,7 @@ const Carousel = ({
     slideClassName,
     slidesPerView = "auto",
     ...props
-}: CarouselProps) => {
+}: CarouselProps) {
     const modules: SwiperModule[] = [Mousewheel];
     if (freeMode) {
         modules.push(FreeMode);
@@ -81,6 +81,6 @@ const Carousel = ({
             ))}
         </Swiper>
     );
-};
+}
 
 export { Carousel };

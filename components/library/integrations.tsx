@@ -28,7 +28,7 @@ import { ArrowUpRight, Images, RefreshCw } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import * as React from "react";
-import { createStore } from "stan-js";
+import { createScopedStore } from "stan-js";
 import { storage } from "stan-js/storage";
 
 type IntegrationsListStatusTone = "error" | "success";
@@ -41,13 +41,16 @@ const INTEGRATION_ACTION_ICON_BY_NAME: Record<
     refresh: RefreshCw,
 };
 
-const { useStore: useIntegrationsPanelStore } = createStore({
+const {
+    StoreProvider: IntegrationsListProvider,
+    useStore: useIntegrationsListStore,
+} = createScopedStore({
     isIntegrationsListPanelOpen: storage(true),
 });
 
 function useIntegrationsListOpenState() {
     const { isIntegrationsListPanelOpen, setIsIntegrationsListPanelOpen } =
-        useIntegrationsPanelStore();
+        useIntegrationsListStore();
 
     return [
         isIntegrationsListPanelOpen,
@@ -55,7 +58,24 @@ function useIntegrationsListOpenState() {
     ] as const;
 }
 
-export function IntegrationsList({
+/**
+ * The root component of the integrations list.
+ *
+ * Provides a scoped store so that multiple instances do not share the same
+ * open state. Wrap `IntegrationsListTrigger` and `IntegrationsListPanel`
+ * inside it.
+ */
+export function IntegrationsList(
+    props: React.ComponentProps<typeof Collapsible>
+) {
+    return (
+        <IntegrationsListProvider>
+            <IntegrationsListImpl {...props} />
+        </IntegrationsListProvider>
+    );
+}
+
+function IntegrationsListImpl({
     onOpenChange,
     open,
     ...props
@@ -73,6 +93,13 @@ export function IntegrationsList({
     );
 }
 
+/**
+ * A button that toggles the integrations list panel.
+ *
+ * Renders a `Popover` around a `CollapsibleTrigger`. The popover displays a
+ * preview image and description on hover, and is hidden while the panel is open
+ * to avoid overlapping content.
+ */
 export function IntegrationsListTrigger(
     props: React.ComponentProps<typeof CollapsibleTrigger>
 ) {
@@ -121,70 +148,95 @@ export function IntegrationsListTrigger(
     );
 }
 
+/**
+ * The collapsible panel that holds the list contents.
+ *
+ * Renders a `CollapsiblePanel`. Compose it inside `IntegrationsList`.
+ */
 export function IntegrationsListPanel(
     props: React.ComponentProps<typeof CollapsiblePanel>
 ) {
     return <CollapsiblePanel {...props} />;
 }
 
-export function IntegrationsListNoticeCallout() {
-    const [isOpen, setIsOpen] = React.useState(true);
-
+/**
+ * A small feedback prompt that lets users request missing integrations.
+ *
+ * Renders inside a `FeedbackWidget`.
+ */
+export function IntegrationsListFeedback() {
     return (
-        <>
-            <FeedbackWidget className="mx-2.5 mt-1.5 mb-0.5">
-                <p className="text-left text-[11px] text-muted-foreground leading-tight">
-                    Can't find the integration you need most?{" "}
-                    <Button
-                        className="h-fit! px-0 leading-tight sm:text-[11px]"
-                        render={<span />}
-                        size="xs"
-                        variant="link"
-                    >
-                        Request it
-                    </Button>
-                </p>
-            </FeedbackWidget>
-            <Collapsible
-                className="mx-2.5 pb-1"
-                onOpenChange={setIsOpen}
-                open={isOpen}
-            >
-                <CollapsiblePanel>
-                    <p className="text-[11px] text-muted-foreground leading-tight">
-                        Please only connect accounts you trust. Cache can access
-                        what you choose to save with connected apps. You can
-                        always change your mind.{" "}
-                        <Button
-                            className="h-fit! px-0 leading-tight sm:text-[11px]"
-                            onClick={() => setIsOpen(false)}
-                            size="xs"
-                            variant="link"
-                        >
-                            Dismiss
-                        </Button>{" "}
-                        or{" "}
-                        <Button
-                            className="h-fit! px-0 leading-tight sm:text-[11px]"
-                            render={
-                                <Link
-                                    href="/legal/privacy-policy"
-                                    target="_blank"
-                                />
-                            }
-                            size="xs"
-                            variant="link"
-                        >
-                            Cache Privacy
-                            <ArrowUpRight className="inline-block size-3 text-muted-foreground" />
-                        </Button>
-                    </p>
-                </CollapsiblePanel>
-            </Collapsible>
-        </>
+        <FeedbackWidget className="mx-2.5 mt-1.5 mb-0.5">
+            <p className="text-left text-[11px] text-muted-foreground leading-tight">
+                Can't find the integration you need most?{" "}
+                <Button
+                    className="h-fit! px-0 leading-tight sm:text-[11px]"
+                    render={<span />}
+                    size="xs"
+                    variant="link"
+                >
+                    Request it
+                </Button>
+            </p>
+        </FeedbackWidget>
     );
 }
 
+/**
+ * A dismissible privacy notice for the integrations list.
+ *
+ * Reminds users to only connect accounts they trust. Starts open and can be
+ * dismissed via an inline button. The dismiss state is local and resets on
+ * page reload.
+ */
+export function IntegrationsListPrivacyNotice() {
+    const [isOpen, setIsOpen] = React.useState(true);
+
+    return (
+        <Collapsible
+            className="mx-2.5 pb-1"
+            onOpenChange={setIsOpen}
+            open={isOpen}
+        >
+            <CollapsiblePanel>
+                <p className="text-[11px] text-muted-foreground leading-tight">
+                    Please only connect accounts you trust. Cache can access
+                    what you choose to save with connected apps. You can always
+                    change your mind.{" "}
+                    <Button
+                        className="h-fit! px-0 leading-tight sm:text-[11px]"
+                        onClick={() => setIsOpen(false)}
+                        size="xs"
+                        variant="link"
+                    >
+                        Dismiss
+                    </Button>{" "}
+                    or{" "}
+                    <Button
+                        className="h-fit! px-0 leading-tight sm:text-[11px]"
+                        render={
+                            <Link
+                                href="/legal/privacy-policy"
+                                target="_blank"
+                            />
+                        }
+                        size="xs"
+                        variant="link"
+                    >
+                        Cache Privacy
+                        <ArrowUpRight className="inline-block size-3 text-muted-foreground" />
+                    </Button>
+                </p>
+            </CollapsiblePanel>
+        </Collapsible>
+    );
+}
+
+/**
+ * A single row in the integrations list.
+ *
+ * Renders a `SidebarItem` with preset gap and padding.
+ */
 export function IntegrationsListItem({
     className,
     ...props
@@ -197,6 +249,11 @@ export function IntegrationsListItem({
     );
 }
 
+/**
+ * The empty state shown when no integrations are available.
+ *
+ * Renders a `<p>` element with dashed border styling.
+ */
 export function IntegrationsListEmpty({
     children = "No integrations are available right now.",
     className,
@@ -215,6 +272,12 @@ export function IntegrationsListEmpty({
     );
 }
 
+/**
+ * An accessibility-friendly status message for integration actions.
+ *
+ * Returns `null` when `children` is empty so assistive technologies do not
+ * announce silent updates.
+ */
 function IntegrationsListStatus({
     tone = "success",
     className,
@@ -247,6 +310,13 @@ interface IntegrationsListItemActionProps {
     isConnected: boolean;
 }
 
+/**
+ * The action buttons and status messages for a single integration.
+ *
+ * Derives actions from `useIntegrationAction` and renders them as buttons,
+ * followed by optional error and success statuses. Returns `null` when there
+ * is nothing to display.
+ */
 export function IntegrationsListItemAction({
     direction = "source",
     id,

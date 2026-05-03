@@ -17,12 +17,12 @@ interface DisclosureListProps extends React.ComponentProps<"div"> {
     maxVisible?: number;
 }
 
-const DisclosureList = ({
+function DisclosureList({
     maxVisible = 15,
     children,
     className,
     ...props
-}: DisclosureListProps) => {
+}: DisclosureListProps) {
     const childrenArray = React.Children.toArray(children);
 
     if (childrenArray.length === 0) {
@@ -46,7 +46,7 @@ const DisclosureList = ({
             <DisclosureListHidden items={hidden} />
         </div>
     );
-};
+}
 
 interface DisclosureListHiddenProps {
     items: React.ReactNode[];

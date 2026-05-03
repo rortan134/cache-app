@@ -1083,6 +1083,20 @@ export async function listCollections(
     );
 }
 
+/**
+ * Reads whether the user has disabled smart collections.
+ */
+export async function getUserSmartCollectionsPreference(args: {
+    userId: string;
+}): Promise<boolean> {
+    const user = await prisma.user.findUnique({
+        select: { smartCollectionsDisabled: true },
+        where: { id: args.userId },
+    });
+
+    return user?.smartCollectionsDisabled ?? false;
+}
+
 export async function disableSmartCollectionsForUser(
     userId: string
 ): Promise<void> {

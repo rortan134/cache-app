@@ -143,7 +143,7 @@ import { withMemoize } from "@/lib/common/memoize";
 import { toUsableStaticPreviewUrl } from "@/lib/common/preview-url";
 import {
     normalizeURL,
-    openSavedItemInNewTab,
+    openExternal,
     parseDisplayUrl,
     toValidUrl,
 } from "@/lib/common/url";
@@ -2621,7 +2621,7 @@ function useLibraryItemActions(args: {
 
     const handleOpenInNewTab = useStableCallback((item: LibraryItem) => {
         setActionFeedback(null);
-        openSavedItemInNewTab(normalizeURL(item.url));
+        openExternal(normalizeURL(item.url));
     });
 
     const handleCopyLink = useStableCallback(async (item: LibraryItem) => {

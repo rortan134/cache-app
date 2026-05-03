@@ -137,7 +137,7 @@ export function isHttpUrl(value: string | null | undefined): value is string {
     }
 }
 
-export function openSavedItemInNewTab(url: string) {
+export function openExternal(url: string) {
     if (typeof window === "undefined") {
         return;
     }

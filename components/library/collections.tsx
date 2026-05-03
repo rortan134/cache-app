@@ -92,7 +92,7 @@ import { cn } from "@/lib/common/cn";
 import { getHexColorFromName } from "@/lib/common/colors";
 import { getSystemControlKey } from "@/lib/common/environment";
 import { saveFile } from "@/lib/common/file";
-import { normalizeURL, openSavedItemInNewTab } from "@/lib/common/url";
+import { normalizeURL, openExternal } from "@/lib/common/url";
 import { dayjs } from "@/lib/dayjs";
 import { getSourceLabel } from "@/lib/integrations/support";
 import type { CollectionPriority } from "@/prisma/client/enums";
@@ -2422,7 +2422,7 @@ export function CollectionsListRoot({
         );
 
         for (const url of urls) {
-            openSavedItemInNewTab(url);
+            openExternal(url);
         }
     };
 

@@ -12,6 +12,7 @@ import type {
     RouteSyncBehavior,
     SocialSignInConnectBehavior,
 } from "@/lib/integrations/support";
+import { openExternal } from "@/lib/common/url";
 
 const CONNECTION_FLOW_ERROR_MESSAGE = "Could not start the connection flow.";
 
@@ -65,22 +66,6 @@ function extractRedirectUrl(payload: unknown): string | null {
     }
 
     return redirectUrl;
-}
-
-/**
- * Opens a URL in the browser, attempting to use the desktop bridge if available.
- */
-export function openExternal(url: string) {
-    try {
-        if (typeof window.openai !== "undefined") {
-            window.openai.openExternal({ href: url });
-            return;
-        }
-    } catch {
-        // Fall back to a normal browser navigation when the desktop bridge is unavailable.
-    }
-
-    navigateTo(url);
 }
 
 /**

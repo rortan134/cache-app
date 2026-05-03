@@ -1,3 +1,4 @@
+import { requireSessionUserId } from "@/lib/auth/service";
 import { IntegrationApiError } from "@/lib/integrations/error";
 import {
     createPickerSession,
@@ -5,7 +6,6 @@ import {
 } from "@/lib/integrations/google-photos/api";
 import { mapPickerSessionToViewModel } from "@/lib/integrations/google-photos/service";
 import { resolveProviderAccessToken } from "@/lib/integrations/provider-account";
-import { requireSessionUserId } from "@/lib/auth/api";
 
 export async function POST() {
     const sessionResult = await requireSessionUserId();

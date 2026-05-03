@@ -1,12 +1,12 @@
 import "server-only";
 
+import { requireSessionUserId } from "@/lib/auth/service";
 import { scheduleAutoTagging } from "@/lib/collections/intelligence/schedule";
 import { IntegrationApiError } from "@/lib/integrations/error";
 import {
     getIntegrationAccountId,
     resolveProviderAccessToken,
 } from "@/lib/integrations/provider-account";
-import { requireSessionUserId } from "@/lib/auth/api";
 
 interface OAuthImportConfig<T> {
     importFn: (args: {

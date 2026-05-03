@@ -1,6 +1,6 @@
 "use client";
 
-import * as React from "react";
+import type * as React from "react";
 import { PolarAngleAxis, RadialBar, RadialBarChart } from "recharts";
 
 interface RadialChartProps extends React.ComponentProps<"div"> {
@@ -28,7 +28,7 @@ function clampProgressValue(value: number) {
     return value;
 }
 
-function RadialChartImpl({
+function RadialChart({
     value,
     size = 50,
     color = "#2563eb",
@@ -75,8 +75,5 @@ function RadialChartImpl({
         </div>
     );
 }
-
-const RadialChart = React.memo(RadialChartImpl);
-RadialChart.displayName = "RadialChart";
 
 export { RadialChart };

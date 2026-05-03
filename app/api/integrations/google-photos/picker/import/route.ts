@@ -1,3 +1,4 @@
+import { requireSessionUserId } from "@/lib/auth/service";
 import { autoTagLibraryItemsByIds } from "@/lib/collections/intelligence";
 import { IntegrationApiError } from "@/lib/integrations/error";
 import {
@@ -10,7 +11,6 @@ import {
     importGooglePhotosCandidates,
 } from "@/lib/integrations/google-photos/service";
 import { resolveProviderAccessToken } from "@/lib/integrations/provider-account";
-import { requireSessionUserId } from "@/lib/auth/api";
 import { after } from "next/server";
 import * as z from "zod";
 

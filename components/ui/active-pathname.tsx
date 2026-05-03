@@ -3,7 +3,7 @@
 import { usePathname } from "next/navigation";
 import * as React from "react";
 
-const ActivePathname = ({
+function ActivePathname({
     href,
     match = "exact",
     reverse,
@@ -14,7 +14,7 @@ const ActivePathname = ({
     match?: "exact" | "prefix";
     reverse?: boolean;
     children: React.ReactElement;
-}) => {
+}) {
     const pathname = usePathname();
     const href_ = String(href);
     const isPathnameActive =
@@ -27,6 +27,6 @@ const ActivePathname = ({
         "aria-current": isPathnameActive ? "page" : undefined,
         "data-active": reverse ? !isPathnameActive : isPathnameActive,
     } as Record<string, unknown>);
-};
+}
 
 export { ActivePathname };

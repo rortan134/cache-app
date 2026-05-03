@@ -9,10 +9,11 @@ import { Root } from "@/components/library/browser";
 import { CollectionsListRoot } from "@/components/library/collections";
 import {
     IntegrationsList,
+    IntegrationsListFeedback,
     IntegrationsListItem,
     IntegrationsListItemAction,
-    IntegrationsListNoticeCallout,
     IntegrationsListPanel,
+    IntegrationsListPrivacyNotice,
     IntegrationsListTrigger,
 } from "@/components/library/integrations";
 import { WorkspaceProvider } from "@/components/library/workspace-provider";
@@ -28,9 +29,11 @@ import {
     SidebarItem,
 } from "@/components/ui/sidebar";
 import { getServerSession } from "@/lib/auth/server";
-import { getUserSmartCollectionsPreference } from "@/lib/auth/service";
-import { userHasActiveSubscription } from "@/lib/auth/subscription-access";
-import { getLibraryPageData } from "@/lib/collections/service";
+import { userHasActiveSubscription } from "@/lib/billing/subscriptions/subscription-access";
+import {
+    getLibraryPageData,
+    getUserSmartCollectionsPreference,
+} from "@/lib/collections/service";
 import { gtPublicString } from "@/lib/i18n/gt-public-json";
 import { listLinkedIntegrationAccounts } from "@/lib/integrations/service";
 import {
@@ -210,7 +213,8 @@ export default async function LibraryPage() {
                                             </IntegrationsListItem>
                                         )
                                     )}
-                                    <IntegrationsListNoticeCallout />
+                                    <IntegrationsListFeedback />
+                                    <IntegrationsListPrivacyNotice />
                                 </IntegrationsListPanel>
                             </IntegrationsList>
                             <CollectionsListRoot

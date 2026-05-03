@@ -30,9 +30,9 @@ function useClientOnlyValue<T>(value: T, fallback?: T): T | null {
     return boundaryValue === "server" ? (fallback ?? null) : value;
 }
 
-function ClientOnly(props: React.PropsWithChildren) {
+function ClientOnly({ children }: React.PropsWithChildren) {
     const boundaryValue = useClientBoundaryValue();
-    return boundaryValue === "server" ? null : <React.Fragment {...props} />;
+    return boundaryValue === "server" ? null : children;
 }
 
 export { ClientOnly, useClientOnlyValue };
