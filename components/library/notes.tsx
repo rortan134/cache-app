@@ -6,7 +6,7 @@ import { Group } from "@/components/ui/group";
 import { GoogleDocsIcon, NotionIcon } from "@/components/ui/icons";
 import { Menu, MenuItem, MenuPopup, MenuTrigger } from "@/components/ui/menu";
 import { cn } from "@/lib/common/cn";
-import type { LibraryItemWithCollections } from "@/lib/common/types";
+import type { LibraryItemWithCollections } from "@/lib/collections/utils";
 import { parseStandaloneUrl } from "@/lib/common/url";
 import {
     NOTE_EMPTY_HTML,

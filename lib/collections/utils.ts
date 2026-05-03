@@ -1,10 +1,35 @@
 import type {
-    LibraryCollectionSummary,
-    LibraryCollectionTag,
-} from "@/lib/common/types";
-import type { Prisma } from "@/prisma/client/client";
-import type { LibraryItemSource } from "@/prisma/client/enums";
+    LibraryItem,
+    LibraryItemPreview,
+    Prisma,
+} from "@/prisma/client/client";
+import type {
+    CollectionPriority,
+    LibraryItemSource,
+} from "@/prisma/client/enums";
 import * as z from "zod";
+
+export interface LibraryCollectionTag {
+    createdAt: Date;
+    description?: string | null;
+    id: string;
+    name: string;
+    priority: CollectionPriority;
+    sharedAt: Date | null;
+    shareId: string | null;
+    updatedAt: Date;
+}
+
+export interface LibraryCollectionSummary extends LibraryCollectionTag {
+    description: string | null;
+    itemCount: number;
+    sources: LibraryItemSource[];
+}
+
+export interface LibraryItemWithCollections extends LibraryItem {
+    collections: LibraryCollectionTag[];
+    preview: LibraryItemPreview | null;
+}
 
 export const COLLECTION_NAME_LENGTH_MAX = 64;
 

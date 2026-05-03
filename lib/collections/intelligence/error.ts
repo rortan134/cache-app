@@ -13,3 +13,12 @@ export const GenAiProtectionError = NamedError.create(
         userId: z.string(),
     })
 );
+
+export const GenAiGenerationError = NamedError.create(
+    "GenAiGenerationError",
+    z.object({
+        message: z.string(),
+        operation: z.string(),
+        status: z.number().optional(),
+    })
+);

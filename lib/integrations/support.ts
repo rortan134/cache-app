@@ -8,6 +8,7 @@ import {
     XSocialIcon,
     YouTubeIcon,
 } from "@/components/ui/icons";
+import { Bot } from "lucide-react";
 import { CACHE_EXTENSION_DOWNLOAD_URL } from "@/lib/common/constants";
 import { LibraryItemSource } from "@/prisma/client/enums";
 import type { ComponentType, SVGProps } from "react";
@@ -24,11 +25,12 @@ export type IntegrationId =
     | "github"
     | "google-photos"
     | "instagram"
+    | "mcp"
     | "pinterest"
     | "tiktok"
     | "x"
     | "youtube";
-export type IntegrationActionRole = "connect" | "open" | "sync";
+export type IntegrationActionRole = "connect" | "copy" | "open" | "sync";
 export type IntegrationActionIcon = "images" | "refresh";
 export type IntegrationActionSize = "icon" | "sm";
 export type IntegrationActionVariant = "ghost" | "outline";
@@ -99,10 +101,16 @@ export interface GooglePhotosPickerSyncBehavior {
     kind: "google-photos-picker";
 }
 
+export interface CopyPromptBehavior {
+    kind: "copy-prompt";
+    path: string;
+}
+
 export interface SupportedIntegration {
     actions: SupportedIntegrationAction[];
     behaviors: {
         connect?: OAuthLinkConnectBehavior | SocialSignInConnectBehavior;
+        copy?: CopyPromptBehavior;
         open?: ExtensionOpenBehavior;
         sync?: GooglePhotosPickerSyncBehavior | RouteSyncBehavior;
     };
@@ -463,7 +471,29 @@ export const INTEGRATIONS = [
             syncable: true,
         },
     },
-] as const satisfies SupportedIntegration[];
+    {
+        actions: [
+            {
+                for: "source",
+                label: "Copy setup prompt",
+                role: "copy",
+                size: "sm",
+                variant: "ghost",
+            },
+        ],
+        behaviors: {
+            copy: {
+                kind: "copy-prompt",
+                path: "/api/mcp/prompt",
+            },
+        },
+        category: "developer",
+        description: "Agent access to your library",
+        Icon: Bot,
+        id: "mcp",
+        label: "MCP",
+    },
+] satisfies readonly SupportedIntegration[];
 
 const INTEGRATION_BY_ID = new Map<IntegrationId, SupportedIntegration>(
     INTEGRATIONS.map((item) => [item.id, item])

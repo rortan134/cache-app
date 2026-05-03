@@ -21,7 +21,7 @@ import type {
     LibraryCollectionSummary,
     LibraryCollectionTag,
     LibraryItemWithCollections,
-} from "@/lib/common/types";
+} from "@/lib/collections/utils";
 import * as React from "react";
 
 interface LibraryWorkspaceContextValue {

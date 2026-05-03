@@ -248,8 +248,7 @@ export function PreviewDrawerContent({
                                     {loadingLabel}
                                 </p>
                                 <p className="max-w-sm text-balance text-muted-foreground text-sm">
-                                    We&apos;re trying to open the page inside
-                                    the drawer.
+                                    We&apos;re trying to open the page...
                                 </p>
                             </div>
                         </div>

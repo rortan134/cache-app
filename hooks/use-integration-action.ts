@@ -6,6 +6,7 @@ import { createLogger } from "@/lib/common/logs/console/logger";
 import { IntegrationCapabilityMissingError } from "@/lib/integrations/error";
 import {
     executeConnectBehavior,
+    executeCopyPromptBehavior,
     executeOpenBehavior,
     executeRouteSyncBehavior,
 } from "@/lib/integrations/execution";
@@ -87,11 +88,15 @@ function resolveActionLabel(args: {
         return "Sync";
     }
 
+    if (role === "copy") {
+        return "Copy";
+    }
+
     return "Open";
 }
 
 function createCapabilityMissingError(args: {
-    capability: "connect" | "open" | "sync";
+    capability: "connect" | "copy" | "open" | "sync";
     integrationId: IntegrationId;
     message: string;
 }): InstanceType<typeof IntegrationCapabilityMissingError> {
@@ -137,6 +142,19 @@ async function executeIntegrationAction(args: {
 
         await executeConnectBehavior(integration.behaviors.connect);
         return { refresh: false, successMessage: null };
+    }
+
+    if (role === "copy") {
+        if (!integration.behaviors.copy) {
+            throw createCapabilityMissingError({
+                capability: "copy",
+                integrationId: integration.id,
+                message: "This integration does not support copying a prompt.",
+            });
+        }
+
+        await executeCopyPromptBehavior(integration.behaviors.copy);
+        return { refresh: false, successMessage: "Copied to clipboard." };
     }
 
     // role === "sync"

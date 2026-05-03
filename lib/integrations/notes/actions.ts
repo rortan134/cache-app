@@ -1,10 +1,12 @@
 "use server";
 
 import { getSessionUserId } from "@/lib/auth/server";
-import { LIBRARY_ITEM_COLLECTIONS_INCLUDE } from "@/lib/collections/utils";
+import {
+    LIBRARY_ITEM_COLLECTIONS_INCLUDE,
+    type LibraryItemWithCollections,
+} from "@/lib/collections/utils";
 import { extractNamedErrorMessage } from "@/lib/common/error";
 import { createLogger } from "@/lib/common/logs/console/logger";
-import type { LibraryItemWithCollections } from "@/lib/common/types";
 import { DEFAULT_BROWSER_PROFILE_ID } from "@/lib/integrations/browser-profiles";
 import { IntegrationResourceNotFoundError } from "@/lib/integrations/error";
 import {

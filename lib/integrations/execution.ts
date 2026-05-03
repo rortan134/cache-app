@@ -6,6 +6,7 @@ import {
     IntegrationConnectionError,
 } from "@/lib/integrations/error";
 import type {
+    CopyPromptBehavior,
     ExtensionOpenBehavior,
     OAuthLinkConnectBehavior,
     RouteSyncBehavior,
@@ -171,4 +172,33 @@ export async function executeRouteSyncBehavior(
     }
 
     return behavior.successMessage?.(payloadRecord) ?? null;
+}
+
+/**
+ * Fetches a setup prompt from an API route and copies it to the clipboard.
+ */
+export async function executeCopyPromptBehavior(
+    behavior: CopyPromptBehavior
+): Promise<void> {
+    const response = await fetch(behavior.path, { method: "POST" });
+    if (!response.ok) {
+        throw createConnectionError({
+            message: "Could not retrieve the setup prompt.",
+            operation: "executeCopyPromptBehavior",
+        });
+    }
+
+    const data = (await response.json().catch(() => null)) as unknown;
+    const record = asRecord(data);
+    const prompt =
+        typeof record?.prompt === "string" ? record.prompt : undefined;
+
+    if (!prompt) {
+        throw createConnectionError({
+            message: "Setup prompt is unavailable.",
+            operation: "executeCopyPromptBehavior",
+        });
+    }
+
+    await navigator.clipboard.writeText(prompt);
 }

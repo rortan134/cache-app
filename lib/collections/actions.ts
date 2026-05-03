@@ -10,7 +10,7 @@ import {
 import type {
     LibraryCollectionSummary,
     LibraryCollectionTag,
-} from "@/lib/common/types";
+} from "@/lib/collections/utils";
 import type { CollectionPriority } from "@/prisma/client/enums";
 import * as z from "zod";
 import { LibraryCollectionError } from "./error";

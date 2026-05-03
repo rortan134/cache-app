@@ -19,11 +19,9 @@ import {
     LIBRARY_COLLECTION_TAG_SELECT,
     LIBRARY_ITEM_COLLECTIONS_INCLUDE,
     toLibraryCollectionSummary,
+    type LibraryCollectionSummary,
+    type LibraryItemWithCollections,
 } from "@/lib/collections/utils";
-import type {
-    LibraryCollectionSummary,
-    LibraryItemWithCollections,
-} from "@/lib/common/types";
 import { gtPublicString } from "@/lib/i18n/gt-public-json";
 import { buildPageMetadata } from "@/lib/seo/metadata";
 import { prisma } from "@/prisma";

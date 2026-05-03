@@ -1,19 +1,20 @@
 import { GoogleSignInButton } from "@/components/auth/google-sign-in-button";
 import { GoogleOneTapTrigger, SessionHint } from "@/components/auth/session";
+import { JsonLdScript } from "@/components/seo/json-ld-script";
 import { BrandLogo } from "@/components/ui/brand-logo";
 import { Button } from "@/components/ui/button";
+import { Carousel } from "@/components/ui/carousel";
 import { Footer } from "@/components/ui/footer";
 import { GradientWaveText } from "@/components/ui/gradient-wave-text";
 import { ChromeIcon, TikTokIcon } from "@/components/ui/icons";
 import { PageShell } from "@/components/ui/page-shell";
 import { Sidebar, SidebarFooter, SidebarHeader } from "@/components/ui/sidebar";
 import { getServerSession } from "@/lib/auth/server";
-import { BASE_URL } from "@/lib/common/constants";
 import { cn } from "@/lib/common/cn";
+import { BASE_URL } from "@/lib/common/constants";
 import { gtPublicString } from "@/lib/i18n/gt-public-json";
 import { INTEGRATIONS } from "@/lib/integrations/support";
 import { buildPageMetadata } from "@/lib/seo/metadata";
-import { JsonLdScript } from "@/components/seo/json-ld-script";
 import LogoIconImage from "@/public/cache-app-icon.png";
 import IconSmallImage from "@/public/cache-icon-small.png";
 import CollectionsSectionImage from "@/public/collections-section-image.webp";
@@ -24,6 +25,7 @@ import OrganizeSectionImage from "@/public/organize-section.webp";
 import SmartCollectionsBackgroundImage from "@/public/smart-collections-background.webp";
 import { LocaleSelector, T } from "gt-next";
 import {
+    Bot,
     ChevronRight,
     CircleCheck,
     CloudDownload,
@@ -35,6 +37,7 @@ import {
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
+import type React from "react";
 
 export async function generateMetadata({
     params,
@@ -356,7 +359,7 @@ export default async function Home() {
                             <T>
                                 <h2 className="font-medium text-[#0A0B0D] text-[28px] leading-[1.1] tracking-[-1.28px] lg:text-[32px]">
                                     Stay organized. Spot the stale, keep the
-                                    useful ones
+                                    useful
                                 </h2>
                                 <p className="text-pretty font-medium font-regular text-[#0A0B0D] text-[16px] leading-[1.2] tracking-[-3%] opacity-50">
                                     Build a knowledge base with the content
@@ -401,6 +404,13 @@ export default async function Home() {
                                         <span>
                                             Gain AI-powered insights into your
                                             content
+                                        </span>
+                                    </li>
+                                    <li className="flex items-center gap-2 text-xs">
+                                        <Bot className="inline-block size-4 shrink-0" />
+                                        <span>
+                                            Give your agents the ability to
+                                            interact with your bookmarks
                                         </span>
                                     </li>
                                 </T>
@@ -493,6 +503,88 @@ export default async function Home() {
                                 </div>
                             </figure>
                         </div>
+                    </div>
+                    <div className="flex w-full flex-col gap-8">
+                        <div className="flex flex-col gap-3">
+                            <T context="Target audience">
+                                <h2 className="font-medium text-[#0A0B0D] text-[28px] leading-[1.1] tracking-[-1.28px] lg:text-[32px]">
+                                    <T>Cache is for…</T>
+                                </h2>
+                                <p className="max-w-lg text-pretty font-medium font-regular text-[#0A0B0D] text-[16px] leading-[1.2] tracking-[-3%] opacity-50">
+                                    <T>
+                                        Cache is built for people who save a
+                                        lot, think a lot, and don’t want their
+                                        best finds to disappear into “later.”
+                                    </T>
+                                </p>
+                            </T>
+                        </div>
+                        <Carousel
+                            className="w-full pb-10!"
+                            pagination
+                            slideClassName="!w-[300px] md:!w-[340px]"
+                            slidesPerView="auto"
+                            spaceBetween={16}
+                        >
+                            <div className="flex h-96 flex-col justify-between rounded-2xl border border-border/50 bg-background p-6">
+                                <h3 className="font-medium text-[#0A0B0D] text-lg tracking-[-0.5px]">
+                                    <T>Curious readers</T>
+                                </h3>
+                                <p className="text-pretty font-medium text-[#0A0B0D] text-[15px] leading-[1.4] opacity-50">
+                                    <T>
+                                        Articles, essays, newsletters. A living
+                                        library instead of a read‑later
+                                        graveyard.
+                                    </T>
+                                </p>
+                            </div>
+                            <div className="flex h-96 flex-col justify-between rounded-2xl border border-border/50 bg-background p-6">
+                                <h3 className="font-medium text-[#0A0B0D] text-lg tracking-[-0.5px]">
+                                    <T>Writers and thinkers</T>
+                                </h3>
+                                <p className="text-pretty font-medium text-[#0A0B0D] text-[15px] leading-[1.4] opacity-50">
+                                    <T>
+                                        References, quotes, snippets. A
+                                        searchable research stack for raw
+                                        material.
+                                    </T>
+                                </p>
+                            </div>
+                            <div className="flex h-96 flex-col justify-between rounded-2xl border border-border/50 bg-background p-6">
+                                <h3 className="font-medium text-[#0A0B0D] text-lg tracking-[-0.5px]">
+                                    <T>Builders and developers</T>
+                                </h3>
+                                <p className="text-pretty font-medium text-[#0A0B0D] text-[15px] leading-[1.4] opacity-50">
+                                    <T>
+                                        Docs, issues, code, tutorials. Find that
+                                        one link instantly without re‑searching.
+                                    </T>
+                                </p>
+                            </div>
+                            <div className="flex h-96 flex-col justify-between rounded-2xl border border-border/50 bg-background p-6">
+                                <h3 className="font-medium text-[#0A0B0D] text-lg tracking-[-0.5px]">
+                                    <T>Creators and curators</T>
+                                </h3>
+                                <p className="text-pretty font-medium text-[#0A0B0D] text-[15px] leading-[1.4] opacity-50">
+                                    <T>
+                                        Threads, videos, inspiration. Group
+                                        ideas into collections and publish.
+                                    </T>
+                                </p>
+                            </div>
+                            <div className="flex h-96 flex-col justify-between rounded-2xl border border-border/50 bg-background p-6">
+                                <h3 className="font-medium text-[#0A0B0D] text-lg tracking-[-0.5px]">
+                                    <T>Productivity</T>
+                                </h3>
+                                <p className="text-pretty font-medium text-[#0A0B0D] text-[15px] leading-[1.4] opacity-50">
+                                    <T>
+                                        An opinionated inbox between bookmarking
+                                        and note‑taking. Structured, searchable,
+                                        trusted.
+                                    </T>
+                                </p>
+                            </div>
+                        </Carousel>
                     </div>
                     <Footer />
                 </div>

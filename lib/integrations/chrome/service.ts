@@ -25,7 +25,7 @@ const chromeBookmarkNodeSchema = z.object({
     kind: z.enum(["bookmark", "folder"]),
     parentExternalId: z.string().min(1).optional(),
     title: z.string().optional(),
-    url: z.string().url().optional(),
+    url: z.url().optional(),
 });
 
 const chromeBookmarkEventSchema = z
@@ -158,7 +158,6 @@ function chromeDuplicateKey(
     if (kind !== "bookmark") {
         return null;
     }
-
     return `${url}\u0000${normalizeChromeCaption(caption)}`;
 }
 

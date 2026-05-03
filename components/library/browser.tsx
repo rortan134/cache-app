@@ -140,7 +140,7 @@ import { toUsableStaticPreviewUrl } from "@/lib/common/preview-url";
 import type {
     LibraryCollectionSummary,
     LibraryItemWithCollections,
-} from "@/lib/common/types";
+} from "@/lib/collections/utils";
 import {
     normalizeURL,
     openSavedItemInNewTab,

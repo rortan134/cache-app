@@ -3,11 +3,13 @@
 import { createLogger } from "@/lib/common/logs/console/logger";
 import {
     getValidationErrorMessage,
+    handleActionError,
     requireActionUserId,
 } from "@/lib/common/procedure";
-import { prisma } from "@/prisma";
+import { markLibraryItemAsReviewed as markLibraryItemAsReviewedService } from "@/lib/review/service";
 import { revalidatePath } from "next/cache";
 import * as z from "zod";
+import { ReviewError } from "./error";
 
 const log = createLogger("library:actions:review");
 
@@ -44,30 +46,21 @@ export async function markLibraryItemAsReviewed(
     }
 
     try {
-        const result = await prisma.libraryItem.updateMany({
-            data: {
-                reviewedAt: new Date(),
-            },
-            where: {
-                id: parsed.data.itemId,
-                userId: auth.userId,
-            },
+        await markLibraryItemAsReviewedService({
+            itemId: parsed.data.itemId,
+            userId: auth.userId,
         });
-
-        if (result.count === 0) {
-            return {
-                message: "Saved item not found.",
-                status: "NOT_FOUND",
-            };
-        }
 
         revalidatePath("/review");
         return { status: "REVIEWED" };
     } catch (error) {
-        log.error("Failed to mark item as reviewed", error);
-        return {
-            message: "We couldn't mark this item as reviewed right now.",
-            status: "ERROR",
-        };
+        return handleActionError({
+            codeToStatus: { not_found: "NOT_FOUND" },
+            error,
+            errorFactory: ReviewError,
+            fallbackMessage:
+                "We couldn't mark this item as reviewed right now.",
+            log,
+        });
     }
 }

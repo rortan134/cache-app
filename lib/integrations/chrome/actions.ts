@@ -2,10 +2,12 @@
 
 import { getSessionUserId } from "@/lib/auth/server";
 import { autoTagLibraryItemsByIds } from "@/lib/collections/intelligence";
-import { LIBRARY_ITEM_COLLECTIONS_INCLUDE } from "@/lib/collections/utils";
+import {
+    LIBRARY_ITEM_COLLECTIONS_INCLUDE,
+    type LibraryItemWithCollections,
+} from "@/lib/collections/utils";
 import { extractNamedErrorMessage } from "@/lib/common/error";
 import { createLogger } from "@/lib/common/logs/console/logger";
-import type { LibraryItemWithCollections } from "@/lib/common/types";
 import { parseStandaloneUrl } from "@/lib/common/url";
 import { DEFAULT_BROWSER_PROFILE_ID } from "@/lib/integrations/browser-profiles";
 import { applyChromeBookmarkSyncEvents } from "@/lib/integrations/chrome/service";

@@ -6,7 +6,7 @@ import {
     handleActionError,
     requireActionUserId,
 } from "@/lib/common/procedure";
-import type { LibraryCollectionTag } from "@/lib/common/types";
+import type { LibraryCollectionTag } from "@/lib/collections/utils";
 import * as z from "zod";
 import { CollectionShareError } from "./error";
 import {

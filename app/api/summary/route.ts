@@ -1,98 +1,17 @@
-import { auth } from "@/lib/auth/server";
-import { GenAiProtectionError } from "@/lib/collections/intelligence/error";
-import { generateSectionDescription } from "@/lib/collections/intelligence";
+import { getSessionUserId } from "@/lib/auth/server";
 import {
-    estimateGenAiTokens,
-    protectGenAiRequest,
-} from "@/lib/collections/intelligence/protection";
+    GenAiGenerationError,
+    GenAiProtectionError,
+} from "@/lib/collections/intelligence/error";
+import { generateCollectionSummary } from "@/lib/collections/intelligence/service";
 import {
-    buildSummaryPrompt,
-    normalizeSummary,
-    SECTION_DESCRIPTION_FALLBACK_TEXT,
     SectionDescriptionRequestSchema,
-    truncateSummaryContextItems,
+    SECTION_DESCRIPTION_FALLBACK_TEXT,
 } from "@/lib/collections/intelligence/summary";
-import { createLogger } from "@/lib/common/logs/console/logger";
-import { ApiError } from "@google/genai";
-import { headers } from "next/headers";
-
-const log = createLogger("api:library:summary");
-
-const OUTPUT_TOKEN_LIMIT = 96;
-
-/**
- * Classifies API errors into specific HTTP status codes and messages.
- *
- * Distinguishes timeouts, quota issues, safety blocks, and upstream failures
- * so the client can react appropriately.
- */
-function classifyApiError(error: unknown): { message: string; status: number } {
-    if (error instanceof ApiError) {
-        const message = error.message.toLowerCase();
-
-        if (
-            message.includes("timeout") ||
-            message.includes("deadline exceeded")
-        ) {
-            return {
-                message: "Request timed out. Please try again.",
-                status: 408,
-            };
-        }
-        if (
-            error.status === 429 ||
-            message.includes("quota") ||
-            message.includes("rate limit")
-        ) {
-            return {
-                message: "AI service quota exceeded. Please try again later.",
-                status: 429,
-            };
-        }
-        if (
-            error.status === 400 &&
-            (message.includes("safety") || message.includes("content"))
-        ) {
-            return {
-                message:
-                    "Content could not be processed due to safety settings.",
-                status: 400,
-            };
-        }
-        if (error.status >= 500) {
-            return {
-                message: "AI service temporarily unavailable.",
-                status: 502,
-            };
-        }
-
-        return {
-            message: error.message,
-            status: error.status ?? 500,
-        };
-    }
-
-    if (error instanceof Error) {
-        const message = error.message.toLowerCase();
-        if (message.includes("timeout") || message.includes("abort")) {
-            return {
-                message: "Request timed out. Please try again.",
-                status: 408,
-            };
-        }
-    }
-
-    return {
-        message: "Unknown error",
-        status: 500,
-    };
-}
 
 export async function POST(request: Request): Promise<Response> {
-    const session = await auth.api.getSession({
-        headers: await headers(),
-    });
-    if (!session?.user?.id) {
+    const userId = await getSessionUserId();
+    if (!userId) {
         return Response.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -106,67 +25,25 @@ export async function POST(request: Request): Promise<Response> {
         );
     }
 
-    const parsedBody = SectionDescriptionRequestSchema.safeParse(rawBody);
-    if (!parsedBody.success) {
+    const parsed = SectionDescriptionRequestSchema.safeParse(rawBody);
+    if (!parsed.success) {
         return Response.json(
             { error: "Invalid request payload." },
             { status: 400 }
         );
     }
 
-    const { items, sectionTitle } = parsedBody.data;
-
-    const truncatedRequest = truncateSummaryContextItems(parsedBody.data);
-    const prompt = buildSummaryPrompt(truncatedRequest);
-    const estimatedTokens = estimateGenAiTokens(prompt, OUTPUT_TOKEN_LIMIT);
-
-    log.debug("Generating section description", {
-        estimatedTokens,
-        itemCount: items.length,
-        sectionTitle,
-        truncatedItemCount: truncatedRequest.items.length,
-        userId: session.user.id,
-    });
-
-    const span = log.time("generate-section-description", {
-        itemCount: items.length,
-        sectionTitle,
-        userId: session.user.id,
-    });
-
     try {
-        await protectGenAiRequest({
-            feature: "section_description",
-            prompt,
+        const result = await generateCollectionSummary({
+            items: parsed.data.items,
             request,
-            requestedTokens: estimatedTokens,
-            userId: session.user.id,
+            sectionTitle: parsed.data.sectionTitle,
+            userId,
         });
 
-        const { rawSummary } = await generateSectionDescription({
-            prompt,
-            requestedTokens: estimatedTokens,
-        });
-
-        const summary = normalizeSummary(rawSummary);
-
-        if (!summary) {
-            log.warn(
-                "Section description normalization rejected model output",
-                {
-                    itemCount: items.length,
-                    rawSummary,
-                    sectionTitle,
-                    userId: session.user.id,
-                }
-            );
-        }
-
-        return Response.json({
-            summary: summary ?? SECTION_DESCRIPTION_FALLBACK_TEXT,
-        });
+        return Response.json({ summary: result.summary });
     } catch (error) {
-        if (error instanceof GenAiProtectionError) {
+        if (GenAiProtectionError.isInstance(error)) {
             const status = error.data.reason === "quota_exceeded" ? 429 : 403;
             return Response.json(
                 {
@@ -177,24 +54,22 @@ export async function POST(request: Request): Promise<Response> {
             );
         }
 
-        const { message, status } = classifyApiError(error);
-
-        log.warn("Failed to generate library section description", {
-            error: message,
-            itemCount: items.length,
-            sectionTitle,
-            status,
-            userId: session.user.id,
-        });
+        if (GenAiGenerationError.isInstance(error)) {
+            return Response.json(
+                {
+                    error: error.data.message,
+                    summary: SECTION_DESCRIPTION_FALLBACK_TEXT,
+                },
+                { status: error.data.status ?? 500 }
+            );
+        }
 
         return Response.json(
             {
-                error: message,
+                error: "Unknown error",
                 summary: SECTION_DESCRIPTION_FALLBACK_TEXT,
             },
-            { status }
+            { status: 500 }
         );
-    } finally {
-        span.stop();
     }
 }

@@ -2,10 +2,14 @@ import "server-only";
 
 import {
     LIBRARY_COLLECTION_TAG_SELECT,
+    LIBRARY_ITEM_COLLECTIONS_INCLUDE,
     toLibraryCollectionSummary,
     toLibraryCollectionSummaryFromTagRecord,
     toLibraryCollectionTag,
     type LibraryCollectionTagRecord,
+    type LibraryCollectionSummary,
+    type LibraryCollectionTag,
+    type LibraryItemWithCollections,
 } from "@/lib/collections/utils";
 import {
     resolveCobaltDownloadUrl,
@@ -17,10 +21,6 @@ import {
     normalizeCollectionName,
 } from "@/lib/common/strings";
 import { isHttpUrl, toValidUrl } from "@/lib/common/url";
-import type {
-    LibraryCollectionSummary,
-    LibraryCollectionTag,
-} from "@/lib/common/types";
 import { prisma } from "@/prisma";
 import type { Prisma } from "@/prisma/client/client";
 import type {
@@ -1010,6 +1010,94 @@ export async function updateLibraryItemsCollections({
             itemCollections: updatedItems,
         };
     });
+}
+
+interface ListLibraryItemsArgs {
+    collectionId?: string;
+    limit?: number;
+    search?: string;
+    userId: string;
+}
+
+/**
+ * Lists library items for the authenticated user with optional search and filtering.
+ */
+export async function listLibraryItems(
+    args: ListLibraryItemsArgs
+): Promise<LibraryItemWithCollections[]> {
+    const limit = Math.min(args.limit ?? 20, 50);
+    const where: Prisma.LibraryItemWhereInput = {
+        kind: { not: "folder" },
+        userId: args.userId,
+    };
+
+    if (args.search) {
+        where.OR = [
+            { caption: { contains: args.search, mode: "insensitive" } },
+            { url: { contains: args.search, mode: "insensitive" } },
+            { noteContentText: { contains: args.search, mode: "insensitive" } },
+        ];
+    }
+
+    if (args.collectionId) {
+        where.collections = { some: { id: args.collectionId } };
+    }
+
+    const items = await prisma.libraryItem.findMany({
+        include: LIBRARY_ITEM_COLLECTIONS_INCLUDE,
+        orderBy: [{ scrapedAt: "desc" }, { updatedAt: "desc" }],
+        take: limit,
+        where,
+    });
+
+    return items as LibraryItemWithCollections[];
+}
+
+interface GetLibraryItemArgs {
+    itemId: string;
+    userId: string;
+}
+
+/**
+ * Retrieves a single library item by ID for the given user.
+ */
+export async function getLibraryItem(
+    args: GetLibraryItemArgs
+): Promise<LibraryItemWithCollections | null> {
+    const item = await prisma.libraryItem.findFirst({
+        include: LIBRARY_ITEM_COLLECTIONS_INCLUDE,
+        where: { id: args.itemId, userId: args.userId },
+    });
+
+    return item as LibraryItemWithCollections | null;
+}
+
+interface ListCollectionsArgs {
+    userId: string;
+}
+
+/**
+ * Lists the user's collections with item counts.
+ */
+export async function listCollections(
+    args: ListCollectionsArgs
+): Promise<LibraryCollectionSummary[]> {
+    const collections = await prisma.collection.findMany({
+        include: {
+            _count: {
+                select: { items: true },
+            },
+            items: {
+                select: { source: true },
+            },
+        },
+        orderBy: { name: "asc" },
+        where: { userId: args.userId },
+    });
+
+    return collections.map((collection) =>
+        toLibraryCollectionSummary(collection)
+    );
 }
 
 export async function disableSmartCollectionsForUser(

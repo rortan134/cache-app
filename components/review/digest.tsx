@@ -14,7 +14,7 @@ import { markLibraryItemAsReviewed } from "@/lib/review/actions";
 import type {
     LibraryCollectionSummary,
     LibraryItemWithCollections,
-} from "@/lib/common/types";
+} from "@/lib/collections/utils";
 import { toUsableStaticPreviewUrl } from "@/lib/common/preview-url";
 import { parseDisplayUrl, toValidUrl } from "@/lib/common/url";
 import { LibraryItemSource } from "@/prisma/client/enums";
@@ -371,7 +371,7 @@ function ReviewSession({
                                             <div className="flex h-full flex-col overflow-hidden bg-linear-to-br from-amber-50 via-background to-stone-100 p-5 text-foreground">
                                                 <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(251,191,36,0.18),transparent_45%)]" />
                                                 <div className="relative flex flex-1 flex-col overflow-hidden">
-                                                    <p className="line-clamp-[12] whitespace-pre-wrap text-sm leading-relaxed opacity-90">
+                                                    <p className="line-clamp-12 whitespace-pre-wrap text-sm leading-relaxed opacity-90">
                                                         {noteTitle}
                                                     </p>
                                                 </div>
