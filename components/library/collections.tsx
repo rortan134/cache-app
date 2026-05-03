@@ -425,6 +425,9 @@ function CollectionsListPreviewImageFallback() {
     );
 }
 
+/**
+ * Preview image that falls back when the source is missing or fails to load.
+ */
 function CollectionsListItemPreviewImage({
     alt,
     src,
@@ -441,6 +444,11 @@ function CollectionsListItemPreviewImage({
     );
 }
 
+/**
+ * Resolved preview image with error handling.
+ *
+ * Swaps in a fallback when the image fails to load.
+ */
 function CollectionsListResolvedPreviewImage({
     alt,
     src,
@@ -483,6 +491,9 @@ function CollectionsListInlineRow({
     );
 }
 
+/**
+ * Root collapsible container for the collections list.
+ */
 function CollectionsList({
     className,
     ...props
@@ -496,6 +507,11 @@ interface CollectionsListTriggerProps
     isOpen: boolean;
 }
 
+/**
+ * Button that toggles the collections list panel.
+ *
+ * Shows a tooltip with all collection labels on hover when collapsed.
+ */
 function CollectionsListTrigger({
     collectionLabels,
     isOpen,
@@ -770,6 +786,9 @@ function CollectionsListSortingCombobox({
     );
 }
 
+/**
+ * Callout that informs users when Smart Collections is active.
+ */
 function CollectionsListNoticeCallout({
     isDisabled,
     onDisable,
@@ -891,6 +910,11 @@ interface CollectionsListItemPreviewProps
     thumbnails: readonly string[];
 }
 
+/**
+ * Previewable trigger that cycles through collection thumbnails on hover.
+ *
+ * Clicking selects the collection and closes the preview popup.
+ */
 function CollectionsListItemPreview({
     onClick,
     thumbnails,
@@ -957,6 +981,11 @@ interface CollectionsListItemPriorityComboboxProps {
     onValueChange: (priority: CollectionPriority) => void;
 }
 
+/**
+ * Priority picker bound to the hovered collection item.
+ *
+ * The "P" hotkey opens the dropdown while the item is hovered.
+ */
 function CollectionsListItemPriorityCombobox({
     onValueChange,
 }: CollectionsListItemPriorityComboboxProps) {
@@ -1039,6 +1068,9 @@ interface CollectionsListSharePopoverProps {
     shareUrl: string | null;
 }
 
+/**
+ * Sub-menu for enabling, disabling, or copying a public share link.
+ */
 function CollectionsListSharePopover({
     collection,
     isSharePending,
@@ -1165,6 +1197,11 @@ interface CollectionsListExportMenuProps {
     onOpenLinks: () => void;
 }
 
+/**
+ * Sub-menu with export and duplication actions for a collection.
+ *
+ * Some items are disabled when the collection has no entries.
+ */
 function CollectionsListExportMenu({
     hasItems,
     onCopyLinks,
@@ -1333,6 +1370,9 @@ interface RenameDialogProps {
     onSubmit: () => void;
 }
 
+/**
+ * Dialog for renaming an existing collection.
+ */
 function RenameDialog({
     errorMessage,
     isOpen,
@@ -1418,6 +1458,9 @@ interface CreateDialogProps {
     onSubmit: () => void;
 }
 
+/**
+ * Dialog for creating a new collection with an optional template picker.
+ */
 function CreateDialog({
     descriptionDraft,
     errorMessage,
@@ -1591,6 +1634,9 @@ interface DeleteDialogProps {
     onOpenChange: (isOpen: boolean) => void;
 }
 
+/**
+ * Confirmation dialog for deleting a collection.
+ */
 function DeleteDialog({
     collection,
     isPending,
