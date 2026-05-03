@@ -52,6 +52,7 @@ import {
     MenuSubTrigger,
     MenuTrigger,
 } from "@/components/ui/menu";
+import { DisclosureList } from "@/components/ui/disclosure-list";
 import {
     Popover,
     PopoverDescription,
@@ -2714,90 +2715,98 @@ export function CollectionsListRoot({
                         </CollectionsListEmpty>
                     ) : (
                         <>
-                            {collectionSummaries.map((collection) => {
-                                const isSelected =
-                                    selectedCollectionIds.includes(
-                                        collection.id
-                                    );
+                            <DisclosureList maxVisible={15}>
+                                {collectionSummaries.map((collection) => {
+                                    const isSelected =
+                                        selectedCollectionIds.includes(
+                                            collection.id
+                                        );
 
-                                return (
-                                    <CollectionsListItem
-                                        collection={collection}
-                                        isSelected={isSelected}
-                                        key={collection.id}
-                                    >
-                                        <CollectionsListItemPriorityCombobox
-                                            onValueChange={(priority) =>
-                                                handleUpdatePriority(
-                                                    collection.id,
-                                                    priority
-                                                )
-                                            }
-                                        />
-                                        <CollectionsListItemPreview
-                                            {...(isSelected
-                                                ? { "data-pressed": true }
-                                                : {})}
-                                            onClick={() =>
-                                                onSelectCollection(
-                                                    collection.id
-                                                )
-                                            }
-                                            thumbnails={
-                                                collectionPreviewThumbnailUrlsById.get(
-                                                    collection.id
-                                                ) ?? []
-                                            }
+                                    return (
+                                        <CollectionsListItem
+                                            collection={collection}
+                                            isSelected={isSelected}
+                                            key={collection.id}
                                         >
-                                            <CollectionsListItemValue />
-                                        </CollectionsListItemPreview>
-                                        <CollectionsListItemMeta
-                                            isSharePending={
-                                                pendingShareId ===
-                                                    collection.id &&
-                                                isSharePending
-                                            }
-                                            onCopyLinks={() =>
-                                                handleCopyLinks(collection)
-                                            }
-                                            onCopyShareLink={() =>
-                                                handleCopyShareLink(collection)
-                                            }
-                                            onCopyTitle={() =>
-                                                handleCopyTitle(collection)
-                                            }
-                                            onDelete={() =>
-                                                requestDelete(collection)
-                                            }
-                                            onDisableShare={() =>
-                                                handleDisableShare(collection)
-                                            }
-                                            onEnableShare={() =>
-                                                handleEnableShare(collection)
-                                            }
-                                            onExportCsv={() =>
-                                                handleExportCsv(collection)
-                                            }
-                                            onMakeCopy={() =>
-                                                handleDuplicate(collection)
-                                            }
-                                            onOpenLinks={() =>
-                                                handleOpenLinks(collection)
-                                            }
-                                            onRename={() =>
-                                                requestRename(collection)
-                                            }
-                                            shareUrl={
-                                                collection.shareId
-                                                    ? buildPublicCollectionShareUrl(
-                                                          collection.shareId
-                                                      )
-                                                    : null
-                                            }
-                                        />
-                                    </CollectionsListItem>
-                                );
-                            })}
+                                            <CollectionsListItemPriorityCombobox
+                                                onValueChange={(priority) =>
+                                                    handleUpdatePriority(
+                                                        collection.id,
+                                                        priority
+                                                    )
+                                                }
+                                            />
+                                            <CollectionsListItemPreview
+                                                {...(isSelected
+                                                    ? { "data-pressed": true }
+                                                    : {})}
+                                                onClick={() =>
+                                                    onSelectCollection(
+                                                        collection.id
+                                                    )
+                                                }
+                                                thumbnails={
+                                                    collectionPreviewThumbnailUrlsById.get(
+                                                        collection.id
+                                                    ) ?? []
+                                                }
+                                            >
+                                                <CollectionsListItemValue />
+                                            </CollectionsListItemPreview>
+                                            <CollectionsListItemMeta
+                                                isSharePending={
+                                                    pendingShareId ===
+                                                        collection.id &&
+                                                    isSharePending
+                                                }
+                                                onCopyLinks={() =>
+                                                    handleCopyLinks(collection)
+                                                }
+                                                onCopyShareLink={() =>
+                                                    handleCopyShareLink(
+                                                        collection
+                                                    )
+                                                }
+                                                onCopyTitle={() =>
+                                                    handleCopyTitle(collection)
+                                                }
+                                                onDelete={() =>
+                                                    requestDelete(collection)
+                                                }
+                                                onDisableShare={() =>
+                                                    handleDisableShare(
+                                                        collection
+                                                    )
+                                                }
+                                                onEnableShare={() =>
+                                                    handleEnableShare(
+                                                        collection
+                                                    )
+                                                }
+                                                onExportCsv={() =>
+                                                    handleExportCsv(collection)
+                                                }
+                                                onMakeCopy={() =>
+                                                    handleDuplicate(collection)
+                                                }
+                                                onOpenLinks={() =>
+                                                    handleOpenLinks(collection)
+                                                }
+                                                onRename={() =>
+                                                    requestRename(collection)
+                                                }
+                                                shareUrl={
+                                                    collection.shareId
+                                                        ? buildPublicCollectionShareUrl(
+                                                              collection.shareId
+                                                          )
+                                                        : null
+                                                }
+                                            />
+                                        </CollectionsListItem>
+                                    );
+                                })}
+                            </DisclosureList>
                             <CollectionsListStatus
                                 onDismiss={() => setFeedback(null)}
                                 tone={feedback?.tone}

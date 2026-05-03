@@ -17,23 +17,14 @@ const TruncateAfter = ({
     badgeRender,
     ...props
 }: TruncateAfterProps) => {
-    const elementCount = React.Children.count(children);
+    const childrenArray = React.Children.toArray(children);
 
-    if (elementCount === 0) {
+    if (childrenArray.length === 0) {
         return null;
     }
 
-    const displayed: React.ReactNode[] = [];
-    const remaining: React.ReactNode[] = [];
-
-    React.Children.map(children, (child, index) => {
-        if (index < maxVisible) {
-            displayed.push(child);
-        } else {
-            remaining.push(child);
-        }
-    });
-
+    const displayed = childrenArray.slice(0, maxVisible);
+    const remaining = childrenArray.slice(maxVisible);
     const numTruncated = clamp(remaining.length, 0, 99);
 
     return (
