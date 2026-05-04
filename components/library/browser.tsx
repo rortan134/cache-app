@@ -3999,27 +3999,43 @@ function LockedResults({
 
 function Empty() {
     return (
-        <Masonry columnCount={5} gap={4} linear>
-            {EMPTY_LIBRARY_PEEK_PLACEHOLDERS.map(({ aspect, id }, index) => {
-                const opacity = Math.max(0.06, 1 - index * 0.095);
+        <>
+            <div className="mx-4 flex flex-col gap-1 px-1">
+                <h3 className="font-medium text-foreground text-sm">
+                    Welcome to Cache
+                </h3>
+                <p className="text-muted-foreground text-xs leading-tight">
+                    Everything you save, unified and searchable. Organize what
+                    matters into collections and find it when you need it.
+                </p>
+            </div>
+            <Masonry columnCount={5} gap={4} linear>
+                {EMPTY_LIBRARY_PEEK_PLACEHOLDERS.map(
+                    ({ aspect, id }, index) => {
+                        const opacity = Math.max(0.06, 1 - index * 0.095);
 
-                return (
-                    <MasonryItem
-                        className="group flex flex-col overflow-hidden rounded-lg bg-card/40"
-                        key={id}
-                        style={{ opacity }}
-                    >
-                        <Skeleton
-                            className={cn("w-full rounded-none", aspect)}
-                        />
-                        <div className="flex min-h-14 flex-col gap-1.5 p-3">
-                            <Skeleton className="h-2.5 w-[92%]" />
-                            <Skeleton className="h-2.5 w-[72%]" />
-                        </div>
-                    </MasonryItem>
-                );
-            })}
-        </Masonry>
+                        return (
+                            <MasonryItem
+                                className="group flex flex-col overflow-hidden rounded-lg bg-card/40"
+                                key={id}
+                                style={{ opacity }}
+                            >
+                                <Skeleton
+                                    className={cn(
+                                        "w-full rounded-none",
+                                        aspect
+                                    )}
+                                />
+                                <div className="flex min-h-14 flex-col gap-1.5 p-3">
+                                    <Skeleton className="h-2.5 w-[92%]" />
+                                    <Skeleton className="h-2.5 w-[72%]" />
+                                </div>
+                            </MasonryItem>
+                        );
+                    }
+                )}
+            </Masonry>
+        </>
     );
 }
 

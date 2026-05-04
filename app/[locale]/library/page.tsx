@@ -7,10 +7,6 @@ import {
 } from "@/components/auth/user-menu";
 import { Root } from "@/components/library/browser";
 import {
-    CollectionsListWorkspaceRoot,
-    WorkspaceProvider,
-} from "@/components/library/workspace-provider";
-import {
     IntegrationsList,
     IntegrationsListFeedback,
     IntegrationsListItem,
@@ -19,6 +15,10 @@ import {
     IntegrationsListPrivacyNotice,
     IntegrationsListTrigger,
 } from "@/components/library/integrations";
+import {
+    CollectionsListWorkspaceRoot,
+    WorkspaceProvider,
+} from "@/components/library/workspace-provider";
 import { ActivePathname } from "@/components/ui/active-pathname";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ChevronDownFilledIcon } from "@/components/ui/icons";

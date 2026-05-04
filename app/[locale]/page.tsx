@@ -55,6 +55,7 @@ export async function generateMetadata({
             "bookmark manager",
             "unify bookmarks",
             "save content",
+            "notion",
             "personal knowledge library",
             "Cache App",
         ],

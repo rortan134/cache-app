@@ -603,7 +603,7 @@ function CollectionsListEmpty({
         <div className="flex flex-col items-center justify-center gap-4 rounded-2xl border border-border/30 border-dashed px-4 py-7 text-center">
             <p
                 className={cn(
-                    "font-medium text-foreground text-sm leading-tight",
+                    "font-medium text-muted-foreground text-xs leading-tight",
                     className
                 )}
                 {...props}
@@ -1603,7 +1603,8 @@ function CreateDialog({
                                     <p className="text-[11px] text-muted-foreground leading-tight">
                                         Cache's{" "}
                                         <strong className="font-medium">
-                                            Smart Collections
+                                            Smart Collections&nbsp;
+                                            <Sparkle className="mb-px inline-block size-3" />
                                         </strong>{" "}
                                         can automatically assign collections to
                                         entries that match with these.
