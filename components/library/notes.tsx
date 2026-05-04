@@ -228,7 +228,7 @@ const EXPORT_CONTENT_PROVIDERS: readonly ExportContentProvider[] = [
     {
         createUrl: (query) =>
             `https://t3.chat/new?${new URLSearchParams({ q: query })}`,
-        icon: T3ChatIcon,
+        icon: MessageCircleIcon,
         title: "Open in T3 Chat",
     },
     {
@@ -908,10 +908,6 @@ function SciraIcon(props: SVGProps<SVGSVGElement>) {
             />
         </BrandIcon>
     );
-}
-
-function T3ChatIcon(props: SVGProps<SVGSVGElement>) {
-    return <MessageCircleIcon {...props} />;
 }
 
 function V0Icon(props: SVGProps<SVGSVGElement>) {
