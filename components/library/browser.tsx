@@ -78,6 +78,7 @@ import {
     DrawerPanel,
     DrawerPopup,
     DrawerTitle,
+    DrawerViewport,
 } from "@/components/ui/drawer";
 import { GradientWaveText } from "@/components/ui/gradient-wave-text";
 import { ChevronDownFilledIcon } from "@/components/ui/icons";
@@ -4294,40 +4295,6 @@ function Section({
     );
 }
 
-function NoteDrawer({ open }: { open: boolean }) {
-    const { onOpenChange, isExpanded } = Note.useContext();
-
-    return (
-        <Drawer onOpenChange={onOpenChange} open={open} position="right">
-            <DrawerPopup
-                className={cn(
-                    "max-w-2xl",
-                    isExpanded &&
-                        "w-[min(96vw,120rem)] max-w-[min(96vw,120rem)]"
-                )}
-                variant="straight"
-            >
-                <DrawerHeader
-                    allowSelection
-                    className="flex-row items-center justify-between"
-                >
-                    <DrawerTitle className="sr-only">
-                        <Note.Title />
-                    </DrawerTitle>
-                    <Note.Header />
-                </DrawerHeader>
-                <DrawerPanel
-                    allowSelection
-                    className="flex min-h-0 flex-1 flex-col gap-4"
-                >
-                    <Note.Editor />
-                    <Note.Metrics />
-                </DrawerPanel>
-            </DrawerPopup>
-        </Drawer>
-    );
-}
-
 export function Root({ lockedItemCount, totalItemCount }: LibraryProps) {
     const {
         collectionPreviewThumbnailUrlsById,
@@ -5167,341 +5134,361 @@ export function Root({ lockedItemCount, totalItemCount }: LibraryProps) {
             });
         });
 
+    const containerRef = React.useRef<HTMLDivElement>(null);
+
     return (
         <div
-            className="relative z-0 flex w-full flex-col gap-4"
-            style={
-                {
-                    "--library-section-sticky-top": "8px",
-                } as React.CSSProperties
-            }
+            className="flex w-full max-w-[1024px] items-center gap-12 p-8 2xl:mx-auto"
+            ref={containerRef}
         >
-            <Toolbar.Root className="max-w-xl rounded-t-4xl rounded-b-2xl bg-muted/80">
-                <Command
-                    filter={null}
-                    filteredItems={visiblePaletteGroups.map((group) => ({
-                        items: group.items,
-                    }))}
-                    items={paletteGroups.map((group) => ({
-                        items: group.items,
-                    }))}
-                    onOpenChange={handleCommandOpenChange}
-                    onValueChange={handleCommandInputChange}
-                    open={commandListOpen}
-                    value={paletteInput}
-                >
-                    <CommandPanel ref={commandPanelContainerRef}>
-                        <Toolbar.Input
-                            render={
-                                <CommandInput
-                                    endAddon={
-                                        <LibraryPaletteTrailing
-                                            entries={buildPaletteStackEntries({
-                                                collectionMembershipFilter,
-                                                collections,
-                                                columnCountMode,
-                                                commandAttachments,
-                                                domainFilters,
-                                                groupBy,
-                                                layoutMode,
-                                                onRemoveCollectionFilter,
-                                                onRemoveCommandAttachment:
-                                                    removeCommandAttachment,
-                                                searchTerms,
-                                                selectedCollectionIds,
-                                                setCollectionMembershipFilter,
-                                                setColumnCountMode,
-                                                setDomainFilters,
-                                                setGroupBy,
-                                                setLayoutMode,
-                                                setSearchTerms,
-                                                setSortMode,
-                                                setSourceFilters,
-                                                sortMode,
-                                                sourceFilters,
-                                            })}
-                                            isCommandInputFocused={
-                                                isCommandInputFocused
-                                            }
-                                            onAttachFiles={
-                                                handleAttachCommandFiles
-                                            }
-                                        />
-                                    }
-                                    onBlur={() =>
-                                        setIsCommandInputFocused(false)
-                                    }
-                                    onFocus={() =>
-                                        setIsCommandInputFocused(true)
-                                    }
-                                    onKeyDown={handlePaletteInputKeyDown}
-                                    placeholder={inputPlaceholder}
-                                    ref={paletteInputRef}
-                                    size="lg"
-                                />
-                            }
-                        />
-                        <AutocompletePopup>
-                            <CommandEmpty>
-                                No matching commands found.
-                            </CommandEmpty>
-                            <CommandList>
-                                {visiblePaletteGroups.map((group) => (
-                                    <CommandGroup
-                                        items={group.items}
-                                        key={group.label}
-                                    >
-                                        <CommandGroupLabel>
-                                            {group.label}
-                                        </CommandGroupLabel>
-                                        <div
-                                            className={
-                                                group.layout === "horizontal"
-                                                    ? "flex gap-2 pt-1 pr-2 pb-4"
-                                                    : ""
-                                            }
-                                        >
-                                            <CommandCollection>
-                                                {(item: CommandPaletteItem) => (
-                                                    <CommandItem
-                                                        className={
-                                                            group.layout ===
-                                                            "horizontal"
-                                                                ? "group relative flex-1 overflow-hidden rounded-xl bg-accent text-accent-foreground shadow-xs"
-                                                                : undefined
-                                                        }
-                                                        disabled={item.disabled}
-                                                        key={item.value}
-                                                        onClick={item.onSelect}
-                                                        value={item.value}
-                                                    >
-                                                        {item.render ? (
-                                                            item.render(item)
-                                                        ) : (
-                                                            <div className="flex min-w-0 flex-1 items-center gap-2.5">
-                                                                <div className="truncate">
-                                                                    {item.label}
-                                                                </div>
-                                                                {item.description ? (
-                                                                    <span className="max-w-xs truncate text-muted-foreground/80 text-xs">
-                                                                        {
-                                                                            item.description
-                                                                        }
-                                                                    </span>
-                                                                ) : null}
-                                                                {item.active ? (
-                                                                    <Badge variant="secondary">
-                                                                        Active
-                                                                    </Badge>
-                                                                ) : null}
-                                                                {item.shortcut ? (
-                                                                    <CommandShortcut>
-                                                                        {
-                                                                            item.shortcut
-                                                                        }
-                                                                    </CommandShortcut>
-                                                                ) : null}
-                                                            </div>
-                                                        )}
-                                                    </CommandItem>
-                                                )}
-                                            </CommandCollection>
-                                        </div>
-                                    </CommandGroup>
-                                ))}
-                            </CommandList>
-                            <CommandFooter>
-                                {canClear ? (
-                                    <div className="mr-auto flex items-center gap-1.5">
-                                        <span className="font-medium">
-                                            Close
-                                        </span>
-                                        <Kbd>Esc</Kbd>
-                                    </div>
-                                ) : null}
-                                <div className="flex items-center gap-1.5">
-                                    <span className="font-medium">
-                                        Navigate
-                                    </span>
-                                    <KbdGroup>
-                                        <Kbd>
-                                            <ArrowUpIcon />
-                                        </Kbd>
-                                        <Kbd>
-                                            <ArrowDownIcon />
-                                        </Kbd>
-                                    </KbdGroup>
-                                </div>
-                                <Separator orientation="vertical" />
-                                <div className="flex items-center gap-1.5">
-                                    <span className="font-medium">
-                                        Open Command
-                                    </span>
-                                    <Kbd>
-                                        <CornerDownLeftIcon />
-                                    </Kbd>
-                                </div>
-                            </CommandFooter>
-                        </AutocompletePopup>
-                    </CommandPanel>
-                </Command>
-                <Toolbar.Group className="flex items-center gap-2 px-3 py-2">
-                    <Toolbar.Button
-                        render={
-                            <Button
-                                className="rounded-full"
-                                onClick={handleCreateNote}
-                                size="xs"
-                                variant="ghost"
-                            >
-                                <SquarePen className="inline-block size-3.5 shrink-0" />
-                                &nbsp;New
-                            </Button>
-                        }
-                    />
-                    <Toolbar.Button
-                        render={
-                            <FeedbackWidget
+            <div
+                className="relative z-0 flex w-full flex-col gap-4"
+                style={
+                    {
+                        "--library-section-sticky-top": "8px",
+                    } as React.CSSProperties
+                }
+            >
+                <Toolbar.Root className="max-w-xl rounded-t-4xl rounded-b-2xl bg-muted/80">
+                    <Command
+                        filter={null}
+                        filteredItems={visiblePaletteGroups.map((group) => ({
+                            items: group.items,
+                        }))}
+                        items={paletteGroups.map((group) => ({
+                            items: group.items,
+                        }))}
+                        onOpenChange={handleCommandOpenChange}
+                        onValueChange={handleCommandInputChange}
+                        open={commandListOpen}
+                        value={paletteInput}
+                    >
+                        <CommandPanel ref={commandPanelContainerRef}>
+                            <Toolbar.Input
                                 render={
-                                    <Button
-                                        className="hidden rounded-full md:flex"
-                                        size="xs"
-                                        variant="ghost"
+                                    <CommandInput
+                                        endAddon={
+                                            <LibraryPaletteTrailing
+                                                entries={buildPaletteStackEntries(
+                                                    {
+                                                        collectionMembershipFilter,
+                                                        collections,
+                                                        columnCountMode,
+                                                        commandAttachments,
+                                                        domainFilters,
+                                                        groupBy,
+                                                        layoutMode,
+                                                        onRemoveCollectionFilter,
+                                                        onRemoveCommandAttachment:
+                                                            removeCommandAttachment,
+                                                        searchTerms,
+                                                        selectedCollectionIds,
+                                                        setCollectionMembershipFilter,
+                                                        setColumnCountMode,
+                                                        setDomainFilters,
+                                                        setGroupBy,
+                                                        setLayoutMode,
+                                                        setSearchTerms,
+                                                        setSortMode,
+                                                        setSourceFilters,
+                                                        sortMode,
+                                                        sourceFilters,
+                                                    }
+                                                )}
+                                                isCommandInputFocused={
+                                                    isCommandInputFocused
+                                                }
+                                                onAttachFiles={
+                                                    handleAttachCommandFiles
+                                                }
+                                            />
+                                        }
+                                        onBlur={() =>
+                                            setIsCommandInputFocused(false)
+                                        }
+                                        onFocus={() =>
+                                            setIsCommandInputFocused(true)
+                                        }
+                                        onKeyDown={handlePaletteInputKeyDown}
+                                        placeholder={inputPlaceholder}
+                                        ref={paletteInputRef}
+                                        size="lg"
                                     />
                                 }
-                            >
-                                <Globe className="inline-block size-3.5 shrink-0" />
-                                &nbsp;Feedback
-                                <ChevronDown className="inline-block size-3.5 shrink-0" />
-                            </FeedbackWidget>
-                        }
-                    />
-                    <Toolbar.Button
-                        render={
-                            <Button
-                                className="rounded-full"
-                                onClick={() => {
-                                    clearLibraryPalette();
-                                }}
-                                size="xs"
-                                title="Reset browser"
-                                variant="ghost"
-                            >
-                                {canClear ? (
-                                    <Grid2x2X className="inline-block size-3.5 shrink-0" />
-                                ) : (
-                                    <Grid2x2 className="inline-block size-3.5 shrink-0" />
-                                )}
-                                &nbsp;Showing {resultsSummary}
-                                {groupBy === "none" ? null : (
-                                    <>
-                                        , {sections.length} group
-                                        {sections.length === 1 ? "" : "s"}
-                                    </>
-                                )}
-                            </Button>
-                        }
-                    />
-                    {canCreateCollectionFromResults ? (
+                            />
+                            <AutocompletePopup>
+                                <CommandEmpty>
+                                    No matching commands found.
+                                </CommandEmpty>
+                                <CommandList>
+                                    {visiblePaletteGroups.map((group) => (
+                                        <CommandGroup
+                                            items={group.items}
+                                            key={group.label}
+                                        >
+                                            <CommandGroupLabel>
+                                                {group.label}
+                                            </CommandGroupLabel>
+                                            <div
+                                                className={
+                                                    group.layout ===
+                                                    "horizontal"
+                                                        ? "flex gap-2 pt-1 pr-2 pb-4"
+                                                        : ""
+                                                }
+                                            >
+                                                <CommandCollection>
+                                                    {(
+                                                        item: CommandPaletteItem
+                                                    ) => (
+                                                        <CommandItem
+                                                            className={
+                                                                group.layout ===
+                                                                "horizontal"
+                                                                    ? "group relative flex-1 overflow-hidden rounded-xl bg-accent text-accent-foreground shadow-xs"
+                                                                    : undefined
+                                                            }
+                                                            disabled={
+                                                                item.disabled
+                                                            }
+                                                            key={item.value}
+                                                            onClick={
+                                                                item.onSelect
+                                                            }
+                                                            value={item.value}
+                                                        >
+                                                            {item.render ? (
+                                                                item.render(
+                                                                    item
+                                                                )
+                                                            ) : (
+                                                                <div className="flex min-w-0 flex-1 items-center gap-2.5">
+                                                                    <div className="truncate">
+                                                                        {
+                                                                            item.label
+                                                                        }
+                                                                    </div>
+                                                                    {item.description ? (
+                                                                        <span className="max-w-xs truncate text-muted-foreground/80 text-xs">
+                                                                            {
+                                                                                item.description
+                                                                            }
+                                                                        </span>
+                                                                    ) : null}
+                                                                    {item.active ? (
+                                                                        <Badge variant="secondary">
+                                                                            Active
+                                                                        </Badge>
+                                                                    ) : null}
+                                                                    {item.shortcut ? (
+                                                                        <CommandShortcut>
+                                                                            {
+                                                                                item.shortcut
+                                                                            }
+                                                                        </CommandShortcut>
+                                                                    ) : null}
+                                                                </div>
+                                                            )}
+                                                        </CommandItem>
+                                                    )}
+                                                </CommandCollection>
+                                            </div>
+                                        </CommandGroup>
+                                    ))}
+                                </CommandList>
+                                <CommandFooter>
+                                    {canClear ? (
+                                        <div className="mr-auto flex items-center gap-1.5">
+                                            <span className="font-medium">
+                                                Close
+                                            </span>
+                                            <Kbd>Esc</Kbd>
+                                        </div>
+                                    ) : null}
+                                    <div className="flex items-center gap-1.5">
+                                        <span className="font-medium">
+                                            Navigate
+                                        </span>
+                                        <KbdGroup>
+                                            <Kbd>
+                                                <ArrowUpIcon />
+                                            </Kbd>
+                                            <Kbd>
+                                                <ArrowDownIcon />
+                                            </Kbd>
+                                        </KbdGroup>
+                                    </div>
+                                    <Separator orientation="vertical" />
+                                    <div className="flex items-center gap-1.5">
+                                        <span className="font-medium">
+                                            Open Command
+                                        </span>
+                                        <Kbd>
+                                            <CornerDownLeftIcon />
+                                        </Kbd>
+                                    </div>
+                                </CommandFooter>
+                            </AutocompletePopup>
+                        </CommandPanel>
+                    </Command>
+                    <Toolbar.Group className="flex items-center gap-2 px-3 py-2">
                         <Toolbar.Button
                             render={
                                 <Button
                                     className="rounded-full"
-                                    onClick={() =>
-                                        handleCreateResultsDialogOpenChange(
-                                            true
-                                        )
-                                    }
+                                    onClick={handleCreateNote}
                                     size="xs"
                                     variant="ghost"
                                 >
-                                    <CircleFadingPlus className="inline-block size-4 shrink-0" />
-                                    &nbsp;Collection with results
+                                    <SquarePen className="inline-block size-3.5 shrink-0" />
+                                    &nbsp;New
                                 </Button>
                             }
                         />
-                    ) : null}
-                </Toolbar.Group>
-            </Toolbar.Root>
-            {actionFeedback || commandSuggestions.length === 0 ? null : (
-                <div className="relative -mt-1 px-3">
-                    <ScrollArea
-                        className="max-w-full whitespace-nowrap"
-                        scrollFade
-                    >
-                        <div className="flex w-max flex-nowrap items-center gap-1.5">
-                            {commandSuggestions.map((suggestion, index) => (
-                                <React.Fragment key={suggestion.label}>
+                        <Toolbar.Button
+                            render={
+                                <FeedbackWidget
+                                    render={
+                                        <Button
+                                            className="hidden rounded-full md:flex"
+                                            size="xs"
+                                            variant="ghost"
+                                        />
+                                    }
+                                >
+                                    <Globe className="inline-block size-3.5 shrink-0" />
+                                    &nbsp;Feedback
+                                    <ChevronDown className="inline-block size-3.5 shrink-0" />
+                                </FeedbackWidget>
+                            }
+                        />
+                        <Toolbar.Button
+                            render={
+                                <Button
+                                    className="rounded-full"
+                                    onClick={() => {
+                                        clearLibraryPalette();
+                                    }}
+                                    size="xs"
+                                    title="Reset browser"
+                                    variant="ghost"
+                                >
+                                    {canClear ? (
+                                        <Grid2x2X className="inline-block size-3.5 shrink-0" />
+                                    ) : (
+                                        <Grid2x2 className="inline-block size-3.5 shrink-0" />
+                                    )}
+                                    &nbsp;Showing {resultsSummary}
+                                    {groupBy === "none" ? null : (
+                                        <>
+                                            , {sections.length} group
+                                            {sections.length === 1 ? "" : "s"}
+                                        </>
+                                    )}
+                                </Button>
+                            }
+                        />
+                        {canCreateCollectionFromResults ? (
+                            <Toolbar.Button
+                                render={
                                     <Button
-                                        className="rounded-full text-muted-foreground"
-                                        onClick={suggestion.onSelect}
+                                        className="rounded-full"
+                                        onClick={() =>
+                                            handleCreateResultsDialogOpenChange(
+                                                true
+                                            )
+                                        }
                                         size="xs"
                                         variant="ghost"
                                     >
-                                        {suggestion.icon}
-                                        &nbsp;
-                                        {suggestion.label}
-                                        <Kbd className="bg-transparent px-0 text-[11px] opacity-80">
-                                            <CtrlKbd />
-                                            {index + 1}
-                                        </Kbd>
+                                        <CircleFadingPlus className="inline-block size-4 shrink-0" />
+                                        &nbsp;Collection with results
                                     </Button>
-                                    <span className="font-medium text-muted-foreground text-xs last:hidden">
-                                        ·
-                                    </span>
-                                </React.Fragment>
-                            ))}
-                        </div>
-                        <ScrollBar
-                            className="hidden"
-                            orientation="horizontal"
-                        />
-                    </ScrollArea>
-                </div>
-            )}
-            {actionFeedback ? (
-                <div
-                    className={cn(
-                        "rounded-xl border px-4 py-2 font-medium text-sm",
-                        actionFeedback.tone === "success"
-                            ? "border-emerald-500/25 bg-emerald-500/8 text-foreground"
-                            : "border-destructive/25 bg-destructive/6 text-foreground"
-                    )}
-                >
-                    {actionFeedback.message}
-                </div>
-            ) : null}
-            {isPreviewOnly ? <InlinePaywallBanner /> : null}
-            <LibraryResults
-                clearLibraryPalette={clearLibraryPalette}
-                collapsedSectionKeys={collapsedSectionKeySet}
-                collections={collections}
-                columnCount={resolvedColumnCount}
-                enableSectionCollapse={enableSectionCollapse}
-                layoutMode={layoutMode}
-                onCollapseAllSections={collapseAllSections}
-                onCopyLink={handleCopyLink}
-                onDelete={handleRequestDelete}
-                onExpandAllSections={expandAllSections}
-                onOpenInNewTab={handleOpenInNewTab}
-                onOpenNote={handleOpenNote}
-                onSetActionFeedback={setActionFeedback}
-                onToggleSection={toggleSection}
-                onUpdateItemCollections={
-                    handleUpdateItemCollectionsWithFeedback
-                }
-                pendingDeleteItemId={pendingDeleteItem?.id ?? null}
-                sections={sections}
-                showEmptyLibraryPeek={showEmptyLibraryPeek}
-                showNoFilteredResults={showNoFilteredResults}
-            />
-            {showLockedPreview ? (
-                <LockedResults
+                                }
+                            />
+                        ) : null}
+                    </Toolbar.Group>
+                </Toolbar.Root>
+                {actionFeedback || commandSuggestions.length === 0 ? null : (
+                    <div className="relative -mt-1 px-3">
+                        <ScrollArea
+                            className="max-w-full whitespace-nowrap"
+                            scrollFade
+                        >
+                            <div className="flex w-max flex-nowrap items-center gap-1.5">
+                                {commandSuggestions.map((suggestion, index) => (
+                                    <React.Fragment key={suggestion.label}>
+                                        <Button
+                                            className="rounded-full text-muted-foreground"
+                                            onClick={suggestion.onSelect}
+                                            size="xs"
+                                            variant="ghost"
+                                        >
+                                            {suggestion.icon}
+                                            &nbsp;
+                                            {suggestion.label}
+                                            <Kbd className="bg-transparent px-0 text-[11px] opacity-50">
+                                                <CtrlKbd />
+                                                {index + 1}
+                                            </Kbd>
+                                        </Button>
+                                        <span className="font-medium text-muted-foreground text-xs last:hidden">
+                                            ·
+                                        </span>
+                                    </React.Fragment>
+                                ))}
+                            </div>
+                            <ScrollBar
+                                className="hidden"
+                                orientation="horizontal"
+                            />
+                        </ScrollArea>
+                    </div>
+                )}
+                {actionFeedback ? (
+                    <div
+                        className={cn(
+                            "rounded-xl border px-4 py-2 font-medium text-sm",
+                            actionFeedback.tone === "success"
+                                ? "border-emerald-500/25 bg-emerald-500/8 text-foreground"
+                                : "border-destructive/25 bg-destructive/6 text-foreground"
+                        )}
+                    >
+                        {actionFeedback.message}
+                    </div>
+                ) : null}
+                {isPreviewOnly ? <InlinePaywallBanner /> : null}
+                <LibraryResults
+                    clearLibraryPalette={clearLibraryPalette}
+                    collapsedSectionKeys={collapsedSectionKeySet}
+                    collections={collections}
                     columnCount={resolvedColumnCount}
+                    enableSectionCollapse={enableSectionCollapse}
                     layoutMode={layoutMode}
-                    totalItemCount={totalItemCount}
+                    onCollapseAllSections={collapseAllSections}
+                    onCopyLink={handleCopyLink}
+                    onDelete={handleRequestDelete}
+                    onExpandAllSections={expandAllSections}
+                    onOpenInNewTab={handleOpenInNewTab}
+                    onOpenNote={handleOpenNote}
+                    onSetActionFeedback={setActionFeedback}
+                    onToggleSection={toggleSection}
+                    onUpdateItemCollections={
+                        handleUpdateItemCollectionsWithFeedback
+                    }
+                    pendingDeleteItemId={pendingDeleteItem?.id ?? null}
+                    sections={sections}
+                    showEmptyLibraryPeek={showEmptyLibraryPeek}
+                    showNoFilteredResults={showNoFilteredResults}
                 />
-            ) : null}
+                {showLockedPreview ? (
+                    <LockedResults
+                        columnCount={resolvedColumnCount}
+                        layoutMode={layoutMode}
+                        totalItemCount={totalItemCount}
+                    />
+                ) : null}
+            </div>
             <Note.Root
                 note={activeNote}
                 onOpenChange={setIsNoteDrawerOpen}
@@ -5510,7 +5497,37 @@ export function Root({ lockedItemCount, totalItemCount }: LibraryProps) {
                 open={isNoteDrawerOpen}
                 saving={isSavingNote || isSavingPastedUrl}
             >
-                <NoteDrawer open={isNoteDrawerOpen} />
+                <Drawer
+                    onOpenChange={setIsNoteDrawerOpen}
+                    open={isNoteDrawerOpen}
+                    position="right"
+                    swipeDirection="right"
+                >
+                    <DrawerViewport
+                        portalProps={{
+                            container: containerRef,
+                        }}
+                    >
+                        <DrawerPopup className="max-w-2xl" variant="straight">
+                            <DrawerHeader
+                                allowSelection
+                                className="flex-row items-center justify-between"
+                            >
+                                <DrawerTitle className="sr-only">
+                                    <Note.Title />
+                                </DrawerTitle>
+                                <Note.Header />
+                            </DrawerHeader>
+                            <DrawerPanel
+                                allowSelection
+                                className="flex min-h-0 flex-1 flex-col gap-4"
+                            >
+                                <Note.Editor />
+                                <Note.Metrics />
+                            </DrawerPanel>
+                        </DrawerPopup>
+                    </DrawerViewport>
+                </Drawer>
             </Note.Root>
             <Dialog
                 onOpenChange={handleDeleteDialogOpenChange}

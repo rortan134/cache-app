@@ -11,6 +11,7 @@ import {
     DrawerPopup,
     DrawerTitle,
     DrawerTrigger,
+    DrawerViewport,
 } from "@/components/ui/drawer";
 import { Spinner } from "@/components/ui/spinner";
 import { cn } from "@/lib/common/cn";
@@ -231,118 +232,125 @@ export function PreviewDrawerContent({
     const canOpenInNewTab = url !== PREVIEW_BLOCKED_URL;
 
     return (
-        <DrawerPopup
-            className={cn(
-                "h-[min(88vh,58rem)] sm:h-[min(82vh,56rem)]",
-                PREVIEW_POPUP_POSITION_CLASSES[position],
-                className
-            )}
-            position={position}
-            showBar={position === "bottom" || position === "top"}
-            showCloseButton
-            variant="inset"
-            {...popupProps}
-        >
-            <DrawerHeader className="gap-1 border-border/70 border-b pb-4">
-                <DrawerTitle className="truncate text-lg sm:text-xl">
-                    {title}
-                </DrawerTitle>
-                <DrawerDescription className="line-clamp-2 text-sm">
-                    {description ?? parseDisplayUrl(url)}
-                </DrawerDescription>
-            </DrawerHeader>
-            <DrawerPanel
-                allowSelection={false}
-                className={cn("min-h-0 flex-1 p-0", panelClassName)}
-                scrollable={false}
+        <DrawerViewport>
+            <DrawerPopup
+                className={cn(
+                    "h-[min(88vh,58rem)] sm:h-[min(82vh,56rem)]",
+                    PREVIEW_POPUP_POSITION_CLASSES[position],
+                    className
+                )}
+                position={position}
+                showBar={position === "bottom" || position === "top"}
+                showCloseButton
+                variant="inset"
+                {...popupProps}
             >
-                <div
-                    aria-busy={status === "loading"}
+                <DrawerHeader className="gap-1 border-border/70 border-b pb-4">
+                    <DrawerTitle className="truncate text-lg sm:text-xl">
+                        {title}
+                    </DrawerTitle>
+                    <DrawerDescription className="line-clamp-2 text-sm">
+                        {description ?? parseDisplayUrl(url)}
+                    </DrawerDescription>
+                </DrawerHeader>
+                <DrawerPanel
+                    allowSelection={false}
+                    className={cn("min-h-0 flex-1 p-0", panelClassName)}
+                    scrollable={false}
+                >
+                    <div
+                        aria-busy={status === "loading"}
+                        className={cn(
+                            "relative flex size-full min-h-0",
+                            bodyClassName
+                        )}
+                    >
+                        {status === "loading" && (
+                            <div
+                                aria-live="polite"
+                                className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 bg-background/92 text-center backdrop-blur-xs"
+                                role="status"
+                            >
+                                <Spinner className="size-5 text-muted-foreground" />
+                                <div className="space-y-1">
+                                    <p className="font-medium text-foreground text-sm">
+                                        {loadingLabel}
+                                    </p>
+                                    <p className="max-w-sm text-balance text-muted-foreground text-sm">
+                                        We&apos;re trying to open the page...
+                                    </p>
+                                </div>
+                            </div>
+                        )}
+                        {status === "blocked" && (
+                            <div
+                                className="flex size-full flex-col items-center justify-center gap-4 bg-muted/20 px-6 text-center"
+                                role="alert"
+                            >
+                                <div className="flex size-12 items-center justify-center rounded-full bg-destructive/10 text-destructive">
+                                    <AlertCircleIcon className="size-5" />
+                                </div>
+                                <div className="space-y-2">
+                                    <p className="font-medium text-base text-foreground">
+                                        Preview unavailable
+                                    </p>
+                                    <p className="max-w-md text-balance text-muted-foreground text-sm">
+                                        {errorDescription}
+                                    </p>
+                                </div>
+                                {canOpenInNewTab && (
+                                    <PreviewDrawerLinkButton
+                                        size="sm"
+                                        url={url}
+                                    >
+                                        <ExternalLinkIcon className="size-4" />
+                                        Open in new tab
+                                    </PreviewDrawerLinkButton>
+                                )}
+                            </div>
+                        )}
+                        {/* biome-ignore lint/a11y/noNoninteractiveElementInteractions: iframe load and error events are required to track preview readiness. */}
+                        <iframe
+                            className={cn(
+                                "size-full border-0 bg-background",
+                                status === "blocked" && "hidden"
+                            )}
+                            // Remount the iframe whenever the drawer opens or the
+                            // target URL changes so the preview always starts fresh.
+                            key={`${iframeKey}-${open ? "open" : "closed"}-${url}`}
+                            onError={markAsBlocked}
+                            onLoad={markAsLoaded}
+                            referrerPolicy="strict-origin-when-cross-origin"
+                            src={url}
+                            title={`Preview of ${title}`}
+                        />
+                    </div>
+                </DrawerPanel>
+                <DrawerFooter
                     className={cn(
-                        "relative flex size-full min-h-0",
-                        bodyClassName
+                        "items-stretch gap-2 border-border/70 border-t sm:items-center",
+                        canOpenInNewTab && "sm:justify-between",
+                        footerClassName
                     )}
                 >
-                    {status === "loading" && (
-                        <div
-                            aria-live="polite"
-                            className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 bg-background/92 text-center backdrop-blur-xs"
-                            role="status"
+                    {canOpenInNewTab && (
+                        <PreviewDrawerLinkButton
+                            className="justify-start sm:justify-center"
+                            size="sm"
+                            url={url}
+                            variant="link"
                         >
-                            <Spinner className="size-5 text-muted-foreground" />
-                            <div className="space-y-1">
-                                <p className="font-medium text-foreground text-sm">
-                                    {loadingLabel}
-                                </p>
-                                <p className="max-w-sm text-balance text-muted-foreground text-sm">
-                                    We&apos;re trying to open the page...
-                                </p>
-                            </div>
-                        </div>
+                            <GlobeIcon className="size-4" />
+                            Open in new tab
+                        </PreviewDrawerLinkButton>
                     )}
-                    {status === "blocked" && (
-                        <div
-                            className="flex size-full flex-col items-center justify-center gap-4 bg-muted/20 px-6 text-center"
-                            role="alert"
-                        >
-                            <div className="flex size-12 items-center justify-center rounded-full bg-destructive/10 text-destructive">
-                                <AlertCircleIcon className="size-5" />
-                            </div>
-                            <div className="space-y-2">
-                                <p className="font-medium text-base text-foreground">
-                                    Preview unavailable
-                                </p>
-                                <p className="max-w-md text-balance text-muted-foreground text-sm">
-                                    {errorDescription}
-                                </p>
-                            </div>
-                            {canOpenInNewTab && (
-                                <PreviewDrawerLinkButton size="sm" url={url}>
-                                    <ExternalLinkIcon className="size-4" />
-                                    Open in new tab
-                                </PreviewDrawerLinkButton>
-                            )}
-                        </div>
-                    )}
-                    {/* biome-ignore lint/a11y/noNoninteractiveElementInteractions: iframe load and error events are required to track preview readiness. */}
-                    <iframe
-                        className={cn(
-                            "size-full border-0 bg-background",
-                            status === "blocked" && "hidden"
-                        )}
-                        // Remount the iframe whenever the drawer opens or the
-                        // target URL changes so the preview always starts fresh.
-                        key={`${iframeKey}-${open ? "open" : "closed"}-${url}`}
-                        onError={markAsBlocked}
-                        onLoad={markAsLoaded}
-                        referrerPolicy="strict-origin-when-cross-origin"
-                        src={url}
-                        title={`Preview of ${title}`}
-                    />
-                </div>
-            </DrawerPanel>
-            <DrawerFooter
-                className={cn(
-                    "items-stretch gap-2 border-border/70 border-t sm:items-center",
-                    canOpenInNewTab && "sm:justify-between",
-                    footerClassName
-                )}
-            >
-                {canOpenInNewTab && (
-                    <PreviewDrawerLinkButton
-                        className="justify-start sm:justify-center"
-                        size="sm"
-                        url={url}
-                        variant="link"
+                    <DrawerClose
+                        render={<Button size="sm" variant="outline" />}
                     >
-                        <GlobeIcon className="size-4" />
-                        Open in new tab
-                    </PreviewDrawerLinkButton>
-                )}
-                <DrawerClose render={<Button size="sm" variant="outline" />}>
-                    Close
-                </DrawerClose>
-            </DrawerFooter>
-        </DrawerPopup>
+                        Close
+                    </DrawerClose>
+                </DrawerFooter>
+            </DrawerPopup>
+        </DrawerViewport>
     );
 }

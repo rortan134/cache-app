@@ -217,12 +217,10 @@ export default async function LibraryPage() {
                             <CollectionsListWorkspaceRoot />
                         </SidebarHeader>
                     </Sidebar>
-                    <div className="flex w-full max-w-[1024px] flex-col items-center gap-12 p-8 2xl:mx-auto">
-                        <Root
-                            lockedItemCount={lockedItemCount}
-                            totalItemCount={totalItemCount}
-                        />
-                    </div>
+                    <Root
+                        lockedItemCount={lockedItemCount}
+                        totalItemCount={totalItemCount}
+                    />
                 </WorkspaceProvider>
             </div>
         </PageShell>
