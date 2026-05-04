@@ -47,6 +47,9 @@ export function identifierKeySchema(prefix: IdentifierPrefixKey) {
     return identifier.startsWith(prefixes[prefix]);
 }
 
+let lastTimestamp = 0;
+let counter = 0;
+
 function bytesToHex(bytes: Uint8Array): string {
     let hex = "";
     for (const byte of bytes) {
@@ -54,9 +57,6 @@ function bytesToHex(bytes: Uint8Array): string {
     }
     return hex;
 }
-
-let lastTimestamp = 0;
-let counter = 0;
 
 export function createNewIdWithTimestamp<TPrefix extends IdentifierPrefix>(
     prefix: TPrefix,

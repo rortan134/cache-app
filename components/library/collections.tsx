@@ -112,7 +112,7 @@ type CollectionSortField =
 
 type CollectionOptionIcon = React.ComponentType<{ className?: string }>;
 
-type FeedbackTone = "error" | "success";
+type CollectionsListStatusTone = "error" | "success";
 
 type SortingComboboxOption =
     | SortingOption
@@ -125,7 +125,7 @@ type SortingComboboxOption =
 
 interface CollectionFeedback {
     message: string;
-    tone: FeedbackTone;
+    tone: CollectionsListStatusTone;
 }
 
 interface CollectionTemplateOption {
@@ -435,30 +435,14 @@ function CollectionsListItemPreviewImage({
     alt: string;
     src?: string;
 }) {
-    if (!src) {
-        return <CollectionsListPreviewImageFallback />;
-    }
-    return (
-        // key ensures the component remounts when src changes, resetting error state.
-        <CollectionsListResolvedPreviewImage alt={alt} key={src} src={src} />
-    );
-}
-
-/**
- * Resolved preview image with error handling.
- *
- * Swaps in a fallback when the image fails to load.
- */
-function CollectionsListResolvedPreviewImage({
-    alt,
-    src,
-}: {
-    alt: string;
-    src: string;
-}) {
     const [didFail, setDidFail] = React.useState(false);
 
-    if (didFail) {
+    // biome-ignore lint/correctness/useExhaustiveDependencies: `src` is a prop; resetting error state when it changes is intentional.
+    React.useEffect(() => {
+        setDidFail(false);
+    }, [src]);
+
+    if (!src || didFail) {
         return <CollectionsListPreviewImageFallback />;
     }
 
@@ -491,9 +475,6 @@ function CollectionsListInlineRow({
     );
 }
 
-/**
- * Root collapsible container for the collections list.
- */
 function CollectionsList({
     className,
     ...props
@@ -614,7 +595,7 @@ function CollectionsListEmpty({
 
 interface CollectionsListStatusProps extends React.ComponentProps<"p"> {
     onDismiss: () => void;
-    tone?: FeedbackTone;
+    tone?: CollectionsListStatusTone;
 }
 
 /**
@@ -1068,38 +1049,8 @@ interface CollectionsListSharePopoverProps {
     shareUrl: string | null;
 }
 
-/**
- * Sub-menu for enabling, disabling, or copying a public share link.
- */
-function CollectionsListSharePopover({
-    collection,
-    isSharePending,
-    onCopyShareLink,
-    onDisableShare,
-    onEnableShare,
-    shareUrl,
-}: CollectionsListSharePopoverProps) {
-    const shareInputId = React.useId();
-    const isShared = Boolean(collection.shareId);
-
+function CollectionsListShareStatusCard({ isShared }: { isShared: boolean }) {
     return (
-        <MenuSub>
-            <MenuSubTrigger>
-                <UserRoundPlus className="size-4 text-muted-foreground" />
-                Share
-            </MenuSubTrigger>
-            <MenuSubPopup>
-                <div className="max-w-xs p-2.5">
-                    <div className="flex items-start justify-between gap-3">
-                        <div className="space-y-1">
-                            <h3 className="font-medium text-sm">
-                                Share collection
-                            </h3>
-                            <p className="text-muted-foreground text-xs leading-snug">
-                                Anyone with the link can view this collection.
-                            </p>
-                        </div>
-                    </div>
                     <div className="mt-4 rounded-xl border bg-muted/40 p-3">
                         <div className="flex items-start gap-3">
                             <div className="mt-0.5 flex size-9 items-center justify-center rounded-xl bg-background text-muted-foreground shadow-xs/5">
@@ -1111,9 +1062,7 @@ function CollectionsListSharePopover({
                             </div>
                             <div className="min-w-0 flex-1">
                                 <p className="font-medium text-sm">
-                                    {isShared
-                                        ? "Anyone with the link"
-                                        : "Only you"}
+                        {isShared ? "Anyone with the link" : "Only you"}
                                 </p>
                                 <p className="mt-0.5 text-muted-foreground text-xs leading-relaxed">
                                     {isShared
@@ -1123,7 +1072,25 @@ function CollectionsListSharePopover({
                             </div>
                         </div>
                     </div>
-                    {isShared ? (
+    );
+}
+
+function CollectionsListShareLinkControls({
+    collection,
+    isSharePending,
+    onCopyShareLink,
+    onDisableShare,
+    shareUrl,
+}: {
+    collection: LibraryCollectionSummary;
+    isSharePending: boolean;
+    onCopyShareLink: () => void;
+    onDisableShare: () => void;
+    shareUrl: string | null;
+}) {
+    const shareInputId = React.useId();
+
+    return (
                         <div className="mt-4 space-y-3">
                             <div className="space-y-1">
                                 <label
@@ -1166,11 +1133,21 @@ function CollectionsListSharePopover({
                                 </div>
                             </div>
                         </div>
-                    ) : (
+    );
+}
+
+function CollectionsListShareEnableAction({
+    isSharePending,
+    onEnableShare,
+}: {
+    isSharePending: boolean;
+    onEnableShare: () => void;
+}) {
+    return (
                         <div className="mt-4 flex items-center justify-between gap-3">
                             <p className="text-[11px] text-muted-foreground leading-tight">
-                                Public links stay simple and read-only so your
-                                collection can be browsed without signing in.
+                Public links stay simple and read-only so your collection can be
+                browsed without signing in.
                             </p>
                             <Button
                                 autoFocus
@@ -1181,6 +1158,54 @@ function CollectionsListSharePopover({
                                 Create link
                             </Button>
                         </div>
+    );
+}
+
+/**
+ * Sub-menu for enabling, disabling, or copying a public share link.
+ */
+function CollectionsListSharePopover({
+    collection,
+    isSharePending,
+    onCopyShareLink,
+    onDisableShare,
+    onEnableShare,
+    shareUrl,
+}: CollectionsListSharePopoverProps) {
+    const isShared = Boolean(collection.shareId);
+
+    return (
+        <MenuSub>
+            <MenuSubTrigger>
+                <UserRoundPlus className="size-4 text-muted-foreground" />
+                Share
+            </MenuSubTrigger>
+            <MenuSubPopup>
+                <div className="max-w-xs p-2.5">
+                    <div className="flex items-start justify-between gap-3">
+                        <div className="space-y-1">
+                            <h3 className="font-medium text-sm">
+                                Share collection
+                            </h3>
+                            <p className="text-muted-foreground text-xs leading-snug">
+                                Anyone with the link can view this collection.
+                            </p>
+                        </div>
+                    </div>
+                    <CollectionsListShareStatusCard isShared={isShared} />
+                    {isShared ? (
+                        <CollectionsListShareLinkControls
+                            collection={collection}
+                            isSharePending={isSharePending}
+                            onCopyShareLink={onCopyShareLink}
+                            onDisableShare={onDisableShare}
+                            shareUrl={shareUrl}
+                        />
+                    ) : (
+                        <CollectionsListShareEnableAction
+                            isSharePending={isSharePending}
+                            onEnableShare={onEnableShare}
+                        />
                     )}
                 </div>
             </MenuSubPopup>

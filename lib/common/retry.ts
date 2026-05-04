@@ -8,28 +8,24 @@ interface RetryOptions {
     signal?: AbortSignal;
 }
 
-/** @internal */
-const sleep = (ms: number, signal?: AbortSignal) =>
-    new Promise<void>((resolve, reject) => {
+function sleep(ms: number, signal?: AbortSignal) {
+    return new Promise<void>((resolve, reject) => {
         if (ms <= 0) {
-            return resolve();
+            resolve();
+            return;
         }
         if (signal?.aborted) {
-            return reject(new Error("aborted"));
+            reject(new Error("aborted"));
+            return;
         }
-        const timer = setTimeout(() => {
-            signal?.removeEventListener("abort", onAbort);
-            resolve();
-        }, ms);
+        const timer = setTimeout(resolve, ms);
         const onAbort = () => {
             clearTimeout(timer);
             reject(new Error("aborted"));
         };
         signal?.addEventListener("abort", onAbort, { once: true });
-        if (signal?.aborted) {
-            onAbort();
-        }
     });
+}
 
 export function withRetry<T>(
     fn: (attempt: number) => Promise<T>,
@@ -63,9 +59,8 @@ export function withRetry<T>(
                 if (wait > 0) {
                     await sleep(wait, signal);
                 }
-                // Re-throw as non-TypeError to bypass p-retry's TypeError filter when we intend to retry
                 throw err instanceof TypeError
-                    ? new Error((err as Error).message, { cause: err as Error })
+                    ? new Error((err as Error).message, { cause: err })
                     : (err as Error);
             }
         },
@@ -73,9 +68,7 @@ export function withRetry<T>(
             factor: 1,
             maxTimeout: 0,
             minTimeout: 0,
-            onFailedAttempt: () => {
-                // noop
-            },
+            onFailedAttempt: () => undefined,
             randomize: false,
             retries,
             signal,

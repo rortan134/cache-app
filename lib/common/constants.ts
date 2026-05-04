@@ -40,7 +40,6 @@ export const BASE_URL =
 // ---------------------------------------------------------------------------
 
 export const FALLBACK_URL = "about:blank";
-export const BLANK_URL = FALLBACK_URL;
 
 export const SORT_ASC = "asc" as const;
 export const SORT_DESC = "desc" as const;

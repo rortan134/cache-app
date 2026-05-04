@@ -34,7 +34,12 @@ import {
     LibraryItemPreviewMediaType as PreviewMediaType,
     LibraryItemPreviewProviderStatus as PreviewProviderStatus,
 } from "@/prisma/client/enums";
-import { ITEM_KIND_FOLDER, SORT_ASC, SORT_DESC } from "@/lib/common/constants";
+import {
+    FREE_LIBRARY_PREVIEW_ITEMS,
+    ITEM_KIND_FOLDER,
+    SORT_ASC,
+    SORT_DESC,
+} from "@/lib/common/constants";
 import { LibraryCollectionError } from "./error";
 
 type CollectionTransaction = Prisma.TransactionClient;
@@ -1128,8 +1133,6 @@ export function listLibraryItemSources(args: {
         },
     });
 }
-
-const FREE_LIBRARY_PREVIEW_ITEMS = 12;
 
 export async function getLibraryPageData(args: {
     hasAccess: boolean;

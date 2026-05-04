@@ -31,8 +31,6 @@ import * as React from "react";
 import { createScopedStore } from "stan-js";
 import { storage } from "stan-js/storage";
 
-type IntegrationsListStatusTone = "error" | "success";
-
 const INTEGRATION_ACTION_ICON_BY_NAME: Record<
     IntegrationActionIcon,
     React.ComponentType<{ className?: string }>
@@ -272,9 +270,9 @@ export function IntegrationsListEmpty({
     );
 }
 
+type IntegrationsListStatusTone = "error" | "success";
+
 /**
- * An accessibility-friendly status message for integration actions.
- *
  * Returns `null` when `children` is empty so assistive technologies do not
  * announce silent updates.
  */
@@ -358,10 +356,10 @@ export function IntegrationsListItemAction({
                                 size={action.size}
                                 variant={action.variant ?? "ghost"}
                             >
-                                {ActionIcon ? (
+                                {ActionIcon && (
                                     <ActionIcon className="size-4" />
-                                ) : null}
-                                {isIconOnly ? null : action.label}
+                                )}
+                                {!isIconOnly && action.label}
                             </Button>
                         );
                     })}
