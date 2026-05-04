@@ -126,6 +126,14 @@ export const LIBRARY_ITEM_COLLECTIONS_SELECT = {
 } as const satisfies Prisma.LibraryItemSelect;
 
 // ---------------------------------------------------------------------------
+// Shared status maps
+// ---------------------------------------------------------------------------
+
+export const STATUS_MAP_NOT_FOUND = {
+    not_found: "NOT_FOUND",
+} as const;
+
+// ---------------------------------------------------------------------------
 // Utilities
 // ---------------------------------------------------------------------------
 

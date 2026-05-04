@@ -1,6 +1,7 @@
 "use server";
 
 import {
+    STATUS_MAP_NOT_FOUND,
     uniqueStrings,
     type ActionError,
     type LibraryCollectionSummary,
@@ -22,10 +23,6 @@ import { LibraryCollectionError } from "./error";
 import * as service from "./service";
 
 const log = createLogger("library:actions:items");
-
-const STATUS_MAP_NOT_FOUND = {
-    not_found: "NOT_FOUND",
-} as const;
 
 const LibraryItemCollectionsUpdateInputSchema = z.object({
     collectionIds: z

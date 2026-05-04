@@ -190,12 +190,13 @@ import {
     ExternalLinkIcon,
     EyeIcon,
     FilePenLineIcon,
-    Folder,
+    FolderOpen,
     Funnel,
     Globe,
     Grid2x2,
     Grid2x2X,
     Info,
+    KanbanIcon,
     Layers3,
     LinkIcon,
     ListChevronsUpDown,
@@ -239,6 +240,7 @@ function buildCommandSuggestions({
     collections,
     items,
     onClearCollectionFilters,
+    onCreateCollection,
     searchTerms,
     selectedCollectionIds,
     sourceFilters,
@@ -262,6 +264,7 @@ function buildCommandSuggestions({
     collections: LibraryCollectionSummary[];
     items: LibraryItemWithCollections[];
     onClearCollectionFilters: () => void;
+    onCreateCollection: () => void;
     searchTerms: string[];
     selectedCollectionIds: string[];
     sourceFilters: SourceFilterValue[];
@@ -415,7 +418,7 @@ function buildCommandSuggestions({
         }
 
         return {
-            icon: <Folder className={SUGGESTION_ICON_CLASS} />,
+            icon: <FolderOpen className={SUGGESTION_ICON_CLASS} />,
             label,
             onSelect: commitSelection(() =>
                 onToggleCollectionSelection(topCollection.id)
@@ -558,7 +561,7 @@ function buildCommandSuggestions({
 
         if (selectedCollectionIds.length > 0) {
             addSuggestion({
-                icon: <Folder className={SUGGESTION_ICON_CLASS} />,
+                icon: <FolderOpen className={SUGGESTION_ICON_CLASS} />,
                 label: "Show all collections",
                 onSelect: commitSelection(onClearCollectionFilters),
             });
@@ -619,11 +622,19 @@ function buildCommandSuggestions({
         }
     }
 
+    if (items.length === 0 && !hasAnyRefinements) {
+        addSuggestion({
+            icon: <FolderOpen className={SUGGESTION_ICON_CLASS} />,
+            label: "Create a new collection",
+            onSelect: commitSelection(() => onCreateCollection()),
+        });
+    }
+
     if (layoutMode === "masonry" && !hasAnyRefinements) {
         addSuggestion({
-            icon: <Component className={SUGGESTION_ICON_CLASS} />,
-            label: "Try Kanban layout",
-            onSelect: commitSelection(() => setLayoutMode("kanban")),
+            icon: <KanbanIcon className={SUGGESTION_ICON_CLASS} />,
+            label: "Try Board layout",
+            onSelect: commitSelection(() => setLayoutMode("board")),
         });
     }
 
@@ -786,7 +797,7 @@ type CollectionMembershipFilter =
     | "in-collections"
     | "not-in-collections";
 type ColumnCountMode = "auto" | "2" | "3" | "4" | "5" | "6";
-type LayoutMode = "masonry" | "kanban";
+type LayoutMode = "masonry" | "board";
 type PaletteSection = "search" | "filter" | "group" | "sort" | "layout";
 
 const DEFAULT_SORT_MODE: SortMode = "added-newest";
@@ -849,7 +860,7 @@ const PALETTE_COLUMN_OPTIONS = [
 
 const PALETTE_LAYOUT_MODE_OPTIONS = [
     { label: "Masonry", value: "masonry" as const },
-    { label: "Kanban", value: "kanban" as const },
+    { label: "Board", value: "board" as const },
 ];
 
 interface CommandPaletteItem {
@@ -1440,7 +1451,7 @@ function columnCountLabel(mode: ColumnCountMode): string {
 }
 
 function layoutModeLabel(mode: LayoutMode): string {
-    return mode === "kanban" ? "Kanban" : "Masonry";
+    return mode === "board" ? "Board" : "Masonry";
 }
 
 function collectionMembershipFilterLabel(
@@ -1733,8 +1744,8 @@ function renderLibraryGridBody({
                         pendingDeleteItemId,
                     }}
                 >
-                    {layoutMode === "kanban" ? (
-                        <KanbanLayout items={section.items} />
+                    {layoutMode === "board" ? (
+                        <BoardLayout items={section.items} />
                     ) : (
                         <MasonryLayout
                             columnCount={columnCount}
@@ -2329,9 +2340,9 @@ function buildLibraryPaletteGroups({
             items: PALETTE_LAYOUT_MODE_OPTIONS.map((option) => ({
                 active: layoutMode === option.value,
                 description:
-                    option.value === "kanban"
-                        ? "Group entries by collections in draggable columns"
-                        : "Display saved items in a visual masonry grid",
+                    option.value === "board"
+                        ? "Group entries by collections in columns"
+                        : "Display saved items in a visual grid",
                 label: option.label,
                 onSelect: applyAndReturn(() =>
                     setLayoutMode(option.value as LayoutMode)
@@ -2805,7 +2816,7 @@ interface SectionProps extends GridProps {
     title: string;
 }
 
-interface KanbanColumnItem {
+interface BoardColumnItem {
     item: LibraryItemWithCollections;
     value: string;
 }
@@ -2883,11 +2894,11 @@ interface LibraryMasonryLayoutProps extends LibraryGridLayoutProps {
     columnCount?: number;
 }
 
-function buildKanbanColumns(
+function buildBoardColumns(
     collections: LibraryCollectionSummary[],
     items: LibraryItemWithCollections[]
-): Record<string, KanbanColumnItem[]> {
-    const columns: Record<string, KanbanColumnItem[]> = {
+): Record<string, BoardColumnItem[]> {
+    const columns: Record<string, BoardColumnItem[]> = {
         [UNASSIGNED_COLLECTION_COLUMN_ID]: [],
     };
 
@@ -3776,9 +3787,9 @@ function MasonryLayout({ columnCount, items }: LibraryMasonryLayoutProps) {
     );
 }
 
-function KanbanLayout({ items }: LibraryGridLayoutProps) {
+function BoardLayout({ items }: LibraryGridLayoutProps) {
     const { collections } = useLibraryGridCardContext();
-    const kanbanColumns = buildKanbanColumns(collections, items);
+    const boardColumns = buildBoardColumns(collections, items);
     const columnIds = [
         UNASSIGNED_COLLECTION_COLUMN_ID,
         ...collections.map((collection) => collection.id),
@@ -3786,7 +3797,7 @@ function KanbanLayout({ items }: LibraryGridLayoutProps) {
 
     return (
         <div className="overflow-x-auto pb-1">
-            <Kanban getItemValue={(entry) => entry.value} value={kanbanColumns}>
+            <Kanban getItemValue={(entry) => entry.value} value={boardColumns}>
                 <KanbanBoard className="min-w-max items-start gap-3">
                     {columnIds.map((columnId) => {
                         const columnName =
@@ -3795,7 +3806,7 @@ function KanbanLayout({ items }: LibraryGridLayoutProps) {
                                 : (collections.find(
                                       (item) => item.id === columnId
                                   )?.name ?? "Collection");
-                        const columnItems = kanbanColumns[columnId] ?? [];
+                        const columnItems = boardColumns[columnId] ?? [];
 
                         return (
                             <KanbanColumn
@@ -3948,7 +3959,7 @@ function LockedResults({
             <BlockPaywallBanner length={totalItemCount} />
             <div className="pointer-events-none absolute inset-0 z-10 rounded-[2rem] bg-linear-to-b from-background/10 via-background/45 to-background/75" />
             <div className="select-none opacity-70 blur-[1.5px] saturate-75">
-                {layoutMode === "kanban" ? (
+                {layoutMode === "board" ? (
                     <div className="grid gap-3 md:grid-cols-3">
                         {["Locked", "Preview", "Upgrade"].map(
                             (label, index) => (
@@ -4005,8 +4016,9 @@ function Empty() {
                     Welcome to Cache
                 </h3>
                 <p className="text-muted-foreground text-xs leading-tight">
-                    Everything you save, unified and searchable. Organize what
-                    matters into collections and find it when you need it.
+                    Everything you save, unified and searchable. Cache is
+                    purpose-built to organize what matters into collections and
+                    find it when you need it.
                 </p>
             </div>
             <Masonry columnCount={5} gap={4} linear>
@@ -4179,8 +4191,8 @@ function Section({
                         pendingDeleteItemId,
                     }}
                 >
-                    {layoutMode === "kanban" ? (
-                        <KanbanLayout items={items} />
+                    {layoutMode === "board" ? (
+                        <BoardLayout items={items} />
                     ) : (
                         <MasonryLayout
                             columnCount={columnCount}
@@ -4326,6 +4338,7 @@ export function Root({ lockedItemCount, totalItemCount }: LibraryProps) {
         onSelectCollection: onRemoveCollectionFilter,
         onUpdateItemCollections,
         onUpdateItemsCollections,
+        requestCreate,
         selectedCollectionIds,
         setItems: onItemsChange,
     } = useWorkspace();
@@ -4909,6 +4922,7 @@ export function Root({ lockedItemCount, totalItemCount }: LibraryProps) {
         items: filteredItems,
         layoutMode,
         onClearCollectionFilters,
+        onCreateCollection: requestCreate,
         onToggleCollectionSelection: onRemoveCollectionFilter,
         searchTerms,
         selectedCollectionIds,

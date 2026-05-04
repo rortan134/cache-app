@@ -1,6 +1,7 @@
 "use server";
 
 import {
+    STATUS_MAP_NOT_FOUND,
     collectionNameSchema,
     uniqueStrings,
     type ActionError,
@@ -21,10 +22,6 @@ import { LibraryCollectionError } from "./error";
 import * as service from "./service";
 
 const log = createLogger("library:actions");
-
-const STATUS_MAP_NOT_FOUND = {
-    not_found: "NOT_FOUND",
-} as const;
 
 const STATUS_MAP_DUPLICATE_OR_NOT_FOUND = {
     duplicate_name: "DUPLICATE",
@@ -398,12 +395,13 @@ export async function disableSmartCollections(): Promise<
 
         return { status: "DISABLED" };
     } catch (error) {
-        log.error("Failed to disable smart collections", error);
-
-        return {
-            message: "We couldn't disable smart collections right now.",
-            status: "ERROR",
-        };
+        return handleActionError({
+            codeToStatus: {},
+            error,
+            errorFactory: LibraryCollectionError,
+            fallbackMessage: "We couldn't disable smart collections right now.",
+            log,
+        });
     }
 }
 
@@ -425,11 +423,13 @@ export async function getSmartCollectionsPreference(): Promise<
 
         return { disabled, status: "OK" };
     } catch (error) {
-        log.error("Failed to get smart collections preference", error);
-
-        return {
-            message: "We couldn't fetch your smart collections preference.",
-            status: "ERROR",
-        };
+        return handleActionError({
+            codeToStatus: {},
+            error,
+            errorFactory: LibraryCollectionError,
+            fallbackMessage:
+                "We couldn't fetch your smart collections preference.",
+            log,
+        });
     }
 }

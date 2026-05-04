@@ -185,7 +185,7 @@ function ReviewSession({
                     collectionIds,
                     itemId,
                 }),
-                markLibraryItemAsReviewed(itemId).catch(() => undefined),
+                markLibraryItemAsReviewed({ itemId }).catch(() => undefined),
             ]);
             if (result.status === "UPDATED") {
                 removeItem(itemId);
@@ -230,7 +230,7 @@ function ReviewSession({
             }
             if (event.key.toLowerCase() === "k") {
                 event.preventDefault();
-                markLibraryItemAsReviewed(liveItem.id)
+                markLibraryItemAsReviewed({ itemId: liveItem.id })
                     .then((result) => {
                         if (result.status !== "REVIEWED") {
                             setActionError(result.message);
@@ -329,9 +329,9 @@ function ReviewSession({
 
                         // Per-item action handlers avoid stale closures.
                         const onKeep = async () => {
-                            const result = await markLibraryItemAsReviewed(
-                                item.id
-                            );
+                            const result = await markLibraryItemAsReviewed({
+                                itemId: item.id,
+                            });
                             if (result.status !== "REVIEWED") {
                                 setActionError(result.message);
                                 return;

@@ -1,12 +1,15 @@
 "use server";
 
-import { getServerSession } from "@/lib/auth/server";
 import { FeedbackError } from "@/lib/feedback/error";
 import {
     FeedbackInputSchema,
     type FeedbackActionState,
 } from "@/lib/feedback/schema";
-import { submitFeedback } from "@/lib/feedback/service";
+import {
+    getValidationErrorMessage,
+    requireActionUserId,
+} from "@/lib/common/procedure";
+import * as service from "./service";
 
 export async function createFeedback(
     _previousState: FeedbackActionState,
@@ -19,17 +22,23 @@ export async function createFeedback(
 
     if (!parsed.success) {
         return {
-            message: "Please enter a bit of feedback before sending.",
+            message: getValidationErrorMessage(
+                parsed,
+                "Please enter a bit of feedback before sending."
+            ),
             status: "error",
         };
     }
 
-    const session = await getServerSession();
+    const auth = await requireActionUserId("Sign in again to submit feedback.");
+    if ("status" in auth) {
+        return { message: auth.message, status: "error" };
+    }
 
     try {
-        await submitFeedback({
+        await service.submitFeedback({
             ...parsed.data,
-            userId: session?.user?.id ?? null,
+            userId: auth.userId,
         });
 
         return {

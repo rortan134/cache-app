@@ -11,24 +11,18 @@ export interface PlanLimits {
     rollingWindow: number;
 }
 
+const PlanLimitsSchema = z.object({
+    fixedLimit: z.int(),
+    rollingLimit: z.int(),
+    rollingWindow: z.int(),
+});
+
 export const QuotaSchema = z.object<{
     [key in PlanType]: z.ZodType<PlanLimits>;
 }>({
-    free: z.object({
-        fixedLimit: z.int(),
-        rollingLimit: z.int(),
-        rollingWindow: z.int(),
-    }),
-    monthly: z.object({
-        fixedLimit: z.int(),
-        rollingLimit: z.int(),
-        rollingWindow: z.int(),
-    }),
-    yearly: z.object({
-        fixedLimit: z.int(),
-        rollingLimit: z.int(),
-        rollingWindow: z.int(),
-    }),
+    free: PlanLimitsSchema,
+    monthly: PlanLimitsSchema,
+    yearly: PlanLimitsSchema,
 });
 
 const ONE_HOUR_SECONDS = 60 * 60;
@@ -75,13 +69,28 @@ export async function retrievePriceById(
     }
 
     const currency = price.currency.toUpperCase();
-    const amountCents = price.unit_amount ?? 0;
+    if (price.unit_amount === null) {
+        throw new StripeError({
+            message: `Configured price '${priceId}' has no unit amount.`,
+            operation: "prices::retrievePriceById",
+        });
+    }
+
+    if (
+        price.recurring.interval !== "month" &&
+        price.recurring.interval !== "year"
+    ) {
+        throw new StripeError({
+            message: `Configured price '${priceId}' has unexpected interval '${price.recurring.interval}'.`,
+            operation: "prices::retrievePriceById",
+        });
+    }
 
     return {
-        amountCents,
+        amountCents: price.unit_amount,
         currency,
         id: price.id,
-        interval: price.recurring.interval as "month" | "year",
+        interval: price.recurring.interval,
         nickname: price.nickname ?? null,
     } satisfies PlanPrice;
 }

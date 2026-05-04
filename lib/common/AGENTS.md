@@ -24,7 +24,7 @@ Scoped logging, redaction helpers, and structured errors with schema-backed payl
 
 ### Environment and UI plumbing
 
-SSR-safe DOM checks, environment detection, wrappers around different platforms such as `localStorage` / `sessionStorage`,Tailwind class merging, and other glue that sits between framework/runtime quirks and application code.
+SSR-safe DOM checks, environment detection, wrappers around different platforms such as `localStorage` / `sessionStorage`, Tailwind class merging, and other glue that sits between framework/runtime quirks and application code.
 
 ### Data shapes and text
 

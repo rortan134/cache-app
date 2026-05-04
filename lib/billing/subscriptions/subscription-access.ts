@@ -9,6 +9,9 @@ export async function userHasActiveSubscription(
     userId: string
 ): Promise<boolean> {
     const subscription = await prisma.subscription.findFirst({
+        orderBy: {
+            periodEnd: SORT_DESC,
+        },
         select: {
             status: true,
         },

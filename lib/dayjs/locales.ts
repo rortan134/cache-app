@@ -1,3 +1,4 @@
+// Locale side-effect imports matching SUPPORTED_LOCALES in lib/common/constants.
 import "dayjs/locale/da";
 import "dayjs/locale/de";
 import "dayjs/locale/en";

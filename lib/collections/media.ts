@@ -71,14 +71,14 @@ export async function downloadMedia(url: string): Promise<MediaDownloadResult> {
             status: "SUCCESS",
         };
     } catch (error) {
-        log.error("Unexpected download failure", error);
-        return {
-            message:
-                error instanceof Error
-                    ? error.message
-                    : "We hit an unexpected error while preparing your download.",
-            status: "ERROR",
-        };
+        return handleActionError({
+            codeToStatus: {},
+            error,
+            errorFactory: LibraryCollectionError,
+            fallbackMessage:
+                "We hit an unexpected error while preparing your download.",
+            log,
+        });
     }
 }
 

@@ -1,4 +1,3 @@
-// ! this file is temporary
 import "server-only";
 
 import { getSessionUserId } from "@/lib/auth/server";

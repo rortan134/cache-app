@@ -6,10 +6,10 @@ import {
     handleActionError,
     requireActionUserId,
 } from "@/lib/common/procedure";
-import { markLibraryItemAsReviewed as markLibraryItemAsReviewedService } from "./service";
 import { revalidatePath } from "next/cache";
 import * as z from "zod";
 import { ReviewError } from "./error";
+import * as service from "./service";
 
 const log = createLogger("library:actions:review");
 
@@ -24,10 +24,10 @@ export type MarkAsReviewedResult =
           status: "ERROR" | "INVALID" | "NOT_FOUND" | "UNAUTHORIZED";
       };
 
-export async function markLibraryItemAsReviewed(
-    itemId: string
-): Promise<MarkAsReviewedResult> {
-    const parsed = MarkAsReviewedInputSchema.safeParse({ itemId });
+export async function markLibraryItemAsReviewed(input: {
+    itemId: string;
+}): Promise<MarkAsReviewedResult> {
+    const parsed = MarkAsReviewedInputSchema.safeParse(input);
     if (!parsed.success) {
         return {
             message: getValidationErrorMessage(
@@ -46,7 +46,7 @@ export async function markLibraryItemAsReviewed(
     }
 
     try {
-        await markLibraryItemAsReviewedService({
+        await service.markLibraryItemAsReviewed({
             itemId: parsed.data.itemId,
             userId: auth.userId,
         });

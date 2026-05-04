@@ -1,9 +1,8 @@
 import "server-only";
 
-import { auth } from "@/lib/auth/server";
+import { getServerSession } from "@/lib/auth/server";
 import { prisma } from "@/prisma";
 import { nanoid } from "nanoid";
-import { headers } from "next/headers";
 
 /**
  * Resolves the current session user id for API routes.
@@ -13,7 +12,7 @@ import { headers } from "next/headers";
 export async function requireSessionUserId(): Promise<
     { userId: string } | Response
 > {
-    const session = await auth.api.getSession({ headers: await headers() });
+    const session = await getServerSession();
     const userId = session?.user?.id;
     if (!userId) {
         return Response.json({ error: "Unauthorized" }, { status: 401 });

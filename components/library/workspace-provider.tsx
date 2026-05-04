@@ -511,6 +511,7 @@ interface LibraryWorkspaceContextValue {
         nextSharedCollectionIds: string[];
         previousSharedCollectionIds: string[];
     }) => Promise<LibraryItemsCollectionsUpdateResult>;
+    requestCreate: (itemId?: string) => void;
     selectedCollectionIds: string[];
     setCollections: React.Dispatch<
         React.SetStateAction<LibraryCollectionSummary[]>
@@ -522,6 +523,10 @@ interface LibraryWorkspaceContextValue {
 
 const WorkspaceContext =
     React.createContext<LibraryWorkspaceContextValue | null>(null);
+
+const RequestCreateRefContext = React.createContext<React.MutableRefObject<
+    ((itemId?: string) => void) | null
+> | null>(null);
 
 export function useWorkspace(): LibraryWorkspaceContextValue {
     const context = React.use(WorkspaceContext);
@@ -763,6 +768,13 @@ export function WorkspaceProvider({
         return result;
     };
 
+    const requestCreateRef = React.useRef<((itemId?: string) => void) | null>(
+        null
+    );
+    const requestCreate = (itemId?: string) => {
+        requestCreateRef.current?.(itemId);
+    };
+
     return (
         <WorkspaceContext
             value={{
@@ -779,12 +791,15 @@ export function WorkspaceProvider({
                 onSelectCollection: handleToggleCollectionSelection,
                 onUpdateItemCollections: handleUpdateItemCollections,
                 onUpdateItemsCollections: handleUpdateItemsCollections,
+                requestCreate,
                 selectedCollectionIds,
                 setCollections,
                 setItems,
             }}
         >
-            {children}
+            <RequestCreateRefContext value={requestCreateRef}>
+                {children}
+            </RequestCreateRefContext>
         </WorkspaceContext>
     );
 }
@@ -1633,6 +1648,19 @@ function useCollectionsController() {
 
 export function CollectionsListWorkspaceRoot() {
     const controller = useCollectionsController();
+    const requestCreateRef = React.useContext(RequestCreateRefContext);
+
+    React.useEffect(() => {
+        if (requestCreateRef) {
+            requestCreateRef.current = (itemId?: string) =>
+                controller.requestCreate(itemId);
+        }
+        return () => {
+            if (requestCreateRef) {
+                requestCreateRef.current = null;
+            }
+        };
+    }, [controller.requestCreate, requestCreateRef]);
 
     return (
         <>
