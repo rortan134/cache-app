@@ -92,8 +92,13 @@ function usePreviewDrawerContext(): PreviewDrawerContextValue {
     return context;
 }
 
-// Enforce a preview timeout so users aren't left waiting indefinitely
-// for sites that block embedding or fail to load.
+/**
+ * Track whether the iframe preview has loaded, is still loading, or is
+ * blocked (X-Frame-Options / CSP / timeout).
+ *
+ * Enforces a timeout so users aren't left waiting indefinitely for sites
+ * that refuse to embed.
+ */
 function usePreviewStatus(open: boolean, url: string, timeoutMs: number) {
     const [status, setStatus] = React.useState<PreviewDrawerStatus>("loading");
 
@@ -132,6 +137,10 @@ function usePreviewStatus(open: boolean, url: string, timeoutMs: number) {
     };
 }
 
+/**
+ * Button that renders as an external anchor so users can open the target
+ * in a new tab with the correct `rel` and `target` attributes.
+ */
 function PreviewDrawerLinkButton({
     url,
     ...props
@@ -144,6 +153,12 @@ function PreviewDrawerLinkButton({
     );
 }
 
+/**
+ * Root controller for the preview drawer.
+ *
+ * Supports both controlled and uncontrolled open state. Provides the
+ * preview context (title, URL, description) to child components.
+ */
 export function PreviewDrawer({
     defaultOpen = false,
     description,
@@ -181,8 +196,20 @@ export function PreviewDrawer({
     );
 }
 
+/**
+ * Button that opens the preview drawer.
+ *
+ * Delegates directly to `DrawerTrigger`. Render inside `<PreviewDrawer>`.
+ */
 export const PreviewDrawerTrigger = DrawerTrigger;
 
+/**
+ * Popup content that renders the iframe, loading spinner, error state,
+ * and footer actions.
+ *
+ * Remounts the iframe whenever `open` or `url` changes so previews always
+ * start from a fresh state instead of showing stale cached content.
+ */
 export function PreviewDrawerContent({
     bodyClassName,
     className,

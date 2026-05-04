@@ -46,6 +46,12 @@ const {
     isIntegrationsListPanelOpen: storage(true),
 });
 
+/**
+ * Read and toggle the open state of the integrations list panel.
+ *
+ * Stored in `stan-js` with local-storage persistence so the panel stays
+ * in the same state across reloads.
+ */
 function useIntegrationsListOpenState() {
     const { isIntegrationsListPanelOpen, setIsIntegrationsListPanelOpen } =
         useIntegrationsListStore();
@@ -73,6 +79,13 @@ export function IntegrationsList(
     );
 }
 
+/**
+ * Internal collapsible wrapper that wires the scoped store to the `open`
+ * prop and the `mod+i` hotkey.
+ *
+ * Kept separate from `IntegrationsList` so the store provider and the
+ * consumer are in distinct render layers, avoiding stale-closure issues.
+ */
 function IntegrationsListImpl({
     onOpenChange,
     open,
@@ -273,6 +286,8 @@ export function IntegrationsListEmpty({
 type IntegrationsListStatusTone = "error" | "success";
 
 /**
+ * Inline status line for integration actions.
+ *
  * Returns `null` when `children` is empty so assistive technologies do not
  * announce silent updates.
  */

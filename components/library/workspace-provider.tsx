@@ -148,6 +148,9 @@ const { useStore: useCollectionsSortStore } = createStore({
 
 // #region Pure helpers
 
+/**
+ * Alphabetical sort used as tiebreaker when primary sort keys are equal.
+ */
 function compareNames<T extends Pick<SortableCollectionSummary, "name">>(
     a: T,
     b: T
@@ -155,6 +158,9 @@ function compareNames<T extends Pick<SortableCollectionSummary, "name">>(
     return NAME_COLLATOR.compare(a.name, b.name);
 }
 
+/**
+ * Sort by priority rank, then alphabetically by name within the same tier.
+ */
 function comparePriorities<
     T extends Pick<SortableCollectionSummary, "name" | "priority">,
 >(a: T, b: T) {
@@ -162,24 +168,39 @@ function comparePriorities<
     return diff === 0 ? compareNames(a, b) : diff;
 }
 
+/**
+ * Reverse-chronological sort so newer collections appear first.
+ */
 function compareCreatedAt<
     T extends Pick<SortableCollectionSummary, "createdAt">,
 >(a: T, b: T) {
     return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
 }
 
+/**
+ * Reverse-chronological sort by last-updated timestamp.
+ */
 function compareUpdatedAt<
     T extends Pick<SortableCollectionSummary, "updatedAt">,
 >(a: T, b: T) {
     return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
 }
 
+/**
+ * Descending sort by item count so largest collections surface first.
+ */
 function compareItemCount<
     T extends Pick<SortableCollectionSummary, "itemCount">,
 >(a: T, b: T) {
     return b.itemCount - a.itemCount;
 }
 
+/**
+ * Relevance score for text-match sorting.
+ *
+ * Exact matches rank highest (3), then prefix matches (2),
+ * then substring matches (1). Zero means no match.
+ */
 function textMatchScore(
     collection: Pick<SortableCollectionSummary, "name">,
     query: string
@@ -202,12 +223,21 @@ function textMatchScore(
     return 0;
 }
 
+/**
+ * Sort by text-match relevance descending, with alphabetical name
+ * order as a stable tiebreaker.
+ */
 function compareTextMatch(query: string) {
     return (a: SortableCollectionSummary, b: SortableCollectionSummary) =>
         textMatchScore(b, query) - textMatchScore(a, query) ||
         compareNames(a, b);
 }
 
+/**
+ * Map of sort field to comparator function.
+ *
+ * Dispatches the active sort without branching on every comparison.
+ */
 const SUMMARY_SORTERS = {
     count: compareItemCount,
     created: compareCreatedAt,
@@ -218,16 +248,31 @@ const SUMMARY_SORTERS = {
     (a: SortableCollectionSummary, b: SortableCollectionSummary) => number
 >;
 
+/**
+ * Immutable sort that avoids mutating the original array.
+ */
 function sortList<T>(list: readonly T[], compare: (a: T, b: T) => number): T[] {
     return [...list].sort(compare);
 }
 
+/**
+ * Sort collections by priority rank first, then alphabetically by name.
+ *
+ * This is the canonical order used anywhere collections appear together
+ * (sidebar, tags, dropdowns) so users see high-priority groups first.
+ */
 export function sortCollections<
     T extends Pick<LibraryCollectionSummary, "name" | "priority">,
 >(collections: readonly T[]): T[] {
     return sortList(collections, comparePriorities);
 }
 
+/**
+ * Sort collection summaries by the active sort field.
+ *
+ * "text-match" uses a relevance score (exact > prefix > contains) so the
+ * most likely target surfaces first as the user types.
+ */
 export function sortCollectionSummaries<T extends SortableCollectionSummary>(
     collections: readonly T[],
     sortField: CollectionSortField,
@@ -239,7 +284,12 @@ export function sortCollectionSummaries<T extends SortableCollectionSummary>(
     return sortList(collections, SUMMARY_SORTERS[sortField]);
 }
 
-/** Strip summary-specific fields so a collection can be stored as a tag on items. */
+/**
+ * Strip summary-specific fields so a collection can be stored as a tag on items.
+ *
+ * Items only need identity fields (id, name, priority, etc.); counts and
+ * thumbnail arrays are derived from the item list itself.
+ */
 function toCollectionTag({
     createdAt,
     description,
@@ -282,6 +332,10 @@ function updateItemTags(
     }));
 }
 
+/**
+ * Update a single collection's share state and re-sort so the new entry
+ * lands in the correct priority order.
+ */
 function replaceShareState<T extends LibraryCollectionTag>(
     collections: T[],
     next: CollectionShareState
@@ -296,6 +350,10 @@ function replaceShareState<T extends LibraryCollectionTag>(
     );
 }
 
+/**
+ * Update a single collection's priority and re-sort so it's positioned
+ * correctly among peers of different priorities.
+ */
 function replacePriority<T extends LibraryCollectionTag>(
     collections: T[],
     id: string,
@@ -309,6 +367,10 @@ function replacePriority<T extends LibraryCollectionTag>(
     );
 }
 
+/**
+ * Update a single collection's name and re-sort so alphabetical order
+ * is preserved after the rename.
+ */
 function replaceName<T extends LibraryCollectionTag>(
     collections: T[],
     id: string,
@@ -322,6 +384,9 @@ function replaceName<T extends LibraryCollectionTag>(
     );
 }
 
+/**
+ * Sync a collection's new name across all items that reference it.
+ */
 function replaceItemCollectionNames(
     items: LibraryItemWithCollections[],
     id: string,
@@ -330,14 +395,23 @@ function replaceItemCollectionNames(
     return updateItemTags(items, (tags) => replaceName(tags, id, name));
 }
 
+/**
+ * Extract normalized URLs from items for export or bulk operations.
+ */
 function getItemUrls(items: LibraryItemWithCollections[]): string[] {
     return items.map((item) => normalizeURL(item.url));
 }
 
+/**
+ * Wrap a value in quotes and escape internal double-quotes per RFC 4180.
+ */
 function escapeCsv(value: string): string {
     return `"${value.replaceAll('"', '""')}"`;
 }
 
+/**
+ * Build a CSV string from a collection and its items.
+ */
 function buildCsv(
     collection: LibraryCollectionSummary,
     items: LibraryItemWithCollections[]
@@ -357,6 +431,9 @@ function buildCsv(
         .join("\n");
 }
 
+/**
+ * Derive a file-system-safe name from a collection name for CSV export.
+ */
 function getExportFileName(name: string): string {
     const slug = name
         .trim()
@@ -367,10 +444,22 @@ function getExportFileName(name: string): string {
     return slug.length > 0 ? `${slug}-links` : "collection-links";
 }
 
+/**
+ * Collapse whitespace and trim a collection name for storage.
+ *
+ * Prevent accidental leading/trailing or double spaces from creating
+ * misleading display names while preserving internal single spaces.
+ */
 function normalizeName(name: string): string {
     return name.trim().replace(/\s+/g, " ");
 }
 
+/**
+ * Extract assigned item IDs from a successful collection creation result.
+ *
+ * The server may return a single `assignedItemId` or none; normalizing
+ * to an array keeps callers consistent.
+ */
 function getCreatedAssignedItemIds(
     result: Extract<CollectionCreateResult, { status: "CREATED" }>
 ): string[] {
@@ -381,6 +470,13 @@ function getCreatedAssignedItemIds(
 
 // #region Safe action adapters
 
+/**
+ * Wrap a server action so network failures surface as typed errors instead
+ * of uncaught exceptions.
+ *
+ * Callers expect a result object; throwing would break the controller's
+ * optimistic-update rollback logic.
+ */
 async function createCollectionSafely(
     input: Parameters<typeof createCollection>[0]
 ) {
@@ -391,6 +487,9 @@ async function createCollectionSafely(
     }
 }
 
+/**
+ * Safe wrapper for `deleteCollection`. See `createCollectionSafely`.
+ */
 async function deleteCollectionSafely(
     input: Parameters<typeof deleteCollection>[0]
 ) {
@@ -401,6 +500,9 @@ async function deleteCollectionSafely(
     }
 }
 
+/**
+ * Safe wrapper for `duplicateCollection`. See `createCollectionSafely`.
+ */
 async function duplicateCollectionSafely(
     input: Parameters<typeof duplicateCollection>[0]
 ) {
@@ -411,6 +513,9 @@ async function duplicateCollectionSafely(
     }
 }
 
+/**
+ * Safe wrapper for `renameCollection`. See `createCollectionSafely`.
+ */
 async function renameCollectionSafely(
     input: Parameters<typeof renameCollection>[0]
 ) {
@@ -421,6 +526,9 @@ async function renameCollectionSafely(
     }
 }
 
+/**
+ * Safe wrapper for `updateCollectionPriority`. See `createCollectionSafely`.
+ */
 async function updateCollectionPrioritySafely(
     input: Parameters<typeof updateCollectionPriority>[0]
 ) {
@@ -434,6 +542,9 @@ async function updateCollectionPrioritySafely(
     }
 }
 
+/**
+ * Safe wrapper for `shareCollectionPublicly`. See `createCollectionSafely`.
+ */
 async function shareCollectionPubliclySafely(
     input: Parameters<typeof shareCollectionPublicly>[0]
 ) {
@@ -444,6 +555,9 @@ async function shareCollectionPubliclySafely(
     }
 }
 
+/**
+ * Safe wrapper for `disableCollectionSharing`. See `createCollectionSafely`.
+ */
 async function disableCollectionSharingSafely(
     input: Parameters<typeof disableCollectionSharing>[0]
 ) {
@@ -504,6 +618,12 @@ const RequestCreateRefContext = React.createContext<React.MutableRefObject<
     ((itemId?: string) => void) | null
 > | null>(null);
 
+/**
+ * Access the library workspace context.
+ *
+ * Must be rendered inside `WorkspaceProvider` so components can read and
+ * mutate collections, items, and selection state.
+ */
 export function useWorkspace(): LibraryWorkspaceContextValue {
     const context = React.use(WorkspaceContext);
     if (!context) {
@@ -520,6 +640,14 @@ interface LibraryWorkspaceProviderProps {
     initialItems: LibraryItemWithCollections[];
 }
 
+/**
+ * Provider that holds the mutable library state (items, collections,
+ * selection) and exposes it through `useWorkspace`.
+ *
+ * Maintains local copies of server data so optimistic updates (e.g.
+ * adding an item to a collection) render instantly while the server
+ * round-trip happens in the background.
+ */
 export function WorkspaceProvider({
     hasAccess,
     initialCollections,
@@ -780,6 +908,12 @@ export function WorkspaceProvider({
 
 // #region Internal helpers (existing)
 
+/**
+ * Replace all collections on a single item by ID.
+ *
+ * Used for optimistic updates when adding or removing an item from
+ * a collection. Creates a new array so React detects the change.
+ */
 function replaceItemCollections(
     items: LibraryItemWithCollections[],
     itemId: string,
@@ -795,6 +929,12 @@ function replaceItemCollections(
     );
 }
 
+/**
+ * Add a collection tag to multiple items without duplicates.
+ *
+ * Skips items that already belong to the collection to avoid
+ * double-counting after optimistic re-adds.
+ */
 function appendCollection(
     items: LibraryItemWithCollections[],
     itemIds: string[],
@@ -819,6 +959,11 @@ function appendCollection(
     });
 }
 
+/**
+ * Batch-replace collections across multiple items from a server payload.
+ *
+ * Builds a lookup map so the operation is O(n + m) instead of O(n*m).
+ */
 function replaceMultipleItemCollections(
     items: LibraryItemWithCollections[],
     itemCollections: Array<{
@@ -845,6 +990,14 @@ function replaceMultipleItemCollections(
     });
 }
 
+/**
+ * Merge fresh server summaries into the local collection list without
+ * dropping existing entries.
+ *
+ * New collections are appended; existing ones are patched in place so
+ * React keys remain stable. The result is re-sorted so priority order
+ * is preserved after updates.
+ */
 export function mergeCollectionSummaries(
     collections: LibraryCollectionSummary[],
     nextCollections: LibraryCollectionSummary[]
@@ -869,6 +1022,12 @@ export function mergeCollectionSummaries(
     ]);
 }
 
+/**
+ * Deterministic hash for a string used to shuffle preview thumbnails.
+ *
+ * Keeps the order stable for the same collection + item pair so thumbnails
+ * don't jump around on re-renders.
+ */
 function getPreviewOrderSeed(value: string): number {
     let hash = 0;
     for (const character of value) {
@@ -877,6 +1036,14 @@ function getPreviewOrderSeed(value: string): number {
     return hash;
 }
 
+/**
+ * Build two indexes from the item list:
+ * 1. Items grouped by collection id.
+ * 2. Up to 5 deterministic preview thumbnail URLs per collection.
+ *
+ * Memoized because both indexes are expensive to rebuild on every render
+ * and only change when the item list changes.
+ */
 function useCollectionItemIndexes(items: LibraryItemWithCollections[]): {
     collectionPreviewThumbnailUrlsById: Map<string, string[]>;
     itemsByCollectionId: Map<string, LibraryItemWithCollections[]>;
@@ -912,6 +1079,13 @@ function useCollectionItemIndexes(items: LibraryItemWithCollections[]): {
     }, [items]);
 }
 
+/**
+ * Deterministically select up to five preview thumbnail URLs for a
+ * collection.
+ *
+ * Uses seeded ordering so thumbnails don't shuffle on re-render.
+ * Items without a usable preview image are skipped.
+ */
 function getCollectionPreviewThumbnailUrls(
     collectionId: string,
     items: LibraryItemWithCollections[]
@@ -935,6 +1109,13 @@ function getCollectionPreviewThumbnailUrls(
 
 // #region Controller hook
 
+/**
+ * Central controller for all collection-related UI state and side effects.
+ *
+ * Coordinates dialog open states, server actions, optimistic updates,
+ * keyboard shortcuts, and feedback messages. Returned as a flat object
+ * so `CollectionsListWorkspaceRoot` can destructure exactly what it needs.
+ */
 function useCollectionsController() {
     const {
         disabled: isSmartCollectionsDisabled,
@@ -1615,6 +1796,13 @@ function useCollectionsController() {
 
 // #region Workspace root component
 
+/**
+ * Composed workspace root that wires the controller into the
+ * `CollectionsList` compound components and dialogs.
+ *
+ * Also registers itself with the `RequestCreateRefContext` so any parent
+ * can open the create dialog imperatively via `requestCreate()`.
+ */
 export function CollectionsListWorkspaceRoot() {
     const controller = useCollectionsController();
     const requestCreateRef = React.useContext(RequestCreateRefContext);

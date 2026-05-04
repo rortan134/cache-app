@@ -197,6 +197,12 @@ interface ExportContentProvider {
     title: string;
 }
 
+/**
+ * AI tools and editors that users can send note content to.
+ *
+ * Each provider receives the full plain-text note as a query parameter
+ * where supported, or opens a blank document otherwise.
+ */
 const EXPORT_CONTENT_PROVIDERS: readonly ExportContentProvider[] = [
     {
         createUrl: (query) =>
@@ -264,6 +270,12 @@ function useNoteContext(): NoteContextValue {
     return context;
 }
 
+/**
+ * Normalize a draft so HTML comparisons are stable across serializations.
+ *
+ * Must be called before any equality check or save so whitespace-only
+ * differences don't create false positives.
+ */
 function normalizeDraft(draft: NoteDraft): NoteDraft {
     return {
         contentHtml: normalizeNoteHtml(draft.contentHtml),
@@ -271,6 +283,12 @@ function normalizeDraft(draft: NoteDraft): NoteDraft {
     };
 }
 
+/**
+ * Convert a Lexical editor state into a normalized draft.
+ *
+ * Preserves the serialized state so the editor can restore it exactly,
+ * while also caching the HTML for quick text-metric calculations.
+ */
 function noteDraftFromEditorState(
     contentState: NoteSerializedEditorState
 ): NoteDraft {
@@ -280,6 +298,12 @@ function noteDraftFromEditorState(
     });
 }
 
+/**
+ * Build a draft from an existing note item or an empty placeholder.
+ *
+ * Prefers the structured editor state over raw HTML so history and
+ * formatting are preserved when the note is reopened.
+ */
 function noteDraftFromItem(note: LibraryItemWithCollections | null): NoteDraft {
     const contentState = isNoteSerializedEditorState(note?.noteContentState)
         ? note.noteContentState
@@ -295,6 +319,11 @@ function noteDraftFromItem(note: LibraryItemWithCollections | null): NoteDraft {
     });
 }
 
+/**
+ * Shallow equality check for toolbar format state.
+ *
+ * Used to bail out of React re-renders when the selection hasn't changed.
+ */
 function areFormatStatesEqual(left: FormatState, right: FormatState): boolean {
     return (
         left.blockType === right.blockType &&
@@ -305,6 +334,12 @@ function areFormatStatesEqual(left: FormatState, right: FormatState): boolean {
     );
 }
 
+/**
+ * Derive word, character, and paragraph counts from note HTML.
+ *
+ * Falls back to one implicit paragraph when text exists but block tags
+ * are missing, which happens with plain-text pastes.
+ */
 function getNoteTextMetrics(contentHtml: string): NoteTextMetrics {
     const plainText = extractNoteText(contentHtml);
     const matchedBlocks = contentHtml.match(NOTE_NON_EMPTY_BLOCK_TAG_REGEX);
@@ -324,6 +359,12 @@ function getNoteTextMetrics(contentHtml: string): NoteTextMetrics {
     };
 }
 
+/**
+ * Produce the correct Lexical `editorState` initializer from a draft.
+ *
+ * Uses the JSON snapshot when available for instant hydration; otherwise
+ * parses HTML into nodes so legacy notes still render correctly.
+ */
 function getInitialEditorState(
     initialDraft: NoteDraft
 ): InitialConfigType["editorState"] {
@@ -352,6 +393,12 @@ function getInitialEditorState(
     };
 }
 
+/**
+ * Compare two drafts for semantic differences.
+ *
+ * Normalizes HTML before comparing so inconsequential whitespace changes
+ * don't trigger a save prompt.
+ */
 function haveDraftsChanged(left: NoteDraft, right: NoteDraft): boolean {
     return (
         normalizeNoteHtml(left.contentHtml) !==
@@ -359,10 +406,22 @@ function haveDraftsChanged(left: NoteDraft, right: NoteDraft): boolean {
     );
 }
 
+/**
+ * Check whether a draft contains any visible text.
+ *
+ * HTML with only empty tags or whitespace is considered empty.
+ */
 function isDraftEmpty(draft: NoteDraft): boolean {
     return extractNoteText(draft.contentHtml).length === 0;
 }
 
+/**
+ * Lexical plugin that renders a block-type and inline-format toolbar.
+ *
+ * Listens to selection changes and only re-renders when the format state
+ * actually differs, which is important because Lexical fires many
+ * selection events during typing.
+ */
 function NoteFormattingToolbarPlugin() {
     const [editor] = useLexicalComposerContext();
     const [formats, setFormats] = useState<FormatState>(INITIAL_FORMAT_STATE);
@@ -484,6 +543,12 @@ function NoteFormattingToolbarPlugin() {
     );
 }
 
+/**
+ * Lexical plugin bundle that wires the editor to the note system.
+ *
+ * Handles paste interception (detects standalone URLs and routes them
+ * to `onUrlPaste`), change serialization, and history.
+ */
 function NoteContentPlugin({
     onDraftChange,
     onUrlPaste,
@@ -533,6 +598,12 @@ function NoteContentPlugin({
     );
 }
 
+/**
+ * Root controller for the note editor.
+ *
+ * Manages draft state, dirty-checking, auto-save on close, and expansion
+ * toggling. Provides the shared context consumed by all leaf parts.
+ */
 function NoteRoot({
     children,
     note,
@@ -642,11 +713,20 @@ function NoteRoot({
     );
 }
 
+/**
+ * Render the current note title string.
+ *
+ * Used by parent layouts that need the title outside the note tree.
+ */
 function NoteTitle() {
     const { title } = useNoteContext();
     return title;
 }
 
+/**
+ * Header bar with the note title, "Open in..." export menu, and panel
+ * controls (expand / close).
+ */
 function NoteHeader() {
     const { isBusy, isExpanded, onOpenChange, query, title, toggleExpanded } =
         useNoteContext();
@@ -738,6 +818,13 @@ function NoteHeader() {
     );
 }
 
+/**
+ * Lexical composer that mounts the rich-text editor with the correct
+ * initial state and plugins.
+ *
+ * Keyed by `editorKey` so reopening a different note fully remounts
+ * the editor instead of recycling stale internal state.
+ */
 function NoteEditor() {
     const { editorKey, initialDraft, onDraftChange, onUrlPaste } =
         useNoteContext();
@@ -764,6 +851,9 @@ function NoteEditor() {
     );
 }
 
+/**
+ * Footer metrics bar showing word, paragraph, and character counts.
+ */
 function NoteMetrics() {
     const { textMetrics } = useNoteContext();
 
@@ -788,6 +878,19 @@ function NoteMetrics() {
     );
 }
 
+/**
+ * Compound component for the rich-text note editor.
+ *
+ * Compose with `.Root`, `.Header`, `.Editor`, and `.Metrics`:
+ *   <Note.Root note={note} open onSave={...} ...>
+ *     <Note.Header />
+ *     <Note.Editor />
+ *     <Note.Metrics />
+ *   </Note.Root>
+ *
+ * Call `.useContext()` in custom children to read draft state,
+ * text metrics, and the expanded flag.
+ */
 export const Note = Object.assign(NoteRoot, {
     Editor: NoteEditor,
     Header: NoteHeader,
@@ -797,6 +900,9 @@ export const Note = Object.assign(NoteRoot, {
     useContext: useNoteContext,
 });
 
+/**
+ * Base SVG wrapper that injects an accessible `<title>` for brand icons.
+ */
 function BrandIcon({
     children,
     title,
@@ -810,6 +916,9 @@ function BrandIcon({
     );
 }
 
+/**
+ * OpenAI logo icon.
+ */
 function OpenAIIcon(props: SVGProps<SVGSVGElement>) {
     return (
         <BrandIcon
@@ -823,6 +932,9 @@ function OpenAIIcon(props: SVGProps<SVGSVGElement>) {
     );
 }
 
+/**
+ * Anthropic Claude logo icon.
+ */
 function ClaudeIcon(props: SVGProps<SVGSVGElement>) {
     return (
         <BrandIcon
@@ -840,6 +952,9 @@ function ClaudeIcon(props: SVGProps<SVGSVGElement>) {
     );
 }
 
+/**
+ * Cursor IDE logo icon.
+ */
 function CursorIcon(props: SVGProps<SVGSVGElement>) {
     return (
         <BrandIcon title="Cursor" viewBox="0 0 466.73 532.09" {...props}>
@@ -851,6 +966,9 @@ function CursorIcon(props: SVGProps<SVGSVGElement>) {
     );
 }
 
+/**
+ * Scira AI logo icon.
+ */
 function SciraIcon(props: SVGProps<SVGSVGElement>) {
     return (
         <BrandIcon
@@ -910,6 +1028,9 @@ function SciraIcon(props: SVGProps<SVGSVGElement>) {
     );
 }
 
+/**
+ * Vercel v0 logo icon.
+ */
 function V0Icon(props: SVGProps<SVGSVGElement>) {
     return (
         <BrandIcon

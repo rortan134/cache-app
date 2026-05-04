@@ -329,6 +329,12 @@ type TemplateValue = (typeof TEMPLATES)[number]["value"];
 const CollectionsListItemContext =
     React.createContext<CollectionsListItemContextValue | null>(null);
 
+/**
+ * Access the collection and hover state for the current list item.
+ *
+ * Must be used inside `CollectionsListItem` so compound parts can share
+ * state without prop drilling.
+ */
 function useCollectionsListItemContext() {
     const context = React.use(CollectionsListItemContext);
     if (!context) {
@@ -339,6 +345,12 @@ function useCollectionsListItemContext() {
     return context;
 }
 
+/**
+ * Register a keyboard shortcut scoped to the hovered collection item.
+ *
+ * Shortcuts only fire when the item is hovered so users don't trigger
+ * actions on off-screen rows.
+ */
 function useCollectionItemHotkey(
     keys: Parameters<typeof useHotkeys>[0],
     onTrigger: () => void,
@@ -358,6 +370,13 @@ function useCollectionItemHotkey(
     );
 }
 
+/**
+ * Cycle through collection thumbnail previews on an interval while the
+ * preview popup is open.
+ *
+ * Resets to the first image when closed so the sequence always starts
+ * from the beginning.
+ */
 function useCollectionItemPreviewIndex(
     isOpen: boolean,
     thumbnailCount: number
@@ -385,10 +404,22 @@ function useCollectionItemPreviewIndex(
     return activePreviewIndex;
 }
 
+/**
+ * Look up the full priority option (icon + label) for a given priority value.
+ *
+ * Falls back to `DEFAULT_PRIORITY` so callers never have to handle `undefined`.
+ */
 function getPriorityOption(priority: CollectionPriority): PriorityOption {
     return PRIORITY_BY_VALUE.get(priority) ?? DEFAULT_PRIORITY;
 }
 
+/**
+ * Derive CSS custom properties from a collection name so each row gets a
+ * unique tint without adding inline styles for every possible color.
+ *
+ * The mix percentages are intentionally subtle (10–20 %) so the sidebar
+ * stays readable against both light and dark backgrounds.
+ */
 function getItemStyle(name: string, isSelected: boolean): React.CSSProperties {
     const color = getHexColorFromName(name);
     const base = `color-mix(in srgb, ${color} ${isSelected ? 20 : 10}%, transparent)`;
@@ -402,6 +433,9 @@ function getItemStyle(name: string, isSelected: boolean): React.CSSProperties {
     } as React.CSSProperties;
 }
 
+/**
+ * Consistent row layout for combobox items that show an icon + label pair.
+ */
 function CollectionComboboxOptionRow({
     icon: Icon,
     label,
@@ -417,6 +451,10 @@ function CollectionComboboxOptionRow({
     );
 }
 
+/**
+ * Placeholder shown when a collection has no thumbnail or every image fails
+ * to load.
+ */
 function CollectionsListPreviewImageFallback() {
     return (
         <div className="flex size-full items-center justify-center bg-muted/40 text-[11px] text-muted-foreground">
@@ -460,6 +498,9 @@ function CollectionsListItemPreviewImage({
     );
 }
 
+/**
+ * Horizontal flex row used for inline status and filter lines.
+ */
 function CollectionsListInlineRow({
     className,
     ...props
@@ -475,6 +516,10 @@ function CollectionsListInlineRow({
     );
 }
 
+/**
+ * Root wrapper for the collections list. Adds relative positioning so child
+ * absolute elements (e.g. tooltips) layer correctly.
+ */
 function CollectionsList({
     className,
     ...props
@@ -530,6 +575,11 @@ function CollectionsListTrigger({
     );
 }
 
+/**
+ * Collapsible panel that holds the collection list contents.
+ *
+ * Indents by `pl-1` to visually nest items under the trigger.
+ */
 function CollectionsListPanel({
     className,
     ...props
@@ -537,6 +587,10 @@ function CollectionsListPanel({
     return <CollapsiblePanel className={cn("pl-1", className)} {...props} />;
 }
 
+/**
+ * Toolbar that sits above the collection list and hosts the trigger,
+ * sort combobox, and create button.
+ */
 function CollectionsListToolbar({
     className,
     ...props
@@ -552,6 +606,9 @@ function CollectionsListToolbar({
     );
 }
 
+/**
+ * Right-aligned group inside the collections toolbar.
+ */
 function CollectionsListToolbarGroup({
     className,
     ...props
@@ -564,6 +621,10 @@ function CollectionsListToolbarGroup({
     );
 }
 
+/**
+ * Individual button in the collections toolbar with subtle opacity
+ * transitions so the bar doesn't feel visually heavy.
+ */
 function CollectionsListToolbarButton({
     className,
     ...props
@@ -576,6 +637,12 @@ function CollectionsListToolbarButton({
     );
 }
 
+/**
+ * Empty state shown when the user has no collections.
+ *
+ * Renders inside a dashed-border card so it looks intentional rather than
+ * like missing data.
+ */
 function CollectionsListEmpty({
     className,
     ...props
@@ -640,6 +707,12 @@ interface CollectionsListFilterClearProps
     isVisible: boolean;
 }
 
+/**
+ * Small "X" button that clears the current collection filter selection.
+ *
+ * Returns `null` when no filters are active so the layout doesn't reserve
+ * space for an invisible control.
+ */
 function CollectionsListFilterClearButton({
     isVisible,
     ...props
@@ -938,6 +1011,12 @@ function CollectionsListItemPreview({
     );
 }
 
+/**
+ * Display the collection name and, on hover, a faded list of its sources.
+ *
+ * Sources are hidden by default to keep the sidebar compact; they fade in
+ * on hover as a secondary cue.
+ */
 function CollectionsListItemValue() {
     const { collection } = useCollectionsListItemContext();
 
@@ -1049,6 +1128,10 @@ interface CollectionsListSharePopoverProps {
     shareUrl: string | null;
 }
 
+/**
+ * Visual card inside the share popover that communicates the current
+ * sharing state (public vs. private) at a glance.
+ */
 function CollectionsListShareStatusCard({ isShared }: { isShared: boolean }) {
     return (
         <div className="mt-4 rounded-xl border bg-muted/40 p-3">
@@ -1075,6 +1158,10 @@ function CollectionsListShareStatusCard({ isShared }: { isShared: boolean }) {
     );
 }
 
+/**
+ * Controls shown after a collection has been shared: a read-only URL input,
+ * a copy button, and a disable button.
+ */
 function CollectionsListShareLinkControls({
     collection,
     isSharePending,
@@ -1136,6 +1223,9 @@ function CollectionsListShareLinkControls({
     );
 }
 
+/**
+ * Initial CTA shown when a collection is not yet shared.
+ */
 function CollectionsListShareEnableAction({
     isSharePending,
     onEnableShare,

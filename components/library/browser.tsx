@@ -4770,28 +4770,6 @@ export function Root({ lockedItemCount, totalItemCount }: LibraryProps) {
         systemControlKey ?? "Ctrl"
     );
 
-    useHotkeys(
-        "mod+1, mod+2, mod+3, mod+4, mod+5, mod+6, mod+7, mod+8, mod+9",
-        (event) => {
-            const digit = Number(event.key);
-            if (Number.isNaN(digit)) {
-                return;
-            }
-            const index = digit - 1;
-            const flatItems = visiblePaletteGroups.flatMap((g) => g.items);
-            const item = flatItems[index];
-            if (item) {
-                item.onSelect(event);
-            }
-        },
-        {
-            enabled: commandListOpen,
-            enableOnFormTags: true,
-            preventDefault: true,
-        },
-        [commandListOpen]
-    );
-
     let inputPlaceholder = "Search, filter, group, sort, and more…";
     if (paletteSection === "search") {
         inputPlaceholder = "Search, filter, group, sort, and more…";
@@ -4940,6 +4918,36 @@ export function Root({ lockedItemCount, totalItemCount }: LibraryProps) {
         sortMode,
         sourceFilters,
     });
+
+    useHotkeys(
+        "mod+1, mod+2, mod+3, mod+4, mod+5, mod+6, mod+7, mod+8, mod+9",
+        (event) => {
+            const digit = Number(event.key);
+            if (Number.isNaN(digit)) {
+                return;
+            }
+            const index = digit - 1;
+
+            if (index < commandSuggestions.length) {
+                commandSuggestions[index]?.onSelect?.();
+                return;
+            }
+
+            const paletteIndex = index - commandSuggestions.length;
+            const flatItems = visiblePaletteGroups.flatMap((g) => g.items);
+            const item = flatItems[paletteIndex];
+            if (item) {
+                item.onSelect(event);
+            }
+        },
+        {
+            enabled: commandListOpen,
+            enableOnFormTags: true,
+            eventListenerOptions: { capture: true },
+            preventDefault: true,
+        },
+        [commandListOpen, commandSuggestions, visiblePaletteGroups]
+    );
 
     const resultCollectionItemIds = visibleResultItems.map((item) => item.id);
 
@@ -5422,7 +5430,7 @@ export function Root({ lockedItemCount, totalItemCount }: LibraryProps) {
                         scrollFade
                     >
                         <div className="flex w-max flex-nowrap items-center gap-1.5">
-                            {commandSuggestions.map((suggestion) => (
+                            {commandSuggestions.map((suggestion, index) => (
                                 <React.Fragment key={suggestion.label}>
                                     <Button
                                         className="rounded-full text-muted-foreground"
@@ -5433,6 +5441,10 @@ export function Root({ lockedItemCount, totalItemCount }: LibraryProps) {
                                         {suggestion.icon}
                                         &nbsp;
                                         {suggestion.label}
+                                        <Kbd className="bg-transparent px-0 text-[11px] opacity-80">
+                                            <CtrlKbd />
+                                            {index + 1}
+                                        </Kbd>
                                     </Button>
                                     <span className="font-medium text-muted-foreground text-xs last:hidden">
                                         ·

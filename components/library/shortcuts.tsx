@@ -11,6 +11,12 @@ import {
 import { Kbd, KbdGroup } from "@/components/ui/kbd";
 import type * as React from "react";
 
+/**
+ * Library-wide keyboard shortcuts exposed in the help dialog.
+ *
+ * Kept in a single array so the trigger and any future cheat-sheet
+ * renderers stay in sync automatically.
+ */
 const KEYBOARD_SHORTCUTS = [
     {
         keys: "⌘/Ctrl+G",
@@ -50,6 +56,12 @@ const KEYBOARD_SHORTCUTS = [
     },
 ];
 
+/**
+ * Button that opens a read-only dialog listing all library keyboard shortcuts.
+ *
+ * Splits `keys` on "+" so multi-part shortcuts render as separate `<Kbd>`
+ * pills without callers having to pre-format them.
+ */
 export const KeyboardShortcutsDialogTrigger = (
     props: React.ComponentProps<typeof DialogTrigger>
 ) => (

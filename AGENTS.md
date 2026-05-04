@@ -95,7 +95,7 @@ When to include specific details:
 
 ## On React components
 
-Prefer a headless, multi-part compound component composition pattern where a single logical widget is decomposed into many small, focused parts that communicate through shared internal state rather than props drilling. Every component should use a common, composable interface, making them predictable. Composable components naturally fit with one another. Each component is built to match the others, keeping the UI consistent. Please see `vercel-composition-patterns` and `vercel-react-best-practices` for more whenever relevant.
+Prefer a headless, multi-part compound component composition pattern where a single logical widget is decomposed into many small, focused parts that communicate through shared internal state rather than props drilling. Every component should use a common, composable interface, making them predictable. Composable components naturally fit with one another. Each component is built to match the others, keeping the UI consistent. Prevent polymorphic React components at all costs. Please see `vercel-composition-patterns` and `vercel-react-best-practices` for more whenever relevant.
 
 You mount a root controller (e.g. ‎`Combobox.Root` / ‎`ComboboxRoot`) that owns centralized state, behavior and semantics (value, inputValue, items, open, highlight, async status) and exposes it via context to leaf parts like ‎`Input`, ‎`InputGroup`, ‎`Trigger`, ‎`Icon`, ‎`List`, ‎`Item`, ‎`ItemIndicator`, ‎`Chips`, ‎`Group`, ‎`Portal`, ‎`Positioner`, ‎`Popup`, ‎`Status`, and ‎`Empty` exported as many headless part components bound together by the shared store/context layer
 
