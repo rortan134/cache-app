@@ -2,37 +2,21 @@
 
 import * as React from "react";
 
-// biome-ignore lint/suspicious/noEmptyBlockStatements: NOOP
-function doNothing() {}
-
-function getClientSnapshot() {
-    return "client";
-}
-
-function getServerSnapshot() {
-    return "server";
-}
-
-function subscribeClientBoundaryStore() {
-    return doNothing;
-}
-
 function useClientBoundaryValue() {
     return React.useSyncExternalStore(
-        subscribeClientBoundaryStore,
-        getClientSnapshot,
-        getServerSnapshot
+        // biome-ignore lint/suspicious/noEmptyBlockStatements: subscription noop
+        () => () => {},
+        () => "client",
+        () => "server"
     );
 }
 
-function useClientOnlyValue<T>(value: T, fallback?: T): T | null {
+export function useClientOnlyValue<T>(value: T, fallback?: T): T | null {
     const boundaryValue = useClientBoundaryValue();
     return boundaryValue === "server" ? (fallback ?? null) : value;
 }
 
-function ClientOnly({ children }: React.PropsWithChildren) {
+export function ClientOnly({ children }: React.PropsWithChildren) {
     const boundaryValue = useClientBoundaryValue();
     return boundaryValue === "server" ? null : children;
 }
-
-export { ClientOnly, useClientOnlyValue };

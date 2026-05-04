@@ -1,7 +1,7 @@
 import { cn } from "@/lib/common/cn";
 import type * as React from "react";
 
-function PageShell({
+export function PageShell({
     className,
     as: Comp = "main",
     ...props
@@ -18,5 +18,3 @@ function PageShell({
         />
     );
 }
-
-export { PageShell };

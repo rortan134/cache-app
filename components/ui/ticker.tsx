@@ -6,7 +6,7 @@ interface TickerProps extends React.ComponentProps<"div"> {
     repeatInstances?: number;
 }
 
-function Ticker({
+export function Ticker({
     direction = "left",
     repeatInstances = 2,
     className,
@@ -60,5 +60,3 @@ function Ticker({
         </span>
     );
 }
-
-export { Ticker };

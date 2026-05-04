@@ -26,6 +26,13 @@ const directionMap: Record<
     top: "up",
 };
 
+function wrapRender(
+    render: useRender.ComponentProps<"div">["render"],
+    allowSelection: boolean
+) {
+    return allowSelection ? <DrawerContent render={render} /> : render;
+}
+
 export const DrawerCreateHandle: typeof DrawerPrimitive.createHandle =
     DrawerPrimitive.createHandle;
 
@@ -219,7 +226,7 @@ export function DrawerHeader({
     return useRender({
         defaultTagName: "div",
         props: mergeProps<"div">(defaultProps, props),
-        render: allowSelection ? <DrawerContent render={render} /> : render,
+        render: wrapRender(render, allowSelection),
     });
 }
 
@@ -249,7 +256,7 @@ export function DrawerFooter({
     return useRender({
         defaultTagName: "div",
         props: mergeProps<"div">(defaultProps, props),
-        render: allowSelection ? <DrawerContent render={render} /> : render,
+        render: wrapRender(render, allowSelection),
     });
 }
 
@@ -306,7 +313,7 @@ export function DrawerPanel({
     const content = useRender({
         defaultTagName: "div",
         props: mergeProps<"div">(defaultProps, props),
-        render: allowSelection ? <DrawerContent render={render} /> : render,
+        render: wrapRender(render, allowSelection),
     });
 
     if (scrollable) {

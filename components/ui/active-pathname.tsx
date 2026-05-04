@@ -3,7 +3,7 @@
 import { usePathname } from "next/navigation";
 import * as React from "react";
 
-function ActivePathname({
+export function ActivePathname({
     href,
     match = "exact",
     reverse,
@@ -16,11 +16,11 @@ function ActivePathname({
     children: React.ReactElement;
 }) {
     const pathname = usePathname();
-    const href_ = String(href);
     const isPathnameActive =
         match === "prefix"
-            ? pathname === href_ || pathname.startsWith(`${href_}/`)
-            : pathname === href_;
+            ? pathname === String(href) ||
+              pathname.startsWith(`${String(href)}/`)
+            : pathname === String(href);
 
     return React.cloneElement(React.Children.only(children), {
         ...props,
@@ -28,5 +28,3 @@ function ActivePathname({
         "data-active": reverse ? !isPathnameActive : isPathnameActive,
     } as Record<string, unknown>);
 }
-
-export { ActivePathname };

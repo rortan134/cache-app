@@ -69,8 +69,6 @@ function GradientWaveText({
 
     const [isInView, setIsInView] = React.useState(!inView);
 
-    const cycles = repeat ? 0 : 1;
-
     React.useEffect(() => {
         if (!inView) {
             setIsInView(true);
@@ -103,9 +101,10 @@ function GradientWaveText({
         return () => observer.disconnect();
     }, [inView, once]);
 
-    const resolvedColors = customColors?.length ? customColors : defaultColors;
-
     const stops = (() => {
+        const resolvedColors = customColors?.length
+            ? customColors
+            : defaultColors;
         const arr: string[] = [];
         const baseColor = "var(--gradient-wave-base, rgb(29,29,31))";
         arr.push(`${baseColor} calc((var(--gi) + 0) * 1%)`);
@@ -149,6 +148,7 @@ function GradientWaveText({
         }
 
         const RANGE = 200;
+        const cycles = repeat ? 0 : 1;
         let last = performance.now();
 
         const tick = (now: number) => {
@@ -169,9 +169,7 @@ function GradientWaveText({
             const dt = Math.min(64, now - last);
             last = now;
 
-            const shouldAnimate = !paused;
-
-            if (shouldAnimate) {
+            if (!paused) {
                 const increment = (dt * speed) / 16.6667;
                 let next = tRef.current + increment;
 
@@ -203,7 +201,7 @@ function GradientWaveText({
 
         rafRef.current = requestAnimationFrame(tick);
         return () => cancelAnimationFrame(rafRef.current);
-    }, [speed, paused, cycles, isInView]);
+    }, [speed, paused, repeat, isInView]);
 
     const spanStyle: React.CSSProperties = {
         backfaceVisibility: "hidden",

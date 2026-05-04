@@ -923,42 +923,65 @@ function KanbanColumn(props: KanbanColumnProps) {
     );
 }
 
-interface KanbanColumnHandleProps extends React.ComponentProps<"button"> {}
+interface KanbanHandleProps extends React.ComponentProps<"button"> {
+    flatCursor: boolean;
+    slot: string;
+    sortableContext: KanbanSortableContextValue;
+}
 
-function KanbanColumnHandle(props: KanbanColumnHandleProps) {
-    const { disabled, className, ref, ...columnHandleProps } = props;
-
-    const context = useKanbanContext(COLUMN_NAME);
-    const columnContext = useKanbanColumnContext(COLUMN_HANDLE_NAME);
-
-    const isDisabled = disabled ?? columnContext.disabled;
+function KanbanHandle({
+    disabled,
+    className,
+    ref,
+    flatCursor,
+    slot,
+    sortableContext,
+    ...props
+}: KanbanHandleProps) {
+    const isDisabled = disabled ?? sortableContext.disabled;
 
     const composedRef = useMergedRefs(ref, (node) => {
         if (isDisabled) {
             return;
         }
-        columnContext.setActivatorNodeRef(node);
+        sortableContext.setActivatorNodeRef(node);
     });
 
     return (
         <button
-            aria-controls={columnContext.id}
+            aria-controls={sortableContext.id}
             data-disabled={isDisabled}
-            data-dragging={columnContext.isDragging ? "" : undefined}
-            data-slot="kanban-column-handle"
+            data-dragging={sortableContext.isDragging ? "" : undefined}
+            data-slot={slot}
             type="button"
-            {...columnHandleProps}
-            {...(isDisabled ? {} : columnContext.attributes)}
-            {...(isDisabled ? {} : columnContext.listeners)}
+            {...props}
+            {...(isDisabled ? {} : sortableContext.attributes)}
+            {...(isDisabled ? {} : sortableContext.listeners)}
             className={cn(
                 "select-none disabled:pointer-events-none disabled:opacity-50",
-                context.flatCursor
+                flatCursor
                     ? "cursor-default"
                     : "cursor-grab data-dragging:cursor-grabbing",
                 className
             )}
             disabled={isDisabled}
             ref={composedRef}
+        />
+    );
+}
+
+interface KanbanColumnHandleProps extends React.ComponentProps<"button"> {}
+
+function KanbanColumnHandle(props: KanbanColumnHandleProps) {
+    const context = useKanbanContext(COLUMN_NAME);
+    const columnContext = useKanbanColumnContext(COLUMN_HANDLE_NAME);
+
+    return (
+        <KanbanHandle
+            {...props}
+            flatCursor={context.flatCursor}
+            slot="kanban-column-handle"
+            sortableContext={columnContext}
         />
     );
 }
@@ -1050,39 +1073,15 @@ function KanbanItem(props: KanbanItemProps) {
 interface KanbanItemHandleProps extends React.ComponentProps<"button"> {}
 
 function KanbanItemHandle(props: KanbanItemHandleProps) {
-    const { disabled, className, ref, ...itemHandleProps } = props;
-
     const context = useKanbanContext(ITEM_HANDLE_NAME);
     const itemContext = useKanbanItemContext(ITEM_HANDLE_NAME);
 
-    const isDisabled = disabled ?? itemContext.disabled;
-
-    const composedRef = useMergedRefs(ref, (node) => {
-        if (isDisabled) {
-            return;
-        }
-        itemContext.setActivatorNodeRef(node);
-    });
-
     return (
-        <button
-            aria-controls={itemContext.id}
-            data-disabled={isDisabled}
-            data-dragging={itemContext.isDragging ? "" : undefined}
-            data-slot="kanban-item-handle"
-            type="button"
-            {...itemHandleProps}
-            {...(isDisabled ? {} : itemContext.attributes)}
-            {...(isDisabled ? {} : itemContext.listeners)}
-            className={cn(
-                "select-none disabled:pointer-events-none disabled:opacity-50",
-                context.flatCursor
-                    ? "cursor-default"
-                    : "cursor-grab data-dragging:cursor-grabbing",
-                className
-            )}
-            disabled={isDisabled}
-            ref={composedRef}
+        <KanbanHandle
+            {...props}
+            flatCursor={context.flatCursor}
+            slot="kanban-item-handle"
+            sortableContext={itemContext}
         />
     );
 }

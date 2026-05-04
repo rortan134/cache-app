@@ -3044,16 +3044,27 @@ export function PreviewMedia({
     const [hoverVideoUrl, setHoverVideoUrl] = React.useState(videoPreviewUrl);
     const [isHovering, setIsHovering] = React.useState(false);
     const [isSoundEnabled, setIsSoundEnabled] = React.useState(false);
+    const [videoFailed, setVideoFailed] = React.useState(false);
     const videoRef = React.useRef<HTMLVideoElement | null>(null);
     const hoverTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(
         null
     );
+    const isHoveringRef = React.useRef(isHovering);
     const staticPreviewCacheKey = `static:${itemId}`;
     const videoPreviewCacheKey = `video:${itemId}`;
     const imageSrc = resolvedImageSrc ?? undefined;
 
     const canRenderImage = Boolean(imageSrc) && !didFail;
-    const canRenderVideo = Boolean(hoverVideoUrl);
+    const canRenderVideo = Boolean(hoverVideoUrl) && !videoFailed;
+
+    React.useEffect(() => {
+        isHoveringRef.current = isHovering;
+    }, [isHovering]);
+
+    // biome-ignore lint/correctness/useExhaustiveDependencies: reset failure state when the resolved URL changes
+    React.useEffect(() => {
+        setVideoFailed(false);
+    }, [hoverVideoUrl]);
 
     React.useEffect(() => {
         setResolvedImageSrc(src);
@@ -3143,6 +3154,11 @@ export function PreviewMedia({
             if (hoverTimerRef.current) {
                 clearTimeout(hoverTimerRef.current);
             }
+            if (videoRef.current) {
+                videoRef.current.pause();
+                videoRef.current.removeAttribute("src");
+                videoRef.current.load();
+            }
         },
         []
     );
@@ -3159,7 +3175,10 @@ export function PreviewMedia({
         if (!canResolveCobaltPreview) {
             return;
         }
-        if (hoverVideoUrl || previewResultCache.has(videoPreviewCacheKey)) {
+        if (
+            (hoverVideoUrl && !videoFailed) ||
+            previewResultCache.has(videoPreviewCacheKey)
+        ) {
             const cached = previewResultCache.get(videoPreviewCacheKey);
             cached?.then((result) => {
                 if (result?.videoPreviewUrl) {
@@ -3170,6 +3189,10 @@ export function PreviewMedia({
         }
 
         hoverTimerRef.current = setTimeout(() => {
+            if (!isHoveringRef.current) {
+                return;
+            }
+
             const request = resolveLibraryItemPreview(itemId, {
                 refreshIfMissingVideo: true,
             }).then((result) => {
@@ -3256,6 +3279,12 @@ export function PreviewMedia({
                     )}
                     loop
                     muted={!isSoundEnabled}
+                    onCanPlay={() => {
+                        if (isHoveringRef.current) {
+                            videoRef.current?.play().catch(() => undefined);
+                        }
+                    }}
+                    onError={() => setVideoFailed(true)}
                     playsInline
                     preload="metadata"
                     ref={videoRef}
@@ -3709,7 +3738,7 @@ function Card({ item }: LibraryGridCardProps) {
                                         item
                                     )}
                                     itemId={item.id}
-                                    key={previewImageUrl ?? `empty-${item.id}`}
+                                    key={item.id}
                                     src={previewImageUrl}
                                     videoPreviewUrl={previewVideoUrl}
                                 />

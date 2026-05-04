@@ -17,7 +17,7 @@ interface DisclosureListProps extends React.ComponentProps<"div"> {
     maxVisible?: number;
 }
 
-function DisclosureList({
+export function DisclosureList({
     maxVisible = 15,
     children,
     className,
@@ -64,5 +64,3 @@ function DisclosureListHidden({ items }: DisclosureListHiddenProps) {
         </Collapsible>
     );
 }
-
-export { DisclosureList };

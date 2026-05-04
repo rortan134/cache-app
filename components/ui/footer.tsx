@@ -2,7 +2,7 @@ import { GDPRIcon } from "@/components/ui/icons";
 import { T } from "gt-next";
 import Link from "next/link";
 
-function Footer() {
+export function Footer() {
     return (
         <footer>
             <div className="relative mx-auto mt-auto grid h-auto w-full grid-cols-12 gap-x-[min(2.25vw,32px)] pt-[120px] lg:top-0">
@@ -144,5 +144,3 @@ function Footer() {
         </footer>
     );
 }
-
-export { Footer };

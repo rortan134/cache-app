@@ -26,7 +26,7 @@ interface CarouselProps
     slideClassName?: string;
 }
 
-function Carousel({
+export function Carousel({
     children,
     className,
     freeMode = false,
@@ -82,5 +82,3 @@ function Carousel({
         </Swiper>
     );
 }
-
-export { Carousel };

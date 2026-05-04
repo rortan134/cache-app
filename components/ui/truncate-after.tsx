@@ -10,7 +10,7 @@ interface TruncateAfterProps extends React.ComponentProps<"div"> {
     maxVisible?: number;
 }
 
-function TruncateAfter({
+export function TruncateAfter({
     maxVisible = 5,
     children,
     className,
@@ -43,5 +43,3 @@ function TruncateAfter({
         </div>
     );
 }
-
-export { TruncateAfter };
