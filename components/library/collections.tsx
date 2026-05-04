@@ -1051,27 +1051,27 @@ interface CollectionsListSharePopoverProps {
 
 function CollectionsListShareStatusCard({ isShared }: { isShared: boolean }) {
     return (
-                    <div className="mt-4 rounded-xl border bg-muted/40 p-3">
-                        <div className="flex items-start gap-3">
-                            <div className="mt-0.5 flex size-9 items-center justify-center rounded-xl bg-background text-muted-foreground shadow-xs/5">
-                                {isShared ? (
-                                    <LinkIcon className="size-4" />
-                                ) : (
-                                    <LockKeyhole className="size-4" />
-                                )}
-                            </div>
-                            <div className="min-w-0 flex-1">
-                                <p className="font-medium text-sm">
+        <div className="mt-4 rounded-xl border bg-muted/40 p-3">
+            <div className="flex items-start gap-3">
+                <div className="mt-0.5 flex size-9 items-center justify-center rounded-xl bg-background text-muted-foreground shadow-xs/5">
+                    {isShared ? (
+                        <LinkIcon className="size-4" />
+                    ) : (
+                        <LockKeyhole className="size-4" />
+                    )}
+                </div>
+                <div className="min-w-0 flex-1">
+                    <p className="font-medium text-sm">
                         {isShared ? "Anyone with the link" : "Only you"}
-                                </p>
-                                <p className="mt-0.5 text-muted-foreground text-xs leading-relaxed">
-                                    {isShared
-                                        ? "Shared publicly as a read-only page."
-                                        : "Create a short, unlisted read-only link for this collection."}
-                                </p>
-                            </div>
-                        </div>
-                    </div>
+                    </p>
+                    <p className="mt-0.5 text-muted-foreground text-xs leading-relaxed">
+                        {isShared
+                            ? "Shared publicly as a read-only page."
+                            : "Create a short, unlisted read-only link for this collection."}
+                    </p>
+                </div>
+            </div>
+        </div>
     );
 }
 
@@ -1091,48 +1091,48 @@ function CollectionsListShareLinkControls({
     const shareInputId = React.useId();
 
     return (
-                        <div className="mt-4 space-y-3">
-                            <div className="space-y-1">
-                                <label
-                                    className="font-medium text-muted-foreground text-xs"
-                                    htmlFor={shareInputId}
-                                >
-                                    Public link
-                                </label>
-                                <Input
-                                    id={shareInputId}
-                                    readOnly
-                                    size="sm"
-                                    value={shareUrl ?? ""}
-                                />
-                            </div>
-                            <div className="flex items-center justify-between gap-2">
-                                <p className="text-muted-foreground text-xs">
-                                    Shared{" "}
-                                    {collection.sharedAt
-                                        ? dayjs(collection.sharedAt).fromNow()
-                                        : "just now"}
-                                </p>
-                                <div className="flex items-center gap-2">
-                                    <Button
-                                        loading={isSharePending}
-                                        onClick={onDisableShare}
-                                        size="sm"
-                                        variant="ghost"
-                                    >
-                                        Disable
-                                    </Button>
-                                    <Button
-                                        disabled={!shareUrl || isSharePending}
-                                        onClick={onCopyShareLink}
-                                        size="sm"
-                                    >
-                                        <CopyIcon className="size-4" />
-                                        Copy link
-                                    </Button>
-                                </div>
-                            </div>
-                        </div>
+        <div className="mt-4 space-y-3">
+            <div className="space-y-1">
+                <label
+                    className="font-medium text-muted-foreground text-xs"
+                    htmlFor={shareInputId}
+                >
+                    Public link
+                </label>
+                <Input
+                    id={shareInputId}
+                    readOnly
+                    size="sm"
+                    value={shareUrl ?? ""}
+                />
+            </div>
+            <div className="flex items-center justify-between gap-2">
+                <p className="text-muted-foreground text-xs">
+                    Shared{" "}
+                    {collection.sharedAt
+                        ? dayjs(collection.sharedAt).fromNow()
+                        : "just now"}
+                </p>
+                <div className="flex items-center gap-2">
+                    <Button
+                        loading={isSharePending}
+                        onClick={onDisableShare}
+                        size="sm"
+                        variant="ghost"
+                    >
+                        Disable
+                    </Button>
+                    <Button
+                        disabled={!shareUrl || isSharePending}
+                        onClick={onCopyShareLink}
+                        size="sm"
+                    >
+                        <CopyIcon className="size-4" />
+                        Copy link
+                    </Button>
+                </div>
+            </div>
+        </div>
     );
 }
 
@@ -1144,20 +1144,20 @@ function CollectionsListShareEnableAction({
     onEnableShare: () => void;
 }) {
     return (
-                        <div className="mt-4 flex items-center justify-between gap-3">
-                            <p className="text-[11px] text-muted-foreground leading-tight">
+        <div className="mt-4 flex items-center justify-between gap-3">
+            <p className="text-[11px] text-muted-foreground leading-tight">
                 Public links stay simple and read-only so your collection can be
                 browsed without signing in.
-                            </p>
-                            <Button
-                                autoFocus
-                                loading={isSharePending}
-                                onClick={onEnableShare}
-                                size="sm"
-                            >
-                                Create link
-                            </Button>
-                        </div>
+            </p>
+            <Button
+                autoFocus
+                loading={isSharePending}
+                onClick={onEnableShare}
+                size="sm"
+            >
+                Create link
+            </Button>
+        </div>
     );
 }
 
