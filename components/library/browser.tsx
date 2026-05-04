@@ -234,6 +234,40 @@ interface CommandSuggestion {
 const SUGGESTION_LIMIT = 3;
 const SUGGESTION_ICON_CLASS = "size-3.5 shrink-0";
 
+interface BuildCommandSuggestionsInput {
+    clearLibraryPalette: () => void;
+    collectionMembershipFilter: CollectionMembershipFilter;
+    collections: LibraryCollectionSummary[];
+    domainFilters: string[];
+    groupBy: GroupByMode;
+    items: LibraryItemWithCollections[];
+    layoutMode: LayoutMode;
+    onClearCollectionFilters: () => void;
+    onCreateCollection: () => void;
+    onToggleCollectionSelection: (id: string) => void;
+    searchTerms: string[];
+    selectedCollectionIds: string[];
+    setCollectionMembershipFilter: (value: CollectionMembershipFilter) => void;
+    setCommandListOpen: (
+        value: boolean | ((previous: boolean) => boolean)
+    ) => void;
+    setDomainFilters: (
+        value: string[] | ((value: string[]) => string[])
+    ) => void;
+    setGroupBy: (value: GroupByMode) => void;
+    setLayoutMode: (value: LayoutMode) => void;
+    setPaletteInput: (value: string) => void;
+    setSearchTerms: (value: string[] | ((value: string[]) => string[])) => void;
+    setSortMode: (value: SortMode) => void;
+    setSourceFilters: (
+        value:
+            | SourceFilterValue[]
+            | ((value: SourceFilterValue[]) => SourceFilterValue[])
+    ) => void;
+    sortMode: SortMode;
+    sourceFilters: SourceFilterValue[];
+}
+
 function buildCommandSuggestions({
     clearLibraryPalette,
     collectionMembershipFilter,
@@ -258,39 +292,7 @@ function buildCommandSuggestions({
     onToggleCollectionSelection,
     layoutMode,
     setLayoutMode,
-}: {
-    clearLibraryPalette: () => void;
-    collectionMembershipFilter: CollectionMembershipFilter;
-    collections: LibraryCollectionSummary[];
-    items: LibraryItemWithCollections[];
-    onClearCollectionFilters: () => void;
-    onCreateCollection: () => void;
-    searchTerms: string[];
-    selectedCollectionIds: string[];
-    sourceFilters: SourceFilterValue[];
-    domainFilters: string[];
-    groupBy: GroupByMode;
-    sortMode: SortMode;
-    setCollectionMembershipFilter: (value: CollectionMembershipFilter) => void;
-    setDomainFilters: (
-        value: string[] | ((value: string[]) => string[])
-    ) => void;
-    setGroupBy: (value: GroupByMode) => void;
-    setSearchTerms: (value: string[] | ((value: string[]) => string[])) => void;
-    setSortMode: (value: SortMode) => void;
-    setSourceFilters: (
-        value:
-            | SourceFilterValue[]
-            | ((value: SourceFilterValue[]) => SourceFilterValue[])
-    ) => void;
-    setPaletteInput: (value: string) => void;
-    setCommandListOpen: (
-        value: boolean | ((previous: boolean) => boolean)
-    ) => void;
-    onToggleCollectionSelection: (id: string) => void;
-    layoutMode: LayoutMode;
-    setLayoutMode: (value: LayoutMode) => void;
-}): CommandSuggestion[] {
+}: BuildCommandSuggestionsInput): CommandSuggestion[] {
     const suggestions: CommandSuggestion[] = [];
     const suggestionLabels = new Set<string>();
     const collectionById = new Map(
@@ -1088,21 +1090,18 @@ function appendUniqueSearchTerm(values: string[], next: string): string[] {
         : [...values, normalized];
 }
 
-function matchesCommandPaletteItem(item: unknown, query: string): boolean {
+function matchesCommandPaletteItem(
+    item: CommandPaletteItem,
+    query: string
+): boolean {
     const normalizedQuery = query.trim().toLowerCase();
 
     if (!normalizedQuery) {
         return true;
     }
 
-    if (!item || typeof item !== "object") {
-        return false;
-    }
-
-    const candidate = item as Partial<CommandPaletteItem>;
-
-    return [candidate.label, candidate.description, candidate.value].some(
-        (field) => field?.toLowerCase().includes(normalizedQuery)
+    return [item.label, item.description, item.value].some((field) =>
+        field?.toLowerCase().includes(normalizedQuery)
     );
 }
 
@@ -1128,29 +1127,7 @@ interface PaletteStackEntry {
  * place guarantees that removing the last entry always corresponds to
  * the right-most visible chip.
  */
-function buildPaletteStackEntries({
-    collectionMembershipFilter,
-    collections,
-    columnCountMode,
-    commandAttachments,
-    domainFilters,
-    groupBy,
-    layoutMode,
-    onRemoveCollectionFilter,
-    onRemoveCommandAttachment,
-    searchTerms,
-    selectedCollectionIds,
-    setCollectionMembershipFilter,
-    setColumnCountMode,
-    setDomainFilters,
-    setGroupBy,
-    setLayoutMode,
-    setSearchTerms,
-    setSortMode,
-    setSourceFilters,
-    sortMode,
-    sourceFilters,
-}: {
+interface BuildPaletteStackEntriesInput {
     collectionMembershipFilter: CollectionMembershipFilter;
     collections: LibraryCollectionSummary[];
     columnCountMode: ColumnCountMode;
@@ -1178,7 +1155,31 @@ function buildPaletteStackEntries({
     ) => void;
     sortMode: SortMode;
     sourceFilters: SourceFilterValue[];
-}): PaletteStackEntry[] {
+}
+
+function buildPaletteStackEntries({
+    collectionMembershipFilter,
+    collections,
+    columnCountMode,
+    commandAttachments,
+    domainFilters,
+    groupBy,
+    layoutMode,
+    onRemoveCollectionFilter,
+    onRemoveCommandAttachment,
+    searchTerms,
+    selectedCollectionIds,
+    setCollectionMembershipFilter,
+    setColumnCountMode,
+    setDomainFilters,
+    setGroupBy,
+    setLayoutMode,
+    setSearchTerms,
+    setSortMode,
+    setSourceFilters,
+    sortMode,
+    sourceFilters,
+}: BuildPaletteStackEntriesInput): PaletteStackEntry[] {
     const entries: PaletteStackEntry[] = [];
 
     for (const collectionId of selectedCollectionIds) {
@@ -3474,7 +3475,8 @@ function CardMenu({
         pendingDeleteItemId,
     } = useLibraryGridCardContext();
     const Item = kind === "context" ? ContextMenuItem : MenuItem;
-    const Separator = kind === "context" ? ContextMenuSeparator : MenuSeparator;
+    const ItemSeparator =
+        kind === "context" ? ContextMenuSeparator : MenuSeparator;
     const isNote = item.kind === ITEM_KIND_NOTE;
     const isDeletePending = pendingDeleteItemId === item.id;
     const canPreview = !isNote && toValidUrl(href) !== FALLBACK_URL;
@@ -3542,7 +3544,7 @@ function CardMenu({
                     </div>
                 ) : null}
             </div>
-            <Separator />
+            <ItemSeparator />
             {isNote ? (
                 <Item onClick={() => onOpenNote?.(item)}>
                     <FilePenLineIcon className="size-4.5 text-muted-foreground" />
@@ -3579,7 +3581,7 @@ function CardMenu({
                         <DownloadIcon className="size-4.5 text-muted-foreground" />
                         {isDownloading ? "Downloading..." : "Download media"}
                     </Item>
-                    <Separator />
+                    <ItemSeparator />
                 </>
             )}
             {deleteItem}

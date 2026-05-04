@@ -330,30 +330,6 @@ function replaceItemCollectionNames(
     return updateItemTags(items, (tags) => replaceName(tags, id, name));
 }
 
-function appendCollection(
-    items: LibraryItemWithCollections[],
-    itemIds: string[],
-    collection: LibraryCollectionTag
-): LibraryItemWithCollections[] {
-    const idSet = new Set(itemIds);
-    if (idSet.size === 0) {
-        return items;
-    }
-
-    return items.map((item) => {
-        if (!idSet.has(item.id)) {
-            return item;
-        }
-        if (item.collections.some((entry) => entry.id === collection.id)) {
-            return item;
-        }
-        return {
-            ...item,
-            collections: sortCollections([...item.collections, collection]),
-        };
-    });
-}
-
 function getItemUrls(items: LibraryItemWithCollections[]): string[] {
     return items.map((item) => normalizeURL(item.url));
 }
@@ -758,11 +734,7 @@ export function WorkspaceProvider({
             mergeCollectionSummaries(current, [result.collection])
         );
         setItems((current) =>
-            appendCollectionToItems(
-                current,
-                result.assignedItemIds,
-                nextCollection
-            )
+            appendCollection(current, result.assignedItemIds, nextCollection)
         );
 
         return result;
@@ -823,7 +795,7 @@ function replaceItemCollections(
     );
 }
 
-function appendCollectionToItems(
+function appendCollection(
     items: LibraryItemWithCollections[],
     itemIds: string[],
     collection: LibraryCollectionTag
@@ -1071,10 +1043,7 @@ function useCollectionsController() {
         );
     };
 
-    const syncPriority = (
-        id: string,
-        priority: import("@/prisma/client/enums").CollectionPriority
-    ) => {
+    const syncPriority = (id: string, priority: CollectionPriority) => {
         setCollections((current) => replacePriority(current, id, priority));
         setItems((current) =>
             updateItemTags(current, (tags) =>

@@ -123,8 +123,6 @@ type SortingComboboxOption =
           value: "text-match";
       };
 
-type TemplateValue = (typeof TEMPLATES)[number]["value"];
-
 interface CollectionFeedback {
     message: string;
     tone: FeedbackTone;
@@ -325,6 +323,8 @@ const TEMPLATES = [
         value: "life_admin",
     },
 ] as const satisfies readonly CollectionTemplateOption[];
+
+type TemplateValue = (typeof TEMPLATES)[number]["value"];
 
 const CollectionsListItemContext =
     React.createContext<CollectionsListItemContextValue | null>(null);
