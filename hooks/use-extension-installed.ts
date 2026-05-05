@@ -1,6 +1,7 @@
 import { CACHE_EXTENSION_READY_EVENT } from "@/lib/common/constants";
 import { getOwnerWindow } from "@/lib/common/dom";
 import { asRecord } from "@/lib/common/objects";
+import { useIsoLayoutEffect } from "@base-ui/utils/useIsoLayoutEffect";
 import * as React from "react";
 
 function readExtensionInstalledFlag(ownerWindow: Window): boolean {
@@ -21,7 +22,7 @@ function hasExtensionReadyMessage(payload: unknown): boolean {
 export function useIsExtensionInstalled(): boolean {
     const [isInstalled, setIsInstalled] = React.useState(false);
 
-    React.useLayoutEffect(() => {
+    useIsoLayoutEffect(() => {
         if (readExtensionInstalledFlag(getOwnerWindow())) {
             setIsInstalled(true);
         }

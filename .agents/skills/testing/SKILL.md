@@ -25,21 +25,23 @@ Ask what bug this test would catch that the compiler, a code review, or a more m
 
 Do not verify every log line or metric increment. Test metrics that drive alerts or SLOs. Test that error conditions produce the logs operators need for debugging.
 
-```go
-func TestRateLimiter_EmitsRejectionMetric(t *testing.T) {
-    collector := &testMetricCollector{}
-    limiter := NewRateLimiter(Config{Limit: 1}, collector)
+```ts
+import { test, expect } from "bun:test";
 
-    limiter.Allow()
-    limiter.Allow()
+test("rate limiter emits rejection metric", () => {
+    const collector = new TestMetricCollector();
+    const limiter = new RateLimiter({ limit: 1 }, collector);
 
-    require.Equal(t, 1, collector.Count("rate_limit_rejected_total"))
-}
+    limiter.allow();
+    limiter.allow();
+
+    expect(collector.count("rate_limit_rejected_total")).toBe(1);
+});
 ```
 
 ## Test organization
 
-Tests live alongside the code they test. A file `lib.ts` has its tests in `lib.test.go` in the same directory.
+Tests live alongside the code they test. A file `lib.ts` has its tests in `lib.test.ts` in the same directory.
 
 For integration tests that require substantial setup or external dependencies, create an `integration/` subdirectory when it improves clarity.
 

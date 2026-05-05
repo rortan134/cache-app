@@ -17,6 +17,7 @@ import {
     type LibraryCollectionSummary,
     type LibraryItemWithCollections,
 } from "@/lib/collections/utils";
+import { getOwnerWindow } from "@/lib/common/dom";
 import { parseDisplayUrl } from "@/lib/common/url";
 import { markLibraryItemAsReviewed } from "@/lib/review/actions";
 import { LibraryItemSource } from "@/prisma/client/enums";
@@ -55,9 +56,12 @@ function getItemDomain(url: string): string {
     return parseDisplayUrl(url) || "Other";
 }
 
-function isTextEntryTarget(target: EventTarget | null): boolean {
+function isTextEntryTarget(
+    target: EventTarget | null,
+    ownerWindow: Window & typeof globalThis
+): boolean {
     return (
-        target instanceof HTMLElement &&
+        target instanceof ownerWindow.HTMLElement &&
         (target.isContentEditable ||
             Boolean(
                 target.closest('input, textarea, select, [role="textbox"]')
@@ -316,7 +320,7 @@ function ReviewSession({
                 event.metaKey ||
                 event.ctrlKey ||
                 event.altKey ||
-                isTextEntryTarget(event.target)
+                isTextEntryTarget(event.target, getOwnerWindow())
             ) {
                 return;
             }

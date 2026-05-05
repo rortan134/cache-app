@@ -1,5 +1,11 @@
 import { createMcpHandler, withMcpAuth } from "mcp-handler";
-import * as z from "zod";
+import type { RequestHandlerExtra } from "@modelcontextprotocol/sdk/shared/protocol.js";
+import type {
+    CallToolResult,
+    ServerNotification,
+    ServerRequest,
+} from "@modelcontextprotocol/sdk/types.js";
+import * as z from "zod/v3";
 import {
     getLibraryItem,
     listCollections,
@@ -11,12 +17,36 @@ import {
     deleteLibraryItemMcp,
 } from "@/lib/integrations/mcp/service";
 
-interface McpExtra {
-    authInfo?: {
-        extra?: {
-            userId?: string;
-        };
-    };
+type McpExtra = RequestHandlerExtra<ServerRequest, ServerNotification>;
+type McpToolArgs = Record<string, unknown>;
+type McpToolCallback = (
+    args: McpToolArgs,
+    extra: McpExtra
+) => CallToolResult | Promise<CallToolResult>;
+type RegisterMcpTool = (
+    name: string,
+    config: {
+        description?: string;
+        inputSchema?: Record<string, z.ZodTypeAny>;
+        title?: string;
+    },
+    callback: McpToolCallback
+) => void;
+
+interface ListLibraryItemsToolArgs {
+    collectionId?: string;
+    limit?: number;
+    search?: string;
+}
+
+interface GetLibraryItemToolArgs {
+    itemId: string;
+}
+
+interface AddLibraryItemToolArgs {
+    caption?: string;
+    noteContentText?: string;
+    url: string;
 }
 
 const UNAUTHORIZED_RESULT = {
@@ -27,104 +57,190 @@ const UNAUTHORIZED_RESULT = {
         },
     ],
     isError: true as const,
+} satisfies CallToolResult;
+
+const LIST_LIBRARY_ITEMS_INPUT_SCHEMA: Record<
+    keyof ListLibraryItemsToolArgs,
+    z.ZodTypeAny
+> = {
+    collectionId: z
+        .string()
+        .optional()
+        .describe("Filter results to a specific collection ID"),
+    limit: z
+        .number()
+        .min(1)
+        .max(50)
+        .optional()
+        .describe("Maximum number of items to return (default 20, max 50)"),
+    search: z
+        .string()
+        .optional()
+        .describe("Search query matched against captions, URLs, and note text"),
 };
 
+const GET_LIBRARY_ITEM_INPUT_SCHEMA: Record<
+    keyof GetLibraryItemToolArgs,
+    z.ZodTypeAny
+> = {
+    itemId: z
+        .string()
+        .describe("The unique ID of the library item to retrieve"),
+};
+
+const ADD_LIBRARY_ITEM_INPUT_SCHEMA: Record<
+    keyof AddLibraryItemToolArgs,
+    z.ZodTypeAny
+> = {
+    caption: z.string().optional().describe("Optional caption or title"),
+    noteContentText: z
+        .string()
+        .optional()
+        .describe("If provided, creates a note instead of a bookmark"),
+    url: z
+        .string()
+        .describe(
+            "The URL to save (required for bookmarks, ignored for notes)"
+        ),
+};
+const EMPTY_INPUT_SCHEMA: Record<string, z.ZodTypeAny> = {};
+
 function resolveUserId(extra: McpExtra): string | undefined {
-    return extra.authInfo?.extra?.userId;
+    const userId = extra.authInfo?.extra?.userId;
+    return typeof userId === "string" ? userId : undefined;
 }
 
 function safeJsonStringify(value: unknown): string {
     return JSON.stringify(value, null, 2);
 }
 
+function textResult(text: string): CallToolResult {
+    return {
+        content: [{ text, type: "text" }],
+    };
+}
+
+function errorResult(error: unknown, fallback: string): CallToolResult {
+    return {
+        content: [
+            {
+                text: error instanceof Error ? error.message : fallback,
+                type: "text",
+            },
+        ],
+        isError: true,
+    };
+}
+
+function readOptionalStringArg(
+    args: McpToolArgs,
+    key: string
+): string | undefined {
+    const value = args[key];
+    return typeof value === "string" ? value : undefined;
+}
+
+function readOptionalNumberArg(
+    args: McpToolArgs,
+    key: string
+): number | undefined {
+    const value = args[key];
+    return typeof value === "number" ? value : undefined;
+}
+
+function readRequiredStringArg(args: McpToolArgs, key: string): string {
+    const value = readOptionalStringArg(args, key);
+    if (!value) {
+        throw new Error(`Missing required string argument: ${key}`);
+    }
+    return value;
+}
+
+function readListLibraryItemsToolArgs(
+    args: McpToolArgs
+): ListLibraryItemsToolArgs {
+    return {
+        collectionId: readOptionalStringArg(args, "collectionId"),
+        limit: readOptionalNumberArg(args, "limit"),
+        search: readOptionalStringArg(args, "search"),
+    };
+}
+
+function readGetLibraryItemToolArgs(args: McpToolArgs): GetLibraryItemToolArgs {
+    return {
+        itemId: readRequiredStringArg(args, "itemId"),
+    };
+}
+
+function readAddLibraryItemToolArgs(args: McpToolArgs): AddLibraryItemToolArgs {
+    return {
+        caption: readOptionalStringArg(args, "caption"),
+        noteContentText: readOptionalStringArg(args, "noteContentText"),
+        url: readRequiredStringArg(args, "url"),
+    };
+}
+
 const baseHandler = createMcpHandler((server) => {
-    server.registerTool(
+    const dynamicServer: object = server;
+    const registerTool: RegisterMcpTool = (name, config, callback) => {
+        const registerToolMethod = Reflect.get(dynamicServer, "registerTool");
+        if (typeof registerToolMethod !== "function") {
+            throw new TypeError("MCP server does not expose registerTool.");
+        }
+        Reflect.apply(registerToolMethod, dynamicServer, [
+            name,
+            config,
+            callback,
+        ]);
+    };
+
+    registerTool(
         "list_library_items",
         {
             description:
                 "List library items for the authenticated user. Supports optional search, collection filtering, and pagination limit.",
-            inputSchema: {
-                // @ts-expect-error TODO: fix types
-                collectionId: z
-                    .string()
-                    .optional()
-                    .describe("Filter results to a specific collection ID"),
-                // @ts-expect-error TODO: fix types
-                limit: z
-                    .number()
-                    .min(1)
-                    .max(50)
-                    .optional()
-                    .describe(
-                        "Maximum number of items to return (default 20, max 50)"
-                    ),
-                // @ts-expect-error TODO: fix types
-                search: z
-                    .string()
-                    .optional()
-                    .describe(
-                        "Search query matched against captions, URLs, and note text"
-                    ),
-            },
+            inputSchema: LIST_LIBRARY_ITEMS_INPUT_SCHEMA,
             title: "List Library Items",
         },
-        // @ts-expect-error TODO: fix types
-        async (args, extra: McpExtra) => {
+        async (args, extra) => {
             const userId = resolveUserId(extra);
             if (!userId) {
                 return UNAUTHORIZED_RESULT;
             }
 
             try {
+                const input = readListLibraryItemsToolArgs(args);
                 const items = await listLibraryItems({
-                    collectionId: args.collectionId,
-                    limit: args.limit,
-                    search: args.search,
+                    collectionId: input.collectionId,
+                    limit: input.limit,
+                    search: input.search,
                     userId,
                 });
 
-                return {
-                    content: [{ text: safeJsonStringify(items), type: "text" }],
-                };
+                return textResult(safeJsonStringify(items));
             } catch (error) {
-                return {
-                    content: [
-                        {
-                            text:
-                                error instanceof Error
-                                    ? error.message
-                                    : "Could not list library items.",
-                            type: "text",
-                        },
-                    ],
-                    isError: true,
-                };
+                return errorResult(error, "Could not list library items.");
             }
         }
     );
 
-    server.registerTool(
+    registerTool(
         "get_library_item",
         {
             description: "Retrieve a single library item by its ID.",
-            inputSchema: {
-                // @ts-expect-error TODO: fix types
-                itemId: z
-                    .string()
-                    .describe("The unique ID of the library item to retrieve"),
-            },
+            inputSchema: GET_LIBRARY_ITEM_INPUT_SCHEMA,
             title: "Get Library Item",
         },
-        // @ts-expect-error TODO: fix types
-        async (args, extra: McpExtra) => {
+        async (args, extra) => {
             const userId = resolveUserId(extra);
             if (!userId) {
                 return UNAUTHORIZED_RESULT;
             }
 
             try {
+                const input = readGetLibraryItemToolArgs(args);
                 const item = await getLibraryItem({
-                    itemId: args.itemId,
+                    itemId: input.itemId,
                     userId,
                 });
 
@@ -137,148 +253,80 @@ const baseHandler = createMcpHandler((server) => {
                     };
                 }
 
-                return {
-                    content: [{ text: safeJsonStringify(item), type: "text" }],
-                };
+                return textResult(safeJsonStringify(item));
             } catch (error) {
-                return {
-                    content: [
-                        {
-                            text:
-                                error instanceof Error
-                                    ? error.message
-                                    : "Could not retrieve the library item.",
-                            type: "text",
-                        },
-                    ],
-                    isError: true,
-                };
+                return errorResult(
+                    error,
+                    "Could not retrieve the library item."
+                );
             }
         }
     );
 
-    server.registerTool(
+    registerTool(
         "add_library_item",
         {
             description:
                 "Add a new bookmark or note to the user's library. Provide a URL to create a bookmark, or noteContentText to create a note.",
-            inputSchema: {
-                // @ts-expect-error TODO: fix types
-                caption: z
-                    .string()
-                    .optional()
-                    .describe("Optional caption or title for the bookmark"),
-                // @ts-expect-error TODO: fix types
-                noteContentText: z
-                    .string()
-                    .optional()
-                    .describe(
-                        "If provided, creates a note instead of a bookmark"
-                    ),
-                // @ts-expect-error TODO: fix types
-                url: z
-                    .string()
-                    .describe(
-                        "The URL to save (required for bookmarks, ignored for notes)"
-                    ),
-            },
+            inputSchema: ADD_LIBRARY_ITEM_INPUT_SCHEMA,
             title: "Add Library Item",
         },
-        // @ts-expect-error TODO: fix types
-        async (args, extra: McpExtra) => {
+        async (args, extra) => {
             const userId = resolveUserId(extra);
             if (!userId) {
                 return UNAUTHORIZED_RESULT;
             }
 
             try {
+                const input = readAddLibraryItemToolArgs(args);
                 const item = await addLibraryItem({
-                    caption: args.caption,
-                    noteContentText: args.noteContentText,
-                    url: args.url,
+                    caption: input.caption,
+                    noteContentText: input.noteContentText,
+                    url: input.url,
                     userId,
                 });
 
-                return {
-                    content: [
-                        {
-                            text: `Item added successfully.\n\n${safeJsonStringify(item)}`,
-                            type: "text",
-                        },
-                    ],
-                };
+                return textResult(
+                    `Item added successfully.\n\n${safeJsonStringify(item)}`
+                );
             } catch (error) {
-                return {
-                    content: [
-                        {
-                            text:
-                                error instanceof Error
-                                    ? error.message
-                                    : "Could not add the library item.",
-                            type: "text",
-                        },
-                    ],
-                    isError: true,
-                };
+                return errorResult(error, "Could not add the library item.");
             }
         }
     );
 
-    server.registerTool(
+    registerTool(
         "delete_library_item",
         {
             description: "Remove a library item by its ID.",
-            inputSchema: {
-                // @ts-expect-error TODO: fix types
-                itemId: z
-                    .string()
-                    .describe("The unique ID of the library item to delete"),
-            },
+            inputSchema: GET_LIBRARY_ITEM_INPUT_SCHEMA,
             title: "Delete Library Item",
         },
-        // @ts-expect-error TODO: fix types
-        async (args, extra: McpExtra) => {
+        async (args, extra) => {
             const userId = resolveUserId(extra);
             if (!userId) {
                 return UNAUTHORIZED_RESULT;
             }
 
             try {
-                await deleteLibraryItemMcp({ itemId: args.itemId, userId });
+                const input = readGetLibraryItemToolArgs(args);
+                await deleteLibraryItemMcp({ itemId: input.itemId, userId });
 
-                return {
-                    content: [
-                        {
-                            text: "Library item deleted successfully.",
-                            type: "text",
-                        },
-                    ],
-                };
+                return textResult("Library item deleted successfully.");
             } catch (error) {
-                return {
-                    content: [
-                        {
-                            text:
-                                error instanceof Error
-                                    ? error.message
-                                    : "Could not delete the library item.",
-                            type: "text",
-                        },
-                    ],
-                    isError: true,
-                };
+                return errorResult(error, "Could not delete the library item.");
             }
         }
     );
 
-    server.registerTool(
+    registerTool(
         "list_collections",
         {
             description: "List the user's collections with item counts.",
-            inputSchema: {},
+            inputSchema: EMPTY_INPUT_SCHEMA,
             title: "List Collections",
         },
-        async (_args, extra: McpExtra) => {
+        async (_args, extra) => {
             const userId = resolveUserId(extra);
             if (!userId) {
                 return UNAUTHORIZED_RESULT;
@@ -287,27 +335,9 @@ const baseHandler = createMcpHandler((server) => {
             try {
                 const collections = await listCollections({ userId });
 
-                return {
-                    content: [
-                        {
-                            text: safeJsonStringify(collections),
-                            type: "text",
-                        },
-                    ],
-                };
+                return textResult(safeJsonStringify(collections));
             } catch (error) {
-                return {
-                    content: [
-                        {
-                            text:
-                                error instanceof Error
-                                    ? error.message
-                                    : "Could not list collections.",
-                            type: "text",
-                        },
-                    ],
-                    isError: true,
-                };
+                return errorResult(error, "Could not list collections.");
             }
         }
     );

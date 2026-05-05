@@ -54,13 +54,14 @@ function useKeyboardShortcut(key: string, callback: () => void) {
     }
   }, [key, callback])
 
-  useSWRSubscription('global-keydown', () => {
+  useSWRSubscription('global-keydown', (_key, { next }) => {
     const handler = (e: KeyboardEvent) => {
       if (e.metaKey && keyCallbacks.has(e.key)) {
         keyCallbacks.get(e.key)!.forEach(cb => cb())
       }
     }
     window.addEventListener('keydown', handler)
+    next(null, null)
     return () => window.removeEventListener('keydown', handler)
   })
 }

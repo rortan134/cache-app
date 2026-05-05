@@ -134,16 +134,12 @@ export default function RootLayout({ children }) {
 }
 ```
 
-```js
-// tailwind.config.js
-module.exports = {
-  theme: {
-    extend: {
-      fontFamily: {
-        sans: ['var(--font-inter)'],
-      },
-    },
-  },
+```css
+/* app/globals.css (Tailwind CSS v4) */
+@import "tailwindcss";
+
+@theme inline {
+  --font-sans: var(--font-inter);
 }
 ```
 

@@ -9,7 +9,6 @@ let stripeInstance: Stripe | null = null;
 /**
  * Get configured Stripe client instance.
  * @throws {StripeError} If STRIPE_SECRET_KEY is missing
- * @internal
  */
 export const getStripeClient = (): Stripe => {
     if (stripeInstance) {

@@ -1,27 +1,15 @@
 "use client";
 
+import {
+    AnimationFrame,
+    useAnimationFrame,
+} from "@base-ui/utils/useAnimationFrame";
+import { useIsoLayoutEffect } from "@base-ui/utils/useIsoLayoutEffect";
 import { useMergedRefs } from "@base-ui/utils/useMergedRefs";
 import { useStableCallback } from "@base-ui/utils/useStableCallback";
+import { useTimeout } from "@base-ui/utils/useTimeout";
 import { useValueAsRef } from "@base-ui/utils/useValueAsRef";
 import * as React from "react";
-
-interface RequestTimeoutHandle {
-    id: number;
-}
-
-function requestTimeout(fn: () => void, delay: number): RequestTimeoutHandle {
-    const start = performance.now();
-    const handle: RequestTimeoutHandle = {
-        id: requestAnimationFrame(function tick(timestamp) {
-            if (timestamp - start >= delay) {
-                fn();
-            } else {
-                handle.id = requestAnimationFrame(tick);
-            }
-        }),
-    };
-    return handle;
-}
 
 // #region Interval tree definitions
 const NODE_COLOR = {
@@ -675,7 +663,7 @@ function usePositioner(
     }: UsePositionerOptions,
     deps: React.DependencyList = []
 ): Positioner {
-    const initPositioner = React.useCallback((): Positioner => {
+    function initPositioner(): Positioner {
         function binarySearch(a: number[], y: number): number {
             let l = 0;
             let h = a.length - 1;
@@ -925,15 +913,7 @@ function usePositioner(
                 }
             },
         };
-    }, [
-        width,
-        columnWidth,
-        columnGap,
-        rowGap,
-        columnCount,
-        maxColumnCount,
-        linear,
-    ]);
+    }
 
     const positionerRef = React.useRef<Positioner | null>(null);
     if (positionerRef.current === null) {
@@ -983,6 +963,17 @@ interface DebouncedWindowSizeOptions {
     delayMs?: number;
 }
 
+function readDocumentSize(defaultWidth: number, defaultHeight: number) {
+    if (typeof document === "undefined") {
+        return { height: defaultHeight, width: defaultWidth };
+    }
+
+    return {
+        height: document.documentElement.clientHeight,
+        width: document.documentElement.clientWidth,
+    };
+}
+
 function useDebouncedWindowSize(options: DebouncedWindowSizeOptions) {
     const {
         containerRef,
@@ -991,32 +982,21 @@ function useDebouncedWindowSize(options: DebouncedWindowSizeOptions) {
         delayMs = DEBOUNCE_DELAY,
     } = options;
 
-    const getDocumentSize = React.useCallback(() => {
-        if (typeof document === "undefined") {
-            return { height: defaultHeight, width: defaultWidth };
+    const [size, setSize] = React.useState(() =>
+        readDocumentSize(defaultWidth, defaultHeight)
+    );
+    const resizeTimeout = useTimeout();
+    const setDebouncedSize = useStableCallback(
+        (value: { height: number; width: number }) => {
+            resizeTimeout.start(delayMs, () => setSize(value));
         }
-        return {
-            height: document.documentElement.clientHeight,
-            width: document.documentElement.clientWidth,
-        };
-    }, [defaultWidth, defaultHeight]);
-
-    const [size, setSize] = React.useState(getDocumentSize());
-    const timeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
-
-    const setDebouncedSize = React.useCallback(
-        (value: { width: number; height: number }) => {
-            if (timeoutRef.current) {
-                clearTimeout(timeoutRef.current);
-            }
-            timeoutRef.current = setTimeout(() => {
-                setSize(value);
-            }, delayMs);
-        },
-        [delayMs]
     );
 
     React.useEffect(() => {
+        if (typeof window === "undefined") {
+            return;
+        }
+
         function onResize() {
             if (containerRef.current) {
                 setDebouncedSize({
@@ -1024,23 +1004,27 @@ function useDebouncedWindowSize(options: DebouncedWindowSizeOptions) {
                     width: containerRef.current.offsetWidth,
                 });
             } else {
-                setDebouncedSize(getDocumentSize());
+                setDebouncedSize(readDocumentSize(defaultWidth, defaultHeight));
             }
         }
 
-        window?.addEventListener("resize", onResize, { passive: true });
-        window?.addEventListener("orientationchange", onResize);
+        window.addEventListener("resize", onResize, { passive: true });
+        window.addEventListener("orientationchange", onResize);
         window.visualViewport?.addEventListener("resize", onResize);
 
         return () => {
-            window?.removeEventListener("resize", onResize);
-            window?.removeEventListener("orientationchange", onResize);
+            window.removeEventListener("resize", onResize);
+            window.removeEventListener("orientationchange", onResize);
             window.visualViewport?.removeEventListener("resize", onResize);
-            if (timeoutRef.current) {
-                clearTimeout(timeoutRef.current);
-            }
+            resizeTimeout.clear();
         };
-    }, [setDebouncedSize, containerRef, getDocumentSize]);
+    }, [
+        containerRef,
+        defaultHeight,
+        defaultWidth,
+        resizeTimeout,
+        setDebouncedSize,
+    ]);
 
     return size;
 }
@@ -1053,15 +1037,17 @@ interface OnRafScheduleReturn<T extends unknown[]> {
 function onRafSchedule<T extends unknown[]>(
     callback: (...args: T) => void
 ): OnRafScheduleReturn<T> {
-    let lastArgs: T = [] as unknown as T;
+    let lastArgs: T | null = null;
     let frameId: number | null = null;
 
     function onCallback(...args: T) {
         lastArgs = args;
         if (!frameId) {
-            frameId = requestAnimationFrame(() => {
+            frameId = AnimationFrame.request(() => {
                 frameId = null;
-                callback(...lastArgs);
+                if (lastArgs) {
+                    callback(...lastArgs);
+                }
             });
         }
     }
@@ -1070,101 +1056,118 @@ function onRafSchedule<T extends unknown[]>(
         if (!frameId) {
             return;
         }
-        cancelAnimationFrame(frameId);
+        AnimationFrame.cancel(frameId);
         frameId = null;
     };
 
     return onCallback;
 }
 
+type MasonryResizeObserverFactory = (
+    positioner: Positioner,
+    onUpdate: () => void
+) => ResizeObserver;
+
+const NOOP_RESIZE_OBSERVER: ResizeObserver = {
+    disconnect: () => {
+        /* no-op: SSR */
+    },
+    observe: () => {
+        /* no-op: SSR */
+    },
+    unobserve: () => {
+        /* no-op: SSR */
+    },
+};
+
+function createResizeObserverFactory(): MasonryResizeObserverFactory {
+    if (typeof window === "undefined") {
+        return () => NOOP_RESIZE_OBSERVER;
+    }
+
+    return onDeepMemo(
+        [WeakMap],
+        (positioner: Positioner, onUpdate: () => void) => {
+            const updates: number[] = [];
+
+            const update = onRafSchedule(() => {
+                if (updates.length > 0) {
+                    positioner.update(updates);
+                    onUpdate();
+                }
+                updates.length = 0;
+            });
+
+            function onItemResize(target: HTMLElement) {
+                const height = target.offsetHeight;
+                if (height > 0) {
+                    const index = Number(target.dataset.index);
+                    if (!Number.isNaN(index)) {
+                        const position = positioner.get(index);
+                        if (
+                            position !== undefined &&
+                            height !== position.height
+                        ) {
+                            updates.push(index, height);
+                        }
+                    }
+                }
+                update();
+            }
+
+            const scheduledItemMap = new Map<
+                number,
+                OnRafScheduleReturn<[HTMLElement]>
+            >();
+            function onResizeObserver(entries: ResizeObserverEntry[]) {
+                for (const entry of entries) {
+                    const ownerWindow = entry.target.ownerDocument.defaultView;
+                    if (
+                        !(
+                            ownerWindow &&
+                            entry.target instanceof ownerWindow.HTMLElement
+                        )
+                    ) {
+                        continue;
+                    }
+
+                    const index = Number(entry.target.dataset.index);
+                    if (Number.isNaN(index)) {
+                        continue;
+                    }
+
+                    let handler = scheduledItemMap.get(index);
+                    if (!handler) {
+                        handler = onRafSchedule(onItemResize);
+                        scheduledItemMap.set(index, handler);
+                    }
+                    handler(entry.target);
+                }
+            }
+
+            const observer = new ResizeObserver(onResizeObserver);
+            const disconnect = observer.disconnect.bind(observer);
+            observer.disconnect = () => {
+                disconnect();
+                for (const [, scheduleItem] of scheduledItemMap) {
+                    scheduleItem.cancel();
+                }
+            };
+
+            return observer;
+        }
+    );
+}
+
 function useResizeObserver(positioner: Positioner) {
     const [, setLayoutVersion] = React.useState(0);
+    const createResizeObserverRef =
+        React.useRef<MasonryResizeObserverFactory | null>(null);
+    if (createResizeObserverRef.current === null) {
+        createResizeObserverRef.current = createResizeObserverFactory();
+    }
 
-    const createResizeObserver = React.useMemo(() => {
-        if (typeof window === "undefined") {
-            return () => ({
-                disconnect: () => {
-                    /* no-op: SSR */
-                },
-                observe: () => {
-                    /* no-op: SSR */
-                },
-                unobserve: () => {
-                    /* no-op: SSR */
-                },
-            });
-        }
-
-        return onDeepMemo(
-            [WeakMap],
-            (positioner: Positioner, onUpdate: () => void) => {
-                const updates: number[] = [];
-
-                const update = onRafSchedule(() => {
-                    if (updates.length > 0) {
-                        positioner.update(updates);
-                        onUpdate();
-                    }
-                    updates.length = 0;
-                });
-
-                function onItemResize(target: ItemElement) {
-                    const height = target.offsetHeight;
-                    if (height > 0) {
-                        const index = Number(target.dataset.index);
-                        if (!Number.isNaN(index)) {
-                            const position = positioner.get(index);
-                            if (
-                                position !== undefined &&
-                                height !== position.height
-                            ) {
-                                updates.push(index, height);
-                            }
-                        }
-                    }
-                    update();
-                }
-
-                const scheduledItemMap = new Map<
-                    number,
-                    OnRafScheduleReturn<[ItemElement]>
-                >();
-                function onResizeObserver(entries: ResizeObserverEntry[]) {
-                    for (const entry of entries) {
-                        if (!entry) {
-                            continue;
-                        }
-                        const index = Number(
-                            (entry.target as ItemElement).dataset.index
-                        );
-
-                        if (Number.isNaN(index)) {
-                            continue;
-                        }
-                        let handler = scheduledItemMap.get(index);
-                        if (!handler) {
-                            handler = onRafSchedule(onItemResize);
-                            scheduledItemMap.set(index, handler);
-                        }
-                        handler(entry.target as ItemElement);
-                    }
-                }
-
-                const observer = new ResizeObserver(onResizeObserver);
-                const disconnect = observer.disconnect.bind(observer);
-                observer.disconnect = () => {
-                    disconnect();
-                    for (const [, scheduleItem] of scheduledItemMap) {
-                        scheduleItem.cancel();
-                    }
-                };
-
-                return observer;
-            }
-        );
-    }, []);
-
-    const resizeObserver = createResizeObserver(positioner, () =>
+    const resizeObserver = createResizeObserverRef.current(positioner, () =>
         setLayoutVersion((prev) => prev + 1)
     );
 
@@ -1209,6 +1212,7 @@ function useScroller({
 
     const [isScrolling, setIsScrolling] = React.useState(false);
     const hasMountedRef = React.useRef(0);
+    const scrollingTimeout = useTimeout();
 
     React.useEffect(() => {
         if (hasMountedRef.current === 0) {
@@ -1217,22 +1221,11 @@ function useScroller({
         }
 
         setIsScrolling(true);
-        let didUnsubscribe = false;
-
-        const timeout = requestTimeout(
-            () => {
-                if (didUnsubscribe) {
-                    return;
-                }
-                setIsScrolling(false);
-            },
-            40 + 1000 / fps
-        );
-        return () => {
-            didUnsubscribe = true;
-            cancelAnimationFrame(timeout.id);
-        };
-    }, [fps]);
+        scrollingTimeout.start(40 + 1000 / fps, () => {
+            setIsScrolling(false);
+        });
+        return scrollingTimeout.clear;
+    }, [fps, scrollingTimeout]);
 
     return { isScrolling, scrollTop: Math.max(0, scrollY - offset) };
 }
@@ -1251,25 +1244,17 @@ function useThrottle<State>(
 
     const ms = 1000 / fps;
     const prevCountRef = React.useRef(0);
-    const trailingTimeout = React.useRef<ReturnType<typeof setTimeout> | null>(
-        null
-    );
-
-    const clearTrailing = React.useCallback(() => {
-        if (trailingTimeout.current) {
-            clearTimeout(trailingTimeout.current);
-        }
-    }, []);
+    const trailingTimeout = useTimeout();
 
     React.useEffect(
         () => () => {
             prevCountRef.current = 0;
-            clearTrailing();
+            trailingTimeout.clear();
         },
-        [clearTrailing]
+        [trailingTimeout]
     );
 
-    const throttledSetState = React.useCallback(
+    const throttledSetState = useStableCallback(
         (action: React.SetStateAction<State>) => {
             const perf =
                 typeof performance === "undefined" ? Date : performance;
@@ -1277,7 +1262,7 @@ function useThrottle<State>(
             const rightNow = now();
             const call = () => {
                 prevCountRef.current = rightNow;
-                clearTrailing();
+                trailingTimeout.clear();
                 latestSetState.current(action);
             };
             const current = prevCountRef.current;
@@ -1293,13 +1278,12 @@ function useThrottle<State>(
                 prevCountRef.current = rightNow;
             }
 
-            clearTrailing();
-            trailingTimeout.current = setTimeout(() => {
+            trailingTimeout.clear();
+            trailingTimeout.start(ms, () => {
                 call();
                 prevCountRef.current = 0;
-            }, ms);
-        },
-        [leading, ms, clearTrailing]
+            });
+        }
     );
 
     return [state, throttledSetState];
@@ -1410,7 +1394,7 @@ function Masonry({
         width: 0,
     });
 
-    React.useLayoutEffect(() => {
+    useIsoLayoutEffect(() => {
         if (!containerRef.current) {
             return;
         }
@@ -1507,28 +1491,25 @@ function Masonry({
         };
     }
 
-    const onItemRegister = React.useCallback(
-        (index: number) => {
-            const itemRegisterCallbacks =
-                itemRegisterCallbacksRef.current?.callbacks;
-            if (!itemRegisterCallbacks) {
-                return (node: ItemElement | null) => {
-                    registerItemNode(index, node);
-                };
-            }
-            const existingCallback = itemRegisterCallbacks[index];
-            if (existingCallback) {
-                return existingCallback;
-            }
-
-            const nextCallback: React.RefCallback<ItemElement> = (node) => {
+    function onItemRegister(index: number) {
+        const itemRegisterCallbacks =
+            itemRegisterCallbacksRef.current?.callbacks;
+        if (!itemRegisterCallbacks) {
+            return (node: ItemElement | null) => {
                 registerItemNode(index, node);
             };
-            itemRegisterCallbacks[index] = nextCallback;
-            return nextCallback;
-        },
-        [registerItemNode]
-    );
+        }
+        const existingCallback = itemRegisterCallbacks[index];
+        if (existingCallback) {
+            return existingCallback;
+        }
+
+        const nextCallback: React.RefCallback<ItemElement> = (node) => {
+            registerItemNode(index, node);
+        };
+        itemRegisterCallbacks[index] = nextCallback;
+        return nextCallback;
+    }
 
     return (
         <MasonryContext
@@ -1568,7 +1549,7 @@ function MasonryViewport({
 }: React.ComponentProps<"div">) {
     const context = useMasonryContext(VIEWPORT_NAME);
     const [layoutVersion, setLayoutVersion] = React.useState(0);
-    const rafId = React.useRef<number | null>(null);
+    const layoutAnimationFrame = useAnimationFrame();
 
     const validChildren = React.Children.toArray(
         children
@@ -1593,30 +1574,24 @@ function MasonryViewport({
     const isLayoutOutdated =
         shortestColumnSize < rangeEnd && measuredCount < itemCount;
 
-    const visibleItemStyle = React.useMemo(
-        (): React.CSSProperties => ({
-            position: "absolute",
-            transform: isScrolling ? "translateZ(0)" : undefined,
-            visibility: "visible",
-            width: columnWidth,
-            willChange: isScrolling ? "transform" : undefined,
-            writingMode: "horizontal-tb",
-        }),
-        [columnWidth, isScrolling]
-    );
+    const visibleItemStyle: React.CSSProperties = {
+        position: "absolute",
+        transform: isScrolling ? "translateZ(0)" : undefined,
+        visibility: "visible",
+        width: columnWidth,
+        willChange: isScrolling ? "transform" : undefined,
+        writingMode: "horizontal-tb",
+    };
 
-    const hiddenItemStyle = React.useMemo(
-        (): React.CSSProperties => ({
-            position: "absolute",
-            visibility: "hidden",
-            width: columnWidth,
-            writingMode: "horizontal-tb",
-            zIndex: -1000,
-        }),
-        [columnWidth]
-    );
+    const hiddenItemStyle: React.CSSProperties = {
+        position: "absolute",
+        visibility: "hidden",
+        width: columnWidth,
+        writingMode: "horizontal-tb",
+        zIndex: -1000,
+    };
 
-    const positionedChildren = React.useMemo(() => {
+    const positionedChildren = (() => {
         const result: React.ReactElement[] = [];
         const currentMeasuredCount = positioner.size();
         const currentShortestColumnSize = positioner.shortestColumn();
@@ -1690,39 +1665,21 @@ function MasonryViewport({
         }
 
         return result;
-    }, [
-        positioner,
-        onItemRegister,
-        validChildren,
-        itemCount,
-        visibleItemStyle,
-        hiddenItemStyle,
-        scrollTop,
-        windowHeight,
-        overscan,
-        itemHeight,
-    ]);
+    })();
 
     React.useEffect(() => {
         if (!isLayoutOutdated) {
             return;
         }
-        if (rafId.current) {
-            cancelAnimationFrame(rafId.current);
-        }
-        rafId.current = requestAnimationFrame(() => {
+        layoutAnimationFrame.request(() => {
             setLayoutVersion((v) => v + 1);
         });
-        return () => {
-            if (rafId.current) {
-                cancelAnimationFrame(rafId.current);
-            }
-        };
-    }, [isLayoutOutdated]);
+        return layoutAnimationFrame.cancel;
+    }, [isLayoutOutdated, layoutAnimationFrame]);
 
     const estimateHeight = useValueAsRef(positioner.estimateHeight);
 
-    const estimatedHeight = React.useMemo(() => {
+    const estimatedHeight = (() => {
         const measuredHeight = estimateHeight.current(
             measuredCount,
             itemHeight
@@ -1735,13 +1692,7 @@ function MasonryViewport({
             (remainingItems / positioner.columnCount) * itemHeight
         );
         return Math.ceil(measuredHeight + estimatedRemainingHeight);
-    }, [
-        estimateHeight,
-        measuredCount,
-        itemHeight,
-        itemCount,
-        positioner.columnCount,
-    ]);
+    })();
 
     return (
         <div

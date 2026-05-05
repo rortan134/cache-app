@@ -1420,13 +1420,14 @@ function useKeyboardShortcut(key: string, callback: () => void) {
     }
   }, [key, callback])
 
-  useSWRSubscription('global-keydown', () => {
+  useSWRSubscription('global-keydown', (_key, { next }) => {
     const handler = (e: KeyboardEvent) => {
       if (e.metaKey && keyCallbacks.has(e.key)) {
         keyCallbacks.get(e.key)!.forEach(cb => cb())
       }
     }
     window.addEventListener('keydown', handler)
+    next(null, null)
     return () => window.removeEventListener('keydown', handler)
   })
 }
@@ -1609,6 +1610,8 @@ function cachePrefs(user: FullUser) {
 **Impact: MEDIUM**
 
 Reducing unnecessary re-renders minimizes wasted computation and improves UI responsiveness.
+
+> **Project Context:** This project uses React Compiler (`reactCompiler: true` in `next.config.ts`). Do not add manual `useMemo`, `useCallback`, or `memo()` — the compiler handles memoization automatically. Rules below that mention manual memoization are included for reference when working on projects without React Compiler.
 
 ### 5.1 Calculate Derived State During Rendering
 

@@ -66,7 +66,7 @@ Reference these guidelines when:
 
 > **⚠️ React 19+ only.** Skip this section if using React 18 or earlier.
 
-- `react19-no-forwardref` - Don't use `forwardRef`; use `use()` instead of `useContext()`
+- `react19-no-forwardref` - Don't use `forwardRef` (ref is now a regular prop); use `use()` instead of `useContext()`
 
 ## How to Use
 

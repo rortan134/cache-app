@@ -33,7 +33,10 @@ type AttachmentMediaCategory =
 
 type AttachmentVariant = "grid" | "inline" | "list";
 
-const mediaCategoryIcons: Record<AttachmentMediaCategory, typeof ImageIcon> = {
+const MEDIA_CATEGORY_ICON_BY_CATEGORY: Record<
+    AttachmentMediaCategory,
+    typeof ImageIcon
+> = {
     audio: Music2Icon,
     document: FileTextIcon,
     image: ImageIcon,
@@ -116,7 +119,7 @@ function renderAttachmentPreviewContent(
         );
     }
 
-    const Icon = mediaCategoryIcons[mediaCategory];
+    const Icon = MEDIA_CATEGORY_ICON_BY_CATEGORY[mediaCategory];
     const iconClassName = variant === "inline" ? "size-3" : "size-4";
     return fallbackIcon ?? renderAttachmentIcon(Icon, iconClassName);
 }
@@ -162,23 +165,19 @@ export const Attachments = ({
     variant = "grid",
     className,
     ...props
-}: AttachmentsProps) => {
-    const contextValue = React.useMemo(() => ({ variant }), [variant]);
-
-    return (
-        <AttachmentsContext value={contextValue}>
-            <div
-                className={cn(
-                    "flex items-start",
-                    variant === "list" ? "flex-col gap-2" : "flex-wrap gap-2",
-                    variant === "grid" && "ml-auto w-fit",
-                    className
-                )}
-                {...props}
-            />
-        </AttachmentsContext>
-    );
-};
+}: AttachmentsProps) => (
+    <AttachmentsContext value={{ variant }}>
+        <div
+            className={cn(
+                "flex items-start",
+                variant === "list" ? "flex-col gap-2" : "flex-wrap gap-2",
+                variant === "grid" && "ml-auto w-fit",
+                className
+            )}
+            {...props}
+        />
+    </AttachmentsContext>
+);
 
 interface AttachmentProps extends React.ComponentProps<"div"> {
     data: AttachmentData;
@@ -194,13 +193,8 @@ export const Attachment = ({
     const { variant } = useAttachmentsContext();
     const mediaCategory = getMediaCategory(data);
 
-    const contextValue = React.useMemo<AttachmentContextValue>(
-        () => ({ data, mediaCategory, onRemove, variant }),
-        [data, mediaCategory, onRemove, variant]
-    );
-
     return (
-        <AttachmentContext value={contextValue}>
+        <AttachmentContext value={{ data, mediaCategory, onRemove, variant }}>
             <div
                 className={cn(
                     "group relative",

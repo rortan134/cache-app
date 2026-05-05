@@ -13,8 +13,6 @@ Creating accurate and meaningful benchmarks requires careful attention to how mo
 - Prioritize readability and maintainability: Write clear, maintainable code first, and only optimize if benchmarks show a real need[2].
 - Document optimization rationale: When making changes for performance, include comments explaining benchmark results and reasoning.
 - Focus on reducing memory usage by simplifying data structures, merging similar elements, and using efficient storage formats.
-- Testing implementation details: Verify public behavior, not internal fields. Refactors should not break tests when behavior is unchanged.
-- Over-mocking: Prefer real dependencies when feasible. Mocks often assert calls instead of behavior.
 
 ## Techniques
 

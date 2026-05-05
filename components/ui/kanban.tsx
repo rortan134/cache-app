@@ -1,5 +1,6 @@
 "use client";
 
+import { useIsoLayoutEffect } from "@base-ui/utils/useIsoLayoutEffect";
 import { useMergedRefs } from "@base-ui/utils/useMergedRefs";
 import { cn } from "@/lib/common/cn";
 import {
@@ -1088,7 +1089,7 @@ function KanbanItemHandle(props: KanbanItemHandleProps) {
 
 const KanbanOverlayContext = React.createContext(false);
 
-const dropAnimation: DropAnimation = {
+const DROP_ANIMATION: DropAnimation = {
     sideEffects: defaultDropAnimationSideEffects({
         styles: {
             active: {
@@ -1116,7 +1117,7 @@ function KanbanOverlay(props: KanbanOverlayProps) {
 
     const [mounted, setMounted] = React.useState(false);
 
-    React.useLayoutEffect(() => setMounted(true), []);
+    useIsoLayoutEffect(() => setMounted(true), []);
 
     const container =
         containerProp ?? (mounted ? globalThis.document?.body : null);
@@ -1145,7 +1146,7 @@ function KanbanOverlay(props: KanbanOverlayProps) {
     return ReactDOM.createPortal(
         <DragOverlay
             className={cn(!context.flatCursor && "cursor-grabbing")}
-            dropAnimation={dropAnimation}
+            dropAnimation={DROP_ANIMATION}
             modifiers={context.modifiers}
             {...overlayProps}
         >

@@ -4,7 +4,6 @@ import {
     FALLBACK_URL,
     ITEM_KIND_BOOKMARK,
     ITEM_KIND_NOTE,
-    SORT_ASC,
 } from "@/lib/common/constants";
 import { deleteLibraryItem } from "@/lib/collections/service";
 import { parseStandaloneUrl } from "@/lib/common/url";
@@ -12,7 +11,11 @@ import { IntegrationApiError } from "@/lib/integrations/error";
 import { DEFAULT_BROWSER_PROFILE_ID } from "@/lib/integrations/browser-profiles";
 import { prisma } from "@/prisma";
 import { LibraryItemSource } from "@/prisma/client/enums";
-import type { LibraryItemWithCollections } from "@/lib/collections/utils";
+import {
+    LIBRARY_ITEM_COLLECTIONS_INCLUDE,
+    type LibraryItemWithCollections,
+    toLibraryItemWithCollections,
+} from "@/lib/collections/utils";
 import { nanoid } from "nanoid";
 
 interface AddLibraryItemArgs {
@@ -50,24 +53,10 @@ export async function addLibraryItem(
                 url: FALLBACK_URL,
                 userId: args.userId,
             },
-            include: {
-                collections: {
-                    orderBy: { name: SORT_ASC },
-                    select: {
-                        createdAt: true,
-                        description: true,
-                        id: true,
-                        name: true,
-                        priority: true,
-                        sharedAt: true,
-                        shareId: true,
-                        updatedAt: true,
-                    },
-                },
-            },
+            include: LIBRARY_ITEM_COLLECTIONS_INCLUDE,
         });
 
-        return item as unknown as LibraryItemWithCollections;
+        return toLibraryItemWithCollections(item);
     }
 
     const validatedUrl = parseStandaloneUrl(args.url);
@@ -89,24 +78,10 @@ export async function addLibraryItem(
             url: validatedUrl.href,
             userId: args.userId,
         },
-        include: {
-            collections: {
-                orderBy: { name: SORT_ASC },
-                select: {
-                    createdAt: true,
-                    description: true,
-                    id: true,
-                    name: true,
-                    priority: true,
-                    sharedAt: true,
-                    shareId: true,
-                    updatedAt: true,
-                },
-            },
-        },
+        include: LIBRARY_ITEM_COLLECTIONS_INCLUDE,
     });
 
-    return item as unknown as LibraryItemWithCollections;
+    return toLibraryItemWithCollections(item);
 }
 
 interface DeleteLibraryItemArgs {

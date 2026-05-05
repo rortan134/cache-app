@@ -711,7 +711,7 @@ export function WorkspaceProvider({
     );
 
     const { collectionPreviewThumbnailUrlsById, itemsByCollectionId } =
-        useCollectionItemIndexes(items);
+        buildCollectionItemIndexes(items);
 
     const clearCollectionFilters = () => {
         setSelectedCollectionIds([]);
@@ -1042,42 +1042,35 @@ function getPreviewOrderSeed(value: string): number {
  * 1. Items grouped by collection id.
  * 2. Up to 5 deterministic preview thumbnail URLs per collection.
  *
- * Memoized because both indexes are expensive to rebuild on every render
- * and only change when the item list changes.
  */
-function useCollectionItemIndexes(items: LibraryItemWithCollections[]): {
+function buildCollectionItemIndexes(items: LibraryItemWithCollections[]): {
     collectionPreviewThumbnailUrlsById: Map<string, string[]>;
     itemsByCollectionId: Map<string, LibraryItemWithCollections[]>;
 } {
-    return React.useMemo(() => {
-        const itemsByCollectionId = new Map<
-            string,
-            LibraryItemWithCollections[]
-        >();
-        for (const item of items) {
-            for (const collection of item.collections) {
-                const entries = itemsByCollectionId.get(collection.id);
-                if (entries) {
-                    entries.push(item);
-                } else {
-                    itemsByCollectionId.set(collection.id, [item]);
-                }
+    const itemsByCollectionId = new Map<string, LibraryItemWithCollections[]>();
+    for (const item of items) {
+        for (const collection of item.collections) {
+            const entries = itemsByCollectionId.get(collection.id);
+            if (entries) {
+                entries.push(item);
+            } else {
+                itemsByCollectionId.set(collection.id, [item]);
             }
         }
+    }
 
-        const collectionPreviewThumbnailUrlsById = new Map<string, string[]>();
-        for (const [collectionId, collectionItems] of itemsByCollectionId) {
-            collectionPreviewThumbnailUrlsById.set(
-                collectionId,
-                getCollectionPreviewThumbnailUrls(collectionId, collectionItems)
-            );
-        }
+    const collectionPreviewThumbnailUrlsById = new Map<string, string[]>();
+    for (const [collectionId, collectionItems] of itemsByCollectionId) {
+        collectionPreviewThumbnailUrlsById.set(
+            collectionId,
+            getCollectionPreviewThumbnailUrls(collectionId, collectionItems)
+        );
+    }
 
-        return {
-            collectionPreviewThumbnailUrlsById,
-            itemsByCollectionId,
-        };
-    }, [items]);
+    return {
+        collectionPreviewThumbnailUrlsById,
+        itemsByCollectionId,
+    };
 }
 
 /**

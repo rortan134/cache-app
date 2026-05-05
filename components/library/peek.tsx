@@ -16,6 +16,7 @@ import {
 import { Spinner } from "@/components/ui/spinner";
 import { cn } from "@/lib/common/cn";
 import { parseDisplayUrl } from "@/lib/common/url";
+import { useTimeout } from "@base-ui/utils/useTimeout";
 import { AlertCircleIcon, ExternalLinkIcon, GlobeIcon } from "lucide-react";
 import type { ReactElement, ReactNode } from "react";
 import * as React from "react";
@@ -101,30 +102,30 @@ function usePeekDrawerContext(): PeekDrawerContextValue {
  */
 function usePeekStatus(open: boolean, url: string, timeoutMs: number) {
     const [status, setStatus] = React.useState<PeekDrawerStatus>("loading");
+    const blockedTimeout = useTimeout();
 
     React.useEffect(() => {
         if (!open) {
+            blockedTimeout.clear();
             setStatus("loading");
             return;
         }
 
         if (url === PEEK_BLOCKED_URL) {
+            blockedTimeout.clear();
             setStatus("blocked");
             return;
         }
 
         setStatus("loading");
-
-        const timeoutId = window.setTimeout(() => {
+        blockedTimeout.start(timeoutMs, () => {
             setStatus((currentStatus) =>
                 currentStatus === "loading" ? "blocked" : currentStatus
             );
-        }, timeoutMs);
+        });
 
-        return () => {
-            window.clearTimeout(timeoutId);
-        };
-    }, [open, timeoutMs, url]);
+        return blockedTimeout.clear;
+    }, [blockedTimeout, open, timeoutMs, url]);
 
     return {
         markAsBlocked: () => {

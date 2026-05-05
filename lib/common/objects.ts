@@ -1,7 +1,3 @@
-export function pickFirstKey<T extends object>(obj: T): keyof T {
-    return Object.keys(obj)[0] as keyof T;
-}
-
 export function isRecord(value: unknown): value is Record<string, unknown> {
     return typeof value === "object" && value !== null && !Array.isArray(value);
 }

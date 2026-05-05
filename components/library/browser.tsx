@@ -130,6 +130,7 @@ import {
 import { cn } from "@/lib/common/cn";
 import { getColorGradientFromName } from "@/lib/common/colors";
 import { FALLBACK_URL, ITEM_KIND_NOTE } from "@/lib/common/constants";
+import { getOwnerWindow } from "@/lib/common/dom";
 import { getSystemControlKey } from "@/lib/common/environment";
 import {
     createFileAttachment,
@@ -163,7 +164,9 @@ import {
     type AutocompleteRootChangeEventDetails,
     type BaseUIEvent,
 } from "@base-ui/react";
+import { useIsoLayoutEffect } from "@base-ui/utils/useIsoLayoutEffect";
 import { useStableCallback } from "@base-ui/utils/useStableCallback";
+import { useTimeout } from "@base-ui/utils/useTimeout";
 import {
     ArrowDownIcon,
     ArrowDownWideNarrow,
@@ -1367,9 +1370,12 @@ function isSearchHotkey(event: KeyboardEvent): boolean {
     return SEARCH_HOTKEYS.some((hotkey) => eventHotkeys.has(hotkey));
 }
 
-function isTextEntryTarget(target: EventTarget | null): boolean {
+function isTextEntryTarget(
+    target: EventTarget | null,
+    ownerWindow: Window & typeof globalThis
+): boolean {
     return (
-        target instanceof HTMLElement &&
+        target instanceof ownerWindow.HTMLElement &&
         (target.isContentEditable ||
             Boolean(
                 target.closest('input, textarea, select, [role="textbox"]')
@@ -3063,7 +3069,6 @@ function getItemTitle(item: LibraryItemWithCollections): string {
     return item.url;
 }
 
-/** @internal */
 export function CollectionComboboxPicker({
     collections,
     items,
@@ -3434,7 +3439,10 @@ function Card({ item }: LibraryGridCardProps) {
             event.ctrlKey ||
             event.altKey ||
             isCollectionPickerOpen ||
-            isTextEntryTarget(event.target) ||
+            isTextEntryTarget(
+                event.target,
+                getOwnerWindow(event.currentTarget)
+            ) ||
             event.key.toLowerCase() !== "s"
         ) {
             return;
@@ -3828,16 +3836,12 @@ function SectionSummaryContent({
     items: LibraryItemWithCollections[];
     title: string;
 }) {
-    const requestBody = React.useMemo(
-        () =>
-            JSON.stringify({
-                items: items
-                    .slice(0, SECTION_DESCRIPTION_CONTEXT_ITEMS_LIMIT)
-                    .map(buildSectionDescriptionContextItem),
-                sectionTitle: title,
-            }),
-        [items, title]
-    );
+    const requestBody = JSON.stringify({
+        items: items
+            .slice(0, SECTION_DESCRIPTION_CONTEXT_ITEMS_LIMIT)
+            .map(buildSectionDescriptionContextItem),
+        sectionTitle: title,
+    });
     const deferredRequestBody = React.useDeferredValue(requestBody);
 
     const { data, error, isLoading } = useSWR<SectionDescriptionResponse>(
@@ -4117,6 +4121,7 @@ export function Root({ lockedItemCount, totalItemCount }: LibraryProps) {
     const [isPaletteFocused, setIsPaletteFocused] = React.useState(false);
     const [isCommandInputFocused, setIsCommandInputFocused] =
         React.useState(false);
+    const paletteFocusOutTimeout = useTimeout();
 
     const commandPanelContainerRef = React.useRef<HTMLDivElement>(null);
     const paletteInputRef = React.useRef<HTMLInputElement>(null);
@@ -4156,10 +4161,7 @@ export function Root({ lockedItemCount, totalItemCount }: LibraryProps) {
         startCreateResultsCollectionTransition,
     ] = React.useTransition();
 
-    const domainOptions = React.useMemo(
-        () => buildDomainPaletteOptions(items),
-        [items]
-    );
+    const domainOptions = buildDomainPaletteOptions(items);
 
     const focusPaletteInput = useStableCallback((select = false) => {
         setCommandListOpen(true);
@@ -4183,9 +4185,14 @@ export function Root({ lockedItemCount, totalItemCount }: LibraryProps) {
 
             if (!nextOpen) {
                 const shell = commandPanelContainerRef.current;
-                const active = document.activeElement;
-                const focusInsidePalette =
-                    shell && active instanceof Node && shell.contains(active);
+                const ownerWindow = shell?.ownerDocument.defaultView;
+                const active = shell?.ownerDocument.activeElement;
+                const focusInsidePalette = Boolean(
+                    shell &&
+                        ownerWindow &&
+                        active instanceof ownerWindow.Node &&
+                        shell.contains(active)
+                );
                 const reason = eventDetails?.reason;
 
                 // Inline autocomplete always requests close on item pick; keep the list
@@ -4206,48 +4213,62 @@ export function Root({ lockedItemCount, totalItemCount }: LibraryProps) {
         });
     };
 
-    React.useLayoutEffect(() => {
+    useIsoLayoutEffect(() => {
         const el = commandPanelContainerRef.current;
         if (!el) {
             return;
         }
+        const ownerWindow = el.ownerDocument.defaultView;
+        if (!ownerWindow) {
+            return;
+        }
 
-        const handleFocusIn = (event: globalThis.FocusEvent) => {
+        const handleFocusIn = (event: FocusEvent) => {
             setIsPaletteFocused(true);
-            if (event.target instanceof HTMLInputElement) {
+            if (event.target instanceof ownerWindow.HTMLInputElement) {
                 setCommandListOpen(true);
             }
         };
 
-        const handleFocusOut = (event: globalThis.FocusEvent) => {
+        const handleFocusOut = (event: FocusEvent) => {
             const { relatedTarget } = event;
-            if (relatedTarget instanceof Node && el.contains(relatedTarget)) {
+            if (
+                relatedTarget instanceof ownerWindow.Node &&
+                el.contains(relatedTarget)
+            ) {
                 return;
             }
             const closeIfLeft = () => {
-                if (!el.contains(document.activeElement)) {
+                const active = el.ownerDocument.activeElement;
+                if (
+                    !(active instanceof ownerWindow.Node && el.contains(active))
+                ) {
                     setIsPaletteFocused(false);
                     setCommandListOpen(false);
                 }
             };
             queueMicrotask(closeIfLeft);
-            window.setTimeout(closeIfLeft, 0);
+            paletteFocusOutTimeout.start(0, closeIfLeft);
         };
 
         el.addEventListener("focusin", handleFocusIn);
         el.addEventListener("focusout", handleFocusOut);
         return () => {
+            paletteFocusOutTimeout.clear();
             el.removeEventListener("focusin", handleFocusIn);
             el.removeEventListener("focusout", handleFocusOut);
         };
-    }, []);
+    }, [paletteFocusOutTimeout]);
 
     React.useEffect(() => {
         const handleWindowKeyDown = (event: KeyboardEvent) => {
             const target = event.target;
-            const isTextEntry = isTextEntryTarget(target);
+            const ownerWindow = commandPanelContainerRef.current
+                ? getOwnerWindow(commandPanelContainerRef.current)
+                : getOwnerWindow();
+            const isTextEntry = isTextEntryTarget(target, ownerWindow);
             const isPaletteEventTarget =
-                target instanceof Node &&
+                target instanceof ownerWindow.Node &&
                 commandPanelContainerRef.current?.contains(target);
 
             if (isSearchHotkey(event)) {
@@ -4520,52 +4541,29 @@ export function Root({ lockedItemCount, totalItemCount }: LibraryProps) {
         inputPlaceholder = "Change the layout…";
     }
 
-    const filteredItems = React.useMemo(
-        () =>
-            filterLibraryBrowserItems(items, {
-                collectionMembershipFilter,
-                domainFilters,
-                searchTerms,
-                selectedCollectionIds,
-                sourceFilters,
-            }),
-        [
-            collectionMembershipFilter,
-            domainFilters,
-            items,
-            searchTerms,
-            selectedCollectionIds,
-            sourceFilters,
-        ]
+    const filteredItems = filterLibraryBrowserItems(items, {
+        collectionMembershipFilter,
+        domainFilters,
+        searchTerms,
+        selectedCollectionIds,
+        sourceFilters,
+    });
+
+    const sortedItems = sortLibraryBrowserItems(filteredItems, sortMode);
+
+    const sections = buildLibraryBrowserSections(
+        sortedItems,
+        groupBy,
+        sortMode
     );
 
-    const sortedItems = React.useMemo(
-        () => sortLibraryBrowserItems(filteredItems, sortMode),
-        [filteredItems, sortMode]
-    );
-
-    const sections = React.useMemo(
-        () => buildLibraryBrowserSections(sortedItems, groupBy, sortMode),
-        [groupBy, sortedItems, sortMode]
-    );
-
-    const hasActiveFilters = React.useMemo(
-        () =>
-            libraryBrowserHasActiveFilters({
-                collectionMembershipFilter,
-                domainFilters,
-                searchTerms,
-                selectedCollectionIds,
-                sourceFilters,
-            }),
-        [
-            collectionMembershipFilter,
-            domainFilters,
-            searchTerms,
-            selectedCollectionIds,
-            sourceFilters,
-        ]
-    );
+    const hasActiveFilters = libraryBrowserHasActiveFilters({
+        collectionMembershipFilter,
+        domainFilters,
+        searchTerms,
+        selectedCollectionIds,
+        sourceFilters,
+    });
 
     const hasNonDefaultView =
         groupBy !== "none" ||
@@ -4598,10 +4596,7 @@ export function Root({ lockedItemCount, totalItemCount }: LibraryProps) {
             ? Number(columnCountMode)
             : undefined;
 
-    const collapsedSectionKeySet = React.useMemo(
-        () => new Set(collapsedSectionKeys),
-        [collapsedSectionKeys]
-    );
+    const collapsedSectionKeySet = new Set(collapsedSectionKeys);
 
     const isPreviewOnly = !hasAccess && lockedItemCount > 0;
     let resultsSummary = `${filteredItems.length} of ${items.length} items`;

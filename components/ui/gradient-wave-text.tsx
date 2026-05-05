@@ -1,11 +1,12 @@
 "use client";
 
 import { cn } from "@/lib/common/cn";
+import { useAnimationFrame } from "@base-ui/utils/useAnimationFrame";
 import * as React from "react";
 
 type Align = "left" | "center" | "right";
 
-const defaultColors = [
+const DEFAULT_COLORS = [
     "#ff3b30",
     "#ff5e5b",
     "#ff8c42",
@@ -14,7 +15,7 @@ const defaultColors = [
     "#c77dff",
 ];
 
-const justifyContentByAlign: Record<
+const JUSTIFY_CONTENT_BY_ALIGN: Record<
     Align,
     React.CSSProperties["justifyContent"]
 > = {
@@ -59,13 +60,13 @@ function GradientWaveText({
     ariaLabel,
 }: GradientWaveTextProps) {
     const elRef = React.useRef<HTMLDivElement | null>(null);
-    const rafRef = React.useRef(0);
     const tRef = React.useRef(0);
     const cyclesDoneRef = React.useRef(0);
     const finishedRef = React.useRef(false);
     const startedRef = React.useRef(false);
     const startAtRef = React.useRef(0);
     const hasPlayedRef = React.useRef(false);
+    const animationFrame = useAnimationFrame();
 
     const [isInView, setIsInView] = React.useState(!inView);
 
@@ -104,7 +105,7 @@ function GradientWaveText({
     const stops = (() => {
         const resolvedColors = customColors?.length
             ? customColors
-            : defaultColors;
+            : DEFAULT_COLORS;
         const arr: string[] = [];
         const baseColor = "var(--gradient-wave-base, rgb(29,29,31))";
         arr.push(`${baseColor} calc((var(--gi) + 0) * 1%)`);
@@ -151,7 +152,8 @@ function GradientWaveText({
         const cycles = repeat ? 0 : 1;
         let last = performance.now();
 
-        const tick = (now: number) => {
+        const tick = () => {
+            const now = performance.now();
             if (finishedRef.current) {
                 return;
             }
@@ -161,7 +163,7 @@ function GradientWaveText({
                     startedRef.current = true;
                     last = now;
                 } else {
-                    rafRef.current = requestAnimationFrame(tick);
+                    animationFrame.request(tick);
                     return;
                 }
             }
@@ -196,12 +198,12 @@ function GradientWaveText({
                 }
             }
 
-            rafRef.current = requestAnimationFrame(tick);
+            animationFrame.request(tick);
         };
 
-        rafRef.current = requestAnimationFrame(tick);
-        return () => cancelAnimationFrame(rafRef.current);
-    }, [speed, paused, repeat, isInView]);
+        animationFrame.request(tick);
+        return animationFrame.cancel;
+    }, [animationFrame, speed, paused, repeat, isInView]);
 
     const spanStyle: React.CSSProperties = {
         backfaceVisibility: "hidden",
@@ -234,7 +236,7 @@ function GradientWaveText({
             style={
                 {
                     "--gi": -25,
-                    justifyContent: justifyContentByAlign[align],
+                    justifyContent: JUSTIFY_CONTENT_BY_ALIGN[align],
                 } as React.CSSProperties
             }
         >

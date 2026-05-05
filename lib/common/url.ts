@@ -7,8 +7,7 @@ const URL_ONLY_PROTOCOLS = new Set(["http:", "https:"]);
 export const parseValidUrl = (url: string): URL | null => {
     try {
         return new URL(url);
-    } catch (error) {
-        console.error(error);
+    } catch {
         return null;
     }
 };
@@ -108,8 +107,7 @@ export const parseUrlSearchParams = (url: string) => {
             }
         }
         return paramsObj;
-    } catch (error) {
-        console.error(error);
+    } catch {
         return {};
     }
 };

@@ -43,7 +43,7 @@ Only when performance clearly requires precomputation. **Investigate every new p
 
 ### React
 
-Use `useMemo` or inline derivation instead of `useState` for derived values.
+Derive values inline during render instead of storing them in state.
 
 ```tsx
 // Bad
@@ -54,12 +54,9 @@ useEffect(() => setDoubled(count * 2), [count])
 // Good
 const [count, setCount] = useState(0)
 const doubled = count * 2
-
-// For expensive computations
-const doubled = useMemo(() => count * 2, [count])
 ```
 
-For simple expressions (primitives, few operators), skip `useMemo`—the comparison overhead can exceed the computation cost.
+With React Compiler enabled (as in this project), manual `useMemo` is unnecessary—the compiler automatically memoizes derived values. Only precompute if profiling proves the derivation itself is a bottleneck.
 
 ### Backend
 
