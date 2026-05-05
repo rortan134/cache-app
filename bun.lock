@@ -54,6 +54,7 @@
         "react-hotkeys-hook": "^5.3.0",
         "server-only": "^0.0.1",
         "shadcn": "^4.6.0",
+        "stable-hash": "^0.0.6",
         "stan-js": "^1.9.1",
         "stripe": "^22.1.0",
         "swiper": "^12.1.4",
@@ -1816,6 +1817,8 @@
     "split2": ["split2@4.2.0", "", {}, "sha512-UcjcJOWknrNkF6PLX83qcHM6KHgVKNkV62Y8a5uYDVv9ydGQVwAHMKqHdJje1VTWpljG0WYpCDhrCdAOYH4TWg=="],
 
     "sqlstring": ["sqlstring@2.3.3", "", {}, "sha512-qC9iz2FlN7DQl3+wjwn3802RTyjCx7sDvfQEXchwa6CWOx07/WVfh91gBmQ9fahw8snwGEWU3xGzOt4tFyHLxg=="],
+
+    "stable-hash": ["stable-hash@0.0.6", "", {}, "sha512-0afH4mobqTybYZsXImQRLOjHV4gvOW+92HdUIax9t7a8d9v54KWykEuMVIcXhD9BCi+w3kS4x7O6fmZQ3JlG/g=="],
 
     "stan-js": ["stan-js@1.9.1", "", { "peerDependencies": { "react": ">=18.2.0", "react-native-mmkv": ">=2.0.0" }, "optionalPeers": ["react", "react-native-mmkv"] }, "sha512-DQEWIWL0JwxqoqSBCEq3GbxOuT3Grh9p05Zs78llQSPFmgzZzOB2Im1WABqwXza+Sb1gmrO65OWhi3d23dp7Wg=="],
 

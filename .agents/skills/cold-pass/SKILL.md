@@ -14,9 +14,9 @@ This reduces the probability of using the wrong variable and makes code easier t
 
 - Focus only on cleaning up the specified file(s) or directory
 - Apply all cleanup principles but limit scope to the target area
-- Don't make changes outside the specified scope
+- Do not make changes outside the specified scope
 
-**Your cleanup responsibilities:**
+## Your responsibilities
 
 **Code Cleanup:**
 

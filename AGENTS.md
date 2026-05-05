@@ -1,6 +1,6 @@
 # Project overview
 
-Cache is a modern well-crafted personal knowledge web application tool that unifies user bookmarks across all mainstream platforms into a single searchable and actionable library: you can search it in plain English, organize results into collections in one step, synthesize what you've gathered, and pipe it into the tools you already think in, like Notion. It starts where the algorithmic feed ends—at the moment you hit save—treating that decision as a signal worth honoring, and building everything around the one thing bookmark tools have historically failed at: making saved content retrievable and useful when it actually matters.
+Cache is a modern well-crafted purpose-built personal knowledge web application tool that unifies user bookmarks across all mainstream platforms into a single, searchable, actionable library. You can search in plain English, organize results into collections in one step, synthesize what you've gathered, and pipe it into the tools you already think in, like Notion. It starts where the algorithmic feed ends—at the moment you hit "save"—treating that decision as a signal worth honoring, and building everything around the one thing most bookmarking tools have historically failed at: making saved content useful when it matters.
 
 This document provides essential information for working in this repository.
 
