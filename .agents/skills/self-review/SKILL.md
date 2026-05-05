@@ -1,8 +1,6 @@
 ---
 name: self-review
 description: Final self-review your own work before committing. Fight entropy, ensure quality, leave the codebase better than you found it.
-disable-model-invocation: true
-allowed-tools: [Read, Edit, Glob, Grep, Bash, Agent]
 ---
 
 You just finished some work. Before committing, step back and review it with a critical eye. Use subagents to review code if available.

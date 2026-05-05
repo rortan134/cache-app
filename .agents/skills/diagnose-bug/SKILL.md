@@ -1,6 +1,6 @@
 ---
 name: diagnose-bug
-description: Diagnose a bug reports. Use when given an issue and asked to decide next steps such as verifying against the repo, requesting more info, or explaining why it is not a bug; follow any additional user-provided instructions.
+description: Diagnose a bug report. Use when given an issue and asked to decide next steps such as verifying against the repo, requesting more info, or explaining why it is not a bug; follow any additional user-provided instructions.
 ---
 
 # Diagnose Bug
