@@ -1,6 +1,6 @@
 "use client";
 
-import { clamp } from "@/lib/common/clamp";
+import { clamp } from "@/lib/common/numbers";
 
 const ICON_VIEWBOX = 24;
 const ICON_CENTER = 12;

@@ -1,16 +1,16 @@
 import { PageShell } from "@/components/ui/page-shell";
 import { getPublicCollectionShareById } from "@/lib/collections/sharing/service";
-import { toUsableStaticPreviewUrl } from "@/lib/common/preview-url";
+
+import {
+    PublicShareGrid,
+    type PublicShareGridItem,
+} from "@/components/share/public-share-grid";
 import { FALLBACK_URL, ITEM_KIND_NOTE } from "@/lib/common/constants";
 import { normalizeURL } from "@/lib/common/url";
 import { getNoteExcerpt } from "@/lib/integrations/notes/utils";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import React, { cache } from "react";
-import {
-    PublicShareGrid,
-    type PublicShareGridItem,
-} from "../../../../../components/share/public-share-grid";
 
 interface CollectionSharePageProps {
     params: Promise<{
@@ -50,9 +50,7 @@ function getSharedItemPreviewImageUrl(
     },
     href: string | null
 ): string | null {
-    const staticImageUrl = toUsableStaticPreviewUrl(
-        item.preview?.staticImageUrl
-    );
+    const staticImageUrl = item.preview?.staticImageUrl ?? null;
     if (staticImageUrl) {
         return staticImageUrl;
     }
@@ -71,11 +69,12 @@ export async function generateMetadata(
     const collection = await getCachedPublicCollectionShare(shareId);
 
     return {
-        description:
+        description: `${
             collection?.description ??
             (collection
                 ? `A read-only collection shared by ${collection.ownerName} on Cache.`
-                : "A shared collection on Cache."),
+                : "A shared collection on Cache.")
+        } Create your own.`,
         robots: {
             follow: false,
             index: false,

@@ -62,7 +62,7 @@ import type {
 } from "@/lib/collections/utils";
 import { getSystemControlKey } from "@/lib/common/environment";
 import { saveFile } from "@/lib/common/file";
-import { toUsableStaticPreviewUrl } from "@/lib/common/preview-url";
+
 import { normalizeURL, openExternal } from "@/lib/common/url";
 import type { CollectionPriority } from "@/prisma/client/enums";
 import { useSmartCollectionsPreference } from "@/hooks/use-smart-collections-preference";
@@ -1097,9 +1097,7 @@ function getCollectionPreviewThumbnailUrls(
                 getPreviewOrderSeed(`${collectionId}:${right.id}`)
         )
         .flatMap((item) => {
-            const staticImageUrl = toUsableStaticPreviewUrl(
-                item.preview?.staticImageUrl
-            );
+            const staticImageUrl = item.preview?.staticImageUrl ?? null;
             return staticImageUrl ? [staticImageUrl] : [];
         })
         .slice(0, 5);

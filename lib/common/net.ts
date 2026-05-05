@@ -2,7 +2,14 @@
  * Network-adjacent security utilities for SSRF prevention and private-range blocking.
  */
 
-const LOCALHOST_ALIASES = new Set(["localhost", "0.0.0.0", "::1", "[::1]"]);
+const LOCALHOST_ALIASES = new Set([
+    "localhost",
+    "0.0.0.0",
+    "::1",
+    "[::1]",
+    "127.",
+    ".internal",
+]);
 
 function isLocalhostVariant(hostname: string): boolean {
     const normalized = hostname.trim().toLowerCase();

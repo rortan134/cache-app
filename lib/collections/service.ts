@@ -17,7 +17,7 @@ import {
     resolveCobaltDownloadUrl,
     resolveCobaltPreview,
 } from "@/lib/integrations/cobalt";
-import { toUsableStaticPreviewUrl } from "@/lib/common/preview-url";
+
 import {
     getIncrementedName,
     normalizeCollectionName,
@@ -434,9 +434,7 @@ export async function resolveLibraryItemPreview({
         );
     }
 
-    const existingStaticImageUrl = toUsableStaticPreviewUrl(
-        item.preview?.staticImageUrl
-    );
+    const existingStaticImageUrl = item.preview?.staticImageUrl ?? null;
     const existingVideoPreviewUrl = item.preview?.videoPreviewUrl ?? null;
 
     const shouldUseFreshPreview =

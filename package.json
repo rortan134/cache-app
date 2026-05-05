@@ -35,7 +35,6 @@
         "lexical": "^0.44.0",
         "lucide-react": "^1.14.0",
         "mcp-handler": "^1.1.0",
-        "memoize": "^11.0.0",
         "mime-types": "^3.0.2",
         "nanoid": "^5.1.11",
         "next": "16.2.4",

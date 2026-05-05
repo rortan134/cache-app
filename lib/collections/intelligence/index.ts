@@ -9,7 +9,7 @@ import {
 import { SECTION_DESCRIPTION_RESPONSE_MAX_LENGTH } from "@/lib/collections/intelligence/summary";
 import { COLLECTION_NAME_LENGTH_MAX } from "@/lib/collections/utils";
 import { createLogger } from "@/lib/common/logs/console/logger";
-import { toUsableStaticPreviewUrl } from "@/lib/common/preview-url";
+
 import {
     decodeHtmlEntities,
     normalizeCollectionName,
@@ -363,7 +363,7 @@ function buildPrompt(
         `Item source: ${sourceLabel(item.source)}`,
         `Item URL: ${item.url}`,
         `Item caption: ${item.caption ?? "None"}`,
-        `Item preview URL: ${toUsableStaticPreviewUrl(item.preview?.staticImageUrl) ?? item.preview?.videoPreviewUrl ?? "None"}`,
+        `Item preview URL: ${item.preview?.staticImageUrl ?? item.preview?.videoPreviewUrl ?? "None"}`,
         `Already assigned collections: ${currentCollectionNames.length > 0 ? currentCollectionNames.join(", ") : "None"}`,
         sourceMetadata && `Item source metadata: ${sourceMetadata}`,
         "",
@@ -563,10 +563,10 @@ async function resolveContentCandidates(
         case LibraryItemSource.google_photos:
         case LibraryItemSource.github_starred_repositories:
             addUrl(item.url);
-            addUrl(toUsableStaticPreviewUrl(item.preview?.staticImageUrl));
+            addUrl(item.preview?.staticImageUrl);
             break;
         case LibraryItemSource.pinterest:
-            addUrl(toUsableStaticPreviewUrl(item.preview?.staticImageUrl));
+            addUrl(item.preview?.staticImageUrl);
             addUrl(item.url);
             break;
         case LibraryItemSource.chrome_bookmarks:
@@ -579,7 +579,7 @@ async function resolveContentCandidates(
                     candidates.push(cobaltResult.downloadUrl);
                 }
             }
-            addUrl(toUsableStaticPreviewUrl(item.preview?.staticImageUrl));
+            addUrl(item.preview?.staticImageUrl);
             if (item.source === LibraryItemSource.other) {
                 addUrl(item.url);
             }

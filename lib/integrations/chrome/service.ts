@@ -1,7 +1,11 @@
 import "server-only";
 
+import {
+    LIBRARY_ITEM_COLLECTIONS_INCLUDE,
+    type LibraryItemWithCollections,
+} from "@/lib/collections/utils";
+import { chunk } from "@/lib/common/arrays";
 import { ITEM_KIND_BOOKMARK, ITEM_KIND_FOLDER } from "@/lib/common/constants";
-import { chunkArray } from "@/lib/common/arrays";
 import { createLogger } from "@/lib/common/logs/console/logger";
 import { DEFAULT_BROWSER_PROFILE_ID } from "@/lib/integrations/browser-profiles";
 import { parseOptionalDate } from "@/lib/integrations/dates";
@@ -9,10 +13,6 @@ import { prisma } from "@/prisma";
 import type { LibraryItem, Prisma } from "@/prisma/client/client";
 import { type LibraryItemKind, LibraryItemSource } from "@/prisma/client/enums";
 import * as z from "zod";
-import {
-    LIBRARY_ITEM_COLLECTIONS_INCLUDE,
-    type LibraryItemWithCollections,
-} from "@/lib/collections/utils";
 
 const log = createLogger("library:chrome-bookmarks");
 const CHROME_FOLDER_URL_PREFIX = "cache://chrome-bookmarks/folder/";
@@ -628,7 +628,7 @@ export function applyChromeBookmarkSyncEvents(
             (event) => event.type !== "import_complete"
         );
 
-        for (const batch of chunkArray(
+        for (const batch of chunk(
             mutationEvents,
             CHROME_BOOKMARK_SYNC_BATCH_SIZE
         )) {

@@ -10,14 +10,13 @@ import {
     deleteLibraryItem,
     updateLibraryItemCollections,
 } from "@/lib/collections/items";
-import { markLibraryItemAsReviewed } from "@/lib/review/actions";
 import type {
     LibraryCollectionSummary,
     LibraryItemWithCollections,
 } from "@/lib/collections/utils";
-import { toUsableStaticPreviewUrl } from "@/lib/common/preview-url";
 import { FALLBACK_URL, ITEM_KIND_BOOKMARK } from "@/lib/common/constants";
 import { parseDisplayUrl, toValidUrl } from "@/lib/common/url";
+import { markLibraryItemAsReviewed } from "@/lib/review/actions";
 import { LibraryItemSource } from "@/prisma/client/enums";
 import {
     Check,
@@ -36,9 +35,7 @@ function itemDomain(url: string): string {
 }
 
 function itemStaticPreviewUrl(item: LibraryItemWithCollections): string | null {
-    const staticImageUrl = toUsableStaticPreviewUrl(
-        item.preview?.staticImageUrl
-    );
+    const staticImageUrl = item.preview?.staticImageUrl ?? null;
     if (staticImageUrl) {
         return staticImageUrl;
     }

@@ -1,4 +1,4 @@
-import { clamp } from "@/lib/common/clamp";
+import { clamp } from "@/lib/common/numbers";
 import { converter, formatHex, parse } from "culori";
 import * as z from "zod";
 

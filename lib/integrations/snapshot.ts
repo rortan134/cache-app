@@ -1,6 +1,10 @@
 import "server-only";
 
-import { chunkArray } from "@/lib/common/arrays";
+import { chunk } from "@/lib/common/arrays";
+import {
+    type ITEM_KIND_BOOKMARK,
+    ITEM_KIND_FOLDER,
+} from "@/lib/common/constants";
 import { DEFAULT_BROWSER_PROFILE_ID } from "@/lib/integrations/browser-profiles";
 import {
     buildLibraryItemCreateData,
@@ -8,10 +12,6 @@ import {
     buildLibraryItemUpdateData,
     type LibraryItemImportRow,
 } from "@/lib/integrations/library-item-imports";
-import {
-    type ITEM_KIND_BOOKMARK,
-    ITEM_KIND_FOLDER,
-} from "@/lib/common/constants";
 import { prisma } from "@/prisma";
 import type { Prisma } from "@/prisma/client/client";
 import type { LibraryItemSource } from "@/prisma/client/enums";
@@ -123,7 +123,7 @@ async function importSnapshotProfileRows(args: {
     const updatedCount = args.rows.length - importedCount;
     const smartCollectionItemIds = new Set<string>();
 
-    for (const batch of chunkArray(args.rows, SNAPSHOT_UPSERT_BATCH_SIZE)) {
+    for (const batch of chunk(args.rows, SNAPSHOT_UPSERT_BATCH_SIZE)) {
         const savedRows = await Promise.all(
             batch.map((row) =>
                 args.libraryItemDelegate.upsert({

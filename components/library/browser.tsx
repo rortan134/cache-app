@@ -146,8 +146,7 @@ import {
 import { filterValidImageUrls } from "@/lib/common/image";
 import { getImageColors } from "@/lib/common/image-colors";
 import { createLogger } from "@/lib/common/logs/console/logger";
-import { withMemoize } from "@/lib/common/memoize";
-import { toUsableStaticPreviewUrl } from "@/lib/common/preview-url";
+
 import {
     normalizeURL,
     openExternal,
@@ -2991,9 +2990,7 @@ function getItemTitle(item: LibraryItemWithCollections): string {
 }
 
 function itemStaticPreviewUrl(item: LibraryItemWithCollections): string | null {
-    const staticImageUrl = toUsableStaticPreviewUrl(
-        item.preview?.staticImageUrl
-    );
+    const staticImageUrl = item.preview?.staticImageUrl ?? null;
     if (staticImageUrl) {
         return staticImageUrl;
     }
@@ -3087,9 +3084,7 @@ export function PreviewMedia({
         if (previewResultCache.has(staticPreviewCacheKey)) {
             const cached = previewResultCache.get(staticPreviewCacheKey);
             cached?.then((result) => {
-                const staticImageUrl = toUsableStaticPreviewUrl(
-                    result?.staticImageUrl
-                );
+                const staticImageUrl = result?.staticImageUrl ?? null;
                 if (staticImageUrl) {
                     setResolvedImageSrc(staticImageUrl);
                 }
@@ -3109,9 +3104,7 @@ export function PreviewMedia({
         previewResultCache.set(staticPreviewCacheKey, request);
         request
             .then((result) => {
-                const staticImageUrl = toUsableStaticPreviewUrl(
-                    result?.staticImageUrl
-                );
+                const staticImageUrl = result?.staticImageUrl ?? null;
                 if (staticImageUrl) {
                     setResolvedImageSrc(staticImageUrl);
                 }
@@ -3204,9 +3197,7 @@ export function PreviewMedia({
             previewResultCache.set(videoPreviewCacheKey, request);
             request
                 .then((result) => {
-                    const staticImageUrl = toUsableStaticPreviewUrl(
-                        result?.staticImageUrl
-                    );
+                    const staticImageUrl = result?.staticImageUrl ?? null;
                     if (staticImageUrl) {
                         setResolvedImageSrc(staticImageUrl);
                     }
@@ -3468,7 +3459,7 @@ function PreviewColor({ value }: { value: string }) {
 }
 
 function PreviewColorPalette({ src }: { src: string }) {
-    const { data } = useSWR(src, withMemoize(getImageColors), {
+    const { data } = useSWR(src, getImageColors, {
         keepPreviousData: true,
     });
 
@@ -3739,7 +3730,7 @@ function Card({ item }: LibraryGridCardProps) {
                                     )}
                                     itemId={item.id}
                                     key={item.id}
-                                    src={previewImageUrl}
+                                    src={href}
                                     videoPreviewUrl={previewVideoUrl}
                                 />
                             </div>

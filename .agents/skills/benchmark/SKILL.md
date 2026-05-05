@@ -31,6 +31,7 @@ Creating accurate and meaningful benchmarks requires careful attention to how mo
 - Minimize function calls in hot loops: Inline logic where possible to reduce overhead from frequent function calls inside tight loops[8].
 - Cache DOM queries: Store references to DOM elements instead of repeatedly calling `document.getElementById`[6].
 - Cache math functions if used frequently: Assign `Math` methods to local variables if they're called repeatedly in hot code[7].
+- Debounce/throttle callback handlers
 
 **Memory and Runtime Optimization**
 
@@ -111,9 +112,26 @@ bench(function* (ctx) {
 }).args("substr", ["c"]);
 ```
 
+**Avoid Layout Thrashing:**
+
+```ts
+// ❌ Bad: Alternating reads and writes (causes reflows)
+elements.forEach(el => {
+  const height = el.offsetHeight; // Read (forces layout)
+  el.style.height = height * 2; // Write
+});
+
+// ✅ Good: Batch reads, then batch writes
+const heights = elements.map(el => el.offsetHeight); // All reads
+elements.forEach((el, i) => {
+  el.style.height = heights[i] * 2; // All writes
+});
+```
+
 ---
 
-Use "mitata" library for benchmarking tooling. Use context7 for learning more about it.
+- Never optimize without measuring (premature optimization)
+- Use "mitata" library for benchmarking tooling. Use context7 for learning more about it.
 
 ---
 

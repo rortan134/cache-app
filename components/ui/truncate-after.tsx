@@ -1,8 +1,8 @@
 "use client";
 
 import { Popover, PopoverPopup, PopoverTrigger } from "@/components/ui/popover";
-import { clamp } from "@/lib/common/clamp";
 import { cn } from "@/lib/common/cn";
+import { clamp } from "@/lib/common/numbers";
 import * as React from "react";
 
 interface TruncateAfterProps extends React.ComponentProps<"div"> {
