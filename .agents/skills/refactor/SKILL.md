@@ -1,5 +1,5 @@
 ---
-name: cold-pass-refactor
+name: refactor
 description: Structural refactoring pass. Cleans up messy code, removes duplication, and improves maintainability across code and documentation files
 disable-model-invocation: true
 ---
