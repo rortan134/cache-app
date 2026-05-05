@@ -38,7 +38,7 @@ export function CommandInput({
     return (
         <AutocompleteInput
             className={cn(
-                "border bg-card shadow-xs outline-none ring-0 before:hidden has-focus-visible:border-border has-focus-visible:ring-0 has-focus-visible:ring-offset-0",
+                "bg-card shadow-[inset_0_0_0_1px_rgba(255,255,255,1),0_0_0_1px_rgba(0,0,0,0.04)] outline-none ring-0 before:hidden has-focus-visible:shadow-[inset_0_0_0_1px_rgba(255,255,255,1),0_0_0_1px_rgba(0,0,0,0.04)] has-focus-visible:ring-0 has-focus-visible:ring-offset-0",
                 className
             )}
             {...props}

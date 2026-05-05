@@ -97,4 +97,4 @@ function UnsubscribedOnly({
     return hasAccess ? null : children;
 }
 
-export { SubscriptionOnly, UnsubscribedOnly, useAccess, WithSubscription, };
+export { SubscriptionOnly, UnsubscribedOnly, useAccess, WithSubscription };

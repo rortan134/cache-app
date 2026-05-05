@@ -95,16 +95,11 @@ When to include specific details:
 
 ## On React components
 
-Prefer a headless, multi-part compound component composition pattern where a single logical widget is decomposed into many small, focused parts that communicate through shared internal state rather than prop drilling.
-Every component should be co-located into a single file with its parts and should use a common, composable interface, making them predictable.
-Composable components naturally fit with one another. Each component is built to match the others, keeping the UI consistent. Prevent polymorphic React components at all costs.
-Please see `vercel-composition-patterns` and `vercel-react-best-practices` for more, whenever relevant.
+Always build React components following full `vercel-composition-patterns` and `vercel-react-best-practices` rules.
 
-You mount a root controller (e.g. ‎`Combobox.Root` / ‎`ComboboxRoot`) that owns centralized state, behavior and semantics (value, inputValue, items, open, highlight, async status) and exposes it via context to leaf parts like ‎`Input`, ‎`InputGroup`, ‎`Trigger`, ‎`Icon`, ‎`List`, ‎`Item`, ‎`ItemIndicator`, ‎`Chips`, ‎`Group`, ‎`Portal`, ‎`Positioner`, ‎`Popup`, ‎`Status`, and ‎`Empty` exported as many headless part components bound together by the shared store/context layer
+Every component should be co-located into a single file with its parts, and should use a common, composable interface, making them predictable.
 
-Leaf components may also layer on local responsibilities that are intrinsically per-item tightly scoped to how one item registers itself with the store and translates global state.
-
-Use the `useTimeout` utility from `@base-ui/utils/useTimeout` instead of `window.setTimeout`, and `useAnimationFrame` from `@base-ui/utils/useAnimationFrame` instead of `requestAnimationFrame`. Search for other example usage in the codebase if unsure how to use them.
+Use the `useTimeout` utility from `@base-ui/utils/useTimeout` instead of `window.setTimeout`, and `useAnimationFrame` from `@base-ui/utils/useAnimationFrame` instead of `requestAnimationFrame`.
 
 Use the `useStableCallback` utility from `@base-ui/utils/useStableCallback` instead of `React.useCallback` if the function is called within an effect or event handler. The utility cannot be used to memoize functions that are called directly in the body of a component (during render), so continue with `React.useCallback` in those scenarios.
 
@@ -112,7 +107,102 @@ Use the `useIsoLayoutEffect` utility from `@base-ui/utils/useIsoLayoutEffect` in
 
 Use the shadow DOM-safe utilities for DOM traversal and event targeting: `contains`, `getTarget`, and `activeElement`. Use the owner utilities `ownerDocument` and `ownerWindow` instead of global `document`/`window` lookups when the code is tied to a DOM node, including realm-sensitive checks such as `instanceof`.
 
-Avoid duplicating logic where necessary. If two components can share logic (such as event handlers), define the logic/handlers in the parent and share it through a context to the child; use the existing context if it exists.
+Avoid duplicating logic where necessary: If two components can share logic (such as event handlers), define the logic/handlers in the parent and share it through a context to the child; use the existing context if it exists.
+
+### File-Level Definition Order
+
+Make sure every component file follows the same vertical stack. Deviations are rare: If a helper is stateless and pure, it can live before the component (like removeCSSVariableInheritance in DrawerPopup.tsx). If it is stateful or closes over component internals, it lives after the types at the bottom.
+
+1. Imports
+2. Module-level constants (UPPER_SNAKE_CASE)
+3. Module-level types/interfaces needed by the component (e.g., TouchScrollState)
+4. Module-level stateless objects (e.g., stateAttributesMapping)
+5. Module-level pure helper functions used by #4 (if any)
+6. Component definition (export const Component = forwardRef(function Component(...)))
+7. Prop / State interfaces (export interface ComponentProps ...)
+8. Namespace block (export namespace Component { ... })
+9. Private helper functions used only by the component
+10. Private sub-components used only by the component
+
+### Component Body: Internal Ordering
+
+Inside the component function, hooks and logic should be grouped in a predictable sequence:
+
+```ts
+export const DrawerPopup = (
+  componentProps: DrawerPopup.Props,
+  forwardedRef: React.ForwardedRef<HTMLDivElement>,
+) => {
+  // 1. Destructure render/className/style first, then ...elementProps
+  const { render, className, style, finalFocus, initialFocus, ...elementProps } = componentProps;
+
+  // 2. Context reads
+  const { store } = useDialogRootContext();
+  const { swipeDirection, ... } = useDrawerRootContext();
+
+  // 3. Store state reads (batched together)
+  const descriptionElementId = store.useState('descriptionElementId');
+  const modal = store.useState('modal');
+  const open = store.useState('open');
+  // ...
+
+  // 4. Other hooks that don't depend on #5-#7
+  useDialogPortalContext();
+
+  // 5. Derived values via useMemo
+  const nestedDrawerOpen = nestedOpenDrawerCount > 0;
+
+  // 6. Local useState
+  const [popupHeight, setPopupHeight] = React.useState(0);
+
+  // 7. Refs
+  const popupHeightRef = React.useRef(0);
+
+  // 8. Handlers (useStableCallback / useCallback)
+  const measureHeight = useStableCallback(() => { ... });
+  const handleOpenChange = useStableCallback((nextOpen) => { ... });
+
+  // 9. Effects
+  useIsoLayoutEffect(() => { ... }, [...]);
+  React.useEffect(() => { ... }, [...]);
+
+  // 10. Build the state object for useRenderElement
+  const state: DrawerPopupState = { open, nested, ... };
+
+  // 11. Compute final props / styles
+  let popupHeightCssVarValue: string | undefined;
+  if (popupHeight && !shouldUseAutoHeight) {
+    popupHeightCssVarValue = `${popupHeight}px`;
+  }
+
+  // 12. Render
+  const element = useRenderElement('div', componentProps, { ... });
+  return <FloatingFocusManager ...>{element}</FloatingFocusManager>;
+};
+```
+
+### Boolean Naming Conventions
+
+Boolean variables follow a rigid prefix convention. Scanning the files:
+
+| Prefix            | Example                                                | Context                       |
+|-------------------|--------------------------------------------------------|-------------------------------|
+| is                | isVerticalScrollAxis, isNestedDrawerOpenRef            | State or derived condition    |
+| has               | hasNestedDrawer, hasCrossAxisScrollableContent         | Possession                    |
+| should            | shouldUseAutoHeight, shouldApplySnapPoints, shouldDamp | Conditional behavior          |
+| can               | canSwipeFromScrollEdgeOnMove, canStart                 | Capability / permission       |
+| allow             | allowSwipe, allowTouchMove                             | Permission in touch handling  |
+| disable / enable  | disablePointerDismissal, enabled                       | Feature flags                 |
+
+### Ref Naming
+
+Refs are initialized to their semantic empty state (false, 0, null, ''), never undefined unless the type requires it.
+
+| Pattern              | Example                                   | Meaning                                 |
+|----------------------|-------------------------------------------|-----------------------------------------|
+| xRef                 | popupHeightRef, lastPointerTypeRef        | Plain ref holding a value               |
+| xRef.current = fn    | resetSwipeRef.current = resetSwipe        | Callback ref pattern                    |
+| isNestedDrawerOpenRef| isNestedDrawerOpenRef                     | Boolean ref for stale-closure avoidance |
 
 ## On this project
 
@@ -120,30 +210,22 @@ Before adding a new utility, check if a similar one exists in the `lib/` directo
 
 ### Tech stack
 
-runtime & package manager: Node.js 24.x, Bun, read Bun API docs in `node_modules/bun-types/docs/**.mdx` if necessary.
-
-framework: Next.js 16 (App Router, This is NOT the Next.js you know, This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs` before writing relevant code. Heed deprecation notices.)
-
-UI: React 19, Base-UI (@base-ui/react), lucide-react
-
-React Compiler: babel-plugin-react-compiler is enabled. It automatically memoizes components and values. Do not add manual `useMemo` or `useCallback`; they add noise without benefit and can interfere with compiler optimization.
-
+Runtime & Package Manager: Node.js 24.x, Bun, read Bun API docs in `node_modules/bun-types/docs/**.mdx` if necessary.
+framework: Next.js 16 (App Router, This is NOT the Next.js you know, This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read any relevant guides in `node_modules/next/dist/docs` before writing related code. Heed deprecation notices.)
+UI: React 19, Base-UI (@base-ui/react, @base-ui/utils), lucide-react icons
+React Compiler: babel-plugin-react-compiler is enabled. It automatically memoizes components and values. Do not add manual `useMemo` or `useCallback`; they add noise without benefit and can interfere with compiler optimization
 Styling: Tailwind CSS 4
-
 Validation: zod v4 schemas
-
 Database: PostgreSQL via Prisma ORM v7
-
 Auth: better-auth with better-auth/stripe (Stripe subscriptions)
-
 Tooling: TypeScript v6 (strict typing), Biome via Ultracite (run via `bun lint` or `bun lint:fix` for writing)
 
-### Procedure module patterns (server actions + services)
+### Procedure module pattern (Service + Server Actions)
 
 We organize Next.js Server Actions as thin adapters in `lib/{module}/actions.ts` files that handle input validation, auth and session checks, error normalization, caching/revalidation and rate limiting. These actions call pure service functions which contain all business logic and database/external-API calls. Services never depend on Next.js; they operate on validated data and return domain objects or typed results.
 Actions are the only networking boundary: they parse/validate inputs, guard with user context, translate service results to serialized responses, and decide side effects like `revalidatePath()`, Stripe operations, sending emails, and more.
 
-### Logging and error handling
+### Logging and error handling pattern
 
 Instrument critical paths. Log errors with context. Emit metrics for failure rates. Trace requests across service boundaries.
 
