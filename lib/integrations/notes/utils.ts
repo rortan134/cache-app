@@ -266,3 +266,64 @@ export function getNoteExcerpt(
 
     return `${normalizedText.slice(0, Math.max(0, maxLength - 1)).trimEnd()}…`;
 }
+
+/**
+ * Convert sanitized note HTML to Markdown.
+ *
+ * Handles the limited tag set produced by the note editor:
+ * headings, paragraphs, bold, italic, underline, strikethrough,
+ * highlight, and line breaks.
+ *
+ * Nesting is preserved because children are converted before their
+ * parent wrapper is applied.
+ */
+export function convertNoteHtmlToMarkdown(html: string): string {
+    const sanitized = sanitizeNoteHtml(html);
+    if (sanitized === NOTE_EMPTY_HTML) {
+        return "";
+    }
+
+    const doc = new DOMParser().parseFromString(sanitized, "text/html");
+    return convertNoteDomNodeToMarkdown(doc.body).trim();
+}
+
+function convertNoteDomNodeToMarkdown(node: Node): string {
+    if (node.nodeType === Node.TEXT_NODE) {
+        return node.textContent ?? "";
+    }
+
+    if (node.nodeType !== Node.ELEMENT_NODE) {
+        return "";
+    }
+
+    const element = node as Element;
+    const tag = element.tagName.toLowerCase();
+    const children = Array.from(element.childNodes)
+        .map((child) => convertNoteDomNodeToMarkdown(child))
+        .join("");
+
+    switch (tag) {
+        case "h1":
+            return `# ${children}\n\n`;
+        case "h2":
+            return `## ${children}\n\n`;
+        case "h3":
+            return `### ${children}\n\n`;
+        case "p":
+            return children ? `${children}\n\n` : "";
+        case "strong":
+            return `**${children}**`;
+        case "em":
+            return `*${children}*`;
+        case "u":
+            return `<u>${children}</u>`;
+        case "s":
+            return `~~${children}~~`;
+        case "mark":
+            return `==${children}==`;
+        case "br":
+            return "\n";
+        default:
+            return children;
+    }
+}

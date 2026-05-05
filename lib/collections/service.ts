@@ -13,26 +13,17 @@ import {
     type LibraryCollectionTag,
     type LibraryItemWithCollections,
 } from "@/lib/collections/utils";
-import {
-    resolveCobaltDownloadUrl,
-    resolveCobaltPreview,
-} from "@/lib/integrations/cobalt";
+import { resolveCobaltDownloadUrl } from "@/lib/integrations/cobalt";
 
 import {
     getIncrementedName,
     normalizeCollectionName,
 } from "@/lib/common/strings";
-import { isHttpUrl, toValidUrl } from "@/lib/common/url";
 import { prisma } from "@/prisma";
 import type { Prisma } from "@/prisma/client/client";
 import type {
     CollectionPriority,
-    LibraryItemPreviewMediaType,
     LibraryItemSource,
-} from "@/prisma/client/enums";
-import {
-    LibraryItemPreviewMediaType as PreviewMediaType,
-    LibraryItemPreviewProviderStatus as PreviewProviderStatus,
 } from "@/prisma/client/enums";
 import {
     FREE_LIBRARY_PREVIEW_ITEMS,
@@ -59,8 +50,6 @@ interface LibraryItemCollectionsOwned {
     collections: Array<{ id: string }>;
     id: string;
 }
-
-const PREVIEW_CACHE_TTL_MS = 1000 * 60 * 60 * 24;
 
 function toCollectionConnections(collectionIds: string[]): Array<{
     id: string;
@@ -101,25 +90,6 @@ function buildUniqueCollectionName(
 ): string {
     const uniqueName = getIncrementedName(sourceName, [...existingNames]);
     return normalizeCollectionName(uniqueName).name;
-}
-
-function isPreviewFresh(resolvedAt: Date): boolean {
-    return Date.now() - resolvedAt.getTime() < PREVIEW_CACHE_TTL_MS;
-}
-
-function toPreviewMediaType(
-    value: "gif" | "image" | "unknown" | "video"
-): LibraryItemPreviewMediaType {
-    switch (value) {
-        case "gif":
-            return PreviewMediaType.gif;
-        case "image":
-            return PreviewMediaType.image;
-        case "video":
-            return PreviewMediaType.video;
-        default:
-            return PreviewMediaType.unknown;
-    }
 }
 
 function mergeCollectionIds(args: {
@@ -394,153 +364,6 @@ export async function downloadMedia(url: string): Promise<string> {
         );
     }
     return result.downloadUrl;
-}
-
-export async function resolveLibraryItemPreview({
-    itemId,
-    refreshIfMissingVideo,
-    userId,
-}: {
-    itemId: string;
-    refreshIfMissingVideo?: boolean;
-    userId: string;
-}) {
-    const item = await prisma.libraryItem.findFirst({
-        select: {
-            id: true,
-            preview: {
-                select: {
-                    errorCode: true,
-                    mediaType: true,
-                    providerStatus: true,
-                    resolvedAt: true,
-                    sourceUrl: true,
-                    staticImageUrl: true,
-                    videoPreviewUrl: true,
-                },
-            },
-            url: true,
-        },
-        where: {
-            id: itemId,
-            userId,
-        },
-    });
-
-    if (!item) {
-        throwCollectionNotFound(
-            "resolveLibraryItemPreview",
-            "We couldn't find that saved item to preview it."
-        );
-    }
-
-    const existingStaticImageUrl = item.preview?.staticImageUrl ?? null;
-    const existingVideoPreviewUrl = item.preview?.videoPreviewUrl ?? null;
-
-    const shouldUseFreshPreview =
-        item.preview &&
-        isPreviewFresh(item.preview.resolvedAt) &&
-        !(refreshIfMissingVideo && !existingVideoPreviewUrl);
-
-    if (item.preview && shouldUseFreshPreview) {
-        return {
-            errorCode: item.preview.errorCode,
-            libraryItemId: item.id,
-            mediaType: item.preview.mediaType,
-            providerStatus: item.preview.providerStatus,
-            sourceUrl: item.preview.sourceUrl,
-            staticImageUrl: existingStaticImageUrl,
-            videoPreviewUrl: existingVideoPreviewUrl,
-        };
-    }
-
-    const normalizedItemUrl = toValidUrl(item.url);
-    if (!isHttpUrl(normalizedItemUrl)) {
-        const invalidPayload = {
-            errorCode: "invalid_url" as const,
-            mediaType: PreviewMediaType.unknown,
-            providerStatus: PreviewProviderStatus.unavailable,
-            sourceUrl: item.url,
-            staticImageUrl: existingStaticImageUrl,
-            videoPreviewUrl: existingVideoPreviewUrl,
-        };
-
-        const preview = await prisma.libraryItemPreview.upsert({
-            create: {
-                ...invalidPayload,
-                libraryItemId: item.id,
-                resolvedAt: new Date(),
-            },
-            update: {
-                ...invalidPayload,
-                resolvedAt: new Date(),
-            },
-            where: {
-                libraryItemId: item.id,
-            },
-        });
-
-        return {
-            errorCode: preview.errorCode,
-            libraryItemId: item.id,
-            mediaType: preview.mediaType,
-            providerStatus: preview.providerStatus,
-            sourceUrl: preview.sourceUrl,
-            staticImageUrl: preview.staticImageUrl,
-            videoPreviewUrl: preview.videoPreviewUrl,
-        };
-    }
-
-    const resolved = await resolveCobaltPreview(normalizedItemUrl);
-    const resolvedAt = new Date();
-    const previewData =
-        resolved.status === "SUCCESS"
-            ? {
-                  errorCode: null,
-                  mediaType: toPreviewMediaType(resolved.mediaType),
-                  providerStatus: PreviewProviderStatus.success,
-                  sourceUrl: resolved.sourceUrl,
-                  staticImageUrl:
-                      resolved.staticImageUrl ?? existingStaticImageUrl,
-                  videoPreviewUrl:
-                      resolved.videoPreviewUrl ?? existingVideoPreviewUrl,
-              }
-            : {
-                  errorCode: resolved.errorCode,
-                  mediaType: PreviewMediaType.unknown,
-                  providerStatus:
-                      resolved.status === "UNAVAILABLE"
-                          ? PreviewProviderStatus.unavailable
-                          : PreviewProviderStatus.error,
-                  sourceUrl: normalizedItemUrl,
-                  staticImageUrl: existingStaticImageUrl,
-                  videoPreviewUrl: existingVideoPreviewUrl,
-              };
-
-    const preview = await prisma.libraryItemPreview.upsert({
-        create: {
-            ...previewData,
-            libraryItemId: item.id,
-            resolvedAt,
-        },
-        update: {
-            ...previewData,
-            resolvedAt,
-        },
-        where: {
-            libraryItemId: item.id,
-        },
-    });
-
-    return {
-        errorCode: preview.errorCode,
-        libraryItemId: item.id,
-        mediaType: preview.mediaType,
-        providerStatus: preview.providerStatus,
-        sourceUrl: preview.sourceUrl,
-        staticImageUrl: preview.staticImageUrl,
-        videoPreviewUrl: preview.videoPreviewUrl,
-    };
 }
 
 export function createCollection({

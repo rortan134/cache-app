@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useSyncExternalStore } from "react";
+import { useStableCallback } from "@base-ui/utils/useStableCallback";
+import { useEffect, useSyncExternalStore } from "react";
 
 type Theme = "light" | "dark" | "system";
 
@@ -202,14 +203,14 @@ export function useTheme() {
     const resolvedTheme: "light" | "dark" =
         theme === "system" ? snapshot_ : theme;
 
-    const setTheme = useCallback((next: Theme) => {
+    const setTheme = useStableCallback((next: Theme) => {
         if (!hasThemeStorage()) {
             return;
         }
         localStorage.setItem(STORAGE_KEY, next);
         applyTheme(next, true);
         emitChange();
-    }, []);
+    });
 
     // Keep DOM in sync on mount/change
     useEffect(() => {

@@ -53,13 +53,21 @@ export async function addLibraryItem(
             include: {
                 collections: {
                     orderBy: { name: SORT_ASC },
-                    select: { id: true, name: true },
+                    select: {
+                        createdAt: true,
+                        description: true,
+                        id: true,
+                        name: true,
+                        priority: true,
+                        sharedAt: true,
+                        shareId: true,
+                        updatedAt: true,
+                    },
                 },
-                preview: true,
             },
         });
 
-        return item as LibraryItemWithCollections;
+        return item as unknown as LibraryItemWithCollections;
     }
 
     const validatedUrl = parseStandaloneUrl(args.url);
@@ -84,13 +92,21 @@ export async function addLibraryItem(
         include: {
             collections: {
                 orderBy: { name: SORT_ASC },
-                select: { id: true, name: true },
+                select: {
+                    createdAt: true,
+                    description: true,
+                    id: true,
+                    name: true,
+                    priority: true,
+                    sharedAt: true,
+                    shareId: true,
+                    updatedAt: true,
+                },
             },
-            preview: true,
         },
     });
 
-    return item as LibraryItemWithCollections;
+    return item as unknown as LibraryItemWithCollections;
 }
 
 interface DeleteLibraryItemArgs {

@@ -388,7 +388,6 @@ export const ModelName = {
   Collection: 'Collection',
   LibraryActivityEvent: 'LibraryActivityEvent',
   LibraryItem: 'LibraryItem',
-  LibraryItemPreview: 'LibraryItemPreview',
   Session: 'Session',
   Account: 'Account',
   Verification: 'Verification',
@@ -409,7 +408,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "collection" | "libraryActivityEvent" | "libraryItem" | "libraryItemPreview" | "session" | "account" | "verification" | "subscription" | "feedback"
+    modelProps: "user" | "collection" | "libraryActivityEvent" | "libraryItem" | "session" | "account" | "verification" | "subscription" | "feedback"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -706,80 +705,6 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         count: {
           args: Prisma.LibraryItemCountArgs<ExtArgs>
           result: runtime.Types.Utils.Optional<Prisma.LibraryItemCountAggregateOutputType> | number
-        }
-      }
-    }
-    LibraryItemPreview: {
-      payload: Prisma.$LibraryItemPreviewPayload<ExtArgs>
-      fields: Prisma.LibraryItemPreviewFieldRefs
-      operations: {
-        findUnique: {
-          args: Prisma.LibraryItemPreviewFindUniqueArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$LibraryItemPreviewPayload> | null
-        }
-        findUniqueOrThrow: {
-          args: Prisma.LibraryItemPreviewFindUniqueOrThrowArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$LibraryItemPreviewPayload>
-        }
-        findFirst: {
-          args: Prisma.LibraryItemPreviewFindFirstArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$LibraryItemPreviewPayload> | null
-        }
-        findFirstOrThrow: {
-          args: Prisma.LibraryItemPreviewFindFirstOrThrowArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$LibraryItemPreviewPayload>
-        }
-        findMany: {
-          args: Prisma.LibraryItemPreviewFindManyArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$LibraryItemPreviewPayload>[]
-        }
-        create: {
-          args: Prisma.LibraryItemPreviewCreateArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$LibraryItemPreviewPayload>
-        }
-        createMany: {
-          args: Prisma.LibraryItemPreviewCreateManyArgs<ExtArgs>
-          result: BatchPayload
-        }
-        createManyAndReturn: {
-          args: Prisma.LibraryItemPreviewCreateManyAndReturnArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$LibraryItemPreviewPayload>[]
-        }
-        delete: {
-          args: Prisma.LibraryItemPreviewDeleteArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$LibraryItemPreviewPayload>
-        }
-        update: {
-          args: Prisma.LibraryItemPreviewUpdateArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$LibraryItemPreviewPayload>
-        }
-        deleteMany: {
-          args: Prisma.LibraryItemPreviewDeleteManyArgs<ExtArgs>
-          result: BatchPayload
-        }
-        updateMany: {
-          args: Prisma.LibraryItemPreviewUpdateManyArgs<ExtArgs>
-          result: BatchPayload
-        }
-        updateManyAndReturn: {
-          args: Prisma.LibraryItemPreviewUpdateManyAndReturnArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$LibraryItemPreviewPayload>[]
-        }
-        upsert: {
-          args: Prisma.LibraryItemPreviewUpsertArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$LibraryItemPreviewPayload>
-        }
-        aggregate: {
-          args: Prisma.LibraryItemPreviewAggregateArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.AggregateLibraryItemPreview>
-        }
-        groupBy: {
-          args: Prisma.LibraryItemPreviewGroupByArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.LibraryItemPreviewGroupByOutputType>[]
-        }
-        count: {
-          args: Prisma.LibraryItemPreviewCountArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.LibraryItemPreviewCountAggregateOutputType> | number
         }
       }
     }
@@ -1265,23 +1190,6 @@ export const LibraryItemScalarFieldEnum = {
 export type LibraryItemScalarFieldEnum = (typeof LibraryItemScalarFieldEnum)[keyof typeof LibraryItemScalarFieldEnum]
 
 
-export const LibraryItemPreviewScalarFieldEnum = {
-  id: 'id',
-  libraryItemId: 'libraryItemId',
-  sourceUrl: 'sourceUrl',
-  staticImageUrl: 'staticImageUrl',
-  videoPreviewUrl: 'videoPreviewUrl',
-  mediaType: 'mediaType',
-  providerStatus: 'providerStatus',
-  errorCode: 'errorCode',
-  resolvedAt: 'resolvedAt',
-  createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
-} as const
-
-export type LibraryItemPreviewScalarFieldEnum = (typeof LibraryItemPreviewScalarFieldEnum)[keyof typeof LibraryItemPreviewScalarFieldEnum]
-
-
 export const SessionScalarFieldEnum = {
   id: 'id',
   expiresAt: 'expiresAt',
@@ -1514,34 +1422,6 @@ export type ListEnumLibraryItemKindFieldRefInput<$PrismaModel> = FieldRefInputTy
 
 
 /**
- * Reference to a field of type 'LibraryItemPreviewMediaType'
- */
-export type EnumLibraryItemPreviewMediaTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'LibraryItemPreviewMediaType'>
-    
-
-
-/**
- * Reference to a field of type 'LibraryItemPreviewMediaType[]'
- */
-export type ListEnumLibraryItemPreviewMediaTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'LibraryItemPreviewMediaType[]'>
-    
-
-
-/**
- * Reference to a field of type 'LibraryItemPreviewProviderStatus'
- */
-export type EnumLibraryItemPreviewProviderStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'LibraryItemPreviewProviderStatus'>
-    
-
-
-/**
- * Reference to a field of type 'LibraryItemPreviewProviderStatus[]'
- */
-export type ListEnumLibraryItemPreviewProviderStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'LibraryItemPreviewProviderStatus[]'>
-    
-
-
-/**
  * Reference to a field of type 'Int'
  */
 export type IntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int'>
@@ -1682,7 +1562,6 @@ export type GlobalOmitConfig = {
   collection?: Prisma.CollectionOmit
   libraryActivityEvent?: Prisma.LibraryActivityEventOmit
   libraryItem?: Prisma.LibraryItemOmit
-  libraryItemPreview?: Prisma.LibraryItemPreviewOmit
   session?: Prisma.SessionOmit
   account?: Prisma.AccountOmit
   verification?: Prisma.VerificationOmit

@@ -7,10 +7,10 @@ import {
 import { FeedbackWidget } from "@/components/feedback/feedback-widget";
 import { Note } from "@/components/library/notes";
 import {
-    PreviewDrawer,
-    PreviewDrawerContent,
-    PreviewDrawerTrigger,
-} from "@/components/library/preview-drawer";
+    PeekDrawer,
+    PeekDrawerContent,
+    PeekDrawerTrigger,
+} from "@/components/library/peek";
 import {
     NAME_COLLATOR,
     useWorkspace,
@@ -120,23 +120,16 @@ import {
     type LibraryItemDeleteResult,
     type LibraryItemsCollectionsUpdateResult,
 } from "@/lib/collections/items";
+import { downloadMedia } from "@/lib/collections/media";
 import {
-    downloadMedia,
-    resolveLibraryItemPreview,
-    type LibraryItemPreviewResolveResult,
-} from "@/lib/collections/media";
-import type {
-    LibraryCollectionSummary,
-    LibraryItemWithCollections,
+    itemPreviewImageUrl,
+    itemPreviewVideoUrl,
+    type LibraryCollectionSummary,
+    type LibraryItemWithCollections,
 } from "@/lib/collections/utils";
 import { cn } from "@/lib/common/cn";
 import { getColorGradientFromName } from "@/lib/common/colors";
-import {
-    FALLBACK_URL,
-    ITEM_KIND_BOOKMARK,
-    ITEM_KIND_NOTE,
-} from "@/lib/common/constants";
-import { getOwnerWindow } from "@/lib/common/dom";
+import { FALLBACK_URL, ITEM_KIND_NOTE } from "@/lib/common/constants";
 import { getSystemControlKey } from "@/lib/common/environment";
 import {
     createFileAttachment,
@@ -188,17 +181,19 @@ import {
     CornerDownLeftIcon,
     DownloadIcon,
     ExternalLinkIcon,
-    EyeIcon,
     FilePenLineIcon,
     FolderOpen,
-    Funnel,
+    FolderSyncIcon,
     Globe,
-    Grid2x2,
-    Grid2x2X,
-    Info,
-    KanbanIcon,
-    Layers3,
+    GripVertical,
+    Hash,
+    Image,
+    Inbox,
+    Layers,
+    Library,
     LinkIcon,
+    List,
+    ListCheck,
     ListChevronsUpDown,
     MessageCircleQuestionMark,
     NotebookPenIcon,
@@ -1699,7 +1694,7 @@ function renderLibraryGridBody({
 
     return sections.map((section) =>
         enableSectionCollapse ? (
-            <Section
+            <LibraryBrowserSection
                 accentKey={section.key}
                 collapsed={collapsedSectionKeys.has(section.key)}
                 collapsible
@@ -2824,22 +2819,104 @@ interface BoardColumnItem {
 
 interface PreviewMediaProps {
     alt: string;
-    canResolveCobaltPreview: boolean;
-    itemId: string;
+    isHovered?: boolean;
     src: string | null;
-    videoPreviewUrl: string | null;
+    videoSrc?: string | null;
 }
 
-type CachedPreviewResult = Extract<
-    LibraryItemPreviewResolveResult,
-    { status: "SUCCESS" }
->;
+export function PreviewMedia({
+    alt,
+    isHovered = false,
+    src,
+    videoSrc,
+}: PreviewMediaProps) {
+    const imageSrc = src ?? undefined;
+    const canRenderImage = Boolean(imageSrc);
+    const canRenderVideo = Boolean(videoSrc);
+    const [isSoundEnabled, setIsSoundEnabled] = React.useState(false);
+    const videoRef = React.useRef<HTMLVideoElement | null>(null);
 
-const previewResultCache = new Map<
-    string,
-    Promise<CachedPreviewResult | null>
->();
-const HOVER_PREVIEW_INTENT_DELAY_MS = 250;
+    React.useEffect(() => {
+        const video = videoRef.current;
+        if (!(video && canRenderVideo)) {
+            return;
+        }
+
+        if (isHovered) {
+            video.play().catch((error: unknown) => {
+                log.debug("Failed to play hover preview", { error });
+            });
+        } else {
+            video.pause();
+            video.currentTime = 0;
+        }
+    }, [isHovered, canRenderVideo]);
+
+    const handleSoundToggle = (event: React.MouseEvent) => {
+        event.preventDefault();
+        setIsSoundEnabled((wasSoundEnabled) => !wasSoundEnabled);
+    };
+
+    const SoundIcon = isSoundEnabled ? Volume2Icon : VolumeXIcon;
+
+    return (
+        <div className="relative size-full">
+            {canRenderImage ? (
+                <img
+                    alt={alt}
+                    className={cn(
+                        "size-full object-cover transition-opacity duration-150",
+                        {
+                            "opacity-0": canRenderVideo && isHovered,
+                        }
+                    )}
+                    height={400}
+                    loading="lazy"
+                    src={imageSrc}
+                    width={300}
+                />
+            ) : null}
+            {canRenderVideo ? (
+                <>
+                    <video
+                        className={cn(
+                            "pointer-events-none absolute inset-0 size-full object-cover transition-opacity duration-150",
+                            {
+                                "opacity-0": !isHovered,
+                                "opacity-100": isHovered,
+                            }
+                        )}
+                        loop
+                        muted={!isSoundEnabled}
+                        playsInline
+                        preload="metadata"
+                        ref={videoRef}
+                        src={videoSrc ?? undefined}
+                    />
+                    <Button
+                        aria-label={
+                            isSoundEnabled
+                                ? "Mute video preview"
+                                : "Enable video preview sound"
+                        }
+                        aria-pressed={isSoundEnabled}
+                        className={cn(
+                            "pointer-events-auto absolute top-2 right-2 z-10 rounded-full border-white/15 bg-black/45 text-white opacity-0 shadow-sm backdrop-blur-sm transition-opacity hover:bg-black/60 focus-visible:opacity-100 focus-visible:ring-white/70",
+                            {
+                                "opacity-100": isHovered,
+                            }
+                        )}
+                        onClick={handleSoundToggle}
+                        size="icon-sm"
+                        variant="ghost"
+                    >
+                        <SoundIcon className="size-4" />
+                    </Button>
+                </>
+            ) : null}
+        </div>
+    );
+}
 
 type LibraryGridCardContextValue = Pick<
     GridProps,
@@ -2987,326 +3064,6 @@ function getItemTitle(item: LibraryItemWithCollections): string {
         return caption;
     }
     return item.url;
-}
-
-function itemStaticPreviewUrl(item: LibraryItemWithCollections): string | null {
-    const staticImageUrl = item.preview?.staticImageUrl ?? null;
-    if (staticImageUrl) {
-        return staticImageUrl;
-    }
-
-    if (item.kind !== ITEM_KIND_BOOKMARK) {
-        return null;
-    }
-
-    const href = toValidUrl(item.url);
-    if (href === FALLBACK_URL) {
-        return null;
-    }
-
-    return `/api/preview?url=${encodeURIComponent(href)}`;
-}
-
-function canResolveCobaltPreview(item: LibraryItemWithCollections): boolean {
-    if (
-        item.kind !== ITEM_KIND_BOOKMARK ||
-        toValidUrl(item.url) === FALLBACK_URL
-    ) {
-        return false;
-    }
-
-    switch (item.source) {
-        case LibraryItemSource.google_photos:
-        case LibraryItemSource.instagram:
-        case LibraryItemSource.other:
-        case LibraryItemSource.pinterest:
-        case LibraryItemSource.tiktok:
-        case LibraryItemSource.x_bookmarks:
-        case LibraryItemSource.youtube_watch_later:
-            return true;
-        default:
-            return false;
-    }
-}
-
-export function PreviewMedia({
-    alt,
-    canResolveCobaltPreview,
-    itemId,
-    src,
-    videoPreviewUrl,
-}: PreviewMediaProps) {
-    const [didFail, setDidFail] = React.useState(false);
-    const [resolvedImageSrc, setResolvedImageSrc] = React.useState(src);
-    const [hoverVideoUrl, setHoverVideoUrl] = React.useState(videoPreviewUrl);
-    const [isHovering, setIsHovering] = React.useState(false);
-    const [isSoundEnabled, setIsSoundEnabled] = React.useState(false);
-    const [videoFailed, setVideoFailed] = React.useState(false);
-    const videoRef = React.useRef<HTMLVideoElement | null>(null);
-    const hoverTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(
-        null
-    );
-    const isHoveringRef = React.useRef(isHovering);
-    const staticPreviewCacheKey = `static:${itemId}`;
-    const videoPreviewCacheKey = `video:${itemId}`;
-    const imageSrc = resolvedImageSrc ?? undefined;
-
-    const canRenderImage = Boolean(imageSrc) && !didFail;
-    const canRenderVideo = Boolean(hoverVideoUrl) && !videoFailed;
-
-    React.useEffect(() => {
-        isHoveringRef.current = isHovering;
-    }, [isHovering]);
-
-    // biome-ignore lint/correctness/useExhaustiveDependencies: reset failure state when the resolved URL changes
-    React.useEffect(() => {
-        setVideoFailed(false);
-    }, [hoverVideoUrl]);
-
-    React.useEffect(() => {
-        setResolvedImageSrc(src);
-        setDidFail(false);
-    }, [src]);
-
-    React.useEffect(() => {
-        setHoverVideoUrl(videoPreviewUrl);
-    }, [videoPreviewUrl]);
-
-    React.useEffect(() => {
-        if (!canResolveCobaltPreview) {
-            return;
-        }
-
-        if (src && hoverVideoUrl) {
-            return;
-        }
-
-        if (previewResultCache.has(staticPreviewCacheKey)) {
-            const cached = previewResultCache.get(staticPreviewCacheKey);
-            cached?.then((result) => {
-                const staticImageUrl = result?.staticImageUrl ?? null;
-                if (staticImageUrl) {
-                    setResolvedImageSrc(staticImageUrl);
-                }
-                if (result?.videoPreviewUrl) {
-                    setHoverVideoUrl(result.videoPreviewUrl);
-                }
-            });
-            return;
-        }
-
-        const request = resolveLibraryItemPreview(itemId).then((result) => {
-            if (result.status !== "SUCCESS") {
-                return null;
-            }
-            return result;
-        });
-        previewResultCache.set(staticPreviewCacheKey, request);
-        request
-            .then((result) => {
-                const staticImageUrl = result?.staticImageUrl ?? null;
-                if (staticImageUrl) {
-                    setResolvedImageSrc(staticImageUrl);
-                }
-                if (result?.videoPreviewUrl) {
-                    setHoverVideoUrl(result.videoPreviewUrl);
-                }
-            })
-            .catch((error: unknown) => {
-                log.debug("Failed to resolve static preview", {
-                    error,
-                    itemId,
-                });
-                previewResultCache.delete(staticPreviewCacheKey);
-            });
-    }, [
-        canResolveCobaltPreview,
-        hoverVideoUrl,
-        itemId,
-        src,
-        staticPreviewCacheKey,
-    ]);
-
-    React.useEffect(() => {
-        if (!(isHovering && hoverVideoUrl)) {
-            videoRef.current?.pause();
-            return;
-        }
-
-        const playPromise = videoRef.current?.play();
-        playPromise?.catch((error: unknown) => {
-            log.debug("Failed to autoplay hover preview", {
-                error,
-                itemId,
-            });
-        });
-    }, [hoverVideoUrl, isHovering, itemId]);
-
-    React.useEffect(
-        () => () => {
-            if (hoverTimerRef.current) {
-                clearTimeout(hoverTimerRef.current);
-            }
-            if (videoRef.current) {
-                videoRef.current.pause();
-                videoRef.current.removeAttribute("src");
-                videoRef.current.load();
-            }
-        },
-        []
-    );
-
-    const handlePointerEnter = (event: React.PointerEvent<HTMLDivElement>) => {
-        if (
-            getOwnerWindow(event.currentTarget).matchMedia("(pointer: coarse)")
-                .matches
-        ) {
-            return;
-        }
-
-        setIsHovering(true);
-        if (!canResolveCobaltPreview) {
-            return;
-        }
-        if (
-            (hoverVideoUrl && !videoFailed) ||
-            previewResultCache.has(videoPreviewCacheKey)
-        ) {
-            const cached = previewResultCache.get(videoPreviewCacheKey);
-            cached?.then((result) => {
-                if (result?.videoPreviewUrl) {
-                    setHoverVideoUrl(result.videoPreviewUrl);
-                }
-            });
-            return;
-        }
-
-        hoverTimerRef.current = setTimeout(() => {
-            if (!isHoveringRef.current) {
-                return;
-            }
-
-            const request = resolveLibraryItemPreview(itemId, {
-                refreshIfMissingVideo: true,
-            }).then((result) => {
-                if (result.status !== "SUCCESS") {
-                    return null;
-                }
-                return result;
-            });
-            previewResultCache.set(videoPreviewCacheKey, request);
-            request
-                .then((result) => {
-                    const staticImageUrl = result?.staticImageUrl ?? null;
-                    if (staticImageUrl) {
-                        setResolvedImageSrc(staticImageUrl);
-                    }
-                    if (result?.videoPreviewUrl) {
-                        setHoverVideoUrl(result.videoPreviewUrl);
-                    }
-                })
-                .catch((error: unknown) => {
-                    log.debug("Failed to resolve hover preview", {
-                        error,
-                        itemId,
-                    });
-                    previewResultCache.delete(videoPreviewCacheKey);
-                });
-        }, HOVER_PREVIEW_INTENT_DELAY_MS);
-    };
-
-    const handlePointerLeave = () => {
-        setIsHovering(false);
-        if (hoverTimerRef.current) {
-            clearTimeout(hoverTimerRef.current);
-            hoverTimerRef.current = null;
-        }
-    };
-
-    const handleSoundToggle = (event: React.MouseEvent<HTMLButtonElement>) => {
-        event.preventDefault();
-        event.stopPropagation();
-
-        setIsSoundEnabled((wasSoundEnabled) => {
-            const shouldEnableSound = !wasSoundEnabled;
-            if (shouldEnableSound) {
-                const playPromise = videoRef.current?.play();
-                playPromise?.catch((error: unknown) => {
-                    log.debug("Failed to play hover preview with sound", {
-                        error,
-                        itemId,
-                    });
-                });
-            }
-            return shouldEnableSound;
-        });
-    };
-
-    const SoundIcon = isSoundEnabled ? Volume2Icon : VolumeXIcon;
-
-    return (
-        <div
-            className="relative size-full"
-            onPointerEnter={handlePointerEnter}
-            onPointerLeave={handlePointerLeave}
-        >
-            {canRenderImage ? (
-                // biome-ignore lint/a11y/noNoninteractiveElementInteractions: image load failures drive the visual fallback state
-                <img
-                    alt={alt}
-                    className="size-full object-cover"
-                    height={400}
-                    loading="lazy"
-                    onError={() => setDidFail(true)}
-                    src={imageSrc}
-                    width={300}
-                />
-            ) : null}
-            {canRenderVideo ? (
-                <video
-                    className={cn(
-                        "absolute inset-0 size-full object-cover opacity-0 transition-opacity duration-150",
-                        isHovering && "opacity-100"
-                    )}
-                    loop
-                    muted={!isSoundEnabled}
-                    onCanPlay={() => {
-                        if (isHoveringRef.current) {
-                            videoRef.current?.play().catch(() => undefined);
-                        }
-                    }}
-                    onError={() => setVideoFailed(true)}
-                    playsInline
-                    preload="metadata"
-                    ref={videoRef}
-                    src={hoverVideoUrl ?? undefined}
-                />
-            ) : null}
-            {canRenderVideo ? (
-                <Button
-                    aria-label={
-                        isSoundEnabled
-                            ? "Mute video preview"
-                            : "Enable video preview sound"
-                    }
-                    aria-pressed={isSoundEnabled}
-                    className={cn(
-                        "absolute top-2 right-2 z-10 rounded-full border-white/15 bg-black/45 text-white opacity-0 shadow-sm backdrop-blur-sm transition-opacity hover:bg-black/60 focus-visible:opacity-100 focus-visible:ring-white/70",
-                        isHovering && "opacity-100"
-                    )}
-                    onClick={handleSoundToggle}
-                    onPointerDown={(event) => {
-                        event.preventDefault();
-                        event.stopPropagation();
-                    }}
-                    size="icon-sm"
-                    variant="ghost"
-                >
-                    <SoundIcon className="size-4" />
-                </Button>
-            ) : null}
-        </div>
-    );
 }
 
 /** @internal */
@@ -3484,9 +3241,7 @@ function CardMenu({
     item,
     kind,
     onDownload,
-    previewDescription,
     previewImageUrl,
-    previewTitle,
 }: LibraryGridCardMenuProps) {
     const {
         onCopyLink,
@@ -3501,27 +3256,6 @@ function CardMenu({
     const isNote = item.kind === ITEM_KIND_NOTE;
     const isDeletePending = pendingDeleteItemId === item.id;
     const canPreview = !isNote && toValidUrl(href) !== FALLBACK_URL;
-
-    const deleteItem =
-        kind === "context" ? (
-            <ContextMenuItem
-                className="text-destructive data-highlighted:bg-destructive/10 data-highlighted:text-destructive"
-                disabled={isDeletePending}
-                onClick={() => onDelete?.(item)}
-            >
-                <Trash2Icon className="size-4.5" />
-                {isDeletePending ? "Deleting..." : "Delete"}
-            </ContextMenuItem>
-        ) : (
-            <MenuItem
-                disabled={isDeletePending}
-                onClick={() => onDelete?.(item)}
-                variant="destructive"
-            >
-                <Trash2Icon className="size-4.5" />
-                {isDeletePending ? "Deleting..." : "Delete"}
-            </MenuItem>
-        );
 
     return (
         <>
@@ -3573,20 +3307,18 @@ function CardMenu({
                 </Item>
             ) : null}
             {canPreview ? (
-                <PreviewDrawer
-                    description={previewDescription}
-                    title={previewTitle}
-                    url={href}
+                <PeekDrawer
+                    description={itemDomain(item.url)}
+                    key={item.url}
+                    title={getItemTitle(item)}
+                    url={item.url}
                 >
-                    <PreviewDrawerTrigger
-                        nativeButton={false}
-                        render={<Item closeOnClick={false} />}
-                    >
-                        <EyeIcon className="size-4.5 text-muted-foreground" />
-                        Open preview
-                    </PreviewDrawerTrigger>
-                    <PreviewDrawerContent />
-                </PreviewDrawer>
+                    <PeekDrawerTrigger
+                        className="group/card relative flex w-full flex-col overflow-hidden rounded-lg border border-border/40 bg-card text-start shadow-xs/5 transition-colors hover:bg-muted/30"
+                        render={<button type="button" />}
+                    />
+                    <PeekDrawerContent />
+                </PeekDrawer>
             ) : null}
             {isNote ? null : (
                 <>
@@ -3605,7 +3337,25 @@ function CardMenu({
                     <ItemSeparator />
                 </>
             )}
-            {deleteItem}
+            {kind === "context" ? (
+                <ContextMenuItem
+                    className="text-destructive data-highlighted:bg-destructive/10 data-highlighted:text-destructive"
+                    disabled={isDeletePending}
+                    onClick={() => onDelete?.(item)}
+                >
+                    <Trash2Icon className="size-4.5" />
+                    {isDeletePending ? "Deleting..." : "Delete"}
+                </ContextMenuItem>
+            ) : (
+                <MenuItem
+                    disabled={isDeletePending}
+                    onClick={() => onDelete?.(item)}
+                    variant="destructive"
+                >
+                    <Trash2Icon className="size-4.5" />
+                    {isDeletePending ? "Deleting..." : "Delete"}
+                </MenuItem>
+            )}
         </>
     );
 }
@@ -3617,11 +3367,12 @@ function Card({ item }: LibraryGridCardProps) {
     const [isDownloading, setIsDownloading] = React.useState(false);
     const [isCollectionPickerOpen, setIsCollectionPickerOpen] =
         React.useState(false);
+    const [isCardHovered, setIsCardHovered] = React.useState(false);
     const href = normalizeURL(item.url);
     const alt = (item.caption ?? "").trim() || "Saved item";
     const domain = itemDomain(item.url);
-    const previewImageUrl = itemStaticPreviewUrl(item);
-    const previewVideoUrl = item.preview?.videoPreviewUrl ?? null;
+    const previewImageUrl = itemPreviewImageUrl(item);
+    const previewVideoUrl = itemPreviewVideoUrl(item);
     const previewTitle = alt === "Saved item" ? "Preview" : alt;
     const previewDescription = domain === "Other" ? item.url : domain;
     const createdLabel = itemDateLabel(item.createdAt);
@@ -3708,6 +3459,8 @@ function Card({ item }: LibraryGridCardProps) {
                         className="flex flex-col focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
                         href={href}
                         onClick={handlePrimaryClick}
+                        onMouseEnter={() => setIsCardHovered(true)}
+                        onMouseLeave={() => setIsCardHovered(false)}
                         rel="noopener noreferrer"
                         target={isNote ? undefined : "_blank"}
                     >
@@ -3725,13 +3478,10 @@ function Card({ item }: LibraryGridCardProps) {
                             <div className="relative aspect-3/4 w-full overflow-hidden">
                                 <PreviewMedia
                                     alt={alt}
-                                    canResolveCobaltPreview={canResolveCobaltPreview(
-                                        item
-                                    )}
-                                    itemId={item.id}
+                                    isHovered={isCardHovered}
                                     key={item.id}
-                                    src={href}
-                                    videoPreviewUrl={previewVideoUrl}
+                                    src={previewImageUrl}
+                                    videoSrc={previewVideoUrl}
                                 />
                             </div>
                         )}
@@ -4142,7 +3892,7 @@ function SectionSummaryContent({
     );
 }
 
-function Section({
+function LibraryBrowserSection({
     accentKey,
     collapsed = false,
     collapsible = false,

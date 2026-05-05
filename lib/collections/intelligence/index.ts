@@ -104,10 +104,6 @@ interface SmartCollectionItem {
         | typeof ITEM_KIND_BOOKMARK
         | typeof ITEM_KIND_FOLDER
         | typeof ITEM_KIND_NOTE;
-    preview: {
-        staticImageUrl: string | null;
-        videoPreviewUrl: string | null;
-    } | null;
     source: LibraryItemSource;
     sourceMetadata: unknown;
     url: string;
@@ -363,7 +359,6 @@ function buildPrompt(
         `Item source: ${sourceLabel(item.source)}`,
         `Item URL: ${item.url}`,
         `Item caption: ${item.caption ?? "None"}`,
-        `Item preview URL: ${item.preview?.staticImageUrl ?? item.preview?.videoPreviewUrl ?? "None"}`,
         `Already assigned collections: ${currentCollectionNames.length > 0 ? currentCollectionNames.join(", ") : "None"}`,
         sourceMetadata && `Item source metadata: ${sourceMetadata}`,
         "",
@@ -563,10 +558,8 @@ async function resolveContentCandidates(
         case LibraryItemSource.google_photos:
         case LibraryItemSource.github_starred_repositories:
             addUrl(item.url);
-            addUrl(item.preview?.staticImageUrl);
             break;
         case LibraryItemSource.pinterest:
-            addUrl(item.preview?.staticImageUrl);
             addUrl(item.url);
             break;
         case LibraryItemSource.chrome_bookmarks:
@@ -579,7 +572,6 @@ async function resolveContentCandidates(
                     candidates.push(cobaltResult.downloadUrl);
                 }
             }
-            addUrl(item.preview?.staticImageUrl);
             if (item.source === LibraryItemSource.other) {
                 addUrl(item.url);
             }
@@ -933,12 +925,6 @@ export async function autoTagLibraryItemsByIds(args: {
                 },
                 id: true,
                 kind: true,
-                preview: {
-                    select: {
-                        staticImageUrl: true,
-                        videoPreviewUrl: true,
-                    },
-                },
                 source: true,
                 sourceMetadata: true,
                 url: true,

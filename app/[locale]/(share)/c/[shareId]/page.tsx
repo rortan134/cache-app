@@ -43,19 +43,10 @@ function getSharedItemHref(item: { kind: string; url: string }): string | null {
 }
 
 function getSharedItemPreviewImageUrl(
-    item: {
-        preview: {
-            staticImageUrl: string | null;
-        } | null;
-    },
+    item: { kind: string; url: string },
     href: string | null
 ): string | null {
-    const staticImageUrl = item.preview?.staticImageUrl ?? null;
-    if (staticImageUrl) {
-        return staticImageUrl;
-    }
-
-    if (!href) {
+    if (item.kind === ITEM_KIND_NOTE || !href) {
         return null;
     }
 

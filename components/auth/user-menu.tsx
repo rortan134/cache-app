@@ -1,9 +1,11 @@
 "use client";
 
 import { LogoutButton } from "@/components/auth/logout-button";
+import { WithSessionUser } from "@/components/auth/session";
 import {
-    PrivilegedOnly,
-    UnprivilegedOnly,
+    SubscriptionOnly,
+    UnsubscribedOnly,
+    WithSubscription,
 } from "@/components/billing/privilege";
 import { KeyboardShortcutsDialogTrigger } from "@/components/library/shortcuts";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -15,7 +17,6 @@ import { Popover, PopoverPopup, PopoverTrigger } from "@/components/ui/popover";
 import { Separator } from "@/components/ui/separator";
 import { SidebarItem } from "@/components/ui/sidebar";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useAccess } from "@/hooks/use-access";
 import { authClient } from "@/lib/auth/client";
 import { getInitials } from "@/lib/common/strings";
 import { LocaleSelector, T, Var, useLocale } from "gt-next";
@@ -91,90 +92,98 @@ function MenuSeparator() {
 }
 
 function SubscriptionBadge() {
-    const { subscription } = useAccess();
-
-    if (!subscription) {
-        return (
-            <Badge className="h-6! w-full" variant="secondary">
-                <T context="Free plan label">Free plan</T>
-            </Badge>
-        );
-    }
-
-    const planLabel = subscription.plan
-        ? subscription.plan[0]?.toUpperCase() + subscription.plan.slice(1)
-        : "Subscription";
-
-    let intervalLabel: ReactNode | null = null;
-    if (subscription.billingInterval === "year") {
-        intervalLabel = <T>yearly</T>;
-    } else if (subscription.billingInterval === "month") {
-        intervalLabel = <T>monthly</T>;
-    }
-
-    const expiresAt = subscription.periodEnd
-        ? new Intl.DateTimeFormat(undefined, {
-              day: "numeric",
-              month: "short",
-          }).format(new Date(subscription.periodEnd))
-        : null;
-
-    if (subscription.cancelAtPeriodEnd) {
-        return (
-            <Badge
-                className="h-6! w-full bg-amber-100 text-amber-900"
-                variant="secondary"
-            >
-                <CrownFilledIcon />
-                <T context="Subscription ends message">
-                    <Var>{planLabel}</Var> ends <Var>{expiresAt ?? "soon"}</Var>
-                </T>
-            </Badge>
-        );
-    }
-
-    if (subscription.status === "trialing") {
-        return (
-            <Badge
-                className="h-6! w-full bg-primary/10 text-primary"
-                variant="secondary"
-            >
-                <CrownFilledIcon />
-                <T context="Trialing status label">
-                    <Var>{planLabel}</Var> trial, then{" "}
-                    <Var>{intervalLabel}</Var>
-                </T>
-            </Badge>
-        );
-    }
-
-    if (subscription.status === "active") {
-        return (
-            <Badge
-                className="h-6! w-full bg-primary/10 text-primary"
-                variant="secondary"
-            >
-                <CrownFilledIcon />
-                <T context="Active status label">
-                    <Var>{planLabel}</Var> <Var>{intervalLabel}</Var>
-                </T>
-            </Badge>
-        );
-    }
-
     return (
-        <Badge
-            className="h-6! w-full bg-muted text-muted-foreground"
-            variant="secondary"
-        >
-            <CrownFilledIcon />
-            <T context="Other subscription status">
-                <Var>{planLabel}</Var>{" "}
-                <Var>
-                    {subscription.status?.replaceAll("_", " ") ?? "Unknown"}
-                </Var>
-            </T>
-        </Badge>
+        <WithSubscription>
+            {(subscription) => {
+                if (!subscription) {
+                    return (
+                        <Badge className="h-6! w-full" variant="secondary">
+                            <T context="Free plan label">Free plan</T>
+                        </Badge>
+                    );
+                }
+
+                const planLabel = subscription.plan
+                    ? subscription.plan[0]?.toUpperCase() +
+                      subscription.plan.slice(1)
+                    : "Subscription";
+
+                let intervalLabel: ReactNode | null = null;
+                if (subscription.billingInterval === "year") {
+                    intervalLabel = <T>yearly</T>;
+                } else if (subscription.billingInterval === "month") {
+                    intervalLabel = <T>monthly</T>;
+                }
+
+                const expiresAt = subscription.periodEnd
+                    ? new Intl.DateTimeFormat(undefined, {
+                          day: "numeric",
+                          month: "short",
+                      }).format(new Date(subscription.periodEnd))
+                    : null;
+
+                if (subscription.cancelAtPeriodEnd) {
+                    return (
+                        <Badge
+                            className="h-6! w-full bg-amber-100 text-amber-900"
+                            variant="secondary"
+                        >
+                            <CrownFilledIcon />
+                            <T context="Subscription ends message">
+                                <Var>{planLabel}</Var> ends{" "}
+                                <Var>{expiresAt ?? "soon"}</Var>
+                            </T>
+                        </Badge>
+                    );
+                }
+
+                if (subscription.status === "trialing") {
+                    return (
+                        <Badge
+                            className="h-6! w-full bg-primary/10 text-primary"
+                            variant="secondary"
+                        >
+                            <CrownFilledIcon />
+                            <T context="Trialing status label">
+                                <Var>{planLabel}</Var> trial, then{" "}
+                                <Var>{intervalLabel}</Var>
+                            </T>
+                        </Badge>
+                    );
+                }
+
+                if (subscription.status === "active") {
+                    return (
+                        <Badge
+                            className="h-6! w-full bg-primary/10 text-primary"
+                            variant="secondary"
+                        >
+                            <CrownFilledIcon />
+                            <T context="Active status label">
+                                <Var>{planLabel}</Var>{" "}
+                                <Var>{intervalLabel}</Var>
+                            </T>
+                        </Badge>
+                    );
+                }
+
+                return (
+                    <Badge
+                        className="h-6! w-full bg-muted text-muted-foreground"
+                        variant="secondary"
+                    >
+                        <CrownFilledIcon />
+                        <T context="Other subscription status">
+                            <Var>{planLabel}</Var>{" "}
+                            <Var>
+                                {subscription.status?.replaceAll("_", " ") ??
+                                    "Unknown"}
+                            </Var>
+                        </T>
+                    </Badge>
+                );
+            }}
+        </WithSubscription>
     );
 }
 
@@ -268,26 +277,22 @@ function UserMenuSkeleton() {
 }
 
 export function UserMenuHeader() {
-    const { session } = useAccess();
-
-    if (!session?.user) {
-        return null;
-    }
-
-    const { user } = session;
-
     return (
-        <div className="min-w-0 flex-1">
-            <p className="truncate font-medium text-sm">
-                {user.name ?? <T>Cache account</T>}
-            </p>
-            <p className="truncate text-muted-foreground text-sm">
-                {user.email}
-            </p>
-            <div className="mt-2 flex items-center gap-2">
-                <SubscriptionBadge />
-            </div>
-        </div>
+        <WithSessionUser>
+            {(user) => (
+                <div className="min-w-0 flex-1">
+                    <p className="truncate font-medium text-sm">
+                        {user.name ?? <T>Cache account</T>}
+                    </p>
+                    <p className="truncate text-muted-foreground text-sm">
+                        {user.email}
+                    </p>
+                    <div className="mt-2 flex items-center gap-2">
+                        <SubscriptionBadge />
+                    </div>
+                </div>
+            )}
+        </WithSessionUser>
     );
 }
 
@@ -316,10 +321,10 @@ export function UserMenuContent() {
                 </div>
             </MenuSection>
             <MenuSection>
-                <PrivilegedOnly>
+                <SubscriptionOnly>
                     <BillingPortalButton returnPath={returnPath} />
-                </PrivilegedOnly>
-                <UnprivilegedOnly>
+                </SubscriptionOnly>
+                <UnsubscribedOnly>
                     <UpgradeButton returnPath={returnPath} />
                     <Button
                         className="justify-between"
@@ -329,7 +334,7 @@ export function UserMenuContent() {
                         <T>Pricing</T>
                         <ArrowUpRight className="ml-auto inline-block size-4.5 shrink-0 text-muted-foreground" />
                     </Button>
-                </UnprivilegedOnly>
+                </UnsubscribedOnly>
                 <Button
                     className="justify-between"
                     render={<Link href="/changelog" />}
@@ -400,54 +405,46 @@ export function UserMenuFooter() {
 }
 
 export function UserMenu({ children }: { children: ReactNode }) {
-    const { isLoading, session } = useAccess();
-
-    if (isLoading) {
-        return <UserMenuSkeleton />;
-    }
-
-    if (!session?.user) {
-        return null;
-    }
-
-    const { user } = session;
-
     return (
-        <Popover>
-            <PopoverTrigger
-                className="justify-between px-2 opacity-100"
-                nativeButton={false}
-                render={<SidebarItem />}
-            >
-                <span className="flex min-w-0 items-center gap-2">
-                    <Avatar className="size-5.5 rounded-md">
-                        <AvatarImage
-                            alt={user.name ?? user.email}
-                            src={user.image ?? undefined}
-                        />
-                        <AvatarFallback className="rounded-md">
-                            {getInitials(user.name, user.email)}
-                        </AvatarFallback>
-                    </Avatar>
-                    <span className="flex min-w-0 flex-col items-start text-left">
-                        <span className="truncate font-medium text-sm">
-                            {user.name ?? <T>Account</T>}
+        <WithSessionUser loadingRender={<UserMenuSkeleton />}>
+            {(user) => (
+                <Popover>
+                    <PopoverTrigger
+                        className="justify-between px-2 opacity-100"
+                        nativeButton={false}
+                        render={<SidebarItem />}
+                    >
+                        <span className="flex min-w-0 items-center gap-2">
+                            <Avatar className="size-5.5 rounded-md">
+                                <AvatarImage
+                                    alt={user.name ?? user.email}
+                                    src={user.image ?? undefined}
+                                />
+                                <AvatarFallback className="rounded-md">
+                                    {getInitials(user.name, user.email)}
+                                </AvatarFallback>
+                            </Avatar>
+                            <span className="flex min-w-0 flex-col items-start text-left">
+                                <span className="truncate font-medium text-sm">
+                                    {user.name ?? <T>Account</T>}
+                                </span>
+                            </span>
                         </span>
-                    </span>
-                </span>
-                <ChevronDown
-                    aria-hidden
-                    className="pointer-events-none inline-block size-3.5 shrink-0 opacity-80"
-                />
-            </PopoverTrigger>
-            <PopoverPopup
-                align="start"
-                className="min-w-[240px]"
-                positionMethod="fixed"
-                side="top"
-            >
-                <div className="flex flex-col gap-4">{children}</div>
-            </PopoverPopup>
-        </Popover>
+                        <ChevronDown
+                            aria-hidden
+                            className="pointer-events-none inline-block size-3.5 shrink-0 opacity-80"
+                        />
+                    </PopoverTrigger>
+                    <PopoverPopup
+                        align="start"
+                        className="min-w-[240px]"
+                        positionMethod="fixed"
+                        side="top"
+                    >
+                        <div className="flex flex-col gap-4">{children}</div>
+                    </PopoverPopup>
+                </Popover>
+            )}
+        </WithSessionUser>
     );
 }

@@ -45,25 +45,6 @@ export const CollectionPriority = {
 export type CollectionPriority = (typeof CollectionPriority)[keyof typeof CollectionPriority]
 
 
-export const LibraryItemPreviewMediaType = {
-  image: 'image',
-  video: 'video',
-  gif: 'gif',
-  unknown: 'unknown'
-} as const
-
-export type LibraryItemPreviewMediaType = (typeof LibraryItemPreviewMediaType)[keyof typeof LibraryItemPreviewMediaType]
-
-
-export const LibraryItemPreviewProviderStatus = {
-  success: 'success',
-  unavailable: 'unavailable',
-  error: 'error'
-} as const
-
-export type LibraryItemPreviewProviderStatus = (typeof LibraryItemPreviewProviderStatus)[keyof typeof LibraryItemPreviewProviderStatus]
-
-
 export const LibraryActivityEventKind = {
   collection_created: 'collection_created',
   collection_shared: 'collection_shared',

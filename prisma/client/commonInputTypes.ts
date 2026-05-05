@@ -267,40 +267,6 @@ export type EnumLibraryItemKindWithAggregatesFilter<$PrismaModel = never> = {
   _max?: Prisma.NestedEnumLibraryItemKindFilter<$PrismaModel>
 }
 
-export type EnumLibraryItemPreviewMediaTypeFilter<$PrismaModel = never> = {
-  equals?: $Enums.LibraryItemPreviewMediaType | Prisma.EnumLibraryItemPreviewMediaTypeFieldRefInput<$PrismaModel>
-  in?: $Enums.LibraryItemPreviewMediaType[] | Prisma.ListEnumLibraryItemPreviewMediaTypeFieldRefInput<$PrismaModel>
-  notIn?: $Enums.LibraryItemPreviewMediaType[] | Prisma.ListEnumLibraryItemPreviewMediaTypeFieldRefInput<$PrismaModel>
-  not?: Prisma.NestedEnumLibraryItemPreviewMediaTypeFilter<$PrismaModel> | $Enums.LibraryItemPreviewMediaType
-}
-
-export type EnumLibraryItemPreviewProviderStatusFilter<$PrismaModel = never> = {
-  equals?: $Enums.LibraryItemPreviewProviderStatus | Prisma.EnumLibraryItemPreviewProviderStatusFieldRefInput<$PrismaModel>
-  in?: $Enums.LibraryItemPreviewProviderStatus[] | Prisma.ListEnumLibraryItemPreviewProviderStatusFieldRefInput<$PrismaModel>
-  notIn?: $Enums.LibraryItemPreviewProviderStatus[] | Prisma.ListEnumLibraryItemPreviewProviderStatusFieldRefInput<$PrismaModel>
-  not?: Prisma.NestedEnumLibraryItemPreviewProviderStatusFilter<$PrismaModel> | $Enums.LibraryItemPreviewProviderStatus
-}
-
-export type EnumLibraryItemPreviewMediaTypeWithAggregatesFilter<$PrismaModel = never> = {
-  equals?: $Enums.LibraryItemPreviewMediaType | Prisma.EnumLibraryItemPreviewMediaTypeFieldRefInput<$PrismaModel>
-  in?: $Enums.LibraryItemPreviewMediaType[] | Prisma.ListEnumLibraryItemPreviewMediaTypeFieldRefInput<$PrismaModel>
-  notIn?: $Enums.LibraryItemPreviewMediaType[] | Prisma.ListEnumLibraryItemPreviewMediaTypeFieldRefInput<$PrismaModel>
-  not?: Prisma.NestedEnumLibraryItemPreviewMediaTypeWithAggregatesFilter<$PrismaModel> | $Enums.LibraryItemPreviewMediaType
-  _count?: Prisma.NestedIntFilter<$PrismaModel>
-  _min?: Prisma.NestedEnumLibraryItemPreviewMediaTypeFilter<$PrismaModel>
-  _max?: Prisma.NestedEnumLibraryItemPreviewMediaTypeFilter<$PrismaModel>
-}
-
-export type EnumLibraryItemPreviewProviderStatusWithAggregatesFilter<$PrismaModel = never> = {
-  equals?: $Enums.LibraryItemPreviewProviderStatus | Prisma.EnumLibraryItemPreviewProviderStatusFieldRefInput<$PrismaModel>
-  in?: $Enums.LibraryItemPreviewProviderStatus[] | Prisma.ListEnumLibraryItemPreviewProviderStatusFieldRefInput<$PrismaModel>
-  notIn?: $Enums.LibraryItemPreviewProviderStatus[] | Prisma.ListEnumLibraryItemPreviewProviderStatusFieldRefInput<$PrismaModel>
-  not?: Prisma.NestedEnumLibraryItemPreviewProviderStatusWithAggregatesFilter<$PrismaModel> | $Enums.LibraryItemPreviewProviderStatus
-  _count?: Prisma.NestedIntFilter<$PrismaModel>
-  _min?: Prisma.NestedEnumLibraryItemPreviewProviderStatusFilter<$PrismaModel>
-  _max?: Prisma.NestedEnumLibraryItemPreviewProviderStatusFilter<$PrismaModel>
-}
-
 export type BoolNullableFilter<$PrismaModel = never> = {
   equals?: boolean | Prisma.BooleanFieldRefInput<$PrismaModel> | null
   not?: Prisma.NestedBoolNullableFilter<$PrismaModel> | boolean | null
@@ -578,40 +544,6 @@ export type NestedEnumLibraryItemKindWithAggregatesFilter<$PrismaModel = never> 
   _count?: Prisma.NestedIntFilter<$PrismaModel>
   _min?: Prisma.NestedEnumLibraryItemKindFilter<$PrismaModel>
   _max?: Prisma.NestedEnumLibraryItemKindFilter<$PrismaModel>
-}
-
-export type NestedEnumLibraryItemPreviewMediaTypeFilter<$PrismaModel = never> = {
-  equals?: $Enums.LibraryItemPreviewMediaType | Prisma.EnumLibraryItemPreviewMediaTypeFieldRefInput<$PrismaModel>
-  in?: $Enums.LibraryItemPreviewMediaType[] | Prisma.ListEnumLibraryItemPreviewMediaTypeFieldRefInput<$PrismaModel>
-  notIn?: $Enums.LibraryItemPreviewMediaType[] | Prisma.ListEnumLibraryItemPreviewMediaTypeFieldRefInput<$PrismaModel>
-  not?: Prisma.NestedEnumLibraryItemPreviewMediaTypeFilter<$PrismaModel> | $Enums.LibraryItemPreviewMediaType
-}
-
-export type NestedEnumLibraryItemPreviewProviderStatusFilter<$PrismaModel = never> = {
-  equals?: $Enums.LibraryItemPreviewProviderStatus | Prisma.EnumLibraryItemPreviewProviderStatusFieldRefInput<$PrismaModel>
-  in?: $Enums.LibraryItemPreviewProviderStatus[] | Prisma.ListEnumLibraryItemPreviewProviderStatusFieldRefInput<$PrismaModel>
-  notIn?: $Enums.LibraryItemPreviewProviderStatus[] | Prisma.ListEnumLibraryItemPreviewProviderStatusFieldRefInput<$PrismaModel>
-  not?: Prisma.NestedEnumLibraryItemPreviewProviderStatusFilter<$PrismaModel> | $Enums.LibraryItemPreviewProviderStatus
-}
-
-export type NestedEnumLibraryItemPreviewMediaTypeWithAggregatesFilter<$PrismaModel = never> = {
-  equals?: $Enums.LibraryItemPreviewMediaType | Prisma.EnumLibraryItemPreviewMediaTypeFieldRefInput<$PrismaModel>
-  in?: $Enums.LibraryItemPreviewMediaType[] | Prisma.ListEnumLibraryItemPreviewMediaTypeFieldRefInput<$PrismaModel>
-  notIn?: $Enums.LibraryItemPreviewMediaType[] | Prisma.ListEnumLibraryItemPreviewMediaTypeFieldRefInput<$PrismaModel>
-  not?: Prisma.NestedEnumLibraryItemPreviewMediaTypeWithAggregatesFilter<$PrismaModel> | $Enums.LibraryItemPreviewMediaType
-  _count?: Prisma.NestedIntFilter<$PrismaModel>
-  _min?: Prisma.NestedEnumLibraryItemPreviewMediaTypeFilter<$PrismaModel>
-  _max?: Prisma.NestedEnumLibraryItemPreviewMediaTypeFilter<$PrismaModel>
-}
-
-export type NestedEnumLibraryItemPreviewProviderStatusWithAggregatesFilter<$PrismaModel = never> = {
-  equals?: $Enums.LibraryItemPreviewProviderStatus | Prisma.EnumLibraryItemPreviewProviderStatusFieldRefInput<$PrismaModel>
-  in?: $Enums.LibraryItemPreviewProviderStatus[] | Prisma.ListEnumLibraryItemPreviewProviderStatusFieldRefInput<$PrismaModel>
-  notIn?: $Enums.LibraryItemPreviewProviderStatus[] | Prisma.ListEnumLibraryItemPreviewProviderStatusFieldRefInput<$PrismaModel>
-  not?: Prisma.NestedEnumLibraryItemPreviewProviderStatusWithAggregatesFilter<$PrismaModel> | $Enums.LibraryItemPreviewProviderStatus
-  _count?: Prisma.NestedIntFilter<$PrismaModel>
-  _min?: Prisma.NestedEnumLibraryItemPreviewProviderStatusFilter<$PrismaModel>
-  _max?: Prisma.NestedEnumLibraryItemPreviewProviderStatusFilter<$PrismaModel>
 }
 
 export type NestedBoolNullableFilter<$PrismaModel = never> = {

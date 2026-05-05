@@ -20,22 +20,20 @@ import { AlertCircleIcon, ExternalLinkIcon, GlobeIcon } from "lucide-react";
 import type { ReactElement, ReactNode } from "react";
 import * as React from "react";
 
-type PreviewDrawerPosition = NonNullable<
+type PeekDrawerPosition = NonNullable<
     React.ComponentProps<typeof DrawerPopup>["position"]
 >;
-type PreviewDrawerStatus = "blocked" | "loaded" | "loading";
-type PreviewDrawerOpenChange = React.ComponentProps<
-    typeof Drawer
->["onOpenChange"];
+type PeekDrawerStatus = "blocked" | "loaded" | "loading";
+type PeekDrawerOpenChange = React.ComponentProps<typeof Drawer>["onOpenChange"];
 
-interface PreviewDrawerContextValue {
+interface PeekDrawerContextValue {
     description?: string;
     open: boolean;
     title: string;
     url: string;
 }
 
-interface PreviewDrawerProps
+interface PeekDrawerProps
     extends Omit<React.ComponentProps<typeof Drawer>, "children" | "modal"> {
     children: ReactNode;
     description?: string;
@@ -43,7 +41,7 @@ interface PreviewDrawerProps
     url: string;
 }
 
-interface PreviewDrawerContentProps
+interface PeekDrawerContentProps
     extends Omit<
         React.ComponentProps<typeof DrawerPopup>,
         "children" | "showBar" | "showCloseButton" | "variant"
@@ -56,19 +54,19 @@ interface PreviewDrawerContentProps
     timeoutMs?: number;
 }
 
-interface PreviewDrawerLinkButtonProps
+interface PeekDrawerLinkButtonProps
     extends Omit<React.ComponentProps<typeof Button>, "render"> {
     url: string;
 }
 
-const PREVIEW_BLOCKED_URL = "about:blank";
-const DEFAULT_PREVIEW_TITLE = "Preview";
-const DEFAULT_PREVIEW_LOADING_LABEL = "Loading preview...";
-const DEFAULT_PREVIEW_TIMEOUT_MS = 8000;
-const DEFAULT_PREVIEW_ERROR_DESCRIPTION =
+const PEEK_BLOCKED_URL = "about:blank";
+const DEFAULT_PEEK_TITLE = "Preview";
+const DEFAULT_PEEK_LOADING_LABEL = "Loading preview...";
+const DEFAULT_PEEK_TIMEOUT_MS = 8000;
+const DEFAULT_PEEK_ERROR_DESCRIPTION =
     "This site can't be previewed here. It may block embedding inside other sites or be taking too long to load.";
 
-const PREVIEW_POPUP_POSITION_CLASSES: Record<PreviewDrawerPosition, string> = {
+const PEEK_POPUP_POSITION_CLASSES: Record<PeekDrawerPosition, string> = {
     bottom: "w-full sm:mx-auto sm:max-w-[min(96vw,78rem)]",
     left: "w-[min(96vw,68rem)] max-w-none sm:w-[min(92vw,72rem)]",
     right: "w-[min(96vw,68rem)] max-w-none sm:w-[min(92vw,72rem)]",
@@ -80,14 +78,15 @@ const EXTERNAL_LINK_ATTRIBUTES = {
     target: "_blank",
 } as const;
 
-const PreviewDrawerContext =
-    React.createContext<PreviewDrawerContextValue | null>(null);
+const PeekDrawerContext = React.createContext<PeekDrawerContextValue | null>(
+    null
+);
 
-function usePreviewDrawerContext(): PreviewDrawerContextValue {
-    const context = React.use(PreviewDrawerContext);
+function usePeekDrawerContext(): PeekDrawerContextValue {
+    const context = React.use(PeekDrawerContext);
     if (!context) {
         throw new Error(
-            "PreviewDrawer components must be used inside <PreviewDrawer>."
+            "PeekDrawer components must be used inside <PeekDrawer>."
         );
     }
     return context;
@@ -100,8 +99,8 @@ function usePreviewDrawerContext(): PreviewDrawerContextValue {
  * Enforces a timeout so users aren't left waiting indefinitely for sites
  * that refuse to embed.
  */
-function usePreviewStatus(open: boolean, url: string, timeoutMs: number) {
-    const [status, setStatus] = React.useState<PreviewDrawerStatus>("loading");
+function usePeekStatus(open: boolean, url: string, timeoutMs: number) {
+    const [status, setStatus] = React.useState<PeekDrawerStatus>("loading");
 
     React.useEffect(() => {
         if (!open) {
@@ -109,7 +108,7 @@ function usePreviewStatus(open: boolean, url: string, timeoutMs: number) {
             return;
         }
 
-        if (url === PREVIEW_BLOCKED_URL) {
+        if (url === PEEK_BLOCKED_URL) {
             setStatus("blocked");
             return;
         }
@@ -142,10 +141,10 @@ function usePreviewStatus(open: boolean, url: string, timeoutMs: number) {
  * Button that renders as an external anchor so users can open the target
  * in a new tab with the correct `rel` and `target` attributes.
  */
-function PreviewDrawerLinkButton({
+function PeekDrawerLinkButton({
     url,
     ...props
-}: PreviewDrawerLinkButtonProps): ReactElement {
+}: PeekDrawerLinkButtonProps): ReactElement {
     return (
         <Button
             render={<a href={url} {...EXTERNAL_LINK_ATTRIBUTES} />}
@@ -155,28 +154,25 @@ function PreviewDrawerLinkButton({
 }
 
 /**
- * Root controller for the preview drawer.
+ * Root controller for the peek drawer.
  *
  * Supports both controlled and uncontrolled open state. Provides the
- * preview context (title, URL, description) to child components.
+ * peek context (title, URL, description) to child components.
  */
-export function PreviewDrawer({
+export function PeekDrawer({
     defaultOpen = false,
     description,
     onOpenChange,
     open,
-    title = DEFAULT_PREVIEW_TITLE,
+    title = DEFAULT_PEEK_TITLE,
     url,
     ...props
-}: PreviewDrawerProps): ReactElement {
+}: PeekDrawerProps): ReactElement {
     const [uncontrolledOpen, setUncontrolledOpen] = React.useState(defaultOpen);
     const isControlled = open !== undefined;
     const isOpen = open ?? uncontrolledOpen;
 
-    const handleOpenChange: PreviewDrawerOpenChange = (
-        nextOpen,
-        eventDetails
-    ) => {
+    const handleOpenChange: PeekDrawerOpenChange = (nextOpen, eventDetails) => {
         if (!isControlled) {
             setUncontrolledOpen(nextOpen);
         }
@@ -184,7 +180,7 @@ export function PreviewDrawer({
     };
 
     return (
-        <PreviewDrawerContext
+        <PeekDrawerContext
             value={{
                 description,
                 open: isOpen,
@@ -193,16 +189,16 @@ export function PreviewDrawer({
             }}
         >
             <Drawer onOpenChange={handleOpenChange} open={isOpen} {...props} />
-        </PreviewDrawerContext>
+        </PeekDrawerContext>
     );
 }
 
 /**
- * Button that opens the preview drawer.
+ * Button that opens the peek drawer.
  *
- * Delegates directly to `DrawerTrigger`. Render inside `<PreviewDrawer>`.
+ * Delegates directly to `DrawerTrigger`. Render inside `<PeekDrawer>`.
  */
-export const PreviewDrawerTrigger = DrawerTrigger;
+export const PeekDrawerTrigger = DrawerTrigger;
 
 /**
  * Popup content that renders the iframe, loading spinner, error state,
@@ -211,32 +207,32 @@ export const PreviewDrawerTrigger = DrawerTrigger;
  * Remounts the iframe whenever `open` or `url` changes so previews always
  * start from a fresh state instead of showing stale cached content.
  */
-export function PreviewDrawerContent({
+export function PeekDrawerContent({
     bodyClassName,
     className,
-    errorDescription = DEFAULT_PREVIEW_ERROR_DESCRIPTION,
+    errorDescription = DEFAULT_PEEK_ERROR_DESCRIPTION,
     footerClassName,
-    loadingLabel = DEFAULT_PREVIEW_LOADING_LABEL,
+    loadingLabel = DEFAULT_PEEK_LOADING_LABEL,
     panelClassName,
     position = "bottom",
-    timeoutMs = DEFAULT_PREVIEW_TIMEOUT_MS,
+    timeoutMs = DEFAULT_PEEK_TIMEOUT_MS,
     ...popupProps
-}: PreviewDrawerContentProps): ReactElement {
-    const { description, open, title, url } = usePreviewDrawerContext();
+}: PeekDrawerContentProps): ReactElement {
+    const { description, open, title, url } = usePeekDrawerContext();
     const iframeKey = React.useId();
-    const { markAsBlocked, markAsLoaded, status } = usePreviewStatus(
+    const { markAsBlocked, markAsLoaded, status } = usePeekStatus(
         open,
         url,
         timeoutMs
     );
-    const canOpenInNewTab = url !== PREVIEW_BLOCKED_URL;
+    const canOpenInNewTab = url !== PEEK_BLOCKED_URL;
 
     return (
         <DrawerViewport>
             <DrawerPopup
                 className={cn(
                     "h-[min(88vh,58rem)] sm:h-[min(82vh,56rem)]",
-                    PREVIEW_POPUP_POSITION_CLASSES[position],
+                    PEEK_POPUP_POSITION_CLASSES[position],
                     className
                 )}
                 position={position}
@@ -299,13 +295,10 @@ export function PreviewDrawerContent({
                                     </p>
                                 </div>
                                 {canOpenInNewTab && (
-                                    <PreviewDrawerLinkButton
-                                        size="sm"
-                                        url={url}
-                                    >
+                                    <PeekDrawerLinkButton size="sm" url={url}>
                                         <ExternalLinkIcon className="size-4" />
                                         Open in new tab
-                                    </PreviewDrawerLinkButton>
+                                    </PeekDrawerLinkButton>
                                 )}
                             </div>
                         )}
@@ -334,7 +327,7 @@ export function PreviewDrawerContent({
                     )}
                 >
                     {canOpenInNewTab && (
-                        <PreviewDrawerLinkButton
+                        <PeekDrawerLinkButton
                             className="justify-start sm:justify-center"
                             size="sm"
                             url={url}
@@ -342,7 +335,7 @@ export function PreviewDrawerContent({
                         >
                             <GlobeIcon className="size-4" />
                             Open in new tab
-                        </PreviewDrawerLinkButton>
+                        </PeekDrawerLinkButton>
                     )}
                     <DrawerClose
                         render={<Button size="sm" variant="outline" />}

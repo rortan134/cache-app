@@ -197,7 +197,6 @@
 .palette-chip-enter {
     transform-origin: top left;
     animation: palette-chip-enter 220ms cubic-bezier(0.16, 1, 0.3, 1) both;
-    will-change: opacity, transform;
 }
 
 /* Stagger each chip animation */
@@ -220,7 +219,6 @@
 @media (prefers-reduced-motion: reduce) {
     .palette-chip-enter {
         animation: none;
-        will-change: auto;
     }
 }
 
@@ -267,11 +265,6 @@
             "Helvetica Neue", "Linear Thai", sans-serif;
         overflow-wrap: anywhere;
         position: relative;
-        -webkit-font-smoothing: antialiased;
-        -moz-osx-font-smoothing: grayscale;
-        -ms-text-size-adjust: none;
-        -moz-text-size-adjust: none;
-        -o-text-size-adjust: none;
         -webkit-text-size-adjust: 100%;
     }
 

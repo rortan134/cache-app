@@ -1,7 +1,7 @@
 "use client";
 
 import type { Collapsible } from "@base-ui/react/collapsible";
-import * as React from "react";
+import { useStableCallback } from "@base-ui/utils/useStableCallback";
 import { useHotkeys } from "react-hotkeys-hook";
 
 type OnOpenChange = Collapsible.Root.Props["onOpenChange"];
@@ -48,14 +48,13 @@ export function useListPanelOpenState({
     const isControlled = open !== undefined;
     const resolvedOpen = isControlled ? open : uncontrolledOpen;
 
-    const handleOpenChange = React.useCallback<NonNullable<OnOpenChange>>(
+    const handleOpenChange = useStableCallback<NonNullable<OnOpenChange>>(
         (nextOpen, eventDetails) => {
             if (!isControlled) {
                 setIsOpen(nextOpen);
             }
             onOpenChange?.(nextOpen, eventDetails);
-        },
-        [isControlled, onOpenChange, setIsOpen]
+        }
     );
 
     useHotkeys(

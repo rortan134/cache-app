@@ -71,6 +71,26 @@ function SessionLoadingOnly({ children }: PropsWithChildren) {
     return isPending ? children : null;
 }
 
+function WithSessionUser({
+    children,
+    loadingRender = null,
+}: {
+    children: (user: Session["user"]) => ReactNode;
+    loadingRender?: ReactNode;
+}) {
+    const { isPending, data: session } = useSession();
+
+    if (isPending) {
+        return loadingRender;
+    }
+
+    if (!session?.user) {
+        return null;
+    }
+
+    return children(session.user);
+}
+
 function SessionHint({ serverSession }: { serverSession?: Session | null }) {
     const { data: clientSession, isPending } = useSession();
     const session = serverSession ?? clientSession;
@@ -98,8 +118,9 @@ function SessionHint({ serverSession }: { serverSession?: Session | null }) {
 
 export {
     GoogleOneTapTrigger,
+    SessionHint,
+    SessionLoadingOnly,
     SignedInOnly,
     SignedOutOnly,
-    SessionLoadingOnly,
-    SessionHint,
+    WithSessionUser,
 };

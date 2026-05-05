@@ -56,9 +56,9 @@ Minimize risk by anticipating what’s most likely to fail (platforms, language 
 
 Great names capture what a thing is or does. Append qualifiers to names. Units, bounds, and modifiers come at the end. This groups related variables together and makes scanning easier.
 
-Avoid else statements. Prefer early returns.
-
 Reduce total variable count by inlining when a value is only used once.
+
+Constants Are Module-Level and UPPER_SNAKE_CASE. Physics constants, selectors, and thresholds are declared at the top of the file, never inside the component.
 
 ```ts
 // Good
@@ -95,13 +95,22 @@ When to include specific details:
 
 ## On React components
 
-Prefer a headless, multi-part compound component composition pattern where a single logical widget is decomposed into many small, focused parts that communicate through shared internal state rather than props drilling. Every component should use a common, composable interface, making them predictable. Composable components naturally fit with one another. Each component is built to match the others, keeping the UI consistent. Prevent polymorphic React components at all costs. Please see `vercel-composition-patterns` and `vercel-react-best-practices` for more whenever relevant.
+Prefer a headless, multi-part compound component composition pattern where a single logical widget is decomposed into many small, focused parts that communicate through shared internal state rather than prop drilling.
+Every component should be co-located into a single file with its parts and should use a common, composable interface, making them predictable.
+Composable components naturally fit with one another. Each component is built to match the others, keeping the UI consistent. Prevent polymorphic React components at all costs.
+Please see `vercel-composition-patterns` and `vercel-react-best-practices` for more, whenever relevant.
 
 You mount a root controller (e.g. ‎`Combobox.Root` / ‎`ComboboxRoot`) that owns centralized state, behavior and semantics (value, inputValue, items, open, highlight, async status) and exposes it via context to leaf parts like ‎`Input`, ‎`InputGroup`, ‎`Trigger`, ‎`Icon`, ‎`List`, ‎`Item`, ‎`ItemIndicator`, ‎`Chips`, ‎`Group`, ‎`Portal`, ‎`Positioner`, ‎`Popup`, ‎`Status`, and ‎`Empty` exported as many headless part components bound together by the shared store/context layer
 
 Leaf components may also layer on local responsibilities that are intrinsically per-item tightly scoped to how one item registers itself with the store and translates global state.
 
-Use the shadow DOM-safe utilities for DOM traversal and event targeting: contains, getTarget, and activeElement. Use the owner utilities ownerDocument and ownerWindow instead of global document/window lookups when the code is tied to a DOM node, including realm-sensitive checks such as instanceof.
+Use the `useTimeout` utility from `@base-ui/utils/useTimeout` instead of `window.setTimeout`, and `useAnimationFrame` from `@base-ui/utils/useAnimationFrame` instead of `requestAnimationFrame`. Search for other example usage in the codebase if unsure how to use them.
+
+Use the `useStableCallback` utility from `@base-ui/utils/useStableCallback` instead of `React.useCallback` if the function is called within an effect or event handler. The utility cannot be used to memoize functions that are called directly in the body of a component (during render), so continue with `React.useCallback` in those scenarios.
+
+Use the `useIsoLayoutEffect` utility from `@base-ui/utils/useIsoLayoutEffect` instead of `React.useLayoutEffect`.
+
+Use the shadow DOM-safe utilities for DOM traversal and event targeting: `contains`, `getTarget`, and `activeElement`. Use the owner utilities `ownerDocument` and `ownerWindow` instead of global `document`/`window` lookups when the code is tied to a DOM node, including realm-sensitive checks such as `instanceof`.
 
 Avoid duplicating logic where necessary. If two components can share logic (such as event handlers), define the logic/handlers in the parent and share it through a context to the child; use the existing context if it exists.
 

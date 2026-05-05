@@ -4,12 +4,19 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Group } from "@/components/ui/group";
 import { GoogleDocsIcon, NotionIcon } from "@/components/ui/icons";
-import { Menu, MenuItem, MenuPopup, MenuTrigger } from "@/components/ui/menu";
+import {
+    Menu,
+    MenuItem,
+    MenuPopup,
+    MenuSeparator,
+    MenuTrigger,
+} from "@/components/ui/menu";
 import type { LibraryItemWithCollections } from "@/lib/collections/utils";
 import { cn } from "@/lib/common/cn";
 import { parseStandaloneUrl } from "@/lib/common/url";
 import {
     NOTE_EMPTY_HTML,
+    convertNoteHtmlToMarkdown,
     extractNoteText,
     isNoteSerializedEditorState,
     normalizeNoteHtml,
@@ -53,7 +60,9 @@ import {
     BoldIcon,
     ChevronDownIcon,
     ChevronRight,
+    DownloadIcon,
     ExternalLinkIcon,
+    FileTextIcon,
     ItalicIcon,
     Maximize2,
     MessageCircleIcon,
@@ -94,6 +103,7 @@ interface NoteProps {
 }
 
 interface NoteContextValue {
+    contentHtml: string;
     editorKey: number;
     initialDraft: NoteDraft;
     isBusy: boolean;
@@ -695,6 +705,7 @@ function NoteRoot({
     return (
         <NoteContext
             value={{
+                contentHtml: draft.contentHtml,
                 editorKey,
                 initialDraft: initialDraftRef.current,
                 isBusy,
@@ -728,10 +739,28 @@ function NoteTitle() {
  * controls (expand / close).
  */
 function NoteHeader() {
-    const { isBusy, isExpanded, onOpenChange, query, title, toggleExpanded } =
-        useNoteContext();
+    const {
+        contentHtml,
+        isBusy,
+        isExpanded,
+        onOpenChange,
+        query,
+        title,
+        toggleExpanded,
+    } = useNoteContext();
     const ExpandIcon = isExpanded ? Minimize2 : Maximize2;
     const hasQuery = query.length > 0;
+
+    const handleExportMarkdown = () => {
+        const markdown = convertNoteHtmlToMarkdown(contentHtml);
+        const blob = new Blob([markdown], { type: "text/markdown" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = "note.md";
+        link.click();
+        URL.revokeObjectURL(url);
+    };
 
     return (
         <>
@@ -782,6 +811,17 @@ function NoteHeader() {
                                 </MenuItem>
                             );
                         })}
+                        <MenuSeparator />
+                        <MenuItem
+                            disabled={!hasQuery}
+                            onClick={handleExportMarkdown}
+                        >
+                            <FileTextIcon className="size-4 text-muted-foreground" />
+                            <span className="flex-1">
+                                <T>Export to Markdown</T>
+                            </span>
+                            <DownloadIcon className="size-4 text-muted-foreground" />
+                        </MenuItem>
                     </MenuPopup>
                 </Menu>
                 <Group aria-label="Panel actions">

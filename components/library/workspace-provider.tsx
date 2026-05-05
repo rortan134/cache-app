@@ -55,10 +55,11 @@ import {
     shareCollectionPublicly,
 } from "@/lib/collections/sharing/actions";
 import { buildPublicCollectionShareUrl } from "@/lib/collections/sharing/url";
-import type {
-    LibraryCollectionSummary,
-    LibraryCollectionTag,
-    LibraryItemWithCollections,
+import {
+    itemPreviewImageUrl,
+    type LibraryCollectionSummary,
+    type LibraryCollectionTag,
+    type LibraryItemWithCollections,
 } from "@/lib/collections/utils";
 import { getSystemControlKey } from "@/lib/common/environment";
 import { saveFile } from "@/lib/common/file";
@@ -1097,8 +1098,8 @@ function getCollectionPreviewThumbnailUrls(
                 getPreviewOrderSeed(`${collectionId}:${right.id}`)
         )
         .flatMap((item) => {
-            const staticImageUrl = item.preview?.staticImageUrl ?? null;
-            return staticImageUrl ? [staticImageUrl] : [];
+            const imageUrl = itemPreviewImageUrl(item);
+            return imageUrl ? [imageUrl] : [];
         })
         .slice(0, 5);
 }

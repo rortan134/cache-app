@@ -1,5 +1,6 @@
 "use client";
 
+import { UpgradeButton } from "@/components/billing/upgrade-button";
 import {
     CollectionComboboxPicker,
     PreviewMedia,
@@ -8,16 +9,18 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
     deleteLibraryItem,
+    type LibraryItemCollectionsUpdateResult,
     updateLibraryItemCollections,
 } from "@/lib/collections/items";
-import type {
-    LibraryCollectionSummary,
-    LibraryItemWithCollections,
+import {
+    itemPreviewImageUrl,
+    type LibraryCollectionSummary,
+    type LibraryItemWithCollections,
 } from "@/lib/collections/utils";
-import { FALLBACK_URL, ITEM_KIND_BOOKMARK } from "@/lib/common/constants";
-import { parseDisplayUrl, toValidUrl } from "@/lib/common/url";
+import { parseDisplayUrl } from "@/lib/common/url";
 import { markLibraryItemAsReviewed } from "@/lib/review/actions";
 import { LibraryItemSource } from "@/prisma/client/enums";
+import { useStableCallback } from "@base-ui/utils/useStableCallback";
 import {
     Check,
     ChevronLeft,
@@ -28,81 +31,38 @@ import {
     Trash2Icon,
 } from "lucide-react";
 import Link from "next/link";
+import { useParams } from "next/navigation";
 import * as React from "react";
 
-function itemDomain(url: string): string {
+const SOURCE_LABELS: Record<LibraryItemSource, string> = {
+    [LibraryItemSource.cache_note]: "Notes",
+    [LibraryItemSource.chrome_bookmarks]: "Chrome",
+    [LibraryItemSource.github_starred_repositories]: "GitHub",
+    [LibraryItemSource.google_photos]: "Google Photos",
+    [LibraryItemSource.instagram]: "Instagram",
+    [LibraryItemSource.pinterest]: "Pinterest",
+    [LibraryItemSource.tiktok]: "TikTok",
+    [LibraryItemSource.x_bookmarks]: "X",
+    [LibraryItemSource.other]: "Other",
+    [LibraryItemSource.youtube_watch_later]: "YouTube",
+};
+
+function getSourceLabel(source: LibraryItemSource): string {
+    return SOURCE_LABELS[source] ?? "Other";
+}
+
+function getItemDomain(url: string): string {
     return parseDisplayUrl(url) || "Other";
 }
 
-function itemStaticPreviewUrl(item: LibraryItemWithCollections): string | null {
-    const staticImageUrl = item.preview?.staticImageUrl ?? null;
-    if (staticImageUrl) {
-        return staticImageUrl;
-    }
-
-    if (item.kind !== ITEM_KIND_BOOKMARK) {
-        return null;
-    }
-
-    const href = toValidUrl(item.url);
-    if (href === FALLBACK_URL) {
-        return null;
-    }
-
-    return `/api/preview?url=${encodeURIComponent(href)}`;
-}
-
-function canResolveCobaltPreview(item: LibraryItemWithCollections): boolean {
-    if (
-        item.kind !== ITEM_KIND_BOOKMARK ||
-        toValidUrl(item.url) === FALLBACK_URL
-    ) {
-        return false;
-    }
-
-    switch (item.source) {
-        case LibraryItemSource.google_photos:
-        case LibraryItemSource.instagram:
-        case LibraryItemSource.other:
-        case LibraryItemSource.pinterest:
-        case LibraryItemSource.tiktok:
-        case LibraryItemSource.x_bookmarks:
-        case LibraryItemSource.youtube_watch_later:
-            return true;
-        default:
-            return false;
-    }
-}
-
-function sourceLabel(source: LibraryItemSource): string {
-    if (source === LibraryItemSource.cache_note) {
-        return "Notes";
-    }
-    if (source === LibraryItemSource.chrome_bookmarks) {
-        return "Chrome";
-    }
-    if (source === LibraryItemSource.github_starred_repositories) {
-        return "GitHub";
-    }
-    if (source === LibraryItemSource.google_photos) {
-        return "Google Photos";
-    }
-    if (source === LibraryItemSource.instagram) {
-        return "Instagram";
-    }
-    if (source === LibraryItemSource.pinterest) {
-        return "Pinterest";
-    }
-    if (source === LibraryItemSource.tiktok) {
-        return "TikTok";
-    }
-    if (source === LibraryItemSource.x_bookmarks) {
-        return "X";
-    }
-    if (source === LibraryItemSource.youtube_watch_later) {
-        return "YouTube";
-    }
-    return "Other";
+function isTextEntryTarget(target: EventTarget | null): boolean {
+    return (
+        target instanceof HTMLElement &&
+        (target.isContentEditable ||
+            Boolean(
+                target.closest('input, textarea, select, [role="textbox"]')
+            ))
+    );
 }
 
 interface ReviewDigestProps {
@@ -129,6 +89,125 @@ export function ReviewDigest({
     );
 }
 
+interface ReviewItemCardProps {
+    collections: LibraryCollectionSummary[];
+    isActive: boolean;
+    isDeleting: boolean;
+    item: LibraryItemWithCollections;
+    onDelete: () => void;
+    onKeep: () => void;
+    onUpdateCollections: (
+        itemId: string,
+        collectionIds: string[]
+    ) => Promise<LibraryItemCollectionsUpdateResult>;
+}
+
+function ReviewItemCard({
+    collections,
+    isActive,
+    isDeleting,
+    item,
+    onDelete,
+    onKeep,
+    onUpdateCollections,
+}: ReviewItemCardProps) {
+    const isNote = item.kind === "note";
+    const previewUrl = itemPreviewImageUrl(item);
+    const hasPreview = previewUrl !== null;
+    const domain = getItemDomain(item.url);
+    const noteTitle = item.noteContentText?.trim() || "Untitled note";
+    const displayTitle = isNote ? noteTitle : item.caption || domain;
+    const alt = (item.caption ?? "").trim() || "Saved item";
+
+    return (
+        <div
+            aria-hidden={!isActive}
+            className="flex h-full w-full flex-none flex-col items-center justify-center px-4 pb-4"
+        >
+            <div className="relative flex h-full max-h-[min(90vh,52rem)] w-full max-w-lg flex-col gap-4">
+                {/* Media / Note body */}
+                <div className="relative min-h-0 flex-1 overflow-hidden rounded-2xl bg-black ring-1 ring-border/50">
+                    {isNote ? (
+                        <div className="flex h-full flex-col overflow-hidden bg-linear-to-br from-amber-50 via-background to-stone-100 p-5 text-foreground">
+                            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(251,191,36,0.18),transparent_45%)]" />
+                            <div className="relative flex flex-1 flex-col overflow-hidden">
+                                <p className="line-clamp-12 whitespace-pre-wrap text-sm leading-relaxed opacity-90">
+                                    {noteTitle}
+                                </p>
+                            </div>
+                        </div>
+                    ) : (
+                        <>
+                            {hasPreview ? null : (
+                                <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-white">
+                                    <Globe className="size-10 opacity-40" />
+                                    <span className="text-sm opacity-60">
+                                        {domain}
+                                    </span>
+                                </div>
+                            )}
+                            <PreviewMedia alt={alt} src={previewUrl} />
+                        </>
+                    )}
+                </div>
+
+                {/* Info */}
+                <div className="flex flex-col gap-2 px-1">
+                    <div className="flex items-center gap-2">
+                        <Badge variant="secondary">
+                            {getSourceLabel(item.source)}
+                        </Badge>
+                        {isNote ? null : (
+                            <span className="text-muted-foreground text-xs">
+                                {domain}
+                            </span>
+                        )}
+                    </div>
+                    <h3 className="line-clamp-2 font-medium text-lg leading-snug">
+                        {displayTitle}
+                    </h3>
+                </div>
+
+                {/* Actions */}
+                <div className="grid grid-cols-3 gap-3 px-1">
+                    <Button
+                        className="rounded-xl"
+                        onClick={onKeep}
+                        variant="outline"
+                    >
+                        <Check className="mr-1.5 size-4" />
+                        Keep
+                    </Button>
+                    <CollectionComboboxPicker
+                        collections={collections}
+                        items={[item]}
+                        onUpdateItemCollections={onUpdateCollections}
+                        render={
+                            <Button
+                                className="w-full rounded-xl"
+                                size="default"
+                                variant="default"
+                            />
+                        }
+                    >
+                        <FolderPlus className="mr-1.5 size-4" />
+                        Collect
+                    </CollectionComboboxPicker>
+                    <Button
+                        className="rounded-xl"
+                        disabled={isDeleting}
+                        onClick={onDelete}
+                        variant="destructive"
+                    >
+                        <Trash2Icon className="mr-1.5 size-4" />
+                        Delete
+                    </Button>
+                </div>
+            </div>
+        </div>
+    );
+}
+
 function ReviewSession({
     collections,
     initialItems,
@@ -146,9 +225,11 @@ function ReviewSession({
     const currentItemRef = React.useRef<LibraryItemWithCollections | null>(
         null
     );
+    const deletingItemIdsRef = React.useRef(deletingItemIds);
 
-    // Keep the ref in sync so keyboard shortcuts always target the live item.
+    // Keep refs in sync so keyboard shortcuts always target live state.
     currentItemRef.current = queue[currentIndex] ?? null;
+    deletingItemIdsRef.current = deletingItemIds;
 
     // Clamp current index whenever the queue shrinks.
     React.useEffect(() => {
@@ -163,19 +244,56 @@ function ReviewSession({
         });
     }, [queue.length]);
 
-    const handlePrev = React.useCallback(() => {
+    const handlePrev = useStableCallback(() => {
         setCurrentIndex((i) => Math.max(0, i - 1));
-    }, []);
+    });
 
-    const handleNext = React.useCallback(() => {
+    const handleNext = useStableCallback(() => {
         setCurrentIndex((i) => Math.min(queue.length - 1, i + 1));
-    }, [queue.length]);
+    });
 
-    const removeItem = React.useCallback((itemId: string) => {
+    function removeItem(itemId: string) {
         setQueue((prev) => prev.filter((item) => item.id !== itemId));
-    }, []);
+    }
 
-    const handleUpdateItemCollections = React.useCallback(
+    const keepItem = useStableCallback(async (itemId: string) => {
+        try {
+            const result = await markLibraryItemAsReviewed({ itemId });
+            if (result.status !== "REVIEWED") {
+                setActionError(result.message);
+                return;
+            }
+            setActionError(null);
+            removeItem(itemId);
+        } catch {
+            setActionError("We couldn't mark this item as reviewed right now.");
+        }
+    });
+
+    const deleteItem = useStableCallback(async (itemId: string) => {
+        if (deletingItemIdsRef.current.has(itemId)) {
+            return;
+        }
+        setDeletingItemIds((prev) => {
+            const next = new Set(prev);
+            next.add(itemId);
+            return next;
+        });
+        try {
+            const result = await deleteLibraryItem(itemId);
+            if (result.status === "DELETED") {
+                removeItem(itemId);
+            }
+        } finally {
+            setDeletingItemIds((prev) => {
+                const next = new Set(prev);
+                next.delete(itemId);
+                return next;
+            });
+        }
+    });
+
+    const handleUpdateItemCollections = useStableCallback(
         async (itemId: string, collectionIds: string[]) => {
             const [result] = await Promise.all([
                 updateLibraryItemCollections({
@@ -188,18 +306,10 @@ function ReviewSession({
                 removeItem(itemId);
             }
             return result;
-        },
-        [removeItem]
+        }
     );
 
     React.useEffect(() => {
-        const isTextEntryTarget = (target: EventTarget | null): boolean =>
-            target instanceof HTMLElement &&
-            (target.isContentEditable ||
-                Boolean(
-                    target.closest('input, textarea, select, [role="textbox"]')
-                ));
-
         const handleKeyDown = (event: KeyboardEvent) => {
             if (
                 event.defaultPrevented ||
@@ -221,50 +331,21 @@ function ReviewSession({
                 handleNext();
                 return;
             }
+
             const liveItem = currentItemRef.current;
             if (!liveItem) {
                 return;
             }
-            if (event.key.toLowerCase() === "k") {
+
+            const key = event.key.toLowerCase();
+            if (key === "k") {
                 event.preventDefault();
-                markLibraryItemAsReviewed({ itemId: liveItem.id })
-                    .then((result) => {
-                        if (result.status !== "REVIEWED") {
-                            setActionError(result.message);
-                            return;
-                        }
-                        setActionError(null);
-                        removeItem(liveItem.id);
-                    })
-                    .catch(() => {
-                        setActionError(
-                            "We couldn't mark this item as reviewed right now."
-                        );
-                    });
+                keepItem(liveItem.id);
+                return;
             }
-            if (event.key.toLowerCase() === "d") {
+            if (key === "d") {
                 event.preventDefault();
-                if (deletingItemIds.has(liveItem.id)) {
-                    return;
-                }
-                setDeletingItemIds((prev) => {
-                    const next = new Set(prev);
-                    next.add(liveItem.id);
-                    return next;
-                });
-                deleteLibraryItem(liveItem.id)
-                    .then((result) => {
-                        if (result.status === "DELETED") {
-                            removeItem(liveItem.id);
-                        }
-                    })
-                    .finally(() => {
-                        setDeletingItemIds((prev) => {
-                            const next = new Set(prev);
-                            next.delete(liveItem.id);
-                            return next;
-                        });
-                    });
+                deleteItem(liveItem.id);
             }
         };
 
@@ -272,7 +353,7 @@ function ReviewSession({
         return () => {
             window.removeEventListener("keydown", handleKeyDown);
         };
-    }, [deletingItemIds, handleNext, handlePrev, removeItem]);
+    }, [handleNext, handlePrev, keepItem, deleteItem]);
 
     if (queue.length === 0) {
         return <ReviewCompletionState />;
@@ -307,162 +388,18 @@ function ReviewSession({
                         transform: `translateX(calc(-100% * ${currentIndex}))`,
                     }}
                 >
-                    {queue.map((item, index) => {
-                        const isActive = index === currentIndex;
-                        const isNote = item.kind === "note";
-                        const isDeleting = deletingItemIds.has(item.id);
-                        const staticPreview = itemStaticPreviewUrl(item);
-                        const videoPreview =
-                            item.preview?.videoPreviewUrl ?? null;
-                        const hasImmediatePreview =
-                            staticPreview !== null || videoPreview !== null;
-                        const alt = (item.caption ?? "").trim() || "Saved item";
-                        const domain = itemDomain(item.url);
-                        const noteTitle =
-                            item.noteContentText?.trim() || "Untitled note";
-                        const displayTitle = isNote
-                            ? noteTitle
-                            : item.caption || domain;
-
-                        // Per-item action handlers avoid stale closures.
-                        const onKeep = async () => {
-                            const result = await markLibraryItemAsReviewed({
-                                itemId: item.id,
-                            });
-                            if (result.status !== "REVIEWED") {
-                                setActionError(result.message);
-                                return;
-                            }
-                            setActionError(null);
-                            removeItem(item.id);
-                        };
-                        const onDelete = async () => {
-                            if (isDeleting) {
-                                return;
-                            }
-                            setDeletingItemIds((prev) => {
-                                const next = new Set(prev);
-                                next.add(item.id);
-                                return next;
-                            });
-                            try {
-                                const result = await deleteLibraryItem(item.id);
-                                if (result.status === "DELETED") {
-                                    removeItem(item.id);
-                                }
-                            } finally {
-                                setDeletingItemIds((prev) => {
-                                    const next = new Set(prev);
-                                    next.delete(item.id);
-                                    return next;
-                                });
-                            }
-                        };
-
-                        return (
-                            <div
-                                aria-hidden={!isActive}
-                                className="flex h-full w-full flex-none flex-col items-center justify-center px-4 pb-4"
-                                key={item.id}
-                            >
-                                <div className="relative flex h-full max-h-[min(90vh,52rem)] w-full max-w-lg flex-col gap-4">
-                                    {/* Media / Note body */}
-                                    <div className="relative min-h-0 flex-1 overflow-hidden rounded-2xl bg-black ring-1 ring-border/50">
-                                        {isNote ? (
-                                            <div className="flex h-full flex-col overflow-hidden bg-linear-to-br from-amber-50 via-background to-stone-100 p-5 text-foreground">
-                                                <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(251,191,36,0.18),transparent_45%)]" />
-                                                <div className="relative flex flex-1 flex-col overflow-hidden">
-                                                    <p className="line-clamp-12 whitespace-pre-wrap text-sm leading-relaxed opacity-90">
-                                                        {noteTitle}
-                                                    </p>
-                                                </div>
-                                            </div>
-                                        ) : (
-                                            <>
-                                                {hasImmediatePreview ||
-                                                canResolveCobaltPreview(
-                                                    item
-                                                ) ? null : (
-                                                    <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-white">
-                                                        <Globe className="size-10 opacity-40" />
-                                                        <span className="text-sm opacity-60">
-                                                            {domain}
-                                                        </span>
-                                                    </div>
-                                                )}
-                                                <PreviewMedia
-                                                    alt={alt}
-                                                    canResolveCobaltPreview={canResolveCobaltPreview(
-                                                        item
-                                                    )}
-                                                    itemId={item.id}
-                                                    src={staticPreview}
-                                                    videoPreviewUrl={
-                                                        videoPreview
-                                                    }
-                                                />
-                                            </>
-                                        )}
-                                    </div>
-
-                                    {/* Info */}
-                                    <div className="flex flex-col gap-2 px-1">
-                                        <div className="flex items-center gap-2">
-                                            <Badge variant="secondary">
-                                                {sourceLabel(item.source)}
-                                            </Badge>
-                                            {isNote ? null : (
-                                                <span className="text-muted-foreground text-xs">
-                                                    {domain}
-                                                </span>
-                                            )}
-                                        </div>
-                                        <h3 className="line-clamp-2 font-medium text-lg leading-snug">
-                                            {displayTitle}
-                                        </h3>
-                                    </div>
-
-                                    {/* Actions */}
-                                    <div className="grid grid-cols-3 gap-3 px-1">
-                                        <Button
-                                            className="rounded-xl"
-                                            onClick={onKeep}
-                                            variant="outline"
-                                        >
-                                            <Check className="mr-1.5 size-4" />
-                                            Keep
-                                        </Button>
-                                        <CollectionComboboxPicker
-                                            collections={collections}
-                                            items={[item]}
-                                            onUpdateItemCollections={
-                                                handleUpdateItemCollections
-                                            }
-                                            render={
-                                                <Button
-                                                    className="w-full rounded-xl"
-                                                    size="default"
-                                                    variant="default"
-                                                />
-                                            }
-                                        >
-                                            <FolderPlus className="mr-1.5 size-4" />
-                                            Collect
-                                        </CollectionComboboxPicker>
-                                        <Button
-                                            className="rounded-xl"
-                                            disabled={isDeleting}
-                                            onClick={onDelete}
-                                            variant="destructive"
-                                        >
-                                            <Trash2Icon className="mr-1.5 size-4" />
-                                            Delete
-                                        </Button>
-                                    </div>
-                                </div>
-                            </div>
-                        );
-                    })}
+                    {queue.map((item, index) => (
+                        <ReviewItemCard
+                            collections={collections}
+                            isActive={index === currentIndex}
+                            isDeleting={deletingItemIds.has(item.id)}
+                            item={item}
+                            key={item.id}
+                            onDelete={() => deleteItem(item.id)}
+                            onKeep={() => keepItem(item.id)}
+                            onUpdateCollections={handleUpdateItemCollections}
+                        />
+                    ))}
                 </div>
 
                 {/* Side navigation */}
@@ -538,9 +475,6 @@ function ReviewCompletionState() {
         </div>
     );
 }
-
-import { UpgradeButton } from "@/components/billing/upgrade-button";
-import { useParams } from "next/navigation";
 
 function ReviewPaywall({ itemCount }: { itemCount: number }) {
     const params = useParams<{ locale?: string }>();

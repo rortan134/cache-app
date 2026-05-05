@@ -1,9 +1,19 @@
 {
     "recommendations": [
-        "biomejs.biome",
+        // Runtime & Package Manager
         "oven.bun-vscode",
+
+        // Linting & Formatting
+        "biomejs.biome",
+
+        // Database & ORM
         "Prisma.prisma",
+
+        // Styling
         "bradlc.vscode-tailwindcss",
+
+        // Misc
+        "editorconfig.editorconfig",
         "yoavbls.pretty-ts-errors"
     ]
 }

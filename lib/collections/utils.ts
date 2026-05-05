@@ -1,13 +1,15 @@
-import type {
-    LibraryItem,
-    LibraryItemPreview,
-    Prisma,
-} from "@/prisma/client/client";
+import type { LibraryItem, Prisma } from "@/prisma/client/client";
 import type {
     CollectionPriority,
     LibraryItemSource,
 } from "@/prisma/client/enums";
-import { SORT_ASC } from "@/lib/common/constants";
+import {
+    COBALT_SUPPORTED_HOSTS,
+    FALLBACK_URL,
+    ITEM_KIND_BOOKMARK,
+    SORT_ASC,
+} from "@/lib/common/constants";
+import { toValidUrl } from "@/lib/common/url";
 import * as z from "zod";
 
 // ---------------------------------------------------------------------------
@@ -32,7 +34,6 @@ export interface LibraryCollectionSummary extends LibraryCollectionTag {
 
 export interface LibraryItemWithCollections extends LibraryItem {
     collections: LibraryCollectionTag[];
-    preview: LibraryItemPreview | null;
 }
 
 export interface LibraryCollectionTagRecord {
@@ -112,7 +113,6 @@ export const LIBRARY_ITEM_COLLECTIONS_INCLUDE = {
         },
         select: LIBRARY_COLLECTION_TAG_SELECT,
     },
-    preview: true,
 } as const;
 
 export const LIBRARY_ITEM_COLLECTIONS_SELECT = {
@@ -192,4 +192,56 @@ export function toLibraryItemWithCollections(
         ...item,
         collections: item.collections.map(toLibraryCollectionTag),
     };
+}
+
+/**
+ * Returns the API proxy URL for a bookmark's preview image.
+ * Notes and invalid URLs return null.
+ */
+export function itemPreviewImageUrl(item: {
+    kind: string;
+    url: string;
+}): string | null {
+    if (item.kind !== ITEM_KIND_BOOKMARK) {
+        return null;
+    }
+
+    const href = toValidUrl(item.url);
+    if (href === FALLBACK_URL) {
+        return null;
+    }
+
+    return `/api/preview?url=${encodeURIComponent(href)}`;
+}
+
+export function isVideoPreviewSupported(url: string): boolean {
+    try {
+        return COBALT_SUPPORTED_HOSTS.has(new URL(url).hostname);
+    } catch {
+        return false;
+    }
+}
+
+/**
+ * Returns the API proxy URL for a bookmark's video preview.
+ * Only supported hosts (YouTube, X, Instagram, TikTok) return a URL.
+ */
+export function itemPreviewVideoUrl(item: {
+    kind: string;
+    url: string;
+}): string | null {
+    if (item.kind !== ITEM_KIND_BOOKMARK) {
+        return null;
+    }
+
+    const href = toValidUrl(item.url);
+    if (href === FALLBACK_URL) {
+        return null;
+    }
+
+    if (!isVideoPreviewSupported(href)) {
+        return null;
+    }
+
+    return `/api/preview?url=${encodeURIComponent(href)}&type=video`;
 }
