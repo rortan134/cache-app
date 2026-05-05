@@ -4,7 +4,7 @@ import { createLogger } from "@/lib/common/logs/console/logger";
 import { isBlockedHostname } from "@/lib/common/net";
 import { fetchWithTimeout } from "@/lib/common/timeout";
 import { toValidUrl } from "@/lib/common/url";
-import { resolveCobaltPreview } from "@/lib/integrations/cobalt";
+import { resolveCobaltPreview } from "@/lib/integrations/cobalt/service";
 import { cacheLife, cacheTag } from "next/cache";
 import { PreviewError, preview } from "openlink";
 

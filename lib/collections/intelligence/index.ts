@@ -11,19 +11,19 @@ import { COLLECTION_NAME_LENGTH_MAX } from "@/lib/collections/utils";
 import { createLogger } from "@/lib/common/logs/console/logger";
 
 import {
-    decodeHtmlEntities,
-    normalizeCollectionName,
-    normalizeWhitespace,
-} from "@/lib/common/strings";
-import { isHttpUrl } from "@/lib/common/url";
-import { resolveCobaltDownloadUrl } from "@/lib/integrations/cobalt";
-import { prisma } from "@/prisma";
-import {
     ITEM_KIND_BOOKMARK,
     type ITEM_KIND_FOLDER,
     type ITEM_KIND_NOTE,
     SORT_ASC,
 } from "@/lib/common/constants";
+import {
+    decodeHtmlEntities,
+    normalizeCollectionName,
+    normalizeWhitespace,
+} from "@/lib/common/strings";
+import { isHttpUrl } from "@/lib/common/url";
+import { resolveCobaltDownloadUrl } from "@/lib/integrations/cobalt/service";
+import { prisma } from "@/prisma";
 
 import { LibraryItemSource } from "@/prisma/client/enums";
 import {

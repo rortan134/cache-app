@@ -9,6 +9,7 @@ import type {
 import { prisma } from "@/prisma";
 import type { Prisma } from "@/prisma/client/client";
 import type { LibraryItemSource } from "@/prisma/client/enums";
+import type * as z from "zod";
 
 const CORS_HEADERS = {
     "Access-Control-Allow-Headers": "authorization, content-type",
@@ -107,6 +108,85 @@ export async function authenticateExtensionIngest(
     }
 
     return { cors, userId };
+}
+
+interface ExtensionIngestImportResult {
+    smartCollectionItemIds: string[];
+}
+
+interface ExtensionIngestImportConfig<
+    TBody,
+    TImportResult extends ExtensionIngestImportResult,
+> {
+    bodySchema: z.ZodType<TBody>;
+    genericError: string;
+    importFn: (args: { body: TBody; userId: string }) => Promise<TImportResult>;
+    onSmartCollectionItemIds: (userId: string, itemIds: string[]) => void;
+    response?: (args: {
+        body: TBody;
+        result: Omit<TImportResult, "smartCollectionItemIds">;
+    }) => Record<string, unknown>;
+}
+
+export async function runExtensionIngestImport<
+    TBody,
+    TImportResult extends ExtensionIngestImportResult,
+>(
+    request: Request,
+    config: ExtensionIngestImportConfig<TBody, TImportResult>
+): Promise<Response> {
+    const authResult = await authenticateExtensionIngest(request);
+    if (authResult instanceof Response) {
+        return authResult;
+    }
+    const { cors, userId } = authResult;
+
+    let json: unknown;
+    try {
+        json = await request.json();
+    } catch {
+        return Response.json(
+            { error: "Invalid JSON" },
+            { headers: cors, status: 400 }
+        );
+    }
+
+    const parsed = config.bodySchema.safeParse(json);
+    if (!parsed.success) {
+        return Response.json(
+            { error: parsed.error.flatten() },
+            { headers: cors, status: 400 }
+        );
+    }
+
+    try {
+        const result = await config.importFn({
+            body: parsed.data,
+            userId,
+        });
+        const { smartCollectionItemIds, ...response } = result;
+        config.onSmartCollectionItemIds(userId, smartCollectionItemIds);
+
+        return Response.json(
+            {
+                ok: true,
+                ...(config.response
+                    ? config.response({ body: parsed.data, result: response })
+                    : response),
+            },
+            { headers: cors }
+        );
+    } catch (error) {
+        return Response.json(
+            {
+                error:
+                    error instanceof Error
+                        ? error.message
+                        : config.genericError,
+            },
+            { headers: cors, status: 500 }
+        );
+    }
 }
 
 async function resolveFallbackExtensionIngestUserId(

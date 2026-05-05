@@ -8,13 +8,19 @@ import {
     toLibraryCollectionSummaryFromTagRecord,
     toLibraryCollectionTag,
     toLibraryItemWithCollections,
-    type LibraryCollectionTagRecord,
     type LibraryCollectionSummary,
     type LibraryCollectionTag,
+    type LibraryCollectionTagRecord,
     type LibraryItemWithCollections,
 } from "@/lib/collections/utils";
-import { resolveCobaltDownloadUrl } from "@/lib/integrations/cobalt";
+import { resolveCobaltDownloadUrl } from "@/lib/integrations/cobalt/service";
 
+import {
+    FREE_LIBRARY_PREVIEW_ITEMS,
+    ITEM_KIND_FOLDER,
+    SORT_ASC,
+    SORT_DESC,
+} from "@/lib/common/constants";
 import {
     getIncrementedName,
     normalizeCollectionName,
@@ -25,12 +31,6 @@ import type {
     CollectionPriority,
     LibraryItemSource,
 } from "@/prisma/client/enums";
-import {
-    FREE_LIBRARY_PREVIEW_ITEMS,
-    ITEM_KIND_FOLDER,
-    SORT_ASC,
-    SORT_DESC,
-} from "@/lib/common/constants";
 import { LibraryCollectionError } from "./error";
 
 type CollectionTransaction = Prisma.TransactionClient;
