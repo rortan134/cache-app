@@ -184,6 +184,7 @@ import {
     CornerDownLeftIcon,
     DownloadIcon,
     ExternalLinkIcon,
+    EyeIcon,
     FilePenLineIcon,
     FolderOpen,
     Funnel,
@@ -1931,7 +1932,7 @@ function buildSearchPaletteGroups({
                             value: `filter collection ${collection.id}`,
                         };
                     }),
-                label: "Categories",
+                label: "Collections",
                 layout: "horizontal",
             });
         } else {
@@ -3305,9 +3306,12 @@ function CardMenu({
                     url={item.url}
                 >
                     <PeekDrawerTrigger
-                        className="group/card relative flex w-full flex-col overflow-hidden rounded-lg border border-border/40 bg-card text-start shadow-xs/5 transition-colors hover:bg-muted/30"
-                        render={<button type="button" />}
-                    />
+                        nativeButton={false}
+                        render={<Item closeOnClick={false} />}
+                    >
+                        <EyeIcon className="size-4.5 text-muted-foreground" />
+                        Open preview
+                    </PeekDrawerTrigger>
                     <PeekDrawerContent />
                 </PeekDrawer>
             ) : null}

@@ -800,7 +800,7 @@ export function Collections() {
                         </CollectionsListEmpty>
                     ) : (
                         <>
-                            <DisclosureList maxVisible={15}>
+                            <DisclosureList maxVisible={10}>
                                 {controller.collectionSummaries.map(
                                     (collection) => {
                                         const isSelected =
@@ -2135,7 +2135,7 @@ function CollectionsListNoticeCallout({
                     : "Smart Collections is active"}
             </span>
             <PopoverTrigger
-                className="group not-sr-only flex items-center text-nowrap font-medium text-[11px] opacity-70"
+                className="group not-sr-only flex items-center text-nowrap font-medium text-[11px] opacity-70 data-popup-open:opacity-100"
                 openOnHover
             >
                 <GradientWaveText
@@ -2937,7 +2937,7 @@ function CreateDialog({
                                         event.currentTarget.value
                                     )
                                 }
-                                placeholder="Add description..."
+                                placeholder="Add Description... Describe what belongs here"
                                 size="lg"
                                 unstyled
                                 value={descriptionDraft}
