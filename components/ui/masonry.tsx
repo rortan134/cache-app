@@ -470,18 +470,28 @@ function createIntervalTree(): IntervalTree {
                 if (node === SENTINEL_NODE || low > node.max) {
                     continue;
                 }
-                if (node.left !== SENTINEL_NODE) {
-                    searchStack.push(node.left);
+                const leftNode = node.left;
+                const rightNode = node.right;
+
+                // Measured scroll queries spend most time in avoidable subtree descent.
+                // These interval bounds keep range scans proportional to overlapping rows.
+                if (leftNode !== SENTINEL_NODE && leftNode.max >= low) {
+                    searchStack.push(leftNode);
                 }
-                if (node.right !== SENTINEL_NODE) {
-                    searchStack.push(node.right);
+                if (
+                    rightNode !== SENTINEL_NODE &&
+                    node.low <= high &&
+                    rightNode.max >= low
+                ) {
+                    searchStack.push(rightNode);
                 }
                 if (node.low <= high && node.high >= low) {
                     let curr: ListNode | null = node.list;
                     while (curr !== null) {
-                        if (curr.high >= low) {
-                            onCallback(curr.index, node.low);
+                        if (curr.high < low) {
+                            break;
                         }
+                        onCallback(curr.index, node.low);
                         curr = curr.next;
                     }
                 }
