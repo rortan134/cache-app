@@ -64,16 +64,14 @@ import {
 import { getSystemControlKey } from "@/lib/common/environment";
 import { saveFile } from "@/lib/common/file";
 
+import { useSmartCollectionsPreference } from "@/hooks/use-smart-collections-preference";
 import { normalizeURL, openExternal } from "@/lib/common/url";
 import type { CollectionPriority } from "@/prisma/client/enums";
-import { useSmartCollectionsPreference } from "@/hooks/use-smart-collections-preference";
 import { ListFilter, PlusIcon } from "lucide-react";
 import * as React from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 import { createStore } from "stan-js";
 import { storage } from "stan-js/storage";
-
-// #region Domain types
 
 type SortableCollectionSummary = Pick<
     LibraryCollectionSummary,
@@ -90,10 +88,6 @@ interface SyncCreatedCollectionInput {
     assignedItemIds: string[];
     collection: LibraryCollectionSummary;
 }
-
-// #endregion Domain types
-
-// #region Constants
 
 const CSV_CONTENT_TYPE = "text/csv;charset=utf-8";
 
@@ -132,10 +126,6 @@ const PRIORITY_RANK: Record<CollectionPriority, number> = {
     very_relevant: 0,
 };
 
-// #endregion Constants
-
-// #region Stores
-
 const { useStore: useCollectionsListStateStore } = createStore({
     isCollectionsListOpen: storage(false),
 });
@@ -144,10 +134,6 @@ const { useStore: useCollectionsSortStore } = createStore({
     collectionSortField: storage<CollectionSortField>("priority"),
     collectionTextMatchQuery: storage(""),
 });
-
-// #endregion Stores
-
-// #region Pure helpers
 
 /**
  * Alphabetical sort used as tiebreaker when primary sort keys are equal.
@@ -467,10 +453,6 @@ function getCreatedAssignedItemIds(
     return result.assignedItemId ? [result.assignedItemId] : [];
 }
 
-// #endregion Pure helpers
-
-// #region Safe action adapters
-
 /**
  * Wrap a server action so network failures surface as typed errors instead
  * of uncaught exceptions.
@@ -572,10 +554,6 @@ async function disableCollectionSharingSafely(
     }
 }
 
-// #endregion Safe action adapters
-
-// #region Workspace context (existing)
-
 interface LibraryWorkspaceContextValue {
     collectionPreviewThumbnailUrlsById: Map<string, string[]>;
     collectionSummaries: LibraryCollectionSummary[];
@@ -615,7 +593,7 @@ interface LibraryWorkspaceContextValue {
 const WorkspaceContext =
     React.createContext<LibraryWorkspaceContextValue | null>(null);
 
-const RequestCreateRefContext = React.createContext<React.MutableRefObject<
+const RequestCreateRefContext = React.createContext<React.RefObject<
     ((itemId?: string) => void) | null
 > | null>(null);
 
@@ -905,10 +883,6 @@ export function WorkspaceProvider({
     );
 }
 
-// #endregion Workspace context
-
-// #region Internal helpers (existing)
-
 /**
  * Replace all collections on a single item by ID.
  *
@@ -1096,10 +1070,6 @@ function getCollectionPreviewThumbnailUrls(
         })
         .slice(0, 5);
 }
-
-// #endregion Internal helpers
-
-// #region Controller hook
 
 /**
  * Central controller for all collection-related UI state and side effects.
@@ -1784,10 +1754,6 @@ function useCollectionsController() {
     };
 }
 
-// #endregion Controller hook
-
-// #region Workspace root component
-
 /**
  * Composed workspace root that wires the controller into the
  * `CollectionsList` compound components and dialogs.
@@ -2023,5 +1989,3 @@ export function CollectionsListWorkspaceRoot() {
         </>
     );
 }
-
-// #endregion Workspace root component
