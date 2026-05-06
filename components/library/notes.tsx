@@ -87,7 +87,7 @@ import {
     type SVGProps,
 } from "react";
 
-interface NoteDraft {
+export interface NoteDraft {
     contentHtml: string;
     contentState: NoteSerializedEditorState | null;
 }

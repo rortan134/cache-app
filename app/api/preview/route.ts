@@ -3,12 +3,13 @@ import { isAbortError } from "@/lib/common/abort";
 import { FALLBACK_URL } from "@/lib/common/constants";
 import { createLogger } from "@/lib/common/logs/console/logger";
 import { isBlockedHostname } from "@/lib/common/net";
+import { getRedisClient } from "@/lib/common/redis";
 import { fetchWithTimeout } from "@/lib/common/timeout";
 import { isCobaltHost, toValidUrl } from "@/lib/common/url";
 import { resolveCobaltPreview } from "@/lib/integrations/cobalt/service";
-import { createHash } from "node:crypto";
 import { cacheLife, cacheTag } from "next/cache";
-import { PreviewError, preview } from "openlink";
+import { createHash } from "node:crypto";
+import { PreviewError, createCache, preview, withCache } from "openlink";
 
 const log = createLogger("api:library:preview");
 
@@ -20,6 +21,20 @@ const COBALT_RETRY_ATTEMPTS = 2;
 const COBALT_RETRY_DELAY_MS = 500;
 const USER_AGENT =
     "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)";
+
+const redis = getRedisClient();
+
+const cache = redis
+    ? createCache({
+          delete: (key) => {
+              redis.del(key);
+          },
+          get: (key) => redis.get(key),
+          set: (key, value) => {
+              redis.setex(key, 3600, value);
+          },
+      })
+    : undefined;
 
 export async function GET(request: Request): Promise<Response> {
     const requestUrl = new URL(request.url);
@@ -102,7 +117,8 @@ async function resolvePreviewImage(targetUrl: string) {
     cacheLife("days");
     cacheTag(`preview:${hashTargetUrl(targetUrl)}`);
 
-    const page = await preview(targetUrl, {
+    const getPagePreview = cache ? withCache(cache, preview) : preview;
+    const page = await getPagePreview(targetUrl, {
         fetch: safeFetch,
         headers: {
             Accept: "text/html,application/xhtml+xml",

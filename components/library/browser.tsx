@@ -5,7 +5,7 @@ import {
     InlinePaywallBanner,
 } from "@/components/billing/paywall-banner";
 import { FeedbackWidget } from "@/components/feedback/feedback-widget";
-import { Note } from "@/components/library/notes";
+import type { NoteDraft } from "@/components/library/notes";
 import {
     PeekDrawer,
     PeekDrawerContent,
@@ -208,6 +208,7 @@ import {
     VolumeXIcon,
     XIcon,
 } from "lucide-react";
+import dynamic from "next/dynamic";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import type { ReactNode } from "react";
@@ -4138,6 +4139,90 @@ function BrowserSection({
     );
 }
 
+interface NoteDrawerProps {
+    activeNote: LibraryItemWithCollections | null;
+    containerRef: React.RefObject<HTMLDivElement | null>;
+    handlePasteUrlIntoLibrary: (url: string) => Promise<void>;
+    handleSaveNote: (draft: NoteDraft) => Promise<boolean>;
+    isNoteDrawerOpen: boolean;
+    isSavingNote: boolean;
+    isSavingPastedUrl: boolean;
+    setIsNoteDrawerOpen: (open: boolean) => void;
+}
+
+/**
+ * Lazily load the note editor so the ~350 KB Lexical subtree is not
+ * included in the initial browser bundle.
+ *
+ * The component is always rendered so the chunk starts loading on
+ * hydration, but it returns null while loading because the drawer is
+ * closed most of the time and a loading skeleton would flash on every
+ * page load.
+ */
+const NoteDrawer = dynamic(
+    () =>
+        import("@/components/library/notes").then((mod) => {
+            const Note = mod.Note;
+            return function NoteDrawer({
+                activeNote,
+                containerRef,
+                handlePasteUrlIntoLibrary,
+                handleSaveNote,
+                isNoteDrawerOpen,
+                isSavingNote,
+                isSavingPastedUrl,
+                setIsNoteDrawerOpen,
+            }: NoteDrawerProps) {
+                return (
+                    <Note.Root
+                        note={activeNote}
+                        onOpenChange={setIsNoteDrawerOpen}
+                        onSave={handleSaveNote}
+                        onUrlPaste={handlePasteUrlIntoLibrary}
+                        open={isNoteDrawerOpen}
+                        saving={isSavingNote || isSavingPastedUrl}
+                    >
+                        <Drawer
+                            onOpenChange={setIsNoteDrawerOpen}
+                            open={isNoteDrawerOpen}
+                            position="right"
+                            swipeDirection="right"
+                        >
+                            <DrawerViewport
+                                portalProps={{
+                                    container: containerRef,
+                                }}
+                            >
+                                <DrawerPopup
+                                    className="max-w-2xl"
+                                    variant="straight"
+                                >
+                                    <DrawerHeader
+                                        allowSelection
+                                        className="flex-row items-center justify-between"
+                                    >
+                                        <DrawerTitle className="sr-only">
+                                            <Note.Title />
+                                        </DrawerTitle>
+                                        <Note.Header />
+                                    </DrawerHeader>
+                                    <DrawerPanel allowSelection>
+                                        <Note.Editor />
+                                        <Note.Metrics />
+                                    </DrawerPanel>
+                                </DrawerPopup>
+                            </DrawerViewport>
+                        </Drawer>
+                    </Note.Root>
+                );
+            };
+        }),
+    {
+        loading: () => null,
+        ssr: false,
+    }
+);
+
 export function Browser({ lockedItemCount, totalItemCount }: LibraryProps) {
     const {
         collectionPreviewThumbnailUrlsById,
@@ -5323,43 +5408,16 @@ export function Browser({ lockedItemCount, totalItemCount }: LibraryProps) {
                     />
                 ) : null}
             </div>
-            <Note.Root
-                note={activeNote}
-                onOpenChange={setIsNoteDrawerOpen}
-                onSave={handleSaveNote}
-                onUrlPaste={handlePasteUrlIntoLibrary}
-                open={isNoteDrawerOpen}
-                saving={isSavingNote || isSavingPastedUrl}
-            >
-                <Drawer
-                    onOpenChange={setIsNoteDrawerOpen}
-                    open={isNoteDrawerOpen}
-                    position="right"
-                    swipeDirection="right"
-                >
-                    <DrawerViewport
-                        portalProps={{
-                            container: containerRef,
-                        }}
-                    >
-                        <DrawerPopup className="max-w-2xl" variant="straight">
-                            <DrawerHeader
-                                allowSelection
-                                className="flex-row items-center justify-between"
-                            >
-                                <DrawerTitle className="sr-only">
-                                    <Note.Title />
-                                </DrawerTitle>
-                                <Note.Header />
-                            </DrawerHeader>
-                            <DrawerPanel allowSelection>
-                                <Note.Editor />
-                                <Note.Metrics />
-                            </DrawerPanel>
-                        </DrawerPopup>
-                    </DrawerViewport>
-                </Drawer>
-            </Note.Root>
+            <NoteDrawer
+                activeNote={activeNote}
+                containerRef={containerRef}
+                handlePasteUrlIntoLibrary={handlePasteUrlIntoLibrary}
+                handleSaveNote={handleSaveNote}
+                isNoteDrawerOpen={isNoteDrawerOpen}
+                isSavingNote={isSavingNote}
+                isSavingPastedUrl={isSavingPastedUrl}
+                setIsNoteDrawerOpen={setIsNoteDrawerOpen}
+            />
             <Dialog
                 onOpenChange={handleDeleteDialogOpenChange}
                 open={pendingDeleteItem !== null}

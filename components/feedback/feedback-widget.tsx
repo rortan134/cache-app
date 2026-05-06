@@ -10,7 +10,6 @@ import { Send } from "lucide-react";
 import { usePathname } from "next/navigation";
 import type * as React from "react";
 import { useActionState, useEffect, useRef, useState } from "react";
-import { useConfetti } from "react-confetti-burst";
 import { useFormStatus } from "react-dom";
 import { useHotkeys } from "react-hotkeys-hook";
 
@@ -30,7 +29,6 @@ export function FeedbackWidget(
     );
     const formRef = useRef<HTMLFormElement>(null);
     const submitButtonRef = useRef<HTMLButtonElement>(null);
-    const { fire } = useConfetti();
 
     useEffect(
         function closeOnSubmit() {
@@ -39,15 +37,19 @@ export function FeedbackWidget(
             }
             const rect = submitButtonRef.current?.getBoundingClientRect();
             if (rect) {
-                fire({
-                    x: rect.left + rect.width / 2,
-                    y: rect.top + rect.height / 2,
-                });
+                import("react-confetti-burst").then(
+                    ({ createConfettiExplosion }) => {
+                        createConfettiExplosion({
+                            x: rect.left + rect.width / 2,
+                            y: rect.top + rect.height / 2,
+                        });
+                    }
+                );
             }
             formRef.current?.reset();
             setIsOpen(false);
         },
-        [state.status, fire]
+        [state.status]
     );
 
     useHotkeys("F", () => {
