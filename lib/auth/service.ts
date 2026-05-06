@@ -4,6 +4,8 @@ import { getServerSession } from "@/lib/auth/session";
 import { prisma } from "@/prisma";
 import { nanoid } from "nanoid";
 
+const EXTENSION_INGEST_TOKEN_LENGTH = 48;
+
 /**
  * Resolves the current session user id for API routes.
  *
@@ -27,22 +29,29 @@ export async function requireSessionUserId(): Promise<
 export async function getOrCreateExtensionIngestToken(args: {
     userId: string;
 }): Promise<string> {
-    const user = await prisma.user.findUnique({
+    const token = createExtensionIngestToken();
+    const updateResult = await prisma.user.updateMany({
+        data: { extensionIngestToken: token },
+        where: {
+            extensionIngestToken: null,
+            id: args.userId,
+        },
+    });
+
+    if (updateResult.count > 0) {
+        return token;
+    }
+
+    const user = await prisma.user.findUniqueOrThrow({
         select: { extensionIngestToken: true },
         where: { id: args.userId },
     });
 
-    if (user?.extensionIngestToken) {
+    if (user.extensionIngestToken) {
         return user.extensionIngestToken;
     }
 
-    const token = nanoid(48);
-    await prisma.user.update({
-        data: { extensionIngestToken: token },
-        where: { id: args.userId },
-    });
-
-    return token;
+    throw new Error("Failed to persist extension ingest token");
 }
 
 /**
@@ -51,11 +60,15 @@ export async function getOrCreateExtensionIngestToken(args: {
 export async function rotateExtensionIngestToken(args: {
     userId: string;
 }): Promise<string> {
-    const token = nanoid(48);
+    const token = createExtensionIngestToken();
     await prisma.user.update({
         data: { extensionIngestToken: token },
         where: { id: args.userId },
     });
 
     return token;
+}
+
+function createExtensionIngestToken(): string {
+    return nanoid(EXTENSION_INGEST_TOKEN_LENGTH);
 }

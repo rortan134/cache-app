@@ -9,6 +9,28 @@ import { betterAuth } from "better-auth/minimal";
 import { nextCookies } from "better-auth/next-js";
 import type { GenericOAuthConfig } from "better-auth/plugins";
 import { genericOAuth, oneTap } from "better-auth/plugins";
+import * as z from "zod";
+
+const SESSION_COOKIE_CACHE_MAX_AGE_SECONDS = 24 * 60 * 60;
+const SESSION_EXPIRES_IN_SECONDS = 60 * 60 * 24 * 30;
+const SESSION_FRESH_AGE_SECONDS = 60 * 60;
+const SESSION_UPDATE_AGE_SECONDS = 60 * 60 * 24;
+
+const BASE_URL_AUTH = process.env.BETTER_AUTH_URL ?? BASE_URL;
+
+const TRUSTED_ORIGINS = [
+    BASE_URL_AUTH,
+    ...(process.env.TRUSTED_ORIGINS?.split(",")
+        .map((origin) => origin.trim())
+        .filter(Boolean) ?? []),
+];
+
+const GOOGLE_CLIENT_ID = requiredEnv("GOOGLE_CLIENT_ID");
+const GOOGLE_CLIENT_SECRET = requiredEnv("GOOGLE_CLIENT_SECRET");
+
+const GOOGLE_PHOTOS_SCOPE =
+    "https://www.googleapis.com/auth/photospicker.mediaitems.readonly";
+const GITHUB_USER_AGENT = APP_NAME;
 
 // ---------------------------------------------------------------------------
 // Environment helpers
@@ -54,6 +76,7 @@ interface OAuthUserProfile {
 async function fetchOAuthUser<T>(
     tokens: OAuth2Tokens,
     url: string,
+    schema: z.ZodType<T>,
     mapUser: (data: T) => OAuthUserProfile | null,
     extraHeaders: Record<string, string> = {}
 ): Promise<OAuthUserProfile | null> {
@@ -71,18 +94,25 @@ async function fetchOAuthUser<T>(
         return null;
     }
 
-    return mapUser((await response.json()) as T);
+    const parseResult = schema.safeParse(await response.json());
+    if (!parseResult.success) {
+        return null;
+    }
+
+    return mapUser(parseResult.data);
 }
 
 // ---------------------------------------------------------------------------
 // Pinterest OAuth
 // ---------------------------------------------------------------------------
 
-interface PinterestUserAccount {
-    id?: string;
-    profile_image?: string;
-    username?: string;
-}
+const PinterestUserAccountSchema = z.object({
+    id: z.string().optional(),
+    profile_image: z.string().optional(),
+    username: z.string().optional(),
+});
+
+type PinterestUserAccount = z.infer<typeof PinterestUserAccountSchema>;
 
 function mapPinterestUser(data: PinterestUserAccount): OAuthUserProfile | null {
     const id = data.id ?? data.username;
@@ -114,6 +144,7 @@ function buildPinterestOAuthConfig(): GenericOAuthConfig | null {
             fetchOAuthUser(
                 tokens,
                 "https://api.pinterest.com/v5/user_account",
+                PinterestUserAccountSchema,
                 mapPinterestUser
             ),
         pkce: true,
@@ -127,14 +158,18 @@ function buildPinterestOAuthConfig(): GenericOAuthConfig | null {
 // X (Twitter) OAuth
 // ---------------------------------------------------------------------------
 
-interface XUserAccount {
-    data?: {
-        id?: string;
-        name?: string;
-        profile_image_url?: string;
-        username?: string;
-    };
-}
+const XUserAccountSchema = z.object({
+    data: z
+        .object({
+            id: z.string().optional(),
+            name: z.string().optional(),
+            profile_image_url: z.string().optional(),
+            username: z.string().optional(),
+        })
+        .optional(),
+});
+
+type XUserAccount = z.infer<typeof XUserAccountSchema>;
 
 function mapXUser(data: XUserAccount): OAuthUserProfile | null {
     const id = data.data?.id;
@@ -165,6 +200,7 @@ function buildXOAuthConfig(): GenericOAuthConfig | null {
             fetchOAuthUser(
                 tokens,
                 "https://api.x.com/2/users/me?user.fields=profile_image_url",
+                XUserAccountSchema,
                 mapXUser,
                 { Accept: "application/json" }
             ),
@@ -179,12 +215,14 @@ function buildXOAuthConfig(): GenericOAuthConfig | null {
 // GitHub OAuth
 // ---------------------------------------------------------------------------
 
-interface GitHubUserAccount {
-    avatar_url?: string;
-    id?: number;
-    login?: string;
-    name?: string;
-}
+const GitHubUserAccountSchema = z.object({
+    avatar_url: z.string().optional(),
+    id: z.number().optional(),
+    login: z.string().optional(),
+    name: z.string().optional(),
+});
+
+type GitHubUserAccount = z.infer<typeof GitHubUserAccountSchema>;
 
 function mapGitHubUser(data: GitHubUserAccount): OAuthUserProfile | null {
     const id = typeof data.id === "number" ? String(data.id) : undefined;
@@ -215,10 +253,11 @@ function buildGitHubOAuthConfig(): GenericOAuthConfig | null {
             fetchOAuthUser(
                 tokens,
                 "https://api.github.com/user",
+                GitHubUserAccountSchema,
                 mapGitHubUser,
                 {
                     Accept: "application/vnd.github+json",
-                    "User-Agent": APP_NAME,
+                    "User-Agent": GITHUB_USER_AGENT,
                 }
             ),
         providerId: "github",
@@ -231,15 +270,6 @@ function buildGitHubOAuthConfig(): GenericOAuthConfig | null {
 // Auth configuration
 // ---------------------------------------------------------------------------
 
-const baseURL = process.env.BETTER_AUTH_URL ?? BASE_URL;
-
-const trustedOrigins = [
-    baseURL,
-    ...(process.env.TRUSTED_ORIGINS?.split(",")
-        .map((s) => s.trim())
-        .filter(Boolean) ?? []),
-];
-
 const genericOAuthConfig = [
     buildPinterestOAuthConfig(),
     buildXOAuthConfig(),
@@ -251,6 +281,8 @@ const trustedProviders = [
     ...genericOAuthConfig.map((c) => c.providerId),
 ];
 
+const planPriceIds = getPlanPriceIds();
+
 export const auth = betterAuth({
     account: {
         accountLinking: {
@@ -260,7 +292,7 @@ export const auth = betterAuth({
         },
     },
     appName: APP_NAME,
-    baseURL,
+    baseURL: BASE_URL_AUTH,
     database: prismaAdapter(prisma, {
         provider: "postgresql",
     }),
@@ -269,7 +301,7 @@ export const auth = betterAuth({
     },
     plugins: [
         nextCookies(),
-        oneTap({ clientId: requiredEnv("GOOGLE_CLIENT_ID") }),
+        oneTap({ clientId: GOOGLE_CLIENT_ID }),
         genericOAuth({ config: genericOAuthConfig }),
         stripe({
             createCustomerOnSignUp: true,
@@ -283,9 +315,9 @@ export const auth = betterAuth({
                 enabled: true,
                 plans: [
                     {
-                        annualDiscountPriceId: getPlanPriceIds().yearly,
+                        annualDiscountPriceId: planPriceIds.yearly,
                         name: "pro",
-                        priceId: getPlanPriceIds().monthly,
+                        priceId: planPriceIds.monthly,
                     },
                 ],
             },
@@ -295,25 +327,20 @@ export const auth = betterAuth({
     session: {
         cookieCache: {
             enabled: true,
-            maxAge: 24 * 60 * 60, // 24 hours in seconds
+            maxAge: SESSION_COOKIE_CACHE_MAX_AGE_SECONDS,
         },
-        expiresIn: 60 * 60 * 24 * 30, // 30 days (how long a session can last overall)
-        freshAge: 60 * 60, // 1 hour (or set to 0 to disable completely)
-        updateAge: 60 * 60 * 24, // 24 hours (every 1 day the session expiration is updated)  (how often to refresh the expiry)
+        expiresIn: SESSION_EXPIRES_IN_SECONDS,
+        freshAge: SESSION_FRESH_AGE_SECONDS,
+        updateAge: SESSION_UPDATE_AGE_SECONDS,
     },
     socialProviders: {
         google: {
             accessType: "offline",
-            clientId: requiredEnv("GOOGLE_CLIENT_ID"),
-            clientSecret: requiredEnv("GOOGLE_CLIENT_SECRET"),
+            clientId: GOOGLE_CLIENT_ID,
+            clientSecret: GOOGLE_CLIENT_SECRET,
             prompt: "select_account consent",
-            scope: [
-                "openid",
-                "email",
-                "profile",
-                "https://www.googleapis.com/auth/photospicker.mediaitems.readonly",
-            ],
+            scope: ["openid", "email", "profile", GOOGLE_PHOTOS_SCOPE],
         },
     },
-    trustedOrigins,
+    trustedOrigins: TRUSTED_ORIGINS,
 });
