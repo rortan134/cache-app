@@ -43,6 +43,10 @@ const KEYBOARD_SHORTCUTS = [
         label: "Toggle collections panel",
     },
     {
+        keys: "⌘/Ctrl+B",
+        label: "Expand or collapse sidebar",
+    },
+    {
         keys: "⌘/Ctrl+N",
         label: "Create new collection",
     },

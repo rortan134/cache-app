@@ -266,7 +266,7 @@ function MenuSection({ children }: { children: ReactNode }) {
 
 function UserMenuSkeleton() {
     return (
-        <SidebarItem className="mb-3 justify-between px-2">
+        <SidebarItem className="justify-between px-2">
             <div className="flex min-w-0 items-center gap-2">
                 <Skeleton className="size-8 rounded-full" />
                 <Skeleton className="h-4 w-24" />

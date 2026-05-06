@@ -28,6 +28,8 @@ import {
     SidebarGroup,
     SidebarHeader,
     SidebarItem,
+    SidebarProvider,
+    SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { getServerSession } from "@/lib/auth/session";
 import { userHasActiveSubscription } from "@/lib/billing/service";
@@ -113,126 +115,144 @@ export default async function LibraryPage() {
                     initialCollections={collections}
                     initialItems={items}
                 >
-                    <Sidebar>
-                        <SidebarHeader className="gap-3">
-                            <UserMenu>
-                                <UserMenuHeader />
-                                <UserMenuContent />
-                                <UserMenuFooter />
-                            </UserMenu>
-                            <SidebarGroup>
-                                <Link
-                                    className="contents"
-                                    href="/library"
-                                    prefetch
-                                >
-                                    <ActivePathname href="/library">
-                                        <SidebarItem>
-                                            <House
-                                                aria-hidden
-                                                className="inline-block size-4 shrink-0"
-                                                focusable="false"
-                                            />
-                                            <span>
-                                                <T>Home</T>
+                    <SidebarProvider>
+                        <Sidebar>
+                            <SidebarHeader className="gap-3">
+                                <div className="flex items-center gap-2">
+                                    <div
+                                        className="min-w-0 flex-1"
+                                        data-sidebar-collapsible=""
+                                    >
+                                        <UserMenu>
+                                            <UserMenuHeader />
+                                            <UserMenuContent />
+                                            <UserMenuFooter />
+                                        </UserMenu>
+                                    </div>
+                                    <SidebarTrigger />
+                                </div>
+                                <SidebarGroup>
+                                    <Link
+                                        className="contents"
+                                        href="/library"
+                                        prefetch
+                                    >
+                                        <ActivePathname href="/library">
+                                            <SidebarItem>
+                                                <House
+                                                    aria-hidden
+                                                    className="inline-block size-4 shrink-0"
+                                                    focusable="false"
+                                                />
+                                                <span data-sidebar-label="">
+                                                    <T>Home</T>
+                                                </span>
+                                            </SidebarItem>
+                                        </ActivePathname>
+                                    </Link>
+                                    <Link className="contents" href="/review">
+                                        <ActivePathname href="/review">
+                                            <SidebarItem>
+                                                <Compass
+                                                    aria-hidden
+                                                    className="inline-block size-4 shrink-0"
+                                                    focusable="false"
+                                                />
+                                                <span data-sidebar-label="">
+                                                    <T>Review</T>
+                                                </span>
+                                            </SidebarItem>
+                                        </ActivePathname>
+                                    </Link>
+                                    <Link
+                                        className="contents"
+                                        href="/activity"
+                                        prefetch
+                                    >
+                                        <ActivePathname href="/activity">
+                                            <SidebarItem>
+                                                <History
+                                                    aria-hidden
+                                                    className="inline-block size-4 shrink-0"
+                                                    focusable="false"
+                                                />
+                                                <span data-sidebar-label="">
+                                                    <T>Activity</T>
+                                                </span>
+                                            </SidebarItem>
+                                        </ActivePathname>
+                                    </Link>
+                                </SidebarGroup>
+                                <div data-sidebar-collapsible="">
+                                    <IntegrationsList>
+                                        <IntegrationsListTrigger>
+                                            <span className="min-w-0 text-xs">
+                                                <T>Integrations</T>
                                             </span>
-                                        </SidebarItem>
-                                    </ActivePathname>
-                                </Link>
-                                <Link className="contents" href="/review">
-                                    <ActivePathname href="/review">
-                                        <SidebarItem>
-                                            <Compass
-                                                aria-hidden
-                                                className="inline-block size-4 shrink-0"
-                                                focusable="false"
-                                            />
-                                            <span>
-                                                <T>Review</T>
-                                            </span>
-                                        </SidebarItem>
-                                    </ActivePathname>
-                                </Link>
-                                <Link
-                                    className="contents"
-                                    href="/activity"
-                                    prefetch
-                                >
-                                    <ActivePathname href="/activity">
-                                        <SidebarItem>
-                                            <History
-                                                aria-hidden
-                                                className="inline-block size-4 shrink-0"
-                                                focusable="false"
-                                            />
-                                            <span>
-                                                <T>Activity</T>
-                                            </span>
-                                        </SidebarItem>
-                                    </ActivePathname>
-                                </Link>
-                            </SidebarGroup>
-                            <IntegrationsList>
-                                <IntegrationsListTrigger>
-                                    <span className="min-w-0 text-xs">
-                                        <T>Integrations</T>
-                                    </span>
-                                    <ChevronDownFilledIcon className="-ml-0.5" />
-                                    <Kbd className="ml-auto bg-transparent opacity-0 group-hover:opacity-50">
-                                        <CtrlKbd />I
-                                    </Kbd>
-                                </IntegrationsListTrigger>
-                                <IntegrationsListPanel>
-                                    <DisclosureList maxVisible={6}>
-                                        {INTEGRATIONS.map(
-                                            ({
-                                                id,
-                                                label,
-                                                description,
-                                                Icon,
-                                            }) => (
-                                                <IntegrationsListItem
-                                                    className="group"
-                                                    key={id}
-                                                >
-                                                    <Avatar
-                                                        aria-label={label}
-                                                        className="size-6 rounded-md"
-                                                    >
-                                                        <AvatarFallback className="rounded-md">
-                                                            <Icon
-                                                                aria-hidden="true"
-                                                                className="size-3.5 shrink-0"
-                                                                focusable="false"
-                                                            />
-                                                        </AvatarFallback>
-                                                    </Avatar>
-                                                    <span className="min-w-0 flex-1 font-medium text-sm leading-snug">
-                                                        {label}
-                                                    </span>
-                                                    <span className="relative flex items-center text-muted-foreground leading-snug">
-                                                        <span className="absolute right-0 text-[11px] group-hover:opacity-0">
-                                                            {description}
-                                                        </span>
-                                                        <IntegrationsListItemAction
-                                                            className="absolute right-0 opacity-0 group-hover:opacity-100"
-                                                            id={id}
-                                                            isConnected={connectedIntegrationIdSet.has(
-                                                                id
-                                                            )}
-                                                        />
-                                                    </span>
-                                                </IntegrationsListItem>
-                                            )
-                                        )}
-                                    </DisclosureList>
-                                    <IntegrationsListFeedback />
-                                    <IntegrationsListPrivacyNotice />
-                                </IntegrationsListPanel>
-                            </IntegrationsList>
-                            <Collections />
-                        </SidebarHeader>
-                    </Sidebar>
+                                            <ChevronDownFilledIcon className="-ml-0.5" />
+                                            <Kbd className="ml-auto bg-transparent opacity-0 group-hover:opacity-50">
+                                                <CtrlKbd />I
+                                            </Kbd>
+                                        </IntegrationsListTrigger>
+                                        <IntegrationsListPanel>
+                                            <DisclosureList maxVisible={6}>
+                                                {INTEGRATIONS.map(
+                                                    ({
+                                                        id,
+                                                        label,
+                                                        description,
+                                                        Icon,
+                                                    }) => (
+                                                        <IntegrationsListItem
+                                                            className="group"
+                                                            key={id}
+                                                        >
+                                                            <Avatar
+                                                                aria-label={
+                                                                    label
+                                                                }
+                                                                className="size-6 rounded-md"
+                                                            >
+                                                                <AvatarFallback className="rounded-md">
+                                                                    <Icon
+                                                                        aria-hidden="true"
+                                                                        className="size-3.5 shrink-0"
+                                                                        focusable="false"
+                                                                    />
+                                                                </AvatarFallback>
+                                                            </Avatar>
+                                                            <span className="min-w-0 flex-1 font-medium text-sm leading-snug">
+                                                                {label}
+                                                            </span>
+                                                            <span className="relative flex items-center text-muted-foreground leading-snug">
+                                                                <span className="absolute right-0 text-[11px] group-hover:opacity-0">
+                                                                    {
+                                                                        description
+                                                                    }
+                                                                </span>
+                                                                <IntegrationsListItemAction
+                                                                    className="absolute right-0 opacity-0 group-hover:opacity-100"
+                                                                    id={id}
+                                                                    isConnected={connectedIntegrationIdSet.has(
+                                                                        id
+                                                                    )}
+                                                                />
+                                                            </span>
+                                                        </IntegrationsListItem>
+                                                    )
+                                                )}
+                                            </DisclosureList>
+                                            <IntegrationsListFeedback />
+                                            <IntegrationsListPrivacyNotice />
+                                        </IntegrationsListPanel>
+                                    </IntegrationsList>
+                                </div>
+                                <div data-sidebar-collapsible="">
+                                    <Collections />
+                                </div>
+                            </SidebarHeader>
+                        </Sidebar>
+                    </SidebarProvider>
                     <Browser
                         lockedItemCount={lockedItemCount}
                         totalItemCount={totalItemCount}
