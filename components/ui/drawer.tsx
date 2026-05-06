@@ -11,12 +11,15 @@ import * as React from "react";
 
 type DrawerPosition = "right" | "left" | "top" | "bottom";
 
-const DrawerContext: React.Context<{ position: DrawerPosition }> =
-    React.createContext<{ position: DrawerPosition }>({
-        position: "bottom",
-    });
+interface DrawerContextValue {
+    position: DrawerPosition;
+}
 
-const directionMap: Record<
+const DEFAULT_DRAWER_CONTEXT: DrawerContextValue = {
+    position: "bottom",
+};
+
+const SWIPE_DIRECTION_BY_POSITION: Record<
     DrawerPosition,
     DrawerPrimitive.Root.Props["swipeDirection"]
 > = {
@@ -25,6 +28,9 @@ const directionMap: Record<
     right: "right",
     top: "up",
 };
+
+const DrawerContext: React.Context<DrawerContextValue> =
+    React.createContext<DrawerContextValue>(DEFAULT_DRAWER_CONTEXT);
 
 function wrapRender(
     render: useRender.ComponentProps<"div">["render"],
@@ -46,7 +52,9 @@ export function Drawer({
     return (
         <DrawerContext value={{ position }}>
             <DrawerPrimitive.Root
-                swipeDirection={swipeDirection ?? directionMap[position]}
+                swipeDirection={
+                    swipeDirection ?? SWIPE_DIRECTION_BY_POSITION[position]
+                }
                 {...props}
             />
         </DrawerContext>

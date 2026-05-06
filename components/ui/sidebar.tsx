@@ -46,7 +46,7 @@ function SidebarFooter({ className, ...props }: React.ComponentProps<"div">) {
     );
 }
 
-export interface SidebarItemProps extends useRender.ComponentProps<"div"> {}
+export type SidebarItemProps = useRender.ComponentProps<"div">;
 
 function SidebarItem({ className, render, ...props }: SidebarItemProps) {
     const defaultProps = {
@@ -67,7 +67,7 @@ function SidebarItem({ className, render, ...props }: SidebarItemProps) {
 
 function SidebarGroup({ className, ...props }: React.ComponentProps<"div">) {
     return (
-        // biome-ignore lint/a11y/useSemanticElements: Ignore
+        // biome-ignore lint/a11y/useSemanticElements: this groups navigation controls without fieldset semantics.
         <div
             {...props}
             className={cn(

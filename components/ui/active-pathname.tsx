@@ -3,6 +3,8 @@
 import { usePathname } from "next/navigation";
 import * as React from "react";
 
+type ActivePathnameChildProps = Record<string, unknown>;
+
 export function ActivePathname({
     href,
     match = "exact",
@@ -13,7 +15,7 @@ export function ActivePathname({
     href: string;
     match?: "exact" | "prefix";
     reverse?: boolean;
-    children: React.ReactElement;
+    children: React.ReactElement<ActivePathnameChildProps>;
 }) {
     const pathname = usePathname();
     const isPathnameActive =
@@ -26,5 +28,5 @@ export function ActivePathname({
         ...props,
         "aria-current": isPathnameActive ? "page" : undefined,
         "data-active": reverse ? !isPathnameActive : isPathnameActive,
-    } as Record<string, unknown>);
+    });
 }

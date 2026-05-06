@@ -1,10 +1,14 @@
 import { cn } from "@/lib/common/cn";
 import type * as React from "react";
 
-interface TickerProps extends React.ComponentProps<"div"> {
+interface TickerProps extends React.ComponentProps<"span"> {
     direction?: "up" | "down" | "left" | "right";
     repeatInstances?: number;
 }
+
+type TickerTrackStyle = React.CSSProperties & {
+    "--animation-distance": string;
+};
 
 export function Ticker({
     direction = "left",
@@ -17,6 +21,9 @@ export function Ticker({
     const isVertical = direction === "up" || direction === "down";
     const repeatCount = Math.max(1, Math.ceil(repeatInstances));
     const animationDistance = `${-100 / repeatCount}%`;
+    const trackStyle: TickerTrackStyle = {
+        "--animation-distance": animationDistance,
+    };
 
     return (
         <span
@@ -39,11 +46,7 @@ export function Ticker({
                     "direction-[reverse]":
                         direction === "up" || direction === "right",
                 })}
-                style={
-                    {
-                        "--animation-distance": animationDistance,
-                    } as React.CSSProperties
-                }
+                style={trackStyle}
             >
                 {Array.from({ length: repeatCount }, (_, index) => (
                     <span

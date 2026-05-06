@@ -16,6 +16,7 @@ Diagnose a bug report and decide the next action: verify against sources, reques
 - Extract: title, body, repro steps, expected vs actual, environment, logs, and any attachments.
 - Note whether the report already includes logs or session details.
 - If the report includes a thread ID, mention it in the summary and use it to look up the logs and session details if you have access to them.
+- Many errors error manifest at a specific line in the stack trace, but the fix almost never belongs there, and chances are fixing at the crash site (e.g., adding a typeof guard in a revive() function, swallowing the error with a try/catch, or returning a fallback value) only likely masks the real problem.
 
 2. Summarize the bug before investigating
 

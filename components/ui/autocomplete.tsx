@@ -14,14 +14,12 @@ export function AutocompleteInput({
     className,
     startAddon,
     size,
-    triggerProps,
     endAddon,
     ...props
 }: Omit<AutocompletePrimitive.Input.Props, "size"> & {
     startAddon?: React.ReactNode;
     size?: "sm" | "default" | "lg" | number;
     ref?: React.Ref<HTMLInputElement>;
-    triggerProps?: AutocompletePrimitive.Trigger.Props;
     endAddon?: React.ReactNode;
 }) {
     const sizeValue = size ?? "default";
@@ -55,7 +53,7 @@ export function AutocompleteInput({
                 {...props}
             />
             {endAddon && (
-                // biome-ignore lint/a11y/useSemanticElements: Ignore
+                // biome-ignore lint/a11y/useSemanticElements: this groups input adornments without naming a form field group.
                 <div
                     className="absolute inset-e-0.5 inset-y-0 z-10 flex shrink-0 flex-nowrap items-center justify-end gap-0.5 pe-[calc(--spacing(2)-1px)] has-[+[data-size=sm]]:pe-[calc(--spacing(1.5)-1px)]"
                     role="group"

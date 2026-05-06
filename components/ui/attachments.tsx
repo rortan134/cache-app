@@ -128,6 +128,10 @@ interface AttachmentsContextValue {
     variant: AttachmentVariant;
 }
 
+const DEFAULT_ATTACHMENTS_CONTEXT = {
+    variant: "grid",
+} satisfies AttachmentsContextValue;
+
 const AttachmentsContext = React.createContext<AttachmentsContextValue | null>(
     null
 );
@@ -144,7 +148,7 @@ const AttachmentContext = React.createContext<AttachmentContextValue | null>(
 );
 
 function useAttachmentsContext() {
-    return React.use(AttachmentsContext) ?? { variant: "grid" as const };
+    return React.use(AttachmentsContext) ?? DEFAULT_ATTACHMENTS_CONTEXT;
 }
 
 function useAttachmentContext() {
@@ -161,35 +165,37 @@ interface AttachmentsProps extends React.ComponentProps<"div"> {
     variant?: AttachmentVariant;
 }
 
-export const Attachments = ({
+export function Attachments({
     variant = "grid",
     className,
     ...props
-}: AttachmentsProps) => (
-    <AttachmentsContext value={{ variant }}>
-        <div
-            className={cn(
-                "flex items-start",
-                variant === "list" ? "flex-col gap-2" : "flex-wrap gap-2",
-                variant === "grid" && "ml-auto w-fit",
-                className
-            )}
-            {...props}
-        />
-    </AttachmentsContext>
-);
+}: AttachmentsProps) {
+    return (
+        <AttachmentsContext value={{ variant }}>
+            <div
+                className={cn(
+                    "flex items-start",
+                    variant === "list" ? "flex-col gap-2" : "flex-wrap gap-2",
+                    variant === "grid" && "ml-auto w-fit",
+                    className
+                )}
+                {...props}
+            />
+        </AttachmentsContext>
+    );
+}
 
 interface AttachmentProps extends React.ComponentProps<"div"> {
     data: AttachmentData;
     onRemove?: () => void;
 }
 
-export const Attachment = ({
+export function Attachment({
     data,
     onRemove,
     className,
     ...props
-}: AttachmentProps) => {
+}: AttachmentProps) {
     const { variant } = useAttachmentsContext();
     const mediaCategory = getMediaCategory(data);
 
@@ -215,17 +221,17 @@ export const Attachment = ({
             />
         </AttachmentContext>
     );
-};
+}
 
 interface AttachmentPreviewProps extends React.ComponentProps<"div"> {
     fallbackIcon?: React.ReactNode;
 }
 
-export const AttachmentPreview = ({
+export function AttachmentPreview({
     fallbackIcon,
     className,
     ...props
-}: AttachmentPreviewProps) => {
+}: AttachmentPreviewProps) {
     const { data, mediaCategory, variant } = useAttachmentContext();
 
     return (
@@ -247,17 +253,17 @@ export const AttachmentPreview = ({
             )}
         </div>
     );
-};
+}
 
 interface AttachmentInfoProps extends React.ComponentProps<"div"> {
     showMediaType?: boolean;
 }
 
-export const AttachmentInfo = ({
+export function AttachmentInfo({
     showMediaType = false,
     className,
     ...props
-}: AttachmentInfoProps) => {
+}: AttachmentInfoProps) {
     const { data, variant } = useAttachmentContext();
     const label = getAttachmentLabel(data);
 
@@ -275,28 +281,28 @@ export const AttachmentInfo = ({
             ) : null}
         </div>
     );
-};
+}
 
 interface AttachmentRemoveProps extends React.ComponentProps<typeof Button> {
     label?: string;
 }
 
-export const AttachmentRemove = ({
+export function AttachmentRemove({
     label = "Remove",
     className,
     children,
     ...props
-}: AttachmentRemoveProps) => {
+}: AttachmentRemoveProps) {
     const { onRemove, variant } = useAttachmentContext();
-
-    const handleClick = (event: React.MouseEvent) => {
-        event.stopPropagation();
-        onRemove?.();
-    };
 
     if (!onRemove) {
         return null;
     }
+
+    const handleClick = (event: React.MouseEvent) => {
+        event.stopPropagation();
+        onRemove();
+    };
 
     return (
         <Button
@@ -328,24 +334,23 @@ export const AttachmentRemove = ({
             <span className="sr-only">{label}</span>
         </Button>
     );
-};
+}
 
-export const AttachmentPreviewCard = (
-    props: React.ComponentProps<typeof PreviewCard>
-) => <PreviewCard {...props} />;
+export const AttachmentPreviewCard: typeof PreviewCard = PreviewCard;
 
-export const AttachmentPreviewCardTrigger = (
-    props: React.ComponentProps<typeof PreviewCardTrigger>
-) => <PreviewCardTrigger {...props} />;
+export const AttachmentPreviewCardTrigger: typeof PreviewCardTrigger =
+    PreviewCardTrigger;
 
-export const AttachmentPreviewCardPopup = ({
+export function AttachmentPreviewCardPopup({
     align = "start",
     className,
     ...props
-}: React.ComponentProps<typeof PreviewCardPopup>) => (
-    <PreviewCardPopup
-        align={align}
-        className={cn("w-auto p-2", className)}
-        {...props}
-    />
-);
+}: React.ComponentProps<typeof PreviewCardPopup>) {
+    return (
+        <PreviewCardPopup
+            align={align}
+            className={cn("w-auto p-2", className)}
+            {...props}
+        />
+    );
+}

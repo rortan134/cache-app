@@ -11,7 +11,7 @@ import * as React from "react";
 type ComboboxSize = "sm" | "default" | "lg" | number;
 
 interface ComboboxContextValue {
-    chipsRef: React.RefObject<Element | null> | null;
+    chipsRef: React.RefObject<HTMLDivElement | null> | null;
     multiple: boolean;
 }
 
@@ -24,7 +24,7 @@ export const ComboboxContext: React.Context<ComboboxContextValue> =
 export function Combobox<Value, Multiple extends boolean | undefined = false>(
     props: ComboboxPrimitive.Root.Props<Value, Multiple>
 ) {
-    const chipsRef = React.useRef<Element | null>(null);
+    const chipsRef = React.useRef<HTMLDivElement | null>(null);
     return (
         <ComboboxContext value={{ chipsRef, multiple: !!props.multiple }}>
             <ComboboxPrimitive.Root {...props} />
@@ -61,7 +61,6 @@ export function ComboboxInput({
     startAddon,
     endAddon,
     size = "default",
-    triggerProps,
     clearProps,
     ...props
 }: Omit<ComboboxPrimitive.Input.Props, "size"> & {
@@ -70,7 +69,6 @@ export function ComboboxInput({
     endAddon?: React.ReactNode;
     size?: ComboboxSize;
     ref?: React.Ref<HTMLInputElement>;
-    triggerProps?: ComboboxPrimitive.Trigger.Props;
     clearProps?: ComboboxPrimitive.Clear.Props;
 }) {
     return (
@@ -374,7 +372,7 @@ export function ComboboxChips({
                 className
             )}
             data-slot="combobox-chips"
-            ref={chipsRef as React.Ref<HTMLDivElement> | null}
+            ref={chipsRef}
             {...props}
         >
             {startAddon && (

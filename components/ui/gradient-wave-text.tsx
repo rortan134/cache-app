@@ -15,6 +15,11 @@ const DEFAULT_COLORS = [
     "#c77dff",
 ];
 
+const FRAME_DURATION_MS = 16.6667;
+const GRADIENT_PROGRESS_INITIAL = -25;
+const GRADIENT_PROGRESS_RANGE = 200;
+const MAX_FRAME_DELTA_MS = 64;
+
 const JUSTIFY_CONTENT_BY_ALIGN: Record<
     Align,
     React.CSSProperties["justifyContent"]
@@ -22,6 +27,10 @@ const JUSTIFY_CONTENT_BY_ALIGN: Record<
     center: "center",
     left: "flex-start",
     right: "flex-end",
+};
+
+type GradientWaveContainerStyle = React.CSSProperties & {
+    "--gi": number;
 };
 
 interface GradientWaveTextProps {
@@ -133,13 +142,13 @@ function GradientWaveText({
             return;
         }
 
-        tRef.current = -25;
+        tRef.current = GRADIENT_PROGRESS_INITIAL;
         cyclesDoneRef.current = 0;
         finishedRef.current = false;
         startedRef.current = false;
         startAtRef.current =
             performance.now() + Math.max(0, (delay ?? 0) * 1000);
-        node.style.setProperty("--gi", "-25");
+        node.style.setProperty("--gi", String(GRADIENT_PROGRESS_INITIAL));
     }, [isInView, delay]);
 
     React.useEffect(() => {
@@ -148,7 +157,6 @@ function GradientWaveText({
             return;
         }
 
-        const RANGE = 200;
         const cycles = repeat ? 0 : 1;
         let last = performance.now();
 
@@ -168,28 +176,34 @@ function GradientWaveText({
                 }
             }
 
-            const dt = Math.min(64, now - last);
+            const dt = Math.min(MAX_FRAME_DELTA_MS, now - last);
             last = now;
 
             if (!paused) {
-                const increment = (dt * speed) / 16.6667;
+                const increment = (dt * speed) / FRAME_DURATION_MS;
                 let next = tRef.current + increment;
 
                 if (cycles === 0) {
-                    if (next >= RANGE) {
-                        next %= RANGE;
+                    if (next >= GRADIENT_PROGRESS_RANGE) {
+                        next %= GRADIENT_PROGRESS_RANGE;
                     }
                     tRef.current = next;
                     node.style.setProperty("--gi", String(next));
                 } else {
-                    while (next >= RANGE && cyclesDoneRef.current < cycles) {
-                        next -= RANGE;
+                    while (
+                        next >= GRADIENT_PROGRESS_RANGE &&
+                        cyclesDoneRef.current < cycles
+                    ) {
+                        next -= GRADIENT_PROGRESS_RANGE;
                         cyclesDoneRef.current += 1;
                     }
 
                     if (cyclesDoneRef.current >= cycles) {
-                        tRef.current = RANGE;
-                        node.style.setProperty("--gi", String(RANGE));
+                        tRef.current = GRADIENT_PROGRESS_RANGE;
+                        node.style.setProperty(
+                            "--gi",
+                            String(GRADIENT_PROGRESS_RANGE)
+                        );
                         finishedRef.current = true;
                         return;
                     }
@@ -224,6 +238,11 @@ function GradientWaveText({
         WebkitTextFillColor: "transparent",
     };
 
+    const containerStyle: GradientWaveContainerStyle = {
+        "--gi": GRADIENT_PROGRESS_INITIAL,
+        justifyContent: JUSTIFY_CONTENT_BY_ALIGN[align],
+    };
+
     return (
         <div
             aria-label={ariaLabel}
@@ -233,12 +252,7 @@ function GradientWaveText({
             )}
             ref={elRef}
             role="img"
-            style={
-                {
-                    "--gi": -25,
-                    justifyContent: JUSTIFY_CONTENT_BY_ALIGN[align],
-                } as React.CSSProperties
-            }
+            style={containerStyle}
         >
             <span style={spanStyle}>{children}</span>
         </div>

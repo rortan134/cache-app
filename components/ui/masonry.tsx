@@ -6,6 +6,7 @@ import {
 } from "@base-ui/utils/useAnimationFrame";
 import { useIsoLayoutEffect } from "@base-ui/utils/useIsoLayoutEffect";
 import { useMergedRefs } from "@base-ui/utils/useMergedRefs";
+import { ownerDocument, ownerWindow } from "@base-ui/utils/owner";
 import { useStableCallback } from "@base-ui/utils/useStableCallback";
 import { useTimeout } from "@base-ui/utils/useTimeout";
 import { useValueAsRef } from "@base-ui/utils/useValueAsRef";
@@ -641,6 +642,12 @@ interface PositionerItem {
     top: number;
 }
 
+function isPositionerItem(
+    item: PositionerItem | undefined
+): item is PositionerItem {
+    return item !== undefined;
+}
+
 interface UsePositionerOptions {
     columnCount?: number;
     columnGap?: number;
@@ -709,7 +716,7 @@ function usePositioner(
 
         return {
             all(): PositionerItem[] {
-                return items.filter(Boolean) as PositionerItem[];
+                return items.filter(isPositionerItem);
             },
             columnCount: computedColumnCount,
             columnWidth: computedColumnWidth,
@@ -963,15 +970,44 @@ interface DebouncedWindowSizeOptions {
     delayMs?: number;
 }
 
-function readDocumentSize(defaultWidth: number, defaultHeight: number) {
-    if (typeof document === "undefined") {
+function readDocumentSize(
+    defaultWidth: number,
+    defaultHeight: number,
+    element?: Element | null
+) {
+    if (element) {
+        const documentElement = ownerDocument(element).documentElement;
+        return {
+            height: documentElement.clientHeight,
+            width: documentElement.clientWidth,
+        };
+    }
+
+    if (typeof globalThis.document === "undefined") {
         return { height: defaultHeight, width: defaultWidth };
     }
 
     return {
-        height: document.documentElement.clientHeight,
-        width: document.documentElement.clientWidth,
+        height: globalThis.document.documentElement.clientHeight,
+        width: globalThis.document.documentElement.clientWidth,
     };
+}
+
+function readScrollY(element?: Element | null) {
+    if (element) {
+        const doc = ownerDocument(element);
+        return ownerWindow(element).scrollY ?? doc.documentElement.scrollTop;
+    }
+
+    if (typeof globalThis.window === "undefined") {
+        return 0;
+    }
+
+    return (
+        globalThis.window.scrollY ??
+        globalThis.document?.documentElement.scrollTop ??
+        0
+    );
 }
 
 function useDebouncedWindowSize(options: DebouncedWindowSizeOptions) {
@@ -993,29 +1029,34 @@ function useDebouncedWindowSize(options: DebouncedWindowSizeOptions) {
     );
 
     React.useEffect(() => {
-        if (typeof window === "undefined") {
+        const rootElement = containerRef.current;
+        const rootWindow =
+            rootElement === null ? globalThis.window : ownerWindow(rootElement);
+        if (typeof rootWindow === "undefined") {
             return;
         }
 
         function onResize() {
-            if (containerRef.current) {
+            const container = containerRef.current;
+            if (container) {
                 setDebouncedSize({
-                    height: document.documentElement.clientHeight,
-                    width: containerRef.current.offsetWidth,
+                    height: ownerDocument(container).documentElement
+                        .clientHeight,
+                    width: container.offsetWidth,
                 });
             } else {
                 setDebouncedSize(readDocumentSize(defaultWidth, defaultHeight));
             }
         }
 
-        window.addEventListener("resize", onResize, { passive: true });
-        window.addEventListener("orientationchange", onResize);
-        window.visualViewport?.addEventListener("resize", onResize);
+        rootWindow.addEventListener("resize", onResize, { passive: true });
+        rootWindow.addEventListener("orientationchange", onResize);
+        rootWindow.visualViewport?.addEventListener("resize", onResize);
 
         return () => {
-            window.removeEventListener("resize", onResize);
-            window.removeEventListener("orientationchange", onResize);
-            window.visualViewport?.removeEventListener("resize", onResize);
+            rootWindow.removeEventListener("resize", onResize);
+            rootWindow.removeEventListener("orientationchange", onResize);
+            rootWindow.visualViewport?.removeEventListener("resize", onResize);
             resizeTimeout.clear();
         };
     }, [
@@ -1121,13 +1162,8 @@ function createResizeObserverFactory(): MasonryResizeObserverFactory {
             >();
             function onResizeObserver(entries: ResizeObserverEntry[]) {
                 for (const entry of entries) {
-                    const ownerWindow = entry.target.ownerDocument.defaultView;
-                    if (
-                        !(
-                            ownerWindow &&
-                            entry.target instanceof ownerWindow.HTMLElement
-                        )
-                    ) {
+                    const targetWindow = ownerWindow(entry.target);
+                    if (!(entry.target instanceof targetWindow.HTMLElement)) {
                         continue;
                     }
 
@@ -1183,19 +1219,13 @@ function useScroller({
     offset?: number;
     fps?: number;
 } = {}) {
-    const [scrollY, setScrollY] = useThrottle(
-        typeof globalThis.window === "undefined"
-            ? 0
-            : (globalThis.window.scrollY ??
-                  document.documentElement.scrollTop ??
-                  0),
-        { fps, leading: true }
-    );
+    const [scrollY, setScrollY] = useThrottle(readScrollY, {
+        fps,
+        leading: true,
+    });
 
     const onScroll = useStableCallback(() => {
-        setScrollY(
-            globalThis.window.scrollY ?? document.documentElement.scrollTop ?? 0
-        );
+        setScrollY(readScrollY());
     });
 
     React.useEffect(() => {
@@ -1303,6 +1333,16 @@ const MASONRY_ERROR = {
 
 type RootElement = React.ComponentRef<typeof Masonry>;
 type ItemElement = React.ComponentRef<typeof MasonryItem>;
+type MasonryChildProps = React.ComponentProps<"div"> & {
+    "data-index"?: number;
+};
+type MasonryChildElement = React.ReactElement<MasonryChildProps>;
+
+function isMasonryChildElement(
+    child: React.ReactNode
+): child is MasonryChildElement {
+    return React.isValidElement<MasonryChildProps>(child);
+}
 
 interface MasonryContextValue {
     columnWidth: number;
@@ -1395,21 +1435,14 @@ function Masonry({
     });
 
     useIsoLayoutEffect(() => {
-        if (!containerRef.current) {
+        const container = containerRef.current;
+        if (!container) {
             return;
         }
 
-        let scrollOffset = 0;
-        if (typeof globalThis.window !== "undefined") {
-            scrollOffset =
-                globalThis.window.scrollY ??
-                document.documentElement.scrollTop ??
-                0;
-        }
-
         const offset =
-            containerRef.current.getBoundingClientRect().top + scrollOffset;
-        const width = containerRef.current.offsetWidth;
+            container.getBoundingClientRect().top + readScrollY(container);
+        const width = container.offsetWidth;
 
         if (
             offset !== containerPosition.offset ||
@@ -1551,9 +1584,9 @@ function MasonryViewport({
     const [layoutVersion, setLayoutVersion] = React.useState(0);
     const layoutAnimationFrame = useAnimationFrame();
 
-    const validChildren = React.Children.toArray(
-        children
-    ) as React.ReactElement<React.ComponentProps<"div">>[];
+    const validChildren = React.Children.toArray(children).filter(
+        isMasonryChildElement
+    );
 
     const {
         columnWidth,
@@ -1612,7 +1645,7 @@ function MasonryViewport({
                 }
                 result.push(
                     React.cloneElement(child, {
-                        ["data-index" as string]: index,
+                        "data-index": index,
                         key: child.key ?? index,
                         ref: onItemRegister(index),
                         style: {
@@ -1654,7 +1687,7 @@ function MasonryViewport({
                     }
                     result.push(
                         React.cloneElement(child, {
-                            ["data-index" as string]: index,
+                            "data-index": index,
                             key: child.key ?? index,
                             ref: onItemRegister(index),
                             style: { ...hiddenItemStyle, ...child.props.style },
