@@ -247,32 +247,16 @@ export function useWorkspace(): LibraryWorkspaceContextValue {
     return context;
 }
 
-interface LibraryWorkspaceProviderProps {
-    hasAccess: boolean;
-    initialCollections: LibraryCollectionSummary[];
-    initialItems: LibraryItemWithCollections[];
-}
-
-/**
- * Provider that holds the mutable library state (items, collections,
- * selection) and exposes it through `useWorkspace`.
- *
- * Maintains local copies of server data so optimistic updates (e.g.
- * adding an item to a collection) render instantly while the server
- * round-trip happens in the background.
- */
 export function WorkspaceProvider({
     hasAccess,
     initialCollections,
     initialItems,
     children,
 }: React.PropsWithChildren<LibraryWorkspaceProviderProps>) {
-    const [items, setItems] = React.useState<LibraryItemWithCollections[]>(
-        () => [...initialItems]
-    );
-    const [collections, setCollections] = React.useState<
-        LibraryCollectionSummary[]
-    >([...initialCollections]);
+    const [items, setItems] =
+        React.useState<LibraryItemWithCollections[]>(initialItems);
+    const [collections, setCollections] =
+        React.useState<LibraryCollectionSummary[]>(initialCollections);
     const [selectedCollectionIds, setSelectedCollectionIds] = React.useState<
         string[]
     >([]);
@@ -287,35 +271,27 @@ export function WorkspaceProvider({
         collectionTextMatchQuery
     );
 
-    // Initial items are copied into local state so optimistic collection edits
-    // can render immediately, then resync when the server payload changes.
     React.useEffect(
         function syncItemsFromInitialItems() {
-            setItems([...initialItems]);
+            setItems(initialItems);
         },
         [initialItems]
     );
 
-    // Collections follow the same local mirror as items because collection
-    // summaries are updated optimistically by item membership changes.
     React.useEffect(
         function syncCollectionsFromInitialCollections() {
-            setCollections([...initialCollections]);
+            setCollections(initialCollections);
         },
         [initialCollections]
     );
 
-    // Collection filters must only reference live collections after creation,
-    // deletion, or server refreshes, otherwise hidden stale filters can mask results.
     React.useEffect(
         function pruneSelectedCollections() {
             const collectionIds = new Set(
                 collections.map((collection) => collection.id)
             );
             setSelectedCollectionIds((current) => {
-                const next = current.filter((collectionId) =>
-                    collectionIds.has(collectionId)
-                );
+                const next = current.filter((id) => collectionIds.has(id));
                 return next.length === current.length ? current : next;
             });
         },
@@ -329,7 +305,7 @@ export function WorkspaceProvider({
         setSelectedCollectionIds([]);
     };
 
-    const handleToggleCollectionSelection = (id: string) => {
+    const toggleCollectionSelection = (id: string) => {
         setSelectedCollectionIds((current) =>
             current.includes(id)
                 ? current.filter((entryId) => entryId !== id)
@@ -337,7 +313,7 @@ export function WorkspaceProvider({
         );
     };
 
-    const handleUpdateItemCollections = (
+    const handleUpdateItemCollections = async (
         itemId: string,
         collectionIds: string[]
     ): Promise<LibraryItemCollectionsUpdateResult> => {
@@ -346,60 +322,52 @@ export function WorkspaceProvider({
         collectionUpdateVersionByItemIdRef.current.set(itemId, requestVersion);
         const previousCollections =
             items.find((item) => item.id === itemId)?.collections ?? [];
+
         const optimisticCollections = sortCollections(
             collections.filter((collection) =>
                 collectionIds.includes(collection.id)
             )
         );
-
         setItems((current) =>
             replaceItemCollections(current, itemId, optimisticCollections)
         );
 
-        const runUpdate = async () => {
-            let result: LibraryItemCollectionsUpdateResult;
+        let result: LibraryItemCollectionsUpdateResult;
+        try {
+            result = await updateLibraryItemCollections({
+                collectionIds,
+                itemId,
+            });
+        } catch {
+            result = {
+                message: "We couldn't update collections for this item.",
+                status: "ERROR",
+            };
+        }
 
-            try {
-                result = await updateLibraryItemCollections({
-                    collectionIds,
-                    itemId,
-                });
-            } catch {
-                result = {
-                    message: "We couldn't update collections for this item.",
-                    status: "ERROR",
-                };
-            }
-
-            // Ignore out-of-order responses so older requests can't clobber a
-            // newer selection for the same item.
-            if (
-                collectionUpdateVersionByItemIdRef.current.get(itemId) !==
-                requestVersion
-            ) {
-                return result;
-            }
-
-            if (result.status === "UPDATED") {
-                setCollections((current) =>
-                    mergeCollectionSummaries(
-                        current,
-                        result.collectionSummaries
-                    )
-                );
-                setItems((current) =>
-                    replaceItemCollections(current, itemId, result.collections)
-                );
-            } else {
-                setItems((current) =>
-                    replaceItemCollections(current, itemId, previousCollections)
-                );
-            }
-
+        // Ignore out-of-order responses so older requests can't clobber a
+        // newer selection for the same item.
+        if (
+            collectionUpdateVersionByItemIdRef.current.get(itemId) !==
+            requestVersion
+        ) {
             return result;
-        };
+        }
 
-        return runUpdate();
+        if (result.status === "UPDATED") {
+            setCollections((current) =>
+                mergeCollectionSummaries(current, result.collectionSummaries)
+            );
+            setItems((current) =>
+                replaceItemCollections(current, itemId, result.collections)
+            );
+        } else {
+            setItems((current) =>
+                replaceItemCollections(current, itemId, previousCollections)
+            );
+        }
+
+        return result;
     };
 
     const handleUpdateItemsCollections = async (input: {
@@ -460,22 +428,11 @@ export function WorkspaceProvider({
             return result;
         }
 
-        const nextCollection = {
-            createdAt: result.collection.createdAt,
-            description: result.collection.description,
-            id: result.collection.id,
-            name: result.collection.name,
-            priority: result.collection.priority,
-            sharedAt: result.collection.sharedAt,
-            shareId: result.collection.shareId,
-            updatedAt: result.collection.updatedAt,
-        } satisfies LibraryCollectionTag;
-
         setCollections((current) =>
             mergeCollectionSummaries(current, [result.collection])
         );
         setItems((current) =>
-            appendCollection(current, result.assignedItemIds, nextCollection)
+            appendCollection(current, result.assignedItemIds, result.collection)
         );
 
         return result;
@@ -501,7 +458,7 @@ export function WorkspaceProvider({
                 onCreateCollectionFromResults:
                     handleCreateCollectionFromResults,
                 onDeleteItemSuccess: handleDeleteItemSuccess,
-                onSelectCollection: handleToggleCollectionSelection,
+                onSelectCollection: toggleCollectionSelection,
                 onUpdateItemCollections: handleUpdateItemCollections,
                 onUpdateItemsCollections: handleUpdateItemsCollections,
                 requestCreate,
@@ -515,6 +472,12 @@ export function WorkspaceProvider({
             </RequestCreateRefContext>
         </WorkspaceContext>
     );
+}
+
+export interface LibraryWorkspaceProviderProps {
+    hasAccess: boolean;
+    initialCollections: LibraryCollectionSummary[];
+    initialItems: LibraryItemWithCollections[];
 }
 
 /**
@@ -622,11 +585,11 @@ export function mergeCollectionSummaries(
         (collection) => nextCollectionById.get(collection.id) ?? collection
     );
 
+    const existingIds = new Set(collections.map((collection) => collection.id));
     return sortCollections([
         ...mergedCollections,
         ...nextCollections.filter(
-            (collection) =>
-                !mergedCollections.some((entry) => entry.id === collection.id)
+            (collection) => !existingIds.has(collection.id)
         ),
     ]);
 }
