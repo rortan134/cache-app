@@ -1,8 +1,8 @@
 import "server-only";
 
-import { z } from "zod";
 import { IntegrationApiError } from "@/lib/integrations/error";
 import type { Prisma } from "@/prisma/client/client";
+import * as z from "zod";
 
 const X_API_BASE_URL = "https://api.x.com/2";
 const X_BOOKMARKS_PAGE_SIZE = 100;

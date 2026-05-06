@@ -6,12 +6,14 @@ import { isBlockedHostname } from "@/lib/common/net";
 import { fetchWithTimeout } from "@/lib/common/timeout";
 import { isCobaltHost, toValidUrl } from "@/lib/common/url";
 import { resolveCobaltPreview } from "@/lib/integrations/cobalt/service";
+import { createHash } from "node:crypto";
 import { cacheLife, cacheTag } from "next/cache";
 import { PreviewError, preview } from "openlink";
 
 const log = createLogger("api:library:preview");
 
-const CACHE_CONTROL_HEADER = "public, max-age=86400, s-maxage=604800";
+const CACHE_CONTROL_HEADER =
+    "public, max-age=86400, s-maxage=604800, stale-while-revalidate=604800";
 const FETCH_TIMEOUT_MS = 5000;
 const MAX_REDIRECTS = 2;
 const COBALT_RETRY_ATTEMPTS = 2;
@@ -98,7 +100,7 @@ export async function GET(request: Request): Promise<Response> {
 async function resolvePreviewImage(targetUrl: string) {
     "use cache";
     cacheLife("days");
-    cacheTag(`preview:${targetUrl}`);
+    cacheTag(`preview:${hashTargetUrl(targetUrl)}`);
 
     const page = await preview(targetUrl, {
         fetch: safeFetch,
@@ -225,6 +227,10 @@ async function proxyVideoResponse(
 async function resolvePreviewVideo(
     targetUrl: string
 ): Promise<{ errorCode?: string; videoUrl: string | null }> {
+    "use cache";
+    cacheLife("minutes");
+    cacheTag(`preview:video:${hashTargetUrl(targetUrl)}`);
+
     const isSupported = isCobaltHost(targetUrl);
     if (!isSupported) {
         log.debug("Host not supported for video preview", { targetUrl });
@@ -371,4 +377,8 @@ function toSafeUrl(rawUrl: string): string | null {
 
 function isRedirectStatus(status: number): boolean {
     return status >= 300 && status < 400;
+}
+
+function hashTargetUrl(targetUrl: string): string {
+    return createHash("sha256").update(targetUrl).digest("hex").slice(0, 16);
 }

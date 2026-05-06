@@ -1,8 +1,8 @@
 import "server-only";
 
-import { z } from "zod";
 import { IntegrationApiError } from "@/lib/integrations/error";
 import type { Prisma } from "@/prisma/client/client";
+import * as z from "zod";
 
 const GITHUB_API_BASE_URL = "https://api.github.com";
 const GITHUB_API_VERSION = "2022-11-28";

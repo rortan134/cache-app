@@ -97,6 +97,8 @@ import { cn } from "@/lib/common/cn";
 import { getHexColorFromName } from "@/lib/common/colors";
 import { getSystemControlKey } from "@/lib/common/environment";
 import { saveFile } from "@/lib/common/file";
+import { filterValidImageUrls } from "@/lib/common/image";
+import { createLogger } from "@/lib/common/logs/console/logger";
 import { normalizeWhitespace, slugify } from "@/lib/common/strings";
 import { normalizeURL, openExternal } from "@/lib/common/url";
 import { dayjs } from "@/lib/dayjs";
@@ -140,6 +142,8 @@ import * as React from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 import { createStore } from "stan-js";
 import { storage } from "stan-js/storage";
+
+const LOG = createLogger("CollectionsController");
 
 const CSV_CONTENT_TYPE = "text/csv;charset=utf-8";
 
@@ -985,6 +989,83 @@ function useCollectionsController() {
         setCollections,
         setItems,
     } = useWorkspace();
+
+    const [validatedPreviewUrls, setValidatedPreviewUrls] = React.useState(
+        collectionPreviewThumbnailUrlsById
+    );
+    const validationCacheRef = React.useRef(new Map<string, boolean>());
+
+    React.useEffect(() => {
+        let cancelled = false;
+        const cache = validationCacheRef.current;
+
+        async function validate() {
+            const allUrls = new Set<string>();
+            for (const urls of collectionPreviewThumbnailUrlsById.values()) {
+                for (const url of urls) {
+                    allUrls.add(url);
+                }
+            }
+
+            if (allUrls.size === 0) {
+                if (!cancelled) {
+                    setValidatedPreviewUrls(new Map());
+                }
+                return;
+            }
+
+            const urlsToValidate: string[] = [];
+            for (const url of allUrls) {
+                if (!cache.has(url)) {
+                    urlsToValidate.push(url);
+                }
+            }
+
+            const buildValidatedMap = () => {
+                const next = new Map<string, string[]>();
+                for (const [id, urls] of collectionPreviewThumbnailUrlsById) {
+                    const filtered = urls.filter((url) => cache.get(url));
+                    if (filtered.length > 0) {
+                        next.set(id, filtered);
+                    }
+                }
+                return next;
+            };
+
+            if (urlsToValidate.length === 0) {
+                if (!cancelled) {
+                    setValidatedPreviewUrls(buildValidatedMap());
+                }
+                return;
+            }
+
+            if (!cancelled) {
+                setValidatedPreviewUrls(collectionPreviewThumbnailUrlsById);
+            }
+
+            try {
+                const validUrls = await filterValidImageUrls(urlsToValidate);
+                for (const url of urlsToValidate) {
+                    cache.set(url, validUrls.includes(url));
+                }
+
+                if (!cancelled) {
+                    setValidatedPreviewUrls(buildValidatedMap());
+                }
+            } catch (err) {
+                LOG.error("Preview URL validation failed", { error: err });
+                if (!cancelled) {
+                    setValidatedPreviewUrls(collectionPreviewThumbnailUrlsById);
+                }
+            }
+        }
+
+        validate();
+
+        return () => {
+            cancelled = true;
+        };
+    }, [collectionPreviewThumbnailUrlsById]);
     const { copyToClipboard } = useCopyToClipboard();
 
     const { isCollectionsListOpen, setIsCollectionsListOpen } =
@@ -1525,7 +1606,7 @@ function useCollectionsController() {
 
     return {
         collectionLabels,
-        collectionPreviewThumbnailUrlsById,
+        collectionPreviewThumbnailUrlsById: validatedPreviewUrls,
         collectionSummaries,
         createDialog: {
             descriptionDraft: createDescription,

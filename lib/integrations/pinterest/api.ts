@@ -1,7 +1,7 @@
 import "server-only";
 
-import { z } from "zod";
 import { IntegrationApiError } from "@/lib/integrations/error";
+import * as z from "zod";
 
 const PINTEREST_API_BASE_URL = "https://api.pinterest.com/v5";
 const PINTEREST_PAGE_SIZE = 100;
