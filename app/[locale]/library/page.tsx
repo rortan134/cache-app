@@ -18,7 +18,7 @@ import {
 import {
     CollectionsListWorkspaceRoot,
     WorkspaceProvider,
-} from "@/components/library/workspace-provider";
+} from "@/components/library/workspace";
 import { ActivePathname } from "@/components/ui/active-pathname";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { DisclosureList } from "@/components/ui/disclosure-list";

@@ -458,7 +458,7 @@ function CollectionComboboxOptionRow({
 function CollectionsListPreviewImageFallback() {
     return (
         <div className="flex size-full items-center justify-center bg-muted/40 text-[11px] text-muted-foreground">
-            No preview image
+            No preview available
         </div>
     );
 }

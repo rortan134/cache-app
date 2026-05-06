@@ -11,10 +11,7 @@ import {
     PeekDrawerContent,
     PeekDrawerTrigger,
 } from "@/components/library/peek";
-import {
-    NAME_COLLATOR,
-    useWorkspace,
-} from "@/components/library/workspace-provider";
+import { NAME_COLLATOR, useWorkspace } from "@/components/library/workspace";
 import {
     Attachment,
     AttachmentInfo,
