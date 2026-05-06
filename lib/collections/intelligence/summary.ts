@@ -14,6 +14,8 @@ export const SECTION_DESCRIPTION_TITLE_MAX_LENGTH = 140;
 export const SECTION_DESCRIPTION_RESPONSE_MAX_LENGTH = 220;
 export const SECTION_DESCRIPTION_FALLBACK_TEXT =
     "Summary is unavailable right now.";
+export const SECTION_DESCRIPTION_EXPANDED_OUTPUT_TOKEN_LIMIT = 512;
+export const SECTION_DESCRIPTION_EXPANDED_MAX_CONCLUSIONS = 8;
 
 // --- Prompt Budget ---
 
@@ -48,6 +50,7 @@ export const SectionDescriptionContextItemSchema = z.object({
 });
 
 export const SectionDescriptionRequestSchema = z.object({
+    expanded: z.boolean().optional(),
     items: z
         .array(SectionDescriptionContextItemSchema)
         .min(1)
@@ -202,6 +205,38 @@ export function buildSummaryPrompt(request: SectionDescriptionRequest): string {
     ].join("\n");
 }
 
+export function buildExpandedSummaryPrompt(request: SectionDescriptionRequest): string {
+    const items = request.items.map(compactItem);
+
+    return [
+        "You are a research assistant that extracts only final conclusions from a set of saved items.",
+        "Analyze the section title and items below, then return a concise list of distinct conclusions.",
+        "",
+        "Extraction rules:",
+        "- Focus ONLY on final claims, takeaways, findings, or recommendations.",
+        "- Ignore background information, general summaries, minor details, examples, and anecdotes unless they directly express a conclusion.",
+        "- Merge obviously duplicate conclusions but keep distinct points separate.",
+        "- Each conclusion must be a single, self-contained sentence.",
+        `- Return at most ${SECTION_DESCRIPTION_EXPANDED_MAX_CONCLUSIONS} conclusions.`,
+        "- Do not add any preamble, commentary, or explanation.",
+        "- Do not mention item counts, totals, or source platforms.",
+        "",
+        `Section title: ${request.sectionTitle}`,
+        "Items:",
+        ...items.map((item, index) => {
+            const parts: string[] = [`${index + 1}. ${item.title}`];
+            if (item.noteExcerpt) {
+                parts.push(`   Note: ${item.noteExcerpt}`);
+            }
+            parts.push(`   ${item.primaryText}`);
+            if (item.domain) {
+                parts.push(`   (${item.domain})`);
+            }
+            return parts.join("\n");
+        }),
+    ].join("\n");
+}
+
 // --- Input Truncation ---
 
 function estimateTokens(text: string): number {
@@ -327,4 +362,55 @@ export function normalizeSummary(value: string | undefined): string | null {
     return `${cleaned
         .slice(0, SECTION_DESCRIPTION_RESPONSE_MAX_LENGTH - 3)
         .trimEnd()}...`;
+}
+
+// --- Expanded Output Normalization ---
+
+const BULLET_PREFIX_PATTERN = /^[-*•]\s*/;
+
+/**
+ * Normalizes and validates a raw expanded model response.
+ *
+ * Expects either a JSON object with a `conclusions` array or a plain
+ * bullet-list string. Returns the cleaned array of conclusion strings,
+ * or null if the output is empty or malformed.
+ */
+export function normalizeExpandedSummary(
+    value: string | undefined
+): string[] | null {
+    if (!value) {
+        return null;
+    }
+
+    try {
+        const parsed = JSON.parse(value);
+        if (
+            Array.isArray(parsed.conclusions) &&
+            parsed.conclusions.every((c: unknown) => typeof c === "string")
+        ) {
+            const cleaned = parsed.conclusions
+                .map((c: string) =>
+                    c
+                        .replace(WHITESPACE_PATTERN, " ")
+                        .replace(BULLET_PREFIX_PATTERN, "")
+                        .trim()
+                )
+                .filter((c: string) => c.length > 0);
+            return cleaned.length > 0 ? cleaned : null;
+        }
+    } catch {
+        // Not valid JSON — attempt to parse as a plain bullet list.
+    }
+
+    const lines = value
+        .split("\n")
+        .map((line) =>
+            line
+                .replace(WHITESPACE_PATTERN, " ")
+                .replace(BULLET_PREFIX_PATTERN, "")
+                .trim()
+        )
+        .filter((line) => line.length > 0);
+
+    return lines.length > 0 ? lines : null;
 }

@@ -2,12 +2,18 @@ import "server-only";
 
 import { ApiError } from "@google/genai";
 import { createLogger } from "@/lib/common/logs/console/logger";
-import { generateSectionDescription } from ".";
+import {
+    generateExpandedSectionDescription,
+    generateSectionDescription,
+} from ".";
 import { GenAiGenerationError, GenAiProtectionError } from "./error";
 import { estimateGenAiTokens, protectGenAiRequest } from "./protection";
 import {
+    buildExpandedSummaryPrompt,
     buildSummaryPrompt,
+    normalizeExpandedSummary,
     normalizeSummary,
+    SECTION_DESCRIPTION_EXPANDED_OUTPUT_TOKEN_LIMIT,
     SECTION_DESCRIPTION_FALLBACK_TEXT,
     truncateSummaryContextItems,
     type SectionDescriptionRequest,
@@ -18,6 +24,7 @@ const log = createLogger("intelligence:service");
 const OUTPUT_TOKEN_LIMIT = 96;
 
 export interface GenerateCollectionSummaryInput {
+    expanded?: boolean;
     items: SectionDescriptionRequest["items"];
     request: Request;
     sectionTitle: string;
@@ -25,6 +32,7 @@ export interface GenerateCollectionSummaryInput {
 }
 
 export interface GenerateCollectionSummaryResult {
+    conclusions?: string[];
     summary: string;
 }
 
@@ -38,12 +46,91 @@ export interface GenerateCollectionSummaryResult {
 export async function generateCollectionSummary(
     input: GenerateCollectionSummaryInput
 ): Promise<GenerateCollectionSummaryResult> {
-    const { items, request, sectionTitle, userId } = input;
+    const { expanded, items, request, sectionTitle, userId } = input;
 
     const truncatedRequest = truncateSummaryContextItems({
         items,
         sectionTitle,
     });
+
+    if (expanded) {
+        const prompt = buildExpandedSummaryPrompt(truncatedRequest);
+        const requestedTokens = estimateGenAiTokens(
+            prompt,
+            SECTION_DESCRIPTION_EXPANDED_OUTPUT_TOKEN_LIMIT
+        );
+
+        log.debug("Generating expanded section description", {
+            estimatedTokens: requestedTokens,
+            itemCount: items.length,
+            sectionTitle,
+            truncatedItemCount: truncatedRequest.items.length,
+            userId,
+        });
+
+        const span = log.time("generate-expanded-section-description", {
+            itemCount: items.length,
+            sectionTitle,
+            userId,
+        });
+
+        try {
+            await protectGenAiRequest({
+                feature: "section_description_expanded",
+                prompt,
+                request,
+                requestedTokens,
+                userId,
+            });
+
+            const { rawConclusions } = await generateExpandedSectionDescription({
+                prompt,
+                requestedTokens,
+            });
+
+            const conclusions = normalizeExpandedSummary(rawConclusions);
+
+            if (!conclusions || conclusions.length === 0) {
+                log.warn(
+                    "Expanded section description normalization rejected model output",
+                    {
+                        itemCount: items.length,
+                        rawConclusions,
+                        sectionTitle,
+                        userId,
+                    }
+                );
+            }
+
+            return {
+                conclusions: conclusions ?? undefined,
+                summary: SECTION_DESCRIPTION_FALLBACK_TEXT,
+            };
+        } catch (error) {
+            if (error instanceof GenAiProtectionError) {
+                throw error;
+            }
+
+            const { message, status } = classifyApiError(error);
+
+            log.warn("Failed to generate expanded library section description", {
+                error: message,
+                itemCount: items.length,
+                sectionTitle,
+                status,
+                userId,
+            });
+
+            throw new GenAiGenerationError({
+                message,
+                operation: "generateCollectionSummary",
+                status,
+            });
+        } finally {
+            span.stop();
+        }
+    }
+
     const prompt = buildSummaryPrompt(truncatedRequest);
     const requestedTokens = estimateGenAiTokens(prompt, OUTPUT_TOKEN_LIMIT);
 

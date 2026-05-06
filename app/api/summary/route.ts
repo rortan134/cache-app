@@ -35,11 +35,16 @@ export async function POST(request: Request): Promise<Response> {
 
     try {
         const result = await generateCollectionSummary({
+            expanded: parsed.data.expanded ?? false,
             items: parsed.data.items,
             request,
             sectionTitle: parsed.data.sectionTitle,
             userId,
         });
+
+        if (result.conclusions) {
+            return Response.json({ conclusions: result.conclusions });
+        }
 
         return Response.json({ summary: result.summary });
     } catch (error) {

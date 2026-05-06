@@ -6,7 +6,10 @@ import {
     estimateGenAiTokens,
     protectGenAiRequest,
 } from "@/lib/collections/intelligence/protection";
-import { SECTION_DESCRIPTION_RESPONSE_MAX_LENGTH } from "@/lib/collections/intelligence/summary";
+import {
+    SECTION_DESCRIPTION_EXPANDED_OUTPUT_TOKEN_LIMIT,
+    SECTION_DESCRIPTION_RESPONSE_MAX_LENGTH,
+} from "@/lib/collections/intelligence/summary";
 import { COLLECTION_NAME_LENGTH_MAX } from "@/lib/collections/utils";
 import { createLogger } from "@/lib/common/logs/console/logger";
 
@@ -1073,4 +1076,65 @@ export async function generateSectionDescription(args: {
     }
 
     return { rawSummary };
+}
+
+const SECTION_DESCRIPTION_EXPANDED_TIMEOUT_MS = 20_000;
+
+interface ExpandedSectionDescriptionResult {
+    rawConclusions: string | undefined;
+}
+
+export async function generateExpandedSectionDescription(args: {
+    prompt: string;
+    requestedTokens: number;
+}): Promise<ExpandedSectionDescriptionResult> {
+    const ai = new GoogleGenAI({ apiKey: serverEnv.GEMINI_API_KEY });
+
+    const modelResponse = await ai.models.generateContent({
+        config: {
+            httpOptions: {
+                retryOptions: {
+                    attempts: SECTION_RETRY_ATTEMPTS,
+                },
+                timeout: SECTION_DESCRIPTION_EXPANDED_TIMEOUT_MS,
+            },
+            maxOutputTokens: SECTION_DESCRIPTION_EXPANDED_OUTPUT_TOKEN_LIMIT,
+            responseMimeType: "application/json",
+            responseSchema: {
+                description:
+                    "A structured list of distilled conclusions extracted from the provided items.",
+                properties: {
+                    conclusions: {
+                        description:
+                            "An array of distinct final claims, takeaways, findings, or recommendations. Each item should be a single concise conclusion sentence.",
+                        items: {
+                            type: Type.STRING,
+                        },
+                        type: Type.ARRAY,
+                    },
+                },
+                required: ["conclusions"],
+                type: Type.OBJECT,
+            },
+            systemInstruction:
+                "You extract only final conclusions from content. Return a JSON object with a 'conclusions' array. Each conclusion is a single self-contained sentence. No preamble, no commentary, no markdown, no item counts, no platform names.",
+            temperature: SECTION_TEMPERATURE,
+        },
+        contents: args.prompt,
+        model: SECTION_DESCRIPTION_MODEL,
+    });
+
+    let rawConclusions: string | undefined;
+    try {
+        const parsed = JSON.parse(modelResponse.text ?? "{}");
+        rawConclusions =
+            Array.isArray(parsed.conclusions) &&
+            parsed.conclusions.every((c: unknown) => typeof c === "string")
+                ? JSON.stringify(parsed.conclusions)
+                : modelResponse.text ?? undefined;
+    } catch {
+        rawConclusions = modelResponse.text ?? undefined;
+    }
+
+    return { rawConclusions };
 }

@@ -638,9 +638,9 @@ function buildCommandSuggestions({
     return suggestions;
 }
 
-interface SectionDescriptionResponse {
-    summary: string;
-}
+type SectionDescriptionResponse =
+    | { conclusions: string[] }
+    | { summary: string };
 
 type SectionDescriptionSWRKey = [endpoint: string, requestBody: string];
 
@@ -656,6 +656,7 @@ async function fetchSectionDescription([
         method: "POST",
     });
     const payload = (await response.json().catch(() => ({}))) as {
+        conclusions?: string[];
         error?: string;
         summary?: string;
     };
@@ -664,6 +665,10 @@ async function fetchSectionDescription([
         throw new Error(
             payload.error ?? "Unable to generate a section description."
         );
+    }
+
+    if (payload.conclusions) {
+        return { conclusions: payload.conclusions };
     }
 
     const summary = payload.summary?.trim();
@@ -3869,7 +3874,10 @@ function SectionSummaryContent({
     items: LibraryItemWithCollections[];
     title: string;
 }) {
+    const [isExpanded, setIsExpanded] = React.useState(false);
+
     const requestBody = JSON.stringify({
+        expanded: isExpanded,
         items: items
             .slice(0, SECTION_DESCRIPTION_CONTEXT_ITEMS_LIMIT)
             .map(buildSectionDescriptionContextItem),
@@ -3899,21 +3907,37 @@ function SectionSummaryContent({
         );
     }
 
-    const summary = data?.summary?.trim();
+    const hasConclusions =
+        !!data && "conclusions" in data && Array.isArray(data.conclusions);
+    const conclusions = hasConclusions ? data.conclusions : null;
+    const summary = data && "summary" in data ? data.summary.trim() : undefined;
+
     return (
-        <p className="fade-in-0 block w-full animate-in text-xs leading-snug motion-reduce:animate-none">
-            {summary && summary.length > 0
-                ? summary
-                : SECTION_DESCRIPTION_FALLBACK_TEXT}{" "}
+        <div className="fade-in-0 block w-full animate-in text-xs leading-snug motion-reduce:animate-none">
+            {conclusions ? (
+                <ul className="list-disc space-y-0.5 pl-4">
+                    {conclusions.map((conclusion, index) => (
+                        <li key={index}>{conclusion}</li>
+                    ))}
+                </ul>
+            ) : (
+                <p className="inline">
+                    {summary && summary.length > 0
+                        ? summary
+                        : SECTION_DESCRIPTION_FALLBACK_TEXT}{" "}
+                </p>
+            )}
             <Button
                 className="h-fit! text-xs leading-snug sm:text-xs"
+                onClick={() => setIsExpanded((prev) => !prev)}
                 size="xs"
                 variant="link"
             >
-                Expand&nbsp;
+                {isExpanded ? "Collapse" : "Expand"}
+                &nbsp;
                 <ListChevronsUpDown className="mb-px inline-block size-3.5 shrink-0" />
             </Button>
-        </p>
+        </div>
     );
 }
 
