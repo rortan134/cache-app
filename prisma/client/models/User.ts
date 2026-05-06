@@ -14,7 +14,8 @@ import type * as Prisma from "../internal/prismaNamespace.ts"
 
 /**
  * Model User
- * Managed by better-auth core. Do not rename fields.
+ * Managed by better-auth core, with Cache-specific user preferences added.
+ * Do not rename auth-owned fields; better-auth reads them by convention.
  */
 export type UserModel = runtime.Types.Result.DefaultSelection<Prisma.$UserPayload>
 
@@ -1263,8 +1264,20 @@ export type $UserPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
     image: string | null
     createdAt: Date
     updatedAt: Date
+    /**
+     * Opt-out flag for automatic collection suggestions. Keep the default
+     * permissive so new users receive the assisted organization workflow.
+     */
     smartCollectionsDisabled: boolean
+    /**
+     * Stripe customer id is duplicated here for fast account-level lookups even
+     * though subscription state lives in the plugin-managed table.
+     */
     stripeCustomerId: string | null
+    /**
+     * Bearer token used by browser extensions to ingest into this user's library
+     * without exposing session cookies.
+     */
     extensionIngestToken: string | null
   }, ExtArgs["result"]["user"]>
   composites: {}

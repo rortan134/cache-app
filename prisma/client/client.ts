@@ -43,22 +43,26 @@ export { Prisma }
 
 /**
  * Model User
- * Managed by better-auth core. Do not rename fields.
+ * Managed by better-auth core, with Cache-specific user preferences added.
+ * Do not rename auth-owned fields; better-auth reads them by convention.
  */
 export type User = Prisma.UserModel
 /**
  * Model Collection
- * Application-owned. Named groupings of library items.
+ * Application-owned grouping of library items. A collection is both an
+ * organizational unit and the public sharing boundary when `shareId` is set.
  */
 export type Collection = Prisma.CollectionModel
 /**
  * Model LibraryActivityEvent
- * Application-owned. Append-only activity events for the user's library timeline.
+ * Application-owned activity record for the user's library timeline. Item and
+ * collection relations are nullable so deletion preserves historical context.
  */
 export type LibraryActivityEvent = Prisma.LibraryActivityEventModel
 /**
  * Model LibraryItem
- * Application-owned. User's saved content items.
+ * Application-owned saved content. The compound source identity is the durable
+ * dedupe key; collection membership and activity hang off this record.
  */
 export type LibraryItem = Prisma.LibraryItemModel
 /**
@@ -78,11 +82,13 @@ export type Account = Prisma.AccountModel
 export type Verification = Prisma.VerificationModel
 /**
  * Model Subscription
- * Managed by @better-auth/stripe plugin. Do not rename fields.
+ * Managed by @better-auth/stripe plugin. Do not rename fields. Cache reads this
+ * table for entitlement state but should let the plugin own lifecycle writes.
  */
 export type Subscription = Prisma.SubscriptionModel
 /**
  * Model Feedback
- * Application-owned. User feedback submissions.
+ * Application-owned user feedback submissions. Feedback survives user deletion
+ * so product triage keeps historical context without retaining the account.
  */
 export type Feedback = Prisma.FeedbackModel

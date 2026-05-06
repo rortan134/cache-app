@@ -1,7 +1,5 @@
-import { SessionError } from "@/lib/auth/error";
 import { getStripeClient, getStripeWebhookSecret } from "@/lib/billing/client";
 import { APP_NAME, BASE_URL } from "@/lib/common/constants";
-import { createLogger } from "@/lib/common/logs/console/logger";
 import { prisma } from "@/prisma";
 import type { OAuth2Tokens } from "@better-auth/core/oauth2";
 import { stripe } from "@better-auth/stripe";
@@ -10,9 +8,6 @@ import { prismaAdapter } from "better-auth/adapters/prisma";
 import { nextCookies } from "better-auth/next-js";
 import type { GenericOAuthConfig } from "better-auth/plugins";
 import { genericOAuth, oneTap } from "better-auth/plugins";
-import { headers } from "next/headers";
-
-const log = createLogger("Auth:server");
 
 // ---------------------------------------------------------------------------
 // Environment helpers
@@ -320,46 +315,3 @@ export const auth = betterAuth({
     },
     trustedOrigins,
 });
-
-// ---------------------------------------------------------------------------
-// Session utilities
-// ---------------------------------------------------------------------------
-
-export async function getServerSession() {
-    return auth.api.getSession({
-        headers: await headers(),
-    });
-}
-
-export type Session = Awaited<ReturnType<typeof getServerSession>>;
-
-export async function getSessionUserId(): Promise<string | null> {
-    const session = await getServerSession();
-    return session?.user?.id ?? null;
-}
-
-type WithSessionCallback<T> = (session: Session) => Promise<T> | T;
-
-/**
- * Executes a callback with the current session, normalizing errors to SessionError.
- */
-export async function withSession<T>(
-    callback: WithSessionCallback<T>
-): Promise<T> {
-    try {
-        const session = await getServerSession();
-        return await callback(session);
-    } catch (error) {
-        log.error("Session operation failed:", error);
-
-        if (error instanceof SessionError) {
-            throw error;
-        }
-
-        throw new SessionError({
-            cause: error instanceof Error ? error : undefined,
-            message: error instanceof Error ? error.message : String(error),
-            operation: "auth::withSession",
-        });
-    }
-}

@@ -14,7 +14,8 @@ import type * as Prisma from "../internal/prismaNamespace.ts"
 
 /**
  * Model Feedback
- * Application-owned. User feedback submissions.
+ * Application-owned user feedback submissions. Feedback survives user deletion
+ * so product triage keeps historical context without retaining the account.
  */
 export type FeedbackModel = runtime.Types.Result.DefaultSelection<Prisma.$FeedbackPayload>
 

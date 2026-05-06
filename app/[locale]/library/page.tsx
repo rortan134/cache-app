@@ -31,7 +31,7 @@ import {
     SidebarHeader,
     SidebarItem,
 } from "@/components/ui/sidebar";
-import { getServerSession } from "@/lib/auth/server";
+import { getServerSession } from "@/lib/auth/session";
 import { userHasActiveSubscription } from "@/lib/billing/service";
 import { getLibraryItems, listCollections } from "@/lib/collections/service";
 import { gtPublicString } from "@/lib/i18n/gt-public-json";

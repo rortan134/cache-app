@@ -10,7 +10,7 @@ import { GradientWaveText } from "@/components/ui/gradient-wave-text";
 import { ChromeIcon, TikTokIcon } from "@/components/ui/icons";
 import { PageShell } from "@/components/ui/page-shell";
 import { Sidebar, SidebarFooter, SidebarHeader } from "@/components/ui/sidebar";
-import { getServerSession } from "@/lib/auth/server";
+import { getServerSession } from "@/lib/auth/session";
 import { cn } from "@/lib/common/cn";
 import { BASE_URL } from "@/lib/common/constants";
 import { gtPublicString } from "@/lib/i18n/gt-public-json";

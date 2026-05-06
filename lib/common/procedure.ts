@@ -1,6 +1,6 @@
 import "server-only";
 
-import { getSessionUserId } from "@/lib/auth/server";
+import { getSessionUserId } from "@/lib/auth/session";
 import { extractNamedErrorMessage } from "@/lib/common/error";
 import type { Logger } from "@/lib/common/logs/console/logger";
 import type * as z from "zod";

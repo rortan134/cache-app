@@ -1,6 +1,6 @@
 "use server";
 
-import { getSessionUserId } from "@/lib/auth/server";
+import { getSessionUserId } from "@/lib/auth/session";
 import { extractNamedErrorMessage } from "@/lib/common/error";
 import { IntegrationUserError } from "@/lib/integrations/error";
 import { createLogger } from "@/lib/common/logs/console/logger";

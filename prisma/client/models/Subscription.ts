@@ -14,7 +14,8 @@ import type * as Prisma from "../internal/prismaNamespace.ts"
 
 /**
  * Model Subscription
- * Managed by @better-auth/stripe plugin. Do not rename fields.
+ * Managed by @better-auth/stripe plugin. Do not rename fields. Cache reads this
+ * table for entitlement state but should let the plugin own lifecycle writes.
  */
 export type SubscriptionModel = runtime.Types.Result.DefaultSelection<Prisma.$SubscriptionPayload>
 

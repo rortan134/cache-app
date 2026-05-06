@@ -1,6 +1,6 @@
 import "server-only";
 
-import { getServerSession } from "@/lib/auth/server";
+import { getServerSession } from "@/lib/auth/session";
 import { prisma } from "@/prisma";
 import { nanoid } from "nanoid";
 

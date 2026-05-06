@@ -14,7 +14,8 @@ import type * as Prisma from "../internal/prismaNamespace.ts"
 
 /**
  * Model LibraryActivityEvent
- * Application-owned. Append-only activity events for the user's library timeline.
+ * Application-owned activity record for the user's library timeline. Item and
+ * collection relations are nullable so deletion preserves historical context.
  */
 export type LibraryActivityEventModel = runtime.Types.Result.DefaultSelection<Prisma.$LibraryActivityEventPayload>
 
@@ -868,7 +869,15 @@ export type $LibraryActivityEventPayload<ExtArgs extends runtime.Types.Extension
     kind: $Enums.LibraryActivityEventKind
     libraryItemId: string | null
     collectionId: string | null
+    /**
+     * Event-specific payload. Keep payloads additive and version-tolerant because
+     * old events may be replayed by timeline and analytics code.
+     */
     metadata: runtime.JsonValue | null
+    /**
+     * User-visible time of the event. This may differ from `createdAt` for
+     * imported or backfilled activity.
+     */
     occurredAt: Date
     createdAt: Date
   }, ExtArgs["result"]["libraryActivityEvent"]>

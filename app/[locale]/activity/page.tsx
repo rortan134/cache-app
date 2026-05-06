@@ -15,7 +15,7 @@ import {
     SidebarItem,
 } from "@/components/ui/sidebar";
 import { getActivityTimelineData } from "@/lib/activity/service";
-import { getServerSession } from "@/lib/auth/server";
+import { getServerSession } from "@/lib/auth/session";
 import { cn } from "@/lib/common/cn";
 import { parseDisplayUrl } from "@/lib/common/url";
 import { gtPublicString } from "@/lib/i18n/gt-public-json";

@@ -14,7 +14,8 @@ import type * as Prisma from "../internal/prismaNamespace.ts"
 
 /**
  * Model Collection
- * Application-owned. Named groupings of library items.
+ * Application-owned grouping of library items. A collection is both an
+ * organizational unit and the public sharing boundary when `shareId` is set.
  */
 export type CollectionModel = runtime.Types.Result.DefaultSelection<Prisma.$CollectionPayload>
 
@@ -963,9 +964,17 @@ export type $CollectionPayload<ExtArgs extends runtime.Types.Extensions.Internal
     id: string
     userId: string
     name: string
+    /**
+     * Lowercased normalized name used for per-user uniqueness. Store it
+     * separately from `name` so display casing remains user-authored.
+     */
     nameKey: string
     description: string | null
     priority: $Enums.CollectionPriority
+    /**
+     * Stable public identifier. A collection is considered public only when both
+     * `shareId` and `sharedAt` are set; clearing both revokes sharing.
+     */
     shareId: string | null
     sharedAt: Date | null
     createdAt: Date

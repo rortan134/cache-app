@@ -1,6 +1,6 @@
 "use server";
 
-import { getSessionUserId } from "@/lib/auth/server";
+import { getSessionUserId } from "@/lib/auth/session";
 import { autoTagLibraryItemsByIds } from "@/lib/collections/intelligence";
 import type { LibraryItemWithCollections } from "@/lib/collections/utils";
 import { extractNamedErrorMessage } from "@/lib/common/error";

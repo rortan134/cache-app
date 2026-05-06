@@ -1,4 +1,4 @@
-import { getSessionUserId } from "@/lib/auth/server";
+import { getSessionUserId } from "@/lib/auth/session";
 import {
     GenAiGenerationError,
     GenAiProtectionError,
