@@ -1,38 +1,14 @@
 "use client";
 
-import { Toolbar } from "@base-ui/react/toolbar";
-import { useInterval } from "@base-ui/utils/useInterval";
-import { useStableCallback } from "@base-ui/utils/useStableCallback";
 import {
-    ArchiveIcon,
-    ArrowUpRight,
-    ChevronRight,
-    Clock,
-    Component,
-    CopyIcon,
-    CopyPlus,
-    EllipsisIcon,
-    ExternalLinkIcon,
-    FileSpreadsheetIcon,
-    Forward,
-    Info,
-    LinkIcon,
-    ListFilter,
-    LockKeyhole,
-    PencilIcon,
-    Shapes,
-    SignalHigh,
-    SignalMedium,
-    Sparkle,
-    Trash2Icon,
-    UserRoundPlus,
-    X,
-} from "lucide-react";
-import Image from "next/image";
-import Link from "next/link";
-import * as React from "react";
-import { useHotkeys } from "react-hotkeys-hook";
-
+    RequestCreateRefContext,
+    appendCollection,
+    mergeCollectionSummaries,
+    sortCollections,
+    useCollectionsSortStore,
+    useWorkspace,
+    type CollectionSortField,
+} from "@/components/library/workspace";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -60,6 +36,7 @@ import {
     DialogPopup,
     DialogTitle,
 } from "@/components/ui/dialog";
+import { DisclosureList } from "@/components/ui/disclosure-list";
 import { GradientWaveText } from "@/components/ui/gradient-wave-text";
 import {
     ChevronDownFilledIcon,
@@ -95,21 +72,97 @@ import {
 } from "@/components/ui/preview-card";
 import { SidebarItem } from "@/components/ui/sidebar";
 import { Textarea } from "@/components/ui/textarea";
-import type { LibraryCollectionSummary } from "@/lib/collections/utils";
+import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
+import { useSmartCollectionsPreference } from "@/hooks/use-smart-collections-preference";
+import {
+    createCollection,
+    deleteCollection,
+    disableSmartCollections,
+    duplicateCollection,
+    renameCollection,
+    updateCollectionPriority,
+    type CollectionCreateResult,
+} from "@/lib/collections/actions";
+import {
+    disableCollectionSharing,
+    shareCollectionPublicly,
+} from "@/lib/collections/sharing/actions";
+import { buildPublicCollectionShareUrl } from "@/lib/collections/sharing/url";
+import type {
+    LibraryCollectionSummary,
+    LibraryCollectionTag,
+    LibraryItemWithCollections,
+} from "@/lib/collections/utils";
 import { cn } from "@/lib/common/cn";
 import { getHexColorFromName } from "@/lib/common/colors";
+import { getSystemControlKey } from "@/lib/common/environment";
+import { saveFile } from "@/lib/common/file";
+import { normalizeURL, openExternal } from "@/lib/common/url";
 import { dayjs } from "@/lib/dayjs";
 import { getSourceLabel } from "@/lib/integrations/support";
 import type { CollectionPriority } from "@/prisma/client/enums";
 import AppIconSmall from "@/public/cache-icon-small.png";
 import SmartCollectionsBackgroundImg from "@/public/smart-collections-background-wide.webp";
+import { Toolbar } from "@base-ui/react/toolbar";
+import { useInterval } from "@base-ui/utils/useInterval";
+import { useStableCallback } from "@base-ui/utils/useStableCallback";
+import { T } from "gt-next";
+import {
+    ArchiveIcon,
+    ArrowUpRight,
+    ChevronRight,
+    Clock,
+    Component,
+    CopyIcon,
+    CopyPlus,
+    EllipsisIcon,
+    ExternalLinkIcon,
+    FileSpreadsheetIcon,
+    Forward,
+    Info,
+    LinkIcon,
+    ListFilter,
+    LockKeyhole,
+    PencilIcon,
+    PlusIcon,
+    Shapes,
+    SignalHigh,
+    SignalMedium,
+    Sparkle,
+    Trash2Icon,
+    UserRoundPlus,
+    X,
+} from "lucide-react";
+import Image from "next/image";
+import Link from "next/link";
+import * as React from "react";
+import { useHotkeys } from "react-hotkeys-hook";
+import { createStore } from "stan-js";
+import { storage } from "stan-js/storage";
 
-type CollectionSortField =
-    | "count"
-    | "created"
-    | "priority"
-    | "text-match"
-    | "updated";
+const CSV_CONTENT_TYPE = "text/csv;charset=utf-8";
+
+const CSV_HEADERS = [
+    "Collection",
+    "Caption",
+    "URL",
+    "Source",
+    "Kind",
+    "Saved At",
+    "Posted At",
+] as const;
+
+const CREATE_ERROR_MESSAGE = "We couldn't create this collection right now.";
+const DELETE_ERROR_MESSAGE = "We couldn't delete this collection right now.";
+const DUPLICATE_ERROR_MESSAGE =
+    "We couldn't make a copy of this collection right now.";
+const EMPTY_LINKS_MESSAGE = "There are no links in this collection yet.";
+const RENAME_ERROR_MESSAGE = "We couldn't rename this collection right now.";
+const SHARE_ERROR_MESSAGE = "We couldn't create a public link right now.";
+const STOP_SHARING_ERROR_MESSAGE =
+    "We couldn't stop sharing this collection right now.";
+const UPDATE_PRIORITY_ERROR_MESSAGE =
+    "We couldn't update this collection priority right now.";
 
 type CollectionOptionIcon = React.ComponentType<{ className?: string }>;
 
@@ -135,6 +188,17 @@ interface CollectionTemplateOption {
 interface CollectionsListItemContextValue {
     collection: LibraryCollectionSummary;
     isHovered: boolean;
+}
+
+interface CollectionShareState
+    extends Pick<
+        LibraryCollectionTag,
+        "id" | "shareId" | "sharedAt" | "updatedAt"
+    > {}
+
+interface SyncCreatedCollectionInput {
+    assignedItemIds: string[];
+    collection: LibraryCollectionSummary;
 }
 
 interface PriorityOption {
@@ -333,6 +397,10 @@ const TEMPLATES = [
 
 type TemplateValue = (typeof TEMPLATES)[number]["value"];
 
+const { useStore: useCollectionsListStateStore } = createStore({
+    isCollectionsListOpen: storage(false),
+});
+
 const CollectionsListItemContext =
     React.createContext<CollectionsListItemContextValue | null>(null);
 
@@ -350,6 +418,1209 @@ function useCollectionsListItemContext() {
         );
     }
     return context;
+}
+
+/**
+ * Strip summary-specific fields so a collection can be stored as a tag on items.
+ *
+ * Items only need identity fields (id, name, priority, etc.); counts and
+ * thumbnail arrays are derived from the item list itself.
+ */
+function toCollectionTag({
+    createdAt,
+    description,
+    id,
+    name,
+    priority,
+    sharedAt,
+    shareId,
+    updatedAt,
+}: LibraryCollectionSummary): LibraryCollectionTag {
+    return {
+        createdAt,
+        description,
+        id,
+        name,
+        priority,
+        sharedAt,
+        shareId,
+        updatedAt,
+    };
+}
+
+function updateById<T extends LibraryCollectionTag>(
+    collections: T[],
+    id: string,
+    updater: (collection: T) => T
+): T[] {
+    return collections.map((collection) =>
+        collection.id === id ? updater(collection) : collection
+    );
+}
+
+function updateItemTags(
+    items: LibraryItemWithCollections[],
+    updater: (tags: LibraryCollectionTag[]) => LibraryCollectionTag[]
+): LibraryItemWithCollections[] {
+    return items.map((item) => ({
+        ...item,
+        collections: updater(item.collections),
+    }));
+}
+
+/**
+ * Update a single collection's share state and re-sort so the new entry
+ * lands in the correct priority order.
+ */
+function replaceShareState<T extends LibraryCollectionTag>(
+    collections: T[],
+    next: CollectionShareState
+): T[] {
+    return sortCollections(
+        updateById(collections, next.id, (collection) => ({
+            ...collection,
+            sharedAt: next.sharedAt,
+            shareId: next.shareId,
+            updatedAt: next.updatedAt,
+        }))
+    );
+}
+
+/**
+ * Update a single collection's priority and re-sort so it's positioned
+ * correctly among peers of different priorities.
+ */
+function replacePriority<T extends LibraryCollectionTag>(
+    collections: T[],
+    id: string,
+    priority: CollectionPriority
+): T[] {
+    return sortCollections(
+        updateById(collections, id, (collection) => ({
+            ...collection,
+            priority,
+        }))
+    );
+}
+
+/**
+ * Update a single collection's name and re-sort so alphabetical order
+ * is preserved after the rename.
+ */
+function replaceName<T extends LibraryCollectionTag>(
+    collections: T[],
+    id: string,
+    name: string
+): T[] {
+    return sortCollections(
+        updateById(collections, id, (collection) => ({
+            ...collection,
+            name,
+        }))
+    );
+}
+
+/**
+ * Sync a collection's new name across all items that reference it.
+ */
+function replaceItemCollectionNames(
+    items: LibraryItemWithCollections[],
+    id: string,
+    name: string
+): LibraryItemWithCollections[] {
+    return updateItemTags(items, (tags) => replaceName(tags, id, name));
+}
+
+/**
+ * Extract normalized URLs from items for export or bulk operations.
+ */
+function getItemUrls(items: LibraryItemWithCollections[]): string[] {
+    return items.map((item) => normalizeURL(item.url));
+}
+
+/**
+ * Wrap a value in quotes and escape internal double-quotes per RFC 4180.
+ */
+function escapeCsv(value: string): string {
+    return `"${value.replaceAll('"', '""')}"`;
+}
+
+/**
+ * Build a CSV string from a collection and its items.
+ */
+function buildCsv(
+    collection: LibraryCollectionSummary,
+    items: LibraryItemWithCollections[]
+): string {
+    const rows = items.map((item) => [
+        collection.name,
+        item.caption ?? "",
+        normalizeURL(item.url),
+        item.source,
+        item.kind,
+        item.createdAt.toISOString(),
+        item.postedAt?.toISOString() ?? "",
+    ]);
+
+    return [CSV_HEADERS, ...rows]
+        .map((row) => row.map(escapeCsv).join(","))
+        .join("\n");
+}
+
+/**
+ * Derive a file-system-safe name from a collection name for CSV export.
+ */
+function getExportFileName(name: string): string {
+    const slug = name
+        .trim()
+        .toLowerCase()
+        .replaceAll(/[^a-z0-9]+/g, "-")
+        .replaceAll(/^-+|-+$/g, "");
+
+    return slug.length > 0 ? `${slug}-links` : "collection-links";
+}
+
+/**
+ * Collapse whitespace and trim a collection name for storage.
+ *
+ * Prevent accidental leading/trailing or double spaces from creating
+ * misleading display names while preserving internal single spaces.
+ */
+function normalizeName(name: string): string {
+    return name.trim().replace(/\s+/g, " ");
+}
+
+/**
+ * Extract assigned item IDs from a successful collection creation result.
+ *
+ * The server may return a single `assignedItemId` or none; normalizing
+ * to an array keeps callers consistent.
+ */
+function getCreatedAssignedItemIds(
+    result: Extract<CollectionCreateResult, { status: "CREATED" }>
+): string[] {
+    return result.assignedItemId ? [result.assignedItemId] : [];
+}
+
+/**
+ * Wrap a server action so network failures surface as typed errors instead
+ * of uncaught exceptions.
+ *
+ * Callers expect a result object; throwing would break the controller's
+ * optimistic-update rollback logic.
+ */
+async function createCollectionSafely(
+    input: Parameters<typeof createCollection>[0]
+) {
+    try {
+        return await createCollection(input);
+    } catch {
+        return { message: CREATE_ERROR_MESSAGE, status: "ERROR" as const };
+    }
+}
+
+/**
+ * Safe wrapper for `deleteCollection`. See `createCollectionSafely`.
+ */
+async function deleteCollectionSafely(
+    input: Parameters<typeof deleteCollection>[0]
+) {
+    try {
+        return await deleteCollection(input);
+    } catch {
+        return { message: DELETE_ERROR_MESSAGE, status: "ERROR" as const };
+    }
+}
+
+/**
+ * Safe wrapper for `duplicateCollection`. See `createCollectionSafely`.
+ */
+async function duplicateCollectionSafely(
+    input: Parameters<typeof duplicateCollection>[0]
+) {
+    try {
+        return await duplicateCollection(input);
+    } catch {
+        return { message: DUPLICATE_ERROR_MESSAGE, status: "ERROR" as const };
+    }
+}
+
+/**
+ * Safe wrapper for `renameCollection`. See `createCollectionSafely`.
+ */
+async function renameCollectionSafely(
+    input: Parameters<typeof renameCollection>[0]
+) {
+    try {
+        return await renameCollection(input);
+    } catch {
+        return { message: RENAME_ERROR_MESSAGE, status: "ERROR" as const };
+    }
+}
+
+/**
+ * Safe wrapper for `updateCollectionPriority`. See `createCollectionSafely`.
+ */
+async function updateCollectionPrioritySafely(
+    input: Parameters<typeof updateCollectionPriority>[0]
+) {
+    try {
+        return await updateCollectionPriority(input);
+    } catch {
+        return {
+            message: UPDATE_PRIORITY_ERROR_MESSAGE,
+            status: "ERROR" as const,
+        };
+    }
+}
+
+/**
+ * Safe wrapper for `shareCollectionPublicly`. See `createCollectionSafely`.
+ */
+async function shareCollectionPubliclySafely(
+    input: Parameters<typeof shareCollectionPublicly>[0]
+) {
+    try {
+        return await shareCollectionPublicly(input);
+    } catch {
+        return { message: SHARE_ERROR_MESSAGE, status: "ERROR" as const };
+    }
+}
+
+/**
+ * Safe wrapper for `disableCollectionSharing`. See `createCollectionSafely`.
+ */
+async function disableCollectionSharingSafely(
+    input: Parameters<typeof disableCollectionSharing>[0]
+) {
+    try {
+        return await disableCollectionSharing(input);
+    } catch {
+        return {
+            message: STOP_SHARING_ERROR_MESSAGE,
+            status: "ERROR" as const,
+        };
+    }
+}
+
+/**
+ * Composed workspace root that wires the controller into the
+ * `CollectionsList` compound components and dialogs.
+ *
+ * Also registers itself with the `RequestCreateRefContext` so any parent
+ * can open the create dialog imperatively via `requestCreate()`.
+ */
+export function Collections() {
+    const controller = useCollectionsController();
+    const requestCreateRef = React.useContext(RequestCreateRefContext);
+
+    React.useEffect(() => {
+        if (requestCreateRef) {
+            requestCreateRef.current = (itemId?: string) =>
+                controller.requestCreate(itemId);
+        }
+        return () => {
+            if (requestCreateRef) {
+                requestCreateRef.current = null;
+            }
+        };
+    }, [controller.requestCreate, requestCreateRef]);
+
+    return (
+        <>
+            <CollectionsList
+                onOpenChange={controller.setIsCollectionsListOpen}
+                open={controller.isCollectionsListOpen}
+            >
+                <CollectionsListToolbar className="group">
+                    <CollectionsListTrigger
+                        collectionLabels={controller.collectionLabels}
+                        isOpen={controller.isCollectionsListOpen}
+                    >
+                        <span className="min-w-0 text-xs">
+                            <T>My collections</T> (
+                            {controller.collectionSummaries.length})
+                        </span>
+                        <ChevronDownFilledIcon className="-ml-0.5" />
+                    </CollectionsListTrigger>
+                    <CollectionsListToolbarGroup className="absolute right-1">
+                        {controller.isCollectionsListOpen ? null : (
+                            <Kbd className="bg-transparent opacity-0 group-hover:opacity-50">
+                                <CtrlKbd />C
+                            </Kbd>
+                        )}
+                        <CollectionsListToolbarButton
+                            render={
+                                <CollectionsListFilterClearButton
+                                    isVisible={controller.hasAnySelected}
+                                    onClick={
+                                        controller.onClearCollectionFilters
+                                    }
+                                />
+                            }
+                        />
+                        <CollectionsListToolbarButton
+                            className={
+                                controller.isCollectionsListOpen
+                                    ? undefined
+                                    : "hidden"
+                            }
+                            render={
+                                <CollectionsListSortingCombobox
+                                    inputValue={controller.sort.inputValue}
+                                    isOpen={controller.sort.isOpen}
+                                    onInputValueChange={
+                                        controller.sort.onInputValueChange
+                                    }
+                                    onOpenChange={controller.sort.onOpenChange}
+                                    onValueChange={
+                                        controller.sort.onValueChange
+                                    }
+                                    value={controller.sort.value}
+                                />
+                            }
+                        />
+                        <CollectionsListToolbarButton
+                            render={
+                                <Button
+                                    onClick={() => controller.requestCreate()}
+                                    size="icon-xs"
+                                    title={`Create a new collection (${getSystemControlKey()}N)`}
+                                    variant="ghost"
+                                >
+                                    <PlusIcon
+                                        aria-hidden
+                                        className="inline-block size-3.5 shrink-0"
+                                        focusable="false"
+                                    />
+                                </Button>
+                            }
+                        />
+                    </CollectionsListToolbarGroup>
+                </CollectionsListToolbar>
+                <CollectionsListPanel>
+                    <div className="p-1.5 pt-1">
+                        <CollectionsListNoticeCallout
+                            isDisabled={controller.isSmartCollectionsDisabled}
+                            onDisable={controller.onDisableSmartCollections}
+                        />
+                    </div>
+                    {controller.collectionSummaries.length === 0 ? (
+                        <CollectionsListEmpty>
+                            <T>
+                                No collections found. Create your first
+                                collection to start grouping saved items.
+                            </T>
+                        </CollectionsListEmpty>
+                    ) : (
+                        <>
+                            <DisclosureList maxVisible={15}>
+                                {controller.collectionSummaries.map(
+                                    (collection) => {
+                                        const isSelected =
+                                            controller.selectedCollectionIds.includes(
+                                                collection.id
+                                            );
+
+                                        return (
+                                            <CollectionsListItem
+                                                collection={collection}
+                                                isSelected={isSelected}
+                                                key={collection.id}
+                                            >
+                                                <CollectionsListItemPriorityCombobox
+                                                    onValueChange={(priority) =>
+                                                        controller.onUpdatePriority(
+                                                            collection.id,
+                                                            priority
+                                                        )
+                                                    }
+                                                />
+                                                <CollectionsListItemPreview
+                                                    {...(isSelected
+                                                        ? {
+                                                              "data-active": true,
+                                                          }
+                                                        : {})}
+                                                    onClick={() =>
+                                                        controller.onSelectCollection(
+                                                            collection.id
+                                                        )
+                                                    }
+                                                    thumbnails={
+                                                        controller.collectionPreviewThumbnailUrlsById.get(
+                                                            collection.id
+                                                        ) ?? []
+                                                    }
+                                                >
+                                                    <CollectionsListItemValue />
+                                                </CollectionsListItemPreview>
+                                                <CollectionsListItemMeta
+                                                    isSharePending={
+                                                        controller.pendingShareId ===
+                                                            collection.id &&
+                                                        controller.isSharePending
+                                                    }
+                                                    onCopyLinks={() =>
+                                                        controller.onCopyLinks(
+                                                            collection
+                                                        )
+                                                    }
+                                                    onCopyShareLink={() =>
+                                                        controller.onCopyShareLink(
+                                                            collection
+                                                        )
+                                                    }
+                                                    onCopyTitle={() =>
+                                                        controller.onCopyTitle(
+                                                            collection
+                                                        )
+                                                    }
+                                                    onDelete={() =>
+                                                        controller.onDelete(
+                                                            collection
+                                                        )
+                                                    }
+                                                    onDisableShare={() =>
+                                                        controller.onDisableShare(
+                                                            collection
+                                                        )
+                                                    }
+                                                    onEnableShare={() =>
+                                                        controller.onEnableShare(
+                                                            collection
+                                                        )
+                                                    }
+                                                    onExportCsv={() =>
+                                                        controller.onExportCsv(
+                                                            collection
+                                                        )
+                                                    }
+                                                    onMakeCopy={() =>
+                                                        controller.onDuplicate(
+                                                            collection
+                                                        )
+                                                    }
+                                                    onOpenLinks={() =>
+                                                        controller.onOpenLinks(
+                                                            collection
+                                                        )
+                                                    }
+                                                    onRename={() =>
+                                                        controller.onRename(
+                                                            collection
+                                                        )
+                                                    }
+                                                    shareUrl={
+                                                        collection.shareId
+                                                            ? buildPublicCollectionShareUrl(
+                                                                  collection.shareId
+                                                              )
+                                                            : null
+                                                    }
+                                                />
+                                            </CollectionsListItem>
+                                        );
+                                    }
+                                )}
+                            </DisclosureList>
+                            <CollectionsListStatus
+                                onDismiss={controller.onDismissFeedback}
+                                tone={controller.feedback?.tone}
+                            >
+                                {controller.feedback?.message}
+                            </CollectionsListStatus>
+                        </>
+                    )}
+                </CollectionsListPanel>
+            </CollectionsList>
+            <RenameDialog {...controller.renameDialog} />
+            <CreateDialog {...controller.createDialog} />
+            <DeleteDialog {...controller.deleteDialog} />
+        </>
+    );
+}
+
+/**
+ * Central controller for all collection-related UI state and side effects.
+ *
+ * Coordinates dialog open states, server actions, optimistic updates,
+ * keyboard shortcuts, and feedback messages.
+ */
+function useCollectionsController() {
+    const {
+        disabled: isSmartCollectionsDisabled,
+        mutate: mutateSmartCollectionsPreference,
+    } = useSmartCollectionsPreference();
+
+    // Create dialog state
+    const [isCreateOpen, setIsCreateOpen] = React.useState(false);
+    const [createName, setCreateName] = React.useState("");
+    const [createDescription, setCreateDescription] = React.useState("");
+    const [createItemId, setCreateItemId] = React.useState<string | null>(null);
+    const [createError, setCreateError] = React.useState<string | null>(null);
+    const [isCreatePending, startCreate] = React.useTransition();
+
+    // Rename dialog state
+    const [pendingRename, setPendingRename] =
+        React.useState<LibraryCollectionSummary | null>(null);
+    const [renameDraft, setRenameDraft] = React.useState("");
+    const [renameError, setRenameError] = React.useState<string | null>(null);
+    const [isRenamePending, startRename] = React.useTransition();
+
+    // Delete dialog state
+    const [pendingDelete, setPendingDelete] =
+        React.useState<LibraryCollectionSummary | null>(null);
+    const [isDeletePending, startDelete] = React.useTransition();
+
+    // Share state
+    const [pendingShareId, setPendingShareId] = React.useState<string | null>(
+        null
+    );
+    const [isSharePending, startShare] = React.useTransition();
+
+    // Duplicate transition
+    const [, startDuplicate] = React.useTransition();
+
+    // Feedback
+    const [feedback, setFeedback] = React.useState<CollectionFeedback | null>(
+        null
+    );
+
+    const {
+        collectionPreviewThumbnailUrlsById,
+        collectionSummaries,
+        collections,
+        hasAccess,
+        itemsByCollectionId,
+        onClearCollectionFilters,
+        onSelectCollection,
+        selectedCollectionIds,
+        setCollections,
+        setItems,
+    } = useWorkspace();
+    const { copyToClipboard } = useCopyToClipboard();
+
+    const { isCollectionsListOpen, setIsCollectionsListOpen } =
+        useCollectionsListStateStore();
+
+    const {
+        collectionSortField,
+        collectionTextMatchQuery,
+        setCollectionSortField,
+        setCollectionTextMatchQuery,
+    } = useCollectionsSortStore();
+
+    const [isSortOpen, setIsSortOpen] = React.useState(false);
+    const [sortInputValue, setSortInputValue] = React.useState("");
+
+    const showError = (message: string) =>
+        setFeedback({ message, tone: "error" });
+    const showSuccess = (message: string) =>
+        setFeedback({ message, tone: "success" });
+
+    const hasHiddenItems = (collection: LibraryCollectionSummary) =>
+        !hasAccess &&
+        (itemsByCollectionId.get(collection.id)?.length ?? 0) <
+            collection.itemCount;
+
+    const ensureAccess = (
+        collection: LibraryCollectionSummary,
+        action: string
+    ) => {
+        if (!hasHiddenItems(collection)) {
+            return true;
+        }
+        showError(`Upgrade to ${action} every item in ${collection.name}.`);
+        return false;
+    };
+
+    const resetCreate = () => {
+        setCreateName("");
+        setCreateDescription("");
+        setCreateError(null);
+        setCreateItemId(null);
+    };
+
+    const resetRename = () => {
+        setPendingRename(null);
+        setRenameDraft("");
+        setRenameError(null);
+    };
+
+    const syncShare = (next: CollectionShareState) => {
+        setCollections((current) => replaceShareState(current, next));
+        setItems((current) =>
+            updateItemTags(current, (tags) => replaceShareState(tags, next))
+        );
+    };
+
+    const syncPriority = (id: string, priority: CollectionPriority) => {
+        setCollections((current) => replacePriority(current, id, priority));
+        setItems((current) =>
+            updateItemTags(current, (tags) =>
+                replacePriority(tags, id, priority)
+            )
+        );
+    };
+
+    const syncCreated = (input: SyncCreatedCollectionInput) => {
+        setCollections((current) =>
+            mergeCollectionSummaries(current, [input.collection])
+        );
+
+        if (input.assignedItemIds.length === 0) {
+            return;
+        }
+
+        const tag = toCollectionTag(input.collection);
+        setItems((current) =>
+            appendCollection(current, input.assignedItemIds, tag)
+        );
+    };
+
+    const startCreateCollection = (
+        input: Parameters<typeof createCollection>[0],
+        onSuccess?: () => void
+    ) => {
+        startCreate(async () => {
+            const result = await createCollectionSafely(input);
+
+            if (result.status !== "CREATED") {
+                setCreateError(result.message);
+                return;
+            }
+
+            syncCreated({
+                assignedItemIds: getCreatedAssignedItemIds(result),
+                collection: result.collection,
+            });
+            onSuccess?.();
+            resetCreate();
+            setIsCreateOpen(false);
+        });
+    };
+
+    const requestCreate = (itemId?: string) => {
+        setCreateItemId(itemId ?? null);
+        setCreateName("");
+        setCreateDescription("");
+        setCreateError(null);
+        setIsCreateOpen(true);
+    };
+
+    useHotkeys(
+        "mod+n, v",
+        () => {
+            if (isCreateOpen) {
+                setIsCreateOpen(false);
+            } else {
+                requestCreate();
+            }
+        },
+        { preventDefault: true },
+        [isCreateOpen]
+    );
+
+    useHotkeys(
+        "mod+c",
+        () => {
+            setIsCollectionsListOpen(!isCollectionsListOpen);
+        },
+        { preventDefault: true },
+        [isCollectionsListOpen, setIsCollectionsListOpen]
+    );
+
+    useHotkeys(
+        "mod+f",
+        (event) => {
+            event.preventDefault();
+            if (!isCollectionsListOpen) {
+                setIsCollectionsListOpen(true);
+            }
+            setIsSortOpen(true);
+        },
+        {
+            enabled: !isSortOpen,
+        },
+        [isCollectionsListOpen, isSortOpen, setIsCollectionsListOpen]
+    );
+
+    const requestDelete = (collection: LibraryCollectionSummary) => {
+        setFeedback(null);
+        setPendingDelete(collection);
+    };
+
+    const requestRename = (collection: LibraryCollectionSummary) => {
+        setFeedback(null);
+        setRenameDraft(collection.name);
+        setRenameError(null);
+        setPendingRename(collection);
+    };
+
+    const copyWithFeedback = async (
+        text: string,
+        success: string,
+        error: string
+    ) => {
+        if (await copyToClipboard(text)) {
+            showSuccess(success);
+        } else {
+            showError(error);
+        }
+    };
+
+    const handleCopyLinks = async (collection: LibraryCollectionSummary) => {
+        if (!ensureAccess(collection, "copy")) {
+            return;
+        }
+
+        const items = itemsByCollectionId.get(collection.id) ?? [];
+        const urls = getItemUrls(items);
+
+        if (urls.length === 0) {
+            showError(EMPTY_LINKS_MESSAGE);
+            return;
+        }
+
+        await copyWithFeedback(
+            urls.join("\n"),
+            `Links from ${collection.name} copied to the clipboard.`,
+            "We couldn't copy these links right now."
+        );
+    };
+
+    const handleCopyTitle = async (collection: LibraryCollectionSummary) => {
+        await copyWithFeedback(
+            collection.name,
+            `${collection.name} title copied to the clipboard.`,
+            "We couldn't copy this collection title right now."
+        );
+    };
+
+    const handleCopyShareLink = async (
+        collection: LibraryCollectionSummary
+    ) => {
+        if (!collection.shareId) {
+            showError("Create a public link before trying to copy it.");
+            return;
+        }
+
+        const url = buildPublicCollectionShareUrl(collection.shareId);
+        await copyWithFeedback(
+            url,
+            `Public link for ${collection.name} copied to the clipboard.`,
+            "We couldn't copy this public link right now."
+        );
+    };
+
+    const handleEnableShare = (collection: LibraryCollectionSummary) => {
+        setFeedback(null);
+        setPendingShareId(collection.id);
+
+        startShare(async () => {
+            const result = await shareCollectionPubliclySafely({
+                collectionId: collection.id,
+            });
+
+            if (result.status !== "SHARED") {
+                showError(result.message);
+                setPendingShareId(null);
+                return;
+            }
+
+            syncShare(result.collection);
+            setPendingShareId(null);
+            const linkCopied = await copyToClipboard(result.shareUrl);
+            showSuccess(
+                linkCopied
+                    ? `${collection.name} is now publicly shared. Link copied to the clipboard.`
+                    : `${collection.name} is now publicly shared.`
+            );
+        });
+    };
+
+    const handleDisableShare = (collection: LibraryCollectionSummary) => {
+        setFeedback(null);
+        setPendingShareId(collection.id);
+
+        startShare(async () => {
+            const result = await disableCollectionSharingSafely({
+                collectionId: collection.id,
+            });
+
+            if (result.status !== "DISABLED") {
+                showError(result.message);
+                setPendingShareId(null);
+                return;
+            }
+
+            syncShare(result.collection);
+            setPendingShareId(null);
+            showSuccess(`${collection.name} is no longer publicly shared.`);
+        });
+    };
+
+    const handleOpenLinks = (collection: LibraryCollectionSummary) => {
+        if (!ensureAccess(collection, "open")) {
+            return;
+        }
+
+        const items = itemsByCollectionId.get(collection.id) ?? [];
+        const urls = getItemUrls(items);
+
+        if (urls.length === 0) {
+            showError(EMPTY_LINKS_MESSAGE);
+            return;
+        }
+
+        showSuccess(
+            `Opening ${urls.length} link${urls.length === 1 ? "" : "s"} from ${collection.name}.`
+        );
+
+        for (const url of urls) {
+            openExternal(url);
+        }
+    };
+
+    const handleExportCsv = (collection: LibraryCollectionSummary) => {
+        if (!ensureAccess(collection, "export")) {
+            return;
+        }
+
+        const items = itemsByCollectionId.get(collection.id) ?? [];
+
+        if (items.length === 0) {
+            showError(EMPTY_LINKS_MESSAGE);
+            return;
+        }
+
+        React.startTransition(async () => {
+            try {
+                await saveFile(
+                    new Blob([buildCsv(collection, items)], {
+                        type: CSV_CONTENT_TYPE,
+                    }),
+                    {
+                        description: "CSV file",
+                        extension: "csv",
+                        name: getExportFileName(collection.name),
+                    }
+                );
+
+                showSuccess(`${collection.name} exported as CSV.`);
+            } catch {
+                showError("We couldn't export this collection right now.");
+            }
+        });
+    };
+
+    const handleConfirmDelete = () => {
+        const target = pendingDelete;
+        if (!target) {
+            return;
+        }
+
+        startDelete(async () => {
+            const result = await deleteCollectionSafely({
+                collectionId: target.id,
+            });
+
+            if (result.status !== "DELETED") {
+                showError(result.message);
+                return;
+            }
+
+            setCollections((current) =>
+                current.filter((c) => c.id !== result.collection.id)
+            );
+            setItems((current) =>
+                updateItemTags(current, (tags) =>
+                    tags.filter((c) => c.id !== result.collection.id)
+                )
+            );
+            setPendingDelete(null);
+            showSuccess(`${result.collection.name} deleted.`);
+        });
+    };
+
+    const handleUpdatePriority = async (
+        collectionId: string,
+        priority: CollectionPriority
+    ) => {
+        const previous = collections.find(
+            (c) => c.id === collectionId
+        )?.priority;
+
+        if (!previous || previous === priority) {
+            return;
+        }
+
+        syncPriority(collectionId, priority);
+
+        const result = await updateCollectionPrioritySafely({
+            collectionId,
+            priority,
+        });
+
+        if (result.status === "UPDATED") {
+            syncPriority(result.collection.id, result.collection.priority);
+        } else {
+            syncPriority(collectionId, previous);
+            showError(result.message);
+        }
+    };
+
+    const handleRenameSubmit = () => {
+        const target = pendingRename;
+        if (!target) {
+            return;
+        }
+
+        const previousName = target.name;
+        const nextName = normalizeName(renameDraft);
+
+        if (nextName.length === 0) {
+            setRenameError("Enter a collection name.");
+            return;
+        }
+
+        if (nextName === previousName) {
+            resetRename();
+            return;
+        }
+
+        setCollections((current) => replaceName(current, target.id, nextName));
+        setItems((current) =>
+            replaceItemCollectionNames(current, target.id, nextName)
+        );
+
+        startRename(async () => {
+            const result = await renameCollectionSafely({
+                collectionId: target.id,
+                name: nextName,
+            });
+
+            if (result.status === "UPDATED") {
+                setCollections((current) =>
+                    replaceName(
+                        current,
+                        result.collection.id,
+                        result.collection.name
+                    )
+                );
+                setItems((current) =>
+                    replaceItemCollectionNames(
+                        current,
+                        result.collection.id,
+                        result.collection.name
+                    )
+                );
+                resetRename();
+                showSuccess(`${result.collection.name} renamed.`);
+                return;
+            }
+
+            setCollections((current) =>
+                replaceName(current, target.id, previousName)
+            );
+            setItems((current) =>
+                replaceItemCollectionNames(current, target.id, previousName)
+            );
+            setRenameError(result.message);
+        });
+    };
+
+    const handleDuplicate = (collection: LibraryCollectionSummary) => {
+        setFeedback(null);
+
+        startDuplicate(async () => {
+            const result = await duplicateCollectionSafely({
+                collectionId: collection.id,
+            });
+
+            if (result.status !== "CREATED") {
+                showError(result.message);
+                return;
+            }
+
+            syncCreated({
+                assignedItemIds: result.assignedItemIds,
+                collection: result.collection,
+            });
+            showSuccess(
+                `${collection.name} copied as ${result.collection.name}.`
+            );
+        });
+    };
+
+    const handleCreateSubmit = () => {
+        startCreateCollection({
+            assignToItemId: createItemId ?? undefined,
+            description: createDescription || undefined,
+            name: createName,
+        });
+    };
+
+    const handleCreateFromTemplate = (value: TemplateValue | null) => {
+        if (!value) {
+            return;
+        }
+        const template = TEMPLATES.find((t) => t.value === value);
+        if (!template) {
+            return;
+        }
+        setCreateError(null);
+        startCreateCollection(
+            {
+                assignToItemId: createItemId ?? undefined,
+                description: template.description,
+                name: template.name,
+            },
+            () => showSuccess(`${template.name} created from template.`)
+        );
+    };
+
+    const handleCreateNameChange = (draft: string) => {
+        setCreateName(draft);
+        if (createError) {
+            setCreateError(null);
+        }
+    };
+
+    const handleRenameDraftChange = (draft: string) => {
+        setRenameDraft(draft);
+        if (renameError) {
+            setRenameError(null);
+        }
+    };
+
+    const handleCreateOpenChange = (open: boolean) => {
+        if (!(open || isCreatePending)) {
+            resetCreate();
+        }
+        setIsCreateOpen(open);
+    };
+
+    const sortValue: SortingComboboxOption | null =
+        collectionSortField === "text-match"
+            ? {
+                  icon: ListFilter,
+                  label: `Search by "${collectionTextMatchQuery}"`,
+                  query: collectionTextMatchQuery,
+                  value: "text-match",
+              }
+            : (SORT_OPTION_BY_VALUE.get(collectionSortField) ?? null);
+
+    const handleSortValueChange = (option: SortingComboboxOption | null) => {
+        if (!option) {
+            return;
+        }
+
+        if (option.value === "text-match") {
+            if (option.query !== collectionTextMatchQuery) {
+                setCollectionTextMatchQuery(option.query);
+                setCollectionSortField(option.value);
+                setSortInputValue("");
+            }
+            setIsSortOpen(false);
+            return;
+        }
+
+        if (option.value !== collectionSortField) {
+            setCollectionSortField(option.value);
+            setSortInputValue("");
+        }
+        setIsSortOpen(false);
+    };
+
+    const hasAnySelected = selectedCollectionIds.length > 0;
+    const collectionLabels = collectionSummaries.map((c) => c.name);
+
+    return {
+        collectionLabels,
+        collectionPreviewThumbnailUrlsById,
+        collectionSummaries,
+        createDialog: {
+            descriptionDraft: createDescription,
+            errorMessage: createError,
+            isOpen: isCreateOpen,
+            isPending: isCreatePending,
+            nameDraft: createName,
+            onCreateFromTemplate: handleCreateFromTemplate,
+            onDescriptionDraftChange: setCreateDescription,
+            onNameDraftChange: handleCreateNameChange,
+            onOpenChange: handleCreateOpenChange,
+            onSubmit: handleCreateSubmit,
+        },
+        deleteDialog: {
+            collection: pendingDelete,
+            isPending: isDeletePending,
+            onConfirm: handleConfirmDelete,
+            onOpenChange: (open: boolean) => {
+                if (!(open || isDeletePending)) {
+                    setPendingDelete(null);
+                }
+            },
+        },
+        feedback,
+        hasAnySelected,
+        isCollectionsListOpen,
+        isSharePending,
+        isSmartCollectionsDisabled,
+        onClearCollectionFilters,
+        onCopyLinks: handleCopyLinks,
+        onCopyShareLink: handleCopyShareLink,
+        onCopyTitle: handleCopyTitle,
+        onDelete: requestDelete,
+        onDisableShare: handleDisableShare,
+        onDisableSmartCollections: async () => {
+            await mutateSmartCollectionsPreference(
+                async () => {
+                    const result = await disableSmartCollections();
+                    if (result.status !== "DISABLED") {
+                        showError(result.message);
+                        throw new Error(result.message);
+                    }
+                    return { disabled: true };
+                },
+                { optimisticData: { disabled: true }, rollbackOnError: true }
+            );
+        },
+        onDismissFeedback: () => setFeedback(null),
+        onDuplicate: handleDuplicate,
+        onEnableShare: handleEnableShare,
+        onExportCsv: handleExportCsv,
+        onOpenLinks: handleOpenLinks,
+        onRename: requestRename,
+        onSelectCollection,
+        onUpdatePriority: handleUpdatePriority,
+        pendingShareId,
+        renameDialog: {
+            errorMessage: renameError,
+            isOpen: pendingRename !== null,
+            isPending: isRenamePending,
+            nameDraft: renameDraft,
+            onNameDraftChange: handleRenameDraftChange,
+            onOpenChange: (open: boolean) => {
+                if (!(open || isRenamePending)) {
+                    resetRename();
+                }
+            },
+            onSubmit: handleRenameSubmit,
+        },
+        requestCreate,
+        selectedCollectionIds,
+        setIsCollectionsListOpen,
+        sort: {
+            inputValue: sortInputValue,
+            isOpen: isSortOpen,
+            onInputValueChange: setSortInputValue,
+            onOpenChange: setIsSortOpen,
+            onValueChange: handleSortValueChange,
+            value: sortValue,
+        },
+    };
 }
 
 /**
@@ -1812,6 +3083,7 @@ function DeleteDialog({
     );
 }
 
+export type { CollectionSortField } from "@/components/library/workspace";
 export {
     CollectionsList,
     CollectionsListEmpty,
@@ -1845,7 +3117,6 @@ export {
     type CollectionsListSortingComboboxProps,
     type CollectionsListStatusProps,
     type CollectionsListTriggerProps,
-    type CollectionSortField,
     type CreateDialogProps,
     type DeleteDialogProps,
     type PriorityOption,

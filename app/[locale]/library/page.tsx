@@ -6,6 +6,7 @@ import {
     UserMenuHeader,
 } from "@/components/auth/user-menu";
 import { Browser } from "@/components/library/browser";
+import { Collections } from "@/components/library/collections";
 import {
     IntegrationsList,
     IntegrationsListFeedback,
@@ -15,10 +16,7 @@ import {
     IntegrationsListPrivacyNotice,
     IntegrationsListTrigger,
 } from "@/components/library/integrations";
-import {
-    CollectionsListWorkspaceRoot,
-    WorkspaceProvider,
-} from "@/components/library/workspace";
+import { WorkspaceProvider } from "@/components/library/workspace";
 import { ActivePathname } from "@/components/ui/active-pathname";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { DisclosureList } from "@/components/ui/disclosure-list";
@@ -232,7 +230,7 @@ export default async function LibraryPage() {
                                     <IntegrationsListPrivacyNotice />
                                 </IntegrationsListPanel>
                             </IntegrationsList>
-                            <CollectionsListWorkspaceRoot />
+                            <Collections />
                         </SidebarHeader>
                     </Sidebar>
                     <Browser
