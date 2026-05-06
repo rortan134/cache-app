@@ -8,6 +8,7 @@ import {
     toLibraryCollectionSummaryFromTagRecord,
     toLibraryCollectionTag,
     toLibraryItemWithCollections,
+    uniqueLibraryItemSources,
     type LibraryCollectionSummary,
     type LibraryCollectionTag,
     type LibraryCollectionTagRecord,
@@ -51,10 +52,10 @@ interface LibraryItemCollectionsOwned {
     id: string;
 }
 
-function toCollectionConnections(collectionIds: string[]): Array<{
+function toIdConnections(ids: readonly string[]): Array<{
     id: string;
 }> {
-    return collectionIds.map((id) => ({ id }));
+    return ids.map((id) => ({ id }));
 }
 
 function createCollectionError(args: {
@@ -223,7 +224,7 @@ async function findCollectionTagsOwnedByIds(
         return [];
     }
 
-    return await tx.collection.findMany({
+    const collections = await tx.collection.findMany({
         orderBy: {
             name: SORT_ASC,
         },
@@ -235,6 +236,8 @@ async function findCollectionTagsOwnedByIds(
             userId: args.userId,
         },
     });
+
+    return collections;
 }
 
 async function requireLibraryItemsOwnedWithCollections(
@@ -455,7 +458,7 @@ export function createCollectionFromItems({
             data: {
                 description,
                 items: {
-                    connect: toCollectionConnections(itemIds),
+                    connect: toIdConnections(itemIds),
                 },
                 name: normalized.name,
                 nameKey: normalized.nameKey,
@@ -546,7 +549,7 @@ export function duplicateCollection({
                 items:
                     sourceCollection.items.length > 0
                         ? {
-                              connect: toCollectionConnections(
+                              connect: toIdConnections(
                                   sourceCollection.items.map((item) => item.id)
                               ),
                           }
@@ -716,7 +719,7 @@ export function updateLibraryItemCollections({
         const updatedItem = await tx.libraryItem.update({
             data: {
                 collections: {
-                    set: toCollectionConnections(
+                    set: toIdConnections(
                         ownedCollections.map((collection) => collection.id)
                     ),
                 },
@@ -804,7 +807,7 @@ export function updateLibraryItemsCollections({
             const updatedItem = await tx.libraryItem.update({
                 data: {
                     collections: {
-                        set: toCollectionConnections(nextCollectionIds),
+                        set: toIdConnections(nextCollectionIds),
                     },
                 },
                 select: LIBRARY_ITEM_COLLECTIONS_SELECT,
@@ -978,9 +981,9 @@ export async function getLibraryItems(args: {
         });
 
         return {
-            itemSources: Array.from(
-                new Set(items.map((item) => item.source))
-            ).map((source) => ({ source })),
+            itemSources: uniqueLibraryItemSources(items).map((source) => ({
+                source,
+            })),
             items: items.map(toLibraryItemWithCollections),
             lockedItemCount: 0,
             totalItemCount: items.length,

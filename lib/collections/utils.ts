@@ -140,6 +140,12 @@ export function uniqueStrings(values: string[]): string[] {
     return Array.from(new Set(values));
 }
 
+export function uniqueLibraryItemSources(
+    items: readonly { source: LibraryItemSource }[]
+): LibraryItemSource[] {
+    return Array.from(new Set(items.map((item) => item.source)));
+}
+
 // ---------------------------------------------------------------------------
 // Mappers
 // ---------------------------------------------------------------------------
@@ -165,9 +171,7 @@ export function toLibraryCollectionSummary(
     return {
         ...toLibraryCollectionTag(collection),
         itemCount: collection._count.items,
-        sources: Array.from(
-            new Set(collection.items.map((item) => item.source))
-        ),
+        sources: uniqueLibraryItemSources(collection.items),
     };
 }
 
@@ -178,7 +182,7 @@ export function toLibraryCollectionSummaryFromTagRecord(
     return {
         ...toLibraryCollectionTag(collection),
         itemCount: items.length,
-        sources: Array.from(new Set(items.map((item) => item.source))),
+        sources: uniqueLibraryItemSources(items),
     };
 }
 
