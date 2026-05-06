@@ -1124,17 +1124,7 @@ export async function generateExpandedSectionDescription(args: {
         model: SECTION_DESCRIPTION_MODEL,
     });
 
-    let rawConclusions: string | undefined;
-    try {
-        const parsed = JSON.parse(modelResponse.text ?? "{}");
-        rawConclusions =
-            Array.isArray(parsed.conclusions) &&
-            parsed.conclusions.every((c: unknown) => typeof c === "string")
-                ? JSON.stringify(parsed.conclusions)
-                : (modelResponse.text ?? undefined);
-    } catch {
-        rawConclusions = modelResponse.text ?? undefined;
-    }
+    const rawConclusions = modelResponse.text ?? undefined;
 
     return { rawConclusions };
 }
