@@ -49,7 +49,7 @@ function BlockPaywallBanner({ length }: { length: number }) {
                             Keep exploring the whole library, unlock full
                             browsing &amp; pro features from{" "}
                             <span className="font-semibold text-foreground">
-                                5€/month
+                                8€/month
                             </span>{" "}
                             — cancel anytime.
                         </p>

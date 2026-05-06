@@ -92,7 +92,7 @@ export default async function Home() {
                 name: "Cache App",
                 offers: {
                     "@type": "Offer",
-                    price: "5",
+                    price: "8",
                     priceCurrency: "EUR",
                 },
                 operatingSystem: "Any",
@@ -195,7 +195,7 @@ export default async function Home() {
                             </T>
                         </p>
                         <p className="mx-auto text-center text-xs">
-                            <T>Starting from $5/month</T>
+                            <T>Starting from $8/month</T>
                         </p>
                     </div>
                     <div className="grid w-full grid-cols-1 gap-2 md:grid-cols-2 md:gap-[40px]">

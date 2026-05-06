@@ -63,7 +63,7 @@ export default async function PricingPage({
                 "@type": "Offer",
                 availability: "https://schema.org/InStock",
                 name: "Monthly",
-                price: "5",
+                price: "8",
                 priceCurrency: "EUR",
                 priceValidUntil: "2027-12-31",
                 url: `${BASE_URL}/pricing`,
@@ -72,7 +72,7 @@ export default async function PricingPage({
                 "@type": "Offer",
                 availability: "https://schema.org/InStock",
                 name: "Yearly",
-                price: "50",
+                price: "80",
                 priceCurrency: "EUR",
                 priceValidUntil: "2027-12-31",
                 url: `${BASE_URL}/pricing`,
@@ -92,7 +92,7 @@ export default async function PricingPage({
                                 Give your every bookmark more meaning.
                             </h1>
                             <p className="max-w-2xl text-base text-muted-foreground leading-[1.35] md:text-[1.15rem]">
-                                Starting from only 5 € per month — Cancel
+                                Starting from only 8 € per month — Cancel
                                 anytime.
                             </p>
                             <p className="max-w-2xl text-base text-muted-foreground">
@@ -202,7 +202,7 @@ export default async function PricingPage({
                                                         Monthly
                                                     </p> */}
                                                     <p className="mt-1 font-medium text-4xl tracking-[-0.04em]">
-                                                        5 €
+                                                        8 €
                                                         <span className="ml-2 font-normal text-base text-muted-foreground">
                                                             per month
                                                         </span>
@@ -222,7 +222,7 @@ export default async function PricingPage({
                                                         Yearly
                                                     </p> */}
                                                     <p className="mt-1 font-medium text-4xl tracking-[-0.04em]">
-                                                        50 €
+                                                        80 €
                                                         <span className="ml-2 font-normal text-base text-muted-foreground">
                                                             per year
                                                         </span>
