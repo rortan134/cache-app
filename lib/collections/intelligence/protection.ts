@@ -1,8 +1,8 @@
 import "server-only";
 
 import { serverEnv } from "@/env/server";
-import { getUserPlanType } from "@/lib/billing/subscriptions/subscription-access";
 import { GEN_AI_QUOTAS, type PlanType } from "@/lib/billing/prices";
+import { getUserPlanType } from "@/lib/billing/service";
 import { GenAiProtectionError } from "@/lib/collections/intelligence/error";
 import { createLogger } from "@/lib/common/logs/console/logger";
 import arcjet, {

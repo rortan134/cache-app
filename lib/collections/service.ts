@@ -955,12 +955,11 @@ export function listLibraryItemSources(args: {
     });
 }
 
-export async function getLibraryPageData(args: {
+export async function getLibraryItems(args: {
     hasAccess: boolean;
     limit?: number;
     userId: string;
 }): Promise<{
-    collections: LibraryCollectionSummary[];
     itemSources: Array<{ source: LibraryItemSource }>;
     items: LibraryItemWithCollections[];
     lockedItemCount: number;
@@ -971,8 +970,6 @@ export async function getLibraryPageData(args: {
         userId: args.userId,
     };
 
-    const collections = await listCollections({ userId: args.userId });
-
     if (args.hasAccess) {
         const items = await prisma.libraryItem.findMany({
             include: LIBRARY_ITEM_COLLECTIONS_INCLUDE,
@@ -981,7 +978,6 @@ export async function getLibraryPageData(args: {
         });
 
         return {
-            collections,
             itemSources: Array.from(
                 new Set(items.map((item) => item.source))
             ).map((source) => ({ source })),
@@ -1009,7 +1005,6 @@ export async function getLibraryPageData(args: {
     ]);
 
     return {
-        collections,
         itemSources,
         items: items.map(toLibraryItemWithCollections),
         lockedItemCount: Math.max(totalItemCount - items.length, 0),

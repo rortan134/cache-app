@@ -202,7 +202,7 @@ Tooling: TypeScript v6 (strict typing), Biome via Ultracite (run via `bun lint` 
 
 We organize and co-locate Next.js Server Actions as thin adapters in `lib/{module}/actions.ts` files that handle input/output validation, auth/session and privilege checks, error normalization, caching/revalidation and rate limiting. These actions call pure service functions which contain all business logic and database/external-API calls. Services never depend on the framework; they operate on validated data and return domain objects/typed results, and can be used independently either for either other modules, as side effects, or server components.
 
-Actions are the only networking boundary: they parse/validate inputs, guard with user context, translate service results to serialized responses, and decide application-specific side effects, like `revalidatePath()`. Behind the scenes, actions use the `POST` method. Actions are defined as procedures, which are fully type-safe and imported directly and consumed as fetchers functions on top of [swr](https://swr.vercel.app/llms.txt), typing and inferring the responses.
+Actions are the only networking boundary: they parse/validate inputs, guard with user context, translate service results to serialized responses, and decide application-specific side effects, like `revalidatePath()`. Behind the scenes, actions use the `POST` method. Actions are defined as procedures, which are fully type-safe and imported directly and consumed as fetchers functions on top of [swr](https://swr.vercel.app/llms.txt), typing and inferring the responses. Actions should return only the necessary data that will be used, and not entire objects.
 
 ### Logging and error handling pattern
 

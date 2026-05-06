@@ -1,7 +1,7 @@
 "use client";
 
 import { useSession } from "@/lib/auth/client";
-import { getActiveSubscription } from "@/lib/billing/subscriptions/subscriptions";
+import { getActiveSubscription } from "@/lib/billing/subscriptions";
 import type { PropsWithChildren, ReactNode } from "react";
 import useSWR from "swr";
 

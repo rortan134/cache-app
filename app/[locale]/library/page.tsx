@@ -32,8 +32,8 @@ import {
     SidebarItem,
 } from "@/components/ui/sidebar";
 import { getServerSession } from "@/lib/auth/server";
-import { userHasActiveSubscription } from "@/lib/billing/subscriptions/subscription-access";
-import { getLibraryPageData } from "@/lib/collections/service";
+import { userHasActiveSubscription } from "@/lib/billing/service";
+import { getLibraryItems, listCollections } from "@/lib/collections/service";
 import { gtPublicString } from "@/lib/i18n/gt-public-json";
 import { listLinkedIntegrationAccounts } from "@/lib/integrations/service";
 import {
@@ -45,6 +45,7 @@ import { Compass, History, House } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import React from "react";
 
 export async function generateMetadata({
     params,
@@ -72,6 +73,8 @@ export async function generateMetadata({
     });
 }
 
+const getLibraryItemsCached = React.cache(getLibraryItems);
+
 export default async function LibraryPage() {
     const session = await getServerSession();
     const userId = session?.user?.id;
@@ -80,22 +83,23 @@ export default async function LibraryPage() {
         return redirect("/");
     }
 
-    const [hasAccess, linkedAccounts] = await Promise.all([
-        userHasActiveSubscription(userId),
-        listLinkedIntegrationAccounts({ userId }),
-    ]);
-
-    const { collections, itemSources, items, lockedItemCount, totalItemCount } =
-        await getLibraryPageData({
+    const hasAccess = await userHasActiveSubscription(userId);
+    const linkedAccounts = await listLinkedIntegrationAccounts({ userId });
+    const collections = await listCollections({ userId });
+    const { itemSources, items, lockedItemCount, totalItemCount } =
+        await getLibraryItemsCached({
             hasAccess,
             userId,
         });
 
-    const connectedIntegrationIds = listConnectedIntegrationIds("source", {
-        libraryItemSources: itemSources.map((item) => item.source),
-        linkedProviderIds: linkedAccounts.map((account) => account.providerId),
-    });
-    const connectedIntegrationIdSet = new Set(connectedIntegrationIds);
+    const connectedIntegrationIdSet = new Set(
+        listConnectedIntegrationIds("source", {
+            libraryItemSources: itemSources.map((item) => item.source),
+            linkedProviderIds: linkedAccounts.map(
+                (account) => account.providerId
+            ),
+        })
+    );
 
     return (
         <PageShell>
