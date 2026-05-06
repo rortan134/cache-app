@@ -1349,9 +1349,15 @@ function useScroller({
         fps,
         leading: true,
     });
+    const [isScrolling, setIsScrolling] = React.useState(false);
+    const scrollingTimeout = useTimeout();
 
     const onScroll = useStableCallback(() => {
         setScrollY(readScrollY());
+        setIsScrolling(true);
+        scrollingTimeout.start(40 + 1000 / fps, () => {
+            setIsScrolling(false);
+        });
     });
 
     React.useEffect(() => {
@@ -1366,22 +1372,7 @@ function useScroller({
         };
     }, [onScroll]);
 
-    const [isScrolling, setIsScrolling] = React.useState(false);
-    const hasMountedRef = React.useRef(0);
-    const scrollingTimeout = useTimeout();
-
-    React.useEffect(() => {
-        if (hasMountedRef.current === 0) {
-            hasMountedRef.current = 1;
-            return;
-        }
-
-        setIsScrolling(true);
-        scrollingTimeout.start(40 + 1000 / fps, () => {
-            setIsScrolling(false);
-        });
-        return scrollingTimeout.clear;
-    }, [fps, scrollingTimeout]);
+    React.useEffect(() => scrollingTimeout.clear, [scrollingTimeout]);
 
     return { isScrolling, scrollTop: Math.max(0, scrollY - offset) };
 }
@@ -1537,6 +1528,25 @@ function parseGapValue(gap?: number | { column: number; row: number }) {
     return { columnGap, rowGap };
 }
 
+function getJustifiedAspectRatios(
+    children: React.ReactNode,
+    layout: "masonry" | "justified"
+) {
+    if (layout !== "justified") {
+        return;
+    }
+
+    const aspectRatios: number[] = [];
+    React.Children.forEach(children, (child) => {
+        if (!isMasonryChildElement(child)) {
+            return;
+        }
+        const ratio = Number(child.props["data-aspect-ratio"]);
+        aspectRatios.push(Number.isNaN(ratio) || ratio <= 0 ? 1 : ratio);
+    });
+    return aspectRatios;
+}
+
 function Masonry({
     boxSpacing,
     columnWidth = COLUMN_WIDTH,
@@ -1566,17 +1576,7 @@ function Masonry({
     const containerRef = React.useRef<RootElement | null>(null);
     const composedRef = useMergedRefs(ref, containerRef);
 
-    const aspectRatios = React.useMemo(() => {
-        if (layout !== "justified") {
-            return;
-        }
-        return React.Children.toArray(children)
-            .filter(isMasonryChildElement)
-            .map((child) => {
-                const ratio = Number(child.props["data-aspect-ratio"]);
-                return Number.isNaN(ratio) || ratio <= 0 ? 1 : ratio;
-            });
-    }, [children, layout]);
+    const aspectRatios = getJustifiedAspectRatios(children, layout);
 
     const size = useDebouncedWindowSize({
         containerRef,
@@ -1653,15 +1653,24 @@ function Masonry({
 
     const registerItemNode = useStableCallback(
         (index: number, node: ItemElement | null) => {
+            const itemRegistrationCache = itemRegistrationCacheRef.current;
+            const previousNode = itemRegistrationCache?.nodes[index];
             if (!node) {
+                if (previousNode) {
+                    resizeObserver.unobserve(previousNode);
+                    const currentRegistrationCache =
+                        itemRegistrationCacheRef.current;
+                    if (currentRegistrationCache) {
+                        currentRegistrationCache.nodes[index] = undefined;
+                    }
+                }
                 return;
             }
-            const itemRegistrationCache = itemRegistrationCacheRef.current;
-            if (
-                itemRegistrationCache?.nodes[index] === node &&
-                positioner.get(index) !== undefined
-            ) {
+            if (previousNode === node && positioner.get(index) !== undefined) {
                 return;
+            }
+            if (previousNode && previousNode !== node) {
+                resizeObserver.unobserve(previousNode);
             }
             resizeObserver.observe(node);
             const currentRegistrationCache = itemRegistrationCacheRef.current;
