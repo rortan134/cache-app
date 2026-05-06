@@ -618,8 +618,8 @@ function onDeepMemo<T extends unknown[], U>(
 const COLUMN_WIDTH = 200;
 const GAP = 0;
 const ITEM_HEIGHT = 300;
-const OVERSCAN = 2;
-const SCROLL_FPS = 24;
+const OVERSCAN = 6;
+const SCROLL_FPS = 12;
 const DEBOUNCE_DELAY = 300;
 const JUSTIFIED_TARGET_ROW_HEIGHT = 320;
 const JUSTIFIED_TARGET_ROW_HEIGHT_TOLERANCE = 0.25;

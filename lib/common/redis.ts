@@ -1,7 +1,7 @@
 import { NamedError } from "@/lib/common/error";
 import { createLogger } from "@/lib/common/logs/console/logger";
 import { RedisClient } from "bun";
-import { z } from "zod";
+import * as z from "zod";
 
 const log = createLogger("Redis");
 
