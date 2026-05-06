@@ -876,7 +876,7 @@ interface CommandPaletteGroup {
     layout?: "horizontal" | "vertical";
 }
 
-interface LibraryBrowserSection {
+interface BrowserSection {
     items: LibraryItemWithCollections[];
     key: string;
     title: string | null;
@@ -1645,7 +1645,7 @@ interface LibraryResultsProps {
         collectionIds: string[]
     ) => Promise<LibraryItemCollectionsUpdateResult>;
     pendingDeleteItemId: string | null;
-    sections: LibraryBrowserSection[];
+    sections: BrowserSection[];
     showEmptyLibraryPeek: boolean;
     showNoFilteredResults: boolean;
 }
@@ -1694,7 +1694,7 @@ function renderLibraryGridBody({
 
     return sections.map((section) =>
         enableSectionCollapse ? (
-            <LibraryBrowserSection
+            <BrowserSection
                 accentKey={section.key}
                 collapsed={collapsedSectionKeys.has(section.key)}
                 collapsible
@@ -2421,7 +2421,7 @@ function buildLibraryBrowserSections(
     sortedItems: LibraryItemWithCollections[],
     groupBy: GroupByMode,
     sortMode: SortMode
-): LibraryBrowserSection[] {
+): BrowserSection[] {
     if (groupBy === "none") {
         return [
             {
@@ -2574,7 +2574,7 @@ function useSectionCollapseState({
 }: {
     groupBy: GroupByMode;
     hasActiveFilters: boolean;
-    sections: LibraryBrowserSection[];
+    sections: BrowserSection[];
     showEmptyLibraryPeek: boolean;
     showNoFilteredResults: boolean;
 }) {
@@ -3895,7 +3895,7 @@ function SectionSummaryContent({
     );
 }
 
-function LibraryBrowserSection({
+function BrowserSection({
     accentKey,
     collapsed = false,
     collapsible = false,
@@ -4068,7 +4068,7 @@ function LibraryBrowserSection({
     );
 }
 
-export function Root({ lockedItemCount, totalItemCount }: LibraryProps) {
+export function Browser({ lockedItemCount, totalItemCount }: LibraryProps) {
     const {
         collectionPreviewThumbnailUrlsById,
         collectionSummaries: collections,
