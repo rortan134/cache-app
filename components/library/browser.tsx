@@ -3932,7 +3932,7 @@ function SectionSummaryContent({
         <div
             aria-busy={isLoading}
             className={cn(
-                "fade-in-0 block w-full animate-in text-xs leading-snug motion-reduce:animate-none",
+                "fade-in-0 flex w-full animate-in items-center gap-2 text-xs leading-snug motion-reduce:animate-none",
                 isLoading && "opacity-60"
             )}
             id={contentId}
@@ -5531,7 +5531,7 @@ export function Browser({ lockedItemCount, totalItemCount }: LibraryProps) {
                                             event.currentTarget.value
                                         );
                                     }}
-                                    placeholder="Add description..."
+                                    placeholder="Describe what belongs here..."
                                     size="lg"
                                     unstyled
                                     value={createResultsDescriptionDraft}

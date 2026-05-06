@@ -2945,7 +2945,7 @@ function CreateDialog({
                                         event.currentTarget.value
                                     )
                                 }
-                                placeholder="Add Description... Describe what belongs here"
+                                placeholder="Describe what belongs here..."
                                 size="lg"
                                 unstyled
                                 value={descriptionDraft}
