@@ -170,6 +170,18 @@ function compactItem(item: SectionDescriptionContextItem): CompactItem {
     return compact;
 }
 
+function formatPromptItem(item: CompactItem, index: number): string {
+    const parts: string[] = [`${index + 1}. ${item.title}`];
+    if (item.noteExcerpt) {
+        parts.push(`   Note: ${item.noteExcerpt}`);
+    }
+    parts.push(`   ${item.primaryText}`);
+    if (item.domain) {
+        parts.push(`   (${item.domain})`);
+    }
+    return parts.join("\n");
+}
+
 export function buildSummaryPrompt(request: SectionDescriptionRequest): string {
     const items = request.items.map(compactItem);
 
@@ -191,17 +203,7 @@ export function buildSummaryPrompt(request: SectionDescriptionRequest): string {
         "",
         `Section title: ${request.sectionTitle}`,
         "Items:",
-        ...items.map((item, index) => {
-            const parts: string[] = [`${index + 1}. ${item.title}`];
-            if (item.noteExcerpt) {
-                parts.push(`   Note: ${item.noteExcerpt}`);
-            }
-            parts.push(`   ${item.primaryText}`);
-            if (item.domain) {
-                parts.push(`   (${item.domain})`);
-            }
-            return parts.join("\n");
-        }),
+        ...items.map(formatPromptItem),
     ].join("\n");
 }
 
@@ -225,17 +227,7 @@ export function buildExpandedSummaryPrompt(
         "",
         `Section title: ${request.sectionTitle}`,
         "Items:",
-        ...items.map((item, index) => {
-            const parts: string[] = [`${index + 1}. ${item.title}`];
-            if (item.noteExcerpt) {
-                parts.push(`   Note: ${item.noteExcerpt}`);
-            }
-            parts.push(`   ${item.primaryText}`);
-            if (item.domain) {
-                parts.push(`   (${item.domain})`);
-            }
-            return parts.join("\n");
-        }),
+        ...items.map(formatPromptItem),
     ].join("\n");
 }
 
@@ -370,12 +362,23 @@ export function normalizeSummary(value: string | undefined): string | null {
 
 const BULLET_PREFIX_PATTERN = /^[-*•]\s*/;
 
+function cleanConclusionLine(line: string): string {
+    return line
+        .replace(WHITESPACE_PATTERN, " ")
+        .replace(BULLET_PREFIX_PATTERN, "")
+        .trim();
+}
+
 /**
  * Normalizes and validates a raw expanded model response.
  *
  * Expects either a JSON object with a `conclusions` array or a plain
  * bullet-list string. Returns the cleaned array of conclusion strings,
  * or null if the output is empty or malformed.
+ *
+ * The caller (prompt) already instructs the model to return at most
+ * `SECTION_DESCRIPTION_EXPANDED_MAX_CONCLUSIONS` items; this function
+ * enforces that cap as a runtime guard.
  */
 export function normalizeExpandedSummary(
     value: string | undefined
@@ -385,19 +388,21 @@ export function normalizeExpandedSummary(
     }
 
     try {
-        const parsed = JSON.parse(value);
+        const parsed: unknown = JSON.parse(value);
         if (
+            parsed !== null &&
+            typeof parsed === "object" &&
+            "conclusions" in parsed &&
             Array.isArray(parsed.conclusions) &&
-            parsed.conclusions.every((c: unknown) => typeof c === "string")
+            parsed.conclusions.every(
+                (conclusion): conclusion is string =>
+                    typeof conclusion === "string"
+            )
         ) {
             const cleaned = parsed.conclusions
-                .map((c: string) =>
-                    c
-                        .replace(WHITESPACE_PATTERN, " ")
-                        .replace(BULLET_PREFIX_PATTERN, "")
-                        .trim()
-                )
-                .filter((c: string) => c.length > 0);
+                .map(cleanConclusionLine)
+                .filter((conclusion) => conclusion.length > 0)
+                .slice(0, SECTION_DESCRIPTION_EXPANDED_MAX_CONCLUSIONS);
             return cleaned.length > 0 ? cleaned : null;
         }
     } catch {
@@ -406,13 +411,9 @@ export function normalizeExpandedSummary(
 
     const lines = value
         .split("\n")
-        .map((line) =>
-            line
-                .replace(WHITESPACE_PATTERN, " ")
-                .replace(BULLET_PREFIX_PATTERN, "")
-                .trim()
-        )
-        .filter((line) => line.length > 0);
+        .map(cleanConclusionLine)
+        .filter((line) => line.length > 0)
+        .slice(0, SECTION_DESCRIPTION_EXPANDED_MAX_CONCLUSIONS);
 
     return lines.length > 0 ? lines : null;
 }

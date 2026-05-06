@@ -667,7 +667,7 @@ async function fetchSectionDescription([
         );
     }
 
-    if (payload.conclusions) {
+    if (Array.isArray(payload.conclusions) && payload.conclusions.length > 0) {
         return { conclusions: payload.conclusions };
     }
 
@@ -3875,15 +3875,21 @@ function SectionSummaryContent({
     title: string;
 }) {
     const [isExpanded, setIsExpanded] = React.useState(false);
+    const contentId = React.useId();
 
-    const requestBody = JSON.stringify({
-        expanded: isExpanded,
-        items: items
-            .slice(0, SECTION_DESCRIPTION_CONTEXT_ITEMS_LIMIT)
-            .map(buildSectionDescriptionContextItem),
-        sectionTitle: title,
+    const handleToggleExpanded = useStableCallback(() => {
+        setIsExpanded((prev) => !prev);
     });
-    const deferredRequestBody = React.useDeferredValue(requestBody);
+
+    const deferredRequestBody = React.useDeferredValue(
+        JSON.stringify({
+            expanded: isExpanded,
+            items: items
+                .slice(0, SECTION_DESCRIPTION_CONTEXT_ITEMS_LIMIT)
+                .map(buildSectionDescriptionContextItem),
+            sectionTitle: title,
+        })
+    );
 
     const { data, error, isLoading } = useSWR<SectionDescriptionResponse>(
         items.length > 0
@@ -3913,8 +3919,15 @@ function SectionSummaryContent({
     const summary = data && "summary" in data ? data.summary.trim() : undefined;
 
     return (
-        <div className="fade-in-0 block w-full animate-in text-xs leading-snug motion-reduce:animate-none">
-            {conclusions ? (
+        <div
+            aria-busy={isLoading}
+            className={cn(
+                "fade-in-0 block w-full animate-in text-xs leading-snug motion-reduce:animate-none",
+                isLoading && "opacity-60"
+            )}
+            id={contentId}
+        >
+            {conclusions && conclusions.length > 0 ? (
                 <ul className="list-disc space-y-0.5 pl-4">
                     {conclusions.map((conclusion, index) => (
                         <li key={index}>{conclusion}</li>
@@ -3928,8 +3941,10 @@ function SectionSummaryContent({
                 </p>
             )}
             <Button
+                aria-controls={contentId}
+                aria-expanded={isExpanded}
                 className="h-fit! text-xs leading-snug sm:text-xs"
-                onClick={() => setIsExpanded((prev) => !prev)}
+                onClick={handleToggleExpanded}
                 size="xs"
                 variant="link"
             >
