@@ -409,12 +409,6 @@ const { useStore: useCollectionsListStateStore } = createStore({
 const CollectionsListItemContext =
     React.createContext<CollectionsListItemContextValue | null>(null);
 
-/**
- * Access the collection and hover state for the current list item.
- *
- * Must be used inside `CollectionsListItem` so compound parts can share
- * state without prop drilling.
- */
 function useCollectionsListItemContext() {
     const context = React.use(CollectionsListItemContext);
     if (!context) {
@@ -425,12 +419,6 @@ function useCollectionsListItemContext() {
     return context;
 }
 
-/**
- * Strip summary-specific fields so a collection can be stored as a tag on items.
- *
- * Items only need identity fields (id, name, priority, etc.); counts and
- * thumbnail arrays are derived from the item list itself.
- */
 function toCollectionTag({
     createdAt,
     description,
@@ -473,10 +461,6 @@ function updateItemTags(
     }));
 }
 
-/**
- * Update a single collection's share state and re-sort so the new entry
- * lands in the correct priority order.
- */
 function replaceShareState<T extends LibraryCollectionTag>(
     collections: T[],
     next: CollectionShareState
@@ -491,10 +475,6 @@ function replaceShareState<T extends LibraryCollectionTag>(
     );
 }
 
-/**
- * Update a single collection's priority and re-sort so it's positioned
- * correctly among peers of different priorities.
- */
 function replacePriority<T extends LibraryCollectionTag>(
     collections: T[],
     id: string,
@@ -508,10 +488,6 @@ function replacePriority<T extends LibraryCollectionTag>(
     );
 }
 
-/**
- * Update a single collection's name and re-sort so alphabetical order
- * is preserved after the rename.
- */
 function replaceName<T extends LibraryCollectionTag>(
     collections: T[],
     id: string,
@@ -525,9 +501,6 @@ function replaceName<T extends LibraryCollectionTag>(
     );
 }
 
-/**
- * Sync a collection's new name across all items that reference it.
- */
 function replaceItemCollectionNames(
     items: LibraryItemWithCollections[],
     id: string,
@@ -536,23 +509,14 @@ function replaceItemCollectionNames(
     return updateItemTags(items, (tags) => replaceName(tags, id, name));
 }
 
-/**
- * Extract normalized URLs from items for export or bulk operations.
- */
 function getItemUrls(items: LibraryItemWithCollections[]): string[] {
     return items.map((item) => normalizeURL(item.url));
 }
 
-/**
- * Wrap a value in quotes and escape internal double-quotes per RFC 4180.
- */
 function escapeCsv(value: string): string {
     return `"${value.replaceAll('"', '""')}"`;
 }
 
-/**
- * Build a CSV string from a collection and its items.
- */
 function buildCsv(
     collection: LibraryCollectionSummary,
     items: LibraryItemWithCollections[]
@@ -572,20 +536,11 @@ function buildCsv(
         .join("\n");
 }
 
-/**
- * Derive a file-system-safe name from a collection name for CSV export.
- */
 function getExportFileName(name: string): string {
     const slug = slugify(name);
     return slug.length > 0 ? `${slug}-links` : "collection-links";
 }
 
-/**
- * Extract assigned item IDs from a successful collection creation result.
- *
- * The server may return a single `assignedItemId` or none; normalizing
- * to an array keeps callers consistent.
- */
 function getCreatedAssignedItemIds(
     result: Extract<CollectionCreateResult, { status: "CREATED" }>
 ): string[] {
@@ -609,9 +564,6 @@ async function createCollectionSafely(
     }
 }
 
-/**
- * Safe wrapper for `deleteCollection`. See `createCollectionSafely`.
- */
 async function deleteCollectionSafely(
     input: Parameters<typeof deleteCollection>[0]
 ) {
@@ -622,9 +574,6 @@ async function deleteCollectionSafely(
     }
 }
 
-/**
- * Safe wrapper for `duplicateCollection`. See `createCollectionSafely`.
- */
 async function duplicateCollectionSafely(
     input: Parameters<typeof duplicateCollection>[0]
 ) {
@@ -635,9 +584,6 @@ async function duplicateCollectionSafely(
     }
 }
 
-/**
- * Safe wrapper for `renameCollection`. See `createCollectionSafely`.
- */
 async function renameCollectionSafely(
     input: Parameters<typeof renameCollection>[0]
 ) {
@@ -648,9 +594,6 @@ async function renameCollectionSafely(
     }
 }
 
-/**
- * Safe wrapper for `updateCollectionPriority`. See `createCollectionSafely`.
- */
 async function updateCollectionPrioritySafely(
     input: Parameters<typeof updateCollectionPriority>[0]
 ) {
@@ -664,9 +607,6 @@ async function updateCollectionPrioritySafely(
     }
 }
 
-/**
- * Safe wrapper for `shareCollectionPublicly`. See `createCollectionSafely`.
- */
 async function shareCollectionPubliclySafely(
     input: Parameters<typeof shareCollectionPublicly>[0]
 ) {
@@ -677,9 +617,6 @@ async function shareCollectionPubliclySafely(
     }
 }
 
-/**
- * Safe wrapper for `disableCollectionSharing`. See `createCollectionSafely`.
- */
 async function disableCollectionSharingSafely(
     input: Parameters<typeof disableCollectionSharing>[0]
 ) {
@@ -1086,10 +1023,12 @@ function useCollectionsController() {
     const showSuccess = (message: string) =>
         setFeedback({ message, tone: "success" });
 
+    const getCollectionItems = (collectionId: string) =>
+        itemsByCollectionId.get(collectionId) ?? [];
+
     const hasHiddenItems = (collection: LibraryCollectionSummary) =>
         !hasAccess &&
-        (itemsByCollectionId.get(collection.id)?.length ?? 0) <
-            collection.itemCount;
+        getCollectionItems(collection.id).length < collection.itemCount;
 
     const ensureAccess = (
         collection: LibraryCollectionSummary,
@@ -1129,6 +1068,11 @@ function useCollectionsController() {
                 replacePriority(tags, id, priority)
             )
         );
+    };
+
+    const syncName = (id: string, name: string) => {
+        setCollections((current) => replaceName(current, id, name));
+        setItems((current) => replaceItemCollectionNames(current, id, name));
     };
 
     const syncCreated = (input: SyncCreatedCollectionInput) => {
@@ -1242,7 +1186,7 @@ function useCollectionsController() {
             return;
         }
 
-        const items = itemsByCollectionId.get(collection.id) ?? [];
+        const items = getCollectionItems(collection.id);
         const urls = getItemUrls(items);
 
         if (urls.length === 0) {
@@ -1333,7 +1277,7 @@ function useCollectionsController() {
             return;
         }
 
-        const items = itemsByCollectionId.get(collection.id) ?? [];
+        const items = getCollectionItems(collection.id);
         const urls = getItemUrls(items);
 
         if (urls.length === 0) {
@@ -1355,7 +1299,7 @@ function useCollectionsController() {
             return;
         }
 
-        const items = itemsByCollectionId.get(collection.id) ?? [];
+        const items = getCollectionItems(collection.id);
 
         if (items.length === 0) {
             showError(EMPTY_LINKS_MESSAGE);
@@ -1399,11 +1343,15 @@ function useCollectionsController() {
             }
 
             setCollections((current) =>
-                current.filter((c) => c.id !== result.collection.id)
+                current.filter(
+                    (collection) => collection.id !== result.collection.id
+                )
             );
             setItems((current) =>
                 updateItemTags(current, (tags) =>
-                    tags.filter((c) => c.id !== result.collection.id)
+                    tags.filter(
+                        (collection) => collection.id !== result.collection.id
+                    )
                 )
             );
             setPendingDelete(null);
@@ -1457,10 +1405,7 @@ function useCollectionsController() {
             return;
         }
 
-        setCollections((current) => replaceName(current, target.id, nextName));
-        setItems((current) =>
-            replaceItemCollectionNames(current, target.id, nextName)
-        );
+        syncName(target.id, nextName);
 
         startRename(async () => {
             const result = await renameCollectionSafely({
@@ -1469,31 +1414,13 @@ function useCollectionsController() {
             });
 
             if (result.status === "UPDATED") {
-                setCollections((current) =>
-                    replaceName(
-                        current,
-                        result.collection.id,
-                        result.collection.name
-                    )
-                );
-                setItems((current) =>
-                    replaceItemCollectionNames(
-                        current,
-                        result.collection.id,
-                        result.collection.name
-                    )
-                );
+                syncName(result.collection.id, result.collection.name);
                 resetRename();
                 showSuccess(`${result.collection.name} renamed.`);
                 return;
             }
 
-            setCollections((current) =>
-                replaceName(current, target.id, previousName)
-            );
-            setItems((current) =>
-                replaceItemCollectionNames(current, target.id, previousName)
-            );
+            syncName(target.id, previousName);
             setRenameError(result.message);
         });
     };
@@ -2772,7 +2699,7 @@ function CollectionsListItemMeta({
                 <MenuTrigger
                     render={
                         <Button
-                            className="absolute opacity-0 focus-visible:opacity-100 group-focus-within:opacity-100 group-hover:opacity-100 group-focus:opacity-100"
+                            className="absolute opacity-0 focus-visible:opacity-100 group-focus-within:opacity-100 group-hover:opacity-100 group-focus:opacity-100 data-popup-open:bg-muted data-popup-open:opacity-100"
                             size="icon-xs"
                             title={`Collection actions for ${collection.name}`}
                             variant="ghost"
