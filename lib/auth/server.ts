@@ -1,10 +1,11 @@
 import { getStripeClient, getStripeWebhookSecret } from "@/lib/billing/client";
+import { getPlanPriceIds } from "@/lib/billing/prices";
 import { APP_NAME, BASE_URL } from "@/lib/common/constants";
 import { prisma } from "@/prisma";
 import type { OAuth2Tokens } from "@better-auth/core/oauth2";
 import { stripe } from "@better-auth/stripe";
-import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
+import { betterAuth } from "better-auth/minimal";
 import { nextCookies } from "better-auth/next-js";
 import type { GenericOAuthConfig } from "better-auth/plugins";
 import { genericOAuth, oneTap } from "better-auth/plugins";
@@ -282,11 +283,9 @@ export const auth = betterAuth({
                 enabled: true,
                 plans: [
                     {
-                        annualDiscountPriceId: requiredEnv(
-                            "STRIPE_PRICE_ID_YEARLY"
-                        ),
+                        annualDiscountPriceId: getPlanPriceIds().yearly,
                         name: "pro",
-                        priceId: requiredEnv("STRIPE_PRICE_ID_MONTHLY"),
+                        priceId: getPlanPriceIds().monthly,
                     },
                 ],
             },
@@ -296,8 +295,11 @@ export const auth = betterAuth({
     session: {
         cookieCache: {
             enabled: true,
-            maxAge: 5 * 60, // Cache duration in seconds
+            maxAge: 24 * 60 * 60, // 24 hours in seconds
         },
+        expiresIn: 60 * 60 * 24 * 30, // 30 days (how long a session can last overall)
+        freshAge: 60 * 60, // 1 hour (or set to 0 to disable completely)
+        updateAge: 60 * 60 * 24, // 24 hours (every 1 day the session expiration is updated)  (how often to refresh the expiry)
     },
     socialProviders: {
         google: {

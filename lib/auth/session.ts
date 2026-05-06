@@ -8,10 +8,11 @@ import { cache } from "react";
 
 const log = createLogger("Auth:session");
 
-export const getServerSession = cache(async () =>
-    auth.api.getSession({
-        headers: await headers(),
-    })
+export const getServerSession = cache(
+    async () =>
+        await auth.api.getSession({
+            headers: await headers(),
+        })
 );
 
 export type Session = Awaited<ReturnType<typeof getServerSession>>;

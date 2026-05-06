@@ -54,7 +54,6 @@ const nextConfig: NextConfig = {
             },
         ];
     },
-    serverExternalPackages: ["better-auth"],
     typescript: {
         ignoreBuildErrors: false,
     },

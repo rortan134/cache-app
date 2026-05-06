@@ -106,6 +106,13 @@ export async function getPlanPrices(): Promise<{
     return { monthly, yearly };
 }
 
+export function getPlanPriceIds(): { monthly: string; yearly: string } {
+    return {
+        monthly: serverEnv.STRIPE_PRICE_ID_MONTHLY,
+        yearly: serverEnv.STRIPE_PRICE_ID_YEARLY,
+    };
+}
+
 const STRIPE_FEE_PERCENT = 0.044;
 const STRIPE_FEE_FLAT_CENTS = 30;
 const STRIPE_FEE_NET_MULTIPLIER = 1 - STRIPE_FEE_PERCENT;
