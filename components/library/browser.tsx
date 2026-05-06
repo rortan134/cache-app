@@ -196,7 +196,6 @@ import {
     Layers3,
     LinkIcon,
     ListChevronsUpDown,
-    MessageCircleQuestionMark,
     NotebookPenIcon,
     Plus,
     RotateCcw,
@@ -3902,7 +3901,7 @@ function SectionSummaryContent({
 
     const summary = data?.summary?.trim();
     return (
-        <span className="fade-in-0 block w-full animate-in text-xs leading-snug motion-reduce:animate-none">
+        <p className="fade-in-0 block w-full animate-in text-xs leading-snug motion-reduce:animate-none">
             {summary && summary.length > 0
                 ? summary
                 : SECTION_DESCRIPTION_FALLBACK_TEXT}{" "}
@@ -3914,16 +3913,7 @@ function SectionSummaryContent({
                 Expand&nbsp;
                 <ListChevronsUpDown className="mb-px inline-block size-3.5 shrink-0" />
             </Button>
-            or
-            <Button
-                className="h-fit! text-xs leading-snug sm:text-xs"
-                size="xs"
-                variant="link"
-            >
-                Ask anything&nbsp;
-                <MessageCircleQuestionMark className="mb-px inline-block size-3.5 shrink-0" />
-            </Button>
-        </span>
+        </p>
     );
 }
 

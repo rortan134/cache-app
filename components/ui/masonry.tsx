@@ -618,6 +618,10 @@ const ITEM_HEIGHT = 300;
 const OVERSCAN = 2;
 const SCROLL_FPS = 24;
 const DEBOUNCE_DELAY = 300;
+const JUSTIFIED_TARGET_ROW_HEIGHT = 320;
+const JUSTIFIED_TARGET_ROW_HEIGHT_TOLERANCE = 0.25;
+const JUSTIFIED_CONTAINER_PADDING = 0;
+const JUSTIFIED_BOX_SPACING = 0;
 
 interface Positioner {
     all: () => PositionerItem[];
@@ -667,15 +671,18 @@ function createJustifiedPositioner(
 ): Positioner {
     const safeWidth = Math.max(1, width);
     const result = justifiedLayout(aspectRatios, {
-        boxSpacing: options.boxSpacing ?? 0,
-        containerPadding: options.containerPadding ?? 0,
+        boxSpacing: options.boxSpacing ?? JUSTIFIED_BOX_SPACING,
+        containerPadding:
+            options.containerPadding ?? JUSTIFIED_CONTAINER_PADDING,
         containerWidth: safeWidth,
         fullWidthBreakoutRowCadence:
             options.fullWidthBreakoutRowCadence ?? false,
         maxNumRows: options.maxNumRows ?? Number.POSITIVE_INFINITY,
         showWidows: options.showWidows ?? true,
-        targetRowHeight: options.targetRowHeight ?? 320,
-        targetRowHeightTolerance: options.targetRowHeightTolerance ?? 0.25,
+        targetRowHeight: options.targetRowHeight ?? JUSTIFIED_TARGET_ROW_HEIGHT,
+        targetRowHeightTolerance:
+            options.targetRowHeightTolerance ??
+            JUSTIFIED_TARGET_ROW_HEIGHT_TOLERANCE,
     });
 
     const items: (PositionerItem | undefined)[] = [];
@@ -742,6 +749,13 @@ interface UsePositionerOptions {
     targetRowHeight?: number;
     targetRowHeightTolerance?: number;
     width: number;
+}
+
+function areArraysEqual(a: number[], b: number[]): boolean {
+    if (a.length !== b.length) {
+        return false;
+    }
+    return a.every((item, i) => item === b[i]);
 }
 
 function usePositioner(
@@ -1020,6 +1034,18 @@ function usePositioner(
     }
 
     const prevDepsRef = React.useRef(deps);
+    const prevAspectRatiosRef = React.useRef(aspectRatios);
+    let aspectRatiosChanged: boolean;
+    if (aspectRatios === undefined) {
+        aspectRatiosChanged = prevAspectRatiosRef.current !== undefined;
+    } else if (prevAspectRatiosRef.current === undefined) {
+        aspectRatiosChanged = true;
+    } else {
+        aspectRatiosChanged = !areArraysEqual(
+            aspectRatios,
+            prevAspectRatiosRef.current
+        );
+    }
     const opts = [
         width,
         columnWidth,
@@ -1028,7 +1054,6 @@ function usePositioner(
         columnCount,
         maxColumnCount,
         layout,
-        aspectRatios,
         targetRowHeight,
         targetRowHeightTolerance,
         containerPadding,
@@ -1038,9 +1063,9 @@ function usePositioner(
         fullWidthBreakoutRowCadence,
     ];
     const prevOptsRef = React.useRef(opts);
-    const optsChanged = !opts.every(
-        (item, i) => prevOptsRef.current[i] === item
-    );
+    const optsChanged =
+        !opts.every((item, i) => prevOptsRef.current[i] === item) ||
+        aspectRatiosChanged;
 
     if (
         optsChanged ||
@@ -1050,6 +1075,7 @@ function usePositioner(
         const positioner = initPositioner();
         prevDepsRef.current = deps;
         prevOptsRef.current = opts;
+        prevAspectRatiosRef.current = aspectRatios;
         if (optsChanged && layout !== "justified") {
             const cacheSize = prevPositioner.size();
             for (let index = 0; index < cacheSize; index++) {
