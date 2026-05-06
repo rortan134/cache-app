@@ -20,7 +20,7 @@ export function CollapsibleTrigger({
 }: CollapsiblePrimitive.Trigger.Props) {
     return (
         <CollapsiblePrimitive.Trigger
-            className={cn("group w-full cursor-pointer", className)}
+            className={cn("group w-full", className)}
             data-slot="collapsible-trigger"
             {...props}
         />

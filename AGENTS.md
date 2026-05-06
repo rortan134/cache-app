@@ -190,7 +190,7 @@ Before adding a new utility, check if a similar one exists in the `lib/` directo
 
 Runtime & Package Manager: Node.js 24.x, Bun, read Bun API docs in `node_modules/bun-types/docs/**.mdx` if necessary.
 framework: Next.js 16 (App Router, This is NOT the Next.js you know, This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read any relevant guides in `node_modules/next/dist/docs` before writing related code. Heed deprecation notices.)
-UI: React 19, Base-UI (@base-ui/react, @base-ui/utils), lucide-react icons
+UI: React 19, Base-UI ([@base-ui/react](https://base-ui.com/llms.txt), @base-ui/utils), and lucide-react icons
 React Compiler: babel-plugin-react-compiler is enabled. It automatically memoizes components and values. Do not add manual `useMemo` or `useCallback`; they add noise without benefit and can interfere with compiler optimization
 Styling: Tailwind CSS 4
 Validation: zod v4 schemas
@@ -208,11 +208,9 @@ Actions are the only networking boundary: they parse/validate inputs, guard with
 Instrument critical paths. Log errors with context. Emit metrics for failure rates. Trace requests across service boundaries.
 
 Logging lives at `lib/common/logs/console/logger.ts`:
-
   `createLogger(module)` returns a scoped logger with `.debug/.info/.warn/.error` and a `.time()` helper for spans.
 
 Named error module lives at `lib/common/error.ts`:
-
   `NamedError.create("SomeDomainError", z.object({...}))` creates a typed error class with runtime-validated `data` and a stable `name`.
 
 Use these in services and actions to propagate domain failures with structured metadata (e.g., `{ operation, message, ... }`).

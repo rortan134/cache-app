@@ -1,6 +1,11 @@
 import { clientEnv } from "@/env/client";
+import type { auth } from "@/lib/auth/server";
 import { stripeClient } from "@better-auth/stripe/client";
-import { genericOAuthClient, oneTapClient } from "better-auth/client/plugins";
+import {
+    genericOAuthClient,
+    inferAdditionalFields,
+    oneTapClient,
+} from "better-auth/client/plugins";
 import { createAuthClient } from "better-auth/react";
 
 const baseURL = `${clientEnv.NEXT_PUBLIC_APP_URL}/api/auth`;
@@ -10,6 +15,7 @@ export const hasGoogleOneTapClientId = !!googleOneTapClientId;
 export const authClient = createAuthClient({
     baseURL,
     plugins: [
+        inferAdditionalFields<typeof auth>(),
         genericOAuthClient(),
         stripeClient({ subscription: true }),
         ...(googleOneTapClientId

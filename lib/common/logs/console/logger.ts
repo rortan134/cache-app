@@ -1,29 +1,25 @@
-/** biome-ignore-all lint/suspicious/noExplicitAny: TODO: remove `any` */
-import chalk, { type ChalkInstance } from "chalk";
+/**
+ *
+ * Framework-agnostic logging utilities for the platform.
+ * Provides standardized console logging with environment-aware configuration.
+ */
 
 /**
- * Log level constants define the severity levels for logging
+ * LogLevel enum defines the severity levels for logging
  *
  * DEBUG: Detailed information, typically useful only for diagnosing problems
- *        These logs are only shown in development environment
- *
  * INFO: Confirmation that things are working as expected
- *       These logs are shown in both development and production environments
- *
- * WARN: Indication that something unexpected happened, or may happen in the near future
- *       The application can still continue working as expected
- *
+ * WARN: Indication that something unexpected happened
  * ERROR: Error events that might still allow the application to continue running
- *        These should be investigated and fixed
  */
-const LogLevel = {
+const LOG_LEVEL = {
     DEBUG: "DEBUG",
     ERROR: "ERROR",
     INFO: "INFO",
     WARN: "WARN",
 } as const;
 
-type LogLevel = (typeof LogLevel)[keyof typeof LogLevel];
+type LogLevel = (typeof LOG_LEVEL)[keyof typeof LOG_LEVEL];
 
 /**
  * Configuration for different environments
@@ -37,47 +33,184 @@ const LOG_CONFIG = {
     development: {
         colorize: true,
         enabled: true,
-        minLevel: LogLevel.DEBUG, // Show all logs in development
+        minLevel: LOG_LEVEL.DEBUG,
     },
     production: {
         colorize: false,
-        enabled: false, // Disable all console logs in production
-        minLevel: LogLevel.ERROR,
+        enabled: false,
+        minLevel: LOG_LEVEL.ERROR,
     },
     test: {
         colorize: false,
-        enabled: false, // Disable logs in test environment
-        minLevel: LogLevel.ERROR,
+        enabled: false,
+        minLevel: LOG_LEVEL.ERROR,
     },
 };
 
-// Get current environment
-const ENV = process.env.NODE_ENV || "development";
-const config = LOG_CONFIG[ENV] || LOG_CONFIG.development;
+const LOG_LEVEL_ORDER = [
+    LOG_LEVEL.DEBUG,
+    LOG_LEVEL.INFO,
+    LOG_LEVEL.WARN,
+    LOG_LEVEL.ERROR,
+];
+const NODE_ENV = process.env.NODE_ENV ?? "development";
+const SENSITIVE_LOG_KEY_PATTERN =
+    /pass|secret|token|key|otp|authorization|cookie/i;
+const LOG_STRING_MAX_LENGTH = 2000;
+const LOG_ARRAY_SAMPLE_LIMIT = 5;
+const LOG_OBJECT_KEYS_LIMIT = 12;
+const ANSI_RESET = "\u001b[0m";
+const ANSI_COLOR_BY_LEVEL: Record<LogLevel, string> = {
+    DEBUG: "\u001b[34m",
+    ERROR: "\u001b[31m",
+    INFO: "\u001b[32m",
+    WARN: "\u001b[33m",
+};
+const ANSI_CYAN = "\u001b[36m";
+const ANSI_GRAY = "\u001b[90m";
 
-const formatObjectForLog = (obj: any): string => {
+interface LogFormatContext {
+    visitedObjects: WeakSet<object>;
+}
+
+interface LogSpan {
+    stop: () => void;
+    [Symbol.dispose]: () => void;
+}
+
+const getNodeEnv = (): string => {
+    if (typeof process !== "undefined" && process.env) {
+        return process.env.NODE_ENV || "development";
+    }
+    return "development";
+};
+
+/**
+ * Configuration for different environments
+ */
+function getLogConfig() {
+    const nodeEnv = getNodeEnv();
+    switch (nodeEnv) {
+        case "production":
+            return LOG_CONFIG.production;
+        case "test":
+            return LOG_CONFIG.test;
+        default:
+            return LOG_CONFIG.development;
+    }
+}
+
+const LOG_CONFIG_FOR_ENV = getLogConfig();
+
+function colorizeLogPart(value: string, color: string): string {
+    return `${color}${value}${ANSI_RESET}`;
+}
+
+function truncateLogString(value: string): string {
+    if (value.length <= LOG_STRING_MAX_LENGTH) {
+        return value;
+    }
+
+    return `${value.slice(0, LOG_STRING_MAX_LENGTH)}... [truncated ${value.length - LOG_STRING_MAX_LENGTH} chars]`;
+}
+
+function formatErrorForLog(
+    error: Error,
+    context: LogFormatContext
+): Record<string, unknown> {
+    const record: Record<string, unknown> = {
+        message: error.message,
+        name: error.name,
+    };
+
+    if (NODE_ENV === "development") {
+        record.stack = error.stack;
+    }
+
+    for (const [key, value] of Object.entries(error)) {
+        record[key] = formatValueForLog(key, value, context);
+    }
+
+    return record;
+}
+
+function formatObjectForLog(value: object, context: LogFormatContext): unknown {
+    if (context.visitedObjects.has(value)) {
+        return "[Circular]";
+    }
+    context.visitedObjects.add(value);
+
+    if (value instanceof Error) {
+        return formatErrorForLog(value, context);
+    }
+
+    if (Array.isArray(value)) {
+        return {
+            length: value.length,
+            sample: value
+                .slice(0, LOG_ARRAY_SAMPLE_LIMIT)
+                .map((item) => formatValueForLog("", item, context)),
+            type: "array",
+        };
+    }
+
+    const entries = Object.entries(value).slice(0, LOG_OBJECT_KEYS_LIMIT);
+    const record: Record<string, unknown> = {};
+    for (const [key, item] of entries) {
+        record[key] = formatValueForLog(key, item, context);
+    }
+
+    const remainingKeys = Object.keys(value).length - LOG_OBJECT_KEYS_LIMIT;
+    if (remainingKeys > 0) {
+        record.__truncated__ = `${remainingKeys} more keys`;
+    }
+
+    return record;
+}
+
+function formatValueForLog(
+    key: string,
+    value: unknown,
+    context: LogFormatContext
+): unknown {
+    if (SENSITIVE_LOG_KEY_PATTERN.test(key)) {
+        return "[REDACTED]";
+    }
+    if (typeof value === "string") {
+        return truncateLogString(value);
+    }
+    if (typeof value === "bigint") {
+        return value.toString();
+    }
+    if (typeof value === "function") {
+        return "[Function]";
+    }
+    if (typeof value === "symbol") {
+        return value.toString();
+    }
+    if (typeof value === "object" && value !== null) {
+        return formatObjectForLog(value, context);
+    }
+
+    return value;
+}
+
+function stringifyLogValue(value: unknown): string {
     try {
-        if (obj instanceof Error) {
-            return JSON.stringify(
-                {
-                    message: obj.message,
-                    stack: ENV === "development" ? obj.stack : undefined,
-                    ...(obj as any),
-                },
-                null,
-                ENV === "development" ? 2 : 0
-            );
-        }
-        return JSON.stringify(obj, null, ENV === "development" ? 2 : 0);
-    } catch (_error) {
+        return JSON.stringify(
+            formatValueForLog("", value, { visitedObjects: new WeakSet() }),
+            null,
+            NODE_ENV === "development" ? 2 : 0
+        );
+    } catch {
         return "[Circular or Non-Serializable Object]";
     }
-};
+}
 
 /**
  * Logger class for standardized console logging
  *
- * This class provides methods for logging at different severity levels
+ * Provides methods for logging at different severity levels
  * and handles formatting, colorization, and environment-specific behavior.
  */
 export class Logger {
@@ -86,48 +219,35 @@ export class Logger {
     /**
      * Create a new logger for a specific module
      * @param module The name of the module (e.g., 'OpenAIProvider', 'AgentBlockHandler')
+     * @param overrideConfig Optional configuration overrides
      */
     constructor(module: string) {
         this.#module = module;
     }
 
-    /**
-     * Determines if a log at the given level should be displayed
-     * based on the current environment configuration
-     *
-     * @param level The log level to check
-     * @returns boolean indicating whether the log should be displayed
-     */
     #shouldLog(level: LogLevel): boolean {
-        if (!config.enabled) {
+        if (!LOG_CONFIG_FOR_ENV.enabled) {
             return false;
         }
 
-        const levels = [
-            LogLevel.DEBUG,
-            LogLevel.INFO,
-            LogLevel.WARN,
-            LogLevel.ERROR,
-        ];
-        const minLevelIndex = levels.indexOf(config.minLevel);
-        const currentLevelIndex = levels.indexOf(level);
+        const minLevelIndex = LOG_LEVEL_ORDER.indexOf(
+            LOG_CONFIG_FOR_ENV.minLevel
+        );
+        const currentLevelIndex = LOG_LEVEL_ORDER.indexOf(level);
 
         return currentLevelIndex >= minLevelIndex;
     }
 
     /**
      * Format arguments for logging, converting objects to JSON strings
-     *
-     * @param args Arguments to format
-     * @returns Formatted arguments
      */
-    #formatArgs(args: any[]): any[] {
+    #formatArgs(args: unknown[]): unknown[] {
         return args.map((arg) => {
             if (arg === null || arg === undefined) {
                 return arg;
             }
             if (typeof arg === "object") {
-                return formatObjectForLog(arg);
+                return stringifyLogValue(arg);
             }
             return arg;
         });
@@ -135,12 +255,8 @@ export class Logger {
 
     /**
      * Internal method to log a message with the specified level
-     *
-     * @param level The severity level of the log
-     * @param message The main log message
-     * @param args Additional arguments to log
      */
-    #log(level: LogLevel, message: string, ...args: any[]) {
+    #log(level: LogLevel, message: string, ...args: unknown[]) {
         if (!this.#shouldLog(level)) {
             return;
         }
@@ -148,42 +264,18 @@ export class Logger {
         const timestamp = new Date().toISOString();
         const formattedArgs = this.#formatArgs(args);
 
-        // Color configuration
-        if (config.colorize) {
-            let levelColor: ChalkInstance;
-            const moduleColor = chalk.cyan;
-            const timestampColor = chalk.gray;
+        if (LOG_CONFIG_FOR_ENV.colorize) {
+            const coloredPrefix = `${colorizeLogPart(`[${timestamp}]`, ANSI_GRAY)} ${colorizeLogPart(`[${level}]`, ANSI_COLOR_BY_LEVEL[level])} ${colorizeLogPart(`[${this.#module}]`, ANSI_CYAN)}`;
 
-            switch (level) {
-                case LogLevel.DEBUG:
-                    levelColor = chalk.blue;
-                    break;
-                case LogLevel.INFO:
-                    levelColor = chalk.green;
-                    break;
-                case LogLevel.WARN:
-                    levelColor = chalk.yellow;
-                    break;
-                case LogLevel.ERROR:
-                    levelColor = chalk.red;
-                    break;
-                default:
-                    levelColor = chalk.red;
-                    break;
-            }
-
-            const coloredPrefix = `${timestampColor(`[${timestamp}]`)} ${levelColor(`[${level}]`)} ${moduleColor(`[${this.#module}]`)}`;
-
-            if (level === LogLevel.ERROR) {
+            if (level === LOG_LEVEL.ERROR) {
                 console.error(coloredPrefix, message, ...formattedArgs);
             } else {
                 console.log(coloredPrefix, message, ...formattedArgs);
             }
         } else {
-            // No colors in production
             const prefix = `[${timestamp}] [${level}] [${this.#module}]`;
 
-            if (level === LogLevel.ERROR) {
+            if (level === LOG_LEVEL.ERROR) {
                 console.error(prefix, message, ...formattedArgs);
             } else {
                 console.log(prefix, message, ...formattedArgs);
@@ -195,78 +287,37 @@ export class Logger {
      * Log a debug message
      *
      * Use for detailed information useful during development and debugging.
-     * These logs are only shown in development environment.
-     *
-     * Examples:
-     * - Variable values during execution
-     * - Function entry/exit points
-     * - Detailed request/response data
-     *
-     * @param message The message to log
-     * @param args Additional arguments to log
+     * These logs are only shown in development environment by default.
      */
-    debug(message: string, ...args: any[]) {
-        this.#log(LogLevel.DEBUG, message, ...args);
+    debug(message: string, ...args: unknown[]) {
+        this.#log(LOG_LEVEL.DEBUG, message, ...args);
     }
 
     /**
      * Log an info message
      *
      * Use for general information about application operation.
-     * These logs are shown in both development and production environments.
-     *
-     * Examples:
-     * - Application startup/shutdown
-     * - Configuration information
-     * - Successful operations
-     *
-     * @param message The message to log
-     * @param args Additional arguments to log
      */
-    info(message: string, ...args: any[]) {
-        this.#log(LogLevel.INFO, message, ...args);
+    info(message: string, ...args: unknown[]) {
+        this.#log(LOG_LEVEL.INFO, message, ...args);
     }
 
     /**
      * Log a warning message
      *
      * Use for potentially problematic situations that don't cause operation failure.
-     *
-     * Examples:
-     * - Deprecated feature usage
-     * - Suboptimal configurations
-     * - Recoverable errors
-     *
-     * @param message The message to log
-     * @param args Additional arguments to log
      */
-    warn(message: string, ...args: any[]) {
-        this.#log(LogLevel.WARN, message, ...args);
+    warn(message: string, ...args: unknown[]) {
+        this.#log(LOG_LEVEL.WARN, message, ...args);
     }
 
     /**
      * Log an error message
      *
      * Use for error events that might still allow the application to continue.
-     *
-     * Examples:
-     * - API call failures
-     * - Operation failures
-     * - Unexpected exceptions
-     *
-     * @param message The message to log
-     * @param args Additional arguments to log
      */
-    error(message: string, ...args: any[]) {
-        this.#log(LogLevel.ERROR, message, ...args);
-    }
-
-    /**
-     * Create a new Logger with the same module configuration.
-     * Useful when an independent instance is desired without changing the original.
-     */
-    clone(): Logger {
-        return new Logger(this.#module);
+    error(message: string, ...args: unknown[]) {
+        this.#log(LOG_LEVEL.ERROR, message, ...args);
     }
 
     /**
@@ -280,7 +331,7 @@ export class Logger {
      * With TS 5.2+ you can also use `using` to auto-dispose:
      * using _ = logger.time("sync invoices", { tenantId })
      */
-    time(message: string, meta: Record<string, unknown> = {}) {
+    time(message: string, meta: Record<string, unknown> = {}): LogSpan {
         const start = Date.now();
         this.info(message, { status: "started", ...meta });
         const stop = () => {
@@ -293,16 +344,16 @@ export class Logger {
         return {
             stop,
             [Symbol.dispose]: stop,
-        } as { stop: () => void; [Symbol.dispose]: () => void };
+        };
     }
 }
 
 /**
  * Create a logger for a specific module
  *
- * Usage:
+ * @example
  * ```ts
- * import { createLogger } from '@/lib/logs/console/logger'
+ * import { createLogger } from '@/lib/common/logs/console/logger'
  *
  * const logger = createLogger('MyComponent')
  *
