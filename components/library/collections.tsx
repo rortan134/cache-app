@@ -1,6 +1,7 @@
 "use client";
 
 import { Toolbar } from "@base-ui/react/toolbar";
+import { useInterval } from "@base-ui/utils/useInterval";
 import { useStableCallback } from "@base-ui/utils/useStableCallback";
 import {
     ArchiveIcon,
@@ -114,18 +115,15 @@ type CollectionOptionIcon = React.ComponentType<{ className?: string }>;
 
 type CollectionsListStatusTone = "error" | "success";
 
-type SortingComboboxOption =
-    | SortingOption
-    | {
-          icon: CollectionOptionIcon;
-          label: string;
-          query: string;
-          value: "text-match";
-      };
-
 interface CollectionFeedback {
     message: string;
     tone: CollectionsListStatusTone;
+}
+
+interface CollectionItemStyle extends React.CSSProperties {
+    "--collection-background": string;
+    "--focus-ring-color": string;
+    "--text-muted-color": string;
 }
 
 interface CollectionTemplateOption {
@@ -150,6 +148,15 @@ interface SortingOption {
     label: string;
     value: Exclude<CollectionSortField, "text-match">;
 }
+
+type SortingComboboxOption =
+    | SortingOption
+    | {
+          icon: CollectionOptionIcon;
+          label: string;
+          query: string;
+          value: "text-match";
+      };
 
 const PREVIEW_SLIDE_INTERVAL_MS = 600;
 
@@ -382,24 +389,24 @@ function useCollectionItemPreviewIndex(
     thumbnailCount: number
 ) {
     const [activePreviewIndex, setActivePreviewIndex] = React.useState(0);
+    const previewInterval = useInterval();
     const hasMultipleThumbnails = thumbnailCount > 1;
 
     React.useEffect(() => {
         if (!(isOpen && hasMultipleThumbnails)) {
+            previewInterval.clear();
             setActivePreviewIndex(0);
             return;
         }
-
-        const intervalId = setInterval(() => {
+        previewInterval.start(PREVIEW_SLIDE_INTERVAL_MS, () => {
             setActivePreviewIndex(
                 (currentIndex) => (currentIndex + 1) % thumbnailCount
             );
-        }, PREVIEW_SLIDE_INTERVAL_MS);
-
+        });
         return () => {
-            clearInterval(intervalId);
+            previewInterval.clear();
         };
-    }, [hasMultipleThumbnails, isOpen, thumbnailCount]);
+    }, [hasMultipleThumbnails, isOpen, previewInterval, thumbnailCount]);
 
     return activePreviewIndex;
 }
@@ -417,10 +424,13 @@ function getPriorityOption(priority: CollectionPriority): PriorityOption {
  * Derive CSS custom properties from a collection name so each row gets a
  * unique tint without adding inline styles for every possible color.
  *
- * The mix percentages are intentionally subtle (10–20 %) so the sidebar
+ * The mix percentages are intentionally subtle (10-20 %) so the sidebar
  * stays readable against both light and dark backgrounds.
  */
-function getItemStyle(name: string, isSelected: boolean): React.CSSProperties {
+function getCollectionItemStyle(
+    name: string,
+    isSelected: boolean
+): CollectionItemStyle {
     const color = getHexColorFromName(name);
     const base = `color-mix(in srgb, ${color} ${isSelected ? 20 : 10}%, transparent)`;
 
@@ -430,7 +440,41 @@ function getItemStyle(name: string, isSelected: boolean): React.CSSProperties {
             : `color-mix(in srgb, ${base}, black 3%)`,
         "--focus-ring-color": `color-mix(in srgb, ${color}, black 50%)`,
         "--text-muted-color": `color-mix(in srgb, ${color} 16%, black 18%)`,
-    } as React.CSSProperties;
+    };
+}
+
+/**
+ * Build the static sort options or the dynamic text-match option from the
+ * current combobox query.
+ */
+function getSortingComboboxOptions(
+    inputValue: string
+): SortingComboboxOption[] {
+    const query = inputValue.trim();
+    const normalizedQuery = query.toLowerCase();
+    const matchingOptions = SORT_OPTIONS.filter((option) =>
+        option.label.toLowerCase().includes(normalizedQuery)
+    );
+
+    if (normalizedQuery.length === 0 || matchingOptions.length > 0) {
+        return matchingOptions;
+    }
+
+    return [
+        {
+            icon: ListFilter,
+            label: `Sort by "${query}"`,
+            query,
+            value: "text-match",
+        },
+    ];
+}
+
+/**
+ * Convert the selected sort option back to the text shown in the combobox.
+ */
+function getSortingComboboxOptionLabel(option: SortingComboboxOption): string {
+    return option.value === "text-match" ? option.query : option.label;
 }
 
 /**
@@ -474,11 +518,9 @@ function CollectionsListItemPreviewImage({
     src?: string;
 }) {
     const [didFail, setDidFail] = React.useState(false);
-
-    // biome-ignore lint/correctness/useExhaustiveDependencies: `src` is a prop; resetting error state when it changes is intentional.
-    React.useEffect(() => {
-        setDidFail(false);
-    }, [src]);
+    const handleError = useStableCallback(() => {
+        setDidFail(true);
+    });
 
     if (!src || didFail) {
         return <CollectionsListPreviewImageFallback />;
@@ -491,7 +533,7 @@ function CollectionsListItemPreviewImage({
             className="size-full object-cover"
             height={192}
             loading="lazy"
-            onError={() => setDidFail(true)}
+            onError={handleError}
             src={src}
             width={288}
         />
@@ -529,7 +571,7 @@ function CollectionsList({
 
 interface CollectionsListTriggerProps
     extends React.ComponentProps<typeof CollapsibleTrigger> {
-    collectionLabels: string[];
+    collectionLabels: readonly string[];
     isOpen: boolean;
 }
 
@@ -762,35 +804,13 @@ function CollectionsListSortingCombobox({
     value,
     ...props
 }: CollectionsListSortingComboboxProps) {
-    const trimmed = inputValue.trim();
-    const normalized = trimmed.toLowerCase();
-    const matching = SORT_OPTIONS.filter((option) =>
-        option.label.toLowerCase().includes(normalized)
-    );
-    const isTextMatch = normalized.length > 0 && matching.length === 0;
-
-    const options: SortingComboboxOption[] = isTextMatch
-        ? [
-              {
-                  icon: ListFilter,
-                  label: `Sort by "${trimmed}"`,
-                  query: trimmed,
-                  value: "text-match",
-              },
-          ]
-        : matching;
-
     return (
         <Combobox<SortingComboboxOption>
             autoHighlight
             filter={null}
             inputValue={inputValue}
-            items={options}
-            itemToStringLabel={(option) =>
-                option.value === "text-match"
-                    ? option.query
-                    : (SORT_OPTION_BY_VALUE.get(option.value)?.label ?? "")
-            }
+            items={getSortingComboboxOptions(inputValue)}
+            itemToStringLabel={getSortingComboboxOptionLabel}
             itemToStringValue={(option) => option.value}
             onInputValueChange={onInputValueChange}
             onOpenChange={onOpenChange}
@@ -933,7 +953,7 @@ function CollectionsListItem({
     ...props
 }: CollectionsListItemProps) {
     const [isHovered, setIsHovered] = React.useState(false);
-    const style = getItemStyle(collection.name, isSelected);
+    const style = getCollectionItemStyle(collection.name, isSelected);
 
     return (
         <CollectionsListItemContext value={{ collection, isHovered }}>
@@ -980,6 +1000,7 @@ function CollectionsListItemPreview({
         isOpen,
         thumbnails.length
     );
+    const activeThumbnail = thumbnails[activePreviewIndex];
 
     return (
         <PreviewCard onOpenChange={setIsOpen} open={isOpen}>
@@ -1004,7 +1025,8 @@ function CollectionsListItemPreview({
             >
                 <CollectionsListItemPreviewImage
                     alt={`${collection.name} preview`}
-                    src={thumbnails[activePreviewIndex]}
+                    key={activeThumbnail ?? "missing-preview"}
+                    src={activeThumbnail}
                 />
             </PreviewCardPopup>
         </PreviewCard>
@@ -1028,11 +1050,11 @@ function CollectionsListItemValue() {
             >
                 {collection.name}
             </span>
-            {collection.sources.length > 0 && (
+            {collection.sources.length > 0 ? (
                 <span className="max-w-full flex-1 truncate text-[11px] text-muted-foreground opacity-0 group-hover:opacity-80">
                     {collection.sources.map(getSourceLabel).join(", ")}
                 </span>
-            )}
+            ) : null}
         </div>
     );
 }

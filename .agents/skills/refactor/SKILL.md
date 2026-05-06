@@ -30,7 +30,6 @@ This reduces the probability of using the wrong variable and makes code easier t
 - Find and consolidate duplicate code into reusable functions
 - Identify repeated patterns across multiple files and extract common utilities
 - Remove duplicate documentation sections and consolidate into shared content
-- Clean up redundant comments
 - Merge similar configuration or setup instructions
 
 **Documentation Cleanup:**
