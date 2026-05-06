@@ -4,7 +4,7 @@ import { isBlockedHostname } from "@/lib/common/net";
 import { withRetry } from "@/lib/common/retry";
 import { fetchWithTimeout } from "@/lib/common/timeout";
 
-const logger = createLogger("ImageValidation");
+const log = createLogger("ImageValidation");
 
 const CONCURRENCY_LIMIT = 10;
 const IMAGE_CONTENT_TYPE_PREFIX = "image/";
@@ -75,12 +75,12 @@ async function fetchImageHeaders(
 async function testValidImageResponse(url: string): Promise<boolean> {
     const parsed = tryParseUrl(url);
     if (!parsed) {
-        logger.debug("Skipping invalid URL", { url });
+        log.debug("Skipping invalid URL", { url });
         return false;
     }
 
     if (!canUseDOM && isBlockedHostname(parsed.hostname)) {
-        logger.debug("Skipping blocked hostname", {
+        log.debug("Skipping blocked hostname", {
             hostname: parsed.hostname,
             url,
         });
@@ -121,7 +121,7 @@ async function testValidImageResponse(url: string): Promise<boolean> {
             }
         );
     } catch (err) {
-        logger.debug("Image validation failed after retries", {
+        log.debug("Image validation failed after retries", {
             error: err,
             url,
         });

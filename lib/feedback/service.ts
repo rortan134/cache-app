@@ -2,7 +2,7 @@ import { createLogger } from "@/lib/common/logs/console/logger";
 import { prisma } from "@/prisma";
 import { FeedbackError } from "./error";
 
-const logger = createLogger("feedback:submit");
+const log = createLogger("feedback:submit");
 
 interface SubmitFeedbackInput {
     message: string;
@@ -24,12 +24,12 @@ export async function submitFeedback({
             },
         });
 
-        logger.info("Feedback saved", {
+        log.info("Feedback saved", {
             pagePath,
             userId,
         });
     } catch (error) {
-        logger.error("Failed to save feedback", error, {
+        log.error("Failed to save feedback", error, {
             pagePath,
             userId,
         });

@@ -67,11 +67,15 @@ const DEFAULT_PEEK_TIMEOUT_MS = 8000;
 const DEFAULT_PEEK_ERROR_DESCRIPTION =
     "This site can't be previewed here. It may block embedding inside other sites or be taking too long to load.";
 
+const POPUP_HORIZONTAL_CLASS =
+    "w-[min(96vw,68rem)] max-w-none sm:w-[min(92vw,72rem)]";
+const POPUP_VERTICAL_CLASS = "w-full sm:mx-auto sm:max-w-[min(96vw,78rem)]";
+
 const PEEK_POPUP_POSITION_CLASSES: Record<PeekDrawerPosition, string> = {
-    bottom: "w-full sm:mx-auto sm:max-w-[min(96vw,78rem)]",
-    left: "w-[min(96vw,68rem)] max-w-none sm:w-[min(92vw,72rem)]",
-    right: "w-[min(96vw,68rem)] max-w-none sm:w-[min(92vw,72rem)]",
-    top: "w-full sm:mx-auto sm:max-w-[min(96vw,78rem)]",
+    bottom: POPUP_VERTICAL_CLASS,
+    left: POPUP_HORIZONTAL_CLASS,
+    right: POPUP_HORIZONTAL_CLASS,
+    top: POPUP_VERTICAL_CLASS,
 };
 
 const EXTERNAL_LINK_ATTRIBUTES = {
@@ -119,9 +123,12 @@ function usePeekStatus(open: boolean, url: string, timeoutMs: number) {
 
         setStatus("loading");
         blockedTimeout.start(timeoutMs, () => {
-            setStatus((currentStatus) =>
-                currentStatus === "loading" ? "blocked" : currentStatus
-            );
+            setStatus((current) => {
+                if (current !== "loading") {
+                    return current;
+                }
+                return "blocked";
+            });
         });
 
         return blockedTimeout.clear;
@@ -220,13 +227,13 @@ export function PeekDrawerContent({
     ...popupProps
 }: PeekDrawerContentProps): ReactElement {
     const { description, open, title, url } = usePeekDrawerContext();
-    const iframeKey = React.useId();
     const { markAsBlocked, markAsLoaded, status } = usePeekStatus(
         open,
         url,
         timeoutMs
     );
     const canOpenInNewTab = url !== PEEK_BLOCKED_URL;
+    const iframeRemountKey = `${open ? "open" : "closed"}-${url}`;
 
     return (
         <DrawerViewport>
@@ -309,9 +316,7 @@ export function PeekDrawerContent({
                                 "size-full border-0 bg-background",
                                 status === "blocked" && "hidden"
                             )}
-                            // Remount the iframe whenever the drawer opens or the
-                            // target URL changes so the preview always starts fresh.
-                            key={`${iframeKey}-${open ? "open" : "closed"}-${url}`}
+                            key={iframeRemountKey}
                             onError={markAsBlocked}
                             onLoad={markAsLoaded}
                             referrerPolicy="strict-origin-when-cross-origin"

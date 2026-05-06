@@ -355,12 +355,12 @@ export class Logger {
  * ```ts
  * import { createLogger } from '@/lib/common/logs/console/logger'
  *
- * const logger = createLogger('MyComponent')
+ * const log = createLogger('MyComponent')
  *
- * logger.debug('Initializing component', { props })
- * logger.info('Component mounted')
- * logger.warn('Deprecated prop used', { propName })
- * logger.error('Failed to fetch data', error)
+ * log.debug('Initializing component', { props })
+ * log.info('Component mounted')
+ * log.warn('Deprecated prop used', { propName })
+ * log.error('Failed to fetch data', error)
  * ```
  *
  * @param module The name of the module

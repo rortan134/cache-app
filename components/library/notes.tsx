@@ -365,7 +365,7 @@ function getNoteTextMetrics(contentHtml: string): NoteTextMetrics {
         wordCount:
             plainText.length === 0
                 ? 0
-                : plainText.split(NOTE_WORD_SEPARATOR).length,
+                : plainText.split(NOTE_WORD_SEPARATOR).filter(Boolean).length,
     };
 }
 
@@ -441,7 +441,11 @@ function NoteFormattingToolbarPlugin() {
             editor.getEditorState().read(() => {
                 const selection = $getSelection();
                 if (!$isRangeSelection(selection)) {
-                    setFormats(INITIAL_FORMAT_STATE);
+                    setFormats((current) =>
+                        areFormatStatesEqual(current, INITIAL_FORMAT_STATE)
+                            ? current
+                            : INITIAL_FORMAT_STATE
+                    );
                     return;
                 }
 
@@ -583,7 +587,12 @@ function NoteContentPlugin({
                 <RichTextPlugin
                     contentEditable={
                         <ContentEditable
-                            className="prose prose-stone prose-p:my-0 prose-p:min-h-[1.75rem] max-w-none flex-1 overflow-y-auto prose-mark:rounded-sm prose-mark:bg-amber-200/90 prose-mark:px-0.5 prose-strong:font-semibold text-[15px] prose-em:italic leading-7 prose-u:underline prose-s:line-through outline-none"
+                            className={cn(
+                                "prose prose-stone max-w-none flex-1 overflow-y-auto text-[15px] leading-7 outline-none",
+                                "prose-p:my-0 prose-p:min-h-[1.75rem]",
+                                "prose-mark:rounded-sm prose-mark:bg-amber-200/90 prose-mark:px-0.5",
+                                "prose-strong:font-semibold prose-em:italic prose-u:underline prose-s:line-through"
+                            )}
                             onPaste={handlePaste}
                         />
                     }
