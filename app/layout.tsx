@@ -211,37 +211,47 @@ function NextChatSDKBootstrap({ baseUrl }: { baseUrl: string }) {
                                 return new Request(url.toString(), input);
                             }
 
-                            window.fetch = (
-                                input: URL | RequestInfo,
-                                init?: RequestInit
-                            ) => {
-                                const url = resolveFetchUrl(
-                                    input,
-                                    window.location.href
-                                );
+                            window.fetch = Object.assign(
+                                (
+                                    input: URL | RequestInfo,
+                                    init?: RequestInit
+                                ): Promise<Response> => {
+                                    const url = resolveFetchUrl(
+                                        input,
+                                        window.location.href
+                                    );
 
-                                if (url.origin === appOrigin) {
+                                    if (url.origin === appOrigin) {
+                                        return originalFetch.call(
+                                            window,
+                                            inputForResolvedUrl(input, url),
+                                            { ...init, mode: "cors" }
+                                        );
+                                    }
+
+                                    if (url.origin === window.location.origin) {
+                                        const rewritten = new URL(baseUrl);
+                                        rewritten.pathname = url.pathname;
+                                        rewritten.search = url.search;
+                                        rewritten.hash = url.hash;
+                                        return originalFetch.call(
+                                            window,
+                                            inputForResolvedUrl(
+                                                input,
+                                                rewritten
+                                            ),
+                                            { ...init, mode: "cors" }
+                                        );
+                                    }
+
                                     return originalFetch.call(
                                         window,
-                                        inputForResolvedUrl(input, url),
-                                        { ...init, mode: "cors" }
+                                        input,
+                                        init
                                     );
-                                }
-
-                                if (url.origin === window.location.origin) {
-                                    const rewritten = new URL(baseUrl);
-                                    rewritten.pathname = url.pathname;
-                                    rewritten.search = url.search;
-                                    rewritten.hash = url.hash;
-                                    return originalFetch.call(
-                                        window,
-                                        inputForResolvedUrl(input, rewritten),
-                                        { ...init, mode: "cors" }
-                                    );
-                                }
-
-                                return originalFetch.call(window, input, init);
-                            };
+                                },
+                                { preconnect: () => {} }
+                            );
                         }
                     }).toString() +
                     ")()"}

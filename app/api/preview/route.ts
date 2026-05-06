@@ -292,23 +292,35 @@ function delay(ms: number): Promise<void> {
     });
 }
 
-const safeFetch: typeof fetch = (input, init) => {
-    let rawUrl: string;
-    if (typeof input === "string") {
-        rawUrl = input;
-    } else if (input instanceof URL) {
-        rawUrl = input.href;
-    } else {
-        rawUrl = input.url;
-    }
+const safeFetch: typeof fetch = Object.assign(
+    (
+        input: URL | RequestInfo,
+        init?: RequestInit | undefined
+    ): Promise<Response> => {
+        let rawUrl: string;
+        if (typeof input === "string") {
+            rawUrl = input;
+        } else if (input instanceof URL) {
+            rawUrl = input.href;
+        } else {
+            rawUrl = input.url;
+        }
 
-    const safeUrl = toSafeUrl(rawUrl);
-    if (!safeUrl) {
-        return Promise.resolve(new Response("Invalid URL", { status: 400 }));
-    }
+        const safeUrl = toSafeUrl(rawUrl);
+        if (!safeUrl) {
+            return Promise.resolve(
+                new Response("Invalid URL", { status: 400 })
+            );
+        }
 
-    return fetchWithRedirects(safeUrl, init);
-};
+        return fetchWithRedirects(safeUrl, init);
+    },
+    {
+        preconnect: () => {
+            // No-op
+        },
+    }
+);
 
 async function fetchWithRedirects(
     initialUrl: string,
