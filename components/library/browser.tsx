@@ -2838,6 +2838,7 @@ export function PreviewMedia({
     const canRenderVideo = Boolean(videoSrc) && !hasVideoFailed;
     const shouldLoadVideo = hasHoverIntent || hasImageFailed;
     const isVideoVisible = isHovered || (hasImageFailed && canRenderVideo);
+    const hasBothFailed = hasImageFailed && !canRenderVideo;
 
     React.useEffect(() => {
         const video = videoRef.current;
@@ -2955,6 +2956,14 @@ export function PreviewMedia({
                         <SoundIcon className="size-4" />
                     </Button>
                 </>
+            ) : null}
+            {hasBothFailed ? (
+                <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-muted/50">
+                    <Globe className="size-8 text-muted-foreground/50" />
+                    <span className="text-muted-foreground text-xs">
+                        No preview
+                    </span>
+                </div>
             ) : null}
         </div>
     );
