@@ -266,10 +266,13 @@ export function IntegrationsListItem({
  * Renders a `<p>` element with dashed border styling.
  */
 export function IntegrationsListEmpty({
-    children = "No integrations are available right now.",
     className,
     ...props
 }: React.ComponentProps<"p">) {
+    if (!props.children) {
+        return null;
+    }
+
     return (
         <p
             className={cn(
@@ -277,9 +280,7 @@ export function IntegrationsListEmpty({
                 className
             )}
             {...props}
-        >
-            {children}
-        </p>
+        />
     );
 }
 
