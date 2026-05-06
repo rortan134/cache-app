@@ -18,7 +18,7 @@ export const tiktokSavedItemSchema = z
         scrapedAt: z.string().optional(),
         sourceDeviceId: z.string().optional(),
         sourceDeviceName: z.string().optional(),
-        sourceMetadata: z.record(z.string(), z.unknown()).nullable().optional(),
+        sourceMetadata: z.record(z.string(), z.json()).nullable().optional(),
         url: z.string(),
     })
     .refine((row) => Boolean(row.id), {

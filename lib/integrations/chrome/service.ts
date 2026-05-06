@@ -218,6 +218,22 @@ function normalizeChromeBookmarkRecord(
     };
 }
 
+function buildChromeBookmarkUpdateData(
+    record: ChromeBookmarkRecord
+): Prisma.LibraryItemUpdateInput {
+    return {
+        caption: record.caption,
+        kind: record.kind,
+        parentExternalId: record.parentExternalId,
+        postedAt: record.postedAt,
+        scrapedAt: record.scrapedAt,
+        sourceDeviceId: record.sourceDeviceId,
+        sourceDeviceName: record.sourceDeviceName,
+        sourceMetadata: record.sourceMetadata,
+        url: record.url,
+    };
+}
+
 function findChromeByAlias(
     delegate: ChromeLibraryItemDelegate,
     userId: string,
@@ -383,17 +399,7 @@ async function handleChromeBookmarkWriteEvent(args: {
     const exact = args.lookup.rowsByPrimaryExternalId.get(record.externalId);
     if (exact) {
         const updated = await args.delegate.update({
-            data: {
-                caption: record.caption,
-                kind: record.kind,
-                parentExternalId: record.parentExternalId,
-                postedAt: record.postedAt,
-                scrapedAt: record.scrapedAt,
-                sourceDeviceId: record.sourceDeviceId,
-                sourceDeviceName: record.sourceDeviceName,
-                sourceMetadata: record.sourceMetadata,
-                url: record.url,
-            },
+            data: buildChromeBookmarkUpdateData(record),
             where: { id: exact.id },
         });
         replaceChromeLookupRow(args.lookup, exact, updated);
@@ -412,17 +418,7 @@ async function handleChromeBookmarkWriteEvent(args: {
         );
         if (promoted) {
             const updated = await args.delegate.update({
-                data: {
-                    caption: record.caption,
-                    kind: record.kind,
-                    parentExternalId: record.parentExternalId,
-                    postedAt: record.postedAt,
-                    scrapedAt: record.scrapedAt,
-                    sourceDeviceId: record.sourceDeviceId,
-                    sourceDeviceName: record.sourceDeviceName,
-                    sourceMetadata: record.sourceMetadata,
-                    url: record.url,
-                },
+                data: buildChromeBookmarkUpdateData(record),
                 where: { id: promoted.id },
             });
             replaceChromeLookupRow(args.lookup, aliasOwner, updated);
@@ -448,15 +444,8 @@ async function handleChromeBookmarkWriteEvent(args: {
         }
         const updated = await args.delegate.update({
             data: {
-                caption: record.caption,
-                parentExternalId: record.parentExternalId,
-                postedAt: record.postedAt,
-                scrapedAt: record.scrapedAt,
+                ...buildChromeBookmarkUpdateData(record),
                 sourceAliasIds: [...aliasIds],
-                sourceDeviceId: record.sourceDeviceId,
-                sourceDeviceName: record.sourceDeviceName,
-                sourceMetadata: record.sourceMetadata,
-                url: record.url,
             },
             where: { id: duplicate.id },
         });

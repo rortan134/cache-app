@@ -219,7 +219,7 @@ export interface IngestItemInput {
     scrapedAt?: string;
     sourceDeviceId?: string;
     sourceDeviceName?: string;
-    sourceMetadata?: Record<string, unknown> | null;
+    sourceMetadata?: Prisma.InputJsonObject | null;
     url: string;
 }
 
@@ -245,8 +245,7 @@ export async function upsertLibraryItemsFromIngest(
             scrapedAt: parseDate(item.scrapedAt),
             sourceDeviceId: item.sourceDeviceId,
             sourceDeviceName: item.sourceDeviceName,
-            sourceMetadata:
-                item.sourceMetadata as Prisma.InputJsonObject | null,
+            sourceMetadata: item.sourceMetadata,
             url: item.url,
         })),
         source,

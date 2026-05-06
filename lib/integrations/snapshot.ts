@@ -1,16 +1,14 @@
 import "server-only";
 
 import { chunk } from "@/lib/common/arrays";
-import {
-    type ITEM_KIND_BOOKMARK,
-    ITEM_KIND_FOLDER,
-} from "@/lib/common/constants";
+import { ITEM_KIND_FOLDER } from "@/lib/common/constants";
 import { DEFAULT_BROWSER_PROFILE_ID } from "@/lib/integrations/browser-profiles";
 import {
     buildLibraryItemCreateData,
     buildLibraryItemImportRow,
     buildLibraryItemUpdateData,
     type LibraryItemImportRow,
+    type LibraryItemImportRowInput,
 } from "@/lib/integrations/library-item-imports";
 import { prisma } from "@/prisma";
 import type { Prisma } from "@/prisma/client/client";
@@ -24,19 +22,7 @@ const SNAPSHOT_IMPORT_TRANSACTION_MAX_WAIT_MS = 10_000;
 // Types
 // ---------------------------------------------------------------------------
 
-interface SnapshotImportItemInput {
-    browserProfileId?: string;
-    caption?: string | null;
-    externalId?: string | null;
-    kind?: typeof ITEM_KIND_BOOKMARK | typeof ITEM_KIND_FOLDER;
-    parentExternalId?: string | null;
-    postedAt?: Date | null;
-    scrapedAt?: Date | null;
-    sourceDeviceId?: string | null;
-    sourceDeviceName?: string | null;
-    sourceMetadata?: Prisma.InputJsonObject | null;
-    url: string;
-}
+type SnapshotImportItemInput = Omit<LibraryItemImportRowInput, "source">;
 
 interface SnapshotImportResult {
     importedCount: number;
@@ -51,29 +37,16 @@ type LibraryItemDelegate = Pick<
     "deleteMany" | "findMany" | "upsert"
 >;
 
+interface SnapshotProfileImportResult {
+    importedCount: number;
+    prunedCount: number;
+    smartCollectionItemIds: string[];
+    updatedCount: number;
+}
+
 // ---------------------------------------------------------------------------
 // Internal helpers
 // ---------------------------------------------------------------------------
-
-function normalizeSnapshotRow(
-    source: LibraryItemSource,
-    item: SnapshotImportItemInput
-): LibraryItemImportRow | null {
-    return buildLibraryItemImportRow({
-        browserProfileId: item.browserProfileId,
-        caption: item.caption,
-        externalId: item.externalId,
-        kind: item.kind,
-        parentExternalId: item.parentExternalId,
-        postedAt: item.postedAt,
-        scrapedAt: item.scrapedAt,
-        source,
-        sourceDeviceId: item.sourceDeviceId,
-        sourceDeviceName: item.sourceDeviceName,
-        sourceMetadata: item.sourceMetadata,
-        url: item.url,
-    });
-}
 
 function groupRowsByProfile(rows: LibraryItemImportRow[]) {
     const grouped = new Map<string, Map<string, LibraryItemImportRow>>();
@@ -100,12 +73,7 @@ async function importSnapshotProfileRows(args: {
     snapshotComplete: boolean;
     source: LibraryItemSource;
     userId: string;
-}): Promise<{
-    importedCount: number;
-    prunedCount: number;
-    smartCollectionItemIds: string[];
-    updatedCount: number;
-}> {
+}): Promise<SnapshotProfileImportResult> {
     const existingRows = await args.libraryItemDelegate.findMany({
         select: { externalId: true, id: true },
         where: {
@@ -201,7 +169,12 @@ export async function importLibraryItemSnapshot(args: {
     userId: string;
 }): Promise<SnapshotImportResult> {
     const normalizedRows = args.items
-        .map((item) => normalizeSnapshotRow(args.source, item))
+        .map((item) =>
+            buildLibraryItemImportRow({
+                ...item,
+                source: args.source,
+            })
+        )
         .filter((item): item is LibraryItemImportRow => item !== null);
     const skippedCount = args.items.length - normalizedRows.length;
     const rowsByProfile = groupRowsByProfile(normalizedRows);
