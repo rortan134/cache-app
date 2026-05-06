@@ -1,52 +1,120 @@
 ---
 name: refactor
-description: Structural refactoring pass. Cleans up messy code, removes duplication, and improves maintainability across code and documentation files
-disable-model-invocation: true
+description: Structural refactoring and code simplification pass. Use this skill whenever the user wants to clean up, simplify, refactor, restructure, or improve code clarity, consistency, maintainability, or efficiency. Triggers on phrases like "refactor", "clean up", "simplify", "improve readability", "remove duplication", "make this cleaner", "optimize this code", or any request to restructure, consolidate, or polish recently modified or existing code and documentation. Also trigger when reviewing changed code for reuse, quality, and efficiency issues.
 ---
 
-# Module refactor pass
+# Refactor and Simplify
 
-Understand the project, then refactor and clean up any messy or inconsistent code in the specified architectural modules with best practices and skills knowledge, then document the improvements you made.
+Refactor and simplify code to improve clarity, consistency, and maintainability while preserving exact functionality. This skill combines structural cleanup, duplication removal, and quality review into a single workflow.
 
-The order of definition of functions constants and types matters for readability even when it does not affect semantics. Declare variables at the smallest possible scope. Minimize the number of variables in play at any point.
+## Core Principles
 
-This reduces the probability of using the wrong variable and makes code easier to reason about. Calculate or check variables close to where they are used. Do not introduce variables before they are needed or leave them around when they are not. Great names capture what a thing is or does. Append qualifiers to names. Units, bounds, and modifiers come at the end. This groups related variables together and makes scanning easier.
+### Preserve Functionality
+Never change what the code does — only how it does it. All original features, outputs, and behaviors must remain intact. Test changes before and after cleanup.
 
-- Focus only on cleaning up the specified file(s) or directory
-- Apply all cleanup principles but limit scope to the target area
-- Do not make changes outside the specified scope
+### Apply Project Standards
+Follow established coding standards from AGENTS.md and the surrounding codebase. Use consistent formatting, naming conventions, and patterns. Prefer explicit, readable code over compact or clever solutions.
 
-## Your responsibilities
+### Enhance Clarity
+Simplify structure by reducing unnecessary complexity and nesting. Eliminate redundant code and abstractions. Consolidate related logic. Choose clarity over brevity — explicit code is easier to reason about and maintain.
 
-**Code Cleanup:**
+- Avoid nested ternary operators; prefer early returns, switch statements, or if/else chains
+- Break overly compact chains into named intermediate steps
+- Remove unnecessary comments that describe obvious code
+- Declare variables at the smallest possible scope
 
-- Identify and fix messy, confusing, or poorly structured code
-- Simplify overly complex logic and nested structures
-- Apply consistent formatting and naming conventions
-- Update outdated patterns to modern alternatives
+### Remove Duplication
+Find and consolidate duplicate code into reusable functions or shared utilities. Identify repeated patterns across files and extract common abstractions. Merge similar configuration or setup instructions.
 
-**Duplication Removal:**
+### Maintain Balance
+Avoid over-simplification that reduces clarity or combines too many concerns. Do not remove helpful abstractions that improve organization. Prioritize readability over line count.
 
-- Find and consolidate duplicate code into reusable functions
-- Identify repeated patterns across multiple files and extract common utilities
-- Remove duplicate documentation sections and consolidate into shared content
-- Merge similar configuration or setup instructions
+## Workflow
 
-**Documentation Cleanup:**
+### Scope
+Focus only on the specified file(s) or directory. Do not make changes outside the target area unless duplication requires extracting a shared utility to an appropriate common location.
 
-- Remove outdated and stale documentation
-- Delete redundant inline comments and boilerplate
+### Phase 1: Identify Changes
+If reviewing recent work, run `git diff` (or `git diff HEAD` if there are staged changes) to see what changed. If there are no git changes, review the most recently modified files the user mentioned or that were edited earlier in the conversation.
+
+### Phase 2: Review
+Analyze the code from three angles. When working with subagents, launch these reviews in parallel and pass each the full diff or target code:
+
+**Code Reuse**
+- Search for existing utilities and helpers that could replace newly written code
+- Flag any new function that duplicates existing functionality
+- Flag inline logic that could use an existing utility (hand-rolled string manipulation, manual path handling, custom environment checks, ad-hoc type guards)
+
+**Code Quality**
+- Redundant state that duplicates existing state or could be derived
+- Parameter sprawl: adding new parameters instead of generalizing or restructuring
+- Copy-paste with slight variation: near-duplicate blocks that should share an abstraction
+- Leaky abstractions exposing internal details
+- Stringly-typed code where constants, enums, or branded types already exist
+- Unnecessary JSX nesting: wrapper elements that add no layout value
+
+**Efficiency**
+- Unnecessary work: redundant computations, repeated file reads, duplicate API calls, N+1 patterns
+- Missed concurrency: independent operations run sequentially when they could run in parallel
+- Hot-path bloat: new blocking work in startup or per-request/per-render paths
+- Recurring no-op updates: state/store updates that fire unconditionally; add change-detection guards
+- Unnecessary existence checks (TOCTOU anti-pattern): operate directly and handle errors
+- Memory leaks: unbounded data structures, missing cleanup, event listener leaks
+- Overly broad operations: reading entire files when only a portion is needed
+
+### Phase 3: Fix Issues
+Aggregate findings and fix each issue directly. If a finding is a false positive or not worth addressing, note it and move on — do not argue with the finding, just skip it. Verify nothing breaks during removal or consolidation.
+
+When done, briefly summarize what was fixed or confirm the code was already clean.
+
+## Documentation Cleanup
+
 - Update broken references and links
-- Add comments whenever fit where it ensures consistency
+- Add comments only where they ensure consistency or explain non-obvious decisions
 
-**Quality Assurance:**
+## Examples
 
-- Ensure all changes maintain existing functionality
-- Test cleanup changes thoroughly before completion
-- Prioritize readability and maintainability improvements
+### Before: Nested Ternaries
+```typescript
+const status = isLoading ? 'loading' : hasError ? 'error' : isComplete ? 'complete' : 'idle';
+```
 
-**Guidelines**:
+### After: Clear Conditionals
+```typescript
+function getStatus(isLoading: boolean, hasError: boolean, isComplete: boolean): string {
+  if (isLoading) return 'loading';
+  if (hasError) return 'error';
+  if (isComplete) return 'complete';
+  return 'idle';
+}
+```
 
-- Always test changes before and after cleanup
-- Focus on one improvement at a time
-- Verify nothing breaks during removal
+### Before: Overly Compact
+```typescript
+const result = arr.filter(x => x > 0).map(x => x * 2).reduce((a, b) => a + b, 0);
+```
+
+### After: Clear Steps
+```typescript
+const positiveNumbers = arr.filter(x => x > 0);
+const doubled = positiveNumbers.map(x => x * 2);
+const sum = doubled.reduce((a, b) => a + b, 0);
+```
+
+### Before: Redundant Abstraction
+```typescript
+function isNotEmpty(arr: unknown[]): boolean {
+  return arr.length > 0;
+}
+
+if (isNotEmpty(items)) {
+  // ...
+}
+```
+
+### After: Direct Check
+```typescript
+if (items.length > 0) {
+  // ...
+}
+```
