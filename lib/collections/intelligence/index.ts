@@ -1131,7 +1131,7 @@ export async function generateExpandedSectionDescription(args: {
             Array.isArray(parsed.conclusions) &&
             parsed.conclusions.every((c: unknown) => typeof c === "string")
                 ? JSON.stringify(parsed.conclusions)
-                : modelResponse.text ?? undefined;
+                : (modelResponse.text ?? undefined);
     } catch {
         rawConclusions = modelResponse.text ?? undefined;
     }

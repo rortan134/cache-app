@@ -205,7 +205,9 @@ export function buildSummaryPrompt(request: SectionDescriptionRequest): string {
     ].join("\n");
 }
 
-export function buildExpandedSummaryPrompt(request: SectionDescriptionRequest): string {
+export function buildExpandedSummaryPrompt(
+    request: SectionDescriptionRequest
+): string {
     const items = request.items.map(compactItem);
 
     return [

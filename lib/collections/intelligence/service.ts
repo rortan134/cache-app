@@ -83,10 +83,12 @@ export async function generateCollectionSummary(
                 userId,
             });
 
-            const { rawConclusions } = await generateExpandedSectionDescription({
-                prompt,
-                requestedTokens,
-            });
+            const { rawConclusions } = await generateExpandedSectionDescription(
+                {
+                    prompt,
+                    requestedTokens,
+                }
+            );
 
             const conclusions = normalizeExpandedSummary(rawConclusions);
 
@@ -113,13 +115,16 @@ export async function generateCollectionSummary(
 
             const { message, status } = classifyApiError(error);
 
-            log.warn("Failed to generate expanded library section description", {
-                error: message,
-                itemCount: items.length,
-                sectionTitle,
-                status,
-                userId,
-            });
+            log.warn(
+                "Failed to generate expanded library section description",
+                {
+                    error: message,
+                    itemCount: items.length,
+                    sectionTitle,
+                    status,
+                    userId,
+                }
+            );
 
             throw new GenAiGenerationError({
                 message,
