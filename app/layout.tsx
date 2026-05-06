@@ -250,7 +250,11 @@ function NextChatSDKBootstrap({ baseUrl }: { baseUrl: string }) {
                                         init
                                     );
                                 },
-                                { preconnect: () => {} }
+                                {
+                                    preconnect: () => {
+                                        // No-op
+                                    },
+                                }
                             );
                         }
                     }).toString() +
