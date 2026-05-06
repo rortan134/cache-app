@@ -5,13 +5,3 @@ export function isRecord(value: unknown): value is Record<string, unknown> {
 export function asRecord(value: unknown): Record<string, unknown> | null {
     return isRecord(value) ? value : null;
 }
-
-export function denyPropertyAccess<T extends object>() {
-    return new Proxy<T>(Object.create(null), {
-        get: (_target, prop) => {
-            throw new Error(
-                `You are trying to access a property that is not accessible: ${String(prop)}`
-            );
-        },
-    });
-}
