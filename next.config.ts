@@ -12,6 +12,7 @@ const nextConfig: NextConfig = {
             "zod",
             "@lexical/*",
             "lexical",
+            "class-variance-authority",
         ],
         turbopackFileSystemCacheForBuild: true,
         turbopackFileSystemCacheForDev: true,

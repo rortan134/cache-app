@@ -9,8 +9,9 @@ import { isActiveSubscriptionStatus } from "./subscription-status";
 export async function userHasActiveSubscription(
     userId: string
 ): Promise<boolean> {
-    "use cache";
+    "use cache: remote";
     cacheLife("hours");
+
     const subscription = await prisma.subscription.findFirst({
         orderBy: {
             periodEnd: SORT_DESC,
