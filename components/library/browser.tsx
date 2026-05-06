@@ -3519,7 +3519,7 @@ function Card({ item }: LibraryGridCardProps) {
                         target={isNote ? undefined : "_blank"}
                     >
                         {isNote ? (
-                            <div className="relative flex h-auto min-h-72 w-full flex-col justify-between overflow-hidden bg-linear-to-br from-amber-50 via-background to-stone-100 p-3">
+                            <div className="relative flex h-auto min-h-56 w-full flex-col justify-between overflow-hidden bg-linear-to-br from-amber-50 via-background to-stone-100 p-3">
                                 <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(251,191,36,0.18),transparent_45%)]" />
                                 <div className="relative flex flex-1 flex-col gap-2 pt-1.5">
                                     <p className="whitespace-pre-wrap text-foreground text-xs leading-relaxed opacity-90">
@@ -3723,7 +3723,7 @@ function LockedPreviewCard({
     return (
         <div className="relative flex flex-col overflow-hidden rounded-xl ring-1 ring-border/30">
             {placeholder.kind === "note" ? (
-                <div className="relative min-h-72 bg-linear-to-br from-amber-50 via-background to-stone-100 p-4">
+                <div className="relative min-h-56 bg-linear-to-br from-amber-50 via-background to-stone-100 p-4">
                     <div className="absolute inset-0 bg-background/30 backdrop-blur-sm" />
                     <div className="relative flex h-full flex-col gap-3">
                         <span className="inline-flex w-fit items-center gap-1 rounded-full border border-amber-500/20 bg-white/70 px-2.5 py-1 font-medium text-[11px] text-stone-700">

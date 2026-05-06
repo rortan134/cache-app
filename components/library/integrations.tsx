@@ -307,7 +307,7 @@ function IntegrationsListStatus({
         <p
             aria-live="polite"
             className={cn(
-                "text-xs leading-tight",
+                "text-nowrap text-xs leading-tight",
                 tone === "error" ? "text-destructive" : "text-muted-foreground",
                 className
             )}

@@ -2247,21 +2247,21 @@ function CollectionsListNoticeCallout({
                         saves into contextual collections intuitively. Cache
                         also learns your preferences with time.
                     </PopoverDescription>
-                    <div className="ml-auto flex items-center justify-end gap-2">
-                        <Button
-                            render={<Link href="/activity" />}
-                            size="xs"
-                            variant="ghost"
-                        >
-                            Activity
-                            <ArrowUpRight className="inline-block size-3.5 shrink-0 text-muted-foreground" />
-                        </Button>
+                    <div className="flex items-center gap-2 pt-1">
                         <Button
                             onClick={onDisable}
                             size="xs"
                             variant="destructive-outline"
                         >
                             Disable
+                        </Button>
+                        <Button
+                            render={<Link href="/activity" />}
+                            size="xs"
+                            variant="outline"
+                        >
+                            Activity
+                            <ArrowUpRight className="inline-block size-3.5 shrink-0 text-muted-foreground" />
                         </Button>
                     </div>
                 </div>
