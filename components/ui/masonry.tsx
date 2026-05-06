@@ -1273,6 +1273,16 @@ const NOOP_RESIZE_OBSERVER: ResizeObserver = {
     },
 };
 
+function readResizeObserverEntryHeight(
+    entry: ResizeObserverEntry,
+    target: HTMLElement
+) {
+    const borderBoxSize = entry.borderBoxSize[0];
+    return borderBoxSize
+        ? Math.round(borderBoxSize.blockSize)
+        : target.offsetHeight;
+}
+
 function createResizeObserverFactory(): MasonryResizeObserverFactory {
     if (typeof window === "undefined") {
         return () => NOOP_RESIZE_OBSERVER;
@@ -1291,28 +1301,10 @@ function createResizeObserverFactory(): MasonryResizeObserverFactory {
                 updates.length = 0;
             });
 
-            function onItemResize(target: HTMLElement) {
-                const height = target.offsetHeight;
-                if (height > 0) {
-                    const index = Number(target.dataset.index);
-                    if (!Number.isNaN(index)) {
-                        const position = positioner.get(index);
-                        if (
-                            position !== undefined &&
-                            height !== position.height
-                        ) {
-                            updates.push(index, height);
-                        }
-                    }
-                }
-                update();
-            }
-
-            const scheduledItemMap = new Map<
-                number,
-                OnRafScheduleReturn<[HTMLElement]>
-            >();
             function onResizeObserver(entries: ResizeObserverEntry[]) {
+                let hasUpdates = false;
+
+                // ResizeObserver already batches entries; keep resize handling to one RAF update.
                 for (const entry of entries) {
                     const targetWindow = ownerWindow(entry.target);
                     if (!(entry.target instanceof targetWindow.HTMLElement)) {
@@ -1324,12 +1316,23 @@ function createResizeObserverFactory(): MasonryResizeObserverFactory {
                         continue;
                     }
 
-                    let handler = scheduledItemMap.get(index);
-                    if (!handler) {
-                        handler = onRafSchedule(onItemResize);
-                        scheduledItemMap.set(index, handler);
+                    const height = readResizeObserverEntryHeight(
+                        entry,
+                        entry.target
+                    );
+                    if (height <= 0) {
+                        continue;
                     }
-                    handler(entry.target);
+
+                    const position = positioner.get(index);
+                    if (position !== undefined && height !== position.height) {
+                        updates.push(index, height);
+                        hasUpdates = true;
+                    }
+                }
+
+                if (hasUpdates) {
+                    update();
                 }
             }
 
@@ -1337,9 +1340,7 @@ function createResizeObserverFactory(): MasonryResizeObserverFactory {
             const disconnect = observer.disconnect.bind(observer);
             observer.disconnect = () => {
                 disconnect();
-                for (const [, scheduleItem] of scheduledItemMap) {
-                    scheduleItem.cancel();
-                }
+                update.cancel();
             };
 
             return observer;
@@ -1482,6 +1483,11 @@ type MasonryChildProps = React.ComponentProps<"div"> & {
 };
 type MasonryChildElement = React.ReactElement<MasonryChildProps>;
 
+interface MasonryChildCache {
+    children: MasonryChildElement[];
+    source: React.ReactNode;
+}
+
 function isMasonryChildElement(
     child: React.ReactNode
 ): child is MasonryChildElement {
@@ -1571,6 +1577,20 @@ function getJustifiedAspectRatios(
         aspectRatios.push(Number.isNaN(ratio) || ratio <= 0 ? 1 : ratio);
     });
     return aspectRatios;
+}
+
+function getCachedMasonryChildren(
+    cache: MasonryChildCache,
+    children: React.ReactNode
+) {
+    // Scroll renders reuse the same child tree; avoid rebuilding it for every viewport tick.
+    if (cache.source !== children) {
+        cache.source = children;
+        cache.children = React.Children.toArray(children).filter(
+            isMasonryChildElement
+        );
+    }
+    return cache.children;
 }
 
 function Masonry({
@@ -1783,9 +1803,13 @@ function MasonryViewport({
     const context = useMasonryContext(VIEWPORT_NAME);
     const [layoutVersion, setLayoutVersion] = React.useState(0);
     const layoutAnimationFrame = useAnimationFrame();
-
-    const validChildren = React.Children.toArray(children).filter(
-        isMasonryChildElement
+    const childCacheRef = React.useRef<MasonryChildCache>({
+        children: [],
+        source: undefined,
+    });
+    const validChildren = getCachedMasonryChildren(
+        childCacheRef.current,
+        children
     );
 
     const {
