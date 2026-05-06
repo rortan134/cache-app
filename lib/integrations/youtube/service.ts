@@ -2,7 +2,7 @@ import "server-only";
 
 import { createLogger } from "@/lib/common/logs/console/logger";
 import { DEFAULT_BROWSER_PROFILE_ID } from "@/lib/integrations/browser-profiles";
-import { parseOptionalDate } from "@/lib/integrations/dates";
+import { parseDate } from "@/lib/common/dates";
 import { importLibraryItemSnapshot } from "@/lib/integrations/snapshot";
 import { LibraryItemSource } from "@/prisma/client/enums";
 import * as z from "zod";
@@ -87,8 +87,8 @@ export async function importYoutubeWatchLaterSnapshot(args: {
                 browserProfileId,
                 caption: item.title ?? null,
                 externalId: item.videoId,
-                postedAt: parseOptionalDate(item.publishedAt),
-                scrapedAt: parseOptionalDate(item.scrapedAt) ?? syncedAt,
+                postedAt: parseDate(item.publishedAt),
+                scrapedAt: parseDate(item.scrapedAt) ?? syncedAt,
                 sourceDeviceId: sourceDeviceId ?? null,
                 sourceDeviceName: sourceDeviceName ?? null,
                 sourceMetadata: {

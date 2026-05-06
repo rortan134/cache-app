@@ -30,6 +30,14 @@ export function normalizeWhitespace(input: string): string {
     return input.replace(/\s+/g, " ").trim();
 }
 
+export function slugify(input: string): string {
+    return input
+        .trim()
+        .toLowerCase()
+        .replaceAll(/[^a-z0-9]+/g, "-")
+        .replaceAll(/^-+|-+$/g, "");
+}
+
 export function decodeHtmlEntities(input: string): string {
     return input
         .replaceAll("&nbsp;", " ")

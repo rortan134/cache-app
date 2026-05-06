@@ -1,6 +1,6 @@
 import "server-only";
 
-import { parseOptionalDate } from "@/lib/integrations/dates";
+import { parseDate } from "@/lib/common/dates";
 import { upsertLibraryItemImports } from "@/lib/integrations/upsert";
 import type {
     ITEM_KIND_BOOKMARK,
@@ -241,8 +241,8 @@ export async function upsertLibraryItemsFromIngest(
             externalId: item.externalId,
             kind: item.kind,
             parentExternalId: item.parentExternalId,
-            postedAt: parseOptionalDate(item.postedAt),
-            scrapedAt: parseOptionalDate(item.scrapedAt),
+            postedAt: parseDate(item.postedAt),
+            scrapedAt: parseDate(item.scrapedAt),
             sourceDeviceId: item.sourceDeviceId,
             sourceDeviceName: item.sourceDeviceName,
             sourceMetadata:

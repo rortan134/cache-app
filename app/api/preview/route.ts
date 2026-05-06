@@ -1,4 +1,5 @@
 import { serverEnv } from "@/env/server";
+import { isAbortError } from "@/lib/common/abort";
 import { FALLBACK_URL } from "@/lib/common/constants";
 import { createLogger } from "@/lib/common/logs/console/logger";
 import { isBlockedHostname } from "@/lib/common/net";
@@ -67,7 +68,7 @@ export async function GET(request: Request): Promise<Response> {
             status: 200,
         });
     } catch (error) {
-        if (error instanceof Error && error.name === "AbortError") {
+        if (isAbortError(error)) {
             return new Response(null, { status: 499 });
         }
 
@@ -133,7 +134,7 @@ async function handleVideoPreview(
 
         return Response.redirect(videoResult.videoUrl, 302);
     } catch (error) {
-        if (error instanceof Error && error.name === "AbortError") {
+        if (isAbortError(error)) {
             return new Response(null, { status: 499 });
         }
 

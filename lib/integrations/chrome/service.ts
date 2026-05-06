@@ -8,7 +8,7 @@ import { chunk } from "@/lib/common/arrays";
 import { ITEM_KIND_BOOKMARK, ITEM_KIND_FOLDER } from "@/lib/common/constants";
 import { createLogger } from "@/lib/common/logs/console/logger";
 import { DEFAULT_BROWSER_PROFILE_ID } from "@/lib/integrations/browser-profiles";
-import { parseOptionalDate } from "@/lib/integrations/dates";
+import { parseDate } from "@/lib/common/dates";
 import { prisma } from "@/prisma";
 import type { LibraryItem, Prisma } from "@/prisma/client/client";
 import { type LibraryItemKind, LibraryItemSource } from "@/prisma/client/enums";
@@ -205,7 +205,7 @@ function normalizeChromeBookmarkRecord(
             typeof bookmark.dateAdded === "number"
                 ? new Date(bookmark.dateAdded)
                 : null,
-        scrapedAt: parseOptionalDate(occurredAt) ?? new Date(),
+        scrapedAt: parseDate(occurredAt) ?? new Date(),
         source: LibraryItemSource.chrome_bookmarks,
         sourceDeviceId: device?.id ?? null,
         sourceDeviceName: device?.name ?? null,

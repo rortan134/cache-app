@@ -124,9 +124,11 @@ import {
     type LibraryCollectionSummary,
     type LibraryItemWithCollections,
 } from "@/lib/collections/utils";
+import { isAbortError } from "@/lib/common/abort";
 import { cn } from "@/lib/common/cn";
 import { getColorGradientFromName } from "@/lib/common/colors";
 import { FALLBACK_URL, ITEM_KIND_NOTE } from "@/lib/common/constants";
+import { parseDate } from "@/lib/common/dates";
 import { getOwnerWindow } from "@/lib/common/dom";
 import { getSystemControlKey } from "@/lib/common/environment";
 import {
@@ -137,6 +139,7 @@ import {
 import { filterValidImageUrls } from "@/lib/common/image";
 import { getImageColors } from "@/lib/common/image-colors";
 import { createLogger } from "@/lib/common/logs/console/logger";
+import { normalizeWhitespace } from "@/lib/common/strings";
 
 import {
     normalizeURL,
@@ -675,7 +678,7 @@ function normalizeSectionDescriptionText(
     value: string | null | undefined,
     maxLength: number
 ): string {
-    const normalized = (value ?? "").trim().replace(/\s+/g, " ");
+    const normalized = normalizeWhitespace(value ?? "");
 
     if (normalized.length <= maxLength) {
         return normalized;
@@ -685,16 +688,8 @@ function normalizeSectionDescriptionText(
 }
 
 function toIsoTimestamp(value: Date | string | null | undefined) {
-    if (!value) {
-        return;
-    }
-
-    const date = value instanceof Date ? value : new Date(value);
-    if (Number.isNaN(date.getTime())) {
-        return;
-    }
-
-    return date.toISOString();
+    const date = parseDate(value);
+    return date?.toISOString();
 }
 
 function buildSectionDescriptionContextItem(
@@ -884,12 +879,6 @@ interface BrowserSection {
 interface LibraryCommandAttachment
     extends ReturnType<typeof createFileAttachment> {
     id: string;
-}
-
-function isAbortError(error: unknown): boolean {
-    return error instanceof DOMException
-        ? error.name === "AbortError"
-        : error instanceof Error && error.name === "AbortError";
 }
 
 function itemDomain(url: string): string {
@@ -3018,11 +3007,8 @@ function buildBoardColumns(
 }
 
 function itemDateLabel(dateValue: Date | string | null | undefined): string {
-    if (!dateValue) {
-        return "";
-    }
-    const date = dateValue instanceof Date ? dateValue : new Date(dateValue);
-    if (Number.isNaN(date.getTime())) {
+    const date = parseDate(dateValue);
+    if (!date) {
         return "";
     }
     return date.toLocaleDateString(undefined, {

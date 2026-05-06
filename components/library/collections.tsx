@@ -97,6 +97,7 @@ import { cn } from "@/lib/common/cn";
 import { getHexColorFromName } from "@/lib/common/colors";
 import { getSystemControlKey } from "@/lib/common/environment";
 import { saveFile } from "@/lib/common/file";
+import { normalizeWhitespace, slugify } from "@/lib/common/strings";
 import { normalizeURL, openExternal } from "@/lib/common/url";
 import { dayjs } from "@/lib/dayjs";
 import { getSourceLabel } from "@/lib/integrations/support";
@@ -571,23 +572,8 @@ function buildCsv(
  * Derive a file-system-safe name from a collection name for CSV export.
  */
 function getExportFileName(name: string): string {
-    const slug = name
-        .trim()
-        .toLowerCase()
-        .replaceAll(/[^a-z0-9]+/g, "-")
-        .replaceAll(/^-+|-+$/g, "");
-
+    const slug = slugify(name);
     return slug.length > 0 ? `${slug}-links` : "collection-links";
-}
-
-/**
- * Collapse whitespace and trim a collection name for storage.
- *
- * Prevent accidental leading/trailing or double spaces from creating
- * misleading display names while preserving internal single spaces.
- */
-function normalizeName(name: string): string {
-    return name.trim().replace(/\s+/g, " ");
 }
 
 /**
@@ -1378,7 +1364,7 @@ function useCollectionsController() {
         }
 
         const previousName = target.name;
-        const nextName = normalizeName(renameDraft);
+        const nextName = normalizeWhitespace(renameDraft);
 
         if (nextName.length === 0) {
             setRenameError("Enter a collection name.");
