@@ -4,12 +4,11 @@ import type {
     LibraryItemSource,
 } from "@/prisma/client/enums";
 import {
-    COBALT_SUPPORTED_HOSTS,
     FALLBACK_URL,
     ITEM_KIND_BOOKMARK,
     SORT_ASC,
 } from "@/lib/common/constants";
-import { toValidUrl } from "@/lib/common/url";
+import { isCobaltHost, toValidUrl } from "@/lib/common/url";
 import * as z from "zod";
 
 // ---------------------------------------------------------------------------
@@ -214,14 +213,6 @@ export function itemPreviewImageUrl(item: {
     return `/api/preview?url=${encodeURIComponent(href)}`;
 }
 
-export function isVideoPreviewSupported(url: string): boolean {
-    try {
-        return COBALT_SUPPORTED_HOSTS.has(new URL(url).hostname);
-    } catch {
-        return false;
-    }
-}
-
 /**
  * Returns the API proxy URL for a bookmark's video preview.
  * Only supported hosts (YouTube, X, Instagram, TikTok) return a URL.
@@ -239,7 +230,7 @@ export function itemPreviewVideoUrl(item: {
         return null;
     }
 
-    if (!isVideoPreviewSupported(href)) {
+    if (!isCobaltHost(href)) {
         return null;
     }
 

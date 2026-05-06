@@ -7,6 +7,9 @@ generator client {
   output   = "./client"
 }
 
+/// External system or first-party surface where a library item originated.
+/// Values are part of the import contract, so prefer adding new values over
+/// repurposing existing ones when an integration changes shape.
 enum LibraryItemSource {
   cache_note
   chrome_bookmarks
@@ -20,12 +23,16 @@ enum LibraryItemSource {
   youtube_watch_later
 }
 
+/// User-facing item category. Folders are persisted because some sources, such
+/// as Chrome bookmarks, have hierarchy that must survive round-trip sync.
 enum LibraryItemKind {
   bookmark
   folder
   note
 }
 
+/// Manual or AI-assisted ranking for how central a collection is to the user.
+/// `archive` keeps the collection available while moving it out of active work.
 enum CollectionPriority {
   none
   very_relevant
@@ -34,6 +41,8 @@ enum CollectionPriority {
   archive
 }
 
+/// Timeline event taxonomy for library and collection changes. Events are
+/// append-only; add new kinds instead of rewriting historical metadata shape.
 enum LibraryActivityEventKind {
   collection_created
   collection_shared
@@ -43,7 +52,8 @@ enum LibraryActivityEventKind {
   source_connected
 }
 
-/// Managed by better-auth core. Do not rename fields.
+/// Managed by better-auth core, with Cache-specific user preferences added.
+/// Do not rename auth-owned fields; better-auth reads them by convention.
 model User {
   id                       String                 @id
   name                     String
@@ -52,8 +62,14 @@ model User {
   image                    String?
   createdAt                DateTime               @default(now())
   updatedAt                DateTime               @updatedAt
+  /// Opt-out flag for automatic collection suggestions. Keep the default
+  /// permissive so new users receive the assisted organization workflow.
   smartCollectionsDisabled Boolean                @default(false)
+  /// Stripe customer id is duplicated here for fast account-level lookups even
+  /// though subscription state lives in the plugin-managed table.
   stripeCustomerId         String?
+  /// Bearer token used by browser extensions to ingest into this user's library
+  /// without exposing session cookies.
   extensionIngestToken     String?                @unique
   sessions                 Session[]
   accounts                 Account[]
@@ -67,15 +83,20 @@ model User {
   @@map("user")
 }
 
-/// Application-owned. Named groupings of library items.
+/// Application-owned grouping of library items. A collection is both an
+/// organizational unit and the public sharing boundary when `shareId` is set.
 model Collection {
   id             String                 @id @default(cuid())
   userId         String
   user           User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
   name           String
+  /// Lowercased normalized name used for per-user uniqueness. Store it
+  /// separately from `name` so display casing remains user-authored.
   nameKey        String
   description    String?
   priority       CollectionPriority     @default(none)
+  /// Stable public identifier. A collection is considered public only when both
+  /// `shareId` and `sharedAt` are set; clearing both revokes sharing.
   shareId        String?                @unique
   sharedAt       DateTime?
   items          LibraryItem[]
@@ -88,7 +109,8 @@ model Collection {
   @@map("collection")
 }
 
-/// Application-owned. Append-only activity events for the user's library timeline.
+/// Application-owned activity record for the user's library timeline. Item and
+/// collection relations are nullable so deletion preserves historical context.
 model LibraryActivityEvent {
   id            String                   @id @default(cuid())
   userId        String
@@ -98,7 +120,11 @@ model LibraryActivityEvent {
   libraryItem   LibraryItem?             @relation(fields: [libraryItemId], references: [id], onDelete: SetNull)
   collectionId  String?
   collection    Collection?              @relation(fields: [collectionId], references: [id], onDelete: SetNull)
+  /// Event-specific payload. Keep payloads additive and version-tolerant because
+  /// old events may be replayed by timeline and analytics code.
   metadata      Json?
+  /// User-visible time of the event. This may differ from `createdAt` for
+  /// imported or backfilled activity.
   occurredAt    DateTime                 @default(now())
   createdAt     DateTime                 @default(now())
 
@@ -108,29 +134,48 @@ model LibraryActivityEvent {
   @@map("library_activity_event")
 }
 
-/// Application-owned. User's saved content items.
+/// Application-owned saved content. The compound source identity is the durable
+/// dedupe key; collection membership and activity hang off this record.
 model LibraryItem {
   id               String                 @id @default(cuid())
   userId           String
   user             User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
   source           LibraryItemSource
   kind             LibraryItemKind        @default(bookmark)
+  /// Source-native item id. For first-party notes this is generated by Cache;
+  /// for integrations it must remain whatever the upstream source uses.
   externalId       String
+  /// Historical source ids that should resolve to this item. Chrome bookmark ids
+  /// can churn across syncs, so aliases prevent duplicate rows after moves.
   sourceAliasIds   String[]               @default([])
+  /// Import namespace within a source. Browser integrations use this to keep
+  /// separate profiles from colliding on the same upstream ids.
   browserProfileId String                 @default("default")
+  /// Source-native parent id for hierarchical sources. It is intentionally not a
+  /// self-relation because parent rows can disappear or arrive out of order.
   parentExternalId String?
   sourceDeviceId   String?
   sourceDeviceName String?
   url              String
-  caption          String? // Non-note item caption/label. Notes use noteContentHtml/text only.
+  /// Non-note item caption or label. Notes store authored content only in the
+  /// note fields so rendered text does not diverge from editor state.
+  caption          String?
   noteContentHtml  String?
+  /// Editor-native document state when available. `noteContentHtml` and
+  /// `noteContentText` are denormalized render/search projections of the current
+  /// note payload.
   noteContentState Json?
   noteContentText  String?
+  /// Integration-specific metadata used for synthesis, display, and debugging.
+  /// Services must tolerate missing keys because upstream APIs evolve.
   sourceMetadata   Json?
+  /// Content publication time from the source when available.
   postedAt         DateTime?
+  /// Time Cache last fetched or refreshed source metadata.
   scrapedAt        DateTime?
   collections      Collection[]
   activityEvents   LibraryActivityEvent[]
+  /// Null means the item has not entered the review workflow yet.
   reviewedAt       DateTime?
   createdAt        DateTime               @default(now())
   updatedAt        DateTime               @updatedAt
@@ -194,7 +239,8 @@ model Verification {
   @@map("verification")
 }
 
-/// Managed by @better-auth/stripe plugin. Do not rename fields.
+/// Managed by @better-auth/stripe plugin. Do not rename fields. Cache reads this
+/// table for entitlement state but should let the plugin own lifecycle writes.
 model Subscription {
   id                   String    @id
   plan                 String
@@ -218,7 +264,8 @@ model Subscription {
   @@map("subscription")
 }
 
-/// Application-owned. User feedback submissions.
+/// Application-owned user feedback submissions. Feedback survives user deletion
+/// so product triage keeps historical context without retaining the account.
 model Feedback {
   id        String   @id @default(cuid())
   userId    String?

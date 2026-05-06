@@ -184,7 +184,7 @@ Refs are initialized to their semantic empty state (false, 0, null, ''), never u
 
 ## On this project
 
-Before adding a new utility, check if a similar one exists in the `lib/` directory or nearby module scope as utils.
+Before adding a new utility, check if a similar one exists in the `lib/common` directory or nearby module scope as utils.
 
 ### Tech stack
 
@@ -200,8 +200,9 @@ Tooling: TypeScript v6 (strict typing), Biome via Ultracite (run via `bun lint` 
 
 ### Procedure module pattern (Service + Server Actions)
 
-We organize Next.js Server Actions as thin adapters in `lib/{module}/actions.ts` files that handle input validation, auth and session checks, error normalization, caching/revalidation and rate limiting. These actions call pure service functions which contain all business logic and database/external-API calls. Services never depend on Next.js; they operate on validated data and return domain objects or typed results.
-Actions are the only networking boundary: they parse/validate inputs, guard with user context, translate service results to serialized responses, and decide side effects like `revalidatePath()`, Stripe operations, sending emails, and more.
+We organize and co-locate Next.js Server Actions as thin adapters in `lib/{module}/actions.ts` files that handle input/output validation, auth/session and privilege checks, error normalization, caching/revalidation and rate limiting. These actions call pure service functions which contain all business logic and database/external-API calls. Services never depend on the framework; they operate on validated data and return domain objects/typed results, and can be used independently either for either other modules, as side effects, or server components.
+
+Actions are the only networking boundary: they parse/validate inputs, guard with user context, translate service results to serialized responses, and decide application-specific side effects, like `revalidatePath()`. Behind the scenes, actions use the `POST` method. Actions are defined as procedures, which are fully type-safe and imported directly and consumed as fetchers functions on top of [swr](https://swr.vercel.app/llms.txt), typing and inferring the responses.
 
 ### Logging and error handling pattern
 
@@ -214,3 +215,7 @@ Named error module lives at `lib/common/error.ts`:
   `NamedError.create("SomeDomainError", z.object({...}))` creates a typed error class with runtime-validated `data` and a stable `name`.
 
 Use these in services and actions to propagate domain failures with structured metadata (e.g., `{ operation, message, ... }`).
+
+### Data model
+
+The data model can be found at `prisma/schema.prisma`

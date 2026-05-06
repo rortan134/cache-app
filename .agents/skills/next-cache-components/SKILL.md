@@ -387,6 +387,10 @@ Key differences:
 
 ---
 
+## Memoizing data requests
+
+There may be cases where you need to fetch the same data for metadata and the page itself. To avoid duplicate requests, you can use React's `cache` function to memoize the return value and only fetch the data once.
+
 ## Limitations
 
 - **Edge runtime not supported** - requires Node.js

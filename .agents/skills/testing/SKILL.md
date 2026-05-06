@@ -41,9 +41,9 @@ test("rate limiter emits rejection metric", () => {
 
 ## Test organization
 
-Tests live alongside the code they test. A file `lib.ts` has its tests in `lib.test.ts` in the same directory.
+Unit Tests live alongside the code they test. A file `lib.ts` has its tests in `lib.test.ts` in the same directory.
 
-For integration tests that require substantial setup or external dependencies, create an `integration/` subdirectory when it improves clarity.
+For integration tests that require substantial setup or external dependencies, create an `integration/` subdirectory when it improves clarity, and for end-to-end testing `e2e/`.
 
 ## Running tests
 

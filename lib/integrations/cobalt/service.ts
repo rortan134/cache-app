@@ -239,7 +239,8 @@ async function readCobaltJsonResponse(
 }
 
 export async function resolveCobaltPreview(
-    url: string
+    url: string,
+    signal?: AbortSignal
 ): Promise<ResolveCobaltPreviewResult> {
     const normalizedUrl = url.trim();
     if (normalizedUrl.length === 0) {
@@ -259,6 +260,7 @@ export async function resolveCobaltPreview(
                 "Content-Type": "application/json",
             },
             method: "POST",
+            signal,
         });
 
         const data = await readCobaltJsonResponse(response);

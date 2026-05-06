@@ -2835,7 +2835,8 @@ export function PreviewMedia({
 }: PreviewMediaProps) {
     const imageSrc = src ?? undefined;
     const canRenderImage = Boolean(imageSrc);
-    const canRenderVideo = Boolean(videoSrc);
+    const [hasVideoFailed, setHasVideoFailed] = React.useState(false);
+    const canRenderVideo = Boolean(videoSrc) && !hasVideoFailed;
     const [isSoundEnabled, setIsSoundEnabled] = React.useState(false);
     const videoRef = React.useRef<HTMLVideoElement | null>(null);
 
@@ -2855,10 +2856,14 @@ export function PreviewMedia({
         }
     }, [isHovered, canRenderVideo]);
 
-    const handleSoundToggle = (event: React.MouseEvent) => {
+    const handleSoundToggle = useStableCallback((event: React.MouseEvent) => {
         event.preventDefault();
         setIsSoundEnabled((wasSoundEnabled) => !wasSoundEnabled);
-    };
+    });
+
+    const handleVideoError = useStableCallback(() => {
+        setHasVideoFailed(true);
+    });
 
     const SoundIcon = isSoundEnabled ? Volume2Icon : VolumeXIcon;
 
@@ -2891,6 +2896,7 @@ export function PreviewMedia({
                         )}
                         loop
                         muted={!isSoundEnabled}
+                        onError={handleVideoError}
                         playsInline
                         preload="metadata"
                         ref={videoRef}
@@ -3484,7 +3490,6 @@ function Card({ item }: LibraryGridCardProps) {
                                 <PreviewMedia
                                     alt={alt}
                                     isHovered={isCardHovered}
-                                    key={item.id}
                                     src={previewImageUrl}
                                     videoSrc={previewVideoUrl}
                                 />

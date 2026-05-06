@@ -1,9 +1,9 @@
 import { serverEnv } from "@/env/server";
-import { COBALT_SUPPORTED_HOSTS, FALLBACK_URL } from "@/lib/common/constants";
+import { FALLBACK_URL } from "@/lib/common/constants";
 import { createLogger } from "@/lib/common/logs/console/logger";
 import { isBlockedHostname } from "@/lib/common/net";
 import { fetchWithTimeout } from "@/lib/common/timeout";
-import { toValidUrl } from "@/lib/common/url";
+import { isCobaltHost, toValidUrl } from "@/lib/common/url";
 import { resolveCobaltPreview } from "@/lib/integrations/cobalt/service";
 import { cacheLife, cacheTag } from "next/cache";
 import { PreviewError, preview } from "openlink";
@@ -126,7 +126,7 @@ async function handleVideoPreview(
             return new Response(null, { status: 499 });
         }
 
-        const videoResult = await resolvePreviewVideo(targetUrl);
+        const videoResult = await resolvePreviewVideo(targetUrl, signal);
         if (!videoResult?.videoUrl) {
             return new Response("Video preview not found", { status: 404 });
         }
@@ -146,29 +146,21 @@ async function handleVideoPreview(
     }
 }
 
-async function resolvePreviewVideo(targetUrl: string) {
+async function resolvePreviewVideo(targetUrl: string, signal?: AbortSignal) {
     "use cache";
     cacheLife("days");
     cacheTag(`preview:video:${targetUrl}`);
 
-    if (!isCobaltSupportedUrl(targetUrl)) {
+    if (!isCobaltHost(targetUrl)) {
         return null;
     }
 
-    const result = await resolveCobaltPreview(targetUrl);
+    const result = await resolveCobaltPreview(targetUrl, signal);
     if (result.status !== "SUCCESS" || !result.videoPreviewUrl) {
         return null;
     }
 
     return { videoUrl: result.videoPreviewUrl };
-}
-
-function isCobaltSupportedUrl(url: string): boolean {
-    try {
-        return COBALT_SUPPORTED_HOSTS.has(new URL(url).hostname);
-    } catch {
-        return false;
-    }
 }
 
 const safeFetch: typeof fetch = (input, init) => {
