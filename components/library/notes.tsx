@@ -135,6 +135,12 @@ interface NoteTextMetrics {
 type NoteBlockType = "h1" | "h2" | "h3" | "paragraph";
 type NoteInlineFormatStateKey = Exclude<keyof FormatState, "blockType">;
 
+interface ExportContentProvider {
+    createUrl: (query: string) => string;
+    icon: ComponentType<SVGProps<SVGSVGElement>>;
+    title: string;
+}
+
 const INITIAL_FORMAT_STATE: FormatState = {
     blockType: "paragraph",
     bold: false,
@@ -162,6 +168,9 @@ const NOTE_EDITOR_THEME = {
 const NOTE_EDITOR_NODES = [HeadingNode];
 const NOTE_EDITOR_NAMESPACE = "cache-library-note";
 const NOTE_WORD_SEPARATOR = /\s+/;
+
+const NOTE_NON_EMPTY_BLOCK_TAG_REGEX =
+    /<(h[1-3]|p)>(?!(?:\s|<br\s*\/?>)*<\/\1>)[\s\S]*?<\/\1>/gi;
 
 const NOTE_BLOCK_OPTIONS = [
     { ariaLabel: "Paragraph", label: "Text", value: "paragraph" },
@@ -200,12 +209,6 @@ const NOTE_TEXT_FORMAT_OPTIONS = [
     icon: LucideIcon;
     stateKey: NoteInlineFormatStateKey;
 }>;
-
-interface ExportContentProvider {
-    createUrl: (query: string) => string;
-    icon: ComponentType<SVGProps<SVGSVGElement>>;
-    title: string;
-}
 
 /**
  * AI tools and editors that users can send note content to.
@@ -264,9 +267,6 @@ const EXPORT_CONTENT_PROVIDERS: readonly ExportContentProvider[] = [
         title: "Open in Notion",
     },
 ];
-
-const NOTE_NON_EMPTY_BLOCK_TAG_REGEX =
-    /<(h[1-3]|p)>(?!(?:\s|<br\s*\/?>)*<\/\1>)[\s\S]*?<\/\1>/gi;
 
 const NoteContext = createContext<NoteContextValue | null>(null);
 
@@ -748,7 +748,7 @@ function NoteHeader() {
         title,
         toggleExpanded,
     } = useNoteContext();
-    const ExpandIcon = isExpanded ? Minimize2 : Maximize2;
+
     const hasQuery = query.length > 0;
 
     const handleExportMarkdown = () => {
@@ -838,7 +838,11 @@ function NoteHeader() {
                         size="icon-sm"
                         variant="secondary"
                     >
-                        <ExpandIcon className="inline-block size-3.5" />
+                        {isExpanded ? (
+                            <Minimize2 className="inline-block size-3.5" />
+                        ) : (
+                            <Maximize2 className="inline-block size-3.5" />
+                        )}
                     </Button>
                     <Button
                         aria-label="Close note"

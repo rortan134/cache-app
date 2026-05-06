@@ -522,9 +522,7 @@ export default async function Home() {
                         </div>
                         <Carousel
                             className="w-full pb-10!"
-                            pagination
                             slideClassName="!w-[300px] md:!w-[340px]"
-                            slidesPerView="auto"
                             spaceBetween={16}
                         >
                             <div className="flex h-96 flex-col justify-between rounded-2xl border border-border/50 bg-background p-6">

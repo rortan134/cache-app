@@ -7,12 +7,15 @@ const nextConfig: NextConfig = {
     cacheComponents: true,
     experimental: {
         optimizePackageImports: [
+            "@base-ui/*",
             "@base-ui/react",
             "@base-ui/utils",
             "zod",
             "@lexical/*",
             "lexical",
             "class-variance-authority",
+            "swiper/modules",
+            "swiper/react",
         ],
         turbopackFileSystemCacheForBuild: true,
         turbopackFileSystemCacheForDev: true,

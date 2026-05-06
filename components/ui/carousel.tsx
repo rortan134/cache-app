@@ -7,63 +7,32 @@ import "swiper/css/free-mode";
 import "swiper/css/mousewheel";
 import "swiper/css/navigation";
 import "swiper/css/pagination";
-import { FreeMode, Mousewheel, Navigation, Pagination } from "swiper/modules";
+import { Pagination } from "swiper/modules";
 import { Swiper, SwiperSlide } from "swiper/react";
-import type { SwiperModule } from "swiper/types";
 
-interface SupportedModules {
-    freeMode?: boolean;
-    navigation?: boolean;
-    pagination?: boolean;
-}
-
-interface CarouselProps
-    extends Omit<
-            React.ComponentPropsWithRef<typeof Swiper>,
-            keyof SupportedModules
-        >,
-        SupportedModules {
+interface CarouselProps extends React.ComponentProps<typeof Swiper> {
     slideClassName?: string;
 }
 
 export function Carousel({
     children,
     className,
-    freeMode = false,
     grabCursor = true,
-    navigation = false,
-    pagination = true,
     slideClassName,
     slidesPerView = "auto",
     ...props
 }: CarouselProps) {
-    const modules: SwiperModule[] = [Mousewheel];
-    if (freeMode) {
-        modules.push(FreeMode);
-    }
-    if (navigation) {
-        modules.push(Navigation);
-    }
-    if (pagination) {
-        modules.push(Pagination);
-    }
-
     return (
         <Swiper
             className={cn("relative size-full", className)}
-            freeMode={{
-                enabled: freeMode,
-                momentumBounce: false,
-                sticky: false,
-            }}
             grabCursor={grabCursor}
-            modules={modules}
+            modules={[Pagination]}
             mousewheel={{ forceToAxis: true, sensitivity: 3 }}
             pagination={{
                 bulletClass: "swiper-pagination-bullet",
                 clickable: true,
                 dynamicBullets: true,
-                enabled: pagination,
+                enabled: true,
                 renderBullet: (_index, className) =>
                     `<span class="${className} inline-block size-2 rounded-full bg-foreground/40 transition-all opacity-50 mx-0.5 scale-75 cursor-pointer [&.swiper-pagination-bullet-active]:!bg-foreground [&.swiper-pagination-bullet-active]:!opacity-100 [&.swiper-pagination-bullet-active]:!scale-100"></span>`,
             }}
@@ -71,9 +40,9 @@ export function Carousel({
                 typeof slidesPerView === "number" ? slidesPerView : undefined
             }
             slidesPerView={slidesPerView}
-            threshold={pagination ? 0 : undefined}
-            touchReleaseOnEdges={pagination}
-            touchStartForcePreventDefault={pagination}
+            threshold={0}
+            touchReleaseOnEdges={true}
+            touchStartForcePreventDefault={true}
             {...props}
         >
             {React.Children.map(children, (child) => (
