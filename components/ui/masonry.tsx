@@ -343,6 +343,7 @@ function createIntervalTree(): IntervalTree {
     };
 
     const indexMap: Record<number, TreeNode> = {};
+    const searchStack: TreeNode[] = [];
 
     return {
         insert(low, high, index) {
@@ -458,20 +459,22 @@ function createIntervalTree(): IntervalTree {
         },
 
         search(low, high, onCallback) {
-            const stack = [tree.root];
-            while (stack.length !== 0) {
-                const node = stack.pop();
-                if (!node) {
-                    continue;
+            searchStack.length = 0;
+            searchStack.push(tree.root);
+
+            while (searchStack.length !== 0) {
+                const node = searchStack.pop();
+                if (node === undefined) {
+                    break;
                 }
                 if (node === SENTINEL_NODE || low > node.max) {
                     continue;
                 }
                 if (node.left !== SENTINEL_NODE) {
-                    stack.push(node.left);
+                    searchStack.push(node.left);
                 }
                 if (node.right !== SENTINEL_NODE) {
-                    stack.push(node.right);
+                    searchStack.push(node.right);
                 }
                 if (node.low <= high && node.high >= low) {
                     let curr: ListNode | null = node.list;
@@ -648,12 +651,6 @@ interface PositionerItem {
     width: number;
 }
 
-function isPositionerItem(
-    item: PositionerItem | undefined
-): item is PositionerItem {
-    return item !== undefined;
-}
-
 function createJustifiedPositioner(
     width: number,
     aspectRatios: number[],
@@ -706,7 +703,7 @@ function createJustifiedPositioner(
     }
 
     return {
-        all: () => items.filter(isPositionerItem),
+        all: () => getPositionerItems(items),
         columnCount: 1,
         columnWidth: safeWidth,
         estimateHeight: () => result.containerHeight,
@@ -751,11 +748,21 @@ interface UsePositionerOptions {
     width: number;
 }
 
-function areArraysEqual(a: number[], b: number[]): boolean {
-    if (a.length !== b.length) {
-        return false;
+function getPositionerItems(
+    items: (PositionerItem | undefined)[]
+): PositionerItem[] {
+    const result: PositionerItem[] = [];
+    let i = 0;
+
+    while (i < items.length) {
+        const item = items[i];
+        if (item !== undefined) {
+            result.push(item);
+        }
+        i++;
     }
-    return a.every((item, i) => item === b[i]);
+
+    return result;
 }
 
 function usePositioner(
@@ -835,7 +842,7 @@ function usePositioner(
 
         return {
             all(): PositionerItem[] {
-                return items.filter(isPositionerItem);
+                return getPositionerItems(items);
             },
             columnCount: computedColumnCount,
             columnWidth: computedColumnWidth,
@@ -1041,7 +1048,7 @@ function usePositioner(
     } else if (prevAspectRatiosRef.current === undefined) {
         aspectRatiosChanged = true;
     } else {
-        aspectRatiosChanged = !areArraysEqual(
+        aspectRatiosChanged = !areDepsEqual(
             aspectRatios,
             prevAspectRatiosRef.current
         );
@@ -1064,13 +1071,9 @@ function usePositioner(
     ];
     const prevOptsRef = React.useRef(opts);
     const optsChanged =
-        !opts.every((item, i) => prevOptsRef.current[i] === item) ||
-        aspectRatiosChanged;
+        !areDepsEqual(opts, prevOptsRef.current) || aspectRatiosChanged;
 
-    if (
-        optsChanged ||
-        !deps.every((item, i) => prevDepsRef.current[i] === item)
-    ) {
+    if (optsChanged || !areDepsEqual(deps, prevDepsRef.current)) {
         const prevPositioner = positionerRef.current;
         const positioner = initPositioner();
         prevDepsRef.current = deps;
@@ -1087,6 +1090,19 @@ function usePositioner(
     }
 
     return positionerRef.current;
+}
+
+function areDepsEqual(a: React.DependencyList, b: React.DependencyList) {
+    const length = a.length;
+    if (length !== b.length) {
+        return false;
+    }
+    for (let i = 0; i < length; i++) {
+        if (a[i] !== b[i]) {
+            return false;
+        }
+    }
+    return true;
 }
 
 interface DebouncedWindowSizeOptions {
