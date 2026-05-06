@@ -65,10 +65,6 @@ export const BATCH_UPDATE_MAX_ITEMS = 500;
 export const MAX_COLLECTIONS_PER_BATCH = 100;
 
 export const COBALT_SUPPORTED_HOSTS = new Set([
-    "youtube.com",
-    "www.youtube.com",
-    "m.youtube.com",
-    "youtu.be",
     "twitter.com",
     "www.twitter.com",
     "mobile.twitter.com",

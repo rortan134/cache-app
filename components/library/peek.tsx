@@ -242,7 +242,7 @@ export function PeekDrawerContent({
                 variant="inset"
                 {...popupProps}
             >
-                <DrawerHeader className="gap-1 border-border/70 border-b pb-4">
+                <DrawerHeader className="border-border/70 border-b pb-4">
                     <DrawerTitle className="truncate text-lg sm:text-xl">
                         {title}
                     </DrawerTitle>

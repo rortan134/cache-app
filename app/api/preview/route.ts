@@ -14,6 +14,8 @@ const log = createLogger("api:library:preview");
 const CACHE_CONTROL_HEADER = "public, max-age=86400, s-maxage=604800";
 const FETCH_TIMEOUT_MS = 5000;
 const MAX_REDIRECTS = 2;
+const COBALT_RETRY_ATTEMPTS = 2;
+const COBALT_RETRY_DELAY_MS = 500;
 const USER_AGENT =
     "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)";
 
@@ -104,8 +106,6 @@ async function resolvePreviewImage(targetUrl: string) {
             Accept: "text/html,application/xhtml+xml",
             "User-Agent": USER_AGENT,
         },
-        retry: 2,
-        timeout: FETCH_TIMEOUT_MS,
     });
 
     if (!page.image) {
@@ -127,12 +127,36 @@ async function handleVideoPreview(
             return new Response(null, { status: 499 });
         }
 
-        const videoResult = await resolvePreviewVideo(targetUrl, signal);
+        const videoResult = await resolvePreviewVideo(targetUrl);
         if (!videoResult?.videoUrl) {
-            return new Response("Video preview not found", { status: 404 });
+            log.debug("Video preview resolved to null", {
+                errorCode: videoResult?.errorCode,
+                targetUrl,
+            });
+
+            const errorCode = videoResult?.errorCode ?? "";
+            if (errorCode.includes("rate")) {
+                return new Response(
+                    "Video preview temporarily unavailable due to rate limiting",
+                    { status: 429 }
+                );
+            }
+            if (
+                errorCode.includes("fetch") ||
+                errorCode.includes("unreachable")
+            ) {
+                return new Response("Video preview temporarily unavailable", {
+                    status: 503,
+                });
+            }
+            if (errorCode.includes("not_found")) {
+                return new Response("Video preview not found", { status: 404 });
+            }
+
+            return new Response("Video preview not available", { status: 404 });
         }
 
-        return Response.redirect(videoResult.videoUrl, 302);
+        return proxyVideoResponse(videoResult.videoUrl, signal);
     } catch (error) {
         if (isAbortError(error)) {
             return new Response(null, { status: 499 });
@@ -147,21 +171,103 @@ async function handleVideoPreview(
     }
 }
 
-async function resolvePreviewVideo(targetUrl: string, signal?: AbortSignal) {
-    "use cache";
-    cacheLife("days");
-    cacheTag(`preview:video:${targetUrl}`);
+async function proxyVideoResponse(
+    videoUrl: string,
+    signal?: AbortSignal
+): Promise<Response> {
+    try {
+        const tunnelResponse = await fetchWithRedirects(
+            videoUrl,
+            {
+                headers: {
+                    Accept: "video/*",
+                    "User-Agent": USER_AGENT,
+                },
+            },
+            signal
+        );
 
-    if (!isCobaltHost(targetUrl)) {
-        return null;
+        if (!tunnelResponse.ok) {
+            return new Response("Video not available", {
+                status: tunnelResponse.status,
+            });
+        }
+
+        const headers = new Headers();
+        const contentType =
+            tunnelResponse.headers.get("content-type") ?? "video/mp4";
+        headers.set("content-type", contentType);
+        headers.set(
+            "content-length",
+            tunnelResponse.headers.get("content-length") ?? ""
+        );
+        headers.set("accept-ranges", "bytes");
+        headers.set("cache-control", CACHE_CONTROL_HEADER);
+
+        return new Response(tunnelResponse.body, {
+            headers,
+            status: tunnelResponse.status,
+        });
+    } catch (error) {
+        if (isAbortError(error)) {
+            return new Response(null, { status: 499 });
+        }
+
+        log.warn("Failed to proxy video response", {
+            error: error instanceof Error ? error.message : String(error),
+            videoUrl,
+        });
+
+        return new Response("Video preview not found", { status: 404 });
+    }
+}
+
+async function resolvePreviewVideo(
+    targetUrl: string
+): Promise<{ errorCode?: string; videoUrl: string | null }> {
+    const isSupported = isCobaltHost(targetUrl);
+    if (!isSupported) {
+        log.debug("Host not supported for video preview", { targetUrl });
+        return { videoUrl: null };
     }
 
-    const result = await resolveCobaltPreview(targetUrl, signal);
-    if (result.status !== "SUCCESS" || !result.videoPreviewUrl) {
-        return null;
+    let lastErrorCode: string | null = null;
+    for (let attempt = 1; attempt <= COBALT_RETRY_ATTEMPTS; attempt++) {
+        const result = await resolveCobaltPreview(targetUrl);
+        if (result.status === "SUCCESS" && result.videoPreviewUrl) {
+            return { videoUrl: result.videoPreviewUrl };
+        }
+
+        lastErrorCode = result.status === "ERROR" ? result.errorCode : null;
+        const shouldRetry =
+            lastErrorCode != null &&
+            (lastErrorCode.includes("fetch") ||
+                lastErrorCode.includes("unreachable"));
+
+        if (!shouldRetry || attempt === COBALT_RETRY_ATTEMPTS) {
+            break;
+        }
+
+        log.debug("Retrying Cobalt preview after fetch failure", {
+            attempt,
+            errorCode: lastErrorCode,
+            targetUrl,
+        });
+        await delay(COBALT_RETRY_DELAY_MS);
     }
 
-    return { videoUrl: result.videoPreviewUrl };
+    log.debug("Cobalt preview did not return video", {
+        errorCode: lastErrorCode,
+        status: "ERROR",
+        targetUrl,
+    });
+    return { errorCode: lastErrorCode ?? undefined, videoUrl: null };
+}
+
+function delay(ms: number): Promise<void> {
+    return new Promise((resolve) => {
+        setTimeout(resolve, ms);
+    });
 }
 
 const safeFetch: typeof fetch = (input, init) => {

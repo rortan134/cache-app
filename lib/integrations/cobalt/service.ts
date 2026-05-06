@@ -1,3 +1,7 @@
+import { createLogger } from "@/lib/common/logs/console/logger";
+
+const log = createLogger("integrations:cobalt");
+
 const COBALT_API_BASE = "https://cache-cobalt-cache.unkey.app";
 
 interface CobaltResponse {
@@ -90,6 +94,13 @@ export async function resolveCobaltDownloadUrl(
 
 export type CobaltPreviewMediaType = "gif" | "image" | "unknown" | "video";
 
+export type CobaltErrorCode =
+    | "error.api.fetch.fail"
+    | "error.api.rate_exceeded"
+    | "error.api.unreachable"
+    | "error.content.not_found"
+    | string;
+
 type ResolveCobaltPreviewResult =
     | {
           mediaType: CobaltPreviewMediaType;
@@ -99,7 +110,7 @@ type ResolveCobaltPreviewResult =
           videoPreviewUrl: string | null;
       }
     | {
-          errorCode: string | null;
+          errorCode: CobaltErrorCode | null;
           message: string;
           status: "ERROR" | "UNAVAILABLE";
       };
@@ -127,6 +138,7 @@ function previewFromDirectUrl(
     url: string
 ): Extract<ResolveCobaltPreviewResult, { status: "SUCCESS" }> {
     const sourceUrl = normalizeCobaltMediaUrl(url);
+    log.debug("sourceUrl", sourceUrl);
     return {
         mediaType: "video",
         sourceUrl,
@@ -239,8 +251,7 @@ async function readCobaltJsonResponse(
 }
 
 export async function resolveCobaltPreview(
-    url: string,
-    signal?: AbortSignal
+    url: string
 ): Promise<ResolveCobaltPreviewResult> {
     const normalizedUrl = url.trim();
     if (normalizedUrl.length === 0) {
@@ -260,10 +271,18 @@ export async function resolveCobaltPreview(
                 "Content-Type": "application/json",
             },
             method: "POST",
-            signal,
         });
 
         const data = await readCobaltJsonResponse(response);
+
+        log.debug("Cobalt response", {
+            errorCode: data?.error?.code,
+            httpStatus: response.status,
+            normalizedUrl,
+            responseStatus: data?.status,
+            text: data?.text,
+            url: data?.url,
+        });
 
         if (!response.ok) {
             if (data?.status === "error") {

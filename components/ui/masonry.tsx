@@ -1,15 +1,16 @@
 "use client";
 
+import { ownerDocument, ownerWindow } from "@base-ui/utils/owner";
 import {
     AnimationFrame,
     useAnimationFrame,
 } from "@base-ui/utils/useAnimationFrame";
 import { useIsoLayoutEffect } from "@base-ui/utils/useIsoLayoutEffect";
 import { useMergedRefs } from "@base-ui/utils/useMergedRefs";
-import { ownerDocument, ownerWindow } from "@base-ui/utils/owner";
 import { useStableCallback } from "@base-ui/utils/useStableCallback";
 import { useTimeout } from "@base-ui/utils/useTimeout";
 import { useValueAsRef } from "@base-ui/utils/useValueAsRef";
+import justifiedLayout from "justified-layout";
 import * as React from "react";
 
 // #region Interval tree definitions
@@ -640,6 +641,7 @@ interface PositionerItem {
     height: number;
     left: number;
     top: number;
+    width: number;
 }
 
 function isPositionerItem(
@@ -648,29 +650,132 @@ function isPositionerItem(
     return item !== undefined;
 }
 
+function createJustifiedPositioner(
+    width: number,
+    aspectRatios: number[],
+    options: {
+        containerPadding?:
+            | number
+            | { top: number; right: number; bottom: number; left: number };
+        boxSpacing?: number | { horizontal: number; vertical: number };
+        targetRowHeight?: number;
+        targetRowHeightTolerance?: number;
+        maxNumRows?: number;
+        showWidows?: boolean;
+        fullWidthBreakoutRowCadence?: false | number;
+    }
+): Positioner {
+    const safeWidth = Math.max(1, width);
+    const result = justifiedLayout(aspectRatios, {
+        boxSpacing: options.boxSpacing ?? 0,
+        containerPadding: options.containerPadding ?? 0,
+        containerWidth: safeWidth,
+        fullWidthBreakoutRowCadence:
+            options.fullWidthBreakoutRowCadence ?? false,
+        maxNumRows: options.maxNumRows ?? Number.POSITIVE_INFINITY,
+        showWidows: options.showWidows ?? true,
+        targetRowHeight: options.targetRowHeight ?? 320,
+        targetRowHeightTolerance: options.targetRowHeightTolerance ?? 0.25,
+    });
+
+    const items: (PositionerItem | undefined)[] = [];
+    const intervalTree = createIntervalTree();
+
+    for (let i = 0; i < result.boxes.length; i++) {
+        const box = result.boxes[i];
+        if (!box) {
+            continue;
+        }
+
+        const item: PositionerItem = {
+            columnIndex: 0,
+            height: box.height,
+            left: box.left,
+            top: box.top,
+            width: box.width,
+        };
+        items[i] = item;
+        intervalTree.insert(box.top, box.top + box.height, i);
+    }
+
+    return {
+        all: () => items.filter(isPositionerItem),
+        columnCount: 1,
+        columnWidth: safeWidth,
+        estimateHeight: () => result.containerHeight,
+        get: (index) => items[index],
+        range: (low, high, callback) => {
+            intervalTree.search(low, high, (index, top) => {
+                const item = items[index];
+                if (!item) {
+                    return;
+                }
+                callback(index, item.left, top);
+            });
+        },
+        set: () => {
+            /* no-op: positions are precomputed from aspect ratios */
+        },
+        shortestColumn: () => result.containerHeight,
+        size: () => result.boxes.length,
+        update: () => {
+            /* no-op: aspect ratios drive layout, not DOM measurements */
+        },
+    };
+}
+
 interface UsePositionerOptions {
+    aspectRatios?: number[];
+    boxSpacing?: number | { horizontal: number; vertical: number };
     columnCount?: number;
     columnGap?: number;
     columnWidth?: number;
-    linear?: boolean;
+    containerPadding?:
+        | number
+        | { top: number; right: number; bottom: number; left: number };
+    fullWidthBreakoutRowCadence?: false | number;
+    layout?: "masonry" | "justified";
     maxColumnCount?: number;
+    maxNumRows?: number;
     rowGap?: number;
+    showWidows?: boolean;
+    targetRowHeight?: number;
+    targetRowHeightTolerance?: number;
     width: number;
 }
 
 function usePositioner(
     {
-        width,
-        columnWidth = COLUMN_WIDTH,
-        columnGap = GAP,
-        rowGap,
+        aspectRatios,
+        boxSpacing,
         columnCount,
+        columnGap = GAP,
+        columnWidth = COLUMN_WIDTH,
+        containerPadding,
+        fullWidthBreakoutRowCadence,
+        layout = "masonry",
         maxColumnCount,
-        linear = false,
+        maxNumRows,
+        rowGap,
+        showWidows,
+        targetRowHeight,
+        targetRowHeightTolerance,
+        width,
     }: UsePositionerOptions,
     deps: React.DependencyList = []
 ): Positioner {
     function initPositioner(): Positioner {
+        if (layout === "justified" && aspectRatios) {
+            return createJustifiedPositioner(width, aspectRatios, {
+                boxSpacing,
+                containerPadding,
+                fullWidthBreakoutRowCadence,
+                maxNumRows,
+                showWidows,
+                targetRowHeight,
+                targetRowHeightTolerance,
+            });
+        }
         function binarySearch(a: number[], y: number): number {
             let l = 0;
             let h = a.length - 1;
@@ -748,41 +853,27 @@ function usePositioner(
             set: (index: number, height = 0) => {
                 let columnIndex = 0;
 
-                if (linear) {
-                    const preferredColumn = index % computedColumnCount;
+                const preferredColumn = index % computedColumnCount;
 
-                    let shortestHeight = columnHeights[0] ?? 0;
-                    let shortestIndex = 0;
+                let shortestHeight = columnHeights[0] ?? 0;
+                let shortestIndex = 0;
 
-                    for (let i = 0; i < computedColumnCount; i++) {
-                        const currentHeight = columnHeights[i] ?? 0;
-                        if (currentHeight < shortestHeight) {
-                            shortestHeight = currentHeight;
-                            shortestIndex = i;
-                        }
-                    }
-
-                    const preferredHeight =
-                        (columnHeights[preferredColumn] ?? 0) + height;
-
-                    const maxAllowedHeight = shortestHeight + height * 2.5;
-                    columnIndex =
-                        preferredHeight <= maxAllowedHeight
-                            ? preferredColumn
-                            : shortestIndex;
-                } else {
-                    for (let i = 1; i < columnHeights.length; i++) {
-                        const currentHeight = columnHeights[i];
-                        const shortestHeight = columnHeights[columnIndex];
-                        if (
-                            currentHeight !== undefined &&
-                            shortestHeight !== undefined &&
-                            currentHeight < shortestHeight
-                        ) {
-                            columnIndex = i;
-                        }
+                for (let i = 0; i < computedColumnCount; i++) {
+                    const currentHeight = columnHeights[i] ?? 0;
+                    if (currentHeight < shortestHeight) {
+                        shortestHeight = currentHeight;
+                        shortestIndex = i;
                     }
                 }
+
+                const preferredHeight =
+                    (columnHeights[preferredColumn] ?? 0) + height;
+
+                const maxAllowedHeight = shortestHeight + height * 2.5;
+                columnIndex =
+                    preferredHeight <= maxAllowedHeight
+                        ? preferredColumn
+                        : shortestIndex;
 
                 const columnHeight = columnHeights[columnIndex];
                 if (columnHeight === undefined) {
@@ -803,6 +894,7 @@ function usePositioner(
                     height,
                     left: columnIndex * (computedColumnWidth + columnGap),
                     top,
+                    width: computedColumnWidth,
                 };
                 intervalTree.insert(top, top + height, index);
             },
@@ -935,7 +1027,15 @@ function usePositioner(
         rowGap,
         columnCount,
         maxColumnCount,
-        linear,
+        layout,
+        aspectRatios,
+        targetRowHeight,
+        targetRowHeightTolerance,
+        containerPadding,
+        boxSpacing,
+        maxNumRows,
+        showWidows,
+        fullWidthBreakoutRowCadence,
     ];
     const prevOptsRef = React.useRef(opts);
     const optsChanged = !opts.every(
@@ -950,7 +1050,7 @@ function usePositioner(
         const positioner = initPositioner();
         prevDepsRef.current = deps;
         prevOptsRef.current = opts;
-        if (optsChanged) {
+        if (optsChanged && layout !== "justified") {
             const cacheSize = prevPositioner.size();
             for (let index = 0; index < cacheSize; index++) {
                 const pos = prevPositioner.get(index);
@@ -1334,6 +1434,7 @@ const MASONRY_ERROR = {
 type RootElement = React.ComponentRef<typeof Masonry>;
 type ItemElement = React.ComponentRef<typeof MasonryItem>;
 type MasonryChildProps = React.ComponentProps<"div"> & {
+    "data-aspect-ratio"?: number;
     "data-index"?: number;
 };
 type MasonryChildElement = React.ReactElement<MasonryChildProps>;
@@ -1348,6 +1449,7 @@ interface MasonryContextValue {
     columnWidth: number;
     isScrolling?: boolean;
     itemHeight: number;
+    layout: "masonry" | "justified";
     onItemRegister: (index: number) => (node: ItemElement | null) => void;
     overscan: number;
     positioner: Positioner;
@@ -1379,18 +1481,27 @@ function useMasonryContext(name: keyof typeof MASONRY_ERROR) {
 }
 
 interface MasonryProps extends React.ComponentProps<"div"> {
+    boxSpacing?: number | { horizontal: number; vertical: number };
     columnCount?: number;
     columnWidth?: number;
+    containerPadding?:
+        | number
+        | { top: number; right: number; bottom: number; left: number };
     defaultHeight?: number;
     defaultWidth?: number;
     deps?: React.DependencyList;
     fallback?: React.ReactNode;
+    fullWidthBreakoutRowCadence?: false | number;
     gap?: number | { column: number; row: number };
     itemHeight?: number;
-    linear?: boolean;
+    layout?: "masonry" | "justified";
     maxColumnCount?: number;
+    maxNumRows?: number;
     overscan?: number;
     scrollFps?: number;
+    showWidows?: boolean;
+    targetRowHeight?: number;
+    targetRowHeightTolerance?: number;
 }
 
 function parseGapValue(gap?: number | { column: number; row: number }) {
@@ -1401,17 +1512,24 @@ function parseGapValue(gap?: number | { column: number; row: number }) {
 }
 
 function Masonry({
+    boxSpacing,
     columnWidth = COLUMN_WIDTH,
     columnCount,
+    containerPadding,
     maxColumnCount,
+    fullWidthBreakoutRowCadence,
     gap = GAP,
     itemHeight = ITEM_HEIGHT,
+    layout = "masonry",
     defaultWidth,
     defaultHeight,
     overscan = OVERSCAN,
     scrollFps = SCROLL_FPS,
     fallback,
-    linear = false,
+    maxNumRows,
+    showWidows,
+    targetRowHeight,
+    targetRowHeightTolerance,
     deps = [],
     children,
     style,
@@ -1421,6 +1539,18 @@ function Masonry({
     const { rowGap, columnGap } = parseGapValue(gap);
     const containerRef = React.useRef<RootElement | null>(null);
     const composedRef = useMergedRefs(ref, containerRef);
+
+    const aspectRatios = React.useMemo(() => {
+        if (layout !== "justified") {
+            return;
+        }
+        return React.Children.toArray(children)
+            .filter(isMasonryChildElement)
+            .map((child) => {
+                const ratio = Number(child.props["data-aspect-ratio"]);
+                return Number.isNaN(ratio) || ratio <= 0 ? 1 : ratio;
+            });
+    }, [children, layout]);
 
     const size = useDebouncedWindowSize({
         containerRef,
@@ -1457,12 +1587,20 @@ function Masonry({
 
     const positioner = usePositioner(
         {
+            aspectRatios,
+            boxSpacing,
             columnCount,
             columnGap,
             columnWidth,
-            linear,
+            containerPadding,
+            fullWidthBreakoutRowCadence,
+            layout,
             maxColumnCount,
+            maxNumRows,
             rowGap,
+            showWidows,
+            targetRowHeight,
+            targetRowHeightTolerance,
             width: containerPosition.width ?? size.width,
         },
         deps
@@ -1550,6 +1688,7 @@ function Masonry({
                 columnWidth: positioner.columnWidth,
                 isScrolling,
                 itemHeight,
+                layout,
                 onItemRegister,
                 overscan,
                 positioner,
@@ -1592,6 +1731,7 @@ function MasonryViewport({
         columnWidth,
         isScrolling,
         itemHeight,
+        layout,
         onItemRegister,
         overscan,
         positioner,
@@ -1643,6 +1783,7 @@ function MasonryViewport({
                 if (!child) {
                     return;
                 }
+                const pos = positioner.get(index);
                 result.push(
                     React.cloneElement(child, {
                         "data-index": index,
@@ -1650,8 +1791,13 @@ function MasonryViewport({
                         ref: onItemRegister(index),
                         style: {
                             ...visibleItemStyle,
+                            height:
+                                layout === "justified"
+                                    ? pos?.height
+                                    : undefined,
                             left,
                             top,
+                            width: pos?.width ?? columnWidth,
                             ...child.props.style,
                         },
                     })

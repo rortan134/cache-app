@@ -178,7 +178,7 @@ export default async function LibraryPage() {
                                         <T>Integrations</T>
                                     </span>
                                     <ChevronDownFilledIcon className="-ml-0.5" />
-                                    <Kbd className="ml-auto bg-transparent opacity-0 group-hover:opacity-50 group-data-panel-open:opacity-0!">
+                                    <Kbd className="ml-auto bg-transparent opacity-0 group-hover:opacity-50">
                                         <CtrlKbd />I
                                     </Kbd>
                                 </IntegrationsListTrigger>

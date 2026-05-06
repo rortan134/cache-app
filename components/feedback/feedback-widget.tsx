@@ -29,16 +29,25 @@ export function FeedbackWidget(
         initialFeedbackActionState
     );
     const formRef = useRef<HTMLFormElement>(null);
+    const submitButtonRef = useRef<HTMLButtonElement>(null);
+    const { fire } = useConfetti();
 
     useEffect(
         function closeOnSubmit() {
             if (state.status !== "success") {
                 return;
             }
+            const rect = submitButtonRef.current?.getBoundingClientRect();
+            if (rect) {
+                fire({
+                    x: rect.left + rect.width / 2,
+                    y: rect.top + rect.height / 2,
+                });
+            }
             formRef.current?.reset();
             setIsOpen(false);
         },
-        [state.status]
+        [state.status, fire]
     );
 
     useHotkeys("F", () => {
@@ -89,7 +98,7 @@ export function FeedbackWidget(
                             >
                                 {state.message}
                             </p>
-                            <SubmitButton />
+                            <SubmitButton ref={submitButtonRef} />
                         </div>
                     </form>
                 </div>
@@ -98,20 +107,14 @@ export function FeedbackWidget(
     );
 }
 
-function SubmitButton() {
+function SubmitButton({ ref }: { ref?: React.Ref<HTMLButtonElement> }) {
     const { pending } = useFormStatus();
-    const { fire } = useConfetti();
 
     return (
         <Button
             className="rounded-full"
             loading={pending}
-            onClick={(e) =>
-                fire({
-                    x: e.clientX,
-                    y: e.clientY,
-                })
-            }
+            ref={ref}
             size="sm"
             type="submit"
         >

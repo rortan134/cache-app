@@ -328,7 +328,7 @@ async function handleChromeDeleteEvent(args: {
             const updated = await args.delegate.update({
                 data: {
                     externalId: nextPrimary,
-                    sourceAliasIds: remainingAliases,
+                    sourceAliasIds: [exact.externalId, ...remainingAliases],
                 },
                 where: { id: exact.id },
             });

@@ -2822,10 +2822,18 @@ export function PreviewMedia({
 }: PreviewMediaProps) {
     const imageSrc = src ?? undefined;
     const canRenderImage = Boolean(imageSrc);
+    const [hasImageFailed, setHasImageFailed] = React.useState(false);
     const [hasVideoFailed, setHasVideoFailed] = React.useState(false);
-    const canRenderVideo = Boolean(videoSrc) && !hasVideoFailed;
+    const [hasHoverIntent, setHasHoverIntent] = React.useState(false);
     const [isSoundEnabled, setIsSoundEnabled] = React.useState(false);
     const videoRef = React.useRef<HTMLVideoElement | null>(null);
+    const isHoveredRef = React.useRef(isHovered);
+
+    isHoveredRef.current = isHovered;
+
+    const canRenderVideo = Boolean(videoSrc) && !hasVideoFailed;
+    const shouldLoadVideo = hasHoverIntent || hasImageFailed;
+    const isVideoVisible = isHovered || (hasImageFailed && canRenderVideo);
 
     React.useEffect(() => {
         const video = videoRef.current;
@@ -2834,22 +2842,49 @@ export function PreviewMedia({
         }
 
         if (isHovered) {
-            video.play().catch((error: unknown) => {
-                log.debug("Failed to play hover preview", { error });
-            });
+            if (hasHoverIntent) {
+                video.play().catch((error: unknown) => {
+                    log.debug("Failed to resume hover preview", { error });
+                });
+            } else {
+                setHasHoverIntent(true);
+            }
         } else {
             video.pause();
             video.currentTime = 0;
         }
-    }, [isHovered, canRenderVideo]);
+    }, [isHovered, canRenderVideo, hasHoverIntent]);
 
-    const handleSoundToggle = useStableCallback((event: React.MouseEvent) => {
-        event.preventDefault();
-        setIsSoundEnabled((wasSoundEnabled) => !wasSoundEnabled);
+    const handleCanPlay = useStableCallback(() => {
+        const video = videoRef.current;
+        if (video && isHoveredRef.current) {
+            video.play().catch((error: unknown) => {
+                log.debug("Failed to play hover preview", { error });
+            });
+        }
+    });
+
+    const handleImageError = useStableCallback(() => {
+        setHasImageFailed(true);
     });
 
     const handleVideoError = useStableCallback(() => {
+        const video = videoRef.current;
+        const mediaError = video?.error;
+        log.debug("Video source failed to load", {
+            mediaErrorCode: mediaError?.code,
+            mediaErrorMessage: mediaError?.message,
+            networkState: video?.networkState,
+            readyState: video?.readyState,
+            videoSrc,
+        });
         setHasVideoFailed(true);
+    });
+
+    const handleSoundToggle = useStableCallback((event: React.MouseEvent) => {
+        event.preventDefault();
+        event.stopPropagation();
+        setIsSoundEnabled((wasSoundEnabled) => !wasSoundEnabled);
     });
 
     const SoundIcon = isSoundEnabled ? Volume2Icon : VolumeXIcon;
@@ -2857,16 +2892,18 @@ export function PreviewMedia({
     return (
         <div className="relative size-full">
             {canRenderImage ? (
+                // biome-ignore lint/a11y/noNoninteractiveElementInteractions: image load failures drive the visual fallback state
                 <img
                     alt={alt}
                     className={cn(
                         "size-full object-cover transition-opacity duration-150",
                         {
-                            "opacity-0": canRenderVideo && isHovered,
+                            "opacity-0": canRenderVideo && isVideoVisible,
                         }
                     )}
                     height={400}
                     loading="lazy"
+                    onError={handleImageError}
                     src={imageSrc}
                     width={300}
                 />
@@ -2877,17 +2914,22 @@ export function PreviewMedia({
                         className={cn(
                             "pointer-events-none absolute inset-0 size-full object-cover transition-opacity duration-150",
                             {
-                                "opacity-0": !isHovered,
-                                "opacity-100": isHovered,
+                                "opacity-0": !isVideoVisible,
+                                "opacity-100": isVideoVisible,
                             }
                         )}
                         loop
                         muted={!isSoundEnabled}
+                        onCanPlay={handleCanPlay}
                         onError={handleVideoError}
                         playsInline
                         preload="metadata"
                         ref={videoRef}
-                        src={videoSrc ?? undefined}
+                        src={
+                            shouldLoadVideo
+                                ? (videoSrc ?? undefined)
+                                : undefined
+                        }
                     />
                     <Button
                         aria-label={
@@ -3463,7 +3505,7 @@ function Card({ item }: LibraryGridCardProps) {
                         target={isNote ? undefined : "_blank"}
                     >
                         {isNote ? (
-                            <div className="relative flex aspect-3/4 h-auto min-h-72 w-full flex-col justify-between overflow-hidden bg-linear-to-br from-amber-50 via-background to-stone-100 p-3">
+                            <div className="relative flex h-auto min-h-72 w-full flex-col justify-between overflow-hidden bg-linear-to-br from-amber-50 via-background to-stone-100 p-3">
                                 <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(251,191,36,0.18),transparent_45%)]" />
                                 <div className="relative flex flex-1 flex-col gap-2 pt-1.5">
                                     <p className="whitespace-pre-wrap text-foreground text-xs leading-relaxed opacity-90">
@@ -3473,7 +3515,7 @@ function Card({ item }: LibraryGridCardProps) {
                                 </div>
                             </div>
                         ) : (
-                            <div className="relative aspect-3/4 w-full overflow-hidden">
+                            <div className="relative w-full overflow-hidden">
                                 <PreviewMedia
                                     alt={alt}
                                     isHovered={isCardHovered}
@@ -3547,7 +3589,7 @@ function Card({ item }: LibraryGridCardProps) {
 
 function MasonryLayout({ columnCount, items }: LibraryMasonryLayoutProps) {
     return (
-        <Masonry columnCount={columnCount} gap={4} linear>
+        <Masonry columnCount={columnCount} gap={4}>
             {items.map((item) => (
                 <MasonryItem key={item.id}>
                     <Card item={item} />
@@ -3761,7 +3803,7 @@ function LockedResults({
                         )}
                     </div>
                 ) : (
-                    <Masonry columnCount={columnCount} gap={4} linear>
+                    <Masonry columnCount={columnCount} gap={4}>
                         {LOCKED_LIBRARY_PREVIEW_PLACEHOLDERS.map(
                             (placeholder) => (
                                 <MasonryItem key={placeholder.id}>
@@ -3791,7 +3833,7 @@ function Empty() {
                     find it when you need it.
                 </p>
             </div>
-            <Masonry columnCount={5} gap={4} linear>
+            <Masonry columnCount={5} gap={4}>
                 {EMPTY_LIBRARY_PEEK_PLACEHOLDERS.map(
                     ({ aspect, id }, index) => {
                         const opacity = Math.max(0.06, 1 - index * 0.095);
@@ -5272,10 +5314,7 @@ export function Browser({ lockedItemCount, totalItemCount }: LibraryProps) {
                                 </DrawerTitle>
                                 <Note.Header />
                             </DrawerHeader>
-                            <DrawerPanel
-                                allowSelection
-                                className="flex min-h-0 flex-1 flex-col gap-4"
-                            >
+                            <DrawerPanel allowSelection>
                                 <Note.Editor />
                                 <Note.Metrics />
                             </DrawerPanel>

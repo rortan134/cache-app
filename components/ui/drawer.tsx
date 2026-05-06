@@ -311,7 +311,7 @@ export function DrawerPanel({
 }) {
     const defaultProps = {
         className: cn(
-            "p-6 in-[[data-slot=drawer-popup]:has([data-slot=drawer-header])]:pt-1 in-[[data-slot=drawer-popup]:has([data-slot=drawer-footer]:not(.border-t))]:pb-1",
+            "min-h-0 flex-1 flex-col gap-4 p-6 in-[[data-slot=drawer-popup]:has([data-slot=drawer-header])]:pt-1 in-[[data-slot=drawer-popup]:has([data-slot=drawer-footer]:not(.border-t))]:pb-1",
             !allowSelection && "cursor-default",
             className
         ),

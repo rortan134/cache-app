@@ -109,7 +109,7 @@ function PublicShareGrid({
     }
 
     return (
-        <Masonry gap={4} linear>
+        <Masonry gap={4}>
             {items.map((item) => (
                 <MasonryItem key={item.id}>
                     <PublicShareGridCard item={item} />
