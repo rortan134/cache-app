@@ -589,8 +589,8 @@ function NoteContentPlugin({
                     }
                     ErrorBoundary={LexicalErrorBoundary}
                     placeholder={
-                        <div className="pointer-events-none absolute inset-0 text-base text-muted-foreground">
-                            <T>Start typing or paste a URL...</T>
+                        <div className="pointer-events-none absolute inset-0 py-4 text-base text-muted-foreground">
+                            <T>Start typing or paste an URL...</T>
                         </div>
                     }
                 />

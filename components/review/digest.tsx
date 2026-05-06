@@ -14,6 +14,7 @@ import {
 } from "@/lib/collections/items";
 import {
     itemPreviewImageUrl,
+    itemPreviewVideoUrl,
     type LibraryCollectionSummary,
     type LibraryItemWithCollections,
 } from "@/lib/collections/utils";
@@ -117,7 +118,9 @@ function ReviewItemCard({
 }: ReviewItemCardProps) {
     const isNote = item.kind === "note";
     const previewUrl = itemPreviewImageUrl(item);
+    const videoPreviewUrl = itemPreviewVideoUrl(item);
     const hasPreview = previewUrl !== null;
+    const [isMediaHovered, setIsMediaHovered] = React.useState(false);
     const domain = getItemDomain(item.url);
     const noteTitle = item.noteContentText?.trim() || "Untitled note";
     const displayTitle = isNote ? noteTitle : item.caption || domain;
@@ -130,7 +133,12 @@ function ReviewItemCard({
         >
             <div className="relative flex h-full max-h-[min(90vh,52rem)] w-full max-w-lg flex-col gap-4">
                 {/* Media / Note body */}
-                <div className="relative min-h-0 flex-1 overflow-hidden rounded-2xl bg-black ring-1 ring-border/50">
+                {/** biome-ignore lint/a11y/noNoninteractiveElementInteractions: hover intent drives the video preview state */}
+                <figure
+                    className="relative min-h-0 flex-1 overflow-hidden rounded-2xl bg-black ring-1 ring-border/50"
+                    onMouseEnter={() => setIsMediaHovered(true)}
+                    onMouseLeave={() => setIsMediaHovered(false)}
+                >
                     {isNote ? (
                         <div className="flex h-full flex-col overflow-hidden bg-linear-to-br from-amber-50 via-background to-stone-100 p-5 text-foreground">
                             <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(251,191,36,0.18),transparent_45%)]" />
@@ -150,10 +158,15 @@ function ReviewItemCard({
                                     </span>
                                 </div>
                             )}
-                            <PreviewMedia alt={alt} src={previewUrl} />
+                            <PreviewMedia
+                                alt={alt}
+                                isHovered={isMediaHovered}
+                                src={previewUrl}
+                                videoSrc={videoPreviewUrl}
+                            />
                         </>
                     )}
-                </div>
+                </figure>
 
                 {/* Info */}
                 <div className="flex flex-col gap-2 px-1">
