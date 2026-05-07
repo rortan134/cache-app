@@ -127,16 +127,88 @@
   "2e9224bc11574ab5": "Exporter au format Markdown",
   "30a94c403df733bc": "Docs, tickets, code, tutoriels. Retrouvez instantanément ce lien sans avoir à le chercher de nouveau.",
   "331304248ca3c976": "Proposez-vous des réductions pour les étudiants&nbsp;?",
-  "347995ccf3b1c5d0": [
+  "352155f34be926bb": [
     {
-      "c": "Recherchez et explorez dans un flux unique et rapide",
+      "c": [
+        {
+          "i": 2,
+          "t": "Component"
+        },
+        {
+          "c": [
+            {
+              "c": "Smart Collections",
+              "i": 4,
+              "t": "span"
+            },
+            " vous aide à distinguer ce qui demande une action de ce qui relève de l’inspiration"
+          ],
+          "i": 3,
+          "t": "span"
+        }
+      ],
       "i": 1,
-      "t": "h2"
+      "t": "li"
     },
     {
-      "c": "Simplifiez votre façon de consulter votre contenu enregistré et de le retrouver grâce à une interface unique, épurée et puissante, directement dans votre navigateur.",
-      "i": 2,
-      "t": "p"
+      "c": [
+        {
+          "i": 6,
+          "t": "CloudDownload"
+        },
+        {
+          "c": "Partagez ou exportez des collections depuis Cache à tout moment",
+          "i": 7,
+          "t": "span"
+        }
+      ],
+      "i": 5,
+      "t": "li"
+    },
+    {
+      "c": [
+        {
+          "i": 9,
+          "t": "Unlink"
+        },
+        {
+          "c": "Supprimez les doublons et les liens brisés",
+          "i": 10,
+          "t": "span"
+        }
+      ],
+      "i": 8,
+      "t": "li"
+    },
+    {
+      "c": [
+        {
+          "i": 12,
+          "t": "Sparkles"
+        },
+        {
+          "c": "Obtenez des analyses basées sur l’IA sur votre contenu enregistré",
+          "i": 13,
+          "t": "span"
+        }
+      ],
+      "i": 11,
+      "t": "li"
+    },
+    {
+      "c": [
+        {
+          "i": 15,
+          "t": "Bot"
+        },
+        {
+          "c": "Donnez à vos agents la possibilité d’interagir avec vos favoris (MCP)",
+          "i": 16,
+          "t": "span"
+        }
+      ],
+      "i": 14,
+      "t": "li"
     }
   ],
   "35d79362a091d51d": "Puis-je annuler mon abonnement&nbsp;?",
@@ -162,6 +234,18 @@
     "i": 1,
     "t": "p"
   },
+  "46ac4c186b5b9e5a": [
+    {
+      "c": "Connectez vos plateformes préférées — importez tout ce que vous avez déjà enregistré",
+      "i": 1,
+      "t": "h2"
+    },
+    {
+      "c": "Rassemblez automatiquement les favoris de vos réseaux sociaux, plateformes vidéo et navigateurs. Plus besoin de faire défiler sans fin ni de jongler entre plusieurs plateformes pour retrouver ce qui compte pour vous.",
+      "i": 2,
+      "t": "p"
+    }
+  ],
   "48de21dffb27aea4": "Journal des modifications",
   "4cbb381138182498": [
     {
@@ -305,6 +389,38 @@
     "i": 1,
     "t": "p"
   },
+  "8c6e42c48134ab7e": [
+    {
+      "c": [
+        {
+          "i": 2,
+          "t": "Terminal"
+        },
+        {
+          "c": "Utilisez la palette de commandes et les raccourcis pour travailler plus efficacement.",
+          "i": 3,
+          "t": "span"
+        }
+      ],
+      "i": 1,
+      "t": "li"
+    },
+    {
+      "c": [
+        {
+          "i": 5,
+          "t": "Search"
+        },
+        {
+          "c": "Trouvez n’importe quoi grâce à la recherche en texte intégral et à l’OCR",
+          "i": 6,
+          "t": "span"
+        }
+      ],
+      "i": 4,
+      "t": "li"
+    }
+  ],
   "8d088a9a26ac644e": "Tarifs",
   "8dce8ff73ffc32be": [
     {
@@ -316,105 +432,6 @@
       "c": "Passez plus souvent à l’action en gardant votre contenu enregistré le plus pertinent à portée de main, au lieu de le laisser se perdre dans une pile de marque-pages oubliés.",
       "i": 2,
       "t": "p"
-    }
-  ],
-  "8fe12bc974ca6d58": [
-    {
-      "c": [
-        {
-          "i": 2,
-          "t": "Component"
-        },
-        {
-          "c": [
-            {
-              "c": "Smart Collections",
-              "i": 4,
-              "t": "span"
-            },
-            " vous aide à distinguer ce qui appelle à l’action de ce qui vous inspire"
-          ],
-          "i": 3,
-          "t": "span"
-        }
-      ],
-      "i": 1,
-      "t": "li"
-    },
-    {
-      "c": [
-        {
-          "i": 6,
-          "t": "Search"
-        },
-        {
-          "c": "Retrouvez tout grâce à la recherche en texte intégral et à l’OCR",
-          "i": 7,
-          "t": "span"
-        }
-      ],
-      "i": 5,
-      "t": "li"
-    },
-    {
-      "c": [
-        {
-          "i": 9,
-          "t": "CloudDownload"
-        },
-        {
-          "c": "Partagez ou exportez vos collections depuis Cache à tout moment",
-          "i": 10,
-          "t": "span"
-        }
-      ],
-      "i": 8,
-      "t": "li"
-    },
-    {
-      "c": [
-        {
-          "i": 12,
-          "t": "Unlink"
-        },
-        {
-          "c": "Supprimez les doublons et les liens rompus",
-          "i": 13,
-          "t": "span"
-        }
-      ],
-      "i": 11,
-      "t": "li"
-    },
-    {
-      "c": [
-        {
-          "i": 15,
-          "t": "Sparkles"
-        },
-        {
-          "c": "Obtenez des analyses basées sur l’IA de votre contenu",
-          "i": 16,
-          "t": "span"
-        }
-      ],
-      "i": 14,
-      "t": "li"
-    },
-    {
-      "c": [
-        {
-          "i": 18,
-          "t": "Bot"
-        },
-        {
-          "c": "Donnez à vos agents la possibilité d’interagir avec vos favoris",
-          "i": 19,
-          "t": "span"
-        }
-      ],
-      "i": 17,
-      "t": "li"
     }
   ],
   "9289a45309fee6c6": "Continuer avec Google",
@@ -551,18 +568,6 @@
   ],
   "d011ae1a9a04132e": "Nous offrons une garantie satisfait ou remboursé de 30 jours. Si Cache ne vous convient pas, il vous suffit de nous le faire savoir dans les 30 jours suivant votre achat initial pour obtenir un remboursement intégral.",
   "d1526ef45744d297": "Oui&nbsp;! Nous tenons à soutenir les étudiants et les enseignants. Contactez notre équipe de support avec votre adresse e-mail académique pour recevoir un code de réduction spécial.",
-  "d2edacbe592e9608": [
-    {
-      "c": "Connectez vos plateformes préférées — importez tout ce que vous avez déjà enregistré",
-      "i": 1,
-      "t": "h2"
-    },
-    {
-      "c": "Rassemblez automatiquement les marque-pages issus des réseaux sociaux, des plateformes vidéo et de votre navigateur. Fini le défilement infini et les allers-retours entre plusieurs plateformes pour retrouver ce qui compte pour vous.",
-      "i": 2,
-      "t": "p"
-    }
-  ],
   "d353ed81b71684aa": "Intégrations",
   "d70e4938efa65780": {
     "c": [
@@ -702,5 +707,17 @@
   ],
   "fa7b804124828a9e": "Découvrez ce que Cache peut faire pour vous",
   "fbcddac4fd87ab2f": "Cache est une bibliothèque unifiée pour tout ce que vous enregistrez en ligne. Nous regroupons vos marque-pages, vos photos aimées et votre contenu enregistré depuis différentes plateformes dans un espace unique, sécurisé, consultable et organisé.",
-  "fee961fc81f1f189": "Règles d’utilisation du service, des comptes et de l’utilisation acceptable."
+  "fee961fc81f1f189": "Règles d’utilisation du service, des comptes et de l’utilisation acceptable.",
+  "fefb8ae2927f6a0c": [
+    {
+      "c": "Recherchez et explorez depuis un flux unique et rapide",
+      "i": 1,
+      "t": "h2"
+    },
+    {
+      "c": "Simplifiez votre façon de parcourir et de retrouver votre contenu enregistré grâce à une interface moderne et performante, directement dans votre navigateur.",
+      "i": 2,
+      "t": "p"
+    }
+  ]
 }

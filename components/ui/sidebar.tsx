@@ -153,13 +153,13 @@ function SidebarTrigger({
             {open ? (
                 <PanelLeftClose
                     aria-hidden
-                    className="size-4"
+                    className="inline-block size-3.5 shrink-0"
                     focusable="false"
                 />
             ) : (
                 <PanelLeftOpen
                     aria-hidden
-                    className="size-4"
+                    className="inline-block size-3.5 shrink-0"
                     focusable="false"
                 />
             )}

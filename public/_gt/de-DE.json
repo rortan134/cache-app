@@ -127,16 +127,88 @@
   "2e9224bc11574ab5": "Nach Markdown exportieren",
   "30a94c403df733bc": "Docs, Issues, Code, Tutorials. Finde diesen einen Link sofort wieder, ohne wieder suchen zu müssen.",
   "331304248ca3c976": "Gibt es Rabatte für Studierende?",
-  "347995ccf3b1c5d0": [
+  "352155f34be926bb": [
     {
-      "c": "Suche und entdecke alles in einem einzigen, schnellen Feed",
+      "c": [
+        {
+          "i": 2,
+          "t": "Component"
+        },
+        {
+          "c": [
+            {
+              "c": "Smart Collections",
+              "i": 4,
+              "t": "span"
+            },
+            " helfen dir, Konkretes von Inspiration zu trennen"
+          ],
+          "i": 3,
+          "t": "span"
+        }
+      ],
       "i": 1,
-      "t": "h2"
+      "t": "li"
     },
     {
-      "c": "Optimiere, wie du deine gespeicherten Inhalte nutzt und wiederfindest — über eine einzige, übersichtliche und leistungsstarke Oberfläche direkt in deinem Browser.",
-      "i": 2,
-      "t": "p"
+      "c": [
+        {
+          "i": 6,
+          "t": "CloudDownload"
+        },
+        {
+          "c": "Teile oder exportiere deine Sammlungen aus Cache jederzeit",
+          "i": 7,
+          "t": "span"
+        }
+      ],
+      "i": 5,
+      "t": "li"
+    },
+    {
+      "c": [
+        {
+          "i": 9,
+          "t": "Unlink"
+        },
+        {
+          "c": "Entferne Duplikate und fehlerhafte Links",
+          "i": 10,
+          "t": "span"
+        }
+      ],
+      "i": 8,
+      "t": "li"
+    },
+    {
+      "c": [
+        {
+          "i": 12,
+          "t": "Sparkles"
+        },
+        {
+          "c": "Gewinne KI-gestützte Erkenntnisse aus deinen Inhalten",
+          "i": 13,
+          "t": "span"
+        }
+      ],
+      "i": 11,
+      "t": "li"
+    },
+    {
+      "c": [
+        {
+          "i": 15,
+          "t": "Bot"
+        },
+        {
+          "c": "Gib deinen Agenten die Möglichkeit, mit deinen Lesezeichen zu interagieren (MCP)",
+          "i": 16,
+          "t": "span"
+        }
+      ],
+      "i": 14,
+      "t": "li"
     }
   ],
   "35d79362a091d51d": "Kann ich mein Abonnement kündigen?",
@@ -162,6 +234,18 @@
     "i": 1,
     "t": "p"
   },
+  "46ac4c186b5b9e5a": [
+    {
+      "c": "Verbinde deine Lieblingsplattformen — importiere alles, was du je gespeichert hast",
+      "i": 1,
+      "t": "h2"
+    },
+    {
+      "c": "Führe Lesezeichen aus sozialen Netzwerken, Videoplattformen und Browsern automatisch zusammen. Schluss mit endlosem Scrollen und dem Wechsel zwischen mehreren Plattformen, nur um das zu finden, was dir wichtig ist.",
+      "i": 2,
+      "t": "p"
+    }
+  ],
   "48de21dffb27aea4": "Änderungsprotokoll",
   "4cbb381138182498": [
     {
@@ -304,6 +388,38 @@
     "i": 1,
     "t": "p"
   },
+  "8c6e42c48134ab7e": [
+    {
+      "c": [
+        {
+          "i": 2,
+          "t": "Terminal"
+        },
+        {
+          "c": "Nutze das Befehlsmenü und Tastenkürzel für effiziente Workflows.",
+          "i": 3,
+          "t": "span"
+        }
+      ],
+      "i": 1,
+      "t": "li"
+    },
+    {
+      "c": [
+        {
+          "i": 5,
+          "t": "Search"
+        },
+        {
+          "c": "Finde alles mit Volltextsuche und OCR (optische Zeichenerkennung)",
+          "i": 6,
+          "t": "span"
+        }
+      ],
+      "i": 4,
+      "t": "li"
+    }
+  ],
   "8d088a9a26ac644e": "Preise",
   "8dce8ff73ffc32be": [
     {
@@ -315,105 +431,6 @@
       "c": "Eröffne dir mehr konkrete Möglichkeiten, indem du deine wertvollsten gespeicherten Inhalte präsent hältst, statt sie im Rückstau vergessener Lesezeichen untergehen zu lassen.",
       "i": 2,
       "t": "p"
-    }
-  ],
-  "8fe12bc974ca6d58": [
-    {
-      "c": [
-        {
-          "i": 2,
-          "t": "Component"
-        },
-        {
-          "c": [
-            {
-              "c": "Smart Collections",
-              "i": 4,
-              "t": "span"
-            },
-            " helfen dir, Konkretes von Inspiration zu trennen"
-          ],
-          "i": 3,
-          "t": "span"
-        }
-      ],
-      "i": 1,
-      "t": "li"
-    },
-    {
-      "c": [
-        {
-          "i": 6,
-          "t": "Search"
-        },
-        {
-          "c": "Finde alles mit intelligenter Volltextsuche und OCR (optische Zeichenerkennung)",
-          "i": 7,
-          "t": "span"
-        }
-      ],
-      "i": 5,
-      "t": "li"
-    },
-    {
-      "c": [
-        {
-          "i": 9,
-          "t": "CloudDownload"
-        },
-        {
-          "c": "Teile oder exportiere Sammlungen jederzeit aus Cache",
-          "i": 10,
-          "t": "span"
-        }
-      ],
-      "i": 8,
-      "t": "li"
-    },
-    {
-      "c": [
-        {
-          "i": 12,
-          "t": "Unlink"
-        },
-        {
-          "c": "Entferne Duplikate und defekte Links",
-          "i": 13,
-          "t": "span"
-        }
-      ],
-      "i": 11,
-      "t": "li"
-    },
-    {
-      "c": [
-        {
-          "i": 15,
-          "t": "Sparkles"
-        },
-        {
-          "c": "Erhalte KI-gestützte Erkenntnisse aus deinen Inhalten",
-          "i": 16,
-          "t": "span"
-        }
-      ],
-      "i": 14,
-      "t": "li"
-    },
-    {
-      "c": [
-        {
-          "i": 18,
-          "t": "Bot"
-        },
-        {
-          "c": "Gib deinen Agenten die Möglichkeit, mit deinen Lesezeichen zu interagieren",
-          "i": 19,
-          "t": "span"
-        }
-      ],
-      "i": 17,
-      "t": "li"
     }
   ],
   "9289a45309fee6c6": "Mit Google fortfahren",
@@ -549,18 +566,6 @@
   ],
   "d011ae1a9a04132e": "Wir bieten eine 30-tägige Geld-zurück-Garantie. Wenn Cache nicht das Richtige für dich ist, gib uns einfach innerhalb von 30 Tagen nach deinem Erstkauf Bescheid, und du bekommst den vollen Betrag zurück.",
   "d1526ef45744d297": "Ja! Wir finden, dass Studierende und Lehrkräfte Unterstützung verdienen. Kontaktiere unser Support-Team einfach mit deiner akademischen E-Mail-Adresse, um einen speziellen Rabattcode zu erhalten.",
-  "d2edacbe592e9608": [
-    {
-      "c": "Verbinde deine Lieblingsplattformen — importiere alles, was du je gespeichert hast",
-      "i": 1,
-      "t": "h2"
-    },
-    {
-      "c": "Führe Lesezeichen aus Social Media, Videos und deinem Browser automatisch an einem Ort zusammen. Schluss mit endlosem Scrollen und dem Wechsel zwischen mehreren Plattformen, nur um das zu finden, was dir wichtig ist.",
-      "i": 2,
-      "t": "p"
-    }
-  ],
   "d353ed81b71684aa": "Integrationen",
   "d70e4938efa65780": {
     "c": [
@@ -700,5 +705,17 @@
   ],
   "fa7b804124828a9e": "Entdecke, was Cache für dich tun kann",
   "fbcddac4fd87ab2f": "Cache ist die zentrale Bibliothek für alles, was du online speicherst. Wir bringen deine Lesezeichen, mit „Gefällt mir“ markierten Fotos und gespeicherten Inhalte von verschiedenen Plattformen an einem sicheren, durchsuchbaren und gut organisierten Ort zusammen.",
-  "fee961fc81f1f189": "Regeln für die Nutzung des Dienstes, Konten und zulässige Nutzung."
+  "fee961fc81f1f189": "Regeln für die Nutzung des Dienstes, Konten und zulässige Nutzung.",
+  "fefb8ae2927f6a0c": [
+    {
+      "c": "Suche und entdecke alles in einem einzigen, schnellen Feed",
+      "i": 1,
+      "t": "h2"
+    },
+    {
+      "c": "Optimiere, wie du deine gespeicherten Inhalte durchstöberst und wiederfindest – mit einer modernen, leistungsstarken Oberfläche direkt in deinem Browser.",
+      "i": 2,
+      "t": "p"
+    }
+  ]
 }

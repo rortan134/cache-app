@@ -127,16 +127,88 @@
   "2e9224bc11574ab5": "Exportar a Markdown",
   "30a94c403df733bc": "Documentación, incidencias, código, tutoriales. Encuentra ese enlace al instante sin tener que buscarlo de nuevo.",
   "331304248ca3c976": "¿Tenéis descuentos para estudiantes?",
-  "347995ccf3b1c5d0": [
+  "352155f34be926bb": [
     {
-      "c": "Busca y explora desde un único feed ágil",
+      "c": [
+        {
+          "i": 2,
+          "t": "Component"
+        },
+        {
+          "c": [
+            {
+              "c": "Smart Collections",
+              "i": 4,
+              "t": "span"
+            },
+            " te ayuda a separar lo útil de la inspiración"
+          ],
+          "i": 3,
+          "t": "span"
+        }
+      ],
       "i": 1,
-      "t": "h2"
+      "t": "li"
     },
     {
-      "c": "Simplifica cómo consumes y recuperas tu contenido guardado desde una interfaz única, limpia y potente, directamente en tu navegador.",
-      "i": 2,
-      "t": "p"
+      "c": [
+        {
+          "i": 6,
+          "t": "CloudDownload"
+        },
+        {
+          "c": "Comparte o exporta colecciones de Cache cuando quieras",
+          "i": 7,
+          "t": "span"
+        }
+      ],
+      "i": 5,
+      "t": "li"
+    },
+    {
+      "c": [
+        {
+          "i": 9,
+          "t": "Unlink"
+        },
+        {
+          "c": "Elimina duplicados y enlaces rotos",
+          "i": 10,
+          "t": "span"
+        }
+      ],
+      "i": 8,
+      "t": "li"
+    },
+    {
+      "c": [
+        {
+          "i": 12,
+          "t": "Sparkles"
+        },
+        {
+          "c": "Obtén información impulsada por IA sobre tu contenido",
+          "i": 13,
+          "t": "span"
+        }
+      ],
+      "i": 11,
+      "t": "li"
+    },
+    {
+      "c": [
+        {
+          "i": 15,
+          "t": "Bot"
+        },
+        {
+          "c": "Da a tus agentes la capacidad de interactuar con tus marcadores (MCP)",
+          "i": 16,
+          "t": "span"
+        }
+      ],
+      "i": 14,
+      "t": "li"
     }
   ],
   "35d79362a091d51d": "¿Puedo cancelar mi suscripción?",
@@ -162,6 +234,18 @@
     "i": 1,
     "t": "p"
   },
+  "46ac4c186b5b9e5a": [
+    {
+      "c": "Conecta tus plataformas favoritas — Importa todo lo que has guardado alguna vez",
+      "i": 1,
+      "t": "h2"
+    },
+    {
+      "c": "Reúne automáticamente marcadores de redes sociales, vídeos y el navegador. Olvídate del desplazamiento infinito y de saltar entre plataformas para encontrar lo que de verdad te importa.",
+      "i": 2,
+      "t": "p"
+    }
+  ],
   "48de21dffb27aea4": "Registro de cambios",
   "4cbb381138182498": [
     {
@@ -304,6 +388,38 @@
     "i": 1,
     "t": "p"
   },
+  "8c6e42c48134ab7e": [
+    {
+      "c": [
+        {
+          "i": 2,
+          "t": "Terminal"
+        },
+        {
+          "c": "Usa el menú de comandos y los atajos para trabajar de forma eficiente.",
+          "i": 3,
+          "t": "span"
+        }
+      ],
+      "i": 1,
+      "t": "li"
+    },
+    {
+      "c": [
+        {
+          "i": 5,
+          "t": "Search"
+        },
+        {
+          "c": "Encuentra cualquier cosa con búsqueda de texto completo y OCR (reconocimiento óptico de caracteres)",
+          "i": 6,
+          "t": "span"
+        }
+      ],
+      "i": 4,
+      "t": "li"
+    }
+  ],
   "8d088a9a26ac644e": "Precios",
   "8dce8ff73ffc32be": [
     {
@@ -315,105 +431,6 @@
       "c": "Crea más oportunidades de pasar a la acción manteniendo tu contenido guardado más valioso siempre a mano, en lugar de perderlo en un mar de marcadores olvidados.",
       "i": 2,
       "t": "p"
-    }
-  ],
-  "8fe12bc974ca6d58": [
-    {
-      "c": [
-        {
-          "i": 2,
-          "t": "Component"
-        },
-        {
-          "c": [
-            {
-              "c": "Smart Collections",
-              "i": 4,
-              "t": "span"
-            },
-            " te ayuda a separar lo práctico de la inspiración"
-          ],
-          "i": 3,
-          "t": "span"
-        }
-      ],
-      "i": 1,
-      "t": "li"
-    },
-    {
-      "c": [
-        {
-          "i": 6,
-          "t": "Search"
-        },
-        {
-          "c": "Encuentra cualquier cosa con búsqueda de texto completo y OCR (reconocimiento óptico de caracteres)",
-          "i": 7,
-          "t": "span"
-        }
-      ],
-      "i": 5,
-      "t": "li"
-    },
-    {
-      "c": [
-        {
-          "i": 9,
-          "t": "CloudDownload"
-        },
-        {
-          "c": "Comparte o exporta tus colecciones desde Cache cuando quieras",
-          "i": 10,
-          "t": "span"
-        }
-      ],
-      "i": 8,
-      "t": "li"
-    },
-    {
-      "c": [
-        {
-          "i": 12,
-          "t": "Unlink"
-        },
-        {
-          "c": "Elimina duplicados y enlaces rotos",
-          "i": 13,
-          "t": "span"
-        }
-      ],
-      "i": 11,
-      "t": "li"
-    },
-    {
-      "c": [
-        {
-          "i": 15,
-          "t": "Sparkles"
-        },
-        {
-          "c": "Obtén información impulsada por IA sobre tu contenido",
-          "i": 16,
-          "t": "span"
-        }
-      ],
-      "i": 14,
-      "t": "li"
-    },
-    {
-      "c": [
-        {
-          "i": 18,
-          "t": "Bot"
-        },
-        {
-          "c": "Da a tus agentes la capacidad de interactuar con tus marcadores",
-          "i": 19,
-          "t": "span"
-        }
-      ],
-      "i": 17,
-      "t": "li"
     }
   ],
   "9289a45309fee6c6": "Continuar con Google",
@@ -550,18 +567,6 @@
   ],
   "d011ae1a9a04132e": "Ofrecemos una garantía de reembolso de 30 días. Si Cache no es lo tuyo, avísanos dentro de los 30 días posteriores a tu compra inicial y te devolveremos el importe íntegro.",
   "d1526ef45744d297": "¡Sí! Queremos apoyar a estudiantes y docentes. Ponte en contacto con nuestro equipo de soporte con tu correo académico para recibir un código de descuento especial.",
-  "d2edacbe592e9608": [
-    {
-      "c": "Conecta tus plataformas favoritas e importa todo lo que hayas guardado alguna vez",
-      "i": 1,
-      "t": "h2"
-    },
-    {
-      "c": "Reúne automáticamente los marcadores de redes sociales, vídeo y navegador. Olvídate del scroll infinito y de ir saltando entre plataformas para encontrar lo que de verdad te importa.",
-      "i": 2,
-      "t": "p"
-    }
-  ],
   "d353ed81b71684aa": "Integraciones",
   "d70e4938efa65780": {
     "c": [
@@ -701,5 +706,17 @@
   ],
   "fa7b804124828a9e": "Descubre lo que Cache puede hacer por ti",
   "fbcddac4fd87ab2f": "Cache es una biblioteca unificada para todo lo que guardas online. Reúne tus marcadores, las fotos que te gustan y el contenido guardado de distintas plataformas en un único espacio seguro, organizado y con búsqueda.",
-  "fee961fc81f1f189": "Normas de uso del servicio, las cuentas y el uso aceptable."
+  "fee961fc81f1f189": "Normas de uso del servicio, las cuentas y el uso aceptable.",
+  "fefb8ae2927f6a0c": [
+    {
+      "c": "Busca y explora desde un único feed ágil",
+      "i": 1,
+      "t": "h2"
+    },
+    {
+      "c": "Agiliza la forma en que consumes y redescubres tu contenido guardado desde una interfaz moderna y potente, directamente en tu navegador.",
+      "i": 2,
+      "t": "p"
+    }
+  ]
 }
