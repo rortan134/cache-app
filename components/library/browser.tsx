@@ -87,7 +87,7 @@ import {
     KanbanColumn,
     KanbanItem,
 } from "@/components/ui/kanban";
-import { CtrlKbd, Kbd, KbdGroup } from "@/components/ui/kbd";
+import { CmdKbd, Kbd, KbdGroup } from "@/components/ui/kbd";
 import { Masonry, MasonryItem } from "@/components/ui/masonry";
 import {
     Menu,
@@ -2664,7 +2664,7 @@ function LibraryPaletteTrailing({
         <>
             {entries.length === 0 && !isCommandInputFocused && (
                 <Kbd className="border-none text-muted-foreground opacity-50">
-                    <CtrlKbd />G
+                    <CmdKbd />G
                 </Kbd>
             )}
             <TruncateAfter
@@ -5398,7 +5398,7 @@ export function Browser({ lockedItemCount, totalItemCount }: LibraryProps) {
                                             &nbsp;
                                             {suggestion.label}
                                             <Kbd className="bg-transparent px-0 text-[11px] opacity-50">
-                                                <CtrlKbd />
+                                                <CmdKbd />
                                                 {index + 1}
                                             </Kbd>
                                         </Button>

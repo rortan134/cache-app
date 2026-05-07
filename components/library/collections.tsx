@@ -44,7 +44,7 @@ import {
     PriorityNoneIcon,
 } from "@/components/ui/icons";
 import { Input } from "@/components/ui/input";
-import { CtrlKbd, Kbd } from "@/components/ui/kbd";
+import { CmdKbd, Kbd } from "@/components/ui/kbd";
 import {
     Menu,
     MenuCheckboxItem,
@@ -699,7 +699,7 @@ export function Collections() {
                     <CollectionsListToolbarGroup className="absolute right-1">
                         {controller.isCollectionsListOpen ? null : (
                             <Kbd className="bg-transparent opacity-0 group-hover:opacity-50">
-                                <CtrlKbd />C
+                                <CmdKbd />C
                             </Kbd>
                         )}
                         <CollectionsListToolbarButton
@@ -2124,7 +2124,7 @@ function CollectionsListSortingCombobox({
                 <ComboboxInput
                     endAddon={
                         <Kbd>
-                            <CtrlKbd />F
+                            <CmdKbd />F
                         </Kbd>
                     }
                     placeholder="Sort by..."
@@ -3153,10 +3153,10 @@ export {
     CollectionsListTrigger,
     CreateDialog,
     DeleteDialog,
-    getPriorityOption,
     RenameDialog,
     SORT_OPTION_BY_VALUE,
     TEMPLATES,
+    getPriorityOption,
     type CollectionFeedback,
     type CollectionsListItemContextValue,
     type CollectionsListItemMetaProps,

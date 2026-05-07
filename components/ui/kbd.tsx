@@ -2,7 +2,11 @@
 
 import { useClientOnlyValue } from "@/components/ui/client-only";
 import { cn } from "@/lib/common/cn";
-import { getSystemControlKey } from "@/lib/common/environment";
+import {
+    getSystemAltKey,
+    getSystemControlKey,
+    getSystemShiftKey,
+} from "@/lib/common/environment";
 import type * as React from "react";
 
 export function Kbd({ className, ...props }: React.ComponentProps<"kbd">) {
@@ -28,7 +32,17 @@ export function KbdGroup({ className, ...props }: React.ComponentProps<"kbd">) {
     );
 }
 
-export function CtrlKbd() {
+export function CmdKbd() {
     const modKey = useClientOnlyValue(getSystemControlKey());
     return modKey;
+}
+
+export function AltKbd() {
+    const altKey = useClientOnlyValue(getSystemAltKey());
+    return altKey;
+}
+
+export function ShiftKbd() {
+    const shiftKey = useClientOnlyValue(getSystemShiftKey());
+    return shiftKey;
 }

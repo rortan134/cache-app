@@ -21,7 +21,7 @@ import { AppSidebarNavigation } from "@/components/ui/app-sidebar-navigation";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { DisclosureList } from "@/components/ui/disclosure-list";
 import { ChevronDownFilledIcon } from "@/components/ui/icons";
-import { CtrlKbd, Kbd } from "@/components/ui/kbd";
+import { CmdKbd, Kbd } from "@/components/ui/kbd";
 import { PageShell } from "@/components/ui/page-shell";
 import {
     Sidebar,
@@ -136,7 +136,7 @@ export default async function LibraryPage() {
                                             </span>
                                             <ChevronDownFilledIcon className="-ml-0.5" />
                                             <Kbd className="ml-auto bg-transparent opacity-0 group-hover:opacity-50">
-                                                <CtrlKbd />I
+                                                <CmdKbd />I
                                             </Kbd>
                                         </IntegrationsListTrigger>
                                         <IntegrationsListPanel>

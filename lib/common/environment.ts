@@ -59,3 +59,7 @@ export const IS_APPLE_WEBKIT =
     !IS_CHROME;
 
 export const getSystemControlKey = () => (IS_APPLE ? "⌘" : "Ctrl");
+
+export const getSystemAltKey = () => (IS_APPLE ? "⌥" : "Alt");
+
+export const getSystemShiftKey = () => (IS_APPLE ? "⇧" : "Shift");

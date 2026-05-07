@@ -1,9 +1,8 @@
 import { JsonLdScript } from "@/app/json-ld-script";
 import { buildPageMetadata } from "@/app/metadata";
-import { GoogleSignInButton } from "@/components/auth/google-sign-in-button";
 import { GoogleOneTapTrigger, SessionHint } from "@/components/auth/session";
+import { HeroCta } from "@/components/landing/hero-cta";
 import { BrandLogo } from "@/components/ui/brand-logo";
-import { Button } from "@/components/ui/button";
 import { Carousel } from "@/components/ui/carousel";
 import { Footer } from "@/components/ui/footer";
 import { GradientWaveText } from "@/components/ui/gradient-wave-text";
@@ -26,7 +25,6 @@ import SmartCollectionsBackgroundImage from "@/public/smart-collections-backgrou
 import { LocaleSelector, T } from "gt-next";
 import {
     Bot,
-    ChevronRight,
     CircleCheck,
     CloudDownload,
     Component,
@@ -37,7 +35,6 @@ import {
 } from "lucide-react";
 import type { Metadata } from "next";
 import Image from "next/image";
-import Link from "next/link";
 import type React from "react";
 
 export async function generateMetadata({
@@ -123,24 +120,7 @@ export default async function Home() {
                                 </p>
                             </T>
                         </div>
-                        {session ? (
-                            <Button
-                                render={
-                                    <Link href="/library">
-                                        Go to my library
-                                        <ChevronRight className="size-4" />
-                                    </Link>
-                                }
-                                size="xl"
-                                suppressHydrationWarning
-                            />
-                        ) : (
-                            <GoogleSignInButton>
-                                <T context="Sign in/up CTA button">
-                                    Continue with Google
-                                </T>
-                            </GoogleSignInButton>
-                        )}
+                        <HeroCta isAuthenticated={!!session} />
                         <SessionHint serverSession={session} />
                     </SidebarHeader>
                     <SidebarFooter>

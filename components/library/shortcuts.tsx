@@ -8,8 +8,10 @@ import {
     DialogTitle,
     DialogTrigger,
 } from "@/components/ui/dialog";
-import { Kbd, KbdGroup } from "@/components/ui/kbd";
+import { AltKbd, CmdKbd, Kbd, KbdGroup, ShiftKbd } from "@/components/ui/kbd";
 import type * as React from "react";
+import { useState } from "react";
+import { useHotkeys } from "react-hotkeys-hook";
 
 /**
  * Library-wide keyboard shortcuts exposed in the help dialog.
@@ -19,7 +21,7 @@ import type * as React from "react";
  */
 const KEYBOARD_SHORTCUTS = [
     {
-        keys: "⌘/Ctrl+G",
+        keys: "mod+G",
         label: "Search library",
     },
     {
@@ -35,30 +37,47 @@ const KEYBOARD_SHORTCUTS = [
         label: "Open priority picker for hovered collection",
     },
     {
-        keys: "⌘/Ctrl+I",
+        keys: "mod+I",
         label: "Toggle integrations panel",
     },
     {
-        keys: "⌘/Ctrl+C",
+        keys: "mod+C",
         label: "Toggle collections panel",
     },
     {
-        keys: "⌘/Ctrl+B",
+        keys: "mod+B",
         label: "Expand or collapse sidebar",
     },
     {
-        keys: "⌘/Ctrl+N",
+        keys: "mod+N",
         label: "Create new collection",
     },
     {
-        keys: "⌘/Ctrl+F",
+        keys: "mod+F",
         label: "Sort and organize collections",
     },
     {
-        keys: "⌘/Ctrl+1-9",
+        keys: "mod+1-9",
         label: "Run command palette item 1-9",
     },
+    {
+        keys: "mod+/",
+        label: "Open keyboard shortcuts",
+    },
 ];
+
+function ShortcutKeyPart({ part }: { part: string }) {
+    switch (part.toLowerCase()) {
+        case "mod":
+            return <CmdKbd />;
+        case "alt":
+            return <AltKbd />;
+        case "shift":
+            return <ShiftKbd />;
+        default:
+            return part;
+    }
+}
 
 /**
  * Button that opens a read-only dialog listing all library keyboard shortcuts.
@@ -68,30 +87,40 @@ const KEYBOARD_SHORTCUTS = [
  */
 export const KeyboardShortcutsDialogTrigger = (
     props: React.ComponentProps<typeof DialogTrigger>
-) => (
-    <Dialog>
-        <DialogTrigger {...props} />
-        <DialogPopup>
-            <DialogHeader>
-                <DialogTitle>Keyboard shortcuts</DialogTitle>
-            </DialogHeader>
-            <DialogPanel>
-                {KEYBOARD_SHORTCUTS.map((shortcut) => (
-                    <div
-                        className="flex items-center justify-between"
-                        key={shortcut.label}
-                    >
-                        <span className="my-3 flex items-center gap-2 font-medium text-foreground text-sm">
-                            {shortcut.label}
-                        </span>
-                        <KbdGroup>
-                            {shortcut.keys.split("+").map((part, i) => (
-                                <Kbd key={i}>{part}</Kbd>
-                            ))}
-                        </KbdGroup>
-                    </div>
-                ))}
-            </DialogPanel>
-        </DialogPopup>
-    </Dialog>
-);
+) => {
+    const [open, setOpen] = useState(false);
+
+    useHotkeys("mod+/", () => {
+        setOpen(true);
+    });
+
+    return (
+        <Dialog onOpenChange={setOpen} open={open}>
+            <DialogTrigger {...props} />
+            <DialogPopup>
+                <DialogHeader>
+                    <DialogTitle>Keyboard shortcuts</DialogTitle>
+                </DialogHeader>
+                <DialogPanel>
+                    {KEYBOARD_SHORTCUTS.map((shortcut) => (
+                        <div
+                            className="flex items-center justify-between"
+                            key={shortcut.label}
+                        >
+                            <span className="my-3 flex items-center gap-2 font-medium text-foreground text-sm">
+                                {shortcut.label}
+                            </span>
+                            <KbdGroup>
+                                {shortcut.keys.split("+").map((part, i) => (
+                                    <Kbd key={i}>
+                                        <ShortcutKeyPart part={part} />
+                                    </Kbd>
+                                ))}
+                            </KbdGroup>
+                        </div>
+                    ))}
+                </DialogPanel>
+            </DialogPopup>
+        </Dialog>
+    );
+};

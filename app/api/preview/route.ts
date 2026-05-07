@@ -15,6 +15,10 @@ const log = createLogger("api:library:preview");
 
 const CACHE_CONTROL_HEADER =
     "public, max-age=86400, s-maxage=604800, stale-while-revalidate=604800";
+const VERCEL_CDN_CACHE_CONTROL_HEADER =
+    "public, max-age=604800, stale-while-revalidate=604800";
+const VERCEL_CACHE_TAG_HEADER = "Vercel-Cache-Tag";
+const VERCEL_CDN_CACHE_CONTROL_HEADER_NAME = "Vercel-CDN-Cache-Control";
 const FETCH_TIMEOUT_MS = 5000;
 const MAX_REDIRECTS = 2;
 const COBALT_RETRY_ATTEMPTS = 2;
@@ -83,6 +87,7 @@ export async function GET(request: Request): Promise<Response> {
             headers: {
                 "cache-control": CACHE_CONTROL_HEADER,
                 "content-type": imageContentType,
+                ...createPreviewCacheHeaders(targetUrl, "image"),
             },
             status: 200,
         });
@@ -174,7 +179,7 @@ async function handleVideoPreview(
             return new Response("Video preview not available", { status: 404 });
         }
 
-        return proxyVideoResponse(videoResult.videoUrl, signal);
+        return proxyVideoResponse(videoResult.videoUrl, targetUrl, signal);
     } catch (error) {
         if (isAbortError(error)) {
             return new Response(null, { status: 499 });
@@ -191,6 +196,7 @@ async function handleVideoPreview(
 
 async function proxyVideoResponse(
     videoUrl: string,
+    targetUrl: string,
     signal?: AbortSignal
 ): Promise<Response> {
     try {
@@ -214,13 +220,14 @@ async function proxyVideoResponse(
         const headers = new Headers();
         const contentType =
             tunnelResponse.headers.get("content-type") ?? "video/mp4";
+        const contentLength = tunnelResponse.headers.get("content-length");
         headers.set("content-type", contentType);
-        headers.set(
-            "content-length",
-            tunnelResponse.headers.get("content-length") ?? ""
-        );
+        if (contentLength) {
+            headers.set("content-length", contentLength);
+        }
         headers.set("accept-ranges", "bytes");
         headers.set("cache-control", CACHE_CONTROL_HEADER);
+        setPreviewCacheHeaders(headers, targetUrl, "video");
 
         return new Response(tunnelResponse.body, {
             headers,
@@ -409,4 +416,41 @@ function isRedirectStatus(status: number): boolean {
 
 function hashTargetUrl(targetUrl: string): string {
     return createHash("sha256").update(targetUrl).digest("hex").slice(0, 16);
+}
+
+function createPreviewCacheHeaders(
+    targetUrl: string,
+    type: "image" | "video"
+): Record<string, string> {
+    const tag = createPreviewCacheTag(targetUrl, type);
+    return {
+        [VERCEL_CDN_CACHE_CONTROL_HEADER_NAME]: VERCEL_CDN_CACHE_CONTROL_HEADER,
+        [VERCEL_CACHE_TAG_HEADER]: tag,
+    };
+}
+
+function setPreviewCacheHeaders(
+    headers: Headers,
+    targetUrl: string,
+    type: "image" | "video"
+): void {
+    headers.set(
+        VERCEL_CDN_CACHE_CONTROL_HEADER_NAME,
+        VERCEL_CDN_CACHE_CONTROL_HEADER
+    );
+    headers.set(
+        VERCEL_CACHE_TAG_HEADER,
+        createPreviewCacheTag(targetUrl, type)
+    );
+}
+
+function createPreviewCacheTag(
+    targetUrl: string,
+    type: "image" | "video"
+): string {
+    const hashedTargetUrl = hashTargetUrl(targetUrl);
+    if (type === "image") {
+        return `preview:${hashedTargetUrl},preview:image:${hashedTargetUrl}`;
+    }
+    return `preview:video:${hashedTargetUrl}`;
 }

@@ -16,7 +16,7 @@ export function AppSidebarNavigation() {
                             focusable="false"
                         />
                         <span data-sidebar-label="">
-                            <T>Home</T>
+                            <T>Library</T>
                         </span>
                     </SidebarItem>
                 </ActivePathname>
@@ -49,19 +49,20 @@ export function AppSidebarNavigation() {
                     </SidebarItem>
                 </ActivePathname>
             </Link>
-            <SidebarItem
-                aria-disabled="true"
-                className="opacity-45 hover:opacity-45 hover:before:opacity-0 focus-visible:opacity-45"
-            >
-                <Workflow
-                    aria-hidden
-                    className="inline-block size-4 shrink-0"
-                    focusable="false"
-                />
-                <span data-sidebar-label="">
-                    <T>Workflows (soon)</T>
-                </span>
-            </SidebarItem>
+            <Link className="contents" href="/workflows" prefetch>
+                <ActivePathname href="/workflows">
+                    <SidebarItem>
+                        <Workflow
+                            aria-hidden
+                            className="inline-block size-4 shrink-0"
+                            focusable="false"
+                        />
+                        <span data-sidebar-label="">
+                            <T>Workflows</T>
+                        </span>
+                    </SidebarItem>
+                </ActivePathname>
+            </Link>
         </SidebarGroup>
     );
 }

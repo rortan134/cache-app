@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Group } from "@/components/ui/group";
 import { CrownFilledIcon } from "@/components/ui/icons";
+import { AltKbd, CmdKbd, Kbd, KbdGroup, ShiftKbd } from "@/components/ui/kbd";
 import { Popover, PopoverPopup, PopoverTrigger } from "@/components/ui/popover";
 import { Separator } from "@/components/ui/separator";
 import { SidebarItem } from "@/components/ui/sidebar";
@@ -355,6 +356,14 @@ export function UserMenuContent() {
                     render={
                         <Button className="justify-between" variant="ghost">
                             <T>Keyboard shortcuts</T>
+                            <span
+                                aria-hidden
+                                className="ml-auto inline-flex items-center gap-1"
+                            >
+                                <Kbd>
+                                    <CmdKbd />/
+                                </Kbd>
+                            </span>
                         </Button>
                     }
                 />
@@ -364,7 +373,21 @@ export function UserMenuContent() {
                     }
                 >
                     <T context="User Log out/Sign out of the app">Log out</T>
-                    <LogOut className="ml-auto inline-block size-4 shrink-0 text-muted-foreground" />
+                    <span
+                        aria-hidden
+                        className="ml-auto inline-flex items-center gap-1.5"
+                    >
+                        <KbdGroup>
+                            <Kbd>
+                                <AltKbd />
+                            </Kbd>
+                            <Kbd>
+                                <ShiftKbd />
+                            </Kbd>
+                            <Kbd>Q</Kbd>
+                        </KbdGroup>
+                        <LogOut className="inline-block size-4 shrink-0 text-muted-foreground" />
+                    </span>
                 </LogoutButton>
             </MenuSection>
         </>
