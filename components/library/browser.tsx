@@ -5124,7 +5124,7 @@ export function Browser({ lockedItemCount, totalItemCount }: LibraryProps) {
 
     return (
         <div
-            className="flex min-w-0 flex-1 items-center gap-12 p-8"
+            className="flex w-full min-w-0 max-w-[1024px] flex-1 items-center gap-12 p-8 2xl:mx-auto"
             ref={containerRef}
         >
             <div
