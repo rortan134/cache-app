@@ -36,7 +36,13 @@ import { LexicalErrorBoundary } from "@lexical/react/LexicalErrorBoundary";
 import { OnChangePlugin } from "@lexical/react/LexicalOnChangePlugin";
 import { PlainTextPlugin } from "@lexical/react/LexicalPlainTextPlugin";
 import { $createParagraphNode, $createTextNode, $getRoot } from "lexical";
-import { ChevronDown, ChevronRight, Clock, Plus, Rows3 } from "lucide-react";
+import {
+    ChevronDown,
+    ChevronRight,
+    Clock,
+    FolderOpen,
+    Plus,
+} from "lucide-react";
 import Image from "next/image";
 import * as React from "react";
 
@@ -163,7 +169,7 @@ export function WorkflowComposerDialog({
                             </Badge>
                             <ChevronRight className="inline-block size-3.5 shrink-0" />
                             <DialogTitle className="font-medium text-sm">
-                                {isEditing ? "Edit workflow" : "New workflow"}
+                                Workflow
                             </DialogTitle>
                         </div>
                     </DialogHeader>
@@ -283,14 +289,14 @@ function WorkflowMarkdownEditor({
 
     return (
         <LexicalComposer initialConfig={initialConfig} key={editorKey}>
-            <div className="relative -mx-[calc(--spacing(3)-1px)] min-h-24 text-base sm:text-sm">
+            <div className="relative min-h-48 text-base sm:text-sm">
                 <PlainTextPlugin
                     contentEditable={
                         <ContentEditable
                             aria-label="Workflow instructions"
                             aria-labelledby={labelId}
                             className={cn(
-                                "min-h-24 whitespace-pre-wrap text-foreground leading-7 outline-none",
+                                "min-h-48 whitespace-pre-wrap text-foreground leading-7 outline-none",
                                 "placeholder:text-muted-foreground/72"
                             )}
                         />
@@ -357,7 +363,7 @@ function WorkflowCollectionCombobox({
                 }
             >
                 <span className="flex items-center gap-2">
-                    <Rows3
+                    <FolderOpen
                         aria-hidden
                         className="size-3.5 text-muted-foreground"
                         focusable="false"
