@@ -14,6 +14,23 @@ export interface ChangelogEntry {
 export const changelogEntries = [
     {
         button: {
+            text: "Open Library",
+            url: "/library",
+        },
+        date: "8 May 2026",
+        description:
+            "Collections can now be marked as Favorites, giving your most important groups a dedicated home above the full collections list without changing how the rest of your library is organized.",
+        items: [
+            "Favorite collections appear in their own collapsible section",
+            "A Star action in each collection menu lets you add or remove Favorites quickly",
+            "Favorited collections still remain in the main Collections list",
+            "Favorite choices are saved locally on your device",
+        ],
+        title: "Favorite collections",
+        version: "Version 1.1.1",
+    },
+    {
+        button: {
             text: "Open Integrations",
             url: "/library",
         },
