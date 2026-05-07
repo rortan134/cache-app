@@ -134,6 +134,7 @@ import {
     SignalHigh,
     SignalMedium,
     Sparkle,
+    Star,
     Trash2Icon,
     UserRoundPlus,
     X,
@@ -429,7 +430,9 @@ const TEMPLATES = [
 type TemplateValue = (typeof TEMPLATES)[number]["value"];
 
 const { useStore: useCollectionsListStateStore } = createStore({
+    favoriteCollectionIds: storage<string[]>([]),
     isCollectionsListOpen: storage(false),
+    isFavoritesListOpen: storage(true),
 });
 
 const CollectionsListItemContext =
@@ -659,7 +662,34 @@ export function Collections() {
 
     return (
         <>
+            {controller.favoriteCollectionSummaries.length > 0 ? (
+                <CollectionsFavoritesList
+                    collectionLabels={controller.favoriteCollectionSummaries.map(
+                        (collection) => collection.name
+                    )}
+                    data-sidebar-collapsible=""
+                    favoriteCount={
+                        controller.favoriteCollectionSummaries.length
+                    }
+                    isOpen={controller.isFavoritesListOpen}
+                    onOpenChange={controller.setIsFavoritesListOpen}
+                >
+                    <DisclosureList maxVisible={10}>
+                        {controller.favoriteCollectionSummaries.map(
+                            (collection) => (
+                                <CollectionsListItemRow
+                                    collection={collection}
+                                    controller={controller}
+                                    isFavorite
+                                    key={collection.id}
+                                />
+                            )
+                        )}
+                    </DisclosureList>
+                </CollectionsFavoritesList>
+            ) : null}
             <CollectionsList
+                data-sidebar-collapsible=""
                 onOpenChange={controller.setIsCollectionsListOpen}
                 open={controller.isCollectionsListOpen}
             >
@@ -747,112 +777,16 @@ export function Collections() {
                         <>
                             <DisclosureList maxVisible={10}>
                                 {controller.collectionSummaries.map(
-                                    (collection) => {
-                                        const isSelected =
-                                            controller.selectedCollectionIds.includes(
+                                    (collection) => (
+                                        <CollectionsListItemRow
+                                            collection={collection}
+                                            controller={controller}
+                                            isFavorite={controller.favoriteCollectionIds.includes(
                                                 collection.id
-                                            );
-
-                                        return (
-                                            <CollectionsListItem
-                                                collection={collection}
-                                                isSelected={isSelected}
-                                                key={collection.id}
-                                            >
-                                                <CollectionsListItemPriorityCombobox
-                                                    onValueChange={(priority) =>
-                                                        controller.onUpdatePriority(
-                                                            collection.id,
-                                                            priority
-                                                        )
-                                                    }
-                                                />
-                                                <CollectionsListItemPreview
-                                                    {...(isSelected
-                                                        ? {
-                                                              "data-active": true,
-                                                          }
-                                                        : {})}
-                                                    onClick={() =>
-                                                        controller.onSelectCollection(
-                                                            collection.id
-                                                        )
-                                                    }
-                                                    thumbnails={
-                                                        controller.collectionPreviewThumbnailUrlsById.get(
-                                                            collection.id
-                                                        ) ?? []
-                                                    }
-                                                >
-                                                    <CollectionsListItemValue />
-                                                </CollectionsListItemPreview>
-                                                <CollectionsListItemMeta
-                                                    isSharePending={
-                                                        controller.pendingShareId ===
-                                                            collection.id &&
-                                                        controller.isSharePending
-                                                    }
-                                                    onCopyLinks={() =>
-                                                        controller.onCopyLinks(
-                                                            collection
-                                                        )
-                                                    }
-                                                    onCopyShareLink={() =>
-                                                        controller.onCopyShareLink(
-                                                            collection
-                                                        )
-                                                    }
-                                                    onCopyTitle={() =>
-                                                        controller.onCopyTitle(
-                                                            collection
-                                                        )
-                                                    }
-                                                    onDelete={() =>
-                                                        controller.onDelete(
-                                                            collection
-                                                        )
-                                                    }
-                                                    onDisableShare={() =>
-                                                        controller.onDisableShare(
-                                                            collection
-                                                        )
-                                                    }
-                                                    onEnableShare={() =>
-                                                        controller.onEnableShare(
-                                                            collection
-                                                        )
-                                                    }
-                                                    onExportCsv={() =>
-                                                        controller.onExportCsv(
-                                                            collection
-                                                        )
-                                                    }
-                                                    onMakeCopy={() =>
-                                                        controller.onDuplicate(
-                                                            collection
-                                                        )
-                                                    }
-                                                    onOpenLinks={() =>
-                                                        controller.onOpenLinks(
-                                                            collection
-                                                        )
-                                                    }
-                                                    onRename={() =>
-                                                        controller.onRename(
-                                                            collection
-                                                        )
-                                                    }
-                                                    shareUrl={
-                                                        collection.shareId
-                                                            ? buildPublicCollectionShareUrl(
-                                                                  collection.shareId
-                                                              )
-                                                            : null
-                                                    }
-                                                />
-                                            </CollectionsListItem>
-                                        );
-                                    }
+                                            )}
+                                            key={collection.id}
+                                        />
+                                    )
                                 )}
                             </DisclosureList>
                             <CollectionsListStatus
@@ -1009,8 +943,14 @@ function useCollectionsController() {
     }, [collectionPreviewThumbnailUrlsById]);
     const { copyToClipboard } = useCopyToClipboard();
 
-    const { isCollectionsListOpen, setIsCollectionsListOpen } =
-        useCollectionsListStateStore();
+    const {
+        favoriteCollectionIds,
+        isCollectionsListOpen,
+        isFavoritesListOpen,
+        setFavoriteCollectionIds,
+        setIsCollectionsListOpen,
+        setIsFavoritesListOpen,
+    } = useCollectionsListStateStore();
 
     const {
         collectionSortField,
@@ -1451,6 +1391,20 @@ function useCollectionsController() {
         });
     };
 
+    const handleFavoriteToggle = (collection: LibraryCollectionSummary) => {
+        const isFavorite = favoriteCollectionIds.includes(collection.id);
+        setFavoriteCollectionIds(
+            isFavorite
+                ? favoriteCollectionIds.filter((id) => id !== collection.id)
+                : [...favoriteCollectionIds, collection.id]
+        );
+        showSuccess(
+            isFavorite
+                ? `${collection.name} removed from Favorites.`
+                : `${collection.name} added to Favorites.`
+        );
+    };
+
     const handleCreateSubmit = () => {
         startCreateCollection({
             assignToItemId: createItemId ?? undefined,
@@ -1533,6 +1487,10 @@ function useCollectionsController() {
 
     const hasAnySelected = selectedCollectionIds.length > 0;
     const collectionLabels = collectionSummaries.map((c) => c.name);
+    const favoriteCollectionIdSet = new Set(favoriteCollectionIds);
+    const favoriteCollectionSummaries = collectionSummaries.filter(
+        (collection) => favoriteCollectionIdSet.has(collection.id)
+    );
 
     return {
         collectionLabels,
@@ -1560,9 +1518,12 @@ function useCollectionsController() {
                 }
             },
         },
+        favoriteCollectionIds,
+        favoriteCollectionSummaries,
         feedback,
         hasAnySelected,
         isCollectionsListOpen,
+        isFavoritesListOpen,
         isSharePending,
         isSmartCollectionsDisabled,
         onClearCollectionFilters,
@@ -1588,6 +1549,7 @@ function useCollectionsController() {
         onDuplicate: handleDuplicate,
         onEnableShare: handleEnableShare,
         onExportCsv: handleExportCsv,
+        onFavoriteToggle: handleFavoriteToggle,
         onOpenLinks: handleOpenLinks,
         onRename: requestRename,
         onSelectCollection,
@@ -1609,6 +1571,7 @@ function useCollectionsController() {
         requestCreate,
         selectedCollectionIds,
         setIsCollectionsListOpen,
+        setIsFavoritesListOpen,
         sort: {
             inputValue: sortInputValue,
             isOpen: isSortOpen,
@@ -1642,6 +1605,71 @@ function useCollectionItemHotkey(
             preventDefault: true,
         },
         [enabled, handleTrigger, isHovered]
+    );
+}
+
+interface CollectionsListItemRowProps {
+    collection: LibraryCollectionSummary;
+    controller: ReturnType<typeof useCollectionsController>;
+    isFavorite: boolean;
+}
+
+/**
+ * Fully wired collection row used by both regular collections and Favorites.
+ */
+function CollectionsListItemRow({
+    collection,
+    controller,
+    isFavorite,
+}: CollectionsListItemRowProps) {
+    const isSelected = controller.selectedCollectionIds.includes(collection.id);
+
+    return (
+        <CollectionsListItem collection={collection} isSelected={isSelected}>
+            <CollectionsListItemPriorityCombobox
+                onValueChange={(priority) =>
+                    controller.onUpdatePriority(collection.id, priority)
+                }
+            />
+            <CollectionsListItemPreview
+                {...(isSelected
+                    ? {
+                          "data-active": true,
+                      }
+                    : {})}
+                onClick={() => controller.onSelectCollection(collection.id)}
+                thumbnails={
+                    controller.collectionPreviewThumbnailUrlsById.get(
+                        collection.id
+                    ) ?? []
+                }
+            >
+                <CollectionsListItemValue />
+            </CollectionsListItemPreview>
+            <CollectionsListItemMeta
+                isFavorite={isFavorite}
+                isSharePending={
+                    controller.pendingShareId === collection.id &&
+                    controller.isSharePending
+                }
+                onCopyLinks={() => controller.onCopyLinks(collection)}
+                onCopyShareLink={() => controller.onCopyShareLink(collection)}
+                onCopyTitle={() => controller.onCopyTitle(collection)}
+                onDelete={() => controller.onDelete(collection)}
+                onDisableShare={() => controller.onDisableShare(collection)}
+                onEnableShare={() => controller.onEnableShare(collection)}
+                onExportCsv={() => controller.onExportCsv(collection)}
+                onFavoriteToggle={() => controller.onFavoriteToggle(collection)}
+                onMakeCopy={() => controller.onDuplicate(collection)}
+                onOpenLinks={() => controller.onOpenLinks(collection)}
+                onRename={() => controller.onRename(collection)}
+                shareUrl={
+                    collection.shareId
+                        ? buildPublicCollectionShareUrl(collection.shareId)
+                        : null
+                }
+            />
+        </CollectionsListItem>
     );
 }
 
@@ -1895,6 +1923,42 @@ function CollectionsListPanel({
     ...props
 }: React.ComponentProps<typeof CollapsiblePanel>) {
     return <CollapsiblePanel className={cn("pl-1", className)} {...props} />;
+}
+
+interface CollectionsFavoritesListProps
+    extends React.ComponentProps<typeof Collapsible> {
+    collectionLabels: readonly string[];
+    favoriteCount: number;
+    isOpen: boolean;
+}
+
+/**
+ * Separate top-level collapsible section for client-side pinned collections.
+ */
+function CollectionsFavoritesList({
+    children,
+    className,
+    collectionLabels,
+    favoriteCount,
+    isOpen,
+    ...props
+}: CollectionsFavoritesListProps) {
+    return (
+        <Collapsible className={cn("relative", className)} {...props}>
+            <CollectionsListToolbar className="group">
+                <CollectionsListTrigger
+                    collectionLabels={collectionLabels}
+                    isOpen={isOpen}
+                >
+                    <span className="flex min-w-0 items-center gap-1.5 text-xs">
+                        <span>Favorites</span> ({favoriteCount})
+                    </span>
+                    <ChevronDownFilledIcon className="-ml-0.5" />
+                </CollectionsListTrigger>
+            </CollectionsListToolbar>
+            <CollectionsListPanel>{children}</CollectionsListPanel>
+        </Collapsible>
+    );
 }
 
 /**
@@ -2679,6 +2743,7 @@ function CollectionsListSubscribeMenu() {
 }
 
 interface CollectionsListItemMetaProps {
+    isFavorite: boolean;
     isSharePending: boolean;
     onCopyLinks: () => void;
     onCopyShareLink: () => void;
@@ -2687,6 +2752,7 @@ interface CollectionsListItemMetaProps {
     onDisableShare: () => void;
     onEnableShare: () => void;
     onExportCsv: () => void;
+    onFavoriteToggle: () => void;
     onMakeCopy: () => void;
     onOpenLinks: () => void;
     onRename: () => void;
@@ -2700,6 +2766,7 @@ interface CollectionsListItemMetaProps {
  * menu. Keyboard shortcuts (E, Delete/Backspace, C) are active while hovered.
  */
 function CollectionsListItemMeta({
+    isFavorite,
     isSharePending,
     onCopyLinks,
     onCopyShareLink,
@@ -2708,6 +2775,7 @@ function CollectionsListItemMeta({
     onDisableShare,
     onEnableShare,
     onExportCsv,
+    onFavoriteToggle,
     onMakeCopy,
     onOpenLinks,
     onRename,
@@ -2749,6 +2817,17 @@ function CollectionsListItemMeta({
                             <PencilIcon className="size-4 text-muted-foreground" />
                             Rename
                             <MenuShortcut>E</MenuShortcut>
+                        </MenuItem>
+                        <MenuItem onClick={onFavoriteToggle}>
+                            <Star
+                                className={cn(
+                                    "size-4 text-muted-foreground",
+                                    isFavorite && "fill-current"
+                                )}
+                            />
+                            {isFavorite
+                                ? "Remove from Favorites"
+                                : "Add to Favorites"}
                         </MenuItem>
                     </MenuGroup>
                     <MenuSeparator />

@@ -128,73 +128,65 @@ export default async function LibraryPage() {
                                     <SidebarTrigger />
                                 </div>
                                 <AppSidebarNavigation />
-                                <div data-sidebar-collapsible="">
-                                    <IntegrationsList>
-                                        <IntegrationsListTrigger>
-                                            <span className="min-w-0 text-xs">
-                                                <T>Integrations</T>
-                                            </span>
-                                            <ChevronDownFilledIcon className="-ml-0.5" />
-                                            <Kbd className="ml-auto bg-transparent opacity-0 group-hover:opacity-50">
-                                                <CmdKbd />I
-                                            </Kbd>
-                                        </IntegrationsListTrigger>
-                                        <IntegrationsListPanel>
-                                            <DisclosureList maxVisible={6}>
-                                                {INTEGRATIONS.map(
-                                                    ({
-                                                        id,
-                                                        label,
-                                                        description,
-                                                        Icon,
-                                                    }) => (
-                                                        <IntegrationsListItem
-                                                            className="group"
-                                                            key={id}
+                                <IntegrationsList data-sidebar-collapsible="">
+                                    <IntegrationsListTrigger>
+                                        <span className="min-w-0 text-xs">
+                                            <T>Integrations</T>
+                                        </span>
+                                        <ChevronDownFilledIcon className="-ml-0.5" />
+                                        <Kbd className="ml-auto bg-transparent opacity-0 group-hover:opacity-50">
+                                            <CmdKbd />I
+                                        </Kbd>
+                                    </IntegrationsListTrigger>
+                                    <IntegrationsListPanel>
+                                        <DisclosureList maxVisible={6}>
+                                            {INTEGRATIONS.map(
+                                                ({
+                                                    id,
+                                                    label,
+                                                    description,
+                                                    Icon,
+                                                }) => (
+                                                    <IntegrationsListItem
+                                                        className="group"
+                                                        key={id}
+                                                    >
+                                                        <Avatar
+                                                            aria-label={label}
+                                                            className="size-6 rounded-md"
                                                         >
-                                                            <Avatar
-                                                                aria-label={
-                                                                    label
-                                                                }
-                                                                className="size-6 rounded-md"
-                                                            >
-                                                                <AvatarFallback className="rounded-md">
-                                                                    <Icon
-                                                                        aria-hidden="true"
-                                                                        className="size-3.5 shrink-0"
-                                                                        focusable="false"
-                                                                    />
-                                                                </AvatarFallback>
-                                                            </Avatar>
-                                                            <span className="min-w-0 flex-1 font-medium text-sm leading-snug">
-                                                                {label}
-                                                            </span>
-                                                            <span className="relative flex items-center text-muted-foreground leading-snug">
-                                                                <span className="absolute right-0 text-[11px] group-hover:opacity-0">
-                                                                    {
-                                                                        description
-                                                                    }
-                                                                </span>
-                                                                <IntegrationsListItemAction
-                                                                    className="absolute right-0 opacity-0 group-hover:opacity-100"
-                                                                    id={id}
-                                                                    isConnected={connectedIntegrationIdSet.has(
-                                                                        id
-                                                                    )}
+                                                            <AvatarFallback className="rounded-md">
+                                                                <Icon
+                                                                    aria-hidden="true"
+                                                                    className="size-3.5 shrink-0"
+                                                                    focusable="false"
                                                                 />
+                                                            </AvatarFallback>
+                                                        </Avatar>
+                                                        <span className="min-w-0 flex-1 font-medium text-sm leading-snug">
+                                                            {label}
+                                                        </span>
+                                                        <span className="relative flex items-center text-muted-foreground leading-snug">
+                                                            <span className="absolute right-0 text-[11px] group-hover:opacity-0">
+                                                                {description}
                                                             </span>
-                                                        </IntegrationsListItem>
-                                                    )
-                                                )}
-                                            </DisclosureList>
-                                            <IntegrationsListFeedback />
-                                            <IntegrationsListPrivacyNotice />
-                                        </IntegrationsListPanel>
-                                    </IntegrationsList>
-                                </div>
-                                <div data-sidebar-collapsible="">
-                                    <Collections />
-                                </div>
+                                                            <IntegrationsListItemAction
+                                                                className="absolute right-0 opacity-0 group-hover:opacity-100"
+                                                                id={id}
+                                                                isConnected={connectedIntegrationIdSet.has(
+                                                                    id
+                                                                )}
+                                                            />
+                                                        </span>
+                                                    </IntegrationsListItem>
+                                                )
+                                            )}
+                                        </DisclosureList>
+                                        <IntegrationsListFeedback />
+                                        <IntegrationsListPrivacyNotice />
+                                    </IntegrationsListPanel>
+                                </IntegrationsList>
+                                <Collections />
                             </SidebarHeader>
                         </Sidebar>
                     </SidebarProvider>
