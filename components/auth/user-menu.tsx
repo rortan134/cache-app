@@ -433,6 +433,7 @@ export function UserMenu({ children }: { children: ReactNode }) {
                         <ChevronDown
                             aria-hidden
                             className="pointer-events-none inline-block size-3.5 shrink-0 opacity-80"
+                            focusable="false"
                         />
                     </PopoverTrigger>
                     <PopoverPopup
