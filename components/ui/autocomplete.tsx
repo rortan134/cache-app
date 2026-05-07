@@ -1,6 +1,6 @@
 "use client";
 
-import { Input } from "@/components/ui/input";
+import { Input, type InputSize } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/common/cn";
 import { Autocomplete as AutocompletePrimitive } from "@base-ui/react/autocomplete";
@@ -13,17 +13,15 @@ export const Autocomplete: typeof AutocompletePrimitive.Root =
 export function AutocompleteInput({
     className,
     startAddon,
-    size,
+    size = "default",
     endAddon,
     ...props
 }: Omit<AutocompletePrimitive.Input.Props, "size"> & {
     startAddon?: React.ReactNode;
-    size?: "sm" | "default" | "lg" | number;
+    size?: InputSize;
     ref?: React.Ref<HTMLInputElement>;
     endAddon?: React.ReactNode;
 }) {
-    const sizeValue = size ?? "default";
-
     return (
         <AutocompletePrimitive.InputGroup
             className="relative flex not-has-[>*.w-full]:w-fit w-full text-foreground has-disabled:opacity-64"
@@ -43,13 +41,13 @@ export function AutocompleteInput({
                     "min-h-11 rounded-full p-1.5",
                     startAddon &&
                         "data-[size=sm]:*:data-[slot=autocomplete-input]:ps-[calc(--spacing(7.5)-1px)] *:data-[slot=autocomplete-input]:ps-[calc(--spacing(8.5)-1px)] sm:data-[size=sm]:*:data-[slot=autocomplete-input]:ps-[calc(--spacing(7)-1px)] sm:*:data-[slot=autocomplete-input]:ps-[calc(--spacing(9)-1px)]",
-                    sizeValue === "sm"
+                    size === "sm"
                         ? "has-[+[data-slot=autocomplete-trigger],+[data-slot=autocomplete-clear]]:*:data-[slot=autocomplete-input]:pe-6.5"
                         : "has-[+[data-slot=autocomplete-trigger],+[data-slot=autocomplete-clear]]:*:data-[slot=autocomplete-input]:pe-7",
                     className
                 )}
                 data-slot="autocomplete-input"
-                render={<Input nativeInput size={sizeValue} />}
+                render={<Input nativeInput size={size} />}
                 {...props}
             />
             {endAddon && (

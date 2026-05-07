@@ -1,68 +1,58 @@
 import { ActivePathname } from "@/components/ui/active-pathname";
 import { SidebarGroup, SidebarItem } from "@/components/ui/sidebar";
 import { T } from "gt-next";
-import { Compass, History, House, Workflow } from "lucide-react";
+import {
+    Compass,
+    History,
+    House,
+    type LucideIcon,
+    Workflow,
+} from "lucide-react";
 import Link from "next/link";
+import type * as React from "react";
+
+interface AppSidebarNavigationItemProps {
+    children: React.ReactNode;
+    href: string;
+    icon: LucideIcon;
+}
 
 export function AppSidebarNavigation() {
     return (
         <SidebarGroup>
-            <Link className="contents" href="/library" prefetch>
-                <ActivePathname href="/library">
-                    <SidebarItem>
-                        <House
-                            aria-hidden
-                            className="inline-block size-4 shrink-0"
-                            focusable="false"
-                        />
-                        <span data-sidebar-label="">
-                            <T>Library</T>
-                        </span>
-                    </SidebarItem>
-                </ActivePathname>
-            </Link>
-            <Link className="contents" href="/review" prefetch>
-                <ActivePathname href="/review">
-                    <SidebarItem>
-                        <Compass
-                            aria-hidden
-                            className="inline-block size-4 shrink-0"
-                            focusable="false"
-                        />
-                        <span data-sidebar-label="">
-                            <T>Review</T>
-                        </span>
-                    </SidebarItem>
-                </ActivePathname>
-            </Link>
-            <Link className="contents" href="/workflows" prefetch>
-                <ActivePathname href="/workflows">
-                    <SidebarItem>
-                        <Workflow
-                            aria-hidden
-                            className="inline-block size-4 shrink-0"
-                            focusable="false"
-                        />
-                        <span data-sidebar-label="">
-                            <T>Workflows</T>
-                        </span>
-                    </SidebarItem>
-                </ActivePathname>
-            </Link>
-            <Link className="contents" href="/activity" prefetch>
-                <ActivePathname href="/activity">
-                    <SidebarItem>
-                        <History
-                            aria-hidden
-                            className="inline-block size-4 shrink-0"
-                            focusable="false"
-                        />
-                        <span data-sidebar-label="">
-                            <T>Activity</T>
-                        </span>
-                    </SidebarItem>
-                </ActivePathname>
-            </Link>
+            <AppSidebarNavigationItem href="/library" icon={House}>
+                <T>Library</T>
+            </AppSidebarNavigationItem>
+            <AppSidebarNavigationItem href="/review" icon={Compass}>
+                <T>Review</T>
+            </AppSidebarNavigationItem>
+            <AppSidebarNavigationItem href="/workflows" icon={Workflow}>
+                <T>Workflows</T>
+            </AppSidebarNavigationItem>
+            <AppSidebarNavigationItem href="/activity" icon={History}>
+                <T>Activity</T>
+            </AppSidebarNavigationItem>
         </SidebarGroup>
+    );
+}
+
+function AppSidebarNavigationItem({
+    children,
+    href,
+    icon: Icon,
+}: AppSidebarNavigationItemProps) {
+    return (
+        <Link className="contents" href={href} prefetch>
+            <ActivePathname href={href}>
+                <SidebarItem>
+                    <Icon
+                        aria-hidden
+                        className="inline-block size-4 shrink-0"
+                        focusable="false"
+                    />
+                    <span data-sidebar-label="">{children}</span>
+                </SidebarItem>
+            </ActivePathname>
+        </Link>
     );
 }

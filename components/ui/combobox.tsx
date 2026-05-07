@@ -1,14 +1,12 @@
 "use client";
 
 import { CheckmarkIcon } from "@/components/ui/icons";
-import { Input } from "@/components/ui/input";
+import { Input, type InputSize } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/common/cn";
 import { Combobox as ComboboxPrimitive } from "@base-ui/react/combobox";
 import { XIcon } from "lucide-react";
 import * as React from "react";
-
-type ComboboxSize = "sm" | "default" | "lg" | number;
 
 interface ComboboxContextValue {
     chipsRef: React.RefObject<HTMLDivElement | null> | null;
@@ -37,7 +35,7 @@ export function ComboboxChipsInput({
     size = "default",
     ...props
 }: Omit<ComboboxPrimitive.Input.Props, "size"> & {
-    size?: ComboboxSize;
+    size?: InputSize;
     ref?: React.Ref<HTMLInputElement>;
 }) {
     return (
@@ -67,7 +65,7 @@ export function ComboboxInput({
     showClear?: boolean;
     startAddon?: React.ReactNode;
     endAddon?: React.ReactNode;
-    size?: ComboboxSize;
+    size?: InputSize;
     ref?: React.Ref<HTMLInputElement>;
     clearProps?: ComboboxPrimitive.Clear.Props;
 }) {

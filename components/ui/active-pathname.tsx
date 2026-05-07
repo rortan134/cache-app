@@ -20,9 +20,8 @@ export function ActivePathname({
     const pathname = usePathname();
     const isPathnameActive =
         match === "prefix"
-            ? pathname === String(href) ||
-              pathname.startsWith(`${String(href)}/`)
-            : pathname === String(href);
+            ? pathname === href || pathname.startsWith(`${href}/`)
+            : pathname === href;
 
     return React.cloneElement(children, {
         ...props,

@@ -4,13 +4,15 @@ import { cn } from "@/lib/common/cn";
 import { Input as InputPrimitive } from "@base-ui/react/input";
 import type * as React from "react";
 
+export type InputSize = "sm" | "default" | "lg" | number;
+
 interface InputProps
     extends Omit<
         InputPrimitive.Props & React.RefAttributes<HTMLInputElement>,
         "size"
     > {
     nativeInput?: boolean;
-    size?: "sm" | "default" | "lg" | number;
+    size?: InputSize;
     unstyled?: boolean;
 }
 
