@@ -21,6 +21,8 @@ const VERCEL_CACHE_TAG_HEADER = "Vercel-Cache-Tag";
 const VERCEL_CDN_CACHE_CONTROL_HEADER_NAME = "Vercel-CDN-Cache-Control";
 const FETCH_TIMEOUT_MS = 5000;
 const MAX_REDIRECTS = 2;
+const PREVIEW_METADATA_CACHE_TTL_SECONDS = 86_400;
+const PREVIEW_METADATA_CACHE_TTL_MS = PREVIEW_METADATA_CACHE_TTL_SECONDS * 1000;
 const COBALT_RETRY_ATTEMPTS = 2;
 const COBALT_RETRY_DELAY_MS = 500;
 const USER_AGENT =
@@ -30,15 +32,16 @@ const redis = getRedisClient();
 
 const cache = redis
     ? createCache({
-          delete: (key) => {
-              redis.del(key);
+          delete: async (key) => {
+              await redis.del(key);
           },
           get: (key) => redis.get(key),
-          set: (key, value) => {
-              redis.setex(key, 3600, value);
+          set: async (key, value) => {
+              await redis.setex(key, PREVIEW_METADATA_CACHE_TTL_SECONDS, value);
           },
       })
     : undefined;
+const getPagePreview = cache ? withCache(cache, preview) : preview;
 
 export async function GET(request: Request): Promise<Response> {
     const requestUrl = new URL(request.url);
@@ -122,8 +125,8 @@ async function resolvePreviewImage(targetUrl: string) {
     cacheLife("days");
     cacheTag(`preview:${hashTargetUrl(targetUrl)}`);
 
-    const getPagePreview = cache ? withCache(cache, preview) : preview;
     const page = await getPagePreview(targetUrl, {
+        cacheTtl: PREVIEW_METADATA_CACHE_TTL_MS,
         fetch: safeFetch,
         headers: {
             Accept: "text/html,application/xhtml+xml",

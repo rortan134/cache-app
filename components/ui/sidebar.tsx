@@ -5,7 +5,7 @@ import { cn } from "@/lib/common/cn";
 import { mergeProps } from "@base-ui/react/merge-props";
 import { useRender } from "@base-ui/react/use-render";
 import { useStableCallback } from "@base-ui/utils/useStableCallback";
-import { PanelLeft, PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import { PanelLeft, PanelLeftOpen } from "lucide-react";
 import * as React from "react";
 
 const SIDEBAR_DESKTOP_MEDIA_QUERY = "(min-width: 64rem)";
