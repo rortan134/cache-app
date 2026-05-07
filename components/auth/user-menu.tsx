@@ -433,7 +433,7 @@ export function UserMenu({ children }: { children: ReactNode }) {
             {(user) => (
                 <Popover>
                     <PopoverTrigger
-                        className="justify-between px-2 opacity-100"
+                        className="justify-between px-2 opacity-100 data-popup-open:before:opacity-100"
                         nativeButton={false}
                         render={<SidebarItem />}
                     >
