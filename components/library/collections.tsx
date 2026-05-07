@@ -774,31 +774,31 @@ export function Collections() {
                             </T>
                         </CollectionsListEmpty>
                     ) : (
-                        <>
-                            <DisclosureList maxVisible={10}>
-                                {controller.collectionSummaries.map(
-                                    (collection) => (
-                                        <CollectionsListItemRow
-                                            collection={collection}
-                                            controller={controller}
-                                            isFavorite={controller.favoriteCollectionIds.includes(
-                                                collection.id
-                                            )}
-                                            key={collection.id}
-                                        />
-                                    )
-                                )}
-                            </DisclosureList>
-                            <CollectionsListStatus
-                                onDismiss={controller.onDismissFeedback}
-                                tone={controller.feedback?.tone}
-                            >
-                                {controller.feedback?.message}
-                            </CollectionsListStatus>
-                        </>
+                        <DisclosureList maxVisible={10}>
+                            {controller.collectionSummaries.map(
+                                (collection) => (
+                                    <CollectionsListItemRow
+                                        collection={collection}
+                                        controller={controller}
+                                        isFavorite={controller.favoriteCollectionIdSet.has(
+                                            collection.id
+                                        )}
+                                        key={collection.id}
+                                    />
+                                )
+                            )}
+                        </DisclosureList>
                     )}
                 </CollectionsListPanel>
             </CollectionsList>
+            <div data-sidebar-collapsible="">
+                <CollectionsListStatus
+                    onDismiss={controller.onDismissFeedback}
+                    tone={controller.feedback?.tone}
+                >
+                    {controller.feedback?.message}
+                </CollectionsListStatus>
+            </div>
             <RenameDialog {...controller.renameDialog} />
             <CreateDialog {...controller.createDialog} />
             <DeleteDialog {...controller.deleteDialog} />
@@ -1297,6 +1297,9 @@ function useCollectionsController() {
                     )
                 )
             );
+            setFavoriteCollectionIds((current) =>
+                current.filter((id) => id !== result.collection.id)
+            );
             setPendingDelete(null);
             showSuccess(`${result.collection.name} deleted.`);
         });
@@ -1392,12 +1395,13 @@ function useCollectionsController() {
     };
 
     const handleFavoriteToggle = (collection: LibraryCollectionSummary) => {
-        const isFavorite = favoriteCollectionIds.includes(collection.id);
-        setFavoriteCollectionIds(
-            isFavorite
-                ? favoriteCollectionIds.filter((id) => id !== collection.id)
-                : [...favoriteCollectionIds, collection.id]
-        );
+        const isFavorite = favoriteCollectionIdSet.has(collection.id);
+        setFavoriteCollectionIds((current) => {
+            const isCurrentFavorite = current.includes(collection.id);
+            return isCurrentFavorite
+                ? current.filter((id) => id !== collection.id)
+                : [...current, collection.id];
+        });
         showSuccess(
             isFavorite
                 ? `${collection.name} removed from Favorites.`
@@ -1518,7 +1522,7 @@ function useCollectionsController() {
                 }
             },
         },
-        favoriteCollectionIds,
+        favoriteCollectionIdSet,
         favoriteCollectionSummaries,
         feedback,
         hasAnySelected,
@@ -1944,7 +1948,11 @@ function CollectionsFavoritesList({
     ...props
 }: CollectionsFavoritesListProps) {
     return (
-        <Collapsible className={cn("relative", className)} {...props}>
+        <Collapsible
+            className={cn("relative", className)}
+            {...props}
+            open={isOpen}
+        >
             <CollectionsListToolbar className="group">
                 <CollectionsListTrigger
                     collectionLabels={collectionLabels}
