@@ -5,7 +5,7 @@ import { cn } from "@/lib/common/cn";
 import { mergeProps } from "@base-ui/react/merge-props";
 import { useRender } from "@base-ui/react/use-render";
 import { useStableCallback } from "@base-ui/utils/useStableCallback";
-import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import { PanelLeft, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import * as React from "react";
 
 const SIDEBAR_DESKTOP_MEDIA_QUERY = "(min-width: 64rem)";
@@ -151,7 +151,7 @@ function SidebarTrigger({
             variant="ghost"
         >
             {open ? (
-                <PanelLeftClose
+                <PanelLeft
                     aria-hidden
                     className="inline-block size-3.5 shrink-0 opacity-80"
                     focusable="false"

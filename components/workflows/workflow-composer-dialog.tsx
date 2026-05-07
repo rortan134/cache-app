@@ -36,7 +36,7 @@ import { LexicalErrorBoundary } from "@lexical/react/LexicalErrorBoundary";
 import { OnChangePlugin } from "@lexical/react/LexicalOnChangePlugin";
 import { PlainTextPlugin } from "@lexical/react/LexicalPlainTextPlugin";
 import { $createParagraphNode, $createTextNode, $getRoot } from "lexical";
-import { CalendarClock, ChevronRight, Plus } from "lucide-react";
+import { ChevronDown, ChevronRight, Clock, Plus, Rows3 } from "lucide-react";
 import Image from "next/image";
 import * as React from "react";
 
@@ -60,12 +60,23 @@ const DEFAULT_SCHEDULE_OPTION: ScheduleOption = {
     value: "weekly",
 };
 
+const NO_COLLECTION_OPTION: WorkflowCollectionOption = {
+    id: "all",
+    name: "Any collection",
+};
+
 interface ScheduleOption {
     label: string;
     value: "daily" | "weekly" | "monthly";
 }
 
+export interface WorkflowCollectionOption {
+    id: string;
+    name: string;
+}
+
 export interface WorkflowComposerWorkflow {
+    collectionId?: string;
     description: string;
     schedule: ScheduleOption["value"];
     title: string;
@@ -73,10 +84,12 @@ export interface WorkflowComposerWorkflow {
 
 export function WorkflowComposerDialog({
     children,
+    collections,
     trigger,
     workflow,
 }: WorkflowComposerDialogProps) {
     const titleId = React.useId();
+    const collectionId = React.useId();
     const instructionsId = React.useId();
     const scheduleId = React.useId();
     const [open, setOpen] = React.useState(false);
@@ -85,6 +98,11 @@ export function WorkflowComposerDialog({
     const [markdown, setMarkdown] = React.useState(
         () => workflow?.description ?? ""
     );
+    const collectionOptions = [NO_COLLECTION_OPTION, ...collections];
+    const [collection, setCollection] =
+        React.useState<WorkflowCollectionOption>(() =>
+            getCollectionOption(collectionOptions, workflow?.collectionId)
+        );
     const [schedule, setSchedule] = React.useState<ScheduleOption>(() =>
         getScheduleOption(workflow?.schedule)
     );
@@ -94,6 +112,9 @@ export function WorkflowComposerDialog({
         if (nextOpen) {
             setTitle(workflow?.title ?? "");
             setMarkdown(workflow?.description ?? "");
+            setCollection(
+                getCollectionOption(collectionOptions, workflow?.collectionId)
+            );
             setSchedule(getScheduleOption(workflow?.schedule));
             setEditorKey((currentEditorKey) => currentEditorKey + 1);
         }
@@ -101,12 +122,13 @@ export function WorkflowComposerDialog({
     });
 
     const handleSubmit = useStableCallback(
-        (event: React.FormEvent<HTMLFormElement>) => {
+        (event: React.ChangeEvent<HTMLFormElement>) => {
             event.preventDefault();
             setOpen(false);
             if (!isEditing) {
                 setTitle("");
                 setMarkdown("");
+                setCollection(NO_COLLECTION_OPTION);
                 setSchedule(DEFAULT_SCHEDULE_OPTION);
             }
         }
@@ -182,7 +204,21 @@ export function WorkflowComposerDialog({
                                 onChange={setMarkdown}
                             />
                         </div>
-                        <div className="pt-1">
+                    </DialogPanel>
+                    <DialogFooter className="items-center justify-between">
+                        <div className="mr-auto flex flex-wrap items-center gap-1">
+                            <span
+                                className="sr-only font-medium text-sm"
+                                id={collectionId}
+                            >
+                                Collection
+                            </span>
+                            <WorkflowCollectionCombobox
+                                labelId={collectionId}
+                                onValueChange={setCollection}
+                                options={collectionOptions}
+                                value={collection}
+                            />
                             <span
                                 className="sr-only font-medium text-sm"
                                 id={scheduleId}
@@ -195,16 +231,18 @@ export function WorkflowComposerDialog({
                                 value={schedule}
                             />
                         </div>
-                    </DialogPanel>
-                    <DialogFooter>
-                        <DialogClose
-                            render={<Button size="sm" variant="ghost" />}
-                        >
-                            Cancel
-                        </DialogClose>
-                        <Button size="sm" type="submit">
-                            {isEditing ? "Save workflow" : "Create workflow"}
-                        </Button>
+                        <div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center">
+                            <DialogClose
+                                render={<Button size="sm" variant="ghost" />}
+                            >
+                                Cancel
+                            </DialogClose>
+                            <Button disabled size="sm" type="submit">
+                                {isEditing
+                                    ? "Save workflow"
+                                    : "Create workflow"}
+                            </Button>
+                        </div>
                     </DialogFooter>
                 </form>
             </DialogPopup>
@@ -214,6 +252,7 @@ export function WorkflowComposerDialog({
 
 interface WorkflowComposerDialogProps {
     children?: React.ReactNode;
+    collections: WorkflowCollectionOption[];
     trigger?: React.ReactElement;
     workflow?: WorkflowComposerWorkflow;
 }
@@ -283,6 +322,85 @@ interface WorkflowMarkdownEditorProps {
     onChange: (value: string) => void;
 }
 
+function WorkflowCollectionCombobox({
+    labelId,
+    onValueChange,
+    options,
+    value,
+}: WorkflowCollectionComboboxProps) {
+    const [isOpen, setIsOpen] = React.useState(false);
+
+    return (
+        <Combobox<WorkflowCollectionOption>
+            autoHighlight
+            items={options}
+            itemToStringLabel={(option) => option.name}
+            itemToStringValue={(option) => option.id}
+            onOpenChange={setIsOpen}
+            onValueChange={(nextCollection) => {
+                if (!nextCollection) {
+                    return;
+                }
+                onValueChange(nextCollection);
+                setIsOpen(false);
+            }}
+            open={isOpen}
+            value={value}
+        >
+            <ComboboxTrigger
+                render={
+                    <Button
+                        aria-labelledby={labelId}
+                        size="xs"
+                        variant="ghost"
+                    />
+                }
+            >
+                <span className="flex items-center gap-2">
+                    <Rows3
+                        aria-hidden
+                        className="size-3.5 text-muted-foreground"
+                        focusable="false"
+                    />
+                    <ComboboxValue />
+                    <ChevronDown
+                        aria-hidden
+                        className="size-3.5"
+                        focusable="false"
+                    />
+                </span>
+            </ComboboxTrigger>
+            <ComboboxPopup>
+                <ComboboxInput
+                    aria-label="Search collections"
+                    placeholder="Select collection..."
+                />
+                <ComboboxEmpty>No matching collections</ComboboxEmpty>
+                <ComboboxList>
+                    <ComboboxCollection>
+                        {(collectionOption: WorkflowCollectionOption) => (
+                            <ComboboxItem
+                                key={collectionOption.id}
+                                showIndicatorLast
+                                value={collectionOption}
+                            >
+                                {collectionOption.name}
+                            </ComboboxItem>
+                        )}
+                    </ComboboxCollection>
+                </ComboboxList>
+            </ComboboxPopup>
+        </Combobox>
+    );
+}
+
+interface WorkflowCollectionComboboxProps {
+    labelId: string;
+    onValueChange: (value: WorkflowCollectionOption) => void;
+    options: WorkflowCollectionOption[];
+    value: WorkflowCollectionOption;
+}
+
 function WorkflowScheduleCombobox({
     labelId,
     onValueChange,
@@ -293,7 +411,6 @@ function WorkflowScheduleCombobox({
     return (
         <Combobox<ScheduleOption>
             autoHighlight
-            filter={null}
             items={SCHEDULE_OPTIONS}
             itemToStringLabel={(option) => option.label}
             itemToStringValue={(option) => option.value}
@@ -312,19 +429,23 @@ function WorkflowScheduleCombobox({
                 render={
                     <Button
                         aria-labelledby={labelId}
-                        className="-mx-2 w-fit justify-start"
                         size="xs"
-                        variant="outline"
+                        variant="ghost"
                     />
                 }
             >
                 <span className="flex items-center gap-2">
-                    <CalendarClock
+                    <Clock
                         aria-hidden
-                        className="size-4 text-muted-foreground"
+                        className="size-3.5 text-muted-foreground"
                         focusable="false"
                     />
                     <ComboboxValue />
+                    <ChevronDown
+                        aria-hidden
+                        className="size-3.5"
+                        focusable="false"
+                    />
                 </span>
             </ComboboxTrigger>
             <ComboboxPopup>
@@ -361,5 +482,15 @@ function getScheduleOption(value: ScheduleOption["value"] | undefined) {
     return (
         SCHEDULE_OPTIONS.find((option) => option.value === value) ??
         DEFAULT_SCHEDULE_OPTION
+    );
+}
+
+function getCollectionOption(
+    options: WorkflowCollectionOption[],
+    collectionId: string | undefined
+) {
+    return (
+        options.find((option) => option.id === collectionId) ??
+        NO_COLLECTION_OPTION
     );
 }

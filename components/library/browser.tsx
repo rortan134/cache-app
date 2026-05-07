@@ -2860,7 +2860,7 @@ export function PreviewMedia({
     const [hasImageFailed, setHasImageFailed] = React.useState(false);
     const [hasVideoFailed, setHasVideoFailed] = React.useState(false);
     const [hasHoverIntent, setHasHoverIntent] = React.useState(false);
-    const [isSoundEnabled, setIsSoundEnabled] = React.useState(false);
+    const [isSoundEnabled, setIsSoundEnabled] = React.useState(true);
     const videoRef = React.useRef<HTMLVideoElement | null>(null);
     const isHoveredRef = React.useRef(isHovered);
 
@@ -2975,7 +2975,7 @@ export function PreviewMedia({
                         }
                         aria-pressed={isSoundEnabled}
                         className={cn(
-                            "pointer-events-auto absolute top-2 right-2 z-10 rounded-full border-white/15 bg-black/45 text-white opacity-0 shadow-sm backdrop-blur-sm transition-opacity hover:bg-black/60 focus-visible:opacity-100 focus-visible:ring-white/70",
+                            "pointer-events-auto absolute top-2 left-2 z-10 rounded-full border-white/15 bg-black/45 text-white opacity-0 shadow-sm backdrop-blur-sm transition-opacity hover:bg-black/60 focus-visible:opacity-100 focus-visible:ring-white/70",
                             {
                                 "opacity-100": isHovered,
                             }
@@ -5124,7 +5124,7 @@ export function Browser({ lockedItemCount, totalItemCount }: LibraryProps) {
 
     return (
         <div
-            className="flex w-full min-w-0 max-w-[1024px] flex-1 items-center gap-12 p-8 2xl:mx-auto"
+            className="flex w-full min-w-0 max-w-[1024px] flex-1 gap-12 p-8 2xl:mx-auto"
             ref={containerRef}
         >
             <div

@@ -11,6 +11,7 @@ import { Sidebar, SidebarHeader } from "@/components/ui/sidebar";
 import { WorkflowComposerDialog } from "@/components/workflows/workflow-composer-dialog";
 import { WorkflowsList } from "@/components/workflows/workflows-list";
 import { getServerSession } from "@/lib/auth/session";
+import { listCollections } from "@/lib/collections/service";
 import { gtPublicString } from "@/lib/i18n/gt-public-json";
 import { Workflow } from "lucide-react";
 import type { Metadata } from "next";
@@ -44,6 +45,12 @@ export default async function WorkflowsPage() {
         return redirect("/");
     }
 
+    const collections = await listCollections({ userId });
+    const workflowCollectionOptions = collections.map((collection) => ({
+        id: collection.id,
+        name: collection.name,
+    }));
+
     return (
         <PageShell>
             <div className="flex flex-1 flex-col gap-8 lg:flex-row lg:justify-between">
@@ -69,9 +76,11 @@ export default async function WorkflowsPage() {
                                 Workflows
                             </h1>
                         </div>
-                        <WorkflowComposerDialog />
+                        <WorkflowComposerDialog
+                            collections={workflowCollectionOptions}
+                        />
                     </header>
-                    <WorkflowsList />
+                    <WorkflowsList collections={workflowCollectionOptions} />
                 </div>
             </div>
         </PageShell>

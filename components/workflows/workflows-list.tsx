@@ -1,6 +1,7 @@
 import { Badge } from "@/components/ui/badge";
 import {
     WorkflowComposerDialog,
+    type WorkflowCollectionOption,
     type WorkflowComposerWorkflow,
 } from "@/components/workflows/workflow-composer-dialog";
 import { cn } from "@/lib/common/cn";
@@ -104,10 +105,11 @@ interface WorkflowDefinition extends WorkflowComposerWorkflow {
     title: string;
 }
 
-export function WorkflowsList() {
+export function WorkflowsList({ collections }: WorkflowsListProps) {
     return (
         <div className="flex flex-col gap-8">
             <WorkflowsListSection
+                collections={collections}
                 description="Lightweight automations that keep saved content moving."
                 title="Available"
                 workflows={DEFAULT_WORKFLOWS}
@@ -115,6 +117,7 @@ export function WorkflowsList() {
             <WorkflowsListSection
                 canEdit={false}
                 cardClassName="opacity-50"
+                collections={collections}
                 description="More ways to clean up, route, and rediscover the things you save."
                 title="Coming soon"
                 workflows={COMING_SOON_WORKFLOWS}
@@ -123,9 +126,14 @@ export function WorkflowsList() {
     );
 }
 
+interface WorkflowsListProps {
+    collections: WorkflowCollectionOption[];
+}
+
 function WorkflowsListSection({
     canEdit = true,
     cardClassName,
+    collections,
     description,
     title,
     workflows,
@@ -138,6 +146,7 @@ function WorkflowsListSection({
                     <WorkflowCard
                         canEdit={canEdit}
                         className={cardClassName}
+                        collections={collections}
                         key={workflow.id}
                         workflow={workflow}
                     />
@@ -150,6 +159,7 @@ function WorkflowsListSection({
 interface WorkflowsListSectionProps {
     canEdit?: boolean;
     cardClassName?: string;
+    collections: WorkflowCollectionOption[];
     description: string;
     title: string;
     workflows: WorkflowDefinition[];
@@ -169,7 +179,12 @@ function WorkflowsListHeader({
     );
 }
 
-function WorkflowCard({ canEdit, className, workflow }: WorkflowCardProps) {
+function WorkflowCard({
+    canEdit,
+    className,
+    collections,
+    workflow,
+}: WorkflowCardProps) {
     const content = (
         <>
             <WorkflowCardIcon workflow={workflow} />
@@ -194,6 +209,7 @@ function WorkflowCard({ canEdit, className, workflow }: WorkflowCardProps) {
 
     return (
         <WorkflowComposerDialog
+            collections={collections}
             trigger={
                 <button
                     aria-label={`Edit ${workflow.title}`}
@@ -218,6 +234,7 @@ function WorkflowCard({ canEdit, className, workflow }: WorkflowCardProps) {
 interface WorkflowCardProps {
     canEdit: boolean;
     className?: string;
+    collections: WorkflowCollectionOption[];
     workflow: WorkflowDefinition;
 }
 

@@ -35,20 +35,6 @@ export function AppSidebarNavigation() {
                     </SidebarItem>
                 </ActivePathname>
             </Link>
-            <Link className="contents" href="/activity" prefetch>
-                <ActivePathname href="/activity">
-                    <SidebarItem>
-                        <History
-                            aria-hidden
-                            className="inline-block size-4 shrink-0"
-                            focusable="false"
-                        />
-                        <span data-sidebar-label="">
-                            <T>Activity</T>
-                        </span>
-                    </SidebarItem>
-                </ActivePathname>
-            </Link>
             <Link className="contents" href="/workflows" prefetch>
                 <ActivePathname href="/workflows">
                     <SidebarItem>
@@ -59,6 +45,20 @@ export function AppSidebarNavigation() {
                         />
                         <span data-sidebar-label="">
                             <T>Workflows</T>
+                        </span>
+                    </SidebarItem>
+                </ActivePathname>
+            </Link>
+            <Link className="contents" href="/activity" prefetch>
+                <ActivePathname href="/activity">
+                    <SidebarItem>
+                        <History
+                            aria-hidden
+                            className="inline-block size-4 shrink-0"
+                            focusable="false"
+                        />
+                        <span data-sidebar-label="">
+                            <T>Activity</T>
                         </span>
                     </SidebarItem>
                 </ActivePathname>

@@ -7,6 +7,7 @@ import { Carousel } from "@/components/ui/carousel";
 import { Footer } from "@/components/ui/footer";
 import { GradientWaveText } from "@/components/ui/gradient-wave-text";
 import { ChromeIcon, TikTokIcon } from "@/components/ui/icons";
+import { IridescenceBackground } from "@/components/ui/iridescence-background";
 import { Kbd } from "@/components/ui/kbd";
 import { PageShell } from "@/components/ui/page-shell";
 import { Sidebar, SidebarFooter, SidebarHeader } from "@/components/ui/sidebar";
@@ -159,9 +160,10 @@ export default async function Home() {
                 </Sidebar>
                 <div className="flex w-full max-w-[1024px] flex-col gap-12 p-8 2xl:mx-auto">
                     <div className="relative aspect-video h-auto w-full overflow-hidden rounded-2xl border border-border/70 bg-muted">
+                        <IridescenceBackground />
                         <Image
                             alt=""
-                            className="absolute inset-x-6 top-10 rounded-xl"
+                            className="absolute top-12 left-8 z-10 w-full rounded-xl"
                             fetchPriority="high"
                             loading="eager"
                             priority
@@ -171,19 +173,19 @@ export default async function Home() {
                     <div className="flex flex-col gap-1.5">
                         <p className="mx-auto text-center text-xs">
                             <T>
-                                Welcome to your Cache - Discover what Cache can
+                                Welcome to your Cache — Discover what Cache can
                                 do for you
                             </T>
                         </p>
                         <p className="mx-auto text-center font-medium text-xs">
                             <T>
                                 <span className="opacity-50">A tool for</span>{" "}
-                                managing all your personal knowledge
+                                managing all of your personal knowledge
                                 <span className="opacity-50"> at scale</span>
                             </T>
                         </p>
                         <p className="mx-auto text-center text-xs">
-                            <T>Starting from $8/month</T>
+                            <T>Starting from $8/mo</T>
                         </p>
                     </div>
                     <div className="grid w-full grid-cols-1 gap-2 md:grid-cols-2 md:gap-[40px]">
