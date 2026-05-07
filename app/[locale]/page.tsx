@@ -32,6 +32,7 @@ import {
     Component,
     Search,
     Sparkles,
+    Terminal,
     Unlink,
 } from "lucide-react";
 import type { Metadata } from "next";
@@ -173,7 +174,7 @@ export default async function Home() {
                     </SidebarFooter>
                 </Sidebar>
                 <div className="flex w-full max-w-[1024px] flex-col items-center gap-12 p-8 2xl:mx-auto">
-                    <div className="relative aspect-video h-auto w-full overflow-hidden rounded-2xl border border-border/50 bg-muted">
+                    <div className="relative aspect-video h-auto w-full overflow-hidden rounded-2xl border border-border/70 bg-muted">
                         <Image
                             alt=""
                             className="absolute inset-x-6 top-10 rounded-xl"
@@ -233,10 +234,9 @@ export default async function Home() {
                                 </h2>
                                 <p className="text-pretty font-medium font-regular text-[#0A0B0D] text-[16px] leading-[1.2] tracking-[-3%] opacity-50">
                                     Bring together bookmarks from social, video,
-                                    and the browser automatically. Ditch the
-                                    endless scrolling and tabbing through
-                                    multiple platforms to find what matters to
-                                    you.
+                                    and browser automatically. Ditch the endless
+                                    scrolling and tabbing through multiple
+                                    platforms to find what matters to you.
                                 </p>
                             </T>
                         </div>
@@ -338,11 +338,28 @@ export default async function Home() {
                                 </h2>
                                 <p className="text-pretty font-medium font-regular text-[#0A0B0D] text-[16px] leading-[1.2] tracking-[-3%] opacity-50">
                                     Streamline the way you consume and re-engage
-                                    with your saved content from a single,
-                                    clean, and powerful interface, right in your
-                                    browser.
+                                    with your saved content from a modern and
+                                    powerful interface, right in your browser.
                                 </p>
                             </T>
+                            <ul className="mt-2 flex flex-col space-y-2 text-xs">
+                                <T context="Features">
+                                    <li className="flex items-center gap-2">
+                                        <Terminal className="inline-block size-4 shrink-0" />
+                                        <span>
+                                            Use command menu and shortcuts for
+                                            efficient workflows.
+                                        </span>
+                                    </li>
+                                    <li className="flex items-center gap-2 text-xs">
+                                        <Search className="inline-block size-4 shrink-0" />
+                                        <span>
+                                            Find anything with full-text search
+                                            and OCR
+                                        </span>
+                                    </li>
+                                </T>
+                            </ul>
                         </div>
                         <div className="order-first aspect-square w-full overflow-hidden rounded-2xl bg-muted md:order-last">
                             <figure className="overflow-hidden">
@@ -381,13 +398,6 @@ export default async function Home() {
                                         </span>
                                     </li>
                                     <li className="flex items-center gap-2 text-xs">
-                                        <Search className="inline-block size-4 shrink-0" />
-                                        <span>
-                                            Find anything with associative
-                                            full-text search and OCR
-                                        </span>
-                                    </li>
-                                    <li className="flex items-center gap-2 text-xs">
                                         <CloudDownload className="inline-block size-4 shrink-0" />
                                         <span>
                                             Share or export collections from
@@ -411,7 +421,7 @@ export default async function Home() {
                                         <Bot className="inline-block size-4 shrink-0" />
                                         <span>
                                             Give your agents the ability to
-                                            interact with your bookmarks
+                                            interact with your bookmarks (MCP)
                                         </span>
                                     </li>
                                 </T>
@@ -525,7 +535,7 @@ export default async function Home() {
                             slideClassName="!w-[300px] md:!w-[340px]"
                             spaceBetween={16}
                         >
-                            <div className="flex h-96 flex-col justify-between rounded-2xl border border-border/50 bg-background p-6">
+                            <div className="flex h-96 flex-col justify-between rounded-2xl border border-border/70 bg-background p-6">
                                 <h3 className="font-medium text-[#0A0B0D] text-lg tracking-[-0.5px]">
                                     <T>Curious readers</T>
                                 </h3>
@@ -537,7 +547,7 @@ export default async function Home() {
                                     </T>
                                 </p>
                             </div>
-                            <div className="flex h-96 flex-col justify-between rounded-2xl border border-border/50 bg-background p-6">
+                            <div className="flex h-96 flex-col justify-between rounded-2xl border border-border/70 bg-background p-6">
                                 <h3 className="font-medium text-[#0A0B0D] text-lg tracking-[-0.5px]">
                                     <T>Writers and thinkers</T>
                                 </h3>
@@ -549,7 +559,7 @@ export default async function Home() {
                                     </T>
                                 </p>
                             </div>
-                            <div className="flex h-96 flex-col justify-between rounded-2xl border border-border/50 bg-background p-6">
+                            <div className="flex h-96 flex-col justify-between rounded-2xl border border-border/70 bg-background p-6">
                                 <h3 className="font-medium text-[#0A0B0D] text-lg tracking-[-0.5px]">
                                     <T>Builders and developers</T>
                                 </h3>
@@ -560,7 +570,7 @@ export default async function Home() {
                                     </T>
                                 </p>
                             </div>
-                            <div className="flex h-96 flex-col justify-between rounded-2xl border border-border/50 bg-background p-6">
+                            <div className="flex h-96 flex-col justify-between rounded-2xl border border-border/70 bg-background p-6">
                                 <h3 className="font-medium text-[#0A0B0D] text-lg tracking-[-0.5px]">
                                     <T>Creators and curators</T>
                                 </h3>
@@ -571,7 +581,7 @@ export default async function Home() {
                                     </T>
                                 </p>
                             </div>
-                            <div className="flex h-96 flex-col justify-between rounded-2xl border border-border/50 bg-background p-6">
+                            <div className="flex h-96 flex-col justify-between rounded-2xl border border-border/70 bg-background p-6">
                                 <h3 className="font-medium text-[#0A0B0D] text-lg tracking-[-0.5px]">
                                     <T>Productivity</T>
                                 </h3>

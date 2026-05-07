@@ -102,6 +102,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Ticker } from "@/components/ui/ticker";
 import { TruncateAfter } from "@/components/ui/truncate-after";
 import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
+import { useIsExtensionInstalled } from "@/hooks/use-extension-installed";
 import type { CollectionCreateFromItemsResult } from "@/lib/collections/actions";
 import {
     SECTION_DESCRIPTION_CONTEXT_ITEMS_LIMIT,
@@ -127,7 +128,11 @@ import {
 import { isAbortError } from "@/lib/common/abort";
 import { cn } from "@/lib/common/cn";
 import { getColorGradientFromName } from "@/lib/common/colors";
-import { FALLBACK_URL, ITEM_KIND_NOTE } from "@/lib/common/constants";
+import {
+    CACHE_EXTENSION_DOWNLOAD_URL,
+    FALLBACK_URL,
+    ITEM_KIND_NOTE,
+} from "@/lib/common/constants";
 import { parseDate } from "@/lib/common/dates";
 import { getOwnerWindow } from "@/lib/common/dom";
 import { getSystemControlKey } from "@/lib/common/environment";
@@ -236,6 +241,7 @@ interface BuildCommandSuggestionsInput {
     collections: LibraryCollectionSummary[];
     domainFilters: string[];
     groupBy: GroupByMode;
+    isExtensionInstalled: boolean;
     items: LibraryItemWithCollections[];
     layoutMode: LayoutMode;
     onClearCollectionFilters: () => void;
@@ -276,6 +282,7 @@ function buildCommandSuggestions({
     sourceFilters,
     domainFilters,
     groupBy,
+    isExtensionInstalled,
     sortMode,
     setCollectionMembershipFilter,
     setDomainFilters,
@@ -345,6 +352,14 @@ function buildCommandSuggestions({
 
         suggestionLabels.add(suggestion.label);
         suggestions.push(suggestion);
+    };
+
+    const addDefaultSuggestion = (suggestion: CommandSuggestion | null) => {
+        if (hasAnyRefinements) {
+            return;
+        }
+
+        addSuggestion(suggestion);
     };
 
     const pickTopEntry = <T,>(
@@ -521,11 +536,21 @@ function buildCommandSuggestions({
         });
     }
 
+    if (!isExtensionInstalled) {
+        addDefaultSuggestion({
+            icon: <DownloadIcon className={SUGGESTION_ICON_CLASS} />,
+            label: "Get extension",
+            onSelect: commitSelection(() =>
+                openExternal(CACHE_EXTENSION_DOWNLOAD_URL)
+            ),
+        });
+    }
+
     if (!hasAnyRefinements) {
-        addSuggestion(buildCollectionSuggestion());
-        addSuggestion(buildSourceSuggestion());
-        addSuggestion(buildGroupingSuggestion());
-        addSuggestion(buildDomainSuggestion());
+        addDefaultSuggestion(buildCollectionSuggestion());
+        addDefaultSuggestion(buildSourceSuggestion());
+        addDefaultSuggestion(buildGroupingSuggestion());
+        addDefaultSuggestion(buildDomainSuggestion());
     } else if (selectedCollectionIds.length > 0) {
         addSuggestion(buildSourceSuggestion());
         addSuggestion(buildDomainSuggestion());
@@ -3541,7 +3566,7 @@ function Card({ item }: LibraryGridCardProps) {
                     </a>
                     <div
                         className={cn(
-                            "overflow-fade-top absolute inset-x-0 bottom-0 flex items-center gap-1 overflow-hidden bg-black/35 px-1.5 pt-2 pb-1 backdrop-blur-[2.5px]",
+                            "overflow-fade-top absolute inset-x-0 bottom-0 flex items-center gap-0.5 overflow-hidden bg-black/35 px-1.5 pt-2 pb-1 backdrop-blur-[2.5px]",
                             {
                                 "bg-black/4 opacity-80 mix-blend-difference":
                                     isNote,
@@ -3839,12 +3864,12 @@ function Empty() {
         <>
             <div className="mx-4 flex flex-col gap-1 px-1">
                 <h3 className="font-medium text-foreground text-sm">
-                    Welcome to Cache
+                    Welcome to your Cache
                 </h3>
                 <p className="text-muted-foreground text-xs leading-tight">
                     Everything you save, unified and searchable. Cache is
-                    purpose-built to organize what matters into collections and
-                    find it when you need it.
+                    purpose-built to organize what matters to you into
+                    collections so you can find it when you need it.
                 </p>
             </div>
             <Masonry columnCount={5} gap={4}>
@@ -4241,6 +4266,7 @@ export function Browser({ lockedItemCount, totalItemCount }: LibraryProps) {
     } = useWorkspace();
     const router = useRouter();
     const systemControlKey = useClientOnlyValue(getSystemControlKey());
+    const isExtensionInstalled = useIsExtensionInstalled();
     const [searchTerms, setSearchTerms] = React.useState<string[]>([]);
     const [paletteInput, setPaletteInput] = React.useState("");
     const [sourceFilters, setSourceFilters] = React.useState<
@@ -4785,6 +4811,7 @@ export function Browser({ lockedItemCount, totalItemCount }: LibraryProps) {
         collections,
         domainFilters,
         groupBy,
+        isExtensionInstalled,
         items: filteredItems,
         layoutMode,
         onClearCollectionFilters,
@@ -5057,7 +5084,7 @@ export function Browser({ lockedItemCount, totalItemCount }: LibraryProps) {
 
     return (
         <div
-            className="flex w-full max-w-[1024px] items-center gap-12 p-8 2xl:mx-auto"
+            className="flex min-w-0 flex-1 items-center gap-12 p-8"
             ref={containerRef}
         >
             <div

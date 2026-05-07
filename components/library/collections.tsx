@@ -2188,7 +2188,7 @@ function CollectionsListNoticeCallout({
                             variant="outline"
                         >
                             Activity
-                            <ArrowUpRight className="inline-block size-3.5 shrink-0 text-muted-foreground" />
+                            <ArrowUpRight className="inline-block size-3 shrink-0 text-muted-foreground" />
                         </Button>
                     </div>
                 </div>

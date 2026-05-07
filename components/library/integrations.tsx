@@ -201,7 +201,7 @@ export function IntegrationsListFeedback() {
  * page reload.
  */
 export function IntegrationsListPrivacyNotice() {
-    const [isOpen, setIsOpen] = React.useState(true);
+    const [isOpen, setIsOpen] = React.useState(false);
 
     return (
         <Collapsible

@@ -1,13 +1,17 @@
-import { cn } from "@/lib/common/cn";
-import type * as React from "react";
+"use client";
 
-interface TickerProps extends React.ComponentProps<"span"> {
-    direction?: "up" | "down" | "left" | "right";
-    repeatInstances?: number;
-}
+import { cn } from "@/lib/common/cn";
+import { ownerWindow } from "@base-ui/utils/owner";
+import { useIsoLayoutEffect } from "@base-ui/utils/useIsoLayoutEffect";
+import { useStableCallback } from "@base-ui/utils/useStableCallback";
+import * as React from "react";
+
+const DEFAULT_DURATION_SECONDS = 9;
+const MAX_SPEED_PX_PER_SECOND = 48;
 
 type TickerTrackStyle = React.CSSProperties & {
     "--animation-distance": string;
+    "--duration": string;
 };
 
 export function Ticker({
@@ -20,16 +24,61 @@ export function Ticker({
     const isHorizontal = direction === "left" || direction === "right";
     const isVertical = direction === "up" || direction === "down";
     const repeatCount = Math.max(1, Math.ceil(repeatInstances));
+    const [durationSeconds, setDurationSeconds] = React.useState(
+        DEFAULT_DURATION_SECONDS
+    );
+    const trackRef = React.useRef<HTMLSpanElement | null>(null);
+
+    const measureDuration = useStableCallback(() => {
+        const track = trackRef.current;
+        if (!track) {
+            return;
+        }
+
+        const trackRect = track.getBoundingClientRect();
+        const trackSizePx = isHorizontal ? trackRect.width : trackRect.height;
+        const travelDistancePx = trackSizePx / repeatCount;
+        const nextDurationSeconds = getTickerDurationSeconds(travelDistancePx);
+
+        setDurationSeconds((currentDurationSeconds) =>
+            currentDurationSeconds === nextDurationSeconds
+                ? currentDurationSeconds
+                : nextDurationSeconds
+        );
+    });
+
+    useIsoLayoutEffect(() => {
+        const track = trackRef.current;
+        if (!track) {
+            return;
+        }
+
+        measureDuration();
+
+        const targetWindow = ownerWindow(track);
+        if (!targetWindow.ResizeObserver) {
+            return;
+        }
+
+        const observer = new targetWindow.ResizeObserver(() => {
+            measureDuration();
+        });
+        observer.observe(track);
+
+        return () => observer.disconnect();
+    }, [isHorizontal, measureDuration, repeatCount]);
+
     const animationDistance = `${-100 / repeatCount}%`;
     const trackStyle: TickerTrackStyle = {
         "--animation-distance": animationDistance,
+        "--duration": `${durationSeconds}s`,
     };
 
     return (
         <span
             {...props}
             className={cn(
-                "group relative inline-flex size-full select-none overflow-hidden [--duration:9s] [--gap:1rem]",
+                "group relative inline-flex size-full select-none overflow-hidden [--gap:1rem]",
                 {
                     "flex-col": isVertical,
                     "flex-row": isHorizontal,
@@ -46,6 +95,7 @@ export function Ticker({
                     "direction-[reverse]":
                         direction === "up" || direction === "right",
                 })}
+                ref={trackRef}
                 style={trackStyle}
             >
                 {Array.from({ length: repeatCount }, (_, index) => (
@@ -61,5 +111,23 @@ export function Ticker({
                 ))}
             </span>
         </span>
+    );
+}
+
+interface TickerProps extends React.ComponentProps<"span"> {
+    direction?: "up" | "down" | "left" | "right";
+    repeatInstances?: number;
+}
+
+function getTickerDurationSeconds(travelDistancePx: number) {
+    if (travelDistancePx <= 0 || !Number.isFinite(travelDistancePx)) {
+        return DEFAULT_DURATION_SECONDS;
+    }
+
+    const cappedDurationSeconds = travelDistancePx / MAX_SPEED_PX_PER_SECOND;
+
+    return Math.max(
+        DEFAULT_DURATION_SECONDS,
+        Math.ceil(cappedDurationSeconds * 100) / 100
     );
 }

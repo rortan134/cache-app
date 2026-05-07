@@ -2,6 +2,7 @@ import { buildPageMetadata } from "@/app/metadata";
 import { APP_NAME } from "@/lib/common/constants";
 import { gtPublicString } from "@/lib/i18n/gt-public-json";
 import type { Metadata } from "next";
+import type React from "react";
 
 export async function generateMetadata({
     params,
@@ -49,13 +50,54 @@ function LinkText({
 export default function PrivacyPolicyPage() {
     return (
         <article className="flex flex-col gap-8 text-[0.95rem] text-stone-800 leading-relaxed">
-            <header className="flex flex-col gap-3">
-                <h1 className="font-semibold text-2xl text-stone-950 tracking-tight">
-                    Privacy Policy
-                </h1>
-                <p>
-                    <strong>Effective:</strong> April 21, 2026
+            <header className="flex flex-col gap-5 text-pretty border-stone-200 border-b pb-8">
+                <div className="flex flex-col gap-2">
+                    <p className="font-medium text-[0.72rem] text-stone-500 uppercase tracking-[0.22em]">
+                        Privacy at a glance
+                    </p>
+                    <h1 className="font-semibold text-3xl text-stone-950 tracking-tight sm:text-[2.4rem] sm:leading-tight">
+                        Your saved content should stay useful without becoming
+                        someone else&apos;s feed.
+                    </h1>
+                </div>
+
+                <p className="max-w-2xl text-base text-stone-600 leading-relaxed">
+                    This plain-English summary explains the main privacy choices
+                    behind {APP_NAME}. The full Privacy Policy below controls.
                 </p>
+
+                <div className="grid gap-4 border-stone-200 border-t pt-5 text-[0.9rem] text-stone-700 leading-relaxed sm:grid-cols-2">
+                    <p>
+                        You choose what enters Cache: bookmarks, notes,
+                        collections, and connected-source records you ask us to
+                        handle.
+                    </p>
+                    <p>
+                        We use your data to run the product, secure accounts,
+                        sync connected sources, process billing, and provide the
+                        features you request.
+                    </p>
+                    <p>
+                        AI-assisted features may send relevant saved content and
+                        metadata to providers only to generate requested output.
+                    </p>
+                    <p>
+                        We do not sell personal data, use your Cache content for
+                        ads, or train generalized AI models on data you submit.
+                    </p>
+                </div>
+
+                <p className="text-[0.88rem] text-stone-500 leading-relaxed">
+                    Effective April 21, 2026. Third-party services you connect
+                    to Cache govern their own privacy practices unless their
+                    data is processed inside Cache.
+                </p>
+            </header>
+
+            <section className="flex flex-col gap-3">
+                <h2 className="font-semibold text-2xl text-stone-950 tracking-tight">
+                    Privacy Policy
+                </h2>
                 <p>
                     This Privacy Policy explains how CachdApp, Inc.
                     (&quot;Cache,&quot; &quot;we,&quot; &quot;us,&quot; or
@@ -66,18 +108,10 @@ export default function PrivacyPolicyPage() {
                     controller.
                 </p>
                 <p>
-                    This Privacy Policy does not apply to third-party websites,
-                    apps, or services that you connect to Cache, including
-                    Google, GitHub, Pinterest, X, Instagram, TikTok, YouTube, or
-                    your browser vendor, except to the extent we receive and
-                    process data from those services inside Cache. Those third
-                    parties govern their own privacy practices.
-                </p>
-                <p>
                     This Privacy Policy also describes your privacy rights and
                     choices, including how to contact us about your data.
                 </p>
-            </header>
+            </section>
 
             <section className="flex flex-col gap-4">
                 <h2 className="font-semibold text-stone-950 text-xl tracking-tight">
