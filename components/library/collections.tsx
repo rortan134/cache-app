@@ -445,28 +445,6 @@ function useCollectionsListItemContext() {
     return context;
 }
 
-function toCollectionTag({
-    createdAt,
-    description,
-    id,
-    name,
-    priority,
-    sharedAt,
-    shareId,
-    updatedAt,
-}: LibraryCollectionSummary): LibraryCollectionTag {
-    return {
-        createdAt,
-        description,
-        id,
-        name,
-        priority,
-        sharedAt,
-        shareId,
-        updatedAt,
-    };
-}
-
 function updateById<T extends LibraryCollectionTag>(
     collections: T[],
     id: string,
@@ -691,7 +669,7 @@ export function Collections() {
                         isOpen={controller.isCollectionsListOpen}
                     >
                         <span className="min-w-0 text-xs">
-                            <T>My collections</T> (
+                            <T>Collections</T> (
                             {controller.collectionSummaries.length})
                         </span>
                         <ChevronDownFilledIcon className="-ml-0.5" />
@@ -1110,9 +1088,8 @@ function useCollectionsController() {
             return;
         }
 
-        const tag = toCollectionTag(input.collection);
         setItems((current) =>
-            appendCollection(current, input.assignedItemIds, tag)
+            appendCollection(current, input.assignedItemIds, input.collection)
         );
     };
 

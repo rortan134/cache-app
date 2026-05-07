@@ -106,10 +106,7 @@ interface DescriptionGenerationConfig<T> {
     debugLogLabel: string;
     errorLogLabel: string;
     feature: string;
-    generate: (args: {
-        prompt: string;
-        requestedTokens: number;
-    }) => Promise<string | undefined>;
+    generate: (args: { prompt: string }) => Promise<string | undefined>;
     input: GenerateCollectionSummaryInput;
     normalize: (raw: string | undefined) => T | null;
     spanName: string;
@@ -168,7 +165,7 @@ async function executeDescriptionGeneration<T>(
             userId,
         });
 
-        const raw = await generate({ prompt, requestedTokens });
+        const raw = await generate({ prompt });
         const normalized = normalize(raw);
 
         if (!normalized) {

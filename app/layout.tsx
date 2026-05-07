@@ -6,7 +6,6 @@ import { Analytics } from "@vercel/analytics/next";
 import { GTProvider, getLocale } from "gt-next/server";
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
-import Script from "next/script";
 import * as React from "react";
 import "./globals.css";
 
@@ -62,13 +61,6 @@ export default async function RootLayout(props: {
                     content="9c251d927955d913b23e047ef08ed572"
                     name="p:domain_verify"
                 />
-                {process.env.NODE_ENV === "development" && (
-                    <Script
-                        crossOrigin="anonymous"
-                        src="//unpkg.com/react-scan/dist/auto.global.js"
-                        strategy="beforeInteractive"
-                    />
-                )}
             </head>
             <body className="flex flex-col">
                 <h1 className="sr-only">{APP_NAME}</h1>

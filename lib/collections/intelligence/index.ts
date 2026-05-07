@@ -45,8 +45,9 @@ import { basename, extname, join } from "node:path";
 import * as z from "zod";
 
 const log = createLogger("library:smart-collections");
+const serviceLog = createLogger("intelligence:service");
 
-const SMART_COLLECTIONS_MODEL_DEFAULT = "gemini-2.5-flash";
+const SMART_COLLECTIONS_MODEL_DEFAULT = "gemini-2.5-flash-lite";
 const SMART_COLLECTIONS_MODELS_FALLBACK = [
     "gemini-2.5-flash-lite",
     "gemini-3-flash-preview",
@@ -1028,9 +1029,14 @@ interface SectionDescriptionResult {
 
 export async function generateSectionDescription(args: {
     prompt: string;
-    requestedTokens: number;
 }): Promise<SectionDescriptionResult> {
     const ai = new GoogleGenAI({ apiKey: serverEnv.GEMINI_API_KEY });
+
+    serviceLog.info("generate-section-description", {
+        maxOutputTokens: SECTION_DESCRIPTION_OUTPUT_TOKEN_LIMIT,
+        model: SECTION_DESCRIPTION_MODEL,
+        promptLength: args.prompt.length,
+    });
 
     const modelResponse = await ai.models.generateContent({
         config: {
@@ -1086,9 +1092,14 @@ interface ExpandedSectionDescriptionResult {
 
 export async function generateExpandedSectionDescription(args: {
     prompt: string;
-    requestedTokens: number;
 }): Promise<ExpandedSectionDescriptionResult> {
     const ai = new GoogleGenAI({ apiKey: serverEnv.GEMINI_API_KEY });
+
+    serviceLog.info("generate-expanded-section-description", {
+        maxOutputTokens: SECTION_DESCRIPTION_EXPANDED_OUTPUT_TOKEN_LIMIT,
+        model: SECTION_DESCRIPTION_MODEL,
+        promptLength: args.prompt.length,
+    });
 
     const modelResponse = await ai.models.generateContent({
         config: {
