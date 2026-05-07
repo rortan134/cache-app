@@ -3099,6 +3099,7 @@ export {
     CollectionsListTrigger,
     CreateDialog,
     DeleteDialog,
+    getPriorityOption,
     RenameDialog,
     SORT_OPTION_BY_VALUE,
     TEMPLATES,

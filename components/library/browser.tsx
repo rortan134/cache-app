@@ -5,6 +5,7 @@ import {
     InlinePaywallBanner,
 } from "@/components/billing/paywall-banner";
 import { FeedbackWidget } from "@/components/feedback/feedback-widget";
+import { getPriorityOption } from "@/components/library/collections";
 import type { NoteDraft } from "@/components/library/notes";
 import {
     PeekDrawer,
@@ -127,7 +128,10 @@ import {
 } from "@/lib/collections/utils";
 import { isAbortError } from "@/lib/common/abort";
 import { cn } from "@/lib/common/cn";
-import { getColorGradientFromName } from "@/lib/common/colors";
+import {
+    getColorGradientFromName,
+    getHexColorFromName,
+} from "@/lib/common/colors";
 import {
     CACHE_EXTENSION_DOWNLOAD_URL,
     FALLBACK_URL,
@@ -3651,13 +3655,20 @@ function BoardLayout({ items }: LibraryGridLayoutProps) {
             <Kanban getItemValue={(entry) => entry.value} value={boardColumns}>
                 <KanbanBoard className="min-w-max items-start gap-3">
                     {columnIds.map((columnId) => {
+                        const column = collections.find(
+                            (item) => item.id === columnId
+                        );
+                        const PriorityIcon = column
+                            ? getPriorityOption(column.priority).icon
+                            : null;
                         const columnName =
                             columnId === UNASSIGNED_COLLECTION_COLUMN_ID
                                 ? "No collection"
-                                : (collections.find(
-                                      (item) => item.id === columnId
-                                  )?.name ?? "Collection");
+                                : (column?.name ?? "Collection");
                         const columnItems = boardColumns[columnId] ?? [];
+                        const priorityIconColor = column
+                            ? `color-mix(in srgb, ${getHexColorFromName(column.name)}, black 50%)`
+                            : undefined;
 
                         return (
                             <KanbanColumn
@@ -3666,9 +3677,22 @@ function BoardLayout({ items }: LibraryGridLayoutProps) {
                                 value={columnId}
                             >
                                 <div className="mb-2 flex items-center gap-3">
-                                    <h3 className="truncate font-medium text-sm">
-                                        {columnName}
-                                    </h3>
+                                    <div className="flex min-w-0 items-center gap-2">
+                                        {PriorityIcon ? (
+                                            <span
+                                                aria-hidden
+                                                className="flex size-4 shrink-0 items-center justify-center"
+                                                style={{
+                                                    color: priorityIconColor,
+                                                }}
+                                            >
+                                                <PriorityIcon className="size-4" />
+                                            </span>
+                                        ) : null}
+                                        <h3 className="truncate font-medium text-sm">
+                                            {columnName}
+                                        </h3>
+                                    </div>
                                     <span className="shrink-0 font-medium text-muted-foreground text-xs tabular-nums">
                                         {columnItems.length}
                                     </span>
