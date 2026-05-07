@@ -110,7 +110,7 @@ interface NoteContextValue {
     isExpanded: boolean;
     onDraftChange: (draft: NoteDraft) => void;
     onOpenChange: (open: boolean) => Promise<void>;
-    onUrlPaste: (url: string) => Promise<void> | void;
+    onUrlPaste: (url: string) => Promise<void>;
     query: string;
     textMetrics: NoteTextMetrics;
     title: string;
@@ -666,6 +666,16 @@ function NoteRoot({
         });
     };
 
+    const handleUrlPaste = async (url: string) => {
+        await onUrlPaste(url);
+
+        const nextDraft = noteDraftFromItem(note);
+        initialDraftRef.current = nextDraft;
+        latestDraftRef.current = nextDraft;
+        setDraft(nextDraft);
+        await onOpenChange(false);
+    };
+
     const handleOpenChange = async (nextOpen: boolean) => {
         if (nextOpen) {
             onOpenChange(true);
@@ -721,7 +731,7 @@ function NoteRoot({
                 isExpanded,
                 onDraftChange: handleDraftChange,
                 onOpenChange: handleOpenChange,
-                onUrlPaste,
+                onUrlPaste: handleUrlPaste,
                 query,
                 textMetrics,
                 title,
