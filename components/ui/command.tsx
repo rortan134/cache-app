@@ -9,6 +9,7 @@ import {
     AutocompleteInput,
     AutocompleteItem,
     AutocompleteList,
+    AutocompletePopup,
 } from "@/components/ui/autocomplete";
 import { cn } from "@/lib/common/cn";
 import type * as React from "react";
@@ -81,6 +82,12 @@ export function CommandPanel({
     ...props
 }: React.ComponentProps<"div">) {
     return <div className={cn("min-h-0 w-full", className)} {...props} />;
+}
+
+export function CommandPopup(
+    props: React.ComponentProps<typeof AutocompletePopup>
+) {
+    return <AutocompletePopup {...props} />;
 }
 
 export function CommandGroup(

@@ -7,6 +7,7 @@ import { Carousel } from "@/components/ui/carousel";
 import { Footer } from "@/components/ui/footer";
 import { GradientWaveText } from "@/components/ui/gradient-wave-text";
 import { ChromeIcon, TikTokIcon } from "@/components/ui/icons";
+import { Kbd } from "@/components/ui/kbd";
 import { PageShell } from "@/components/ui/page-shell";
 import { Sidebar, SidebarFooter, SidebarHeader } from "@/components/ui/sidebar";
 import { getServerSession } from "@/lib/auth/session";
@@ -121,6 +122,9 @@ export default async function Home() {
                             </T>
                         </div>
                         <HeroCta isAuthenticated={!!session} />
+                        <span className="mx-auto text-center text-muted-foreground text-xs opacity-50">
+                            Press <Kbd>P</Kbd>
+                        </span>
                         <SessionHint serverSession={session} />
                     </SidebarHeader>
                     <SidebarFooter>
@@ -166,7 +170,10 @@ export default async function Home() {
                     </div>
                     <div className="flex flex-col gap-1.5">
                         <p className="mx-auto text-center text-xs">
-                            <T>Discover what Cache can do for you</T>
+                            <T>
+                                Welcome to your Cache - Discover what Cache can
+                                do for you
+                            </T>
                         </p>
                         <p className="mx-auto text-center font-medium text-xs">
                             <T>

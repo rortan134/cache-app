@@ -25,7 +25,6 @@ import {
     getAttachmentLabel,
     getMediaCategory,
 } from "@/components/ui/attachments";
-import { AutocompletePopup } from "@/components/ui/autocomplete";
 import { Avatar, AvatarFallback, AvatarGroup } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -51,6 +50,7 @@ import {
     CommandItem,
     CommandList,
     CommandPanel,
+    CommandPopup,
     CommandShortcut,
 } from "@/components/ui/command";
 import {
@@ -5186,7 +5186,7 @@ export function Browser({ lockedItemCount, totalItemCount }: LibraryProps) {
                                     />
                                 }
                             />
-                            <AutocompletePopup>
+                            <CommandPopup>
                                 <CommandEmpty>
                                     No matching commands found.
                                 </CommandEmpty>
@@ -5298,7 +5298,7 @@ export function Browser({ lockedItemCount, totalItemCount }: LibraryProps) {
                                         </Kbd>
                                     </div>
                                 </CommandFooter>
-                            </AutocompletePopup>
+                            </CommandPopup>
                         </CommandPanel>
                     </Command>
                     <Toolbar.Group className="flex items-center gap-2 px-3 py-2">

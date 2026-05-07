@@ -99,7 +99,7 @@ function Sidebar({ className, ...props }: React.ComponentProps<"aside">) {
         <aside
             {...props}
             className={cn(
-                "group/sidebar relative flex min-h-full w-full shrink-0 flex-col gap-8 overscroll-contain px-8 py-7 transition-[width,padding] duration-200 ease-linear lg:w-[400px] lg:max-w-[400px] lg:justify-between lg:data-[state=collapsed]:w-16 lg:data-[state=collapsed]:px-3 lg:data-[state=collapsed]:[&_[data-sidebar-collapsible]]:hidden lg:data-[state=collapsed]:[&_[data-sidebar-label]]:sr-only lg:data-[state=collapsed]:[&_[data-sidebar=item]]:justify-center lg:data-[state=collapsed]:[&_[data-sidebar=item]]:px-0",
+                "group/sidebar relative flex min-h-full w-full shrink-0 flex-col gap-8 overscroll-contain px-8 py-7 transition-[width,padding] duration-200 ease-in-out lg:w-[400px] lg:max-w-[400px] lg:justify-between lg:data-[state=collapsed]:w-16 lg:data-[state=collapsed]:px-3 lg:data-[state=collapsed]:[&_[data-sidebar-collapsible]]:hidden lg:data-[state=collapsed]:[&_[data-sidebar-label]]:sr-only lg:data-[state=collapsed]:[&_[data-sidebar=item]]:justify-center lg:data-[state=collapsed]:[&_[data-sidebar=item]]:px-0",
                 className
             )}
             data-slot="sidebar"
