@@ -3880,7 +3880,9 @@ function Empty() {
         <>
             <div className="mx-4 flex flex-col gap-1 px-1">
                 <h3 className="font-medium text-foreground text-sm">
-                    Welcome to your Cache
+                    <GradientWaveText ariaLabel="Welcome to your Cache">
+                        Welcome to your Cache
+                    </GradientWaveText>
                 </h3>
                 <p className="text-muted-foreground text-xs leading-tight">
                     Everything you save, unified and searchable. Cache is

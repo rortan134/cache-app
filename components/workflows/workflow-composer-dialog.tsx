@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/common/cn";
+import { createLogger } from "@/lib/common/logs/console/logger";
 import AppIconSmall from "@/public/cache-icon-small.png";
 import { useStableCallback } from "@base-ui/utils/useStableCallback";
 import {
@@ -70,6 +71,7 @@ const NO_COLLECTION_OPTION: WorkflowCollectionOption = {
     id: "all",
     name: "Any collection",
 };
+const log = createLogger("workflow:composer-dialog");
 
 interface ScheduleOption {
     label: string;
@@ -283,7 +285,7 @@ function WorkflowMarkdownEditor({
         },
         namespace: "cache-workflow-composer",
         onError(error: Error) {
-            console.error("Unexpected workflow composer editor error", error);
+            log.error("Unexpected workflow composer editor error", error);
         },
     };
 

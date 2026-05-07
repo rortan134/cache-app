@@ -1,7 +1,7 @@
 {
     "compilerOptions": {
         /* Base Options: */
-        "target": "es2025",
+        "target": "esnext",
         "moduleDetection": "force",
         "allowJs": true,
         "inlineSources": false,

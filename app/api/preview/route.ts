@@ -1,4 +1,3 @@
-import { serverEnv } from "@/env/server";
 import { isAbortError } from "@/lib/common/abort";
 import { FALLBACK_URL } from "@/lib/common/constants";
 import { createLogger } from "@/lib/common/logs/console/logger";
@@ -19,14 +18,20 @@ const VERCEL_CDN_CACHE_CONTROL_HEADER =
     "public, max-age=604800, stale-while-revalidate=604800";
 const VERCEL_CACHE_TAG_HEADER = "Vercel-Cache-Tag";
 const VERCEL_CDN_CACHE_CONTROL_HEADER_NAME = "Vercel-CDN-Cache-Control";
+const NO_STORE_HEADER = "private, no-store";
 const FETCH_TIMEOUT_MS = 5000;
 const MAX_REDIRECTS = 2;
+const MAX_TARGET_URL_LENGTH = 4096;
+const MAX_IMAGE_CONTENT_LENGTH_BYTES = 10 * 1024 * 1024;
+const MAX_VIDEO_CONTENT_LENGTH_BYTES = 200 * 1024 * 1024;
 const PREVIEW_METADATA_CACHE_TTL_SECONDS = 86_400;
 const PREVIEW_METADATA_CACHE_TTL_MS = PREVIEW_METADATA_CACHE_TTL_SECONDS * 1000;
 const COBALT_RETRY_ATTEMPTS = 2;
 const COBALT_RETRY_DELAY_MS = 500;
 const USER_AGENT =
     "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)";
+const HTTP_RANGE_HEADER_PATTERN =
+    /^bytes=(?:\d+-\d*|\d*-\d+)(?:,(?:\d+-\d*|\d*-\d+))*$/;
 
 const redis = getRedisClient();
 
@@ -47,19 +52,22 @@ export async function GET(request: Request): Promise<Response> {
     const requestUrl = new URL(request.url);
     const targetUrl = extractTargetUrl(request.url);
     if (!targetUrl) {
-        return new Response("Invalid URL", { status: 400 });
+        return textResponse("Invalid URL", 400);
     }
 
-    const type = requestUrl.searchParams.get("type") ?? "image";
+    const type = parsePreviewType(requestUrl.searchParams.get("type"));
+    if (!type) {
+        return textResponse("Unsupported preview type", 400);
+    }
 
     if (type === "video") {
-        return handleVideoPreview(targetUrl, request.signal);
+        return handleVideoPreview(targetUrl, request);
     }
 
     try {
         const previewResult = await resolvePreviewImage(targetUrl);
         if (!previewResult?.imageUrl) {
-            return new Response("Preview not found", { status: 404 });
+            return textResponse("Preview not found", 404);
         }
 
         const { imageUrl, pageUrl } = previewResult;
@@ -77,13 +85,22 @@ export async function GET(request: Request): Promise<Response> {
         );
 
         if (!imageResponse.ok) {
-            return new Response("Preview not found", { status: 404 });
+            return textResponse("Preview not found", 404);
         }
 
         const imageContentType =
             imageResponse.headers.get("content-type") ?? "";
         if (!imageContentType.startsWith("image/")) {
-            return new Response("Unsupported preview", { status: 415 });
+            return textResponse("Unsupported preview", 415);
+        }
+
+        if (
+            isContentLengthOverLimit(
+                imageResponse.headers,
+                MAX_IMAGE_CONTENT_LENGTH_BYTES
+            )
+        ) {
+            return textResponse("Preview too large", 413);
         }
 
         return new Response(imageResponse.body, {
@@ -107,7 +124,7 @@ export async function GET(request: Request): Promise<Response> {
             });
 
             if (error.code === "INVALID_URL") {
-                return new Response("Invalid URL", { status: 400 });
+                return textResponse("Invalid URL", 400);
             }
         } else {
             log.warn("Failed to resolve preview", {
@@ -116,7 +133,7 @@ export async function GET(request: Request): Promise<Response> {
             });
         }
 
-        return new Response("Preview not found", { status: 404 });
+        return textResponse("Preview not found", 404);
     }
 }
 
@@ -134,21 +151,23 @@ async function resolvePreviewImage(targetUrl: string) {
         },
     });
 
-    if (!page.image) {
+    const imageUrl = toSafeUrl(page.image ?? page.favicon);
+    if (!imageUrl) {
         return null;
     }
 
     return {
-        imageUrl: toSafeUrl(page.image),
+        imageUrl,
         pageUrl: toSafeUrl(page.url),
     };
 }
 
 async function handleVideoPreview(
     targetUrl: string,
-    signal?: AbortSignal
+    request: Request
 ): Promise<Response> {
     try {
+        const { signal } = request;
         if (signal?.aborted) {
             return new Response(null, { status: 499 });
         }
@@ -162,27 +181,28 @@ async function handleVideoPreview(
 
             const errorCode = videoResult?.errorCode ?? "";
             if (errorCode.includes("rate")) {
-                return new Response(
+                return textResponse(
                     "Video preview temporarily unavailable due to rate limiting",
-                    { status: 429 }
+                    429
                 );
             }
             if (
                 errorCode.includes("fetch") ||
                 errorCode.includes("unreachable")
             ) {
-                return new Response("Video preview temporarily unavailable", {
-                    status: 503,
-                });
+                return textResponse(
+                    "Video preview temporarily unavailable",
+                    503
+                );
             }
             if (errorCode.includes("not_found")) {
-                return new Response("Video preview not found", { status: 404 });
+                return textResponse("Video preview not found", 404);
             }
 
-            return new Response("Video preview not available", { status: 404 });
+            return textResponse("Video preview not available", 404);
         }
 
-        return proxyVideoResponse(videoResult.videoUrl, targetUrl, signal);
+        return proxyVideoResponse(videoResult.videoUrl, targetUrl, request);
     } catch (error) {
         if (isAbortError(error)) {
             return new Response(null, { status: 499 });
@@ -193,40 +213,60 @@ async function handleVideoPreview(
             targetUrl,
         });
 
-        return new Response("Video preview not found", { status: 404 });
+        return textResponse("Video preview not found", 404);
     }
 }
 
 async function proxyVideoResponse(
     videoUrl: string,
     targetUrl: string,
-    signal?: AbortSignal
+    request: Request
 ): Promise<Response> {
     try {
+        const rangeHeader = parseRangeHeader(request.headers.get("range"));
         const tunnelResponse = await fetchWithRedirects(
             videoUrl,
             {
                 headers: {
                     Accept: "video/*",
+                    ...(rangeHeader ? { Range: rangeHeader } : {}),
                     "User-Agent": USER_AGENT,
                 },
             },
-            signal
+            request.signal
         );
 
         if (!tunnelResponse.ok) {
-            return new Response("Video not available", {
-                status: tunnelResponse.status,
-            });
+            return textResponse(
+                "Video not available",
+                toSafeUpstreamStatus(tunnelResponse.status)
+            );
         }
 
         const headers = new Headers();
         const contentType =
             tunnelResponse.headers.get("content-type") ?? "video/mp4";
+        if (!isSupportedVideoContentType(contentType)) {
+            return textResponse("Unsupported video preview", 415);
+        }
+
+        if (
+            isContentLengthOverLimit(
+                tunnelResponse.headers,
+                MAX_VIDEO_CONTENT_LENGTH_BYTES
+            )
+        ) {
+            return textResponse("Video preview too large", 413);
+        }
+
         const contentLength = tunnelResponse.headers.get("content-length");
+        const contentRange = tunnelResponse.headers.get("content-range");
         headers.set("content-type", contentType);
         if (contentLength) {
             headers.set("content-length", contentLength);
+        }
+        if (contentRange) {
+            headers.set("content-range", contentRange);
         }
         headers.set("accept-ranges", "bytes");
         headers.set("cache-control", CACHE_CONTROL_HEADER);
@@ -246,7 +286,7 @@ async function proxyVideoResponse(
             videoUrl,
         });
 
-        return new Response("Video preview not found", { status: 404 });
+        return textResponse("Video preview not found", 404);
     }
 }
 
@@ -318,9 +358,7 @@ const safeFetch: typeof fetch = Object.assign(
 
         const safeUrl = toSafeUrl(rawUrl);
         if (!safeUrl) {
-            return Promise.resolve(
-                new Response("Invalid URL", { status: 400 })
-            );
+            return Promise.resolve(textResponse("Invalid URL", 400));
         }
 
         return fetchWithRedirects(safeUrl, init);
@@ -366,13 +404,13 @@ async function fetchWithRedirects(
 
         const redirectUrl = resolveRedirectUrl(location, requestUrl);
         if (!redirectUrl) {
-            return new Response("Invalid URL", { status: 400 });
+            return textResponse("Invalid URL", 400);
         }
 
         requestUrl = redirectUrl;
     }
 
-    return new Response("Too many redirects", { status: 508 });
+    return textResponse("Too many redirects", 508);
 }
 
 function resolveRedirectUrl(location: string, baseUrl: string): string | null {
@@ -388,6 +426,9 @@ function extractTargetUrl(requestUrl: string): string | null {
     if (!rawUrl) {
         return null;
     }
+    if (rawUrl.length > MAX_TARGET_URL_LENGTH) {
+        return null;
+    }
     const normalizedUrl = toValidUrl(rawUrl);
     if (normalizedUrl === FALLBACK_URL) {
         return null;
@@ -401,10 +442,7 @@ function toSafeUrl(rawUrl: string): string | null {
         if (parsedUrl.protocol !== "http:" && parsedUrl.protocol !== "https:") {
             return null;
         }
-        if (
-            isBlockedHostname(parsedUrl.hostname) &&
-            serverEnv.NODE_ENV === "production"
-        ) {
+        if (isBlockedHostname(parsedUrl.hostname)) {
             return null;
         }
         return parsedUrl.href;
@@ -415,6 +453,64 @@ function toSafeUrl(rawUrl: string): string | null {
 
 function isRedirectStatus(status: number): boolean {
     return status >= 300 && status < 400;
+}
+
+function parsePreviewType(type: string | null): "image" | "video" | null {
+    if (type === null || type === "image") {
+        return "image";
+    }
+    if (type === "video") {
+        return "video";
+    }
+    return null;
+}
+
+function textResponse(body: string, status: number): Response {
+    return new Response(body, {
+        headers: {
+            "cache-control": NO_STORE_HEADER,
+            "content-type": "text/plain; charset=utf-8",
+        },
+        status,
+    });
+}
+
+function parseRangeHeader(rangeHeader: string | null): string | null {
+    if (!rangeHeader) {
+        return null;
+    }
+    return HTTP_RANGE_HEADER_PATTERN.test(rangeHeader) ? rangeHeader : null;
+}
+
+function isSupportedVideoContentType(contentType: string): boolean {
+    const mimeType = contentType.split(";")[0]?.trim().toLowerCase();
+    return (
+        mimeType?.startsWith("video/") ||
+        mimeType === "application/octet-stream"
+    );
+}
+
+function isContentLengthOverLimit(
+    headers: Headers,
+    maxContentLengthBytes: number
+): boolean {
+    const contentLength = headers.get("content-length");
+    if (!contentLength) {
+        return false;
+    }
+
+    const contentLengthBytes = Number(contentLength);
+    return (
+        Number.isFinite(contentLengthBytes) &&
+        contentLengthBytes > maxContentLengthBytes
+    );
+}
+
+function toSafeUpstreamStatus(status: number): number {
+    if (status >= 400 && status <= 599) {
+        return status;
+    }
+    return 502;
 }
 
 function hashTargetUrl(targetUrl: string): string {

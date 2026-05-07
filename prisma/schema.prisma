@@ -106,6 +106,8 @@ model Collection {
 
   @@unique([userId, nameKey])
   @@index([userId])
+  @@index([userId, name])
+  @@index([userId, updatedAt, createdAt])
   @@map("collection")
 }
 
@@ -129,6 +131,7 @@ model LibraryActivityEvent {
   createdAt     DateTime                 @default(now())
 
   @@index([userId, occurredAt])
+  @@index([userId, occurredAt, createdAt])
   @@index([libraryItemId])
   @@index([collectionId])
   @@map("library_activity_event")
@@ -182,9 +185,11 @@ model LibraryItem {
 
   @@unique([userId, source, browserProfileId, externalId])
   @@index([userId])
+  @@index([userId, scrapedAt, updatedAt])
   @@index([userId, source, browserProfileId])
   @@index([userId, source, browserProfileId, parentExternalId], map: "library_item_user_source_profile_parent_idx")
   @@index([userId, reviewedAt])
+  @@index([userId, scrapedAt, updatedAt, reviewedAt])
   @@map("library_item")
 }
 
@@ -261,6 +266,7 @@ model Subscription {
   stripeScheduleId     String?
 
   @@index([referenceId])
+  @@index([referenceId, periodEnd])
   @@map("subscription")
 }
 

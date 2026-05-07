@@ -8,9 +8,17 @@ import {
     type LibraryItemImportRow,
     type LibraryItemImportRowInput,
 } from "@/lib/integrations/library-item-imports";
+import { chunk } from "@/lib/common/arrays";
 import { ITEM_KIND_FOLDER } from "@/lib/common/constants";
 import { prisma } from "@/prisma";
 import type { LibraryItemSource } from "@/prisma/client/enums";
+
+const EXISTING_IMPORT_LOOKUP_BATCH_SIZE = 250;
+
+type ExistingImportRow = Pick<
+    LibraryItemImportRow,
+    "browserProfileId" | "externalId"
+>;
 
 interface UpsertLibraryItemImportsArgs {
     items: Omit<LibraryItemImportRowInput, "source">[];
@@ -53,6 +61,35 @@ interface UpsertLibraryItemImportsResult {
     upsertedCount: number;
 }
 
+async function findExistingImportRows(args: {
+    rows: LibraryItemImportRow[];
+    source: LibraryItemSource;
+    userId: string;
+}): Promise<ExistingImportRow[]> {
+    const existingRows: ExistingImportRow[] = [];
+
+    for (const batch of chunk(args.rows, EXISTING_IMPORT_LOOKUP_BATCH_SIZE)) {
+        existingRows.push(
+            ...(await prisma.libraryItem.findMany({
+                select: {
+                    browserProfileId: true,
+                    externalId: true,
+                },
+                where: {
+                    OR: batch.map((row) => ({
+                        browserProfileId: row.browserProfileId,
+                        externalId: row.externalId,
+                    })),
+                    source: args.source,
+                    userId: args.userId,
+                },
+            }))
+        );
+    }
+
+    return existingRows;
+}
+
 /** @public */
 export async function upsertLibraryItemImports(
     args: UpsertLibraryItemImportsArgs
@@ -66,19 +103,10 @@ export async function upsertLibraryItemImports(
         };
     }
 
-    const existingRows = await prisma.libraryItem.findMany({
-        select: {
-            browserProfileId: true,
-            externalId: true,
-        },
-        where: {
-            OR: rows.map((row) => ({
-                browserProfileId: row.browserProfileId,
-                externalId: row.externalId,
-            })),
-            source: args.source,
-            userId: args.userId,
-        },
+    const existingRows = await findExistingImportRows({
+        rows,
+        source: args.source,
+        userId: args.userId,
     });
     const existingKeys = new Set(
         existingRows.map((row) => libraryItemIdentityKey(row))

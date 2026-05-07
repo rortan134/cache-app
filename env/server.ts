@@ -7,7 +7,7 @@ export const serverEnv = createEnv({
     experimental__runtimeEnv: process.env,
     extends: [vercel()],
     server: {
-        ARCJET_KEY: z.string().startsWith("ajkey_").optional(),
+        ARCJET_KEY: z.string().startsWith("ajkey_"),
         BETTER_AUTH_SECRET: z.string(), // Secret key for Better Auth JWT signing
         BETTER_AUTH_URL: z.url(), // Base URL for Better Auth service
 

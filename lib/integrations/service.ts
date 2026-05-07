@@ -3,6 +3,8 @@ import "server-only";
 import { prisma } from "@/prisma";
 import { listIntegrationAccountProviderIds } from "./support";
 
+const LINKED_INTEGRATION_ACCOUNT_LIMIT = 50;
+
 /**
  * Lists linked OAuth accounts for integrations the app supports.
  *
@@ -15,6 +17,7 @@ export function listLinkedIntegrationAccounts(args: {
 }): Promise<Array<{ providerId: string }>> {
     return prisma.account.findMany({
         select: { providerId: true },
+        take: LINKED_INTEGRATION_ACCOUNT_LIMIT,
         where: {
             providerId: {
                 in: listIntegrationAccountProviderIds(),

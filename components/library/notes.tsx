@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/menu";
 import type { LibraryItemWithCollections } from "@/lib/collections/utils";
 import { cn } from "@/lib/common/cn";
+import { createLogger } from "@/lib/common/logs/console/logger";
 import { parseStandaloneUrl } from "@/lib/common/url";
 import {
     NOTE_EMPTY_HTML,
@@ -168,6 +169,7 @@ const NOTE_EDITOR_THEME = {
 const NOTE_EDITOR_NODES = [HeadingNode];
 const NOTE_EDITOR_NAMESPACE = "cache-library-note";
 const NOTE_WORD_SEPARATOR = /\s+/;
+const log = createLogger("library:notes");
 
 const NOTE_NON_EMPTY_BLOCK_TAG_REGEX =
     /<(h[1-3]|p)>(?!(?:\s|<br\s*\/?>)*<\/\1>)[\s\S]*?<\/\1>/gi;
@@ -900,7 +902,7 @@ function NoteEditor() {
                 namespace: NOTE_EDITOR_NAMESPACE,
                 nodes: NOTE_EDITOR_NODES,
                 onError(error: Error) {
-                    console.error("Unexpected note editor error", error);
+                    log.error("Unexpected note editor error", error);
                 },
                 theme: NOTE_EDITOR_THEME,
             }}

@@ -8,7 +8,6 @@ import {
     toLibraryCollectionSummaryFromTagRecord,
     toLibraryCollectionTag,
     toLibraryItemWithCollections,
-    uniqueLibraryItemSources,
     type LibraryCollectionSummary,
     type LibraryCollectionTag,
     type LibraryCollectionTagRecord,
@@ -33,6 +32,10 @@ import type {
     LibraryItemSource,
 } from "@/prisma/client/enums";
 import { LibraryCollectionError } from "./error";
+
+const COLLECTION_LIST_LIMIT_MAX = 500;
+const LIBRARY_ITEMS_PAGE_LIMIT_DEFAULT = 100;
+const LIBRARY_ITEMS_PAGE_LIMIT_MAX = 100;
 
 type CollectionTransaction = Prisma.TransactionClient;
 
@@ -905,6 +908,7 @@ export async function listCollections(
             },
         },
         orderBy: { name: SORT_ASC },
+        take: COLLECTION_LIST_LIMIT_MAX,
         where: { userId: args.userId },
     });
 
@@ -973,30 +977,40 @@ export async function getLibraryItems(args: {
         userId: args.userId,
     };
 
+    const limit = Math.min(
+        args.limit ?? LIBRARY_ITEMS_PAGE_LIMIT_DEFAULT,
+        LIBRARY_ITEMS_PAGE_LIMIT_MAX
+    );
+
     if (args.hasAccess) {
-        const items = await prisma.libraryItem.findMany({
-            include: LIBRARY_ITEM_COLLECTIONS_INCLUDE,
-            orderBy: [{ scrapedAt: SORT_DESC }, { updatedAt: SORT_DESC }],
-            where: itemWhere,
-        });
+        const [items, totalItemCount, itemSources] = await Promise.all([
+            prisma.libraryItem.findMany({
+                include: LIBRARY_ITEM_COLLECTIONS_INCLUDE,
+                orderBy: [{ scrapedAt: SORT_DESC }, { updatedAt: SORT_DESC }],
+                take: limit,
+                where: itemWhere,
+            }),
+            prisma.libraryItem.count({ where: itemWhere }),
+            prisma.libraryItem.findMany({
+                distinct: ["source"],
+                select: { source: true },
+                where: itemWhere,
+            }),
+        ]);
 
         return {
-            itemSources: uniqueLibraryItemSources(items).map((source) => ({
-                source,
-            })),
+            itemSources,
             items: items.map(toLibraryItemWithCollections),
-            lockedItemCount: 0,
-            totalItemCount: items.length,
+            lockedItemCount: Math.max(totalItemCount - items.length, 0),
+            totalItemCount,
         };
     }
-
-    const limit = args.limit ?? FREE_LIBRARY_PREVIEW_ITEMS;
 
     const [items, totalItemCount, itemSources] = await Promise.all([
         prisma.libraryItem.findMany({
             include: LIBRARY_ITEM_COLLECTIONS_INCLUDE,
             orderBy: [{ scrapedAt: SORT_DESC }, { updatedAt: SORT_DESC }],
-            take: limit,
+            take: Math.min(limit, FREE_LIBRARY_PREVIEW_ITEMS),
             where: itemWhere,
         }),
         prisma.libraryItem.count({ where: itemWhere }),

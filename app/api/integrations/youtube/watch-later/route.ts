@@ -8,9 +8,9 @@ import {
     youtubeWatchLaterBodySchema,
 } from "@/lib/integrations/youtube/service";
 
-export function OPTIONS() {
+export function OPTIONS(request: Request) {
     return new Response(null, {
-        headers: extensionIngestCorsHeaders(),
+        headers: extensionIngestCorsHeaders(request),
         status: 204,
     });
 }

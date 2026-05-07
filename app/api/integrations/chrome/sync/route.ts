@@ -29,9 +29,9 @@ function isMissingSchemaError(error: unknown): boolean {
     return MISSING_SCHEMA_HINTS.some((hint) => error.message.includes(hint));
 }
 
-export function OPTIONS() {
+export function OPTIONS(request: Request) {
     return new Response(null, {
-        headers: extensionIngestCorsHeaders(),
+        headers: extensionIngestCorsHeaders(request),
         status: 204,
     });
 }

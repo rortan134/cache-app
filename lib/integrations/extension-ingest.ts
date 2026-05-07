@@ -11,49 +11,86 @@ import type { Prisma } from "@/prisma/client/client";
 import type { LibraryItemSource } from "@/prisma/client/enums";
 import type * as z from "zod";
 
-const CORS_HEADERS = {
+const INGEST_CORS_HEADERS = {
     "Access-Control-Allow-Headers": "authorization, content-type",
     "Access-Control-Allow-Methods": "POST, OPTIONS",
-    "Access-Control-Allow-Origin": "*",
     "Access-Control-Max-Age": "86400",
 } as const;
 
-export function extensionIngestCorsHeaders(): HeadersInit {
-    return CORS_HEADERS;
-}
+const TOKEN_CORS_HEADERS = {
+    "Access-Control-Allow-Headers": "content-type",
+    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+    "Access-Control-Max-Age": "86400",
+} as const;
 
-const TRUSTED_EXTENSION_ORIGIN_PATTERNS = [
+const TRUSTED_CACHE_WEB_ORIGIN_PATTERNS = [
     /^https:\/\/cachd\.app$/,
     /^https:\/\/[a-z0-9-]+\.cachd\.app$/,
     /^http:\/\/localhost:\d+$/,
-    /^chrome-extension:\/\/.+$/,
 ];
 
-function isTrustedExtensionOrigin(origin: string): boolean {
-    return TRUSTED_EXTENSION_ORIGIN_PATTERNS.some((pattern) =>
+const CHROME_EXTENSION_ORIGIN_PATTERN = /^chrome-extension:\/\/[a-p]{32}$/;
+
+function isTrustedCacheWebOrigin(origin: string): boolean {
+    return TRUSTED_CACHE_WEB_ORIGIN_PATTERNS.some((pattern) =>
         pattern.test(origin)
+    );
+}
+
+function trustedOriginForRequest(
+    request: Request,
+    config: { allowChromeExtensionOrigin: boolean }
+): string | null {
+    const origin = request.headers.get("origin")?.trim();
+    if (!origin) {
+        return null;
+    }
+    if (isTrustedCacheWebOrigin(origin)) {
+        return origin;
+    }
+    if (
+        config.allowChromeExtensionOrigin &&
+        CHROME_EXTENSION_ORIGIN_PATTERN.test(origin)
+    ) {
+        return origin;
+    }
+    return null;
+}
+
+function corsHeadersForOrigin(
+    headers: Record<string, string>,
+    allowOrigin: string | null,
+    config: { allowCredentials: boolean }
+): HeadersInit {
+    return {
+        ...headers,
+        ...(allowOrigin ? { "Access-Control-Allow-Origin": allowOrigin } : {}),
+        ...(allowOrigin && config.allowCredentials
+            ? { "Access-Control-Allow-Credentials": "true" }
+            : {}),
+        Vary: "Origin",
+    };
+}
+
+export function extensionIngestCorsHeaders(request: Request): HeadersInit {
+    return corsHeadersForOrigin(
+        INGEST_CORS_HEADERS,
+        trustedOriginForRequest(request, { allowChromeExtensionOrigin: true }),
+        { allowCredentials: false }
     );
 }
 
 /**
  * CORS headers for endpoints that rely on cookie/session credentials
- * (e.g. the extension ingest token endpoint). Reflects the request origin
- * when it matches a trusted extension origin so that credentialed
- * cross-origin requests from the extension content script succeed.
+ * (e.g. the extension ingest token endpoint). Credentialed CORS cannot use a
+ * wildcard origin, so untrusted origins receive no allow-origin header.
  */
-export function extensionTokenCorsHeaders(request?: Request): HeadersInit {
-    const origin = request?.headers.get("origin") ?? "";
-    const allowOrigin =
-        origin && isTrustedExtensionOrigin(origin) ? origin : "*";
-
-    return {
-        "Access-Control-Allow-Credentials": "true",
-        "Access-Control-Allow-Headers": "content-type",
-        "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-        "Access-Control-Allow-Origin": allowOrigin,
-        "Access-Control-Max-Age": "86400",
-        Vary: "Origin",
-    };
+export function extensionTokenCorsHeaders(request: Request): HeadersInit {
+    return corsHeadersForOrigin(
+        TOKEN_CORS_HEADERS,
+        trustedOriginForRequest(request, { allowChromeExtensionOrigin: false }),
+        { allowCredentials: true }
+    );
 }
 
 export function parseBearerToken(request: Request): string | null {
@@ -90,7 +127,7 @@ export async function resolveExtensionIngestUserId(
 export async function authenticateExtensionIngest(
     request: Request
 ): Promise<{ cors: HeadersInit; userId: string } | Response> {
-    const cors = extensionIngestCorsHeaders();
+    const cors = extensionIngestCorsHeaders(request);
     const bearer = parseBearerToken(request);
     if (!bearer) {
         return Response.json(
