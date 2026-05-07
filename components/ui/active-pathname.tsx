@@ -24,7 +24,7 @@ export function ActivePathname({
               pathname.startsWith(`${String(href)}/`)
             : pathname === String(href);
 
-    return React.cloneElement(React.Children.only(children), {
+    return React.cloneElement(children, {
         ...props,
         "aria-current": isPathnameActive ? "page" : undefined,
         "data-active": reverse ? !isPathnameActive : isPathnameActive,

@@ -12,7 +12,8 @@
     --color-foreground: var(--foreground);
     --font-sans: var(--font-inter);
     --font-mono:
-        ui-monospace, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+        ui-monospace, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+        "Liberation Mono", "Courier New", monospace;
     --font-heading: var(--font-inter);
     --color-primary: var(--primary);
     --color-primary-foreground: var(--primary-foreground);
@@ -194,7 +195,7 @@
 }
 
 @utility draggable-ui {
-  -webkit-app-region: drag;
+    -webkit-app-region: drag;
 }
 
 /* ── Component classes ── */

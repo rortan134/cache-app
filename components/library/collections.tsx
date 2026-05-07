@@ -1850,7 +1850,7 @@ function CollectionsListInlineRow({
     return (
         <div
             className={cn(
-                "flex items-center justify-between gap-2 pr-0.5 pl-1",
+                "flex items-center justify-between gap-2 px-2.5",
                 className
             )}
             {...props}
@@ -2064,11 +2064,11 @@ function CollectionsListStatus({
     }
 
     return (
-        <CollectionsListInlineRow className="pt-1">
+        <CollectionsListInlineRow>
             <p
                 aria-live="polite"
                 className={cn(
-                    "text-xs leading-tight",
+                    "text-xs italic leading-tight",
                     tone === "error"
                         ? "text-destructive"
                         : "text-muted-foreground",

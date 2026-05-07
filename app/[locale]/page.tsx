@@ -123,7 +123,7 @@ export default async function Home() {
                             </T>
                         </div>
                         <HeroCta isAuthenticated={!!session} />
-                        <span className="mx-auto -mt-4 text-center text-muted-foreground text-xs opacity-90">
+                        <span className="mx-auto -mt-4 text-center text-muted-foreground text-xs italic opacity-80">
                             Press <Kbd>P</Kbd>
                         </span>
                         <SessionHint serverSession={session} />
