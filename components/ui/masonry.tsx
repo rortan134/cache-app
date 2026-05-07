@@ -635,6 +635,7 @@ const JUSTIFIED_TARGET_ROW_HEIGHT = 320;
 const JUSTIFIED_TARGET_ROW_HEIGHT_TOLERANCE = 0.25;
 const JUSTIFIED_CONTAINER_PADDING = 0;
 const JUSTIFIED_BOX_SPACING = 0;
+const CONTAIN_INTRINSIC_SIZE_PREFIX = "auto ";
 
 interface Positioner {
     all: () => PositionerItem[];
@@ -1593,6 +1594,10 @@ function getCachedMasonryChildren(
     return cache.children;
 }
 
+function getContainIntrinsicSize(height: number) {
+    return `${CONTAIN_INTRINSIC_SIZE_PREFIX}${Math.max(1, Math.ceil(height))}px`;
+}
+
 function Masonry({
     boxSpacing,
     columnWidth = COLUMN_WIDTH,
@@ -1833,6 +1838,7 @@ function MasonryViewport({
         shortestColumnSize < rangeEnd && measuredCount < itemCount;
 
     const visibleItemStyle: React.CSSProperties = {
+        contentVisibility: "auto",
         position: "absolute",
         transform: isScrolling ? "translateZ(0)" : undefined,
         visibility: "visible",
@@ -1876,6 +1882,9 @@ function MasonryViewport({
                         ref: onItemRegister(index),
                         style: {
                             ...visibleItemStyle,
+                            containIntrinsicSize: getContainIntrinsicSize(
+                                pos?.height ?? itemHeight
+                            ),
                             height:
                                 layout === "justified"
                                     ? pos?.height

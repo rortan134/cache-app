@@ -24,26 +24,24 @@ export function Ticker({
     const isHorizontal = direction === "left" || direction === "right";
     const isVertical = direction === "up" || direction === "down";
     const repeatCount = Math.max(1, Math.ceil(repeatInstances));
-    const [durationSeconds, setDurationSeconds] = React.useState(
-        DEFAULT_DURATION_SECONDS
-    );
+    const [trackSizePx, setTrackSizePx] = React.useState(0);
     const trackRef = React.useRef<HTMLSpanElement | null>(null);
 
-    const measureDuration = useStableCallback(() => {
+    const measureTrackSize = useStableCallback(() => {
         const track = trackRef.current;
         if (!track) {
             return;
         }
 
         const trackRect = track.getBoundingClientRect();
-        const trackSizePx = isHorizontal ? trackRect.width : trackRect.height;
-        const travelDistancePx = trackSizePx / repeatCount;
-        const nextDurationSeconds = getTickerDurationSeconds(travelDistancePx);
+        const nextTrackSizePx = isHorizontal
+            ? trackRect.width
+            : trackRect.height;
 
-        setDurationSeconds((currentDurationSeconds) =>
-            currentDurationSeconds === nextDurationSeconds
-                ? currentDurationSeconds
-                : nextDurationSeconds
+        setTrackSizePx((currentTrackSizePx) =>
+            currentTrackSizePx === nextTrackSizePx
+                ? currentTrackSizePx
+                : nextTrackSizePx
         );
     });
 
@@ -53,7 +51,7 @@ export function Ticker({
             return;
         }
 
-        measureDuration();
+        measureTrackSize();
 
         const targetWindow = ownerWindow(track);
         if (!targetWindow.ResizeObserver) {
@@ -61,14 +59,16 @@ export function Ticker({
         }
 
         const observer = new targetWindow.ResizeObserver(() => {
-            measureDuration();
+            measureTrackSize();
         });
         observer.observe(track);
 
         return () => observer.disconnect();
-    }, [isHorizontal, measureDuration, repeatCount]);
+    }, [isHorizontal, measureTrackSize]);
 
     const animationDistance = `${-100 / repeatCount}%`;
+    const travelDistancePx = trackSizePx / repeatCount;
+    const durationSeconds = getTickerDurationSeconds(travelDistancePx);
     const trackStyle: TickerTrackStyle = {
         "--animation-distance": animationDistance,
         "--duration": `${durationSeconds}s`,
