@@ -4,27 +4,22 @@
     "entries": [
         {
             "fileId": "879f3a5f954ee8b75bf1e91f4ea9916b41c933e5beba7eb6362647a637c9c66d",
-            "versionId": "5f3c47ec7dbf8b0a0002304fa4e7346a80590860780706094f51695f31f163a2",
+            "versionId": "1382fcfc256f1defa40750ca2ffe208ed60f8fdece4d3e0ddeb2b5d79f14e68b",
             "translations": {
-                "es-ES": {
-                    "updatedAt": "2026-05-07T00:41:18.779Z",
-                    "fileName": "/Users/gilbert/Documents/proyectos/Cache/public/_gt/es-ES.json",
-                    "postProcessHash": "3b02888ab0ba58e87e6ba722348ab02a9472949ea18b6818d40f2a051f028409"
-                },
                 "fr-FR": {
-                    "updatedAt": "2026-05-07T00:41:18.790Z",
+                    "updatedAt": "2026-05-07T19:39:34.756Z",
                     "fileName": "/Users/gilbert/Documents/proyectos/Cache/public/_gt/fr-FR.json",
-                    "postProcessHash": "1cbe86d38bb574d0e61073d53867ee57621cc0b767b80b696e9330ab7e3ae4ef"
+                    "postProcessHash": "5972c7e2bd86e031b1684e245c3b52d3ad35f770368508579df0bc61f8e6b940"
                 },
-                "de-DE": {
-                    "updatedAt": "2026-05-07T00:41:18.791Z",
-                    "fileName": "/Users/gilbert/Documents/proyectos/Cache/public/_gt/de-DE.json",
-                    "postProcessHash": "86b99948c35bc691b4f4b71867ee8f19e3137ca8a1a0b3832658dc20c90447e2"
+                "es-ES": {
+                    "updatedAt": "2026-05-07T19:39:34.765Z",
+                    "fileName": "/Users/gilbert/Documents/proyectos/Cache/public/_gt/es-ES.json",
+                    "postProcessHash": "4d0cc37fdd95b9514b27dad5e1b39c81442ec629a293d744a10fb1f033ef565c"
                 },
                 "pt-BR": {
-                    "updatedAt": "2026-05-07T00:41:18.791Z",
+                    "updatedAt": "2026-05-07T19:39:34.765Z",
                     "fileName": "/Users/gilbert/Documents/proyectos/Cache/public/_gt/pt-BR.json",
-                    "postProcessHash": "211b2436aff2eface2ed75071b747da00037e317053242a069934d9b4508ebb1"
+                    "postProcessHash": "2295425cae4a6a70bc60fc24601c0178966167b0d97ba11109aed666c1e3113f"
                 }
             },
             "fileName": "__INTERNAL_GT_TEMPLATE_NAME__",

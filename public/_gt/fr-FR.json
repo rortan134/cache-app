@@ -1,5 +1,5 @@
 {
-  "019869a6c0157892": "Terms of Service",
+  "019869a6c0157892": "Conditions d'utilisation",
   "03560a0d75adf329": "Productivité",
   "051acc34eaf9d1df": "Activité",
   "062b5e45e86d2cc4": {
@@ -19,82 +19,70 @@
     "k": "_gt_value_1",
     "v": "v"
   },
-  "090dd58a9e726297": "Les lecteurs curieux",
-  "092723800fa245a8": "Nous acceptons les principales cartes de crédit (Visa, Mastercard, American Express), ainsi que les portefeuilles numériques via notre prestataire de paiement sécurisé, Stripe.",
+  "090dd58a9e726297": "Lecteurs curieux",
+  "092723800fa245a8": "Nous acceptons les principales cartes bancaires (Visa, Mastercard, American Express), ainsi que les portefeuilles numériques via notre prestataire de paiement sécurisé, Stripe.",
   "0d5988f4c0fbf2ad": "Compte Cache",
   "0db38849903f7632": [
     {
-      "c": "Chaque fois que vous appuyez sur enregistrer, vous faites un petit pari : ce moment d'attention valait quelque chose.",
+      "c": "Chaque fois que vous cliquez sur enregistrer, vous faites le pari discret que ce moment d’attention valait quelque chose.",
       "i": 1,
       "t": "p"
     },
     {
-      "c": "Cache rassemble tous ces paris. Il sort vos sauvegardes des silos — les tweets, les vidéos, les liens — et les met dans un endroit où vous pouvez vraiment les retrouver et en tirer quelque chose.",
+      "c": "Cache rassemble ces paris. Il sort vos éléments enregistrés de leurs silos — tweets, vidéos, liens — et les place dans un espace où vous pouvez vraiment les retrouver et en tirer quelque chose.",
       "i": 2,
       "t": "p"
     },
     {
-      "c": "Le scroll devient une bibliothèque.",
+      "c": "Le défilement devient une bibliothèque.",
       "i": 3,
       "t": "p"
     },
     {
-      "c": "La boucle de consommation devient une trace de ce qui a attiré votre attention, de ce qui vous a fait réfléchir, de ce que vous vouliez conserver.",
+      "c": "La boucle de consommation devient la trace de ce qui a attiré votre regard, de ce qui vous a fait réfléchir, de ce que vous vouliez garder.",
       "i": 4,
       "t": "p"
     },
     {
-      "c": "Le sens n'est pas dans le flux. Il est dans ce que vous choisissez de garder.",
+      "c": "Le sens n’est pas dans le flux. Il est dans ce que vous choisissez de garder.",
       "i": 5,
       "t": "p"
     }
   ],
-  "0e0f0cb623f12ffc": "Utilisation des cookies et technologies similaires sur nos sites et dans nos produits.",
-  "11503a3d12f43fdd": "Les documents officiels qui encadrent votre relation avec nous et expliquent comment nous traitons vos données. Choisissez un sujet ci-dessous pour consulter le texte complet.",
+  "0e0f0cb623f12ffc": "Cookies et technologies similaires utilisés sur nos sites et dans nos produits.",
+  "11503a3d12f43fdd": "Documents officiels qui régissent votre relation avec nous et expliquent comment nous traitons les données. Choisissez un sujet ci-dessous pour consulter le texte complet.",
   "11ccc132c8c38c40": [
     {
-      "c": "Vous l'enregistrez pour plus tard. Ce plus tard n'arrive jamais.",
+      "c": "Vous l’enregistrez pour plus tard. Mais ce plus tard n’arrive jamais.",
       "i": 1,
       "t": "p"
     },
     {
-      "c": "Le favori finit dans un cimetière de bonnes intentions, éparpillé sur cinq plateformes, deux navigateurs et trois appareils. L'idée s'évapore. La boucle repart de zéro.",
+      "c": "Le favori disparaît dans un cimetière de bonnes intentions, dispersé sur cinq plateformes, deux navigateurs, trois appareils. L’idée clé s’évapore. La boucle repart à zéro.",
       "i": 2,
       "t": "p"
     },
     {
-      "c": "Vous recommencez à faire défiler, à la recherche de ce que vous aviez déjà trouvé.",
+      "c": "Alors vous vous remettez à faire défiler, à la recherche de ce que vous aviez déjà trouvé.",
       "i": 3,
       "t": "p"
     }
   ],
-  "122ce38b5f93c178": [
-    {
-      "c": "Un outil pour",
-      "i": 1,
-      "t": "span"
-    },
-    " organiser toutes vos connaissances personnelles",
-    {
-      "c": " à grande échelle",
-      "i": 2,
-      "t": "span"
-    }
-  ],
   "15833184c459d240": {
-    "c": "Terms of Service",
+    "c": "Conditions d'utilisation",
     "i": 1,
     "t": "p"
   },
-  "1ce9017c460bbdf2": "Cache est conçu pour celles et ceux qui sauvegardent beaucoup, réfléchissent beaucoup et ne veulent pas voir leurs meilleures trouvailles se perdre dans « plus tard ».",
+  "1ce9017c460bbdf2": "Cache est conçu pour celles et ceux qui enregistrent beaucoup, réfléchissent beaucoup, et ne veulent pas voir leurs meilleures trouvailles se perdre dans « à voir plus tard ».",
   "1d1c7a1398fc122d": "mensuel",
+  "1d829f40405b2c18": "Bibliothèque",
   "20529ca475e73f99": "Thème",
   "209f6ca66a6eb0d4": {
     "c": [
       {
         "c": {
           "c": [
-            "80 €",
+            "80 €",
             {
               "c": "par an",
               "i": 4,
@@ -108,7 +96,7 @@
         "t": "div"
       },
       {
-        "c": "Facturation annuelle",
+        "c": "Facturé annuellement",
         "i": 5,
         "t": "p"
       }
@@ -118,15 +106,16 @@
   },
   "2589956983dbe009": "Bien sûr. Vous pouvez annuler votre abonnement Pro à tout moment depuis les paramètres de votre compte. Vous continuerez à avoir accès aux fonctionnalités Pro jusqu’à la fin de votre période de facturation.",
   "26fe9d3e34588477": "Se déconnecter",
-  "2aa22ec9498b27cb": "Passer à l’offre supérieure",
+  "2aa22ec9498b27cb": "Passer au Pro plan",
+  "2d6107cb78382d08": "Flux de travail",
   "2e739c6c3531ee7e": {
-    "c": "Économisez avec l’abonnement annuel",
+    "c": "Économisez avec les abonnements annuels",
     "i": 1,
     "t": "p"
   },
-  "2e9224bc11574ab5": "Exporter au format Markdown",
-  "30a94c403df733bc": "Docs, tickets, code, tutoriels. Retrouvez instantanément ce lien sans avoir à le chercher de nouveau.",
-  "331304248ca3c976": "Proposez-vous des réductions pour les étudiants&nbsp;?",
+  "2e9224bc11574ab5": "Exporter en Markdown",
+  "30a94c403df733bc": "Docs, tickets, code, tutoriels. Retrouvez instantanément ce lien précis, sans avoir à refaire une recherche.",
+  "331304248ca3c976": "Proposez-vous des réductions pour les étudiants ?",
   "352155f34be926bb": [
     {
       "c": [
@@ -141,7 +130,7 @@
               "i": 4,
               "t": "span"
             },
-            " vous aide à distinguer ce qui demande une action de ce qui relève de l’inspiration"
+            " vous aident à faire le tri entre ce qui demande une action et ce qui relève de l’inspiration"
           ],
           "i": 3,
           "t": "span"
@@ -172,7 +161,7 @@
           "t": "Unlink"
         },
         {
-          "c": "Supprimez les doublons et les liens brisés",
+          "c": "Supprimer les doublons et les liens brisés",
           "i": 10,
           "t": "span"
         }
@@ -187,7 +176,7 @@
           "t": "Sparkles"
         },
         {
-          "c": "Obtenez des analyses basées sur l’IA sur votre contenu enregistré",
+          "c": "Obtenez des analyses basées sur l’IA à partir de votre contenu",
           "i": 13,
           "t": "span"
         }
@@ -211,37 +200,37 @@
       "t": "li"
     }
   ],
-  "35d79362a091d51d": "Puis-je annuler mon abonnement&nbsp;?",
-  "3ac9f15975d41fb7": "Une boîte de réception conçue à dessein, à mi-chemin entre les favoris et la prise de notes. Structurée, consultable par recherche, fiable.",
+  "35d79362a091d51d": "Puis-je annuler mon abonnement ?",
+  "3ac9f15975d41fb7": "Une boîte de réception structurée entre les favoris et la prise de notes. Structurée, facile à consulter, fiable.",
   "3c2f33536aafdbb0": "Mes collections",
-  "3c61319be1bc2db7": "*Les plateformes tierces auxquelles vous vous connectez via le Service sont exploitées indépendamment de Cache. Cache ne contrôle ni leurs politiques ni la manière dont elles les appliquent, et ne peut être tenue responsable des décisions que ces plateformes prennent concernant vos comptes ou votre accès à leurs services, y compris, sans s’y limiter, des changements de disponibilité, qu’ils soient ou non liés à votre utilisation de Cache. Il vous appartient de respecter les conditions, politiques et règles communautaires de chaque plateforme. Cache ne saurait être tenue responsable d’un quelconque désagrément, préjudice ou autre conséquence résultant de votre relation avec ces plateformes ou de votre utilisation du Service en lien avec celles-ci. Des informations complémentaires sont disponibles",
+  "3c61319be1bc2db7": "*Les plateformes tierces auxquelles vous vous connectez via le Service sont exploitées indépendamment de Cache. Cache n'exerce aucun contrôle sur leurs politiques ni sur la façon dont elles les appliquent, et ne saurait être tenu responsable des décisions que ces plateformes prennent concernant vos comptes ou votre accès à leurs services — y compris, sans s'y limiter, les changements de disponibilité — qu'elles soient ou non liés à votre utilisation de Cache. Il vous appartient de respecter les conditions, politiques et règles de la communauté de chaque plateforme. Cache ne saurait être tenu responsable de tout désagrément, perte ou autre conséquence découlant de votre relation avec ces plateformes ou de votre utilisation du Service en lien avec celles-ci. Des informations complémentaires sont disponibles",
   "3d26c791d3bcb69a": "Sécurité",
   "44205dc5e0c99d88": [
     {
-      "c": "Vous êtes déjà attentif.",
+      "c": "Vous y accordez déjà votre attention.",
       "i": 1,
       "t": "p"
     },
     {
-      "c": "Cache fait en sorte que ça s'accumule.",
+      "c": "Cache fait en sorte qu’elle produise quelque chose qui s’accumule.",
       "i": 2,
       "t": "p"
     }
   ],
-  "446fc0e1621b7ae8": "Support",
+  "446fc0e1621b7ae8": "Assistance",
   "4570406e2d38d956": {
-    "c": "Privacy Policy",
+    "c": "Politique de confidentialité",
     "i": 1,
     "t": "p"
   },
   "46ac4c186b5b9e5a": [
     {
-      "c": "Connectez vos plateformes préférées — importez tout ce que vous avez déjà enregistré",
+      "c": "Connectez vos plateformes préférées — Importez tout ce que vous avez déjà sauvegardé",
       "i": 1,
       "t": "h2"
     },
     {
-      "c": "Rassemblez automatiquement les favoris de vos réseaux sociaux, plateformes vidéo et navigateurs. Plus besoin de faire défiler sans fin ni de jongler entre plusieurs plateformes pour retrouver ce qui compte pour vous.",
+      "c": "Rassemblez automatiquement les favoris de vos réseaux sociaux, plateformes vidéo et navigateur. Fini le défilement sans fin et les allers-retours entre plusieurs plateformes pour retrouver ce qui compte pour vous.",
       "i": 2,
       "t": "p"
     }
@@ -254,7 +243,7 @@
       "t": "h1"
     },
     {
-      "c": "À partir de seulement 8 € par mois — annulez à tout moment.",
+      "c": "À partir de seulement 8 € par mois — Annulez à tout moment.",
       "i": 2,
       "t": "p"
     },
@@ -274,7 +263,7 @@
   "574ce438c4568c94": [
     {
       "c": {
-        "c": "Unifiez tous vos marque-pages.",
+        "c": "Unifiez vos favoris.",
         "i": 2,
         "t": "GradientWaveText"
       },
@@ -282,7 +271,7 @@
       "t": "h1"
     },
     {
-      "c": "Découvrez Cache — le gestionnaire de marque-pages conçu pour celles et ceux qui ont mille choses en tête. Collectez, organisez et redécouvrez tout ce que vous avez enregistré, sur toutes vos plateformes.",
+      "c": "Découvrez Cache — le gestionnaire de favoris conçu pour celles et ceux qui ont toujours trop d’onglets ouverts. Collectez, organisez et redécouvrez tout ce que vous avez sauvegardé sur différentes plateformes.",
       "i": 3,
       "t": "p"
     }
@@ -292,7 +281,7 @@
       {
         "c": {
           "c": [
-            "8 €",
+            "8 €",
             {
               "c": "par mois",
               "i": 4,
@@ -306,7 +295,7 @@
         "t": "div"
       },
       {
-        "c": "Facturation mensuelle",
+        "c": "Facturé mensuellement",
         "i": 5,
         "t": "p"
       }
@@ -315,44 +304,43 @@
     "t": "div"
   },
   "5930189d0848c328": "Créateurs et curateurs",
-  "59470116de88a745": "Articles, essais, newsletters. Une bibliothèque vivante plutôt qu’un cimetière du « à lire plus tard ».",
+  "59470116de88a745": "Articles, essais, newsletters. Une bibliothèque vivante, plutôt qu’un cimetière de lecture différée.",
   "600433e7972a7e75": "Facturation",
-  "606daf45fd88b674": "Les écrivains et les penseurs",
+  "606daf45fd88b674": "Auteurs et penseurs",
   "627bafce1f587e82": [
     {
-      "c": "Restez organisé. Repérez ce qui n’est plus d’actualité, conservez l’essentiel",
+      "c": "Restez organisé. Repérez l’obsolète, gardez l’utile",
       "i": 1,
       "t": "h2"
     },
     {
-      "c": "Créez une base de connaissances à partir des contenus que vous jugez déjà importants. Importez une seule fois et passez du désordre à l’ordre en quelques minutes.",
+      "c": "Créez une base de connaissances à partir du contenu que vous avez déjà jugé important. Importez une seule fois et passez du chaos à l’organisation en quelques minutes.",
       "i": 2,
       "t": "p"
     }
   ],
-  "634fd36cce8909a0": "Installer l’extension",
-  "69a327815dc1270a": "Cookie Policy",
+  "634fd36cce8909a0": "Installez l’extension",
+  "69a327815dc1270a": "Politique relative aux cookies",
   "6b75fd08ca7c6ae3": [
-    "se termine ",
-    {
-      "i": 2,
-      "k": "_gt_value_2",
-      "v": "v"
-    },
-    " ",
     {
       "i": 1,
       "k": "_gt_value_1",
       "v": "v"
+    },
+    " se termine dans ",
+    {
+      "i": 2,
+      "k": "_gt_value_2",
+      "v": "v"
     }
   ],
   "6c231374bfad8483": {
-    "c": "Cookie Policy",
+    "c": "Politique relative aux cookies",
     "i": 1,
     "t": "p"
   },
   "72a2443c61bf0180": {
-    "c": "Achetez en toute flexibilité et en toute sécurité",
+    "c": "Souscrivez en toute flexibilité et en toute sécurité",
     "i": 1,
     "t": "p"
   },
@@ -361,7 +349,7 @@
     "i": 1,
     "t": "p"
   },
-  "738fa38eb9feb364": "Proposez-vous des forfaits pour les équipes ?",
+  "738fa38eb9feb364": "Proposez-vous des offres pour les équipes ?",
   "7721d8d00edabeda": "Déconnexion…",
   "7a6c957300c408f9": "Confidentialité",
   "815fe7576d49381e": [
@@ -376,7 +364,7 @@
     },
     {
       "c": {
-        "c": "Cache est conçu pour celles et ceux qui sauvegardent beaucoup, réfléchissent beaucoup et ne veulent pas voir leurs meilleures trouvailles se perdre dans « plus tard ».",
+        "c": "Cache est conçu pour celles et ceux qui enregistrent beaucoup, réfléchissent beaucoup, et ne veulent pas voir leurs meilleures trouvailles se perdre dans « à voir plus tard ».",
         "i": 4,
         "t": "T"
       },
@@ -389,6 +377,7 @@
     "i": 1,
     "t": "p"
   },
+  "8aee526745c87865": "À partir de 8 $ par mois",
   "8c6e42c48134ab7e": [
     {
       "c": [
@@ -397,7 +386,7 @@
           "t": "Terminal"
         },
         {
-          "c": "Utilisez la palette de commandes et les raccourcis pour travailler plus efficacement.",
+          "c": "Utilisez le menu de commandes et les shortcuts pour des flux de travail plus efficaces.",
           "i": 3,
           "t": "span"
         }
@@ -412,7 +401,7 @@
           "t": "Search"
         },
         {
-          "c": "Trouvez n’importe quoi grâce à la recherche en texte intégral et à l’OCR",
+          "c": "Trouvez tout grâce à la recherche en texte intégral et à l’OCR",
           "i": 6,
           "t": "span"
         }
@@ -424,19 +413,19 @@
   "8d088a9a26ac644e": "Tarifs",
   "8dce8ff73ffc32be": [
     {
-      "c": "Arrêtez de tout remettre à « plus tard »",
+      "c": "Arrêtez de le remettre à « plus tard »",
       "i": 1,
       "t": "h2"
     },
     {
-      "c": "Passez plus souvent à l’action en gardant votre contenu enregistré le plus pertinent à portée de main, au lieu de le laisser se perdre dans une pile de marque-pages oubliés.",
+      "c": "Créez davantage d’occasions de passer à l’action en gardant vos contenus sauvegardés les plus riches en idées clés à portée de main, au lieu de les laisser se perdre dans une pile de favoris oubliés.",
       "i": 2,
       "t": "p"
     }
   ],
   "9289a45309fee6c6": "Continuer avec Google",
-  "93e5f3e6c3870fab": "Threads, vidéos, inspiration. Regroupez vos idées dans des collections et publiez.",
-  "94c20ff6b75d8acb": "Comment nous recueillons, utilisons et protégeons vos informations personnelles.",
+  "93e5f3e6c3870fab": "Threads, vidéos, inspiration. Rassemblez vos idées en collections et publiez-les.",
+  "94c20ff6b75d8acb": "Comment nous collectons, utilisons et protégeons les informations personnelles.",
   "97f68bd29d3d4247": {
     "c": [
       {
@@ -454,33 +443,33 @@
     "i": 1,
     "t": "h2"
   },
-  "9e172217c3e3d8ae": "Passez à Pro",
+  "9e172217c3e3d8ae": "Passer à Pro",
   "a06f2446c9ee9132": "Références, citations, extraits. Une base de recherche consultable pour toute votre matière première.",
   "a42f3aef4c8fe690": {
-    "c": "Garantie de remboursement de 30 jours",
+    "c": "Jusqu’à 30 jours de garantie de remboursement",
     "i": 1,
     "t": "p"
   },
   "a44417a0d882c809": {
-    "c": "Gardez accès à toutes les fonctionnalités de Cache à mesure que votre archive s’agrandit.",
+    "c": "Gardez l’accès à toutes les fonctionnalités actuelles de Cache à mesure que votre archive s’enrichit.",
     "i": 1,
     "t": "p"
   },
   "a4868a1aa63482ae": {
-    "c": "Choisissez la souplesse du mensuel ou les économies de l’annuel avec le même forfait Pro.",
+    "c": "Optez pour la souplesse du mensuel ou les économies de l’annuel, avec le même Pro plan.",
     "i": 1,
     "t": "p"
   },
-  "a4ecc2d52fb9c50b": "Privacy Policy",
-  "a54a73f960eb0874": "Quelle est votre politique de remboursement ?",
+  "a4ecc2d52fb9c50b": "Politique de confidentialité",
+  "a54a73f960eb0874": "Quelle est votre politique de remboursement ?",
   "a578e8ffdd1a8e9b": [
     {
-      "c": "Constituez une bibliothèque de tout le contenu que vous aimez",
+      "c": "Constituez une bibliothèque de tout ce que vous aimez",
       "i": 1,
       "t": "h2"
     },
     {
-      "c": "Trouvez l’inspiration, retrouvez cette leçon, ce conseil, cette recette ou cette idée que vous cherchiez, en quelques secondes.",
+      "c": "Trouvez l’inspiration, retrouvez cette leçon, ce conseil, cette recette ou cette idée que vous cherchiez, le temps d’une pause café.",
       "i": 2,
       "t": "p"
     }
@@ -493,52 +482,63 @@
       "t": "p"
     },
     {
-      "c": "Vous la dépensez, que vous le vouliez ou non. Chaque scroll est un prélèvement. La plupart d'entre nous la traitent comme si elle était gratuite, illimitée, renouvelable, sans conséquence.",
+      "c": "Vous la dépensez, que vous le vouliez ou non. Chaque défilement est un retrait. La plupart d’entre nous la traitent comme si elle était gratuite, illimitée, renouvelable, sans conséquence.",
       "i": 2,
       "t": "p"
     },
     {
-      "c": "La question n'est pas de savoir si vous allez la dépenser. C'est de savoir si vous aurez quelque chose à montrer en échange.",
+      "c": "La vraie question n’est pas de savoir si vous allez la dépenser. C’est de savoir s’il vous en restera quelque chose.",
       "i": 3,
       "t": "p"
     },
     {
-      "c": "Cache n'est pas un remède. C'est une mémoire.",
+      "c": "Cache n’est pas un remède. C’est une mémoire.",
       "i": 4,
       "t": "p"
     }
   ],
-  "b33e2234ec4ab823": "forfait gratuit",
-  "b5d5276005980a36": "Les créateurs et les développeurs",
-  "b6d15ad93f1787c2": "Commencez à taper ou collez une URL...",
-  "b97318e56ebe2b1d": "Pour l’instant, nous nous concentrons sur la meilleure expérience possible pour les utilisateurs experts individuels. Si vous souhaitez utiliser Cache avec votre équipe, contactez-nous : nous serions ravis d’en savoir plus sur vos besoins.",
+  "b33e2234ec4ab823": "Offre gratuite",
+  "b5d5276005980a36": "Créateurs et développeurs",
+  "b6d15ad93f1787c2": "Commencez à saisir ou collez une URL...",
+  "b8fd17d5bf28e4f3": [
+    {
+      "c": "Un outil pour",
+      "i": 1,
+      "t": "span"
+    },
+    " gérer toute votre base de connaissances personnelle",
+    {
+      "c": " à grande échelle",
+      "i": 2,
+      "t": "span"
+    }
+  ],
+  "b97318e56ebe2b1d": "Pour le moment, nous nous concentrons sur la meilleure expérience possible pour les utilisateurs avancés en solo. Si vous souhaitez utiliser Cache avec votre équipe, n’hésitez pas à nous contacter : nous serions ravis d’en savoir plus sur vos besoins.",
   "ba1e49f7141fca57": [
     {
-      "c": "Il n'y a jamais eu autant de contenu.",
+      "c": "Il n’y a jamais eu autant de contenu.",
       "i": 1,
       "t": "p"
     },
     {
-      "c": "Et rarement aussi peu de sens.",
+      "c": "Il y a rarement eu aussi peu de sens.",
       "i": 2,
       "t": "p"
     },
     {
-      "c": "Le flux est infini, mais rien ne s'accumule. Chaque idée intéressante est aussitôt ensevelie par la suivante. Chaque idée arrive sans contexte, sans lien avec la dernière chose qui vous a marqué. Du volume sans rétention, ce n'est que du bruit.",
+      "c": "Le flux est infini, mais rien ne s’y accumule. Chaque idée clé est aussitôt ensevelie par la suivante. Chaque idée arrive sans contexte, sans lien avec la dernière chose qui vous a vraiment marqué.",
       "i": 3,
       "t": "p"
     },
     {
-      "c": "Ce n'est pas d'information que vous manquez. C'est d'un endroit où elle puisse se déposer.",
+      "c": "Vous ne manquez pas d’informations. Il vous manque un endroit où elles peuvent se déposer.",
       "i": 4,
       "t": "p"
     }
   ],
   "c26fd6852bfece9e": "Continuer avec Google",
-  "c6e026105239022b": "Quels moyens de paiement acceptez-vous&nbsp;?",
-  "c7440e0317a2410c": "À partir de 8 $/mois",
+  "c6e026105239022b": "Quels moyens de paiement acceptez-vous ?",
   "c884609397b72df2": "annuel",
-  "ca749b12449e9284": "Accueil",
   "cca6a310f45ce736": [
     {
       "i": 1,
@@ -566,8 +566,8 @@
       "v": "v"
     }
   ],
-  "d011ae1a9a04132e": "Nous offrons une garantie satisfait ou remboursé de 30 jours. Si Cache ne vous convient pas, il vous suffit de nous le faire savoir dans les 30 jours suivant votre achat initial pour obtenir un remboursement intégral.",
-  "d1526ef45744d297": "Oui&nbsp;! Nous tenons à soutenir les étudiants et les enseignants. Contactez notre équipe de support avec votre adresse e-mail académique pour recevoir un code de réduction spécial.",
+  "d011ae1a9a04132e": "Nous offrons une garantie satisfait ou remboursé de 30 jours. Si Cache ne vous convient pas, faites-le-nous savoir dans les 30 jours suivant votre achat initial pour obtenir un remboursement intégral.",
+  "d1526ef45744d297": "Oui ! Nous tenons à soutenir les étudiants et les enseignants. Contactez simplement notre équipe d’assistance avec votre adresse e-mail universitaire pour recevoir un code de réduction spécial.",
   "d353ed81b71684aa": "Intégrations",
   "d70e4938efa65780": {
     "c": [
@@ -585,27 +585,27 @@
   "daf8daec701f0863": "Compte",
   "dc43f2f8b9531cf9": [
     {
-      "c": "Alors soyons honnêtes sur ce qui se passe vraiment.",
+      "c": "Alors, soyons honnêtes sur ce qui se passe vraiment.",
       "i": 1,
       "t": "p"
     },
     {
-      "c": "Vous faites défiler parce que le monde est intéressant. Parce que quelqu'un, quelque part, vient de dire exactement ce que vous essayez de formuler depuis des années. Parce qu'il y a une recette, un fil, une vidéo de deux minutes qui va vraiment changer votre façon de voir les choses.",
+      "c": "Vous faites défiler parce que le monde est intéressant. Parce que, quelque part, quelqu’un vient de formuler exactement ce que vous essayez d’exprimer depuis des années. Parce qu’il y a une recette, un fil, une vidéo de deux minutes qui va vraiment changer votre façon de voir les choses.",
       "i": 2,
       "t": "p"
     },
     {
-      "c": "Le problème, ce n'est pas que vous consommez.",
+      "c": "Le problème, ce n’est pas que vous consommiez.",
       "i": 3,
       "t": "p"
     },
     {
-      "c": "Le problème, c'est que vous consommez en oubliant tout.",
+      "c": "Le problème, c’est que vous consommez dans l’oubli.",
       "i": 4,
       "t": "p"
     }
   ],
-  "dce930d99de233a7": "Conditions générales",
+  "dce930d99de233a7": "Conditions",
   "ddc161e16a7e8f5a": [
     {
       "i": 1,
@@ -619,16 +619,17 @@
       "v": "v"
     }
   ],
-  "e144e2404ea58e71": "Aucune collection trouvée. Créez votre première collection pour commencer à organiser les éléments enregistrés.",
+  "de1c185ee6423d7a": "Bienvenue sur Cache — Découvrez ce que Cache peut faire pour vous",
+  "e144e2404ea58e71": "Aucune collection trouvée. Créez votre première collection pour commencer à organiser vos éléments enregistrés.",
   "e258c217aa94baa7": {
-    "c": "Recherchez, organisez et retrouvez votre contenu enregistré depuis une seule bibliothèque.",
+    "c": "Recherchez, organisez et retrouvez vos contenus enregistrés dans une seule bibliothèque.",
     "i": 1,
     "t": "p"
   },
   "e37f1708f0515194": {
     "c": [
       {
-        "c": "Forfait Pro",
+        "c": "Pro plan",
         "i": 2,
         "t": "p"
       },
@@ -641,7 +642,7 @@
     "i": 1,
     "t": "div"
   },
-  "e39a57514be028e9": "Révision",
+  "e39a57514be028e9": "Passer en revue",
   "e768c8a859e016d2": [
     {
       "c": "Puisque vous allez faire défiler de toute façon, autant en tirer quelque chose.",
@@ -649,17 +650,17 @@
       "t": "h2"
     },
     {
-      "c": "Personne n'abandonne les flux.",
+      "c": "Personne ne quitte vraiment les flux.",
       "i": 2,
       "t": "p"
     },
     {
-      "c": "On a essayé. On a supprimé les applis, réglé des minuteurs, culpabilisé.",
+      "c": "On a essayé. On a supprimé les applis, réglé des minuteurs, ressenti de la culpabilité.",
       "i": 3,
       "t": "p"
     },
     {
-      "c": "Et puis on y est retournés.",
+      "c": "Puis on y est revenus.",
       "i": 4,
       "t": "p"
     }
@@ -667,12 +668,12 @@
   "e87d348b3dd99eca": "Mentions légales et politiques",
   "f137946f63b397fd": "Ouvrir dans...",
   "f4882218996f2be2": {
-    "c": "Rassemblez les favoris de vos navigateurs, réseaux sociaux et plateformes pris en charge.",
+    "c": "Rassemblez vos favoris provenant de navigateurs, d’applications sociales et de plateformes compatibles.",
     "i": 1,
     "t": "p"
   },
-  "f676d126c8fd832f": "Qu’est-ce que Cache&nbsp;?",
-  "f76f62457e672828": "Ces pages peuvent être mises à jour ponctuellement. La version publiée sur ce site est celle en vigueur au moment de votre visite.",
+  "f676d126c8fd832f": "Qu’est-ce que Cache ?",
+  "f76f62457e672828": "Ces pages peuvent être mises à jour de temps à autre. La version figurant sur ce site est celle en vigueur au moment de votre visite.",
   "f8c57a3d7d964dde": {
     "c": [
       {
@@ -681,7 +682,7 @@
         "t": "p"
       },
       {
-        "c": "Un seul abonnement pour tout votre contenu enregistré",
+        "c": "Un seul abonnement pour tout votre flux de travail autour des contenus enregistrés",
         "i": 3,
         "t": "h2"
       }
@@ -705,17 +706,16 @@
       "t": "p"
     }
   ],
-  "fa7b804124828a9e": "Découvrez ce que Cache peut faire pour vous",
-  "fbcddac4fd87ab2f": "Cache est une bibliothèque unifiée pour tout ce que vous enregistrez en ligne. Nous regroupons vos marque-pages, vos photos aimées et votre contenu enregistré depuis différentes plateformes dans un espace unique, sécurisé, consultable et organisé.",
-  "fee961fc81f1f189": "Règles d’utilisation du service, des comptes et de l’utilisation acceptable.",
+  "fbcddac4fd87ab2f": "Cache est une bibliothèque unifiée pour tout ce que vous sauvegardez en ligne. Nous rassemblons vos favoris, les photos que vous aimez et vos contenus enregistrés sur différentes plateformes dans un espace unique, sécurisé, consultable et organisé.",
+  "fee961fc81f1f189": "Règles d’utilisation du service, des comptes et usage acceptable.",
   "fefb8ae2927f6a0c": [
     {
-      "c": "Recherchez et explorez depuis un flux unique et rapide",
+      "c": "Recherchez et explorez à partir d’un flux unique et rapide",
       "i": 1,
       "t": "h2"
     },
     {
-      "c": "Simplifiez votre façon de parcourir et de retrouver votre contenu enregistré grâce à une interface moderne et performante, directement dans votre navigateur.",
+      "c": "Simplifiez votre façon de consulter et de redécouvrir vos contenus sauvegardés grâce à une interface moderne et puissante, directement dans votre navigateur.",
       "i": 2,
       "t": "p"
     }
