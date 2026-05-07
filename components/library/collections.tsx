@@ -47,6 +47,7 @@ import { Input } from "@/components/ui/input";
 import { CtrlKbd, Kbd } from "@/components/ui/kbd";
 import {
     Menu,
+    MenuCheckboxItem,
     MenuGroup,
     MenuGroupLabel,
     MenuItem,
@@ -113,6 +114,7 @@ import { T } from "gt-next";
 import {
     ArchiveIcon,
     ArrowUpRight,
+    BellIcon,
     ChevronRight,
     Clock,
     Component,
@@ -218,6 +220,12 @@ interface SortingOption {
     value: Exclude<CollectionSortField, "text-match">;
 }
 
+interface CollectionNotificationOption {
+    defaultChecked: boolean;
+    label: string;
+    value: string;
+}
+
 type SortingComboboxOption =
     | SortingOption
     | {
@@ -241,6 +249,24 @@ const DEFAULT_PRIORITY: PriorityOption = {
     label: "No priority",
     value: "none",
 };
+
+const COLLECTION_NOTIFICATION_OPTIONS: CollectionNotificationOption[] = [
+    {
+        defaultChecked: true,
+        label: "New items added",
+        value: "new-items",
+    },
+    {
+        defaultChecked: true,
+        label: "Weekly digest",
+        value: "weekly-digest",
+    },
+    {
+        defaultChecked: false,
+        label: "Shared link activity",
+        value: "shared-link-activity",
+    },
+];
 
 const PRIORITIES = [
     DEFAULT_PRIORITY,
@@ -2648,6 +2674,33 @@ function CollectionsListExportMenu({
     );
 }
 
+/**
+ * Sub-menu with notification preferences for collection updates.
+ */
+function CollectionsListSubscribeMenu() {
+    return (
+        <MenuSub>
+            <MenuSubTrigger disabled>
+                <BellIcon className="inline-block size-4 text-muted-foreground" />
+                Subscribe (soon)
+            </MenuSubTrigger>
+            <MenuSubPopup>
+                <MenuGroup>
+                    <MenuGroupLabel>Inbox notifications</MenuGroupLabel>
+                    {COLLECTION_NOTIFICATION_OPTIONS.map((option) => (
+                        <MenuCheckboxItem
+                            defaultChecked={option.defaultChecked}
+                            key={option.value}
+                        >
+                            {option.label}
+                        </MenuCheckboxItem>
+                    ))}
+                </MenuGroup>
+            </MenuSubPopup>
+        </MenuSub>
+    );
+}
+
 interface CollectionsListItemMetaProps {
     isSharePending: boolean;
     onCopyLinks: () => void;
@@ -2739,6 +2792,7 @@ function CollectionsListItemMeta({
                             onMakeCopy={onMakeCopy}
                             onOpenLinks={onOpenLinks}
                         />
+                        <CollectionsListSubscribeMenu />
                     </MenuGroup>
                     <MenuSeparator />
                     <MenuGroup>

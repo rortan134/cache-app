@@ -1743,7 +1743,7 @@ function renderLibraryGridBody({
         ) : (
             <section className="flex w-full flex-col gap-3" key={section.key}>
                 {section.title ? (
-                    <div className="flex items-center justify-between gap-3">
+                    <div className="mb-1 flex items-center justify-between gap-3">
                         <h2 className="font-medium text-foreground text-sm">
                             {section.title}
                         </h2>

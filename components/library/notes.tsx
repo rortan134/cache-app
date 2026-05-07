@@ -515,7 +515,7 @@ function NoteFormattingToolbarPlugin() {
     };
 
     return (
-        <div className="-mx-2 flex flex-wrap items-center gap-1 rounded-2xl border border-border/60 bg-muted/35 p-1">
+        <div className="-mx-2 mb-3 flex flex-wrap items-center gap-1 rounded-2xl border border-border/60 bg-muted/35 p-1">
             {NOTE_BLOCK_OPTIONS.map((option) => (
                 <Button
                     aria-label={option.ariaLabel}
@@ -598,7 +598,7 @@ function NoteContentPlugin({
                     }
                     ErrorBoundary={LexicalErrorBoundary}
                     placeholder={
-                        <div className="pointer-events-none absolute inset-0 py-4 text-base text-muted-foreground">
+                        <div className="pointer-events-none absolute inset-0 text-base text-muted-foreground">
                             <T>Start typing or paste an URL...</T>
                         </div>
                     }

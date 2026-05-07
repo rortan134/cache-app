@@ -5,15 +5,10 @@ import {
     UserMenuFooter,
     UserMenuHeader,
 } from "@/components/auth/user-menu";
-import { ActivePathname } from "@/components/ui/active-pathname";
+import { AppSidebarNavigation } from "@/components/ui/app-sidebar-navigation";
 import { Badge } from "@/components/ui/badge";
 import { PageShell } from "@/components/ui/page-shell";
-import {
-    Sidebar,
-    SidebarGroup,
-    SidebarHeader,
-    SidebarItem,
-} from "@/components/ui/sidebar";
+import { Sidebar, SidebarHeader } from "@/components/ui/sidebar";
 import { getActivityTimelineData } from "@/lib/activity/service";
 import { getServerSession } from "@/lib/auth/session";
 import { cn } from "@/lib/common/cn";
@@ -24,23 +19,18 @@ import type {
     LibraryActivityEventKind,
     LibraryItemSource,
 } from "@/prisma/client/enums";
-import { T } from "gt-next";
 import {
     Activity,
     Bookmark,
     Boxes,
-    Compass,
     ExternalLink,
     FolderPlus,
     GitBranch,
-    History,
-    House,
     Link2,
     Share2,
     Sparkles,
 } from "lucide-react";
 import type { Metadata } from "next";
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import type { ComponentType, SVGProps } from "react";
 
@@ -453,54 +443,7 @@ export default async function ActivityPage({
                             <UserMenuContent />
                             <UserMenuFooter />
                         </UserMenu>
-                        <SidebarGroup>
-                            <Link className="contents" href="/library" prefetch>
-                                <ActivePathname href="/library">
-                                    <SidebarItem>
-                                        <House
-                                            aria-hidden
-                                            className="inline-block size-4 shrink-0"
-                                            focusable="false"
-                                        />
-                                        <span>
-                                            <T>Home</T>
-                                        </span>
-                                    </SidebarItem>
-                                </ActivePathname>
-                            </Link>
-                            <Link className="contents" href="/review" prefetch>
-                                <ActivePathname href="/review">
-                                    <SidebarItem>
-                                        <Compass
-                                            aria-hidden
-                                            className="inline-block size-4 shrink-0"
-                                            focusable="false"
-                                        />
-                                        <span>
-                                            <T>Review</T>
-                                        </span>
-                                    </SidebarItem>
-                                </ActivePathname>
-                            </Link>
-                            <Link
-                                className="contents"
-                                href="/activity"
-                                prefetch
-                            >
-                                <ActivePathname href="/activity">
-                                    <SidebarItem>
-                                        <History
-                                            aria-hidden
-                                            className="inline-block size-4 shrink-0"
-                                            focusable="false"
-                                        />
-                                        <span>
-                                            <T>Activity</T>
-                                        </span>
-                                    </SidebarItem>
-                                </ActivePathname>
-                            </Link>
-                        </SidebarGroup>
+                        <AppSidebarNavigation />
                     </SidebarHeader>
                 </Sidebar>
                 <div className="flex w-full max-w-[1040px] flex-col gap-8 px-6 py-8 sm:px-8 2xl:mx-auto">

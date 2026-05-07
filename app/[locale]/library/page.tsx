@@ -17,7 +17,7 @@ import {
     IntegrationsListTrigger,
 } from "@/components/library/integrations";
 import { WorkspaceProvider } from "@/components/library/workspace";
-import { ActivePathname } from "@/components/ui/active-pathname";
+import { AppSidebarNavigation } from "@/components/ui/app-sidebar-navigation";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { DisclosureList } from "@/components/ui/disclosure-list";
 import { ChevronDownFilledIcon } from "@/components/ui/icons";
@@ -25,9 +25,7 @@ import { CtrlKbd, Kbd } from "@/components/ui/kbd";
 import { PageShell } from "@/components/ui/page-shell";
 import {
     Sidebar,
-    SidebarGroup,
     SidebarHeader,
-    SidebarItem,
     SidebarProvider,
     SidebarTrigger,
 } from "@/components/ui/sidebar";
@@ -41,9 +39,7 @@ import {
     listConnectedIntegrationIds,
 } from "@/lib/integrations/support";
 import { T } from "gt-next";
-import { Compass, History, House } from "lucide-react";
 import type { Metadata } from "next";
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { connection } from "next/server";
 
@@ -131,58 +127,7 @@ export default async function LibraryPage() {
                                     </div>
                                     <SidebarTrigger />
                                 </div>
-                                <SidebarGroup>
-                                    <Link
-                                        className="contents"
-                                        href="/library"
-                                        prefetch
-                                    >
-                                        <ActivePathname href="/library">
-                                            <SidebarItem>
-                                                <House
-                                                    aria-hidden
-                                                    className="inline-block size-4 shrink-0"
-                                                    focusable="false"
-                                                />
-                                                <span data-sidebar-label="">
-                                                    <T>Home</T>
-                                                </span>
-                                            </SidebarItem>
-                                        </ActivePathname>
-                                    </Link>
-                                    <Link className="contents" href="/review">
-                                        <ActivePathname href="/review">
-                                            <SidebarItem>
-                                                <Compass
-                                                    aria-hidden
-                                                    className="inline-block size-4 shrink-0"
-                                                    focusable="false"
-                                                />
-                                                <span data-sidebar-label="">
-                                                    <T>Review</T>
-                                                </span>
-                                            </SidebarItem>
-                                        </ActivePathname>
-                                    </Link>
-                                    <Link
-                                        className="contents"
-                                        href="/activity"
-                                        prefetch
-                                    >
-                                        <ActivePathname href="/activity">
-                                            <SidebarItem>
-                                                <History
-                                                    aria-hidden
-                                                    className="inline-block size-4 shrink-0"
-                                                    focusable="false"
-                                                />
-                                                <span data-sidebar-label="">
-                                                    <T>Activity</T>
-                                                </span>
-                                            </SidebarItem>
-                                        </ActivePathname>
-                                    </Link>
-                                </SidebarGroup>
+                                <AppSidebarNavigation />
                                 <div data-sidebar-collapsible="">
                                     <IntegrationsList>
                                         <IntegrationsListTrigger>
