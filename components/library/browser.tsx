@@ -781,6 +781,7 @@ function buildSectionDescriptionContextItem(
 
 /** Base UI combobox close reason when an item is activated (inline mode still emits this). */
 const COMBOBOX_ITEM_PRESS_REASON = "item-press";
+const COMBOBOX_ESCAPE_KEY_REASON = "escape-key";
 const ALL_DOMAIN_FILTER = "__all_domains__";
 
 const SEARCH_HOTKEYS = [
@@ -3558,14 +3559,12 @@ function Card({ item }: LibraryGridCardProps) {
                                 </div>
                             </div>
                         ) : (
-                            <div className="relative w-full overflow-hidden">
-                                <PreviewMedia
-                                    alt={alt}
-                                    isHovered={isCardHovered}
-                                    src={previewImageUrl}
-                                    videoSrc={previewVideoUrl}
-                                />
-                            </div>
+                            <PreviewMedia
+                                alt={alt}
+                                isHovered={isCardHovered}
+                                src={previewImageUrl}
+                                videoSrc={previewVideoUrl}
+                            />
                         )}
                     </a>
                     <div
@@ -4382,8 +4381,24 @@ export function Browser({ lockedItemCount, totalItemCount }: LibraryProps) {
 
     const handleCommandOpenChange = (
         nextOpen: boolean,
-        eventDetails?: { reason?: string }
+        eventDetails: AutocompleteRootChangeEventDetails
     ) => {
+        if (
+            !nextOpen &&
+            eventDetails.reason === COMBOBOX_ESCAPE_KEY_REASON &&
+            paletteSection !== "search"
+        ) {
+            eventDetails.cancel();
+
+            if (paletteInput.trim() === "") {
+                returnToSearchSection();
+                return;
+            }
+
+            setCommandListOpen(true);
+            return;
+        }
+
         setCommandListOpen(() => {
             if (!nextOpen && suppressNextCommandCloseRef.current) {
                 suppressNextCommandCloseRef.current = false;
@@ -4400,7 +4415,7 @@ export function Browser({ lockedItemCount, totalItemCount }: LibraryProps) {
                         active instanceof ownerWindow.Node &&
                         shell.contains(active)
                 );
-                const reason = eventDetails?.reason;
+                const reason = eventDetails.reason;
 
                 // Inline autocomplete always requests close on item pick; keep the list
                 // visible while focus stays in the palette so the field matches the list.
@@ -4636,6 +4651,7 @@ export function Browser({ lockedItemCount, totalItemCount }: LibraryProps) {
     ) => {
         if (event.key === "Escape") {
             event.preventDefault();
+            event.stopPropagation();
             if (paletteInput.trim() !== "") {
                 setPaletteInput("");
                 setCommandListOpen(true);
