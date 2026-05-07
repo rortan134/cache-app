@@ -169,6 +169,7 @@ const NOTE_EDITOR_THEME = {
 const NOTE_EDITOR_NODES = [HeadingNode];
 const NOTE_EDITOR_NAMESPACE = "cache-library-note";
 const NOTE_WORD_SEPARATOR = /\s+/;
+
 const log = createLogger("library:notes");
 
 const NOTE_NON_EMPTY_BLOCK_TAG_REGEX =

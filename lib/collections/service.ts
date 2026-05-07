@@ -33,9 +33,9 @@ import type {
 } from "@/prisma/client/enums";
 import { LibraryCollectionError } from "./error";
 
-const COLLECTION_LIST_LIMIT_MAX = 500;
-const LIBRARY_ITEMS_PAGE_LIMIT_DEFAULT = 100;
-const LIBRARY_ITEMS_PAGE_LIMIT_MAX = 100;
+const COLLECTION_LIST_LIMIT_MAX = 9999;
+const LIBRARY_ITEMS_PAGE_LIMIT_DEFAULT = 9999;
+const LIBRARY_ITEMS_PAGE_LIMIT_MAX = 9999;
 
 type CollectionTransaction = Prisma.TransactionClient;
 
