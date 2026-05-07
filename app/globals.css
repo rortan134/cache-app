@@ -12,7 +12,7 @@
     --color-foreground: var(--foreground);
     --font-sans: var(--font-inter);
     --font-mono:
-        ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        ui-monospace, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
     --font-heading: var(--font-inter);
     --color-primary: var(--primary);
     --color-primary-foreground: var(--primary-foreground);
@@ -193,6 +193,10 @@
     content-visibility: auto;
 }
 
+@utility draggable-ui {
+  -webkit-app-region: drag;
+}
+
 /* ── Component classes ── */
 .palette-chip-enter {
     transform-origin: top left;
@@ -262,7 +266,7 @@
         font-family:
             var(--font-inter), "SF Pro Display", -apple-system, BlinkMacSystemFont,
             "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans",
-            "Helvetica Neue", "Linear Thai", sans-serif;
+            "Helvetica Neue", ui-sans-serif, system-ui;
         overflow-wrap: anywhere;
         position: relative;
         -webkit-text-size-adjust: 100%;
