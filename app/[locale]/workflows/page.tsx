@@ -8,9 +8,11 @@ import {
 import { AppSidebarNavigation } from "@/components/ui/app-sidebar-navigation";
 import { PageShell } from "@/components/ui/page-shell";
 import { Sidebar, SidebarHeader } from "@/components/ui/sidebar";
+import { WorkflowComposerDialog } from "@/components/workflows/workflow-composer-dialog";
 import { WorkflowsList } from "@/components/workflows/workflows-list";
 import { getServerSession } from "@/lib/auth/session";
 import { gtPublicString } from "@/lib/i18n/gt-public-json";
+import { Workflow } from "lucide-react";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
@@ -56,10 +58,18 @@ export default async function WorkflowsPage() {
                     </SidebarHeader>
                 </Sidebar>
                 <div className="flex w-full max-w-[1040px] flex-col gap-8 px-6 py-8 sm:px-8 2xl:mx-auto">
-                    <header className="flex flex-col gap-2 border-border border-b pb-6">
-                        <h1 className="font-semibold text-2xl text-foreground">
-                            Workflows
-                        </h1>
+                    <header className="flex items-center justify-between gap-4 border-border border-b pb-6">
+                        <div className="flex items-center gap-2">
+                            <Workflow
+                                aria-hidden
+                                className="size-5"
+                                focusable="false"
+                            />
+                            <h1 className="font-semibold text-foreground text-xl">
+                                Workflows
+                            </h1>
+                        </div>
+                        <WorkflowComposerDialog />
                     </header>
                     <WorkflowsList />
                 </div>
