@@ -3651,7 +3651,7 @@ function BoardLayout({ items }: LibraryGridLayoutProps) {
 
     return (
         <div className="overflow-x-auto pb-1">
-            <Kanban getItemValue={(entry) => entry.value} value={boardColumns}>
+            <Kanban>
                 <KanbanBoard className="min-w-max items-start gap-3">
                     {columnIds.map((columnId) => {
                         const column = collections.find(
@@ -3670,11 +3670,7 @@ function BoardLayout({ items }: LibraryGridLayoutProps) {
                             : undefined;
 
                         return (
-                            <KanbanColumn
-                                className="w-76"
-                                key={columnId}
-                                value={columnId}
-                            >
+                            <KanbanColumn className="w-76" key={columnId}>
                                 <div className="mb-2 flex items-center gap-3">
                                     <div className="flex min-w-0 items-center gap-2">
                                         {PriorityIcon ? (
@@ -3703,10 +3699,7 @@ function BoardLayout({ items }: LibraryGridLayoutProps) {
                                         </p>
                                     ) : (
                                         columnItems.map((columnItem) => (
-                                            <KanbanItem
-                                                key={columnItem.value}
-                                                value={columnItem.value}
-                                            >
+                                            <KanbanItem key={columnItem.value}>
                                                 <Card item={columnItem.item} />
                                             </KanbanItem>
                                         ))
