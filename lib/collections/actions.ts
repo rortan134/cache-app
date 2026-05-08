@@ -114,6 +114,13 @@ export async function createCollection(input: {
     description?: string;
     name: string;
 }): Promise<CollectionCreateResult> {
+    const auth = await requireActionUserId(
+        "Sign in again to create collections."
+    );
+    if ("status" in auth) {
+        return auth;
+    }
+
     const parsed = CollectionCreateInputSchema.safeParse(input);
     if (!parsed.success) {
         return {
@@ -123,13 +130,6 @@ export async function createCollection(input: {
             ),
             status: "INVALID",
         };
-    }
-
-    const auth = await requireActionUserId(
-        "Sign in again to create collections."
-    );
-    if ("status" in auth) {
-        return auth;
     }
 
     try {
