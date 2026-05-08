@@ -71,7 +71,7 @@
         "prisma": "^7.8.0",
         "tailwindcss": "^4",
         "typescript": "^6",
-        "ultracite": "7.6.3"
+        "ultracite": "7.6.4"
     },
     "name": "cache",
     "scripts": {
