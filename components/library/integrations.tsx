@@ -147,9 +147,7 @@ export function IntegrationsListTrigger(
                     src={IntegrationsPreviewImage}
                 />
                 <div className="mt-4 flex max-w-64 flex-col gap-2">
-                    <PopoverTitle className="font-medium text-sm">
-                        Places to return to.
-                    </PopoverTitle>
+                    <PopoverTitle>Places to return to.</PopoverTitle>
                     <PopoverDescription className="text-foreground text-xs">
                         Give your every bookmark more meaning.
                     </PopoverDescription>

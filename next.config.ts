@@ -20,8 +20,6 @@ const nextConfig: NextConfig = {
             "swiper/modules",
             "zod",
         ],
-        turbopackFileSystemCacheForBuild: true,
-        turbopackFileSystemCacheForDev: true,
     },
     async headers() {
         return [

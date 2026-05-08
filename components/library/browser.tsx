@@ -91,11 +91,14 @@ import { CmdKbd, Kbd, KbdGroup } from "@/components/ui/kbd";
 import { Masonry, MasonryItem } from "@/components/ui/masonry";
 import {
     Menu,
+    MenuGroup,
+    MenuGroupLabel,
     MenuItem,
     MenuPopup,
     MenuSeparator,
     MenuTrigger,
 } from "@/components/ui/menu";
+import { RadialIcon } from "@/components/ui/radial-icon";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -5387,7 +5390,93 @@ export function Browser({ lockedItemCount, totalItemCount }: LibraryProps) {
                                     </Button>
                                 }
                             />
-                        ) : null}
+                        ) : (
+                            <Menu>
+                                <Toolbar.Button
+                                    render={
+                                        <MenuTrigger
+                                            render={
+                                                <Button
+                                                    className="rounded-full"
+                                                    size="xs"
+                                                    variant="ghost"
+                                                >
+                                                    <RadialIcon
+                                                        className="inline-block size-4 shrink-0"
+                                                        size={9}
+                                                        value={50}
+                                                    />
+                                                    &nbsp;Get to know Cache
+                                                    <ChevronDown className="inline-block size-3.5 shrink-0" />
+                                                </Button>
+                                            }
+                                        />
+                                    }
+                                />
+                                <MenuPopup align="center">
+                                    <MenuGroup>
+                                        <MenuGroupLabel>
+                                            Complete this checklist
+                                        </MenuGroupLabel>
+                                        <MenuItem>
+                                            <RadialIcon
+                                                className="inline-block size-4 shrink-0"
+                                                size={10}
+                                                value={0}
+                                            />
+                                            <span className="mr-2">
+                                                Connect your first integration
+                                            </span>
+                                            <ChevronRight className="ml-auto inline-block size-3.5 shrink-0 opacity-50" />
+                                        </MenuItem>
+                                        <MenuItem>
+                                            <RadialIcon
+                                                className="inline-block size-4 shrink-0"
+                                                size={10}
+                                                value={0}
+                                            />
+                                            <span className="mr-2">
+                                                Create your first collection
+                                            </span>
+                                            <ChevronRight className="ml-auto inline-block size-3.5 shrink-0 opacity-50" />
+                                        </MenuItem>
+                                        <MenuItem>
+                                            <RadialIcon
+                                                className="inline-block size-4 shrink-0"
+                                                size={10}
+                                                value={0}
+                                            />
+                                            <span className="mr-2">
+                                                Add a note
+                                            </span>
+                                            <ChevronRight className="ml-auto inline-block size-3.5 shrink-0 opacity-50" />
+                                        </MenuItem>
+                                        <MenuItem>
+                                            <RadialIcon
+                                                className="inline-block size-4 shrink-0"
+                                                size={10}
+                                                value={0}
+                                            />
+                                            <span className="mr-2">
+                                                Try out the Command
+                                            </span>
+                                            <ChevronRight className="ml-auto inline-block size-3.5 shrink-0 opacity-50" />
+                                        </MenuItem>
+                                        <MenuItem>
+                                            <RadialIcon
+                                                className="inline-block size-4 shrink-0"
+                                                size={10}
+                                                value={0}
+                                            />
+                                            <span className="mr-2">
+                                                Share or publish a collection
+                                            </span>
+                                            <ChevronRight className="ml-auto inline-block size-3.5 shrink-0 opacity-50" />
+                                        </MenuItem>
+                                    </MenuGroup>
+                                </MenuPopup>
+                            </Menu>
+                        )}
                     </Toolbar.Group>
                 </Toolbar.Root>
                 {actionFeedback || commandSuggestions.length === 0 ? null : (

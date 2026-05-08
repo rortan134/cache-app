@@ -2033,7 +2033,7 @@ function CollectionsListEmpty({
         <div className="flex flex-col items-center justify-center gap-4 rounded-2xl border border-border/30 border-dashed px-4 py-7 text-center">
             <p
                 className={cn(
-                    "font-medium text-muted-foreground text-xs leading-tight",
+                    "font-medium text-muted-foreground text-xs italic leading-tight",
                     className
                 )}
                 {...props}
@@ -2241,9 +2241,7 @@ function CollectionsListNoticeCallout({
                     src={SmartCollectionsBackgroundImg}
                 />
                 <div className="mt-4 flex max-w-64 flex-col gap-2">
-                    <PopoverTitle className="font-medium text-sm">
-                        Let Cache do the organizing
-                    </PopoverTitle>
+                    <PopoverTitle>Let Cache do the organizing</PopoverTitle>
                     <PopoverDescription className="text-foreground text-xs">
                         As you add new entries, Cache AI proactively groups your
                         related saves into contextual collections. Cache also
