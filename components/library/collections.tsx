@@ -2245,9 +2245,9 @@ function CollectionsListNoticeCallout({
                         Let Cache do the organizing
                     </PopoverTitle>
                     <PopoverDescription className="text-foreground text-xs">
-                        As you add new entries, Cache AI groups your related
-                        saves into contextual collections intuitively. Cache
-                        also learns your preferences with time.
+                        As you add new entries, Cache AI proactively groups your
+                        related saves into contextual collections. Cache also
+                        learns your preferences with time.
                     </PopoverDescription>
                     <div className="flex items-center gap-2 pt-1">
                         <Button
