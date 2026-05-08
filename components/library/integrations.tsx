@@ -301,15 +301,17 @@ function IntegrationsListStatus({
         return null;
     }
 
+    const isError = tone === "error";
+
     return (
         <p
             aria-live="polite"
             className={cn(
                 "text-nowrap text-xs leading-tight",
-                tone === "error" ? "text-destructive" : "text-muted-foreground",
+                isError ? "text-destructive" : "text-muted-foreground",
                 className
             )}
-            role={tone === "error" ? "alert" : "status"}
+            role={isError ? "alert" : "status"}
             {...props}
         />
     );

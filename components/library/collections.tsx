@@ -1463,7 +1463,7 @@ function useCollectionsController() {
                   icon: ListFilter,
                   label: `Search by "${collectionTextMatchQuery}"`,
                   query: collectionTextMatchQuery,
-                  value: "text-match",
+                  value: "text-match" as const,
               }
             : (SORT_OPTION_BY_VALUE.get(collectionSortField) ?? null);
 
