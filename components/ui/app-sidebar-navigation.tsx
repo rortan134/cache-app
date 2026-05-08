@@ -43,16 +43,19 @@ function AppSidebarNavigationItem({
 }: AppSidebarNavigationItemProps) {
     return (
         <Link className="contents" href={href} prefetch>
-            <ActivePathname href={href}>
-                <SidebarItem>
-                    <Icon
-                        aria-hidden
-                        className="inline-block size-4 shrink-0"
-                        focusable="false"
-                    />
-                    <span data-sidebar-label="">{children}</span>
-                </SidebarItem>
-            </ActivePathname>
+            <ActivePathname
+                href={href}
+                render={
+                    <SidebarItem>
+                        <Icon
+                            aria-hidden
+                            className="inline-block size-4 shrink-0"
+                            focusable="false"
+                        />
+                        <span data-sidebar-label="">{children}</span>
+                    </SidebarItem>
+                }
+            />
         </Link>
     );
 }

@@ -1,31 +1,36 @@
 "use client";
 
+import { mergeProps } from "@base-ui/react/merge-props";
+import { useRender } from "@base-ui/react/use-render";
 import { usePathname } from "next/navigation";
-import * as React from "react";
 
-type ActivePathnameChildProps = Record<string, unknown>;
+export interface ActivePathnameProps extends useRender.ComponentProps<"div"> {
+    href: string;
+    match?: "exact" | "prefix";
+    reverse?: boolean;
+}
 
 export function ActivePathname({
     href,
     match = "exact",
     reverse,
-    children,
+    render,
     ...props
-}: Omit<React.ComponentProps<"div">, "children"> & {
-    href: string;
-    match?: "exact" | "prefix";
-    reverse?: boolean;
-    children: React.ReactElement<ActivePathnameChildProps>;
-}) {
+}: ActivePathnameProps) {
     const pathname = usePathname();
     const isPathnameActive =
         match === "prefix"
             ? pathname === href || pathname.startsWith(`${href}/`)
             : pathname === href;
 
-    return React.cloneElement(children, {
-        ...props,
+    const extraProps = {
         "aria-current": isPathnameActive ? "page" : undefined,
         "data-active": reverse ? !isPathnameActive : isPathnameActive,
+    };
+
+    return useRender({
+        defaultTagName: "div",
+        props: mergeProps(extraProps, props) as typeof props,
+        render,
     });
 }
