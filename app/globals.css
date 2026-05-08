@@ -199,6 +199,19 @@
 }
 
 /* ── Component classes ── */
+.skip-to-content {
+    position: absolute;
+    left: -9999px;
+    z-index: 999;
+    padding: 0.5rem 1rem;
+    color: var(--color-background);
+    background: var(--color-foreground);
+}
+
+.skip-to-content:focus {
+    left: 0;
+}
+
 .palette-chip-enter {
     transform-origin: top left;
     animation: palette-chip-enter 220ms cubic-bezier(0.16, 1, 0.3, 1) both;

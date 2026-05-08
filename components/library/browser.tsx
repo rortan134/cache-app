@@ -209,7 +209,6 @@ import {
     LinkIcon,
     ListChevronsUpDown,
     NotebookPenIcon,
-    Plus,
     RotateCcw,
     SearchX,
     Sparkles,
@@ -1892,10 +1891,10 @@ function buildSearchPaletteGroups({
                 },
                 {
                     description: "AI Search",
-                    disabled: true,
                     label: "Ask Cache",
-                    // biome-ignore lint/suspicious/noEmptyBlockStatements: TODO: intentionally disabled for now
-                    onSelect: () => {},
+                    onSelect: () => {
+                        // ! TODO: intentionally disabled for now
+                    },
                     shortcut: "Tab",
                     value: `ask cache ${draft}`,
                 },
@@ -2658,7 +2657,7 @@ function useSectionCollapseState({
 function LibraryPaletteTrailing({
     entries,
     isCommandInputFocused,
-    onAttachFiles,
+    onAttachFiles: _onAttachFiles,
 }: {
     entries: PaletteStackEntry[];
     isCommandInputFocused: boolean;
@@ -2684,7 +2683,7 @@ function LibraryPaletteTrailing({
             >
                 {entries.map((entry) => entry.chip)}
             </TruncateAfter>
-            <Toolbar.Button
+            {/* <Toolbar.Button
                 render={
                     <Button
                         className="rounded-full"
@@ -2700,7 +2699,7 @@ function LibraryPaletteTrailing({
                         <Plus className="size-4 shrink-0" />
                     </Button>
                 }
-            />
+            /> */}
         </>
     );
 }
@@ -5284,7 +5283,7 @@ export function Browser({ lockedItemCount, totalItemCount }: LibraryProps) {
                                     {canClear ? (
                                         <div className="mr-auto flex items-center gap-1.5">
                                             <span className="font-medium">
-                                                Close
+                                                Back
                                             </span>
                                             <Kbd>Esc</Kbd>
                                         </div>

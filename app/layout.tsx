@@ -57,6 +57,7 @@ export default async function RootLayout(props: {
         >
             <head>
                 <NextChatSDKBootstrap baseUrl={BASE_URL} />
+                <meta content="x402" name="apple-mobile-web-app-title" />
                 <meta
                     content="9c251d927955d913b23e047ef08ed572"
                     name="p:domain_verify"
@@ -64,6 +65,9 @@ export default async function RootLayout(props: {
             </head>
             <body className="flex flex-col">
                 <h1 className="sr-only">{APP_NAME}</h1>
+                <a className="skip-to-content" href="#main-content">
+                    Skip to main content
+                </a>
                 <React.Suspense>
                     <GTProvider>{props.children}</GTProvider>
                 </React.Suspense>
