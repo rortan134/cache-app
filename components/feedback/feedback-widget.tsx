@@ -37,7 +37,7 @@ export function FeedbackWidget(
             }
             const rect = submitButtonRef.current?.getBoundingClientRect();
             if (rect) {
-                import("react-confetti-burst").then(
+                import(/* webpackIgnore: true */ "react-confetti-burst").then(
                     ({ createConfettiExplosion }) => {
                         createConfettiExplosion({
                             x: rect.left + rect.width / 2,

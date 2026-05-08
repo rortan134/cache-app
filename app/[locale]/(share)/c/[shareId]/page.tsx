@@ -6,8 +6,8 @@ import {
     type PublicShareGridItem,
 } from "@/components/share/public-share-grid";
 import { FALLBACK_URL, ITEM_KIND_NOTE } from "@/lib/common/constants";
+import { getNoteExcerpt } from "@/lib/common/strings";
 import { normalizeURL } from "@/lib/common/url";
-import { getNoteExcerpt } from "@/lib/integrations/notes/utils";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import React, { cache } from "react";

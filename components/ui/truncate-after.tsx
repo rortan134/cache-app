@@ -3,6 +3,7 @@
 import { Popover, PopoverPopup, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/common/cn";
 import { clamp } from "@/lib/common/numbers";
+import { Calligraph } from "calligraph";
 import * as React from "react";
 
 interface TruncateAfterProps extends React.ComponentProps<"div"> {
@@ -33,7 +34,7 @@ export function TruncateAfter({
             {numTruncated > 0 && (
                 <Popover>
                     <PopoverTrigger render={badgeRender}>
-                        +{numTruncated} more
+                        +<Calligraph>{numTruncated}</Calligraph> more
                     </PopoverTrigger>
                     <PopoverPopup>
                         <div className="flex flex-col gap-2">{remaining}</div>

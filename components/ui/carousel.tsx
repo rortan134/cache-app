@@ -2,13 +2,14 @@
 
 import { cn } from "@/lib/common/cn";
 import * as React from "react";
-import "swiper/css";
-import "swiper/css/free-mode";
-import "swiper/css/mousewheel";
-import "swiper/css/navigation";
-import "swiper/css/pagination";
-import { Pagination } from "swiper/modules";
+import { A11y, Mousewheel, Pagination } from "swiper/modules";
 import { Swiper, SwiperSlide } from "swiper/react";
+
+// Styles
+import "swiper/css";
+import "swiper/css/mousewheel";
+import "swiper/css/pagination";
+import "swiper/css/a11y";
 
 interface CarouselProps extends React.ComponentProps<typeof Swiper> {
     slideClassName?: string;
@@ -26,7 +27,7 @@ export function Carousel({
         <Swiper
             className={cn("relative size-full", className)}
             grabCursor={grabCursor}
-            modules={[Pagination]}
+            modules={[Pagination, Mousewheel, A11y]}
             mousewheel={{ forceToAxis: true, sensitivity: 3 }}
             pagination={{
                 bulletClass: "swiper-pagination-bullet",

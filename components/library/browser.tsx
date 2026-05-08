@@ -152,7 +152,9 @@ import { filterValidImageUrls } from "@/lib/common/image";
 import { getImageColors } from "@/lib/common/image-colors";
 import { createLogger } from "@/lib/common/logs/console/logger";
 import { normalizeWhitespace } from "@/lib/common/strings";
+import { Calligraph } from "calligraph";
 
+import { getNoteExcerpt } from "@/lib/common/strings";
 import {
     normalizeURL,
     openExternal,
@@ -168,7 +170,6 @@ import {
     updateNote,
     type NoteMutationResult,
 } from "@/lib/integrations/notes/actions";
-import { getNoteExcerpt } from "@/lib/integrations/notes/utils";
 import { LibraryItemSource } from "@/prisma/client/enums";
 import AppIconSmall from "@/public/cache-icon-small.png";
 import {
@@ -3398,7 +3399,7 @@ function CardMenu({
                         render={<Item closeOnClick={false} />}
                     >
                         <EyeIcon className="size-4.5 text-muted-foreground" />
-                        Open preview
+                        Quick Look
                     </PeekDrawerTrigger>
                     <PeekDrawerContent />
                 </PeekDrawer>
@@ -5361,12 +5362,13 @@ export function Browser({ lockedItemCount, totalItemCount }: LibraryProps) {
                                     ) : (
                                         <Grid2x2 className="inline-block size-3.5 shrink-0" />
                                     )}
-                                    &nbsp;Showing {resultsSummary}
+                                    &nbsp;Showing{" "}
+                                    <Calligraph>{resultsSummary}</Calligraph>
                                     {groupBy === "none" ? null : (
-                                        <>
-                                            , {sections.length} group
-                                            {sections.length === 1 ? "" : "s"}
-                                        </>
+                                        <Calligraph>
+                                            {`, ${sections.length} group
+                                            ${sections.length === 1 ? "" : "s"}`}
+                                        </Calligraph>
                                     )}
                                 </Button>
                             }

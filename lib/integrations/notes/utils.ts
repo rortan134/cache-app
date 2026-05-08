@@ -255,18 +255,6 @@ export function extractNoteText(input: string): string {
         .trim();
 }
 
-export function getNoteExcerpt(
-    text: string | null | undefined,
-    maxLength = 180
-): string {
-    const normalizedText = (text ?? "").trim().replaceAll(/\s+/g, " ");
-    if (normalizedText.length <= maxLength) {
-        return normalizedText;
-    }
-
-    return `${normalizedText.slice(0, Math.max(0, maxLength - 1)).trimEnd()}…`;
-}
-
 /**
  * Convert sanitized note HTML to Markdown.
  *

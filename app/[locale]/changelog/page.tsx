@@ -19,7 +19,7 @@ export async function generateMetadata({
         description: gtPublicString(
             locale,
             "changelog.metadata.description",
-            "Changelog — See what's new in Cache App."
+            "Release Notes — See what's new in Cache App."
         ),
         keywords: ["changelog", "product updates", "Cache App releases"],
         locale,
