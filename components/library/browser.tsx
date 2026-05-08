@@ -5362,14 +5362,24 @@ export function Browser({ lockedItemCount, totalItemCount }: LibraryProps) {
                                     ) : (
                                         <Grid2x2 className="inline-block size-3.5 shrink-0" />
                                     )}
-                                    &nbsp;Showing{" "}
-                                    <Calligraph>{resultsSummary}</Calligraph>
-                                    {groupBy === "none" ? null : (
+                                    <span>
+                                        &nbsp;Showing{" "}
                                         <Calligraph>
-                                            {`, ${sections.length} group
-                                            ${sections.length === 1 ? "" : "s"}`}
+                                            {resultsSummary}
                                         </Calligraph>
-                                    )}
+                                        {groupBy === "none" ? null : (
+                                            <>
+                                                ,{" "}
+                                                <Calligraph>
+                                                    {sections.length}
+                                                </Calligraph>{" "}
+                                                group
+                                                {sections.length === 1
+                                                    ? ""
+                                                    : "s"}
+                                            </>
+                                        )}
+                                    </span>
                                 </Button>
                             }
                         />

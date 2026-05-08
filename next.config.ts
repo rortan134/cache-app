@@ -16,7 +16,6 @@ const nextConfig: NextConfig = {
             "@lexical/selection",
             "lexical",
             "class-variance-authority",
-            "culori",
             "motion",
             "swiper",
             "swiper/react",
