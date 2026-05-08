@@ -343,7 +343,6 @@ function createIntervalTree(): IntervalTree {
     };
 
     const indexMap: Record<number, TreeNode> = {};
-    const searchStack: TreeNode[] = [];
 
     return {
         insert(low, high, index) {
@@ -459,7 +458,7 @@ function createIntervalTree(): IntervalTree {
         },
 
         search(low, high, onCallback) {
-            searchStack.length = 0;
+            const searchStack: TreeNode[] = [];
             searchStack.push(tree.root);
 
             while (searchStack.length !== 0) {
@@ -571,14 +570,15 @@ function onDeepMemo<T extends unknown[], U>(
         return node;
     }
 
-    function set(args: unknown[], value: unknown): unknown {
+    function set(args: unknown[], value: unknown): { value: unknown } {
+        const wrapper = { value };
         if (depth < 3) {
             if (one) {
-                baseCache.set(args[0] as CacheKey, value);
+                baseCache.set(args[0] as CacheKey, wrapper);
             } else {
                 base = baseCache.get(args[0] as CacheKey) as Cache | undefined;
                 if (base) {
-                    base.set(args[1] as CacheKey, value);
+                    base.set(args[1] as CacheKey, wrapper);
                 } else {
                     if (!constructors[1]) {
                         throw new Error(
@@ -586,11 +586,11 @@ function onDeepMemo<T extends unknown[], U>(
                         );
                     }
                     map = createCache(constructors[1]);
-                    map.set(args[1] as CacheKey, value);
+                    map.set(args[1] as CacheKey, wrapper);
                     baseCache.set(args[0] as CacheKey, map);
                 }
             }
-            return value;
+            return wrapper;
         }
 
         node = baseCache;
@@ -610,16 +610,16 @@ function onDeepMemo<T extends unknown[], U>(
                 node = map;
             }
         }
-        node.set(args[depth - 1] as CacheKey, value);
-        return value;
+        node.set(args[depth - 1] as CacheKey, wrapper);
+        return wrapper;
     }
 
     return (...args: T): U => {
         const cached = get(args);
         if (cached === undefined) {
-            return set(args, fn(...args)) as U;
+            return set(args, fn(...args)).value as U;
         }
-        return cached as U;
+        return (cached as { value: unknown }).value as U;
     };
 }
 // #endregion
@@ -628,7 +628,7 @@ function onDeepMemo<T extends unknown[], U>(
 const COLUMN_WIDTH = 200;
 const GAP = 0;
 const ITEM_HEIGHT = 300;
-const OVERSCAN = 1;
+const OVERSCAN = 2;
 const SCROLL_FPS = 16;
 const DEBOUNCE_DELAY = 300;
 const JUSTIFIED_TARGET_ROW_HEIGHT = 320;
@@ -1259,7 +1259,7 @@ function onRafSchedule<T extends unknown[]>(
 
 type MasonryResizeObserverFactory = (
     positioner: Positioner,
-    onUpdate: () => void
+    onUpdateRef: { current: () => void }
 ) => ResizeObserver;
 
 const NOOP_RESIZE_OBSERVER: ResizeObserver = {
@@ -1291,13 +1291,13 @@ function createResizeObserverFactory(): MasonryResizeObserverFactory {
 
     return onDeepMemo(
         [WeakMap],
-        (positioner: Positioner, onUpdate: () => void) => {
+        (positioner: Positioner, onUpdateRef: { current: () => void }) => {
             const updates: number[] = [];
 
             const update = onRafSchedule(() => {
                 if (updates.length > 0) {
                     positioner.update(updates);
-                    onUpdate();
+                    onUpdateRef.current();
                 }
                 updates.length = 0;
             });
@@ -1357,8 +1357,14 @@ function useResizeObserver(positioner: Positioner) {
         createResizeObserverRef.current = createResizeObserverFactory();
     }
 
-    const resizeObserver = createResizeObserverRef.current(positioner, () =>
-        setLayoutVersion((prev) => prev + 1)
+    const onUpdateRef = React.useRef<() => void>(() => {
+        // No-op
+    });
+    onUpdateRef.current = () => setLayoutVersion((prev) => prev + 1);
+
+    const resizeObserver = createResizeObserverRef.current(
+        positioner,
+        onUpdateRef
     );
 
     React.useEffect(() => () => resizeObserver.disconnect(), [resizeObserver]);
@@ -1540,7 +1546,6 @@ interface MasonryProps extends React.ComponentProps<"div"> {
     defaultHeight?: number;
     defaultWidth?: number;
     deps?: React.DependencyList;
-    fallback?: React.ReactNode;
     fullWidthBreakoutRowCadence?: false | number;
     gap?: number | { column: number; row: number };
     itemHeight?: number;
@@ -1612,7 +1617,6 @@ function Masonry({
     defaultHeight,
     overscan = OVERSCAN,
     scrollFps = SCROLL_FPS,
-    fallback,
     maxNumRows,
     showWidows,
     targetRowHeight,
@@ -1636,10 +1640,13 @@ function Masonry({
         delayMs: DEBOUNCE_DELAY,
     });
 
-    const [containerPosition, setContainerPosition] = React.useState({
+    const [containerPosition, setContainerPosition] = React.useState<{
+        offset: number;
+        width: number | null;
+    }>(() => ({
         offset: 0,
-        width: 0,
-    });
+        width: containerRef.current?.offsetWidth ?? null,
+    }));
 
     useIsoLayoutEffect(() => {
         const container = containerRef.current;
@@ -1930,7 +1937,7 @@ function MasonryViewport({
                             "data-index": index,
                             key: child.key ?? index,
                             ref: onItemRegister(index),
-                            style: { ...hiddenItemStyle, ...child.props.style },
+                            style: { ...child.props.style, ...hiddenItemStyle },
                         })
                     );
                 }
