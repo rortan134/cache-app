@@ -24,6 +24,8 @@ If a tradeoff is required, choose correctness and robustness over short-term con
 
 ## On coding
 
+Define success criteria. Loop until verified.
+
 Keep in mind documentation `code-documentation`.
 
 It is not about formatting or syntax. Linters handle that. It is about how to think, how to make decisions, and what to value when building software.
