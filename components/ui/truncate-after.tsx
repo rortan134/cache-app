@@ -8,7 +8,7 @@ import * as React from "react";
 
 interface TruncateAfterProps extends React.ComponentProps<"div"> {
     badgeRender?: React.ReactElement;
-    maxVisible?: number;
+    maxVisible: number;
 }
 
 export function TruncateAfter({

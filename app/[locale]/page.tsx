@@ -1,14 +1,13 @@
 import { JsonLdScript } from "@/app/json-ld-script";
 import { buildPageMetadata } from "@/app/metadata";
 import { GoogleOneTapTrigger, SessionHint } from "@/components/auth/session";
-import { HeroCta } from "@/components/marketing/hero-cta";
+import { SignInButton } from "@/components/auth/sign-in-button";
 import { BrandLogo } from "@/components/ui/brand-logo";
 import { Carousel } from "@/components/ui/carousel";
 import { Footer } from "@/components/ui/footer";
 import { GradientWaveText } from "@/components/ui/gradient-wave-text";
 import { ChromeIcon, TikTokIcon } from "@/components/ui/icons";
 import { IridescenceBackground } from "@/components/ui/iridescence-background";
-import { Kbd } from "@/components/ui/kbd";
 import { PageShell } from "@/components/ui/page-shell";
 import { Sidebar, SidebarFooter, SidebarHeader } from "@/components/ui/sidebar";
 import { getServerSession } from "@/lib/auth/session";
@@ -34,6 +33,7 @@ import {
     Sparkles,
     Terminal,
     Unlink,
+    Workflow,
 } from "lucide-react";
 import type { Metadata } from "next";
 import Image from "next/image";
@@ -45,11 +45,12 @@ export async function generateMetadata({
     params: Promise<{ locale: string }>;
 }): Promise<Metadata> {
     const { locale } = await params;
+
     return buildPageMetadata({
         description: gtPublicString(
             locale,
             "home.metadata.description",
-            "View, manage, and organize bookmarks across browsers and platforms — built for power users who save at scale."
+            "The bookmark manager for busy people. View, manage, and organize bookmarks across platforms."
         ),
         keywords: [
             "bookmark manager",
@@ -122,10 +123,7 @@ export default async function Home() {
                                 </p>
                             </T>
                         </div>
-                        <HeroCta isAuthenticated={!!session} />
-                        <span className="mx-auto -mt-4 text-center text-muted-foreground text-xs italic opacity-80">
-                            Press <Kbd>P</Kbd>
-                        </span>
+                        <SignInButton hasServerSession={!!session} />
                         <SessionHint serverSession={session} />
                     </SidebarHeader>
                     <SidebarFooter>
@@ -170,22 +168,18 @@ export default async function Home() {
                             src={HeroImage}
                         />
                     </div>
-                    <div className="flex flex-col gap-1.5">
+                    <div className="-mt-1 mb-3 flex flex-col gap-1">
+                        <h2 className="mx-auto text-center font-medium text-base">
+                            <T>Bookmark Intelligence™</T>
+                        </h2>
                         <p className="mx-auto text-center text-xs">
                             <T>
-                                Welcome to your Cache — Discover what Cache can
-                                do for you
+                                A tool managing all of your{" "}
+                                <span className="underline decoration-muted-foreground decoration-dotted underline-offset-2">
+                                    personal knowledge
+                                </span>{" "}
+                                at scale. Starting from $8/mo.
                             </T>
-                        </p>
-                        <p className="mx-auto text-center font-medium text-xs">
-                            <T>
-                                <span className="opacity-50">A tool for</span>{" "}
-                                managing all of your personal knowledge
-                                <span className="opacity-50"> at scale</span>
-                            </T>
-                        </p>
-                        <p className="mx-auto text-center text-xs">
-                            <T>Starting from $8/mo</T>
                         </p>
                     </div>
                     <div className="grid w-full grid-cols-1 gap-2 md:grid-cols-2 md:gap-[40px]">
@@ -197,7 +191,8 @@ export default async function Home() {
                                 <p className="text-pretty font-medium font-regular text-[#0A0B0D] text-[16px] leading-[1.2] tracking-[-3%] opacity-50">
                                     Get inspired, find that one lesson, piece of
                                     advice, recipe, or idea you've been looking
-                                    for in the span of a coffee break.
+                                    for in the span of a coffee break. Cache is
+                                    your command center for information.
                                 </p>
                             </T>
                         </div>
@@ -218,8 +213,10 @@ export default async function Home() {
                         <div className="flex max-w-[340px] flex-col gap-[12px] py-[20px] md:gap-[16px]">
                             <T context="Integrations">
                                 <h2 className="font-medium text-[#0A0B0D] text-[28px] leading-[1.1] tracking-[-1.28px] lg:text-[32px]">
-                                    Connect your favorite platforms — Import
-                                    everything you've ever saved
+                                    Import everything you've ever saved,{" "}
+                                    <span className="opacity-50">
+                                        from everywhere.
+                                    </span>
                                 </h2>
                                 <p className="text-pretty font-medium font-regular text-[#0A0B0D] text-[16px] leading-[1.2] tracking-[-3%] opacity-50">
                                     Bring together bookmarks from social, video,
@@ -307,6 +304,18 @@ export default async function Home() {
                                     it in a backlog of forgotten bookmarks.
                                 </p>
                             </T>
+                            <ul className="mt-2 flex flex-col space-y-2 text-xs">
+                                <T context="Features">
+                                    <li className="flex items-center gap-2">
+                                        <Workflow className="inline-block size-4 shrink-0" />
+                                        <span>
+                                            Set up routine Workflows with custom
+                                            instructions. Get a daily digest of
+                                            your recent bookmarks.
+                                        </span>
+                                    </li>
+                                </T>
+                            </ul>
                         </div>
                         <div className="order-first aspect-square w-full overflow-hidden rounded-2xl bg-muted md:order-last">
                             <figure className="overflow-hidden">

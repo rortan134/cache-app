@@ -59,3 +59,28 @@ export async function importGitHubStarredRepositories(args: {
         span.stop();
     }
 }
+
+export async function getStarCount(repositoryId: string): Promise<string> {
+    try {
+        const res = await fetch(
+            `https://api.github.com/repos/${repositoryId}`,
+            {
+                headers: { Accept: "application/vnd.github.v3+json" },
+            }
+        );
+        if (!res.ok) {
+            return "";
+        }
+        const data = await res.json();
+        const count = data.stargazers_count;
+        if (typeof count !== "number") {
+            return "";
+        }
+        if (count >= 1000) {
+            return `${(count / 1000).toFixed(count >= 10_000 ? 0 : 1)}k`;
+        }
+        return String(count);
+    } catch {
+        return "";
+    }
+}

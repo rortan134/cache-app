@@ -32,13 +32,6 @@ const SWIPE_DIRECTION_BY_POSITION: Record<
 const DrawerContext: React.Context<DrawerContextValue> =
     React.createContext<DrawerContextValue>(DEFAULT_DRAWER_CONTEXT);
 
-function wrapRender(
-    render: useRender.ComponentProps<"div">["render"],
-    allowSelection: boolean
-) {
-    return allowSelection ? <DrawerContent render={render} /> : render;
-}
-
 export const DrawerCreateHandle: typeof DrawerPrimitive.createHandle =
     DrawerPrimitive.createHandle;
 
@@ -488,4 +481,11 @@ export function DrawerMenuTrigger({
             <ChevronRightIcon className="ms-auto -me-0.5 opacity-80" />
         </DrawerTrigger>
     );
+}
+
+function wrapRender(
+    render: useRender.ComponentProps<"div">["render"],
+    allowSelection: boolean
+) {
+    return allowSelection ? <DrawerContent render={render} /> : render;
 }

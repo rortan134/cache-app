@@ -7,6 +7,7 @@ import {
 import { FeedbackWidget } from "@/components/feedback/feedback-widget";
 import { getPriorityOption } from "@/components/library/collections";
 import type { NoteDraft } from "@/components/library/notes";
+import { LibraryOnboardingMenu } from "@/components/library/onboarding";
 import {
     PeekDrawer,
     PeekDrawerContent,
@@ -91,14 +92,11 @@ import { CmdKbd, Kbd, KbdGroup } from "@/components/ui/kbd";
 import { Masonry, MasonryItem } from "@/components/ui/masonry";
 import {
     Menu,
-    MenuGroup,
-    MenuGroupLabel,
     MenuItem,
     MenuPopup,
     MenuSeparator,
     MenuTrigger,
 } from "@/components/ui/menu";
-import { RadialIcon } from "@/components/ui/radial-icon";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -107,6 +105,7 @@ import { Ticker } from "@/components/ui/ticker";
 import { TruncateAfter } from "@/components/ui/truncate-after";
 import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
 import { useIsExtensionInstalled } from "@/hooks/use-extension-installed";
+import { useSession } from "@/lib/auth/client";
 import type { CollectionCreateFromItemsResult } from "@/lib/collections/actions";
 import {
     SECTION_DESCRIPTION_CONTEXT_ITEMS_LIMIT,
@@ -158,6 +157,7 @@ import {
     parseDisplayUrl,
     toValidUrl,
 } from "@/lib/common/url";
+import { dayjs } from "@/lib/dayjs";
 import {
     createChromeBookmarkFromUrl,
     type CreateChromeBookmarkFromUrlResult,
@@ -2705,6 +2705,7 @@ function LibraryPaletteTrailing({
 }
 
 interface LibraryProps {
+    connectedIntegrationCount: number;
     lockedItemCount: number;
     totalItemCount: number;
 }
@@ -4213,6 +4214,47 @@ const NoteDrawer = dynamic(
     () =>
         import("@/components/library/notes").then((mod) => {
             const Note = mod.Note;
+            function NoteDrawerShell({
+                containerRef,
+                isNoteDrawerOpen,
+            }: Pick<NoteDrawerProps, "containerRef" | "isNoteDrawerOpen">) {
+                const { onOpenChange } = Note.useContext();
+
+                return (
+                    <Drawer
+                        onOpenChange={onOpenChange}
+                        open={isNoteDrawerOpen}
+                        position="right"
+                        swipeDirection="right"
+                    >
+                        <DrawerViewport
+                            portalProps={{
+                                container: containerRef,
+                            }}
+                        >
+                            <DrawerPopup
+                                className="max-w-2xl"
+                                variant="straight"
+                            >
+                                <DrawerHeader
+                                    allowSelection
+                                    className="flex-row items-center justify-between"
+                                >
+                                    <DrawerTitle className="sr-only">
+                                        <Note.Title />
+                                    </DrawerTitle>
+                                    <Note.Header />
+                                </DrawerHeader>
+                                <DrawerPanel allowSelection>
+                                    <Note.Editor />
+                                    <Note.Metrics />
+                                </DrawerPanel>
+                            </DrawerPopup>
+                        </DrawerViewport>
+                    </Drawer>
+                );
+            }
+
             return function NoteDrawer({
                 activeNote,
                 containerRef,
@@ -4232,37 +4274,10 @@ const NoteDrawer = dynamic(
                         open={isNoteDrawerOpen}
                         saving={isSavingNote || isSavingPastedUrl}
                     >
-                        <Drawer
-                            onOpenChange={setIsNoteDrawerOpen}
-                            open={isNoteDrawerOpen}
-                            position="right"
-                            swipeDirection="right"
-                        >
-                            <DrawerViewport
-                                portalProps={{
-                                    container: containerRef,
-                                }}
-                            >
-                                <DrawerPopup
-                                    className="max-w-2xl"
-                                    variant="straight"
-                                >
-                                    <DrawerHeader
-                                        allowSelection
-                                        className="flex-row items-center justify-between"
-                                    >
-                                        <DrawerTitle className="sr-only">
-                                            <Note.Title />
-                                        </DrawerTitle>
-                                        <Note.Header />
-                                    </DrawerHeader>
-                                    <DrawerPanel allowSelection>
-                                        <Note.Editor />
-                                        <Note.Metrics />
-                                    </DrawerPanel>
-                                </DrawerPopup>
-                            </DrawerViewport>
-                        </Drawer>
+                        <NoteDrawerShell
+                            containerRef={containerRef}
+                            isNoteDrawerOpen={isNoteDrawerOpen}
+                        />
                     </Note.Root>
                 );
             };
@@ -4273,7 +4288,13 @@ const NoteDrawer = dynamic(
     }
 );
 
-export function Browser({ lockedItemCount, totalItemCount }: LibraryProps) {
+export function Browser({
+    connectedIntegrationCount,
+    lockedItemCount,
+    totalItemCount,
+}: LibraryProps) {
+    const { data } = useSession();
+    const isNewUser = dayjs(data?.user.createdAt).isToday();
     const {
         collectionPreviewThumbnailUrlsById,
         collectionSummaries: collections,
@@ -4794,7 +4815,8 @@ export function Browser({ lockedItemCount, totalItemCount }: LibraryProps) {
         groupBy !== "none" ||
         sortMode !== DEFAULT_SORT_MODE ||
         columnCountMode !== DEFAULT_COLUMN_COUNT_MODE ||
-        layoutMode !== DEFAULT_LAYOUT_MODE;
+        layoutMode !== DEFAULT_LAYOUT_MODE ||
+        sourceFilters.length > 0;
 
     const showEmptyLibraryPeek =
         items.length === 0 && filteredItems.length === 0 && !hasActiveFilters;
@@ -4910,6 +4932,12 @@ export function Browser({ lockedItemCount, totalItemCount }: LibraryProps) {
         setActionFeedback(null);
         setActiveNote(null);
         setIsNoteDrawerOpen(true);
+    };
+
+    const handleOpenCommandFromOnboarding = () => {
+        setActionFeedback(null);
+        setPaletteSection("search");
+        focusPaletteInput(true);
     };
 
     const handleCreateResultsDialogOpenChange = (open: boolean) => {
@@ -5333,23 +5361,25 @@ export function Browser({ lockedItemCount, totalItemCount }: LibraryProps) {
                                 </Button>
                             }
                         />
-                        <Toolbar.Button
-                            render={
-                                <FeedbackWidget
-                                    render={
-                                        <Button
-                                            className="hidden rounded-full md:flex"
-                                            size="xs"
-                                            variant="ghost"
-                                        />
-                                    }
-                                >
-                                    <Globe className="inline-block size-3.5 shrink-0" />
-                                    &nbsp;Feedback
-                                    <ChevronDown className="inline-block size-3.5 shrink-0" />
-                                </FeedbackWidget>
-                            }
-                        />
+                        {isNewUser ? null : (
+                            <Toolbar.Button
+                                render={
+                                    <FeedbackWidget
+                                        render={
+                                            <Button
+                                                className="hidden rounded-full md:flex"
+                                                size="xs"
+                                                variant="ghost"
+                                            />
+                                        }
+                                    >
+                                        <Globe className="inline-block size-3.5 shrink-0" />
+                                        &nbsp;Feedback
+                                        <ChevronDown className="inline-block size-3.5 shrink-0" />
+                                    </FeedbackWidget>
+                                }
+                            />
+                        )}
                         <Toolbar.Button
                             render={
                                 <Button
@@ -5406,91 +5436,15 @@ export function Browser({ lockedItemCount, totalItemCount }: LibraryProps) {
                                 }
                             />
                         ) : (
-                            <Menu>
-                                <Toolbar.Button
-                                    render={
-                                        <MenuTrigger
-                                            render={
-                                                <Button
-                                                    className="rounded-full"
-                                                    size="xs"
-                                                    variant="ghost"
-                                                >
-                                                    <RadialIcon
-                                                        className="inline-block size-4 shrink-0"
-                                                        size={9}
-                                                        value={50}
-                                                    />
-                                                    &nbsp;Get to know Cache
-                                                    <ChevronDown className="inline-block size-3.5 shrink-0" />
-                                                </Button>
-                                            }
-                                        />
-                                    }
-                                />
-                                <MenuPopup>
-                                    <MenuGroup>
-                                        <MenuGroupLabel>
-                                            Complete this checklist
-                                        </MenuGroupLabel>
-                                        <MenuItem>
-                                            <RadialIcon
-                                                className="inline-block size-4 shrink-0"
-                                                size={10}
-                                                value={0}
-                                            />
-                                            <span className="mr-2">
-                                                Connect your first integration
-                                            </span>
-                                            <ChevronRight className="ml-auto inline-block size-3.5 shrink-0 opacity-50" />
-                                        </MenuItem>
-                                        <MenuItem>
-                                            <RadialIcon
-                                                className="inline-block size-4 shrink-0"
-                                                size={10}
-                                                value={0}
-                                            />
-                                            <span className="mr-2">
-                                                Create your first collection
-                                            </span>
-                                            <ChevronRight className="ml-auto inline-block size-3.5 shrink-0 opacity-50" />
-                                        </MenuItem>
-                                        <MenuItem>
-                                            <RadialIcon
-                                                className="inline-block size-4 shrink-0"
-                                                size={10}
-                                                value={0}
-                                            />
-                                            <span className="mr-2">
-                                                Add a note
-                                            </span>
-                                            <ChevronRight className="ml-auto inline-block size-3.5 shrink-0 opacity-50" />
-                                        </MenuItem>
-                                        <MenuItem>
-                                            <RadialIcon
-                                                className="inline-block size-4 shrink-0"
-                                                size={10}
-                                                value={0}
-                                            />
-                                            <span className="mr-2">
-                                                Try out the Command
-                                            </span>
-                                            <ChevronRight className="ml-auto inline-block size-3.5 shrink-0 opacity-50" />
-                                        </MenuItem>
-                                        <MenuItem>
-                                            <RadialIcon
-                                                className="inline-block size-4 shrink-0"
-                                                size={10}
-                                                value={0}
-                                            />
-                                            <span className="mr-2">
-                                                Share a collection
-                                            </span>
-                                            <ChevronRight className="ml-auto inline-block size-3.5 shrink-0 opacity-50" />
-                                        </MenuItem>
-                                    </MenuGroup>
-                                </MenuPopup>
-                            </Menu>
+                            <LibraryOnboardingMenu
+                                connectedIntegrationCount={
+                                    connectedIntegrationCount
+                                }
+                                onCreateCollection={requestCreate}
+                                onCreateNote={handleCreateNote}
+                                onOpenCommand={handleOpenCommandFromOnboarding}
+                                onSetActionFeedback={setActionFeedback}
+                            />
                         )}
                     </Toolbar.Group>
                 </Toolbar.Root>

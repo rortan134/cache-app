@@ -5,7 +5,7 @@ import {
     UserMenuFooter,
     UserMenuHeader,
 } from "@/components/auth/user-menu";
-import { AppSidebar } from "@/components/ui/app-sidebar";
+import { ApplicationSidebar } from "@/components/ui/application-sidebar";
 import { PageShell } from "@/components/ui/page-shell";
 import { Sidebar, SidebarHeader } from "@/components/ui/sidebar";
 import { WorkflowComposerDialog } from "@/components/workflows/workflow-composer-dialog";
@@ -61,7 +61,7 @@ export default async function WorkflowsPage() {
                             <UserMenuContent />
                             <UserMenuFooter />
                         </UserMenu>
-                        <AppSidebar />
+                        <ApplicationSidebar />
                     </SidebarHeader>
                 </Sidebar>
                 <div className="flex w-full max-w-[1040px] flex-col gap-8 px-6 py-8 sm:px-8 2xl:mx-auto">

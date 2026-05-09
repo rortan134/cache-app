@@ -188,6 +188,10 @@ Refs are initialized to their semantic empty state (false, 0, null, ''), never u
 
 Before adding a new utility, check if a similar one exists in the `lib/common` directory or nearby module scope as utils.
 
+Anchor design decisions on the user's primary task or focus, to make sure the user can complete those tasks easily, not overwhelmed by unrelated UI clutter or user flows.
+
+Our UI should help users complete their tasks, not hinder them.
+
 ### Tech stack
 
 Runtime & Package Manager: Node.js 24.x, Bun, read Bun API docs in `node_modules/bun-types/docs/**.mdx` if necessary.
@@ -197,7 +201,7 @@ React Compiler: babel-plugin-react-compiler is enabled. It automatically memoize
 Styling: Tailwind CSS 4
 Validation: zod v4 schemas
 Database: PostgreSQL via Prisma ORM v7
-Auth: better-auth with better-auth/stripe (Stripe subscriptions)
+Auth: [better-auth](https://better-auth.com/llms.txt) with better-auth/stripe (Stripe subscriptions)
 Tooling: TypeScript v6 (strict typing), Biome via Ultracite (run via `bun lint` or `bun lint:fix` for writing)
 
 ### Procedure module pattern (Service + Server Actions)

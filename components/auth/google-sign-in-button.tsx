@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button";
 import { GoogleIcon } from "@/components/ui/icons";
 import { authClient } from "@/lib/auth/client";
 import { cn } from "@/lib/common/cn";
-import { useState, useTransition, type ComponentProps } from "react";
+import { useStableCallback } from "@base-ui/utils/useStableCallback";
+import * as React from "react";
 
 const DEFAULT_ERROR_MESSAGE = "Could not start Google sign-in.";
 
@@ -20,11 +21,11 @@ export function GoogleSignInButton({
     children,
     size = "xl",
     ...props
-}: ComponentProps<typeof Button>) {
-    const [isPending, startTransition] = useTransition();
-    const [errorMessage, setErrorMessage] = useState<string | null>(null);
+}: React.ComponentProps<typeof Button>) {
+    const [isPending, startTransition] = React.useTransition();
+    const [errorMessage, setErrorMessage] = React.useState<string | null>(null);
 
-    const handleSignIn = () => {
+    const handleSignIn = useStableCallback(() => {
         setErrorMessage(null);
         startTransition(async () => {
             try {
@@ -38,11 +39,11 @@ export function GoogleSignInButton({
                         result.error.message ?? DEFAULT_ERROR_MESSAGE
                     );
                 }
-            } catch (err) {
-                setErrorMessage(getErrorMessage(err));
+            } catch (error) {
+                setErrorMessage(getErrorMessage(error));
             }
         });
-    };
+    });
 
     return (
         <div className="flex flex-col gap-1">
@@ -59,15 +60,22 @@ export function GoogleSignInButton({
                 <GoogleIcon />
                 {children}
             </Button>
-            {errorMessage ? (
-                <p
-                    aria-live="polite"
-                    className="text-destructive text-sm underline decoration-dotted underline-offset-4"
-                    role="alert"
-                >
-                    {errorMessage}
-                </p>
-            ) : null}
+            <AuthErrorMessage>{errorMessage}</AuthErrorMessage>
         </div>
+    );
+}
+
+function AuthErrorMessage(props: React.ComponentProps<"p">) {
+    if (!props.children) {
+        return null;
+    }
+
+    return (
+        <p
+            aria-live="polite"
+            className="text-destructive text-sm underline decoration-dotted underline-offset-4"
+            role="status"
+            {...props}
+        />
     );
 }

@@ -81,5 +81,4 @@ export function saveFile(
     }
 }
 
-// export { supported as nativeFileSystemSupported } from "browser-fs-access";
 export type { FileSystemHandle } from "browser-fs-access";

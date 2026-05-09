@@ -57,19 +57,3 @@ export const FREE_LIBRARY_PREVIEW_ITEMS = 12;
 export const MAX_COLLECTIONS_PER_ITEM = 100;
 export const BATCH_UPDATE_MAX_ITEMS = 500;
 export const MAX_COLLECTIONS_PER_BATCH = 100;
-
-export const COBALT_SUPPORTED_HOSTS = new Set([
-    "twitter.com",
-    "www.twitter.com",
-    "mobile.twitter.com",
-    "x.com",
-    "www.x.com",
-    "mobile.x.com",
-    "instagram.com",
-    "www.instagram.com",
-    "tiktok.com",
-    "www.tiktok.com",
-    "m.tiktok.com",
-    "vm.tiktok.com",
-    "vt.tiktok.com",
-]);

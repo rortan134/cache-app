@@ -11,18 +11,21 @@ import {
     DialogTitle,
     DialogTrigger,
 } from "@/components/ui/dialog";
+import { useStableCallback } from "@base-ui/utils/useStableCallback";
 import { useRouter } from "next/navigation";
-import type { ComponentProps } from "react";
+import type * as React from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 
 export function LogoutDialogTrigger(
-    props: ComponentProps<typeof DialogTrigger>
+    props: React.ComponentProps<typeof DialogTrigger>
 ) {
     const router = useRouter();
 
-    useHotkeys("alt+shift+q", () => {
+    const handleLogout = useStableCallback(() => {
         router.push("/logout");
     });
+
+    useHotkeys("alt+shift+q", handleLogout);
 
     return (
         <Dialog>
@@ -39,9 +42,7 @@ export function LogoutDialogTrigger(
                         Cancel
                     </DialogClose>
                     <DialogClose
-                        onClick={() => {
-                            router.push("/logout");
-                        }}
+                        onClick={handleLogout}
                         render={<Button variant="destructive" />}
                     >
                         Log out

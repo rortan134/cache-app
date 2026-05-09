@@ -9,13 +9,12 @@ import {
     SubscriptionUpgradeButton,
     UnsubscribedOnly,
 } from "@/components/billing/subscription";
-import { KeyboardShortcutsDialogTrigger } from "@/components/ui/shortcuts";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { AltKbd, CmdKbd, Kbd, ShiftKbd } from "@/components/ui/kbd";
 import { Popover, PopoverPopup, PopoverTrigger } from "@/components/ui/popover";
 import { Separator } from "@/components/ui/separator";
-import { SidebarItem } from "@/components/ui/sidebar";
+import { KeyboardShortcutsDialogTrigger } from "@/components/ui/shortcuts";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ThemeSelector } from "@/components/ui/theme-selector";
 import { cn } from "@/lib/common/cn";
@@ -45,7 +44,7 @@ export function UserMenuTrigger(
                                 {getInitials(user.name, user.email)}
                             </AvatarFallback>
                         </Avatar>
-                        <span className="min-w-0 truncate text-left font-medium text-sm">
+                        <span className="min-w-0 max-w-full truncate text-left font-medium text-sm">
                             {user.name ?? <T>Account</T>}
                         </span>
                     </span>
@@ -53,7 +52,7 @@ export function UserMenuTrigger(
             </WithUserSessionOnly>
             <ChevronDown
                 aria-hidden
-                className="pointer-events-none inline-block size-3.5 shrink-0 opacity-80 group-data-popup-open:opacity-0"
+                className="pointer-events-none inline-block size-3.5 shrink-0 opacity-80 group-data-popup-open:opacity-30"
                 focusable="false"
             />
         </PopoverTrigger>
@@ -91,7 +90,7 @@ export function UserMenuHeader() {
                             className="h-11 w-full min-w-0 flex-1 justify-start text-left sm:h-11"
                             variant="ghost"
                         >
-                            <div>
+                            <div className="min-w-0">
                                 <p className="truncate font-medium text-sm">
                                     {user.name ?? <T>Cache account</T>}
                                 </p>
@@ -223,24 +222,17 @@ export function UserMenuFooter() {
     );
 }
 
-/** @internal */
+/* @internal */
 function UserMenuTriggerSkeleton() {
     return (
-        <SidebarItem className="justify-between px-2">
-            <div className="flex min-w-0 items-center gap-2">
-                <Skeleton className="size-5.5 rounded-md" />
-                <Skeleton className="h-4 w-24" />
-            </div>
-            <ChevronDown
-                aria-hidden
-                className="pointer-events-none inline-block size-3.5 shrink-0 opacity-80 group-data-popup-open:opacity-0"
-                focusable="false"
-            />
-        </SidebarItem>
+        <span className="flex min-w-0 items-center gap-2">
+            <Skeleton className="size-5.5 rounded-md" />
+            <Skeleton className="h-4 w-24" />
+        </span>
     );
 }
 
-/** @internal */
+/* @internal */
 function UserMenuSection({ className, ...props }: React.ComponentProps<"div">) {
     return (
         <>
@@ -253,7 +245,7 @@ function UserMenuSection({ className, ...props }: React.ComponentProps<"div">) {
     );
 }
 
-/** @internal */
+/* @internal */
 function UserMenuSectionSeparator() {
     return (
         <div className="relative -my-1">

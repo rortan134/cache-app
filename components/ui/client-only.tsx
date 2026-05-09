@@ -4,8 +4,9 @@ import * as React from "react";
 
 function useClientBoundaryValue() {
     return React.useSyncExternalStore(
-        // biome-ignore lint/suspicious/noEmptyBlockStatements: subscription noop
-        () => () => {},
+        () => () => {
+            // No-op
+        },
         () => "client",
         () => "server"
     );

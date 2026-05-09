@@ -1,5 +1,7 @@
 import "server-only";
 
+import { chunk } from "@/lib/common/arrays";
+import { ITEM_KIND_FOLDER } from "@/lib/common/constants";
 import {
     buildLibraryItemCreateData,
     buildLibraryItemImportRow,
@@ -8,8 +10,6 @@ import {
     type LibraryItemImportRow,
     type LibraryItemImportRowInput,
 } from "@/lib/integrations/library-item-imports";
-import { chunk } from "@/lib/common/arrays";
-import { ITEM_KIND_FOLDER } from "@/lib/common/constants";
 import { prisma } from "@/prisma";
 import type { LibraryItemSource } from "@/prisma/client/enums";
 
@@ -27,7 +27,7 @@ interface UpsertLibraryItemImportsArgs {
     userId: string;
 }
 
-/** @internal */
+/* @internal */
 function normalizeImportRows(args: UpsertLibraryItemImportsArgs): {
     skippedCount: number;
     rows: LibraryItemImportRow[];

@@ -1,16 +1,8 @@
-import { COBALT_SUPPORTED_HOSTS, FALLBACK_URL } from "@/lib/common/constants";
+import { FALLBACK_URL } from "@/lib/common/constants";
 import { sanitizeUrl } from "@braintree/sanitize-url";
 
 const URL_ONLY_WHITESPACE = /\s/;
 const URL_ONLY_PROTOCOLS = new Set(["http:", "https:"]);
-
-export function isCobaltHost(url: string): boolean {
-    try {
-        return COBALT_SUPPORTED_HOSTS.has(new URL(url).hostname);
-    } catch {
-        return false;
-    }
-}
 
 export const parseValidUrl = (url: string): URL | null => {
     try {

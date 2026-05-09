@@ -28,23 +28,36 @@ import { ArrowUpRight, Images, RefreshCw } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import * as React from "react";
-import { createScopedStore } from "stan-js";
+import { createStore } from "stan-js";
 import { storage } from "stan-js/storage";
 
 const INTEGRATION_ACTION_ICON_BY_NAME: Record<
     IntegrationActionIcon,
-    React.ComponentType<{ className?: string }>
+    React.ComponentType<React.SVGProps<SVGSVGElement>>
 > = {
     images: Images,
     refresh: RefreshCw,
 };
 
-const {
-    StoreProvider: IntegrationsListProvider,
-    useStore: useIntegrationsListStore,
-} = createScopedStore({
+const { useStore: useIntegrationsListStore } = createStore({
     isIntegrationsListPanelOpen: storage(false),
 });
+
+export interface IntegrationsListItemProps
+    extends React.ComponentProps<typeof SidebarItem> {}
+
+export interface IntegrationsListEmptyProps extends React.ComponentProps<"p"> {}
+
+interface IntegrationsListStatusProps extends React.ComponentProps<"p"> {
+    tone?: IntegrationsListStatusTone;
+}
+
+interface IntegrationsListItemActionProps {
+    className?: string;
+    direction?: IntegrationDirection;
+    id: IntegrationId;
+    isConnected: boolean;
+}
 
 /**
  * Read and toggle the open state of the integrations list panel.
@@ -63,20 +76,26 @@ function useIntegrationsListOpenState() {
 }
 
 /**
+ * Imperative controls for flows that need to reveal the integrations panel
+ * from outside the sidebar tree.
+ */
+export function useIntegrationsListControls() {
+    const { setIsIntegrationsListPanelOpen } = useIntegrationsListStore();
+
+    return {
+        openIntegrationsList: () => setIsIntegrationsListPanelOpen(true),
+    };
+}
+
+/**
  * The root component of the integrations list.
  *
- * Provides a scoped store so that multiple instances do not share the same
- * open state. Wrap `IntegrationsListTrigger` and `IntegrationsListPanel`
- * inside it.
+ * Wrap `IntegrationsListTrigger` and `IntegrationsListPanel` inside it.
  */
 export function IntegrationsList(
     props: React.ComponentProps<typeof Collapsible>
 ) {
-    return (
-        <IntegrationsListProvider>
-            <IntegrationsListImpl {...props} />
-        </IntegrationsListProvider>
-    );
+    return <IntegrationsListImpl {...props} />;
 }
 
 /**
@@ -249,7 +268,7 @@ export function IntegrationsListPrivacyNotice() {
 export function IntegrationsListItem({
     className,
     ...props
-}: React.ComponentProps<"div">) {
+}: IntegrationsListItemProps) {
     return (
         <SidebarItem
             className={cn("gap-2.5 py-0.5 opacity-100", className)}
@@ -266,7 +285,7 @@ export function IntegrationsListItem({
 export function IntegrationsListEmpty({
     className,
     ...props
-}: React.ComponentProps<"p">) {
+}: IntegrationsListEmptyProps) {
     if (!props.children) {
         return null;
     }
@@ -274,7 +293,7 @@ export function IntegrationsListEmpty({
     return (
         <p
             className={cn(
-                "rounded-xl border border-border/30 border-dashed px-4 py-6 text-center text-muted-foreground text-xs",
+                "rounded-lg border border-border/30 border-dashed px-4 py-6 text-center text-muted-foreground text-xs",
                 className
             )}
             {...props}
@@ -294,9 +313,7 @@ function IntegrationsListStatus({
     tone = "success",
     className,
     ...props
-}: React.ComponentProps<"p"> & {
-    tone?: IntegrationsListStatusTone;
-}) {
+}: IntegrationsListStatusProps) {
     if (!props.children) {
         return null;
     }
@@ -307,7 +324,7 @@ function IntegrationsListStatus({
         <p
             aria-live="polite"
             className={cn(
-                "text-nowrap text-xs leading-tight",
+                "max-w-full text-right text-xs leading-tight",
                 isError ? "text-destructive" : "text-muted-foreground",
                 className
             )}
@@ -315,13 +332,6 @@ function IntegrationsListStatus({
             {...props}
         />
     );
-}
-
-interface IntegrationsListItemActionProps {
-    className?: string;
-    direction?: IntegrationDirection;
-    id: IntegrationId;
-    isConnected: boolean;
 }
 
 /**
@@ -350,7 +360,10 @@ export function IntegrationsListItemAction({
 
     return (
         <div
-            className={cn("ml-auto flex flex-col items-end gap-0.5", className)}
+            className={cn(
+                "ml-auto flex min-w-0 flex-col items-end gap-0.5",
+                className
+            )}
         >
             {hasActions && (
                 <div className="flex flex-wrap items-center gap-1">
@@ -373,7 +386,11 @@ export function IntegrationsListItemAction({
                                 variant={action.variant ?? "ghost"}
                             >
                                 {ActionIcon && (
-                                    <ActionIcon className="size-4" />
+                                    <ActionIcon
+                                        aria-hidden
+                                        className="size-4"
+                                        focusable="false"
+                                    />
                                 )}
                                 {!isIconOnly && action.label}
                             </Button>

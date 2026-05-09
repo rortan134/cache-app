@@ -288,6 +288,7 @@ export function PeekDrawerContent({
                         )}
                         {status === "blocked" && (
                             <div
+                                aria-live="polite"
                                 className="flex size-full flex-col items-center justify-center gap-4 bg-muted/20 px-6 text-center"
                                 role="alert"
                             >

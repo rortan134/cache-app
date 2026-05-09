@@ -9,6 +9,7 @@ import {
     useWorkspace,
     type CollectionSortField,
 } from "@/components/library/workspace";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -20,6 +21,8 @@ import {
     Combobox,
     ComboboxCollection,
     ComboboxEmpty,
+    ComboboxGroup,
+    ComboboxGroupLabel,
     ComboboxInput,
     ComboboxItem,
     ComboboxList,
@@ -125,6 +128,7 @@ import {
     FileSpreadsheetIcon,
     Forward,
     Info,
+    Lightbulb,
     LinkIcon,
     ListFilter,
     LockKeyhole,
@@ -646,7 +650,7 @@ async function disableCollectionSharingSafely(
  */
 // TODO ! refactor this so it doesn't throw when not within <WorkspaceProvider> and instead just doesnt render so we can share sidebar
 export function Collections() {
-    const controller = useCollectionsController();
+    const controller = useCollections();
     const requestCreateRef = React.useContext(RequestCreateRefContext);
 
     React.useEffect(() => {
@@ -813,11 +817,24 @@ export function Collections() {
  * Coordinates dialog open states, server actions, optimistic updates,
  * keyboard shortcuts, and feedback messages.
  */
-function useCollectionsController() {
+function useCollections() {
     const {
         disabled: isSmartCollectionsDisabled,
         mutate: mutateSmartCollectionsPreference,
     } = useSmartCollectionsPreference();
+
+    const {
+        collectionPreviewThumbnailUrlsById,
+        collectionSummaries,
+        collections,
+        hasAccess,
+        itemsByCollectionId,
+        onClearCollectionFilters,
+        onSelectCollection,
+        selectedCollectionIds,
+        setCollections,
+        setItems,
+    } = useWorkspace();
 
     // Create dialog state
     const [isCreateOpen, setIsCreateOpen] = React.useState(false);
@@ -852,19 +869,6 @@ function useCollectionsController() {
     const [feedback, setFeedback] = React.useState<CollectionFeedback | null>(
         null
     );
-
-    const {
-        collectionPreviewThumbnailUrlsById,
-        collectionSummaries,
-        collections,
-        hasAccess,
-        itemsByCollectionId,
-        onClearCollectionFilters,
-        onSelectCollection,
-        selectedCollectionIds,
-        setCollections,
-        setItems,
-    } = useWorkspace();
 
     const [validatedPreviewUrls, setValidatedPreviewUrls] = React.useState(
         collectionPreviewThumbnailUrlsById
@@ -1615,7 +1619,7 @@ function useCollectionItemHotkey(
 
 interface CollectionsListItemRowProps {
     collection: LibraryCollectionSummary;
-    controller: ReturnType<typeof useCollectionsController>;
+    controller: ReturnType<typeof useCollections>;
     isFavorite: boolean;
 }
 
@@ -2181,20 +2185,23 @@ function CollectionsListSortingCombobox({
                 />
                 <ComboboxEmpty>No matching options</ComboboxEmpty>
                 <ComboboxList>
-                    <ComboboxCollection>
-                        {(sortOption: SortingComboboxOption) => (
-                            <ComboboxItem
-                                key={sortOption.value}
-                                showIndicatorLast
-                                value={sortOption}
-                            >
-                                <CollectionComboboxOptionRow
-                                    icon={sortOption.icon}
-                                    label={sortOption.label}
-                                />
-                            </ComboboxItem>
-                        )}
-                    </ComboboxCollection>
+                    <ComboboxGroup>
+                        <ComboboxGroupLabel>Sort by</ComboboxGroupLabel>
+                        <ComboboxCollection>
+                            {(sortOption: SortingComboboxOption) => (
+                                <ComboboxItem
+                                    key={sortOption.value}
+                                    showIndicatorLast
+                                    value={sortOption}
+                                >
+                                    <CollectionComboboxOptionRow
+                                        icon={sortOption.icon}
+                                        label={sortOption.label}
+                                    />
+                                </ComboboxItem>
+                            )}
+                        </ComboboxCollection>
+                    </ComboboxGroup>
                 </ComboboxList>
             </ComboboxPopup>
         </Combobox>
@@ -2998,6 +3005,7 @@ function CreateDialog({
 }: CreateDialogProps) {
     const nameInputId = React.useId();
     const descriptionInputId = React.useId();
+    const { disabled } = useSmartCollectionsPreference();
 
     return (
         <Dialog onOpenChange={onOpenChange} open={isOpen}>
@@ -3073,10 +3081,22 @@ function CreateDialog({
                             />
                         </div>
                         {errorMessage ? (
-                            <p className="text-destructive text-xs">
+                            <p
+                                aria-live="polite"
+                                className="text-destructive text-xs"
+                                role="alert"
+                            >
                                 {errorMessage}
                             </p>
                         ) : null}
+                        <Alert>
+                            <Lightbulb />
+                            <AlertDescription>
+                                Collections keeps your best saves in one place.
+                                Use them for ongoing work, or just to keep
+                                things tidy.
+                            </AlertDescription>
+                        </Alert>
                     </DialogPanel>
                     <DialogFooter>
                         <Combobox
@@ -3121,27 +3141,28 @@ function CreateDialog({
                                         )}
                                     </ComboboxCollection>
                                 </ComboboxList>
-                                <div className="flex gap-2 px-3 py-2">
-                                    <Info className="inline-block size-3.5 shrink-0" />
-                                    <p className="text-[11px] text-muted-foreground leading-tight">
-                                        Cache's{" "}
-                                        <strong className="font-medium">
-                                            Smart Collections&nbsp;
-                                            <Sparkle className="mb-px inline-block size-3" />
-                                        </strong>{" "}
-                                        can automatically assign collections to
-                                        entries that match with these.
-                                    </p>
-                                </div>
+                                {disabled ? null : (
+                                    <div className="flex gap-2 px-3 py-2">
+                                        <Info className="inline-block size-3.5 shrink-0" />
+                                        <p className="text-[11px] text-muted-foreground leading-tight">
+                                            Cache's{" "}
+                                            <strong className="font-medium">
+                                                Smart Collections&nbsp;
+                                                <Sparkle className="mb-px inline-block size-3" />
+                                            </strong>{" "}
+                                            can automatically assign collections
+                                            to entries that match with these.
+                                        </p>
+                                    </div>
+                                )}
                             </ComboboxPopup>
                         </Combobox>
-                        <DialogClose
-                            disabled={isPending}
-                            render={<Button size="sm" variant="ghost" />}
+                        <Button
+                            disabled={!nameDraft}
+                            loading={isPending}
+                            size="sm"
+                            type="submit"
                         >
-                            Cancel
-                        </DialogClose>
-                        <Button loading={isPending} size="sm" type="submit">
                             Create collection
                         </Button>
                     </DialogFooter>

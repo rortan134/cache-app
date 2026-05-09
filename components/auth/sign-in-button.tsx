@@ -2,6 +2,7 @@
 
 import { GoogleSignInButton } from "@/components/auth/google-sign-in-button";
 import { Button } from "@/components/ui/button";
+import { Kbd } from "@/components/ui/kbd";
 import { authClient } from "@/lib/auth/client";
 import { T } from "gt-next";
 import { ChevronRight } from "lucide-react";
@@ -9,15 +10,15 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useHotkeys } from "react-hotkeys-hook";
 
-interface HeroCtaProps {
-    isAuthenticated: boolean;
+interface SignInButtonProps {
+    hasServerSession: boolean;
 }
 
-export function HeroCta({ isAuthenticated }: HeroCtaProps) {
+export function SignInButton({ hasServerSession }: SignInButtonProps) {
     const router = useRouter();
 
     useHotkeys("p", () => {
-        if (isAuthenticated) {
+        if (hasServerSession) {
             router.push("/library");
         } else {
             authClient.signIn.social({
@@ -28,18 +29,23 @@ export function HeroCta({ isAuthenticated }: HeroCtaProps) {
         }
     });
 
-    if (isAuthenticated) {
+    if (hasServerSession) {
         return (
-            <Button
-                render={
-                    <Link href="/library">
-                        Go to my library
-                        <ChevronRight className="size-4" />
-                    </Link>
-                }
-                size="xl"
-                suppressHydrationWarning
-            />
+            <>
+                <Button
+                    render={
+                        <Link href="/library">
+                            Go to my library
+                            <ChevronRight className="size-4" />
+                        </Link>
+                    }
+                    size="xl"
+                    suppressHydrationWarning
+                />
+                <span className="mx-auto -mt-4 text-center text-muted-foreground text-xs italic opacity-80">
+                    Press <Kbd>P</Kbd>
+                </span>
+            </>
         );
     }
 

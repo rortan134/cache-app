@@ -9,10 +9,10 @@ import * as React from "react";
 const DEFAULT_DURATION_SECONDS = 9;
 const MAX_SPEED_PX_PER_SECOND = 48;
 
-type TickerTrackStyle = React.CSSProperties & {
+interface TickerTrackStyle extends React.CSSProperties {
     "--animation-distance": string;
     "--duration": string;
-};
+}
 
 export function Ticker({
     direction = "left",

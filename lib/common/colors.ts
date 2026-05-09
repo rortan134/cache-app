@@ -140,8 +140,9 @@ const GRADIENT_ANGLE = "90deg";
 function djb2Hash(value: string): number {
     let hash = DJB2_HASH_INIT;
     const len = value.length;
-    for (let i = 0; i < len; i += 1) {
-        hash = (hash << 5) + hash + value.charCodeAt(i); // hash * 33 + char code
+    for (let i = 0; i < len; i++) {
+        hash = (hash << 5) + hash + value.charCodeAt(i);
+        hash |= 0; // Convert to unsigned 32-bit integer
     }
     return Math.abs(hash);
 }

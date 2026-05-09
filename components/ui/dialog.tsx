@@ -16,57 +16,19 @@ export function DialogTrigger(props: DialogPrimitive.Trigger.Props) {
     return <DialogPrimitive.Trigger data-slot="dialog-trigger" {...props} />;
 }
 
-/** @internal */
-function DialogBackdrop({
-    className,
-    ...props
-}: DialogPrimitive.Backdrop.Props) {
-    return (
-        <DialogPrimitive.Backdrop
-            className={cn(
-                "fixed inset-0 z-50 bg-black/32 transition-all duration-300 data-ending-style:opacity-0 data-starting-style:opacity-0 data-ending-style:duration-150",
-                className
-            )}
-            data-slot="dialog-backdrop"
-            {...props}
-        />
-    );
-}
-
-/** @internal */
-function DialogViewport({
-    className,
-    ...props
-}: DialogPrimitive.Viewport.Props) {
-    return (
-        <DialogPrimitive.Viewport
-            className={cn(
-                "fixed inset-0 z-50 grid grid-rows-[1fr_auto_3fr] justify-items-center p-4",
-                className
-            )}
-            data-slot="dialog-viewport"
-            {...props}
-        />
-    );
-}
-
 export function DialogPopup({
     className,
     children,
     showCloseButton = true,
-    closeProps,
     ...props
-}: DialogPrimitive.Popup.Props & {
-    showCloseButton?: boolean;
-    closeProps?: DialogPrimitive.Close.Props;
-}) {
+}: DialogPrimitive.Popup.Props & { showCloseButton?: boolean }) {
     return (
         <DialogPrimitive.Portal>
             <DialogBackdrop />
             <DialogViewport>
                 <DialogPrimitive.Popup
                     className={cn(
-                        "relative row-start-2 flex max-h-full min-h-0 w-full min-w-0 max-w-lg flex-col rounded-xl bg-popover not-dark:bg-clip-padding text-popover-foreground opacity-[calc(1-var(--nested-dialogs))] shadow-lg/5 outline-none transition-[translate,opacity] duration-300 ease-out will-change-transform before:pointer-events-none before:absolute before:inset-0 before:rounded-[calc(var(--radius-xl)-1px)] before:shadow-[0_1px_--theme(--color-black/4%)] data-ending-style:translate-y-5 data-starting-style:translate-y-4 data-ending-style:opacity-0 data-starting-style:opacity-0 data-ending-style:duration-150 data-ending-style:ease-in dark:before:shadow-[0_-1px_--theme(--color-white/6%)]",
+                        "relative row-start-2 flex max-h-full min-h-0 w-full min-w-0 max-w-lg flex-col rounded-xl bg-popover not-dark:bg-clip-padding text-popover-foreground opacity-[calc(1-var(--nested-dialogs))] shadow-lg/5 outline-none transition-[translate,opacity] duration-250 ease-out will-change-transform before:pointer-events-none before:absolute before:inset-0 before:rounded-[calc(var(--radius-xl)-1px)] before:shadow-[0_1px_--theme(--color-black/4%)] data-ending-style:translate-y-5 data-starting-style:translate-y-4 data-ending-style:opacity-0 data-starting-style:opacity-0 data-ending-style:duration-100 data-ending-style:ease-in dark:before:shadow-[0_-1px_--theme(--color-white/6%)]",
                         className
                     )}
                     data-slot="dialog-popup"
@@ -78,7 +40,6 @@ export function DialogPopup({
                             aria-label="Close"
                             className="absolute inset-e-2 top-2"
                             render={<Button size="icon" variant="ghost" />}
-                            {...closeProps}
                         >
                             <XIcon />
                         </DialogPrimitive.Close>
@@ -101,6 +62,7 @@ export function DialogHeader({
         ),
         "data-slot": "dialog-header",
     };
+
     return useRender({
         defaultTagName: "div",
         props: mergeProps<"div">(defaultProps, props),
@@ -123,6 +85,7 @@ export function DialogPanel({
         ),
         "data-slot": "dialog-panel",
     };
+
     return (
         <ScrollArea scrollFade={scrollFade}>
             {useRender({
@@ -152,6 +115,7 @@ export function DialogFooter({
         ),
         "data-slot": "dialog-footer",
     };
+
     return useRender({
         defaultTagName: "div",
         props: mergeProps<"div">(defaultProps, props),
@@ -187,4 +151,38 @@ export function DialogDescription({
 
 export function DialogClose(props: DialogPrimitive.Close.Props) {
     return <DialogPrimitive.Close data-slot="dialog-close" {...props} />;
+}
+
+/* @internal */
+function DialogBackdrop({
+    className,
+    ...props
+}: DialogPrimitive.Backdrop.Props) {
+    return (
+        <DialogPrimitive.Backdrop
+            className={cn(
+                "fixed inset-0 z-50 bg-black/32 transition-all duration-250 data-ending-style:opacity-0 data-starting-style:opacity-0 data-ending-style:duration-100",
+                className
+            )}
+            data-slot="dialog-backdrop"
+            {...props}
+        />
+    );
+}
+
+/* @internal */
+function DialogViewport({
+    className,
+    ...props
+}: DialogPrimitive.Viewport.Props) {
+    return (
+        <DialogPrimitive.Viewport
+            className={cn(
+                "fixed inset-0 z-50 grid grid-rows-[1fr_auto_3fr] justify-items-center p-4",
+                className
+            )}
+            data-slot="dialog-viewport"
+            {...props}
+        />
+    );
 }

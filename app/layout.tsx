@@ -4,7 +4,7 @@ import { APP_NAME, BASE_URL, SITE_DEFAULT_TITLE } from "@/lib/common/constants";
 import { getOwnerDocument } from "@/lib/common/dom";
 import { Analytics } from "@vercel/analytics/next";
 import { GTProvider, getLocale } from "gt-next/server";
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import * as React from "react";
 import "./globals.css";
@@ -17,11 +17,13 @@ export async function generateMetadata(props: {
 
     return {
         applicationName: APP_NAME,
+        keywords: ["bookmark", "bookmark manager"],
         metadataBase: new URL(BASE_URL),
         openGraph: {
             locale,
             siteName: APP_NAME,
             type: "website",
+            url: BASE_URL,
         },
         robots: {
             follow: true,
@@ -36,6 +38,12 @@ export async function generateMetadata(props: {
         },
     };
 }
+
+export const viewport: Viewport = {
+    initialScale: 1,
+    viewportFit: "cover",
+    width: "device-width",
+};
 
 const inter = Inter({
     subsets: ["latin"],
@@ -52,11 +60,17 @@ export default async function RootLayout(props: {
     return (
         <html
             className={`${inter.variable} h-full antialiased [scrollbar-gutter:stable]`}
+            dir="ltr"
             lang={locale}
             suppressHydrationWarning
         >
             <head>
                 <NextChatSDKBootstrap baseUrl={BASE_URL} />
+                <meta content="scale" name="text-scale" />
+                <meta
+                    content="text/html; charset=utf-8"
+                    httpEquiv="Content-Type"
+                />
                 <meta content="x402" name="apple-mobile-web-app-title" />
                 <meta
                     content="9c251d927955d913b23e047ef08ed572"

@@ -1,14 +1,15 @@
-import type { LibraryItem, Prisma } from "@/prisma/client/client";
-import type {
-    CollectionPriority,
-    LibraryItemSource,
-} from "@/prisma/client/enums";
 import {
     FALLBACK_URL,
     ITEM_KIND_BOOKMARK,
     SORT_ASC,
 } from "@/lib/common/constants";
-import { isCobaltHost, toValidUrl } from "@/lib/common/url";
+import { toValidUrl } from "@/lib/common/url";
+import { isCobaltHost } from "@/lib/integrations/cobalt/utils";
+import type { LibraryItem, Prisma } from "@/prisma/client/client";
+import type {
+    CollectionPriority,
+    LibraryItemSource,
+} from "@/prisma/client/enums";
 import * as z from "zod";
 
 // ---------------------------------------------------------------------------

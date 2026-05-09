@@ -1,17 +1,15 @@
 import type { PlanType } from "@/lib/billing/prices";
+import { isActiveSubscriptionStatus } from "@/lib/billing/subscription-status";
+import type { Subscription } from "@better-auth/stripe";
 import * as z from "zod";
-
-export interface PlanLimits {
-    fixedLimit: number;
-    rollingLimit: number;
-    rollingWindow: number;
-}
 
 const PlanLimitsSchema = z.object({
     fixedLimit: z.int(),
     rollingLimit: z.int(),
     rollingWindow: z.int(),
 });
+
+export type PlanLimits = z.infer<typeof PlanLimitsSchema>;
 
 export const QuotaSchema = z.object<{
     [key in PlanType]: z.ZodType<PlanLimits>;
@@ -40,3 +38,13 @@ export const GEN_AI_QUOTAS = QuotaSchema.parse({
         rollingWindow: ONE_HOUR_SECONDS,
     },
 });
+
+export function getSubscriptionPlanCapabilities(subscription: Subscription) {
+    const hasAccess = isActiveSubscriptionStatus(subscription?.status);
+
+    return {
+        canReview: hasAccess,
+        canUseGenAI: true,
+        canUseWorkflows: hasAccess,
+    };
+}

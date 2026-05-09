@@ -19,7 +19,7 @@ import {
     IntegrationsListTrigger,
 } from "@/components/library/integrations";
 import { WorkspaceProvider } from "@/components/library/workspace";
-import { AppSidebar } from "@/components/ui/app-sidebar";
+import { ApplicationSidebar } from "@/components/ui/application-sidebar";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { DisclosureList } from "@/components/ui/disclosure-list";
 import { ChevronDownFilledIcon } from "@/components/ui/icons";
@@ -121,7 +121,7 @@ export default async function LibraryPage() {
                                 <div className="flex items-center justify-between">
                                     <UserMenu>
                                         <SidebarItem
-                                            className="w-fit px-2 opacity-100 data-popup-open:before:opacity-100"
+                                            className="px-2 opacity-100 data-popup-open:before:opacity-100"
                                             data-sidebar-collapsible=""
                                             render={<UserMenuTrigger />}
                                         />
@@ -133,7 +133,7 @@ export default async function LibraryPage() {
                                     </UserMenu>
                                     <SidebarTrigger />
                                 </div>
-                                <AppSidebar />
+                                <ApplicationSidebar />
                                 <IntegrationsList data-sidebar-collapsible="">
                                     <IntegrationsListTrigger>
                                         <span className="min-w-0 text-xs">
@@ -196,11 +196,14 @@ export default async function LibraryPage() {
                             </SidebarHeader>
                             <SidebarRail />
                         </Sidebar>
+                        <Browser
+                            connectedIntegrationCount={
+                                connectedIntegrationIdSet.size
+                            }
+                            lockedItemCount={lockedItemCount}
+                            totalItemCount={totalItemCount}
+                        />
                     </SidebarProvider>
-                    <Browser
-                        lockedItemCount={lockedItemCount}
-                        totalItemCount={totalItemCount}
-                    />
                 </WorkspaceProvider>
             </div>
         </PageShell>

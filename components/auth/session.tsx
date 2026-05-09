@@ -17,6 +17,13 @@ const log = createLogger("auth-session");
 
 type Session = typeof auth.$Infer.Session;
 
+/**
+ * Boots Google One Tap for anonymous visitors.
+ *
+ * This component intentionally renders nothing. Mount it once on public entry
+ * points where a passive sign-in prompt is desirable; repeated mounts may ask
+ * the Google script to initialize more than once.
+ */
 export function GoogleOneTapTrigger() {
     const { data: session } = useSession();
 
@@ -39,6 +46,14 @@ export function GoogleOneTapTrigger() {
     return null;
 }
 
+/**
+ * Renders children only after the client session is known to be signed out.
+ *
+ * Use `loadingRender` when the surrounding layout needs a stable placeholder
+ * while better-auth resolves the session. Without it, this component renders
+ * nothing during the pending state to avoid showing signed-out UI to a signed-in
+ * user for a frame.
+ */
 export function SignedOutOnly({
     children,
     loadingRender = null,
@@ -57,6 +72,13 @@ interface SignedOutOnlyProps {
     loadingRender?: React.ReactNode;
 }
 
+/**
+ * Renders children only after the client session is known to be signed in.
+ *
+ * This is a presentation gate, not an authorization boundary. Server actions
+ * and route handlers must still validate the session before returning private
+ * data or mutating state.
+ */
 export function SignedInOnly({
     children,
     loadingRender = null,
@@ -75,6 +97,12 @@ interface SignedInOnlyProps {
     loadingRender?: React.ReactNode;
 }
 
+/**
+ * Renders children only while the client session request is pending.
+ *
+ * Keep this for small inline affordances. Full-page auth suspense should prefer
+ * a route-level loading state so the shell does not churn.
+ */
 export function SessionLoadingOnly({ children }: React.PropsWithChildren) {
     const { isPending } = useSession();
 
@@ -86,6 +114,14 @@ interface WithUserSessionOnlyProps {
     loadingRender?: React.ReactNode;
 }
 
+/**
+ * Provides the authenticated user to a render function once the session has
+ * resolved.
+ *
+ * The render function receives only `session.user` so call sites do not couple
+ * themselves to better-auth's full session payload. Use a server-side session
+ * read when the initial render must be personalized without client hydration.
+ */
 export function WithUserSessionOnly({
     children,
     loadingRender = null,
@@ -107,6 +143,13 @@ interface SessionHintProps {
     serverSession?: Session | null;
 }
 
+/**
+ * Displays the current signed-in identity with a logout affordance.
+ *
+ * Passing `serverSession` prevents the home page from briefly hiding the hint
+ * before the client session hydrates. The client session still owns the loading
+ * state for the logout button because it reflects the live better-auth request.
+ */
 export function SessionHint({ serverSession }: SessionHintProps) {
     const { data: clientSession, isPending } = useSession();
     const session = serverSession ?? clientSession;

@@ -14,7 +14,7 @@ import { cn } from "@/lib/common/cn";
 import * as React from "react";
 
 interface DisclosureListProps extends React.ComponentProps<"div"> {
-    maxVisible?: number;
+    maxVisible: number;
 }
 
 export function DisclosureList({

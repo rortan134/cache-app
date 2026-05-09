@@ -112,7 +112,7 @@ function Sidebar({
     side = "left",
     ...props
 }: React.ComponentProps<"aside"> & { side?: "left" | "right" }) {
-    const state = useSidebar()?.state ?? "expanded";
+    const state = React.use(SidebarContext)?.state ?? "expanded";
 
     return (
         <aside
@@ -246,10 +246,9 @@ function SidebarItem({ className, render, ...props }: SidebarItemProps) {
     });
 }
 
-function SidebarGroup({ className, ...props }: React.ComponentProps<"div">) {
+function SidebarGroup({ className, ...props }: React.ComponentProps<"ul">) {
     return (
-        // biome-ignore lint/a11y/useSemanticElements: groups navigation controls without fieldset semantics.
-        <div
+        <ul
             {...props}
             className={cn(
                 "relative flex w-full min-w-0 flex-col gap-px",
@@ -257,7 +256,6 @@ function SidebarGroup({ className, ...props }: React.ComponentProps<"div">) {
             )}
             data-sidebar="group"
             data-slot="sidebar-group"
-            role="group"
         />
     );
 }
