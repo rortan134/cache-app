@@ -9,7 +9,7 @@ import { AppSidebar } from "@/components/ui/app-sidebar";
 import { PageShell } from "@/components/ui/page-shell";
 import { Sidebar, SidebarHeader } from "@/components/ui/sidebar";
 import { WorkflowComposerDialog } from "@/components/workflows/workflow-composer-dialog";
-import { WorkflowsList } from "@/components/workflows/workflows-list";
+import { WorkflowsList } from "@/components/workflows/workflows";
 import { getServerSession } from "@/lib/auth/session";
 import { listCollections } from "@/lib/collections/service";
 import { gtPublicString } from "@/lib/i18n/gt-public-json";

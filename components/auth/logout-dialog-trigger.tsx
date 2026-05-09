@@ -12,10 +12,12 @@ import {
     DialogTrigger,
 } from "@/components/ui/dialog";
 import { useRouter } from "next/navigation";
-import { useHotkeys } from "react-hotkeys-hook";
 import type { ComponentProps } from "react";
+import { useHotkeys } from "react-hotkeys-hook";
 
-function LogoutButton(props: ComponentProps<typeof DialogTrigger>) {
+export function LogoutDialogTrigger(
+    props: ComponentProps<typeof DialogTrigger>
+) {
     const router = useRouter();
 
     useHotkeys("alt+shift+q", () => {
@@ -49,5 +51,3 @@ function LogoutButton(props: ComponentProps<typeof DialogTrigger>) {
         </Dialog>
     );
 }
-
-export { LogoutButton };

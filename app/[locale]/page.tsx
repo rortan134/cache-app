@@ -1,7 +1,7 @@
 import { JsonLdScript } from "@/app/json-ld-script";
 import { buildPageMetadata } from "@/app/metadata";
 import { GoogleOneTapTrigger, SessionHint } from "@/components/auth/session";
-import { HeroCta } from "@/components/landing/hero-cta";
+import { HeroCta } from "@/components/marketing/hero-cta";
 import { BrandLogo } from "@/components/ui/brand-logo";
 import { Carousel } from "@/components/ui/carousel";
 import { Footer } from "@/components/ui/footer";

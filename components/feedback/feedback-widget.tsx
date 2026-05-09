@@ -109,6 +109,7 @@ export function FeedbackWidget(
     );
 }
 
+/* @internal */
 function SubmitButton({ ref }: { ref?: React.Ref<HTMLButtonElement> }) {
     const { pending } = useFormStatus();
 

@@ -3,8 +3,8 @@
 import { GoogleSignInButton } from "@/components/auth/google-sign-in-button";
 import { Button } from "@/components/ui/button";
 import { authClient } from "@/lib/auth/client";
-import { ChevronRight } from "lucide-react";
 import { T } from "gt-next";
+import { ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useHotkeys } from "react-hotkeys-hook";

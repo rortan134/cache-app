@@ -4,13 +4,13 @@ import { getPublicCollectionShareById } from "@/lib/collections/sharing/service"
 import {
     PublicShareGrid,
     type PublicShareGridItem,
-} from "@/components/share/public-share-grid";
+} from "@/components/share/browser";
 import { FALLBACK_URL, ITEM_KIND_NOTE } from "@/lib/common/constants";
 import { getNoteExcerpt } from "@/lib/common/strings";
 import { normalizeURL } from "@/lib/common/url";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import React, { cache } from "react";
+import * as React from "react";
 
 interface CollectionSharePageProps {
     params: Promise<{
@@ -18,7 +18,7 @@ interface CollectionSharePageProps {
     }>;
 }
 
-const getCachedPublicCollectionShare = cache(async (shareId: string) => {
+const getCachedPublicCollectionShare = React.cache(async (shareId: string) => {
     "use cache";
     return getPublicCollectionShareById(shareId);
 });

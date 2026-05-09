@@ -1,36 +1,17 @@
 import "server-only";
 
 import type { PlanType } from "@/lib/billing/prices";
-import { SORT_DESC } from "@/lib/common/constants";
 import { prisma } from "@/prisma";
 import { cacheLife } from "next/cache";
 import { isActiveSubscriptionStatus } from "./subscription-status";
 
-export async function userHasActiveSubscription(
-    userId: string
-): Promise<boolean> {
+export async function getUserActiveSubscriptionStatus(userId: string) {
     "use cache: remote";
     cacheLife("hours");
 
     const subscription = await prisma.subscription.findFirst({
         orderBy: {
-            periodEnd: SORT_DESC,
-        },
-        select: {
-            status: true,
-        },
-        where: {
-            referenceId: userId,
-        },
-    });
-
-    return isActiveSubscriptionStatus(subscription?.status);
-}
-
-export async function getUserPlanType(userId: string): Promise<PlanType> {
-    const subscription = await prisma.subscription.findFirst({
-        orderBy: {
-            periodEnd: SORT_DESC,
+            periodEnd: "desc",
         },
         select: {
             billingInterval: true,
@@ -40,6 +21,26 @@ export async function getUserPlanType(userId: string): Promise<PlanType> {
             referenceId: userId,
         },
     });
+
+    return subscription ?? null;
+}
+
+export async function userHasActiveSubscription(
+    userId: string
+): Promise<boolean> {
+    "use cache: remote";
+    cacheLife("hours");
+
+    const subscription = await getUserActiveSubscriptionStatus(userId);
+
+    return isActiveSubscriptionStatus(subscription?.status);
+}
+
+export async function getUserPlanType(userId: string): Promise<PlanType> {
+    "use cache: remote";
+    cacheLife("hours");
+
+    const subscription = await getUserActiveSubscriptionStatus(userId);
 
     if (!(subscription && isActiveSubscriptionStatus(subscription.status))) {
         return "free";

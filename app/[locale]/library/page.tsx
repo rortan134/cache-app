@@ -4,6 +4,8 @@ import {
     UserMenuContent,
     UserMenuFooter,
     UserMenuHeader,
+    UserMenuPopup,
+    UserMenuTrigger,
 } from "@/components/auth/user-menu";
 import { Browser } from "@/components/library/browser";
 import { Collections } from "@/components/library/collections";
@@ -26,7 +28,9 @@ import { PageShell } from "@/components/ui/page-shell";
 import {
     Sidebar,
     SidebarHeader,
+    SidebarItem,
     SidebarProvider,
+    SidebarRail,
     SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { getServerSession } from "@/lib/auth/session";
@@ -114,17 +118,19 @@ export default async function LibraryPage() {
                     <SidebarProvider>
                         <Sidebar>
                             <SidebarHeader className="gap-3">
-                                <div className="flex items-center gap-2">
-                                    <div
-                                        className="min-w-0 flex-1"
-                                        data-sidebar-collapsible=""
-                                    >
-                                        <UserMenu>
+                                <div className="flex items-center justify-between">
+                                    <UserMenu>
+                                        <SidebarItem
+                                            className="w-fit px-2 opacity-100 data-popup-open:before:opacity-100"
+                                            data-sidebar-collapsible=""
+                                            render={<UserMenuTrigger />}
+                                        />
+                                        <UserMenuPopup>
                                             <UserMenuHeader />
                                             <UserMenuContent />
                                             <UserMenuFooter />
-                                        </UserMenu>
-                                    </div>
+                                        </UserMenuPopup>
+                                    </UserMenu>
                                     <SidebarTrigger />
                                 </div>
                                 <AppSidebar />
@@ -188,6 +194,7 @@ export default async function LibraryPage() {
                                 </IntegrationsList>
                                 <Collections />
                             </SidebarHeader>
+                            <SidebarRail />
                         </Sidebar>
                     </SidebarProvider>
                     <Browser

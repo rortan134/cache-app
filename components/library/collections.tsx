@@ -644,6 +644,7 @@ async function disableCollectionSharingSafely(
  * Also registers itself with the `RequestCreateRefContext` so any parent
  * can open the create dialog imperatively via `requestCreate()`.
  */
+// TODO ! refactor this so it doesn't throw when not within <WorkspaceProvider> and instead just doesnt render so we can share sidebar
 export function Collections() {
     const controller = useCollectionsController();
     const requestCreateRef = React.useContext(RequestCreateRefContext);

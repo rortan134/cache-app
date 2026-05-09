@@ -8,7 +8,7 @@ import type {
     LibraryItemSource,
 } from "@/prisma/client/enums";
 
-const ACTIVITY_LIMIT = 80;
+const ACTIVITY_LIMIT = 50;
 const RECENT_COLLECTION_LIMIT = 20;
 
 export interface PersistedActivityEvent {
@@ -166,6 +166,7 @@ export async function getActivityTimelineData(args: {
         })),
         recentItems: items.map((item) => {
             const [collection] = item.collections;
+
             return {
                 caption: item.caption,
                 collectionId: collection?.id ?? null,

@@ -6,7 +6,7 @@ import { authClient } from "@/lib/auth/client";
 import { cn } from "@/lib/common/cn";
 import { useState, useTransition, type ComponentProps } from "react";
 
-function GoogleSignInButton({
+export function GoogleSignInButton({
     className,
     children,
     size = "xl",
@@ -67,5 +67,3 @@ function GoogleSignInButton({
         </div>
     );
 }
-
-export { GoogleSignInButton };

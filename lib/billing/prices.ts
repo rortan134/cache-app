@@ -1,49 +1,8 @@
 import { serverEnv } from "@/env/server";
 import { withStripe } from "@/lib/billing/client";
 import { StripeError } from "@/lib/billing/error";
-import * as z from "zod";
 
 export type PlanType = "free" | "monthly" | "yearly";
-
-export interface PlanLimits {
-    fixedLimit: number;
-    rollingLimit: number;
-    rollingWindow: number;
-}
-
-const PlanLimitsSchema = z.object({
-    fixedLimit: z.int(),
-    rollingLimit: z.int(),
-    rollingWindow: z.int(),
-});
-
-export const QuotaSchema = z.object<{
-    [key in PlanType]: z.ZodType<PlanLimits>;
-}>({
-    free: PlanLimitsSchema,
-    monthly: PlanLimitsSchema,
-    yearly: PlanLimitsSchema,
-});
-
-const ONE_HOUR_SECONDS = 60 * 60;
-
-export const GEN_AI_QUOTAS = QuotaSchema.parse({
-    free: {
-        fixedLimit: 12_000,
-        rollingLimit: 2000,
-        rollingWindow: ONE_HOUR_SECONDS,
-    },
-    monthly: {
-        fixedLimit: 120_000,
-        rollingLimit: 20_000,
-        rollingWindow: ONE_HOUR_SECONDS,
-    },
-    yearly: {
-        fixedLimit: 120_000,
-        rollingLimit: 20_000,
-        rollingWindow: ONE_HOUR_SECONDS,
-    },
-});
 
 export interface PlanPrice {
     amountCents: number; // integer cents
@@ -95,22 +54,24 @@ export async function retrievePriceById(
     } satisfies PlanPrice;
 }
 
-export async function getPlanPrices(): Promise<{
-    monthly: PlanPrice | null;
-    yearly: PlanPrice | null;
-}> {
-    const [monthly, yearly] = await Promise.all([
-        retrievePriceById(serverEnv.STRIPE_PRICE_ID_MONTHLY),
-        retrievePriceById(serverEnv.STRIPE_PRICE_ID_YEARLY),
-    ]);
-    return { monthly, yearly };
-}
-
 export function getPlanPriceIds(): { monthly: string; yearly: string } {
     return {
         monthly: serverEnv.STRIPE_PRICE_ID_MONTHLY,
         yearly: serverEnv.STRIPE_PRICE_ID_YEARLY,
     };
+}
+
+export async function getPlanPrices(): Promise<{
+    monthly: PlanPrice | null;
+    yearly: PlanPrice | null;
+}> {
+    const prices = getPlanPriceIds();
+    const [monthly, yearly] = await Promise.all([
+        retrievePriceById(prices.monthly),
+        retrievePriceById(prices.yearly),
+    ]);
+
+    return { monthly, yearly };
 }
 
 const STRIPE_FEE_PERCENT = 0.044;

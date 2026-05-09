@@ -17,7 +17,7 @@ type Session = typeof auth.$Infer.Session;
 
 const log = createLogger("auth-session");
 
-function GoogleOneTapTrigger() {
+export function GoogleOneTapTrigger() {
     const { data: session } = useSession();
 
     useEffect(() => {
@@ -39,7 +39,7 @@ function GoogleOneTapTrigger() {
     return null;
 }
 
-function SignedOutOnly({
+export function SignedOutOnly({
     children,
     loadingRender = null,
 }: PropsWithChildren<{ loadingRender?: ReactNode }>) {
@@ -52,7 +52,7 @@ function SignedOutOnly({
     return session ? null : children;
 }
 
-function SignedInOnly({
+export function SignedInOnly({
     children,
     loadingRender = null,
 }: PropsWithChildren<{ loadingRender?: ReactNode }>) {
@@ -65,13 +65,13 @@ function SignedInOnly({
     return session ? children : null;
 }
 
-function SessionLoadingOnly({ children }: PropsWithChildren) {
+export function SessionLoadingOnly({ children }: PropsWithChildren) {
     const { isPending } = useSession();
 
     return isPending ? children : null;
 }
 
-function WithSessionUser({
+export function WithUserSessionOnly({
     children,
     loadingRender = null,
 }: {
@@ -91,7 +91,11 @@ function WithSessionUser({
     return children(session.user);
 }
 
-function SessionHint({ serverSession }: { serverSession?: Session | null }) {
+export function SessionHint({
+    serverSession,
+}: {
+    serverSession?: Session | null;
+}) {
     const { data: clientSession, isPending } = useSession();
     const session = serverSession ?? clientSession;
 
@@ -115,12 +119,3 @@ function SessionHint({ serverSession }: { serverSession?: Session | null }) {
         </div>
     );
 }
-
-export {
-    GoogleOneTapTrigger,
-    SessionHint,
-    SessionLoadingOnly,
-    SignedInOnly,
-    SignedOutOnly,
-    WithSessionUser,
-};

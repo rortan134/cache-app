@@ -1,6 +1,6 @@
 "use client";
 
-import { UpgradeButton } from "@/components/billing/upgrade-button";
+import { SubscriptionUpgradeButton } from "@/components/billing/subscription";
 import {
     CollectionComboboxPicker,
     PreviewMedia,
@@ -33,7 +33,6 @@ import {
     Trash2Icon,
 } from "lucide-react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
 import * as React from "react";
 
 const SOURCE_LABELS: Record<LibraryItemSource, string> = {
@@ -494,11 +493,6 @@ function ReviewCompletionState() {
 }
 
 function ReviewPaywall({ itemCount }: { itemCount: number }) {
-    const params = useParams<{ locale?: string }>();
-    const locale = Array.isArray(params.locale)
-        ? params.locale[0]
-        : (params.locale ?? "en");
-
     return (
         <div className="flex flex-1 flex-col items-center justify-center gap-6 px-6 py-16 text-center">
             <div className="flex size-16 items-center justify-center rounded-full bg-muted text-muted-foreground">
@@ -512,7 +506,7 @@ function ReviewPaywall({ itemCount }: { itemCount: number }) {
                     organized. Upgrade to Pro to access the review feature.
                 </p>
             </div>
-            <UpgradeButton locale={locale}>Get Pro</UpgradeButton>
+            <SubscriptionUpgradeButton>Get Pro</SubscriptionUpgradeButton>
         </div>
     );
 }

@@ -2,7 +2,7 @@ import { JsonLdScript } from "@/app/json-ld-script";
 import { buildPageMetadata } from "@/app/metadata";
 import { GoogleSignInButton } from "@/components/auth/google-sign-in-button";
 import { SignedInOnly, SignedOutOnly } from "@/components/auth/session";
-import { UpgradeButton } from "@/components/billing/upgrade-button";
+import { SubscriptionUpgradeButton } from "@/components/billing/subscription";
 import {
     Accordion,
     AccordionItem,
@@ -42,13 +42,7 @@ export async function generateMetadata({
     });
 }
 
-export default async function PricingPage({
-    params,
-}: Readonly<{
-    params: Promise<{ locale: string }>;
-}>) {
-    const { locale } = await params;
-
+export default async function PricingPage() {
     const jsonLd = {
         "@context": "https://schema.org",
         "@type": "Product",
@@ -244,11 +238,11 @@ export default async function PricingPage({
                                         </GoogleSignInButton>
                                     </SignedOutOnly>
                                     <SignedInOnly>
-                                        <UpgradeButton locale={locale}>
+                                        <SubscriptionUpgradeButton>
                                             <T context="Pricing page upgrade CTA">
                                                 Upgrade plan
                                             </T>
-                                        </UpgradeButton>
+                                        </SubscriptionUpgradeButton>
                                     </SignedInOnly>
                                 </div>
                                 <div className="mt-8 grid gap-4">

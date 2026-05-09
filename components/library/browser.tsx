@@ -3,7 +3,7 @@
 import {
     BlockPaywallBanner,
     InlinePaywallBanner,
-} from "@/components/billing/paywall-banner";
+} from "@/components/billing/paywall";
 import { FeedbackWidget } from "@/components/feedback/feedback-widget";
 import { getPriorityOption } from "@/components/library/collections";
 import type { NoteDraft } from "@/components/library/notes";
