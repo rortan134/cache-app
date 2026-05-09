@@ -6,7 +6,7 @@ import {
     UserMenuHeader,
 } from "@/components/auth/user-menu";
 import { ReviewDigest } from "@/components/review/digest";
-import { AppSidebarNavigation } from "@/components/ui/app-sidebar-navigation";
+import { AppSidebar } from "@/components/ui/app-sidebar";
 import { PageShell } from "@/components/ui/page-shell";
 import { Sidebar, SidebarHeader } from "@/components/ui/sidebar";
 import { getServerSession } from "@/lib/auth/session";
@@ -60,7 +60,7 @@ export default async function ReviewPage() {
                             <UserMenuContent />
                             <UserMenuFooter />
                         </UserMenu>
-                        <AppSidebarNavigation />
+                        <AppSidebar />
                     </SidebarHeader>
                 </Sidebar>
                 <div className="flex w-full flex-1 flex-col overflow-hidden">

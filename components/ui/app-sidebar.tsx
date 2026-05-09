@@ -17,7 +17,7 @@ interface AppSidebarNavigationItemProps {
     icon: LucideIcon;
 }
 
-export function AppSidebarNavigation() {
+export function AppSidebar() {
     return (
         <SidebarGroup>
             <AppSidebarNavigationItem href="/library" icon={House}>

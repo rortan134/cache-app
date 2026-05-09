@@ -43,7 +43,7 @@ const {
     StoreProvider: IntegrationsListProvider,
     useStore: useIntegrationsListStore,
 } = createScopedStore({
-    isIntegrationsListPanelOpen: storage(true),
+    isIntegrationsListPanelOpen: storage(false),
 });
 
 /**
@@ -233,7 +233,7 @@ export function IntegrationsListPrivacyNotice() {
                         variant="link"
                     >
                         Cache Privacy
-                        <ArrowUpRight className="inline-block size-3 text-muted-foreground" />
+                        <ArrowUpRight className="inline-block size-3 shrink-0 text-muted-foreground" />
                     </Button>
                 </p>
             </CollapsiblePanel>

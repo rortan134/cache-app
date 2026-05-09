@@ -132,34 +132,32 @@ function SidebarTrigger({
     return (
         <Button
             {...props}
-            aria-label={open ? "Collapse sidebar" : "Expand sidebar"}
-            aria-pressed={!open}
             className={cn(
-                "hidden h-8 min-h-8 w-full px-2.5 lg:inline-flex lg:group-data-[state=collapsed]/sidebar:w-8 lg:group-data-[state=collapsed]/sidebar:px-0",
+                "hidden h-8 min-h-8 min-w-8 lg:inline-flex",
+                open ? "cursor-w-resize" : "cursor-e-resize",
                 className
             )}
             onClick={(event) => {
                 onClick?.(event);
-
                 if (event.defaultPrevented) {
                     return;
                 }
-
                 toggleSidebar();
             }}
             size="icon-sm"
+            title={open ? "Close sidebar" : "Open sidebar"}
             variant="ghost"
         >
             {open ? (
                 <PanelLeft
                     aria-hidden
-                    className="inline-block size-3.5 shrink-0 opacity-80"
+                    className="inline-block size-4 shrink-0 opacity-80"
                     focusable="false"
                 />
             ) : (
                 <PanelLeftOpen
                     aria-hidden
-                    className="inline-block size-3.5 shrink-0 opacity-80"
+                    className="inline-block size-4 shrink-0 opacity-80"
                     focusable="false"
                 />
             )}

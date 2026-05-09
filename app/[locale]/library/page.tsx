@@ -17,7 +17,7 @@ import {
     IntegrationsListTrigger,
 } from "@/components/library/integrations";
 import { WorkspaceProvider } from "@/components/library/workspace";
-import { AppSidebarNavigation } from "@/components/ui/app-sidebar-navigation";
+import { AppSidebar } from "@/components/ui/app-sidebar";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { DisclosureList } from "@/components/ui/disclosure-list";
 import { ChevronDownFilledIcon } from "@/components/ui/icons";
@@ -127,7 +127,7 @@ export default async function LibraryPage() {
                                     </div>
                                     <SidebarTrigger />
                                 </div>
-                                <AppSidebarNavigation />
+                                <AppSidebar />
                                 <IntegrationsList data-sidebar-collapsible="">
                                     <IntegrationsListTrigger>
                                         <span className="min-w-0 text-xs">

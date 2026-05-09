@@ -2178,7 +2178,7 @@ function CollectionsListSortingCombobox({
                     }
                     placeholder="Sort by..."
                 />
-                <ComboboxEmpty>No matching sort options</ComboboxEmpty>
+                <ComboboxEmpty>No matching options</ComboboxEmpty>
                 <ComboboxList>
                     <ComboboxCollection>
                         {(sortOption: SortingComboboxOption) => (
@@ -2242,26 +2242,28 @@ function CollectionsListNoticeCallout({
                 />
                 <div className="mt-4 flex max-w-64 flex-col gap-2">
                     <PopoverTitle>Let Cache do the organizing</PopoverTitle>
-                    <PopoverDescription className="text-foreground text-xs">
+                    <PopoverDescription className="text-foreground text-xs leading-snug">
                         As you add new entries, Cache AI proactively groups your
                         related saves into contextual collections. Cache also
-                        learns your preferences with time.
+                        learns your preferences with time.{" "}
+                        <Button
+                            className="h-fit! px-0 leading-snug sm:text-xs"
+                            render={<Link href="/activity" />}
+                            size="xs"
+                            variant="link"
+                        >
+                            Activity
+                            <ArrowUpRight className="inline-block size-3 shrink-0 text-muted-foreground" />
+                        </Button>
                     </PopoverDescription>
-                    <div className="flex items-center gap-2 pt-1">
+                    <div className="flex items-center justify-between gap-2 pt-1">
+                        <span className="text-xs">Enabled</span>
                         <Button
                             onClick={onDisable}
                             size="xs"
                             variant="destructive-outline"
                         >
                             Disable
-                        </Button>
-                        <Button
-                            render={<Link href="/activity" />}
-                            size="xs"
-                            variant="outline"
-                        >
-                            Activity
-                            <ArrowUpRight className="inline-block size-3 shrink-0 text-muted-foreground" />
                         </Button>
                     </div>
                 </div>

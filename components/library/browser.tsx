@@ -151,10 +151,7 @@ import {
 import { filterValidImageUrls } from "@/lib/common/image";
 import { getImageColors } from "@/lib/common/image-colors";
 import { createLogger } from "@/lib/common/logs/console/logger";
-import { normalizeWhitespace } from "@/lib/common/strings";
-import { Calligraph } from "calligraph";
-
-import { getNoteExcerpt } from "@/lib/common/strings";
+import { getNoteExcerpt, normalizeWhitespace } from "@/lib/common/strings";
 import {
     normalizeURL,
     openExternal,
@@ -180,6 +177,7 @@ import {
 import { useIsoLayoutEffect } from "@base-ui/utils/useIsoLayoutEffect";
 import { useStableCallback } from "@base-ui/utils/useStableCallback";
 import { useTimeout } from "@base-ui/utils/useTimeout";
+import { Calligraph } from "calligraph";
 import {
     ArrowDownIcon,
     ArrowDownWideNarrow,
@@ -211,6 +209,7 @@ import {
     ListChevronsUpDown,
     NotebookPenIcon,
     RotateCcw,
+    Search,
     SearchX,
     Sparkles,
     SquarePen,
@@ -3421,6 +3420,10 @@ function CardMenu({
                     <ItemSeparator />
                 </>
             )}
+            <Item disabled>
+                <Search className="size-4.5 text-muted-foreground" />
+                Find related
+            </Item>
             {kind === "context" ? (
                 <ContextMenuItem
                     className="text-destructive data-highlighted:bg-destructive/10 data-highlighted:text-destructive"
@@ -3886,9 +3889,10 @@ function Empty() {
                     <GradientWaveText ariaLabel="Welcome to your Cache">
                         Welcome to your Cache
                     </GradientWaveText>
+                    <span className="ml-3 opacity-50">Ready to start?</span>
                 </h3>
                 <p className="text-muted-foreground text-xs leading-tight">
-                    Everything you save, unified and searchable. Cache is
+                    Everything you bookmark, unified and searchable. Cache is
                     purpose-built to organize what matters to you into
                     collections so you can find it when you need it.
                 </p>
@@ -5362,7 +5366,7 @@ export function Browser({ lockedItemCount, totalItemCount }: LibraryProps) {
                                     ) : (
                                         <Grid2x2 className="inline-block size-3.5 shrink-0" />
                                     )}
-                                    <span>
+                                    <span className="tabular-nums">
                                         &nbsp;Showing{" "}
                                         <Calligraph>
                                             {resultsSummary}
@@ -5424,7 +5428,7 @@ export function Browser({ lockedItemCount, totalItemCount }: LibraryProps) {
                                         />
                                     }
                                 />
-                                <MenuPopup align="center">
+                                <MenuPopup>
                                     <MenuGroup>
                                         <MenuGroupLabel>
                                             Complete this checklist
@@ -5480,7 +5484,7 @@ export function Browser({ lockedItemCount, totalItemCount }: LibraryProps) {
                                                 value={0}
                                             />
                                             <span className="mr-2">
-                                                Share or publish a collection
+                                                Share a collection
                                             </span>
                                             <ChevronRight className="ml-auto inline-block size-3.5 shrink-0 opacity-50" />
                                         </MenuItem>

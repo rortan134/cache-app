@@ -11,6 +11,7 @@ import { KeyboardShortcutsDialogTrigger } from "@/components/library/shortcuts";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { GradientWaveText } from "@/components/ui/gradient-wave-text";
 import { Group } from "@/components/ui/group";
 import { CrownFilledIcon } from "@/components/ui/icons";
 import { AltKbd, CmdKbd, Kbd, ShiftKbd } from "@/components/ui/kbd";
@@ -160,10 +161,12 @@ function SubscriptionBadge() {
                             variant="secondary"
                         >
                             <CrownFilledIcon />
-                            <T context="Active status label">
-                                <Var>{planLabel}</Var>{" "}
-                                <Var>{intervalLabel}</Var>
-                            </T>
+                            <GradientWaveText align="center" ariaLabel="Status">
+                                <T context="Active status label">
+                                    <Var>{planLabel}</Var>{" "}
+                                    <Var>{intervalLabel}</Var>
+                                </T>
+                            </GradientWaveText>
                         </Badge>
                     );
                 }
@@ -281,13 +284,22 @@ export function UserMenuHeader() {
     return (
         <WithSessionUser>
             {(user) => (
-                <div className="min-w-0 flex-1">
-                    <p className="truncate font-medium text-sm">
-                        {user.name ?? <T>Cache account</T>}
-                    </p>
-                    <p className="truncate text-muted-foreground text-sm">
-                        {user.email}
-                    </p>
+                <div className="w-full min-w-0 flex-1">
+                    <div className="-mx-2">
+                        <Button
+                            className="h-11 w-full min-w-0 flex-1 justify-start text-left sm:h-11"
+                            variant="ghost"
+                        >
+                            <div>
+                                <p className="truncate font-medium text-sm">
+                                    {user.name ?? <T>Cache account</T>}
+                                </p>
+                                <p className="truncate text-muted-foreground text-sm">
+                                    {user.email}
+                                </p>
+                            </div>
+                        </Button>
+                    </div>
                     <div className="mt-2 flex items-center gap-2">
                         <SubscriptionBadge />
                     </div>
@@ -394,7 +406,6 @@ export function UserMenuFooter() {
         <>
             <MenuSeparator />
             <LocaleSelector />
-            <MenuSeparator />
             <div className="-mx-1 -mb-1 flex flex-wrap opacity-80">
                 <Button
                     render={<Link href="/legal/privacy-policy" />}
@@ -424,14 +435,14 @@ export function UserMenuFooter() {
 
 export function UserMenu({ children }: { children: ReactNode }) {
     return (
-        <WithSessionUser loadingRender={<UserMenuSkeleton />}>
-            {(user) => (
-                <Popover>
-                    <PopoverTrigger
-                        className="justify-between px-2 opacity-100 data-popup-open:before:opacity-100"
-                        nativeButton={false}
-                        render={<SidebarItem />}
-                    >
+        <Popover>
+            <PopoverTrigger
+                className="w-fit px-2 opacity-100 data-popup-open:before:opacity-100"
+                nativeButton={false}
+                render={<SidebarItem />}
+            >
+                <WithSessionUser loadingRender={<UserMenuSkeleton />}>
+                    {(user) => (
                         <span className="flex min-w-0 items-center gap-2">
                             <Avatar className="size-5.5 rounded-md">
                                 <AvatarImage
@@ -449,22 +460,22 @@ export function UserMenu({ children }: { children: ReactNode }) {
                                 </span>
                             </span>
                         </span>
-                        <ChevronDown
-                            aria-hidden
-                            className="pointer-events-none inline-block size-3.5 shrink-0 opacity-80"
-                            focusable="false"
-                        />
-                    </PopoverTrigger>
-                    <PopoverPopup
-                        align="start"
-                        className="min-w-[240px]"
-                        positionMethod="fixed"
-                        side="top"
-                    >
-                        <div className="flex flex-col gap-4">{children}</div>
-                    </PopoverPopup>
-                </Popover>
-            )}
-        </WithSessionUser>
+                    )}
+                </WithSessionUser>
+                <ChevronDown
+                    aria-hidden
+                    className="pointer-events-none inline-block size-3.5 shrink-0 opacity-80"
+                    focusable="false"
+                />
+            </PopoverTrigger>
+            <PopoverPopup
+                align="start"
+                className="min-w-[248px]"
+                positionMethod="fixed"
+                side="top"
+            >
+                <div className="flex flex-col gap-4">{children}</div>
+            </PopoverPopup>
+        </Popover>
     );
 }
