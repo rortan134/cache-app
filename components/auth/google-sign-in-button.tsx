@@ -6,6 +6,15 @@ import { authClient } from "@/lib/auth/client";
 import { cn } from "@/lib/common/cn";
 import { useState, useTransition, type ComponentProps } from "react";
 
+const DEFAULT_ERROR_MESSAGE = "Could not start Google sign-in.";
+
+function getErrorMessage(err: unknown): string {
+    if (err instanceof Error) {
+        return err.message;
+    }
+    return String(err) || DEFAULT_ERROR_MESSAGE;
+}
+
 export function GoogleSignInButton({
     className,
     children,
@@ -26,16 +35,11 @@ export function GoogleSignInButton({
                 });
                 if (result.error) {
                     setErrorMessage(
-                        result.error.message ??
-                            "Could not start Google sign-in."
+                        result.error.message ?? DEFAULT_ERROR_MESSAGE
                     );
                 }
             } catch (err) {
-                setErrorMessage(
-                    err instanceof Error
-                        ? err.message
-                        : "Could not start Google sign-in."
-                );
+                setErrorMessage(getErrorMessage(err));
             }
         });
     };
