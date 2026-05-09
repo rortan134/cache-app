@@ -25,9 +25,7 @@ import { ArrowUpRight, ChevronDown, LogOut } from "lucide-react";
 import Link from "next/link";
 import type * as React from "react";
 
-export function UserMenu(props: React.ComponentProps<typeof Popover>) {
-    return <Popover {...props} />;
-}
+export const UserMenu: typeof Popover = Popover;
 
 export function UserMenuTrigger(
     props: React.ComponentProps<typeof PopoverTrigger>
@@ -59,23 +57,6 @@ export function UserMenuTrigger(
                 focusable="false"
             />
         </PopoverTrigger>
-    );
-}
-
-/* @internal */
-function UserMenuTriggerSkeleton() {
-    return (
-        <SidebarItem className="justify-between px-2">
-            <div className="flex min-w-0 items-center gap-2">
-                <Skeleton className="size-5.5 rounded-md" />
-                <Skeleton className="h-4 w-24" />
-            </div>
-            <ChevronDown
-                aria-hidden
-                className="pointer-events-none inline-block size-3.5 shrink-0 opacity-80 group-data-popup-open:opacity-0"
-                focusable="false"
-            />
-        </SidebarItem>
     );
 }
 
@@ -242,7 +223,24 @@ export function UserMenuFooter() {
     );
 }
 
-/* @internal */
+/** @internal */
+function UserMenuTriggerSkeleton() {
+    return (
+        <SidebarItem className="justify-between px-2">
+            <div className="flex min-w-0 items-center gap-2">
+                <Skeleton className="size-5.5 rounded-md" />
+                <Skeleton className="h-4 w-24" />
+            </div>
+            <ChevronDown
+                aria-hidden
+                className="pointer-events-none inline-block size-3.5 shrink-0 opacity-80 group-data-popup-open:opacity-0"
+                focusable="false"
+            />
+        </SidebarItem>
+    );
+}
+
+/** @internal */
 function UserMenuSection({ className, ...props }: React.ComponentProps<"div">) {
     return (
         <>
@@ -255,7 +253,7 @@ function UserMenuSection({ className, ...props }: React.ComponentProps<"div">) {
     );
 }
 
-/* @internal */
+/** @internal */
 function UserMenuSectionSeparator() {
     return (
         <div className="relative -my-1">

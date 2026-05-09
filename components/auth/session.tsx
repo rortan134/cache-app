@@ -11,16 +11,16 @@ import type { auth } from "@/lib/auth/server";
 import { createLogger } from "@/lib/common/logs/console/logger";
 import { Info } from "lucide-react";
 import Link from "next/link";
-import { useEffect, type PropsWithChildren, type ReactNode } from "react";
-
-type Session = typeof auth.$Infer.Session;
+import * as React from "react";
 
 const log = createLogger("auth-session");
+
+type Session = typeof auth.$Infer.Session;
 
 export function GoogleOneTapTrigger() {
     const { data: session } = useSession();
 
-    useEffect(() => {
+    React.useEffect(() => {
         if (session || !hasGoogleOneTapClientId) {
             return;
         }
@@ -42,7 +42,7 @@ export function GoogleOneTapTrigger() {
 export function SignedOutOnly({
     children,
     loadingRender = null,
-}: PropsWithChildren<{ loadingRender?: ReactNode }>) {
+}: SignedOutOnlyProps) {
     const { data: session, isPending } = useSession();
 
     if (isPending) {
@@ -52,10 +52,15 @@ export function SignedOutOnly({
     return session ? null : children;
 }
 
+interface SignedOutOnlyProps {
+    children: React.ReactNode;
+    loadingRender?: React.ReactNode;
+}
+
 export function SignedInOnly({
     children,
     loadingRender = null,
-}: PropsWithChildren<{ loadingRender?: ReactNode }>) {
+}: SignedInOnlyProps) {
     const { data: session, isPending } = useSession();
 
     if (isPending) {
@@ -65,19 +70,26 @@ export function SignedInOnly({
     return session ? children : null;
 }
 
-export function SessionLoadingOnly({ children }: PropsWithChildren) {
+interface SignedInOnlyProps {
+    children: React.ReactNode;
+    loadingRender?: React.ReactNode;
+}
+
+export function SessionLoadingOnly({ children }: React.PropsWithChildren) {
     const { isPending } = useSession();
 
     return isPending ? children : null;
 }
 
+interface WithUserSessionOnlyProps {
+    children: (user: Session["user"]) => React.ReactNode;
+    loadingRender?: React.ReactNode;
+}
+
 export function WithUserSessionOnly({
     children,
     loadingRender = null,
-}: {
-    children: (user: Session["user"]) => ReactNode;
-    loadingRender?: ReactNode;
-}) {
+}: WithUserSessionOnlyProps) {
     const { isPending, data: session } = useSession();
 
     if (isPending) {
@@ -91,11 +103,11 @@ export function WithUserSessionOnly({
     return children(session.user);
 }
 
-export function SessionHint({
-    serverSession,
-}: {
+interface SessionHintProps {
     serverSession?: Session | null;
-}) {
+}
+
+export function SessionHint({ serverSession }: SessionHintProps) {
     const { data: clientSession, isPending } = useSession();
     const session = serverSession ?? clientSession;
 
