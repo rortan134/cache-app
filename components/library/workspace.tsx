@@ -192,7 +192,6 @@ interface LibraryWorkspaceContextValue {
     collectionPreviewThumbnailUrlsById: Map<string, string[]>;
     collectionSummaries: LibraryCollectionSummary[];
     collections: LibraryCollectionSummary[];
-    hasAccess: boolean;
     items: LibraryItemWithCollections[];
     itemsByCollectionId: Map<string, LibraryItemWithCollections[]>;
     onClearCollectionFilters: () => void;
@@ -248,7 +247,6 @@ export function useWorkspace(): LibraryWorkspaceContextValue {
 }
 
 export function WorkspaceProvider({
-    hasAccess,
     initialCollections,
     initialItems,
     children,
@@ -451,7 +449,6 @@ export function WorkspaceProvider({
                 collectionPreviewThumbnailUrlsById,
                 collectionSummaries,
                 collections,
-                hasAccess,
                 items,
                 itemsByCollectionId,
                 onClearCollectionFilters: clearCollectionFilters,
@@ -475,7 +472,6 @@ export function WorkspaceProvider({
 }
 
 export interface LibraryWorkspaceProviderProps {
-    hasAccess: boolean;
     initialCollections: LibraryCollectionSummary[];
     initialItems: LibraryItemWithCollections[];
 }

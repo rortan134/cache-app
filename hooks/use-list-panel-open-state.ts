@@ -46,7 +46,7 @@ export function useListPanelOpenState({
 }: UseListPanelOpenStateOptions) {
     const [uncontrolledOpen, setIsOpen] = state;
     const isControlled = open !== undefined;
-    const resolvedOpen = isControlled ? open : uncontrolledOpen;
+    const isOpen = isControlled ? open : uncontrolledOpen;
 
     const handleOpenChange = useStableCallback<NonNullable<OnOpenChange>>(
         (nextOpen, eventDetails) => {
@@ -61,13 +61,13 @@ export function useListPanelOpenState({
         hotkey,
         (event) => {
             handleOpenChange(
-                !resolvedOpen,
+                !isOpen,
                 createHotkeyOpenChangeDetails(event)
             );
         },
         { preventDefault: true },
-        [handleOpenChange, resolvedOpen]
+        [handleOpenChange, isOpen]
     );
 
-    return [resolvedOpen, handleOpenChange] as const;
+    return [isOpen, handleOpenChange] as const;
 }

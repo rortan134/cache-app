@@ -1,12 +1,10 @@
 # Project overview
 
-Cache is a modern well-crafted purpose-built personal knowledge web application tool that unifies user bookmarks across all mainstream platforms into a single, searchable, actionable library. You can search in plain English, organize results into collections in one step, synthesize what you've gathered, and pipe it into the tools you already think in, like Notion. It starts where the algorithmic feed ends—at the moment you hit "save"—treating that decision as a signal worth honoring, and building everything around the one thing most bookmarking tools have historically failed at: making saved content useful when it matters.
-
-This document provides essential information for working in this repository.
+[Cache](https://www.cachd.app) is a modern well-crafted purpose-built personal knowledge web application tool that unifies user bookmarks across all mainstream platforms into a single, searchable, actionable library. You can search in plain English, organize results into collections in one step, synthesize what you've gathered, and pipe it into the tools you already think in, like Notion. It starts where the algorithmic feed ends—at the moment you hit "save"—treating that decision as a signal worth honoring, and building everything around the one thing most bookmarking tools have historically failed at: making saved content useful when it matters.
 
 ## On development
 
-Cache App has a zero technical debt policy. Do it right the first time. A problem solved in design costs less than one solved in implementation, which costs less than one solved in production. The cost of fixing problems grows exponentially over time.
+Cache has a zero technical debt policy. Do it right the first time. A problem solved in design costs less than one solved in implementation, which costs less than one solved in production. The cost of fixing problems grows exponentially over time.
 
 Minimize any low-value prose. Offer nuanced, factual, and accurate solutions with brilliant critical reasoning. Suggest solutions or alternatives I didn’t think about and anticipate my needs.
 
@@ -22,11 +20,9 @@ Trace how parts connect, such as data flow between functions, stage dependencies
 
 If a tradeoff is required, choose correctness and robustness over short-term convenience or shortcuts.
 
-## On coding
-
 Define success criteria. Loop until verified.
 
-Keep in mind documentation `code-documentation`.
+Keep in mind documentation `code-documentation` conventions.
 
 It is not about formatting or syntax. Linters handle that. It is about how to think, how to make decisions, and what to value when building software.
 
@@ -34,7 +30,7 @@ Fight entropy. Leave the codebase better than you found it.
 
 Make minimal, surgical changes.
 
-You read the implementation, not just the signature.
+Read the full implementation, not just the signature.
 
 Simple and elegant systems are easier to design correctly, more efficient in execution, and more reliable. That simplicity requires hard work and discipline.
 
@@ -165,39 +161,37 @@ export const DrawerPopup = (
 
 Boolean variables follow a rigid prefix convention. Scanning the files:
 
-| Prefix            | Example                                                | Context                       |
-|-------------------|--------------------------------------------------------|-------------------------------|
-| is                | isVerticalScrollAxis, isNestedDrawerOpenRef            | State or derived condition    |
-| has               | hasNestedDrawer, hasCrossAxisScrollableContent         | Possession                    |
-| should            | shouldUseAutoHeight, shouldApplySnapPoints, shouldDamp | Conditional behavior          |
-| can               | canSwipeFromScrollEdgeOnMove, canStart                 | Capability / permission       |
-| allow             | allowSwipe, allowTouchMove                             | Permission in touch handling  |
-| disable / enable  | disablePointerDismissal, enabled                       | Feature flags                 |
+| Prefix           | Example                                                | Context                      |
+| ---------------- | ------------------------------------------------------ | ---------------------------- |
+| is               | isVerticalScrollAxis, isNestedDrawerOpenRef            | State or derived condition   |
+| has              | hasNestedDrawer, hasCrossAxisScrollableContent         | Possession                   |
+| should           | shouldUseAutoHeight, shouldApplySnapPoints, shouldDamp | Conditional behavior         |
+| can              | canSwipeFromScrollEdgeOnMove, canStart                 | Capability / permission      |
+| allow            | allowSwipe, allowTouchMove                             | Permission in touch handling |
+| disable / enable | disablePointerDismissal, enabled                       | Feature flags                |
 
 ### Ref Naming
 
 Refs are initialized to their semantic empty state (false, 0, null, ''), never undefined unless the type requires it.
 
-| Pattern              | Example                                   | Meaning                                 |
-|----------------------|-------------------------------------------|-----------------------------------------|
-| xRef                 | popupHeightRef, lastPointerTypeRef        | Plain ref holding a value               |
-| xRef.current = fn    | resetSwipeRef.current = resetSwipe        | Callback ref pattern                    |
-| isNestedDrawerOpenRef| isNestedDrawerOpenRef                     | Boolean ref for stale-closure avoidance |
+| Pattern               | Example                            | Meaning                                 |
+| --------------------- | ---------------------------------- | --------------------------------------- |
+| xRef                  | popupHeightRef, lastPointerTypeRef | Plain ref holding a value               |
+| xRef.current = fn     | resetSwipeRef.current = resetSwipe | Callback ref pattern                    |
+| isNestedDrawerOpenRef | isNestedDrawerOpenRef              | Boolean ref for stale-closure avoidance |
 
 ## On this project
 
 Before adding a new utility, check if a similar one exists in the `lib/common` directory or nearby module scope as utils.
 
-Anchor design decisions on the user's primary task or focus, to make sure the user can complete those tasks easily, not overwhelmed by unrelated UI clutter or user flows.
-
-Our UI should help users complete their tasks, not hinder them.
+Anchor design decisions on the user's primary task or focus, to make sure the user can complete those tasks easily, not overwhelmed by unrelated UI clutter or user flows. Our UI should help users complete their tasks, not hinder them.
 
 ### Tech stack
 
 Runtime & Package Manager: Node.js 24.x, Bun, read Bun API docs in `node_modules/bun-types/docs/**.mdx` if necessary.
 framework: Next.js 16 (App Router, This is NOT the Next.js you know, This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read any relevant guides in `node_modules/next/dist/docs` before writing related code. Heed deprecation notices.)
 UI: React 19, Base-UI ([@base-ui/react](https://base-ui.com/llms.txt), @base-ui/utils), and lucide-react icons
-React Compiler: babel-plugin-react-compiler is enabled. It automatically memoizes components and values. Do not add manual `useMemo` or `useCallback`; they add noise without benefit and can interfere with compiler optimization
+React Compiler: `babel-plugin-react-compiler` is enabled. It automatically memoizes components and values. Do not add manual `useMemo` or `useCallback`; they add noise without benefit and can interfere with compiler optimization
 Styling: Tailwind CSS 4
 Validation: zod v4 schemas
 Database: PostgreSQL via Prisma ORM v7
@@ -206,9 +200,9 @@ Tooling: TypeScript v6 (strict typing), Biome via Ultracite (run via `bun lint` 
 
 ### Procedure module pattern (Service + Server Actions)
 
-We organize and co-locate Next.js Server Actions as thin adapters in `lib/{module}/actions.ts` files that handle input/output validation, auth/session and privilege checks, error normalization, caching/revalidation and rate limiting. These actions call pure service functions which contain all business logic and database/external-API calls. Services never depend on the framework; they operate on validated data and return domain objects/typed results, and can be used independently either for either other modules, as side effects, or server components.
+We organize and co-locate Next.js Server Actions as thin adapters in `lib/{module}/actions.ts` files that handle input/output validation, auth/session and privilege checks, error normalization, caching/revalidation and rate limiting. These actions call pure service functions which contain all business logic and database/external-API calls. Services never depend on the framework; they operate on validated data and return domain objects/typed results, and can be used independently either for either other modules, as side effects, or pure server components.
 
-Actions are the only networking boundary: they parse/validate inputs, guard with user context, translate service results to serialized responses, and decide application-specific side effects, like `revalidatePath()`. Behind the scenes, actions use the `POST` method. Actions are defined as procedures, which are fully type-safe and imported directly and consumed as fetchers functions on top of [swr](https://swr.vercel.app/llms.txt), typing and inferring the responses. Actions should return only the necessary data that will be used, and not entire objects.
+Actions are the only networking boundary: they parse/validate inputs, guard with user context, translate service results to serialized responses, and decide application-specific side effects, like `revalidatePath()`. Behind the scenes, actions use the `POST` method. Actions are defined as procedures, which are fully type-safe and imported directly and consumed as GET fetchers functions on top of [swr](https://swr.vercel.app/llms.txt) or as POST mutations, effectively typing and inferring the responses. Actions should return only the necessary data that will be used atomically, and not entire objects.
 
 ### Logging and error handling pattern
 

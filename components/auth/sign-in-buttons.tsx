@@ -1,9 +1,9 @@
 "use client";
 
+import { AppleSignInButton } from "@/components/auth/apple-sign-in-button";
 import { GoogleSignInButton } from "@/components/auth/google-sign-in-button";
 import { Button } from "@/components/ui/button";
 import { Kbd } from "@/components/ui/kbd";
-import { authClient } from "@/lib/auth/client";
 import { T } from "gt-next";
 import { ChevronRight } from "lucide-react";
 import Link from "next/link";
@@ -20,12 +20,6 @@ export function SignInButton({ hasServerSession }: SignInButtonProps) {
     useHotkeys("p", () => {
         if (hasServerSession) {
             router.push("/library");
-        } else {
-            authClient.signIn.social({
-                callbackURL: "/library",
-                errorCallbackURL: "/",
-                provider: "google",
-            });
         }
     });
 
@@ -50,8 +44,13 @@ export function SignInButton({ hasServerSession }: SignInButtonProps) {
     }
 
     return (
-        <GoogleSignInButton>
-            <T context="Sign in/up CTA button">Continue with Google</T>
-        </GoogleSignInButton>
+        <>
+            <GoogleSignInButton>
+                <T context="Sign in/up CTA button">Continue with Google</T>
+            </GoogleSignInButton>
+            <AppleSignInButton>
+                <T context="Sign in/up CTA button">Continue with Apple</T>
+            </AppleSignInButton>
+        </>
     );
 }

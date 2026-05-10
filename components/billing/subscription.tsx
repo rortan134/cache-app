@@ -44,7 +44,7 @@ function useSubscriptionAccess() {
         getActiveSubscription,
         {
             keepPreviousData: true,
-            refreshInterval: 30_000,
+            refreshInterval: 60_000,
         }
     );
 

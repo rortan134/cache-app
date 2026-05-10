@@ -4,6 +4,7 @@ import {
     BlockPaywallBanner,
     InlinePaywallBanner,
 } from "@/components/billing/paywall";
+import { useSubscriptionAccess } from "@/components/billing/subscription";
 import { FeedbackWidget } from "@/components/feedback/feedback-widget";
 import { getPriorityOption } from "@/components/library/collections";
 import type { NoteDraft } from "@/components/library/notes";
@@ -4298,7 +4299,6 @@ export function Browser({
     const {
         collectionPreviewThumbnailUrlsById,
         collectionSummaries: collections,
-        hasAccess,
         items,
         onClearCollectionFilters,
         onCreateCollectionFromResults,
@@ -4310,6 +4310,7 @@ export function Browser({
         selectedCollectionIds,
         setItems: onItemsChange,
     } = useWorkspace();
+    const { hasAccess } = useSubscriptionAccess();
     const router = useRouter();
     const systemControlKey = useClientOnlyValue(getSystemControlKey());
     const isExtensionInstalled = useIsExtensionInstalled();

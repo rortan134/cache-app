@@ -1,12 +1,16 @@
 "use client";
 
 import { FeedbackWidget } from "@/components/feedback/feedback-widget";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
     Collapsible,
     CollapsiblePanel,
     CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+import { DisclosureList } from "@/components/ui/disclosure-list";
+import { ChevronDownFilledIcon } from "@/components/ui/icons";
+import { CmdKbd, Kbd } from "@/components/ui/kbd";
 import {
     Popover,
     PopoverDescription,
@@ -18,12 +22,14 @@ import { SidebarItem } from "@/components/ui/sidebar";
 import { useIntegrationAction } from "@/hooks/use-integration-action";
 import { useListPanelOpenState } from "@/hooks/use-list-panel-open-state";
 import { cn } from "@/lib/common/cn";
-import type {
-    IntegrationActionIcon,
-    IntegrationDirection,
-    IntegrationId,
+import {
+    INTEGRATIONS,
+    type IntegrationActionIcon,
+    type IntegrationDirection,
+    type IntegrationId,
 } from "@/lib/integrations/support";
 import IntegrationsPreviewImage from "@/public/integrations-preview.webp";
+import { T } from "gt-next";
 import { ArrowUpRight, Images, RefreshCw } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -87,6 +93,61 @@ export function useIntegrationsListControls() {
     };
 }
 
+export function Integrations({
+    connectedIntegrations,
+}: {
+    connectedIntegrations: Set<IntegrationId>;
+}) {
+    return (
+        <IntegrationsList data-sidebar-collapsible="">
+            <IntegrationsListTrigger>
+                <span className="min-w-0 text-xs">
+                    <T>Integrations</T>
+                </span>
+                <ChevronDownFilledIcon className="-ml-0.5" />
+                <Kbd className="ml-auto bg-transparent opacity-0 group-hover:opacity-50">
+                    <CmdKbd />I
+                </Kbd>
+            </IntegrationsListTrigger>
+            <IntegrationsListPanel>
+                <DisclosureList maxVisible={6}>
+                    {INTEGRATIONS.map(({ id, label, description, Icon }) => (
+                        <IntegrationsListItem className="group" key={id}>
+                            <Avatar
+                                aria-label={label}
+                                className="size-6 rounded-md"
+                            >
+                                <AvatarFallback className="rounded-md">
+                                    <Icon
+                                        aria-hidden="true"
+                                        className="size-3.5 shrink-0"
+                                        focusable="false"
+                                    />
+                                </AvatarFallback>
+                            </Avatar>
+                            <span className="min-w-0 flex-1 font-medium text-sm leading-snug">
+                                {label}
+                            </span>
+                            <span className="relative flex items-center text-muted-foreground leading-snug">
+                                <span className="absolute right-0 text-[11px] group-hover:opacity-0">
+                                    {description}
+                                </span>
+                                <IntegrationsListItemAction
+                                    className="absolute right-0 opacity-0 group-hover:opacity-100"
+                                    id={id}
+                                    isConnected={connectedIntegrations.has(id)}
+                                />
+                            </span>
+                        </IntegrationsListItem>
+                    ))}
+                </DisclosureList>
+                <IntegrationsListFeedback />
+                <IntegrationsListPrivacyNotice />
+            </IntegrationsListPanel>
+        </IntegrationsList>
+    );
+}
+
 /**
  * The root component of the integrations list.
  *
@@ -95,26 +156,9 @@ export function useIntegrationsListControls() {
 export function IntegrationsList(
     props: React.ComponentProps<typeof Collapsible>
 ) {
-    return <IntegrationsListImpl {...props} />;
-}
-
-/**
- * Internal collapsible wrapper that wires the scoped store to the `open`
- * prop and the `mod+i` hotkey.
- *
- * Kept separate from `IntegrationsList` so the store provider and the
- * consumer are in distinct render layers, avoiding stale-closure issues.
- */
-function IntegrationsListImpl({
-    onOpenChange,
-    open,
-    ...props
-}: React.ComponentProps<typeof Collapsible>) {
     const state = useIntegrationsListOpenState();
     const [isOpen, handleOpenChange] = useListPanelOpenState({
         hotkey: "mod+i",
-        onOpenChange,
-        open,
         state,
     });
 

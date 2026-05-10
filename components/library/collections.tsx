@@ -1,5 +1,6 @@
 "use client";
 
+import { useSubscriptionAccess } from "@/components/billing/subscription";
 import {
     RequestCreateRefContext,
     appendCollection,
@@ -766,10 +767,7 @@ export function Collections() {
                 </CollectionsListToolbar>
                 <CollectionsListPanel>
                     <div className="p-1.5 pt-1">
-                        <CollectionsListNoticeCallout
-                            isDisabled={controller.isSmartCollectionsDisabled}
-                            onDisable={controller.onDisableSmartCollections}
-                        />
+                        <CollectionsListNoticeCallout />
                     </div>
                     {controller.collectionSummaries.length === 0 ? (
                         <CollectionsListEmpty>
@@ -827,7 +825,6 @@ function useCollections() {
         collectionPreviewThumbnailUrlsById,
         collectionSummaries,
         collections,
-        hasAccess,
         itemsByCollectionId,
         onClearCollectionFilters,
         onSelectCollection,
@@ -835,6 +832,7 @@ function useCollections() {
         setCollections,
         setItems,
     } = useWorkspace();
+    const { hasAccess } = useSubscriptionAccess();
 
     // Create dialog state
     const [isCreateOpen, setIsCreateOpen] = React.useState(false);
@@ -2211,13 +2209,10 @@ function CollectionsListSortingCombobox({
 /**
  * Callout that informs users when Smart Collections is active.
  */
-function CollectionsListNoticeCallout({
-    isDisabled,
-    onDisable,
-}: {
-    isDisabled: boolean;
-    onDisable: () => Promise<void>;
-}) {
+function CollectionsListNoticeCallout() {
+    const controller = useCollections();
+    const isDisabled = controller.isSmartCollectionsDisabled;
+
     return (
         <Popover>
             <span aria-live="polite" className="sr-only" role="status">
@@ -2246,6 +2241,7 @@ function CollectionsListNoticeCallout({
                     className="-mx-(--viewport-inline-padding) -mt-4 aspect-32/9 h-auto max-h-24 w-(--positioner-width) min-w-0 max-w-(--positioner-width) rounded-t-lg"
                     loading="eager"
                     priority
+                    sizes="auto, 288px"
                     src={SmartCollectionsBackgroundImg}
                 />
                 <div className="mt-4 flex max-w-64 flex-col gap-2">
@@ -2264,16 +2260,6 @@ function CollectionsListNoticeCallout({
                             <ArrowUpRight className="inline-block size-3 shrink-0 text-muted-foreground" />
                         </Button>
                     </PopoverDescription>
-                    <div className="flex items-center justify-between gap-2 pt-1">
-                        <span className="text-xs">Enabled</span>
-                        <Button
-                            onClick={onDisable}
-                            size="xs"
-                            variant="destructive-outline"
-                        >
-                            Disable
-                        </Button>
-                    </div>
                 </div>
             </PopoverPopup>
         </Popover>

@@ -1,48 +1,20 @@
 import { buildPageMetadata } from "@/app/metadata";
-import {
-    UserMenu,
-    UserMenuContent,
-    UserMenuFooter,
-    UserMenuHeader,
-    UserMenuPopup,
-    UserMenuTrigger,
-} from "@/components/auth/user-menu";
 import { Browser } from "@/components/library/browser";
 import { Collections } from "@/components/library/collections";
-import {
-    IntegrationsList,
-    IntegrationsListFeedback,
-    IntegrationsListItem,
-    IntegrationsListItemAction,
-    IntegrationsListPanel,
-    IntegrationsListPrivacyNotice,
-    IntegrationsListTrigger,
-} from "@/components/library/integrations";
+import { Integrations } from "@/components/library/integrations";
 import { WorkspaceProvider } from "@/components/library/workspace";
 import { ApplicationSidebar } from "@/components/ui/application-sidebar";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { DisclosureList } from "@/components/ui/disclosure-list";
-import { ChevronDownFilledIcon } from "@/components/ui/icons";
-import { CmdKbd, Kbd } from "@/components/ui/kbd";
 import { PageShell } from "@/components/ui/page-shell";
-import {
-    Sidebar,
-    SidebarHeader,
-    SidebarItem,
-    SidebarProvider,
-    SidebarRail,
-    SidebarTrigger,
-} from "@/components/ui/sidebar";
+import { SidebarProvider } from "@/components/ui/sidebar";
 import { getServerSession } from "@/lib/auth/session";
 import { userHasActiveSubscription } from "@/lib/billing/service";
 import { getLibraryItems, listCollections } from "@/lib/collections/service";
 import { gtPublicString } from "@/lib/i18n/gt-public-json";
 import { listLinkedIntegrationAccounts } from "@/lib/integrations/service";
 import {
-    INTEGRATIONS,
     listConnectedIntegrationIds,
+    type IntegrationId,
 } from "@/lib/integrations/support";
-import { T } from "gt-next";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { connection } from "next/server";
@@ -98,7 +70,7 @@ export default async function LibraryPage() {
         listLinkedIntegrationAccounts({ userId }),
     ]);
 
-    const connectedIntegrationIdSet = new Set(
+    const connectedIntegrations: Set<IntegrationId> = new Set(
         listConnectedIntegrationIds("source", {
             libraryItemSources: itemSources.map((item) => item.source),
             linkedProviderIds: linkedAccounts.map(
@@ -110,101 +82,26 @@ export default async function LibraryPage() {
     return (
         <PageShell>
             <div className="flex flex-1 flex-col gap-8 lg:flex-row lg:justify-between">
-                <WorkspaceProvider
-                    hasAccess={hasAccess}
-                    initialCollections={collections}
-                    initialItems={items}
-                >
-                    <SidebarProvider>
-                        <Sidebar>
-                            <SidebarHeader className="gap-3">
-                                <div className="flex items-center justify-between">
-                                    <UserMenu>
-                                        <SidebarItem
-                                            className="px-2 opacity-100 data-popup-open:before:opacity-100"
-                                            data-sidebar-collapsible=""
-                                            render={<UserMenuTrigger />}
-                                        />
-                                        <UserMenuPopup>
-                                            <UserMenuHeader />
-                                            <UserMenuContent />
-                                            <UserMenuFooter />
-                                        </UserMenuPopup>
-                                    </UserMenu>
-                                    <SidebarTrigger />
-                                </div>
-                                <ApplicationSidebar />
-                                <IntegrationsList data-sidebar-collapsible="">
-                                    <IntegrationsListTrigger>
-                                        <span className="min-w-0 text-xs">
-                                            <T>Integrations</T>
-                                        </span>
-                                        <ChevronDownFilledIcon className="-ml-0.5" />
-                                        <Kbd className="ml-auto bg-transparent opacity-0 group-hover:opacity-50">
-                                            <CmdKbd />I
-                                        </Kbd>
-                                    </IntegrationsListTrigger>
-                                    <IntegrationsListPanel>
-                                        <DisclosureList maxVisible={6}>
-                                            {INTEGRATIONS.map(
-                                                ({
-                                                    id,
-                                                    label,
-                                                    description,
-                                                    Icon,
-                                                }) => (
-                                                    <IntegrationsListItem
-                                                        className="group"
-                                                        key={id}
-                                                    >
-                                                        <Avatar
-                                                            aria-label={label}
-                                                            className="size-6 rounded-md"
-                                                        >
-                                                            <AvatarFallback className="rounded-md">
-                                                                <Icon
-                                                                    aria-hidden="true"
-                                                                    className="size-3.5 shrink-0"
-                                                                    focusable="false"
-                                                                />
-                                                            </AvatarFallback>
-                                                        </Avatar>
-                                                        <span className="min-w-0 flex-1 font-medium text-sm leading-snug">
-                                                            {label}
-                                                        </span>
-                                                        <span className="relative flex items-center text-muted-foreground leading-snug">
-                                                            <span className="absolute right-0 text-[11px] group-hover:opacity-0">
-                                                                {description}
-                                                            </span>
-                                                            <IntegrationsListItemAction
-                                                                className="absolute right-0 opacity-0 group-hover:opacity-100"
-                                                                id={id}
-                                                                isConnected={connectedIntegrationIdSet.has(
-                                                                    id
-                                                                )}
-                                                            />
-                                                        </span>
-                                                    </IntegrationsListItem>
-                                                )
-                                            )}
-                                        </DisclosureList>
-                                        <IntegrationsListFeedback />
-                                        <IntegrationsListPrivacyNotice />
-                                    </IntegrationsListPanel>
-                                </IntegrationsList>
-                                <Collections />
-                            </SidebarHeader>
-                            <SidebarRail />
-                        </Sidebar>
+                <SidebarProvider>
+                    <WorkspaceProvider
+                        initialCollections={collections}
+                        initialItems={items}
+                    >
+                        <ApplicationSidebar>
+                            <Integrations
+                                connectedIntegrations={connectedIntegrations}
+                            />
+                            <Collections />
+                        </ApplicationSidebar>
                         <Browser
                             connectedIntegrationCount={
-                                connectedIntegrationIdSet.size
+                                connectedIntegrations.size
                             }
                             lockedItemCount={lockedItemCount}
                             totalItemCount={totalItemCount}
                         />
-                    </SidebarProvider>
-                </WorkspaceProvider>
+                    </WorkspaceProvider>
+                </SidebarProvider>
             </div>
         </PageShell>
     );
