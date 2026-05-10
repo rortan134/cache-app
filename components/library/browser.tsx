@@ -1561,7 +1561,7 @@ function PaletteChip({
     onRemove: () => void;
 }) {
     return (
-        <span className="palette-chip-enter inline-flex max-w-[min(100%,12rem)] items-center gap-0.5 rounded-full border border-border/60 bg-background/90 py-0.5 ps-2 pe-0.5 font-medium text-foreground text-xs shadow-xs/5">
+        <span className="inline-flex max-w-[min(100%,12rem)] items-center gap-0.5 rounded-full border border-border/60 bg-background/90 py-0.5 ps-2 pe-0.5 font-medium text-foreground text-xs shadow-xs/5">
             <span className="min-w-0 max-w-full truncate text-xs">{label}</span>
             <Button
                 aria-label={`Remove ${label}`}
@@ -1596,7 +1596,7 @@ function PaletteAttachmentChip({
                 <AttachmentPreviewCardTrigger
                     render={
                         <Attachment
-                            className="palette-chip-enter max-w-[min(100%,12rem)] rounded-full border-border/60 bg-background/90 py-0.5 ps-1 pe-0.5 text-xs shadow-xs/5"
+                            className="max-w-[min(100%,12rem)] rounded-full border-border/60 bg-background/90 py-0.5 ps-1 pe-0.5 text-xs shadow-xs/5"
                             data={attachment}
                             onRemove={() => onRemove(attachment.id)}
                         />
@@ -2675,7 +2675,7 @@ function LibraryPaletteTrailing({
             <TruncateAfter
                 badgeRender={
                     <Badge
-                        className="palette-chip-enter inline-flex h-7! cursor-pointer rounded-full text-xs tabular-nums"
+                        className="inline-flex h-7! cursor-pointer rounded-full text-xs tabular-nums"
                         render={<button type="button" />}
                         variant="secondary"
                     />

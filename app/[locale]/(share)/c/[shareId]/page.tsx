@@ -5,9 +5,11 @@ import {
     PublicShareGrid,
     type PublicShareGridItem,
 } from "@/components/share/browser";
+import { BrandLogo } from "@/components/ui/brand-logo";
 import { FALLBACK_URL, ITEM_KIND_NOTE } from "@/lib/common/constants";
 import { getNoteExcerpt } from "@/lib/common/strings";
 import { normalizeURL } from "@/lib/common/url";
+import LogoIconImage from "@/public/cache-app-icon.png";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import * as React from "react";
@@ -112,8 +114,15 @@ async function PageComp(props: CollectionSharePageProps) {
 
 export default function CollectionSharePage(props: CollectionSharePageProps) {
     return (
-        <React.Suspense>
-            <PageComp {...props} />
-        </React.Suspense>
+        <>
+            <BrandLogo
+                className="mx-auto my-3"
+                href="/library"
+                src={LogoIconImage}
+            />
+            <React.Suspense>
+                <PageComp {...props} />
+            </React.Suspense>
+        </>
     );
 }
