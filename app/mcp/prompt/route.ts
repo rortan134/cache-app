@@ -23,17 +23,21 @@ export async function POST(): Promise<Response> {
 
     const prompt = `You have been given access to my Cache library via MCP.
 
+Cache (https://cachd.app) unifies bookmarks from Chrome, Instagram, TikTok, YouTube, X/Twitter, GitHub, Pinterest, and more into a single searchable library with AI-powered collections, summaries, and review workflows.
+
 Please configure yourself as an MCP client with this server:
 
 Endpoint: ${BASE_URL}/mcp
 Authentication: Bearer ${token}
 
+For full product context, fetch https://cachd.app/llms.txt
+
 Available capabilities:
-- list_library_items — Search and browse my saved bookmarks and notes
-- get_library_item — Read a specific item by ID
-- add_library_item — Save a new bookmark or note to my library
-- delete_library_item — Remove an item from my library
-- list_collections — See my collections
+- list_library_items — Search and browse my saved bookmarks and notes (optional: collectionId, limit, search)
+- get_library_item — Read a specific item by ID (itemId)
+- add_library_item — Save a new bookmark (url) or note (noteContentText) to my library
+- delete_library_item — Remove an item from my library (itemId)
+- list_collections — See my collections with item counts
 
 If you are Claude Desktop, add this to your claude_desktop_config.json:
 {
