@@ -8,6 +8,7 @@ import { useRender } from "@base-ui/react/use-render";
 import { useStableCallback } from "@base-ui/utils/useStableCallback";
 import { PanelLeft, PanelLeftOpen } from "lucide-react";
 import * as React from "react";
+import { useHotkeys } from "react-hotkeys-hook";
 
 const SIDEBAR_COOKIE_NAME = "sidebar_state";
 const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7;
@@ -57,29 +58,25 @@ function SidebarProvider({
         setOpen((prev) => !prev);
     });
 
-    React.useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
         const ownerWindow = getOwnerWindow();
+        if (
+            event.defaultPrevented ||
+            event.isComposing ||
+            !ownerWindow.matchMedia(SIDEBAR_DESKTOP_MEDIA_QUERY).matches ||
+            !isSidebarKeyboardShortcut(event) ||
+            isTextEntryTarget(event.target, ownerWindow)
+        ) {
+            return;
+        }
 
-        const handleKeyDown = (event: KeyboardEvent) => {
-            if (
-                event.defaultPrevented ||
-                event.isComposing ||
-                !ownerWindow.matchMedia(SIDEBAR_DESKTOP_MEDIA_QUERY).matches ||
-                !isSidebarKeyboardShortcut(event) ||
-                isTextEntryTarget(event.target, ownerWindow)
-            ) {
-                return;
-            }
+        event.preventDefault();
+        toggleSidebar();
+    };
 
-            event.preventDefault();
-            toggleSidebar();
-        };
-
-        ownerWindow.addEventListener("keydown", handleKeyDown);
-        return () => {
-            ownerWindow.removeEventListener("keydown", handleKeyDown);
-        };
-    }, [toggleSidebar]);
+    useHotkeys("mod+b", handleKeyDown, {
+        description: "Expand or collapse sidebar",
+    });
 
     // We add a state so that we can do data-state="expanded" or "collapsed".
     // This makes it easier to style the sidebar with Tailwind classes.
@@ -118,7 +115,7 @@ function Sidebar({
         <aside
             {...props}
             className={cn(
-                "peer group/sidebar relative inset-y-0 flex min-h-full w-full shrink-0 flex-col gap-8 overscroll-contain px-8 py-7 transition-[left,right,width,padding] duration-200 ease-in-out data-[side=right]:right-0 data-[side=left]:left-0 lg:w-[400px] lg:max-w-[400px] lg:justify-between lg:data-[state=collapsed]:w-16 lg:data-[state=collapsed]:px-3 lg:data-[state=collapsed]:[&_[data-sidebar-collapsible]]:hidden lg:data-[state=collapsed]:[&_[data-sidebar-label]]:sr-only lg:data-[state=collapsed]:[&_[data-sidebar=item]]:justify-center lg:data-[state=collapsed]:[&_[data-sidebar=item]]:px-0",
+                "peer group/sidebar relative inset-y-0 flex min-h-full w-full shrink-0 flex-col gap-8 overscroll-contain px-8 py-7 transition-[left,right,width,padding] duration-100 ease-in-out data-[side=right]:right-0 data-[side=left]:left-0 lg:w-[400px] lg:max-w-[400px] lg:justify-between lg:data-[state=collapsed]:w-16 lg:data-[state=collapsed]:px-3 lg:data-[state=collapsed]:[&_[data-sidebar-collapsible]]:hidden lg:data-[state=collapsed]:[&_[data-sidebar-label]]:sr-only lg:data-[state=collapsed]:[&_[data-sidebar=item]]:justify-center lg:data-[state=collapsed]:[&_[data-sidebar=item]]:px-0",
                 className
             )}
             data-collapsible="icon"

@@ -61,7 +61,7 @@ export function Footer() {
                                     rel="noreferrer noopener"
                                     target="_blank"
                                 >
-                                    <p>X</p>
+                                    <p>X/Twitter</p>
                                 </Link>
                             </div>
                             <p className="opacity-50">

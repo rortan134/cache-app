@@ -195,6 +195,7 @@ import {
     Component,
     CornerDownLeftIcon,
     DownloadIcon,
+    Ellipsis,
     ExternalLinkIcon,
     EyeIcon,
     FilePenLineIcon,
@@ -4122,32 +4123,37 @@ function BrowserSection({
                                 : undefined
                         }
                     >
-                        {canToggle ? (
-                            <Button
-                                className="group min-w-0 flex-1 justify-start rounded-xl"
-                                onClick={onToggle}
-                                size="lg"
-                                title={
-                                    collapsed
-                                        ? "Expand group"
-                                        : "Collapse group"
-                                }
-                                variant="ghost"
-                                {...(collapsed
-                                    ? {}
-                                    : { "data-panel-open": true })}
-                            >
-                                <ChevronDownFilledIcon />
-                                <span className="ml-1 truncate font-medium">
-                                    {title}
-                                </span>
-                            </Button>
-                        ) : (
-                            <h2 className="font-medium text-lg">{title}</h2>
-                        )}
-                        <span className="font-medium text-foreground text-xs tabular-nums">
-                            {items.length}
-                        </span>
+                        <div className="flex items-center gap-1">
+                            {canToggle ? (
+                                <Button
+                                    className="group min-w-0 flex-1 justify-start rounded-xl"
+                                    onClick={onToggle}
+                                    size="lg"
+                                    title={
+                                        collapsed
+                                            ? "Expand group"
+                                            : "Collapse group"
+                                    }
+                                    variant="ghost"
+                                    {...(collapsed
+                                        ? {}
+                                        : { "data-panel-open": true })}
+                                >
+                                    <ChevronDownFilledIcon />
+                                    <span className="ml-1 truncate font-medium">
+                                        {title}
+                                    </span>
+                                </Button>
+                            ) : (
+                                <h2 className="font-medium text-lg">{title}</h2>
+                            )}
+                            <span className="font-medium text-muted-foreground text-xs tabular-nums">
+                                {items.length}
+                            </span>
+                        </div>
+                        <Button size="icon-sm" variant="ghost">
+                            <Ellipsis className="size-4" />
+                        </Button>
                     </div>
                 </ContextMenuTrigger>
                 {collapsible && (
@@ -4506,54 +4512,56 @@ export function Browser({
         };
     }, [paletteFocusOutTimeout]);
 
-    React.useEffect(() => {
-        const handleWindowKeyDown = (event: KeyboardEvent) => {
-            const target = event.target;
-            const ownerWindow = commandPanelContainerRef.current
-                ? getOwnerWindow(commandPanelContainerRef.current)
-                : getOwnerWindow();
-            const isTextEntry = isTextEntryTarget(target, ownerWindow);
-            const isPaletteEventTarget =
-                target instanceof ownerWindow.Node &&
-                commandPanelContainerRef.current?.contains(target);
+    const handleWindowKeyDown = (event: KeyboardEvent) => {
+        const target = event.target;
+        const ownerWindow = commandPanelContainerRef.current
+            ? getOwnerWindow(commandPanelContainerRef.current)
+            : getOwnerWindow();
+        const isTextEntry = isTextEntryTarget(target, ownerWindow);
+        const isPaletteEventTarget =
+            target instanceof ownerWindow.Node &&
+            commandPanelContainerRef.current?.contains(target);
 
-            if (isSearchHotkey(event)) {
-                event.preventDefault();
-                focusPaletteInput(true);
-                return;
-            }
-
-            if (
-                event.key === "/" &&
-                !event.metaKey &&
-                !event.ctrlKey &&
-                !event.altKey &&
-                !isTextEntry
-            ) {
-                event.preventDefault();
-                focusPaletteInput();
-                return;
-            }
-
-            if (
-                event.defaultPrevented ||
-                isTextEntry ||
-                isPaletteEventTarget ||
-                !isPrintablePaletteKey(event)
-            ) {
-                return;
-            }
-
+        if (isSearchHotkey(event)) {
             event.preventDefault();
-            setPaletteInput((current) => `${current}${event.key}`);
-            focusPaletteInput();
-        };
+            focusPaletteInput(true);
+            return;
+        }
 
-        window.addEventListener("keydown", handleWindowKeyDown);
-        return () => {
-            window.removeEventListener("keydown", handleWindowKeyDown);
-        };
-    }, [focusPaletteInput]);
+        if (
+            event.key === "/" &&
+            !event.metaKey &&
+            !event.ctrlKey &&
+            !event.altKey &&
+            !isTextEntry
+        ) {
+            event.preventDefault();
+            focusPaletteInput();
+            return;
+        }
+
+        if (
+            event.defaultPrevented ||
+            isTextEntry ||
+            isPaletteEventTarget ||
+            !isPrintablePaletteKey(event)
+        ) {
+            return;
+        }
+
+        event.preventDefault();
+        setPaletteInput((current) => `${current}${event.key}`);
+        focusPaletteInput();
+    };
+
+    useHotkeys(
+        SEARCH_HOTKEYS,
+        handleWindowKeyDown,
+        {
+            description: "Focus command menu",
+        },
+        [focusPaletteInput]
+    );
 
     React.useEffect(
         () => () => {
@@ -4919,6 +4927,7 @@ export function Browser({
             }
         },
         {
+            description: "Select command option",
             enabled: commandListOpen,
             enableOnFormTags: true,
             eventListenerOptions: { capture: true },

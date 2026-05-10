@@ -60,12 +60,9 @@ export function useListPanelOpenState({
     useHotkeys(
         hotkey,
         (event) => {
-            handleOpenChange(
-                !isOpen,
-                createHotkeyOpenChangeDetails(event)
-            );
+            handleOpenChange(!isOpen, createHotkeyOpenChangeDetails(event));
         },
-        { preventDefault: true },
+        { description: "Toggle integrations panel", preventDefault: true },
         [handleOpenChange, isOpen]
     );
 

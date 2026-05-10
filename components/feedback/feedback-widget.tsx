@@ -52,9 +52,15 @@ export function FeedbackWidget(
         [state.status]
     );
 
-    useHotkeys("F", () => {
-        setIsOpen((prev) => !prev);
-    });
+    useHotkeys(
+        "F",
+        () => {
+            setIsOpen((prev) => !prev);
+        },
+        {
+            description: "Toggle feedback widget",
+        }
+    );
 
     return (
         <Popover onOpenChange={setIsOpen} open={isOpen}>

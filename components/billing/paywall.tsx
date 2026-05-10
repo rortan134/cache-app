@@ -1,13 +1,14 @@
 import { SubscriptionUpgradeButton } from "@/components/billing/subscription";
+import { Alert, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { T, Var } from "gt-next";
 import { ArrowUpRight } from "lucide-react";
 
 export function InlinePaywallBanner() {
     return (
-        <aside className="flex items-center gap-2 rounded-lg bg-muted px-4 py-2">
+        <Alert>
             <Badge>PRO</Badge>
-            <div className="flex items-center font-medium text-foreground text-sm">
+            <AlertTitle className="flex items-center font-medium text-sm">
                 <T>Upgrade for full access to Cache and all integrations</T>
                 &nbsp;—&nbsp;
                 <SubscriptionUpgradeButton
@@ -18,8 +19,8 @@ export function InlinePaywallBanner() {
                     <T>Get Pro</T>
                     <ArrowUpRight className="ml-auto inline-block size-4 shrink-0 text-muted-foreground" />
                 </SubscriptionUpgradeButton>
-            </div>
-        </aside>
+            </AlertTitle>
+        </Alert>
     );
 }
 

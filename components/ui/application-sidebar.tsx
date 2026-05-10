@@ -1,3 +1,5 @@
+"use client";
+
 import {
     UserMenu,
     UserMenuContent,
@@ -7,6 +9,7 @@ import {
     UserMenuTrigger,
 } from "@/components/auth/user-menu";
 import { ActivePathname } from "@/components/ui/active-pathname";
+import { CmdKbd, Kbd } from "@/components/ui/kbd";
 import {
     Sidebar,
     SidebarGroup,
@@ -24,7 +27,9 @@ import {
     Workflow,
 } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import type * as React from "react";
+import { useHotkeys } from "react-hotkeys-hook";
 
 export function ApplicationSidebar({ children }: React.PropsWithChildren) {
     return (
@@ -50,6 +55,7 @@ export function ApplicationSidebar({ children }: React.PropsWithChildren) {
                         aria-label="Library"
                         href="/library"
                         icon={House}
+                        shortcutKeys="mod+h"
                     >
                         <T>Library</T>
                     </SidebarNavigationItem>
@@ -57,20 +63,23 @@ export function ApplicationSidebar({ children }: React.PropsWithChildren) {
                         aria-label="Review"
                         href="/review"
                         icon={Compass}
+                        shortcutKeys="mod+r"
                     >
                         <T>Review</T>
                     </SidebarNavigationItem>
                     <SidebarNavigationItem
-                        aria-label="Workflows"
-                        href="/workflows"
+                        aria-label="Automations"
+                        href="/automations"
                         icon={Workflow}
+                        shortcutKeys="mod+a"
                     >
-                        <T>Workflows</T>
+                        <T>Automations</T>
                     </SidebarNavigationItem>
                     <SidebarNavigationItem
                         aria-label="Activity"
                         href="/activity"
                         icon={History}
+                        shortcutKeys="mod+u"
                     >
                         <T>Activity</T>
                     </SidebarNavigationItem>
@@ -86,25 +95,40 @@ interface SidebarNavigationItemProps extends React.ComponentProps<typeof Link> {
     children: React.ReactNode;
     href: string;
     icon: LucideIcon;
+    shortcutKeys: string;
 }
 
 function SidebarNavigationItem({
     children,
     href,
+    shortcutKeys,
     icon: Icon,
 }: SidebarNavigationItemProps) {
+    const router = useRouter();
+
+    useHotkeys(shortcutKeys, () => {
+        router.push(href);
+    });
+
     return (
         <Link className="contents" href={href} prefetch tabIndex={0}>
             <ActivePathname
                 href={href}
                 render={
-                    <SidebarItem render={<li />}>
+                    <SidebarItem className="group" render={<li />}>
                         <Icon
                             aria-hidden
                             className="inline-block size-4 shrink-0"
                             focusable="false"
                         />
                         <span data-sidebar-label="">{children}</span>
+                        <Kbd
+                            className="ml-auto bg-transparent uppercase opacity-0 group-hover:opacity-50"
+                            data-sidebar-label=""
+                        >
+                            <CmdKbd />
+                            {shortcutKeys.split("+")[1]}
+                        </Kbd>
                     </SidebarItem>
                 }
             />

@@ -1075,7 +1075,7 @@ function useCollections() {
                 requestCreate();
             }
         },
-        { preventDefault: true },
+        { description: "Create a new collection", preventDefault: true },
         [isCreateOpen]
     );
 
@@ -1084,7 +1084,7 @@ function useCollections() {
         () => {
             setIsCollectionsListOpen(!isCollectionsListOpen);
         },
-        { preventDefault: true },
+        { description: "Toggle collections panel", preventDefault: true },
         [isCollectionsListOpen, setIsCollectionsListOpen]
     );
 
@@ -1098,6 +1098,7 @@ function useCollections() {
             setIsSortOpen(true);
         },
         {
+            description: "Sort and organize collections",
             enabled: !isSortOpen,
         },
         [isCollectionsListOpen, isSortOpen, setIsCollectionsListOpen]
@@ -1599,6 +1600,7 @@ function useCollections() {
 function useCollectionItemHotkey(
     keys: Parameters<typeof useHotkeys>[0],
     onTrigger: () => void,
+    description: string,
     enabled = true
 ) {
     const { isHovered } = useCollectionsListItemContext();
@@ -1608,6 +1610,7 @@ function useCollectionItemHotkey(
         keys,
         handleTrigger,
         {
+            description,
             enabled: isHovered && enabled,
             preventDefault: true,
         },
@@ -2179,7 +2182,7 @@ function CollectionsListSortingCombobox({
                             <CmdKbd />F
                         </Kbd>
                     }
-                    placeholder="Sort by..."
+                    placeholder="Refine..."
                 />
                 <ComboboxEmpty>No matching options</ComboboxEmpty>
                 <ComboboxList>
@@ -2414,6 +2417,7 @@ function CollectionsListItemPriorityCombobox({
         () => {
             setIsOpen(true);
         },
+        "Priority picker for hovered collection",
         !isOpen
     );
 
@@ -2786,9 +2790,18 @@ function CollectionsListItemMeta({
     const { collection } = useCollectionsListItemContext();
     const hasItems = collection.itemCount > 0;
 
-    useCollectionItemHotkey("e", onRename);
-    useCollectionItemHotkey(["delete", "backspace"], onDelete);
-    useCollectionItemHotkey("c", onCopyLinks, hasItems);
+    useCollectionItemHotkey("e", onRename, "Rename hovered collection");
+    useCollectionItemHotkey(
+        ["delete", "backspace"],
+        onDelete,
+        "Delete hovered collection"
+    );
+    useCollectionItemHotkey(
+        "c",
+        onCopyLinks,
+        "Copy hovered collection",
+        hasItems
+    );
 
     return (
         <div className="absolute top-1/2 right-0 flex size-8 -translate-y-1/2 items-center justify-center">
