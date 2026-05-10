@@ -1,4 +1,6 @@
-# Project overview
+# AGENTS.md
+
+## Project overview
 
 [Cache](https://www.cachd.app) is a modern well-crafted purpose-built personal knowledge web application tool that unifies user bookmarks across all mainstream platforms into a single, searchable, actionable library. You can search in plain English, organize results into collections in one step, synthesize what you've gathered, and pipe it into the tools you already think in, like Notion. It starts where the algorithmic feed ends—at the moment you hit "save"—treating that decision as a signal worth honoring, and building everything around the one thing most bookmarking tools have historically failed at: making saved content useful when it matters.
 
@@ -21,8 +23,6 @@ Trace how parts connect, such as data flow between functions, stage dependencies
 If a tradeoff is required, choose correctness and robustness over short-term convenience or shortcuts.
 
 Define success criteria. Loop until verified.
-
-Keep in mind documentation `code-documentation` conventions.
 
 It is not about formatting or syntax. Linters handle that. It is about how to think, how to make decisions, and what to value when building software.
 
@@ -179,6 +179,30 @@ Refs are initialized to their semantic empty state (false, 0, null, ''), never u
 | xRef                  | popupHeightRef, lastPointerTypeRef | Plain ref holding a value               |
 | xRef.current = fn     | resetSwipeRef.current = resetSwipe | Callback ref pattern                    |
 | isNestedDrawerOpenRef | isNestedDrawerOpenRef              | Boolean ref for stale-closure avoidance |
+
+## On writing code documentation
+
+Document the why, not the what: The code shows what it does. Documentation should explain why it exists, why it works this way, and what could go wrong. Your job is to produce clear, accurate, and consistent content that helps developers succeed on this codebase.
+
+Document what **not** to do: Warn against common mistakes when a misuse would be easy and costly.
+
+Document design choices: When you choose between reasonable alternatives, explain  the reasoning in a sentence. e.g. "The package X uses functional options Y rather than a config struct because Z" or "We return a X rather than failing on the Y because Z"
+
+The depth of documentation should match complexity. A simple getter needs one line. A distributed algorithm needs paragraphs.
+
+When to include specific details:
+
+  Parameters: Document when the purpose is not obvious from the name and type, or when there are constraints like must be positive.
+
+  Return values: Explain when return patterns are subtle or when multiple success states exist. For functions that return a value plus an error, document what value returns on failure.
+
+  Error conditions: List specific errors only when callers need to handle them differently.
+
+  Concurrency: Document when a function or type is safe or unsafe for concurrent use.
+
+  Performance: Mention non-obvious characteristics that affect usage decisions.
+
+  Context: Document context behavior only if it is non-standard.
 
 ## On this project
 
