@@ -20,14 +20,63 @@ const nextConfig: NextConfig = {
             "swiper",
             "swiper/react",
             "swiper/modules",
+            "streamdown",
             "zod",
         ],
     },
     async headers() {
         return [
             {
+                headers: [
+                    {
+                        key: "Cache-Control",
+                        value: "public, max-age=86400, stale-while-revalidate=604800",
+                    },
+                ],
+                source: "/:all*(svg|jpg|jpeg|png|gif|ico|webp|avif|woff|woff2|ttf|eot)",
+            },
+            {
+                headers: [
+                    { key: "Access-Control-Allow-Origin", value: "*" },
+                    {
+                        key: "Access-Control-Allow-Methods",
+                        value: "GET, OPTIONS",
+                    },
+                    {
+                        key: "Access-Control-Allow-Headers",
+                        value: "Content-Type, Accept",
+                    },
+                ],
+                source: "/.well-known/:path*",
+            },
+            {
+                headers: [
+                    { key: "Access-Control-Allow-Credentials", value: "false" },
+                    { key: "Access-Control-Allow-Origin", value: "*" },
+                    {
+                        key: "Access-Control-Allow-Methods",
+                        value: "GET, OPTIONS",
+                    },
+                    {
+                        key: "Access-Control-Allow-Headers",
+                        value: "Content-Type, Accept",
+                    },
+                ],
+                source: "/api/auth/.well-known/:path*",
+            },
+            {
                 headers: [...securityHeaders],
                 source: "/(.*)",
+            },
+            // Block access to sourcemap files (defense in depth)
+            {
+                headers: [
+                    {
+                        key: "x-robots-tag",
+                        value: "noindex",
+                    },
+                ],
+                source: "/(.*)\\.map$",
             },
         ];
     },
@@ -37,6 +86,16 @@ const nextConfig: NextConfig = {
     reactCompiler: true,
     async redirects() {
         return [
+            {
+                destination: "https://x.com/gsmmtt",
+                permanent: false,
+                source: "/x",
+            },
+            {
+                destination: "https://github.com/rortan134/cache",
+                permanent: false,
+                source: "/github",
+            },
             {
                 destination: "/legal/cookie-policy",
                 permanent: true,
