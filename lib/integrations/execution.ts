@@ -1,6 +1,7 @@
 import { authClient } from "@/lib/auth/client";
 import { getErrorMessage } from "@/lib/common/error";
 import { asRecord } from "@/lib/common/objects";
+import { openExternal } from "@/lib/common/url";
 import {
     IntegrationApiError,
     IntegrationConnectionError,
@@ -12,9 +13,8 @@ import type {
     RouteSyncBehavior,
     SocialSignInConnectBehavior,
 } from "@/lib/integrations/support";
-import { openExternal } from "@/lib/common/url";
 
-const CONNECTION_FLOW_ERROR_MESSAGE = "Could not start the connection flow.";
+const CONNECTION_FLOW_ERROR_MESSAGE = "Failed to start the connection";
 
 function navigateTo(url: string) {
     window.location.assign(url);

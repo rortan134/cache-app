@@ -227,6 +227,7 @@ import { useRouter } from "next/navigation";
 import type { ReactNode } from "react";
 import * as React from "react";
 import { useHotkeys } from "react-hotkeys-hook";
+import { Streamdown } from "streamdown";
 import useSWR from "swr";
 
 const log = createLogger("library:browser");
@@ -3997,12 +3998,13 @@ function SectionSummaryContent({
                     ))}
                 </ul>
             ) : (
-                <p className="inline">
+                <Streamdown>
                     {summary && summary.length > 0
                         ? summary
-                        : SECTION_DESCRIPTION_FALLBACK_TEXT}{" "}
-                </p>
+                        : SECTION_DESCRIPTION_FALLBACK_TEXT}
+                </Streamdown>
             )}
+            &nbsp;
             <Button
                 aria-controls={contentId}
                 aria-expanded={isExpanded}

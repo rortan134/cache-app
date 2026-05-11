@@ -37,22 +37,16 @@ import * as React from "react";
 import { createStore } from "stan-js";
 import { storage } from "stan-js/storage";
 
-const INTEGRATION_ACTION_ICON_BY_NAME: Record<
-    IntegrationActionIcon,
-    React.ComponentType<React.SVGProps<SVGSVGElement>>
-> = {
-    images: Images,
-    refresh: RefreshCw,
-};
-
-const { useStore: useIntegrationsListStore } = createStore({
-    isIntegrationsListPanelOpen: storage(false),
-});
-
 export interface IntegrationsListItemProps
     extends React.ComponentProps<typeof SidebarItem> {}
 
 export interface IntegrationsListEmptyProps extends React.ComponentProps<"p"> {}
+
+export interface IntegrationsProps {
+    connectedIntegrations: Set<IntegrationId>;
+}
+
+type IntegrationsListStatusTone = "error" | "success";
 
 interface IntegrationsListStatusProps extends React.ComponentProps<"p"> {
     tone?: IntegrationsListStatusTone;
@@ -65,13 +59,22 @@ interface IntegrationsListItemActionProps {
     isConnected: boolean;
 }
 
+const INTEGRATION_ACTION_ICON_BY_NAME: Record<
+    IntegrationActionIcon,
+    React.ComponentType<React.SVGProps<SVGSVGElement>>
+> = {
+    images: Images,
+    refresh: RefreshCw,
+};
+
 /**
- * Read and toggle the open state of the integrations list panel.
- *
- * Stored in `stan-js` with local-storage persistence so the panel stays
- * in the same state across reloads.
+ * Persist the integrations panel open state across page reloads.
  */
-function useIntegrationsListOpenState() {
+const { useStore: useIntegrationsListStore } = createStore({
+    isIntegrationsListPanelOpen: storage(false),
+});
+
+export function useIntegrationsListOpenState() {
     const { isIntegrationsListPanelOpen, setIsIntegrationsListPanelOpen } =
         useIntegrationsListStore();
 
@@ -82,8 +85,8 @@ function useIntegrationsListOpenState() {
 }
 
 /**
- * Imperative controls for flows that need to reveal the integrations panel
- * from outside the sidebar tree.
+ * Decouple the expand action from the sidebar tree so any caller can open the
+ * panel without access to the collapsible state.
  */
 export function useIntegrationsListControls() {
     const { setIsIntegrationsListPanelOpen } = useIntegrationsListStore();
@@ -93,11 +96,7 @@ export function useIntegrationsListControls() {
     };
 }
 
-export function Integrations({
-    connectedIntegrations,
-}: {
-    connectedIntegrations: Set<IntegrationId>;
-}) {
+export function Integrations({ connectedIntegrations }: IntegrationsProps) {
     return (
         <IntegrationsList data-sidebar-collapsible="">
             <IntegrationsListTrigger>
@@ -128,12 +127,12 @@ export function Integrations({
                             <span className="min-w-0 flex-1 font-medium text-sm leading-snug">
                                 {label}
                             </span>
-                            <span className="relative flex items-center text-muted-foreground leading-snug">
-                                <span className="absolute right-0 text-[11px] group-hover:opacity-0">
+                            <span className="grid text-muted-foreground leading-snug">
+                                <span className="text-[11px] [grid-area:1/1] group-hover:opacity-0">
                                     {description}
                                 </span>
                                 <IntegrationsListItemAction
-                                    className="absolute right-0 opacity-0 group-hover:opacity-100"
+                                    className="opacity-0 [grid-area:1/1] group-hover:opacity-100"
                                     id={id}
                                     isConnected={connectedIntegrations.has(id)}
                                 />
@@ -148,13 +147,11 @@ export function Integrations({
     );
 }
 
-/**
- * The root component of the integrations list.
- *
- * Wrap `IntegrationsListTrigger` and `IntegrationsListPanel` inside it.
- */
 export function IntegrationsList(
-    props: React.ComponentProps<typeof Collapsible>
+    props: Omit<
+        React.ComponentProps<typeof Collapsible>,
+        "open" | "onOpenChange"
+    >
 ) {
     const state = useIntegrationsListOpenState();
     const [isOpen, handleOpenChange] = useListPanelOpenState({
@@ -167,16 +164,10 @@ export function IntegrationsList(
     );
 }
 
-/**
- * A button that toggles the integrations list panel.
- *
- * Renders a `Popover` around a `CollapsibleTrigger`. The popover displays a
- * preview image and description on hover, and is hidden while the panel is open
- * to avoid overlapping content.
- */
-export function IntegrationsListTrigger(
-    props: React.ComponentProps<typeof CollapsibleTrigger>
-) {
+export function IntegrationsListTrigger({
+    render,
+    ...props
+}: React.ComponentProps<typeof CollapsibleTrigger>) {
     const [isOpen] = useIntegrationsListOpenState();
 
     return (
@@ -184,13 +175,17 @@ export function IntegrationsListTrigger(
             <PopoverTrigger
                 openOnHover
                 render={
-                    <CollapsibleTrigger
-                        render={
-                            <SidebarItem render={<button type="button" />} />
-                        }
-                        title={isOpen ? "Collapse panel" : "Expand panel"}
-                        {...props}
-                    />
+                    render ?? (
+                        <CollapsibleTrigger
+                            render={
+                                <SidebarItem
+                                    render={<button type="button" />}
+                                />
+                            }
+                            title={isOpen ? "Collapse panel" : "Expand panel"}
+                            {...props}
+                        />
+                    )
                 }
             />
             <PopoverPopup
@@ -205,14 +200,14 @@ export function IntegrationsListTrigger(
                     alt=""
                     aria-hidden
                     className="-mx-(--viewport-inline-padding) -mt-4 h-auto w-(--positioner-width) min-w-0 max-w-(--positioner-width) rounded-t-lg border-b"
-                    loading="eager"
                     priority
+                    sizes="auto,400px"
                     src={IntegrationsPreviewImage}
                 />
                 <div className="mt-4 flex max-w-64 flex-col gap-2">
-                    <PopoverTitle>Places to return to.</PopoverTitle>
+                    <PopoverTitle>Places to return to</PopoverTitle>
                     <PopoverDescription className="text-foreground text-xs">
-                        Give your every bookmark more meaning.
+                        Give every bookmark more meaning.
                     </PopoverDescription>
                 </div>
             </PopoverPopup>
@@ -220,22 +215,12 @@ export function IntegrationsListTrigger(
     );
 }
 
-/**
- * The collapsible panel that holds the list contents.
- *
- * Renders a `CollapsiblePanel`. Compose it inside `IntegrationsList`.
- */
 export function IntegrationsListPanel(
     props: React.ComponentProps<typeof CollapsiblePanel>
 ) {
     return <CollapsiblePanel {...props} />;
 }
 
-/**
- * A small feedback prompt that lets users request missing integrations.
- *
- * Renders inside a `FeedbackWidget`.
- */
 export function IntegrationsListFeedback() {
     return (
         <FeedbackWidget className="mx-2.5 mt-1.5 mb-0.5">
@@ -254,13 +239,6 @@ export function IntegrationsListFeedback() {
     );
 }
 
-/**
- * A dismissible privacy notice for the integrations list.
- *
- * Reminds users to only connect accounts they trust. Starts open and can be
- * dismissed via an inline button. The dismiss state is local and resets on
- * page reload.
- */
 export function IntegrationsListPrivacyNotice() {
     const [isOpen, setIsOpen] = React.useState(true);
 
@@ -304,11 +282,6 @@ export function IntegrationsListPrivacyNotice() {
     );
 }
 
-/**
- * A single row in the integrations list.
- *
- * Renders a `SidebarItem` with preset gap and padding.
- */
 export function IntegrationsListItem({
     className,
     ...props
@@ -321,11 +294,6 @@ export function IntegrationsListItem({
     );
 }
 
-/**
- * The empty state shown when no integrations are available.
- *
- * Renders a `<p>` element with dashed border styling.
- */
 export function IntegrationsListEmpty({
     className,
     ...props
@@ -345,14 +313,6 @@ export function IntegrationsListEmpty({
     );
 }
 
-type IntegrationsListStatusTone = "error" | "success";
-
-/**
- * Inline status line for integration actions.
- *
- * Returns `null` when `children` is empty so assistive technologies do not
- * announce silent updates.
- */
 function IntegrationsListStatus({
     tone = "success",
     className,
@@ -366,7 +326,7 @@ function IntegrationsListStatus({
 
     return (
         <p
-            aria-live="polite"
+            aria-live={isError ? "assertive" : "polite"}
             className={cn(
                 "max-w-full text-right text-xs leading-tight",
                 isError ? "text-destructive" : "text-muted-foreground",
@@ -378,13 +338,6 @@ function IntegrationsListStatus({
     );
 }
 
-/**
- * The action buttons and status messages for a single integration.
- *
- * Derives actions from `useIntegrationAction` and renders them as buttons,
- * followed by optional error and success statuses. Returns `null` when there
- * is nothing to display.
- */
 export function IntegrationsListItemAction({
     direction = "source",
     id,
@@ -405,12 +358,12 @@ export function IntegrationsListItemAction({
     return (
         <div
             className={cn(
-                "ml-auto flex min-w-0 flex-col items-end gap-0.5",
+                "ml-auto flex min-w-0 flex-1 flex-col items-end gap-0.5",
                 className
             )}
         >
             {hasActions && (
-                <div className="flex flex-wrap items-center gap-1">
+                <div className="flex shrink-0 items-center gap-1">
                     {actions.map((action) => {
                         const ActionIcon = action.icon
                             ? INTEGRATION_ACTION_ICON_BY_NAME[action.icon]
