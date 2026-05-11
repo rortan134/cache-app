@@ -184,7 +184,7 @@ Refs are initialized to their semantic empty state (false, 0, null, ''), never u
 
 Document the why, not the what: The code shows what it does. Documentation should explain why it exists, why it works this way, and what could go wrong. Your job is to produce clear, accurate, and consistent content that helps developers succeed on this codebase.
 
-Document what **not** to do: Warn against common mistakes when a misuse would be easy and costly.
+Document what **not** to do: Warn against common mistakes when a misuse would be easy and costly. No `====` separators. No non-TSDoc comments.
 
 Document design choices: When you choose between reasonable alternatives, explain  the reasoning in a sentence. e.g. "The package X uses functional options Y rather than a config struct because Z" or "We return a X rather than failing on the Y because Z"
 
