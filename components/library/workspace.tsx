@@ -50,6 +50,7 @@ type SortableCollectionSummary = Pick<
 export const { useStore: useCollectionsSortStore } = createStore({
     collectionSortField: storage<CollectionSortField>("priority"),
     collectionTextMatchQuery: storage(""),
+    shouldExcludeArchives: storage(false),
 });
 
 /**
@@ -261,10 +262,15 @@ export function WorkspaceProvider({
     const collectionUpdateVersionByItemIdRef = React.useRef(
         new Map<string, number>()
     );
-    const { collectionSortField, collectionTextMatchQuery } =
-        useCollectionsSortStore();
+    const {
+        collectionSortField,
+        collectionTextMatchQuery,
+        shouldExcludeArchives,
+    } = useCollectionsSortStore();
     const collectionSummaries = sortCollectionSummaries(
-        collections,
+        shouldExcludeArchives
+            ? collections.filter((c) => c.priority !== "archive")
+            : collections,
         collectionSortField,
         collectionTextMatchQuery
     );

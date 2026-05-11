@@ -1,14 +1,8 @@
 import { buildPageMetadata } from "@/app/metadata";
-import {
-    UserMenu,
-    UserMenuContent,
-    UserMenuFooter,
-    UserMenuHeader,
-} from "@/components/auth/user-menu";
 import { ReviewDigest } from "@/components/review/digest";
 import { ApplicationSidebar } from "@/components/ui/application-sidebar";
 import { PageShell } from "@/components/ui/page-shell";
-import { Sidebar, SidebarHeader } from "@/components/ui/sidebar";
+import { SidebarProvider } from "@/components/ui/sidebar";
 import { getServerSession } from "@/lib/auth/session";
 import { userHasActiveSubscription } from "@/lib/billing/service";
 import { gtPublicString } from "@/lib/i18n/gt-public-json";
@@ -53,23 +47,16 @@ export default async function ReviewPage() {
     return (
         <PageShell>
             <div className="flex flex-1 flex-col gap-8 lg:flex-row lg:justify-between">
-                <Sidebar>
-                    <SidebarHeader className="gap-3">
-                        <UserMenu>
-                            <UserMenuHeader />
-                            <UserMenuContent />
-                            <UserMenuFooter />
-                        </UserMenu>
-                        <ApplicationSidebar />
-                    </SidebarHeader>
-                </Sidebar>
-                <div className="flex w-full flex-1 flex-col overflow-hidden">
-                    <ReviewDigest
-                        collections={collections}
-                        hasAccess={hasAccess}
-                        initialItems={items}
-                    />
-                </div>
+                <SidebarProvider>
+                    <ApplicationSidebar />
+                    <div className="flex w-full flex-1 flex-col overflow-hidden">
+                        <ReviewDigest
+                            collections={collections}
+                            hasAccess={hasAccess}
+                            initialItems={items}
+                        />
+                    </div>
+                </SidebarProvider>
             </div>
         </PageShell>
     );

@@ -1,14 +1,8 @@
 import { buildPageMetadata } from "@/app/metadata";
-import {
-    UserMenu,
-    UserMenuContent,
-    UserMenuFooter,
-    UserMenuHeader,
-} from "@/components/auth/user-menu";
 import { ApplicationSidebar } from "@/components/ui/application-sidebar";
 import { Badge } from "@/components/ui/badge";
 import { PageShell } from "@/components/ui/page-shell";
-import { Sidebar, SidebarHeader } from "@/components/ui/sidebar";
+import { SidebarProvider } from "@/components/ui/sidebar";
 import { getActivityTimelineData } from "@/lib/activity/service";
 import { getServerSession } from "@/lib/auth/session";
 import { cn } from "@/lib/common/cn";
@@ -436,32 +430,25 @@ export default async function ActivityPage({
     return (
         <PageShell>
             <div className="flex flex-1 flex-col gap-8 lg:flex-row lg:justify-between">
-                <Sidebar>
-                    <SidebarHeader className="gap-3">
-                        <UserMenu>
-                            <UserMenuHeader />
-                            <UserMenuContent />
-                            <UserMenuFooter />
-                        </UserMenu>
-                        <ApplicationSidebar />
-                    </SidebarHeader>
-                </Sidebar>
-                <div className="flex w-full max-w-[1040px] flex-col gap-8 px-6 py-8 sm:px-8 2xl:mx-auto">
-                    <header className="flex flex-col gap-6 border-border border-b pb-6">
-                        <div className="flex items-start justify-between gap-6">
-                            <div className="flex min-w-0 flex-col gap-2">
-                                <h1 className="font-semibold text-2xl text-foreground">
-                                    Activity
-                                </h1>
+                <SidebarProvider>
+                    <ApplicationSidebar />
+                    <div className="flex w-full max-w-[1040px] flex-col gap-8 px-6 py-8 sm:px-8 2xl:mx-auto">
+                        <header className="flex flex-col gap-6 border-border border-b pb-6">
+                            <div className="flex items-start justify-between gap-6">
+                                <div className="flex min-w-0 flex-col gap-2">
+                                    <h1 className="font-semibold text-2xl text-foreground">
+                                        Activity
+                                    </h1>
+                                </div>
                             </div>
-                        </div>
-                    </header>
-                    {events.length === 0 ? (
-                        <TimelineEmptyState />
-                    ) : (
-                        <ActivityTimeline events={events} locale={locale} />
-                    )}
-                </div>
+                        </header>
+                        {events.length === 0 ? (
+                            <TimelineEmptyState />
+                        ) : (
+                            <ActivityTimeline events={events} locale={locale} />
+                        )}
+                    </div>
+                </SidebarProvider>
             </div>
         </PageShell>
     );

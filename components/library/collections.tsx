@@ -28,6 +28,7 @@ import {
     ComboboxItem,
     ComboboxList,
     ComboboxPopup,
+    ComboboxSeparator,
     ComboboxTrigger,
 } from "@/components/ui/combobox";
 import {
@@ -117,6 +118,7 @@ import { useStableCallback } from "@base-ui/utils/useStableCallback";
 import { T } from "gt-next";
 import {
     ArchiveIcon,
+    ArchiveX,
     ArrowUpRight,
     BellIcon,
     ChevronRight,
@@ -232,14 +234,26 @@ interface CollectionNotificationOption {
     value: string;
 }
 
-type SortingComboboxOption =
-    | SortingOption
-    | {
-          icon: CollectionOptionIcon;
-          label: string;
-          query: string;
-          value: "text-match";
-      };
+/**
+ * Composite value for the collections combobox.
+ *
+ * Each item carries the full state (sort + view) so that
+ * `isItemEqualToValue` can match multiple items simultaneously —
+ * one from the sort group and one from the view group — causing the
+ * built-in ItemIndicator to render for both.
+ */
+interface ComboboxValue {
+    icon: CollectionOptionIcon;
+    label: string;
+    sortField: CollectionSortField;
+    sortQuery: string;
+    view: "show-all" | "exclude-archives";
+}
+
+interface ComboboxGroupData {
+    group: "sort" | "view";
+    items: ComboboxValue[];
+}
 
 const PREVIEW_SLIDE_INTERVAL_MS = 600;
 
@@ -960,6 +974,8 @@ function useCollections() {
         collectionTextMatchQuery,
         setCollectionSortField,
         setCollectionTextMatchQuery,
+        setShouldExcludeArchives,
+        shouldExcludeArchives,
     } = useCollectionsSortStore();
 
     const [isSortOpen, setIsSortOpen] = React.useState(false);
@@ -1461,35 +1477,45 @@ function useCollections() {
         setIsCreateOpen(open);
     };
 
-    const sortValue: SortingComboboxOption | null =
+    const currentSortOption =
         collectionSortField === "text-match"
             ? {
                   icon: ListFilter,
-                  label: `Search by "${collectionTextMatchQuery}"`,
-                  query: collectionTextMatchQuery,
-                  value: "text-match" as const,
+                  label: `Sort by "${collectionTextMatchQuery}"`,
               }
             : (SORT_OPTION_BY_VALUE.get(collectionSortField) ?? null);
 
-    const handleSortValueChange = (option: SortingComboboxOption | null) => {
-        if (!option) {
+    const comboboxValue: ComboboxValue = {
+        icon: currentSortOption?.icon ?? ListFilter,
+        label: currentSortOption?.label ?? "Priority",
+        sortField: collectionSortField,
+        sortQuery: collectionTextMatchQuery,
+        view: shouldExcludeArchives ? "exclude-archives" : "show-all",
+    };
+
+    const handleComboboxValueChange = (nextValue: ComboboxValue | null) => {
+        if (!nextValue) {
             return;
         }
 
-        if (option.value === "text-match") {
-            if (option.query !== collectionTextMatchQuery) {
-                setCollectionTextMatchQuery(option.query);
-                setCollectionSortField(option.value);
-                setSortInputValue("");
+        if (
+            nextValue.sortField !== collectionSortField ||
+            nextValue.sortQuery !== collectionTextMatchQuery
+        ) {
+            setCollectionSortField(nextValue.sortField);
+            if (nextValue.sortField === "text-match") {
+                setCollectionTextMatchQuery(nextValue.sortQuery);
+            } else {
+                setCollectionTextMatchQuery("");
             }
-            setIsSortOpen(false);
-            return;
-        }
-
-        if (option.value !== collectionSortField) {
-            setCollectionSortField(option.value);
             setSortInputValue("");
         }
+
+        const nextShouldExclude = nextValue.view === "exclude-archives";
+        if (nextShouldExclude !== shouldExcludeArchives) {
+            setShouldExcludeArchives(nextShouldExclude);
+        }
+
         setIsSortOpen(false);
     };
 
@@ -1585,8 +1611,8 @@ function useCollections() {
             isOpen: isSortOpen,
             onInputValueChange: setSortInputValue,
             onOpenChange: setIsSortOpen,
-            onValueChange: handleSortValueChange,
-            value: sortValue,
+            onValueChange: handleComboboxValueChange,
+            value: comboboxValue,
         },
     };
 }
@@ -1749,38 +1775,111 @@ function getCollectionItemStyle(
     };
 }
 
+const VIEW_OPTIONS = [
+    { icon: ArchiveIcon, label: "Show all", value: "show-all" as const },
+    {
+        icon: ArchiveX,
+        label: "Exclude archives",
+        value: "exclude-archives" as const,
+    },
+];
+
 /**
- * Build the static sort options or the dynamic text-match option from the
- * current combobox query.
+ * Build grouped combobox options containing sort fields and view filters.
+ *
+ * Each item carries the full composite state so that `isItemEqualToValue`
+ * can match one item from each group simultaneously.
  */
-function getSortingComboboxOptions(
-    inputValue: string
-): SortingComboboxOption[] {
+function getComboboxSortingGroups(
+    inputValue: string,
+    currentValue: ComboboxValue
+): ComboboxGroupData[] {
     const query = inputValue.trim();
     const normalizedQuery = query.toLowerCase();
-    const matchingOptions = SORT_OPTIONS.filter((option) =>
+
+    const matchingSortOptions = SORT_OPTIONS.filter((option) =>
         option.label.toLowerCase().includes(normalizedQuery)
     );
 
-    if (normalizedQuery.length === 0 || matchingOptions.length > 0) {
-        return matchingOptions;
+    const sortItems: ComboboxValue[] =
+        normalizedQuery.length === 0 || matchingSortOptions.length > 0
+            ? matchingSortOptions.map((option) => ({
+                  icon: option.icon,
+                  label: option.label,
+                  sortField: option.value,
+                  sortQuery: currentValue.sortQuery,
+                  view: currentValue.view,
+              }))
+            : [
+                  {
+                      icon: ListFilter,
+                      label: `Sort by "${query}"`,
+                      sortField: "text-match",
+                      sortQuery: query,
+                      view: currentValue.view,
+                  },
+              ];
+
+    const matchingViewOptions = VIEW_OPTIONS.filter((option) =>
+        option.label.toLowerCase().includes(normalizedQuery)
+    );
+
+    const viewItems: ComboboxValue[] = matchingViewOptions.map((option) => ({
+        icon: option.icon,
+        label: option.label,
+        sortField: currentValue.sortField,
+        sortQuery: currentValue.sortQuery,
+        view: option.value,
+    }));
+
+    const groups: ComboboxGroupData[] = [{ group: "sort", items: sortItems }];
+
+    if (viewItems.length > 0) {
+        groups.push({ group: "view", items: viewItems });
     }
 
-    return [
-        {
-            icon: ListFilter,
-            label: `Sort by "${query}"`,
-            query,
-            value: "text-match",
-        },
-    ];
+    return groups;
 }
 
 /**
- * Convert the selected sort option back to the text shown in the combobox.
+ * Convert a combobox value to its searchable label string.
  */
-function getSortingComboboxOptionLabel(option: SortingComboboxOption): string {
-    return option.value === "text-match" ? option.query : option.label;
+function getComboboxOptionLabel(value: ComboboxValue): string {
+    return value.label;
+}
+
+/**
+ * Convert a combobox value to its unique value string.
+ */
+function getComboboxOptionValue(value: ComboboxValue): string {
+    return `${value.sortField}:${value.view}:${value.sortQuery}`;
+}
+
+/**
+ * Determine whether an item should show its built-in ItemIndicator.
+ *
+ * Sort items match when their `sortField` equals the current value's
+ * `sortField`. View items match when their `view` equals the current
+ * value's `view`. This allows both a sort option and a view option to
+ * appear selected at the same time in single-select mode.
+ */
+function isComboboxValueEqual(
+    item: ComboboxValue,
+    value: ComboboxValue
+): boolean {
+    // Text-match items require an exact match on all fields so that two
+    // different text-match queries don't collide.
+    if (item.sortField === "text-match" || value.sortField === "text-match") {
+        return (
+            item.sortField === value.sortField &&
+            item.sortQuery === value.sortQuery &&
+            item.view === value.view
+        );
+    }
+    // Non-text-match items only need sortField + view. This allows both
+    // the active sort option and the active view option to appear selected
+    // simultaneously in single-select mode.
+    return item.sortField === value.sortField && item.view === value.view;
 }
 
 /**
@@ -2131,15 +2230,17 @@ interface CollectionsListSortingComboboxProps
     isOpen: boolean;
     onInputValueChange: (value: string) => void;
     onOpenChange: (isOpen: boolean) => void;
-    onValueChange: (option: SortingComboboxOption | null) => void;
-    value: SortingComboboxOption | null;
+    onValueChange: (value: ComboboxValue | null) => void;
+    value: ComboboxValue;
 }
 
 /**
- * Combobox for sorting collections or filtering by text match.
+ * Combobox for sorting collections, filtering by text match, or toggling
+ * archive visibility.
  *
- * Supports fixed sort fields and a dynamic text-match mode when the input
- * does not match any field label.
+ * Uses a composite value so that `isItemEqualToValue` can match one item
+ * from each group simultaneously, causing the built-in ItemIndicator to
+ * render for both the active sort and the active view option.
  */
 function CollectionsListSortingCombobox({
     inputValue,
@@ -2151,13 +2252,14 @@ function CollectionsListSortingCombobox({
     ...props
 }: CollectionsListSortingComboboxProps) {
     return (
-        <Combobox<SortingComboboxOption>
+        <Combobox
             autoHighlight
             filter={null}
             inputValue={inputValue}
-            items={getSortingComboboxOptions(inputValue)}
-            itemToStringLabel={getSortingComboboxOptionLabel}
-            itemToStringValue={(option) => option.value}
+            isItemEqualToValue={isComboboxValueEqual}
+            items={getComboboxSortingGroups(inputValue, value)}
+            itemToStringLabel={getComboboxOptionLabel}
+            itemToStringValue={getComboboxOptionValue}
             onInputValueChange={onInputValueChange}
             onOpenChange={onOpenChange}
             onValueChange={onValueChange}
@@ -2186,23 +2288,32 @@ function CollectionsListSortingCombobox({
                 />
                 <ComboboxEmpty>No matching options</ComboboxEmpty>
                 <ComboboxList>
-                    <ComboboxGroup>
-                        <ComboboxGroupLabel>Sort by</ComboboxGroupLabel>
-                        <ComboboxCollection>
-                            {(sortOption: SortingComboboxOption) => (
-                                <ComboboxItem
-                                    key={sortOption.value}
-                                    showIndicatorLast
-                                    value={sortOption}
-                                >
-                                    <CollectionComboboxOptionRow
-                                        icon={sortOption.icon}
-                                        label={sortOption.label}
-                                    />
-                                </ComboboxItem>
-                            )}
-                        </ComboboxCollection>
-                    </ComboboxGroup>
+                    {(group: ComboboxGroupData) => (
+                        <React.Fragment key={group.group}>
+                            <ComboboxGroup items={group.items}>
+                                <ComboboxGroupLabel>
+                                    {group.group === "sort"
+                                        ? "Sort by"
+                                        : "View"}
+                                </ComboboxGroupLabel>
+                                <ComboboxCollection>
+                                    {(option: ComboboxValue) => (
+                                        <ComboboxItem
+                                            key={getComboboxOptionValue(option)}
+                                            showIndicatorLast
+                                            value={option}
+                                        >
+                                            <CollectionComboboxOptionRow
+                                                icon={option.icon}
+                                                label={option.label}
+                                            />
+                                        </ComboboxItem>
+                                    )}
+                                </ComboboxCollection>
+                            </ComboboxGroup>
+                            {group.group === "sort" && <ComboboxSeparator />}
+                        </React.Fragment>
+                    )}
                 </ComboboxList>
             </ComboboxPopup>
         </Combobox>
@@ -3253,10 +3364,10 @@ export {
     type CollectionsListSortingComboboxProps,
     type CollectionsListStatusProps,
     type CollectionsListTriggerProps,
+    type ComboboxValue,
     type CreateDialogProps,
     type DeleteDialogProps,
     type PriorityOption,
     type RenameDialogProps,
-    type SortingComboboxOption,
     type TemplateValue,
 };
