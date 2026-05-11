@@ -9,7 +9,7 @@ The goal is NOT to rubber-stamp what you did. The goal is to catch the shortcuts
 
 ## What to do
 
-1. **Gather all changes.** Run `git status` to see the full picture — staged, unstaged, and untracked files. Then run `git diff` for unstaged changes, `git diff --cached` for staged changes, and read any new untracked files. Read every changed file fully — not just the diff hunks, but the surrounding context.
+1. **Gather all changes.** Run `git status` to see the full picture. Then run `git diff --cached` for all recently made staged changes. If the code you modified isn't staged, then stage it. Read every changed file fully — not just the diff hunks, but the surrounding context.
 
 2. **Read the quality standards.** Read these docs and review your work against each point:
    - `/AGENTS.md`
@@ -20,7 +20,7 @@ The goal is NOT to rubber-stamp what you did. The goal is to catch the shortcuts
 
 5. **Look for refactoring opportunities.** Actively ask yourself: what can be refactored in or around the code you touched to make it easier to maintain long term? Duplicated logic that should be extracted, unclear abstractions that should be simplified, tangled responsibilities that should be separated. Don't just preserve the status quo — improve it.
 
-6. **Report.** After fixing everything, give a brief summary of what you changed and what you flagged.
+6. **Report.** After fixing everything, give a brief summary of what you changed and what you flagged. Do not re-stage the post review changes.
 
 ## The final question
 
