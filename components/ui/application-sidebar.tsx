@@ -63,7 +63,7 @@ export function ApplicationSidebar({ children }: React.PropsWithChildren) {
                         aria-label="Review"
                         href="/review"
                         icon={Compass}
-                        shortcutKeys="mod+r"
+                        shortcutKeys="mod+x"
                     >
                         <T>Review</T>
                     </SidebarNavigationItem>
@@ -71,7 +71,7 @@ export function ApplicationSidebar({ children }: React.PropsWithChildren) {
                         aria-label="Automations"
                         href="/automations"
                         icon={Workflow}
-                        shortcutKeys="mod+a"
+                        shortcutKeys="mod+z"
                     >
                         <T>Automations</T>
                     </SidebarNavigationItem>

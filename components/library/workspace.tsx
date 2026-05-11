@@ -267,10 +267,11 @@ export function WorkspaceProvider({
         collectionTextMatchQuery,
         shouldExcludeArchives,
     } = useCollectionsSortStore();
+    const visibleCollections = shouldExcludeArchives
+        ? collections.filter((c) => c.priority !== "archive")
+        : collections;
     const collectionSummaries = sortCollectionSummaries(
-        shouldExcludeArchives
-            ? collections.filter((c) => c.priority !== "archive")
-            : collections,
+        visibleCollections,
         collectionSortField,
         collectionTextMatchQuery
     );
@@ -663,9 +664,7 @@ function getCollectionPreviewThumbnailUrls(
                 getPreviewOrderSeed(`${collectionId}:${left.id}`) -
                 getPreviewOrderSeed(`${collectionId}:${right.id}`)
         )
-        .flatMap((item) => {
-            const imageUrl = itemPreviewImageUrl(item);
-            return imageUrl ? [imageUrl] : [];
-        })
+        .map((item) => itemPreviewImageUrl(item))
+        .filter((url): url is string => url !== null)
         .slice(0, 5);
 }

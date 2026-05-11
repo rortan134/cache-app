@@ -18,7 +18,7 @@ export const RadialIcon = ({
 
     return (
         <svg
-            aria-label="Model context usage"
+            aria-label="Context usage"
             height="20"
             role="img"
             style={{ color: "currentcolor" }}
