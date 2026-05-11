@@ -48,7 +48,7 @@ type ValueOf<T> = T[keyof T];
 // uint8 leading bytes
 const BYTES = {
     // https://en.wikipedia.org/wiki/GIF#Example_GIF_file
-    gif: /^71 73 70 56 57 97\b/,
+    gif: /^71 73 70 56 (55|57) 97\b/,
     // https://en.wikipedia.org/wiki/JPEG#Syntax_and_structure
     // jpg is a bit wonky. Checking the first three bytes should be enough,
     // but may yield false positives. (https://stackoverflow.com/a/23360709/927631)
@@ -56,7 +56,7 @@ const BYTES = {
     // https://en.wikipedia.org/wiki/Portable_Network_Graphics#File_header
     png: /^137 80 78 71 13 10 26 10\b/,
     // 4 bytes for RIFF + 4 bytes for chunk size + WEBP identifier
-    webp: /^82 73 70 70 \d+ \d+ \d+ \d+ 87 69 66 80 86 80 56\b/,
+    webp: /^82 73 70 70 \d+ \d+ \d+ \d+ 87 69 66 80/,
 };
 
 /**
@@ -96,7 +96,10 @@ export const blobToArrayBuffer = (blob: Blob): Promise<ArrayBuffer> => {
             resolve(event.target.result as ArrayBuffer);
         };
         reader.onerror = () => {
-            reject(reader.error as Error);
+            reject(reader.error ?? new Error("FileReader error"));
+        };
+        reader.onabort = () => {
+            reject(reader.error ?? new Error("FileReader error"));
         };
         reader.readAsArrayBuffer(blob);
     });
@@ -104,34 +107,42 @@ export const blobToArrayBuffer = (blob: Blob): Promise<ArrayBuffer> => {
 
 export const blobToDataURL = async (blob: Blob): Promise<string> =>
     await new Promise((resolve, reject) => {
-        if (blob) {
-            const reader = new FileReader();
-            reader.onload = () => {
-                resolve(reader.result as string);
-            };
-            reader.onerror = (error) => {
-                reject(error);
-            };
-            reader.onabort = (error) => {
-                reject(error);
-            };
-            reader.readAsDataURL(blob);
+        if (!blob) {
+            reject(new Error("No blob provided"));
+            return;
         }
+        const reader = new FileReader();
+        reader.onload = () => {
+            if (typeof reader.result !== "string") {
+                reject(new Error("Failed to convert blob to data URL"));
+                return;
+            }
+            resolve(reader.result);
+        };
+        reader.onerror = () => {
+            reject(reader.error ?? new Error("FileReader error"));
+        };
+        reader.onabort = () => {
+            reject(reader.error ?? new Error("FileReader error"));
+        };
+        reader.readAsDataURL(blob);
     });
 
 export const blobToText = async (blob: Blob): Promise<string> =>
     await new Promise((resolve, reject) => {
-        if (blob) {
-            const reader = new FileReader();
-            reader.onload = () => {
-                resolve(reader.result as string);
-            };
-            reader.onerror = (error) => {
-                reject(error);
-            };
-            reader.onabort = (error) => {
-                reject(error);
-            };
-            reader.readAsText(blob);
+        if (!blob) {
+            reject(new Error("No blob provided"));
+            return;
         }
+        const reader = new FileReader();
+        reader.onload = () => {
+            resolve(reader.result as string);
+        };
+        reader.onerror = () => {
+            reject(reader.error ?? new Error("FileReader error"));
+        };
+        reader.onabort = () => {
+            reject(reader.error ?? new Error("FileReader error"));
+        };
+        reader.readAsText(blob);
     });
