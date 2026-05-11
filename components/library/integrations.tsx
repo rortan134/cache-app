@@ -19,23 +19,82 @@ import {
     PopoverTrigger,
 } from "@/components/ui/popover";
 import { SidebarItem } from "@/components/ui/sidebar";
-import { useIntegrationAction } from "@/hooks/use-integration-action";
+import { useIsExtensionInstalled } from "@/hooks/use-extension-installed";
 import { useListPanelOpenState } from "@/hooks/use-list-panel-open-state";
 import { cn } from "@/lib/common/cn";
+import { getErrorMessage } from "@/lib/common/error";
+import { createLogger } from "@/lib/common/logs/console/logger";
+import { IntegrationUserError } from "@/lib/integrations/error";
+import {
+    executeConnectBehavior,
+    executeCopyPromptBehavior,
+    executeOpenBehavior,
+    executeRouteSyncBehavior,
+} from "@/lib/integrations/execution";
+import { executeGooglePhotosPickerFlow } from "@/lib/integrations/google-photos/client";
 import {
     INTEGRATIONS,
+    getIntegration,
+    listIntegrationActions,
+    type ExtensionOpenBehavior,
     type IntegrationActionIcon,
+    type IntegrationActionRole,
+    type IntegrationActionSize,
+    type IntegrationActionVariant,
     type IntegrationDirection,
     type IntegrationId,
+    type OAuthLinkConnectBehavior,
+    type SocialSignInConnectBehavior,
+    type SupportedIntegration,
+    type SupportedIntegrationAction,
 } from "@/lib/integrations/support";
 import IntegrationsPreviewImage from "@/public/integrations-preview.webp";
 import { T } from "gt-next";
 import { ArrowUpRight, Images, RefreshCw } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import * as React from "react";
 import { createStore } from "stan-js";
 import { storage } from "stan-js/storage";
+
+const log = createLogger("integration-actions");
+
+const INTEGRATION_ACTION_ICON_BY_NAME: Record<
+    IntegrationActionIcon,
+    React.ComponentType<React.SVGProps<SVGSVGElement>>
+> = {
+    images: Images,
+    refresh: RefreshCw,
+};
+
+type IntegrationActionStatusTone = "error" | "success";
+
+interface IntegrationActionStatus {
+    message: string;
+    tone: IntegrationActionStatusTone;
+}
+
+interface IntegrationActionViewModel {
+    icon?: IntegrationActionIcon;
+    isLoading: boolean;
+    label: string;
+    onClick: () => void | Promise<void>;
+    role: IntegrationActionRole;
+    size: IntegrationActionSize;
+    variant: IntegrationActionVariant;
+}
+
+interface UseIntegrationActionsArgs {
+    direction: IntegrationDirection;
+    id: IntegrationId;
+    isConnected: boolean;
+}
+
+interface UseIntegrationActionResult {
+    actions: IntegrationActionViewModel[];
+    status: IntegrationActionStatus | null;
+}
 
 export interface IntegrationsListItemProps
     extends React.ComponentProps<typeof SidebarItem> {}
@@ -46,10 +105,8 @@ export interface IntegrationsProps {
     connectedIntegrations: Set<IntegrationId>;
 }
 
-type IntegrationsListStatusTone = "error" | "success";
-
 interface IntegrationsListStatusProps extends React.ComponentProps<"p"> {
-    tone?: IntegrationsListStatusTone;
+    tone?: "error" | "success";
 }
 
 interface IntegrationsListItemActionProps {
@@ -59,13 +116,178 @@ interface IntegrationsListItemActionProps {
     isConnected: boolean;
 }
 
-const INTEGRATION_ACTION_ICON_BY_NAME: Record<
-    IntegrationActionIcon,
-    React.ComponentType<React.SVGProps<SVGSVGElement>>
-> = {
-    images: Images,
-    refresh: RefreshCw,
-};
+function resolveActionLabel(args: {
+    connectBehavior?: OAuthLinkConnectBehavior | SocialSignInConnectBehavior;
+    explicitLabel?: string;
+    isExtensionInstalled: boolean;
+    isConnected: boolean;
+    openBehavior?: ExtensionOpenBehavior;
+    role: IntegrationActionRole;
+}): string {
+    const {
+        connectBehavior,
+        explicitLabel,
+        isExtensionInstalled,
+        isConnected,
+        openBehavior,
+        role,
+    } = args;
+
+    if (explicitLabel) {
+        return explicitLabel;
+    }
+
+    if (role === "open" && openBehavior) {
+        return !isExtensionInstalled && openBehavior.installUrl
+            ? "Get Extension"
+            : "Open";
+    }
+
+    if (role === "connect" && connectBehavior) {
+        return isConnected ? "Reconnect" : "Connect";
+    }
+
+    if (role === "sync") {
+        return "Sync";
+    }
+
+    if (role === "copy") {
+        return "Copy";
+    }
+
+    return "Open";
+}
+
+function createCapabilityMissingError(args: {
+    capability: "connect" | "copy" | "open" | "sync";
+    integrationId: IntegrationId;
+    message: string;
+}): IntegrationUserError {
+    return new IntegrationUserError({
+        capability: args.capability,
+        integrationId: args.integrationId,
+        message: args.message,
+        operation: "executeIntegrationAction",
+    });
+}
+
+async function executeIntegrationAction(args: {
+    isExtensionInstalled: boolean;
+    integration: SupportedIntegration;
+    role: IntegrationActionRole;
+}): Promise<{
+    refresh: boolean;
+    successMessage: string | null;
+}> {
+    const { isExtensionInstalled, integration, role } = args;
+
+    if (role === "open") {
+        if (!integration.behaviors.open) {
+            throw createCapabilityMissingError({
+                capability: "open",
+                integrationId: integration.id,
+                message: "This integration cannot be opened yet.",
+            });
+        }
+
+        executeOpenBehavior(integration.behaviors.open, isExtensionInstalled);
+        return { refresh: false, successMessage: null };
+    }
+
+    if (role === "connect") {
+        if (!integration.behaviors.connect) {
+            throw createCapabilityMissingError({
+                capability: "connect",
+                integrationId: integration.id,
+                message: "This integration cannot be connected yet.",
+            });
+        }
+
+        await executeConnectBehavior(integration.behaviors.connect);
+        return { refresh: false, successMessage: null };
+    }
+
+    if (role === "copy") {
+        if (!integration.behaviors.copy) {
+            throw createCapabilityMissingError({
+                capability: "copy",
+                integrationId: integration.id,
+                message: "This integration does not support copying a prompt.",
+            });
+        }
+
+        await executeCopyPromptBehavior(integration.behaviors.copy);
+        return { refresh: false, successMessage: "Copied to clipboard." };
+    }
+
+    // role === "sync"
+    if (!integration.behaviors.sync) {
+        throw createCapabilityMissingError({
+            capability: "sync",
+            integrationId: integration.id,
+            message: "This integration cannot sync yet.",
+        });
+    }
+
+    const successMessage =
+        integration.behaviors.sync.kind === "route"
+            ? await executeRouteSyncBehavior(integration.behaviors.sync)
+            : await executeGooglePhotosPickerFlow();
+
+    return { refresh: true, successMessage };
+}
+
+function isActionVisible(
+    action: SupportedIntegrationAction,
+    isConnected: boolean
+): boolean {
+    if (action.visibleWhen === "connected") {
+        return isConnected;
+    }
+
+    if (action.visibleWhen === "disconnected") {
+        return !isConnected;
+    }
+
+    return true;
+}
+
+function createActionViewModel(args: {
+    action: SupportedIntegrationAction;
+    connectBehavior?: OAuthLinkConnectBehavior | SocialSignInConnectBehavior;
+    isExtensionInstalled: boolean;
+    isConnected: boolean;
+    isLoading: boolean;
+    onSelect: (role: IntegrationActionRole) => void | Promise<void>;
+    openBehavior?: ExtensionOpenBehavior;
+}): IntegrationActionViewModel {
+    const {
+        action,
+        connectBehavior,
+        isExtensionInstalled,
+        isConnected,
+        isLoading,
+        onSelect,
+        openBehavior,
+    } = args;
+
+    return {
+        icon: action.icon,
+        isLoading,
+        label: resolveActionLabel({
+            connectBehavior,
+            explicitLabel: action.label,
+            isConnected,
+            isExtensionInstalled,
+            openBehavior,
+            role: action.role,
+        }),
+        onClick: () => onSelect(action.role),
+        role: action.role,
+        size: action.size,
+        variant: action.variant,
+    };
+}
 
 /**
  * Persist the integrations panel open state across page reloads.
@@ -93,6 +315,80 @@ export function useIntegrationsListControls() {
 
     return {
         openIntegrationsList: () => setIsIntegrationsListPanelOpen(true),
+    };
+}
+
+/**
+ * Builds view models and handlers for integration action buttons (connect,
+ * open, sync) based on the integration's capabilities and connection state.
+ */
+function useIntegrationAction({
+    direction,
+    id,
+    isConnected,
+}: UseIntegrationActionsArgs): UseIntegrationActionResult {
+    const router = useRouter();
+    const isExtensionInstalled = useIsExtensionInstalled();
+    const integration = getIntegration(id);
+    const { behaviors } = integration;
+    const [status, setStatus] = React.useState<IntegrationActionStatus | null>(
+        null
+    );
+    const [pendingRole, setPendingRole] =
+        React.useState<IntegrationActionRole | null>(null);
+
+    const handleAction = async (role: IntegrationActionRole) => {
+        setStatus(null);
+        setPendingRole(role);
+
+        try {
+            const result = await executeIntegrationAction({
+                integration,
+                isExtensionInstalled,
+                role,
+            });
+
+            if (result.refresh) {
+                router.refresh();
+            }
+            if (result.successMessage) {
+                setStatus({ message: result.successMessage, tone: "success" });
+            }
+        } catch (error) {
+            const message = getErrorMessage(
+                error,
+                "Could not complete this integration action."
+            );
+
+            log.error("Integration action failed", {
+                direction,
+                error,
+                integrationId: integration.id,
+                role,
+            });
+            setStatus({ message, tone: "error" });
+        } finally {
+            setPendingRole(null);
+        }
+    };
+
+    const actions = listIntegrationActions(id, direction)
+        .filter((action) => isActionVisible(action, isConnected))
+        .map((action) =>
+            createActionViewModel({
+                action,
+                connectBehavior: behaviors.connect,
+                isConnected,
+                isExtensionInstalled,
+                isLoading: pendingRole === action.role,
+                onSelect: handleAction,
+                openBehavior: behaviors.open,
+            })
+        );
+
+    return {
+        actions,
+        status,
     };
 }
 
@@ -313,52 +609,27 @@ export function IntegrationsListEmpty({
     );
 }
 
-function IntegrationsListStatus({
-    tone = "success",
-    className,
-    ...props
-}: IntegrationsListStatusProps) {
-    if (!props.children) {
-        return null;
-    }
-
-    const isError = tone === "error";
-
-    return (
-        <p
-            aria-live={isError ? "assertive" : "polite"}
-            className={cn(
-                "max-w-full text-right text-xs leading-tight",
-                isError ? "text-destructive" : "text-muted-foreground",
-                className
-            )}
-            role={isError ? "alert" : "status"}
-            {...props}
-        />
-    );
-}
-
 export function IntegrationsListItemAction({
     direction = "source",
     id,
     isConnected,
     className,
 }: IntegrationsListItemActionProps) {
-    const { actions, errorMessage, successMessage } = useIntegrationAction({
+    const { actions, status } = useIntegrationAction({
         direction,
         id,
         isConnected,
     });
     const hasActions = actions.length > 0;
 
-    if (!(hasActions || errorMessage || successMessage)) {
+    if (!(hasActions || status)) {
         return null;
     }
 
     return (
         <div
             className={cn(
-                "ml-auto flex min-w-0 flex-1 flex-col items-end gap-0.5",
+                "ml-auto flex min-w-0 flex-1 flex-row-reverse items-center justify-end gap-1",
                 className
             )}
         >
@@ -395,12 +666,36 @@ export function IntegrationsListItemAction({
                     })}
                 </div>
             )}
-            <IntegrationsListStatus tone="error">
-                {errorMessage}
-            </IntegrationsListStatus>
-            <IntegrationsListStatus tone="success">
-                {successMessage}
-            </IntegrationsListStatus>
+            {status && (
+                <IntegrationsListStatus tone={status.tone}>
+                    {status.message}
+                </IntegrationsListStatus>
+            )}
         </div>
+    );
+}
+
+function IntegrationsListStatus({
+    tone = "success",
+    className,
+    ...props
+}: IntegrationsListStatusProps) {
+    if (!props.children) {
+        return null;
+    }
+
+    const isError = tone === "error";
+
+    return (
+        <p
+            aria-live={isError ? "assertive" : "polite"}
+            className={cn(
+                "max-w-full text-right text-xs leading-tight",
+                isError ? "text-destructive" : "text-muted-foreground",
+                className
+            )}
+            role={isError ? "alert" : "status"}
+            {...props}
+        />
     );
 }
