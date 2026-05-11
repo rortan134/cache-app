@@ -85,7 +85,7 @@ interface IntegrationActionViewModel {
     variant: IntegrationActionVariant;
 }
 
-interface UseIntegrationActionsArgs {
+interface UseIntegrationActionArgs {
     direction: IntegrationDirection;
     id: IntegrationId;
     isConnected: boolean;
@@ -96,17 +96,18 @@ interface UseIntegrationActionResult {
     status: IntegrationActionStatus | null;
 }
 
-export interface IntegrationsListItemProps
-    extends React.ComponentProps<typeof SidebarItem> {}
+export type IntegrationsListItemProps = React.ComponentProps<
+    typeof SidebarItem
+>;
 
-export interface IntegrationsListEmptyProps extends React.ComponentProps<"p"> {}
+export type IntegrationsListEmptyProps = React.ComponentProps<"p">;
 
 export interface IntegrationsProps {
     connectedIntegrations: Set<IntegrationId>;
 }
 
 interface IntegrationsListStatusProps extends React.ComponentProps<"p"> {
-    tone?: "error" | "success";
+    tone?: IntegrationActionStatusTone;
 }
 
 interface IntegrationsListItemActionProps {
@@ -326,7 +327,7 @@ function useIntegrationAction({
     direction,
     id,
     isConnected,
-}: UseIntegrationActionsArgs): UseIntegrationActionResult {
+}: UseIntegrationActionArgs): UseIntegrationActionResult {
     const router = useRouter();
     const isExtensionInstalled = useIsExtensionInstalled();
     const integration = getIntegration(id);
