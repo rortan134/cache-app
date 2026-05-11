@@ -249,10 +249,7 @@ function classifyApiError(error: unknown): { message: string; status: number } {
             };
         }
 
-        return {
-            message: error.message,
-            status: error.status ?? 500,
-        };
+        return { message: error.message, status: error.status ?? 500 };
     }
 
     if (error instanceof Error) {
@@ -265,8 +262,5 @@ function classifyApiError(error: unknown): { message: string; status: number } {
         }
     }
 
-    return {
-        message: "Unknown error",
-        status: 500,
-    };
+    return { message: "Unknown error", status: 500 };
 }

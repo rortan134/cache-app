@@ -561,11 +561,7 @@ async function resolveContentCandidates(
     switch (item.source) {
         case LibraryItemSource.google_photos:
         case LibraryItemSource.github_starred_repositories:
-            addUrl(item.url);
-            break;
         case LibraryItemSource.pinterest:
-            addUrl(item.url);
-            break;
         case LibraryItemSource.chrome_bookmarks:
             addUrl(item.url);
             break;
@@ -671,6 +667,60 @@ async function createAttachmentForItem(
     return null;
 }
 
+async function tryModelVariant(
+    ai: GoogleGenAI,
+    model: string,
+    variant: { contents: Part[]; label: string },
+    item: SmartCollectionItem
+): Promise<SmartCollectionDecision | null> {
+    try {
+        const response = await ai.models.generateContent({
+            config: {
+                httpOptions: {
+                    retryOptions: {
+                        attempts: MODEL_RETRY_ATTEMPTS,
+                    },
+                    timeout: SMART_COLLECTIONS_MODEL_TIMEOUT_MS,
+                },
+                maxOutputTokens: ESTIMATED_OUTPUT_TOKENS,
+                responseJsonSchema: smartCollectionDecisionJsonSchema,
+                responseMimeType: "application/json",
+                systemInstruction:
+                    "You organize a user's saved media into focused collections. Be conservative, prefer existing collections, and create new collections only when there is a strong reusable theme.",
+                temperature: MODEL_TEMPERATURE,
+            },
+            contents: variant.contents,
+            model,
+        });
+
+        const responseText = response.text?.trim();
+        if (!responseText) {
+            log.warn("Smart collections decision returned an empty response", {
+                itemId: item.id,
+                model,
+                source: item.source,
+                variant: variant.label,
+            });
+            return null;
+        }
+
+        return SmartCollectionDecisionSchema.parse(JSON.parse(responseText));
+    } catch (error) {
+        const errorInfo = getSmartCollectionModelErrorInfo(error);
+
+        log.warn("Smart collections decision attempt failed", {
+            details: errorInfo.details,
+            error: errorInfo.message,
+            itemId: item.id,
+            model,
+            source: item.source,
+            status: errorInfo.status,
+            variant: variant.label,
+        });
+        return null;
+    }
+}
+
 async function decideCollectionsForItem(
     ai: GoogleGenAI,
     item: SmartCollectionItem,
@@ -710,56 +760,14 @@ async function decideCollectionsForItem(
 
         for (const model of resolveSmartCollectionModels()) {
             for (const variant of contentVariants) {
-                try {
-                    const response = await ai.models.generateContent({
-                        config: {
-                            httpOptions: {
-                                retryOptions: {
-                                    attempts: MODEL_RETRY_ATTEMPTS,
-                                },
-                                timeout: SMART_COLLECTIONS_MODEL_TIMEOUT_MS,
-                            },
-                            maxOutputTokens: ESTIMATED_OUTPUT_TOKENS,
-                            responseJsonSchema:
-                                smartCollectionDecisionJsonSchema,
-                            responseMimeType: "application/json",
-                            systemInstruction:
-                                "You organize a user's saved media into focused collections. Be conservative, prefer existing collections, and create new collections only when there is a strong reusable theme.",
-                            temperature: MODEL_TEMPERATURE,
-                        },
-                        contents: variant.contents,
-                        model,
-                    });
-
-                    const responseText = response.text?.trim();
-                    if (!responseText) {
-                        log.warn(
-                            "Smart collections decision returned an empty response",
-                            {
-                                itemId: item.id,
-                                model,
-                                source: item.source,
-                                variant: variant.label,
-                            }
-                        );
-                        continue;
-                    }
-
-                    return SmartCollectionDecisionSchema.parse(
-                        JSON.parse(responseText)
-                    );
-                } catch (error) {
-                    const errorInfo = getSmartCollectionModelErrorInfo(error);
-
-                    log.warn("Smart collections decision attempt failed", {
-                        details: errorInfo.details,
-                        error: errorInfo.message,
-                        itemId: item.id,
-                        model,
-                        source: item.source,
-                        status: errorInfo.status,
-                        variant: variant.label,
-                    });
+                const decision = await tryModelVariant(
+                    ai,
+                    model,
+                    variant,
+                    item
+                );
+                if (decision) {
+                    return decision;
                 }
             }
         }
@@ -797,19 +805,18 @@ async function applyDecisionToItem(args: {
     );
     const desiredCollectionIds = new Set<string>();
 
-    const normalizedNewNamesByKey = new Map(
-        args.decision.createCollectionNames
-            .map((name) =>
-                normalizeCollectionName(
-                    name.slice(0, COLLECTION_NAME_LENGTH_MAX)
+    const normalizedNewCollectionNames = [
+        ...new Map(
+            args.decision.createCollectionNames
+                .map((name) =>
+                    normalizeCollectionName(
+                        name.slice(0, COLLECTION_NAME_LENGTH_MAX)
+                    )
                 )
-            )
-            .filter((normalized) => normalized.name.length > 0)
-            .map((normalized) => [normalized.nameKey, normalized])
-    );
-    const normalizedNewCollectionNames = Array.from(
-        normalizedNewNamesByKey.values()
-    );
+                .filter((normalized) => normalized.name.length > 0)
+                .map((normalized) => [normalized.nameKey, normalized])
+        ).values(),
+    ];
 
     for (const name of args.decision.applyCollectionNames) {
         const normalized = normalizeCollectionName(name);
@@ -867,25 +874,24 @@ async function applyDecisionToItem(args: {
             return upsertedCollections;
         }
 
-        const nextCollectionIds = [
-            ...new Set([
-                ...item.collections.map((collection) => collection.id),
-                ...desiredCollectionIds,
-            ]),
-        ];
+        const currentCollectionIds = new Set(
+            item.collections.map((collection) => collection.id)
+        );
+        const hasNewCollections = [...desiredCollectionIds].some(
+            (id) => !currentCollectionIds.has(id)
+        );
 
-        if (nextCollectionIds.length > item.collections.length) {
+        if (hasNewCollections) {
             await tx.libraryItem.update({
                 data: {
                     collections: {
-                        set: nextCollectionIds.map((collectionId) => ({
-                            id: collectionId,
-                        })),
+                        set: [
+                            ...currentCollectionIds,
+                            ...desiredCollectionIds,
+                        ].map((id) => ({ id })),
                     },
                 },
-                where: {
-                    id: item.id,
-                },
+                where: { id: item.id },
             });
         }
 
@@ -1027,27 +1033,56 @@ interface SectionDescriptionResult {
     rawSummary: string | undefined;
 }
 
+interface ExpandedSectionDescriptionResult {
+    rawConclusions: string | undefined;
+}
+
+interface ModelGenerationConfig {
+    httpOptions: { retryOptions: { attempts: number }; timeout: number };
+    logLabel: string;
+    maxOutputTokens: number;
+    responseSchema: object;
+    systemInstruction: string;
+}
+
+async function generateModelContent(
+    config: ModelGenerationConfig,
+    prompt: string
+): Promise<string | undefined> {
+    const ai = new GoogleGenAI({ apiKey: serverEnv.GEMINI_API_KEY });
+
+    serviceLog.info(config.logLabel, {
+        maxOutputTokens: config.maxOutputTokens,
+        model: SECTION_DESCRIPTION_MODEL,
+        promptLength: prompt.length,
+    });
+
+    const response = await ai.models.generateContent({
+        config: {
+            ...config,
+            responseMimeType: "application/json",
+            temperature: SECTION_TEMPERATURE,
+        },
+        contents: prompt,
+        model: SECTION_DESCRIPTION_MODEL,
+    });
+
+    return response.text ?? undefined;
+}
+
 export async function generateSectionDescription(args: {
     prompt: string;
 }): Promise<SectionDescriptionResult> {
-    const ai = new GoogleGenAI({ apiKey: serverEnv.GEMINI_API_KEY });
-
-    serviceLog.info("generate-section-description", {
-        maxOutputTokens: SECTION_DESCRIPTION_OUTPUT_TOKEN_LIMIT,
-        model: SECTION_DESCRIPTION_MODEL,
-        promptLength: args.prompt.length,
-    });
-
-    const modelResponse = await ai.models.generateContent({
-        config: {
+    const rawText = await generateModelContent(
+        {
             httpOptions: {
                 retryOptions: {
                     attempts: SECTION_RETRY_ATTEMPTS,
                 },
                 timeout: SECTION_DESCRIPTION_TIMEOUT_MS,
             },
+            logLabel: "generate-section-description",
             maxOutputTokens: SECTION_DESCRIPTION_OUTPUT_TOKEN_LIMIT,
-            responseMimeType: "application/json",
             responseSchema: {
                 description:
                     "A single-sentence summary of the shared themes across the provided items.",
@@ -1066,19 +1101,17 @@ export async function generateSectionDescription(args: {
             },
             systemInstruction:
                 "You write one-sentence UI summaries. Return plain text only, with no preamble. Never mention item counts or platform names, and avoid stock lead-ins.",
-            temperature: SECTION_TEMPERATURE,
         },
-        contents: args.prompt,
-        model: SECTION_DESCRIPTION_MODEL,
-    });
+        args.prompt
+    );
 
     let rawSummary: string | undefined;
     try {
-        const parsed = JSON.parse(modelResponse.text ?? "{}");
+        const parsed = JSON.parse(rawText ?? "{}");
         rawSummary =
             typeof parsed.summary === "string" ? parsed.summary : undefined;
     } catch {
-        rawSummary = modelResponse.text ?? undefined;
+        rawSummary = rawText ?? undefined;
     }
 
     return { rawSummary };
@@ -1086,31 +1119,19 @@ export async function generateSectionDescription(args: {
 
 const SECTION_DESCRIPTION_EXPANDED_TIMEOUT_MS = 20_000;
 
-interface ExpandedSectionDescriptionResult {
-    rawConclusions: string | undefined;
-}
-
 export async function generateExpandedSectionDescription(args: {
     prompt: string;
 }): Promise<ExpandedSectionDescriptionResult> {
-    const ai = new GoogleGenAI({ apiKey: serverEnv.GEMINI_API_KEY });
-
-    serviceLog.info("generate-expanded-section-description", {
-        maxOutputTokens: SECTION_DESCRIPTION_EXPANDED_OUTPUT_TOKEN_LIMIT,
-        model: SECTION_DESCRIPTION_MODEL,
-        promptLength: args.prompt.length,
-    });
-
-    const modelResponse = await ai.models.generateContent({
-        config: {
+    const rawConclusions = await generateModelContent(
+        {
             httpOptions: {
                 retryOptions: {
                     attempts: SECTION_RETRY_ATTEMPTS,
                 },
                 timeout: SECTION_DESCRIPTION_EXPANDED_TIMEOUT_MS,
             },
+            logLabel: "generate-expanded-section-description",
             maxOutputTokens: SECTION_DESCRIPTION_EXPANDED_OUTPUT_TOKEN_LIMIT,
-            responseMimeType: "application/json",
             responseSchema: {
                 description:
                     "A structured list of distilled conclusions extracted from the provided items.",
@@ -1129,13 +1150,9 @@ export async function generateExpandedSectionDescription(args: {
             },
             systemInstruction:
                 "You extract only final conclusions from content. Return a JSON object with a 'conclusions' array. Each conclusion is a single self-contained sentence. No preamble, no commentary, no markdown, no item counts, no platform names.",
-            temperature: SECTION_TEMPERATURE,
         },
-        contents: args.prompt,
-        model: SECTION_DESCRIPTION_MODEL,
-    });
-
-    const rawConclusions = modelResponse.text ?? undefined;
+        args.prompt
+    );
 
     return { rawConclusions };
 }

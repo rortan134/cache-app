@@ -66,8 +66,6 @@ function denialMessage(reason: ReturnType<typeof denialReason>): string {
             return "Your AI usage quota has been reached. Please try again later.";
         case "prompt_injection":
             return "The request was blocked because it looks like prompt injection.";
-        case "forbidden":
-            return "The AI request was blocked.";
         default:
             return "The AI request was blocked.";
     }
