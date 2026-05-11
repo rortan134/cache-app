@@ -1664,6 +1664,7 @@ interface LibraryResultsProps {
     layoutMode: LayoutMode;
     onCollapseAllSections?: () => void;
     onCopyLink: (item: LibraryItem) => void;
+    onCreateCollectionFromResults?: () => void;
     onDelete: (item: LibraryItem) => void;
     onExpandAllSections?: () => void;
     onOpenInNewTab: (item: LibraryItem) => void;
@@ -1689,6 +1690,7 @@ function renderLibraryGridBody({
     enableSectionCollapse,
     onCollapseAllSections,
     onCopyLink,
+    onCreateCollectionFromResults,
     onDelete,
     onExpandAllSections,
     onOpenNote,
@@ -1736,6 +1738,11 @@ function renderLibraryGridBody({
                 layoutMode={layoutMode}
                 onCollapseAll={onCollapseAllSections}
                 onCopyLink={onCopyLink}
+                onCreateCollectionFromResults={
+                    section.title == null
+                        ? onCreateCollectionFromResults
+                        : undefined
+                }
                 onDelete={onDelete}
                 onExpandAll={onExpandAllSections}
                 onOpenInNewTab={onOpenInNewTab}
@@ -2838,6 +2845,7 @@ interface SectionProps extends GridProps {
     collapsible?: boolean;
     emptyHint: string;
     onCollapseAll?: () => void;
+    onCreateCollectionFromResults?: () => void;
     onExpandAll?: () => void;
     onToggle?: () => void;
     title: string;
@@ -4038,6 +4046,7 @@ function BrowserSection({
     onUpdateItemCollections,
     onToggle,
     onCollapseAll,
+    onCreateCollectionFromResults,
     onExpandAll,
     pendingDeleteItemId,
     title,
@@ -4153,9 +4162,29 @@ function BrowserSection({
                                 {items.length}
                             </span>
                         </div>
-                        <Button size="icon-sm" variant="ghost">
-                            <Ellipsis className="size-4" />
-                        </Button>
+                        {onCreateCollectionFromResults ? (
+                            <Menu>
+                                <MenuTrigger
+                                    render={
+                                        <Button size="icon-sm" variant="ghost">
+                                            <Ellipsis className="size-4" />
+                                        </Button>
+                                    }
+                                />
+                                <MenuPopup align="end">
+                                    <MenuItem
+                                        onClick={onCreateCollectionFromResults}
+                                    >
+                                        <CircleFadingPlus className="size-4.5 text-muted-foreground" />
+                                        Create collection with results
+                                    </MenuItem>
+                                </MenuPopup>
+                            </Menu>
+                        ) : (
+                            <Button size="icon-sm" variant="ghost">
+                                <Ellipsis className="size-4" />
+                            </Button>
+                        )}
                     </div>
                 </ContextMenuTrigger>
                 {collapsible && (
@@ -5518,6 +5547,9 @@ export function Browser({
                     layoutMode={layoutMode}
                     onCollapseAllSections={collapseAllSections}
                     onCopyLink={handleCopyLink}
+                    onCreateCollectionFromResults={() =>
+                        handleCreateResultsDialogOpenChange(true)
+                    }
                     onDelete={handleRequestDelete}
                     onExpandAllSections={expandAllSections}
                     onOpenInNewTab={handleOpenInNewTab}
