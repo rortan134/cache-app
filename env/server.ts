@@ -15,7 +15,7 @@ export const serverEnv = createEnv({
 
         GEMINI_API_KEY: z.string(),
         GOOGLE_CLIENT_ID: z.string(),
-        GOOGLE_CLIENT_SECRET: z.string(),
+        GOOGLE_CLIENT_SECRET: z.string().startsWith("G"),
 
         GT_API_KEY: z.string(),
         GT_PROJECT_ID: z.string(),
