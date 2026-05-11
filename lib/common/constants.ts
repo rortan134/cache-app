@@ -57,3 +57,36 @@ export const FREE_LIBRARY_PREVIEW_ITEMS = 12;
 export const MAX_COLLECTIONS_PER_ITEM = 100;
 export const BATCH_UPDATE_MAX_ITEMS = 500;
 export const MAX_COLLECTIONS_PER_BATCH = 100;
+
+export const IMAGE_MIME_TYPES = {
+    avif: "image/avif",
+    bmp: "image/bmp",
+    gif: "image/gif",
+    ico: "image/x-icon",
+    jfif: "image/jfif",
+    jpg: "image/jpeg",
+    png: "image/png",
+    svg: "image/svg+xml",
+    webp: "image/webp",
+} as const;
+
+export const STRING_MIME_TYPES = {
+    csv: "text/csv",
+    html: "text/html",
+    json: "application/json",
+    text: "text/plain",
+} as const;
+
+export const MIME_TYPES = {
+    ...STRING_MIME_TYPES,
+    // binary
+    binary: "application/octet-stream",
+    // image
+    ...IMAGE_MIME_TYPES,
+} as const;
+
+export const EXPORT_IMAGE_TYPES = {
+    clipboard: "clipboard",
+    png: "png",
+    svg: "svg",
+} as const;
