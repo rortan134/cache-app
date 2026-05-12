@@ -18,9 +18,12 @@ const initialFeedbackActionState: FeedbackActionState = {
     status: "idle",
 } satisfies FeedbackActionState;
 
-export function FeedbackWidget(
-    props: React.ComponentProps<typeof PopoverTrigger> & { context?: string }
-) {
+interface FeedbackWidgetProps
+    extends React.ComponentProps<typeof PopoverTrigger> {
+    context: string;
+}
+
+export function FeedbackWidget({ context, ...props }: FeedbackWidgetProps) {
     const pathname = usePathname();
     const [isOpen, setIsOpen] = useState(false);
     const [state, formAction] = useActionState(
@@ -72,6 +75,7 @@ export function FeedbackWidget(
                         className="space-y-4"
                         ref={formRef}
                     >
+                        <input name="context" type="hidden" value={context} />
                         <input name="pagePath" type="hidden" value={pathname} />
                         <label className="sr-only" htmlFor="feedback-message">
                             Feedback message

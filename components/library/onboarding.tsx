@@ -1,7 +1,7 @@
 "use client";
 
 import { useIntegrationsListControls } from "@/components/library/integrations";
-import { useWorkspace } from "@/components/library/workspace";
+import { useWorkspaceContext } from "@/components/library/workspace";
 import { Button } from "@/components/ui/button";
 import {
     Dialog,
@@ -130,7 +130,8 @@ export function LibraryOnboardingMenu({
     onOpenCommand,
     onSetActionFeedback,
 }: LibraryOnboardingMenuProps) {
-    const { collections, items, setCollections, setItems } = useWorkspace();
+    const { collections, items, setCollections, setItems } =
+        useWorkspaceContext();
     const { setOpen: setSidebarOpen } = useSidebar();
     const { openIntegrationsList } = useIntegrationsListControls();
     const { completedOnboardingTaskIds, setCompletedOnboardingTaskIds } =

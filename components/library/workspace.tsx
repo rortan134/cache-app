@@ -237,7 +237,7 @@ export const RequestCreateRefContext = React.createContext<React.RefObject<
  * Must be rendered inside `WorkspaceProvider` so components can read and
  * mutate collections, items, and selection state.
  */
-export function useWorkspace(): LibraryWorkspaceContextValue {
+export function useWorkspaceContext(): LibraryWorkspaceContextValue {
     const context = React.use(WorkspaceContext);
     if (!context) {
         throw new Error(

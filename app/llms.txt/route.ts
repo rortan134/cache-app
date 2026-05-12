@@ -1,4 +1,4 @@
-# Cache
+const llmsFullContent = `# Cache
 > Unify your bookmarks across all platforms into a single, searchable, actionable library. Save, organize, review, and synthesize content you care about.
 
 ## Core features
@@ -21,11 +21,11 @@ Cache exposes a Model Context Protocol (MCP) server so AI agents can read and wr
 
 ### Setup
 
-1. Visit `https://cachd.app/mcp/prompt` (POST) while authenticated to get a personalized setup prompt with your Bearer token, or generate one programmatically.
+1. Visit \`https://cachd.app/mcp/prompt\` (POST) while authenticated to get a personalized setup prompt with your Bearer token, or generate one programmatically.
 2. Configure your MCP client:
 
-**Claude Desktop** (`claude_desktop_config.json`):
-```json
+**Claude Desktop** (\`claude_desktop_config.json\`):
+\`\`\`json
 {
   "mcpServers": {
     "cache": {
@@ -36,23 +36,23 @@ Cache exposes a Model Context Protocol (MCP) server so AI agents can read and wr
     }
   }
 }
-```
+\`\`\`
 
-**Cursor / other clients**: Use the endpoint `https://cachd.app/mcp` with the Bearer token.
+**Cursor / other clients**: Use the endpoint \`https://cachd.app/mcp\` with the Bearer token.
 
 ### Available tools
 
 | Tool | Description | Parameters |
 |------|-------------|------------|
-| `list_library_items` | Search and browse saved bookmarks/notes | `collectionId?`, `limit?` (1-50), `search?` |
-| `get_library_item` | Read a specific item by ID | `itemId` (required) |
-| `add_library_item` | Save a new bookmark or note | `url` (required for bookmarks), `caption?`, `noteContentText?` |
-| `delete_library_item` | Remove an item | `itemId` (required) |
-| `list_collections` | List all collections with item counts | _(none)_ |
+| \`list_library_items\` | Search and browse saved bookmarks/notes | \`collectionId?\`, \`limit?\` (1-50), \`search?\` |
+| \`get_library_item\` | Read a specific item by ID | \`itemId\` (required) |
+| \`add_library_item\` | Save a new bookmark or note | \`url\` (required for bookmarks), \`caption?\`, \`noteContentText?\` |
+| \`delete_library_item\` | Remove an item | \`itemId\` (required) |
+| \`list_collections\` | List all collections with item counts | _(none)_ |
 
 ## Data model
 
-- **LibraryItem** — A saved bookmark, folder, or note. Has a `kind` (bookmark, folder, note) and `source` (cache_note, chrome_bookmarks, github_starred_repositories, instagram, pinterest, tiktok, x_bookmarks, youtube_watch_later, etc.). Can belong to multiple collections.
+- **LibraryItem** — A saved bookmark, folder, or note. Has a \`kind\` (bookmark, folder, note) and \`source\` (cache_note, chrome_bookmarks, github_starred_repositories, instagram, pinterest, tiktok, x_bookmarks, youtube_watch_later, etc.). Can belong to multiple collections.
 - **Collection** — A named group of library items with optional description, priority, and public sharing.
 - **User** — Account with OAuth (Google) or email/password authentication.
 
@@ -63,18 +63,16 @@ Cache exposes a Model Context Protocol (MCP) server so AI agents can read and wr
 - Max 50 items per MCP list query
 - Max 100 collections per item
 
-## Public API endpoints
-
-- `GET /api/preview?url=<url>&type=image|video` — Fetch link preview metadata
-- `POST /api/summary` — Generate AI summary for a collection/section
-- `POST /api/auth/stripe/webhook` — Stripe subscription webhook
-- `GET /api/user/extension-ingest-token` — Get browser extension ingest token
-
-## Authentication
-
-Cache uses [better-auth](https://better-auth.com) with Google OAuth and email/password. Sessions are managed server-side. The MCP server uses stateless HMAC Bearer tokens signed with `BETTER_AUTH_SECRET`.
-
 ## Pricing
 
 - **Free**: Unlimited bookmarks, collections, AI summaries, 7-day review workflow
 - **Pro**: Unlimited review, higher AI quota, priority support — monthly or yearly via Stripe
+`;
+
+export const GET = () =>
+    new Response(llmsFullContent, {
+        headers: {
+            "Cache-Control": "public, max-age=86400, s-maxage=86400",
+            "Content-Type": "text/markdown; charset=utf-8",
+        },
+    });

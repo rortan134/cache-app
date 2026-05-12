@@ -2,12 +2,12 @@
 
 import { useSubscriptionAccess } from "@/components/billing/subscription";
 import {
-    RequestCreateRefContext,
     appendCollection,
     mergeCollectionSummaries,
+    RequestCreateRefContext,
     sortCollections,
     useCollectionsSortStore,
-    useWorkspace,
+    useWorkspaceContext,
     type CollectionSortField,
 } from "@/components/library/workspace";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -49,7 +49,7 @@ import {
     PriorityNoneIcon,
 } from "@/components/ui/icons";
 import { Input } from "@/components/ui/input";
-import { CmdKbd, Kbd } from "@/components/ui/kbd";
+import { CmdKbd, Kbd, ShiftKbd } from "@/components/ui/kbd";
 import {
     Menu,
     MenuCheckboxItem,
@@ -467,6 +467,29 @@ function useCollectionsListItemContext() {
     return context;
 }
 
+type CollectionsContextValue = ReturnType<typeof useCollectionsController>;
+
+const CollectionsContext = React.createContext<CollectionsContextValue | null>(
+    null
+);
+
+function useCollections(): CollectionsContextValue {
+    const context = React.use(CollectionsContext);
+    if (!context) {
+        throw new Error(
+            "Collections sub-components must be used within a CollectionsProvider."
+        );
+    }
+    return context;
+}
+
+function CollectionsProvider({ children }: { children: React.ReactNode }) {
+    const controller = useCollectionsController();
+    return (
+        <CollectionsContext value={controller}>{children}</CollectionsContext>
+    );
+}
+
 function updateById<T extends LibraryCollectionTag>(
     collections: T[],
     id: string,
@@ -656,169 +679,93 @@ async function disableCollectionSharingSafely(
     }
 }
 
-/**
- * Composed workspace root that wires the controller into the
- * `CollectionsList` compound components and dialogs.
- *
- * Also registers itself with the `RequestCreateRefContext` so any parent
- * can open the create dialog imperatively via `requestCreate()`.
- */
 export function Collections() {
-    const controller = useCollections();
-    const requestCreateRef = React.useContext(RequestCreateRefContext);
-
-    React.useEffect(() => {
-        if (requestCreateRef) {
-            requestCreateRef.current = (itemId?: string) =>
-                controller.requestCreate(itemId);
-        }
-        return () => {
-            if (requestCreateRef) {
-                requestCreateRef.current = null;
-            }
-        };
-    }, [controller.requestCreate, requestCreateRef]);
-
     return (
-        <>
-            {controller.favoriteCollectionSummaries.length > 0 ? (
-                <CollectionsFavoritesList
-                    collectionLabels={controller.favoriteCollectionSummaries.map(
-                        (collection) => collection.name
-                    )}
-                    data-sidebar-collapsible=""
-                    favoriteCount={
-                        controller.favoriteCollectionSummaries.length
-                    }
-                    isOpen={controller.isFavoritesListOpen}
-                    onOpenChange={controller.setIsFavoritesListOpen}
-                >
-                    <DisclosureList maxVisible={10}>
-                        {controller.favoriteCollectionSummaries.map(
-                            (collection) => (
-                                <CollectionsListItemRow
-                                    collection={collection}
-                                    controller={controller}
-                                    isFavorite
-                                    key={collection.id}
-                                />
-                            )
-                        )}
-                    </DisclosureList>
-                </CollectionsFavoritesList>
-            ) : null}
-            <CollectionsList
+        <CollectionsProvider>
+            <CollectionsFavoritesList
+                className="group/collapsible"
                 data-sidebar-collapsible=""
-                onOpenChange={controller.setIsCollectionsListOpen}
-                open={controller.isCollectionsListOpen}
             >
                 <CollectionsListToolbar className="group">
-                    <CollectionsListTrigger
-                        collectionLabels={controller.collectionLabels}
-                        isOpen={controller.isCollectionsListOpen}
-                    >
-                        <span className="min-w-0 text-xs">
-                            <T>Collections</T> (
-                            {controller.collectionSummaries.length})
-                        </span>
+                    <CollectionFavoritesListTrigger>
+                        <CollectionsFavoritesListTriggerValue>
+                            <T>Favorites</T>
+                        </CollectionsFavoritesListTriggerValue>
+                        <ChevronDownFilledIcon className="-ml-0.5" />
+                    </CollectionFavoritesListTrigger>
+                    <CollectionsListToolbarGroup className="absolute right-1">
+                        <Kbd className="bg-transparent opacity-0 group-hover:opacity-50 group-not-has-data-panel-open/collapsible:hidden">
+                            <ShiftKbd />
+                            <CmdKbd />C
+                        </Kbd>
+                    </CollectionsListToolbarGroup>
+                </CollectionsListToolbar>
+                <CollectionsListPanel>
+                    <DisclosureList maxVisible={10}>
+                        <CollectionsFavoritesListContent>
+                            {(collection) => (
+                                <CollectionsListItemRow
+                                    collection={collection}
+                                    key={collection.id}
+                                />
+                            )}
+                        </CollectionsFavoritesListContent>
+                    </DisclosureList>
+                </CollectionsListPanel>
+            </CollectionsFavoritesList>
+            <CollectionsList
+                className="group/collapsible"
+                data-sidebar-collapsible=""
+            >
+                <CollectionsListToolbar className="group">
+                    <CollectionsListTrigger>
+                        <CollectionsListTriggerValue>
+                            <T>Collections</T>
+                        </CollectionsListTriggerValue>
                         <ChevronDownFilledIcon className="-ml-0.5" />
                     </CollectionsListTrigger>
                     <CollectionsListToolbarGroup className="absolute right-1">
-                        {controller.isCollectionsListOpen ? null : (
-                            <Kbd className="bg-transparent opacity-0 group-hover:opacity-50">
-                                <CmdKbd />C
-                            </Kbd>
-                        )}
+                        <Kbd className="bg-transparent opacity-0 group-hover:opacity-50 group-not-has-data-panel-open/collapsible:hidden">
+                            <CmdKbd />C
+                        </Kbd>
                         <CollectionsListToolbarButton
-                            render={
-                                <CollectionsListFilterClearButton
-                                    isVisible={controller.hasAnySelected}
-                                    onClick={
-                                        controller.onClearCollectionFilters
-                                    }
-                                />
-                            }
+                            render={<CollectionsListFilterClearButton />}
                         />
                         <CollectionsListToolbarButton
-                            className={
-                                controller.isCollectionsListOpen
-                                    ? undefined
-                                    : "hidden"
-                            }
-                            render={
-                                <CollectionsListSortingCombobox
-                                    inputValue={controller.sort.inputValue}
-                                    isOpen={controller.sort.isOpen}
-                                    onInputValueChange={
-                                        controller.sort.onInputValueChange
-                                    }
-                                    onOpenChange={controller.sort.onOpenChange}
-                                    onValueChange={
-                                        controller.sort.onValueChange
-                                    }
-                                    value={controller.sort.value}
-                                />
-                            }
+                            render={<CollectionsListSortingCombobox />}
                         />
                         <CollectionsListToolbarButton
-                            render={
-                                <Button
-                                    onClick={() => controller.requestCreate()}
-                                    size="icon-xs"
-                                    title={`Create a new collection (${getSystemControlKey()}N)`}
-                                    variant="ghost"
-                                >
-                                    <PlusIcon
-                                        aria-hidden
-                                        className="inline-block size-3.5 shrink-0"
-                                        focusable="false"
-                                    />
-                                </Button>
-                            }
+                            render={<CollectionsListCreateButton />}
                         />
                     </CollectionsListToolbarGroup>
                 </CollectionsListToolbar>
                 <CollectionsListPanel>
                     <div className="p-1.5 pt-1">
-                        <CollectionsListNoticeCallout />
+                        <CollectionsListCalloutPopover />
                     </div>
-                    {controller.collectionSummaries.length === 0 ? (
-                        <CollectionsListEmpty>
-                            <T>
-                                No collections found. Create your first
-                                collection to start grouping saved items.
-                            </T>
-                        </CollectionsListEmpty>
-                    ) : (
-                        <DisclosureList maxVisible={10}>
-                            {controller.collectionSummaries.map(
-                                (collection) => (
-                                    <CollectionsListItemRow
-                                        collection={collection}
-                                        controller={controller}
-                                        isFavorite={controller.favoriteCollectionIdSet.has(
-                                            collection.id
-                                        )}
-                                        key={collection.id}
-                                    />
-                                )
+                    <CollectionsListEmpty>
+                        <T>
+                            No collections found. Create your first collection
+                            to start grouping saved items.
+                        </T>
+                    </CollectionsListEmpty>
+                    <DisclosureList maxVisible={10}>
+                        <CollectionsListContent>
+                            {(collection) => (
+                                <CollectionsListItemRow
+                                    collection={collection}
+                                    key={collection.id}
+                                />
                             )}
-                        </DisclosureList>
-                    )}
+                        </CollectionsListContent>
+                    </DisclosureList>
                 </CollectionsListPanel>
             </CollectionsList>
-            <div data-sidebar-collapsible="">
-                <CollectionsListStatus
-                    onDismiss={controller.onDismissFeedback}
-                    tone={controller.feedback?.tone}
-                >
-                    {controller.feedback?.message}
-                </CollectionsListStatus>
-            </div>
-            <RenameDialog {...controller.renameDialog} />
-            <CreateDialog {...controller.createDialog} />
-            <DeleteDialog {...controller.deleteDialog} />
-        </>
+            <CollectionsListStatus data-sidebar-collapsible="" />
+            <RenameDialog />
+            <CreateDialog />
+            <DeleteDialog />
+        </CollectionsProvider>
     );
 }
 
@@ -828,7 +775,7 @@ export function Collections() {
  * Coordinates dialog open states, server actions, optimistic updates,
  * keyboard shortcuts, and feedback messages.
  */
-function useCollections() {
+function useCollectionsController() {
     const {
         disabled: isSmartCollectionsDisabled,
         mutate: mutateSmartCollectionsPreference,
@@ -844,7 +791,8 @@ function useCollections() {
         selectedCollectionIds,
         setCollections,
         setItems,
-    } = useWorkspace();
+    } = useWorkspaceContext();
+
     const { hasAccess } = useSubscriptionAccess();
 
     // Create dialog state
@@ -957,7 +905,6 @@ function useCollections() {
             cancelled = true;
         };
     }, [collectionPreviewThumbnailUrlsById]);
-    const { copyToClipboard } = useCopyToClipboard();
 
     const {
         favoriteCollectionIds,
@@ -976,6 +923,8 @@ function useCollections() {
         setShouldExcludeArchives,
         shouldExcludeArchives,
     } = useCollectionsSortStore();
+
+    const { copyToClipboard } = useCopyToClipboard();
 
     const [isSortOpen, setIsSortOpen] = React.useState(false);
     const [sortInputValue, setSortInputValue] = React.useState("");
@@ -1101,6 +1050,15 @@ function useCollections() {
         },
         { description: "Toggle collections panel", preventDefault: true },
         [isCollectionsListOpen, setIsCollectionsListOpen]
+    );
+
+    useHotkeys(
+        "mod+shift+c",
+        () => {
+            setIsFavoritesListOpen(!isFavoritesListOpen);
+        },
+        { description: "Toggle favorites panel", preventDefault: true },
+        [isFavoritesListOpen, setIsFavoritesListOpen]
     );
 
     useHotkeys(
@@ -1645,19 +1603,15 @@ function useCollectionItemHotkey(
 
 interface CollectionsListItemRowProps {
     collection: LibraryCollectionSummary;
-    controller: ReturnType<typeof useCollections>;
-    isFavorite: boolean;
 }
 
 /**
  * Fully wired collection row used by both regular collections and Favorites.
  */
-function CollectionsListItemRow({
-    collection,
-    controller,
-    isFavorite,
-}: CollectionsListItemRowProps) {
+function CollectionsListItemRow({ collection }: CollectionsListItemRowProps) {
+    const controller = useCollections();
     const isSelected = controller.selectedCollectionIds.includes(collection.id);
+    const isFavorite = controller.favoriteCollectionIdSet.has(collection.id);
 
     return (
         <CollectionsListItem collection={collection} isSelected={isSelected}>
@@ -1970,13 +1924,29 @@ function CollectionsList({
     className,
     ...props
 }: React.ComponentProps<typeof Collapsible>) {
-    return <Collapsible className={cn("relative", className)} {...props} />;
-}
+    const controller = useCollections();
+    const requestCreateRef = React.useContext(RequestCreateRefContext);
 
-interface CollectionsListTriggerProps
-    extends React.ComponentProps<typeof CollapsibleTrigger> {
-    collectionLabels: readonly string[];
-    isOpen: boolean;
+    React.useEffect(() => {
+        if (requestCreateRef) {
+            requestCreateRef.current = (itemId?: string) =>
+                controller.requestCreate(itemId);
+        }
+        return () => {
+            if (requestCreateRef) {
+                requestCreateRef.current = null;
+            }
+        };
+    }, [controller.requestCreate, requestCreateRef]);
+
+    return (
+        <Collapsible
+            className={cn("relative", className)}
+            onOpenChange={controller.setIsCollectionsListOpen}
+            open={controller.isCollectionsListOpen}
+            {...props}
+        />
+    );
 }
 
 /**
@@ -1984,11 +1954,11 @@ interface CollectionsListTriggerProps
  *
  * Shows a tooltip with all collection labels on hover when collapsed.
  */
-function CollectionsListTrigger({
-    collectionLabels,
-    isOpen,
-    ...props
-}: CollectionsListTriggerProps) {
+function CollectionsListTrigger(
+    props: React.ComponentProps<typeof CollapsibleTrigger>
+) {
+    const { isCollectionsListOpen, collectionLabels } = useCollections();
+
     return (
         <Popover>
             <PopoverTrigger
@@ -1998,7 +1968,11 @@ function CollectionsListTrigger({
                         render={
                             <SidebarItem render={<button type="button" />} />
                         }
-                        title={isOpen ? "Collapse group" : "Expand group"}
+                        title={
+                            isCollectionsListOpen
+                                ? "Collapse group"
+                                : "Expand group"
+                        }
                         {...props}
                     />
                 }
@@ -2006,7 +1980,7 @@ function CollectionsListTrigger({
             <PopoverPopup
                 align="start"
                 positionerClassname={cn(
-                    isOpen && "pointer-events-none! hidden!"
+                    isCollectionsListOpen && "pointer-events-none! hidden!"
                 )}
                 positionMethod="fixed"
                 tooltipStyle
@@ -2018,6 +1992,16 @@ function CollectionsListTrigger({
                 </p>
             </PopoverPopup>
         </Popover>
+    );
+}
+
+function CollectionsListTriggerValue({ children }: React.PropsWithChildren) {
+    const controller = useCollections();
+
+    return (
+        <span className="min-w-0 text-xs">
+            {children}&nbsp;({controller.collectionSummaries.length})
+        </span>
     );
 }
 
@@ -2033,44 +2017,98 @@ function CollectionsListPanel({
     return <CollapsiblePanel className={cn("pl-1", className)} {...props} />;
 }
 
-interface CollectionsFavoritesListProps
-    extends React.ComponentProps<typeof Collapsible> {
-    collectionLabels: readonly string[];
-    favoriteCount: number;
-    isOpen: boolean;
-}
-
 /**
  * Separate top-level collapsible section for client-side pinned collections.
  */
 function CollectionsFavoritesList({
-    children,
     className,
-    collectionLabels,
-    favoriteCount,
-    isOpen,
     ...props
-}: CollectionsFavoritesListProps) {
+}: React.ComponentProps<typeof Collapsible>) {
+    const {
+        favoriteCollectionSummaries,
+        setIsFavoritesListOpen,
+        isFavoritesListOpen,
+    } = useCollections();
+
+    if (!favoriteCollectionSummaries.length) {
+        return null;
+    }
+
     return (
         <Collapsible
             className={cn("relative", className)}
+            onOpenChange={setIsFavoritesListOpen}
+            open={isFavoritesListOpen}
             {...props}
-            open={isOpen}
-        >
-            <CollectionsListToolbar className="group">
-                <CollectionsListTrigger
-                    collectionLabels={collectionLabels}
-                    isOpen={isOpen}
-                >
-                    <span className="flex min-w-0 items-center gap-1.5 text-xs">
-                        <span>Favorites</span> ({favoriteCount})
-                    </span>
-                    <ChevronDownFilledIcon className="-ml-0.5" />
-                </CollectionsListTrigger>
-            </CollectionsListToolbar>
-            <CollectionsListPanel>{children}</CollectionsListPanel>
-        </Collapsible>
+        />
     );
+}
+
+function CollectionFavoritesListTrigger(
+    props: React.ComponentProps<typeof CollapsibleTrigger>
+) {
+    const { isFavoritesListOpen } = useCollections();
+
+    return (
+        <CollapsibleTrigger
+            render={<SidebarItem render={<button type="button" />} />}
+            title={isFavoritesListOpen ? "Collapse group" : "Expand group"}
+            {...props}
+        />
+    );
+}
+
+function CollectionsFavoritesListTriggerValue({
+    className,
+    children,
+    ...props
+}: React.ComponentProps<"span">) {
+    const controller = useCollections();
+
+    return (
+        <span className={cn("min-w-0 text-xs", className)} {...props}>
+            {children}&nbsp;({controller.favoriteCollectionSummaries.length})
+        </span>
+    );
+}
+
+interface CollectionsFavoritesListContentProps {
+    children: (
+        item: LibraryCollectionSummary,
+        index: number
+    ) => React.ReactNode;
+}
+
+/**
+ * Renders filtered list items.
+ * Doesn't render its own HTML element.
+ */
+function CollectionsFavoritesListContent({
+    children,
+}: CollectionsFavoritesListContentProps) {
+    const { favoriteCollectionSummaries } = useCollections();
+
+    if (!favoriteCollectionSummaries.length) {
+        return null;
+    }
+
+    return favoriteCollectionSummaries.map(children);
+}
+
+/**
+ * Renders filtered list items.
+ * Doesn't render its own HTML element.
+ */
+function CollectionsListContent({
+    children,
+}: CollectionsFavoritesListContentProps) {
+    const { collectionSummaries } = useCollections();
+
+    if (!collectionSummaries.length) {
+        return null;
+    }
+
+    return collectionSummaries.map(children);
 }
 
 /**
@@ -2133,6 +2171,12 @@ function CollectionsListEmpty({
     className,
     ...props
 }: React.ComponentProps<"p">) {
+    const { collectionSummaries } = useCollections();
+
+    if (collectionSummaries.length > 0) {
+        return null;
+    }
+
     return (
         <div className="flex flex-col items-center justify-center gap-4 rounded-2xl border border-border/30 border-dashed px-4 py-7 text-center">
             <p
@@ -2145,12 +2189,6 @@ function CollectionsListEmpty({
         </div>
     );
 }
-
-interface CollectionsListStatusProps extends React.ComponentProps<"p"> {
-    onDismiss: () => void;
-    tone?: CollectionsListStatusTone;
-}
-
 /**
  * Accessibility-friendly status message for collection operations.
  *
@@ -2159,10 +2197,11 @@ interface CollectionsListStatusProps extends React.ComponentProps<"p"> {
  */
 function CollectionsListStatus({
     className,
-    onDismiss,
-    tone = "success",
     ...props
-}: CollectionsListStatusProps) {
+}: React.ComponentProps<"p">) {
+    const { feedback, onDismissFeedback } = useCollections();
+    const tone = feedback?.tone;
+
     if (!props.children) {
         return null;
     }
@@ -2170,6 +2209,7 @@ function CollectionsListStatus({
     return (
         <CollectionsListInlineRow>
             <p
+                aria-atomic="true"
                 aria-live="polite"
                 className={cn(
                     "text-xs italic leading-tight",
@@ -2180,17 +2220,14 @@ function CollectionsListStatus({
                 )}
                 role={tone === "error" ? "alert" : "status"}
                 {...props}
-            />
-            <Button onClick={onDismiss} size="xs" variant="ghost">
+            >
+                {feedback?.message}
+            </p>
+            <Button onClick={onDismissFeedback} size="xs" variant="ghost">
                 Dismiss
             </Button>
         </CollectionsListInlineRow>
     );
-}
-
-interface CollectionsListFilterClearProps
-    extends React.ComponentProps<typeof Button> {
-    isVisible: boolean;
 }
 
 /**
@@ -2199,17 +2236,19 @@ interface CollectionsListFilterClearProps
  * Returns `null` when no filters are active so the layout doesn't reserve
  * space for an invisible control.
  */
-function CollectionsListFilterClearButton({
-    isVisible,
-    ...props
-}: CollectionsListFilterClearProps) {
-    if (!isVisible) {
+function CollectionsListFilterClearButton(
+    props: React.ComponentProps<typeof Button>
+) {
+    const { hasAnySelected, onClearCollectionFilters } = useCollections();
+
+    if (!hasAnySelected) {
         return null;
     }
 
     return (
         <Button
             aria-label="Clear selected collections"
+            onClick={onClearCollectionFilters}
             size="icon-xs"
             variant="ghost"
             {...props}
@@ -2223,16 +2262,6 @@ function CollectionsListFilterClearButton({
     );
 }
 
-interface CollectionsListSortingComboboxProps
-    extends Omit<React.ComponentProps<typeof ComboboxTrigger>, "value"> {
-    inputValue: string;
-    isOpen: boolean;
-    onInputValueChange: (value: string) => void;
-    onOpenChange: (isOpen: boolean) => void;
-    onValueChange: (value: ComboboxValue | null) => void;
-    value: ComboboxValue;
-}
-
 /**
  * Combobox for sorting collections, filtering by text match, or toggling
  * archive visibility.
@@ -2241,15 +2270,19 @@ interface CollectionsListSortingComboboxProps
  * from each group simultaneously, causing the built-in ItemIndicator to
  * render for both the active sort and the active view option.
  */
-function CollectionsListSortingCombobox({
-    inputValue,
-    isOpen,
-    onInputValueChange,
-    onOpenChange,
-    onValueChange,
-    value,
-    ...props
-}: CollectionsListSortingComboboxProps) {
+function CollectionsListSortingCombobox(
+    props: React.ComponentProps<typeof ComboboxTrigger>
+) {
+    const { sort, isCollectionsListOpen } = useCollections();
+    const {
+        inputValue,
+        isOpen,
+        onInputValueChange,
+        onOpenChange,
+        onValueChange,
+        value,
+    } = sort;
+
     return (
         <Combobox
             autoHighlight
@@ -2266,7 +2299,13 @@ function CollectionsListSortingCombobox({
             value={value}
         >
             <ComboboxTrigger
-                render={<Button size="icon-xs" variant="ghost" />}
+                render={
+                    <Button
+                        className={isCollectionsListOpen ? undefined : "hidden"}
+                        size="icon-xs"
+                        variant="ghost"
+                    />
+                }
                 title="Sort and organize collections"
                 {...props}
             >
@@ -2319,16 +2358,41 @@ function CollectionsListSortingCombobox({
     );
 }
 
+function CollectionsListCreateButton(props: React.ComponentProps<"button">) {
+    const controller = useCollections();
+
+    return (
+        <Button
+            onClick={() => controller.requestCreate()}
+            size="icon-xs"
+            title={`Create a new collection (${getSystemControlKey()}N)`}
+            variant="ghost"
+            {...props}
+        >
+            <PlusIcon
+                aria-hidden
+                className="inline-block size-3.5 shrink-0"
+                focusable="false"
+            />
+        </Button>
+    );
+}
+
 /**
  * Callout that informs users when Smart Collections is active.
  */
-function CollectionsListNoticeCallout() {
+function CollectionsListCalloutPopover() {
     const controller = useCollections();
     const isDisabled = controller.isSmartCollectionsDisabled;
 
     return (
         <Popover>
-            <span aria-live="polite" className="sr-only" role="status">
+            <span
+                aria-atomic="true"
+                aria-live="polite"
+                className="sr-only"
+                role="status"
+            >
                 {isDisabled
                     ? "Smart Collections"
                     : "Smart Collections is active"}
@@ -2394,12 +2458,14 @@ function CollectionsListItem({
     className,
     collection,
     isSelected,
-    onMouseEnter,
-    onMouseLeave,
+    onMouseEnter: onMouseEnterProp,
+    onMouseLeave: onMouseLeaveProp,
     style: styleProp,
     ...props
 }: CollectionsListItemProps) {
     const [isHovered, setIsHovered] = React.useState(false);
+    const onMouseEnter = useStableCallback(onMouseEnterProp);
+    const onMouseLeave = useStableCallback(onMouseLeaveProp);
     const style = getCollectionItemStyle(collection.name, isSelected);
 
     return (
@@ -2437,7 +2503,7 @@ interface CollectionsListItemPreviewProps
  * Clicking selects the collection and closes the preview popup.
  */
 function CollectionsListItemPreview({
-    onClick,
+    onClick: onClickProp,
     thumbnails,
     ...props
 }: CollectionsListItemPreviewProps) {
@@ -2448,6 +2514,7 @@ function CollectionsListItemPreview({
         thumbnails.length
     );
     const activeThumbnail = thumbnails[activePreviewIndex];
+    const onClick = useStableCallback(onClickProp);
 
     return (
         <PreviewCard onOpenChange={setIsOpen} open={isOpen}>
@@ -2628,6 +2695,14 @@ function CollectionsListShareStatusCard({ isShared }: { isShared: boolean }) {
     );
 }
 
+interface CollectionsListShareLinkControlsProps {
+    collection: LibraryCollectionSummary;
+    isSharePending: boolean;
+    onCopyShareLink: () => void;
+    onDisableShare: () => void;
+    shareUrl: string | null;
+}
+
 /**
  * Controls shown after a collection has been shared: a read-only URL input,
  * a copy button, and a disable button.
@@ -2638,13 +2713,7 @@ function CollectionsListShareLinkControls({
     onCopyShareLink,
     onDisableShare,
     shareUrl,
-}: {
-    collection: LibraryCollectionSummary;
-    isSharePending: boolean;
-    onCopyShareLink: () => void;
-    onDisableShare: () => void;
-    shareUrl: string | null;
-}) {
+}: CollectionsListShareLinkControlsProps) {
     const shareInputId = React.useId();
 
     return (
@@ -2999,28 +3068,19 @@ function CollectionsListItemMeta({
     );
 }
 
-interface RenameDialogProps {
-    errorMessage: string | null;
-    isOpen: boolean;
-    isPending: boolean;
-    nameDraft: string;
-    onNameDraftChange: (draft: string) => void;
-    onOpenChange: (isOpen: boolean) => void;
-    onSubmit: () => void;
-}
-
 /**
  * Dialog for renaming an existing collection.
  */
-function RenameDialog({
-    errorMessage,
-    isOpen,
-    isPending,
-    nameDraft,
-    onNameDraftChange,
-    onOpenChange,
-    onSubmit,
-}: RenameDialogProps) {
+function RenameDialog() {
+    const {
+        errorMessage,
+        isOpen,
+        isPending,
+        nameDraft,
+        onNameDraftChange,
+        onOpenChange,
+        onSubmit,
+    } = useCollections().renameDialog;
     const inputId = React.useId();
 
     return (
@@ -3084,34 +3144,22 @@ function RenameDialog({
     );
 }
 
-interface CreateDialogProps {
-    descriptionDraft: string;
-    errorMessage: string | null;
-    isOpen: boolean;
-    isPending: boolean;
-    nameDraft: string;
-    onCreateFromTemplate: (templateValue: TemplateValue | null) => void;
-    onDescriptionDraftChange: (draft: string) => void;
-    onNameDraftChange: (draft: string) => void;
-    onOpenChange: (isOpen: boolean) => void;
-    onSubmit: () => void;
-}
-
 /**
  * Dialog for creating a new collection with an optional template picker.
  */
-function CreateDialog({
-    descriptionDraft,
-    errorMessage,
-    isOpen,
-    isPending,
-    nameDraft,
-    onCreateFromTemplate,
-    onDescriptionDraftChange,
-    onNameDraftChange,
-    onOpenChange,
-    onSubmit,
-}: CreateDialogProps) {
+function CreateDialog() {
+    const {
+        descriptionDraft,
+        errorMessage,
+        isOpen,
+        isPending,
+        nameDraft,
+        onCreateFromTemplate,
+        onDescriptionDraftChange,
+        onNameDraftChange,
+        onOpenChange,
+        onSubmit,
+    } = useCollections().createDialog;
     const nameInputId = React.useId();
     const descriptionInputId = React.useId();
     const { disabled } = useSmartCollectionsPreference();
@@ -3191,6 +3239,7 @@ function CreateDialog({
                         </div>
                         {errorMessage ? (
                             <p
+                                aria-atomic="true"
                                 aria-live="polite"
                                 className="text-destructive text-xs"
                                 role="alert"
@@ -3281,22 +3330,13 @@ function CreateDialog({
     );
 }
 
-interface DeleteDialogProps {
-    collection: LibraryCollectionSummary | null;
-    isPending: boolean;
-    onConfirm: () => void;
-    onOpenChange: (isOpen: boolean) => void;
-}
-
 /**
  * Confirmation dialog for deleting a collection.
  */
-function DeleteDialog({
-    collection,
-    isPending,
-    onConfirm,
-    onOpenChange,
-}: DeleteDialogProps) {
+function DeleteDialog() {
+    const { collection, isPending, onConfirm, onOpenChange } =
+        useCollections().deleteDialog;
+
     return (
         <Dialog onOpenChange={onOpenChange} open={collection !== null}>
             <DialogPopup>
@@ -3331,6 +3371,7 @@ function DeleteDialog({
 export type { CollectionSortField } from "@/components/library/workspace";
 export {
     CollectionsList,
+    CollectionsListCalloutPopover,
     CollectionsListEmpty,
     CollectionsListFilterClearButton,
     CollectionsListInlineRow,
@@ -3339,7 +3380,6 @@ export {
     CollectionsListItemPreview,
     CollectionsListItemPriorityCombobox,
     CollectionsListItemValue,
-    CollectionsListNoticeCallout,
     CollectionsListPanel,
     CollectionsListSharePopover,
     CollectionsListSortingCombobox,
@@ -3350,23 +3390,8 @@ export {
     CollectionsListTrigger,
     CreateDialog,
     DeleteDialog,
+    getPriorityOption,
     RenameDialog,
     SORT_OPTION_BY_VALUE,
     TEMPLATES,
-    getPriorityOption,
-    type CollectionFeedback,
-    type CollectionsListItemContextValue,
-    type CollectionsListItemMetaProps,
-    type CollectionsListItemPreviewProps,
-    type CollectionsListItemProps,
-    type CollectionsListSharePopoverProps,
-    type CollectionsListSortingComboboxProps,
-    type CollectionsListStatusProps,
-    type CollectionsListTriggerProps,
-    type ComboboxValue,
-    type CreateDialogProps,
-    type DeleteDialogProps,
-    type PriorityOption,
-    type RenameDialogProps,
-    type TemplateValue,
 };

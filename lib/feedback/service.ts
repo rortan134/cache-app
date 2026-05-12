@@ -5,6 +5,7 @@ import { FeedbackError } from "./error";
 const log = createLogger("feedback:submit");
 
 interface SubmitFeedbackInput {
+    context: string | null;
     message: string;
     pagePath: string;
     userId: string | null;
@@ -13,11 +14,13 @@ interface SubmitFeedbackInput {
 export async function submitFeedback({
     message,
     pagePath,
+    context,
     userId,
 }: SubmitFeedbackInput): Promise<void> {
     try {
         await prisma.feedback.create({
             data: {
+                context,
                 message,
                 pagePath,
                 userId,
@@ -25,6 +28,7 @@ export async function submitFeedback({
         });
 
         log.info("Feedback saved", {
+            context,
             pagePath,
             userId,
         });

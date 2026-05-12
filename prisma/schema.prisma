@@ -277,6 +277,7 @@ model Feedback {
   userId    String?
   user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
   pagePath  String
+  context   String?
   message   String
   createdAt DateTime @default(now())
 

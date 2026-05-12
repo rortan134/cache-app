@@ -14,7 +14,10 @@ import {
     PeekDrawerContent,
     PeekDrawerTrigger,
 } from "@/components/library/peek";
-import { NAME_COLLATOR, useWorkspace } from "@/components/library/workspace";
+import {
+    NAME_COLLATOR,
+    useWorkspaceContext,
+} from "@/components/library/workspace";
 import {
     Attachment,
     AttachmentInfo,
@@ -28,6 +31,7 @@ import {
     getMediaCategory,
 } from "@/components/ui/attachments";
 import { Avatar, AvatarFallback, AvatarGroup } from "@/components/ui/avatar";
+import { BackToTop } from "@/components/ui/back-to-top";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useClientOnlyValue } from "@/components/ui/client-only";
@@ -4346,7 +4350,7 @@ export function Browser({
         requestCreate,
         selectedCollectionIds,
         setItems: onItemsChange,
-    } = useWorkspace();
+    } = useWorkspaceContext();
     const { hasAccess } = useSubscriptionAccess();
     const router = useRouter();
     const systemControlKey = useClientOnlyValue(getSystemControlKey());
@@ -5406,6 +5410,7 @@ export function Browser({
                             <Toolbar.Button
                                 render={
                                     <FeedbackWidget
+                                        context="library-browser-toolbar"
                                         render={
                                             <Button
                                                 className="hidden rounded-full md:flex"
@@ -5582,6 +5587,7 @@ export function Browser({
                 isSavingPastedUrl={isSavingPastedUrl}
                 setIsNoteDrawerOpen={setIsNoteDrawerOpen}
             />
+            <BackToTop />
             <Dialog
                 onOpenChange={handleDeleteDialogOpenChange}
                 open={pendingDeleteItem !== null}

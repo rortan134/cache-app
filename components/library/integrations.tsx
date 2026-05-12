@@ -520,7 +520,10 @@ export function IntegrationsListPanel(
 
 export function IntegrationsListFeedback() {
     return (
-        <FeedbackWidget className="mx-2.5 mt-1.5 mb-0.5">
+        <FeedbackWidget
+            className="mx-2.5 mt-1.5 mb-0.5"
+            context="integrations-list"
+        >
             <p className="text-left text-[11px] text-muted-foreground leading-tight">
                 Can't find the integration you need most?{" "}
                 <Button

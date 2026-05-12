@@ -1262,6 +1262,7 @@ export const FeedbackScalarFieldEnum = {
   id: 'id',
   userId: 'userId',
   pagePath: 'pagePath',
+  context: 'context',
   message: 'message',
   createdAt: 'createdAt'
 } as const

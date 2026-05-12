@@ -20,7 +20,14 @@ export async function createFeedback(
         return { message: auth.message, status: "error" };
     }
 
+    const rawContext = formData.get("context");
+    const context =
+        typeof rawContext === "string" && rawContext.length > 0
+            ? rawContext
+            : undefined;
+
     const parsed = FeedbackInputSchema.safeParse({
+        context,
         message: formData.get("message"),
         pagePath: formData.get("pagePath"),
     });
@@ -38,6 +45,7 @@ export async function createFeedback(
     try {
         await service.submitFeedback({
             ...parsed.data,
+            context: parsed.data.context ?? null,
             userId: auth.userId,
         });
 

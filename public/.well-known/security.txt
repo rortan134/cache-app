@@ -1,4 +1,0 @@
-Contact: mailto:gsmt.dev@gmail.com
-Expires: 2034-10-21T23:22:00.000Z
-Preferred-Languages: en
-Canonical: https://cachd.app/.well-known/security.txt

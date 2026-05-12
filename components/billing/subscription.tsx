@@ -70,6 +70,11 @@ function useSubscriptionAccess() {
 
 type AccessData = ReturnType<typeof useSubscriptionAccess>;
 
+interface WithSubscriptionProps {
+    children: (subscription: AccessData["subscription"]) => React.ReactNode;
+    loadingRender?: React.ReactNode;
+}
+
 /**
  * Provides the current subscription, including `undefined` for a resolved free
  * user, to a render function.
@@ -80,10 +85,7 @@ type AccessData = ReturnType<typeof useSubscriptionAccess>;
 function WithSubscription({
     children,
     loadingRender = null,
-}: {
-    children: (subscription: AccessData["subscription"]) => React.ReactNode;
-    loadingRender?: React.ReactNode;
-}) {
+}: WithSubscriptionProps) {
     const { isLoading, subscription } = useSubscriptionAccess();
 
     if (isLoading) {

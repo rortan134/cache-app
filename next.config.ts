@@ -113,6 +113,14 @@ const nextConfig: NextConfig = {
             },
         ];
     },
+    async rewrites() {
+        return [
+            {
+                destination: "/llms.txt",
+                source: "/llms-full.txt",
+            },
+        ];
+    },
 };
 
 const securityHeaders = [
