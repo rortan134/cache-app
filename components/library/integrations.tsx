@@ -20,7 +20,6 @@ import {
 } from "@/components/ui/popover";
 import { SidebarItem } from "@/components/ui/sidebar";
 import { useIsExtensionInstalled } from "@/hooks/use-extension-installed";
-import { useListPanelOpenState } from "@/hooks/use-list-panel-open-state";
 import { cn } from "@/lib/common/cn";
 import { getErrorMessage } from "@/lib/common/error";
 import { createLogger } from "@/lib/common/logs/console/logger";
@@ -37,10 +36,7 @@ import {
     getIntegration,
     listIntegrationActions,
     type ExtensionOpenBehavior,
-    type IntegrationActionIcon,
     type IntegrationActionRole,
-    type IntegrationActionSize,
-    type IntegrationActionVariant,
     type IntegrationDirection,
     type IntegrationId,
     type OAuthLinkConnectBehavior,
@@ -50,23 +46,16 @@ import {
 } from "@/lib/integrations/support";
 import IntegrationsPreviewImage from "@/public/integrations-preview.webp";
 import { T } from "gt-next";
-import { ArrowUpRight, Images, RefreshCw } from "lucide-react";
+import { ArrowUpRight } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import * as React from "react";
+import { useHotkeys } from "react-hotkeys-hook";
 import { createStore } from "stan-js";
 import { storage } from "stan-js/storage";
 
-const log = createLogger("integration-actions");
-
-const INTEGRATION_ACTION_ICON_BY_NAME: Record<
-    IntegrationActionIcon,
-    React.ComponentType<React.SVGProps<SVGSVGElement>>
-> = {
-    images: Images,
-    refresh: RefreshCw,
-};
+const log = createLogger("library:integrations");
 
 type IntegrationActionStatusTone = "error" | "success";
 
@@ -76,13 +65,10 @@ interface IntegrationActionStatus {
 }
 
 interface IntegrationActionViewModel {
-    icon?: IntegrationActionIcon;
     isLoading: boolean;
     label: string;
     onClick: () => void | Promise<void>;
     role: IntegrationActionRole;
-    size: IntegrationActionSize;
-    variant: IntegrationActionVariant;
 }
 
 interface UseIntegrationActionArgs {
@@ -96,13 +82,9 @@ interface UseIntegrationActionResult {
     status: IntegrationActionStatus | null;
 }
 
-export type IntegrationsListItemProps = React.ComponentProps<
-    typeof SidebarItem
->;
+type IntegrationsListItemProps = React.ComponentProps<typeof SidebarItem>;
 
-export type IntegrationsListEmptyProps = React.ComponentProps<"p">;
-
-export interface IntegrationsProps {
+interface IntegrationsProps {
     connectedIntegrations: Set<IntegrationId>;
 }
 
@@ -138,25 +120,23 @@ function resolveActionLabel(args: {
         return explicitLabel;
     }
 
-    if (role === "open" && openBehavior) {
-        return !isExtensionInstalled && openBehavior.installUrl
-            ? "Get Extension"
-            : "Open";
+    switch (role) {
+        case "open":
+            return !isExtensionInstalled && openBehavior?.installUrl
+                ? "Get Extension"
+                : "Open";
+        case "connect":
+            if (!connectBehavior) {
+                return "Open";
+            }
+            return isConnected ? "Reconnect" : "Connect";
+        case "sync":
+            return "Sync";
+        case "copy":
+            return "Copy";
+        default:
+            return "Open";
     }
-
-    if (role === "connect" && connectBehavior) {
-        return isConnected ? "Reconnect" : "Connect";
-    }
-
-    if (role === "sync") {
-        return "Sync";
-    }
-
-    if (role === "copy") {
-        return "Copy";
-    }
-
-    return "Open";
 }
 
 function createCapabilityMissingError(args: {
@@ -182,60 +162,69 @@ async function executeIntegrationAction(args: {
 }> {
     const { isExtensionInstalled, integration, role } = args;
 
-    if (role === "open") {
-        if (!integration.behaviors.open) {
-            throw createCapabilityMissingError({
-                capability: "open",
-                integrationId: integration.id,
-                message: "This integration cannot be opened yet.",
-            });
+    switch (role) {
+        case "open": {
+            if (!integration.behaviors.open) {
+                throw createCapabilityMissingError({
+                    capability: "open",
+                    integrationId: integration.id,
+                    message: "This integration cannot be opened yet.",
+                });
+            }
+
+            executeOpenBehavior(
+                integration.behaviors.open,
+                isExtensionInstalled
+            );
+            return { refresh: false, successMessage: null };
         }
 
-        executeOpenBehavior(integration.behaviors.open, isExtensionInstalled);
-        return { refresh: false, successMessage: null };
-    }
+        case "connect": {
+            if (!integration.behaviors.connect) {
+                throw createCapabilityMissingError({
+                    capability: "connect",
+                    integrationId: integration.id,
+                    message: "This integration cannot be connected yet.",
+                });
+            }
 
-    if (role === "connect") {
-        if (!integration.behaviors.connect) {
-            throw createCapabilityMissingError({
-                capability: "connect",
-                integrationId: integration.id,
-                message: "This integration cannot be connected yet.",
-            });
+            await executeConnectBehavior(integration.behaviors.connect);
+            return { refresh: false, successMessage: null };
         }
 
-        await executeConnectBehavior(integration.behaviors.connect);
-        return { refresh: false, successMessage: null };
-    }
+        case "copy": {
+            if (!integration.behaviors.copy) {
+                throw createCapabilityMissingError({
+                    capability: "copy",
+                    integrationId: integration.id,
+                    message:
+                        "This integration does not support copying a prompt.",
+                });
+            }
 
-    if (role === "copy") {
-        if (!integration.behaviors.copy) {
-            throw createCapabilityMissingError({
-                capability: "copy",
-                integrationId: integration.id,
-                message: "This integration does not support copying a prompt.",
-            });
+            await executeCopyPromptBehavior(integration.behaviors.copy);
+            return { refresh: false, successMessage: "Copied to clipboard." };
         }
 
-        await executeCopyPromptBehavior(integration.behaviors.copy);
-        return { refresh: false, successMessage: "Copied to clipboard." };
+        case "sync": {
+            if (!integration.behaviors.sync) {
+                throw createCapabilityMissingError({
+                    capability: "sync",
+                    integrationId: integration.id,
+                    message: "This integration cannot sync yet.",
+                });
+            }
+
+            const successMessage =
+                integration.behaviors.sync.kind === "route"
+                    ? await executeRouteSyncBehavior(integration.behaviors.sync)
+                    : await executeGooglePhotosPickerFlow();
+
+            return { refresh: true, successMessage };
+        }
+        default:
+            return { refresh: false, successMessage: null };
     }
-
-    // role === "sync"
-    if (!integration.behaviors.sync) {
-        throw createCapabilityMissingError({
-            capability: "sync",
-            integrationId: integration.id,
-            message: "This integration cannot sync yet.",
-        });
-    }
-
-    const successMessage =
-        integration.behaviors.sync.kind === "route"
-            ? await executeRouteSyncBehavior(integration.behaviors.sync)
-            : await executeGooglePhotosPickerFlow();
-
-    return { refresh: true, successMessage };
 }
 
 function isActionVisible(
@@ -253,43 +242,6 @@ function isActionVisible(
     return true;
 }
 
-function createActionViewModel(args: {
-    action: SupportedIntegrationAction;
-    connectBehavior?: OAuthLinkConnectBehavior | SocialSignInConnectBehavior;
-    isExtensionInstalled: boolean;
-    isConnected: boolean;
-    isLoading: boolean;
-    onSelect: (role: IntegrationActionRole) => void | Promise<void>;
-    openBehavior?: ExtensionOpenBehavior;
-}): IntegrationActionViewModel {
-    const {
-        action,
-        connectBehavior,
-        isExtensionInstalled,
-        isConnected,
-        isLoading,
-        onSelect,
-        openBehavior,
-    } = args;
-
-    return {
-        icon: action.icon,
-        isLoading,
-        label: resolveActionLabel({
-            connectBehavior,
-            explicitLabel: action.label,
-            isConnected,
-            isExtensionInstalled,
-            openBehavior,
-            role: action.role,
-        }),
-        onClick: () => onSelect(action.role),
-        role: action.role,
-        size: action.size,
-        variant: action.variant,
-    };
-}
-
 /**
  * Persist the integrations panel open state across page reloads.
  */
@@ -297,7 +249,7 @@ const { useStore: useIntegrationsListStore } = createStore({
     isIntegrationsListPanelOpen: storage(false),
 });
 
-export function useIntegrationsListOpenState() {
+function useIntegrationsListOpenState() {
     const { isIntegrationsListPanelOpen, setIsIntegrationsListPanelOpen } =
         useIntegrationsListStore();
 
@@ -375,16 +327,21 @@ function useIntegrationAction({
 
     const actions = listIntegrationActions(id, direction)
         .filter((action) => isActionVisible(action, isConnected))
-        .map((action) =>
-            createActionViewModel({
-                action,
-                connectBehavior: behaviors.connect,
-                isConnected,
-                isExtensionInstalled,
-                isLoading: pendingRole === action.role,
-                onSelect: handleAction,
-                openBehavior: behaviors.open,
-            })
+        .map(
+            (action) =>
+                ({
+                    isLoading: pendingRole === action.role,
+                    label: resolveActionLabel({
+                        connectBehavior: behaviors.connect,
+                        explicitLabel: action.label,
+                        isConnected,
+                        isExtensionInstalled,
+                        openBehavior: behaviors.open,
+                        role: action.role,
+                    }),
+                    onClick: () => handleAction(action.role),
+                    role: action.role,
+                }) satisfies IntegrationActionViewModel
         );
 
     return {
@@ -400,7 +357,6 @@ export function Integrations({ connectedIntegrations }: IntegrationsProps) {
                 <span className="min-w-0 text-xs">
                     <T>Integrations</T>
                 </span>
-                <ChevronDownFilledIcon className="-ml-0.5" />
                 <Kbd className="ml-auto bg-transparent opacity-0 group-hover:opacity-50">
                     <CmdKbd />I
                 </Kbd>
@@ -444,24 +400,25 @@ export function Integrations({ connectedIntegrations }: IntegrationsProps) {
     );
 }
 
-export function IntegrationsList(
-    props: Omit<
-        React.ComponentProps<typeof Collapsible>,
-        "open" | "onOpenChange"
-    >
-) {
-    const state = useIntegrationsListOpenState();
-    const [isOpen, handleOpenChange] = useListPanelOpenState({
-        hotkey: "mod+i",
-        state,
-    });
+function IntegrationsList(props: React.ComponentProps<typeof Collapsible>) {
+    const [isOpen, setIsOpen] = useIntegrationsListOpenState();
 
-    return (
-        <Collapsible onOpenChange={handleOpenChange} open={isOpen} {...props} />
+    useHotkeys(
+        "mod+i",
+        () => {
+            setIsOpen((prev) => !prev);
+        },
+        {
+            description: "Toggle integrations panel",
+            preventDefault: true,
+        }
     );
+
+    return <Collapsible onOpenChange={setIsOpen} open={isOpen} {...props} />;
 }
 
-export function IntegrationsListTrigger({
+function IntegrationsListTrigger({
+    children,
     render,
     ...props
 }: React.ComponentProps<typeof CollapsibleTrigger>) {
@@ -484,7 +441,10 @@ export function IntegrationsListTrigger({
                         />
                     )
                 }
-            />
+            >
+                {children}
+                <ChevronDownFilledIcon className="-ml-0.5" />
+            </PopoverTrigger>
             <PopoverPopup
                 align="start"
                 positionerClassname={cn(
@@ -512,13 +472,13 @@ export function IntegrationsListTrigger({
     );
 }
 
-export function IntegrationsListPanel(
+function IntegrationsListPanel(
     props: React.ComponentProps<typeof CollapsiblePanel>
 ) {
     return <CollapsiblePanel {...props} />;
 }
 
-export function IntegrationsListFeedback() {
+function IntegrationsListFeedback() {
     return (
         <FeedbackWidget
             className="mx-2.5 mt-1.5 mb-0.5"
@@ -539,7 +499,7 @@ export function IntegrationsListFeedback() {
     );
 }
 
-export function IntegrationsListPrivacyNotice() {
+function IntegrationsListPrivacyNotice() {
     const [isOpen, setIsOpen] = React.useState(true);
 
     return (
@@ -582,7 +542,7 @@ export function IntegrationsListPrivacyNotice() {
     );
 }
 
-export function IntegrationsListItem({
+function IntegrationsListItem({
     className,
     ...props
 }: IntegrationsListItemProps) {
@@ -594,26 +554,7 @@ export function IntegrationsListItem({
     );
 }
 
-export function IntegrationsListEmpty({
-    className,
-    ...props
-}: IntegrationsListEmptyProps) {
-    if (!props.children) {
-        return null;
-    }
-
-    return (
-        <p
-            className={cn(
-                "rounded-lg border border-border/30 border-dashed px-4 py-6 text-center text-muted-foreground text-xs",
-                className
-            )}
-            {...props}
-        />
-    );
-}
-
-export function IntegrationsListItemAction({
+function IntegrationsListItemAction({
     direction = "source",
     id,
     isConnected,
@@ -624,9 +565,9 @@ export function IntegrationsListItemAction({
         id,
         isConnected,
     });
-    const hasActions = actions.length > 0;
 
-    if (!(hasActions || status)) {
+    const hasActions = actions.length > 0;
+    if (!hasActions) {
         return null;
     }
 
@@ -637,44 +578,23 @@ export function IntegrationsListItemAction({
                 className
             )}
         >
-            {hasActions && (
-                <div className="flex shrink-0 items-center gap-1">
-                    {actions.map((action) => {
-                        const ActionIcon = action.icon
-                            ? INTEGRATION_ACTION_ICON_BY_NAME[action.icon]
-                            : null;
-                        const isIconOnly = action.size === "icon";
-
-                        return (
-                            <Button
-                                aria-label={
-                                    isIconOnly ? action.label : undefined
-                                }
-                                className="rounded-full text-xs!"
-                                key={`${id}-${direction}-${action.role}`}
-                                loading={action.isLoading}
-                                onClick={action.onClick}
-                                size={action.size}
-                                variant={action.variant ?? "ghost"}
-                            >
-                                {ActionIcon && (
-                                    <ActionIcon
-                                        aria-hidden
-                                        className="size-4"
-                                        focusable="false"
-                                    />
-                                )}
-                                {!isIconOnly && action.label}
-                            </Button>
-                        );
-                    })}
-                </div>
-            )}
-            {status && (
-                <IntegrationsListStatus tone={status.tone}>
-                    {status.message}
-                </IntegrationsListStatus>
-            )}
+            <div className="flex shrink-0 items-center gap-1">
+                {actions.map((action) => (
+                    <Button
+                        className="rounded-full text-xs!"
+                        key={`${id}-${direction}-${action.role}`}
+                        loading={action.isLoading}
+                        onClick={action.onClick}
+                        size="sm"
+                        variant="ghost"
+                    >
+                        {action.label}
+                    </Button>
+                ))}
+            </div>
+            <IntegrationsListStatus tone={status?.tone}>
+                {status?.message}
+            </IntegrationsListStatus>
         </div>
     );
 }
@@ -692,6 +612,7 @@ function IntegrationsListStatus({
 
     return (
         <p
+            aria-atomic="true"
             aria-live={isError ? "assertive" : "polite"}
             className={cn(
                 "max-w-full text-right text-xs leading-tight",

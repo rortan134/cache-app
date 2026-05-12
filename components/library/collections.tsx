@@ -153,7 +153,7 @@ import { useHotkeys } from "react-hotkeys-hook";
 import { createStore } from "stan-js";
 import { storage } from "stan-js/storage";
 
-const LOG = createLogger("CollectionsController");
+const log = createLogger("library:collections");
 
 const CSV_CONTENT_TYPE = "text/csv;charset=utf-8";
 
@@ -605,86 +605,50 @@ function getCreatedAssignedItemIds(
 
 /**
  * Wrap a server action so network failures surface as typed errors instead
- * of uncaught exceptions.
- *
- * Callers expect a result object; throwing would break the controller's
- * optimistic-update rollback logic.
+ * of uncaught exceptions. Callers expect a result object; throwing would
+ * break the controller's optimistic-update rollback logic.
  */
-async function createCollectionSafely(
-    input: Parameters<typeof createCollection>[0]
-) {
-    try {
-        return await createCollection(input);
-    } catch {
-        return { message: CREATE_ERROR_MESSAGE, status: "ERROR" as const };
-    }
+function safeAction<TInput, TOutput extends { status: string }>(
+    action: (input: TInput) => Promise<TOutput>,
+    errorMessage: string
+): (input: TInput) => Promise<TOutput | { message: string; status: "ERROR" }> {
+    return async (input) => {
+        try {
+            return await action(input);
+        } catch {
+            return { message: errorMessage, status: "ERROR" as const };
+        }
+    };
 }
 
-async function deleteCollectionSafely(
-    input: Parameters<typeof deleteCollection>[0]
-) {
-    try {
-        return await deleteCollection(input);
-    } catch {
-        return { message: DELETE_ERROR_MESSAGE, status: "ERROR" as const };
-    }
-}
-
-async function duplicateCollectionSafely(
-    input: Parameters<typeof duplicateCollection>[0]
-) {
-    try {
-        return await duplicateCollection(input);
-    } catch {
-        return { message: DUPLICATE_ERROR_MESSAGE, status: "ERROR" as const };
-    }
-}
-
-async function renameCollectionSafely(
-    input: Parameters<typeof renameCollection>[0]
-) {
-    try {
-        return await renameCollection(input);
-    } catch {
-        return { message: RENAME_ERROR_MESSAGE, status: "ERROR" as const };
-    }
-}
-
-async function updateCollectionPrioritySafely(
-    input: Parameters<typeof updateCollectionPriority>[0]
-) {
-    try {
-        return await updateCollectionPriority(input);
-    } catch {
-        return {
-            message: UPDATE_PRIORITY_ERROR_MESSAGE,
-            status: "ERROR" as const,
-        };
-    }
-}
-
-async function shareCollectionPubliclySafely(
-    input: Parameters<typeof shareCollectionPublicly>[0]
-) {
-    try {
-        return await shareCollectionPublicly(input);
-    } catch {
-        return { message: SHARE_ERROR_MESSAGE, status: "ERROR" as const };
-    }
-}
-
-async function disableCollectionSharingSafely(
-    input: Parameters<typeof disableCollectionSharing>[0]
-) {
-    try {
-        return await disableCollectionSharing(input);
-    } catch {
-        return {
-            message: STOP_SHARING_ERROR_MESSAGE,
-            status: "ERROR" as const,
-        };
-    }
-}
+const createCollectionSafely = safeAction(
+    createCollection,
+    CREATE_ERROR_MESSAGE
+);
+const deleteCollectionSafely = safeAction(
+    deleteCollection,
+    DELETE_ERROR_MESSAGE
+);
+const duplicateCollectionSafely = safeAction(
+    duplicateCollection,
+    DUPLICATE_ERROR_MESSAGE
+);
+const renameCollectionSafely = safeAction(
+    renameCollection,
+    RENAME_ERROR_MESSAGE
+);
+const updateCollectionPrioritySafely = safeAction(
+    updateCollectionPriority,
+    UPDATE_PRIORITY_ERROR_MESSAGE
+);
+const shareCollectionPubliclySafely = safeAction(
+    shareCollectionPublicly,
+    SHARE_ERROR_MESSAGE
+);
+const disableCollectionSharingSafely = safeAction(
+    disableCollectionSharing,
+    STOP_SHARING_ERROR_MESSAGE
+);
 
 export function Collections() {
     return (
@@ -779,7 +743,7 @@ export function Collections() {
  * Filters out broken or unreachable images so the preview card never shows
  * a failed load state.
  */
-function useValidatedPreviewUrls(
+function usePreviewUrls(
     collectionPreviewThumbnailUrlsById: ReadonlyMap<string, readonly string[]>
 ): Map<string, readonly string[]> {
     const [validatedPreviewUrls, setValidatedPreviewUrls] = React.useState(
@@ -793,9 +757,17 @@ function useValidatedPreviewUrls(
 
         async function validate() {
             const allUrls = new Set<string>();
+            const urlsToValidate: string[] = [];
+
             for (const urls of collectionPreviewThumbnailUrlsById.values()) {
                 for (const url of urls) {
+                    if (allUrls.has(url)) {
+                        continue;
+                    }
                     allUrls.add(url);
+                    if (!cache.has(url)) {
+                        urlsToValidate.push(url);
+                    }
                 }
             }
 
@@ -804,13 +776,6 @@ function useValidatedPreviewUrls(
                     setValidatedPreviewUrls(new Map());
                 }
                 return;
-            }
-
-            const urlsToValidate: string[] = [];
-            for (const url of allUrls) {
-                if (!cache.has(url)) {
-                    urlsToValidate.push(url);
-                }
             }
 
             const buildValidatedMap = () => {
@@ -847,7 +812,7 @@ function useValidatedPreviewUrls(
                     setValidatedPreviewUrls(buildValidatedMap());
                 }
             } catch (err) {
-                LOG.error("Preview URL validation failed", { error: err });
+                log.error("Preview URL validation failed", { error: err });
                 if (!cancelled) {
                     setValidatedPreviewUrls(
                         new Map(collectionPreviewThumbnailUrlsById)
@@ -926,9 +891,7 @@ function useCollectionsController() {
         null
     );
 
-    const validatedPreviewUrls = useValidatedPreviewUrls(
-        collectionPreviewThumbnailUrlsById
-    );
+    const previewURLs = usePreviewUrls(collectionPreviewThumbnailUrlsById);
 
     const {
         favoriteCollectionIds,
@@ -1178,20 +1141,18 @@ function useCollectionsController() {
                 collectionId: collection.id,
             });
 
-            if (result.status !== "SHARED") {
+            if (result.status === "SHARED") {
+                syncShare(result.collection);
+                const linkCopied = await copyToClipboard(result.shareUrl);
+                showSuccess(
+                    linkCopied
+                        ? `${collection.name} is now publicly shared. Link copied to the clipboard.`
+                        : `${collection.name} is now publicly shared.`
+                );
+            } else {
                 showError(result.message);
-                setPendingShareId(null);
-                return;
             }
-
-            syncShare(result.collection);
             setPendingShareId(null);
-            const linkCopied = await copyToClipboard(result.shareUrl);
-            showSuccess(
-                linkCopied
-                    ? `${collection.name} is now publicly shared. Link copied to the clipboard.`
-                    : `${collection.name} is now publicly shared.`
-            );
         });
     };
 
@@ -1204,15 +1165,13 @@ function useCollectionsController() {
                 collectionId: collection.id,
             });
 
-            if (result.status !== "DISABLED") {
+            if (result.status === "DISABLED") {
+                syncShare(result.collection);
+                showSuccess(`${collection.name} is no longer publicly shared.`);
+            } else {
                 showError(result.message);
-                setPendingShareId(null);
-                return;
             }
-
-            syncShare(result.collection);
             setPendingShareId(null);
-            showSuccess(`${collection.name} is no longer publicly shared.`);
         });
     };
 
@@ -1397,12 +1356,11 @@ function useCollectionsController() {
 
     const handleFavoriteToggle = (collection: LibraryCollectionSummary) => {
         const isFavorite = favoriteCollectionIdSet.has(collection.id);
-        setFavoriteCollectionIds((current) => {
-            const isCurrentFavorite = current.includes(collection.id);
-            return isCurrentFavorite
+        setFavoriteCollectionIds((current) =>
+            isFavorite
                 ? current.filter((id) => id !== collection.id)
-                : [...current, collection.id];
-        });
+                : [...current, collection.id]
+        );
         showSuccess(
             isFavorite
                 ? `${collection.name} removed from Favorites.`
@@ -1509,7 +1467,7 @@ function useCollectionsController() {
 
     return {
         collectionLabels,
-        collectionPreviewThumbnailUrlsById: validatedPreviewUrls,
+        collectionPreviewThumbnailUrlsById: previewURLs,
         collectionSummaries,
         createDialog: {
             descriptionDraft: createDescription,
@@ -1629,9 +1587,6 @@ interface CollectionItemRowProps {
     collection: LibraryCollectionSummary;
 }
 
-/**
- * Fully wired collection row used by both regular collections and Favorites.
- */
 function CollectionItemRow({ collection }: CollectionItemRowProps) {
     const controller = useCollections();
     const isSelected = controller.selectedCollectionIds.includes(collection.id);
@@ -1715,7 +1670,9 @@ function useCollectionItemPreviewIndex(
  *
  * Falls back to `DEFAULT_PRIORITY` so callers never have to handle `undefined`.
  */
-function getPriorityOption(priority: CollectionPriority): PriorityOption {
+export function getPriorityOption(
+    priority: CollectionPriority
+): PriorityOption {
     return PRIORITY_BY_VALUE.get(priority) ?? DEFAULT_PRIORITY;
 }
 
@@ -1808,16 +1765,10 @@ function getComboboxCollectionsSortingGroups(
     return groups;
 }
 
-/**
- * Convert a combobox value to its searchable label string.
- */
 function getComboboxOptionLabel(value: ComboboxValue): string {
     return value.label;
 }
 
-/**
- * Convert a combobox value to its unique value string.
- */
 function getComboboxOptionValue(value: ComboboxValue): string {
     return `${value.sortField}:${value.view}:${value.sortQuery}`;
 }
@@ -1834,24 +1785,13 @@ function isComboboxValueEqual(
     item: ComboboxValue,
     value: ComboboxValue
 ): boolean {
-    // Text-match items require an exact match on all fields so that two
-    // different text-match queries don't collide.
-    if (item.sortField === "text-match" || value.sortField === "text-match") {
-        return (
-            item.sortField === value.sortField &&
-            item.sortQuery === value.sortQuery &&
-            item.view === value.view
-        );
-    }
-    // Non-text-match items only need sortField + view. This allows both
-    // the active sort option and the active view option to appear selected
-    // simultaneously in single-select mode.
-    return item.sortField === value.sortField && item.view === value.view;
+    return (
+        item.sortField === value.sortField &&
+        item.view === value.view &&
+        (item.sortField !== "text-match" || item.sortQuery === value.sortQuery)
+    );
 }
 
-/**
- * Consistent row layout for combobox items that show an icon + label pair.
- */
 function CollectionsComboboxOptionRow({
     icon: Icon,
     label,
@@ -1867,10 +1807,6 @@ function CollectionsComboboxOptionRow({
     );
 }
 
-/**
- * Placeholder shown when a collection has no thumbnail or every image fails
- * to load.
- */
 function CollectionsListPreviewImageFallback() {
     return (
         <div className="flex size-full items-center justify-center bg-muted/40 text-[11px] text-muted-foreground">
@@ -1879,9 +1815,6 @@ function CollectionsListPreviewImageFallback() {
     );
 }
 
-/**
- * Preview image that falls back when the source is missing or fails to load.
- */
 function CollectionsListItemPreviewImage({
     alt,
     src,
@@ -1912,9 +1845,6 @@ function CollectionsListItemPreviewImage({
     );
 }
 
-/**
- * Horizontal flex row used for inline status and filter lines.
- */
 function CollectionsListInlineRow({
     className,
     ...props
@@ -2035,9 +1965,6 @@ function CollectionsListPanel({
     return <CollapsiblePanel className={cn("pl-1", className)} {...props} />;
 }
 
-/**
- * Separate top-level collapsible section for client-side pinned collections.
- */
 function CollectionsListFavorites({
     className,
     ...props
@@ -2157,9 +2084,6 @@ function CollectionsListToolbar({
     );
 }
 
-/**
- * Right-aligned group inside the collections toolbar.
- */
 function CollectionsListToolbarGroup({
     className,
     ...props
@@ -2175,10 +2099,6 @@ function CollectionsListToolbarGroup({
     );
 }
 
-/**
- * Individual button in the collections toolbar with subtle opacity
- * transitions so the bar doesn't feel visually heavy.
- */
 function CollectionsListToolbarButton({
     className,
     ...props
@@ -2251,7 +2171,7 @@ function CollectionsListStatus({
                 role={tone === "error" ? "alert" : "status"}
                 {...props}
             >
-                {feedback?.message}
+                {feedback.message}
             </p>
             <Button onClick={onDismissFeedback} size="xs" variant="ghost">
                 Dismiss
@@ -2408,9 +2328,6 @@ function CollectionsListCreateButton(props: React.ComponentProps<"button">) {
     );
 }
 
-/**
- * Callout that informs users when Smart Collections is active.
- */
 function CollectionsCalloutPopover() {
     const controller = useCollections();
     const isDisabled = controller.isSmartCollectionsDisabled;
@@ -2688,10 +2605,6 @@ interface CollectionsListShareStatusCardProps {
     shareUrl: string | null;
 }
 
-/**
- * Visual card inside the share popover that communicates the current
- * sharing state (public vs. private) at a glance.
- */
 function CollectionItemShareStatus({ isShared }: { isShared: boolean }) {
     return (
         <div className="mt-4 rounded-xl border bg-muted/40 p-3">
@@ -2726,10 +2639,6 @@ interface CollectionsItemShareControlsProps {
     shareUrl: string | null;
 }
 
-/**
- * Controls shown after a collection has been shared: a read-only URL input,
- * a copy button, and a disable button.
- */
 function CollectionItemShareControls({
     collection,
     isSharePending,
@@ -2785,9 +2694,6 @@ function CollectionItemShareControls({
     );
 }
 
-/**
- * Initial CTA shown when a collection is not yet shared.
- */
 function CollectionItemShareEnablePanel({
     isSharePending,
     onEnableShare,
@@ -2813,9 +2719,6 @@ function CollectionItemShareEnablePanel({
     );
 }
 
-/**
- * Sub-menu for enabling, disabling, or copying a public share link.
- */
 function CollectionItemShareSubMenu({
     collection,
     isSharePending,
@@ -2923,9 +2826,6 @@ function CollectionItemExportSubMenu({
     );
 }
 
-/**
- * Sub-menu with notification preferences for collection updates.
- */
 function CollectionItemSubscribeSubMenu() {
     return (
         <MenuSub>
@@ -3091,9 +2991,6 @@ function CollectionItemMetadata({
     );
 }
 
-/**
- * Dialog for renaming an existing collection.
- */
 function CollectionsRenameDialog() {
     const {
         errorMessage,
@@ -3167,9 +3064,6 @@ function CollectionsRenameDialog() {
     );
 }
 
-/**
- * Dialog for creating a new collection with an optional template picker.
- */
 function CollectionsCreateDialog() {
     const {
         descriptionDraft,
@@ -3353,9 +3247,6 @@ function CollectionsCreateDialog() {
     );
 }
 
-/**
- * Confirmation dialog for deleting a collection.
- */
 function CollectionsDeleteDialog() {
     const { collection, isPending, onConfirm, onOpenChange } =
         useCollections().deleteDialog;
@@ -3390,31 +3281,3 @@ function CollectionsDeleteDialog() {
         </Dialog>
     );
 }
-
-export type { CollectionSortField } from "@/components/library/workspace";
-export {
-    CollectionItem,
-    CollectionItemMetadata,
-    CollectionItemPreview,
-    CollectionItemPriorityCombobox,
-    CollectionItemShareSubMenu,
-    CollectionsCalloutPopover,
-    CollectionsCreateDialog,
-    CollectionsDeleteDialog,
-    CollectionsItemValue,
-    CollectionsList,
-    CollectionsListEmpty,
-    CollectionsListFilterClearButton,
-    CollectionsListInlineRow,
-    CollectionsListPanel,
-    CollectionsListSortingCombobox,
-    CollectionsListStatus,
-    CollectionsListToolbar,
-    CollectionsListToolbarButton,
-    CollectionsListToolbarGroup,
-    CollectionsListTrigger,
-    CollectionsRenameDialog,
-    getPriorityOption,
-    SORT_OPTION_BY_VALUE,
-    TEMPLATES,
-};

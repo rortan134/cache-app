@@ -178,7 +178,7 @@ export function sortCollections<
  * "text-match" uses a relevance score (exact > prefix > contains) so the
  * most likely target surfaces first as the user types.
  */
-export function sortCollectionSummaries<T extends SortableCollectionSummary>(
+function sortCollectionSummaries<T extends SortableCollectionSummary>(
     collections: readonly T[],
     sortField: CollectionSortField,
     textMatchQuery = ""
@@ -478,7 +478,7 @@ export function WorkspaceProvider({
     );
 }
 
-export interface LibraryWorkspaceProviderProps {
+interface LibraryWorkspaceProviderProps {
     initialCollections: LibraryCollectionSummary[];
     initialItems: LibraryItemWithCollections[];
 }

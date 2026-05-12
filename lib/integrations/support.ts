@@ -31,9 +31,6 @@ export type IntegrationId =
     | "x"
     | "youtube";
 export type IntegrationActionRole = "connect" | "copy" | "open" | "sync";
-export type IntegrationActionIcon = "images" | "refresh";
-export type IntegrationActionSize = "icon" | "sm";
-export type IntegrationActionVariant = "ghost" | "outline";
 
 export type IntegrationConnectionSignal =
     | {
@@ -60,11 +57,8 @@ export interface IntegrationDestinationDefinition
 
 export interface SupportedIntegrationAction {
     for: IntegrationDirection;
-    icon?: IntegrationActionIcon;
     label?: string;
     role: IntegrationActionRole;
-    size: IntegrationActionSize;
-    variant: IntegrationActionVariant;
     visibleWhen?: "always" | "connected" | "disconnected";
 }
 
@@ -152,8 +146,6 @@ export const INTEGRATIONS = [
             {
                 for: "source",
                 role: "open",
-                size: "sm",
-                variant: "ghost",
             },
         ],
         behaviors: {
@@ -184,15 +176,10 @@ export const INTEGRATIONS = [
             {
                 for: "source",
                 role: "connect",
-                size: "sm",
-                variant: "ghost",
             },
             {
                 for: "source",
-                icon: "refresh",
                 role: "sync",
-                size: "icon",
-                variant: "outline",
                 visibleWhen: "connected",
             },
         ],
@@ -235,16 +222,12 @@ export const INTEGRATIONS = [
             {
                 for: "source",
                 role: "connect",
-                size: "sm",
-                variant: "ghost",
                 visibleWhen: "disconnected",
             },
             {
                 for: "source",
-                icon: "images",
+                label: "Open",
                 role: "sync",
-                size: "icon",
-                variant: "ghost",
                 visibleWhen: "connected",
             },
         ],
@@ -280,8 +263,6 @@ export const INTEGRATIONS = [
             {
                 for: "source",
                 role: "open",
-                size: "sm",
-                variant: "ghost",
             },
         ],
         behaviors: {
@@ -312,15 +293,10 @@ export const INTEGRATIONS = [
             {
                 for: "source",
                 role: "connect",
-                size: "sm",
-                variant: "ghost",
             },
             {
                 for: "source",
-                icon: "refresh",
                 role: "sync",
-                size: "icon",
-                variant: "outline",
                 visibleWhen: "connected",
             },
         ],
@@ -362,8 +338,6 @@ export const INTEGRATIONS = [
             {
                 for: "source",
                 role: "open",
-                size: "sm",
-                variant: "ghost",
             },
         ],
         behaviors: {
@@ -394,15 +368,10 @@ export const INTEGRATIONS = [
             {
                 for: "source",
                 role: "connect",
-                size: "sm",
-                variant: "ghost",
             },
             {
                 for: "source",
-                icon: "refresh",
                 role: "sync",
-                size: "icon",
-                variant: "outline",
                 visibleWhen: "connected",
             },
         ],
@@ -444,8 +413,6 @@ export const INTEGRATIONS = [
             {
                 for: "source",
                 role: "open",
-                size: "sm",
-                variant: "ghost",
             },
         ],
         behaviors: {
@@ -477,8 +444,6 @@ export const INTEGRATIONS = [
                 for: "source",
                 label: "Copy setup prompt",
                 role: "copy",
-                size: "sm",
-                variant: "ghost",
             },
         ],
         behaviors: {

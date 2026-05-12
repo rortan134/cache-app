@@ -51,7 +51,7 @@ interface GradientWaveTextProps {
     speed?: number;
 }
 
-function GradientWaveText({
+export function GradientWaveText({
     children,
     align = "left",
     className,
@@ -258,5 +258,3 @@ function GradientWaveText({
         </div>
     );
 }
-
-export { GradientWaveText };

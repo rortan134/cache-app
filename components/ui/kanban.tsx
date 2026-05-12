@@ -8,35 +8,29 @@ const BOARD_NAME = "KanbanBoard";
 const COLUMN_NAME = "KanbanColumn";
 const ITEM_NAME = "KanbanItem";
 
-interface KanbanProps {
-    children: React.ReactNode;
-    orientation?: "horizontal" | "vertical";
-}
+type Orientation = "horizontal" | "vertical";
 
 interface KanbanContextValue {
-    orientation: "horizontal" | "vertical";
+    orientation: Orientation;
 }
 
 const KanbanContext = React.createContext<KanbanContextValue | null>(null);
 
 const KanbanBoardContext = React.createContext<boolean>(false);
 
-function Kanban(props: KanbanProps) {
-    const { children, orientation = "horizontal" } = props;
-    const contextValue: KanbanContextValue = {
+export function Kanban({
+    children,
+    orientation = "horizontal",
+}: React.PropsWithChildren<KanbanContextValue>) {
+    const value = {
         orientation,
-    };
-
-    return <KanbanContext value={contextValue}>{children}</KanbanContext>;
+    } satisfies KanbanContextValue;
+    return <KanbanContext value={value}>{children}</KanbanContext>;
 }
 
-interface KanbanBoardProps extends React.ComponentProps<"div"> {
-    children: React.ReactNode;
-}
+interface KanbanBoardProps extends React.ComponentProps<"div"> {}
 
-function KanbanBoard(props: KanbanBoardProps) {
-    const { className, ref, ...boardProps } = props;
-
+export function KanbanBoard({ className, ...props }: KanbanBoardProps) {
     const context = useKanbanContext(BOARD_NAME);
 
     return (
@@ -44,7 +38,7 @@ function KanbanBoard(props: KanbanBoardProps) {
             <div
                 data-orientation={context.orientation}
                 data-slot="kanban-board"
-                {...boardProps}
+                {...props}
                 className={cn(
                     "flex size-full gap-4",
                     context.orientation === "horizontal"
@@ -52,19 +46,20 @@ function KanbanBoard(props: KanbanBoardProps) {
                         : "flex-col",
                     className
                 )}
-                ref={ref}
             />
         </KanbanBoardContext>
     );
 }
 
 interface KanbanColumnProps extends React.ComponentProps<"div"> {
-    children: React.ReactNode;
     disabled?: boolean;
 }
 
-function KanbanColumn(props: KanbanColumnProps) {
-    const { disabled, className, ref, ...columnProps } = props;
+export function KanbanColumn({
+    disabled,
+    className,
+    ...props
+}: KanbanColumnProps) {
     const inBoard = React.use(KanbanBoardContext);
 
     if (!inBoard) {
@@ -78,7 +73,7 @@ function KanbanColumn(props: KanbanColumnProps) {
             aria-disabled={disabled}
             data-disabled={disabled}
             data-slot="kanban-column"
-            {...columnProps}
+            {...props}
             className={cn(
                 "flex size-full shrink-0 flex-col gap-2 rounded-lg bg-muted/80 p-3 aria-disabled:pointer-events-none aria-disabled:opacity-50",
                 {
@@ -86,7 +81,6 @@ function KanbanColumn(props: KanbanColumnProps) {
                 },
                 className
             )}
-            ref={ref}
         />
     );
 }
@@ -95,8 +89,7 @@ interface KanbanItemProps extends React.ComponentProps<"div"> {
     disabled?: boolean;
 }
 
-function KanbanItem(props: KanbanItemProps) {
-    const { disabled, className, ref, ...itemProps } = props;
+export function KanbanItem({ disabled, className, ...props }: KanbanItemProps) {
     const inBoard = React.use(KanbanBoardContext);
 
     if (!inBoard) {
@@ -110,7 +103,7 @@ function KanbanItem(props: KanbanItemProps) {
             aria-disabled={disabled}
             data-disabled={disabled}
             data-slot="kanban-item"
-            {...itemProps}
+            {...props}
             className={cn(
                 "focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring focus-visible:ring-offset-1",
                 {
@@ -118,7 +111,6 @@ function KanbanItem(props: KanbanItemProps) {
                 },
                 className
             )}
-            ref={ref}
         />
     );
 }
@@ -132,5 +124,3 @@ function useKanbanContext(consumerName: string) {
     }
     return context;
 }
-
-export { Kanban, KanbanBoard, KanbanColumn, KanbanItem, type KanbanProps };

@@ -19,7 +19,12 @@ interface LogoContextMenuProps extends React.ComponentProps<typeof Link> {
     src: StaticImageData;
 }
 
-function BrandLogo({ href, src, className, ...props }: LogoContextMenuProps) {
+export function BrandLogo({
+    href,
+    src,
+    className,
+    ...props
+}: LogoContextMenuProps) {
     const handleSaveLogo = async () => {
         try {
             await saveFile(
@@ -76,5 +81,3 @@ function BrandLogo({ href, src, className, ...props }: LogoContextMenuProps) {
         </ContextMenu>
     );
 }
-
-export { BrandLogo };
