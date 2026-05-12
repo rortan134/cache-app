@@ -12,7 +12,6 @@ export function scheduleAutoTagging(userId: string, itemIds: string[]): void {
     if (itemIds.length === 0) {
         return;
     }
-
     after(async () => {
         await autoTagLibraryItemsByIds({ itemIds, userId });
     });

@@ -380,8 +380,8 @@ export function Integrations({ connectedIntegrations }: IntegrationsProps) {
                             <span className="min-w-0 flex-1 font-medium text-sm leading-snug">
                                 {label}
                             </span>
-                            <span className="grid text-muted-foreground leading-snug">
-                                <span className="text-[11px] [grid-area:1/1] group-hover:opacity-0">
+                            <span className="grid items-center text-muted-foreground leading-snug">
+                                <span className="text-right text-[11px] [grid-area:1/1] group-hover:opacity-0">
                                     {description}
                                 </span>
                                 <IntegrationsListItemAction
@@ -574,27 +574,25 @@ function IntegrationsListItemAction({
     return (
         <div
             className={cn(
-                "ml-auto flex min-w-0 flex-1 flex-row-reverse items-center justify-end gap-1",
+                "-mr-2.5 flex min-w-0 shrink-0 items-center justify-end gap-1",
                 className
             )}
         >
-            <div className="flex shrink-0 items-center gap-1">
-                {actions.map((action) => (
-                    <Button
-                        className="rounded-full text-xs!"
-                        key={`${id}-${direction}-${action.role}`}
-                        loading={action.isLoading}
-                        onClick={action.onClick}
-                        size="sm"
-                        variant="ghost"
-                    >
-                        {action.label}
-                    </Button>
-                ))}
-            </div>
             <IntegrationsListStatus tone={status?.tone}>
                 {status?.message}
             </IntegrationsListStatus>
+            {actions.map((action) => (
+                <Button
+                    className="rounded-full text-xs!"
+                    key={`${id}-${direction}-${action.role}`}
+                    loading={action.isLoading}
+                    onClick={action.onClick}
+                    size="sm"
+                    variant="ghost"
+                >
+                    {action.label}
+                </Button>
+            ))}
         </div>
     );
 }

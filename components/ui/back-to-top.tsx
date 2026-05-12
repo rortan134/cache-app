@@ -34,7 +34,7 @@ export function BackToTop({
         <div
             {...props}
             className={cn(
-                "fixed top-8 left-1/2 z-50 -translate-x-1/2 transition-all duration-300",
+                "fixed top-3 left-1/2 z-50 -translate-x-1/2 transition-all duration-300",
                 isVisible
                     ? "translate-y-0 opacity-100"
                     : "pointer-events-none translate-y-2 opacity-0",
@@ -43,11 +43,13 @@ export function BackToTop({
         >
             <Button
                 aria-label="Back to top"
+                className="backdrop-blur-xs"
                 onClick={scrollToTop}
+                size="xs"
                 variant="secondary"
             >
                 Back to top
-                <ArrowUpIcon />
+                <ArrowUpIcon className="size-3.5 opacity-50" />
             </Button>
         </div>
     );

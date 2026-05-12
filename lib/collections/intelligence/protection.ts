@@ -78,24 +78,23 @@ export async function protectGenAiRequest(args: {
     requestedTokens: number;
     userId: string;
 }): Promise<void> {
+    const { feature, prompt, request, requestedTokens, userId } = args;
+
     if (!serverEnv.ARCJET_KEY) {
         log.warn(
             "Skipping Gen AI Arcjet protection because ARCJET_KEY is not configured",
-            {
-                feature: args.feature,
-                userId: args.userId,
-            }
+            { feature, userId }
         );
         return;
     }
 
-    const plan = await getUserPlanType(args.userId);
+    const plan = await getUserPlanType(userId);
     const decision = await createPlanClient(plan, serverEnv.ARCJET_KEY).protect(
-        args.request,
+        request,
         {
-            detectPromptInjectionMessage: args.prompt,
-            requested: args.requestedTokens,
-            userId: args.userId,
+            detectPromptInjectionMessage: prompt,
+            requested: requestedTokens,
+            userId,
         }
     );
 
@@ -106,20 +105,20 @@ export async function protectGenAiRequest(args: {
     const reason = denialReason(decision);
     log.warn("Gen AI request denied by Arcjet", {
         conclusion: decision.conclusion,
-        feature: args.feature,
+        feature,
         plan,
         reason,
-        requestedTokens: args.requestedTokens,
-        userId: args.userId,
+        requestedTokens,
+        userId,
     });
 
     throw new GenAiProtectionError({
-        feature: args.feature,
+        feature,
         message: denialMessage(reason),
         operation: "protectGenAiRequest",
         plan,
         reason,
-        requestedTokens: args.requestedTokens,
-        userId: args.userId,
+        requestedTokens,
+        userId,
     });
 }

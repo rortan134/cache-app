@@ -47,11 +47,8 @@ import * as z from "zod";
 const log = createLogger("library:smart-collections");
 const serviceLog = createLogger("intelligence:service");
 
-const SMART_COLLECTIONS_MODEL_DEFAULT = "gemini-2.5-flash-lite";
-const SMART_COLLECTIONS_MODELS_FALLBACK = [
-    "gemini-2.5-flash-lite",
-    "gemini-3-flash-preview",
-] as const;
+const SMART_COLLECTIONS_MODEL_DEFAULT = "gemini-3.1-flash-lite";
+const SMART_COLLECTIONS_MODELS_FALLBACK = ["gemini-3-flash-preview"] as const;
 const SMART_COLLECTIONS_APPLY_COLLECTION_COUNT_MAX = 4;
 const SMART_COLLECTIONS_NEW_COLLECTION_COUNT_MAX = 2;
 const SMART_COLLECTIONS_DOWNLOAD_BYTES_MAX = 100 * 1024 * 1024;
@@ -130,10 +127,6 @@ interface SmartCollectionModelErrorInfo {
     details?: unknown;
     message: string;
     status: number | null;
-}
-
-function resolveGeminiApiKey(): string | null {
-    return serverEnv.GEMINI_API_KEY ?? null;
 }
 
 function resolveSmartCollectionModels(): string[] {
@@ -905,7 +898,7 @@ export async function autoTagLibraryItemsByIds(args: {
     itemIds: string[];
     userId: string;
 }) {
-    const apiKey = resolveGeminiApiKey();
+    const apiKey = serverEnv.GEMINI_API_KEY;
     if (!apiKey) {
         return;
     }
@@ -1025,9 +1018,19 @@ export async function autoTagLibraryItemsByIds(args: {
 // Section description generation
 // ---------------------------------------------------------------------------
 
-const SECTION_DESCRIPTION_MODEL = "gemini-2.5-flash-lite";
+const SECTION_DESCRIPTION_MODEL_DEFAULT = "gemini-3.1-flash-lite";
+const SECTION_DESCRIPTION_MODELS_FALLBACK = ["gemini-3-flash-preview"] as const;
 const SECTION_DESCRIPTION_OUTPUT_TOKEN_LIMIT = 96;
-const SECTION_DESCRIPTION_TIMEOUT_MS = 12_000;
+const SECTION_DESCRIPTION_TIMEOUT_MS = 30_000;
+
+function resolveSectionDescriptionModels(): string[] {
+    return [
+        ...new Set([
+            SECTION_DESCRIPTION_MODEL_DEFAULT,
+            ...SECTION_DESCRIPTION_MODELS_FALLBACK,
+        ]),
+    ];
+}
 
 interface SectionDescriptionResult {
     rawSummary: string | undefined;
@@ -1049,25 +1052,39 @@ async function generateModelContent(
     config: ModelGenerationConfig,
     prompt: string
 ): Promise<string | undefined> {
-    const ai = new GoogleGenAI({ apiKey: serverEnv.GEMINI_API_KEY });
+    const models = resolveSectionDescriptionModels();
+    let lastError: unknown;
 
-    serviceLog.info(config.logLabel, {
-        maxOutputTokens: config.maxOutputTokens,
-        model: SECTION_DESCRIPTION_MODEL,
-        promptLength: prompt.length,
-    });
+    for (const model of models) {
+        try {
+            const ai = new GoogleGenAI({ apiKey: serverEnv.GEMINI_API_KEY });
 
-    const response = await ai.models.generateContent({
-        config: {
-            ...config,
-            responseMimeType: "application/json",
-            temperature: SECTION_TEMPERATURE,
-        },
-        contents: prompt,
-        model: SECTION_DESCRIPTION_MODEL,
-    });
+            serviceLog.info(config.logLabel, {
+                maxOutputTokens: config.maxOutputTokens,
+                model,
+                promptLength: prompt.length,
+            });
 
-    return response.text ?? undefined;
+            const response = await ai.models.generateContent({
+                config: {
+                    ...config,
+                    responseMimeType: "application/json",
+                    temperature: SECTION_TEMPERATURE,
+                },
+                contents: prompt,
+                model,
+            });
+
+            return response.text ?? undefined;
+        } catch (error) {
+            lastError = error;
+            serviceLog.warn(`Model ${model} failed for ${config.logLabel}`, {
+                error: error instanceof Error ? error.message : String(error),
+            });
+        }
+    }
+
+    throw lastError;
 }
 
 export async function generateSectionDescription(args: {
@@ -1117,7 +1134,7 @@ export async function generateSectionDescription(args: {
     return { rawSummary };
 }
 
-const SECTION_DESCRIPTION_EXPANDED_TIMEOUT_MS = 20_000;
+const SECTION_DESCRIPTION_EXPANDED_TIMEOUT_MS = 45_000;
 
 export async function generateExpandedSectionDescription(args: {
     prompt: string;

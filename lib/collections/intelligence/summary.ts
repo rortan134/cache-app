@@ -133,19 +133,16 @@ const FEW_SHOT_EXAMPLES: readonly FewShotExample[] = [
     },
 ];
 
-function formatFewShotExamples(): string {
-    return FEW_SHOT_EXAMPLES.map((example, index) => {
-        const lines = [
-            `Example ${index + 1}:`,
-            `Section: ${example.input.sectionTitle}`,
-            ...example.input.items.map(
-                (item) => `- ${item.title}: ${item.primaryText}`
-            ),
-            `Summary: ${example.output}`,
-        ];
-        return lines.join("\n");
-    }).join("\n\n");
-}
+const FORMATTED_FEW_SHOT_EXAMPLES = FEW_SHOT_EXAMPLES.map((example, index) =>
+    [
+        `Example ${index + 1}:`,
+        `Section: ${example.input.sectionTitle}`,
+        ...example.input.items.map(
+            (item) => `- ${item.title}: ${item.primaryText}`
+        ),
+        `Summary: ${example.output}`,
+    ].join("\n")
+).join("\n\n");
 
 // --- Prompt Builder ---
 
@@ -157,17 +154,14 @@ interface CompactItem {
 }
 
 function compactItem(item: SectionDescriptionContextItem): CompactItem {
-    const compact: CompactItem = {
+    return {
         primaryText: item.primaryText,
         title: item.title,
+        ...(item.noteExcerpt !== undefined && {
+            noteExcerpt: item.noteExcerpt,
+        }),
+        ...(item.domain !== undefined && { domain: item.domain }),
     };
-    if (item.noteExcerpt) {
-        compact.noteExcerpt = item.noteExcerpt;
-    }
-    if (item.domain) {
-        compact.domain = item.domain;
-    }
-    return compact;
 }
 
 function formatPromptItem(item: CompactItem, index: number): string {
@@ -199,7 +193,7 @@ export function buildSummaryPrompt(request: SectionDescriptionRequest): string {
         "- Do not use markdown, bullets, headings, labels, or code fences.",
         "- Do not wrap the summary in quotes.",
         "",
-        formatFewShotExamples(),
+        FORMATTED_FEW_SHOT_EXAMPLES,
         "",
         `Section title: ${request.sectionTitle}`,
         "Items:",

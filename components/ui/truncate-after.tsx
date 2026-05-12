@@ -34,7 +34,11 @@ export function TruncateAfter({
             {numTruncated > 0 && (
                 <Popover>
                     <PopoverTrigger render={badgeRender}>
-                        +<Calligraph>{numTruncated}</Calligraph> more
+                        +
+                        <Calligraph className="-mx-0.5">
+                            {numTruncated}
+                        </Calligraph>{" "}
+                        more
                     </PopoverTrigger>
                     <PopoverPopup>
                         <div className="flex flex-col gap-2">{remaining}</div>

@@ -1,7 +1,7 @@
 import "server-only";
 
-import { ApiError } from "@google/genai";
 import { createLogger } from "@/lib/common/logs/console/logger";
+import { ApiError } from "@google/genai";
 import {
     generateExpandedSectionDescription,
     generateSectionDescription,
@@ -183,6 +183,12 @@ async function executeDescriptionGeneration<T>(
             throw error;
         }
 
+        log.error(`Error generating ${errorLogLabel}`, {
+            errorMessage:
+                error instanceof Error ? error.message : String(error),
+            errorName: error instanceof Error ? error.name : undefined,
+        });
+
         const { message, status } = classifyApiError(error);
 
         log.warn(`Failed to generate ${errorLogLabel}`, {
@@ -213,10 +219,7 @@ function classifyApiError(error: unknown): { message: string; status: number } {
     if (error instanceof ApiError) {
         const message = error.message.toLowerCase();
 
-        if (
-            message.includes("timeout") ||
-            message.includes("deadline exceeded")
-        ) {
+        if (message.includes("timeout") || message.includes("deadline")) {
             return {
                 message: "Request timed out. Please try again.",
                 status: 408,
