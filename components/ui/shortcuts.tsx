@@ -63,7 +63,7 @@ export const KeyboardShortcutsDialogTrigger = (
                                 {shortcut.description}
                             </span>
                             <KbdGroup>
-                                <Kbd className="uppercase">
+                                <Kbd>
                                     {shortcut.hotkey
                                         ?.split("+")
                                         .map((part, i) => (

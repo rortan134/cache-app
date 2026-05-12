@@ -357,7 +357,7 @@ export function Integrations({ connectedIntegrations }: IntegrationsProps) {
                 <span className="min-w-0 text-xs">
                     <T>Integrations</T>
                 </span>
-                <Kbd className="ml-auto bg-transparent opacity-0 group-hover:opacity-50">
+                <Kbd className="ml-auto bg-transparent opacity-0 group-hover:opacity-50 group-has-data-open/collapsible:hidden">
                     <CmdKbd />I
                 </Kbd>
             </IntegrationsListTrigger>

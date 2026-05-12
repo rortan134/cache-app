@@ -664,7 +664,7 @@ export function Collections() {
                         </CollectionsListFavoritesTriggerValue>
                     </CollectionsListFavoritesTrigger>
                     <CollectionsListToolbarGroup>
-                        <Kbd className="bg-transparent opacity-0 group-hover:opacity-50 group-not-has-data-panel-open/collapsible:hidden">
+                        <Kbd className="bg-transparent opacity-0 group-hover:opacity-50 group-has-data-open/collapsible:hidden">
                             <ShiftKbd />
                             <CmdKbd />C
                         </Kbd>
@@ -693,7 +693,7 @@ export function Collections() {
                         </CollectionsListTriggerValue>
                     </CollectionsListTrigger>
                     <CollectionsListToolbarGroup>
-                        <Kbd className="bg-transparent opacity-0 group-hover:opacity-50 group-not-has-data-panel-open/collapsible:hidden">
+                        <Kbd className="bg-transparent opacity-0 group-hover:opacity-50 group-has-data-open/collapsible:hidden">
                             <CmdKbd />C
                         </Kbd>
                         <CollectionsListToolbarButton
@@ -2186,10 +2186,19 @@ function CollectionsListStatus({
  * Returns `null` when no filters are active so the layout doesn't reserve
  * space for an invisible control.
  */
-function CollectionsListFilterClearButton(
-    props: React.ComponentProps<typeof Button>
-) {
+function CollectionsListFilterClearButton({
+    onClick: onClickProp,
+    ...props
+}: React.ComponentProps<typeof Button>) {
     const { hasAnySelected, onClearCollectionFilters } = useCollections();
+
+    const onClick = useStableCallback(onClickProp);
+    const handleOnClick = useStableCallback(
+        (event: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
+            onClick?.(event);
+            onClearCollectionFilters();
+        }
+    );
 
     if (!hasAnySelected) {
         return null;
@@ -2198,7 +2207,7 @@ function CollectionsListFilterClearButton(
     return (
         <Button
             aria-label="Clear selected collections"
-            onClick={onClearCollectionFilters}
+            onClick={handleOnClick}
             size="icon-xs"
             variant="ghost"
             {...props}

@@ -123,7 +123,7 @@ function SidebarNavigationItem({
                         />
                         <span data-sidebar-label="">{children}</span>
                         <Kbd
-                            className="ml-auto bg-transparent uppercase opacity-0 group-hover:opacity-50"
+                            className="ml-auto bg-transparent opacity-0 group-hover:opacity-50"
                             data-sidebar-label=""
                         >
                             <CmdKbd />
