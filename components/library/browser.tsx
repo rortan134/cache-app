@@ -1659,7 +1659,8 @@ function useLibraryGridCardContext(): LibraryGridCardContextValue {
     return context;
 }
 
-interface LibraryResultsProps {
+interface BrowserResultsContextValue {
+    clearLibraryPalette: () => void;
     collapsedSectionKeys: Set<string>;
     collections: LibraryCollectionSummary[];
     columnCount?: number;
@@ -1679,86 +1680,453 @@ interface LibraryResultsProps {
         collectionIds: string[]
     ) => Promise<LibraryItemCollectionsUpdateResult>;
     pendingDeleteItemId: string | null;
-    sections: BrowserGroup[];
+    showEmptyLibraryPeek: boolean;
+    showNoFilteredResults: boolean;
+}
+
+const BrowserResultsContext =
+    React.createContext<BrowserResultsContextValue | null>(null);
+
+function useBrowserResultsContext(): BrowserResultsContextValue {
+    const context = React.use(BrowserResultsContext);
+    if (!context) {
+        throw new Error(
+            "BrowserResults components must be used inside <BrowserResults>."
+        );
+    }
+    return context;
+}
+
+interface BrowserGroupContextValue {
+    accentKey: string;
+    collapsed: boolean;
+    isMainResults: boolean;
+    items: LibraryItemWithCollections[];
+    key: string;
+    onToggle: () => void;
+    title: string;
+}
+
+const BrowserGroupContext =
+    React.createContext<BrowserGroupContextValue | null>(null);
+
+function useBrowserGroupContext(): BrowserGroupContextValue {
+    const context = React.use(BrowserGroupContext);
+    if (!context) {
+        throw new Error(
+            "BrowserGroup components must be used inside a section provided by <BrowserList>."
+        );
+    }
+    return context;
 }
 
 function BrowserResults({
-    collapsedSectionKeys,
-    collections,
-    columnCount,
-    layoutMode,
-    enableSectionCollapse,
-    onCollapseAllSections,
-    onCopyLink,
-    onCreateCollectionFromResults,
-    onDelete,
-    onExpandAllSections,
-    onOpenNote,
-    onOpenInNewTab,
-    onSetActionFeedback,
-    onUpdateItemCollections,
-    onToggleSection,
-    pendingDeleteItemId,
+    children,
+    ...contextValue
+}: BrowserResultsContextValue & { children: ReactNode }) {
+    return (
+        <BrowserResultsContext.Provider value={contextValue}>
+            {children}
+        </BrowserResultsContext.Provider>
+    );
+}
+
+function BrowserEmpty() {
+    const { showEmptyLibraryPeek } = useBrowserResultsContext();
+    if (!showEmptyLibraryPeek) {
+        return null;
+    }
+
+    return (
+        <>
+            <div className="mx-4 flex flex-col gap-1 px-1">
+                <h3 className="font-medium text-foreground text-sm">
+                    <GradientWaveText ariaLabel="Welcome to your Cache">
+                        Welcome to your Cache
+                    </GradientWaveText>
+                    <span className="ml-3 opacity-50">Ready to start?</span>
+                </h3>
+                <p className="text-muted-foreground text-xs leading-tight">
+                    Everything you bookmark, unified and searchable. Cache is
+                    purpose-built to organize what matters to you into
+                    collections so you can find it when you need it.
+                </p>
+            </div>
+            <Masonry columnCount={5} gap={4}>
+                {EMPTY_LIBRARY_PEEK_PLACEHOLDERS.map(
+                    ({ aspect, id }, index) => {
+                        const opacity = Math.max(0.06, 1 - index * 0.095);
+
+                        return (
+                            <MasonryItem
+                                className="group flex flex-col overflow-hidden rounded-lg bg-card/40"
+                                key={id}
+                                style={{ opacity }}
+                            >
+                                <Skeleton
+                                    className={cn(
+                                        "w-full rounded-none",
+                                        aspect
+                                    )}
+                                />
+                                <div className="flex min-h-14 flex-col gap-1.5 p-3">
+                                    <Skeleton className="h-2.5 w-[92%]" />
+                                    <Skeleton className="h-2.5 w-[72%]" />
+                                </div>
+                            </MasonryItem>
+                        );
+                    }
+                )}
+            </Masonry>
+        </>
+    );
+}
+
+function BrowserFiltersEmpty() {
+    const { showNoFilteredResults, clearLibraryPalette } =
+        useBrowserResultsContext();
+    if (!showNoFilteredResults) {
+        return null;
+    }
+
+    return (
+        <div className="flex flex-col items-center gap-3 rounded-2xl border border-border/70 border-dashed bg-card/30 px-6 py-14 text-center">
+            <p className="max-w-md text-balance text-muted-foreground text-sm">
+                No saved items match the current search and filters.
+            </p>
+            <Button onClick={clearLibraryPalette} size="sm" variant="outline">
+                Reset browser
+            </Button>
+        </div>
+    );
+}
+
+function BrowserList({
     sections,
-}: LibraryResultsProps) {
-    console.log("enableSectionCollapse", enableSectionCollapse, sections);
+    children,
+}: {
+    sections: BrowserGroup[];
+    children: (section: BrowserGroup) => ReactNode;
+}) {
+    const { collapsedSectionKeys, onToggleSection } =
+        useBrowserResultsContext();
 
     return sections.map((section) => (
-        <section className="flex w-full flex-col gap-3" key={section.key}>
-            {enableSectionCollapse ? (
-                <BrowserGroup
-                    accentKey={section.key}
-                    collapsed={collapsedSectionKeys.has(section.key)}
-                    collapsible
-                    collections={collections}
-                    columnCount={columnCount}
-                    items={section.items}
-                    layoutMode={layoutMode}
-                    onCollapseAll={onCollapseAllSections}
-                    onCopyLink={onCopyLink}
-                    onCreateCollectionFromResults={
-                        section.title == null
-                            ? onCreateCollectionFromResults
+        <BrowserGroupContext.Provider
+            key={section.key}
+            value={{
+                accentKey: section.key,
+                collapsed: collapsedSectionKeys.has(section.key),
+                isMainResults: section.title === null,
+                items: section.items,
+                key: section.key,
+                onToggle: () => onToggleSection(section.key),
+                title: section.title ?? "Results",
+            }}
+        >
+            {children(section)}
+        </BrowserGroupContext.Provider>
+    ));
+}
+
+function BrowserHeader() {
+    const group = useBrowserGroupContext();
+    const {
+        enableSectionCollapse,
+        onCreateCollectionFromResults,
+        onExpandAllSections,
+        onCollapseAllSections,
+    } = useBrowserResultsContext();
+    const headerGradient = enableSectionCollapse
+        ? getColorGradientFromName(group.accentKey)
+        : undefined;
+
+    return (
+        <ContextMenu>
+            <ContextMenuTrigger render={<div className="contents" />}>
+                <div
+                    className={cn(
+                        "flex items-center justify-between gap-3 pr-3",
+                        enableSectionCollapse &&
+                            "sticky z-10 rounded-xl bg-muted/92 backdrop-blur-sm supports-backdrop-filter:bg-muted/50"
+                    )}
+                    style={
+                        enableSectionCollapse
+                            ? ({
+                                  background: headerGradient,
+                                  top: "var(--library-section-sticky-top)",
+                              } as React.CSSProperties)
                             : undefined
                     }
-                    onDelete={onDelete}
-                    onExpandAll={onExpandAllSections}
-                    onOpenInNewTab={onOpenInNewTab}
-                    onOpenNote={onOpenNote}
-                    onSetActionFeedback={onSetActionFeedback}
-                    onToggle={() => onToggleSection(section.key)}
-                    onUpdateItemCollections={onUpdateItemCollections}
-                    pendingDeleteItemId={pendingDeleteItemId}
-                    title={section.title ?? "Results"}
-                />
-            ) : (
-                <LibraryGridCardContext
-                    value={{
-                        collections,
-                        onCopyLink,
-                        onDelete,
-                        onOpenInNewTab,
-                        onOpenNote,
-                        onSetActionFeedback,
-                        onUpdateItemCollections,
-                        pendingDeleteItemId,
-                    }}
                 >
-                    {layoutMode === "board" ? (
-                        <BoardLayout items={section.items} />
-                    ) : (
-                        <Masonry columnCount={columnCount} gap={4}>
-                            {section.items.map((item) => (
-                                <MasonryItem key={item.id}>
-                                    <Card item={item} />
-                                </MasonryItem>
-                            ))}
-                        </Masonry>
+                    <div className="flex items-center">
+                        {enableSectionCollapse ? (
+                            <Button
+                                className="group min-w-0 flex-1 justify-start rounded-xl"
+                                onClick={group.onToggle}
+                                size="lg"
+                                title={
+                                    group.collapsed
+                                        ? "Expand group"
+                                        : "Collapse group"
+                                }
+                                variant="ghost"
+                                {...(group.collapsed
+                                    ? {}
+                                    : { "data-panel-open": true })}
+                            >
+                                <ChevronDownFilledIcon />
+                                <span className="ml-1 truncate font-medium">
+                                    {group.title}
+                                </span>
+                            </Button>
+                        ) : (
+                            <h2 className="font-medium text-lg">
+                                {group.title}
+                            </h2>
+                        )}
+                        <span className="font-medium text-muted-foreground text-xs tabular-nums">
+                            {group.items.length}
+                        </span>
+                    </div>
+                    {group.isMainResults && onCreateCollectionFromResults ? (
+                        <Menu>
+                            <MenuTrigger
+                                render={
+                                    <Button size="icon-sm" variant="ghost">
+                                        <Ellipsis className="size-3.5" />
+                                    </Button>
+                                }
+                            />
+                            <MenuPopup align="end">
+                                <MenuItem
+                                    onClick={onCreateCollectionFromResults}
+                                >
+                                    <CircleFadingPlus className="size-4.5 text-muted-foreground" />
+                                    Create collection with results
+                                </MenuItem>
+                            </MenuPopup>
+                        </Menu>
+                    ) : null}
+                </div>
+            </ContextMenuTrigger>
+            {enableSectionCollapse && (
+                <ContextMenuPopup>
+                    <ContextMenuItem
+                        disabled={!group.collapsed}
+                        onClick={group.onToggle}
+                    >
+                        <ChevronDown className="size-4.5 text-muted-foreground" />
+                        Expand
+                    </ContextMenuItem>
+                    <ContextMenuItem
+                        disabled={group.collapsed}
+                        onClick={group.onToggle}
+                    >
+                        <ChevronUp className="size-4.5 text-muted-foreground" />
+                        Collapse
+                    </ContextMenuItem>
+                    {(onExpandAllSections || onCollapseAllSections) && (
+                        <>
+                            <ContextMenuSeparator />
+                            {onExpandAllSections && (
+                                <ContextMenuItem onClick={onExpandAllSections}>
+                                    <ChevronsDown className="size-4.5 text-muted-foreground" />
+                                    Expand all
+                                </ContextMenuItem>
+                            )}
+                            {onCollapseAllSections && (
+                                <ContextMenuItem
+                                    onClick={onCollapseAllSections}
+                                >
+                                    <ChevronsUp className="size-4.5 text-muted-foreground" />
+                                    Collapse all
+                                </ContextMenuItem>
+                            )}
+                        </>
                     )}
-                </LibraryGridCardContext>
+                </ContextMenuPopup>
             )}
+        </ContextMenu>
+    );
+}
+
+function BrowserGroupEmpty() {
+    const { collapsed, items } = useBrowserGroupContext();
+    if (collapsed || items.length > 0) {
+        return null;
+    }
+
+    return (
+        <p className="text-muted-foreground text-sm">
+            No items were found in this group.
+        </p>
+    );
+}
+
+function BrowserGroupOverview() {
+    const { collapsed, items, title } = useBrowserGroupContext();
+
+    const [isExpanded, setIsExpanded] = React.useState(false);
+    const contentId = React.useId();
+
+    const handleToggleExpanded = useStableCallback(() => {
+        setIsExpanded((prev) => !prev);
+    });
+
+    const deferredRequestBody = React.useDeferredValue(
+        JSON.stringify({
+            expanded: isExpanded,
+            items: items
+                .slice(0, SECTION_DESCRIPTION_CONTEXT_ITEMS_LIMIT)
+                .map(buildSectionDescriptionContextItem),
+            sectionTitle: title,
+        })
+    );
+
+    const { data, error, isLoading } = useSWR<SectionDescriptionResponse>(
+        items.length > 0
+            ? (["/api/summary", deferredRequestBody] as const)
+            : null,
+        fetchSectionDescription,
+        {
+            dedupingInterval: 60_000,
+            keepPreviousData: true,
+            revalidateOnFocus: false,
+            shouldRetryOnError: false,
+        }
+    );
+
+    if (collapsed) {
+        return null;
+    }
+
+    const hasConclusions =
+        !!data && "conclusions" in data && Array.isArray(data.conclusions);
+    const conclusions = hasConclusions ? data.conclusions : null;
+    const summary = data && "summary" in data ? data.summary.trim() : undefined;
+
+    return (
+        <div className="flex items-start gap-2">
+            <AvatarGroup>
+                <Avatar className="size-7 bg-muted">
+                    <Sparkles className="size-4" />
+                </Avatar>
+                <Avatar className="border-2 border-white bg-muted">
+                    <Info className="size-4" />
+                </Avatar>
+            </AvatarGroup>
+            <div className="flex w-full flex-1 flex-col gap-1">
+                <GradientWaveText
+                    ariaLabel="Description"
+                    className="-ml-px font-medium text-muted-foreground text-xs opacity-80"
+                >
+                    Description
+                </GradientWaveText>
+                {isLoading && !data && !error ? (
+                    <div className="block w-full text-xs leading-snug">
+                        <Skeleton className="my-0.5 h-4 w-full" />
+                        <Skeleton className="my-0.5 h-4 w-48" />
+                    </div>
+                ) : (
+                    <div
+                        aria-busy={isLoading}
+                        className={cn(
+                            "fade-in-0 flex w-full animate-in items-center gap-2 text-xs leading-snug motion-reduce:animate-none",
+                            isLoading && "opacity-60"
+                        )}
+                        id={contentId}
+                    >
+                        {conclusions && conclusions.length > 0 ? (
+                            <ul className="list-disc space-y-0.5 pl-4">
+                                {conclusions.map((conclusion, index) => (
+                                    <li key={index}>{conclusion}</li>
+                                ))}
+                            </ul>
+                        ) : (
+                            <Streamdown>
+                                {summary && summary.length > 0
+                                    ? summary
+                                    : SECTION_DESCRIPTION_FALLBACK_TEXT}
+                            </Streamdown>
+                        )}
+                        &nbsp;
+                        <Button
+                            aria-controls={contentId}
+                            aria-expanded={isExpanded}
+                            className="h-fit! text-xs leading-snug sm:text-xs"
+                            onClick={handleToggleExpanded}
+                            size="xs"
+                            variant="link"
+                        >
+                            {isExpanded ? "Collapse" : "Expand"}
+                            &nbsp;
+                            <ListChevronsUpDown className="mb-px inline-block size-3.5 shrink-0" />
+                        </Button>
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+}
+
+function BrowserBoard() {
+    const { collapsed, items } = useBrowserGroupContext();
+    if (collapsed) {
+        return null;
+    }
+    return <BoardLayout items={items} />;
+}
+
+function BrowserMasonry() {
+    const { collapsed, items } = useBrowserGroupContext();
+    const { columnCount } = useBrowserResultsContext();
+
+    if (collapsed || items.length === 0) {
+        return null;
+    }
+
+    return (
+        <Masonry columnCount={columnCount} gap={4}>
+            {items.map((item) => (
+                <MasonryItem key={item.id}>
+                    <Card item={item} />
+                </MasonryItem>
+            ))}
+        </Masonry>
+    );
+}
+
+function BrowserGroup({ children }: { children: ReactNode }) {
+    const {
+        collections,
+        onCopyLink,
+        onDelete,
+        onOpenInNewTab,
+        onOpenNote,
+        onSetActionFeedback,
+        onUpdateItemCollections,
+        pendingDeleteItemId,
+    } = useBrowserResultsContext();
+
+    return (
+        <section className="flex w-full flex-col gap-3">
+            <LibraryGridCardContext
+                value={{
+                    collections,
+                    onCopyLink,
+                    onDelete,
+                    onOpenInNewTab,
+                    onOpenNote,
+                    onSetActionFeedback,
+                    onUpdateItemCollections,
+                    pendingDeleteItemId,
+                }}
+            >
+                {children}
+            </LibraryGridCardContext>
         </section>
-    ));
+    );
 }
 
 function ValidCategoryThumbnail({ urls }: { urls: string[] }) {
@@ -2786,34 +3154,6 @@ function useLibraryItemActions(args: {
     };
 }
 
-interface GridProps {
-    collections: LibraryCollectionSummary[];
-    columnCount?: number;
-    items: LibraryItemWithCollections[];
-    layoutMode: LayoutMode;
-    onCopyLink?: (item: LibraryItemWithCollections) => void;
-    onDelete?: (item: LibraryItemWithCollections) => void;
-    onOpenInNewTab?: (item: LibraryItemWithCollections) => void;
-    onOpenNote?: (item: LibraryItemWithCollections) => void;
-    onSetActionFeedback: (feedback: LibraryActionFeedback | null) => void;
-    onUpdateItemCollections: (
-        itemId: string,
-        collectionIds: string[]
-    ) => Promise<LibraryItemCollectionsUpdateResult>;
-    pendingDeleteItemId?: string | null;
-}
-
-interface SectionProps extends GridProps {
-    accentKey?: string;
-    collapsed?: boolean;
-    collapsible?: boolean;
-    onCollapseAll?: () => void;
-    onCreateCollectionFromResults?: () => void;
-    onExpandAll?: () => void;
-    onToggle?: () => void;
-    title: string;
-}
-
 interface BoardColumnItem {
     item: LibraryItemWithCollections;
     value: string;
@@ -2978,7 +3318,7 @@ export function PreviewMedia({
 }
 
 type LibraryGridCardContextValue = Pick<
-    GridProps,
+    BrowserResultsContextValue,
     | "collections"
     | "onCopyLink"
     | "onDelete"
@@ -3837,361 +4177,6 @@ function LockedResults({
                 )}
             </div>
         </div>
-    );
-}
-
-function BrowserEmpty({ shouldShow }: { shouldShow: boolean }) {
-    if (!shouldShow) {
-        return null;
-    }
-
-    return (
-        <>
-            <div className="mx-4 flex flex-col gap-1 px-1">
-                <h3 className="font-medium text-foreground text-sm">
-                    <GradientWaveText ariaLabel="Welcome to your Cache">
-                        Welcome to your Cache
-                    </GradientWaveText>
-                    <span className="ml-3 opacity-50">Ready to start?</span>
-                </h3>
-                <p className="text-muted-foreground text-xs leading-tight">
-                    Everything you bookmark, unified and searchable. Cache is
-                    purpose-built to organize what matters to you into
-                    collections so you can find it when you need it.
-                </p>
-            </div>
-            <Masonry columnCount={5} gap={4}>
-                {EMPTY_LIBRARY_PEEK_PLACEHOLDERS.map(
-                    ({ aspect, id }, index) => {
-                        const opacity = Math.max(0.06, 1 - index * 0.095);
-
-                        return (
-                            <MasonryItem
-                                className="group flex flex-col overflow-hidden rounded-lg bg-card/40"
-                                key={id}
-                                style={{ opacity }}
-                            >
-                                <Skeleton
-                                    className={cn(
-                                        "w-full rounded-none",
-                                        aspect
-                                    )}
-                                />
-                                <div className="flex min-h-14 flex-col gap-1.5 p-3">
-                                    <Skeleton className="h-2.5 w-[92%]" />
-                                    <Skeleton className="h-2.5 w-[72%]" />
-                                </div>
-                            </MasonryItem>
-                        );
-                    }
-                )}
-            </Masonry>
-        </>
-    );
-}
-
-function BrowserFiltersEmpty({
-    clearLibraryPalette,
-    shouldShow,
-}: {
-    clearLibraryPalette: () => void;
-    shouldShow: boolean;
-}) {
-    if (!shouldShow) {
-        return null;
-    }
-
-    return (
-        <div className="flex flex-col items-center gap-3 rounded-2xl border border-border/70 border-dashed bg-card/30 px-6 py-14 text-center">
-            <p className="max-w-md text-balance text-muted-foreground text-sm">
-                No saved items match the current search and filters.
-            </p>
-            <Button onClick={clearLibraryPalette} size="sm" variant="outline">
-                Reset browser
-            </Button>
-        </div>
-    );
-}
-
-function BrowserSectionOverview({
-    items,
-    title,
-}: {
-    items: LibraryItemWithCollections[];
-    title: string;
-}) {
-    const [isExpanded, setIsExpanded] = React.useState(false);
-    const contentId = React.useId();
-
-    const handleToggleExpanded = useStableCallback(() => {
-        setIsExpanded((prev) => !prev);
-    });
-
-    const deferredRequestBody = React.useDeferredValue(
-        JSON.stringify({
-            expanded: isExpanded,
-            items: items
-                .slice(0, SECTION_DESCRIPTION_CONTEXT_ITEMS_LIMIT)
-                .map(buildSectionDescriptionContextItem),
-            sectionTitle: title,
-        })
-    );
-
-    const { data, error, isLoading } = useSWR<SectionDescriptionResponse>(
-        items.length > 0
-            ? (["/api/summary", deferredRequestBody] as const)
-            : null,
-        fetchSectionDescription,
-        {
-            dedupingInterval: 60_000,
-            keepPreviousData: true,
-            revalidateOnFocus: false,
-            shouldRetryOnError: false,
-        }
-    );
-
-    if (isLoading && !data && !error) {
-        return (
-            <div className="block w-full text-xs leading-snug">
-                <Skeleton className="my-0.5 h-4 w-full" />
-                <Skeleton className="my-0.5 h-4 w-48" />
-            </div>
-        );
-    }
-
-    const hasConclusions =
-        !!data && "conclusions" in data && Array.isArray(data.conclusions);
-    const conclusions = hasConclusions ? data.conclusions : null;
-    const summary = data && "summary" in data ? data.summary.trim() : undefined;
-
-    return (
-        <div
-            aria-busy={isLoading}
-            className={cn(
-                "fade-in-0 flex w-full animate-in items-center gap-2 text-xs leading-snug motion-reduce:animate-none",
-                isLoading && "opacity-60"
-            )}
-            id={contentId}
-        >
-            {conclusions && conclusions.length > 0 ? (
-                <ul className="list-disc space-y-0.5 pl-4">
-                    {conclusions.map((conclusion, index) => (
-                        <li key={index}>{conclusion}</li>
-                    ))}
-                </ul>
-            ) : (
-                <Streamdown>
-                    {summary && summary.length > 0
-                        ? summary
-                        : SECTION_DESCRIPTION_FALLBACK_TEXT}
-                </Streamdown>
-            )}
-            &nbsp;
-            <Button
-                aria-controls={contentId}
-                aria-expanded={isExpanded}
-                className="h-fit! text-xs leading-snug sm:text-xs"
-                onClick={handleToggleExpanded}
-                size="xs"
-                variant="link"
-            >
-                {isExpanded ? "Collapse" : "Expand"}
-                &nbsp;
-                <ListChevronsUpDown className="mb-px inline-block size-3.5 shrink-0" />
-            </Button>
-        </div>
-    );
-}
-
-function BrowserGroup({
-    accentKey,
-    collapsed = false,
-    collapsible = false,
-    collections,
-    columnCount,
-    items,
-    layoutMode,
-    onSetActionFeedback,
-    onCopyLink,
-    onDelete,
-    onOpenNote,
-    onOpenInNewTab,
-    onUpdateItemCollections,
-    onToggle,
-    onCollapseAll,
-    onCreateCollectionFromResults,
-    onExpandAll,
-    pendingDeleteItemId,
-    title,
-}: SectionProps) {
-    const canToggle = collapsible && onToggle;
-    const headerGradient = collapsible
-        ? getColorGradientFromName(accentKey ?? title)
-        : undefined;
-    const shouldRequestDescription = canToggle && title === "Results";
-
-    return (
-        <>
-            <ContextMenu>
-                <ContextMenuTrigger render={<div className="contents" />}>
-                    <div
-                        className={cn(
-                            "flex items-center justify-between gap-3 pr-3",
-                            collapsible &&
-                                "sticky z-10 rounded-xl bg-muted/92 backdrop-blur-sm supports-backdrop-filter:bg-muted/50"
-                        )}
-                        style={
-                            collapsible
-                                ? ({
-                                      background: headerGradient,
-                                      top: "var(--library-section-sticky-top)",
-                                  } as React.CSSProperties)
-                                : undefined
-                        }
-                    >
-                        <div className="flex items-center">
-                            {canToggle ? (
-                                <Button
-                                    className="group min-w-0 flex-1 justify-start rounded-xl"
-                                    onClick={onToggle}
-                                    size="lg"
-                                    title={
-                                        collapsed
-                                            ? "Expand group"
-                                            : "Collapse group"
-                                    }
-                                    variant="ghost"
-                                    {...(collapsed
-                                        ? {}
-                                        : { "data-panel-open": true })}
-                                >
-                                    <ChevronDownFilledIcon />
-                                    <span className="ml-1 truncate font-medium">
-                                        {title}
-                                    </span>
-                                </Button>
-                            ) : (
-                                <h2 className="font-medium text-lg">{title}</h2>
-                            )}
-                            <span className="font-medium text-muted-foreground text-xs tabular-nums">
-                                {items.length}
-                            </span>
-                        </div>
-                        {onCreateCollectionFromResults ? (
-                            <Menu>
-                                <MenuTrigger
-                                    render={
-                                        <Button size="icon-sm" variant="ghost">
-                                            <Ellipsis className="size-3.5" />
-                                        </Button>
-                                    }
-                                />
-                                <MenuPopup align="end">
-                                    <MenuItem
-                                        onClick={onCreateCollectionFromResults}
-                                    >
-                                        <CircleFadingPlus className="size-4.5 text-muted-foreground" />
-                                        Create collection with results
-                                    </MenuItem>
-                                </MenuPopup>
-                            </Menu>
-                        ) : null}
-                    </div>
-                </ContextMenuTrigger>
-                {collapsible && (
-                    <ContextMenuPopup>
-                        <ContextMenuItem
-                            disabled={!collapsed}
-                            onClick={onToggle}
-                        >
-                            <ChevronDown className="size-4.5 text-muted-foreground" />
-                            Expand
-                        </ContextMenuItem>
-                        <ContextMenuItem
-                            disabled={collapsed}
-                            onClick={onToggle}
-                        >
-                            <ChevronUp className="size-4.5 text-muted-foreground" />
-                            Collapse
-                        </ContextMenuItem>
-                        {(onExpandAll || onCollapseAll) && (
-                            <>
-                                <ContextMenuSeparator />
-                                {onExpandAll && (
-                                    <ContextMenuItem onClick={onExpandAll}>
-                                        <ChevronsDown className="size-4.5 text-muted-foreground" />
-                                        Expand all
-                                    </ContextMenuItem>
-                                )}
-                                {onCollapseAll && (
-                                    <ContextMenuItem onClick={onCollapseAll}>
-                                        <ChevronsUp className="size-4.5 text-muted-foreground" />
-                                        Collapse all
-                                    </ContextMenuItem>
-                                )}
-                            </>
-                        )}
-                    </ContextMenuPopup>
-                )}
-            </ContextMenu>
-            {/** biome-ignore lint/style/noNestedTernary: TEMP */}
-            {collapsed ? null : items.length === 0 ? (
-                <p className="text-muted-foreground text-sm">
-                    No items were found in this group.
-                </p>
-            ) : (
-                <>
-                    {shouldRequestDescription ? (
-                        <div className="flex items-start gap-2">
-                            <AvatarGroup>
-                                <Avatar className="size-7 bg-muted">
-                                    <Sparkles className="size-4" />
-                                </Avatar>
-                                <Avatar className="border-2 border-white bg-muted">
-                                    <Info className="size-4" />
-                                </Avatar>
-                            </AvatarGroup>
-                            <div className="flex w-full flex-1 flex-col gap-1">
-                                <GradientWaveText
-                                    ariaLabel="Description"
-                                    className="-ml-px font-medium text-muted-foreground text-xs opacity-80"
-                                >
-                                    Description
-                                </GradientWaveText>
-                                <BrowserSectionOverview
-                                    items={items}
-                                    title={title}
-                                />
-                            </div>
-                        </div>
-                    ) : null}
-                    <LibraryGridCardContext
-                        value={{
-                            collections,
-                            onCopyLink,
-                            onDelete,
-                            onOpenInNewTab,
-                            onOpenNote,
-                            onSetActionFeedback,
-                            onUpdateItemCollections,
-                            pendingDeleteItemId,
-                        }}
-                    >
-                        {layoutMode === "board" ? (
-                            <BoardLayout items={items} />
-                        ) : (
-                            <Masonry columnCount={columnCount} gap={4}>
-                                {items.map((item) => (
-                                    <MasonryItem key={item.id}>
-                                        <Card item={item} />
-                                    </MasonryItem>
-                                ))}
-                            </Masonry>
-                        )}
-                    </LibraryGridCardContext>
-                </>
-            )}
-        </>
     );
 }
 
@@ -5457,7 +5442,7 @@ export function Browser({
                         )}
                     </Toolbar.Group>
                 </Toolbar.Root>
-                {actionFeedback || commandSuggestions.length === 0 ? null : (
+                {commandSuggestions.length === 0 ? null : (
                     <div className="relative -mt-1 px-3">
                         <ScrollArea
                             className="max-w-full whitespace-nowrap"
@@ -5506,12 +5491,8 @@ export function Browser({
                     </div>
                 ) : null}
                 {isPreviewOnly ? <InlinePaywallBanner /> : null}
-                <BrowserEmpty shouldShow={showEmptyLibraryPeek} />
-                <BrowserFiltersEmpty
-                    clearLibraryPalette={clearLibraryPalette}
-                    shouldShow={showNoFilteredResults}
-                />
                 <BrowserResults
+                    clearLibraryPalette={clearLibraryPalette}
                     collapsedSectionKeys={collapsedSectionKeySet}
                     collections={collections}
                     columnCount={resolvedColumnCount}
@@ -5532,8 +5513,36 @@ export function Browser({
                         handleUpdateItemCollectionsWithFeedback
                     }
                     pendingDeleteItemId={pendingDeleteItem?.id ?? null}
-                    sections={sections}
-                />
+                    showEmptyLibraryPeek={showEmptyLibraryPeek}
+                    showNoFilteredResults={showNoFilteredResults}
+                >
+                    <BrowserEmpty />
+                    <BrowserFiltersEmpty />
+                    <BrowserList sections={sections}>
+                        {(section) =>
+                            enableSectionCollapse ? (
+                                <BrowserGroup>
+                                    <BrowserHeader />
+                                    <BrowserGroupEmpty />
+                                    {!section.title && <BrowserGroupOverview />}
+                                    {layoutMode === "board" ? (
+                                        <BrowserBoard />
+                                    ) : (
+                                        <BrowserMasonry />
+                                    )}
+                                </BrowserGroup>
+                            ) : (
+                                <BrowserGroup>
+                                    {layoutMode === "board" ? (
+                                        <BrowserBoard />
+                                    ) : (
+                                        <BrowserMasonry />
+                                    )}
+                                </BrowserGroup>
+                            )
+                        }
+                    </BrowserList>
+                </BrowserResults>
                 {showLockedPreview ? (
                     <LockedResults
                         columnCount={resolvedColumnCount}
