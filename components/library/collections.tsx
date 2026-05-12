@@ -178,6 +178,13 @@ const STOP_SHARING_ERROR_MESSAGE =
     "We couldn't stop sharing this collection right now.";
 const UPDATE_PRIORITY_ERROR_MESSAGE =
     "We couldn't update this collection priority right now.";
+const COPY_LINKS_ERROR_MESSAGE = "We couldn't copy these links right now.";
+const COPY_TITLE_ERROR_MESSAGE =
+    "We couldn't copy this collection title right now.";
+const COPY_SHARE_LINK_ERROR_MESSAGE =
+    "We couldn't copy this public link right now.";
+const EXPORT_CSV_ERROR_MESSAGE =
+    "We couldn't export this collection right now.";
 
 type CollectionOptionIcon = React.ComponentType<{ className?: string }>;
 
@@ -483,7 +490,7 @@ function useCollections(): CollectionsContextValue {
     return context;
 }
 
-function CollectionsProvider({ children }: { children: React.ReactNode }) {
+function CollectionsListProvider({ children }: { children: React.ReactNode }) {
     const controller = useCollectionsController();
     return (
         <CollectionsContext value={controller}>{children}</CollectionsContext>
@@ -681,19 +688,18 @@ async function disableCollectionSharingSafely(
 
 export function Collections() {
     return (
-        <CollectionsProvider>
-            <CollectionsFavoritesList
+        <CollectionsListProvider>
+            <CollectionsListFavorites
                 className="group/collapsible"
                 data-sidebar-collapsible=""
             >
                 <CollectionsListToolbar className="group">
-                    <CollectionFavoritesListTrigger>
-                        <CollectionsFavoritesListTriggerValue>
+                    <CollectionsListFavoritesTrigger>
+                        <CollectionsListFavoritesTriggerValue>
                             <T>Favorites</T>
-                        </CollectionsFavoritesListTriggerValue>
-                        <ChevronDownFilledIcon className="-ml-0.5" />
-                    </CollectionFavoritesListTrigger>
-                    <CollectionsListToolbarGroup className="absolute right-1">
+                        </CollectionsListFavoritesTriggerValue>
+                    </CollectionsListFavoritesTrigger>
+                    <CollectionsListToolbarGroup>
                         <Kbd className="bg-transparent opacity-0 group-hover:opacity-50 group-not-has-data-panel-open/collapsible:hidden">
                             <ShiftKbd />
                             <CmdKbd />C
@@ -701,18 +707,17 @@ export function Collections() {
                     </CollectionsListToolbarGroup>
                 </CollectionsListToolbar>
                 <CollectionsListPanel>
-                    <DisclosureList maxVisible={10}>
-                        <CollectionsFavoritesListContent>
-                            {(collection) => (
-                                <CollectionsListItemRow
-                                    collection={collection}
-                                    key={collection.id}
-                                />
-                            )}
-                        </CollectionsFavoritesListContent>
-                    </DisclosureList>
+                    {/* Favorites list doesn't need disclosure truncation */}
+                    <CollectionsListFavoritesContent>
+                        {(collection) => (
+                            <CollectionItemRow
+                                collection={collection}
+                                key={collection.id}
+                            />
+                        )}
+                    </CollectionsListFavoritesContent>
                 </CollectionsListPanel>
-            </CollectionsFavoritesList>
+            </CollectionsListFavorites>
             <CollectionsList
                 className="group/collapsible"
                 data-sidebar-collapsible=""
@@ -722,9 +727,8 @@ export function Collections() {
                         <CollectionsListTriggerValue>
                             <T>Collections</T>
                         </CollectionsListTriggerValue>
-                        <ChevronDownFilledIcon className="-ml-0.5" />
                     </CollectionsListTrigger>
-                    <CollectionsListToolbarGroup className="absolute right-1">
+                    <CollectionsListToolbarGroup>
                         <Kbd className="bg-transparent opacity-0 group-hover:opacity-50 group-not-has-data-panel-open/collapsible:hidden">
                             <CmdKbd />C
                         </Kbd>
@@ -741,7 +745,7 @@ export function Collections() {
                 </CollectionsListToolbar>
                 <CollectionsListPanel>
                     <div className="p-1.5 pt-1">
-                        <CollectionsListCalloutPopover />
+                        <CollectionsCalloutPopover />
                     </div>
                     <CollectionsListEmpty>
                         <T>
@@ -752,7 +756,7 @@ export function Collections() {
                     <DisclosureList maxVisible={10}>
                         <CollectionsListContent>
                             {(collection) => (
-                                <CollectionsListItemRow
+                                <CollectionItemRow
                                     collection={collection}
                                     key={collection.id}
                                 />
@@ -762,11 +766,104 @@ export function Collections() {
                 </CollectionsListPanel>
             </CollectionsList>
             <CollectionsListStatus data-sidebar-collapsible="" />
-            <RenameDialog />
-            <CreateDialog />
-            <DeleteDialog />
-        </CollectionsProvider>
+            <CollectionsRenameDialog />
+            <CollectionsCreateDialog />
+            <CollectionsDeleteDialog />
+        </CollectionsListProvider>
     );
+}
+
+/**
+ * Validate preview image URLs asynchronously with caching.
+ *
+ * Filters out broken or unreachable images so the preview card never shows
+ * a failed load state.
+ */
+function useValidatedPreviewUrls(
+    collectionPreviewThumbnailUrlsById: ReadonlyMap<string, readonly string[]>
+): Map<string, readonly string[]> {
+    const [validatedPreviewUrls, setValidatedPreviewUrls] = React.useState(
+        new Map(collectionPreviewThumbnailUrlsById)
+    );
+    const validationCacheRef = React.useRef(new Map<string, boolean>());
+
+    React.useEffect(() => {
+        let cancelled = false;
+        const cache = validationCacheRef.current;
+
+        async function validate() {
+            const allUrls = new Set<string>();
+            for (const urls of collectionPreviewThumbnailUrlsById.values()) {
+                for (const url of urls) {
+                    allUrls.add(url);
+                }
+            }
+
+            if (allUrls.size === 0) {
+                if (!cancelled) {
+                    setValidatedPreviewUrls(new Map());
+                }
+                return;
+            }
+
+            const urlsToValidate: string[] = [];
+            for (const url of allUrls) {
+                if (!cache.has(url)) {
+                    urlsToValidate.push(url);
+                }
+            }
+
+            const buildValidatedMap = () => {
+                const next = new Map<string, string[]>();
+                for (const [id, urls] of collectionPreviewThumbnailUrlsById) {
+                    const filtered = urls.filter((url) => cache.get(url));
+                    if (filtered.length > 0) {
+                        next.set(id, filtered);
+                    }
+                }
+                return next;
+            };
+
+            if (urlsToValidate.length === 0) {
+                if (!cancelled) {
+                    setValidatedPreviewUrls(buildValidatedMap());
+                }
+                return;
+            }
+
+            if (!cancelled) {
+                setValidatedPreviewUrls(
+                    new Map(collectionPreviewThumbnailUrlsById)
+                );
+            }
+
+            try {
+                const validUrls = await filterValidImageUrls(urlsToValidate);
+                for (const url of urlsToValidate) {
+                    cache.set(url, validUrls.includes(url));
+                }
+
+                if (!cancelled) {
+                    setValidatedPreviewUrls(buildValidatedMap());
+                }
+            } catch (err) {
+                LOG.error("Preview URL validation failed", { error: err });
+                if (!cancelled) {
+                    setValidatedPreviewUrls(
+                        new Map(collectionPreviewThumbnailUrlsById)
+                    );
+                }
+            }
+        }
+
+        validate();
+
+        return () => {
+            cancelled = true;
+        };
+    }, [collectionPreviewThumbnailUrlsById]);
+
+    return validatedPreviewUrls;
 }
 
 /**
@@ -829,82 +926,9 @@ function useCollectionsController() {
         null
     );
 
-    const [validatedPreviewUrls, setValidatedPreviewUrls] = React.useState(
+    const validatedPreviewUrls = useValidatedPreviewUrls(
         collectionPreviewThumbnailUrlsById
     );
-    const validationCacheRef = React.useRef(new Map<string, boolean>());
-
-    React.useEffect(() => {
-        let cancelled = false;
-        const cache = validationCacheRef.current;
-
-        async function validate() {
-            const allUrls = new Set<string>();
-            for (const urls of collectionPreviewThumbnailUrlsById.values()) {
-                for (const url of urls) {
-                    allUrls.add(url);
-                }
-            }
-
-            if (allUrls.size === 0) {
-                if (!cancelled) {
-                    setValidatedPreviewUrls(new Map());
-                }
-                return;
-            }
-
-            const urlsToValidate: string[] = [];
-            for (const url of allUrls) {
-                if (!cache.has(url)) {
-                    urlsToValidate.push(url);
-                }
-            }
-
-            const buildValidatedMap = () => {
-                const next = new Map<string, string[]>();
-                for (const [id, urls] of collectionPreviewThumbnailUrlsById) {
-                    const filtered = urls.filter((url) => cache.get(url));
-                    if (filtered.length > 0) {
-                        next.set(id, filtered);
-                    }
-                }
-                return next;
-            };
-
-            if (urlsToValidate.length === 0) {
-                if (!cancelled) {
-                    setValidatedPreviewUrls(buildValidatedMap());
-                }
-                return;
-            }
-
-            if (!cancelled) {
-                setValidatedPreviewUrls(collectionPreviewThumbnailUrlsById);
-            }
-
-            try {
-                const validUrls = await filterValidImageUrls(urlsToValidate);
-                for (const url of urlsToValidate) {
-                    cache.set(url, validUrls.includes(url));
-                }
-
-                if (!cancelled) {
-                    setValidatedPreviewUrls(buildValidatedMap());
-                }
-            } catch (err) {
-                LOG.error("Preview URL validation failed", { error: err });
-                if (!cancelled) {
-                    setValidatedPreviewUrls(collectionPreviewThumbnailUrlsById);
-                }
-            }
-        }
-
-        validate();
-
-        return () => {
-            cancelled = true;
-        };
-    }, [collectionPreviewThumbnailUrlsById]);
 
     const {
         favoriteCollectionIds,
@@ -1117,7 +1141,7 @@ function useCollectionsController() {
         await copyWithFeedback(
             urls.join("\n"),
             `Links from ${collection.name} copied to the clipboard.`,
-            "We couldn't copy these links right now."
+            COPY_LINKS_ERROR_MESSAGE
         );
     };
 
@@ -1125,7 +1149,7 @@ function useCollectionsController() {
         await copyWithFeedback(
             collection.name,
             `${collection.name} title copied to the clipboard.`,
-            "We couldn't copy this collection title right now."
+            COPY_TITLE_ERROR_MESSAGE
         );
     };
 
@@ -1141,7 +1165,7 @@ function useCollectionsController() {
         await copyWithFeedback(
             url,
             `Public link for ${collection.name} copied to the clipboard.`,
-            "We couldn't copy this public link right now."
+            COPY_SHARE_LINK_ERROR_MESSAGE
         );
     };
 
@@ -1241,7 +1265,7 @@ function useCollectionsController() {
 
                 showSuccess(`${collection.name} exported as CSV.`);
             } catch {
-                showError("We couldn't export this collection right now.");
+                showError(EXPORT_CSV_ERROR_MESSAGE);
             }
         });
     };
@@ -1601,41 +1625,31 @@ function useCollectionItemHotkey(
     );
 }
 
-interface CollectionsListItemRowProps {
+interface CollectionItemRowProps {
     collection: LibraryCollectionSummary;
 }
 
 /**
  * Fully wired collection row used by both regular collections and Favorites.
  */
-function CollectionsListItemRow({ collection }: CollectionsListItemRowProps) {
+function CollectionItemRow({ collection }: CollectionItemRowProps) {
     const controller = useCollections();
     const isSelected = controller.selectedCollectionIds.includes(collection.id);
     const isFavorite = controller.favoriteCollectionIdSet.has(collection.id);
 
     return (
-        <CollectionsListItem collection={collection} isSelected={isSelected}>
-            <CollectionsListItemPriorityCombobox
-                onValueChange={(priority) =>
-                    controller.onUpdatePriority(collection.id, priority)
-                }
-            />
-            <CollectionsListItemPreview
+        <CollectionItem collection={collection} isSelected={isSelected}>
+            <CollectionItemPriorityCombobox />
+            <CollectionItemPreview
                 {...(isSelected
                     ? {
                           "data-active": true,
                       }
                     : {})}
-                onClick={() => controller.onSelectCollection(collection.id)}
-                thumbnails={
-                    controller.collectionPreviewThumbnailUrlsById.get(
-                        collection.id
-                    ) ?? []
-                }
             >
-                <CollectionsListItemValue />
-            </CollectionsListItemPreview>
-            <CollectionsListItemMeta
+                <CollectionsItemValue />
+            </CollectionItemPreview>
+            <CollectionItemMetadata
                 isFavorite={isFavorite}
                 isSharePending={
                     controller.pendingShareId === collection.id &&
@@ -1658,7 +1672,7 @@ function CollectionsListItemRow({ collection }: CollectionsListItemRowProps) {
                         : null
                 }
             />
-        </CollectionsListItem>
+        </CollectionItem>
     );
 }
 
@@ -1743,7 +1757,7 @@ const VIEW_OPTIONS = [
  * Each item carries the full composite state so that `isItemEqualToValue`
  * can match one item from each group simultaneously.
  */
-function getComboboxSortingGroups(
+function getComboboxCollectionsSortingGroups(
     inputValue: string,
     currentValue: ComboboxValue
 ): ComboboxGroupData[] {
@@ -1838,7 +1852,7 @@ function isComboboxValueEqual(
 /**
  * Consistent row layout for combobox items that show an icon + label pair.
  */
-function CollectionComboboxOptionRow({
+function CollectionsComboboxOptionRow({
     icon: Icon,
     label,
 }: {
@@ -1954,9 +1968,10 @@ function CollectionsList({
  *
  * Shows a tooltip with all collection labels on hover when collapsed.
  */
-function CollectionsListTrigger(
-    props: React.ComponentProps<typeof CollapsibleTrigger>
-) {
+function CollectionsListTrigger({
+    children,
+    ...props
+}: React.ComponentProps<typeof CollapsibleTrigger>) {
     const { isCollectionsListOpen, collectionLabels } = useCollections();
 
     return (
@@ -1976,7 +1991,10 @@ function CollectionsListTrigger(
                         {...props}
                     />
                 }
-            />
+            >
+                {children}
+                <ChevronDownFilledIcon className="-ml-0.5" />
+            </PopoverTrigger>
             <PopoverPopup
                 align="start"
                 positionerClassname={cn(
@@ -2020,7 +2038,7 @@ function CollectionsListPanel({
 /**
  * Separate top-level collapsible section for client-side pinned collections.
  */
-function CollectionsFavoritesList({
+function CollectionsListFavorites({
     className,
     ...props
 }: React.ComponentProps<typeof Collapsible>) {
@@ -2044,21 +2062,32 @@ function CollectionsFavoritesList({
     );
 }
 
-function CollectionFavoritesListTrigger(
-    props: React.ComponentProps<typeof CollapsibleTrigger>
-) {
-    const { isFavoritesListOpen } = useCollections();
+function CollectionsListFavoritesTrigger({
+    children,
+    ...props
+}: React.ComponentProps<typeof CollapsibleTrigger>) {
+    const controller = useCollections();
 
     return (
-        <CollapsibleTrigger
-            render={<SidebarItem render={<button type="button" />} />}
-            title={isFavoritesListOpen ? "Collapse group" : "Expand group"}
-            {...props}
-        />
+        <SidebarItem
+            render={
+                <CollapsibleTrigger
+                    title={
+                        controller.isFavoritesListOpen
+                            ? "Collapse group"
+                            : "Expand group"
+                    }
+                    {...props}
+                />
+            }
+        >
+            {children}
+            <ChevronDownFilledIcon className="-ml-0.5" />
+        </SidebarItem>
     );
 }
 
-function CollectionsFavoritesListTriggerValue({
+function CollectionsListFavoritesTriggerValue({
     className,
     children,
     ...props
@@ -2072,7 +2101,7 @@ function CollectionsFavoritesListTriggerValue({
     );
 }
 
-interface CollectionsFavoritesListContentProps {
+interface CollectionsListContentProps {
     children: (
         item: LibraryCollectionSummary,
         index: number
@@ -2083,9 +2112,9 @@ interface CollectionsFavoritesListContentProps {
  * Renders filtered list items.
  * Doesn't render its own HTML element.
  */
-function CollectionsFavoritesListContent({
+function CollectionsListFavoritesContent({
     children,
-}: CollectionsFavoritesListContentProps) {
+}: CollectionsListContentProps) {
     const { favoriteCollectionSummaries } = useCollections();
 
     if (!favoriteCollectionSummaries.length) {
@@ -2099,9 +2128,7 @@ function CollectionsFavoritesListContent({
  * Renders filtered list items.
  * Doesn't render its own HTML element.
  */
-function CollectionsListContent({
-    children,
-}: CollectionsFavoritesListContentProps) {
+function CollectionsListContent({ children }: CollectionsListContentProps) {
     const { collectionSummaries } = useCollections();
 
     if (!collectionSummaries.length) {
@@ -2139,7 +2166,10 @@ function CollectionsListToolbarGroup({
 }: React.ComponentProps<typeof Toolbar.Group>) {
     return (
         <Toolbar.Group
-            className={cn("flex items-center justify-end gap-1", className)}
+            className={cn(
+                "absolute right-1 flex items-center justify-end gap-1",
+                className
+            )}
             {...props}
         />
     );
@@ -2192,7 +2222,7 @@ function CollectionsListEmpty({
 /**
  * Accessibility-friendly status message for collection operations.
  *
- * Returns `null` when there are no children so assistive technologies do not
+ * Returns `null` when there is no feedback so assistive technologies do not
  * announce silent updates.
  */
 function CollectionsListStatus({
@@ -2202,7 +2232,7 @@ function CollectionsListStatus({
     const { feedback, onDismissFeedback } = useCollections();
     const tone = feedback?.tone;
 
-    if (!props.children) {
+    if (!feedback?.message) {
         return null;
     }
 
@@ -2289,7 +2319,7 @@ function CollectionsListSortingCombobox(
             filter={null}
             inputValue={inputValue}
             isItemEqualToValue={isComboboxValueEqual}
-            items={getComboboxSortingGroups(inputValue, value)}
+            items={getComboboxCollectionsSortingGroups(inputValue, value)}
             itemToStringLabel={getComboboxOptionLabel}
             itemToStringValue={getComboboxOptionValue}
             onInputValueChange={onInputValueChange}
@@ -2341,7 +2371,7 @@ function CollectionsListSortingCombobox(
                                             showIndicatorLast
                                             value={option}
                                         >
-                                            <CollectionComboboxOptionRow
+                                            <CollectionsComboboxOptionRow
                                                 icon={option.icon}
                                                 label={option.label}
                                             />
@@ -2381,7 +2411,7 @@ function CollectionsListCreateButton(props: React.ComponentProps<"button">) {
 /**
  * Callout that informs users when Smart Collections is active.
  */
-function CollectionsListCalloutPopover() {
+function CollectionsCalloutPopover() {
     const controller = useCollections();
     const isDisabled = controller.isSmartCollectionsDisabled;
 
@@ -2454,7 +2484,7 @@ interface CollectionsListItemProps extends React.ComponentProps<"div"> {
  * Provides `CollectionsListItemContext` to its children so compound parts
  * can read the collection and hover state without prop drilling.
  */
-function CollectionsListItem({
+function CollectionItem({
     className,
     collection,
     isSelected,
@@ -2492,23 +2522,20 @@ function CollectionsListItem({
     );
 }
 
-interface CollectionsListItemPreviewProps
-    extends React.ComponentProps<typeof PreviewCardTrigger> {
-    thumbnails: readonly string[];
-}
-
 /**
  * Previewable trigger that cycles through collection thumbnails on hover.
  *
  * Clicking selects the collection and closes the preview popup.
  */
-function CollectionsListItemPreview({
+function CollectionItemPreview({
     onClick: onClickProp,
-    thumbnails,
     ...props
-}: CollectionsListItemPreviewProps) {
+}: React.ComponentProps<typeof PreviewCardTrigger>) {
+    const controller = useCollections();
     const { collection } = useCollectionsListItemContext();
     const [isOpen, setIsOpen] = React.useState(false);
+    const thumbnails =
+        controller.collectionPreviewThumbnailUrlsById.get(collection.id) ?? [];
     const activePreviewIndex = useCollectionItemPreviewIndex(
         isOpen,
         thumbnails.length
@@ -2522,6 +2549,7 @@ function CollectionsListItemPreview({
                 closeDelay={0}
                 onClick={(event) => {
                     onClick?.(event);
+                    controller.onSelectCollection(collection.id);
                     setIsOpen(false);
                 }}
                 render={
@@ -2553,7 +2581,7 @@ function CollectionsListItemPreview({
  * Sources are hidden by default to keep the sidebar compact; they fade in
  * on hover as a secondary cue.
  */
-function CollectionsListItemValue() {
+function CollectionsItemValue() {
     const { collection } = useCollectionsListItemContext();
 
     return (
@@ -2573,18 +2601,13 @@ function CollectionsListItemValue() {
     );
 }
 
-interface CollectionsListItemPriorityComboboxProps {
-    onValueChange: (priority: CollectionPriority) => void;
-}
-
 /**
  * Priority picker bound to the hovered collection item.
  *
  * The "P" hotkey opens the dropdown while the item is hovered.
  */
-function CollectionsListItemPriorityCombobox({
-    onValueChange,
-}: CollectionsListItemPriorityComboboxProps) {
+function CollectionItemPriorityCombobox() {
+    const controller = useCollections();
     const { collection } = useCollectionsListItemContext();
     const [isOpen, setIsOpen] = React.useState(false);
     const SelectedPriorityIcon = getPriorityOption(collection.priority).icon;
@@ -2607,7 +2630,7 @@ function CollectionsListItemPriorityCombobox({
                 if (!nextPriority || nextPriority === collection.priority) {
                     return;
                 }
-                onValueChange(nextPriority);
+                controller.onUpdatePriority(collection.id, nextPriority);
                 setIsOpen(false);
             }}
             open={isOpen}
@@ -2643,7 +2666,7 @@ function CollectionsListItemPriorityCombobox({
                                 showIndicatorLast
                                 value={priorityOption.value}
                             >
-                                <CollectionComboboxOptionRow
+                                <CollectionsComboboxOptionRow
                                     icon={priorityOption.icon}
                                     label={priorityOption.label}
                                 />
@@ -2656,7 +2679,7 @@ function CollectionsListItemPriorityCombobox({
     );
 }
 
-interface CollectionsListSharePopoverProps {
+interface CollectionsListShareStatusCardProps {
     collection: LibraryCollectionSummary;
     isSharePending: boolean;
     onCopyShareLink: () => void;
@@ -2669,7 +2692,7 @@ interface CollectionsListSharePopoverProps {
  * Visual card inside the share popover that communicates the current
  * sharing state (public vs. private) at a glance.
  */
-function CollectionsListShareStatusCard({ isShared }: { isShared: boolean }) {
+function CollectionItemShareStatus({ isShared }: { isShared: boolean }) {
     return (
         <div className="mt-4 rounded-xl border bg-muted/40 p-3">
             <div className="flex items-start gap-3">
@@ -2695,7 +2718,7 @@ function CollectionsListShareStatusCard({ isShared }: { isShared: boolean }) {
     );
 }
 
-interface CollectionsListShareLinkControlsProps {
+interface CollectionsItemShareControlsProps {
     collection: LibraryCollectionSummary;
     isSharePending: boolean;
     onCopyShareLink: () => void;
@@ -2707,13 +2730,13 @@ interface CollectionsListShareLinkControlsProps {
  * Controls shown after a collection has been shared: a read-only URL input,
  * a copy button, and a disable button.
  */
-function CollectionsListShareLinkControls({
+function CollectionItemShareControls({
     collection,
     isSharePending,
     onCopyShareLink,
     onDisableShare,
     shareUrl,
-}: CollectionsListShareLinkControlsProps) {
+}: CollectionsItemShareControlsProps) {
     const shareInputId = React.useId();
 
     return (
@@ -2765,7 +2788,7 @@ function CollectionsListShareLinkControls({
 /**
  * Initial CTA shown when a collection is not yet shared.
  */
-function CollectionsListShareEnableAction({
+function CollectionItemShareEnablePanel({
     isSharePending,
     onEnableShare,
 }: {
@@ -2793,14 +2816,14 @@ function CollectionsListShareEnableAction({
 /**
  * Sub-menu for enabling, disabling, or copying a public share link.
  */
-function CollectionsListSharePopover({
+function CollectionItemShareSubMenu({
     collection,
     isSharePending,
     onCopyShareLink,
     onDisableShare,
     onEnableShare,
     shareUrl,
-}: CollectionsListSharePopoverProps) {
+}: CollectionsListShareStatusCardProps) {
     const isShared = Boolean(collection.shareId);
 
     return (
@@ -2821,9 +2844,9 @@ function CollectionsListSharePopover({
                             </p>
                         </div>
                     </div>
-                    <CollectionsListShareStatusCard isShared={isShared} />
+                    <CollectionItemShareStatus isShared={isShared} />
                     {isShared ? (
-                        <CollectionsListShareLinkControls
+                        <CollectionItemShareControls
                             collection={collection}
                             isSharePending={isSharePending}
                             onCopyShareLink={onCopyShareLink}
@@ -2831,7 +2854,7 @@ function CollectionsListSharePopover({
                             shareUrl={shareUrl}
                         />
                     ) : (
-                        <CollectionsListShareEnableAction
+                        <CollectionItemShareEnablePanel
                             isSharePending={isSharePending}
                             onEnableShare={onEnableShare}
                         />
@@ -2856,7 +2879,7 @@ interface CollectionsListExportMenuProps {
  *
  * Some items are disabled when the collection has no entries.
  */
-function CollectionsListExportMenu({
+function CollectionItemExportSubMenu({
     hasItems,
     onCopyLinks,
     onCopyTitle,
@@ -2903,7 +2926,7 @@ function CollectionsListExportMenu({
 /**
  * Sub-menu with notification preferences for collection updates.
  */
-function CollectionsListSubscribeMenu() {
+function CollectionItemSubscribeSubMenu() {
     return (
         <MenuSub>
             <MenuSubTrigger disabled>
@@ -2927,7 +2950,7 @@ function CollectionsListSubscribeMenu() {
     );
 }
 
-interface CollectionsListItemMetaProps {
+interface CollectionsItemMetadataProps {
     isFavorite: boolean;
     isSharePending: boolean;
     onCopyLinks: () => void;
@@ -2950,7 +2973,7 @@ interface CollectionsListItemMetaProps {
  * Renders a count badge that hides on hover, replacing it with an ellipsis
  * menu. Keyboard shortcuts (E, Delete/Backspace, C) are active while hovered.
  */
-function CollectionsListItemMeta({
+function CollectionItemMetadata({
     isFavorite,
     isSharePending,
     onCopyLinks,
@@ -2965,7 +2988,7 @@ function CollectionsListItemMeta({
     onOpenLinks,
     onRename,
     shareUrl,
-}: CollectionsListItemMetaProps) {
+}: CollectionsItemMetadataProps) {
     const { collection } = useCollectionsListItemContext();
     const hasItems = collection.itemCount > 0;
 
@@ -3028,7 +3051,7 @@ function CollectionsListItemMeta({
                     </MenuGroup>
                     <MenuSeparator />
                     <MenuGroup>
-                        <CollectionsListSharePopover
+                        <CollectionItemShareSubMenu
                             collection={collection}
                             isSharePending={isSharePending}
                             onCopyShareLink={onCopyShareLink}
@@ -3036,7 +3059,7 @@ function CollectionsListItemMeta({
                             onEnableShare={onEnableShare}
                             shareUrl={shareUrl}
                         />
-                        <CollectionsListExportMenu
+                        <CollectionItemExportSubMenu
                             hasItems={hasItems}
                             onCopyLinks={onCopyLinks}
                             onCopyTitle={onCopyTitle}
@@ -3044,7 +3067,7 @@ function CollectionsListItemMeta({
                             onMakeCopy={onMakeCopy}
                             onOpenLinks={onOpenLinks}
                         />
-                        <CollectionsListSubscribeMenu />
+                        <CollectionItemSubscribeSubMenu />
                     </MenuGroup>
                     <MenuSeparator />
                     <MenuGroup>
@@ -3071,7 +3094,7 @@ function CollectionsListItemMeta({
 /**
  * Dialog for renaming an existing collection.
  */
-function RenameDialog() {
+function CollectionsRenameDialog() {
     const {
         errorMessage,
         isOpen,
@@ -3147,7 +3170,7 @@ function RenameDialog() {
 /**
  * Dialog for creating a new collection with an optional template picker.
  */
-function CreateDialog() {
+function CollectionsCreateDialog() {
     const {
         descriptionDraft,
         errorMessage,
@@ -3333,7 +3356,7 @@ function CreateDialog() {
 /**
  * Confirmation dialog for deleting a collection.
  */
-function DeleteDialog() {
+function CollectionsDeleteDialog() {
     const { collection, isPending, onConfirm, onOpenChange } =
         useCollections().deleteDialog;
 
@@ -3370,28 +3393,28 @@ function DeleteDialog() {
 
 export type { CollectionSortField } from "@/components/library/workspace";
 export {
+    CollectionItem,
+    CollectionItemMetadata,
+    CollectionItemPreview,
+    CollectionItemPriorityCombobox,
+    CollectionItemShareSubMenu,
+    CollectionsCalloutPopover,
+    CollectionsCreateDialog,
+    CollectionsDeleteDialog,
+    CollectionsItemValue,
     CollectionsList,
-    CollectionsListCalloutPopover,
     CollectionsListEmpty,
     CollectionsListFilterClearButton,
     CollectionsListInlineRow,
-    CollectionsListItem,
-    CollectionsListItemMeta,
-    CollectionsListItemPreview,
-    CollectionsListItemPriorityCombobox,
-    CollectionsListItemValue,
     CollectionsListPanel,
-    CollectionsListSharePopover,
     CollectionsListSortingCombobox,
     CollectionsListStatus,
     CollectionsListToolbar,
     CollectionsListToolbarButton,
     CollectionsListToolbarGroup,
     CollectionsListTrigger,
-    CreateDialog,
-    DeleteDialog,
+    CollectionsRenameDialog,
     getPriorityOption,
-    RenameDialog,
     SORT_OPTION_BY_VALUE,
     TEMPLATES,
 };
