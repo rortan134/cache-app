@@ -916,7 +916,7 @@ interface CommandPaletteGroup {
     layout?: "horizontal" | "vertical";
 }
 
-interface BrowserSection {
+interface BrowserGroup {
     items: LibraryItemWithCollections[];
     key: string;
     title: string | null;
@@ -1660,7 +1660,6 @@ function useLibraryGridCardContext(): LibraryGridCardContextValue {
 }
 
 interface LibraryResultsProps {
-    clearLibraryPalette: () => void;
     collapsedSectionKeys: Set<string>;
     collections: LibraryCollectionSummary[];
     columnCount?: number;
@@ -1680,15 +1679,12 @@ interface LibraryResultsProps {
         collectionIds: string[]
     ) => Promise<LibraryItemCollectionsUpdateResult>;
     pendingDeleteItemId: string | null;
-    sections: BrowserSection[];
-    showEmptyLibraryPeek: boolean;
-    showNoFilteredResults: boolean;
+    sections: BrowserGroup[];
 }
 
-function renderLibraryGridBody({
+function BrowserResults({
     collapsedSectionKeys,
     collections,
-    clearLibraryPalette,
     columnCount,
     layoutMode,
     enableSectionCollapse,
@@ -1704,71 +1700,38 @@ function renderLibraryGridBody({
     onToggleSection,
     pendingDeleteItemId,
     sections,
-    showEmptyLibraryPeek,
-    showNoFilteredResults,
 }: LibraryResultsProps) {
-    if (showEmptyLibraryPeek) {
-        return <Empty />;
-    }
+    console.log("enableSectionCollapse", enableSectionCollapse, sections);
 
-    if (showNoFilteredResults) {
-        return (
-            <div className="flex flex-col items-center gap-3 rounded-2xl border border-border/70 border-dashed bg-card/30 px-6 py-14 text-center">
-                <p className="max-w-md text-balance text-muted-foreground text-sm">
-                    No saved items match the current search and filters.
-                </p>
-                <Button
-                    onClick={clearLibraryPalette}
-                    size="sm"
-                    variant="outline"
-                >
-                    Reset browser
-                </Button>
-            </div>
-        );
-    }
-
-    return sections.map((section) =>
-        enableSectionCollapse ? (
-            <BrowserSection
-                accentKey={section.key}
-                collapsed={collapsedSectionKeys.has(section.key)}
-                collapsible
-                collections={collections}
-                columnCount={columnCount}
-                emptyHint="No saved items in this section."
-                items={section.items}
-                key={section.key}
-                layoutMode={layoutMode}
-                onCollapseAll={onCollapseAllSections}
-                onCopyLink={onCopyLink}
-                onCreateCollectionFromResults={
-                    section.title == null
-                        ? onCreateCollectionFromResults
-                        : undefined
-                }
-                onDelete={onDelete}
-                onExpandAll={onExpandAllSections}
-                onOpenInNewTab={onOpenInNewTab}
-                onOpenNote={onOpenNote}
-                onSetActionFeedback={onSetActionFeedback}
-                onToggle={() => onToggleSection(section.key)}
-                onUpdateItemCollections={onUpdateItemCollections}
-                pendingDeleteItemId={pendingDeleteItemId}
-                title={section.title ?? "Results"}
-            />
-        ) : (
-            <section className="flex w-full flex-col gap-3" key={section.key}>
-                {section.title ? (
-                    <div className="mb-1 flex items-center justify-between gap-3">
-                        <h2 className="font-medium text-foreground text-sm">
-                            {section.title}
-                        </h2>
-                        <span className="font-medium text-foreground text-xs tabular-nums">
-                            {section.items.length}
-                        </span>
-                    </div>
-                ) : null}
+    return sections.map((section) => (
+        <section className="flex w-full flex-col gap-3" key={section.key}>
+            {enableSectionCollapse ? (
+                <BrowserGroup
+                    accentKey={section.key}
+                    collapsed={collapsedSectionKeys.has(section.key)}
+                    collapsible
+                    collections={collections}
+                    columnCount={columnCount}
+                    items={section.items}
+                    layoutMode={layoutMode}
+                    onCollapseAll={onCollapseAllSections}
+                    onCopyLink={onCopyLink}
+                    onCreateCollectionFromResults={
+                        section.title == null
+                            ? onCreateCollectionFromResults
+                            : undefined
+                    }
+                    onDelete={onDelete}
+                    onExpandAll={onExpandAllSections}
+                    onOpenInNewTab={onOpenInNewTab}
+                    onOpenNote={onOpenNote}
+                    onSetActionFeedback={onSetActionFeedback}
+                    onToggle={() => onToggleSection(section.key)}
+                    onUpdateItemCollections={onUpdateItemCollections}
+                    pendingDeleteItemId={pendingDeleteItemId}
+                    title={section.title ?? "Results"}
+                />
+            ) : (
                 <LibraryGridCardContext
                     value={{
                         collections,
@@ -1784,22 +1747,19 @@ function renderLibraryGridBody({
                     {layoutMode === "board" ? (
                         <BoardLayout items={section.items} />
                     ) : (
-                        <MasonryLayout
-                            columnCount={columnCount}
-                            items={section.items}
-                        />
+                        <Masonry columnCount={columnCount} gap={4}>
+                            {section.items.map((item) => (
+                                <MasonryItem key={item.id}>
+                                    <Card item={item} />
+                                </MasonryItem>
+                            ))}
+                        </Masonry>
                     )}
                 </LibraryGridCardContext>
-            </section>
-        )
-    );
+            )}
+        </section>
+    ));
 }
-
-const LibraryResults = React.memo(function LibraryResults(
-    props: LibraryResultsProps
-) {
-    return renderLibraryGridBody(props);
-});
 
 function ValidCategoryThumbnail({ urls }: { urls: string[] }) {
     const [validUrls, setValidUrls] = React.useState<string[]>([]);
@@ -2462,7 +2422,7 @@ function buildLibraryBrowserSections(
     sortedItems: LibraryItemWithCollections[],
     groupBy: GroupByMode,
     sortMode: SortMode
-): BrowserSection[] {
+): BrowserGroup[] {
     if (groupBy === "none") {
         return [
             {
@@ -2615,7 +2575,7 @@ function useSectionCollapseState({
 }: {
     groupBy: GroupByMode;
     hasActiveFilters: boolean;
-    sections: BrowserSection[];
+    sections: BrowserGroup[];
     showEmptyLibraryPeek: boolean;
     showNoFilteredResults: boolean;
 }) {
@@ -2847,7 +2807,6 @@ interface SectionProps extends GridProps {
     accentKey?: string;
     collapsed?: boolean;
     collapsible?: boolean;
-    emptyHint: string;
     onCollapseAll?: () => void;
     onCreateCollectionFromResults?: () => void;
     onExpandAll?: () => void;
@@ -3066,10 +3025,6 @@ interface LibraryGridCardMenuProps {
 
 interface LibraryGridLayoutProps {
     items: LibraryItemWithCollections[];
-}
-
-interface LibraryMasonryLayoutProps extends LibraryGridLayoutProps {
-    columnCount?: number;
 }
 
 function buildBoardColumns(
@@ -3651,18 +3606,6 @@ function Card({ item }: LibraryGridCardProps) {
     );
 }
 
-function MasonryLayout({ columnCount, items }: LibraryMasonryLayoutProps) {
-    return (
-        <Masonry columnCount={columnCount} gap={4}>
-            {items.map((item) => (
-                <MasonryItem key={item.id}>
-                    <Card item={item} />
-                </MasonryItem>
-            ))}
-        </Masonry>
-    );
-}
-
 function BoardLayout({ items }: LibraryGridLayoutProps) {
     const { collections } = useLibraryGridCardContext();
     const boardColumns = buildBoardColumns(collections, items);
@@ -3673,7 +3616,7 @@ function BoardLayout({ items }: LibraryGridLayoutProps) {
 
     return (
         <div className="overflow-x-auto pb-1">
-            <Kanban>
+            <Kanban orientation="horizontal">
                 <KanbanBoard className="min-w-max items-start gap-3">
                     {columnIds.map((columnId) => {
                         const column = collections.find(
@@ -3897,7 +3840,11 @@ function LockedResults({
     );
 }
 
-function Empty() {
+function BrowserEmpty({ shouldShow }: { shouldShow: boolean }) {
+    if (!shouldShow) {
+        return null;
+    }
+
     return (
         <>
             <div className="mx-4 flex flex-col gap-1 px-1">
@@ -3943,7 +3890,30 @@ function Empty() {
     );
 }
 
-function SectionSummaryContent({
+function BrowserFiltersEmpty({
+    clearLibraryPalette,
+    shouldShow,
+}: {
+    clearLibraryPalette: () => void;
+    shouldShow: boolean;
+}) {
+    if (!shouldShow) {
+        return null;
+    }
+
+    return (
+        <div className="flex flex-col items-center gap-3 rounded-2xl border border-border/70 border-dashed bg-card/30 px-6 py-14 text-center">
+            <p className="max-w-md text-balance text-muted-foreground text-sm">
+                No saved items match the current search and filters.
+            </p>
+            <Button onClick={clearLibraryPalette} size="sm" variant="outline">
+                Reset browser
+            </Button>
+        </div>
+    );
+}
+
+function BrowserSectionOverview({
     items,
     title,
 }: {
@@ -4033,13 +4003,12 @@ function SectionSummaryContent({
     );
 }
 
-function BrowserSection({
+function BrowserGroup({
     accentKey,
     collapsed = false,
     collapsible = false,
     collections,
     columnCount,
-    emptyHint,
     items,
     layoutMode,
     onSetActionFeedback,
@@ -4059,73 +4028,15 @@ function BrowserSection({
     const headerGradient = collapsible
         ? getColorGradientFromName(accentKey ?? title)
         : undefined;
-    let body: React.ReactElement | null;
-
     const shouldRequestDescription = canToggle && title === "Results";
 
-    if (collapsed) {
-        body = null;
-    } else if (items.length === 0) {
-        body = <p className="text-muted-foreground text-sm">{emptyHint}</p>;
-    } else {
-        body = (
-            <>
-                {shouldRequestDescription ? (
-                    <div className="flex items-start gap-2">
-                        <AvatarGroup>
-                            <Avatar className="size-7 bg-muted">
-                                <Sparkles className="size-4" />
-                            </Avatar>
-                            <Avatar className="border-2 border-white bg-muted">
-                                <Info className="size-4" />
-                            </Avatar>
-                        </AvatarGroup>
-                        <div className="flex w-full flex-1 flex-col gap-1">
-                            <GradientWaveText
-                                ariaLabel="Description"
-                                className="-ml-px font-medium text-muted-foreground text-xs opacity-80"
-                            >
-                                Description
-                            </GradientWaveText>
-                            <SectionSummaryContent
-                                items={items}
-                                title={title}
-                            />
-                        </div>
-                    </div>
-                ) : null}
-                <LibraryGridCardContext
-                    value={{
-                        collections,
-                        onCopyLink,
-                        onDelete,
-                        onOpenInNewTab,
-                        onOpenNote,
-                        onSetActionFeedback,
-                        onUpdateItemCollections,
-                        pendingDeleteItemId,
-                    }}
-                >
-                    {layoutMode === "board" ? (
-                        <BoardLayout items={items} />
-                    ) : (
-                        <MasonryLayout
-                            columnCount={columnCount}
-                            items={items}
-                        />
-                    )}
-                </LibraryGridCardContext>
-            </>
-        );
-    }
-
     return (
-        <section className="flex w-full flex-col gap-3">
+        <>
             <ContextMenu>
                 <ContextMenuTrigger render={<div className="contents" />}>
                     <div
                         className={cn(
-                            "flex items-center justify-between gap-3 py-1 pr-5",
+                            "flex items-center justify-between gap-3 pr-3",
                             collapsible &&
                                 "sticky z-10 rounded-xl bg-muted/92 backdrop-blur-sm supports-backdrop-filter:bg-muted/50"
                         )}
@@ -4138,7 +4049,7 @@ function BrowserSection({
                                 : undefined
                         }
                     >
-                        <div className="flex items-center gap-1">
+                        <div className="flex items-center">
                             {canToggle ? (
                                 <Button
                                     className="group min-w-0 flex-1 justify-start rounded-xl"
@@ -4171,7 +4082,7 @@ function BrowserSection({
                                 <MenuTrigger
                                     render={
                                         <Button size="icon-sm" variant="ghost">
-                                            <Ellipsis className="size-4" />
+                                            <Ellipsis className="size-3.5" />
                                         </Button>
                                     }
                                 />
@@ -4184,11 +4095,7 @@ function BrowserSection({
                                     </MenuItem>
                                 </MenuPopup>
                             </Menu>
-                        ) : (
-                            <Button size="icon-sm" variant="ghost">
-                                <Ellipsis className="size-4" />
-                            </Button>
-                        )}
+                        ) : null}
                     </div>
                 </ContextMenuTrigger>
                 {collapsible && (
@@ -4227,8 +4134,64 @@ function BrowserSection({
                     </ContextMenuPopup>
                 )}
             </ContextMenu>
-            {body}
-        </section>
+            {/** biome-ignore lint/style/noNestedTernary: TEMP */}
+            {collapsed ? null : items.length === 0 ? (
+                <p className="text-muted-foreground text-sm">
+                    No items were found in this group.
+                </p>
+            ) : (
+                <>
+                    {shouldRequestDescription ? (
+                        <div className="flex items-start gap-2">
+                            <AvatarGroup>
+                                <Avatar className="size-7 bg-muted">
+                                    <Sparkles className="size-4" />
+                                </Avatar>
+                                <Avatar className="border-2 border-white bg-muted">
+                                    <Info className="size-4" />
+                                </Avatar>
+                            </AvatarGroup>
+                            <div className="flex w-full flex-1 flex-col gap-1">
+                                <GradientWaveText
+                                    ariaLabel="Description"
+                                    className="-ml-px font-medium text-muted-foreground text-xs opacity-80"
+                                >
+                                    Description
+                                </GradientWaveText>
+                                <BrowserSectionOverview
+                                    items={items}
+                                    title={title}
+                                />
+                            </div>
+                        </div>
+                    ) : null}
+                    <LibraryGridCardContext
+                        value={{
+                            collections,
+                            onCopyLink,
+                            onDelete,
+                            onOpenInNewTab,
+                            onOpenNote,
+                            onSetActionFeedback,
+                            onUpdateItemCollections,
+                            pendingDeleteItemId,
+                        }}
+                    >
+                        {layoutMode === "board" ? (
+                            <BoardLayout items={items} />
+                        ) : (
+                            <Masonry columnCount={columnCount} gap={4}>
+                                {items.map((item) => (
+                                    <MasonryItem key={item.id}>
+                                        <Card item={item} />
+                                    </MasonryItem>
+                                ))}
+                            </Masonry>
+                        )}
+                    </LibraryGridCardContext>
+                </>
+            )}
+        </>
     );
 }
 
@@ -5543,8 +5506,12 @@ export function Browser({
                     </div>
                 ) : null}
                 {isPreviewOnly ? <InlinePaywallBanner /> : null}
-                <LibraryResults
+                <BrowserEmpty shouldShow={showEmptyLibraryPeek} />
+                <BrowserFiltersEmpty
                     clearLibraryPalette={clearLibraryPalette}
+                    shouldShow={showNoFilteredResults}
+                />
+                <BrowserResults
                     collapsedSectionKeys={collapsedSectionKeySet}
                     collections={collections}
                     columnCount={resolvedColumnCount}
@@ -5566,8 +5533,6 @@ export function Browser({
                     }
                     pendingDeleteItemId={pendingDeleteItem?.id ?? null}
                     sections={sections}
-                    showEmptyLibraryPeek={showEmptyLibraryPeek}
-                    showNoFilteredResults={showNoFilteredResults}
                 />
                 {showLockedPreview ? (
                     <LockedResults
