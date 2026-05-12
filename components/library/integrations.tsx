@@ -352,7 +352,10 @@ function useIntegrationAction({
 
 export function Integrations({ connectedIntegrations }: IntegrationsProps) {
     return (
-        <IntegrationsList data-sidebar-collapsible="">
+        <IntegrationsList
+            className="group/collapsible"
+            data-sidebar-collapsible=""
+        >
             <IntegrationsListTrigger>
                 <span className="min-w-0 text-xs">
                     <T>Integrations</T>
@@ -400,7 +403,10 @@ export function Integrations({ connectedIntegrations }: IntegrationsProps) {
     );
 }
 
-function IntegrationsList(props: React.ComponentProps<typeof Collapsible>) {
+function IntegrationsList({
+    className,
+    ...props
+}: React.ComponentProps<typeof Collapsible>) {
     const [isOpen, setIsOpen] = useIntegrationsListOpenState();
 
     useHotkeys(
@@ -414,7 +420,14 @@ function IntegrationsList(props: React.ComponentProps<typeof Collapsible>) {
         }
     );
 
-    return <Collapsible onOpenChange={setIsOpen} open={isOpen} {...props} />;
+    return (
+        <Collapsible
+            className={cn("relative", className)}
+            onOpenChange={setIsOpen}
+            open={isOpen}
+            {...props}
+        />
+    );
 }
 
 function IntegrationsListTrigger({
