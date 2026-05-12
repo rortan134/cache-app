@@ -8,7 +8,7 @@ import * as React from "react";
 
 const SCROLL_THRESHOLD = 300;
 
-export function BackToTop({
+export function BackToTopButton({
     className,
     ...props
 }: React.ComponentPropsWithoutRef<"div">) {

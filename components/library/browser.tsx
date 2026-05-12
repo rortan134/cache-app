@@ -31,7 +31,7 @@ import {
     getMediaCategory,
 } from "@/components/ui/attachments";
 import { Avatar, AvatarFallback, AvatarGroup } from "@/components/ui/avatar";
-import { BackToTop } from "@/components/ui/back-to-top";
+import { BackToTopButton } from "@/components/ui/back-to-top-button";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useClientOnlyValue } from "@/components/ui/client-only";
@@ -5561,7 +5561,7 @@ export function Browser({
                 isSavingPastedUrl={isSavingPastedUrl}
                 setIsNoteDrawerOpen={setIsNoteDrawerOpen}
             />
-            <BackToTop />
+            <BackToTopButton />
             <Dialog
                 onOpenChange={handleDeleteDialogOpenChange}
                 open={pendingDeleteItem !== null}
