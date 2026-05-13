@@ -52,13 +52,13 @@ function useSubscriptionAccess() {
     const hasAccess = isActiveSubscriptionStatus(subscription?.status);
     const isLoading = isPending || isSubscriptionLoading;
 
-    const refreshAccess = async () => {
+    const refreshAccess = useStableCallback(async () => {
         await refreshSession();
 
         if (sessionUserId) {
             await refreshSubscription();
         }
-    };
+    });
 
     return {
         hasAccess,

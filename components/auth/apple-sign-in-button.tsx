@@ -1,28 +1,20 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
+import { Button, type ButtonProps } from "@/components/ui/button";
 import { AppleIcon } from "@/components/ui/icons";
 import { authClient } from "@/lib/auth/client";
 import { cn } from "@/lib/common/cn";
 import { useStableCallback } from "@base-ui/utils/useStableCallback";
 import * as React from "react";
 
-const DEFAULT_ERROR_MESSAGE = "Could not start Apple sign-in.";
-
-/* @internal */
-function getErrorMessage(err: unknown): string {
-    if (err instanceof Error) {
-        return err.message;
-    }
-    return String(err) || DEFAULT_ERROR_MESSAGE;
-}
+const APPLE_SIGN_IN_ERROR_MESSAGE = "Could not start Apple sign-in.";
 
 export function AppleSignInButton({
     className,
     children,
     size = "xl",
     ...props
-}: React.ComponentProps<typeof Button>) {
+}: ButtonProps) {
     const [isPending, startTransition] = React.useTransition();
     const [errorMessage, setErrorMessage] = React.useState<string | null>(null);
 
@@ -35,13 +27,16 @@ export function AppleSignInButton({
                     errorCallbackURL: "/",
                     provider: "apple",
                 });
+
                 if (result.error) {
                     setErrorMessage(
-                        result.error.message ?? DEFAULT_ERROR_MESSAGE
+                        result.error.message ?? APPLE_SIGN_IN_ERROR_MESSAGE
                     );
                 }
             } catch (error) {
-                setErrorMessage(getErrorMessage(error));
+                setErrorMessage(
+                    getErrorMessage(error, APPLE_SIGN_IN_ERROR_MESSAGE)
+                );
             }
         });
     });
@@ -66,7 +61,13 @@ export function AppleSignInButton({
     );
 }
 
-/* @internal */
+function getErrorMessage(error: unknown, defaultErrorMessage: string): string {
+    if (error instanceof Error) {
+        return error.message;
+    }
+    return String(error) || defaultErrorMessage;
+}
+
 function AuthErrorMessage(props: React.ComponentProps<"p">) {
     if (!props.children) {
         return null;

@@ -4,6 +4,7 @@ import { AppleSignInButton } from "@/components/auth/apple-sign-in-button";
 import { GoogleSignInButton } from "@/components/auth/google-sign-in-button";
 import { Button } from "@/components/ui/button";
 import { Kbd } from "@/components/ui/kbd";
+import { useStableCallback } from "@base-ui/utils/useStableCallback";
 import { T } from "gt-next";
 import { ChevronRight } from "lucide-react";
 import Link from "next/link";
@@ -13,11 +14,13 @@ import { useHotkeys } from "react-hotkeys-hook";
 export function SignInButton({ hasServerSession }: SignInButtonProps) {
     const router = useRouter();
 
-    useHotkeys("p", () => {
+    const handleLibraryShortcut = useStableCallback(() => {
         if (hasServerSession) {
             router.push("/library");
         }
     });
+
+    useHotkeys("p", handleLibraryShortcut);
 
     if (hasServerSession) {
         return (

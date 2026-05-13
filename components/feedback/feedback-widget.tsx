@@ -6,22 +6,17 @@ import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/common/cn";
 import { createFeedback } from "@/lib/feedback/actions";
 import type { FeedbackActionState } from "@/lib/feedback/schema";
+import { useStableCallback } from "@base-ui/utils/useStableCallback";
 import { Send } from "lucide-react";
 import { usePathname } from "next/navigation";
-import type * as React from "react";
-import { useActionState, useEffect, useRef, useState } from "react";
+import * as React from "react";
 import { useFormStatus } from "react-dom";
 import { useHotkeys } from "react-hotkeys-hook";
 
-const initialFeedbackActionState: FeedbackActionState = {
+const INITIAL_FEEDBACK_ACTION_STATE: FeedbackActionState = {
     message: "",
     status: "idle",
 } satisfies FeedbackActionState;
-
-interface FeedbackWidgetProps
-    extends React.ComponentProps<typeof PopoverTrigger> {
-    context: string;
-}
 
 export function FeedbackWidget({
     context,
@@ -29,15 +24,15 @@ export function FeedbackWidget({
     ...props
 }: FeedbackWidgetProps) {
     const pathname = usePathname();
-    const [isOpen, setIsOpen] = useState(false);
-    const [state, formAction] = useActionState(
+    const [isOpen, setIsOpen] = React.useState(false);
+    const [state, formAction] = React.useActionState(
         createFeedback,
-        initialFeedbackActionState
+        INITIAL_FEEDBACK_ACTION_STATE
     );
-    const formRef = useRef<HTMLFormElement>(null);
-    const submitButtonRef = useRef<HTMLButtonElement>(null);
+    const formRef = React.useRef<HTMLFormElement>(null);
+    const submitButtonRef = React.useRef<HTMLButtonElement>(null);
 
-    useEffect(
+    React.useEffect(
         function closeOnSubmit() {
             if (state.status !== "success") {
                 return;
@@ -59,15 +54,13 @@ export function FeedbackWidget({
         [state.status]
     );
 
-    useHotkeys(
-        "F",
-        () => {
-            setIsOpen((prev) => !prev);
-        },
-        {
-            description: "Toggle feedback widget",
-        }
-    );
+    const handleToggleFeedbackWidget = useStableCallback(() => {
+        setIsOpen((isOpenValue) => !isOpenValue);
+    });
+
+    useHotkeys("F", handleToggleFeedbackWidget, {
+        description: "Toggle feedback widget",
+    });
 
     return (
         <Popover onOpenChange={setIsOpen} open={isOpen}>
@@ -121,6 +114,11 @@ export function FeedbackWidget({
             </PopoverPopup>
         </Popover>
     );
+}
+
+interface FeedbackWidgetProps
+    extends React.ComponentProps<typeof PopoverTrigger> {
+    context: string;
 }
 
 /* @internal */
