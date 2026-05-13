@@ -1,5 +1,6 @@
 {
     "dependencies": {
+        "@ai-sdk/google": "^3.0.73",
         "@arcjet/ip": "^1.4.0",
         "@arcjet/next": "^1.4.0",
         "@arcjet/redact": "^1.4.0",

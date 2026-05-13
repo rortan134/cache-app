@@ -2438,7 +2438,7 @@ function CollectionsCalloutPopover() {
                     <PopoverDescription className="text-foreground text-xs leading-snug">
                         As you add new entries, Cache AI proactively groups your
                         related saves into contextual collections. Cache also
-                        learns your preferences with time.{" "}
+                        learns your preferences over time.{" "}
                         <Button
                             className="h-fit! px-0 leading-snug sm:text-xs"
                             render={<Link href="/activity" />}
@@ -3232,9 +3232,9 @@ function CollectionsCreateDialog() {
                         <Alert>
                             <Lightbulb />
                             <AlertDescription>
-                                Collections keeps your best saves in one place.
-                                Use them for ongoing work, or just to keep
-                                things tidy.
+                                Collections keep your best saved items in one
+                                place. Use them for ongoing work, or just to
+                                keep things tidy.
                             </AlertDescription>
                         </Alert>
                     </DialogPanel>
@@ -3291,7 +3291,8 @@ function CollectionsCreateDialog() {
                                                 <Sparkle className="mb-px inline-block size-3" />
                                             </strong>{" "}
                                             can automatically assign collections
-                                            to entries that match with these.
+                                            to entries that match these
+                                            templates.
                                         </p>
                                     </div>
                                 )}

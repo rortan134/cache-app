@@ -155,7 +155,7 @@ export function UserMenuContent() {
                 <SubscribedOnly>
                     <SubscriptionBillingPortalButton
                         className="w-full justify-start font-normal"
-                        render={<MenuItem />}
+                        render={<MenuItem closeOnClick={false} />}
                     >
                         <T>Billing</T>
                     </SubscriptionBillingPortalButton>
@@ -163,7 +163,7 @@ export function UserMenuContent() {
                 <UnsubscribedOnly>
                     <SubscriptionUpgradeButton
                         className="w-full justify-start font-normal"
-                        render={<MenuItem />}
+                        render={<MenuItem closeOnClick={false} />}
                     >
                         <T>Upgrade to Pro</T>
                     </SubscriptionUpgradeButton>
@@ -181,6 +181,7 @@ export function UserMenuContent() {
                     <T>Support</T>
                 </MenuItem>
                 <KeyboardShortcutsDialogTrigger
+                    nativeButton={false}
                     render={
                         <MenuItem
                             className="justify-between"
@@ -194,6 +195,7 @@ export function UserMenuContent() {
                     }
                 />
                 <LogoutDialogTrigger
+                    nativeButton={false}
                     render={
                         <MenuItem
                             className="justify-between"
@@ -217,7 +219,7 @@ export function UserMenuFooter() {
                 <LocaleSelector />
             </div>
             <MenuSeparator className="mt-1.5" />
-            <div className="mb-1 flex flex-wrap p-1 opacity-80">
+            <div className="flex flex-wrap p-1 opacity-80">
                 <Button
                     render={<Link href="/legal/privacy-policy" />}
                     size="xs"
@@ -458,7 +460,7 @@ function UserMenuAccountSwitcherSubMenu(
                                 ) : (
                                     <PlusIcon className="size-4 text-muted-foreground" />
                                 )}
-                                <T>Add another account</T>
+                                <T>Add another account...</T>
                             </MenuItem>
                         </>
                     )}
