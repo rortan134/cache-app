@@ -390,65 +390,69 @@ function UserMenuAccountSwitcherSubMenu(
                         </MenuItem>
                     ) : null}
                     {isLoadingDeviceSessions ? null : (
-                        <MenuRadioGroup
-                            disabled={Boolean(pendingSessionToken)}
-                            onValueChange={handleAccountChange}
-                            value={activeSession.session.token}
-                        >
-                            {accountOptions.map((deviceSession) => {
-                                const accountLabel = getAccountLabel(
-                                    deviceSession.user
-                                );
-                                const isPendingSession =
-                                    pendingSessionToken ===
-                                    deviceSession.session.token;
-
-                                return (
-                                    <MenuRadioItem
-                                        closeOnClick={false}
-                                        key={deviceSession.user.id}
-                                        label={accountLabel}
-                                        value={deviceSession.session.token}
-                                    >
-                                        <span className="flex min-w-0 items-center gap-2">
-                                            <Avatar className="size-5.5 rounded-md">
-                                                <AvatarImage
-                                                    alt={accountLabel}
-                                                    loading="lazy"
-                                                    src={
-                                                        deviceSession.user
-                                                            .image ?? undefined
-                                                    }
-                                                />
-                                                <AvatarFallback className="rounded-md text-xs">
-                                                    {getInitials(
-                                                        deviceSession.user.name,
-                                                        deviceSession.user.email
-                                                    )}
-                                                </AvatarFallback>
-                                            </Avatar>
-                                            <span className="min-w-0 flex-1">
-                                                <span className="block truncate font-medium">
-                                                    {deviceSession.user
-                                                        .name ?? (
-                                                        <T>Cache account</T>
-                                                    )}
-                                                </span>
-                                                <span className="block truncate text-muted-foreground text-xs">
-                                                    {deviceSession.user.email}
-                                                </span>
-                                            </span>
-                                            {isPendingSession ? (
-                                                <LoaderCircle className="ml-auto size-4 animate-spin text-muted-foreground" />
-                                            ) : null}
-                                        </span>
-                                    </MenuRadioItem>
-                                );
-                            })}
-                        </MenuRadioGroup>
-                    )}
-                    {isLoadingDeviceSessions ? null : (
                         <>
+                            <MenuRadioGroup
+                                disabled={Boolean(pendingSessionToken)}
+                                onValueChange={handleAccountChange}
+                                value={activeSession.session.token}
+                            >
+                                {accountOptions.map((deviceSession) => {
+                                    const accountLabel =
+                                        deviceSession.user.name ??
+                                        deviceSession.user.email;
+                                    const isPendingSession =
+                                        pendingSessionToken ===
+                                        deviceSession.session.token;
+
+                                    return (
+                                        <MenuRadioItem
+                                            closeOnClick={false}
+                                            key={deviceSession.user.id}
+                                            label={accountLabel}
+                                            value={deviceSession.session.token}
+                                        >
+                                            <span className="flex min-w-0 items-center gap-2">
+                                                <Avatar className="size-5.5 rounded-md">
+                                                    <AvatarImage
+                                                        alt={accountLabel}
+                                                        loading="lazy"
+                                                        src={
+                                                            deviceSession.user
+                                                                .image ??
+                                                            undefined
+                                                        }
+                                                    />
+                                                    <AvatarFallback className="rounded-md text-xs">
+                                                        {getInitials(
+                                                            deviceSession.user
+                                                                .name,
+                                                            deviceSession.user
+                                                                .email
+                                                        )}
+                                                    </AvatarFallback>
+                                                </Avatar>
+                                                <span className="min-w-0 flex-1">
+                                                    <span className="block truncate font-medium">
+                                                        {deviceSession.user
+                                                            .name ?? (
+                                                            <T>Cache account</T>
+                                                        )}
+                                                    </span>
+                                                    <span className="block truncate text-muted-foreground text-xs">
+                                                        {
+                                                            deviceSession.user
+                                                                .email
+                                                        }
+                                                    </span>
+                                                </span>
+                                                {isPendingSession ? (
+                                                    <LoaderCircle className="ml-auto size-4 animate-spin text-muted-foreground" />
+                                                ) : null}
+                                            </span>
+                                        </MenuRadioItem>
+                                    );
+                                })}
+                            </MenuRadioGroup>
                             <MenuSeparator />
                             <MenuItem
                                 closeOnClick={false}
@@ -505,10 +509,6 @@ function getAccountOptions(
         },
         ...deviceSessions,
     ];
-}
-
-function getAccountLabel(user: AccountUser): string {
-    return user.name ?? user.email;
 }
 
 async function listDeviceSessions(): Promise<DeviceSession[]> {

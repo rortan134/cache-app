@@ -7,6 +7,7 @@ import { CrownFilledIcon } from "@/components/ui/icons";
 import { authClient, useSession } from "@/lib/auth/client";
 import { isActiveSubscriptionStatus } from "@/lib/billing/subscription-status";
 import { getActiveSubscription } from "@/lib/billing/subscriptions";
+import { cn } from "@/lib/common/cn";
 import { useStableCallback } from "@base-ui/utils/useStableCallback";
 import { T, useLocale, Var } from "gt-next";
 import * as React from "react";
@@ -146,9 +147,9 @@ function SubscriptionStatusBadge() {
             {(subscription) => {
                 if (!subscription) {
                     return (
-                        <Badge className="h-6! w-full" variant="secondary">
+                        <SubscriptionBadge>
                             <T context="Free plan label">Free plan</T>
-                        </Badge>
+                        </SubscriptionBadge>
                     );
                 }
 
@@ -156,11 +157,7 @@ function SubscriptionStatusBadge() {
 
                 if (subscription.cancelAtPeriodEnd) {
                     return (
-                        <Badge
-                            className="h-6! w-full bg-amber-100 text-amber-900"
-                            variant="secondary"
-                        >
-                            <CrownFilledIcon />
+                        <SubscriptionBadge className="bg-amber-100 text-amber-900">
                             <T context="Subscription ends message">
                                 <Var>{planLabel}</Var> ends{" "}
                                 <Var>
@@ -169,17 +166,13 @@ function SubscriptionStatusBadge() {
                                     ) ?? <T>soon</T>}
                                 </Var>
                             </T>
-                        </Badge>
+                        </SubscriptionBadge>
                     );
                 }
 
                 if (subscription.status === "trialing") {
                     return (
-                        <Badge
-                            className="h-6! w-full bg-primary/10 text-primary"
-                            variant="secondary"
-                        >
-                            <CrownFilledIcon />
+                        <SubscriptionBadge className="bg-primary/10 text-primary">
                             <T context="Trialing status label">
                                 <Var>{planLabel}</Var> trial, then{" "}
                                 <Var>
@@ -188,17 +181,13 @@ function SubscriptionStatusBadge() {
                                     )}
                                 </Var>
                             </T>
-                        </Badge>
+                        </SubscriptionBadge>
                     );
                 }
 
                 if (subscription.status === "active") {
                     return (
-                        <Badge
-                            className="h-6! w-full bg-primary/10 text-primary"
-                            variant="secondary"
-                        >
-                            <CrownFilledIcon />
+                        <SubscriptionBadge className="bg-primary/10 text-primary">
                             <GradientWaveText align="center" ariaLabel="Status">
                                 <T context="Active status label">
                                     <Var>{planLabel}</Var>{" "}
@@ -209,23 +198,19 @@ function SubscriptionStatusBadge() {
                                     </Var>
                                 </T>
                             </GradientWaveText>
-                        </Badge>
+                        </SubscriptionBadge>
                     );
                 }
 
                 return (
-                    <Badge
-                        className="h-6! w-full bg-muted text-muted-foreground"
-                        variant="secondary"
-                    >
-                        <CrownFilledIcon />
+                    <SubscriptionBadge>
                         <T context="Other subscription status">
                             <Var>{planLabel}</Var>{" "}
                             <Var>
                                 {subscriptionStatusLabel(subscription.status)}
                             </Var>
                         </T>
-                    </Badge>
+                    </SubscriptionBadge>
                 );
             }}
         </WithSubscription>
@@ -307,26 +292,21 @@ function useLibraryReturnUrl() {
     return `${origin}/${locale}/library`;
 }
 
-/**
- * Extracts a displayable message from better-auth subscription errors.
- */
-function subscriptionErrorMessage(error: unknown): string | undefined {
-    if (!error || typeof error !== "object" || !("message" in error)) {
+function getStringField(value: unknown, field: string): string | undefined {
+    if (!value || typeof value !== "object" || !(field in value)) {
         return;
     }
-    const message = Reflect.get(error, "message");
-    return typeof message === "string" ? message : undefined;
+    const result = Reflect.get(value, field);
+    return typeof result === "string" ? result : undefined;
 }
 
-/**
- * Extracts a hosted Stripe URL from better-auth redirect responses.
- */
+function subscriptionErrorMessage(error: unknown): string | undefined {
+    return getStringField(error, "message");
+}
+
 function subscriptionRedirectUrl(data: unknown): string | undefined {
-    if (!data || typeof data !== "object" || !("url" in data)) {
-        return;
-    }
-    const url = Reflect.get(data, "url");
-    return typeof url === "string" && url.length > 0 ? url : undefined;
+    const url = getStringField(data, "url");
+    return url && url.length > 0 ? url : undefined;
 }
 
 /**
@@ -411,6 +391,24 @@ function subscriptionPeriodEndLabel(
 
 function subscriptionStatusLabel(status: string | null | undefined) {
     return status?.replaceAll("_", " ") ?? <T>Unknown</T>;
+}
+
+function SubscriptionBadge({
+    className,
+    children,
+    variant = "secondary",
+    ...props
+}: React.ComponentProps<typeof Badge>) {
+    return (
+        <Badge
+            {...props}
+            className={cn("h-6! w-full", className)}
+            variant={variant}
+        >
+            <CrownFilledIcon />
+            {children}
+        </Badge>
+    );
 }
 
 /**
