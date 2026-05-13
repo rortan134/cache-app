@@ -58,8 +58,9 @@ function SidebarProvider({
         setOpen((prev) => !prev);
     });
 
-    const handleKeyDown = (event: KeyboardEvent) => {
-        const ownerWindow = getOwnerWindow();
+    const handleKeyDown = useStableCallback((event: KeyboardEvent) => {
+        const ownerWindow = getOwnerWindow(event.currentTarget as HTMLElement);
+
         if (
             event.defaultPrevented ||
             event.isComposing ||
@@ -72,7 +73,7 @@ function SidebarProvider({
 
         event.preventDefault();
         toggleSidebar();
-    };
+    });
 
     useHotkeys("mod+b", handleKeyDown, {
         description: "Expand or collapse sidebar",
@@ -81,19 +82,18 @@ function SidebarProvider({
     // We add a state so that we can do data-state="expanded" or "collapsed".
     // This makes it easier to style the sidebar with Tailwind classes.
     const state = open ? "expanded" : "collapsed";
-
-    return (
-        <SidebarContext
-            value={{
+    const value = React.useMemo(
+        () =>
+            ({
                 open,
                 setOpen,
                 state,
                 toggleSidebar,
-            }}
-        >
-            {children}
-        </SidebarContext>
+            }) satisfies SidebarContextValue,
+        [open, setOpen, state, toggleSidebar]
     );
+
+    return <SidebarContext value={value}>{children}</SidebarContext>;
 }
 
 function useSidebar() {

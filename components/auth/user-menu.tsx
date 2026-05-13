@@ -3,34 +3,70 @@
 import { LogoutDialogTrigger } from "@/components/auth/logout-dialog-trigger";
 import { WithUserSessionOnly } from "@/components/auth/session";
 import {
-    BillingPortalButton,
     SubscribedOnly,
+    SubscriptionBillingPortalButton,
     SubscriptionStatusBadge,
     SubscriptionUpgradeButton,
     UnsubscribedOnly,
 } from "@/components/billing/subscription";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { AltKbd, CmdKbd, Kbd, ShiftKbd } from "@/components/ui/kbd";
-import { Popover, PopoverPopup, PopoverTrigger } from "@/components/ui/popover";
-import { Separator } from "@/components/ui/separator";
+import { CmdKbd, Kbd } from "@/components/ui/kbd";
+import {
+    Menu,
+    MenuGroup,
+    MenuItem,
+    MenuPopup,
+    MenuRadioGroup,
+    MenuRadioItem,
+    MenuSeparator,
+    MenuSub,
+    MenuSubPopup,
+    MenuSubTrigger,
+    MenuTrigger,
+} from "@/components/ui/menu";
 import { KeyboardShortcutsDialogTrigger } from "@/components/ui/shortcuts";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ThemeSelector } from "@/components/ui/theme-selector";
+import { authClient, useSession } from "@/lib/auth/client";
+import type { auth } from "@/lib/auth/server";
 import { cn } from "@/lib/common/cn";
+import { createLogger } from "@/lib/common/logs/console/logger";
 import { getInitials } from "@/lib/common/strings";
+import { useStableCallback } from "@base-ui/utils/useStableCallback";
 import { LocaleSelector, T } from "gt-next";
-import { ArrowUpRight, ChevronDown, LogOut } from "lucide-react";
+import { ChevronDown, LoaderCircle, LogOut, PlusIcon } from "lucide-react";
 import Link from "next/link";
-import type * as React from "react";
+import { useRouter } from "next/navigation";
+import * as React from "react";
+import useSWR from "swr";
 
-export const UserMenu: typeof Popover = Popover;
+const log = createLogger("auth-user-menu");
+
+type Session = typeof auth.$Infer.Session;
+type AccountMenuError = "add" | "load" | "switch";
+
+interface AccountUser {
+    email: string;
+    id: string;
+    image?: null | string;
+    name: null | string;
+}
+
+interface DeviceSession {
+    session: {
+        token: string;
+    };
+    user: AccountUser;
+}
+
+export const UserMenu: typeof Menu = Menu;
 
 export function UserMenuTrigger(
-    props: React.ComponentProps<typeof PopoverTrigger>
+    props: React.ComponentProps<typeof MenuTrigger>
 ) {
     return (
-        <PopoverTrigger {...props}>
+        <MenuTrigger {...props}>
             <WithUserSessionOnly loadingRender={<UserMenuTriggerSkeleton />}>
                 {(user) => (
                     <span className="flex min-w-0 items-center gap-2">
@@ -55,7 +91,7 @@ export function UserMenuTrigger(
                 className="pointer-events-none inline-block size-3.5 shrink-0 opacity-80 group-data-popup-open:opacity-30"
                 focusable="false"
             />
-        </PopoverTrigger>
+        </MenuTrigger>
     );
 }
 
@@ -63,20 +99,18 @@ export function UserMenuPopup({
     children,
     align = "start",
     className,
-    positionMethod = "fixed",
     side = "top",
     ...props
-}: React.ComponentProps<typeof PopoverPopup>) {
+}: React.ComponentProps<typeof MenuPopup>) {
     return (
-        <PopoverPopup
+        <MenuPopup
             align={align}
             className={cn("min-w-[248px]", className)}
-            positionMethod={positionMethod}
             side={side}
             {...props}
         >
-            <div className="flex flex-col gap-4">{children}</div>
-        </PopoverPopup>
+            <div className="flex flex-col gap-1">{children}</div>
+        </MenuPopup>
     );
 }
 
@@ -84,23 +118,18 @@ export function UserMenuHeader() {
     return (
         <WithUserSessionOnly>
             {(user) => (
-                <div className="w-full min-w-0 flex-1">
-                    <div className="-mx-2">
-                        <Button
-                            className="h-11 w-full min-w-0 flex-1 justify-start text-left sm:h-11"
-                            variant="ghost"
-                        >
-                            <div className="min-w-0">
-                                <p className="truncate font-medium text-sm">
-                                    {user.name ?? <T>Cache account</T>}
-                                </p>
-                                <p className="truncate text-muted-foreground text-sm">
-                                    {user.email}
-                                </p>
-                            </div>
-                        </Button>
-                    </div>
-                    <div className="mt-2 flex items-center gap-2">
+                <div className="w-full min-w-0 flex-1 pb-2">
+                    <UserMenuAccountSwitcherSubMenu className="h-11 rounded-xl">
+                        <div className="min-w-0">
+                            <span className="block truncate font-medium text-sm">
+                                {user.name ?? <T>Cache account</T>}
+                            </span>
+                            <span className="block truncate text-muted-foreground text-xs">
+                                {user.email}
+                            </span>
+                        </div>
+                    </UserMenuAccountSwitcherSubMenu>
+                    <div className="mx-2 mt-2 flex items-center gap-2">
                         <SubscriptionStatusBadge />
                     </div>
                 </div>
@@ -112,80 +141,70 @@ export function UserMenuHeader() {
 export function UserMenuContent() {
     return (
         <>
-            <UserMenuSection>
+            <MenuSeparator />
+            <MenuGroup>
                 <div className="flex items-center justify-between pr-2 pl-2.5">
-                    <span className="font-medium text-foreground text-sm">
+                    <span className="font-regular text-foreground text-sm">
                         <T>Theme</T>
                     </span>
                     <ThemeSelector />
                 </div>
-            </UserMenuSection>
-            <UserMenuSection>
+            </MenuGroup>
+            <MenuSeparator />
+            <MenuGroup>
                 <SubscribedOnly>
-                    <BillingPortalButton />
+                    <SubscriptionBillingPortalButton
+                        className="w-full justify-start font-normal"
+                        render={<MenuItem />}
+                    >
+                        <T>Billing</T>
+                    </SubscriptionBillingPortalButton>
                 </SubscribedOnly>
                 <UnsubscribedOnly>
-                    <SubscriptionUpgradeButton>
+                    <SubscriptionUpgradeButton
+                        className="w-full justify-start font-normal"
+                        render={<MenuItem />}
+                    >
                         <T>Upgrade to Pro</T>
                     </SubscriptionUpgradeButton>
-                    <Button
-                        className="justify-between"
-                        render={<Link href="/pricing" />}
-                        variant="ghost"
-                    >
-                        <T>Pricing</T>
-                        <ArrowUpRight className="ml-auto inline-block size-4.5 shrink-0 text-muted-foreground" />
-                    </Button>
                 </UnsubscribedOnly>
-                <Button
+                <MenuItem
                     className="justify-between"
                     render={<Link href="/changelog" />}
-                    variant="ghost"
                 >
                     <T>Changelog</T>
-                    <ArrowUpRight className="ml-auto inline-block size-4.5 shrink-0 text-muted-foreground" />
-                </Button>
-                <Button
+                </MenuItem>
+                <MenuItem
                     className="justify-between"
                     render={<Link href="mailto:gsmt.dev@gmail.com" />}
-                    variant="ghost"
                 >
                     <T>Support</T>
-                    <ArrowUpRight className="ml-auto inline-block size-4.5 shrink-0 text-muted-foreground" />
-                </Button>
+                </MenuItem>
                 <KeyboardShortcutsDialogTrigger
                     render={
-                        <Button className="justify-between" variant="ghost">
+                        <MenuItem
+                            className="justify-between"
+                            closeOnClick={false}
+                        >
                             <T>Keyboard shortcuts</T>
-                            <span
-                                aria-hidden
-                                className="ml-auto inline-flex items-center gap-1"
-                            >
-                                <Kbd>
-                                    <CmdKbd />/
-                                </Kbd>
-                            </span>
-                        </Button>
+                            <Kbd className="ml-auto inline-flex items-center gap-1 bg-transparent px-0">
+                                <CmdKbd />/
+                            </Kbd>
+                        </MenuItem>
                     }
                 />
                 <LogoutDialogTrigger
                     render={
-                        <Button className="justify-between" variant="ghost" />
+                        <MenuItem
+                            className="justify-between"
+                            closeOnClick={false}
+                        />
                     }
                 >
                     <T context="User Log out/Sign out of the app">Log out</T>
-                    <span
-                        aria-hidden
-                        className="ml-auto inline-flex items-center gap-2"
-                    >
-                        <Kbd>
-                            <AltKbd />
-                            <ShiftKbd />Q
-                        </Kbd>
-                        <LogOut className="inline-block size-4 shrink-0 text-muted-foreground" />
-                    </span>
+                    <LogOut className="ml-auto inline-block size-3.5 shrink-0 text-muted-foreground" />
                 </LogoutDialogTrigger>
-            </UserMenuSection>
+            </MenuGroup>
         </>
     );
 }
@@ -193,9 +212,12 @@ export function UserMenuContent() {
 export function UserMenuFooter() {
     return (
         <>
-            <UserMenuSectionSeparator />
-            <LocaleSelector />
-            <div className="-mx-1 -mb-1 flex flex-wrap opacity-80">
+            <MenuSeparator />
+            <div className="flex w-full items-center px-1.5 pt-1 font-medium opacity-80 *:w-full *:text-sm">
+                <LocaleSelector />
+            </div>
+            <MenuSeparator className="mt-1.5" />
+            <div className="mb-1 flex flex-wrap p-1 opacity-80">
                 <Button
                     render={<Link href="/legal/privacy-policy" />}
                     size="xs"
@@ -227,29 +249,293 @@ function UserMenuTriggerSkeleton() {
     return (
         <span className="flex min-w-0 items-center gap-2">
             <Skeleton className="size-5.5 rounded-md" />
-            <Skeleton className="h-4 w-24" />
+            <Skeleton className="h-4 w-16" />
         </span>
     );
 }
 
 /* @internal */
-function UserMenuSection({ className, ...props }: React.ComponentProps<"div">) {
-    return (
-        <>
-            <UserMenuSectionSeparator />
-            <div
-                className={cn("-mx-2 flex flex-col gap-1", className)}
-                {...props}
-            />
-        </>
+function useUserMenuAccounts() {
+    const { data: activeSession, refetch } = useSession();
+    const router = useRouter();
+    const [pendingSessionToken, setPendingSessionToken] = React.useState<
+        null | string
+    >(null);
+    const [switchAccountError, setSwitchAccountError] =
+        React.useState<unknown>(null);
+    const [addAccountError, setAddAccountError] = React.useState<unknown>(null);
+    const [isAddingAccount, setIsAddingAccount] = React.useState(false);
+    const {
+        data: deviceSessions = [],
+        error: deviceSessionsError,
+        isLoading: isLoadingDeviceSessions,
+        mutate: refreshDeviceSessions,
+    } = useSWR(
+        activeSession ? ["auth-user-menu:device-sessions"] : null,
+        listDeviceSessions
     );
+
+    const handleAccountChange = useStableCallback(
+        async (sessionToken: unknown) => {
+            if (
+                !activeSession ||
+                typeof sessionToken !== "string" ||
+                sessionToken === activeSession.session.token
+            ) {
+                return;
+            }
+
+            setPendingSessionToken(sessionToken);
+            setSwitchAccountError(null);
+
+            try {
+                const result = await authClient.multiSession.setActive({
+                    sessionToken,
+                });
+
+                if (result.error) {
+                    log.error("Failed to switch active session", result.error);
+                    setSwitchAccountError(result.error);
+                    return;
+                }
+
+                await Promise.all([refetch(), refreshDeviceSessions()]);
+                router.refresh();
+            } catch (error) {
+                log.error("Failed to switch active session", error);
+                setSwitchAccountError(error);
+            } finally {
+                setPendingSessionToken(null);
+            }
+        }
+    );
+    const handleAddAccount = useStableCallback(async () => {
+        setAddAccountError(null);
+        setIsAddingAccount(true);
+
+        try {
+            const result = await authClient.signIn.social({
+                callbackURL: "/library",
+                errorCallbackURL: "/library",
+                provider: "google",
+            });
+
+            if (result.error) {
+                log.error("Failed to add account session", result.error);
+                setAddAccountError(result.error);
+            }
+        } catch (error) {
+            log.error("Failed to add account session", error);
+            setAddAccountError(error);
+        } finally {
+            setIsAddingAccount(false);
+        }
+    });
+    const accountMenuError = getAccountMenuError(
+        addAccountError,
+        deviceSessionsError,
+        switchAccountError
+    );
+    const accountOptions = activeSession
+        ? getAccountOptions(deviceSessions, activeSession)
+        : [];
+
+    return {
+        accountMenuError,
+        accountOptions,
+        activeSession,
+        handleAccountChange,
+        handleAddAccount,
+        isAddingAccount,
+        isLoadingDeviceSessions,
+        pendingSessionToken,
+    };
 }
 
 /* @internal */
-function UserMenuSectionSeparator() {
+function UserMenuAccountSwitcherSubMenu(
+    props: React.ComponentProps<typeof MenuSubTrigger>
+) {
+    const {
+        accountMenuError,
+        accountOptions,
+        activeSession,
+        handleAccountChange,
+        handleAddAccount,
+        isAddingAccount,
+        isLoadingDeviceSessions,
+        pendingSessionToken,
+    } = useUserMenuAccounts();
+
+    if (!activeSession) {
+        return null;
+    }
+
     return (
-        <div className="relative -my-1">
-            <Separator className="absolute left-1/2 -translate-x-1/2 data-horizontal:w-[400px]" />
-        </div>
+        <MenuSub>
+            <MenuSubTrigger {...props} />
+            <MenuSubPopup align="end">
+                <MenuGroup>
+                    {isLoadingDeviceSessions ? (
+                        <MenuItem disabled>
+                            <LoaderCircle className="size-4 animate-spin text-muted-foreground" />
+                            <T>Loading accounts</T>
+                        </MenuItem>
+                    ) : null}
+                    {accountMenuError ? (
+                        <MenuItem disabled>
+                            <AccountMenuErrorMessage error={accountMenuError} />
+                        </MenuItem>
+                    ) : null}
+                    {isLoadingDeviceSessions ? null : (
+                        <MenuRadioGroup
+                            disabled={Boolean(pendingSessionToken)}
+                            onValueChange={handleAccountChange}
+                            value={activeSession.session.token}
+                        >
+                            {accountOptions.map((deviceSession) => {
+                                const accountLabel = getAccountLabel(
+                                    deviceSession.user
+                                );
+                                const isPendingSession =
+                                    pendingSessionToken ===
+                                    deviceSession.session.token;
+
+                                return (
+                                    <MenuRadioItem
+                                        closeOnClick={false}
+                                        key={deviceSession.user.id}
+                                        label={accountLabel}
+                                        value={deviceSession.session.token}
+                                    >
+                                        <span className="flex min-w-0 items-center gap-2">
+                                            <Avatar className="size-5.5 rounded-md">
+                                                <AvatarImage
+                                                    alt={accountLabel}
+                                                    loading="lazy"
+                                                    src={
+                                                        deviceSession.user
+                                                            .image ?? undefined
+                                                    }
+                                                />
+                                                <AvatarFallback className="rounded-md text-xs">
+                                                    {getInitials(
+                                                        deviceSession.user.name,
+                                                        deviceSession.user.email
+                                                    )}
+                                                </AvatarFallback>
+                                            </Avatar>
+                                            <span className="min-w-0 flex-1">
+                                                <span className="block truncate font-medium">
+                                                    {deviceSession.user
+                                                        .name ?? (
+                                                        <T>Cache account</T>
+                                                    )}
+                                                </span>
+                                                <span className="block truncate text-muted-foreground text-xs">
+                                                    {deviceSession.user.email}
+                                                </span>
+                                            </span>
+                                            {isPendingSession ? (
+                                                <LoaderCircle className="ml-auto size-4 animate-spin text-muted-foreground" />
+                                            ) : null}
+                                        </span>
+                                    </MenuRadioItem>
+                                );
+                            })}
+                        </MenuRadioGroup>
+                    )}
+                    {isLoadingDeviceSessions ? null : (
+                        <>
+                            <MenuSeparator />
+                            <MenuItem
+                                closeOnClick={false}
+                                disabled={isAddingAccount}
+                                onClick={handleAddAccount}
+                            >
+                                {isAddingAccount ? (
+                                    <LoaderCircle className="size-4 animate-spin text-muted-foreground" />
+                                ) : (
+                                    <PlusIcon className="size-4 text-muted-foreground" />
+                                )}
+                                <T>Add another account</T>
+                            </MenuItem>
+                        </>
+                    )}
+                </MenuGroup>
+            </MenuSubPopup>
+        </MenuSub>
     );
+}
+
+function AccountMenuErrorMessage({ error }: { error: AccountMenuError }) {
+    switch (error) {
+        case "add":
+            return <T>Could not add another account.</T>;
+        case "load":
+            return <T>Could not load saved accounts.</T>;
+        case "switch":
+            return <T>Could not switch accounts.</T>;
+        default:
+            return null;
+    }
+}
+
+function getAccountOptions(
+    deviceSessions: DeviceSession[],
+    activeSession: Session
+): DeviceSession[] {
+    const hasActiveSession = deviceSessions.some(
+        (deviceSession) =>
+            deviceSession.session.token === activeSession.session.token
+    );
+
+    if (hasActiveSession) {
+        return deviceSessions;
+    }
+
+    return [
+        {
+            session: {
+                token: activeSession.session.token,
+            },
+            user: activeSession.user,
+        },
+        ...deviceSessions,
+    ];
+}
+
+function getAccountLabel(user: AccountUser): string {
+    return user.name ?? user.email;
+}
+
+async function listDeviceSessions(): Promise<DeviceSession[]> {
+    const result = await authClient.multiSession.listDeviceSessions();
+
+    if (result.error) {
+        log.error("Failed to load device sessions", result.error);
+        throw new Error("Failed to load device sessions.");
+    }
+
+    return result.data ?? [];
+}
+
+function getAccountMenuError(
+    addAccountError: unknown,
+    deviceSessionsError: unknown,
+    switchAccountError: unknown
+): AccountMenuError | null {
+    if (addAccountError) {
+        return "add";
+    }
+
+    if (deviceSessionsError) {
+        return "load";
+    }
+
+    if (switchAccountError) {
+        return "switch";
+    }
+
+    return null;
 }

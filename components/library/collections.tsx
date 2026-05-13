@@ -115,7 +115,7 @@ import SmartCollectionsBackgroundImg from "@/public/smart-collections-background
 import { Toolbar } from "@base-ui/react/toolbar";
 import { useInterval } from "@base-ui/utils/useInterval";
 import { useStableCallback } from "@base-ui/utils/useStableCallback";
-import { T } from "gt-next";
+import { T, useLocale } from "gt-next";
 import {
     ArchiveIcon,
     ArchiveX,
@@ -166,6 +166,11 @@ const CSV_HEADERS = [
     "Saved At",
     "Posted At",
 ] as const;
+
+const COLLECTION_LABEL_LIST_FORMAT_OPTIONS: Intl.ListFormatOptions = {
+    style: "long",
+    type: "conjunction",
+};
 
 const CREATE_ERROR_MESSAGE = "We couldn't create this collection right now.";
 const DELETE_ERROR_MESSAGE = "We couldn't delete this collection right now.";
@@ -490,6 +495,13 @@ function useCollections(): CollectionsContextValue {
     return context;
 }
 
+function formatCollectionLabelList(collectionLabels: string[], locale: string) {
+    return new Intl.ListFormat(
+        locale,
+        COLLECTION_LABEL_LIST_FORMAT_OPTIONS
+    ).format(collectionLabels);
+}
+
 function CollectionsListProvider({ children }: { children: React.ReactNode }) {
     const controller = useCollectionsController();
     return (
@@ -659,9 +671,7 @@ export function Collections() {
             >
                 <CollectionsListToolbar className="group">
                     <CollectionsListFavoritesTrigger>
-                        <CollectionsListFavoritesTriggerValue>
-                            <T>Favorites</T>
-                        </CollectionsListFavoritesTriggerValue>
+                        <T>Favorites</T>
                     </CollectionsListFavoritesTrigger>
                     <CollectionsListToolbarGroup>
                         <Kbd className="bg-transparent opacity-0 group-hover:opacity-50 group-has-data-open/collapsible:hidden">
@@ -688,9 +698,7 @@ export function Collections() {
             >
                 <CollectionsListToolbar className="group">
                     <CollectionsListTrigger>
-                        <CollectionsListTriggerValue>
-                            <T>Collections</T>
-                        </CollectionsListTriggerValue>
+                        <T>Collections</T>
                     </CollectionsListTrigger>
                     <CollectionsListToolbarGroup>
                         <Kbd className="bg-transparent opacity-0 group-hover:opacity-50 group-has-data-open/collapsible:hidden">
@@ -1818,10 +1826,8 @@ function CollectionsListPreviewImageFallback() {
 function CollectionsListItemPreviewImage({
     alt,
     src,
-}: {
-    alt: string;
-    src?: string;
-}) {
+    ...props
+}: React.ComponentProps<"img">) {
     const [didFail, setDidFail] = React.useState(false);
     const handleError = useStableCallback(() => {
         setDidFail(true);
@@ -1834,6 +1840,7 @@ function CollectionsListItemPreviewImage({
     return (
         // biome-ignore lint/a11y/noNoninteractiveElementInteractions: Fallback swaps in when the browser cannot render the image.
         <img
+            {...props}
             alt={alt}
             className="size-full object-cover"
             height={192}
@@ -1851,11 +1858,11 @@ function CollectionsListInlineRow({
 }: React.ComponentProps<"div">) {
     return (
         <div
+            {...props}
             className={cn(
                 "flex items-center justify-between gap-2 px-2.5",
                 className
             )}
-            {...props}
         />
     );
 }
@@ -1885,10 +1892,10 @@ function CollectionsList({
 
     return (
         <Collapsible
+            {...props}
             className={cn("relative", className)}
             onOpenChange={controller.setIsCollectionsListOpen}
             open={controller.isCollectionsListOpen}
-            {...props}
         />
     );
 }
@@ -1902,7 +1909,8 @@ function CollectionsListTrigger({
     children,
     ...props
 }: React.ComponentProps<typeof CollapsibleTrigger>) {
-    const { isCollectionsListOpen, collectionLabels } = useCollections();
+    const controller = useCollections();
+    const locale = useLocale();
 
     return (
         <Popover>
@@ -1910,46 +1918,44 @@ function CollectionsListTrigger({
                 openOnHover
                 render={
                     <CollapsibleTrigger
+                        {...props}
                         render={
                             <SidebarItem render={<button type="button" />} />
                         }
                         title={
-                            isCollectionsListOpen
+                            controller.isCollectionsListOpen
                                 ? "Collapse group"
                                 : "Expand group"
                         }
-                        {...props}
                     />
                 }
             >
-                {children}
+                <CollectionsListTriggerLabel
+                    count={controller.collectionSummaries.length}
+                >
+                    {children}
+                </CollectionsListTriggerLabel>
                 <ChevronDownFilledIcon className="-ml-0.5" />
             </PopoverTrigger>
             <PopoverPopup
                 align="start"
                 positionerClassname={cn(
-                    isCollectionsListOpen && "pointer-events-none! hidden!"
+                    controller.isCollectionsListOpen &&
+                        "pointer-events-none! hidden!"
                 )}
                 positionMethod="fixed"
                 tooltipStyle
             >
                 <p className="wrap-break-word w-full whitespace-normal font-medium leading-tight">
-                    {collectionLabels.length > 0
-                        ? collectionLabels.join(", ")
+                    {controller.collectionLabels.length > 0
+                        ? formatCollectionLabelList(
+                              controller.collectionLabels,
+                              locale
+                          )
                         : "No collections yet"}
                 </p>
             </PopoverPopup>
         </Popover>
-    );
-}
-
-function CollectionsListTriggerValue({ children }: React.PropsWithChildren) {
-    const controller = useCollections();
-
-    return (
-        <span className="min-w-0 text-xs">
-            {children}&nbsp;({controller.collectionSummaries.length})
-        </span>
     );
 }
 
@@ -1962,7 +1968,7 @@ function CollectionsListPanel({
     className,
     ...props
 }: React.ComponentProps<typeof CollapsiblePanel>) {
-    return <CollapsiblePanel className={cn("pl-1", className)} {...props} />;
+    return <CollapsiblePanel {...props} className={cn("pl-1", className)} />;
 }
 
 function CollectionsListFavorites({
@@ -1981,10 +1987,10 @@ function CollectionsListFavorites({
 
     return (
         <Collapsible
+            {...props}
             className={cn("relative", className)}
             onOpenChange={setIsFavoritesListOpen}
             open={isFavoritesListOpen}
-            {...props}
         />
     );
 }
@@ -1994,37 +2000,55 @@ function CollectionsListFavoritesTrigger({
     ...props
 }: React.ComponentProps<typeof CollapsibleTrigger>) {
     const controller = useCollections();
-
-    return (
-        <SidebarItem
-            render={
-                <CollapsibleTrigger
-                    title={
-                        controller.isFavoritesListOpen
-                            ? "Collapse group"
-                            : "Expand group"
-                    }
-                    {...props}
-                />
-            }
-        >
-            {children}
-            <ChevronDownFilledIcon className="-ml-0.5" />
-        </SidebarItem>
+    const locale = useLocale();
+    const favoriteCollectionLabels = controller.favoriteCollectionSummaries.map(
+        (collection) => collection.name
     );
-}
-
-function CollectionsListFavoritesTriggerValue({
-    className,
-    children,
-    ...props
-}: React.ComponentProps<"span">) {
-    const controller = useCollections();
 
     return (
-        <span className={cn("min-w-0 text-xs", className)} {...props}>
-            {children}&nbsp;({controller.favoriteCollectionSummaries.length})
-        </span>
+        <Popover>
+            <PopoverTrigger
+                openOnHover
+                render={
+                    <CollapsibleTrigger
+                        {...props}
+                        render={
+                            <SidebarItem render={<button type="button" />} />
+                        }
+                        title={
+                            controller.isFavoritesListOpen
+                                ? "Collapse group"
+                                : "Expand group"
+                        }
+                    />
+                }
+            >
+                <CollectionsListTriggerLabel
+                    count={controller.favoriteCollectionSummaries.length}
+                >
+                    {children}
+                </CollectionsListTriggerLabel>
+                <ChevronDownFilledIcon className="-ml-0.5" />
+            </PopoverTrigger>
+            <PopoverPopup
+                align="start"
+                positionerClassname={cn(
+                    controller.isFavoritesListOpen &&
+                        "pointer-events-none! hidden!"
+                )}
+                positionMethod="fixed"
+                tooltipStyle
+            >
+                <p className="wrap-break-word w-full whitespace-normal font-medium leading-tight">
+                    {favoriteCollectionLabels.length > 0
+                        ? formatCollectionLabelList(
+                              favoriteCollectionLabels,
+                              locale
+                          )
+                        : "No favorites yet"}
+                </p>
+            </PopoverPopup>
+        </Popover>
     );
 }
 
@@ -2033,6 +2057,22 @@ interface CollectionsListContentProps {
         item: LibraryCollectionSummary,
         index: number
     ) => React.ReactNode;
+}
+
+interface CollectionsListTriggerLabelProps {
+    children: React.ReactNode;
+    count: number;
+}
+
+function CollectionsListTriggerLabel({
+    children,
+    count,
+}: CollectionsListTriggerLabelProps) {
+    return (
+        <span className="min-w-0 text-xs">
+            {children}&nbsp;({count})
+        </span>
+    );
 }
 
 /**
@@ -2075,11 +2115,11 @@ function CollectionsListToolbar({
 }: React.ComponentProps<typeof Toolbar.Root>) {
     return (
         <Toolbar.Root
+            {...props}
             className={cn(
                 "flex w-full items-center justify-between",
                 className
             )}
-            {...props}
         />
     );
 }
@@ -2090,11 +2130,11 @@ function CollectionsListToolbarGroup({
 }: React.ComponentProps<typeof Toolbar.Group>) {
     return (
         <Toolbar.Group
+            {...props}
             className={cn(
                 "absolute right-1 flex items-center justify-end gap-1",
                 className
             )}
-            {...props}
         />
     );
 }
@@ -2105,8 +2145,8 @@ function CollectionsListToolbarButton({
 }: React.ComponentProps<typeof Toolbar.Button>) {
     return (
         <Toolbar.Button
-            className={cn("opacity-80 hover:opacity-100", className)}
             {...props}
+            className={cn("opacity-80 hover:opacity-100", className)}
         />
     );
 }
@@ -2159,6 +2199,7 @@ function CollectionsListStatus({
     return (
         <CollectionsListInlineRow>
             <p
+                {...props}
                 aria-atomic="true"
                 aria-live="polite"
                 className={cn(
@@ -2169,7 +2210,6 @@ function CollectionsListStatus({
                     className
                 )}
                 role={tone === "error" ? "alert" : "status"}
-                {...props}
             >
                 {feedback.message}
             </p>
@@ -2206,11 +2246,11 @@ function CollectionsListFilterClearButton({
 
     return (
         <Button
+            {...props}
             aria-label="Clear selected collections"
             onClick={handleOnClick}
             size="icon-xs"
             variant="ghost"
-            {...props}
         >
             <X
                 aria-hidden
@@ -2229,9 +2269,10 @@ function CollectionsListFilterClearButton({
  * from each group simultaneously, causing the built-in ItemIndicator to
  * render for both the active sort and the active view option.
  */
-function CollectionsListSortingCombobox(
-    props: React.ComponentProps<typeof ComboboxTrigger>
-) {
+function CollectionsListSortingCombobox({
+    render,
+    ...props
+}: React.ComponentProps<typeof ComboboxTrigger>) {
     const { sort, isCollectionsListOpen } = useCollections();
     const {
         inputValue,
@@ -2258,15 +2299,19 @@ function CollectionsListSortingCombobox(
             value={value}
         >
             <ComboboxTrigger
+                {...props}
                 render={
-                    <Button
-                        className={isCollectionsListOpen ? undefined : "hidden"}
-                        size="icon-xs"
-                        variant="ghost"
-                    />
+                    render ?? (
+                        <Button
+                            className={
+                                isCollectionsListOpen ? undefined : "hidden"
+                            }
+                            size="icon-xs"
+                            variant="ghost"
+                        />
+                    )
                 }
                 title="Sort and organize collections"
-                {...props}
             >
                 <ListFilter
                     aria-hidden
@@ -2317,16 +2362,27 @@ function CollectionsListSortingCombobox(
     );
 }
 
-function CollectionsListCreateButton(props: React.ComponentProps<"button">) {
-    const controller = useCollections();
+function CollectionsListCreateButton({
+    onClick: onClickProp,
+    ...props
+}: React.ComponentProps<"button">) {
+    const { requestCreate } = useCollections();
+
+    const onClick = useStableCallback(onClickProp);
+    const handleOnClick = useStableCallback(
+        (event: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
+            onClick?.(event);
+            requestCreate();
+        }
+    );
 
     return (
         <Button
-            onClick={() => controller.requestCreate()}
+            {...props}
+            onClick={handleOnClick}
             size="icon-xs"
             title={`Create a new collection (${getSystemControlKey()}N)`}
             variant="ghost"
-            {...props}
         >
             <PlusIcon
                 aria-hidden
@@ -2472,6 +2528,7 @@ function CollectionItemPreview({
     return (
         <PreviewCard onOpenChange={setIsOpen} open={isOpen}>
             <PreviewCardTrigger
+                {...props}
                 closeDelay={0}
                 onClick={(event) => {
                     onClick?.(event);
@@ -2484,7 +2541,6 @@ function CollectionItemPreview({
                         render={<Button variant="ghost" />}
                     />
                 }
-                {...props}
             />
             <PreviewCardPopup
                 className="pointer-events-none aspect-3/2 p-0"
@@ -2840,7 +2896,7 @@ function CollectionItemSubscribeSubMenu() {
         <MenuSub>
             <MenuSubTrigger disabled>
                 <BellIcon className="inline-block size-4 text-muted-foreground" />
-                Subscribe (soon)
+                Subscribe
             </MenuSubTrigger>
             <MenuSubPopup>
                 <MenuGroup>

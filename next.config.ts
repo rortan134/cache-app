@@ -23,6 +23,7 @@ const nextConfig: NextConfig = {
             "streamdown",
             "zod",
         ],
+        turbopackFileSystemCacheForDev: true,
     },
     async headers() {
         return [

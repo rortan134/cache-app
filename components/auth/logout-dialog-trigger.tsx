@@ -25,7 +25,9 @@ export function LogoutDialogTrigger(
         router.push("/logout");
     });
 
-    useHotkeys("alt+shift+q", handleLogout);
+    useHotkeys("alt+shift+q", handleLogout, {
+        description: "Log out",
+    });
 
     return (
         <Dialog>

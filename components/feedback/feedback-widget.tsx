@@ -23,7 +23,11 @@ interface FeedbackWidgetProps
     context: string;
 }
 
-export function FeedbackWidget({ context, ...props }: FeedbackWidgetProps) {
+export function FeedbackWidget({
+    context,
+    openOnHover = true,
+    ...props
+}: FeedbackWidgetProps) {
     const pathname = usePathname();
     const [isOpen, setIsOpen] = useState(false);
     const [state, formAction] = useActionState(
@@ -67,7 +71,7 @@ export function FeedbackWidget({ context, ...props }: FeedbackWidgetProps) {
 
     return (
         <Popover onOpenChange={setIsOpen} open={isOpen}>
-            <PopoverTrigger {...props} />
+            <PopoverTrigger {...props} openOnHover={openOnHover} />
             <PopoverPopup className="*:p-2">
                 <div className="space-y-3">
                     <form

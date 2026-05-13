@@ -45,6 +45,7 @@ import {
     type SupportedIntegrationAction,
 } from "@/lib/integrations/support";
 import IntegrationsPreviewImage from "@/public/integrations-preview.webp";
+import { useStableCallback } from "@base-ui/utils/useStableCallback";
 import { T } from "gt-next";
 import { ArrowUpRight } from "lucide-react";
 import Image from "next/image";
@@ -234,42 +235,18 @@ function isActionVisible(
     if (action.visibleWhen === "connected") {
         return isConnected;
     }
-
     if (action.visibleWhen === "disconnected") {
         return !isConnected;
     }
-
     return true;
 }
 
 /**
  * Persist the integrations panel open state across page reloads.
  */
-const { useStore: useIntegrationsListStore } = createStore({
+export const { useStore: useIntegrationsListStore } = createStore({
     isIntegrationsListPanelOpen: storage(false),
 });
-
-function useIntegrationsListOpenState() {
-    const { isIntegrationsListPanelOpen, setIsIntegrationsListPanelOpen } =
-        useIntegrationsListStore();
-
-    return [
-        isIntegrationsListPanelOpen,
-        setIsIntegrationsListPanelOpen,
-    ] as const;
-}
-
-/**
- * Decouple the expand action from the sidebar tree so any caller can open the
- * panel without access to the collapsible state.
- */
-export function useIntegrationsListControls() {
-    const { setIsIntegrationsListPanelOpen } = useIntegrationsListStore();
-
-    return {
-        openIntegrationsList: () => setIsIntegrationsListPanelOpen(true),
-    };
-}
 
 /**
  * Builds view models and handlers for integration action buttons (connect,
@@ -282,48 +259,55 @@ function useIntegrationAction({
 }: UseIntegrationActionArgs): UseIntegrationActionResult {
     const router = useRouter();
     const isExtensionInstalled = useIsExtensionInstalled();
+
     const integration = getIntegration(id);
     const { behaviors } = integration;
+
     const [status, setStatus] = React.useState<IntegrationActionStatus | null>(
         null
     );
     const [pendingRole, setPendingRole] =
         React.useState<IntegrationActionRole | null>(null);
 
-    const handleAction = async (role: IntegrationActionRole) => {
-        setStatus(null);
-        setPendingRole(role);
+    const handleAction = useStableCallback(
+        async (role: IntegrationActionRole) => {
+            setStatus(null);
+            setPendingRole(role);
 
-        try {
-            const result = await executeIntegrationAction({
-                integration,
-                isExtensionInstalled,
-                role,
-            });
+            try {
+                const result = await executeIntegrationAction({
+                    integration,
+                    isExtensionInstalled,
+                    role,
+                });
 
-            if (result.refresh) {
-                router.refresh();
+                if (result.refresh) {
+                    router.refresh();
+                }
+                if (result.successMessage) {
+                    setStatus({
+                        message: result.successMessage,
+                        tone: "success",
+                    });
+                }
+            } catch (error) {
+                const message = getErrorMessage(
+                    error,
+                    "Could not complete this integration action."
+                );
+
+                log.error("Integration action failed", {
+                    direction,
+                    error,
+                    integrationId: integration.id,
+                    role,
+                });
+                setStatus({ message, tone: "error" });
+            } finally {
+                setPendingRole(null);
             }
-            if (result.successMessage) {
-                setStatus({ message: result.successMessage, tone: "success" });
-            }
-        } catch (error) {
-            const message = getErrorMessage(
-                error,
-                "Could not complete this integration action."
-            );
-
-            log.error("Integration action failed", {
-                direction,
-                error,
-                integrationId: integration.id,
-                role,
-            });
-            setStatus({ message, tone: "error" });
-        } finally {
-            setPendingRole(null);
         }
-    };
+    );
 
     const actions = listIntegrationActions(id, direction)
         .filter((action) => isActionVisible(action, isConnected))
@@ -344,10 +328,7 @@ function useIntegrationAction({
                 }) satisfies IntegrationActionViewModel
         );
 
-    return {
-        actions,
-        status,
-    };
+    return { actions, status };
 }
 
 export function Integrations({ connectedIntegrations }: IntegrationsProps) {
@@ -357,12 +338,7 @@ export function Integrations({ connectedIntegrations }: IntegrationsProps) {
             data-sidebar-collapsible=""
         >
             <IntegrationsListTrigger>
-                <span className="min-w-0 text-xs">
-                    <T>Integrations</T>
-                </span>
-                <Kbd className="ml-auto bg-transparent opacity-0 group-hover:opacity-50 group-has-data-open/collapsible:hidden">
-                    <CmdKbd />I
-                </Kbd>
+                <T>Integrations</T>
             </IntegrationsListTrigger>
             <IntegrationsListPanel>
                 <DisclosureList maxVisible={6}>
@@ -407,24 +383,23 @@ function IntegrationsList({
     className,
     ...props
 }: React.ComponentProps<typeof Collapsible>) {
-    const [isOpen, setIsOpen] = useIntegrationsListOpenState();
+    const { isIntegrationsListPanelOpen, setIsIntegrationsListPanelOpen } =
+        useIntegrationsListStore();
 
-    useHotkeys(
-        "mod+i",
-        () => {
-            setIsOpen((prev) => !prev);
-        },
-        {
-            description: "Toggle integrations panel",
-            preventDefault: true,
-        }
-    );
+    const handleKeyShortcutPress = useStableCallback(() => {
+        setIsIntegrationsListPanelOpen((prev) => !prev);
+    });
+
+    useHotkeys("mod+i", handleKeyShortcutPress, {
+        description: "Toggle integrations panel",
+        preventDefault: true,
+    });
 
     return (
         <Collapsible
             className={cn("relative", className)}
-            onOpenChange={setIsOpen}
-            open={isOpen}
+            onOpenChange={setIsIntegrationsListPanelOpen}
+            open={isIntegrationsListPanelOpen}
             {...props}
         />
     );
@@ -435,7 +410,7 @@ function IntegrationsListTrigger({
     render,
     ...props
 }: React.ComponentProps<typeof CollapsibleTrigger>) {
-    const [isOpen] = useIntegrationsListOpenState();
+    const { isIntegrationsListPanelOpen } = useIntegrationsListStore();
 
     return (
         <Popover>
@@ -449,19 +424,27 @@ function IntegrationsListTrigger({
                                     render={<button type="button" />}
                                 />
                             }
-                            title={isOpen ? "Collapse panel" : "Expand panel"}
+                            title={
+                                isIntegrationsListPanelOpen
+                                    ? "Collapse panel"
+                                    : "Expand panel"
+                            }
                             {...props}
                         />
                     )
                 }
             >
-                {children}
+                <span className="min-w-0 text-xs">{children}</span>
                 <ChevronDownFilledIcon className="-ml-0.5" />
+                <Kbd className="ml-auto bg-transparent opacity-0 group-hover:opacity-50 group-has-data-open/collapsible:hidden">
+                    <CmdKbd />I
+                </Kbd>
             </PopoverTrigger>
             <PopoverPopup
                 align="start"
                 positionerClassname={cn(
-                    isOpen && "pointer-events-none! hidden!"
+                    isIntegrationsListPanelOpen &&
+                        "pointer-events-none! hidden!"
                 )}
                 positionMethod="fixed"
                 side="right"

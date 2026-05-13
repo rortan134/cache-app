@@ -268,7 +268,10 @@ function SubscriptionUpgradeButton({
 /**
  * Opens Stripe's hosted billing portal for the current customer.
  */
-function BillingPortalButton() {
+function SubscriptionBillingPortalButton({
+    variant = "ghost",
+    ...props
+}: React.ComponentProps<typeof Button>) {
     const returnUrl = useLibraryReturnUrl();
 
     const { errorMessage, execute, isPending } = useSubscriptionRedirectAction(
@@ -282,13 +285,11 @@ function BillingPortalButton() {
     return (
         <>
             <Button
-                className="justify-start"
+                {...props}
                 loading={isPending}
                 onClick={execute}
-                variant="ghost"
-            >
-                <T>Billing</T>
-            </Button>
+                variant={variant}
+            />
             <SubscriptionErrorMessage>{errorMessage}</SubscriptionErrorMessage>
         </>
     );
@@ -432,8 +433,8 @@ function SubscriptionErrorMessage(props: React.ComponentProps<"p">) {
 }
 
 export {
-    BillingPortalButton,
     SubscribedOnly,
+    SubscriptionBillingPortalButton,
     SubscriptionStatusBadge,
     SubscriptionUpgradeButton,
     UnsubscribedOnly,

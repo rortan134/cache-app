@@ -191,8 +191,7 @@ export default async function Home() {
                                 <p className="text-pretty font-medium font-regular text-[#0A0B0D] text-[16px] leading-[1.2] tracking-[-3%] opacity-50">
                                     Get inspired, find that one lesson, piece of
                                     advice, recipe, or idea you've been looking
-                                    for in the span of a coffee break. Cache is
-                                    your command center for information.
+                                    for in the span of a coffee break.
                                 </p>
                             </T>
                         </div>
@@ -309,9 +308,9 @@ export default async function Home() {
                                     <li className="flex items-center gap-2">
                                         <Workflow className="inline-block size-4 shrink-0" />
                                         <span>
-                                            Set up routine Workflows with custom
-                                            instructions. Get a daily digest of
-                                            your recent bookmarks.
+                                            Set up routine Automations with
+                                            custom instructions. Get a daily
+                                            digest of your recent bookmarks.
                                         </span>
                                     </li>
                                 </T>

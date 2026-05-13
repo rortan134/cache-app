@@ -8,7 +8,7 @@ import { prismaAdapter } from "better-auth/adapters/prisma";
 import { betterAuth } from "better-auth/minimal";
 import { nextCookies } from "better-auth/next-js";
 import type { GenericOAuthConfig } from "better-auth/plugins";
-import { genericOAuth, oneTap } from "better-auth/plugins";
+import { genericOAuth, multiSession, oneTap } from "better-auth/plugins";
 import * as z from "zod";
 
 const SESSION_COOKIE_CACHE_MAX_AGE_SECONDS = 24 * 60 * 60;
@@ -300,7 +300,7 @@ export const auth = betterAuth({
         enabled: false,
     },
     plugins: [
-        nextCookies(),
+        multiSession(),
         oneTap({ clientId: GOOGLE_CLIENT_ID }),
         genericOAuth({ config: genericOAuthConfig }),
         stripe({
@@ -322,6 +322,7 @@ export const auth = betterAuth({
                 ],
             },
         }),
+        nextCookies(),
     ],
     secret: requiredEnv("BETTER_AUTH_SECRET"),
     session: {

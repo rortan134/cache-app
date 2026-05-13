@@ -1,6 +1,6 @@
 "use client";
 
-import { useIntegrationsListControls } from "@/components/library/integrations";
+import { useIntegrationsListStore } from "@/components/library/integrations";
 import { useWorkspaceContext } from "@/components/library/workspace";
 import { Button } from "@/components/ui/button";
 import {
@@ -72,9 +72,6 @@ const ONBOARDING_TASK_META = [
 ] as const satisfies readonly OnboardingTaskMeta[];
 
 const ONBOARDING_TASK_COUNT = ONBOARDING_TASK_META.length;
-const ONBOARDING_TASK_META_BY_ID = new Map(
-    ONBOARDING_TASK_META.map((task) => [task.id, task])
-);
 
 const { useStore: useLibraryOnboardingStore } = createStore({
     completedOnboardingTaskIds: storage<OnboardingTaskId[]>([]),
@@ -90,11 +87,6 @@ type OnboardingTaskId =
 interface OnboardingTaskMeta {
     id: OnboardingTaskId;
     label: string;
-}
-
-interface OnboardingActionFeedback {
-    message: string;
-    tone: "error" | "success";
 }
 
 interface OnboardingTask extends OnboardingTaskMeta {
@@ -115,25 +107,23 @@ interface CollectionShareState
         "id" | "shareId" | "sharedAt" | "updatedAt"
     > {}
 
-export interface LibraryOnboardingMenuProps {
+interface OnboardingMenuProps {
     connectedIntegrationCount: number;
     onCreateCollection: () => void;
     onCreateNote: () => void;
     onOpenCommand: () => void;
-    onSetActionFeedback: (feedback: OnboardingActionFeedback | null) => void;
 }
 
-export function LibraryOnboardingMenu({
+export function OnboardingMenu({
     connectedIntegrationCount,
     onCreateCollection,
     onCreateNote,
     onOpenCommand,
-    onSetActionFeedback,
-}: LibraryOnboardingMenuProps) {
+}: OnboardingMenuProps) {
     const { collections, items, setCollections, setItems } =
         useWorkspaceContext();
     const { setOpen: setSidebarOpen } = useSidebar();
-    const { openIntegrationsList } = useIntegrationsListControls();
+    const { setIsIntegrationsListPanelOpen } = useIntegrationsListStore();
     const { completedOnboardingTaskIds, setCompletedOnboardingTaskIds } =
         useLibraryOnboardingStore();
     const { copyToClipboard } = useCopyToClipboard();
@@ -161,28 +151,8 @@ export function LibraryOnboardingMenu({
         setItems((current) => replaceItemCollectionShareState(current, next));
     };
 
-    const handleOpenIntegrations = () => {
-        setSidebarOpen(true);
-        openIntegrationsList();
-        onSetActionFeedback({
-            message: "Integrations are open in the sidebar.",
-            tone: "success",
-        });
-    };
-
-    const handleCreateCollection = () => {
-        onSetActionFeedback(null);
-        onCreateCollection();
-    };
-
-    const handleCreateNote = () => {
-        onSetActionFeedback(null);
-        onCreateNote();
-    };
-
     const handleOpenCommand = () => {
         markClientTaskCompleted("command");
-        onSetActionFeedback(null);
         onOpenCommand();
     };
 
@@ -194,13 +164,7 @@ export function LibraryOnboardingMenu({
         }
 
         const shareUrl = buildPublicCollectionShareUrl(collection.shareId);
-        const didCopy = await copyToClipboard(shareUrl);
-        onSetActionFeedback({
-            message: didCopy
-                ? `Public link for ${collection.name} copied to the clipboard.`
-                : `${collection.name} is already publicly shared.`,
-            tone: "success",
-        });
+        await copyToClipboard(shareUrl);
     };
 
     const handleRequestShare = async () => {
@@ -212,15 +176,10 @@ export function LibraryOnboardingMenu({
 
         const shareCandidate = getShareCandidate(collections);
         if (!shareCandidate) {
-            onSetActionFeedback({
-                message: "Create a collection before sharing one.",
-                tone: "error",
-            });
             onCreateCollection();
             return;
         }
 
-        onSetActionFeedback(null);
         setPendingShareCollection(shareCandidate);
     };
 
@@ -242,41 +201,33 @@ export function LibraryOnboardingMenu({
             });
 
             if (result.status !== "SHARED") {
-                onSetActionFeedback({
-                    message: result.message,
-                    tone: "error",
-                });
                 return;
             }
 
             syncShareState(result.collection);
             setPendingShareCollection(null);
 
-            const didCopy = await copyToClipboard(result.shareUrl);
-            onSetActionFeedback({
-                message: didCopy
-                    ? `${collection.name} is publicly shared. Link copied to the clipboard.`
-                    : `${collection.name} is publicly shared.`,
-                tone: "success",
-            });
+            await copyToClipboard(result.shareUrl);
         });
     };
 
-    const tasks: OnboardingTask[] = [
-        createOnboardingTask(
-            "integration",
-            completedTaskIdSet,
-            handleOpenIntegrations
-        ),
-        createOnboardingTask(
-            "collection",
-            completedTaskIdSet,
-            handleCreateCollection
-        ),
-        createOnboardingTask("note", completedTaskIdSet, handleCreateNote),
-        createOnboardingTask("command", completedTaskIdSet, handleOpenCommand),
-        createOnboardingTask("share", completedTaskIdSet, handleRequestShare),
-    ];
+    const taskHandlerMap: Record<OnboardingTaskId, () => void | Promise<void>> =
+        {
+            collection: onCreateCollection,
+            command: handleOpenCommand,
+            integration: () => {
+                setSidebarOpen(true);
+                setIsIntegrationsListPanelOpen(true);
+            },
+            note: onCreateNote,
+            share: handleRequestShare,
+        };
+
+    const tasks: OnboardingTask[] = ONBOARDING_TASK_META.map((meta) => ({
+        ...meta,
+        completed: completedTaskIdSet.has(meta.id),
+        onSelect: taskHandlerMap[meta.id],
+    }));
 
     return (
         <>
@@ -408,23 +359,6 @@ function OnboardingTaskStateIcon({ completed }: { completed: boolean }) {
             value={0}
         />
     );
-}
-
-function createOnboardingTask(
-    id: OnboardingTaskId,
-    completedTaskIds: Set<OnboardingTaskId>,
-    onSelect: () => void | Promise<void>
-): OnboardingTask {
-    const meta = ONBOARDING_TASK_META_BY_ID.get(id);
-    if (!meta) {
-        throw new Error(`Missing onboarding task metadata for ${id}.`);
-    }
-
-    return {
-        ...meta,
-        completed: completedTaskIds.has(id),
-        onSelect,
-    };
 }
 
 function getCompletedTaskIdSet({

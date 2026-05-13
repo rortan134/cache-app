@@ -4,6 +4,7 @@ import { stripeClient } from "@better-auth/stripe/client";
 import {
     genericOAuthClient,
     inferAdditionalFields,
+    multiSessionClient,
     oneTapClient,
 } from "better-auth/client/plugins";
 import { createAuthClient } from "better-auth/react";
@@ -17,6 +18,7 @@ export const authClient = createAuthClient({
     plugins: [
         inferAdditionalFields<typeof auth>(),
         genericOAuthClient(),
+        multiSessionClient(),
         stripeClient({ subscription: true }),
         ...(googleOneTapClientId
             ? [

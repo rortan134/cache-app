@@ -16,14 +16,19 @@ import {
 import { Spinner } from "@/components/ui/spinner";
 import { cn } from "@/lib/common/cn";
 import { parseDisplayUrl } from "@/lib/common/url";
+import { useStableCallback } from "@base-ui/utils/useStableCallback";
 import { useTimeout } from "@base-ui/utils/useTimeout";
 import { AlertCircleIcon, ExternalLinkIcon, GlobeIcon } from "lucide-react";
-import type { ReactElement, ReactNode } from "react";
 import * as React from "react";
 
-type PeekDrawerPosition = NonNullable<
-    React.ComponentProps<typeof DrawerPopup>["position"]
->;
+const PEEK_BLOCKED_URL = "about:blank";
+const DEFAULT_PEEK_TITLE = "Preview";
+const DEFAULT_PEEK_LOADING_LABEL = "Loading preview...";
+const DEFAULT_PEEK_TIMEOUT_MS = 8000;
+const DEFAULT_PEEK_ERROR_DESCRIPTION =
+    "This site can't be previewed here. It may block embedding inside other sites or be taking too long to load.";
+const PEEK_POPUP_CLASS = "w-full sm:mx-auto sm:max-w-[min(96vw,78rem)]";
+
 type PeekDrawerStatus = "blocked" | "loaded" | "loading";
 type PeekDrawerOpenChange = React.ComponentProps<typeof Drawer>["onOpenChange"];
 
@@ -34,54 +39,17 @@ interface PeekDrawerContextValue {
     url: string;
 }
 
-interface PeekDrawerProps
-    extends Omit<React.ComponentProps<typeof Drawer>, "children" | "modal"> {
-    children: ReactNode;
+interface PeekDrawerProps {
+    children: React.ReactNode;
     description?: string;
     title?: string;
     url: string;
 }
 
-interface PeekDrawerContentProps
-    extends Omit<
-        React.ComponentProps<typeof DrawerPopup>,
-        "children" | "showBar" | "showCloseButton" | "variant"
-    > {
-    bodyClassName?: string;
-    errorDescription?: string;
-    footerClassName?: string;
-    loadingLabel?: string;
-    panelClassName?: string;
-    timeoutMs?: number;
-}
-
 interface PeekDrawerLinkButtonProps
     extends Omit<React.ComponentProps<typeof Button>, "render"> {
-    url: string;
+    href: string;
 }
-
-const PEEK_BLOCKED_URL = "about:blank";
-const DEFAULT_PEEK_TITLE = "Preview";
-const DEFAULT_PEEK_LOADING_LABEL = "Loading preview...";
-const DEFAULT_PEEK_TIMEOUT_MS = 8000;
-const DEFAULT_PEEK_ERROR_DESCRIPTION =
-    "This site can't be previewed here. It may block embedding inside other sites or be taking too long to load.";
-
-const POPUP_HORIZONTAL_CLASS =
-    "w-[min(96vw,68rem)] max-w-none sm:w-[min(92vw,72rem)]";
-const POPUP_VERTICAL_CLASS = "w-full sm:mx-auto sm:max-w-[min(96vw,78rem)]";
-
-const PEEK_POPUP_POSITION_CLASSES: Record<PeekDrawerPosition, string> = {
-    bottom: POPUP_VERTICAL_CLASS,
-    left: POPUP_HORIZONTAL_CLASS,
-    right: POPUP_HORIZONTAL_CLASS,
-    top: POPUP_VERTICAL_CLASS,
-};
-
-const EXTERNAL_LINK_ATTRIBUTES = {
-    rel: "noopener noreferrer",
-    target: "_blank",
-} as const;
 
 const PeekDrawerContext = React.createContext<PeekDrawerContextValue | null>(
     null
@@ -107,6 +75,14 @@ function usePeekDrawerContext(): PeekDrawerContextValue {
 function usePeekStatus(open: boolean, url: string, timeoutMs: number) {
     const [status, setStatus] = React.useState<PeekDrawerStatus>("loading");
     const blockedTimeout = useTimeout();
+
+    const markAsBlocked = useStableCallback(() => {
+        setStatus("blocked");
+    });
+
+    const markAsLoaded = useStableCallback(() => {
+        setStatus("loaded");
+    });
 
     React.useEffect(() => {
         if (!open) {
@@ -135,12 +111,8 @@ function usePeekStatus(open: boolean, url: string, timeoutMs: number) {
     }, [blockedTimeout, open, timeoutMs, url]);
 
     return {
-        markAsBlocked: () => {
-            setStatus("blocked");
-        },
-        markAsLoaded: () => {
-            setStatus("loaded");
-        },
+        markAsBlocked,
+        markAsLoaded,
         status,
     };
 }
@@ -149,54 +121,44 @@ function usePeekStatus(open: boolean, url: string, timeoutMs: number) {
  * Button that renders as an external anchor so users can open the target
  * in a new tab with the correct `rel` and `target` attributes.
  */
-function PeekDrawerLinkButton({
-    url,
-    ...props
-}: PeekDrawerLinkButtonProps): ReactElement {
+function PeekDrawerLinkButton({ href, ...props }: PeekDrawerLinkButtonProps) {
     return (
         <Button
-            render={<a href={url} {...EXTERNAL_LINK_ATTRIBUTES} />}
+            // biome-ignore lint/a11y/useAnchorContent: Ignore
+            render={<a href={href} rel="noopener noreferrer" target="_blank" />}
             {...props}
         />
     );
 }
 
 /**
- * Root controller for the peek drawer.
+ * Root wrapper for the peek drawer.
  *
- * Supports both controlled and uncontrolled open state. Provides the
- * peek context (title, URL, description) to child components.
+ * Lets Base UI own the drawer state while mirroring whether the preview is
+ * open so iframe status can reset at the right time.
  */
 export function PeekDrawer({
-    defaultOpen = false,
     description,
-    onOpenChange,
-    open,
     title = DEFAULT_PEEK_TITLE,
     url,
-    ...props
-}: PeekDrawerProps): ReactElement {
-    const [uncontrolledOpen, setUncontrolledOpen] = React.useState(defaultOpen);
-    const isControlled = open !== undefined;
-    const isOpen = open ?? uncontrolledOpen;
+    children,
+}: PeekDrawerProps) {
+    const [open, setOpen] = React.useState(false);
 
-    const handleOpenChange: PeekDrawerOpenChange = (nextOpen, eventDetails) => {
-        if (!isControlled) {
-            setUncontrolledOpen(nextOpen);
-        }
-        onOpenChange?.(nextOpen, eventDetails);
+    const handleOpenChange: PeekDrawerOpenChange = (nextOpen) => {
+        setOpen(nextOpen);
     };
 
     return (
         <PeekDrawerContext
             value={{
                 description,
-                open: isOpen,
+                open,
                 title,
                 url,
             }}
         >
-            <Drawer onOpenChange={handleOpenChange} open={isOpen} {...props} />
+            <Drawer onOpenChange={handleOpenChange}>{children}</Drawer>
         </PeekDrawerContext>
     );
 }
@@ -215,22 +177,12 @@ export const PeekDrawerTrigger = DrawerTrigger;
  * Remounts the iframe whenever `open` or `url` changes so previews always
  * start from a fresh state instead of showing stale cached content.
  */
-export function PeekDrawerContent({
-    bodyClassName,
-    className,
-    errorDescription = DEFAULT_PEEK_ERROR_DESCRIPTION,
-    footerClassName,
-    loadingLabel = DEFAULT_PEEK_LOADING_LABEL,
-    panelClassName,
-    position = "bottom",
-    timeoutMs = DEFAULT_PEEK_TIMEOUT_MS,
-    ...popupProps
-}: PeekDrawerContentProps): ReactElement {
+export function PeekDrawerContent() {
     const { description, open, title, url } = usePeekDrawerContext();
     const { markAsBlocked, markAsLoaded, status } = usePeekStatus(
         open,
         url,
-        timeoutMs
+        DEFAULT_PEEK_TIMEOUT_MS
     );
     const canOpenInNewTab = url !== PEEK_BLOCKED_URL;
     const iframeRemountKey = `${open ? "open" : "closed"}-${url}`;
@@ -240,14 +192,11 @@ export function PeekDrawerContent({
             <DrawerPopup
                 className={cn(
                     "h-[min(88vh,58rem)] sm:h-[min(82vh,56rem)]",
-                    PEEK_POPUP_POSITION_CLASSES[position],
-                    className
+                    PEEK_POPUP_CLASS
                 )}
-                position={position}
-                showBar={position === "bottom" || position === "top"}
+                showBar
                 showCloseButton
                 variant="inset"
-                {...popupProps}
             >
                 <DrawerHeader className="border-border/70 border-b pb-4">
                     <DrawerTitle className="truncate text-lg sm:text-xl">
@@ -259,15 +208,12 @@ export function PeekDrawerContent({
                 </DrawerHeader>
                 <DrawerPanel
                     allowSelection={false}
-                    className={cn("min-h-0 flex-1 p-0", panelClassName)}
+                    className="min-h-0 flex-1 p-0"
                     scrollable={false}
                 >
                     <div
                         aria-busy={status === "loading"}
-                        className={cn(
-                            "relative flex size-full min-h-0",
-                            bodyClassName
-                        )}
+                        className="relative flex size-full min-h-0"
                     >
                         {status === "loading" && (
                             <div
@@ -278,7 +224,7 @@ export function PeekDrawerContent({
                                 <Spinner className="size-5 text-muted-foreground" />
                                 <div className="space-y-1">
                                     <p className="font-medium text-foreground text-sm">
-                                        {loadingLabel}
+                                        {DEFAULT_PEEK_LOADING_LABEL}
                                     </p>
                                     <p className="max-w-sm text-balance text-muted-foreground text-sm">
                                         We&apos;re trying to open the page...
@@ -300,11 +246,11 @@ export function PeekDrawerContent({
                                         Preview unavailable
                                     </p>
                                     <p className="max-w-md text-balance text-muted-foreground text-sm">
-                                        {errorDescription}
+                                        {DEFAULT_PEEK_ERROR_DESCRIPTION}
                                     </p>
                                 </div>
                                 {canOpenInNewTab && (
-                                    <PeekDrawerLinkButton size="sm" url={url}>
+                                    <PeekDrawerLinkButton href={url} size="sm">
                                         <ExternalLinkIcon className="size-4" />
                                         Open in new tab
                                     </PeekDrawerLinkButton>
@@ -329,15 +275,14 @@ export function PeekDrawerContent({
                 <DrawerFooter
                     className={cn(
                         "items-stretch gap-2 border-border/70 border-t sm:items-center",
-                        canOpenInNewTab && "sm:justify-between",
-                        footerClassName
+                        canOpenInNewTab && "sm:justify-between"
                     )}
                 >
                     {canOpenInNewTab && (
                         <PeekDrawerLinkButton
                             className="justify-start sm:justify-center"
+                            href={url}
                             size="sm"
-                            url={url}
                             variant="link"
                         >
                             <GlobeIcon className="size-4" />

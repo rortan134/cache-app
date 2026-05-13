@@ -2,7 +2,7 @@
 
 import { cn } from "@/lib/common/cn";
 import { Menu as MenuPrimitive } from "@base-ui/react/menu";
-import { ChevronRightIcon } from "lucide-react";
+import { CheckIcon, ChevronRightIcon } from "lucide-react";
 import type * as React from "react";
 
 export const MenuCreateHandle: typeof MenuPrimitive.createHandle =
@@ -64,6 +64,10 @@ export function MenuGroup(props: MenuPrimitive.Group.Props) {
     return <MenuPrimitive.Group data-slot="menu-group" {...props} />;
 }
 
+export function MenuRadioGroup(props: MenuPrimitive.RadioGroup.Props) {
+    return <MenuPrimitive.RadioGroup data-slot="menu-radio-group" {...props} />;
+}
+
 export function MenuGroupLabel({
     className,
     inset,
@@ -110,7 +114,7 @@ export function MenuItem({
     return (
         <MenuPrimitive.Item
             className={cn(
-                "flex cursor-default select-none items-center gap-2 rounded-xl px-2.5 py-2 text-sm outline-none transition-colors data-disabled:pointer-events-none data-highlighted:bg-accent data-disabled:opacity-50",
+                "flex cursor-default select-none items-center gap-2 rounded-xl px-2.5 py-2 text-sm outline-none hover:transition-colors data-disabled:pointer-events-none data-highlighted:bg-accent data-disabled:opacity-50",
                 variant === "default" &&
                     "data-highlighted:text-accent-foreground",
                 variant === "destructive" &&
@@ -120,6 +124,28 @@ export function MenuItem({
             data-slot="menu-item"
             {...props}
         />
+    );
+}
+
+export function MenuRadioItem({
+    className,
+    children,
+    ...props
+}: MenuPrimitive.RadioItem.Props) {
+    return (
+        <MenuPrimitive.RadioItem
+            className={cn(
+                "grid min-h-8 cursor-default select-none grid-cols-[1fr_1rem] items-center gap-5 rounded-xl px-2.5 py-1.5 text-sm outline-none hover:transition-colors data-disabled:pointer-events-none data-highlighted:bg-accent data-highlighted:text-accent-foreground data-disabled:opacity-50",
+                className
+            )}
+            data-slot="menu-radio-item"
+            {...props}
+        >
+            <span className="col-start-1 truncate">{children}</span>
+            <MenuPrimitive.RadioItemIndicator className="col-start-2 -me-0.5">
+                <CheckIcon className="size-4" />
+            </MenuPrimitive.RadioItemIndicator>
+        </MenuPrimitive.RadioItem>
     );
 }
 
@@ -148,7 +174,7 @@ export function MenuSubTrigger({
     return (
         <MenuPrimitive.SubmenuTrigger
             className={cn(
-                "flex min-h-8 cursor-default select-none items-center gap-2 rounded-lg px-2.5 py-2 text-sm outline-none transition-colors data-disabled:pointer-events-none data-highlighted:bg-accent data-highlighted:text-accent-foreground data-disabled:opacity-50",
+                "flex min-h-8 cursor-default select-none items-center gap-5 rounded-lg px-2.5 py-2 text-sm outline-none hover:transition-colors data-disabled:pointer-events-none data-highlighted:bg-accent data-highlighted:text-accent-foreground data-disabled:opacity-50",
                 className
             )}
             data-slot="menu-sub-trigger"

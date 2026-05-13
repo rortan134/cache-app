@@ -18,6 +18,7 @@ import {
     type LibraryItemWithCollections,
 } from "@/lib/collections/utils";
 import type { CollectionPriority } from "@/prisma/client/enums";
+import { useStableCallback } from "@base-ui/utils/useStableCallback";
 import * as React from "react";
 import { createStore } from "stan-js";
 import { storage } from "stan-js/storage";
@@ -189,7 +190,7 @@ function sortCollectionSummaries<T extends SortableCollectionSummary>(
     return sortList(collections, SUMMARY_SORTERS[sortField]);
 }
 
-interface LibraryWorkspaceContextValue {
+interface WorkspaceContextValue {
     collectionPreviewThumbnailUrlsById: Map<string, string[]>;
     collectionSummaries: LibraryCollectionSummary[];
     collections: LibraryCollectionSummary[];
@@ -224,8 +225,9 @@ interface LibraryWorkspaceContextValue {
     >;
 }
 
-const WorkspaceContext =
-    React.createContext<LibraryWorkspaceContextValue | null>(null);
+const WorkspaceContext = React.createContext<WorkspaceContextValue | null>(
+    null
+);
 
 export const RequestCreateRefContext = React.createContext<React.RefObject<
     ((itemId?: string) => void) | null
@@ -237,7 +239,7 @@ export const RequestCreateRefContext = React.createContext<React.RefObject<
  * Must be rendered inside `WorkspaceProvider` so components can read and
  * mutate collections, items, and selection state.
  */
-export function useWorkspaceContext(): LibraryWorkspaceContextValue {
+export function useWorkspaceContext(): WorkspaceContextValue {
     const context = React.use(WorkspaceContext);
     if (!context) {
         throw new Error(
@@ -251,7 +253,7 @@ export function WorkspaceProvider({
     initialCollections,
     initialItems,
     children,
-}: React.PropsWithChildren<LibraryWorkspaceProviderProps>) {
+}: React.PropsWithChildren<WorkspaceProviderProps>) {
     const [items, setItems] =
         React.useState<LibraryItemWithCollections[]>(initialItems);
     const [collections, setCollections] =
@@ -259,17 +261,21 @@ export function WorkspaceProvider({
     const [selectedCollectionIds, setSelectedCollectionIds] = React.useState<
         string[]
     >([]);
+
     const collectionUpdateVersionByItemIdRef = React.useRef(
         new Map<string, number>()
     );
+
     const {
         collectionSortField,
         collectionTextMatchQuery,
         shouldExcludeArchives,
     } = useCollectionsSortStore();
+
     const visibleCollections = shouldExcludeArchives
-        ? collections.filter((c) => c.priority !== "archive")
+        ? collections.filter((collection) => collection.priority !== "archive")
         : collections;
+
     const collectionSummaries = sortCollectionSummaries(
         visibleCollections,
         collectionSortField,
@@ -306,171 +312,206 @@ export function WorkspaceProvider({
     const { collectionPreviewThumbnailUrlsById, itemsByCollectionId } =
         buildCollectionItemIndexes(items);
 
-    const clearCollectionFilters = () => {
+    const clearCollectionFilters = useStableCallback(() => {
         setSelectedCollectionIds([]);
-    };
+    });
 
-    const toggleCollectionSelection = (id: string) => {
+    const toggleCollectionSelection = useStableCallback((id: string) => {
         setSelectedCollectionIds((current) =>
             current.includes(id)
                 ? current.filter((entryId) => entryId !== id)
                 : [...current, id]
         );
-    };
+    });
 
-    const handleUpdateItemCollections = async (
-        itemId: string,
-        collectionIds: string[]
-    ): Promise<LibraryItemCollectionsUpdateResult> => {
-        const requestVersion =
-            (collectionUpdateVersionByItemIdRef.current.get(itemId) ?? 0) + 1;
-        collectionUpdateVersionByItemIdRef.current.set(itemId, requestVersion);
-        const previousCollections =
-            items.find((item) => item.id === itemId)?.collections ?? [];
-
-        const optimisticCollections = sortCollections(
-            collections.filter((collection) =>
-                collectionIds.includes(collection.id)
-            )
-        );
-        setItems((current) =>
-            replaceItemCollections(current, itemId, optimisticCollections)
-        );
-
-        let result: LibraryItemCollectionsUpdateResult;
-        try {
-            result = await updateLibraryItemCollections({
-                collectionIds,
+    const handleUpdateItemCollections = useStableCallback(
+        async (
+            itemId: string,
+            collectionIds: string[]
+        ): Promise<LibraryItemCollectionsUpdateResult> => {
+            const requestVersion =
+                (collectionUpdateVersionByItemIdRef.current.get(itemId) ?? 0) +
+                1;
+            collectionUpdateVersionByItemIdRef.current.set(
                 itemId,
-            });
-        } catch {
-            result = {
-                message: "We couldn't update collections for this item.",
-                status: "ERROR",
-            };
-        }
+                requestVersion
+            );
 
-        // Ignore out-of-order responses so older requests can't clobber a
-        // newer selection for the same item.
-        if (
-            collectionUpdateVersionByItemIdRef.current.get(itemId) !==
-            requestVersion
-        ) {
+            const previousCollections =
+                items.find((item) => item.id === itemId)?.collections ?? [];
+
+            const optimisticCollections = sortCollections(
+                collections.filter((collection) =>
+                    collectionIds.includes(collection.id)
+                )
+            );
+            setItems((current) =>
+                replaceItemCollections(current, itemId, optimisticCollections)
+            );
+
+            let result: LibraryItemCollectionsUpdateResult;
+            try {
+                result = await updateLibraryItemCollections({
+                    collectionIds,
+                    itemId,
+                });
+            } catch {
+                result = {
+                    message: "We couldn't update collections for this item.",
+                    status: "ERROR",
+                };
+            }
+
+            // Ignore out-of-order responses so older requests can't clobber a
+            // newer selection for the same item.
+            if (
+                collectionUpdateVersionByItemIdRef.current.get(itemId) !==
+                requestVersion
+            ) {
+                return result;
+            }
+            collectionUpdateVersionByItemIdRef.current.delete(itemId);
+
+            if (result.status === "UPDATED") {
+                setCollections((current) =>
+                    mergeCollectionSummaries(
+                        current,
+                        result.collectionSummaries
+                    )
+                );
+                setItems((current) =>
+                    replaceItemCollections(current, itemId, result.collections)
+                );
+            } else {
+                setItems((current) =>
+                    replaceItemCollections(current, itemId, previousCollections)
+                );
+            }
+
             return result;
         }
+    );
 
-        if (result.status === "UPDATED") {
+    const handleUpdateItemsCollections = useStableCallback(
+        async (input: {
+            itemIds: string[];
+            nextSharedCollectionIds: string[];
+            previousSharedCollectionIds: string[];
+        }): Promise<LibraryItemsCollectionsUpdateResult> => {
+            let result: LibraryItemsCollectionsUpdateResult;
+
+            try {
+                result = await updateLibraryItemsCollections(input);
+            } catch {
+                result = {
+                    message: "We couldn't update collections for those items.",
+                    status: "ERROR",
+                };
+            }
+
+            if (result.status !== "UPDATED") {
+                return result;
+            }
+
             setCollections((current) =>
                 mergeCollectionSummaries(current, result.collectionSummaries)
             );
             setItems((current) =>
-                replaceItemCollections(current, itemId, result.collections)
+                replaceMultipleItemCollections(current, result.itemCollections)
             );
-        } else {
+
+            return result;
+        }
+    );
+
+    const handleDeleteItemSuccess = useStableCallback(
+        (result: Extract<LibraryItemDeleteResult, { status: "DELETED" }>) => {
+            setCollections((current) =>
+                mergeCollectionSummaries(current, result.collectionSummaries)
+            );
+        }
+    );
+
+    const handleCreateCollectionFromResults = useStableCallback(
+        async (input: {
+            description?: string;
+            itemIds: string[];
+            name: string;
+        }): Promise<CollectionCreateFromItemsResult> => {
+            let result: CollectionCreateFromItemsResult;
+
+            try {
+                result = await createCollectionFromItems(input);
+            } catch {
+                result = {
+                    message: "We couldn't create this collection right now.",
+                    status: "ERROR",
+                };
+            }
+
+            if (result.status !== "CREATED") {
+                return result;
+            }
+
+            setCollections((current) =>
+                mergeCollectionSummaries(current, [result.collection])
+            );
             setItems((current) =>
-                replaceItemCollections(current, itemId, previousCollections)
+                appendCollection(
+                    current,
+                    result.assignedItemIds,
+                    result.collection
+                )
             );
-        }
 
-        return result;
-    };
-
-    const handleUpdateItemsCollections = async (input: {
-        itemIds: string[];
-        nextSharedCollectionIds: string[];
-        previousSharedCollectionIds: string[];
-    }): Promise<LibraryItemsCollectionsUpdateResult> => {
-        let result: LibraryItemsCollectionsUpdateResult;
-
-        try {
-            result = await updateLibraryItemsCollections(input);
-        } catch {
-            result = {
-                message: "We couldn't update collections for those items.",
-                status: "ERROR",
-            };
-        }
-
-        if (result.status !== "UPDATED") {
             return result;
         }
-
-        setCollections((current) =>
-            mergeCollectionSummaries(current, result.collectionSummaries)
-        );
-        setItems((current) =>
-            replaceMultipleItemCollections(current, result.itemCollections)
-        );
-
-        return result;
-    };
-
-    const handleDeleteItemSuccess = (
-        result: Extract<LibraryItemDeleteResult, { status: "DELETED" }>
-    ) => {
-        setCollections((current) =>
-            mergeCollectionSummaries(current, result.collectionSummaries)
-        );
-    };
-
-    const handleCreateCollectionFromResults = async (input: {
-        description?: string;
-        itemIds: string[];
-        name: string;
-    }): Promise<CollectionCreateFromItemsResult> => {
-        let result: CollectionCreateFromItemsResult;
-
-        try {
-            result = await createCollectionFromItems(input);
-        } catch {
-            result = {
-                message: "We couldn't create this collection right now.",
-                status: "ERROR",
-            };
-        }
-
-        if (result.status !== "CREATED") {
-            return result;
-        }
-
-        setCollections((current) =>
-            mergeCollectionSummaries(current, [result.collection])
-        );
-        setItems((current) =>
-            appendCollection(current, result.assignedItemIds, result.collection)
-        );
-
-        return result;
-    };
+    );
 
     const requestCreateRef = React.useRef<((itemId?: string) => void) | null>(
         null
     );
-    const requestCreate = (itemId?: string) => {
+    const requestCreate = useStableCallback((itemId?: string) => {
         requestCreateRef.current?.(itemId);
-    };
+    });
+
+    const value = React.useMemo(
+        () => ({
+            collectionPreviewThumbnailUrlsById,
+            collectionSummaries,
+            collections,
+            items,
+            itemsByCollectionId,
+            onClearCollectionFilters: clearCollectionFilters,
+            onCreateCollectionFromResults: handleCreateCollectionFromResults,
+            onDeleteItemSuccess: handleDeleteItemSuccess,
+            onSelectCollection: toggleCollectionSelection,
+            onUpdateItemCollections: handleUpdateItemCollections,
+            onUpdateItemsCollections: handleUpdateItemsCollections,
+            requestCreate,
+            selectedCollectionIds,
+            setCollections,
+            setItems,
+        }),
+        [
+            collectionPreviewThumbnailUrlsById,
+            collectionSummaries,
+            collections,
+            clearCollectionFilters,
+            handleCreateCollectionFromResults,
+            handleDeleteItemSuccess,
+            handleUpdateItemCollections,
+            handleUpdateItemsCollections,
+            items,
+            itemsByCollectionId,
+            requestCreate,
+            selectedCollectionIds,
+            toggleCollectionSelection,
+        ]
+    );
 
     return (
-        <WorkspaceContext
-            value={{
-                collectionPreviewThumbnailUrlsById,
-                collectionSummaries,
-                collections,
-                items,
-                itemsByCollectionId,
-                onClearCollectionFilters: clearCollectionFilters,
-                onCreateCollectionFromResults:
-                    handleCreateCollectionFromResults,
-                onDeleteItemSuccess: handleDeleteItemSuccess,
-                onSelectCollection: toggleCollectionSelection,
-                onUpdateItemCollections: handleUpdateItemCollections,
-                onUpdateItemsCollections: handleUpdateItemsCollections,
-                requestCreate,
-                selectedCollectionIds,
-                setCollections,
-                setItems,
-            }}
-        >
+        <WorkspaceContext value={value}>
             <RequestCreateRefContext value={requestCreateRef}>
                 {children}
             </RequestCreateRefContext>
@@ -478,7 +519,7 @@ export function WorkspaceProvider({
     );
 }
 
-interface LibraryWorkspaceProviderProps {
+interface WorkspaceProviderProps {
     initialCollections: LibraryCollectionSummary[];
     initialItems: LibraryItemWithCollections[];
 }

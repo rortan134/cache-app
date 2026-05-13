@@ -5,10 +5,19 @@ import {
     InlinePaywallBanner,
 } from "@/components/billing/paywall";
 import { useSubscriptionAccess } from "@/components/billing/subscription";
-import { FeedbackWidget } from "@/components/feedback/feedback-widget";
 import { getPriorityOption } from "@/components/library/collections";
+import {
+    Composer,
+    ComposerActionClear,
+    ComposerActionFeedback,
+    ComposerActionNew,
+    ComposerActionNewCollection,
+    ComposerActionOnboarding,
+    ComposerActions,
+    ComposerInput,
+    ComposerSuggestions,
+} from "@/components/library/composer";
 import type { NoteDraft } from "@/components/library/notes";
-import { LibraryOnboardingMenu } from "@/components/library/onboarding";
 import {
     PeekDrawer,
     PeekDrawerContent,
@@ -46,20 +55,6 @@ import {
     ComboboxTrigger,
 } from "@/components/ui/combobox";
 import {
-    Command,
-    CommandCollection,
-    CommandEmpty,
-    CommandFooter,
-    CommandGroup,
-    CommandGroupLabel,
-    CommandInput,
-    CommandItem,
-    CommandList,
-    CommandPanel,
-    CommandPopup,
-    CommandShortcut,
-} from "@/components/ui/command";
-import {
     ContextMenu,
     ContextMenuItem,
     ContextMenuPopup,
@@ -93,7 +88,7 @@ import {
     KanbanColumn,
     KanbanItem,
 } from "@/components/ui/kanban";
-import { CmdKbd, Kbd, KbdGroup } from "@/components/ui/kbd";
+import { CmdKbd, Kbd } from "@/components/ui/kbd";
 import { Masonry, MasonryItem } from "@/components/ui/masonry";
 import {
     Menu,
@@ -102,12 +97,10 @@ import {
     MenuSeparator,
     MenuTrigger,
 } from "@/components/ui/menu";
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
-import { Separator } from "@/components/ui/separator";
+
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { Ticker } from "@/components/ui/ticker";
-import { TruncateAfter } from "@/components/ui/truncate-after";
 import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
 import { useIsExtensionInstalled } from "@/hooks/use-extension-installed";
 import { useSession } from "@/lib/auth/client";
@@ -174,19 +167,15 @@ import {
 } from "@/lib/integrations/notes/actions";
 import { LibraryItemSource } from "@/prisma/client/enums";
 import AppIconSmall from "@/public/cache-icon-small.png";
-import {
-    Toolbar,
-    type AutocompleteRootChangeEventDetails,
-    type BaseUIEvent,
+import type {
+    AutocompleteRootChangeEventDetails,
+    BaseUIEvent,
 } from "@base-ui/react";
 import { useIsoLayoutEffect } from "@base-ui/utils/useIsoLayoutEffect";
 import { useStableCallback } from "@base-ui/utils/useStableCallback";
 import { useTimeout } from "@base-ui/utils/useTimeout";
-import { Calligraph } from "calligraph";
 import {
-    ArrowDownIcon,
     ArrowDownWideNarrow,
-    ArrowUpIcon,
     Check,
     ChevronDown,
     ChevronRight,
@@ -197,7 +186,6 @@ import {
     CircleDot,
     CircleFadingPlus,
     Component,
-    CornerDownLeftIcon,
     DownloadIcon,
     Ellipsis,
     ExternalLinkIcon,
@@ -206,8 +194,6 @@ import {
     FolderOpen,
     Funnel,
     Globe,
-    Grid2x2,
-    Grid2x2X,
     Info,
     KanbanIcon,
     Layers3,
@@ -215,10 +201,8 @@ import {
     ListChevronsUpDown,
     NotebookPenIcon,
     RotateCcw,
-    Search,
     SearchX,
     Sparkles,
-    SquarePen,
     Tags,
     Trash2Icon,
     Volume2Icon,
@@ -239,7 +223,7 @@ const log = createLogger("library:browser");
 const SECTION_DESCRIPTION_FALLBACK_TEXT =
     "Description is unavailable right now.";
 
-interface CommandSuggestion {
+export interface CommandSuggestion {
     icon: ReactNode;
     label: string;
     onSelect: () => void;
@@ -897,7 +881,7 @@ const PALETTE_LAYOUT_MODE_OPTIONS = [
     { label: "Board", value: "board" as const },
 ];
 
-interface CommandPaletteItem {
+export interface CommandPaletteItem {
     active?: boolean;
     description?: string;
     disabled?: boolean;
@@ -910,7 +894,7 @@ interface CommandPaletteItem {
     value: string;
 }
 
-interface CommandPaletteGroup {
+export interface CommandPaletteGroup {
     items: CommandPaletteItem[];
     label: string;
     layout?: "horizontal" | "vertical";
@@ -1141,7 +1125,7 @@ function toggleValue<T>(values: T[], next: T): T[] {
         : [...values, next];
 }
 
-interface PaletteStackEntry {
+export interface PaletteStackEntry {
     chip: ReactNode;
     key: string;
     onRemove: () => void;
@@ -1673,7 +1657,6 @@ interface BrowserResultsContextValue {
     onExpandAllSections?: () => void;
     onOpenInNewTab: (item: LibraryItem) => void;
     onOpenNote: (item: LibraryItem) => void;
-    onSetActionFeedback: (feedback: LibraryActionFeedback | null) => void;
     onToggleSection: (key: string) => void;
     onUpdateItemCollections: (
         itemId: string,
@@ -2104,7 +2087,6 @@ function BrowserGroup({ children }: { children: ReactNode }) {
         onDelete,
         onOpenInNewTab,
         onOpenNote,
-        onSetActionFeedback,
         onUpdateItemCollections,
         pendingDeleteItemId,
     } = useBrowserResultsContext();
@@ -2118,7 +2100,6 @@ function BrowserGroup({ children }: { children: ReactNode }) {
                     onDelete,
                     onOpenInNewTab,
                     onOpenNote,
-                    onSetActionFeedback,
                     onUpdateItemCollections,
                     pendingDeleteItemId,
                 }}
@@ -2996,65 +2977,10 @@ function useSectionCollapseState({
     };
 }
 
-function LibraryPaletteTrailing({
-    entries,
-    isCommandInputFocused,
-    onAttachFiles: _onAttachFiles,
-}: {
-    entries: PaletteStackEntry[];
-    isCommandInputFocused: boolean;
-    onAttachFiles: () => void | Promise<void>;
-}) {
-    return (
-        <>
-            {entries.length === 0 && !isCommandInputFocused && (
-                <Kbd className="border-none text-muted-foreground opacity-50">
-                    <CmdKbd />G
-                </Kbd>
-            )}
-            <TruncateAfter
-                badgeRender={
-                    <Badge
-                        className="inline-flex h-7! cursor-pointer rounded-full text-xs tabular-nums"
-                        render={<button type="button" />}
-                        variant="secondary"
-                    />
-                }
-                className="justify-end"
-                maxVisible={1}
-            >
-                {entries.map((entry) => entry.chip)}
-            </TruncateAfter>
-            {/* <Toolbar.Button
-                render={
-                    <Button
-                        className="rounded-full"
-                        onClick={(event) => {
-                            event.stopPropagation();
-                            onAttachFiles();
-                            event.preventDefault();
-                        }}
-                        size="icon-sm"
-                        title="Add photos & files context"
-                        variant="ghost"
-                    >
-                        <Plus className="size-4 shrink-0" />
-                    </Button>
-                }
-            /> */}
-        </>
-    );
-}
-
 interface LibraryProps {
     connectedIntegrationCount: number;
     lockedItemCount: number;
     totalItemCount: number;
-}
-
-interface LibraryActionFeedback {
-    message: string;
-    tone: "error" | "success";
 }
 
 function useLibraryItemActions(args: {
@@ -3071,20 +2997,10 @@ function useLibraryItemActions(args: {
 }) {
     const [pendingDeleteItem, setPendingDeleteItem] =
         React.useState<LibraryItem | null>(null);
-    const [actionFeedback, setActionFeedback] =
-        React.useState<LibraryActionFeedback | null>(null);
     const [isDeletePending, startDeleteTransition] = React.useTransition();
-    const { copyToClipboard } = useCopyToClipboard({
-        onCopy: () => {
-            setActionFeedback({
-                message: "Saved link copied to the clipboard.",
-                tone: "success",
-            });
-        },
-    });
+    const { copyToClipboard } = useCopyToClipboard();
 
     const handleOpenInNewTab = useStableCallback((item: LibraryItem) => {
-        setActionFeedback(null);
         openExternal(normalizeURL(item.url));
     });
 
@@ -3093,7 +3009,6 @@ function useLibraryItemActions(args: {
     });
 
     const handleRequestDelete = useStableCallback((item: LibraryItem) => {
-        setActionFeedback(null);
         setPendingDeleteItem(item);
     });
 
@@ -3127,22 +3042,12 @@ function useLibraryItemActions(args: {
                 );
                 args.onDeleteSuccess?.(result);
                 setPendingDeleteItem(null);
-                setActionFeedback({
-                    message: "Saved item deleted from Cache.",
-                    tone: "success",
-                });
                 return;
             }
-
-            setActionFeedback({
-                message: result.message,
-                tone: "error",
-            });
         });
     });
 
     return {
-        actionFeedback,
         handleConfirmDelete,
         handleCopyLink,
         handleDeleteDialogOpenChange,
@@ -3150,7 +3055,6 @@ function useLibraryItemActions(args: {
         handleRequestDelete,
         isDeletePending,
         pendingDeleteItem,
-        setActionFeedback,
     };
 }
 
@@ -3324,7 +3228,6 @@ type LibraryGridCardContextValue = Pick<
     | "onDelete"
     | "onOpenInNewTab"
     | "onOpenNote"
-    | "onSetActionFeedback"
     | "onUpdateItemCollections"
     | "pendingDeleteItemId"
 >;
@@ -3724,6 +3627,7 @@ function CardMenu({
                         <LinkIcon className="size-4.5 text-muted-foreground" />
                         Copy URL link
                     </Item>
+                    <ItemSeparator />
                     <Item disabled={isDownloading} onClick={onDownload}>
                         <DownloadIcon className="size-4.5 text-muted-foreground" />
                         {isDownloading ? "Downloading..." : "Download media"}
@@ -3731,10 +3635,6 @@ function CardMenu({
                     <ItemSeparator />
                 </>
             )}
-            <Item disabled>
-                <Search className="size-4.5 text-muted-foreground" />
-                Find related
-            </Item>
             {kind === "context" ? (
                 <ContextMenuItem
                     className="text-destructive data-highlighted:bg-destructive/10 data-highlighted:text-destructive"
@@ -3759,8 +3659,7 @@ function CardMenu({
 }
 
 function Card({ item }: LibraryGridCardProps) {
-    const { onOpenInNewTab, onOpenNote, onSetActionFeedback } =
-        useLibraryGridCardContext();
+    const { onOpenInNewTab, onOpenNote } = useLibraryGridCardContext();
     const isNote = item.kind === "note";
     const [isDownloading, setIsDownloading] = React.useState(false);
     const [isCollectionPickerOpen, setIsCollectionPickerOpen] =
@@ -3787,21 +3686,7 @@ function Card({ item }: LibraryGridCardProps) {
         onOpenInNewTab?.(item);
     };
 
-    const reportDownloadFailure = useStableCallback(
-        (message: string, error?: unknown) => {
-            log.error("Failed to prepare media download", error, {
-                itemId: item.id,
-                url: item.url,
-            });
-            onSetActionFeedback?.({
-                message,
-                tone: "error",
-            });
-        }
-    );
-
     const handleDownload = async () => {
-        onSetActionFeedback?.(null);
         setIsDownloading(true);
         try {
             const result = await downloadMedia(item.url);
@@ -3814,14 +3699,12 @@ function Card({ item }: LibraryGridCardProps) {
                 document.body.appendChild(link);
                 link.click();
                 document.body.removeChild(link);
-            } else {
-                reportDownloadFailure(result.message);
             }
         } catch (error) {
-            reportDownloadFailure(
-                "We couldn't download this media right now.",
-                error
-            );
+            log.error("Failed to prepare media download", error, {
+                itemId: item.id,
+                url: item.url,
+            });
         } finally {
             setIsDownloading(false);
         }
@@ -4303,6 +4186,7 @@ export function Browser({
     const router = useRouter();
     const systemControlKey = useClientOnlyValue(getSystemControlKey());
     const isExtensionInstalled = useIsExtensionInstalled();
+    const paletteFocusOutTimeout = useTimeout();
     const [searchTerms, setSearchTerms] = React.useState<string[]>([]);
     const [paletteInput, setPaletteInput] = React.useState("");
     const [sourceFilters, setSourceFilters] = React.useState<
@@ -4340,7 +4224,6 @@ export function Browser({
     const [isPaletteFocused, setIsPaletteFocused] = React.useState(false);
     const [isCommandInputFocused, setIsCommandInputFocused] =
         React.useState(false);
-    const paletteFocusOutTimeout = useTimeout();
 
     const commandPanelContainerRef = React.useRef<HTMLDivElement>(null);
     const paletteInputRef = React.useRef<HTMLInputElement>(null);
@@ -4354,7 +4237,6 @@ export function Browser({
         new Map<string, number>()
     );
     const {
-        actionFeedback,
         handleConfirmDelete,
         handleCopyLink,
         handleDeleteDialogOpenChange,
@@ -4362,7 +4244,6 @@ export function Browser({
         handleRequestDelete,
         isDeletePending,
         pendingDeleteItem,
-        setActionFeedback,
     } = useLibraryItemActions({
         onDeleteSuccess: (result) => {
             onDeleteItemSuccess(result);
@@ -4372,6 +4253,7 @@ export function Browser({
         },
         setVisibleItems: onItemsChange,
     });
+
     const [isSavingNote, startSavingNoteTransition] = React.useTransition();
     const [isSavingPastedUrl, startSavingPastedUrlTransition] =
         React.useTransition();
@@ -4392,68 +4274,70 @@ export function Browser({
         });
     });
 
-    const handleCommandOpenChange = (
-        nextOpen: boolean,
-        eventDetails: AutocompleteRootChangeEventDetails
-    ) => {
-        if (
-            !nextOpen &&
-            eventDetails.reason === COMBOBOX_ESCAPE_KEY_REASON &&
-            paletteSection !== "search"
-        ) {
-            eventDetails.cancel();
+    const handleCommandOpenChange = useStableCallback(
+        (
+            nextOpen: boolean,
+            eventDetails: AutocompleteRootChangeEventDetails
+        ) => {
+            if (
+                !nextOpen &&
+                eventDetails.reason === COMBOBOX_ESCAPE_KEY_REASON &&
+                paletteSection !== "search"
+            ) {
+                eventDetails.cancel();
 
-            if (paletteInput.trim() === "") {
-                returnToSearchSection();
+                if (paletteInput.trim() === "") {
+                    returnToSearchSection();
+                    return;
+                }
+
+                setCommandListOpen(true);
                 return;
             }
 
-            setCommandListOpen(true);
-            return;
-        }
-
-        setCommandListOpen(() => {
-            if (!nextOpen && suppressNextCommandCloseRef.current) {
-                suppressNextCommandCloseRef.current = false;
-                return true;
-            }
-
-            if (!nextOpen) {
-                const shell = commandPanelContainerRef.current;
-                const ownerWindow = shell?.ownerDocument.defaultView;
-                const active = shell?.ownerDocument.activeElement;
-                const focusInsidePalette = Boolean(
-                    shell &&
-                        ownerWindow &&
-                        active instanceof ownerWindow.Node &&
-                        shell.contains(active)
-                );
-                const reason = eventDetails.reason;
-
-                // Inline autocomplete always requests close on item pick; keep the list
-                // visible while focus stays in the palette so the field matches the list.
-                if (
-                    focusInsidePalette &&
-                    reason === COMBOBOX_ITEM_PRESS_REASON
-                ) {
+            setCommandListOpen(() => {
+                if (!nextOpen && suppressNextCommandCloseRef.current) {
+                    suppressNextCommandCloseRef.current = false;
                     return true;
                 }
-            }
 
-            if (nextOpen) {
-                suppressNextCommandCloseRef.current = false;
-            }
+                if (!nextOpen) {
+                    const shell = commandPanelContainerRef.current;
+                    const ownerWindow = shell?.ownerDocument.defaultView;
+                    const active = shell?.ownerDocument.activeElement;
+                    const focusInsidePalette = Boolean(
+                        shell &&
+                            ownerWindow &&
+                            active instanceof ownerWindow.Node &&
+                            shell.contains(active)
+                    );
+                    const reason = eventDetails.reason;
 
-            return nextOpen;
-        });
-    };
+                    // Inline autocomplete always requests close on item pick; keep the list
+                    // visible while focus stays in the palette so the field matches the list.
+                    if (
+                        focusInsidePalette &&
+                        reason === COMBOBOX_ITEM_PRESS_REASON
+                    ) {
+                        return true;
+                    }
+                }
+
+                if (nextOpen) {
+                    suppressNextCommandCloseRef.current = false;
+                }
+
+                return nextOpen;
+            });
+        }
+    );
 
     useIsoLayoutEffect(() => {
-        const el = commandPanelContainerRef.current;
-        if (!el) {
+        const element = commandPanelContainerRef.current;
+        if (!element) {
             return;
         }
-        const ownerWindow = el.ownerDocument.defaultView;
+        const ownerWindow = getOwnerWindow(element);
         if (!ownerWindow) {
             return;
         }
@@ -4469,14 +4353,17 @@ export function Browser({
             const { relatedTarget } = event;
             if (
                 relatedTarget instanceof ownerWindow.Node &&
-                el.contains(relatedTarget)
+                element.contains(relatedTarget)
             ) {
                 return;
             }
             const closeIfLeft = () => {
-                const active = el.ownerDocument.activeElement;
+                const active = element.ownerDocument.activeElement;
                 if (
-                    !(active instanceof ownerWindow.Node && el.contains(active))
+                    !(
+                        active instanceof ownerWindow.Node &&
+                        element.contains(active)
+                    )
                 ) {
                     setIsPaletteFocused(false);
                     setCommandListOpen(false);
@@ -4486,16 +4373,16 @@ export function Browser({
             paletteFocusOutTimeout.start(0, closeIfLeft);
         };
 
-        el.addEventListener("focusin", handleFocusIn);
-        el.addEventListener("focusout", handleFocusOut);
+        element.addEventListener("focusin", handleFocusIn);
+        element.addEventListener("focusout", handleFocusOut);
         return () => {
             paletteFocusOutTimeout.clear();
-            el.removeEventListener("focusin", handleFocusIn);
-            el.removeEventListener("focusout", handleFocusOut);
+            element.removeEventListener("focusin", handleFocusIn);
+            element.removeEventListener("focusout", handleFocusOut);
         };
     }, [paletteFocusOutTimeout]);
 
-    const handleWindowKeyDown = (event: KeyboardEvent) => {
+    const handleWindowKeyDown = useStableCallback((event: KeyboardEvent) => {
         const target = event.target;
         const ownerWindow = commandPanelContainerRef.current
             ? getOwnerWindow(commandPanelContainerRef.current)
@@ -4535,7 +4422,7 @@ export function Browser({
         event.preventDefault();
         setPaletteInput((current) => `${current}${event.key}`);
         focusPaletteInput();
-    };
+    });
 
     useHotkeys(
         SEARCH_HOTKEYS,
@@ -4555,39 +4442,40 @@ export function Browser({
         []
     );
 
-    const returnToSearchSection = () => {
+    const returnToSearchSection = useStableCallback(() => {
         setPaletteSection("search");
         setPaletteInput("");
         setCommandListOpen(true);
-    };
+    });
 
-    const openPaletteSection = (
-        section: Exclude<PaletteSection, "search">,
-        event: BaseUIEvent<React.MouseEvent> | KeyboardEvent
-    ) => {
-        event.preventDefault();
-        suppressNextCommandCloseRef.current = true;
-        setPaletteSection(section);
-        setPaletteInput("");
-    };
-
-    const handleCommandInputChange = (
-        next: string,
-        eventDetails: AutocompleteRootChangeEventDetails
-    ) => {
-        if (
-            paletteGroups
-                .flatMap((group) => group.items)
-                .some((value) => value.value === next)
-        ) {
-            eventDetails.cancel();
-            return;
+    const openPaletteSection = useStableCallback(
+        (
+            section: Exclude<PaletteSection, "search">,
+            event: BaseUIEvent<React.MouseEvent> | KeyboardEvent
+        ) => {
+            event.preventDefault();
+            suppressNextCommandCloseRef.current = true;
+            setPaletteSection(section);
+            setPaletteInput("");
         }
+    );
 
-        setPaletteInput(next);
-    };
+    const handleCommandInputChange = useStableCallback(
+        (next: string, eventDetails: AutocompleteRootChangeEventDetails) => {
+            if (
+                paletteGroups
+                    .flatMap((group) => group.items)
+                    .some((value) => value.value === next)
+            ) {
+                eventDetails.cancel();
+                return;
+            }
 
-    const removeCommandAttachment = (id: string) => {
+            setPaletteInput(next);
+        }
+    );
+
+    const removeCommandAttachment = useStableCallback((id: string) => {
         setCommandAttachments((current) => {
             const nextAttachments: LibraryCommandAttachment[] = [];
             for (const attachment of current) {
@@ -4599,7 +4487,7 @@ export function Browser({
             }
             return nextAttachments;
         });
-    };
+    });
 
     const clearCommandAttachments = () => {
         setCommandAttachments((current) => {
@@ -4610,7 +4498,7 @@ export function Browser({
         });
     };
 
-    const handleAttachCommandFiles = async () => {
+    const handleAttachCommandFiles = useStableCallback(async () => {
         try {
             const selectedFiles = await fileOpen({
                 description: "Files",
@@ -4635,15 +4523,11 @@ export function Browser({
             ]);
             focusPaletteInput();
         } catch (error) {
-            if (isAbortError(error)) {
-                return;
+            if (!isAbortError(error)) {
+                log.error("Failed to attach command files", error);
             }
-            setActionFeedback({
-                message: "We couldn't attach those files right now.",
-                tone: "error",
-            });
         }
-    };
+    });
 
     const clearLibraryPalette = useStableCallback(() => {
         setPaletteInput("");
@@ -4661,69 +4545,69 @@ export function Browser({
         setCommandListOpen(false);
     });
 
-    const handlePaletteInputKeyDown = (
-        event: React.KeyboardEvent<HTMLInputElement>
-    ) => {
-        if (event.key === "Escape") {
-            event.preventDefault();
-            event.stopPropagation();
-            if (paletteInput.trim() !== "") {
-                setPaletteInput("");
+    const handlePaletteInputKeyDown = useStableCallback(
+        (event: React.KeyboardEvent<HTMLInputElement>) => {
+            if (event.key === "Escape") {
+                event.preventDefault();
+                event.stopPropagation();
+                if (paletteInput.trim() !== "") {
+                    setPaletteInput("");
+                    setCommandListOpen(true);
+                    return;
+                }
+                if (paletteSection !== "search") {
+                    returnToSearchSection();
+                    return;
+                }
+                setCommandListOpen(false);
+                event.currentTarget.blur();
+                return;
+            }
+
+            if (isSearchCancelKey(event)) {
+                setCommandListOpen(false);
+                return;
+            }
+
+            if (event.key === "Backspace" && paletteInput.trim() === "") {
+                event.preventDefault();
+                if (paletteSection !== "search") {
+                    returnToSearchSection();
+                    return;
+                }
+                removeLastPaletteStackEntry(
+                    buildPaletteStackEntries({
+                        collectionMembershipFilter,
+                        collections,
+                        columnCountMode,
+                        commandAttachments,
+                        domainFilters,
+                        groupBy,
+                        layoutMode,
+                        onRemoveCollectionFilter,
+                        onRemoveCommandAttachment: removeCommandAttachment,
+                        searchTerms,
+                        selectedCollectionIds,
+                        setCollectionMembershipFilter,
+                        setColumnCountMode,
+                        setDomainFilters,
+                        setGroupBy,
+                        setLayoutMode,
+                        setSearchTerms,
+                        setSortMode,
+                        setSourceFilters,
+                        sortMode,
+                        sourceFilters,
+                    })
+                );
+                return;
+            }
+
+            if (event.key === "ArrowDown" && !commandListOpen) {
                 setCommandListOpen(true);
-                return;
             }
-            if (paletteSection !== "search") {
-                returnToSearchSection();
-                return;
-            }
-            setCommandListOpen(false);
-            event.currentTarget.blur();
-            return;
         }
-
-        if (isSearchCancelKey(event)) {
-            setCommandListOpen(false);
-            return;
-        }
-
-        if (event.key === "Backspace" && paletteInput.trim() === "") {
-            event.preventDefault();
-            if (paletteSection !== "search") {
-                returnToSearchSection();
-                return;
-            }
-            removeLastPaletteStackEntry(
-                buildPaletteStackEntries({
-                    collectionMembershipFilter,
-                    collections,
-                    columnCountMode,
-                    commandAttachments,
-                    domainFilters,
-                    groupBy,
-                    layoutMode,
-                    onRemoveCollectionFilter,
-                    onRemoveCommandAttachment: removeCommandAttachment,
-                    searchTerms,
-                    selectedCollectionIds,
-                    setCollectionMembershipFilter,
-                    setColumnCountMode,
-                    setDomainFilters,
-                    setGroupBy,
-                    setLayoutMode,
-                    setSearchTerms,
-                    setSortMode,
-                    setSourceFilters,
-                    sortMode,
-                    sourceFilters,
-                })
-            );
-            return;
-        }
-
-        if (event.key === "ArrowDown" && !commandListOpen) {
-            setCommandListOpen(true);
-        }
-    };
+    );
 
     const paletteGroups = buildLibraryPaletteGroups({
         clearLibraryPalette,
@@ -4861,7 +4745,7 @@ export function Browser({
     const canClear =
         (hasActiveFilters || hasNonDefaultView) && !showEmptyLibraryPeek;
 
-    const commandSuggestions = buildCommandSuggestions({
+    const suggestions = buildCommandSuggestions({
         clearLibraryPalette,
         collectionMembershipFilter,
         collections,
@@ -4888,27 +4772,31 @@ export function Browser({
         sourceFilters,
     });
 
-    useHotkeys(
-        "mod+1, mod+2, mod+3, mod+4, mod+5, mod+6, mod+7, mod+8, mod+9",
-        (event) => {
+    const handleNumericHotkeySelect = useStableCallback(
+        (event: KeyboardEvent) => {
             const digit = Number(event.key);
             if (Number.isNaN(digit)) {
                 return;
             }
             const index = digit - 1;
 
-            if (index < commandSuggestions.length) {
-                commandSuggestions[index]?.onSelect?.();
+            if (index < suggestions.length) {
+                suggestions[index]?.onSelect?.();
                 return;
             }
 
-            const paletteIndex = index - commandSuggestions.length;
+            const paletteIndex = index - suggestions.length;
             const flatItems = visiblePaletteGroups.flatMap((g) => g.items);
             const item = flatItems[paletteIndex];
             if (item) {
                 item.onSelect(event);
             }
-        },
+        }
+    );
+
+    useHotkeys(
+        "mod+1, mod+2, mod+3, mod+4, mod+5, mod+6, mod+7, mod+8, mod+9",
+        handleNumericHotkeySelect,
         {
             description: "Select command option",
             enabled: commandListOpen,
@@ -4916,40 +4804,41 @@ export function Browser({
             eventListenerOptions: { capture: true },
             preventDefault: true,
         },
-        [commandListOpen, commandSuggestions, visiblePaletteGroups]
+        [commandListOpen, suggestions, visiblePaletteGroups]
     );
 
     const resultCollectionItemIds = visibleResultItems.map((item) => item.id);
 
-    const handleCreateNote = () => {
-        setActionFeedback(null);
+    const handleCreateNote = useStableCallback(() => {
         setActiveNote(null);
         setIsNoteDrawerOpen(true);
-    };
+    });
 
-    const handleOpenCommandFromOnboarding = () => {
-        setActionFeedback(null);
+    const handleOpenCommandFromOnboarding = useStableCallback(() => {
         setPaletteSection("search");
         focusPaletteInput(true);
-    };
+    });
 
-    const handleCreateResultsDialogOpenChange = (open: boolean) => {
-        if (open) {
-            setActionFeedback(null);
-            setCreateResultsError(null);
-            setCreateResultsNameDraft(buildResultsCollectionName(searchTerms));
-            setCreateResultsDescriptionDraft("");
-            setIsCreateResultsDialogOpen(true);
-            return;
+    const handleCreateResultsDialogOpenChange = useStableCallback(
+        (open: boolean) => {
+            if (open) {
+                setCreateResultsError(null);
+                setCreateResultsNameDraft(
+                    buildResultsCollectionName(searchTerms)
+                );
+                setCreateResultsDescriptionDraft("");
+                setIsCreateResultsDialogOpen(true);
+                return;
+            }
+
+            if (!isCreatingResultsCollection) {
+                setIsCreateResultsDialogOpen(false);
+                setCreateResultsError(null);
+            }
         }
+    );
 
-        if (!isCreatingResultsCollection) {
-            setIsCreateResultsDialogOpen(false);
-            setCreateResultsError(null);
-        }
-    };
-
-    const handleCreateCollectionFromResultsSubmit = () => {
+    const handleCreateCollectionFromResultsSubmit = useStableCallback(() => {
         startCreateResultsCollectionTransition(async () => {
             let result: CollectionCreateFromItemsResult;
 
@@ -4973,16 +4862,11 @@ export function Browser({
 
             setIsCreateResultsDialogOpen(false);
             setCreateResultsError(null);
-            setActionFeedback({
-                message: `${result.collection.name} created with ${result.assignedItemIds.length} result${result.assignedItemIds.length === 1 ? "" : "s"}.`,
-                tone: "success",
-            });
         });
-    };
+    });
 
     const handleOpenNote = useStableCallback(
         (item: LibraryItemWithCollections) => {
-            setActionFeedback(null);
             setActiveNote(item);
             setIsNoteDrawerOpen(true);
         }
@@ -5011,14 +4895,6 @@ export function Browser({
                 return result;
             }
 
-            if (result.status === "UPDATED") {
-                setActionFeedback(null);
-            } else {
-                setActionFeedback({
-                    message: result.message,
-                    tone: "error",
-                });
-            }
             return result;
         }
     );
@@ -5031,123 +4907,86 @@ export function Browser({
         }): Promise<LibraryItemsCollectionsUpdateResult> => {
             const result = await onUpdateItemsCollections(input);
 
-            if (result.status === "UPDATED") {
-                setActionFeedback(null);
-            } else {
-                setActionFeedback({
-                    message: result.message,
-                    tone: "error",
-                });
-            }
-
             return result;
         }
     );
 
-    const handleSaveNote = async (draft: {
-        contentHtml: string;
-        contentState: unknown | null;
-    }) =>
-        await new Promise<boolean>((resolve) => {
-            startSavingNoteTransition(async () => {
-                const result = await saveLibraryNoteDraft({
-                    activeNote,
-                    draft,
-                });
-
-                if (result.status !== "SUCCESS") {
-                    setActionFeedback({
-                        message: result.message,
-                        tone: "error",
+    const handleSaveNote = useStableCallback(
+        async (draft: { contentHtml: string; contentState: unknown | null }) =>
+            await new Promise<boolean>((resolve) => {
+                startSavingNoteTransition(async () => {
+                    const result = await saveLibraryNoteDraft({
+                        activeNote,
+                        draft,
                     });
-                    resolve(false);
-                    return;
-                }
 
-                onItemsChange((current) => {
-                    const existingIndex = current.findIndex(
-                        (item) => item.id === result.item.id
-                    );
-
-                    if (existingIndex === -1) {
-                        return [result.item, ...current];
+                    if (result.status !== "SUCCESS") {
+                        resolve(false);
+                        return;
                     }
 
-                    return current.map((item) =>
-                        item.id === result.item.id ? result.item : item
-                    );
-                });
-                setActiveNote(result.item);
-                setActionFeedback({
-                    message: activeNote
-                        ? "Note saved."
-                        : "Note created in your library.",
-                    tone: "success",
-                });
-                if (!hasAccess) {
-                    router.refresh();
-                }
-                resolve(true);
-            });
-        });
+                    onItemsChange((current) => {
+                        const existingIndex = current.findIndex(
+                            (item) => item.id === result.item.id
+                        );
 
-    const handlePasteUrlIntoLibrary = async (url: string) =>
-        await new Promise<void>((resolve) => {
-            startSavingPastedUrlTransition(async () => {
-                setActionFeedback(null);
+                        if (existingIndex === -1) {
+                            return [result.item, ...current];
+                        }
 
-                const result = await createLibraryBookmarkFromPastedUrl({
-                    url,
-                });
-
-                if (result.status !== "SUCCESS") {
-                    setActionFeedback({
-                        message: result.message,
-                        tone: "error",
+                        return current.map((item) =>
+                            item.id === result.item.id ? result.item : item
+                        );
                     });
+                    setActiveNote(result.item);
+                    if (!hasAccess) {
+                        router.refresh();
+                    }
+                    resolve(true);
+                });
+            })
+    );
+
+    const handlePasteUrlIntoLibrary = useStableCallback(
+        async (url: string) =>
+            await new Promise<void>((resolve) => {
+                startSavingPastedUrlTransition(async () => {
+                    const result = await createLibraryBookmarkFromPastedUrl({
+                        url,
+                    });
+
+                    if (result.status !== "SUCCESS") {
+                        resolve();
+                        return;
+                    }
+
+                    onItemsChange((current) => {
+                        const existingIndex = current.findIndex(
+                            (item) => item.id === result.item.id
+                        );
+
+                        if (existingIndex === -1) {
+                            return [result.item, ...current];
+                        }
+
+                        return current.map((item) =>
+                            item.id === result.item.id ? result.item : item
+                        );
+                    });
+
+                    if (!hasAccess) {
+                        router.refresh();
+                    }
                     resolve();
-                    return;
-                }
-
-                onItemsChange((current) => {
-                    const existingIndex = current.findIndex(
-                        (item) => item.id === result.item.id
-                    );
-
-                    if (existingIndex === -1) {
-                        return [result.item, ...current];
-                    }
-
-                    return current.map((item) =>
-                        item.id === result.item.id ? result.item : item
-                    );
                 });
-
-                let message =
-                    "Existing bookmark refreshed from the pasted link.";
-                if (result.outcome === "CREATED") {
-                    message = "Link saved to your library.";
-                } else if (result.outcome === "MERGED") {
-                    message =
-                        "Link matched an existing bookmark in your library.";
-                }
-
-                setActionFeedback({
-                    message,
-                    tone: "success",
-                });
-                if (!hasAccess) {
-                    router.refresh();
-                }
-                resolve();
-            });
-        });
+            })
+    );
 
     const containerRef = React.useRef<HTMLDivElement>(null);
 
     return (
         <div
-            className="flex w-full min-w-0 max-w-[1024px] flex-1 gap-12 p-8 2xl:mx-auto"
+            className="z-0 flex w-full min-w-0 max-w-[1024px] flex-1 gap-4 p-8 2xl:mx-auto"
             ref={containerRef}
         >
             <div
@@ -5158,338 +4997,93 @@ export function Browser({
                     } as React.CSSProperties
                 }
             >
-                <Toolbar.Root className="max-w-xl rounded-t-4xl rounded-b-2xl bg-muted/80">
-                    <Command
-                        filter={null}
-                        filteredItems={visiblePaletteGroups.map((group) => ({
-                            items: group.items,
-                        }))}
-                        items={paletteGroups.map((group) => ({
-                            items: group.items,
-                        }))}
-                        onOpenChange={handleCommandOpenChange}
-                        onValueChange={handleCommandInputChange}
-                        open={commandListOpen}
-                        value={paletteInput}
+                <Composer>
+                    <ComposerInput
+                        canClear={canClear}
+                        commandListOpen={commandListOpen}
+                        commandPanelContainerRef={commandPanelContainerRef}
+                        inputPlaceholder={inputPlaceholder}
+                        isCommandInputFocused={isCommandInputFocused}
+                        onAttachFiles={handleAttachCommandFiles}
+                        onCommandInputChange={handleCommandInputChange}
+                        onCommandOpenChange={handleCommandOpenChange}
+                        onInputBlur={() => setIsCommandInputFocused(false)}
+                        onInputFocus={() => setIsCommandInputFocused(true)}
+                        onPaletteInputKeyDown={handlePaletteInputKeyDown}
+                        paletteGroups={paletteGroups}
+                        paletteInput={paletteInput}
+                        paletteInputRef={paletteInputRef}
+                        paletteStackEntries={buildPaletteStackEntries({
+                            collectionMembershipFilter,
+                            collections,
+                            columnCountMode,
+                            commandAttachments,
+                            domainFilters,
+                            groupBy,
+                            layoutMode,
+                            onRemoveCollectionFilter,
+                            onRemoveCommandAttachment: removeCommandAttachment,
+                            searchTerms,
+                            selectedCollectionIds,
+                            setCollectionMembershipFilter,
+                            setColumnCountMode,
+                            setDomainFilters,
+                            setGroupBy,
+                            setLayoutMode,
+                            setSearchTerms,
+                            setSortMode,
+                            setSourceFilters,
+                            sortMode,
+                            sourceFilters,
+                        })}
+                        visiblePaletteGroups={visiblePaletteGroups}
+                    />
+                    <ComposerActions
+                        canClear={canClear}
+                        canCreateCollectionFromResults={
+                            canCreateCollectionFromResults
+                        }
+                        connectedIntegrationCount={connectedIntegrationCount}
+                        groupBy={groupBy}
+                        isNewUser={isNewUser}
+                        onClearPalette={clearLibraryPalette}
+                        onCreateCollection={requestCreate}
+                        onCreateNote={handleCreateNote}
+                        onCreateResultsDialogOpen={
+                            handleCreateResultsDialogOpenChange
+                        }
+                        onOpenCommandFromOnboarding={
+                            handleOpenCommandFromOnboarding
+                        }
+                        resultsSummary={resultsSummary}
+                        sectionsLength={sections.length}
                     >
-                        <CommandPanel ref={commandPanelContainerRef}>
-                            <Toolbar.Input
-                                render={
-                                    <CommandInput
-                                        endAddon={
-                                            <LibraryPaletteTrailing
-                                                entries={buildPaletteStackEntries(
-                                                    {
-                                                        collectionMembershipFilter,
-                                                        collections,
-                                                        columnCountMode,
-                                                        commandAttachments,
-                                                        domainFilters,
-                                                        groupBy,
-                                                        layoutMode,
-                                                        onRemoveCollectionFilter,
-                                                        onRemoveCommandAttachment:
-                                                            removeCommandAttachment,
-                                                        searchTerms,
-                                                        selectedCollectionIds,
-                                                        setCollectionMembershipFilter,
-                                                        setColumnCountMode,
-                                                        setDomainFilters,
-                                                        setGroupBy,
-                                                        setLayoutMode,
-                                                        setSearchTerms,
-                                                        setSortMode,
-                                                        setSourceFilters,
-                                                        sortMode,
-                                                        sourceFilters,
-                                                    }
-                                                )}
-                                                isCommandInputFocused={
-                                                    isCommandInputFocused
-                                                }
-                                                onAttachFiles={
-                                                    handleAttachCommandFiles
-                                                }
-                                            />
-                                        }
-                                        onBlur={() =>
-                                            setIsCommandInputFocused(false)
-                                        }
-                                        onFocus={() =>
-                                            setIsCommandInputFocused(true)
-                                        }
-                                        onKeyDown={handlePaletteInputKeyDown}
-                                        placeholder={inputPlaceholder}
-                                        ref={paletteInputRef}
-                                        size="lg"
-                                    />
-                                }
-                            />
-                            <CommandPopup>
-                                <CommandEmpty>
-                                    No matching commands found.
-                                </CommandEmpty>
-                                <CommandList>
-                                    {visiblePaletteGroups.map((group) => (
-                                        <CommandGroup
-                                            items={group.items}
-                                            key={group.label}
-                                        >
-                                            <CommandGroupLabel>
-                                                {group.label}
-                                            </CommandGroupLabel>
-                                            <div
-                                                className={
-                                                    group.layout ===
-                                                    "horizontal"
-                                                        ? "flex gap-2 pt-1 pr-2 pb-4"
-                                                        : ""
-                                                }
-                                            >
-                                                <CommandCollection>
-                                                    {(
-                                                        item: CommandPaletteItem
-                                                    ) => (
-                                                        <CommandItem
-                                                            className={
-                                                                group.layout ===
-                                                                "horizontal"
-                                                                    ? "group relative flex-1 overflow-hidden rounded-xl bg-accent text-accent-foreground shadow-xs"
-                                                                    : undefined
-                                                            }
-                                                            disabled={
-                                                                item.disabled
-                                                            }
-                                                            key={item.value}
-                                                            onClick={
-                                                                item.onSelect
-                                                            }
-                                                            value={item.value}
-                                                        >
-                                                            {item.render ? (
-                                                                item.render(
-                                                                    item
-                                                                )
-                                                            ) : (
-                                                                <div className="flex min-w-0 flex-1 items-center gap-2.5">
-                                                                    <div className="truncate">
-                                                                        {
-                                                                            item.label
-                                                                        }
-                                                                    </div>
-                                                                    {item.description ? (
-                                                                        <span className="max-w-xs truncate text-muted-foreground/80 text-xs">
-                                                                            {
-                                                                                item.description
-                                                                            }
-                                                                        </span>
-                                                                    ) : null}
-                                                                    {item.active ? (
-                                                                        <Badge variant="secondary">
-                                                                            Active
-                                                                        </Badge>
-                                                                    ) : null}
-                                                                    {item.shortcut ? (
-                                                                        <CommandShortcut>
-                                                                            {
-                                                                                item.shortcut
-                                                                            }
-                                                                        </CommandShortcut>
-                                                                    ) : null}
-                                                                </div>
-                                                            )}
-                                                        </CommandItem>
-                                                    )}
-                                                </CommandCollection>
-                                            </div>
-                                        </CommandGroup>
-                                    ))}
-                                </CommandList>
-                                <CommandFooter>
-                                    {canClear ? (
-                                        <div className="mr-auto flex items-center gap-1.5">
-                                            <span className="font-medium">
-                                                Back
-                                            </span>
-                                            <Kbd>Esc</Kbd>
-                                        </div>
-                                    ) : null}
-                                    <div className="flex items-center gap-1.5">
-                                        <span className="font-medium">
-                                            Navigate
-                                        </span>
-                                        <KbdGroup>
-                                            <Kbd>
-                                                <ArrowUpIcon />
-                                            </Kbd>
-                                            <Kbd>
-                                                <ArrowDownIcon />
-                                            </Kbd>
-                                        </KbdGroup>
-                                    </div>
-                                    <Separator orientation="vertical" />
-                                    <div className="flex items-center gap-1.5">
-                                        <span className="font-medium">
-                                            Open Command
-                                        </span>
-                                        <Kbd>
-                                            <CornerDownLeftIcon />
-                                        </Kbd>
-                                    </div>
-                                </CommandFooter>
-                            </CommandPopup>
-                        </CommandPanel>
-                    </Command>
-                    <Toolbar.Group className="flex items-center gap-2 px-3 py-2">
-                        <Toolbar.Button
-                            render={
-                                <Button
-                                    className="rounded-full"
-                                    onClick={handleCreateNote}
-                                    size="xs"
-                                    variant="ghost"
-                                >
-                                    <SquarePen className="inline-block size-3.5 shrink-0" />
-                                    &nbsp;New
-                                </Button>
-                            }
-                        />
-                        {isNewUser ? null : (
-                            <Toolbar.Button
-                                render={
-                                    <FeedbackWidget
-                                        context="library-browser-toolbar"
-                                        render={
-                                            <Button
-                                                className="hidden rounded-full md:flex"
-                                                size="xs"
-                                                variant="ghost"
-                                            />
-                                        }
-                                    >
-                                        <Globe className="inline-block size-3.5 shrink-0" />
-                                        &nbsp;Feedback
-                                        <ChevronDown className="inline-block size-3.5 shrink-0" />
-                                    </FeedbackWidget>
-                                }
-                            />
+                        <ComposerActionNew />
+                        <ComposerActionFeedback />
+                        <ComposerActionClear />
+                        <ComposerActionNewCollection />
+                        <ComposerActionOnboarding />
+                    </ComposerActions>
+                    <ComposerSuggestions suggestions={suggestions}>
+                        {(suggestion, index) => (
+                            <Button
+                                className="rounded-full text-muted-foreground"
+                                key={index}
+                                onClick={suggestion.onSelect}
+                                size="xs"
+                                variant="ghost"
+                            >
+                                {suggestion.icon}
+                                &nbsp;
+                                {suggestion.label}
+                                <Kbd className="bg-transparent px-0 text-[11px] opacity-50">
+                                    <CmdKbd />
+                                    {index + 1}
+                                </Kbd>
+                            </Button>
                         )}
-                        <Toolbar.Button
-                            render={
-                                <Button
-                                    className="rounded-full"
-                                    onClick={() => {
-                                        clearLibraryPalette();
-                                    }}
-                                    size="xs"
-                                    title="Reset browser"
-                                    variant="ghost"
-                                >
-                                    {canClear ? (
-                                        <Grid2x2X className="inline-block size-3.5 shrink-0" />
-                                    ) : (
-                                        <Grid2x2 className="inline-block size-3.5 shrink-0" />
-                                    )}
-                                    <span className="tabular-nums">
-                                        &nbsp;Showing{" "}
-                                        <Calligraph>
-                                            {resultsSummary}
-                                        </Calligraph>
-                                        {groupBy === "none" ? null : (
-                                            <>
-                                                ,{" "}
-                                                <Calligraph>
-                                                    {sections.length}
-                                                </Calligraph>{" "}
-                                                group
-                                                {sections.length === 1
-                                                    ? ""
-                                                    : "s"}
-                                            </>
-                                        )}
-                                    </span>
-                                </Button>
-                            }
-                        />
-                        {canCreateCollectionFromResults ? (
-                            <Toolbar.Button
-                                render={
-                                    <Button
-                                        className="rounded-full"
-                                        onClick={() =>
-                                            handleCreateResultsDialogOpenChange(
-                                                true
-                                            )
-                                        }
-                                        size="xs"
-                                        variant="ghost"
-                                    >
-                                        <CircleFadingPlus className="inline-block size-4 shrink-0" />
-                                        &nbsp;Collection with results
-                                    </Button>
-                                }
-                            />
-                        ) : (
-                            <LibraryOnboardingMenu
-                                connectedIntegrationCount={
-                                    connectedIntegrationCount
-                                }
-                                onCreateCollection={requestCreate}
-                                onCreateNote={handleCreateNote}
-                                onOpenCommand={handleOpenCommandFromOnboarding}
-                                onSetActionFeedback={setActionFeedback}
-                            />
-                        )}
-                    </Toolbar.Group>
-                </Toolbar.Root>
-                {commandSuggestions.length === 0 ? null : (
-                    <div className="relative -mt-1 px-3">
-                        <ScrollArea
-                            className="max-w-full whitespace-nowrap"
-                            scrollFade
-                        >
-                            <div className="flex w-max flex-nowrap items-center gap-1.5">
-                                {commandSuggestions.map((suggestion, index) => (
-                                    <React.Fragment key={suggestion.label}>
-                                        <Button
-                                            className="rounded-full text-muted-foreground"
-                                            onClick={suggestion.onSelect}
-                                            size="xs"
-                                            variant="ghost"
-                                        >
-                                            {suggestion.icon}
-                                            &nbsp;
-                                            {suggestion.label}
-                                            <Kbd className="bg-transparent px-0 text-[11px] opacity-50">
-                                                <CmdKbd />
-                                                {index + 1}
-                                            </Kbd>
-                                        </Button>
-                                        <span className="font-medium text-muted-foreground text-xs last:hidden">
-                                            ·
-                                        </span>
-                                    </React.Fragment>
-                                ))}
-                            </div>
-                            <ScrollBar
-                                className="hidden"
-                                orientation="horizontal"
-                            />
-                        </ScrollArea>
-                    </div>
-                )}
-                {actionFeedback ? (
-                    <div
-                        className={cn(
-                            "rounded-xl border px-4 py-2 font-medium text-sm",
-                            actionFeedback.tone === "success"
-                                ? "border-emerald-500/25 bg-emerald-500/8 text-foreground"
-                                : "border-destructive/25 bg-destructive/6 text-foreground"
-                        )}
-                    >
-                        {actionFeedback.message}
-                    </div>
-                ) : null}
+                    </ComposerSuggestions>
+                </Composer>
                 {isPreviewOnly ? <InlinePaywallBanner /> : null}
                 <BrowserResults
                     clearLibraryPalette={clearLibraryPalette}
@@ -5507,7 +5101,6 @@ export function Browser({
                     onExpandAllSections={expandAllSections}
                     onOpenInNewTab={handleOpenInNewTab}
                     onOpenNote={handleOpenNote}
-                    onSetActionFeedback={setActionFeedback}
                     onToggleSection={toggleSection}
                     onUpdateItemCollections={
                         handleUpdateItemCollectionsWithFeedback
