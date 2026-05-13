@@ -1,5 +1,5 @@
 import { buildPageMetadata } from "@/app/metadata";
-import { ApplicationSidebar } from "@/components/ui/application-sidebar";
+import { ApplicationSidebar } from "@/components/application-sidebar";
 import { Badge } from "@/components/ui/badge";
 import { PageShell } from "@/components/ui/page-shell";
 import { SidebarProvider } from "@/components/ui/sidebar";

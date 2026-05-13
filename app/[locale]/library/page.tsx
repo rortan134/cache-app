@@ -1,9 +1,9 @@
 import { buildPageMetadata } from "@/app/metadata";
+import { ApplicationSidebar } from "@/components/application-sidebar";
 import { Browser } from "@/components/library/browser";
 import { Collections } from "@/components/library/collections";
 import { Integrations } from "@/components/library/integrations";
 import { WorkspaceProvider } from "@/components/library/workspace";
-import { ApplicationSidebar } from "@/components/ui/application-sidebar";
 import { PageShell } from "@/components/ui/page-shell";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { getServerSession } from "@/lib/auth/session";

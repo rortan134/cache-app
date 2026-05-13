@@ -18,6 +18,7 @@ dist
 /.next/
 /out/
 /build
+/prisma/client/
 
 # code coverage
 coverage

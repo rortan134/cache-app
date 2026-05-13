@@ -1,7 +1,7 @@
 import { buildPageMetadata } from "@/app/metadata";
+import { ApplicationSidebar } from "@/components/application-sidebar";
 import { WorkflowComposerDialog } from "@/components/automations/automation-composer-dialog";
 import { WorkflowsList } from "@/components/automations/automations";
-import { ApplicationSidebar } from "@/components/ui/application-sidebar";
 import { PageShell } from "@/components/ui/page-shell";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { getServerSession } from "@/lib/auth/session";
@@ -59,7 +59,7 @@ export default async function WorkflowsPage() {
                                     focusable="false"
                                 />
                                 <h1 className="font-semibold text-foreground text-xl">
-                                    Workflows
+                                    Automations
                                 </h1>
                             </div>
                             <WorkflowComposerDialog
