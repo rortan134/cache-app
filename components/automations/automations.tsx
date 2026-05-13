@@ -1,9 +1,9 @@
-import { Badge } from "@/components/ui/badge";
 import {
     WorkflowComposerDialog,
     type WorkflowCollectionOption,
     type WorkflowComposerWorkflow,
-} from "@/components/workflows/workflow-composer-dialog";
+} from "@/components/automations/automation-composer-dialog";
+import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/common/cn";
 import {
     Bell,

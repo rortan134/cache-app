@@ -65,7 +65,19 @@ function getErrorMessage(error: unknown, defaultErrorMessage: string): string {
     if (error instanceof Error) {
         return error.message;
     }
-    return String(error) || defaultErrorMessage;
+    if (error === null || error === undefined) {
+        return defaultErrorMessage;
+    }
+    if (typeof error === "string") {
+        return error.trim() || defaultErrorMessage;
+    }
+    if (typeof error === "object") {
+        const message = Reflect.get(error, "message");
+        if (typeof message === "string") {
+            return message.trim() || defaultErrorMessage;
+        }
+    }
+    return defaultErrorMessage;
 }
 
 function AuthErrorMessage(props: React.ComponentProps<"p">) {

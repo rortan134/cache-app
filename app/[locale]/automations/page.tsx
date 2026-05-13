@@ -1,9 +1,9 @@
 import { buildPageMetadata } from "@/app/metadata";
+import { WorkflowComposerDialog } from "@/components/automations/automation-composer-dialog";
+import { WorkflowsList } from "@/components/automations/automations";
 import { ApplicationSidebar } from "@/components/ui/application-sidebar";
 import { PageShell } from "@/components/ui/page-shell";
 import { SidebarProvider } from "@/components/ui/sidebar";
-import { WorkflowComposerDialog } from "@/components/workflows/workflow-composer-dialog";
-import { WorkflowsList } from "@/components/workflows/workflows";
 import { getServerSession } from "@/lib/auth/session";
 import { listCollections } from "@/lib/collections/service";
 import { gtPublicString } from "@/lib/i18n/gt-public-json";
