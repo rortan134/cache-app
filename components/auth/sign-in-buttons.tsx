@@ -10,10 +10,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useHotkeys } from "react-hotkeys-hook";
 
-interface SignInButtonProps {
-    hasServerSession: boolean;
-}
-
 export function SignInButton({ hasServerSession }: SignInButtonProps) {
     const router = useRouter();
 
@@ -53,4 +49,8 @@ export function SignInButton({ hasServerSession }: SignInButtonProps) {
             </AppleSignInButton>
         </>
     );
+}
+
+interface SignInButtonProps {
+    hasServerSession: boolean;
 }

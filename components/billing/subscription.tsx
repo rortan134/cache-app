@@ -71,11 +71,6 @@ function useSubscriptionAccess() {
 
 type AccessData = ReturnType<typeof useSubscriptionAccess>;
 
-interface WithSubscriptionProps {
-    children: (subscription: AccessData["subscription"]) => React.ReactNode;
-    loadingRender?: React.ReactNode;
-}
-
 /**
  * Provides the current subscription, including `undefined` for a resolved free
  * user, to a render function.
@@ -83,7 +78,7 @@ interface WithSubscriptionProps {
  * Prefer this over calling `useSubscriptionAccess` at leaf sites that only need
  * the subscription object; it keeps loading treatment consistent.
  */
-function WithSubscription({
+function WithSubscriptionOnly({
     children,
     loadingRender = null,
 }: WithSubscriptionProps) {
@@ -94,6 +89,11 @@ function WithSubscription({
     }
 
     return children(subscription);
+}
+
+interface WithSubscriptionProps {
+    children: (subscription: AccessData["subscription"]) => React.ReactNode;
+    loadingRender?: React.ReactNode;
 }
 
 /**
@@ -143,7 +143,7 @@ function UnsubscribedOnly({
  */
 function SubscriptionStatusBadge() {
     return (
-        <WithSubscription>
+        <WithSubscriptionOnly>
             {(subscription) => {
                 if (!subscription) {
                     return (
@@ -213,7 +213,7 @@ function SubscriptionStatusBadge() {
                     </SubscriptionBadge>
                 );
             }}
-        </WithSubscription>
+        </WithSubscriptionOnly>
     );
 }
 
@@ -437,5 +437,5 @@ export {
     SubscriptionUpgradeButton,
     UnsubscribedOnly,
     useSubscriptionAccess,
-    WithSubscription,
+    WithSubscriptionOnly,
 };

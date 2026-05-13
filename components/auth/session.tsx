@@ -109,11 +109,6 @@ export function SessionLoadingOnly({ children }: React.PropsWithChildren) {
     return isPending ? children : null;
 }
 
-interface WithUserSessionOnlyProps {
-    children: (user: Session["user"]) => React.ReactNode;
-    loadingRender?: React.ReactNode;
-}
-
 /**
  * Provides the authenticated user to a render function once the session has
  * resolved.
@@ -139,8 +134,9 @@ export function WithUserSessionOnly({
     return children(session.user);
 }
 
-interface SessionHintProps {
-    serverSession?: Session | null;
+interface WithUserSessionOnlyProps {
+    children: (user: Session["user"]) => React.ReactNode;
+    loadingRender?: React.ReactNode;
 }
 
 /**
@@ -173,4 +169,8 @@ export function SessionHint({ serverSession }: SessionHintProps) {
             </p>
         </div>
     );
+}
+
+interface SessionHintProps {
+    serverSession?: Session | null;
 }

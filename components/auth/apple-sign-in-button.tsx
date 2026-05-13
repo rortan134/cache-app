@@ -32,7 +32,7 @@ export function AppleSignInButton({
                 const result = await authClient.signIn.social({
                     callbackURL: "/library",
                     errorCallbackURL: "/",
-                    provider: "google",
+                    provider: "apple",
                 });
                 if (result.error) {
                     setErrorMessage(

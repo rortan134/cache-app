@@ -823,6 +823,15 @@ const DEFAULT_COLUMN_COUNT_MODE: ColumnCountMode = "auto";
 const DEFAULT_LAYOUT_MODE: LayoutMode = "masonry";
 const DEFAULT_COLLECTION_MEMBERSHIP_FILTER: CollectionMembershipFilter = "all";
 const UNASSIGNED_COLLECTION_COLUMN_ID = "__unassigned__";
+const COBALT_SOURCES = new Set<LibraryItemSource>([
+    LibraryItemSource.google_photos,
+    LibraryItemSource.instagram,
+    LibraryItemSource.pinterest,
+    LibraryItemSource.tiktok,
+    LibraryItemSource.x_bookmarks,
+    LibraryItemSource.youtube_watch_later,
+]);
+
 const FILTERABLE_LIBRARY_SOURCES = [
     LibraryItemSource.cache_note,
     LibraryItemSource.chrome_bookmarks,
@@ -3687,6 +3696,11 @@ function Card({ item }: LibraryGridCardProps) {
     };
 
     const handleDownload = async () => {
+        if (!COBALT_SOURCES.has(item.source)) {
+            // TODO: more download options
+            return;
+        }
+
         setIsDownloading(true);
         try {
             const result = await downloadMedia(item.url);
