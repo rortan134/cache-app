@@ -10,8 +10,8 @@ import { getActiveSubscription } from "@/lib/billing/subscriptions";
 import { cn } from "@/lib/common/cn";
 import { useStableCallback } from "@base-ui/utils/useStableCallback";
 import { T, useLocale, Var } from "gt-next";
-import * as React from "react";
 import useSWR from "swr";
+import * as React from "react";
 
 /**
  * Derives the current user's paid access from the live auth session and active
@@ -286,12 +286,14 @@ function SubscriptionBillingPortalButton({
  * The empty server-side origin keeps this hook render-safe during SSR; callers
  * execute the redirect action only from client events where `window` exists.
  */
+/* @internal */
 function useLibraryReturnUrl() {
     const locale = useLocale();
     const origin = typeof window === "undefined" ? "" : window.location.origin;
     return `${origin}/${locale}/library`;
 }
 
+/* @internal */
 function getStringField(value: unknown, field: string): string | undefined {
     if (!value || typeof value !== "object" || !(field in value)) {
         return;
@@ -300,10 +302,12 @@ function getStringField(value: unknown, field: string): string | undefined {
     return typeof result === "string" ? result : undefined;
 }
 
+/* @internal */
 function subscriptionErrorMessage(error: unknown): string | undefined {
     return getStringField(error, "message");
 }
 
+/* @internal */
 function subscriptionRedirectUrl(data: unknown): string | undefined {
     const url = getStringField(data, "url");
     return url && url.length > 0 ? url : undefined;
@@ -317,6 +321,7 @@ function subscriptionRedirectUrl(data: unknown): string | undefined {
  * identical failure behavior without depending on a specific better-auth method
  * type.
  */
+/* @internal */
 function useSubscriptionRedirectAction(
     request: () => Promise<{ data?: unknown; error?: unknown }>,
     fallbackMessage: React.ReactNode
@@ -354,6 +359,7 @@ function useSubscriptionRedirectAction(
     return { errorMessage, execute, isPending };
 }
 
+/* @internal */
 function subscriptionPlanLabel(plan: string | null | undefined) {
     if (!plan) {
         return <T>Subscription</T>;
@@ -362,6 +368,7 @@ function subscriptionPlanLabel(plan: string | null | undefined) {
     return `${plan[0]?.toUpperCase()}${plan.slice(1)}`;
 }
 
+/* @internal */
 function subscriptionBillingIntervalLabel(
     billingInterval: string | null | undefined
 ) {
@@ -376,6 +383,7 @@ function subscriptionBillingIntervalLabel(
     return null;
 }
 
+/* @internal */
 function subscriptionPeriodEndLabel(
     periodEnd: string | Date | null | undefined
 ) {
@@ -389,10 +397,12 @@ function subscriptionPeriodEndLabel(
     }).format(new Date(periodEnd));
 }
 
+/* @internal */
 function subscriptionStatusLabel(status: string | null | undefined) {
     return status?.replaceAll("_", " ") ?? <T>Unknown</T>;
 }
 
+/* @internal */
 function SubscriptionBadge({
     className,
     children,
@@ -415,6 +425,7 @@ function SubscriptionBadge({
  * Announces checkout and billing portal failures without reserving layout space
  * during the happy path.
  */
+/* @internal */
 function SubscriptionErrorMessage(props: React.ComponentProps<"p">) {
     if (!props.children) {
         return null;

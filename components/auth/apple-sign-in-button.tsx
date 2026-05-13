@@ -9,6 +9,7 @@ import * as React from "react";
 
 const DEFAULT_ERROR_MESSAGE = "Could not start Apple sign-in.";
 
+/* @internal */
 function getErrorMessage(err: unknown): string {
     if (err instanceof Error) {
         return err.message;
@@ -65,6 +66,7 @@ export function AppleSignInButton({
     );
 }
 
+/* @internal */
 function AuthErrorMessage(props: React.ComponentProps<"p">) {
     if (!props.children) {
         return null;

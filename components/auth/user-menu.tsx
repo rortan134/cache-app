@@ -38,8 +38,8 @@ import { LocaleSelector, T } from "gt-next";
 import { ChevronDown, LoaderCircle, LogOut, PlusIcon } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import * as React from "react";
 import useSWR from "swr";
+import * as React from "react";
 
 const log = createLogger("auth-user-menu");
 

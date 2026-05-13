@@ -30,7 +30,6 @@ const DEFAULT_PEEK_ERROR_DESCRIPTION =
 const PEEK_POPUP_CLASS = "w-full sm:mx-auto sm:max-w-[min(96vw,78rem)]";
 
 type PeekDrawerStatus = "blocked" | "loaded" | "loading";
-type PeekDrawerOpenChange = React.ComponentProps<typeof Drawer>["onOpenChange"];
 
 interface PeekDrawerContextValue {
     description?: string;
@@ -145,10 +144,6 @@ export function PeekDrawer({
 }: PeekDrawerProps) {
     const [open, setOpen] = React.useState(false);
 
-    const handleOpenChange: PeekDrawerOpenChange = (nextOpen) => {
-        setOpen(nextOpen);
-    };
-
     return (
         <PeekDrawerContext
             value={{
@@ -158,7 +153,7 @@ export function PeekDrawer({
                 url,
             }}
         >
-            <Drawer onOpenChange={handleOpenChange}>{children}</Drawer>
+            <Drawer onOpenChange={setOpen}>{children}</Drawer>
         </PeekDrawerContext>
     );
 }
