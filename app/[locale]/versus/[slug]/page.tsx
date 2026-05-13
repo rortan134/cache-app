@@ -152,7 +152,7 @@ export default async function VersusDetailPage({
                             <div className="mt-8 flex flex-wrap gap-3">
                                 <Link
                                     className="inline-flex items-center justify-center rounded-full bg-[#F2FF3A] px-5 py-3 font-medium text-[#111111] transition-transform hover:-translate-y-0.5"
-                                    href="/pricing"
+                                    href="/"
                                 >
                                     Start with Cache
                                 </Link>

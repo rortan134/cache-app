@@ -79,12 +79,6 @@ export default function VersusIndexPage() {
                         </p>
                         <div className="mt-8 flex flex-wrap gap-3">
                             <Link
-                                className="inline-flex items-center justify-center rounded-full bg-[#F2FF3A] px-5 py-3 font-medium text-[#111111] transition-transform hover:-translate-y-0.5"
-                                href="/pricing"
-                            >
-                                See pricing
-                            </Link>
-                            <Link
                                 className="inline-flex items-center justify-center rounded-full border border-white/14 bg-white/4 px-5 py-3 font-medium text-white transition-colors hover:bg-white/8"
                                 href="/"
                             >
@@ -280,12 +274,6 @@ export default function VersusIndexPage() {
                             href="/"
                         >
                             Explore the product
-                        </Link>
-                        <Link
-                            className="inline-flex items-center justify-center rounded-full border border-black/12 px-5 py-3 font-medium text-black transition-colors hover:bg-black hover:text-white"
-                            href="/pricing"
-                        >
-                            See plans
                         </Link>
                     </div>
                 </div>

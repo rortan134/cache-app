@@ -107,21 +107,12 @@ export default function TermsOfServicePage() {
 
                     <p>
                         Certain parts of the Product have different pricing
-                        plans, which are available at Provider&apos;s{" "}
-                        <a
-                            className="text-stone-950 underline underline-offset-4"
-                            href="https://cachd.app/pricing"
-                            rel="noreferrer"
-                            target="_blank"
-                        >
-                            pricing page
-                        </a>
-                        . Customer will pay Provider the applicable Fees based
-                        on the Product tier and Customer&apos;s usage. Provider
-                        may update Product pricing by giving at least 36 days
-                        notice to Customer (including by email or notification
-                        within the Product), and the change will apply in the
-                        next Subscription Period.
+                        plans. Customer will pay Provider the applicable Fees
+                        based on the Product tier and Customer&apos;s usage.
+                        Provider may update Product pricing by giving at least
+                        36 days notice to Customer (including by email or
+                        notification within the Product), and the change will
+                        apply in the next Subscription Period.
                     </p>
 
                     <div className="flex flex-col gap-2">

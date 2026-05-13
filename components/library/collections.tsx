@@ -355,6 +355,15 @@ const SORT_OPTION_BY_VALUE = new Map(
     SORT_OPTIONS.map((option) => [option.value, option])
 );
 
+const VIEW_OPTIONS = [
+    { icon: ArchiveIcon, label: "Show all", value: "show-all" as const },
+    {
+        icon: ArchiveX,
+        label: "Exclude archives",
+        value: "exclude-archives" as const,
+    },
+];
+
 const TEMPLATES = [
     {
         description:
@@ -1424,6 +1433,32 @@ function useCollectionsController() {
         setIsCreateOpen(open);
     };
 
+    const handleDeleteOpenChange = (open: boolean) => {
+        if (!(open || isDeletePending)) {
+            setPendingDelete(null);
+        }
+    };
+
+    const handleRenameOpenChange = (open: boolean) => {
+        if (!(open || isRenamePending)) {
+            resetRename();
+        }
+    };
+
+    const handleDisableSmartCollections = async () => {
+        await mutateSmartCollectionsPreference(
+            async () => {
+                const result = await disableSmartCollections();
+                if (result.status !== "DISABLED") {
+                    showError(result.message);
+                    throw new Error(result.message);
+                }
+                return { disabled: true };
+            },
+            { optimisticData: { disabled: true }, rollbackOnError: true }
+        );
+    };
+
     const currentSortOption =
         collectionSortField === "text-match"
             ? {
@@ -1493,11 +1528,7 @@ function useCollectionsController() {
             collection: pendingDelete,
             isPending: isDeletePending,
             onConfirm: handleConfirmDelete,
-            onOpenChange: (open: boolean) => {
-                if (!(open || isDeletePending)) {
-                    setPendingDelete(null);
-                }
-            },
+            onOpenChange: handleDeleteOpenChange,
         },
         favoriteCollectionIdSet,
         favoriteCollectionSummaries,
@@ -1513,19 +1544,7 @@ function useCollectionsController() {
         onCopyTitle: handleCopyTitle,
         onDelete: requestDelete,
         onDisableShare: handleDisableShare,
-        onDisableSmartCollections: async () => {
-            await mutateSmartCollectionsPreference(
-                async () => {
-                    const result = await disableSmartCollections();
-                    if (result.status !== "DISABLED") {
-                        showError(result.message);
-                        throw new Error(result.message);
-                    }
-                    return { disabled: true };
-                },
-                { optimisticData: { disabled: true }, rollbackOnError: true }
-            );
-        },
+        onDisableSmartCollections: handleDisableSmartCollections,
         onDismissFeedback: () => setFeedback(null),
         onDuplicate: handleDuplicate,
         onEnableShare: handleEnableShare,
@@ -1542,11 +1561,7 @@ function useCollectionsController() {
             isPending: isRenamePending,
             nameDraft: renameDraft,
             onNameDraftChange: handleRenameDraftChange,
-            onOpenChange: (open: boolean) => {
-                if (!(open || isRenamePending)) {
-                    resetRename();
-                }
-            },
+            onOpenChange: handleRenameOpenChange,
             onSubmit: handleRenameSubmit,
         },
         requestCreate,
@@ -1706,15 +1721,6 @@ function getCollectionItemStyle(
         "--text-muted-color": `color-mix(in srgb, ${color} 16%, black 18%)`,
     };
 }
-
-const VIEW_OPTIONS = [
-    { icon: ArchiveIcon, label: "Show all", value: "show-all" as const },
-    {
-        icon: ArchiveX,
-        label: "Exclude archives",
-        value: "exclude-archives" as const,
-    },
-];
 
 /**
  * Build grouped combobox options containing sort fields and view filters.
@@ -1909,53 +1915,19 @@ function CollectionsListTrigger({
     children,
     ...props
 }: React.ComponentProps<typeof CollapsibleTrigger>) {
-    const controller = useCollections();
-    const locale = useLocale();
+    const { collectionLabels, collectionSummaries, isCollectionsListOpen } =
+        useCollections();
 
     return (
-        <Popover>
-            <PopoverTrigger
-                openOnHover
-                render={
-                    <CollapsibleTrigger
-                        {...props}
-                        render={
-                            <SidebarItem render={<button type="button" />} />
-                        }
-                        title={
-                            controller.isCollectionsListOpen
-                                ? "Collapse group"
-                                : "Expand group"
-                        }
-                    />
-                }
-            >
-                <CollectionsListTriggerLabel
-                    count={controller.collectionSummaries.length}
-                >
-                    {children}
-                </CollectionsListTriggerLabel>
-                <ChevronDownFilledIcon className="-ml-0.5" />
-            </PopoverTrigger>
-            <PopoverPopup
-                align="start"
-                positionerClassname={cn(
-                    controller.isCollectionsListOpen &&
-                        "pointer-events-none! hidden!"
-                )}
-                positionMethod="fixed"
-                tooltipStyle
-            >
-                <p className="wrap-break-word w-full whitespace-normal font-medium leading-tight">
-                    {controller.collectionLabels.length > 0
-                        ? formatCollectionLabelList(
-                              controller.collectionLabels,
-                              locale
-                          )
-                        : "No collections yet"}
-                </p>
-            </PopoverPopup>
-        </Popover>
+        <CollectionsListGroupTrigger
+            {...props}
+            count={collectionSummaries.length}
+            isOpen={isCollectionsListOpen}
+            labels={collectionLabels}
+            placeholder="No collections yet"
+        >
+            {children}
+        </CollectionsListGroupTrigger>
     );
 }
 
@@ -1999,11 +1971,49 @@ function CollectionsListFavoritesTrigger({
     children,
     ...props
 }: React.ComponentProps<typeof CollapsibleTrigger>) {
-    const controller = useCollections();
-    const locale = useLocale();
-    const favoriteCollectionLabels = controller.favoriteCollectionSummaries.map(
+    const { favoriteCollectionSummaries, isFavoritesListOpen } =
+        useCollections();
+    const labels = favoriteCollectionSummaries.map(
         (collection) => collection.name
     );
+
+    return (
+        <CollectionsListGroupTrigger
+            {...props}
+            count={favoriteCollectionSummaries.length}
+            isOpen={isFavoritesListOpen}
+            labels={labels}
+            placeholder="No favorites yet"
+        >
+            {children}
+        </CollectionsListGroupTrigger>
+    );
+}
+
+interface CollectionsListContentProps {
+    children: (
+        item: LibraryCollectionSummary,
+        index: number
+    ) => React.ReactNode;
+}
+
+interface CollectionsListGroupTriggerProps
+    extends React.ComponentProps<typeof CollapsibleTrigger> {
+    count: number;
+    isOpen: boolean;
+    labels: string[];
+    placeholder: string;
+}
+
+function CollectionsListGroupTrigger({
+    children,
+    count,
+    isOpen,
+    labels,
+    placeholder,
+    ...props
+}: CollectionsListGroupTriggerProps) {
+    const locale = useLocale();
 
     return (
         <Popover>
@@ -2015,63 +2025,30 @@ function CollectionsListFavoritesTrigger({
                         render={
                             <SidebarItem render={<button type="button" />} />
                         }
-                        title={
-                            controller.isFavoritesListOpen
-                                ? "Collapse group"
-                                : "Expand group"
-                        }
+                        title={isOpen ? "Collapse group" : "Expand group"}
                     />
                 }
             >
-                <CollectionsListTriggerLabel
-                    count={controller.favoriteCollectionSummaries.length}
-                >
-                    {children}
-                </CollectionsListTriggerLabel>
+                <span className="min-w-0 text-xs">
+                    {children}&nbsp;({count})
+                </span>
                 <ChevronDownFilledIcon className="-ml-0.5" />
             </PopoverTrigger>
             <PopoverPopup
                 align="start"
                 positionerClassname={cn(
-                    controller.isFavoritesListOpen &&
-                        "pointer-events-none! hidden!"
+                    isOpen && "pointer-events-none! hidden!"
                 )}
                 positionMethod="fixed"
                 tooltipStyle
             >
                 <p className="wrap-break-word w-full whitespace-normal font-medium leading-tight">
-                    {favoriteCollectionLabels.length > 0
-                        ? formatCollectionLabelList(
-                              favoriteCollectionLabels,
-                              locale
-                          )
-                        : "No favorites yet"}
+                    {labels.length > 0
+                        ? formatCollectionLabelList(labels, locale)
+                        : placeholder}
                 </p>
             </PopoverPopup>
         </Popover>
-    );
-}
-
-interface CollectionsListContentProps {
-    children: (
-        item: LibraryCollectionSummary,
-        index: number
-    ) => React.ReactNode;
-}
-
-interface CollectionsListTriggerLabelProps {
-    children: React.ReactNode;
-    count: number;
-}
-
-function CollectionsListTriggerLabel({
-    children,
-    count,
-}: CollectionsListTriggerLabelProps) {
-    return (
-        <span className="min-w-0 text-xs">
-            {children}&nbsp;({count})
-        </span>
     );
 }
 

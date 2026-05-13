@@ -1,19 +1,18 @@
-const llmsFullContent = `# Cache
+const llmsFullContent = `# [Cache](https://www.cachd.app)
 > Unify your bookmarks across all platforms into a single, searchable, actionable library. Save, organize, review, and synthesize content you care about.
 
 ## Core features
 
 - **Universal import** — Sync bookmarks from Chrome, Instagram, TikTok, YouTube, X/Twitter, GitHub stars, Pinterest, and Google Photos
-- **Collections** — Organize items into named collections with priority levels (Very Relevant, Relevant, Peripheral, Archive)
+- **Collections** — Organize items into named collections with priority
 - **Smart collections** — AI-powered automatic tagging of new items into collections
-- **AI summaries** — Generate summaries of collections and sections using Google Gemini
+- **AI summaries** — Generate summaries of collections and sections through an AI-native interface
 - **Full-text search** — Search across captions, URLs, and note text
 - **Public sharing** — Share collections publicly via a unique link
 - **Review workflow** — Mark items as reviewed for weekly triage (Pro feature)
 - **Notes** — Save free-form notes alongside bookmarks
 - **Browser extension** — Chrome extension for one-click saving
 - **PWA** — Install as a progressive web app with offline support
-- **Multi-language** — en-US, fr-FR, es-ES, pt-BR
 
 ## MCP integration (agent access)
 
@@ -65,8 +64,8 @@ Cache exposes a Model Context Protocol (MCP) server so AI agents can read and wr
 
 ## Pricing
 
-- **Free**: Unlimited bookmarks, collections, AI summaries, 7-day review workflow
-- **Pro**: Unlimited review, higher AI quota, priority support — monthly or yearly via Stripe
+- **Free**: Limited bookmarks, collections, AI summaries, 7-day review workflow
+- **Pro**: Unlimited bookmarks, unlimited AI quota, priority support — monthly or yearly
 `;
 
 export const GET = () =>
