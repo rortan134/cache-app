@@ -36,6 +36,8 @@ const PRIORITY_RANK: Record<CollectionPriority, number> = {
     very_relevant: 0,
 };
 
+const COLLECTION_PREVIEW_THUMBNAIL_LIMIT = 5;
+
 export type CollectionSortField =
     | "count"
     | "created"
@@ -340,9 +342,10 @@ export function WorkspaceProvider({
             const previousCollections =
                 items.find((item) => item.id === itemId)?.collections ?? [];
 
+            const collectionIdSet = new Set(collectionIds);
             const optimisticCollections = sortCollections(
                 collections.filter((collection) =>
-                    collectionIds.includes(collection.id)
+                    collectionIdSet.has(collection.id)
                 )
             );
             setItems((current) =>
@@ -558,7 +561,7 @@ export function appendCollection(
 ): LibraryItemWithCollections[] {
     const itemIdSet = new Set(itemIds);
     if (itemIdSet.size === 0) {
-        return [...items];
+        return items;
     }
 
     return items.map((item) => {
@@ -699,13 +702,21 @@ function getCollectionPreviewThumbnailUrls(
     collectionId: string,
     items: LibraryItemWithCollections[]
 ): string[] {
-    return [...items]
-        .sort(
-            (left, right) =>
-                getPreviewOrderSeed(`${collectionId}:${left.id}`) -
-                getPreviewOrderSeed(`${collectionId}:${right.id}`)
-        )
-        .map((item) => itemPreviewImageUrl(item))
-        .filter((url): url is string => url !== null)
-        .slice(0, 5);
+    const previewEntries: Array<{ orderSeed: number; url: string }> = [];
+
+    for (const item of items) {
+        const url = itemPreviewImageUrl(item);
+        if (url === null) {
+            continue;
+        }
+        previewEntries.push({
+            orderSeed: getPreviewOrderSeed(`${collectionId}:${item.id}`),
+            url,
+        });
+    }
+
+    return previewEntries
+        .sort((left, right) => left.orderSeed - right.orderSeed)
+        .slice(0, COLLECTION_PREVIEW_THUMBNAIL_LIMIT)
+        .map((entry) => entry.url);
 }
