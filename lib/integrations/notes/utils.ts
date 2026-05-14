@@ -51,7 +51,6 @@ const NOTE_STRIP_TAGS = /<[^>]+>/g;
 const NOTE_SCRIPT_STYLE_BLOCKS =
     /<\s*(script|style)[^>]*>[\s\S]*?<\s*\/\s*\1\s*>/gi;
 const NOTE_COMMENTS = /<!--[\s\S]*?-->/g;
-const NOTE_EMPTY_PARAGRAPHS = /<p>(?:\s|<br>)*<\/p>/gi;
 const NOTE_HEADING_TAG = /^h[1-6]$/;
 
 function escapeNoteHtml(value: string): string {
@@ -231,10 +230,7 @@ export function sanitizeNoteHtml(input: string): string {
         }
     );
 
-    const normalizedParagraphs = sanitized
-        .replaceAll(/\r\n?/g, "\n")
-        .replaceAll(NOTE_EMPTY_PARAGRAPHS, "")
-        .trim();
+    const normalizedParagraphs = sanitized.replaceAll(/\r\n?/g, "\n").trim();
 
     return normalizedParagraphs.length > 0
         ? normalizedParagraphs
