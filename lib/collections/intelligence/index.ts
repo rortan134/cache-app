@@ -3,13 +3,13 @@ import "server-only";
 import { serverEnv } from "@/env/server";
 import { GenAiProtectionError } from "@/lib/collections/intelligence/error";
 import {
+    SECTION_DESCRIPTION_EXPANDED_OUTPUT_TOKEN_LIMIT,
+    SECTION_DESCRIPTION_RESPONSE_MAX_LENGTH,
+} from "@/lib/collections/intelligence/overview";
+import {
     estimateGenAiTokens,
     protectGenAiRequest,
 } from "@/lib/collections/intelligence/protection";
-import {
-    SECTION_DESCRIPTION_EXPANDED_OUTPUT_TOKEN_LIMIT,
-    SECTION_DESCRIPTION_RESPONSE_MAX_LENGTH,
-} from "@/lib/collections/intelligence/summary";
 import { COLLECTION_NAME_LENGTH_MAX } from "@/lib/collections/utils";
 import { createLogger } from "@/lib/common/logs/console/logger";
 
@@ -1037,7 +1037,7 @@ interface SectionDescriptionResult {
 }
 
 interface ExpandedSectionDescriptionResult {
-    rawConclusions: string | undefined;
+    rawSummary: string | undefined;
 }
 
 interface ModelGenerationConfig {
@@ -1122,16 +1122,7 @@ export async function generateSectionDescription(args: {
         args.prompt
     );
 
-    let rawSummary: string | undefined;
-    try {
-        const parsed = JSON.parse(rawText ?? "{}");
-        rawSummary =
-            typeof parsed.summary === "string" ? parsed.summary : undefined;
-    } catch {
-        rawSummary = rawText ?? undefined;
-    }
-
-    return { rawSummary };
+    return { rawSummary: rawText };
 }
 
 const SECTION_DESCRIPTION_EXPANDED_TIMEOUT_MS = 45_000;
@@ -1139,7 +1130,7 @@ const SECTION_DESCRIPTION_EXPANDED_TIMEOUT_MS = 45_000;
 export async function generateExpandedSectionDescription(args: {
     prompt: string;
 }): Promise<ExpandedSectionDescriptionResult> {
-    const rawConclusions = await generateModelContent(
+    const rawText = await generateModelContent(
         {
             httpOptions: {
                 retryOptions: {
@@ -1151,25 +1142,31 @@ export async function generateExpandedSectionDescription(args: {
             maxOutputTokens: SECTION_DESCRIPTION_EXPANDED_OUTPUT_TOKEN_LIMIT,
             responseSchema: {
                 description:
-                    "A structured list of distilled conclusions extracted from the provided items.",
+                    "A compact markdown overview of the shared themes and useful takeaways in the provided items.",
                 properties: {
-                    conclusions: {
+                    summary: {
                         description:
-                            "An array of distinct final claims, takeaways, findings, or recommendations. Each item should be a single concise conclusion sentence.",
-                        items: {
-                            type: Type.STRING,
-                        },
-                        type: Type.ARRAY,
+                            "A markdown string that starts with one concise overview sentence, followed by 3-6 useful bullet takeaways when supported.",
+                        type: Type.STRING,
                     },
                 },
-                required: ["conclusions"],
+                required: ["summary"],
                 type: Type.OBJECT,
             },
             systemInstruction:
-                "You extract only final conclusions from content. Return a JSON object with a 'conclusions' array. Each conclusion is a single self-contained sentence. No preamble, no commentary, no markdown, no item counts, no platform names.",
+                "You write reliable at-a-glance markdown overviews. Return a JSON object with a 'summary' markdown string. No preamble, no commentary, no headings, no item counts, and no platform names.",
         },
         args.prompt
     );
 
-    return { rawConclusions };
+    let rawSummary: string | undefined;
+    try {
+        const parsed = JSON.parse(rawText ?? "{}");
+        rawSummary =
+            typeof parsed.summary === "string" ? parsed.summary : undefined;
+    } catch {
+        rawSummary = rawText ?? undefined;
+    }
+
+    return { rawSummary };
 }

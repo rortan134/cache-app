@@ -659,7 +659,6 @@ function getPreviewOrderSeed(value: string): number {
  * Build two indexes from the item list:
  * 1. Items grouped by collection id.
  * 2. Up to 5 deterministic preview thumbnail URLs per collection.
- *
  */
 function buildCollectionItemIndexes(items: LibraryItemWithCollections[]): {
     collectionPreviewThumbnailUrlsById: Map<string, string[]>;
@@ -681,7 +680,7 @@ function buildCollectionItemIndexes(items: LibraryItemWithCollections[]): {
     for (const [collectionId, collectionItems] of itemsByCollectionId) {
         collectionPreviewThumbnailUrlsById.set(
             collectionId,
-            getCollectionPreviewThumbnailUrls(collectionId, collectionItems)
+            buildCollectionPreviewThumbnailUrls(collectionId, collectionItems)
         );
     }
 
@@ -698,7 +697,7 @@ function buildCollectionItemIndexes(items: LibraryItemWithCollections[]): {
  * Uses seeded ordering so thumbnails don't shuffle on re-render.
  * Items without a usable preview image are skipped.
  */
-function getCollectionPreviewThumbnailUrls(
+function buildCollectionPreviewThumbnailUrls(
     collectionId: string,
     items: LibraryItemWithCollections[]
 ): string[] {

@@ -9,7 +9,6 @@ import { getPriorityOption } from "@/components/library/collections";
 import {
     Composer,
     ComposerActionClear,
-    ComposerActionFeedback,
     ComposerActionNew,
     ComposerActionNewCollection,
     ComposerActionOnboarding,
@@ -97,7 +96,6 @@ import {
     MenuSeparator,
     MenuTrigger,
 } from "@/components/ui/menu";
-
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { Ticker } from "@/components/ui/ticker";
@@ -106,13 +104,18 @@ import { useIsExtensionInstalled } from "@/hooks/use-extension-installed";
 import { useSession } from "@/lib/auth/client";
 import type { CollectionCreateFromItemsResult } from "@/lib/collections/actions";
 import {
+    getSectionDescription,
+    type SectionDescriptionResult,
+} from "@/lib/collections/intelligence/actions";
+import {
     SECTION_DESCRIPTION_CONTEXT_ITEMS_LIMIT,
     SECTION_DESCRIPTION_DOMAIN_MAX_LENGTH,
     SECTION_DESCRIPTION_TEXT_MAX_LENGTH,
     SECTION_DESCRIPTION_TITLE_MAX_LENGTH,
     SECTION_DESCRIPTION_URL_MAX_LENGTH,
+    SectionDescriptionRequestSchema,
     type SectionDescriptionContextItem,
-} from "@/lib/collections/intelligence/summary";
+} from "@/lib/collections/intelligence/overview";
 import {
     deleteLibraryItem,
     type LibraryItemCollectionsUpdateResult,
@@ -194,7 +197,6 @@ import {
     FolderOpen,
     Funnel,
     Globe,
-    Info,
     KanbanIcon,
     Layers3,
     LinkIcon,
@@ -202,7 +204,6 @@ import {
     NotebookPenIcon,
     RotateCcw,
     SearchX,
-    Sparkles,
     Tags,
     Trash2Icon,
     Volume2Icon,
@@ -661,41 +662,40 @@ function buildCommandSuggestions({
     return suggestions;
 }
 
-type SectionDescriptionResponse =
-    | { conclusions: string[] }
-    | { summary: string };
+interface SectionDescriptionResponse {
+    summary: string;
+}
 
-type SectionDescriptionSWRKey = [endpoint: string, requestBody: string];
+type SectionDescriptionSWRKey = [requestBody: string];
 
 async function fetchSectionDescription([
-    endpoint,
     requestBody,
 ]: SectionDescriptionSWRKey): Promise<SectionDescriptionResponse> {
-    const response = await fetch(endpoint, {
-        body: requestBody,
-        headers: {
-            "content-type": "application/json",
-        },
-        method: "POST",
-    });
-    const payload = (await response.json().catch(() => ({}))) as {
-        conclusions?: string[];
-        error?: string;
-        summary?: string;
-    };
-
-    if (!response.ok) {
-        throw new Error(
-            payload.error ?? "Unable to generate a section description."
-        );
+    let rawInput: unknown;
+    try {
+        rawInput = JSON.parse(requestBody);
+    } catch {
+        throw new Error("Invalid section description request.");
     }
 
-    if (Array.isArray(payload.conclusions) && payload.conclusions.length > 0) {
-        return { conclusions: payload.conclusions };
+    const parsed = SectionDescriptionRequestSchema.safeParse(rawInput);
+    if (!parsed.success) {
+        throw new Error("Invalid section description request.");
     }
 
-    const summary = payload.summary?.trim();
-    if (!summary) {
+    const result = await getSectionDescription(parsed.data);
+    return toSectionDescriptionResponse(result);
+}
+
+function toSectionDescriptionResponse(
+    result: SectionDescriptionResult
+): SectionDescriptionResponse {
+    if (result.status !== "SUCCESS") {
+        throw new Error(result.message);
+    }
+
+    const summary = result.summary.trim();
+    if (summary.length === 0) {
         throw new Error("Section description response was empty.");
     }
 
@@ -1895,7 +1895,7 @@ function BrowserHeader() {
                                     onClick={onCreateCollectionFromResults}
                                 >
                                     <CircleFadingPlus className="size-4.5 text-muted-foreground" />
-                                    Create collection with results
+                                    New collection with these results
                                 </MenuItem>
                             </MenuPopup>
                         </Menu>
@@ -1956,17 +1956,37 @@ function BrowserGroupEmpty() {
     );
 }
 
-function BrowserGroupOverview() {
+function BrowserGroupOverview({
+    className,
+    children,
+    ...props
+}: React.ComponentProps<"div">) {
+    return (
+        <div
+            {...props}
+            className={cn(
+                "flex w-full flex-1 flex-col py-1 pr-3 pl-4",
+                className
+            )}
+        >
+            <GradientWaveText
+                ariaLabel="Overview"
+                className="font-medium text-muted-foreground text-xs opacity-80"
+            >
+                Overview
+            </GradientWaveText>
+            {children}
+        </div>
+    );
+}
+
+function BrowserGroupOverviewContent() {
     const { collapsed, items, title } = useBrowserGroupContext();
 
-    const [isExpanded, setIsExpanded] = React.useState(false);
     const contentId = React.useId();
+    const [isExpanded, setIsExpanded] = React.useState(false);
 
-    const handleToggleExpanded = useStableCallback(() => {
-        setIsExpanded((prev) => !prev);
-    });
-
-    const deferredRequestBody = React.useDeferredValue(
+    const payload = React.useDeferredValue(
         JSON.stringify({
             expanded: isExpanded,
             items: items
@@ -1976,10 +1996,12 @@ function BrowserGroupOverview() {
         })
     );
 
-    const { data, error, isLoading } = useSWR<SectionDescriptionResponse>(
-        items.length > 0
-            ? (["/api/summary", deferredRequestBody] as const)
-            : null,
+    const handleToggleExpanded = useStableCallback(() => {
+        setIsExpanded((prev) => !prev);
+    });
+
+    const { data, isLoading } = useSWR<SectionDescriptionResponse>(
+        items.length > 0 ? ([payload] as const) : null,
         fetchSectionDescription,
         {
             dedupingInterval: 60_000,
@@ -1993,70 +2015,44 @@ function BrowserGroupOverview() {
         return null;
     }
 
-    const hasConclusions =
-        !!data && "conclusions" in data && Array.isArray(data.conclusions);
-    const conclusions = hasConclusions ? data.conclusions : null;
-    const summary = data && "summary" in data ? data.summary.trim() : undefined;
+    const summary = data?.summary.trim();
 
-    return (
-        <div className="flex items-start gap-2">
-            <AvatarGroup>
-                <Avatar className="size-7 bg-muted">
-                    <Sparkles className="size-4" />
-                </Avatar>
-                <Avatar className="border-2 border-white bg-muted">
-                    <Info className="size-4" />
-                </Avatar>
-            </AvatarGroup>
-            <div className="flex w-full flex-1 flex-col gap-1">
-                <GradientWaveText
-                    ariaLabel="Description"
-                    className="-ml-px font-medium text-muted-foreground text-xs opacity-80"
+    return isLoading && !data ? (
+        <div className="block w-full text-xs leading-snug">
+            <Skeleton className="my-0.5 h-4 w-full" />
+            <Skeleton className="my-0.5 h-4 w-48" />
+        </div>
+    ) : (
+        <div
+            aria-busy={isLoading}
+            className={cn(
+                "fade-in-0 flex w-full animate-in items-center gap-2 text-xs leading-snug motion-reduce:animate-none",
+                isLoading && "opacity-60"
+            )}
+            id={contentId}
+        >
+            <Streamdown className="flex-1">
+                {summary && summary.length > 0
+                    ? summary
+                    : SECTION_DESCRIPTION_FALLBACK_TEXT}
+            </Streamdown>
+            &nbsp;
+            <div className="inline-flex items-center justify-end">
+                <Button
+                    aria-controls={contentId}
+                    aria-expanded={isExpanded}
+                    onClick={handleToggleExpanded}
+                    size="xs"
+                    variant="link"
                 >
-                    Description
-                </GradientWaveText>
-                {isLoading && !data && !error ? (
-                    <div className="block w-full text-xs leading-snug">
-                        <Skeleton className="my-0.5 h-4 w-full" />
-                        <Skeleton className="my-0.5 h-4 w-48" />
-                    </div>
-                ) : (
-                    <div
-                        aria-busy={isLoading}
-                        className={cn(
-                            "fade-in-0 flex w-full animate-in items-center gap-2 text-xs leading-snug motion-reduce:animate-none",
-                            isLoading && "opacity-60"
-                        )}
-                        id={contentId}
-                    >
-                        {conclusions && conclusions.length > 0 ? (
-                            <ul className="list-disc space-y-0.5 pl-4">
-                                {conclusions.map((conclusion, index) => (
-                                    <li key={index}>{conclusion}</li>
-                                ))}
-                            </ul>
-                        ) : (
-                            <Streamdown>
-                                {summary && summary.length > 0
-                                    ? summary
-                                    : SECTION_DESCRIPTION_FALLBACK_TEXT}
-                            </Streamdown>
-                        )}
-                        &nbsp;
-                        <Button
-                            aria-controls={contentId}
-                            aria-expanded={isExpanded}
-                            className="h-fit! text-xs leading-snug sm:text-xs"
-                            onClick={handleToggleExpanded}
-                            size="xs"
-                            variant="link"
-                        >
-                            {isExpanded ? "Collapse" : "Expand"}
-                            &nbsp;
-                            <ListChevronsUpDown className="mb-px inline-block size-3.5 shrink-0" />
-                        </Button>
-                    </div>
-                )}
+                    {isExpanded ? "Collapse" : "Expand"}
+                    &nbsp;
+                    <ListChevronsUpDown className="mb-px inline-block size-3.5 shrink-0" />
+                </Button>
+                <Button size="xs" variant="link">
+                    Personalize &nbsp;
+                    <ListChevronsUpDown className="mb-px inline-block size-3.5 shrink-0" />
+                </Button>
             </div>
         </div>
     );
@@ -3634,7 +3630,7 @@ function CardMenu({
                     </Item>
                     <Item onClick={() => onCopyLink?.(item)}>
                         <LinkIcon className="size-4.5 text-muted-foreground" />
-                        Copy URL link
+                        Copy link URL
                     </Item>
                     <ItemSeparator />
                     <Item disabled={isDownloading} onClick={onDownload}>
@@ -4793,12 +4789,10 @@ export function Browser({
                 return;
             }
             const index = digit - 1;
-
             if (index < suggestions.length) {
                 suggestions[index]?.onSelect?.();
                 return;
             }
-
             const paletteIndex = index - suggestions.length;
             const flatItems = visiblePaletteGroups.flatMap((g) => g.items);
             const item = flatItems[paletteIndex];
@@ -4913,18 +4907,6 @@ export function Browser({
         }
     );
 
-    const handleUpdateItemsCollectionsWithFeedback = useStableCallback(
-        async (input: {
-            itemIds: string[];
-            nextSharedCollectionIds: string[];
-            previousSharedCollectionIds: string[];
-        }): Promise<LibraryItemsCollectionsUpdateResult> => {
-            const result = await onUpdateItemsCollections(input);
-
-            return result;
-        }
-    );
-
     const handleSaveNote = useStableCallback(
         async (draft: { contentHtml: string; contentState: unknown | null }) =>
             await new Promise<boolean>((resolve) => {
@@ -5000,164 +4982,163 @@ export function Browser({
 
     return (
         <div
-            className="z-0 flex w-full min-w-0 max-w-[1024px] flex-1 gap-4 p-8 2xl:mx-auto"
+            className="relative z-0 flex w-full min-w-0 max-w-[1024px] flex-1 flex-col gap-4 p-8 2xl:mx-auto"
             ref={containerRef}
+            style={
+                {
+                    "--library-section-sticky-top": "8px",
+                } as React.CSSProperties
+            }
         >
-            <div
-                className="relative z-0 flex w-full flex-col gap-4"
-                style={
-                    {
-                        "--library-section-sticky-top": "8px",
-                    } as React.CSSProperties
-                }
-            >
-                <Composer>
-                    <ComposerInput
-                        canClear={canClear}
-                        commandListOpen={commandListOpen}
-                        commandPanelContainerRef={commandPanelContainerRef}
-                        inputPlaceholder={inputPlaceholder}
-                        isCommandInputFocused={isCommandInputFocused}
-                        onAttachFiles={handleAttachCommandFiles}
-                        onCommandInputChange={handleCommandInputChange}
-                        onCommandOpenChange={handleCommandOpenChange}
-                        onInputBlur={() => setIsCommandInputFocused(false)}
-                        onInputFocus={() => setIsCommandInputFocused(true)}
-                        onPaletteInputKeyDown={handlePaletteInputKeyDown}
-                        paletteGroups={paletteGroups}
-                        paletteInput={paletteInput}
-                        paletteInputRef={paletteInputRef}
-                        paletteStackEntries={buildPaletteStackEntries({
-                            collectionMembershipFilter,
-                            collections,
-                            columnCountMode,
-                            commandAttachments,
-                            domainFilters,
-                            groupBy,
-                            layoutMode,
-                            onRemoveCollectionFilter,
-                            onRemoveCommandAttachment: removeCommandAttachment,
-                            searchTerms,
-                            selectedCollectionIds,
-                            setCollectionMembershipFilter,
-                            setColumnCountMode,
-                            setDomainFilters,
-                            setGroupBy,
-                            setLayoutMode,
-                            setSearchTerms,
-                            setSortMode,
-                            setSourceFilters,
-                            sortMode,
-                            sourceFilters,
-                        })}
-                        visiblePaletteGroups={visiblePaletteGroups}
-                    />
-                    <ComposerActions
-                        canClear={canClear}
-                        canCreateCollectionFromResults={
-                            canCreateCollectionFromResults
-                        }
-                        connectedIntegrationCount={connectedIntegrationCount}
-                        groupBy={groupBy}
-                        isNewUser={isNewUser}
-                        onClearPalette={clearLibraryPalette}
-                        onCreateCollection={requestCreate}
-                        onCreateNote={handleCreateNote}
-                        onCreateResultsDialogOpen={
-                            handleCreateResultsDialogOpenChange
-                        }
-                        onOpenCommandFromOnboarding={
-                            handleOpenCommandFromOnboarding
-                        }
-                        resultsSummary={resultsSummary}
-                        sectionsLength={sections.length}
-                    >
-                        <ComposerActionNew />
-                        <ComposerActionFeedback />
-                        <ComposerActionClear />
-                        <ComposerActionNewCollection />
-                        <ComposerActionOnboarding />
-                    </ComposerActions>
-                    <ComposerSuggestions suggestions={suggestions}>
-                        {(suggestion, index) => (
-                            <Button
-                                className="rounded-full text-muted-foreground"
-                                key={index}
-                                onClick={suggestion.onSelect}
-                                size="xs"
-                                variant="ghost"
-                            >
-                                {suggestion.icon}
-                                &nbsp;
-                                {suggestion.label}
-                                <Kbd className="bg-transparent px-0 text-[11px] opacity-50">
-                                    <CmdKbd />
-                                    {index + 1}
-                                </Kbd>
-                            </Button>
-                        )}
-                    </ComposerSuggestions>
-                </Composer>
-                {isPreviewOnly ? <InlinePaywallBanner /> : null}
-                <BrowserResults
-                    clearLibraryPalette={clearLibraryPalette}
-                    collapsedSectionKeys={collapsedSectionKeySet}
-                    collections={collections}
-                    columnCount={resolvedColumnCount}
-                    enableSectionCollapse={enableSectionCollapse}
-                    layoutMode={layoutMode}
-                    onCollapseAllSections={collapseAllSections}
-                    onCopyLink={handleCopyLink}
-                    onCreateCollectionFromResults={() =>
-                        handleCreateResultsDialogOpenChange(true)
+            <Composer>
+                <ComposerInput
+                    canClear={canClear}
+                    commandListOpen={commandListOpen}
+                    commandPanelContainerRef={commandPanelContainerRef}
+                    inputPlaceholder={inputPlaceholder}
+                    isCommandInputFocused={isCommandInputFocused}
+                    onAttachFiles={handleAttachCommandFiles}
+                    onCommandInputChange={handleCommandInputChange}
+                    onCommandOpenChange={handleCommandOpenChange}
+                    onInputBlur={() => setIsCommandInputFocused(false)}
+                    onInputFocus={() => setIsCommandInputFocused(true)}
+                    onPaletteInputKeyDown={handlePaletteInputKeyDown}
+                    paletteGroups={paletteGroups}
+                    paletteInput={paletteInput}
+                    paletteInputRef={paletteInputRef}
+                    paletteStackEntries={buildPaletteStackEntries({
+                        collectionMembershipFilter,
+                        collections,
+                        columnCountMode,
+                        commandAttachments,
+                        domainFilters,
+                        groupBy,
+                        layoutMode,
+                        onRemoveCollectionFilter,
+                        onRemoveCommandAttachment: removeCommandAttachment,
+                        searchTerms,
+                        selectedCollectionIds,
+                        setCollectionMembershipFilter,
+                        setColumnCountMode,
+                        setDomainFilters,
+                        setGroupBy,
+                        setLayoutMode,
+                        setSearchTerms,
+                        setSortMode,
+                        setSourceFilters,
+                        sortMode,
+                        sourceFilters,
+                    })}
+                    visiblePaletteGroups={visiblePaletteGroups}
+                />
+                <ComposerActions
+                    canClear={canClear}
+                    canCreateCollectionFromResults={
+                        canCreateCollectionFromResults
                     }
-                    onDelete={handleRequestDelete}
-                    onExpandAllSections={expandAllSections}
-                    onOpenInNewTab={handleOpenInNewTab}
-                    onOpenNote={handleOpenNote}
-                    onToggleSection={toggleSection}
-                    onUpdateItemCollections={
-                        handleUpdateItemCollectionsWithFeedback
+                    connectedIntegrationCount={connectedIntegrationCount}
+                    groupBy={groupBy}
+                    isNewUser={isNewUser}
+                    onClearPalette={clearLibraryPalette}
+                    onCreateCollection={requestCreate}
+                    onCreateNote={handleCreateNote}
+                    onCreateResultsDialogOpen={
+                        handleCreateResultsDialogOpenChange
                     }
-                    pendingDeleteItemId={pendingDeleteItem?.id ?? null}
-                    showEmptyLibraryPeek={showEmptyLibraryPeek}
-                    showNoFilteredResults={showNoFilteredResults}
+                    onOpenCommandFromOnboarding={
+                        handleOpenCommandFromOnboarding
+                    }
+                    resultsSummary={resultsSummary}
+                    sectionsLength={sections.length}
                 >
-                    <BrowserEmpty />
-                    <BrowserFiltersEmpty />
-                    <BrowserList sections={sections}>
-                        {(section) =>
-                            enableSectionCollapse ? (
-                                <BrowserGroup>
-                                    <BrowserHeader />
-                                    <BrowserGroupEmpty />
-                                    {!section.title && <BrowserGroupOverview />}
-                                    {layoutMode === "board" ? (
-                                        <BrowserBoard />
-                                    ) : (
-                                        <BrowserMasonry />
-                                    )}
-                                </BrowserGroup>
-                            ) : (
-                                <BrowserGroup>
-                                    {layoutMode === "board" ? (
-                                        <BrowserBoard />
-                                    ) : (
-                                        <BrowserMasonry />
-                                    )}
-                                </BrowserGroup>
-                            )
-                        }
-                    </BrowserList>
-                </BrowserResults>
-                {showLockedPreview ? (
-                    <LockedResults
-                        columnCount={resolvedColumnCount}
-                        layoutMode={layoutMode}
-                        totalItemCount={totalItemCount}
-                    />
-                ) : null}
-            </div>
+                    <ComposerActionNew />
+                    <ComposerActionClear />
+                    <ComposerActionNewCollection />
+                    <ComposerActionOnboarding />
+                </ComposerActions>
+                <ComposerSuggestions suggestions={suggestions}>
+                    {(suggestion, index) => (
+                        <Button
+                            className="rounded-full text-muted-foreground"
+                            key={index}
+                            onClick={suggestion.onSelect}
+                            size="xs"
+                            variant="ghost"
+                        >
+                            {suggestion.icon}
+                            &nbsp;
+                            {suggestion.label}
+                            <Kbd className="bg-transparent px-0 text-[11px] opacity-50">
+                                <CmdKbd />
+                                {index + 1}
+                            </Kbd>
+                        </Button>
+                    )}
+                </ComposerSuggestions>
+            </Composer>
+            {isPreviewOnly ? <InlinePaywallBanner /> : null}
+            <BrowserResults
+                clearLibraryPalette={clearLibraryPalette}
+                collapsedSectionKeys={collapsedSectionKeySet}
+                collections={collections}
+                columnCount={resolvedColumnCount}
+                enableSectionCollapse={enableSectionCollapse}
+                layoutMode={layoutMode}
+                onCollapseAllSections={collapseAllSections}
+                onCopyLink={handleCopyLink}
+                onCreateCollectionFromResults={() =>
+                    handleCreateResultsDialogOpenChange(true)
+                }
+                onDelete={handleRequestDelete}
+                onExpandAllSections={expandAllSections}
+                onOpenInNewTab={handleOpenInNewTab}
+                onOpenNote={handleOpenNote}
+                onToggleSection={toggleSection}
+                onUpdateItemCollections={
+                    handleUpdateItemCollectionsWithFeedback
+                }
+                pendingDeleteItemId={pendingDeleteItem?.id ?? null}
+                showEmptyLibraryPeek={showEmptyLibraryPeek}
+                showNoFilteredResults={showNoFilteredResults}
+            >
+                <BrowserEmpty />
+                <BrowserFiltersEmpty />
+                <BrowserList sections={sections}>
+                    {(section) =>
+                        enableSectionCollapse ? (
+                            <BrowserGroup>
+                                <BrowserHeader />
+                                {!section.title && (
+                                    <BrowserGroupOverview>
+                                        <BrowserGroupOverviewContent />
+                                    </BrowserGroupOverview>
+                                )}
+                                <BrowserGroupEmpty />
+                                {layoutMode === "board" ? (
+                                    <BrowserBoard />
+                                ) : (
+                                    <BrowserMasonry />
+                                )}
+                            </BrowserGroup>
+                        ) : (
+                            <BrowserGroup>
+                                {layoutMode === "board" ? (
+                                    <BrowserBoard />
+                                ) : (
+                                    <BrowserMasonry />
+                                )}
+                            </BrowserGroup>
+                        )
+                    }
+                </BrowserList>
+            </BrowserResults>
+            {showLockedPreview ? (
+                <LockedResults
+                    columnCount={resolvedColumnCount}
+                    layoutMode={layoutMode}
+                    totalItemCount={totalItemCount}
+                />
+            ) : null}
             <NoteDrawer
                 activeNote={activeNote}
                 containerRef={containerRef}
@@ -5302,7 +5283,7 @@ export function Browser({
                                     handleUpdateItemCollectionsWithFeedback
                                 }
                                 onUpdateItemsCollections={
-                                    handleUpdateItemsCollectionsWithFeedback
+                                    onUpdateItemsCollections
                                 }
                                 render={
                                     <Button

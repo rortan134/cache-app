@@ -1,6 +1,5 @@
 "use client";
 
-import { AppleSignInButton } from "@/components/auth/apple-sign-in-button";
 import { GoogleSignInButton } from "@/components/auth/google-sign-in-button";
 import { Button } from "@/components/ui/button";
 import { Kbd } from "@/components/ui/kbd";
@@ -47,9 +46,9 @@ export function SignInButton({ hasServerSession }: SignInButtonProps) {
             <GoogleSignInButton>
                 <T context="Sign in/up CTA button">Continue with Google</T>
             </GoogleSignInButton>
-            <AppleSignInButton>
+            {/* <AppleSignInButton>
                 <T context="Sign in/up CTA button">Continue with Apple</T>
-            </AppleSignInButton>
+            </AppleSignInButton> */}
         </>
     );
 }

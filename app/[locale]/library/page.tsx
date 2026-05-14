@@ -26,23 +26,36 @@ export async function generateMetadata({
 }): Promise<Metadata> {
     const { locale } = await params;
 
-    return buildPageMetadata({
-        description: gtPublicString(
+    return {
+        ...buildPageMetadata({
+            description: gtPublicString(
+                locale,
+                "library.metadata.description",
+                "Saved items from your connected accounts and extension imports appear below by source."
+            ),
+            keywords: [
+                "my library",
+                "saved content",
+                "bookmark library",
+                "collections",
+                "Cache App",
+            ],
             locale,
-            "library.metadata.description",
-            "Saved items from your connected accounts and extension imports appear below by source."
-        ),
-        keywords: [
-            "my library",
-            "saved content",
-            "bookmark library",
-            "collections",
-            "Cache App",
-        ],
-        locale,
-        path: "/library",
-        title: gtPublicString(locale, "library.metadata.title", "My library"),
-    });
+            path: "/library",
+            title: gtPublicString(
+                locale,
+                "library.metadata.title",
+                "My library"
+            ),
+        }),
+        formatDetection: {
+            address: false,
+            date: false,
+            email: false,
+            telephone: false,
+            url: false,
+        },
+    };
 }
 
 export default async function LibraryPage() {

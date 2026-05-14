@@ -11,6 +11,7 @@ import arcjet, {
     shield,
     tokenBucket,
 } from "@arcjet/next";
+import type { ArcjetNextRequest } from "@arcjet/next";
 import type { ArcjetDecision } from "arcjet";
 
 const log = createLogger("intelligence:protection");
@@ -74,7 +75,7 @@ function denialMessage(reason: ReturnType<typeof denialReason>): string {
 export async function protectGenAiRequest(args: {
     feature: string;
     prompt: string;
-    request: Request;
+    request: ArcjetNextRequest;
     requestedTokens: number;
     userId: string;
 }): Promise<void> {

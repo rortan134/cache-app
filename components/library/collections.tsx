@@ -2303,7 +2303,7 @@ function CollectionsListSortingCombobox({
                             <CmdKbd />F
                         </Kbd>
                     }
-                    placeholder="Refine..."
+                    placeholder="Organize"
                 />
                 <ComboboxEmpty>No matching options</ComboboxEmpty>
                 <ComboboxList>

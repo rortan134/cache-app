@@ -1,23 +1,25 @@
 import "server-only";
 
 import { createLogger } from "@/lib/common/logs/console/logger";
+import type { ArcjetNextRequest } from "@arcjet/next";
 import { ApiError } from "@google/genai";
+import { cacheLife } from "next/cache";
 import {
     generateExpandedSectionDescription,
     generateSectionDescription,
 } from ".";
 import { GenAiGenerationError, GenAiProtectionError } from "./error";
-import { estimateGenAiTokens, protectGenAiRequest } from "./protection";
 import {
     buildExpandedSummaryPrompt,
-    buildSummaryPrompt,
+    buildOverviewPrompt,
     normalizeExpandedSummary,
     normalizeSummary,
     SECTION_DESCRIPTION_EXPANDED_OUTPUT_TOKEN_LIMIT,
     SECTION_DESCRIPTION_FALLBACK_TEXT,
-    truncateSummaryContextItems,
-    type SectionDescriptionRequest,
-} from "./summary";
+    truncateContextItems,
+    type DescriptionRequest,
+} from "./overview";
+import { estimateGenAiTokens, protectGenAiRequest } from "./protection";
 
 const log = createLogger("intelligence:service");
 
@@ -25,19 +27,18 @@ const OUTPUT_TOKEN_LIMIT = 96;
 
 export interface GenerateCollectionSummaryInput {
     expanded?: boolean;
-    items: SectionDescriptionRequest["items"];
-    request: Request;
+    items: DescriptionRequest["items"];
+    request: ArcjetNextRequest;
     sectionTitle: string;
     userId: string;
 }
 
 export interface GenerateCollectionSummaryResult {
-    conclusions?: string[];
     summary: string;
 }
 
 /**
- * Generates a one-sentence summary for a collection section.
+ * Generates a short overview for a collection section.
  *
  * Handles prompt building, token estimation, rate-limiting, AI generation,
  * and output normalization. Throws domain errors on failure so callers can
@@ -46,23 +47,24 @@ export interface GenerateCollectionSummaryResult {
 export async function generateCollectionSummary(
     input: GenerateCollectionSummaryInput
 ): Promise<GenerateCollectionSummaryResult> {
-    const { expanded, items, sectionTitle } = input;
+    const { expanded, items, sectionTitle, userId } = input;
 
-    const truncatedRequest = truncateSummaryContextItems({
+    const truncatedRequest = truncateContextItems({
         items,
         sectionTitle,
     });
 
     if (expanded) {
-        const conclusions = await executeDescriptionGeneration({
+        const summary = await executeGeneration({
             buildPrompt: buildExpandedSummaryPrompt,
             debugLogLabel: "expanded section description",
             errorLogLabel: "expanded library section description",
             feature: "section_description_expanded",
             generate: (args) =>
-                generateExpandedSectionDescription(args).then(
-                    (r) => r.rawConclusions
-                ),
+                generateCachedExpandedSectionDescription({
+                    prompt: args.prompt,
+                    userId,
+                }),
             input,
             normalize: normalizeExpandedSummary,
             spanName: "generate-expanded-section-description",
@@ -72,18 +74,20 @@ export async function generateCollectionSummary(
         });
 
         return {
-            conclusions: conclusions ?? undefined,
-            summary: SECTION_DESCRIPTION_FALLBACK_TEXT,
+            summary: summary ?? SECTION_DESCRIPTION_FALLBACK_TEXT,
         };
     }
 
-    const summary = await executeDescriptionGeneration({
-        buildPrompt: buildSummaryPrompt,
+    const summary = await executeGeneration({
+        buildPrompt: buildOverviewPrompt,
         debugLogLabel: "section description",
         errorLogLabel: "library section description",
         feature: "section_description",
         generate: (args) =>
-            generateSectionDescription(args).then((r) => r.rawSummary),
+            generateCachedSectionDescription({
+                prompt: args.prompt,
+                userId,
+            }),
         input,
         normalize: normalizeSummary,
         spanName: "generate-section-description",
@@ -101,8 +105,8 @@ export async function generateCollectionSummary(
 // Private helpers
 // ---------------------------------------------------------------------------
 
-interface DescriptionGenerationConfig<T> {
-    buildPrompt: (request: SectionDescriptionRequest) => string;
+interface GenerationConfig<T> {
+    buildPrompt: (request: DescriptionRequest) => string;
     debugLogLabel: string;
     errorLogLabel: string;
     feature: string;
@@ -111,8 +115,32 @@ interface DescriptionGenerationConfig<T> {
     normalize: (raw: string | undefined) => T | null;
     spanName: string;
     tokenLimit: number;
-    truncatedRequest: SectionDescriptionRequest;
+    truncatedRequest: DescriptionRequest;
     warnLogLabel: string;
+}
+
+async function generateCachedSectionDescription(args: {
+    prompt: string;
+    userId: string;
+}): Promise<string | undefined> {
+    "use cache";
+    cacheLife("minutes");
+
+    const result = await generateSectionDescription({ prompt: args.prompt });
+    return result.rawSummary;
+}
+
+async function generateCachedExpandedSectionDescription(args: {
+    prompt: string;
+    userId: string;
+}): Promise<string | undefined> {
+    "use cache";
+    cacheLife("minutes");
+
+    const result = await generateExpandedSectionDescription({
+        prompt: args.prompt,
+    });
+    return result.rawSummary;
 }
 
 /**
@@ -121,8 +149,8 @@ interface DescriptionGenerationConfig<T> {
  * Builds the prompt, estimates tokens, enforces rate limits, calls the
  * model, normalizes output, and maps errors to domain failures.
  */
-async function executeDescriptionGeneration<T>(
-    config: DescriptionGenerationConfig<T>
+async function executeGeneration<T>(
+    config: GenerationConfig<T>
 ): Promise<T | null> {
     const {
         buildPrompt,

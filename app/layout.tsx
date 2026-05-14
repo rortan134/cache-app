@@ -85,7 +85,7 @@ export default async function RootLayout(props: {
                     />
                 )}
             </head>
-            <body className="flex flex-col">
+            <body className="flex flex-col antialiased">
                 <h1 className="sr-only">{APP_NAME}</h1>
                 <a className="skip-to-content" href="#main-content">
                     Skip to main content

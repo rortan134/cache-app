@@ -1,13 +1,14 @@
 "use client";
 
 import {
-    Dialog,
-    DialogHeader,
-    DialogPanel,
-    DialogPopup,
-    DialogTitle,
-    DialogTrigger,
-} from "@/components/ui/dialog";
+    Drawer,
+    DrawerHeader,
+    DrawerPanel,
+    DrawerPopup,
+    DrawerTitle,
+    DrawerTrigger,
+    DrawerViewport,
+} from "@/components/ui/drawer";
 import { AltKbd, CmdKbd, Kbd, KbdGroup, ShiftKbd } from "@/components/ui/kbd";
 import type * as React from "react";
 import { useState } from "react";
@@ -27,13 +28,13 @@ function ShortcutKeyPart({ part }: { part: string }) {
 }
 
 /**
- * Button that opens a read-only dialog listing all library keyboard shortcuts.
+ * Button that opens a read-only drawer listing all library keyboard shortcuts.
  *
  * Splits `keys` on "+" so multi-part shortcuts render as separate `<Kbd>`
  * pills without callers having to pre-format them.
  */
 export const KeyboardShortcutsDialogTrigger = (
-    props: React.ComponentProps<typeof DialogTrigger>
+    props: React.ComponentProps<typeof DrawerTrigger>
 ) => {
     const [open, setOpen] = useState(false);
     const { hotkeys } = useHotkeysContext();
@@ -47,38 +48,40 @@ export const KeyboardShortcutsDialogTrigger = (
     );
 
     return (
-        <Dialog onOpenChange={setOpen} open={open}>
-            <DialogTrigger {...props} />
-            <DialogPopup>
-                <DialogHeader>
-                    <DialogTitle>Keyboard shortcuts</DialogTitle>
-                </DialogHeader>
-                <DialogPanel>
-                    {hotkeys.map((shortcut) => (
-                        <div
-                            className="flex items-center justify-between"
-                            key={shortcut.description}
-                        >
-                            <span className="my-3 flex items-center gap-2 font-medium text-foreground text-sm">
-                                {shortcut.description}
-                            </span>
-                            <KbdGroup>
-                                <Kbd>
-                                    {shortcut.hotkey
-                                        ?.split("+")
-                                        .map((part, i) => (
-                                            <ShortcutKeyPart
-                                                key={i}
-                                                part={part}
-                                            />
-                                        ))}
-                                </Kbd>
-                            </KbdGroup>
-                        </div>
-                    ))}
-                </DialogPanel>
-            </DialogPopup>
-        </Dialog>
+        <Drawer onOpenChange={setOpen} open={open} position="right">
+            <DrawerTrigger {...props} />
+            <DrawerViewport>
+                <DrawerPopup showBar>
+                    <DrawerHeader>
+                        <DrawerTitle>Keyboard shortcuts</DrawerTitle>
+                    </DrawerHeader>
+                    <DrawerPanel>
+                        {hotkeys.map((shortcut) => (
+                            <div
+                                className="flex items-center justify-between"
+                                key={shortcut.description}
+                            >
+                                <span className="my-3 flex items-center gap-2 font-medium text-foreground text-sm">
+                                    {shortcut.description}
+                                </span>
+                                <KbdGroup>
+                                    <Kbd>
+                                        {shortcut.hotkey
+                                            ?.split("+")
+                                            .map((part, i) => (
+                                                <ShortcutKeyPart
+                                                    key={i}
+                                                    part={part}
+                                                />
+                                            ))}
+                                    </Kbd>
+                                </KbdGroup>
+                            </div>
+                        ))}
+                    </DrawerPanel>
+                </DrawerPopup>
+            </DrawerViewport>
+        </Drawer>
     );
 };
 

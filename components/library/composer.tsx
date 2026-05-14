@@ -1,6 +1,5 @@
 "use client";
 
-import { FeedbackWidget } from "@/components/feedback/feedback-widget";
 import { OnboardingMenu } from "@/components/library/onboarding";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -32,10 +31,8 @@ import { Calligraph } from "calligraph";
 import {
     ArrowDownIcon,
     ArrowUpIcon,
-    ChevronDown,
     CircleFadingPlus,
     CornerDownLeftIcon,
-    Globe,
     Grid2x2,
     Grid2x2X,
     SquarePen,
@@ -355,35 +352,6 @@ export function ComposerActionNew() {
     );
 }
 
-export function ComposerActionFeedback() {
-    const { isNewUser } = useComposerActionsContext();
-
-    if (isNewUser) {
-        return null;
-    }
-
-    return (
-        <Toolbar.Button
-            render={
-                <FeedbackWidget
-                    context="library-browser-toolbar"
-                    render={
-                        <Button
-                            className="hidden rounded-full md:flex"
-                            size="xs"
-                            variant="ghost"
-                        />
-                    }
-                >
-                    <Globe className="inline-block size-3.5 shrink-0" />
-                    &nbsp;Feedback
-                    <ChevronDown className="inline-block size-3.5 shrink-0" />
-                </FeedbackWidget>
-            }
-        />
-    );
-}
-
 export function ComposerActionClear() {
     const {
         canClear,
@@ -495,7 +463,7 @@ export function ComposerSuggestions({
                     {suggestions.map((suggestion, index) => (
                         <React.Fragment key={suggestion.label}>
                             {children(suggestion, index)}
-                            <span className="font-medium text-muted-foreground text-xs last:hidden">
+                            <span className="mr-0.5 -ml-0.5 font-medium text-muted-foreground text-xs last:hidden">
                                 ·
                             </span>
                         </React.Fragment>

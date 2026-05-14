@@ -1,0 +1,23 @@
+{
+    "version": 1,
+    "skills": {
+        "ai-sdk": {
+            "source": "vercel/ai",
+            "sourceType": "github",
+            "skillPath": "skills/use-ai-sdk/SKILL.md",
+            "computedHash": "2249889eb47ef0f61c4dba4cf2afe01c1c8dd793bb4c24230347c1ab909bb7dd"
+        },
+        "workflow": {
+            "source": "vercel/workflow",
+            "sourceType": "github",
+            "skillPath": "skills/workflow/SKILL.md",
+            "computedHash": "d870ac314303f0b28cfeb8533567ac18df24f6e4d6b874e9f5261b5fddc29210"
+        },
+        "workflow-init": {
+            "source": "vercel/workflow",
+            "sourceType": "github",
+            "skillPath": "skills/workflow-init/SKILL.md",
+            "computedHash": "e74ed0468589670865a7dc1dcf4f8cd21c3dce164e5caa66d74c5800d70dfe68"
+        }
+    }
+}

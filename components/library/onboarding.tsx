@@ -122,11 +122,13 @@ export function OnboardingMenu({
 }: OnboardingMenuProps) {
     const { collections, items, setCollections, setItems } =
         useWorkspaceContext();
+
     const { setOpen: setSidebarOpen } = useSidebar();
     const { setIsIntegrationsListPanelOpen } = useIntegrationsListStore();
     const { completedOnboardingTaskIds, setCompletedOnboardingTaskIds } =
         useLibraryOnboardingStore();
     const { copyToClipboard } = useCopyToClipboard();
+
     const [pendingShareCollection, setPendingShareCollection] =
         React.useState<LibraryCollectionSummary | null>(null);
     const [isSharePending, startShareTransition] = React.useTransition();
@@ -137,6 +139,7 @@ export function OnboardingMenu({
         connectedIntegrationCount,
         items,
     });
+
     const completedTaskCount = completedTaskIdSet.size;
     const progressValue = (completedTaskCount / ONBOARDING_TASK_COUNT) * 100;
 

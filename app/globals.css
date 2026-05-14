@@ -187,6 +187,18 @@
     content-visibility: auto;
 }
 
+@utility squircle {
+    corner-shape: superellipse(1.3);
+    --radius-1: 1.25px;
+    --radius-2: 2.5px;
+    --radius-3: 3.75px;
+    --radius-4: 5px;
+    --radius-6: 7.5px;
+    --radius-8: 10px;
+    --radius-10: 12.5px;
+    --radius-16: 15px;
+}
+
 @utility draggable-ui {
     -webkit-app-region: drag;
 }
@@ -214,7 +226,8 @@
 
     :root {
         font-synthesis: none;
-        color-scheme: light;
+        word-break: break-word;
+        color-scheme: light dark;
         text-rendering: optimizeLegibility;
     }
 
@@ -234,17 +247,19 @@
 
     html {
         @apply font-sans;
+        cursor: default;
         overflow-y: auto;
         -webkit-font-smoothing: antialiased;
         -moz-osx-font-smoothing: grayscale;
         -webkit-tap-highlight-color: transparent;
+        -webkit-text-size-adjust: 100%;
     }
 
     body {
-        @apply bg-background text-foreground;
-        overflow-wrap: anywhere;
         position: relative;
-        -webkit-text-size-adjust: 100%;
+        container-type: size;
+        overflow-wrap: anywhere;
+        @apply bg-background text-foreground;
     }
 
     svg {

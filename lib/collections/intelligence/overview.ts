@@ -14,18 +14,18 @@ export const SECTION_DESCRIPTION_TITLE_MAX_LENGTH = 140;
 export const SECTION_DESCRIPTION_RESPONSE_MAX_LENGTH = 220;
 export const SECTION_DESCRIPTION_FALLBACK_TEXT =
     "Summary is unavailable right now.";
+export const SECTION_DESCRIPTION_EXPANDED_RESPONSE_MAX_LENGTH = 1600;
 export const SECTION_DESCRIPTION_EXPANDED_OUTPUT_TOKEN_LIMIT = 512;
-export const SECTION_DESCRIPTION_EXPANDED_MAX_CONCLUSIONS = 8;
 
 // --- Prompt Budget ---
 
-const SECTION_DESCRIPTION_MAX_PROMPT_TOKENS = 4096;
-const SECTION_DESCRIPTION_PROMPT_OVERHEAD_TOKENS = 400;
-const SECTION_DESCRIPTION_CHARS_PER_TOKEN_ESTIMATE = 4;
+const MAX_PROMPT_TOKENS = 4096;
+const PROMPT_OVERHEAD_TOKENS = 400;
+const CHARS_PER_TOKEN_ESTIMATE = 4;
 
 // --- Schemas ---
 
-export const SectionDescriptionContextItemSchema = z.object({
+const SectionDescriptionContextItemSchema = z.object({
     addedAt: z.iso.datetime().optional(),
     createdAt: z.iso.datetime().optional(),
     domain: z
@@ -62,7 +62,7 @@ export type SectionDescriptionContextItem = z.infer<
     typeof SectionDescriptionContextItemSchema
 >;
 
-export type SectionDescriptionRequest = z.infer<
+export type DescriptionRequest = z.infer<
     typeof SectionDescriptionRequestSchema
 >;
 
@@ -176,7 +176,7 @@ function formatPromptItem(item: CompactItem, index: number): string {
     return parts.join("\n");
 }
 
-export function buildSummaryPrompt(request: SectionDescriptionRequest): string {
+export function buildOverviewPrompt(request: DescriptionRequest): string {
     const items = request.items.map(compactItem);
 
     return [
@@ -202,22 +202,23 @@ export function buildSummaryPrompt(request: SectionDescriptionRequest): string {
 }
 
 export function buildExpandedSummaryPrompt(
-    request: SectionDescriptionRequest
+    request: DescriptionRequest
 ): string {
     const items = request.items.map(compactItem);
 
     return [
-        "You are a research assistant that extracts only final conclusions from a set of saved items.",
-        "Analyze the section title and items below, then return a concise list of distinct conclusions.",
+        "You write compact markdown overviews for saved library sections.",
+        "Analyze the section title and items below, then return an at-a-glance overview that helps the user understand why this group matters.",
         "",
-        "Extraction rules:",
-        "- Focus ONLY on final claims, takeaways, findings, or recommendations.",
-        "- Ignore background information, general summaries, minor details, examples, and anecdotes unless they directly express a conclusion.",
-        "- Merge obviously duplicate conclusions but keep distinct points separate.",
-        "- Each conclusion must be a single, self-contained sentence.",
-        `- Return at most ${SECTION_DESCRIPTION_EXPANDED_MAX_CONCLUSIONS} conclusions.`,
+        "Markdown rules:",
+        "- Return markdown in a single summary string.",
+        "- Start with one short overview sentence.",
+        "- Then include 3-6 bullets of distinct takeaways when the items support them.",
+        "- Prefer plain markdown bullets and occasional bold topic labels.",
+        "- Keep every bullet self-contained and useful at a glance.",
         "- Do not add any preamble, commentary, or explanation.",
         "- Do not mention item counts, totals, or source platforms.",
+        "- Do not use headings, tables, code fences, or nested lists.",
         "",
         `Section title: ${request.sectionTitle}`,
         "Items:",
@@ -228,9 +229,7 @@ export function buildExpandedSummaryPrompt(
 // --- Input Truncation ---
 
 function estimateTokens(text: string): number {
-    return Math.ceil(
-        text.length / SECTION_DESCRIPTION_CHARS_PER_TOKEN_ESTIMATE
-    );
+    return Math.ceil(text.length / CHARS_PER_TOKEN_ESTIMATE);
 }
 
 /**
@@ -239,15 +238,14 @@ function estimateTokens(text: string): number {
  * Drops items from the end if the full set exceeds the budget, and
  * truncates text fields of the last included item when necessary.
  */
-export function truncateSummaryContextItems(
-    request: SectionDescriptionRequest,
-    maxTokens: number = SECTION_DESCRIPTION_MAX_PROMPT_TOKENS
-): SectionDescriptionRequest {
+export function truncateContextItems(
+    request: DescriptionRequest,
+    maxTokens: number = MAX_PROMPT_TOKENS
+): DescriptionRequest {
     const overhead = estimateTokens(
-        buildSummaryPrompt({ items: [], sectionTitle: request.sectionTitle })
+        buildOverviewPrompt({ items: [], sectionTitle: request.sectionTitle })
     );
-    const availableTokens =
-        maxTokens - overhead - SECTION_DESCRIPTION_PROMPT_OVERHEAD_TOKENS;
+    const availableTokens = maxTokens - overhead - PROMPT_OVERHEAD_TOKENS;
 
     if (availableTokens <= 0) {
         return {
@@ -281,8 +279,7 @@ export function truncateSummaryContextItems(
         // If a single item exceeds the remaining budget, truncate its text fields
         if (itemTokens > availableTokens - currentTokens) {
             const budget = availableTokens - currentTokens;
-            const maxChars =
-                budget * SECTION_DESCRIPTION_CHARS_PER_TOKEN_ESTIMATE;
+            const maxChars = budget * CHARS_PER_TOKEN_ESTIMATE;
             const titleBudget = Math.min(
                 item.title.length,
                 Math.floor(maxChars * 0.3)
@@ -354,60 +351,55 @@ export function normalizeSummary(value: string | undefined): string | null {
 
 // --- Expanded Output Normalization ---
 
-const BULLET_PREFIX_PATTERN = /^[-*•]\s*/;
-
-function cleanConclusionLine(line: string): string {
-    return line
-        .replace(WHITESPACE_PATTERN, " ")
-        .replace(BULLET_PREFIX_PATTERN, "")
-        .trim();
-}
+const MARKDOWN_CODE_FENCE_PATTERN = /^```(?:markdown|md)?\s*|\s*```$/gi;
 
 /**
  * Normalizes and validates a raw expanded model response.
  *
- * Expects either a JSON object with a `conclusions` array or a plain
- * bullet-list string. Returns the cleaned array of conclusion strings,
- * or null if the output is empty or malformed.
- *
- * The caller (prompt) already instructs the model to return at most
- * `SECTION_DESCRIPTION_EXPANDED_MAX_CONCLUSIONS` items; this function
- * enforces that cap as a runtime guard.
+ * Accepts either the preferred JSON object with a markdown `summary`
+ * string or a raw markdown response. Returns the cleaned summary string,
+ * or null if the output is empty.
  */
 export function normalizeExpandedSummary(
     value: string | undefined
-): string[] | null {
+): string | null {
     if (!value) {
         return null;
     }
+
+    let rawSummary = value;
 
     try {
         const parsed: unknown = JSON.parse(value);
         if (
             parsed !== null &&
             typeof parsed === "object" &&
-            "conclusions" in parsed &&
-            Array.isArray(parsed.conclusions) &&
-            parsed.conclusions.every(
-                (conclusion): conclusion is string =>
-                    typeof conclusion === "string"
-            )
+            "summary" in parsed &&
+            typeof parsed.summary === "string"
         ) {
-            const cleaned = parsed.conclusions
-                .map(cleanConclusionLine)
-                .filter((conclusion) => conclusion.length > 0)
-                .slice(0, SECTION_DESCRIPTION_EXPANDED_MAX_CONCLUSIONS);
-            return cleaned.length > 0 ? cleaned : null;
+            rawSummary = parsed.summary;
         }
     } catch {
-        // Not valid JSON — attempt to parse as a plain bullet list.
+        // Not valid JSON — keep treating it as markdown.
     }
 
-    const lines = value
+    const cleaned = rawSummary
+        .replace(MARKDOWN_CODE_FENCE_PATTERN, "")
         .split("\n")
-        .map(cleanConclusionLine)
+        .map((line) => line.trimEnd())
         .filter((line) => line.length > 0)
-        .slice(0, SECTION_DESCRIPTION_EXPANDED_MAX_CONCLUSIONS);
+        .join("\n")
+        .trim();
 
-    return lines.length > 0 ? lines : null;
+    if (cleaned.length === 0) {
+        return null;
+    }
+
+    if (cleaned.length <= SECTION_DESCRIPTION_EXPANDED_RESPONSE_MAX_LENGTH) {
+        return cleaned;
+    }
+
+    return `${cleaned
+        .slice(0, SECTION_DESCRIPTION_EXPANDED_RESPONSE_MAX_LENGTH - 3)
+        .trimEnd()}...`;
 }

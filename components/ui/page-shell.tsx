@@ -10,7 +10,7 @@ export function PageShell({
         <Comp
             {...props}
             className={cn(
-                "isolate z-0 mx-auto flex size-full min-h-screen flex-col leading-snug tracking-tight outline-hidden [-webkit-user-drag:none] focus-visible:outline-hidden",
+                "isolate z-0 mx-auto flex size-full min-h-screen flex-col overscroll-none leading-snug tracking-tight outline-hidden [-webkit-user-drag:none] focus-visible:outline-hidden",
                 className
             )}
             id="main"
