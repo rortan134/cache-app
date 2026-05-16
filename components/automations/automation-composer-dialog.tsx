@@ -1,5 +1,6 @@
 "use client";
 
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -15,7 +16,6 @@ import {
 } from "@/components/ui/combobox";
 import {
     Dialog,
-    DialogClose,
     DialogFooter,
     DialogHeader,
     DialogPanel,
@@ -24,135 +24,277 @@ import {
     DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { cn } from "@/lib/common/cn";
-import { createLogger } from "@/lib/common/logs/console/logger";
+import { Textarea } from "@/components/ui/textarea";
+import {
+    createAutomation,
+    resumeAutomation,
+    updateAutomation,
+} from "@/lib/collections/intelligence/automations/actions";
 import AppIconSmall from "@/public/cache-icon-small.png";
 import { useStableCallback } from "@base-ui/utils/useStableCallback";
 import {
-    LexicalComposer,
-    type InitialConfigType,
-} from "@lexical/react/LexicalComposer";
-import { ContentEditable } from "@lexical/react/LexicalContentEditable";
-import { LexicalErrorBoundary } from "@lexical/react/LexicalErrorBoundary";
-import { OnChangePlugin } from "@lexical/react/LexicalOnChangePlugin";
-import { PlainTextPlugin } from "@lexical/react/LexicalPlainTextPlugin";
-import { $createParagraphNode, $createTextNode, $getRoot } from "lexical";
-import {
+    CalendarDays,
     ChevronDown,
     ChevronRight,
     Clock,
     FolderOpen,
+    Lightbulb,
+    Pencil,
     Plus,
 } from "lucide-react";
+import { parseDate } from "chrono-node";
+import { useLocale } from "gt-next";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import * as React from "react";
 
-const SCHEDULE_OPTIONS: ScheduleOption[] = [
-    {
-        label: "Daily",
-        value: "daily",
-    },
-    {
-        label: "Weekly",
-        value: "weekly",
-    },
-    {
-        label: "Monthly",
-        value: "monthly",
-    },
+const ALL_LIBRARY_COLLECTION_ID = "all_library";
+const AUTOMATION_OPTION_TRIGGER_CLASS_NAME =
+    "max-w-full min-w-0 justify-start gap-0 overflow-hidden";
+const DEFAULT_TIME_OF_DAY_MINUTES = 9 * 60;
+const DEFAULT_WEEK_DAY = 1;
+const DEFAULT_MONTH_DAY = 1;
+const DEFAULT_WEEK_DAY_OPTION: WeekDayOption = {
+    label: "Monday",
+    value: DEFAULT_WEEK_DAY,
+};
+const DEFAULT_MONTH_DAY_OPTION: MonthDayOption = {
+    label: "1st",
+    value: DEFAULT_MONTH_DAY,
+};
+const WEEK_DAYS: WeekDayOption[] = [
+    { label: "Sunday", value: 0 },
+    DEFAULT_WEEK_DAY_OPTION,
+    { label: "Tuesday", value: 2 },
+    { label: "Wednesday", value: 3 },
+    { label: "Thursday", value: 4 },
+    { label: "Friday", value: 5 },
+    { label: "Saturday", value: 6 },
 ];
-
-const DEFAULT_SCHEDULE_OPTION: ScheduleOption = {
+const CADENCE_OPTIONS: CadenceOption[] = [
+    { label: "Daily", value: "daily" },
+    { label: "Weekly", value: "weekly" },
+    { label: "Monthly", value: "monthly" },
+];
+const MONTH_DAY_OPTIONS: MonthDayOption[] = Array.from(
+    { length: 31 },
+    (_, index) => {
+        const value = index + 1;
+        if (value === DEFAULT_MONTH_DAY_OPTION.value) {
+            return DEFAULT_MONTH_DAY_OPTION;
+        }
+        return {
+            label: getMonthDayLabel(value),
+            value,
+        };
+    }
+);
+const DEFAULT_CADENCE_OPTION: CadenceOption = {
     label: "Weekly",
     value: "weekly",
 };
-
-const NO_COLLECTION_OPTION: WorkflowCollectionOption = {
-    id: "all",
-    name: "Any collection",
+const ALL_LIBRARY_OPTION: AutomationCollectionOption = {
+    id: ALL_LIBRARY_COLLECTION_ID,
+    name: "All library",
 };
-const log = createLogger("workflow:composer-dialog");
 
-interface ScheduleOption {
+type AutomationCadence = "daily" | "weekly" | "monthly";
+type AutomationPayloadScope = "all_library_items" | "collection";
+type AutomationStatus = "active" | "paused";
+
+interface CadenceOption {
     label: string;
-    value: "daily" | "weekly" | "monthly";
+    value: AutomationCadence;
 }
 
-export interface WorkflowCollectionOption {
+interface WeekDayOption {
+    label: string;
+    value: number;
+}
+
+interface MonthDayOption {
+    label: string;
+    value: number;
+}
+
+interface TimeOfDayOption {
+    label: string;
+    value: string;
+}
+
+export interface AutomationCollectionOption {
     id: string;
     name: string;
 }
 
-export interface WorkflowComposerWorkflow {
+export interface AutomationComposerAutomation {
+    cadence: AutomationCadence;
     collectionId?: string;
-    description: string;
-    schedule: ScheduleOption["value"];
+    id: string;
+    monthDay?: number;
+    payloadScope: AutomationPayloadScope;
+    prompt: string;
+    status: AutomationStatus;
+    timeOfDayMinutes: number;
+    timezone: string;
     title: string;
+    weekDay?: number;
 }
 
-export function WorkflowComposerDialog({
+interface AutomationFormState {
+    cadence: CadenceOption;
+    collection: AutomationCollectionOption;
+    errorMessage: string | null;
+    monthDay: number;
+    prompt: string;
+    timeValue: string;
+    title: string;
+    weekDay: number;
+}
+
+export function AutomationComposerDialog({
+    automation,
     children,
     collections,
     trigger,
-    workflow,
-}: WorkflowComposerDialogProps) {
+}: AutomationComposerDialogProps) {
+    const router = useRouter();
+    const locale = useLocale();
     const titleId = React.useId();
+    const promptId = React.useId();
     const collectionId = React.useId();
-    const instructionsId = React.useId();
-    const scheduleId = React.useId();
-    const [open, setOpen] = React.useState(false);
-    const [editorKey, setEditorKey] = React.useState(0);
-    const [title, setTitle] = React.useState(() => workflow?.title ?? "");
-    const [markdown, setMarkdown] = React.useState(
-        () => workflow?.description ?? ""
+    const cadenceId = React.useId();
+    const timeId = React.useId();
+    const weekDayId = React.useId();
+    const monthDayId = React.useId();
+    const [isOpen, setIsOpen] = React.useState(false);
+    const [isPending, startTransition] = React.useTransition();
+    const [formState, setFormState] = React.useState<AutomationFormState>(() =>
+        getInitialFormState(automation, collections)
     );
-    const collectionOptions = [NO_COLLECTION_OPTION, ...collections];
-    const [collection, setCollection] =
-        React.useState<WorkflowCollectionOption>(() =>
-            getCollectionOption(collectionOptions, workflow?.collectionId)
-        );
-    const [schedule, setSchedule] = React.useState<ScheduleOption>(() =>
-        getScheduleOption(workflow?.schedule)
-    );
-    const isEditing = workflow !== undefined;
+    const isEditing = automation !== undefined;
+    const shouldResumeAfterSave = automation?.status === "paused";
+    const triggerLabel = getTriggerLabel(automation);
+    const submitLabel = getSubmitLabel({
+        isEditing,
+        shouldResumeAfterSave,
+    });
+    const timeOptions = getTimeOfDayOptions(locale);
 
     const handleOpenChange = useStableCallback((nextOpen: boolean) => {
         if (nextOpen) {
-            setTitle(workflow?.title ?? "");
-            setMarkdown(workflow?.description ?? "");
-            setCollection(
-                getCollectionOption(collectionOptions, workflow?.collectionId)
-            );
-            setSchedule(getScheduleOption(workflow?.schedule));
-            setEditorKey((currentEditorKey) => currentEditorKey + 1);
+            setFormState(getInitialFormState(automation, collections));
         }
-        setOpen(nextOpen);
+        setIsOpen(nextOpen);
     });
+
+    const updateFormState = useStableCallback(
+        (nextState: Partial<AutomationFormState>) => {
+            setFormState((currentState) => ({
+                ...currentState,
+                ...nextState,
+                errorMessage: null,
+            }));
+        }
+    );
 
     const handleSubmit = useStableCallback(
         (event: React.ChangeEvent<HTMLFormElement>) => {
             event.preventDefault();
-            setOpen(false);
-            if (!isEditing) {
-                setTitle("");
-                setMarkdown("");
-                setCollection(NO_COLLECTION_OPTION);
-                setSchedule(DEFAULT_SCHEDULE_OPTION);
-            }
+            startTransition(async () => {
+                const isAllLibraryPayload =
+                    formState.collection.id === ALL_LIBRARY_COLLECTION_ID;
+
+                const payloadScope: AutomationPayloadScope = isAllLibraryPayload
+                    ? "all_library_items"
+                    : "collection";
+
+                const timezone =
+                    automation?.timezone ??
+                    Intl.DateTimeFormat().resolvedOptions().timeZone ??
+                    "UTC";
+
+                const input = {
+                    collectionId: isAllLibraryPayload
+                        ? null
+                        : formState.collection.id,
+                    payloadScope,
+                    prompt: formState.prompt,
+                    schedule: {
+                        cadence: formState.cadence.value,
+                        monthDay:
+                            formState.cadence.value === "monthly"
+                                ? formState.monthDay
+                                : null,
+                        timeOfDayMinutes: parseTimeOfDayMinutes(
+                            formState.timeValue
+                        ),
+                        timezone,
+                        weekDay:
+                            formState.cadence.value === "weekly"
+                                ? formState.weekDay
+                                : null,
+                    },
+                    title: formState.title,
+                };
+
+                const result = isEditing
+                    ? await updateAutomation({
+                          automation: input,
+                          automationId: automation.id,
+                      })
+                    : await createAutomation(input);
+
+                if (result.status !== "SUCCESS") {
+                    setFormState((currentState) => ({
+                        ...currentState,
+                        errorMessage: result.message,
+                    }));
+                    return;
+                }
+
+                if (isEditing && shouldResumeAfterSave) {
+                    const resumeResult = await resumeAutomation({
+                        automationId: automation.id,
+                        schedule: input.schedule,
+                    });
+
+                    if (resumeResult.status !== "SUCCESS") {
+                        setFormState((currentState) => ({
+                            ...currentState,
+                            errorMessage: resumeResult.message,
+                        }));
+
+                        return;
+                    }
+                }
+
+                setIsOpen(false);
+                setFormState(getInitialFormState(undefined, collections));
+                router.refresh();
+            });
         }
     );
 
     return (
-        <Dialog onOpenChange={handleOpenChange} open={open}>
+        <Dialog onOpenChange={handleOpenChange} open={isOpen}>
             <DialogTrigger render={trigger ?? <Button size="sm" />}>
                 {children ?? (
                     <>
-                        <Plus
-                            aria-hidden
-                            className="size-4"
-                            focusable="false"
-                        />
-                        Create workflow
+                        {isEditing ? (
+                            <Pencil
+                                aria-hidden
+                                className="size-4"
+                                focusable="false"
+                            />
+                        ) : (
+                            <Plus
+                                aria-hidden
+                                className="size-4"
+                                focusable="false"
+                            />
+                        )}
+                        {triggerLabel}
                     </>
                 )}
             </DialogTrigger>
@@ -171,7 +313,7 @@ export function WorkflowComposerDialog({
                             </Badge>
                             <ChevronRight className="inline-block size-3.5 shrink-0" />
                             <DialogTitle className="font-medium text-sm">
-                                Workflow
+                                Automation
                             </DialogTitle>
                         </div>
                     </DialogHeader>
@@ -188,69 +330,145 @@ export function WorkflowComposerDialog({
                                 className="-mx-[calc(--spacing(3)-1px)] font-semibold text-xl"
                                 id={titleId}
                                 onChange={(event) =>
-                                    setTitle(event.target.value)
+                                    updateFormState({
+                                        title: event.currentTarget.value,
+                                    })
                                 }
-                                placeholder="Summarize AI research"
+                                placeholder="Weekly research digest"
                                 required
                                 size="lg"
                                 type="text"
                                 unstyled
-                                value={title}
+                                value={formState.title}
                             />
                         </div>
                         <div>
-                            <span
+                            <label
                                 className="sr-only font-medium text-sm"
-                                id={instructionsId}
+                                htmlFor={promptId}
                             >
                                 Instructions
-                            </span>
-                            <WorkflowMarkdownEditor
-                                editorKey={editorKey}
-                                initialValue={markdown}
-                                labelId={instructionsId}
-                                onChange={setMarkdown}
+                            </label>
+                            <Textarea
+                                className="-mx-[calc(--spacing(3)-1px)] *:resize-none"
+                                id={promptId}
+                                onChange={(event) =>
+                                    updateFormState({
+                                        prompt: event.currentTarget.value,
+                                    })
+                                }
+                                placeholder="Summarize the most useful saved items and call out patterns worth revisiting."
+                                required
+                                rows={6}
+                                size="lg"
+                                unstyled
+                                value={formState.prompt}
                             />
                         </div>
-                    </DialogPanel>
-                    <DialogFooter className="items-center justify-between">
-                        <div className="mr-auto flex flex-wrap items-center gap-1">
+                        <div className="grid gap-2">
                             <span
                                 className="sr-only font-medium text-sm"
                                 id={collectionId}
                             >
                                 Collection
                             </span>
-                            <WorkflowCollectionCombobox
+                            <AutomationCollectionCombobox
                                 labelId={collectionId}
-                                onValueChange={setCollection}
-                                options={collectionOptions}
-                                value={collection}
+                                onValueChange={(collection) =>
+                                    updateFormState({ collection })
+                                }
+                                options={[ALL_LIBRARY_OPTION, ...collections]}
+                                value={formState.collection}
                             />
+                        </div>
+                        <div className="grid gap-2">
                             <span
                                 className="sr-only font-medium text-sm"
-                                id={scheduleId}
+                                id={cadenceId}
                             >
-                                Schedule
+                                Cadence
                             </span>
-                            <WorkflowScheduleCombobox
-                                labelId={scheduleId}
-                                onValueChange={setSchedule}
-                                value={schedule}
+                            <AutomationCadenceCombobox
+                                labelId={cadenceId}
+                                onValueChange={(cadence) =>
+                                    updateFormState({ cadence })
+                                }
+                                value={formState.cadence}
                             />
                         </div>
-                        <div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center">
-                            <DialogClose
-                                render={<Button size="sm" variant="ghost" />}
+                        <div className="grid gap-2">
+                            <span
+                                className="sr-only font-medium text-sm"
+                                id={timeId}
                             >
-                                Cancel
-                            </DialogClose>
-                            <Button disabled size="sm" type="submit">
-                                {isEditing
-                                    ? "Save workflow"
-                                    : "Create workflow"}
-                            </Button>
+                                Local time
+                            </span>
+                            <AutomationTimeCombobox
+                                labelId={timeId}
+                                onValueChange={(timeValue) =>
+                                    updateFormState({ timeValue })
+                                }
+                                options={timeOptions}
+                                value={getTimeOfDayOption(
+                                    timeOptions,
+                                    formState.timeValue
+                                )}
+                            />
                         </div>
+                        {formState.cadence.value === "weekly" ? (
+                            <div className="grid gap-2">
+                                <span
+                                    className="sr-only font-medium text-sm"
+                                    id={weekDayId}
+                                >
+                                    Weekday
+                                </span>
+                                <AutomationWeekDayCombobox
+                                    labelId={weekDayId}
+                                    onValueChange={(weekDay) =>
+                                        updateFormState({ weekDay })
+                                    }
+                                    value={getWeekDayOption(formState.weekDay)}
+                                />
+                            </div>
+                        ) : null}
+                        {formState.cadence.value === "monthly" ? (
+                            <div>
+                                <span
+                                    className="sr-only font-medium text-sm"
+                                    id={monthDayId}
+                                >
+                                    Month day
+                                </span>
+                                <AutomationMonthDayCombobox
+                                    labelId={monthDayId}
+                                    onValueChange={(monthDay) =>
+                                        updateFormState({ monthDay })
+                                    }
+                                    value={getMonthDayOption(
+                                        formState.monthDay
+                                    )}
+                                />
+                            </div>
+                        ) : null}
+                        {formState.errorMessage ? (
+                            <p className="text-destructive text-sm leading-6">
+                                {formState.errorMessage}
+                            </p>
+                        ) : null}
+                        <Alert>
+                            <Lightbulb />
+                            <AlertDescription>
+                                Automations help you streamline repetitive tasks
+                                and processes. Set them up to save time and
+                                ensure things run smoothly.
+                            </AlertDescription>
+                        </Alert>
+                    </DialogPanel>
+                    <DialogFooter>
+                        <Button loading={isPending} size="sm" type="submit">
+                            {submitLabel}
+                        </Button>
                     </DialogFooter>
                 </form>
             </DialogPopup>
@@ -258,88 +476,23 @@ export function WorkflowComposerDialog({
     );
 }
 
-interface WorkflowComposerDialogProps {
+interface AutomationComposerDialogProps {
+    automation?: AutomationComposerAutomation;
     children?: React.ReactNode;
-    collections: WorkflowCollectionOption[];
+    collections: AutomationCollectionOption[];
     trigger?: React.ReactElement;
-    workflow?: WorkflowComposerWorkflow;
 }
 
-function WorkflowMarkdownEditor({
-    editorKey,
-    initialValue,
-    labelId,
-    onChange,
-}: WorkflowMarkdownEditorProps) {
-    const initialConfig: InitialConfigType = {
-        editorState: () => {
-            if (!initialValue) {
-                return;
-            }
-
-            const root = $getRoot();
-            root.clear();
-            const paragraph = $createParagraphNode();
-            paragraph.append($createTextNode(initialValue));
-            root.append(paragraph);
-        },
-        namespace: "cache-workflow-composer",
-        onError(error: Error) {
-            log.error("Unexpected workflow composer editor error", error);
-        },
-    };
-
-    return (
-        <LexicalComposer initialConfig={initialConfig} key={editorKey}>
-            <div className="relative min-h-48 text-base sm:text-sm">
-                <PlainTextPlugin
-                    contentEditable={
-                        <ContentEditable
-                            aria-label="Workflow instructions"
-                            aria-labelledby={labelId}
-                            className={cn(
-                                "min-h-48 whitespace-pre-wrap text-foreground leading-7 outline-none",
-                                "placeholder:text-muted-foreground/72"
-                            )}
-                        />
-                    }
-                    ErrorBoundary={LexicalErrorBoundary}
-                    placeholder={
-                        <div className="pointer-events-none absolute inset-x-0 top-0 text-muted-foreground/72">
-                            Write markdown instructions...
-                        </div>
-                    }
-                />
-                <OnChangePlugin
-                    ignoreSelectionChange
-                    onChange={(editorState) => {
-                        editorState.read(() => {
-                            onChange($getRoot().getTextContent());
-                        });
-                    }}
-                />
-            </div>
-        </LexicalComposer>
-    );
-}
-
-interface WorkflowMarkdownEditorProps {
-    editorKey: number;
-    initialValue: string;
-    labelId: string;
-    onChange: (value: string) => void;
-}
-
-function WorkflowCollectionCombobox({
+function AutomationCollectionCombobox({
     labelId,
     onValueChange,
     options,
     value,
-}: WorkflowCollectionComboboxProps) {
+}: AutomationCollectionComboboxProps) {
     const [isOpen, setIsOpen] = React.useState(false);
 
     return (
-        <Combobox<WorkflowCollectionOption>
+        <Combobox<AutomationCollectionOption>
             autoHighlight
             items={options}
             itemToStringLabel={(option) => option.name}
@@ -359,24 +512,25 @@ function WorkflowCollectionCombobox({
                 render={
                     <Button
                         aria-labelledby={labelId}
+                        className={AUTOMATION_OPTION_TRIGGER_CLASS_NAME}
                         size="xs"
                         variant="ghost"
                     />
                 }
             >
-                <span className="flex items-center gap-2">
-                    <FolderOpen
-                        aria-hidden
-                        className="size-3.5 text-muted-foreground"
-                        focusable="false"
-                    />
+                <FolderOpen
+                    aria-hidden
+                    className="size-3.5 text-muted-foreground"
+                    focusable="false"
+                />
+                <span className="mx-0.5 min-w-0 truncate">
                     <ComboboxValue />
-                    <ChevronDown
-                        aria-hidden
-                        className="size-3.5"
-                        focusable="false"
-                    />
                 </span>
+                <ChevronDown
+                    aria-hidden
+                    className="size-3.5"
+                    focusable="false"
+                />
             </ComboboxTrigger>
             <ComboboxPopup>
                 <ComboboxInput
@@ -386,7 +540,7 @@ function WorkflowCollectionCombobox({
                 <ComboboxEmpty>No matching collections</ComboboxEmpty>
                 <ComboboxList>
                     <ComboboxCollection>
-                        {(collectionOption: WorkflowCollectionOption) => (
+                        {(collectionOption: AutomationCollectionOption) => (
                             <ComboboxItem
                                 key={collectionOption.id}
                                 showIndicatorLast
@@ -402,32 +556,32 @@ function WorkflowCollectionCombobox({
     );
 }
 
-interface WorkflowCollectionComboboxProps {
+interface AutomationCollectionComboboxProps {
     labelId: string;
-    onValueChange: (value: WorkflowCollectionOption) => void;
-    options: WorkflowCollectionOption[];
-    value: WorkflowCollectionOption;
+    onValueChange: (value: AutomationCollectionOption) => void;
+    options: AutomationCollectionOption[];
+    value: AutomationCollectionOption;
 }
 
-function WorkflowScheduleCombobox({
+function AutomationCadenceCombobox({
     labelId,
     onValueChange,
     value,
-}: WorkflowScheduleComboboxProps) {
+}: AutomationCadenceComboboxProps) {
     const [isOpen, setIsOpen] = React.useState(false);
 
     return (
-        <Combobox<ScheduleOption>
+        <Combobox<CadenceOption>
             autoHighlight
-            items={SCHEDULE_OPTIONS}
+            items={CADENCE_OPTIONS}
             itemToStringLabel={(option) => option.label}
             itemToStringValue={(option) => option.value}
             onOpenChange={setIsOpen}
-            onValueChange={(nextSchedule) => {
-                if (!nextSchedule) {
+            onValueChange={(nextCadence) => {
+                if (!nextCadence) {
                     return;
                 }
-                onValueChange(nextSchedule);
+                onValueChange(nextCadence);
                 setIsOpen(false);
             }}
             open={isOpen}
@@ -437,40 +591,46 @@ function WorkflowScheduleCombobox({
                 render={
                     <Button
                         aria-labelledby={labelId}
+                        className={AUTOMATION_OPTION_TRIGGER_CLASS_NAME}
                         size="xs"
                         variant="ghost"
                     />
                 }
             >
-                <span className="flex items-center gap-2">
-                    <Clock
-                        aria-hidden
-                        className="size-3.5 text-muted-foreground"
-                        focusable="false"
-                    />
+                <CalendarDays
+                    aria-hidden
+                    className="size-3.5 text-muted-foreground"
+                    focusable="false"
+                />
+                <span className="mx-0.5 min-w-0 truncate">
                     <ComboboxValue />
-                    <ChevronDown
-                        aria-hidden
-                        className="size-3.5"
-                        focusable="false"
-                    />
                 </span>
+                <ChevronDown
+                    aria-hidden
+                    className="size-3.5"
+                    focusable="false"
+                />
             </ComboboxTrigger>
             <ComboboxPopup>
                 <ComboboxInput
-                    aria-label="Search schedules"
-                    placeholder="Select schedule..."
+                    aria-label="Search cadences"
+                    placeholder="Select cadence..."
                 />
-                <ComboboxEmpty>No matching schedules</ComboboxEmpty>
+                <ComboboxEmpty>No matching cadences</ComboboxEmpty>
                 <ComboboxList>
                     <ComboboxCollection>
-                        {(scheduleOption: ScheduleOption) => (
+                        {(cadenceOption: CadenceOption) => (
                             <ComboboxItem
-                                key={scheduleOption.value}
+                                key={cadenceOption.value}
                                 showIndicatorLast
-                                value={scheduleOption}
+                                value={cadenceOption}
                             >
-                                {scheduleOption.label}
+                                <CalendarDays
+                                    aria-hidden
+                                    className="size-4 text-muted-foreground"
+                                    focusable="false"
+                                />
+                                {cadenceOption.label}
                             </ComboboxItem>
                         )}
                     </ComboboxCollection>
@@ -480,25 +640,451 @@ function WorkflowScheduleCombobox({
     );
 }
 
-interface WorkflowScheduleComboboxProps {
+interface AutomationCadenceComboboxProps {
     labelId: string;
-    onValueChange: (value: ScheduleOption) => void;
-    value: ScheduleOption;
+    onValueChange: (value: CadenceOption) => void;
+    value: CadenceOption;
 }
 
-function getScheduleOption(value: ScheduleOption["value"] | undefined) {
+function AutomationTimeCombobox({
+    labelId,
+    onValueChange,
+    options,
+    value,
+}: AutomationTimeComboboxProps) {
+    const [isOpen, setIsOpen] = React.useState(false);
+    const [inputValue, setInputValue] = React.useState(value.label);
+
+    React.useEffect(() => {
+        setInputValue(value.label);
+    }, [value.label]);
+
+    const handleComplete = useStableCallback((selectedLabel: string) => {
+        const exactOption = getTimeOfDayOptionByLabel(options, selectedLabel);
+        if (exactOption) {
+            onValueChange(exactOption.value);
+            setInputValue(exactOption.label);
+            setIsOpen(false);
+            return;
+        }
+
+        const parsedDate = parseDate(selectedLabel);
+        if (!parsedDate) {
+            setInputValue(value.label);
+            return;
+        }
+
+        const roundedValue = formatTimeValue(
+            roundTimeOfDayMinutes(
+                parsedDate.getHours() * 60 + parsedDate.getMinutes()
+            )
+        );
+        const roundedOption = getTimeOfDayOption(options, roundedValue);
+        onValueChange(roundedOption.value);
+        setInputValue(roundedOption.label);
+        setIsOpen(false);
+    });
+
     return (
-        SCHEDULE_OPTIONS.find((option) => option.value === value) ??
-        DEFAULT_SCHEDULE_OPTION
+        <Combobox<TimeOfDayOption>
+            autoHighlight
+            inputValue={inputValue}
+            items={options}
+            itemToStringLabel={(option) => option.label}
+            itemToStringValue={(option) => option.value}
+            onInputValueChange={(nextInputValue) => {
+                setInputValue(nextInputValue);
+            }}
+            onOpenChange={setIsOpen}
+            onValueChange={(nextTime) => {
+                if (!nextTime) {
+                    return;
+                }
+                handleComplete(nextTime.label);
+            }}
+            open={isOpen}
+            value={value}
+        >
+            <ComboboxTrigger
+                render={
+                    <Button
+                        aria-labelledby={labelId}
+                        className={AUTOMATION_OPTION_TRIGGER_CLASS_NAME}
+                        size="xs"
+                        variant="ghost"
+                    />
+                }
+            >
+                <Clock
+                    aria-hidden
+                    className="size-3.5 text-muted-foreground"
+                    focusable="false"
+                />
+                <span className="mx-0.5 min-w-0 truncate tabular-nums">
+                    <ComboboxValue />
+                </span>
+                <ChevronDown
+                    aria-hidden
+                    className="size-3.5"
+                    focusable="false"
+                />
+            </ComboboxTrigger>
+            <ComboboxPopup>
+                <ComboboxInput
+                    aria-label="Search times"
+                    onKeyDown={(event) => {
+                        if (event.key === "Enter") {
+                            handleComplete(inputValue);
+                        }
+                    }}
+                    placeholder="Select time..."
+                />
+                <ComboboxEmpty>No matching times</ComboboxEmpty>
+                <ComboboxList>
+                    <ComboboxCollection>
+                        {(timeOption: TimeOfDayOption) => (
+                            <ComboboxItem
+                                className="tabular-nums"
+                                key={timeOption.value}
+                                showIndicatorLast
+                                value={timeOption}
+                            >
+                                {timeOption.label}
+                            </ComboboxItem>
+                        )}
+                    </ComboboxCollection>
+                </ComboboxList>
+            </ComboboxPopup>
+        </Combobox>
     );
+}
+
+interface AutomationTimeComboboxProps {
+    labelId: string;
+    onValueChange: (value: string) => void;
+    options: TimeOfDayOption[];
+    value: TimeOfDayOption;
+}
+
+function AutomationWeekDayCombobox({
+    labelId,
+    onValueChange,
+    value,
+}: AutomationWeekDayComboboxProps) {
+    const [isOpen, setIsOpen] = React.useState(false);
+
+    return (
+        <Combobox<WeekDayOption>
+            autoHighlight
+            items={WEEK_DAYS}
+            itemToStringLabel={(option) => option.label}
+            itemToStringValue={(option) => String(option.value)}
+            onOpenChange={setIsOpen}
+            onValueChange={(nextWeekDay) => {
+                if (!nextWeekDay) {
+                    return;
+                }
+                onValueChange(nextWeekDay.value);
+                setIsOpen(false);
+            }}
+            open={isOpen}
+            value={value}
+        >
+            <ComboboxTrigger
+                render={
+                    <Button
+                        aria-labelledby={labelId}
+                        className={AUTOMATION_OPTION_TRIGGER_CLASS_NAME}
+                        size="xs"
+                        variant="ghost"
+                    />
+                }
+            >
+                <CalendarDays
+                    aria-hidden
+                    className="size-3.5 text-muted-foreground"
+                    focusable="false"
+                />
+                <span className="mx-0.5 min-w-0 truncate">
+                    <ComboboxValue />
+                </span>
+                <ChevronDown
+                    aria-hidden
+                    className="size-3.5"
+                    focusable="false"
+                />
+            </ComboboxTrigger>
+            <ComboboxPopup>
+                <ComboboxInput
+                    aria-label="Search weekdays"
+                    placeholder="Select weekday..."
+                />
+                <ComboboxEmpty>No matching weekdays</ComboboxEmpty>
+                <ComboboxList>
+                    <ComboboxCollection>
+                        {(weekDayOption: WeekDayOption) => (
+                            <ComboboxItem
+                                key={weekDayOption.value}
+                                showIndicatorLast
+                                value={weekDayOption}
+                            >
+                                {weekDayOption.label}
+                            </ComboboxItem>
+                        )}
+                    </ComboboxCollection>
+                </ComboboxList>
+            </ComboboxPopup>
+        </Combobox>
+    );
+}
+
+interface AutomationWeekDayComboboxProps {
+    labelId: string;
+    onValueChange: (value: number) => void;
+    value: WeekDayOption;
+}
+
+function AutomationMonthDayCombobox({
+    labelId,
+    onValueChange,
+    value,
+}: AutomationMonthDayComboboxProps) {
+    const [isOpen, setIsOpen] = React.useState(false);
+
+    return (
+        <Combobox<MonthDayOption>
+            autoHighlight
+            items={MONTH_DAY_OPTIONS}
+            itemToStringLabel={(option) => option.label}
+            itemToStringValue={(option) => String(option.value)}
+            onOpenChange={setIsOpen}
+            onValueChange={(nextMonthDay) => {
+                if (!nextMonthDay) {
+                    return;
+                }
+                onValueChange(nextMonthDay.value);
+                setIsOpen(false);
+            }}
+            open={isOpen}
+            value={value}
+        >
+            <ComboboxTrigger
+                render={
+                    <Button
+                        aria-labelledby={labelId}
+                        className={AUTOMATION_OPTION_TRIGGER_CLASS_NAME}
+                        size="xs"
+                        variant="ghost"
+                    />
+                }
+            >
+                <CalendarDays
+                    aria-hidden
+                    className="size-3.5 text-muted-foreground"
+                    focusable="false"
+                />
+                <span className="mx-0.5 min-w-0 truncate">
+                    <ComboboxValue />
+                </span>
+                <ChevronDown
+                    aria-hidden
+                    className="size-3.5"
+                    focusable="false"
+                />
+            </ComboboxTrigger>
+            <ComboboxPopup>
+                <ComboboxInput
+                    aria-label="Search month days"
+                    placeholder="Select day..."
+                />
+                <ComboboxEmpty>No matching days</ComboboxEmpty>
+                <ComboboxList>
+                    <ComboboxCollection>
+                        {(monthDayOption: MonthDayOption) => (
+                            <ComboboxItem
+                                key={monthDayOption.value}
+                                showIndicatorLast
+                                value={monthDayOption}
+                            >
+                                {monthDayOption.label}
+                            </ComboboxItem>
+                        )}
+                    </ComboboxCollection>
+                </ComboboxList>
+            </ComboboxPopup>
+        </Combobox>
+    );
+}
+
+interface AutomationMonthDayComboboxProps {
+    labelId: string;
+    onValueChange: (value: number) => void;
+    value: MonthDayOption;
+}
+
+function getInitialFormState(
+    automation: AutomationComposerAutomation | undefined,
+    collections: AutomationCollectionOption[]
+): AutomationFormState {
+    return {
+        cadence: getCadenceOption(automation?.cadence),
+        collection: getCollectionOption(collections, automation),
+        errorMessage: null,
+        monthDay: automation?.monthDay ?? DEFAULT_MONTH_DAY,
+        prompt: automation?.prompt ?? "",
+        timeValue: formatTimeValue(
+            automation?.timeOfDayMinutes ?? DEFAULT_TIME_OF_DAY_MINUTES
+        ),
+        title: automation?.title ?? "",
+        weekDay: automation?.weekDay ?? DEFAULT_WEEK_DAY,
+    };
+}
+
+function getTriggerLabel(
+    automation: AutomationComposerAutomation | undefined
+): string {
+    if (!automation) {
+        return "Create automation";
+    }
+    if (automation.status === "active") {
+        return "Edit";
+    }
+    return "Enable";
+}
+
+function getSubmitLabel(args: {
+    isEditing: boolean;
+    shouldResumeAfterSave: boolean;
+}): string {
+    if (!args.isEditing) {
+        return "Create automation";
+    }
+    if (args.shouldResumeAfterSave) {
+        return "Enable automation";
+    }
+    return "Save automation";
 }
 
 function getCollectionOption(
-    options: WorkflowCollectionOption[],
-    collectionId: string | undefined
+    collections: AutomationCollectionOption[],
+    automation: AutomationComposerAutomation | undefined
 ) {
+    if (automation?.payloadScope !== "collection") {
+        return ALL_LIBRARY_OPTION;
+    }
+
     return (
-        options.find((option) => option.id === collectionId) ??
-        NO_COLLECTION_OPTION
+        collections.find(
+            (collection) => collection.id === automation.collectionId
+        ) ?? ALL_LIBRARY_OPTION
     );
+}
+
+function getCadenceOption(cadence: AutomationCadence | undefined) {
+    return (
+        CADENCE_OPTIONS.find((option) => option.value === cadence) ??
+        DEFAULT_CADENCE_OPTION
+    );
+}
+
+function getWeekDayOption(weekDay: number) {
+    return (
+        WEEK_DAYS.find((option) => option.value === weekDay) ??
+        DEFAULT_WEEK_DAY_OPTION
+    );
+}
+
+function getMonthDayOption(monthDay: number) {
+    return (
+        MONTH_DAY_OPTIONS.find((option) => option.value === monthDay) ??
+        DEFAULT_MONTH_DAY_OPTION
+    );
+}
+
+function getTimeOfDayOption(options: TimeOfDayOption[], timeValue: string) {
+    return (
+        options.find((option) => option.value === timeValue) ??
+        getFallbackTimeOfDayOption(timeValue)
+    );
+}
+
+function getTimeOfDayOptionByLabel(options: TimeOfDayOption[], label: string) {
+    const normalizedLabel = label.trim().toLowerCase();
+    return options.find(
+        (option) =>
+            option.label.toLowerCase() === normalizedLabel ||
+            option.value === normalizedLabel
+    );
+}
+
+function getTimeOfDayOptions(locale: string): TimeOfDayOption[] {
+    const shouldUse24HourClock = uses24HourClock(locale);
+    const options: TimeOfDayOption[] = [];
+    for (let hours = 0; hours < 24; hours += 1) {
+        for (let minutes = 0; minutes < 60; minutes += 15) {
+            const value = formatTimeValue(hours * 60 + minutes);
+            options.push({
+                label: formatTimeOfDayLabel({
+                    hours,
+                    minutes,
+                    shouldUse24HourClock,
+                }),
+                value,
+            });
+        }
+    }
+    return options;
+}
+
+function getFallbackTimeOfDayOption(timeValue: string): TimeOfDayOption {
+    return {
+        label: timeValue,
+        value: timeValue,
+    };
+}
+
+function formatTimeValue(timeOfDayMinutes: number): string {
+    const hours = Math.floor(timeOfDayMinutes / 60);
+    const minutes = timeOfDayMinutes % 60;
+    return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
+}
+
+function roundTimeOfDayMinutes(timeOfDayMinutes: number): number {
+    const minutesPerDay = 24 * 60;
+    return (Math.round(timeOfDayMinutes / 15) * 15) % minutesPerDay;
+}
+
+function formatTimeOfDayLabel(args: {
+    hours: number;
+    minutes: number;
+    shouldUse24HourClock: boolean;
+}): string {
+    if (args.shouldUse24HourClock) {
+        return `${String(args.hours).padStart(2, "0")}:${String(args.minutes).padStart(2, "0")}`;
+    }
+
+    const period = args.hours >= 12 ? "PM" : "AM";
+    const displayHours = args.hours % 12 || 12;
+    return `${displayHours}:${String(args.minutes).padStart(2, "0")} ${period}`;
+}
+
+function getMonthDayLabel(monthDay: number): string {
+    const suffix =
+        monthDay >= 11 && monthDay <= 13
+            ? "th"
+            : (["th", "st", "nd", "rd"][monthDay % 10] ?? "th");
+    return `${monthDay}${suffix}`;
+}
+
+function parseTimeOfDayMinutes(timeValue: string): number {
+    const [hours = "0", minutes = "0"] = timeValue.split(":");
+    return Number(hours) * 60 + Number(minutes);
+}
+
+function uses24HourClock(locale?: string): boolean {
+    const hourCycle = new Intl.DateTimeFormat(locale, {
+        hour: "numeric",
+    }).resolvedOptions().hourCycle;
+
+    return hourCycle === "h23" || hourCycle === "h24";
 }

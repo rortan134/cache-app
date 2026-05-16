@@ -1,15 +1,20 @@
 import { buildPageMetadata } from "@/app/metadata";
 import { ApplicationSidebar } from "@/components/application-sidebar";
-import { WorkflowComposerDialog } from "@/components/automations/automation-composer-dialog";
-import { WorkflowsList } from "@/components/automations/automations";
+import { AutomationComposerDialog } from "@/components/automations/automation-composer-dialog";
+import { AutomationsList } from "@/components/automations/automations";
 import { PageShell } from "@/components/ui/page-shell";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { getServerSession } from "@/lib/auth/session";
+import {
+    listAutomationRuns,
+    listAutomations,
+} from "@/lib/collections/intelligence/automations/service";
 import { listCollections } from "@/lib/collections/service";
 import { gtPublicString } from "@/lib/i18n/gt-public-json";
-import { Workflow } from "lucide-react";
+import { Bot } from "lucide-react";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
+import { connection } from "next/server";
 
 export async function generateMetadata({
     params,
@@ -21,17 +26,23 @@ export async function generateMetadata({
     return buildPageMetadata({
         description: gtPublicString(
             locale,
-            "workflows.metadata.description",
+            "automations.metadata.description",
             "Manage lightweight automations that organize and summarize your saved content."
         ),
-        keywords: ["workflows", "automation", "smart collections", "digest"],
+        keywords: ["automation", "smart collections", "digest"],
         locale,
-        path: "/workflows",
-        title: gtPublicString(locale, "workflows.metadata.title", "Workflows"),
+        path: "/automations",
+        title: gtPublicString(
+            locale,
+            "automations.metadata.title",
+            "Automations"
+        ),
     });
 }
 
-export default async function WorkflowsPage() {
+export default async function AutomationsPage() {
+    await connection();
+
     const session = await getServerSession();
     const userId = session?.user?.id;
 
@@ -39,11 +50,28 @@ export default async function WorkflowsPage() {
         return redirect("/");
     }
 
-    const collections = await listCollections({ userId });
-    const workflowCollectionOptions = collections.map((collection) => ({
+    const [automations, collections] = await Promise.all([
+        listAutomations({ userId }),
+        listCollections({ userId }),
+    ]);
+
+    const automationCollectionOptions = collections.map((collection) => ({
         id: collection.id,
         name: collection.name,
     }));
+
+    const runsByAutomationId = Object.fromEntries(
+        await Promise.all(
+            automations.map(async (automation) => [
+                automation.id,
+                await listAutomationRuns({
+                    automationId: automation.id,
+                    limit: 5,
+                    userId,
+                }),
+            ])
+        )
+    );
 
     return (
         <PageShell>
@@ -53,7 +81,7 @@ export default async function WorkflowsPage() {
                     <div className="flex w-full max-w-[1040px] flex-col gap-8 px-6 py-8 sm:px-8 2xl:mx-auto">
                         <header className="flex items-center justify-between gap-4 border-border border-b pb-6">
                             <div className="flex items-center gap-2">
-                                <Workflow
+                                <Bot
                                     aria-hidden
                                     className="size-5"
                                     focusable="false"
@@ -62,12 +90,14 @@ export default async function WorkflowsPage() {
                                     Automations
                                 </h1>
                             </div>
-                            <WorkflowComposerDialog
-                                collections={workflowCollectionOptions}
+                            <AutomationComposerDialog
+                                collections={automationCollectionOptions}
                             />
                         </header>
-                        <WorkflowsList
-                            collections={workflowCollectionOptions}
+                        <AutomationsList
+                            automations={automations}
+                            collections={automationCollectionOptions}
+                            runsByAutomationId={runsByAutomationId}
                         />
                     </div>
                 </SidebarProvider>

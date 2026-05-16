@@ -87,6 +87,18 @@ async function testValidImageResponse(url: string): Promise<boolean> {
         return false;
     }
 
+    /*
+     * In the browser, fetch() to cross-origin URLs is subject to CORS.
+     * Most image CDNs and external hosts do not serve Access-Control-Allow-Origin
+     * headers, so all cross-origin fetches would fail and every URL would be
+     * marked invalid.  <img> elements load cross-origin without CORS, so on
+     * the client we skip HTTP validation and trust the element's native error
+     * handling instead.
+     */
+    if (canUseDOM) {
+        return true;
+    }
+
     try {
         return await withRetry(
             async () => {

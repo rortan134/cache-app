@@ -1,6 +1,7 @@
 import { BASE_URL } from "@/lib/common/constants";
 import { withGTConfig } from "gt-next/config";
 import type { NextConfig } from "next";
+import { withWorkflow } from "workflow/next";
 
 const nextConfig: NextConfig = {
     assetPrefix: process.env.NODE_ENV === "development" ? undefined : BASE_URL,
@@ -147,7 +148,9 @@ const securityHeaders = [
     },
 ] as const;
 
-export default withGTConfig(nextConfig, {
-    experimentalLocaleResolution: true,
-    loadTranslationsPath: "./load-translations.ts",
-});
+export default withWorkflow(
+    withGTConfig(nextConfig, {
+        experimentalLocaleResolution: true,
+        loadTranslationsPath: "./load-translations.ts",
+    })
+);

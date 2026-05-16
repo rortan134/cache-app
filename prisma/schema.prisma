@@ -52,6 +52,42 @@ enum LibraryActivityEventKind {
   source_connected
 }
 
+/// User-authored or first-party scheduled background behavior.
+enum AutomationStatus {
+  active
+  paused
+}
+
+/// Library content boundary available to an automation run.
+enum AutomationPayloadScope {
+  all_library_items
+  collection
+}
+
+/// Preset recurrence pattern interpreted in the automation's timezone.
+enum AutomationCadence {
+  daily
+  weekly
+  monthly
+}
+
+/// First-party automation templates seeded for new users.
+enum AutomationTemplateKey {
+  smart_collections
+  weekly_digest
+}
+
+/// Durable execution state for a single scheduled automation attempt.
+enum AutomationRunStatus {
+  pending
+  starting
+  running
+  succeeded
+  failed
+  skipped
+  canceled
+}
+
 /// Managed by better-auth core, with Cache-specific user preferences added.
 /// Do not rename auth-owned fields; better-auth reads them by convention.
 model User {
@@ -76,6 +112,8 @@ model User {
   libraryItems             LibraryItem[]
   collections              Collection[]
   libraryActivityEvents    LibraryActivityEvent[]
+  automations              Automation[]
+  automationRuns           AutomationRun[]
 
   feedbackEntries Feedback[]
 
@@ -101,6 +139,7 @@ model Collection {
   sharedAt       DateTime?
   items          LibraryItem[]
   activityEvents LibraryActivityEvent[]
+  automations    Automation[]
   createdAt      DateTime               @default(now())
   updatedAt      DateTime               @updatedAt
 
@@ -191,6 +230,77 @@ model LibraryItem {
   @@index([userId, reviewedAt])
   @@index([userId, scrapedAt, updatedAt, reviewedAt])
   @@map("library_item")
+}
+
+/// Scheduled assistant behavior owned by a user. Paused seeded automations may
+/// be unscheduled until the user explicitly enables them.
+model Automation {
+  id                     String                  @id @default(cuid())
+  userId                 String
+  user                   User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  templateKey            AutomationTemplateKey?
+  title                  String
+  prompt                 String
+  status                 AutomationStatus        @default(paused)
+  payloadScope           AutomationPayloadScope  @default(all_library_items)
+  collectionId           String?
+  collection             Collection?             @relation(fields: [collectionId], references: [id], onDelete: SetNull)
+  collectionNameSnapshot String?
+  cadence                AutomationCadence?
+  timezone               String?
+  timeOfDayMinutes       Int?
+  weekDay                Int?
+  monthDay               Int?
+  nextRunAtUtc           DateTime?
+  activatedAtUtc         DateTime?
+  lastRunAtUtc           DateTime?
+  lastSucceededAtUtc     DateTime?
+  lastFailureCode        String?
+  runs                   AutomationRun[]
+  createdAt              DateTime                @default(now())
+  updatedAt              DateTime                @updatedAt
+
+  @@unique([userId, templateKey])
+  @@index([status, nextRunAtUtc])
+  @@index([userId, status])
+  @@index([userId, collectionId])
+  @@map("automation")
+}
+
+/// Immutable record of a scheduled automation occurrence. Output can contain
+/// synthesized user content and is deleted with the owning automation.
+model AutomationRun {
+  id                       String                   @id @default(cuid())
+  automationId             String
+  automation               Automation               @relation(fields: [automationId], references: [id], onDelete: Cascade)
+  userId                   String
+  user                     User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  scheduledForUtc          DateTime
+  status                   AutomationRunStatus      @default(pending)
+  workflowRunId            String?
+  leaseId                  String?
+  leaseExpiresAt           DateTime?
+  startedAt                DateTime?
+  finishedAt               DateTime?
+  summaryMarkdown          String?
+  sources                  Json?
+  usage                    Json?
+  errorCode                String?
+  errorMessage             String?
+  templateKeySnapshot      AutomationTemplateKey?
+  payloadScopeSnapshot     AutomationPayloadScope
+  collectionIdSnapshot     String?
+  collectionNameSnapshot   String?
+  promptSnapshot           String
+  scheduleSnapshot         Json
+  createdAt                DateTime                 @default(now())
+  updatedAt                DateTime                 @updatedAt
+
+  @@unique([automationId, scheduledForUtc])
+  @@index([status, scheduledForUtc])
+  @@index([automationId, createdAt])
+  @@index([userId, createdAt])
+  @@map("automation_run")
 }
 
 /// Managed by better-auth core. Do not rename fields.

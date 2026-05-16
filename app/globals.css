@@ -52,31 +52,6 @@
     --animate-skeleton: skeleton 2s -1s infinite linear;
 }
 
-/* ── Keyframes ── */
-@keyframes skeleton {
-    to {
-        background-position: -200% 0;
-    }
-}
-
-@keyframes marquee {
-    0% {
-        transform: translateX(0);
-    }
-    100% {
-        transform: translateX(var(--animation-distance, -50%));
-    }
-}
-
-@keyframes marquee-vertical {
-    0% {
-        transform: translateY(0);
-    }
-    100% {
-        transform: translateY(var(--animation-distance, -50%));
-    }
-}
-
 /* ── Design tokens (light) ── */
 :root {
     --background: oklch(1 0 0);
@@ -134,87 +109,6 @@
     --success-foreground: var(--color-emerald-400);
     --warning: var(--color-amber-500);
     --warning-foreground: var(--color-amber-400);
-}
-
-/* ── Custom utilities ── */
-@utility overflow-fade-bottom {
-    mask-image: linear-gradient(
-        to top,
-        rgba(0, 0, 0, 0) 50%,
-        rgba(0, 0, 0, 0.5) 65%,
-        #000 140%
-    );
-    @apply overflow-hidden;
-}
-
-@utility overflow-fade-y {
-    mask-image: linear-gradient(
-        to bottom,
-        transparent,
-        #000 10%,
-        #000 90%,
-        transparent
-    );
-    @apply overflow-hidden;
-}
-
-@utility overflow-fade-x {
-    mask-image: linear-gradient(
-        to right,
-        transparent,
-        #000 5%,
-        #000 90%,
-        transparent
-    );
-    @apply overflow-hidden;
-}
-
-@utility overflow-fade-top {
-    mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0) 0%, #000 50%);
-    @apply overflow-hidden;
-}
-
-@utility animate-marquee {
-    animation: marquee var(--duration, 5s) linear infinite;
-}
-
-@utility animate-marquee-vertical {
-    animation: marquee-vertical var(--duration, 5s) linear infinite;
-}
-
-@utility content-auto {
-    contain-intrinsic-size: auto;
-    content-visibility: auto;
-}
-
-@utility squircle {
-    corner-shape: superellipse(1.3);
-    --radius-1: 1.25px;
-    --radius-2: 2.5px;
-    --radius-3: 3.75px;
-    --radius-4: 5px;
-    --radius-6: 7.5px;
-    --radius-8: 10px;
-    --radius-10: 12.5px;
-    --radius-16: 15px;
-}
-
-@utility draggable-ui {
-    -webkit-app-region: drag;
-}
-
-/* ── Component classes ── */
-.skip-to-content {
-    position: absolute;
-    left: -9999px;
-    z-index: 999;
-    padding: 0.5rem 1rem;
-    color: var(--color-background);
-    background: var(--color-foreground);
-}
-
-.skip-to-content:focus {
-    left: 0;
 }
 
 /* ── Base styles ── */
@@ -306,10 +200,116 @@
         -webkit-user-drag: none;
     }
 
-    select,
-    button {
-        cursor: default !important;
+    button:not(:disabled),
+    [role="button"]:not(:disabled) {
+        cursor: pointer;
     }
+}
+
+/* ── Keyframes ── */
+@keyframes skeleton {
+    to {
+        background-position: -200% 0;
+    }
+}
+
+@keyframes marquee {
+    0% {
+        transform: translateX(0);
+    }
+    100% {
+        transform: translateX(var(--animation-distance, -50%));
+    }
+}
+
+@keyframes marquee-vertical {
+    0% {
+        transform: translateY(0);
+    }
+    100% {
+        transform: translateY(var(--animation-distance, -50%));
+    }
+}
+
+/* ── Custom utilities ── */
+@utility overflow-fade-bottom {
+    mask-image: linear-gradient(
+        to top,
+        rgba(0, 0, 0, 0) 50%,
+        rgba(0, 0, 0, 0.5) 65%,
+        #000 140%
+    );
+    @apply overflow-hidden;
+}
+
+@utility overflow-fade-y {
+    mask-image: linear-gradient(
+        to bottom,
+        transparent,
+        #000 10%,
+        #000 90%,
+        transparent
+    );
+    @apply overflow-hidden;
+}
+
+@utility overflow-fade-x {
+    mask-image: linear-gradient(
+        to right,
+        transparent,
+        #000 5%,
+        #000 90%,
+        transparent
+    );
+    @apply overflow-hidden;
+}
+
+@utility overflow-fade-top {
+    mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0) 0%, #000 50%);
+    @apply overflow-hidden;
+}
+
+@utility animate-marquee {
+    animation: marquee var(--duration, 5s) linear infinite;
+}
+
+@utility animate-marquee-vertical {
+    animation: marquee-vertical var(--duration, 5s) linear infinite;
+}
+
+@utility content-auto {
+    contain-intrinsic-size: auto;
+    content-visibility: auto;
+}
+
+@utility squircle {
+    corner-shape: superellipse(1.3);
+    --radius-1: 1.25px;
+    --radius-2: 2.5px;
+    --radius-3: 3.75px;
+    --radius-4: 5px;
+    --radius-6: 7.5px;
+    --radius-8: 10px;
+    --radius-10: 12.5px;
+    --radius-16: 15px;
+}
+
+@utility draggable-ui {
+    -webkit-app-region: drag;
+}
+
+/* ── Component classes ── */
+.skip-to-content {
+    position: absolute;
+    left: -9999px;
+    z-index: 999;
+    padding: 0.5rem 1rem;
+    color: var(--color-background);
+    background: var(--color-foreground);
+}
+
+.skip-to-content:focus {
+    left: 0;
 }
 
 @supports (font-synthesis-weight: none) {

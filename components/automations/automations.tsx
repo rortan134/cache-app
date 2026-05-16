@@ -1,278 +1,352 @@
+"use client";
+
 import {
-    WorkflowComposerDialog,
-    type WorkflowCollectionOption,
-    type WorkflowComposerWorkflow,
+    AutomationComposerDialog,
+    type AutomationCollectionOption,
+    type AutomationComposerAutomation,
 } from "@/components/automations/automation-composer-dialog";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/common/cn";
 import {
-    Bell,
+    deleteAutomation,
+    pauseAutomation,
+    resumeAutomation,
+} from "@/lib/collections/intelligence/automations/actions";
+import type { AutomationListItem } from "@/lib/collections/intelligence/automations/service";
+import { useStableCallback } from "@base-ui/utils/useStableCallback";
+import {
+    Bot,
     CalendarClock,
-    FileOutput,
     FolderSearch,
-    Link2Off,
-    ListChecks,
-    SearchCheck,
-    Tags,
+    Pause,
+    Play,
+    Trash2,
 } from "lucide-react";
-import type * as React from "react";
+import { useRouter } from "next/navigation";
+import * as React from "react";
 
-const DEFAULT_WORKFLOWS: WorkflowDefinition[] = [
-    {
-        description:
-            "Automatically groups saved items into useful collections as your library grows.",
-        Icon: FolderSearch,
-        id: "smart-collections",
-        isEnabled: true,
-        schedule: "daily",
-        title: "Smart collections",
-    },
-    {
-        description:
-            "Packages the week's most relevant saves into a focused review.",
-        Icon: CalendarClock,
-        id: "weekly-digest",
-        isEnabled: true,
-        schedule: "weekly",
-        title: "Weekly digest",
-    },
-];
+type AutomationRunListItem = Awaited<
+    ReturnType<
+        typeof import("@/lib/collections/intelligence/automations/service").listAutomationRuns
+    >
+>[number];
 
-const COMING_SOON_WORKFLOWS: WorkflowDefinition[] = [
-    {
-        description:
-            "Finds duplicate saves and keeps the clearest copy attached to every collection.",
-        Icon: SearchCheck,
-        id: "duplicate-cleanup",
-        isEnabled: false,
-        schedule: "weekly",
-        title: "Duplicate cleanup",
-    },
-    {
-        description:
-            "Checks saved links for stale, redirected, or unavailable pages before you need them.",
-        Icon: Link2Off,
-        id: "link-health-monitor",
-        isEnabled: false,
-        schedule: "monthly",
-        title: "Link health monitor",
-    },
-    {
-        description:
-            "Sends chosen collections, notes, and summaries into Notion on a recurring schedule.",
-        Icon: FileOutput,
-        id: "notion-handoff",
-        isEnabled: false,
-        schedule: "weekly",
-        title: "Notion handoff",
-    },
-    {
-        description:
-            "Builds a short queue from high-signal saves you have not opened yet.",
-        Icon: ListChecks,
-        id: "reading-queue",
-        isEnabled: false,
-        schedule: "daily",
-        title: "Reading queue",
-    },
-    {
-        description:
-            "Applies consistent tags from source, topic, and intent so search keeps getting sharper.",
-        Icon: Tags,
-        id: "auto-tagging",
-        isEnabled: false,
-        schedule: "daily",
-        title: "Auto tagging",
-    },
-    {
-        description:
-            "Notifies you when a new save matches topics, people, or projects you care about.",
-        Icon: Bell,
-        id: "topic-alerts",
-        isEnabled: false,
-        schedule: "daily",
-        title: "Topic alerts",
-    },
-];
+const TEMPLATE_ICON = {
+    smart_collections: FolderSearch,
+    weekly_digest: CalendarClock,
+} as const;
 
-type WorkflowIcon = React.ComponentType<React.SVGProps<SVGSVGElement>>;
-
-interface WorkflowDefinition extends WorkflowComposerWorkflow {
-    description: string;
-    Icon: WorkflowIcon;
-    id: string;
-    isEnabled: boolean;
-    title: string;
-}
-
-export function WorkflowsList({ collections }: WorkflowsListProps) {
-    return (
-        <div className="flex flex-col gap-8">
-            <WorkflowsListSection
-                collections={collections}
-                description="Lightweight automations that keep saved content moving."
-                title="Available"
-                workflows={DEFAULT_WORKFLOWS}
-            />
-            <WorkflowsListSection
-                canEdit={false}
-                cardClassName="opacity-50"
-                collections={collections}
-                description="More ways to clean up, route, and rediscover the things you save."
-                title="Coming soon"
-                workflows={COMING_SOON_WORKFLOWS}
-            />
-        </div>
-    );
-}
-
-interface WorkflowsListProps {
-    collections: WorkflowCollectionOption[];
-}
-
-function WorkflowsListSection({
-    canEdit = true,
-    cardClassName,
+export function AutomationsList({
+    automations,
     collections,
-    description,
-    title,
-    workflows,
-}: WorkflowsListSectionProps) {
-    return (
-        <section className="flex flex-col gap-4">
-            <WorkflowsListHeader description={description} title={title} />
-            <div className="grid gap-3 md:grid-cols-2">
-                {workflows.map((workflow) => (
-                    <WorkflowCard
-                        canEdit={canEdit}
-                        className={cardClassName}
-                        collections={collections}
-                        key={workflow.id}
-                        workflow={workflow}
-                    />
-                ))}
-            </div>
-        </section>
-    );
-}
-
-interface WorkflowsListSectionProps {
-    canEdit?: boolean;
-    cardClassName?: string;
-    collections: WorkflowCollectionOption[];
-    description: string;
-    title: string;
-    workflows: WorkflowDefinition[];
-}
-
-function WorkflowsListHeader({
-    description,
-    title,
-}: Pick<WorkflowsListSectionProps, "description" | "title">) {
-    return (
-        <div className="flex flex-col gap-1">
-            <h2 className="font-medium text-foreground text-sm">{title}</h2>
-            <p className="text-muted-foreground text-sm leading-6">
-                {description}
-            </p>
-        </div>
-    );
-}
-
-function WorkflowCard({
-    canEdit,
-    className,
-    collections,
-    workflow,
-}: WorkflowCardProps) {
-    const content = (
-        <>
-            <WorkflowCardIcon workflow={workflow} />
-            <WorkflowCardContent workflow={workflow} />
-            <WorkflowCardStatus isEnabled={workflow.isEnabled} />
-        </>
-    );
-
-    if (!canEdit) {
+    runsByAutomationId,
+}: AutomationsListProps) {
+    if (automations.length === 0) {
         return (
-            <div
-                aria-disabled="true"
-                className={cn(
-                    "flex items-start gap-4 rounded-lg border border-border bg-background p-4 text-left",
-                    className
-                )}
-            >
-                {content}
-            </div>
+            <section className="flex min-h-64 flex-col items-center justify-center gap-3 rounded-lg border border-border border-dashed p-8 text-center">
+                <Bot
+                    aria-hidden
+                    className="size-6 text-muted-foreground"
+                    focusable="false"
+                />
+                <div className="flex flex-col gap-1">
+                    <h2 className="font-medium text-foreground text-sm">
+                        No automations yet
+                    </h2>
+                    <p className="max-w-md text-muted-foreground text-sm leading-6">
+                        Create one to have Cache summarize or organize saved
+                        content on a schedule.
+                    </p>
+                </div>
+            </section>
         );
     }
 
     return (
-        <WorkflowComposerDialog
-            collections={collections}
-            trigger={
-                <button
-                    aria-label={`Edit ${workflow.title}`}
-                    className={cn(
-                        "flex items-start gap-4 rounded-lg border border-border bg-background p-4 text-left transition-colors hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background",
-                        className
-                    )}
-                    type="button"
+        <section className="grid gap-3">
+            {automations.map((automation) => (
+                <AutomationCard
+                    automation={automation}
+                    collections={collections}
+                    key={automation.id}
+                    runs={runsByAutomationId[automation.id] ?? []}
                 />
-            }
-            workflow={{
-                description: workflow.description,
-                schedule: workflow.schedule,
-                title: workflow.title,
-            }}
-        >
-            {content}
-        </WorkflowComposerDialog>
+            ))}
+        </section>
     );
 }
 
-interface WorkflowCardProps {
-    canEdit: boolean;
-    className?: string;
-    collections: WorkflowCollectionOption[];
-    workflow: WorkflowDefinition;
+interface AutomationsListProps {
+    automations: AutomationListItem[];
+    collections: AutomationCollectionOption[];
+    runsByAutomationId: Record<string, AutomationRunListItem[]>;
 }
 
-function WorkflowCardIcon({ workflow }: { workflow: WorkflowDefinition }) {
-    const { Icon } = workflow;
+function AutomationCard({
+    automation,
+    collections,
+    runs,
+}: AutomationCardProps) {
+    const router = useRouter();
+    const [isPending, startTransition] = React.useTransition();
+    const latestRun = runs[0] ?? automation.lastRun;
+
+    const Icon =
+        automation.templateKey && automation.templateKey in TEMPLATE_ICON
+            ? TEMPLATE_ICON[automation.templateKey]
+            : Bot;
+
+    const handlePause = useStableCallback(() => {
+        startTransition(async () => {
+            await pauseAutomation({ automationId: automation.id });
+            router.refresh();
+        });
+    });
+
+    const handleResume = useStableCallback(() => {
+        if (!isCompleteSchedule(automation)) {
+            return;
+        }
+        startTransition(async () => {
+            await resumeAutomation({
+                automationId: automation.id,
+                schedule: {
+                    cadence: automation.cadence,
+                    monthDay: automation.monthDay,
+                    timeOfDayMinutes: automation.timeOfDayMinutes,
+                    timezone: automation.timezone,
+                    weekDay: automation.weekDay,
+                },
+            });
+            router.refresh();
+        });
+    });
+
+    const handleDelete = useStableCallback(() => {
+        startTransition(async () => {
+            await deleteAutomation({ automationId: automation.id });
+            router.refresh();
+        });
+    });
 
     return (
-        <span className="flex size-5 shrink-0 items-center justify-center text-muted-foreground">
-            <Icon aria-hidden className="size-5" focusable="false" />
-        </span>
+        <article className="grid gap-4 rounded-lg border border-border bg-background p-4">
+            <div className="flex items-start gap-4">
+                <span className="flex size-5 shrink-0 items-center justify-center text-muted-foreground">
+                    <Icon aria-hidden className="size-5" focusable="false" />
+                </span>
+                <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                        <h2 className="font-medium text-[15px] text-foreground">
+                            {automation.title}
+                        </h2>
+                        <AutomationStatusBadge status={automation.status} />
+                    </div>
+                    <p className="mt-1 line-clamp-2 text-muted-foreground text-sm leading-6">
+                        {automation.prompt}
+                    </p>
+                    <div className="mt-3 flex flex-wrap gap-2 text-muted-foreground text-xs">
+                        <span>{formatPayload(automation)}</span>
+                        <span>{formatSchedule(automation)}</span>
+                    </div>
+                </div>
+                <div className="flex shrink-0 items-center gap-1">
+                    <AutomationComposerDialog
+                        automation={toComposerAutomation(automation)}
+                        collections={collections}
+                    />
+                    {automation.status === "active" ? (
+                        <Button
+                            aria-label={`Pause ${automation.title}`}
+                            disabled={isPending}
+                            onClick={handlePause}
+                            size="icon-sm"
+                            type="button"
+                            variant="ghost"
+                        >
+                            <Pause
+                                aria-hidden
+                                className="size-4"
+                                focusable="false"
+                            />
+                        </Button>
+                    ) : (
+                        <Button
+                            aria-label={`Resume ${automation.title}`}
+                            disabled={
+                                isPending || !isCompleteSchedule(automation)
+                            }
+                            onClick={handleResume}
+                            size="icon-sm"
+                            type="button"
+                            variant="ghost"
+                        >
+                            <Play
+                                aria-hidden
+                                className="size-4"
+                                focusable="false"
+                            />
+                        </Button>
+                    )}
+                    <Button
+                        aria-label={`Delete ${automation.title}`}
+                        disabled={isPending}
+                        onClick={handleDelete}
+                        size="icon-sm"
+                        type="button"
+                        variant="ghost"
+                    >
+                        <Trash2
+                            aria-hidden
+                            className="size-4"
+                            focusable="false"
+                        />
+                    </Button>
+                </div>
+            </div>
+            <div className="grid gap-2 border-border border-t pt-3">
+                <h3 className="font-medium text-muted-foreground text-xs">
+                    Recent runs
+                </h3>
+                {latestRun ? (
+                    <div className="grid gap-2">
+                        {runs.slice(0, 5).map((run) => (
+                            <AutomationRunRow key={run.id} run={run} />
+                        ))}
+                    </div>
+                ) : (
+                    <p className="text-muted-foreground text-sm">
+                        No runs yet.
+                    </p>
+                )}
+            </div>
+        </article>
     );
 }
 
-function WorkflowCardContent({ workflow }: { workflow: WorkflowDefinition }) {
+interface AutomationCardProps {
+    automation: AutomationListItem;
+    collections: AutomationCollectionOption[];
+    runs: AutomationRunListItem[];
+}
+
+function AutomationRunRow({ run }: { run: AutomationRunListItem }) {
+    const runMessage = getAutomationRunMessage(run);
+
     return (
-        <span className="flex min-w-0 flex-1 flex-col gap-1">
-            <span className="font-medium text-[15px] text-foreground">
-                {workflow.title}
-            </span>
-            <span className="text-muted-foreground text-sm leading-6">
-                {workflow.description}
-            </span>
-        </span>
+        <div className="grid gap-1 rounded-md bg-muted/30 px-3 py-2">
+            <div className="flex items-center justify-between gap-3">
+                <span className="text-muted-foreground text-xs">
+                    {formatDate(run.scheduledForUtc)}
+                </span>
+                <Badge
+                    className="rounded-md px-2 text-[11px]"
+                    variant="outline"
+                >
+                    {run.status}
+                </Badge>
+            </div>
+            {runMessage}
+        </div>
     );
 }
 
-function WorkflowCardStatus({ isEnabled }: { isEnabled: boolean }) {
+function AutomationStatusBadge({ status }: { status: "active" | "paused" }) {
     return (
         <Badge
             className={cn(
-                "mt-0.5 rounded-md px-2 text-[11px]",
-                isEnabled
+                "rounded-md px-2 text-[11px]",
+                status === "active"
                     ? "bg-success/8 text-success-foreground"
                     : "bg-muted text-muted-foreground"
             )}
-            variant={isEnabled ? "success" : "secondary"}
+            variant={status === "active" ? "success" : "secondary"}
         >
-            {isEnabled ? "Active" : "Inactive"}
+            {status === "active" ? "Active" : "Paused"}
         </Badge>
     );
+}
+
+function toComposerAutomation(
+    automation: AutomationListItem
+): AutomationComposerAutomation {
+    return {
+        cadence: automation.cadence ?? "weekly",
+        collectionId: automation.collectionId ?? undefined,
+        id: automation.id,
+        monthDay: automation.monthDay ?? undefined,
+        payloadScope: automation.payloadScope,
+        prompt: automation.prompt,
+        status: automation.status,
+        timeOfDayMinutes: automation.timeOfDayMinutes ?? 9 * 60,
+        timezone:
+            automation.timezone ??
+            Intl.DateTimeFormat().resolvedOptions().timeZone,
+        title: automation.title,
+        weekDay: automation.weekDay ?? 1,
+    };
+}
+
+function isCompleteSchedule(
+    automation: AutomationListItem
+): automation is AutomationListItem & {
+    cadence: NonNullable<AutomationListItem["cadence"]>;
+    timeOfDayMinutes: number;
+    timezone: string;
+} {
+    return !!(
+        automation.cadence &&
+        automation.timezone &&
+        automation.timeOfDayMinutes !== null
+    );
+}
+
+function formatPayload(automation: AutomationListItem): string {
+    if (automation.payloadScope === "collection") {
+        return automation.collectionName
+            ? `Collection: ${automation.collectionName}`
+            : "Collection missing";
+    }
+    return "All library";
+}
+
+function formatSchedule(automation: AutomationListItem): string {
+    if (!isCompleteSchedule(automation)) {
+        return "Unscheduled";
+    }
+    const cadence = automation.cadence;
+    const time = `${String(Math.floor(automation.timeOfDayMinutes / 60)).padStart(2, "0")}:${String(automation.timeOfDayMinutes % 60).padStart(2, "0")}`;
+    if (cadence === "weekly") {
+        return `Weekly at ${time}`;
+    }
+    if (cadence === "monthly") {
+        return `Monthly at ${time}`;
+    }
+    return `Daily at ${time}`;
+}
+
+function formatDate(value: Date): string {
+    return new Intl.DateTimeFormat(undefined, {
+        dateStyle: "medium",
+        timeStyle: "short",
+    }).format(new Date(value));
+}
+
+function getAutomationRunMessage(run: AutomationRunListItem) {
+    if (run.summaryMarkdown) {
+        return (
+            <p className="line-clamp-3 text-foreground text-sm leading-6">
+                {run.summaryMarkdown}
+            </p>
+        );
+    }
+    if (run.errorMessage) {
+        return (
+            <p className="text-destructive text-sm leading-6">
+                {run.errorMessage}
+            </p>
+        );
+    }
+    return null;
 }

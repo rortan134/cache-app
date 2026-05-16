@@ -23,7 +23,7 @@ import {
     SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { T } from "gt-next";
-import { Compass, History, type LucideIcon, Workflow } from "lucide-react";
+import { Compass, type LucideIcon, Workflow } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type * as React from "react";
@@ -75,14 +75,6 @@ export function ApplicationSidebar({ children }: React.PropsWithChildren) {
                     >
                         <T>Automations</T>
                     </SidebarNavigationItem>
-                    <SidebarNavigationItem
-                        aria-label="Activity"
-                        href="/activity"
-                        icon={History}
-                        shortcutKeys="mod+u"
-                    >
-                        <T>Activity</T>
-                    </SidebarNavigationItem>
                 </SidebarGroup>
                 {children}
             </SidebarHeader>
@@ -92,7 +84,6 @@ export function ApplicationSidebar({ children }: React.PropsWithChildren) {
 }
 
 interface SidebarNavigationItemProps extends React.ComponentProps<typeof Link> {
-    children: React.ReactNode;
     href: string;
     icon: LucideIcon;
     shortcutKeys: string;

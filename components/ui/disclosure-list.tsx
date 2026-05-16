@@ -1,10 +1,5 @@
 "use client";
 
-/**
- * Wraps an array of children and occludes overflow behind a collapsible
- * "Show more" trigger. Use when a long vertical list would otherwise dominate
- * the viewport.
- */
 import {
     Collapsible,
     CollapsiblePanel,
@@ -17,6 +12,11 @@ interface DisclosureListProps extends React.ComponentProps<"div"> {
     maxVisible: number;
 }
 
+/**
+ * Wraps an array of children and occludes overflow behind a collapsible
+ * "Show more" trigger. Use when a long vertical list would otherwise dominate
+ * the viewport.
+ */
 export function DisclosureList({
     maxVisible = 15,
     children,

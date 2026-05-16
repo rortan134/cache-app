@@ -150,6 +150,7 @@ export function ComboboxPopup({
     align = "start",
     anchor: anchorProp,
     positionMethod,
+    container,
     ...props
 }: ComboboxPrimitive.Popup.Props & {
     align?: ComboboxPrimitive.Positioner.Props["align"];
@@ -158,12 +159,13 @@ export function ComboboxPopup({
     side?: ComboboxPrimitive.Positioner.Props["side"];
     anchor?: ComboboxPrimitive.Positioner.Props["anchor"];
     positionMethod?: ComboboxPrimitive.Positioner.Props["positionMethod"];
+    container?: ComboboxPrimitive.Portal.Props["container"];
 }) {
     const { chipsRef } = React.use(ComboboxContext);
     const anchor = anchorProp ?? chipsRef;
 
     return (
-        <ComboboxPrimitive.Portal>
+        <ComboboxPrimitive.Portal container={container}>
             <ComboboxPrimitive.Positioner
                 align={align}
                 alignOffset={alignOffset}
@@ -269,7 +271,7 @@ export function ComboboxGroupLabel({
 export function ComboboxLabel({
     className,
     ...props
-}: ComboboxPrimitive.Label.Props) {
+}: ComboboxPrimitive.Label.Props & { htmlFor: string }) {
     return (
         <ComboboxPrimitive.Label
             className={cn(

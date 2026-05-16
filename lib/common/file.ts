@@ -97,6 +97,5 @@ export function revokeFileAttachmentObjectUrl(url: string): void {
     URL.revokeObjectURL(url);
 }
 
-// biome-ignore lint/performance/noBarrelFile: Ignore
 export { supported as nativeFileSystemSupported } from "browser-fs-access";
 export type { FileSystemHandle } from "browser-fs-access";

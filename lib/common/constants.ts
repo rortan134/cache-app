@@ -29,10 +29,6 @@ export const BASE_URL =
         ? "http://localhost:3000"
         : `https://${VERCEL_URL}`;
 
-// ---------------------------------------------------------------------------
-// Shared domain constants
-// ---------------------------------------------------------------------------
-
 export const FALLBACK_URL = "about:blank";
 
 export const SORT_ASC = "asc" as const;
@@ -42,20 +38,18 @@ export const ITEM_KIND_BOOKMARK = "bookmark" as const;
 export const ITEM_KIND_FOLDER = "folder" as const;
 export const ITEM_KIND_NOTE = "note" as const;
 
-export const ID_LENGTH = 12;
-
 export const DESCRIPTION_MAX_LENGTH = 1024;
 
 export const DEFAULT_CURRENCY = "usd";
 
 export const PRISMA_UNIQUE_CONSTRAINT_ERROR = "P2002";
 
-export const REVIEW_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
-
 export const FREE_LIBRARY_PREVIEW_ITEMS = 12;
 
 export const MAX_COLLECTIONS_PER_ITEM = 100;
+
 export const BATCH_UPDATE_MAX_ITEMS = 500;
+
 export const MAX_COLLECTIONS_PER_BATCH = 100;
 
 export const IMAGE_MIME_TYPES = {

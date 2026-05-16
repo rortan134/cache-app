@@ -85,5 +85,5 @@ export const KeyboardShortcutsDialogTrigger = (
     );
 };
 
-// biome-ignore lint/performance/noBarrelFile: Re-exporting with "use client"
+// Re-exporting with "use client"
 export { HotkeysProvider as ShortcutsProvider } from "react-hotkeys-hook";

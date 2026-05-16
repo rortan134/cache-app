@@ -38,17 +38,18 @@
     },
     "linter": {
         "rules": {
+            "complexity": {
+                "noUselessCatchBinding": "off",
+                "noExcessiveCognitiveComplexity": "off"
+            },
             "performance": {
                 "noNamespaceImport": "off",
-                "noImgElement": "off"
+                "noImgElement": "off",
+                "noBarrelFile": "off"
             },
             "suspicious": {
                 "noArrayIndexKey": "off",
                 "noBitwiseOperators": "off"
-            },
-            "complexity": {
-                "noUselessCatchBinding": "off",
-                "noExcessiveCognitiveComplexity": "off"
             }
         }
     }

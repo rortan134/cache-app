@@ -2117,6 +2117,7 @@ function BrowserGroup({ children }: { children: ReactNode }) {
 
 function ValidCategoryThumbnail({ urls }: { urls: string[] }) {
     const [validUrls, setValidUrls] = React.useState<string[]>([]);
+    const [imageError, setImageError] = React.useState(false);
 
     React.useEffect(() => {
         if (urls.length === 0) {
@@ -2136,17 +2137,19 @@ function ValidCategoryThumbnail({ urls }: { urls: string[] }) {
 
     const src = validUrls[0];
 
-    if (validUrls.length === 0 || !src) {
+    if (imageError || !src) {
         return null;
     }
 
     return (
+        // biome-ignore lint/a11y/noNoninteractiveElementInteractions: image load failures drive the visual fallback state
         <img
             alt=""
             className="absolute top-10 left-3 z-10 h-full w-auto rounded-sm object-cover transition-transform group-data-highlighted:-translate-y-1"
             fetchPriority="high"
             height={104}
             loading="eager"
+            onError={() => setImageError(true)}
             src={src}
             width={140}
         />
