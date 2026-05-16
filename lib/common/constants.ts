@@ -19,6 +19,8 @@ export const SITE_DEFAULT_TITLE = `Bookmark manager | ${APP_NAME}`;
 export const CACHE_EXTENSION_DOWNLOAD_URL = "https://cachd.app";
 export const CACHE_EXTENSION_READY_EVENT = "CACHE_EXTENSION_READY";
 
+export const APPLE_DOMAIN_ASSOCIATION = "";
+
 const VERCEL_URL =
     process.env.VERCEL_ENV === "production"
         ? process.env.VERCEL_PROJECT_PRODUCTION_URL
