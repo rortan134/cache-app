@@ -1,6 +1,14 @@
 "use client";
 
 import {
+    Command,
+    CommandCollection,
+    CommandEmpty,
+    CommandInput,
+    CommandItem,
+    CommandList,
+} from "@/components/ui/command";
+import {
     Drawer,
     DrawerHeader,
     DrawerPanel,
@@ -10,9 +18,16 @@ import {
     DrawerViewport,
 } from "@/components/ui/drawer";
 import { AltKbd, CmdKbd, Kbd, KbdGroup, ShiftKbd } from "@/components/ui/kbd";
+import { SearchIcon } from "lucide-react";
 import type * as React from "react";
 import { useState } from "react";
 import { useHotkeys, useHotkeysContext } from "react-hotkeys-hook";
+
+interface ShortcutItem {
+    description: string;
+    hotkey: string;
+    label: string;
+}
 
 function ShortcutKeyPart({ part }: { part: string }) {
     switch (part.toLowerCase()) {
@@ -47,6 +62,12 @@ export const KeyboardShortcutsDialogTrigger = (
         { description: "Open keyboard shortcuts panel" }
     );
 
+    const shortcutItems: ShortcutItem[] = hotkeys.map((shortcut) => ({
+        description: shortcut.description ?? "",
+        hotkey: shortcut.hotkey,
+        label: `${shortcut.description ?? ""} ${shortcut.hotkey}`,
+    }));
+
     return (
         <Drawer onOpenChange={setOpen} open={open} position="right">
             <DrawerTrigger {...props} />
@@ -55,29 +76,42 @@ export const KeyboardShortcutsDialogTrigger = (
                     <DrawerHeader>
                         <DrawerTitle>Keyboard shortcuts</DrawerTitle>
                     </DrawerHeader>
-                    <DrawerPanel>
-                        {hotkeys.map((shortcut) => (
-                            <div
-                                className="flex items-center justify-between"
-                                key={shortcut.description}
-                            >
-                                <span className="my-3 flex items-center gap-2 font-medium text-foreground text-sm">
-                                    {shortcut.description}
-                                </span>
-                                <KbdGroup>
-                                    <Kbd>
-                                        {shortcut.hotkey
-                                            ?.split("+")
-                                            .map((part, i) => (
-                                                <ShortcutKeyPart
-                                                    key={i}
-                                                    part={part}
-                                                />
-                                            ))}
-                                    </Kbd>
-                                </KbdGroup>
-                            </div>
-                        ))}
+                    <DrawerPanel scrollable={false}>
+                        <Command inline items={[{ items: shortcutItems }]} open>
+                            <CommandInput
+                                placeholder="Search shortcuts..."
+                                startAddon={<SearchIcon className="size-4" />}
+                            />
+                            <CommandList>
+                                <CommandEmpty>No shortcuts found.</CommandEmpty>
+                                <CommandCollection>
+                                    {(item: ShortcutItem) => (
+                                        <CommandItem
+                                            key={item.description}
+                                            value={item.label}
+                                        >
+                                            <div className="flex w-full items-center justify-between">
+                                                <span className="font-medium text-foreground text-sm">
+                                                    {item.description}
+                                                </span>
+                                                <KbdGroup>
+                                                    <Kbd>
+                                                        {item.hotkey
+                                                            ?.split("+")
+                                                            .map((part, i) => (
+                                                                <ShortcutKeyPart
+                                                                    key={i}
+                                                                    part={part}
+                                                                />
+                                                            ))}
+                                                    </Kbd>
+                                                </KbdGroup>
+                                            </div>
+                                        </CommandItem>
+                                    )}
+                                </CommandCollection>
+                            </CommandList>
+                        </Command>
                     </DrawerPanel>
                 </DrawerPopup>
             </DrawerViewport>
