@@ -528,7 +528,7 @@ export default async function Home() {
                             </T>
                         </div>
                         <Carousel
-                            className="w-full pb-10!"
+                            className="pb-10!"
                             slideClassName="!w-[300px] md:!w-[340px]"
                             spaceBetween={16}
                         >

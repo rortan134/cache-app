@@ -3746,83 +3746,82 @@ function Card({ item }: LibraryGridCardProps) {
 
     return (
         <ContextMenu>
-            <ContextMenuTrigger render={<div className="contents" />}>
-                {/** biome-ignore lint/a11y/noNoninteractiveElementInteractions: TEMP */}
-                <article
-                    className="group relative flex flex-col overflow-hidden rounded-xl ring-1 ring-border/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
-                    onKeyDown={handleCardKeyDown}
+            <ContextMenuTrigger
+                onKeyDown={handleCardKeyDown}
+                render={
+                    <div className="group relative flex shrink-0 flex-col overflow-hidden rounded-xl ring-1 ring-border/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60" />
+                }
+            >
+                <a
+                    className="flex flex-col focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
+                    href={href}
+                    onClick={handlePrimaryClick}
+                    onMouseEnter={() => setIsCardHovered(true)}
+                    onMouseLeave={() => setIsCardHovered(false)}
+                    rel="noopener noreferrer"
+                    target={isNote ? undefined : "_blank"}
                 >
-                    <a
-                        className="flex flex-col focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
-                        href={href}
-                        onClick={handlePrimaryClick}
-                        onMouseEnter={() => setIsCardHovered(true)}
-                        onMouseLeave={() => setIsCardHovered(false)}
-                        rel="noopener noreferrer"
-                        target={isNote ? undefined : "_blank"}
-                    >
-                        {isNote ? (
-                            <div className="relative flex h-auto min-h-56 w-full flex-col justify-between overflow-hidden bg-linear-to-br from-amber-50 via-background to-stone-100 p-3">
-                                <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(251,191,36,0.18),transparent_45%)]" />
-                                <div className="relative flex flex-1 flex-col gap-2 pt-1.5">
-                                    <p className="whitespace-pre-wrap text-foreground text-xs leading-relaxed opacity-90">
-                                        {noteExcerpt ||
-                                            "Tap to start writing in this note"}
-                                    </p>
-                                </div>
+                    {isNote ? (
+                        <div className="relative flex h-auto min-h-56 w-full flex-col justify-between overflow-hidden bg-linear-to-br from-amber-50 via-background to-stone-100 p-3">
+                            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(251,191,36,0.18),transparent_45%)]" />
+                            <div className="relative flex flex-1 flex-col gap-2 pt-1.5">
+                                <p className="whitespace-pre-wrap text-foreground text-xs leading-relaxed opacity-90">
+                                    {noteExcerpt ||
+                                        "Tap to start writing in this note"}
+                                </p>
                             </div>
-                        ) : (
-                            <PreviewMedia
-                                alt={alt}
-                                isHovered={isCardHovered}
-                                src={previewImageUrl}
-                                videoSrc={previewVideoUrl}
-                            />
-                        )}
-                    </a>
-                    <div
-                        className={cn(
-                            "overflow-fade-top absolute inset-x-0 bottom-0 flex items-center gap-0.5 overflow-hidden bg-black/35 px-1.5 pt-2 pb-1 backdrop-blur-[2.5px]",
-                            {
-                                "bg-black/4 opacity-80 mix-blend-difference":
-                                    isNote,
-                            }
-                        )}
-                    >
-                        <CardCollectionPicker
-                            item={item}
-                            onOpenChange={setIsCollectionPickerOpen}
-                            open={isCollectionPickerOpen}
+                        </div>
+                    ) : (
+                        <PreviewMedia
+                            alt={alt}
+                            isHovered={isCardHovered}
+                            src={previewImageUrl}
+                            videoSrc={previewVideoUrl}
                         />
-                        <Menu>
-                            <MenuTrigger
-                                render={
-                                    <button
-                                        className="min-w-0 flex-1 cursor-pointer truncate rounded-sm py-px text-left font-medium text-white text-xs leading-none mix-blend-difference outline-none focus-visible:ring-2 focus-visible:ring-white/70"
-                                        title={displayTitle}
-                                        type="button"
-                                    />
-                                }
-                            >
-                                <Ticker>{displayTitle}</Ticker>
-                            </MenuTrigger>
-                            <MenuPopup>
-                                <CardMenu
-                                    addedLabel={addedLabel}
-                                    createdLabel={createdLabel}
-                                    href={href}
-                                    isDownloading={isDownloading}
-                                    item={item}
-                                    kind="menu"
-                                    onDownload={handleDownload}
-                                    previewDescription={previewDescription}
-                                    previewImageUrl={previewImageUrl}
-                                    previewTitle={previewTitle}
+                    )}
+                </a>
+                <div
+                    className={cn(
+                        "overflow-fade-top absolute inset-x-0 bottom-0 flex items-center gap-0.5 overflow-hidden bg-black/35 px-1.5 pt-2 pb-1 backdrop-blur-[2.5px]",
+                        {
+                            "bg-black/4 opacity-80 mix-blend-difference":
+                                isNote,
+                        }
+                    )}
+                >
+                    <CardCollectionPicker
+                        item={item}
+                        onOpenChange={setIsCollectionPickerOpen}
+                        open={isCollectionPickerOpen}
+                    />
+                    <Menu>
+                        <MenuTrigger
+                            render={
+                                <button
+                                    className="min-w-0 flex-1 cursor-pointer truncate rounded-sm py-px text-left font-medium text-white text-xs leading-none mix-blend-difference outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+                                    title={displayTitle}
+                                    type="button"
                                 />
-                            </MenuPopup>
-                        </Menu>
-                    </div>
-                </article>
+                            }
+                        >
+                            <Ticker>{displayTitle}</Ticker>
+                        </MenuTrigger>
+                        <MenuPopup>
+                            <CardMenu
+                                addedLabel={addedLabel}
+                                createdLabel={createdLabel}
+                                href={href}
+                                isDownloading={isDownloading}
+                                item={item}
+                                kind="menu"
+                                onDownload={handleDownload}
+                                previewDescription={previewDescription}
+                                previewImageUrl={previewImageUrl}
+                                previewTitle={previewTitle}
+                            />
+                        </MenuPopup>
+                    </Menu>
+                </div>
             </ContextMenuTrigger>
             <ContextMenuPopup>
                 <CardMenu

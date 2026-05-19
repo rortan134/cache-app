@@ -7,9 +7,9 @@ import { Swiper, SwiperSlide } from "swiper/react";
 
 // Styles
 import "swiper/css";
+import "swiper/css/a11y";
 import "swiper/css/mousewheel";
 import "swiper/css/pagination";
-import "swiper/css/a11y";
 
 interface CarouselProps extends React.ComponentProps<typeof Swiper> {
     slideClassName?: string;
@@ -37,6 +37,7 @@ export function Carousel({
                 renderBullet: (_index, className) =>
                     `<span class="${className} inline-block size-2 rounded-full bg-foreground/40 transition-all opacity-50 mx-0.5 scale-75 cursor-pointer [&.swiper-pagination-bullet-active]:!bg-foreground [&.swiper-pagination-bullet-active]:!opacity-100 [&.swiper-pagination-bullet-active]:!scale-100"></span>`,
             }}
+            role="region"
             slidesPerGroup={
                 typeof slidesPerView === "number" ? slidesPerView : undefined
             }
@@ -47,7 +48,13 @@ export function Carousel({
             {...props}
         >
             {React.Children.map(children, (child) => (
-                <SwiperSlide className={slideClassName}>{child}</SwiperSlide>
+                <SwiperSlide
+                    aria-roledescription="carousel"
+                    className={slideClassName}
+                    tag="section"
+                >
+                    {child}
+                </SwiperSlide>
             ))}
         </Swiper>
     );

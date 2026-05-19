@@ -1995,7 +1995,7 @@ function MasonryViewport({
 }
 
 function MasonryItem(props: React.ComponentProps<"div">) {
-    return <div data-slot="masonry-item" {...props} />;
+    return <section data-slot="masonry-item" {...props} />;
 }
 // #endregion
 
