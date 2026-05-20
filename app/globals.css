@@ -123,6 +123,7 @@
         word-break: break-word;
         color-scheme: light dark;
         text-rendering: optimizeLegibility;
+        @apply scroll-smooth;
     }
 
     html,
@@ -147,6 +148,7 @@
         -moz-osx-font-smoothing: grayscale;
         -webkit-tap-highlight-color: transparent;
         -webkit-text-size-adjust: 100%;
+        scrollbar-gutter: stable;
     }
 
     body {
