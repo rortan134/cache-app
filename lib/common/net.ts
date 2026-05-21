@@ -4,13 +4,7 @@ import ipaddr from "ipaddr.js";
  * Network-adjacent security utilities for SSRF prevention and private-range blocking.
  */
 
-const LOCALHOST_ALIASES = new Set([
-    "localhost",
-    "0.0.0.0",
-    "::1",
-    "[::1]",
-    "127.",
-]);
+const LOCALHOST_ALIASES = new Set(["localhost", "0.0.0.0", "::1", "[::1]"]);
 
 const PUBLIC_UNICAST_IP_RANGE = "unicast";
 const TRAILING_DOTS_PATTERN = /\.+$/;

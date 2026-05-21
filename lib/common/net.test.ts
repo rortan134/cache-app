@@ -24,6 +24,8 @@ describe("isBlockedHostname", () => {
         expect(isBlockedHostname("[fd00::1]")).toBe(true);
         expect(isBlockedHostname("[fc00::1]")).toBe(true);
         expect(isBlockedHostname("[fe80::1]")).toBe(true);
+        expect(isBlockedHostname("fe80::1%eth0")).toBe(true);
+        expect(isBlockedHostname("[fe80::1%eth0]")).toBe(true);
         expect(isBlockedHostname("[febf::1]")).toBe(true);
         expect(isBlockedHostname("[fec0::1]")).toBe(true);
     });
@@ -48,6 +50,7 @@ describe("isBlockedHostname", () => {
         expect(isBlockedHostname("example.com")).toBe(false);
         expect(isBlockedHostname("8.8.8.8")).toBe(false);
         expect(isBlockedHostname("[2606:4700:4700::1111]")).toBe(false);
+        expect(isBlockedHostname("2606:4700:4700::1111%eth0")).toBe(false);
         expect(isBlockedHostname("[::ffff:808:808]")).toBe(false);
         expect(isBlockedHostname("[::808:808]")).toBe(false);
     });
