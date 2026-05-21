@@ -1,3 +1,5 @@
+import ipaddr from "ipaddr.js";
+
 /**
  * Network-adjacent security utilities for SSRF prevention and private-range blocking.
  */
@@ -8,61 +10,45 @@ const LOCALHOST_ALIASES = new Set([
     "::1",
     "[::1]",
     "127.",
-    ".internal",
 ]);
 
+const PUBLIC_UNICAST_IP_RANGE = "unicast";
+const TRAILING_DOTS_PATTERN = /\.+$/;
+
 function isLocalhostVariant(hostname: string): boolean {
-    const normalized = hostname.trim().toLowerCase();
+    const normalized = normalizeHostnameForPolicy(hostname);
     if (LOCALHOST_ALIASES.has(normalized)) {
         return true;
     }
     if (normalized.endsWith(".localhost")) {
         return true;
     }
+    if (normalized.endsWith(".internal")) {
+        return true;
+    }
     return false;
 }
 
-function parseIpv4Octets(hostname: string): number[] | null {
-    const segments = hostname.split(".");
-    if (segments.length !== 4) {
-        return null;
-    }
-
-    const octets = segments.map((segment) => Number(segment));
-    if (
-        octets.some(
-            (octet) => !Number.isInteger(octet) || octet < 0 || octet > 255
-        )
-    ) {
-        return null;
-    }
-
-    return octets;
+function normalizeHostnameForPolicy(hostname: string): string {
+    return hostname.trim().toLowerCase().replace(TRAILING_DOTS_PATTERN, "");
 }
 
-function isPrivateIpv4(octets: number[]): boolean {
-    const [first, second] = octets;
-    if (first === undefined || second === undefined) {
-        return false;
+function normalizeIpHostname(hostname: string): string {
+    const normalized = normalizeHostnameForPolicy(hostname);
+    if (normalized.startsWith("[") && normalized.endsWith("]")) {
+        return normalized.slice(1, -1);
     }
-
-    return (
-        first === 10 ||
-        first === 127 ||
-        (first === 169 && second === 254) ||
-        (first === 172 && second >= 16 && second <= 31) ||
-        (first === 192 && second === 168)
-    );
+    return normalized;
 }
 
 /**
- * Returns true if the hostname resolves to a private, loopback, or local-only
- * address that should not be reached from the public internet.
+ * Returns true for local aliases and IP literals that are not public unicast.
  *
- * Used to prevent SSRF when fetching user-supplied URLs.
+ * Domain names are intentionally not resolved here; fetch boundaries still need
+ * DNS-aware checks before opening sockets.
  */
 export function isBlockedHostname(hostname: string): boolean {
-    const normalized = hostname.trim().toLowerCase();
+    const normalized = normalizeHostnameForPolicy(hostname);
     if (!normalized) {
         return true;
     }
@@ -70,10 +56,10 @@ export function isBlockedHostname(hostname: string): boolean {
         return true;
     }
 
-    const octets = parseIpv4Octets(normalized);
-    if (!octets) {
+    const ipHostname = normalizeIpHostname(normalized);
+    if (!ipaddr.isValid(ipHostname)) {
         return false;
     }
 
-    return isPrivateIpv4(octets);
+    return ipaddr.process(ipHostname).range() !== PUBLIC_UNICAST_IP_RANGE;
 }
