@@ -51,6 +51,7 @@ next-env.d.ts
 # misc
 .DS_Store
 *.pem
+.swc
 
 # vercel
 .vercel
