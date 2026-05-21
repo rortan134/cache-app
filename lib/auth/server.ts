@@ -2,6 +2,7 @@ import { getStripeClient, getStripeWebhookSecret } from "@/lib/billing/client";
 import { getPlanPriceIds } from "@/lib/billing/prices";
 import { seedBuiltInAutomationsForUser } from "@/lib/collections/intelligence/automations/service";
 import { APP_NAME, BASE_URL } from "@/lib/common/constants";
+import { getSafeOrigin } from "@/lib/common/url";
 import { prisma } from "@/prisma";
 import type { OAuth2Tokens } from "@better-auth/core/oauth2";
 import { stripe } from "@better-auth/stripe";
@@ -11,20 +12,22 @@ import { nextCookies } from "better-auth/next-js";
 import type { GenericOAuthConfig } from "better-auth/plugins";
 import { genericOAuth, multiSession, oneTap } from "better-auth/plugins";
 import * as z from "zod";
+import { createi18n } from "./i18n";
 
-const SESSION_COOKIE_CACHE_MAX_AGE_SECONDS = 24 * 60 * 60;
-const SESSION_EXPIRES_IN_SECONDS = 60 * 60 * 24 * 30;
-const SESSION_FRESH_AGE_SECONDS = 60 * 60;
-const SESSION_UPDATE_AGE_SECONDS = 60 * 60 * 24;
-
-const BASE_URL_AUTH = process.env.BETTER_AUTH_URL ?? BASE_URL;
+const BASE_AUTH_URL =
+    process.env.BETTER_AUTH_URL ?? BASE_URL ?? getSafeOrigin();
 
 const TRUSTED_ORIGINS = [
-    BASE_URL_AUTH,
+    BASE_AUTH_URL,
     ...(process.env.TRUSTED_ORIGINS?.split(",")
         .map((origin) => origin.trim())
         .filter(Boolean) ?? []),
 ];
+
+const SESSION_COOKIE_CACHE_MAX_AGE_SECONDS = 24 * 60 * 60; // 24 hours in seconds
+const SESSION_EXPIRES_IN_SECONDS = 60 * 60 * 24 * 30; // 30 days (how long a session can last overall)
+const SESSION_FRESH_AGE_SECONDS = 60 * 60; // 1 hour (or set to 0 to disable completely)
+const SESSION_UPDATE_AGE_SECONDS = 60 * 60 * 24; // 24 hours (how often to refresh the expiry)
 
 const GOOGLE_CLIENT_ID = requiredEnv("GOOGLE_CLIENT_ID");
 const GOOGLE_CLIENT_SECRET = requiredEnv("GOOGLE_CLIENT_SECRET");
@@ -275,7 +278,7 @@ const genericOAuthConfig = [
     buildPinterestOAuthConfig(),
     buildXOAuthConfig(),
     buildGitHubOAuthConfig(),
-].filter((c): c is GenericOAuthConfig => c !== null);
+].filter((config): config is GenericOAuthConfig => config !== null);
 
 const trustedProviders = [
     "google",
@@ -293,7 +296,7 @@ export const auth = betterAuth({
         },
     },
     appName: APP_NAME,
-    baseURL: BASE_URL_AUTH,
+    baseURL: BASE_AUTH_URL,
     database: prismaAdapter(prisma, {
         provider: "postgresql",
     }),
@@ -310,6 +313,7 @@ export const auth = betterAuth({
         enabled: false,
     },
     plugins: [
+        createi18n(),
         multiSession(),
         oneTap({ clientId: GOOGLE_CLIENT_ID }),
         genericOAuth({ config: genericOAuthConfig }),

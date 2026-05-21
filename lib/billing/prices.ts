@@ -4,11 +4,13 @@ import { StripeError } from "@/lib/billing/error";
 
 export type PlanType = "free" | "monthly" | "yearly";
 
+type PriceInterval = "day" | "week" | "month" | "year";
+
 export interface PlanPrice {
     amountCents: number; // integer cents
     currency: string; // ISO 4217 uppercase (e.g., EUR)
     id: string;
-    interval: "month" | "year";
+    interval: PriceInterval;
     nickname?: string | null;
 }
 
@@ -31,16 +33,6 @@ export async function retrievePriceById(
     if (price.unit_amount === null) {
         throw new StripeError({
             message: `Configured price '${priceId}' has no unit amount.`,
-            operation: "prices::retrievePriceById",
-        });
-    }
-
-    if (
-        price.recurring.interval !== "month" &&
-        price.recurring.interval !== "year"
-    ) {
-        throw new StripeError({
-            message: `Configured price '${priceId}' has unexpected interval '${price.recurring.interval}'.`,
             operation: "prices::retrievePriceById",
         });
     }

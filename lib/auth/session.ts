@@ -22,6 +22,7 @@ export const getSessionUserId = cache(async (): Promise<string | null> => {
     return session?.user?.id ?? null;
 });
 
+/* @internal */
 type WithSessionCallback<T> = (client: Session) => Promise<T> | T;
 
 /**

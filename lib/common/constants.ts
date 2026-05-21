@@ -54,6 +54,12 @@ export const BATCH_UPDATE_MAX_ITEMS = 500;
 
 export const MAX_COLLECTIONS_PER_BATCH = 100;
 
+export const CSRF = {
+    cookieName: "csrfToken",
+    fieldName: "_csrf",
+    headerName: "x-csrf-token",
+};
+
 export const IMAGE_MIME_TYPES = {
     avif: "image/avif",
     bmp: "image/bmp",

@@ -1,5 +1,6 @@
 import { clientEnv } from "@/env/client";
 import type { auth } from "@/lib/auth/server";
+import { betterAuthLocalizationClientPlugin } from "better-auth-localization";
 import { stripeClient } from "@better-auth/stripe/client";
 import {
     genericOAuthClient,
@@ -17,6 +18,7 @@ export const authClient = createAuthClient({
     baseURL,
     plugins: [
         inferAdditionalFields<typeof auth>(),
+        betterAuthLocalizationClientPlugin(),
         genericOAuthClient(),
         multiSessionClient(),
         stripeClient({ subscription: true }),

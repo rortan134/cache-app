@@ -20,7 +20,7 @@ export const normalizeURL = (link: string | null | undefined) => {
     return trimmed ? sanitizeUrl(trimmed) : trimmed;
 };
 
-function getSafeOrigin() {
+export function getSafeOrigin() {
     if (typeof window === "undefined") {
         return null;
     }
