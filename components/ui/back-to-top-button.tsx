@@ -2,6 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/common/cn";
+import { getOwnerDocument, getOwnerWindow } from "@/lib/common/dom";
 import { useStableCallback } from "@base-ui/utils/useStableCallback";
 import { ArrowUpIcon } from "lucide-react";
 import * as React from "react";
@@ -13,21 +14,27 @@ export function BackToTopButton({
     ...props
 }: React.ComponentPropsWithoutRef<"div">) {
     const [isVisible, setIsVisible] = React.useState(false);
+    const containerRef = React.useRef<HTMLDivElement>(null);
 
     const handleScroll = useStableCallback(() => {
+        const ownerDoc = getOwnerDocument(containerRef.current);
         setIsVisible(
-            document.body.scrollTop > SCROLL_THRESHOLD ||
-                document.documentElement.scrollTop > SCROLL_THRESHOLD
+            ownerDoc.body.scrollTop > SCROLL_THRESHOLD ||
+                ownerDoc.documentElement.scrollTop > SCROLL_THRESHOLD
         );
     });
 
     React.useEffect(() => {
-        window.addEventListener("scroll", handleScroll, { passive: true });
-        return () => window.removeEventListener("scroll", handleScroll);
+        const ownerWindow = getOwnerWindow(containerRef.current);
+        ownerWindow.addEventListener("scroll", handleScroll, { passive: true });
+        return () => ownerWindow.removeEventListener("scroll", handleScroll);
     }, [handleScroll]);
 
     const scrollToTop = useStableCallback(() => {
-        window.scrollTo({ behavior: "smooth", top: 0 });
+        getOwnerWindow(containerRef.current).scrollTo({
+            behavior: "smooth",
+            top: 0,
+        });
     });
 
     return (
@@ -40,6 +47,7 @@ export function BackToTopButton({
                     : "pointer-events-none translate-y-2 opacity-0",
                 className
             )}
+            ref={containerRef}
         >
             <Button
                 aria-label="Back to top"

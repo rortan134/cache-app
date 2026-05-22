@@ -7,8 +7,7 @@ export function getOwnerWindow(node?: Node | Document | null | undefined) {
     if (!canUseDOM) {
         throw new Error("Cannot access window outside of the DOM");
     }
-    return (node?.ownerDocument?.defaultView ?? globalThis) as Window &
-        typeof globalThis;
+    return node?.ownerDocument?.defaultView ?? globalThis.window;
 }
 
 export function getOwnerDocument(node?: Node | Document | null | undefined) {

@@ -80,8 +80,7 @@ const SmartCollectionDecisionSchema = z.object({
 const smartCollectionDecisionJsonSchema = (() => {
     const { $schema: _ignoredSchema, ...schema } = z.toJSONSchema(
         SmartCollectionDecisionSchema
-    ) as Record<string, unknown>;
-
+    );
     return schema;
 })();
 
@@ -127,6 +126,13 @@ interface SmartCollectionModelErrorInfo {
     details?: unknown;
     message: string;
     status: number | null;
+}
+
+let googleGenAi: GoogleGenAI | undefined;
+
+function getGoogleGenAi(): GoogleGenAI {
+    googleGenAi ??= new GoogleGenAI({ apiKey: serverEnv.GEMINI_API_KEY });
+    return googleGenAi;
 }
 
 function resolveSmartCollectionModels(): string[] {
@@ -963,7 +969,7 @@ export async function autoTagLibraryItemsByIds(args: {
         return;
     }
 
-    const ai = new GoogleGenAI({ apiKey });
+    const ai = getGoogleGenAi();
     let collections = initialCollections;
 
     for (const itemId of validItemIds) {
@@ -1053,12 +1059,11 @@ async function generateModelContent(
     prompt: string
 ): Promise<string | undefined> {
     const models = resolveSectionDescriptionModels();
+    const ai = getGoogleGenAi();
     let lastError: unknown;
 
     for (const model of models) {
         try {
-            const ai = new GoogleGenAI({ apiKey: serverEnv.GEMINI_API_KEY });
-
             serviceLog.info(config.logLabel, {
                 maxOutputTokens: config.maxOutputTokens,
                 model,

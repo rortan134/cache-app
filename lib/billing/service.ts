@@ -2,12 +2,10 @@ import "server-only";
 
 import type { PlanType } from "@/lib/billing/prices";
 import { prisma } from "@/prisma";
-import { cacheLife } from "next/cache";
 import { isActiveSubscriptionStatus } from "./subscription-status";
 
 export async function getUserActiveSubscriptionStatus(userId: string) {
     "use cache: remote";
-    cacheLife("hours");
 
     const subscription = await prisma.subscription.findFirst({
         orderBy: {
@@ -29,7 +27,6 @@ export async function userHasActiveSubscription(
     userId: string
 ): Promise<boolean> {
     "use cache: remote";
-    cacheLife("hours");
 
     const subscription = await getUserActiveSubscriptionStatus(userId);
 
@@ -38,7 +35,6 @@ export async function userHasActiveSubscription(
 
 export async function getUserPlanType(userId: string): Promise<PlanType> {
     "use cache: remote";
-    cacheLife("hours");
 
     const subscription = await getUserActiveSubscriptionStatus(userId);
 
