@@ -414,22 +414,22 @@ function IntegrationsListTrigger({
 
     return (
         <Popover>
-            <PopoverTrigger
-                openOnHover
+            <CollapsibleTrigger
+                {...props}
                 render={
                     render ?? (
-                        <CollapsibleTrigger
+                        <PopoverTrigger
+                            openOnHover
                             render={
                                 <SidebarItem
                                     render={<button type="button" />}
+                                    title={
+                                        isIntegrationsListPanelOpen
+                                            ? "Collapse panel"
+                                            : "Expand panel"
+                                    }
                                 />
                             }
-                            title={
-                                isIntegrationsListPanelOpen
-                                    ? "Collapse panel"
-                                    : "Expand panel"
-                            }
-                            {...props}
                         />
                     )
                 }
@@ -439,7 +439,7 @@ function IntegrationsListTrigger({
                 <Kbd className="ml-auto bg-transparent opacity-0 group-hover:opacity-50 group-has-data-open/collapsible:hidden">
                     <CmdKbd />I
                 </Kbd>
-            </PopoverTrigger>
+            </CollapsibleTrigger>
             <PopoverPopup
                 align="start"
                 positionerClassname={cn(

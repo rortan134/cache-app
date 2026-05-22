@@ -1,8 +1,9 @@
 import { isAbortError } from "@/lib/common/abort";
 import { FALLBACK_URL } from "@/lib/common/constants";
 import { createLogger } from "@/lib/common/logs/console/logger";
-import { isBlockedHostname } from "@/lib/common/net";
+import { parseHttpUrl } from "@/lib/common/net";
 import { getRedisClient } from "@/lib/common/redis";
+import { parsePublicHttpUrl } from "@/lib/common/server-net";
 import { fetchWithTimeout } from "@/lib/common/timeout";
 import { toValidUrl } from "@/lib/common/url";
 import { resolveCobaltPreview } from "@/lib/integrations/cobalt/service";
@@ -51,7 +52,7 @@ const getPagePreview = cache ? withCache(cache, preview) : preview;
 
 export async function GET(request: Request): Promise<Response> {
     const requestUrl = new URL(request.url);
-    const targetUrl = extractTargetUrl(request.url);
+    const targetUrl = await extractTargetUrl(request.url);
     if (!targetUrl) {
         return textResponse("Invalid URL", 400);
     }
@@ -152,14 +153,14 @@ async function resolvePreviewImage(targetUrl: string) {
         },
     });
 
-    const imageUrl = toSafeUrl(page.image ?? page.favicon);
+    const imageUrl = parseHttpUrl(page.image ?? page.favicon ?? "")?.href;
     if (!imageUrl) {
         return null;
     }
 
     return {
         imageUrl,
-        pageUrl: toSafeUrl(page.url),
+        pageUrl: parseHttpUrl(page.url ?? "")?.href,
     };
 }
 
@@ -357,12 +358,7 @@ const safeFetch: typeof fetch = Object.assign(
             rawUrl = input.url;
         }
 
-        const safeUrl = toSafeUrl(rawUrl);
-        if (!safeUrl) {
-            return Promise.resolve(textResponse("Invalid URL", 400));
-        }
-
-        return fetchWithRedirects(safeUrl, init);
+        return fetchWithRedirects(rawUrl, init);
     },
     {
         preconnect: () => {
@@ -387,8 +383,13 @@ async function fetchWithRedirects(
         redirectCount <= MAX_REDIRECTS;
         redirectCount++
     ) {
+        const publicUrl = await parsePublicHttpUrl(requestUrl);
+        if (!publicUrl) {
+            return textResponse("Invalid URL", 400);
+        }
+
         const response = await fetchWithTimeout(
-            requestUrl,
+            publicUrl.href,
             redirectInit,
             FETCH_TIMEOUT_MS,
             signal
@@ -403,7 +404,7 @@ async function fetchWithRedirects(
             return response;
         }
 
-        const redirectUrl = resolveRedirectUrl(location, requestUrl);
+        const redirectUrl = resolveRedirectUrl(location, publicUrl);
         if (!redirectUrl) {
             return textResponse("Invalid URL", 400);
         }
@@ -414,15 +415,15 @@ async function fetchWithRedirects(
     return textResponse("Too many redirects", 508);
 }
 
-function resolveRedirectUrl(location: string, baseUrl: string): string | null {
+function resolveRedirectUrl(location: string, baseUrl: URL): string | null {
     try {
-        return toSafeUrl(new URL(location, baseUrl).href);
+        return parseHttpUrl(new URL(location, baseUrl).href)?.href ?? null;
     } catch {
         return null;
     }
 }
 
-function extractTargetUrl(requestUrl: string): string | null {
+async function extractTargetUrl(requestUrl: string): Promise<string | null> {
     const rawUrl = new URL(requestUrl).searchParams.get("url")?.trim();
     if (!rawUrl) {
         return null;
@@ -434,22 +435,7 @@ function extractTargetUrl(requestUrl: string): string | null {
     if (normalizedUrl === FALLBACK_URL) {
         return null;
     }
-    return toSafeUrl(normalizedUrl);
-}
-
-function toSafeUrl(rawUrl: string): string | null {
-    try {
-        const parsedUrl = new URL(rawUrl);
-        if (parsedUrl.protocol !== "http:" && parsedUrl.protocol !== "https:") {
-            return null;
-        }
-        if (isBlockedHostname(parsedUrl.hostname)) {
-            return null;
-        }
-        return parsedUrl.href;
-    } catch {
-        return null;
-    }
+    return (await parsePublicHttpUrl(normalizedUrl))?.href ?? null;
 }
 
 function isRedirectStatus(status: number): boolean {

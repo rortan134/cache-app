@@ -1,5 +1,10 @@
 import { describe, expect, test } from "bun:test";
-import { isBlockedHostname } from "@/lib/common/net";
+import {
+    isBlockedHostname,
+    parseHttpUrl,
+    parsePublicHttpUrl,
+    resolvesToBlockedHostname,
+} from "@/lib/common/net";
 
 describe("isBlockedHostname", () => {
     test("blocks private IPv4 and localhost names", () => {
@@ -57,5 +62,86 @@ describe("isBlockedHostname", () => {
 
     test("does not DNS-resolve ordinary hostnames", () => {
         expect(isBlockedHostname("private-address.example")).toBe(false);
+    });
+});
+
+describe("parseHttpUrl", () => {
+    test("accepts only HTTP URLs", () => {
+        expect(parseHttpUrl("https://example.com")?.href).toBe(
+            "https://example.com/"
+        );
+        expect(parseHttpUrl("http://example.com")?.href).toBe(
+            "http://example.com/"
+        );
+        expect(parseHttpUrl("ftp://example.com")).toBeNull();
+        expect(parseHttpUrl("not-a-url")).toBeNull();
+    });
+});
+
+describe("resolvesToBlockedHostname", () => {
+    test("blocks local aliases and IP literals without resolver calls", async () => {
+        let resolverCallCount = 0;
+
+        await expect(
+            resolvesToBlockedHostname("localhost", () => {
+                resolverCallCount += 1;
+                return Promise.resolve([{ address: "8.8.8.8" }]);
+            })
+        ).resolves.toBe(true);
+
+        expect(resolverCallCount).toBe(0);
+    });
+
+    test("allows hostnames when every resolved address is public", async () => {
+        await expect(
+            resolvesToBlockedHostname("example.com", async () => [
+                { address: "8.8.8.8" },
+                { address: "2606:4700:4700::1111" },
+            ])
+        ).resolves.toBe(false);
+    });
+
+    test("blocks hostnames when any resolved address is blocked", async () => {
+        await expect(
+            resolvesToBlockedHostname("example.com", async () => [
+                { address: "8.8.8.8" },
+                { address: "10.0.0.5" },
+            ])
+        ).resolves.toBe(true);
+    });
+
+    test("blocks hostnames when resolution fails or returns no records", async () => {
+        await expect(
+            resolvesToBlockedHostname("empty.test", async () => [])
+        ).resolves.toBe(true);
+
+        await expect(
+            resolvesToBlockedHostname("broken.test", () =>
+                Promise.reject(new Error("lookup failed"))
+            )
+        ).resolves.toBe(true);
+    });
+});
+
+describe("parsePublicHttpUrl", () => {
+    test("returns the normalized URL only for public HTTP hosts", async () => {
+        const parsed = await parsePublicHttpUrl(
+            "https://example.com/path",
+            async () => [{ address: "8.8.8.8" }]
+        );
+
+        expect(parsed?.href).toBe("https://example.com/path");
+
+        await expect(
+            parsePublicHttpUrl("https://localhost/path", async () => [
+                { address: "8.8.8.8" },
+            ])
+        ).resolves.toBeNull();
+
+        await expect(
+            parsePublicHttpUrl("ftp://example.com/path", async () => [
+                { address: "8.8.8.8" },
+            ])
+        ).resolves.toBeNull();
     });
 });

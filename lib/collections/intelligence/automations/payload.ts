@@ -1,10 +1,9 @@
 import "server-only";
 
+import { parsePublicHttpUrl } from "@/lib/common/server-net";
 import { fetchWithTimeout } from "@/lib/common/timeout";
-import { isBlockedHostname } from "@/lib/common/net";
 import { prisma } from "@/prisma";
 import { AutomationPayloadScope } from "@/prisma/client/enums";
-import { lookup } from "node:dns/promises";
 import * as z from "zod";
 import {
     AUTOMATION_ITEM_PAGE_LIMIT_DEFAULT,
@@ -15,8 +14,6 @@ import {
 } from "./constants";
 
 const AUTOMATION_WEB_FETCH_REDIRECT_LIMIT = 5;
-const IPV6_GROUP_COUNT = 8;
-const IPV6_GROUP_PATTERN = /^[\da-f]{1,4}$/i;
 
 export const AutomationPayloadItemsInputSchema = z.object({
     cursor: z.string().trim().min(1).optional(),
@@ -224,138 +221,6 @@ export async function automationWebFetch(args: { url: string }) {
         error: "URL redirected too many times.",
         ok: false,
     };
-}
-
-async function parsePublicHttpUrl(value: string): Promise<URL | null> {
-    let parsed: URL;
-    try {
-        parsed = new URL(value);
-    } catch {
-        return null;
-    }
-
-    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
-        return null;
-    }
-
-    if (await resolvesToBlockedHostname(parsed.hostname)) {
-        return null;
-    }
-
-    return parsed;
-}
-
-async function resolvesToBlockedHostname(hostname: string): Promise<boolean> {
-    if (isBlockedHostname(hostname) || isPrivateIpv6Hostname(hostname)) {
-        return true;
-    }
-
-    try {
-        const records = await lookup(hostname, {
-            all: true,
-            verbatim: true,
-        });
-        if (records.length === 0) {
-            return true;
-        }
-        return records.some(
-            (record) =>
-                isBlockedHostname(record.address) ||
-                isPrivateIpv6Hostname(record.address)
-        );
-    } catch {
-        return true;
-    }
-}
-
-function isPrivateIpv6Hostname(hostname: string): boolean {
-    const normalized = normalizeHostname(hostname);
-    const groups = parseIpv6Address(normalized);
-    if (!groups) {
-        return false;
-    }
-
-    const mappedIpv4Address = getMappedIpv4Address(groups);
-    if (mappedIpv4Address) {
-        return isBlockedHostname(mappedIpv4Address);
-    }
-
-    const firstGroup = groups[0] ?? 0;
-    const isUnspecified = groups.every((group) => group === 0);
-    const isLoopback =
-        groups.slice(0, IPV6_GROUP_COUNT - 1).every((group) => group === 0) &&
-        groups[IPV6_GROUP_COUNT - 1] === 1;
-    const isUniqueLocal = (firstGroup & 0xfe_00) === 0xfc_00;
-    const isLinkLocal = (firstGroup & 0xff_c0) === 0xfe_80;
-
-    return isUnspecified || isLoopback || isUniqueLocal || isLinkLocal;
-}
-
-function normalizeHostname(hostname: string): string {
-    const normalized = hostname.trim().toLowerCase();
-    if (normalized.startsWith("[") && normalized.endsWith("]")) {
-        return normalized.slice(1, -1);
-    }
-    return normalized;
-}
-
-function parseIpv6Address(hostname: string): number[] | null {
-    const [head = "", tail = "", ...extra] = hostname.split("::");
-    if (extra.length > 0) {
-        return null;
-    }
-
-    const headParts = head ? head.split(":") : [];
-    const tailParts = tail ? tail.split(":") : [];
-    const missingPartCount = hostname.includes("::")
-        ? IPV6_GROUP_COUNT - headParts.length - tailParts.length
-        : 0;
-
-    if (missingPartCount < 0) {
-        return null;
-    }
-
-    const parts = [
-        ...headParts,
-        ...Array.from({ length: missingPartCount }, () => "0"),
-        ...tailParts,
-    ];
-    if (parts.length !== IPV6_GROUP_COUNT) {
-        return null;
-    }
-
-    const groups: number[] = [];
-    for (const part of parts) {
-        if (!IPV6_GROUP_PATTERN.test(part)) {
-            return null;
-        }
-        groups.push(Number.parseInt(part, 16));
-    }
-    return groups;
-}
-
-function getMappedIpv4Address(groups: number[]): string | null {
-    const mappedPrefixIndex = 5;
-    const firstIpv4Group = groups[6];
-    const secondIpv4Group = groups[7];
-    if (firstIpv4Group === undefined || secondIpv4Group === undefined) {
-        return null;
-    }
-
-    const hasMappedPrefix =
-        groups.slice(0, mappedPrefixIndex).every((group) => group === 0) &&
-        groups[mappedPrefixIndex] === 0xff_ff;
-
-    if (!hasMappedPrefix) {
-        return null;
-    }
-
-    return [
-        firstIpv4Group >> 8,
-        firstIpv4Group & 0xff,
-        secondIpv4Group >> 8,
-        secondIpv4Group & 0xff,
-    ].join(".");
 }
 
 function isRedirectResponse(status: number): boolean {

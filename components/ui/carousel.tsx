@@ -25,6 +25,7 @@ export function Carousel({
 }: CarouselProps) {
     return (
         <Swiper
+            aria-roledescription="carousel"
             className={cn("relative size-full", className)}
             grabCursor={grabCursor}
             modules={[Pagination, Mousewheel, A11y]}
@@ -49,8 +50,9 @@ export function Carousel({
         >
             {React.Children.map(children, (child) => (
                 <SwiperSlide
-                    aria-roledescription="carousel"
-                    className={slideClassName}
+                    aria-roledescription="slide"
+                    className={cn("shrink-0", slideClassName)}
+                    role="group"
                     tag="section"
                 >
                     {child}

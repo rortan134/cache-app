@@ -1,6 +1,6 @@
 {
     "dependencies": {
-        "@ai-sdk/google": "^3.0.78",
+        "@ai-sdk/google": "^3.0.79",
         "@arcjet/ip": "^1.4.0",
         "@arcjet/next": "^1.4.0",
         "@arcjet/redact": "^1.4.0",
@@ -29,7 +29,7 @@
         "@vercel/analytics": "^2.0.1",
         "@vercel/otel": "^2.1.2",
         "@workflow/ai": "^4.1.2",
-        "ai": "^6.0.189",
+        "ai": "^6.0.190",
         "better-auth": "^1.6.11",
         "better-auth-localization": "^3.0.0",
         "browser-fs-access": "^0.38.0",
@@ -43,7 +43,7 @@
         "dayjs": "^1.11.20",
         "dotenv": "^17.4.2",
         "gt-next": "^6.16.30",
-        "ipaddr.js": "^2.3.0",
+        "ipaddr.js": "^2.4.0",
         "justified-layout": "^4.1.0",
         "lexical": "^0.44.0",
         "lucide-react": "^1.16.0",

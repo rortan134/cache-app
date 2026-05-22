@@ -1,4 +1,5 @@
 import { describe, expect, test, mock, beforeEach } from "bun:test";
+import { parsePublicHttpUrl as parsePublicHttpUrlWithResolver } from "@/lib/common/net";
 
 const mockFetch =
     mock<(url: string, init?: RequestInit) => Promise<Response>>();
@@ -6,6 +7,13 @@ const mockFetch =
 mock.module("@/lib/common/timeout", () => ({
     fetchWithTimeout: (url: string, options: RequestInit, _timeoutMs: number) =>
         mockFetch(url, options),
+}));
+
+mock.module("@/lib/common/server-net", () => ({
+    parsePublicHttpUrl: (value: string) =>
+        parsePublicHttpUrlWithResolver(value, async () => [
+            { address: "8.8.8.8" },
+        ]),
 }));
 
 import { filterValidImageUrls } from "@/lib/common/image";

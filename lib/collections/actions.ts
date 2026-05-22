@@ -6,9 +6,11 @@ import {
     uniqueStrings,
     type ActionError,
     type ActionErrorWithDuplicate,
+    type ActionErrorWithoutNotFound,
     type LibraryCollectionSummary,
     type LibraryCollectionTag,
 } from "@/lib/collections/utils";
+import { DESCRIPTION_MAX_LENGTH } from "@/lib/common/constants";
 import { createLogger } from "@/lib/common/logs/console/logger";
 import {
     getValidationErrorMessage,
@@ -17,7 +19,6 @@ import {
 } from "@/lib/common/procedure";
 import type { CollectionPriority } from "@/prisma/client/enums";
 import * as z from "zod";
-import { DESCRIPTION_MAX_LENGTH } from "@/lib/common/constants";
 import { LibraryCollectionError } from "./error";
 import * as service from "./service";
 
@@ -429,6 +430,52 @@ export async function getSmartCollectionsPreference(): Promise<
             errorFactory: LibraryCollectionError,
             fallbackMessage:
                 "We couldn't fetch your smart collections preference.",
+            log,
+        });
+    }
+}
+
+const MediaDownloadInputSchema = z.object({
+    url: z.string().trim().min(1, "A valid URL is required to download media."),
+});
+
+export type MediaDownloadResult =
+    | {
+          downloadUrl: string;
+          status: "SUCCESS";
+      }
+    | ActionErrorWithoutNotFound;
+
+export async function downloadMedia(url: string): Promise<MediaDownloadResult> {
+    const parsed = MediaDownloadInputSchema.safeParse({ url });
+    if (!parsed.success) {
+        return {
+            message: getValidationErrorMessage(
+                parsed,
+                "A valid URL is required to download media."
+            ),
+            status: "INVALID",
+        };
+    }
+
+    const auth = await requireActionUserId("Sign in again to download media.");
+    if ("status" in auth) {
+        return auth;
+    }
+
+    try {
+        const downloadUrl = await service.downloadMedia(parsed.data.url);
+        return {
+            downloadUrl,
+            status: "SUCCESS",
+        };
+    } catch (error) {
+        return handleActionError({
+            codeToStatus: {},
+            error,
+            errorFactory: LibraryCollectionError,
+            fallbackMessage:
+                "We hit an unexpected error while preparing your download.",
             log,
         });
     }

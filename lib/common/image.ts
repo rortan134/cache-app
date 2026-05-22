@@ -1,6 +1,6 @@
 import { canUseDOM } from "@/lib/common/dom";
 import { createLogger } from "@/lib/common/logs/console/logger";
-import { isBlockedHostname } from "@/lib/common/net";
+import { parseHttpUrl } from "@/lib/common/net";
 import { withRetry } from "@/lib/common/retry";
 import { fetchWithTimeout } from "@/lib/common/timeout";
 
@@ -22,14 +22,6 @@ function isImageContentType(value: string | null): boolean {
 
 function isRetryableStatus(status: number): boolean {
     return status >= 500 || status === 429 || status === 408;
-}
-
-function tryParseUrl(url: string): URL | null {
-    try {
-        return new URL(url);
-    } catch {
-        return null;
-    }
 }
 
 /**
@@ -73,17 +65,9 @@ async function fetchImageHeaders(
  * - Content-Type validation
  */
 async function testValidImageResponse(url: string): Promise<boolean> {
-    const parsed = tryParseUrl(url);
+    const parsed = parseHttpUrl(url);
     if (!parsed) {
         log.debug("Skipping invalid URL", { url });
-        return false;
-    }
-
-    if (!canUseDOM && isBlockedHostname(parsed.hostname)) {
-        log.debug("Skipping blocked hostname", {
-            hostname: parsed.hostname,
-            url,
-        });
         return false;
     }
 
@@ -99,13 +83,24 @@ async function testValidImageResponse(url: string): Promise<boolean> {
         return true;
     }
 
+    const publicUrl = await import("@/lib/common/server-net").then((module) =>
+        module.parsePublicHttpUrl(parsed.href)
+    );
+    if (!publicUrl) {
+        log.debug("Skipping blocked hostname", {
+            hostname: parsed.hostname,
+            url,
+        });
+        return false;
+    }
+
     try {
         return await withRetry(
             async () => {
-                let response = await fetchImageHeaders(url, "HEAD");
+                let response = await fetchImageHeaders(publicUrl.href, "HEAD");
 
                 if (response.status === 405) {
-                    response = await fetchImageHeaders(url, "GET");
+                    response = await fetchImageHeaders(publicUrl.href, "GET");
                 }
 
                 if (!response.ok) {

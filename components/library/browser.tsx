@@ -103,6 +103,7 @@ import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
 import { useIsExtensionInstalled } from "@/hooks/use-extension-installed";
 import { useSession } from "@/lib/auth/client";
 import type { CollectionCreateFromItemsResult } from "@/lib/collections/actions";
+import { downloadMedia } from "@/lib/collections/actions";
 import {
     getSectionDescription,
     type SectionDescriptionResult,
@@ -122,7 +123,6 @@ import {
     type LibraryItemDeleteResult,
     type LibraryItemsCollectionsUpdateResult,
 } from "@/lib/collections/items";
-import { downloadMedia } from "@/lib/collections/media";
 import {
     itemPreviewImageUrl,
     itemPreviewVideoUrl,
@@ -3428,7 +3428,7 @@ export function CollectionComboboxPicker({
                                 ? `Edit collections (${selectedCount} selected)`
                                 : "Add to collections"
                         }
-                        className="rounded-full mix-blend-difference invert hover:brightness-125"
+                        className="z-1 rounded-full mix-blend-difference invert transition-transform ease-in-out hover:scale-110 hover:brightness-125 active:scale-95"
                         size="icon-sm"
                         variant="ghost"
                     />
@@ -3437,9 +3437,17 @@ export function CollectionComboboxPicker({
             >
                 {children ??
                     (selectedCount > 0 ? (
-                        <CircleDot className="size-4.5" />
+                        <CircleDot
+                            aria-hidden="true"
+                            aria-label="Collections"
+                            className="size-4.5"
+                        />
                     ) : (
-                        <CircleDashed className="size-4.5" />
+                        <CircleDashed
+                            aria-hidden="true"
+                            aria-label="Collections"
+                            className="size-4.5"
+                        />
                     ))}
             </ComboboxTrigger>
             <ComboboxPopup>
