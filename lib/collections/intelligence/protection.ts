@@ -1,17 +1,17 @@
 import "server-only";
 
 import { serverEnv } from "@/env/server";
-import type { PlanType } from "@/lib/billing/prices";
+import type { PriceType } from "@/lib/billing/prices";
 import { GEN_AI_QUOTAS } from "@/lib/billing/quotas";
 import { getUserPlanType } from "@/lib/billing/service";
 import { GenAiProtectionError } from "@/lib/collections/intelligence/error";
 import { createLogger } from "@/lib/common/logs/console/logger";
+import type { ArcjetNextRequest } from "@arcjet/next";
 import arcjet, {
     detectPromptInjection,
     shield,
     tokenBucket,
 } from "@arcjet/next";
-import type { ArcjetNextRequest } from "@arcjet/next";
 import type { ArcjetDecision } from "arcjet";
 
 const log = createLogger("intelligence:protection");
@@ -28,7 +28,7 @@ export function estimateGenAiTokens(
     );
 }
 
-function createPlanClient(plan: PlanType, key: string) {
+function createPlanClient(plan: PriceType, key: string) {
     const quota = GEN_AI_QUOTAS[plan];
 
     return arcjet({

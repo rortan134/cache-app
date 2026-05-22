@@ -2,6 +2,7 @@ import { getStripeClient, getStripeWebhookSecret } from "@/lib/billing/client";
 import { getPlanPriceIds } from "@/lib/billing/prices";
 import { seedBuiltInAutomationsForUser } from "@/lib/collections/intelligence/automations/service";
 import { APP_NAME, BASE_URL } from "@/lib/common/constants";
+import { createLogger } from "@/lib/common/logs/console/logger";
 import { getSafeOrigin } from "@/lib/common/url";
 import { prisma } from "@/prisma";
 import type { OAuth2Tokens } from "@better-auth/core/oauth2";
@@ -35,6 +36,7 @@ const GOOGLE_CLIENT_SECRET = requiredEnv("GOOGLE_CLIENT_SECRET");
 const GOOGLE_PHOTOS_SCOPE =
     "https://www.googleapis.com/auth/photospicker.mediaitems.readonly";
 const GITHUB_USER_AGENT = APP_NAME;
+const log = createLogger("Auth:server");
 
 // ---------------------------------------------------------------------------
 // Environment helpers
@@ -304,7 +306,15 @@ export const auth = betterAuth({
         user: {
             create: {
                 after: async (user) => {
-                    await seedBuiltInAutomationsForUser(user.id);
+                    try {
+                        await seedBuiltInAutomationsForUser(user.id);
+                    } catch (error) {
+                        log.error("Failed to seed built-in automations", {
+                            error,
+                            operation: "seedBuiltInAutomationsForUser",
+                            userId: user.id,
+                        });
+                    }
                 },
             },
         },

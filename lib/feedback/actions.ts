@@ -1,9 +1,7 @@
 "use server";
 
-import {
-    getValidationErrorMessage,
-    requireActionUserId,
-} from "@/lib/common/procedure";
+import { requireActionUserId } from "@/lib/auth/service";
+import { getValidationErrorMessage } from "@/lib/common/procedure";
 import { FeedbackError } from "@/lib/feedback/error";
 import {
     FeedbackInputSchema,

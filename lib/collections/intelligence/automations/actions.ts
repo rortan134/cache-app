@@ -3,8 +3,8 @@
 import {
     getValidationErrorMessage,
     handleActionError,
-    requireActionUserId,
 } from "@/lib/common/procedure";
+import { requireActionUserId } from "@/lib/auth/service";
 import { createLogger } from "@/lib/common/logs/console/logger";
 import * as z from "zod";
 import { AutomationError } from "./error";

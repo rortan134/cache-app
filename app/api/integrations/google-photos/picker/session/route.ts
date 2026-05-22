@@ -1,4 +1,4 @@
-import { requireSessionUserId } from "@/lib/auth/service";
+import { requireRouteUserId } from "@/lib/auth/route";
 import { IntegrationApiError } from "@/lib/integrations/error";
 import {
     createPickerSession,
@@ -8,7 +8,7 @@ import { mapPickerSessionToViewModel } from "@/lib/integrations/google-photos/se
 import { resolveProviderAccessToken } from "@/lib/integrations/provider-account";
 
 export async function POST() {
-    const sessionResult = await requireSessionUserId();
+    const sessionResult = await requireRouteUserId();
     if (sessionResult instanceof Response) {
         return sessionResult;
     }
@@ -45,7 +45,7 @@ export async function POST() {
 }
 
 export async function GET(request: Request) {
-    const sessionResult = await requireSessionUserId();
+    const sessionResult = await requireRouteUserId();
     if (sessionResult instanceof Response) {
         return sessionResult;
     }

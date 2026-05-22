@@ -11,8 +11,8 @@ import { createLogger } from "@/lib/common/logs/console/logger";
 import {
     getValidationErrorMessage,
     handleActionError,
-    requireActionUserId,
 } from "@/lib/common/procedure";
+import { requireActionUserId } from "@/lib/auth/service";
 import * as z from "zod";
 import {
     BATCH_UPDATE_MAX_ITEMS,

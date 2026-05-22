@@ -1,4 +1,4 @@
-import { requireSessionUserId } from "@/lib/auth/service";
+import { requireRouteUserId } from "@/lib/auth/route";
 import { autoTagLibraryItemsByIds } from "@/lib/collections/intelligence";
 import { createLogger } from "@/lib/common/logs/console/logger";
 import {
@@ -96,7 +96,7 @@ export async function POST(request: Request) {
 }
 
 export async function DELETE() {
-    const sessionResult = await requireSessionUserId();
+    const sessionResult = await requireRouteUserId();
     if (sessionResult instanceof Response) {
         return sessionResult;
     }

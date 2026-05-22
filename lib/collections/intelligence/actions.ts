@@ -1,10 +1,8 @@
 "use server";
 
 import { createLogger } from "@/lib/common/logs/console/logger";
-import {
-    getValidationErrorMessage,
-    requireActionUserId,
-} from "@/lib/common/procedure";
+import { getValidationErrorMessage } from "@/lib/common/procedure";
+import { requireActionUserId } from "@/lib/auth/service";
 import { request as getArcjetRequest } from "@arcjet/next";
 import { GenAiGenerationError, GenAiProtectionError } from "./error";
 import {

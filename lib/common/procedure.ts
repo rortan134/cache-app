@@ -1,4 +1,3 @@
-import { getSessionUserId, type Session } from "@/lib/auth/session";
 import { extractNamedErrorMessage, NamedError } from "@/lib/common/error";
 import { createLogger, type Logger } from "@/lib/common/logs/console/logger";
 import { safeSanitize } from "@/lib/common/logs/sanitize";
@@ -12,25 +11,17 @@ import {
 } from "zod-validation-error";
 
 interface ProcedureContext {
-    actionName?: string;
-    requestId?: string;
-    session?: NonNullable<Session>["session"];
-    subscription?: {
-        plan: string;
-        status: string | null;
-    } | null;
-    user?: NonNullable<Session>["user"];
+    name: string;
+    requestId: string;
 }
 
-const log = createLogger("ServerAction");
+const log = createLogger("Procedure");
 
 const tracer = trace.getTracer("procedure");
 
 const base = os.$context<ProcedureContext>();
 
-z.config({
-    customError: createErrorMap(),
-});
+z.config({ customError: createErrorMap() });
 
 export const procedure = base.use(
     onError(async (error, { context }) => {
@@ -43,7 +34,7 @@ export const procedure = base.use(
                 "data" in error
                     ? (error as unknown as { data?: unknown }).data
                     : undefined;
-            const prefix = `(Server action: ${context.actionName})`;
+            const prefix = `(Procedure: ${context.name})`;
 
             span.recordException(
                 error instanceof Error ? error : { message: String(error) }
@@ -62,8 +53,7 @@ export const procedure = base.use(
 
                 log.error(
                     prefix,
-                    JSON.stringify(await safeSanitize(error)),
-                    payload
+                    await stringifyProcedureErrorLog(error, payload)
                 );
 
                 if (isZodErrorLike(error)) {
@@ -74,13 +64,11 @@ export const procedure = base.use(
 
             log.error(
                 prefix,
-                JSON.stringify(
-                    await safeSanitize(
-                        error,
-                        `[Unknown error: ${String(error)}]`
-                    )
-                ),
-                payload
+                await stringifyProcedureErrorLog(
+                    error,
+                    payload,
+                    `[Unknown error: ${String(error)}]`
+                )
             );
         } finally {
             if (shouldEndSpan) {
@@ -89,6 +77,29 @@ export const procedure = base.use(
         }
     })
 );
+
+async function stringifyProcedureErrorLog(
+    error: unknown,
+    payload: unknown,
+    errorFallback?: string
+): Promise<string> {
+    const [sanitizedError, sanitizedPayload] = await Promise.all([
+        safeSanitize(error, errorFallback),
+        safeSanitize(payload),
+    ]);
+
+    return JSON.stringify({
+        error: sanitizedError,
+        payload: sanitizedPayload,
+    });
+}
+
+export function getValidationErrorMessage(
+    parsed: z.ZodSafeParseError<unknown>,
+    fallbackMessage: string
+): string {
+    return parsed.error.issues[0]?.message ?? fallbackMessage;
+}
 
 interface ErrorWithCode<Code extends string> {
     data: {
@@ -101,33 +112,6 @@ interface ErrorFactory<Code extends string> {
 }
 
 type ActionErrorStatus<Status extends string> = "ERROR" | Status;
-
-export async function requireActionUserId(unauthorizedMessage: string): Promise<
-    | {
-          status: "UNAUTHORIZED";
-          message: string;
-      }
-    | {
-          userId: string;
-      }
-> {
-    const userId = await getSessionUserId();
-    if (!userId) {
-        return {
-            message: unauthorizedMessage,
-            status: "UNAUTHORIZED",
-        };
-    }
-
-    return { userId };
-}
-
-export function getValidationErrorMessage(
-    parsed: z.ZodSafeParseError<unknown>,
-    fallbackMessage: string
-): string {
-    return parsed.error.issues[0]?.message ?? fallbackMessage;
-}
 
 export function handleActionError<Code extends string, Status extends string>({
     codeToStatus,

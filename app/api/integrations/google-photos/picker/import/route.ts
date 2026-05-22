@@ -1,4 +1,4 @@
-import { requireSessionUserId } from "@/lib/auth/service";
+import { requireRouteUserId } from "@/lib/auth/route";
 import { autoTagLibraryItemsByIds } from "@/lib/collections/intelligence";
 import { IntegrationApiError } from "@/lib/integrations/error";
 import {
@@ -19,7 +19,7 @@ const bodySchema = z.object({
 });
 
 export async function POST(request: Request) {
-    const sessionResult = await requireSessionUserId();
+    const sessionResult = await requireRouteUserId();
     if (sessionResult instanceof Response) {
         return sessionResult;
     }

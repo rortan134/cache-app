@@ -1,6 +1,6 @@
 import "server-only";
 
-import type { PlanType } from "@/lib/billing/prices";
+import type { PriceType } from "@/lib/billing/prices";
 import { prisma } from "@/prisma";
 import { isActiveSubscriptionStatus } from "./subscription-status";
 
@@ -33,7 +33,7 @@ export async function userHasActiveSubscription(
     return isActiveSubscriptionStatus(subscription?.status);
 }
 
-export async function getUserPlanType(userId: string): Promise<PlanType> {
+export async function getUserPlanType(userId: string): Promise<PriceType> {
     "use cache: remote";
 
     const subscription = await getUserActiveSubscriptionStatus(userId);

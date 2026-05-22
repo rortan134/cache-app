@@ -1,24 +1,35 @@
 import "server-only";
 
-import { getServerSession } from "@/lib/auth/session";
+import { getSessionUserId } from "@/lib/auth/session";
 import { prisma } from "@/prisma";
 import { nanoid } from "nanoid";
 
 const EXTENSION_INGEST_TOKEN_LENGTH = 48;
 
 /**
- * Resolves the current session user id for API routes.
+ * Resolves the current session user id for Server Actions.
  *
- * @returns The user id, or a 401 Response if the session is missing.
+ * Server Actions return serializable status objects rather than HTTP responses,
+ * so this helper keeps that transport shape close to auth without coupling
+ * domain-agnostic procedure utilities to the auth module.
  */
-export async function requireSessionUserId(): Promise<
-    { userId: string } | Response
+export async function requireActionUserId(unauthorizedMessage: string): Promise<
+    | {
+          status: "UNAUTHORIZED";
+          message: string;
+      }
+    | {
+          userId: string;
+      }
 > {
-    const session = await getServerSession();
-    const userId = session?.user?.id;
+    const userId = await getSessionUserId();
     if (!userId) {
-        return Response.json({ error: "Unauthorized" }, { status: 401 });
+        return {
+            message: unauthorizedMessage,
+            status: "UNAUTHORIZED",
+        };
     }
+
     return { userId };
 }
 

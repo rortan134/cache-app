@@ -2951,7 +2951,7 @@ function CollectionItemMetadata({
         <div className="absolute top-1/2 right-0 flex size-8 -translate-y-1/2 items-center justify-center">
             <span className="pointer-events-none text-nowrap text-(--text-muted-color) text-xs tabular-nums focus-visible:opacity-0 group-focus-within:opacity-0 group-hover:opacity-0">
                 {isFavorite
-                    ? dayjs(collection.updatedAt).fromNow()
+                    ? dayjs(collection.updatedAt).fromNow(true)
                     : COMPACT_NUMBER_FORMATTER.format(collection.itemCount)}
             </span>
             <Menu>

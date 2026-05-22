@@ -1,6 +1,6 @@
+import { requireRouteUserId } from "@/lib/auth/route";
 import {
     getOrCreateExtensionIngestToken,
-    requireSessionUserId,
     rotateExtensionIngestToken,
 } from "@/lib/auth/service";
 import { extensionTokenCorsHeaders } from "@/lib/integrations/extension-ingest";
@@ -14,12 +14,9 @@ export function OPTIONS(request: Request) {
 
 export async function GET(request: Request) {
     const cors = extensionTokenCorsHeaders(request);
-    const session = await requireSessionUserId();
+    const session = await requireRouteUserId({ headers: cors });
     if (session instanceof Response) {
-        return Response.json(
-            { error: "Unauthorized" },
-            { headers: cors, status: 401 }
-        );
+        return session;
     }
     const { userId } = session;
 
@@ -29,12 +26,9 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
     const cors = extensionTokenCorsHeaders(request);
-    const session = await requireSessionUserId();
+    const session = await requireRouteUserId({ headers: cors });
     if (session instanceof Response) {
-        return Response.json(
-            { error: "Unauthorized" },
-            { headers: cors, status: 401 }
-        );
+        return session;
     }
     const { userId } = session;
 

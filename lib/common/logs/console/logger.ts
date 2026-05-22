@@ -1,3 +1,5 @@
+import { formatLogValue } from "@/lib/common/logs/format";
+
 /**
  *
  * Framework-agnostic logging utilities for the platform.
@@ -54,11 +56,6 @@ const LOG_LEVEL_ORDER = [
     LOG_LEVEL.ERROR,
 ];
 const NODE_ENV = process.env.NODE_ENV ?? "development";
-const SENSITIVE_LOG_KEY_PATTERN =
-    /pass|secret|token|key|otp|authorization|cookie/i;
-const LOG_STRING_MAX_LENGTH = 2000;
-const LOG_ARRAY_SAMPLE_LIMIT = 5;
-const LOG_OBJECT_KEYS_LIMIT = 12;
 const ANSI_RESET = "\u001b[0m";
 const ANSI_COLOR_BY_LEVEL: Record<LogLevel, string> = {
     DEBUG: "\u001b[34m",
@@ -68,10 +65,6 @@ const ANSI_COLOR_BY_LEVEL: Record<LogLevel, string> = {
 };
 const ANSI_CYAN = "\u001b[36m";
 const ANSI_GRAY = "\u001b[90m";
-
-interface LogFormatContext {
-    visitedObjects: WeakSet<object>;
-}
 
 interface LogSpan {
     stop: () => void;
@@ -106,99 +99,12 @@ function colorizeLogPart(value: string, color: string): string {
     return `${color}${value}${ANSI_RESET}`;
 }
 
-function truncateLogString(value: string): string {
-    if (value.length <= LOG_STRING_MAX_LENGTH) {
-        return value;
-    }
-
-    return `${value.slice(0, LOG_STRING_MAX_LENGTH)}... [truncated ${value.length - LOG_STRING_MAX_LENGTH} chars]`;
-}
-
-function formatErrorForLog(
-    error: Error,
-    context: LogFormatContext
-): Record<string, unknown> {
-    const record: Record<string, unknown> = {
-        message: error.message,
-        name: error.name,
-    };
-
-    if (NODE_ENV === "development") {
-        record.stack = error.stack;
-    }
-
-    for (const [key, value] of Object.entries(error)) {
-        record[key] = formatValueForLog(key, value, context);
-    }
-
-    return record;
-}
-
-function formatObjectForLog(value: object, context: LogFormatContext): unknown {
-    if (context.visitedObjects.has(value)) {
-        return "[Circular]";
-    }
-    context.visitedObjects.add(value);
-
-    if (value instanceof Error) {
-        return formatErrorForLog(value, context);
-    }
-
-    if (Array.isArray(value)) {
-        return {
-            length: value.length,
-            sample: value
-                .slice(0, LOG_ARRAY_SAMPLE_LIMIT)
-                .map((item) => formatValueForLog("", item, context)),
-            type: "array",
-        };
-    }
-
-    const entries = Object.entries(value).slice(0, LOG_OBJECT_KEYS_LIMIT);
-    const record: Record<string, unknown> = {};
-    for (const [key, item] of entries) {
-        record[key] = formatValueForLog(key, item, context);
-    }
-
-    const remainingKeys = Object.keys(value).length - LOG_OBJECT_KEYS_LIMIT;
-    if (remainingKeys > 0) {
-        record.__truncated__ = `${remainingKeys} more keys`;
-    }
-
-    return record;
-}
-
-function formatValueForLog(
-    key: string,
-    value: unknown,
-    context: LogFormatContext
-): unknown {
-    if (SENSITIVE_LOG_KEY_PATTERN.test(key)) {
-        return "[REDACTED]";
-    }
-    if (typeof value === "string") {
-        return truncateLogString(value);
-    }
-    if (typeof value === "bigint") {
-        return value.toString();
-    }
-    if (typeof value === "function") {
-        return "[Function]";
-    }
-    if (typeof value === "symbol") {
-        return value.toString();
-    }
-    if (typeof value === "object" && value !== null) {
-        return formatObjectForLog(value, context);
-    }
-
-    return value;
-}
-
 function stringifyLogValue(value: unknown): string {
     try {
         return JSON.stringify(
-            formatValueForLog("", value, { visitedObjects: new WeakSet() }),
+            formatLogValue(value, {
+                includeErrorStack: NODE_ENV === "development",
+            }),
             null,
             NODE_ENV === "development" ? 2 : 0
         );

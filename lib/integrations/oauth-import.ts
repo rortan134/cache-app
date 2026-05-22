@@ -1,6 +1,6 @@
 import "server-only";
 
-import { requireSessionUserId } from "@/lib/auth/service";
+import { requireRouteUserId } from "@/lib/auth/route";
 import { scheduleAutoTagging } from "@/lib/collections/intelligence/schedule";
 import { IntegrationApiError } from "@/lib/integrations/error";
 import {
@@ -31,7 +31,7 @@ interface OAuthImportConfig<T> {
 export async function runOAuthImport<T>(
     config: OAuthImportConfig<T>
 ): Promise<Response> {
-    const sessionResult = await requireSessionUserId();
+    const sessionResult = await requireRouteUserId();
     if (sessionResult instanceof Response) {
         return sessionResult;
     }

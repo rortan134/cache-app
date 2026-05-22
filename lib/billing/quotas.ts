@@ -1,4 +1,4 @@
-import type { PlanType } from "@/lib/billing/prices";
+import type { PriceType } from "@/lib/billing/prices";
 import { isActiveSubscriptionStatus } from "@/lib/billing/subscription-status";
 import type { Subscription } from "@better-auth/stripe";
 import * as z from "zod";
@@ -12,7 +12,7 @@ const PlanLimitsSchema = z.object({
 export type PlanLimits = z.infer<typeof PlanLimitsSchema>;
 
 export const QuotaSchema = z.strictObject<{
-    [key in PlanType]: z.ZodType<PlanLimits>;
+    [key in PriceType]: z.ZodType<PlanLimits>;
 }>({
     free: PlanLimitsSchema,
     monthly: PlanLimitsSchema,
