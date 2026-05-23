@@ -147,11 +147,16 @@ import {
     createFileAttachment,
     fileOpen,
     revokeFileAttachmentObjectUrl,
+    saveFile,
 } from "@/lib/common/file";
 import { filterValidImageUrls } from "@/lib/common/image";
 import { getImageColors } from "@/lib/common/image-colors";
 import { createLogger } from "@/lib/common/logs/console/logger";
-import { getNoteExcerpt, normalizeWhitespace } from "@/lib/common/strings";
+import {
+    getNoteExcerpt,
+    normalizeWhitespace,
+    slugify,
+} from "@/lib/common/strings";
 import {
     normalizeURL,
     openExternal,
@@ -194,6 +199,7 @@ import {
     ExternalLinkIcon,
     EyeIcon,
     FilePenLineIcon,
+    FileSpreadsheetIcon,
     FolderOpen,
     Funnel,
     Globe,
@@ -223,6 +229,16 @@ const log = createLogger("library:browser");
 
 const SECTION_DESCRIPTION_FALLBACK_TEXT =
     "Description is unavailable right now.";
+const CSV_CONTENT_TYPE = "text/csv;charset=utf-8";
+const CSV_HEADERS = [
+    "Section",
+    "Caption",
+    "URL",
+    "Source",
+    "Kind",
+    "Saved At",
+    "Posted At",
+] as const;
 
 export interface CommandSuggestion {
     icon: ReactNode;
@@ -921,6 +937,34 @@ interface LibraryCommandAttachment
 
 function itemDomain(url: string): string {
     return parseDisplayUrl(url) || "Other";
+}
+
+function escapeCsv(value: string): string {
+    return `"${value.replaceAll('"', '""')}"`;
+}
+
+function buildBrowserSectionCsv(
+    sectionTitle: string,
+    items: LibraryItemWithCollections[]
+): string {
+    const rows = items.map((item) => [
+        sectionTitle,
+        item.caption ?? "",
+        normalizeURL(item.url),
+        item.source,
+        item.kind,
+        item.createdAt.toISOString(),
+        item.postedAt?.toISOString() ?? "",
+    ]);
+
+    return [CSV_HEADERS, ...rows]
+        .map((row) => row.map(escapeCsv).join(","))
+        .join("\n");
+}
+
+function getBrowserSectionExportFileName(sectionTitle: string): string {
+    const slug = slugify(sectionTitle);
+    return slug.length > 0 ? `${slug}-links` : "results-links";
 }
 
 function itemDate(
@@ -1664,6 +1708,10 @@ interface BrowserResultsContextValue {
     onCreateCollectionFromResults?: () => void;
     onDelete: (item: LibraryItem) => void;
     onExpandAllSections?: () => void;
+    onExportSectionResults?: (
+        sectionTitle: string,
+        items: LibraryItemWithCollections[]
+    ) => void;
     onOpenInNewTab: (item: LibraryItem) => void;
     onOpenNote: (item: LibraryItem) => void;
     onToggleSection: (key: string) => void;
@@ -1826,12 +1874,19 @@ function BrowserHeader() {
     const {
         enableSectionCollapse,
         onCreateCollectionFromResults,
+        onExportSectionResults,
         onExpandAllSections,
         onCollapseAllSections,
     } = useBrowserResultsContext();
     const headerGradient = enableSectionCollapse
         ? getColorGradientFromName(group.accentKey)
         : undefined;
+    const hasItems = group.items.length > 0;
+    const canCreateCollectionFromResults =
+        group.isMainResults && Boolean(onCreateCollectionFromResults);
+    const canExportSectionResults = Boolean(onExportSectionResults);
+    const shouldShowSectionMenu =
+        hasItems && (canCreateCollectionFromResults || canExportSectionResults);
 
     return (
         <ContextMenu>
@@ -1881,7 +1936,7 @@ function BrowserHeader() {
                             {group.items.length}
                         </span>
                     </div>
-                    {group.isMainResults && onCreateCollectionFromResults ? (
+                    {shouldShowSectionMenu ? (
                         <Menu>
                             <MenuTrigger
                                 render={
@@ -1891,12 +1946,32 @@ function BrowserHeader() {
                                 }
                             />
                             <MenuPopup align="end">
-                                <MenuItem
-                                    onClick={onCreateCollectionFromResults}
-                                >
-                                    <CircleFadingPlus className="size-4.5 text-muted-foreground" />
-                                    New collection with these results
-                                </MenuItem>
+                                {canCreateCollectionFromResults ? (
+                                    <MenuItem
+                                        onClick={onCreateCollectionFromResults}
+                                    >
+                                        <CircleFadingPlus className="size-4.5 text-muted-foreground" />
+                                        New collection with these results
+                                    </MenuItem>
+                                ) : null}
+                                {canCreateCollectionFromResults &&
+                                canExportSectionResults ? (
+                                    <MenuSeparator />
+                                ) : null}
+                                {onExportSectionResults ? (
+                                    <MenuItem
+                                        disabled={!hasItems}
+                                        onClick={() =>
+                                            onExportSectionResults(
+                                                group.title,
+                                                group.items
+                                            )
+                                        }
+                                    >
+                                        <FileSpreadsheetIcon className="size-4.5 text-muted-foreground" />
+                                        Export to CSV
+                                    </MenuItem>
+                                ) : null}
                             </MenuPopup>
                         </Menu>
                     ) : null}
@@ -4883,6 +4958,41 @@ export function Browser({
         });
     });
 
+    const handleExportSectionResults = useStableCallback(
+        async (
+            sectionTitle: string,
+            sectionItems: LibraryItemWithCollections[]
+        ) => {
+            if (sectionItems.length === 0) {
+                log.warn("Skipped empty browser section export", {
+                    sectionTitle,
+                });
+                return;
+            }
+
+            try {
+                await saveFile(
+                    new Blob(
+                        [buildBrowserSectionCsv(sectionTitle, sectionItems)],
+                        {
+                            type: CSV_CONTENT_TYPE,
+                        }
+                    ),
+                    {
+                        description: "CSV file",
+                        extension: "csv",
+                        name: getBrowserSectionExportFileName(sectionTitle),
+                    }
+                );
+            } catch (error) {
+                log.error("Failed to export browser section results", error, {
+                    itemCount: sectionItems.length,
+                    sectionTitle,
+                });
+            }
+        }
+    );
+
     const handleOpenNote = useStableCallback(
         (item: LibraryItemWithCollections) => {
             setActiveNote(item);
@@ -5101,6 +5211,7 @@ export function Browser({
                 }
                 onDelete={handleRequestDelete}
                 onExpandAllSections={expandAllSections}
+                onExportSectionResults={handleExportSectionResults}
                 onOpenInNewTab={handleOpenInNewTab}
                 onOpenNote={handleOpenNote}
                 onToggleSection={toggleSection}
