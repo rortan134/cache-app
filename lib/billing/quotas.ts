@@ -1,7 +1,7 @@
-import type { PriceType } from "@/lib/billing/prices";
-import { isActiveSubscriptionStatus } from "@/lib/billing/subscription-status";
 import type { Subscription } from "@better-auth/stripe";
 import * as z from "zod";
+import type { PriceType } from "./prices";
+import { isActiveSubscriptionStatus } from "./subscription-status";
 
 const PlanLimitsSchema = z.object({
     fixedLimit: z.int(),

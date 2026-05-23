@@ -29,7 +29,7 @@ import {
     executeCopyPromptBehavior,
     executeOpenBehavior,
     executeRouteSyncBehavior,
-} from "@/lib/integrations/execution";
+} from "@/lib/integrations/client";
 import { executeGooglePhotosPickerFlow } from "@/lib/integrations/google-photos/client";
 import {
     INTEGRATIONS,
