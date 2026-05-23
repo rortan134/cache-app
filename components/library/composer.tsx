@@ -82,10 +82,19 @@ function LibraryPaletteTrailing({
 }) {
     return (
         <>
-            {entries.length === 0 && !isCommandInputFocused && (
+            {entries.length === 0 && !isCommandInputFocused ? (
                 <Kbd className="border-none text-muted-foreground opacity-50">
                     <CmdKbd />G
                 </Kbd>
+            ) : (
+                <span className="mr-1 flex items-center gap-0.5">
+                    <Kbd className="border-none text-muted-foreground opacity-50">
+                        Tab
+                    </Kbd>
+                    <span className="text-muted-foreground text-xs opacity-50">
+                        Ask Cache
+                    </span>
+                </span>
             )}
             <TruncateAfter
                 badgeRender={

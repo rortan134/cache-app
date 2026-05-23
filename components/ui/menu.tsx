@@ -174,7 +174,7 @@ export function MenuSubTrigger({
     return (
         <MenuPrimitive.SubmenuTrigger
             className={cn(
-                "flex min-h-8 cursor-default select-none items-center gap-5 rounded-lg px-2.5 py-2 text-sm outline-none hover:transition-colors data-disabled:pointer-events-none data-highlighted:bg-accent data-highlighted:text-accent-foreground data-disabled:opacity-50",
+                "flex min-h-8 cursor-default select-none items-center gap-2 rounded-lg px-2.5 py-2 text-sm outline-none hover:transition-colors data-disabled:pointer-events-none data-highlighted:bg-accent data-highlighted:text-accent-foreground data-disabled:opacity-50",
                 className
             )}
             data-slot="menu-sub-trigger"

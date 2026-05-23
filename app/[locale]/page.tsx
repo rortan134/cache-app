@@ -164,6 +164,7 @@ export default async function Home() {
                             className="absolute top-12 left-8 z-10 w-full rounded-xl"
                             fetchPriority="high"
                             loading="eager"
+                            placeholder="blur"
                             priority
                             src={HeroImage}
                         />
@@ -201,6 +202,7 @@ export default async function Home() {
                                     alt=""
                                     height={800}
                                     loading="eager"
+                                    placeholder="blur"
                                     priority
                                     src={LibrarySectionImage}
                                     width={800}

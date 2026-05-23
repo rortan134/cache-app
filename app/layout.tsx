@@ -18,7 +18,14 @@ export async function generateMetadata(props: {
 
     return {
         applicationName: APP_NAME,
-        keywords: ["bookmark", "bookmark manager"],
+        formatDetection: {
+            address: false,
+            date: false,
+            email: false,
+            telephone: false,
+            url: false,
+        },
+        keywords: ["bookmarks", "bookmark manager"],
         metadataBase: new URL(BASE_URL),
         openGraph: {
             locale,

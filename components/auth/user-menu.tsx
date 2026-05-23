@@ -38,8 +38,8 @@ import { LocaleSelector, T } from "gt-next";
 import { ChevronDown, LoaderCircle, LogOut, PlusIcon } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import useSWR from "swr";
 import * as React from "react";
+import useSWR from "swr";
 
 const log = createLogger("auth-user-menu");
 
@@ -119,7 +119,7 @@ export function UserMenuHeader() {
         <WithUserSessionOnly>
             {(user) => (
                 <div className="w-full min-w-0 flex-1 pb-2">
-                    <UserMenuAccountSwitcherSubMenu className="h-11 rounded-xl">
+                    <UserMenuAccountSwitcherSubMenu className="h-11 gap-5 rounded-xl">
                         <div className="min-w-0">
                             <span className="block truncate font-medium text-sm">
                                 {user.name ?? <T>Cache account</T>}

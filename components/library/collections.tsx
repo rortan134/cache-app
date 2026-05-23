@@ -155,7 +155,7 @@ import { storage } from "stan-js/storage";
 
 const log = createLogger("library:collections");
 
-const CSV_CONTENT_TYPE = "text/csv;charset=utf-8";
+const CSV_CONTENT_TYPE = "text/csv";
 
 const CSV_HEADERS = [
     "Collection",
@@ -192,6 +192,8 @@ const EXPORT_CSV_ERROR_MESSAGE =
     "We couldn't export this collection right now.";
 
 type CollectionOptionIcon = React.ComponentType<{ className?: string }>;
+
+type CollectionItemMetadataDisplay = "item-count" | "updated-at";
 
 type CollectionsListStatusTone = "error" | "success";
 
@@ -696,6 +698,7 @@ export function Collections() {
                             <CollectionItemRow
                                 collection={collection}
                                 key={collection.id}
+                                metadataDisplay="updated-at"
                             />
                         )}
                     </CollectionsListFavoritesContent>
@@ -1608,9 +1611,13 @@ function useCollectionItemHotkey(
 
 interface CollectionItemRowProps {
     collection: LibraryCollectionSummary;
+    metadataDisplay?: CollectionItemMetadataDisplay;
 }
 
-function CollectionItemRow({ collection }: CollectionItemRowProps) {
+function CollectionItemRow({
+    collection,
+    metadataDisplay = "item-count",
+}: CollectionItemRowProps) {
     const controller = useCollections();
     const isSelected = controller.selectedCollectionIds.includes(collection.id);
     const isFavorite = controller.favoriteCollectionIdSet.has(collection.id);
@@ -1633,6 +1640,7 @@ function CollectionItemRow({ collection }: CollectionItemRowProps) {
                     controller.pendingShareId === collection.id &&
                     controller.isSharePending
                 }
+                metadataDisplay={metadataDisplay}
                 onCopyLinks={() => controller.onCopyLinks(collection)}
                 onCopyShareLink={() => controller.onCopyShareLink(collection)}
                 onCopyTitle={() => controller.onCopyTitle(collection)}
@@ -2174,13 +2182,13 @@ function CollectionsListStatus({
     }
 
     return (
-        <CollectionsListInlineRow>
+        <CollectionsListInlineRow className="pr-1" data-sidebar-collapsible="">
             <p
                 {...props}
                 aria-atomic="true"
                 aria-live="polite"
                 className={cn(
-                    "text-xs italic leading-tight",
+                    "truncate text-xs italic leading-tight",
                     tone === "error"
                         ? "text-destructive"
                         : "text-muted-foreground",
@@ -2649,9 +2657,9 @@ interface CollectionsListShareStatusCardProps {
 
 function CollectionItemShareStatus({ isShared }: { isShared: boolean }) {
     return (
-        <div className="mt-4 rounded-xl border bg-muted/40 p-3">
+        <div className="mt-3 rounded-xl border bg-muted/40 p-2">
             <div className="flex items-start gap-3">
-                <div className="mt-0.5 flex size-9 items-center justify-center rounded-xl bg-background text-muted-foreground shadow-xs/5">
+                <div className="mt-0.5 flex size-9 items-center justify-center rounded-lg bg-background text-muted-foreground shadow-xs/5">
                     {isShared ? (
                         <LinkIcon className="size-4" />
                     ) : (
@@ -2665,7 +2673,7 @@ function CollectionItemShareStatus({ isShared }: { isShared: boolean }) {
                     <p className="mt-0.5 text-muted-foreground text-xs leading-relaxed">
                         {isShared
                             ? "Shared publicly as a read-only page."
-                            : "Create a short, unlisted read-only link for this collection."}
+                            : "Create a read-only link for this collection."}
                     </p>
                 </div>
             </div>
@@ -2895,6 +2903,7 @@ function CollectionItemSubscribeSubMenu() {
 interface CollectionsItemMetadataProps {
     isFavorite: boolean;
     isSharePending: boolean;
+    metadataDisplay: CollectionItemMetadataDisplay;
     onCopyLinks: () => void;
     onCopyShareLink: () => void;
     onCopyTitle: () => void;
@@ -2918,6 +2927,7 @@ interface CollectionsItemMetadataProps {
 function CollectionItemMetadata({
     isFavorite,
     isSharePending,
+    metadataDisplay,
     onCopyLinks,
     onCopyShareLink,
     onCopyTitle,
@@ -2950,7 +2960,7 @@ function CollectionItemMetadata({
     return (
         <div className="absolute top-1/2 right-0 flex size-8 -translate-y-1/2 items-center justify-center">
             <span className="pointer-events-none text-nowrap text-(--text-muted-color) text-xs tabular-nums focus-visible:opacity-0 group-focus-within:opacity-0 group-hover:opacity-0">
-                {isFavorite
+                {metadataDisplay === "updated-at"
                     ? dayjs(collection.updatedAt).fromNow(true)
                     : COMPACT_NUMBER_FORMATTER.format(collection.itemCount)}
             </span>

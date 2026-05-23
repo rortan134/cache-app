@@ -229,7 +229,7 @@ const log = createLogger("library:browser");
 
 const SECTION_DESCRIPTION_FALLBACK_TEXT =
     "Description is unavailable right now.";
-const CSV_CONTENT_TYPE = "text/csv;charset=utf-8";
+const CSV_CONTENT_TYPE = "text/csv";
 const CSV_HEADERS = [
     "Section",
     "Caption",
@@ -1658,7 +1658,7 @@ function PaletteAttachmentChip({
                         {mediaCategory === "image" && attachment.url ? (
                             <div className="flex max-h-80 w-72 items-center justify-center overflow-hidden rounded-md border">
                                 <img
-                                    alt={label}
+                                    alt=""
                                     className="max-h-full max-w-full object-contain"
                                     height={320}
                                     src={attachment.url}
@@ -3147,14 +3147,12 @@ interface BoardColumnItem {
 }
 
 interface PreviewMediaProps {
-    alt: string;
     isHovered?: boolean;
     src: string | null;
     videoSrc?: string | null;
 }
 
 export function PreviewMedia({
-    alt,
     isHovered = false,
     src,
     videoSrc,
@@ -3234,7 +3232,7 @@ export function PreviewMedia({
             {canRenderImage ? (
                 // biome-ignore lint/a11y/noNoninteractiveElementInteractions: image load failures drive the visual fallback state
                 <img
-                    alt={alt}
+                    alt=""
                     className={cn(
                         "size-full object-cover transition-opacity duration-150",
                         {
@@ -3856,7 +3854,6 @@ function Card({ item }: LibraryGridCardProps) {
                         </div>
                     ) : (
                         <PreviewMedia
-                            alt={alt}
                             isHovered={isCardHovered}
                             src={previewImageUrl}
                             videoSrc={previewVideoUrl}
