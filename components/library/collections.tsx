@@ -1629,7 +1629,7 @@ function CollectionItemRow({
                       }
                     : {})}
             >
-                <CollectionsItemValue />
+                <CollectionItemValue />
             </CollectionItemPreview>
             <CollectionItemMetadata
                 isFavorite={isFavorite}
@@ -2542,7 +2542,7 @@ function CollectionItemPreview({
  * Sources are hidden by default to keep the sidebar compact; they fade in
  * on hover as a secondary cue.
  */
-function CollectionsItemValue() {
+function CollectionItemValue() {
     const { collection } = useCollectionsListItemContext();
 
     return (
@@ -2640,7 +2640,7 @@ function CollectionItemPriorityCombobox() {
     );
 }
 
-interface CollectionsListShareStatusCardProps {
+interface CollectionItemShareSubMenuProps {
     collection: LibraryCollectionSummary;
     isSharePending: boolean;
     onCopyShareLink: () => void;
@@ -2675,7 +2675,7 @@ function CollectionItemShareStatus({ isShared }: { isShared: boolean }) {
     );
 }
 
-interface CollectionsItemShareControlsProps {
+interface CollectionItemShareControlsProps {
     collection: LibraryCollectionSummary;
     isSharePending: boolean;
     onCopyShareLink: () => void;
@@ -2689,7 +2689,7 @@ function CollectionItemShareControls({
     onCopyShareLink,
     onDisableShare,
     shareUrl,
-}: CollectionsItemShareControlsProps) {
+}: CollectionItemShareControlsProps) {
     const shareInputId = React.useId();
 
     return (
@@ -2770,7 +2770,7 @@ function CollectionItemShareSubMenu({
     onDisableShare,
     onEnableShare,
     shareUrl,
-}: CollectionsListShareStatusCardProps) {
+}: CollectionItemShareSubMenuProps) {
     const isShared = Boolean(collection.shareId);
 
     return (
@@ -2812,7 +2812,7 @@ function CollectionItemShareSubMenu({
     );
 }
 
-interface CollectionsListExportMenuProps {
+interface CollectionItemExportSubMenuProps {
     hasItems: boolean;
     onCopyLinks: () => void;
     onCopyTitle: () => void;
@@ -2833,7 +2833,7 @@ function CollectionItemExportSubMenu({
     onExportCsv,
     onMakeCopy,
     onOpenLinks,
-}: CollectionsListExportMenuProps) {
+}: CollectionItemExportSubMenuProps) {
     return (
         <MenuSub>
             <MenuSubTrigger>
@@ -2894,7 +2894,7 @@ function CollectionItemSubscribeSubMenu() {
     );
 }
 
-interface CollectionsItemMetadataProps {
+interface CollectionItemMetadataProps {
     isFavorite: boolean;
     isSharePending: boolean;
     metadataDisplay: CollectionItemMetadataDisplay;
@@ -2934,7 +2934,7 @@ function CollectionItemMetadata({
     onOpenLinks,
     onRename,
     shareUrl,
-}: CollectionsItemMetadataProps) {
+}: CollectionItemMetadataProps) {
     const { collection } = useCollectionsListItemContext();
     const hasItems = collection.itemCount > 0;
 

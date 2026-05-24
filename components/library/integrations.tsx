@@ -350,7 +350,7 @@ export function Integrations({ connectedIntegrations }: IntegrationsProps) {
                             >
                                 <AvatarFallback className="rounded-md">
                                     <Icon
-                                        aria-hidden="true"
+                                        aria-hidden
                                         className="size-3.5 shrink-0"
                                         focusable="false"
                                     />
