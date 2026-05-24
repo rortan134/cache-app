@@ -1,63 +1,69 @@
 "use client";
 
 import { cn } from "@/lib/common/cn";
+import "@blossom-carousel/core/style.css";
+// @ts-expect-error Types not being found for some reason
+import { BlossomCarousel } from "@blossom-carousel/react";
 import * as React from "react";
-import { A11y, Mousewheel, Pagination } from "swiper/modules";
-import { Swiper, SwiperSlide } from "swiper/react";
 
-// Styles
-import "swiper/css";
-import "swiper/css/a11y";
-import "swiper/css/mousewheel";
-import "swiper/css/pagination";
-
-interface CarouselProps extends React.ComponentProps<typeof Swiper> {
+interface CarouselProps
+    extends Omit<React.ComponentProps<typeof BlossomCarousel>, "children"> {
+    children: React.ReactNode;
     slideClassName?: string;
+    spaceBetween?: number | string;
 }
 
 export function Carousel({
     children,
     className,
-    grabCursor = true,
     slideClassName,
-    slidesPerView = "auto",
+    spaceBetween,
     ...props
 }: CarouselProps) {
+    const slides = React.Children.toArray(children);
+
     return (
-        <Swiper
+        <BlossomCarousel
             aria-roledescription="carousel"
-            className={cn("relative size-full", className)}
-            grabCursor={grabCursor}
-            modules={[Pagination, Mousewheel, A11y]}
-            mousewheel={{ forceToAxis: true, sensitivity: 3 }}
-            pagination={{
-                bulletClass: "swiper-pagination-bullet",
-                clickable: true,
-                dynamicBullets: true,
-                enabled: true,
-                renderBullet: (_index, className) =>
-                    `<span class="${className} inline-block size-2 rounded-full bg-foreground/40 transition-all opacity-50 mx-0.5 scale-75 cursor-pointer [&.swiper-pagination-bullet-active]:!bg-foreground [&.swiper-pagination-bullet-active]:!opacity-100 [&.swiper-pagination-bullet-active]:!scale-100"></span>`,
-            }}
+            className={cn(
+                "relative size-full snap-x snap-mandatory",
+                className
+            )}
             role="region"
-            slidesPerGroup={
-                typeof slidesPerView === "number" ? slidesPerView : undefined
-            }
-            slidesPerView={slidesPerView}
-            threshold={0}
-            touchReleaseOnEdges={true}
-            touchStartForcePreventDefault={true}
             {...props}
         >
-            {React.Children.map(children, (child) => (
-                <SwiperSlide
-                    aria-roledescription="slide"
-                    className={cn("shrink-0", slideClassName)}
-                    role="group"
-                    tag="section"
-                >
-                    {child}
-                </SwiperSlide>
-            ))}
-        </Swiper>
+            {slides.map((child, index) => {
+                const isLastSlide = index === slides.length - 1;
+
+                return (
+                    <div
+                        className={cn(
+                            "inline-block shrink-0 snap-start",
+                            slideClassName
+                        )}
+                        key={index}
+                        style={getSlideStyle(spaceBetween, isLastSlide)}
+                    >
+                        {child}
+                    </div>
+                );
+            })}
+        </BlossomCarousel>
     );
+}
+
+function getSlideStyle(
+    spaceBetween: number | string | undefined,
+    isLastSlide: boolean
+): React.CSSProperties | undefined {
+    if (spaceBetween === undefined || isLastSlide) {
+        return;
+    }
+
+    return {
+        marginInlineEnd:
+            typeof spaceBetween === "number"
+                ? `${spaceBetween}px`
+                : spaceBetween,
+    };
 }

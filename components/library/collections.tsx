@@ -2180,7 +2180,7 @@ function CollectionsListStatus({
             <p
                 {...props}
                 aria-atomic="true"
-                aria-live="polite"
+                aria-live={tone === "error" ? "assertive" : "polite"}
                 className={cn(
                     "truncate text-xs italic leading-tight",
                     tone === "error"
@@ -2409,7 +2409,7 @@ function CollectionsCalloutPopover() {
                     className="-mx-(--viewport-inline-padding) -mt-4 aspect-32/9 h-auto max-h-24 w-(--positioner-width) min-w-0 max-w-(--positioner-width) rounded-t-lg"
                     loading="eager"
                     priority
-                    sizes="auto, 288px"
+                    sizes="auto,288px"
                     src={SmartCollectionsBackgroundImg}
                 />
                 <div className="mt-4 flex max-w-64 flex-col gap-2">
