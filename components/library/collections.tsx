@@ -743,6 +743,7 @@ export function Collections() {
                                 <CollectionItemRow
                                     collection={collection}
                                     key={collection.id}
+                                    metadataDisplay="item-count"
                                 />
                             )}
                         </CollectionsListContent>
@@ -997,11 +998,9 @@ function useCollectionsController() {
         setCollections((current) =>
             mergeCollectionSummaries(current, [input.collection])
         );
-
         if (input.assignedItemIds.length === 0) {
             return;
         }
-
         setItems((current) =>
             appendCollection(current, input.assignedItemIds, input.collection)
         );
@@ -1013,12 +1012,10 @@ function useCollectionsController() {
     ) => {
         startCreate(async () => {
             const result = await createCollectionSafely(input);
-
             if (result.status !== "CREATED") {
                 setCreateError(result.message);
                 return;
             }
-
             syncCreated({
                 assignedItemIds: getCreatedAssignedItemIds(result),
                 collection: result.collection,
@@ -1608,7 +1605,7 @@ function useCollectionItemHotkey(
 
 interface CollectionItemRowProps {
     collection: LibraryCollectionSummary;
-    metadataDisplay?: CollectionItemMetadataDisplay;
+    metadataDisplay: CollectionItemMetadataDisplay;
 }
 
 function CollectionItemRow({
@@ -1849,7 +1846,7 @@ function CollectionsListItemPreviewImage({
     }
 
     return (
-        // biome-ignore lint/a11y/noNoninteractiveElementInteractions: Fallback swaps in when the browser cannot render the image.
+        // biome-ignore lint/a11y/noNoninteractiveElementInteractions: Fallback
         <img
             {...props}
             alt={alt}
