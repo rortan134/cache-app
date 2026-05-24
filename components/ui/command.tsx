@@ -4,7 +4,6 @@ import { Input, type InputSize } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/common/cn";
 import { Autocomplete } from "@base-ui/react/autocomplete";
-import { XIcon } from "lucide-react";
 import type * as React from "react";
 
 export function Command({
@@ -91,9 +90,7 @@ export function CommandClear({
             )}
             data-slot="command-clear"
             {...props}
-        >
-            <XIcon />
-        </Autocomplete.Clear>
+        />
     );
 }
 

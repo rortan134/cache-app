@@ -15,6 +15,7 @@ import {
     CommandList,
     CommandPanel,
     CommandPopup,
+    CommandRow,
     CommandShortcut,
     CommandStatus,
 } from "@/components/ui/command";
@@ -204,22 +205,53 @@ export function ComposerInput({
                                 <CommandGroupLabel>
                                     {group.label}
                                 </CommandGroupLabel>
-                                <div
-                                    className={
-                                        group.layout === "horizontal"
-                                            ? "flex gap-2 pt-1 pr-2 pb-4"
-                                            : ""
-                                    }
-                                >
+                                {group.layout === "horizontal" ? (
+                                    <CommandRow className="gap-2 pt-1 pr-2 pb-4">
+                                        <CommandCollection>
+                                            {(item: CommandPaletteItem) => (
+                                                <CommandItem
+                                                    className="group relative flex-1 overflow-hidden rounded-xl bg-accent text-accent-foreground shadow-xs"
+                                                    disabled={item.disabled}
+                                                    key={item.value}
+                                                    onClick={item.onSelect}
+                                                    value={item.value}
+                                                >
+                                                    {item.render ? (
+                                                        item.render(item)
+                                                    ) : (
+                                                        <div className="flex min-w-0 flex-1 items-center gap-2.5">
+                                                            <div className="truncate">
+                                                                {item.label}
+                                                            </div>
+                                                            {item.description ? (
+                                                                <span className="max-w-xs truncate text-muted-foreground/80 text-xs">
+                                                                    {
+                                                                        item.description
+                                                                    }
+                                                                </span>
+                                                            ) : null}
+                                                            {item.active ? (
+                                                                <Badge variant="secondary">
+                                                                    Active
+                                                                </Badge>
+                                                            ) : null}
+                                                            {item.shortcut ? (
+                                                                <CommandShortcut>
+                                                                    {
+                                                                        item.shortcut
+                                                                    }
+                                                                </CommandShortcut>
+                                                            ) : null}
+                                                        </div>
+                                                    )}
+                                                </CommandItem>
+                                            )}
+                                        </CommandCollection>
+                                    </CommandRow>
+                                ) : (
                                     <CommandCollection>
                                         {(item: CommandPaletteItem) => (
                                             <CommandItem
-                                                className={
-                                                    group.layout ===
-                                                    "horizontal"
-                                                        ? "group relative flex-1 overflow-hidden rounded-xl bg-accent text-accent-foreground shadow-xs"
-                                                        : undefined
-                                                }
                                                 disabled={item.disabled}
                                                 key={item.value}
                                                 onClick={item.onSelect}
@@ -254,7 +286,7 @@ export function ComposerInput({
                                             </CommandItem>
                                         )}
                                     </CommandCollection>
-                                </div>
+                                )}
                             </CommandGroup>
                         ))}
                     </CommandList>
