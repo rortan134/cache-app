@@ -7,8 +7,6 @@ import { Autocomplete } from "@base-ui/react/autocomplete";
 import { XIcon } from "lucide-react";
 import type * as React from "react";
 
-// ── Root ──────────────────────────────────────────
-
 export function Command({
     autoHighlight = "always",
     keepHighlight = true,
@@ -26,8 +24,6 @@ export function Command({
         />
     );
 }
-
-// ── Input ─────────────────────────────────────────
 
 export function CommandInput({
     className,
@@ -100,12 +96,6 @@ export function CommandClear({
         </Autocomplete.Clear>
     );
 }
-
-export function CommandTrigger(props: Autocomplete.Trigger.Props) {
-    return <Autocomplete.Trigger data-slot="command-trigger" {...props} />;
-}
-
-// ── Popup ─────────────────────────────────────────
 
 export function CommandPopup({
     className,
@@ -200,19 +190,6 @@ export function CommandItem({
     );
 }
 
-export function CommandSeparator({
-    className,
-    ...props
-}: Autocomplete.Separator.Props) {
-    return (
-        <Autocomplete.Separator
-            className={cn("mx-2 my-1 h-px bg-border last:hidden", className)}
-            data-slot="command-separator"
-            {...props}
-        />
-    );
-}
-
 export function CommandGroup({
     className,
     ...props
@@ -274,8 +251,6 @@ export function CommandStatus({
     );
 }
 
-// ── Internal structure ────────────────────────────
-
 export function CommandCollection(props: Autocomplete.Collection.Props) {
     return (
         <Autocomplete.Collection data-slot="command-collection" {...props} />
@@ -285,12 +260,6 @@ export function CommandCollection(props: Autocomplete.Collection.Props) {
 export function CommandRow(props: Autocomplete.Row.Props) {
     return <Autocomplete.Row data-slot="command-row" {...props} />;
 }
-
-export function CommandValue(props: Autocomplete.Value.Props) {
-    return <Autocomplete.Value data-slot="command-value" {...props} />;
-}
-
-// ── Display utilities ─────────────────────────────
 
 export function CommandPanel({
     className,
@@ -330,8 +299,6 @@ export function CommandFooter({
         />
     );
 }
-
-// ── Utilities ─────────────────────────────────────
 
 export const useCommandFilter: typeof Autocomplete.useFilter =
     Autocomplete.useFilter;

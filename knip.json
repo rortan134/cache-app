@@ -24,7 +24,6 @@
         "prisma/schema.prisma": ["files"]
     },
     "rules": {
-        "exports": "off",
         "nsExports": "off",
         "types": "off"
     }

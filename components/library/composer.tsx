@@ -16,6 +16,7 @@ import {
     CommandPanel,
     CommandPopup,
     CommandShortcut,
+    CommandStatus,
 } from "@/components/ui/command";
 import { CmdKbd, Kbd, KbdGroup } from "@/components/ui/kbd";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
@@ -196,6 +197,7 @@ export function ComposerInput({
                 />
                 <CommandPopup>
                     <CommandEmpty>No matching commands found.</CommandEmpty>
+                    <CommandStatus />
                     <CommandList>
                         {visiblePaletteGroups.map((group) => (
                             <CommandGroup items={group.items} key={group.label}>

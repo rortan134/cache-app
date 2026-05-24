@@ -13,7 +13,7 @@ interface ComboboxContextValue {
     multiple: boolean;
 }
 
-export const ComboboxContext: React.Context<ComboboxContextValue> =
+const ComboboxContext: React.Context<ComboboxContextValue> =
     React.createContext<ComboboxContextValue>({
         chipsRef: null,
         multiple: false,

@@ -3152,11 +3152,7 @@ interface PreviewMediaProps {
     videoSrc?: string | null;
 }
 
-export function PreviewMedia({
-    isHovered = false,
-    src,
-    videoSrc,
-}: PreviewMediaProps) {
+function PreviewMedia({ isHovered = false, src, videoSrc }: PreviewMediaProps) {
     const imageSrc = src ?? undefined;
     const canRenderImage = Boolean(imageSrc);
     const [hasImageFailed, setHasImageFailed] = React.useState(false);
@@ -3164,9 +3160,6 @@ export function PreviewMedia({
     const [hasHoverIntent, setHasHoverIntent] = React.useState(false);
     const [isSoundEnabled, setIsSoundEnabled] = React.useState(true);
     const videoRef = React.useRef<HTMLVideoElement | null>(null);
-    const isHoveredRef = React.useRef(isHovered);
-
-    isHoveredRef.current = isHovered;
 
     const canRenderVideo = Boolean(videoSrc) && !hasVideoFailed;
     const shouldLoadVideo = hasHoverIntent || hasImageFailed;
@@ -3195,7 +3188,7 @@ export function PreviewMedia({
 
     const handleCanPlay = useStableCallback(() => {
         const video = videoRef.current;
-        if (video && isHoveredRef.current) {
+        if (video && isHovered) {
             video.play().catch((error: unknown) => {
                 log.debug("Failed to play hover preview", { error });
             });
@@ -3442,7 +3435,7 @@ function getItemTitle(item: LibraryItemWithCollections): string {
     return item.url;
 }
 
-export function CollectionComboboxPicker({
+function CollectionComboboxPicker({
     collections,
     items,
     onUpdateItemsCollections,
