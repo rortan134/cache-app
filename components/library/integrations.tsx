@@ -23,13 +23,13 @@ import { useIsExtensionInstalled } from "@/hooks/use-extension-installed";
 import { cn } from "@/lib/common/cn";
 import { getErrorMessage } from "@/lib/common/error";
 import { createLogger } from "@/lib/common/logs/console/logger";
-import { IntegrationUserError } from "@/lib/integrations/error";
 import {
     executeConnectBehavior,
     executeCopyPromptBehavior,
     executeOpenBehavior,
     executeRouteSyncBehavior,
 } from "@/lib/integrations/client";
+import { IntegrationUserError } from "@/lib/integrations/error";
 import { executeGooglePhotosPickerFlow } from "@/lib/integrations/google-photos/client";
 import {
     INTEGRATIONS,
@@ -245,7 +245,7 @@ function isActionVisible(
  * Persist the integrations panel open state across page reloads.
  */
 export const { useStore: useIntegrationsListStore } = createStore({
-    isIntegrationsListPanelOpen: storage(false),
+    isIntegrationsListOpen: storage(false),
 });
 
 /**
@@ -383,11 +383,11 @@ function IntegrationsList({
     className,
     ...props
 }: React.ComponentProps<typeof Collapsible>) {
-    const { isIntegrationsListPanelOpen, setIsIntegrationsListPanelOpen } =
+    const { isIntegrationsListOpen, setIsIntegrationsListOpen } =
         useIntegrationsListStore();
 
     const handleKeyShortcutPress = useStableCallback(() => {
-        setIsIntegrationsListPanelOpen((prev) => !prev);
+        setIsIntegrationsListOpen((prev) => !prev);
     });
 
     useHotkeys("mod+i", handleKeyShortcutPress, {
@@ -397,10 +397,10 @@ function IntegrationsList({
 
     return (
         <Collapsible
-            className={cn("relative", className)}
-            onOpenChange={setIsIntegrationsListPanelOpen}
-            open={isIntegrationsListPanelOpen}
             {...props}
+            className={cn("relative", className)}
+            onOpenChange={setIsIntegrationsListOpen}
+            open={isIntegrationsListOpen}
         />
     );
 }
@@ -410,41 +410,42 @@ function IntegrationsListTrigger({
     render,
     ...props
 }: React.ComponentProps<typeof CollapsibleTrigger>) {
-    const { isIntegrationsListPanelOpen } = useIntegrationsListStore();
+    const { isIntegrationsListOpen } = useIntegrationsListStore();
 
     return (
         <Popover>
-            <CollapsibleTrigger
-                {...props}
+            <PopoverTrigger
+                openOnHover
                 render={
-                    render ?? (
-                        <PopoverTrigger
-                            openOnHover
-                            render={
+                    <CollapsibleTrigger
+                        {...props}
+                        render={
+                            render ?? (
                                 <SidebarItem
                                     render={<button type="button" />}
-                                    title={
-                                        isIntegrationsListPanelOpen
-                                            ? "Collapse panel"
-                                            : "Expand panel"
-                                    }
                                 />
-                            }
-                        />
-                    )
+                            )
+                        }
+                        title={
+                            isIntegrationsListOpen
+                                ? "Collapse group"
+                                : "Expand group"
+                        }
+                    />
                 }
             >
-                <span className="min-w-0 text-xs">{children}</span>
+                <span className="min-w-0 text-xs">
+                    {children}&nbsp;({INTEGRATIONS.length})
+                </span>
                 <ChevronDownFilledIcon className="-ml-0.5" />
                 <Kbd className="ml-auto bg-transparent opacity-0 group-hover:opacity-50 group-has-data-open/collapsible:hidden">
                     <CmdKbd />I
                 </Kbd>
-            </CollapsibleTrigger>
+            </PopoverTrigger>
             <PopoverPopup
                 align="start"
                 positionerClassname={cn(
-                    isIntegrationsListPanelOpen &&
-                        "pointer-events-none! hidden!"
+                    isIntegrationsListOpen && "pointer-events-none! hidden!"
                 )}
                 positionMethod="fixed"
                 side="right"

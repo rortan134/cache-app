@@ -130,6 +130,7 @@ interface NoteTextMetrics {
     characterCount: number;
     paragraphCount: number;
     plainText: string;
+    readMinuteCount: number;
     wordCount: number;
 }
 
@@ -168,6 +169,7 @@ const NOTE_EDITOR_THEME = {
 
 const NOTE_EDITOR_NODES = [HeadingNode];
 const NOTE_EDITOR_NAMESPACE = "cache-library-note";
+const NOTE_READING_WORDS_PER_MINUTE = 250;
 const NOTE_WORD_SEPARATOR = /\s+/;
 
 const log = createLogger("library:notes");
@@ -356,6 +358,10 @@ function areFormatStatesEqual(left: FormatState, right: FormatState): boolean {
 function getNoteTextMetrics(contentHtml: string): NoteTextMetrics {
     const plainText = extractNoteText(contentHtml);
     const matchedBlocks = contentHtml.match(NOTE_NON_EMPTY_BLOCK_TAG_REGEX);
+    const wordCount =
+        plainText.length === 0
+            ? 0
+            : plainText.split(NOTE_WORD_SEPARATOR).filter(Boolean).length;
 
     // If there is text but no matched block tags, treat it as a single implicit paragraph.
     const paragraphCount =
@@ -365,10 +371,8 @@ function getNoteTextMetrics(contentHtml: string): NoteTextMetrics {
         characterCount: plainText.length,
         paragraphCount,
         plainText,
-        wordCount:
-            plainText.length === 0
-                ? 0
-                : plainText.split(NOTE_WORD_SEPARATOR).filter(Boolean).length,
+        readMinuteCount: Math.ceil(wordCount / NOTE_READING_WORDS_PER_MINUTE),
+        wordCount,
     };
 }
 
@@ -918,10 +922,11 @@ function NoteEditor() {
 }
 
 /**
- * Footer metrics bar showing word, paragraph, and character counts.
+ * Footer metrics bar showing note size and longer-note read time.
  */
 function NoteMetrics() {
     const { textMetrics } = useNoteContext();
+    const shouldShowReadTime = textMetrics.readMinuteCount > 2;
 
     return (
         <div className="flex items-center justify-end gap-4 border-border/60 border-t pt-3 text-muted-foreground text-xs">
@@ -935,6 +940,13 @@ function NoteMetrics() {
                     <Var>{textMetrics.paragraphCount}</Var> paragraphs
                 </span>
             </T>
+            {shouldShowReadTime ? (
+                <T>
+                    <span>
+                        <Var>{textMetrics.readMinuteCount}</Var> minute read
+                    </span>
+                </T>
+            ) : null}
             <T>
                 <span>
                     <Var>{textMetrics.characterCount}</Var> characters

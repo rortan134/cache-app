@@ -124,7 +124,7 @@ export function OnboardingMenu({
         useWorkspaceContext();
 
     const { setOpen: setSidebarOpen } = useSidebar();
-    const { setIsIntegrationsListPanelOpen } = useIntegrationsListStore();
+    const { setIsIntegrationsListOpen } = useIntegrationsListStore();
     const { completedOnboardingTaskIds, setCompletedOnboardingTaskIds } =
         useLibraryOnboardingStore();
     const { copyToClipboard } = useCopyToClipboard();
@@ -220,7 +220,7 @@ export function OnboardingMenu({
             command: handleOpenCommand,
             integration: () => {
                 setSidebarOpen(true);
-                setIsIntegrationsListPanelOpen(true);
+                setIsIntegrationsListOpen(true);
             },
             note: onCreateNote,
             share: handleRequestShare,

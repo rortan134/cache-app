@@ -1037,52 +1037,49 @@ function useCollectionsController() {
         setIsCreateOpen(true);
     };
 
-    useHotkeys(
-        "mod+n, v",
-        () => {
-            if (isCreateOpen) {
-                setIsCreateOpen(false);
-            } else {
-                requestCreate();
-            }
-        },
-        { description: "Create a new collection", preventDefault: true },
-        [isCreateOpen]
-    );
+    const handleCreateShortcutPress = useStableCallback(() => {
+        if (isCreateOpen) {
+            setIsCreateOpen(false);
+            return;
+        }
+        requestCreate();
+    });
 
-    useHotkeys(
-        "mod+c",
-        () => {
-            setIsCollectionsListOpen(!isCollectionsListOpen);
-        },
-        { description: "Toggle collections panel", preventDefault: true },
-        [isCollectionsListOpen, setIsCollectionsListOpen]
-    );
+    const handleCollectionsListShortcutPress = useStableCallback(() => {
+        setIsCollectionsListOpen((current) => !current);
+    });
 
-    useHotkeys(
-        "mod+shift+c",
-        () => {
-            setIsFavoritesListOpen(!isFavoritesListOpen);
-        },
-        { description: "Toggle favorites panel", preventDefault: true },
-        [isFavoritesListOpen, setIsFavoritesListOpen]
-    );
+    const handleFavoritesListShortcutPress = useStableCallback(() => {
+        setIsFavoritesListOpen((current) => !current);
+    });
 
-    useHotkeys(
-        "mod+f",
-        (event) => {
+    const handleSortShortcutPress = useStableCallback(
+        (event: KeyboardEvent) => {
             event.preventDefault();
-            if (!isCollectionsListOpen) {
-                setIsCollectionsListOpen(true);
-            }
+            setIsCollectionsListOpen(true);
             setIsSortOpen(true);
-        },
-        {
-            description: "Sort and organize collections",
-            enabled: !isSortOpen,
-        },
-        [isCollectionsListOpen, isSortOpen, setIsCollectionsListOpen]
+        }
     );
+
+    useHotkeys("mod+n, v", handleCreateShortcutPress, {
+        description: "Create a new collection",
+        preventDefault: true,
+    });
+
+    useHotkeys("mod+c", handleCollectionsListShortcutPress, {
+        description: "Toggle collections panel",
+        preventDefault: true,
+    });
+
+    useHotkeys("mod+shift+c", handleFavoritesListShortcutPress, {
+        description: "Toggle favorites panel",
+        preventDefault: true,
+    });
+
+    useHotkeys("mod+f", handleSortShortcutPress, {
+        description: "Sort and organize collections",
+        enabled: !isSortOpen,
+    });
 
     const requestDelete = (collection: LibraryCollectionSummary) => {
         setFeedback(null);
@@ -1941,14 +1938,11 @@ function CollectionsListTrigger({
 
 /**
  * Collapsible panel that holds the collection list contents.
- *
- * Indents by `pl-1` to visually nest items under the trigger.
  */
-function CollectionsListPanel({
-    className,
-    ...props
-}: React.ComponentProps<typeof CollapsiblePanel>) {
-    return <CollapsiblePanel {...props} className={cn("pl-1", className)} />;
+function CollectionsListPanel(
+    props: React.ComponentProps<typeof CollapsiblePanel>
+) {
+    return <CollapsiblePanel {...props} />;
 }
 
 function CollectionsListFavorites({
@@ -2522,7 +2516,7 @@ function CollectionItemPreview({
                 }}
                 render={
                     <SidebarItem
-                        className="w-full min-w-0 flex-1 justify-start pr-8 pl-10 text-left hover:bg-transparent focus-visible:ring-(--focus-ring-color)"
+                        className="w-full min-w-0 flex-1 justify-start pr-8 pl-10.5 text-left hover:bg-transparent focus-visible:ring-(--focus-ring-color)"
                         render={<Button variant="ghost" />}
                     />
                 }
@@ -2607,7 +2601,7 @@ function CollectionItemPriorityCombobox() {
                 render={
                     <Button
                         aria-label={`Change priority for ${collection.name}`}
-                        className="absolute top-1/2 left-1.5 z-10 -translate-y-1/2 border-none bg-(--collection-background) text-(--focus-ring-color)"
+                        className="absolute top-1/2 left-2.5 z-10 -translate-y-1/2 border-none bg-(--collection-background) text-(--focus-ring-color)"
                         size="icon-xs"
                         variant="ghost"
                     />
