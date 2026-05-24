@@ -58,6 +58,10 @@ import { storage } from "stan-js/storage";
 
 const log = createLogger("library:integrations");
 
+interface IntegrationsProps {
+    connectedIntegrations: Set<IntegrationId>;
+}
+
 type IntegrationActionStatusTone = "error" | "success";
 
 interface IntegrationActionStatus {
@@ -85,10 +89,6 @@ interface UseIntegrationActionResult {
 
 type IntegrationsListItemProps = React.ComponentProps<typeof SidebarItem>;
 
-interface IntegrationsProps {
-    connectedIntegrations: Set<IntegrationId>;
-}
-
 interface IntegrationsListStatusProps extends React.ComponentProps<"p"> {
     tone?: IntegrationActionStatusTone;
 }
@@ -98,6 +98,58 @@ interface IntegrationsListItemActionProps {
     direction?: IntegrationDirection;
     id: IntegrationId;
     isConnected: boolean;
+}
+
+export const { useStore: useIntegrationsListStore } = createStore({
+    isIntegrationsListOpen: storage(false),
+});
+
+export function Integrations({ connectedIntegrations }: IntegrationsProps) {
+    return (
+        <IntegrationsList
+            className="group/collapsible"
+            data-sidebar-collapsible=""
+        >
+            <IntegrationsListTrigger>
+                <T>Integrations</T>
+            </IntegrationsListTrigger>
+            <IntegrationsListPanel>
+                <DisclosureList maxVisible={6}>
+                    {INTEGRATIONS.map(({ description, Icon, id, label }) => (
+                        <IntegrationsListItem className="group" key={id}>
+                            <Avatar
+                                aria-label={label}
+                                className="size-6 rounded-md"
+                            >
+                                <AvatarFallback className="rounded-md">
+                                    <Icon
+                                        aria-hidden
+                                        className="size-3.5 shrink-0"
+                                        focusable="false"
+                                    />
+                                </AvatarFallback>
+                            </Avatar>
+                            <span className="min-w-0 flex-1 font-medium text-sm leading-snug">
+                                {label}
+                            </span>
+                            <span className="grid items-center text-muted-foreground leading-snug">
+                                <span className="text-right text-[11px] [grid-area:1/1] group-hover:opacity-0">
+                                    {description}
+                                </span>
+                                <IntegrationsListItemAction
+                                    className="opacity-0 [grid-area:1/1] group-hover:opacity-100"
+                                    id={id}
+                                    isConnected={connectedIntegrations.has(id)}
+                                />
+                            </span>
+                        </IntegrationsListItem>
+                    ))}
+                </DisclosureList>
+                <IntegrationsListFeedback />
+                <IntegrationsListPrivacyNotice />
+            </IntegrationsListPanel>
+        </IntegrationsList>
+    );
 }
 
 function resolveActionLabel(args: {
@@ -138,6 +190,19 @@ function resolveActionLabel(args: {
         default:
             return "Open";
     }
+}
+
+function isActionVisible(
+    action: SupportedIntegrationAction,
+    isConnected: boolean
+): boolean {
+    if (action.visibleWhen === "connected") {
+        return isConnected;
+    }
+    if (action.visibleWhen === "disconnected") {
+        return !isConnected;
+    }
+    return true;
 }
 
 function buildCapabilityMissingError(args: {
@@ -228,30 +293,6 @@ async function executeIntegrationAction(args: {
     }
 }
 
-function isActionVisible(
-    action: SupportedIntegrationAction,
-    isConnected: boolean
-): boolean {
-    if (action.visibleWhen === "connected") {
-        return isConnected;
-    }
-    if (action.visibleWhen === "disconnected") {
-        return !isConnected;
-    }
-    return true;
-}
-
-/**
- * Persist the integrations panel open state across page reloads.
- */
-export const { useStore: useIntegrationsListStore } = createStore({
-    isIntegrationsListOpen: storage(false),
-});
-
-/**
- * Builds view models and handlers for integration action buttons (connect,
- * open, sync) based on the integration's capabilities and connection state.
- */
 function useIntegrationAction({
     direction,
     id,
@@ -330,54 +371,6 @@ function useIntegrationAction({
         );
 
     return { actions, status };
-}
-
-export function Integrations({ connectedIntegrations }: IntegrationsProps) {
-    return (
-        <IntegrationsList
-            className="group/collapsible"
-            data-sidebar-collapsible=""
-        >
-            <IntegrationsListTrigger>
-                <T>Integrations</T>
-            </IntegrationsListTrigger>
-            <IntegrationsListPanel>
-                <DisclosureList maxVisible={6}>
-                    {INTEGRATIONS.map(({ id, label, description, Icon }) => (
-                        <IntegrationsListItem className="group" key={id}>
-                            <Avatar
-                                aria-label={label}
-                                className="size-6 rounded-md"
-                            >
-                                <AvatarFallback className="rounded-md">
-                                    <Icon
-                                        aria-hidden
-                                        className="size-3.5 shrink-0"
-                                        focusable="false"
-                                    />
-                                </AvatarFallback>
-                            </Avatar>
-                            <span className="min-w-0 flex-1 font-medium text-sm leading-snug">
-                                {label}
-                            </span>
-                            <span className="grid items-center text-muted-foreground leading-snug">
-                                <span className="text-right text-[11px] [grid-area:1/1] group-hover:opacity-0">
-                                    {description}
-                                </span>
-                                <IntegrationsListItemAction
-                                    className="opacity-0 [grid-area:1/1] group-hover:opacity-100"
-                                    id={id}
-                                    isConnected={connectedIntegrations.has(id)}
-                                />
-                            </span>
-                        </IntegrationsListItem>
-                    ))}
-                </DisclosureList>
-                <IntegrationsListFeedback />
-                <IntegrationsListPrivacyNotice />
-            </IntegrationsListPanel>
-        </IntegrationsList>
-    );
 }
 
 function IntegrationsList({

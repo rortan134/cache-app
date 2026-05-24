@@ -1,4 +1,5 @@
 import { canUseDOM } from "@/lib/common/dom";
+import { useStableCallback } from "@base-ui/utils/useStableCallback";
 import { useTimeout } from "@base-ui/utils/useTimeout";
 import { useValueAsRef } from "@base-ui/utils/useValueAsRef";
 import copy from "copy-to-clipboard";
@@ -20,11 +21,11 @@ interface UseCopyToClipboardResult {
  */
 export function useCopyToClipboard({
     timeout = 2000,
-    onCopy,
+    onCopy: onCopyProp,
 }: UseCopyToClipboardOptions = {}): UseCopyToClipboardResult {
     const [isCopied, setIsCopied] = React.useState(false);
     const timeoutManager = useTimeout();
-    const onCopyRef = useValueAsRef(onCopy);
+    const onCopy = useStableCallback(onCopyProp);
     const timeoutRef = useValueAsRef(timeout);
 
     const copyToClipboard = async (value: string) => {
@@ -39,7 +40,7 @@ export function useCopyToClipboard({
         }
 
         setIsCopied(true);
-        onCopyRef.current?.();
+        onCopy();
 
         const timeoutMs = timeoutRef.current;
         if (timeoutMs !== 0) {

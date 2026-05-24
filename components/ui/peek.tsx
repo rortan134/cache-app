@@ -76,10 +76,19 @@ function usePeekStatus(open: boolean, url: string, timeoutMs: number) {
     const blockedTimeout = useTimeout();
 
     const markAsBlocked = useStableCallback(() => {
-        setStatus("blocked");
+        setStatus((current) => {
+            if (current !== "loading") {
+                return current;
+            }
+            return "blocked";
+        });
     });
 
     const markAsLoaded = useStableCallback(() => {
+        if (url === PEEK_BLOCKED_URL) {
+            return;
+        }
+
         setStatus("loaded");
     });
 
@@ -97,17 +106,10 @@ function usePeekStatus(open: boolean, url: string, timeoutMs: number) {
         }
 
         setStatus("loading");
-        blockedTimeout.start(timeoutMs, () => {
-            setStatus((current) => {
-                if (current !== "loading") {
-                    return current;
-                }
-                return "blocked";
-            });
-        });
+        blockedTimeout.start(timeoutMs, markAsBlocked);
 
         return blockedTimeout.clear;
-    }, [blockedTimeout, open, timeoutMs, url]);
+    }, [blockedTimeout, markAsBlocked, open, timeoutMs, url]);
 
     return {
         markAsBlocked,
@@ -180,6 +182,7 @@ export function PeekDrawerContent() {
         DEFAULT_PEEK_TIMEOUT_MS
     );
     const canOpenInNewTab = url !== PEEK_BLOCKED_URL;
+    const shouldRenderPreview = canOpenInNewTab && status !== "blocked";
     const iframeRemountKey = `${open ? "open" : "closed"}-${url}`;
 
     return (
@@ -252,19 +255,18 @@ export function PeekDrawerContent() {
                                 )}
                             </div>
                         )}
-                        {/* biome-ignore lint/a11y/noNoninteractiveElementInteractions: iframe load and error events are required to track preview readiness. */}
-                        <iframe
-                            className={cn(
-                                "size-full border-0 bg-background",
-                                status === "blocked" && "hidden"
-                            )}
-                            key={iframeRemountKey}
-                            onError={markAsBlocked}
-                            onLoad={markAsLoaded}
-                            referrerPolicy="strict-origin-when-cross-origin"
-                            src={url}
-                            title={`Preview of ${title}`}
-                        />
+                        {shouldRenderPreview && (
+                            // biome-ignore lint/a11y/noNoninteractiveElementInteractions: iframe load and error events are required to track preview readiness.
+                            <iframe
+                                className="size-full border-0 bg-background"
+                                key={iframeRemountKey}
+                                onError={markAsBlocked}
+                                onLoad={markAsLoaded}
+                                referrerPolicy="strict-origin-when-cross-origin"
+                                src={url}
+                                title={`Preview of ${title}`}
+                            />
+                        )}
                     </div>
                 </DrawerPanel>
                 <DrawerFooter
