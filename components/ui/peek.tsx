@@ -23,11 +23,7 @@ import * as React from "react";
 
 const PEEK_BLOCKED_URL = "about:blank";
 const DEFAULT_PEEK_TITLE = "Preview";
-const DEFAULT_PEEK_LOADING_LABEL = "Loading preview...";
 const DEFAULT_PEEK_TIMEOUT_MS = 8000;
-const DEFAULT_PEEK_ERROR_DESCRIPTION =
-    "This site can't be previewed here. It may block embedding inside other sites or be taking too long to load.";
-const PEEK_POPUP_CLASS = "w-full sm:mx-auto sm:max-w-[min(96vw,78rem)]";
 
 type PeekDrawerStatus = "blocked" | "loaded" | "loading";
 
@@ -88,7 +84,6 @@ function usePeekStatus(open: boolean, url: string, timeoutMs: number) {
         if (url === PEEK_BLOCKED_URL) {
             return;
         }
-
         setStatus("loaded");
     });
 
@@ -188,10 +183,7 @@ export function PeekDrawerContent() {
     return (
         <DrawerViewport>
             <DrawerPopup
-                className={cn(
-                    "h-[min(88vh,58rem)] sm:h-[min(82vh,56rem)]",
-                    PEEK_POPUP_CLASS
-                )}
+                className="h-[min(88vh,58rem)] w-full sm:mx-auto sm:h-[min(82vh,56rem)] sm:max-w-[min(96vw,78rem)]"
                 showBar
                 showCloseButton
                 variant="inset"
@@ -206,7 +198,7 @@ export function PeekDrawerContent() {
                 </DrawerHeader>
                 <DrawerPanel
                     allowSelection={false}
-                    className="min-h-0 flex-1 p-0"
+                    className="p-0"
                     scrollable={false}
                 >
                     <div
@@ -222,7 +214,7 @@ export function PeekDrawerContent() {
                                 <Spinner className="size-5 text-muted-foreground" />
                                 <div className="space-y-1">
                                     <p className="font-medium text-foreground text-sm">
-                                        {DEFAULT_PEEK_LOADING_LABEL}
+                                        Loading preview...
                                     </p>
                                     <p className="max-w-sm text-balance text-muted-foreground text-sm">
                                         We&apos;re trying to open the page...
@@ -244,7 +236,9 @@ export function PeekDrawerContent() {
                                         Preview unavailable
                                     </p>
                                     <p className="max-w-md text-balance text-muted-foreground text-sm">
-                                        {DEFAULT_PEEK_ERROR_DESCRIPTION}
+                                        This site can't be previewed here. It
+                                        may block embedding inside other sites
+                                        or be taking too long to load.
                                     </p>
                                 </div>
                                 {canOpenInNewTab && (

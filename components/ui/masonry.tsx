@@ -637,6 +637,10 @@ const JUSTIFIED_CONTAINER_PADDING = 0;
 const JUSTIFIED_BOX_SPACING = 0;
 const CONTAIN_INTRINSIC_SIZE_PREFIX = "auto ";
 
+function getContainIntrinsicHeight(height: number) {
+    return `${CONTAIN_INTRINSIC_SIZE_PREFIX}${Math.max(1, Math.ceil(height))}px`;
+}
+
 interface Positioner {
     all: () => PositionerItem[];
     columnCount: number;
@@ -1599,10 +1603,6 @@ function getCachedMasonryChildren(
     return cache.children;
 }
 
-function getContainIntrinsicSize(height: number) {
-    return `${CONTAIN_INTRINSIC_SIZE_PREFIX}${Math.max(1, Math.ceil(height))}px`;
-}
-
 function Masonry({
     boxSpacing,
     columnWidth = COLUMN_WIDTH,
@@ -1889,7 +1889,7 @@ function MasonryViewport({
                         ref: onItemRegister(index),
                         style: {
                             ...visibleItemStyle,
-                            containIntrinsicSize: getContainIntrinsicSize(
+                            containIntrinsicHeight: getContainIntrinsicHeight(
                                 pos?.height ?? itemHeight
                             ),
                             height:

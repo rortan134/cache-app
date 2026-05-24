@@ -13,6 +13,7 @@ import {
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Carousel } from "@/components/ui/carousel";
 import {
     Collapsible,
     CollapsiblePanel,
@@ -94,18 +95,24 @@ import {
     shareCollectionPublicly,
 } from "@/lib/collections/sharing/actions";
 import { buildPublicCollectionShareUrl } from "@/lib/collections/sharing/url";
-import type {
-    LibraryCollectionSummary,
-    LibraryCollectionTag,
-    LibraryItemWithCollections,
+import {
+    itemPreviewImageUrl,
+    type LibraryCollectionSummary,
+    type LibraryCollectionTag,
+    type LibraryItemWithCollections,
 } from "@/lib/collections/utils";
 import { cn } from "@/lib/common/cn";
+import { ITEM_KIND_NOTE } from "@/lib/common/constants";
 import { getHexColorFromName } from "@/lib/common/colors";
 import { getSystemControlKey } from "@/lib/common/environment";
 import { saveFile } from "@/lib/common/file";
 import { filterValidImageUrls } from "@/lib/common/image";
 import { createLogger } from "@/lib/common/logs/console/logger";
-import { normalizeWhitespace, slugify } from "@/lib/common/strings";
+import {
+    getNoteExcerpt,
+    normalizeWhitespace,
+    slugify,
+} from "@/lib/common/strings";
 import { normalizeURL, openExternal } from "@/lib/common/url";
 import { dayjs } from "@/lib/dayjs";
 import { getSourceLabel } from "@/lib/integrations/support";
@@ -471,6 +478,10 @@ const TEMPLATES = [
 
 type TemplateValue = (typeof TEMPLATES)[number]["value"];
 
+const TEMPLATE_BY_VALUE = new Map(
+    TEMPLATES.map((template) => [template.value, template])
+);
+
 const { useStore: useCollectionsListStateStore } = createStore({
     favoriteCollectionIds: storage<string[]>([]),
     isCollectionsListOpen: storage(false),
@@ -692,6 +703,14 @@ export function Collections() {
                     </CollectionsListToolbarGroup>
                 </CollectionsListToolbar>
                 <CollectionsListPanel>
+                    <ListFavoritesCarouselContent>
+                        {(item) => (
+                            <FavoriteItemCarouselSlide
+                                item={item}
+                                key={item.id}
+                            />
+                        )}
+                    </ListFavoritesCarouselContent>
                     {/* Favorites list doesn't need disclosure truncation */}
                     <CollectionsListFavoritesContent>
                         {(collection) => (
@@ -868,9 +887,13 @@ function useCollectionsController() {
         collectionPreviewThumbnailUrlsById,
         collectionSummaries,
         collections,
+        favoriteItemIdSet,
+        favoriteItems,
         itemsByCollectionId,
         onClearCollectionFilters,
+        onOpenFavoriteItem,
         onSelectCollection,
+        onToggleItemFavorite,
         selectedCollectionIds,
         setCollections,
         setItems,
@@ -937,6 +960,29 @@ function useCollectionsController() {
     const [isSortOpen, setIsSortOpen] = React.useState(false);
     const [sortInputValue, setSortInputValue] = React.useState("");
 
+    const hasAnySelected = selectedCollectionIds.length > 0;
+    const collectionLabels = collectionSummaries.map(
+        (collection) => collection.name
+    );
+    const favoriteCollectionIdSet = new Set(favoriteCollectionIds);
+    const favoriteCollectionSummaries = collectionSummaries.filter(
+        (collection) => favoriteCollectionIdSet.has(collection.id)
+    );
+    const currentSortOption =
+        collectionSortField === "text-match"
+            ? {
+                  icon: ListFilter,
+                  label: `Sort by "${collectionTextMatchQuery}"`,
+              }
+            : (SORT_OPTION_BY_VALUE.get(collectionSortField) ?? null);
+    const comboboxValue: ComboboxValue = {
+        icon: currentSortOption?.icon ?? ListFilter,
+        label: currentSortOption?.label ?? "Priority",
+        sortField: collectionSortField,
+        sortQuery: collectionTextMatchQuery,
+        view: shouldExcludeArchives ? "exclude-archives" : "show-all",
+    };
+
     const showError = (message: string) =>
         setFeedback({ message, tone: "error" });
     const showSuccess = (message: string) =>
@@ -973,20 +1019,20 @@ function useCollectionsController() {
         setRenameError(null);
     };
 
+    const syncItemTags = (
+        updater: (tags: LibraryCollectionTag[]) => LibraryCollectionTag[]
+    ) => {
+        setItems((current) => updateItemTags(current, updater));
+    };
+
     const syncShare = (next: CollectionShareState) => {
         setCollections((current) => replaceShareState(current, next));
-        setItems((current) =>
-            updateItemTags(current, (tags) => replaceShareState(tags, next))
-        );
+        syncItemTags((tags) => replaceShareState(tags, next));
     };
 
     const syncPriority = (id: string, priority: CollectionPriority) => {
         setCollections((current) => replacePriority(current, id, priority));
-        setItems((current) =>
-            updateItemTags(current, (tags) =>
-                replacePriority(tags, id, priority)
-            )
-        );
+        syncItemTags((tags) => replacePriority(tags, id, priority));
     };
 
     const syncName = (id: string, name: string) => {
@@ -1264,11 +1310,9 @@ function useCollectionsController() {
                     (collection) => collection.id !== result.collection.id
                 )
             );
-            setItems((current) =>
-                updateItemTags(current, (tags) =>
-                    tags.filter(
-                        (collection) => collection.id !== result.collection.id
-                    )
+            syncItemTags((tags) =>
+                tags.filter(
+                    (collection) => collection.id !== result.collection.id
                 )
             );
             setFavoriteCollectionIds((current) =>
@@ -1394,7 +1438,7 @@ function useCollectionsController() {
         if (!value) {
             return;
         }
-        const template = TEMPLATES.find((t) => t.value === value);
+        const template = TEMPLATE_BY_VALUE.get(value);
         if (!template) {
             return;
         }
@@ -1456,22 +1500,6 @@ function useCollectionsController() {
         );
     };
 
-    const currentSortOption =
-        collectionSortField === "text-match"
-            ? {
-                  icon: ListFilter,
-                  label: `Sort by "${collectionTextMatchQuery}"`,
-              }
-            : (SORT_OPTION_BY_VALUE.get(collectionSortField) ?? null);
-
-    const comboboxValue: ComboboxValue = {
-        icon: currentSortOption?.icon ?? ListFilter,
-        label: currentSortOption?.label ?? "Priority",
-        sortField: collectionSortField,
-        sortQuery: collectionTextMatchQuery,
-        view: shouldExcludeArchives ? "exclude-archives" : "show-all",
-    };
-
     const handleComboboxValueChange = (nextValue: ComboboxValue | null) => {
         if (!nextValue) {
             return;
@@ -1498,13 +1526,6 @@ function useCollectionsController() {
         setIsSortOpen(false);
     };
 
-    const hasAnySelected = selectedCollectionIds.length > 0;
-    const collectionLabels = collectionSummaries.map((c) => c.name);
-    const favoriteCollectionIdSet = new Set(favoriteCollectionIds);
-    const favoriteCollectionSummaries = collectionSummaries.filter(
-        (collection) => favoriteCollectionIdSet.has(collection.id)
-    );
-
     return {
         collectionLabels,
         collectionPreviewThumbnailUrlsById: previewURLs,
@@ -1529,6 +1550,8 @@ function useCollectionsController() {
         },
         favoriteCollectionIdSet,
         favoriteCollectionSummaries,
+        favoriteItemIdSet,
+        favoriteItems,
         feedback,
         hasAnySelected,
         isCollectionsListOpen,
@@ -1547,9 +1570,11 @@ function useCollectionsController() {
         onEnableShare: handleEnableShare,
         onExportCsv: handleExportCsv,
         onFavoriteToggle: handleFavoriteToggle,
+        onOpenFavoriteItem,
         onOpenLinks: handleOpenLinks,
         onRename: requestRename,
         onSelectCollection,
+        onToggleItemFavorite,
         onUpdatePriority: handleUpdatePriority,
         pendingShareId,
         renameDialog: {
@@ -1948,11 +1973,12 @@ function CollectionsListFavorites({
 }: React.ComponentProps<typeof Collapsible>) {
     const {
         favoriteCollectionSummaries,
+        favoriteItems,
         setIsFavoritesListOpen,
         isFavoritesListOpen,
     } = useCollections();
 
-    if (!favoriteCollectionSummaries.length) {
+    if (!(favoriteCollectionSummaries.length || favoriteItems.length)) {
         return null;
     }
 
@@ -1970,7 +1996,7 @@ function CollectionsListFavoritesTrigger({
     children,
     ...props
 }: React.ComponentProps<typeof CollapsibleTrigger>) {
-    const { favoriteCollectionSummaries, isFavoritesListOpen } =
+    const { favoriteCollectionSummaries, favoriteItems, isFavoritesListOpen } =
         useCollections();
     const labels = favoriteCollectionSummaries.map(
         (collection) => collection.name
@@ -1979,7 +2005,7 @@ function CollectionsListFavoritesTrigger({
     return (
         <CollectionsListGroupTrigger
             {...props}
-            count={favoriteCollectionSummaries.length}
+            count={favoriteCollectionSummaries.length + favoriteItems.length}
             isOpen={isFavoritesListOpen}
             labels={labels}
             placeholder="No favorites yet"
@@ -1992,6 +2018,13 @@ function CollectionsListFavoritesTrigger({
 interface CollectionsListContentProps {
     children: (
         item: LibraryCollectionSummary,
+        index: number
+    ) => React.ReactNode;
+}
+
+interface FavoriteItemsCarouselContentProps {
+    children: (
+        item: LibraryItemWithCollections,
         index: number
     ) => React.ReactNode;
 }
@@ -2048,6 +2081,68 @@ function CollectionsListGroupTrigger({
                 </p>
             </PopoverPopup>
         </Popover>
+    );
+}
+
+/**
+ * Renders favorite items in a horizontal scrollable carousel.
+ */
+function ListFavoritesCarouselContent({
+    children,
+}: FavoriteItemsCarouselContentProps) {
+    const { favoriteItems } = useCollections();
+
+    if (!favoriteItems.length) {
+        return null;
+    }
+
+    return (
+        <Carousel className="mb-0.5 ml-2.5 [&>*:not(:last-child)]:me-1">
+            {favoriteItems.map(children)}
+        </Carousel>
+    );
+}
+
+function FavoriteItemCarouselSlide({
+    item,
+}: {
+    item: LibraryItemWithCollections;
+}) {
+    const { onOpenFavoriteItem } = useCollections();
+    const isNote = item.kind === ITEM_KIND_NOTE;
+    const previewImageUrl = itemPreviewImageUrl(item);
+    const noteExcerpt = getNoteExcerpt(item.noteContentText);
+    const previewLabel =
+        (item.caption ?? "").trim() || (isNote ? "Note" : "Saved item");
+
+    const handleClick = useStableCallback(
+        (event: React.MouseEvent<HTMLButtonElement>) => {
+            event.preventDefault();
+            onOpenFavoriteItem(item);
+        }
+    );
+
+    return (
+        <button
+            aria-label={previewLabel}
+            className="relative inline-block aspect-3/4 h-14 w-auto overflow-hidden rounded-md bg-muted ring-1 ring-border/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
+            onClick={handleClick}
+            type="button"
+        >
+            {isNote ? (
+                <div className="flex size-full flex-col justify-between overflow-hidden bg-linear-to-br from-amber-50 via-background to-stone-100 p-1.5">
+                    <p className="line-clamp-4 whitespace-pre-wrap text-left text-[9px] text-foreground leading-snug opacity-90">
+                        {noteExcerpt || "Open note"}
+                    </p>
+                </div>
+            ) : (
+                <CollectionsListItemPreviewImage
+                    alt={previewLabel}
+                    className="size-full object-cover"
+                    src={previewImageUrl ?? undefined}
+                />
+            )}
+        </button>
     );
 }
 
@@ -2814,12 +2909,11 @@ interface CollectionItemExportSubMenuProps {
     onCopyLinks: () => void;
     onCopyTitle: () => void;
     onExportCsv: () => void;
-    onMakeCopy: () => void;
     onOpenLinks: () => void;
 }
 
 /**
- * Sub-menu with export and duplication actions for a collection.
+ * Sub-menu with export actions for a collection.
  *
  * Some items are disabled when the collection has no entries.
  */
@@ -2828,7 +2922,6 @@ function CollectionItemExportSubMenu({
     onCopyLinks,
     onCopyTitle,
     onExportCsv,
-    onMakeCopy,
     onOpenLinks,
 }: CollectionItemExportSubMenuProps) {
     return (
@@ -2853,10 +2946,6 @@ function CollectionItemExportSubMenu({
                 <MenuItem disabled={!hasItems} onClick={onExportCsv}>
                     <FileSpreadsheetIcon className="size-4 text-muted-foreground" />
                     Export to CSV
-                </MenuItem>
-                <MenuItem onClick={onMakeCopy}>
-                    <CopyPlus className="size-4 text-muted-foreground" />
-                    Make a copy
                 </MenuItem>
                 <MenuItem disabled={!hasItems}>
                     <NotionIcon />
@@ -2991,6 +3080,10 @@ function CollectionItemMetadata({
                                 ? "Remove from Favorites"
                                 : "Add to Favorites"}
                         </MenuItem>
+                        <MenuItem onClick={onMakeCopy}>
+                            <CopyPlus className="size-4 text-muted-foreground" />
+                            Make a copy
+                        </MenuItem>
                     </MenuGroup>
                     <MenuSeparator />
                     <MenuGroup>
@@ -3007,7 +3100,6 @@ function CollectionItemMetadata({
                             onCopyLinks={onCopyLinks}
                             onCopyTitle={onCopyTitle}
                             onExportCsv={onExportCsv}
-                            onMakeCopy={onMakeCopy}
                             onOpenLinks={onOpenLinks}
                         />
                         <CollectionItemSubscribeSubMenu />

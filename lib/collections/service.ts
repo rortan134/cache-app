@@ -686,6 +686,42 @@ export function deleteLibraryItem({
     });
 }
 
+export async function toggleLibraryItemFavorite({
+    itemId,
+    userId,
+}: {
+    itemId: string;
+    userId: string;
+}): Promise<{ item: LibraryItemWithCollections }> {
+    const updated = await prisma.$transaction(async (tx) => {
+        const existing = await tx.libraryItem.findFirst({
+            select: { favoritedAt: true },
+            where: { id: itemId, userId },
+        });
+
+        if (!existing) {
+            throwCollectionNotFound(
+                "toggleLibraryItemFavorite",
+                "We couldn't find that saved item."
+            );
+        }
+
+        return tx.libraryItem.update({
+            data: {
+                favoritedAt: existing.favoritedAt ? null : new Date(),
+            },
+            include: LIBRARY_ITEM_COLLECTIONS_INCLUDE,
+            where: {
+                favoritedAt: existing.favoritedAt ? { not: null } : null,
+                id: itemId,
+                userId,
+            },
+        });
+    });
+
+    return { item: toLibraryItemWithCollections(updated) };
+}
+
 export function updateLibraryItemCollections({
     collectionIds,
     itemId,

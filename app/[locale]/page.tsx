@@ -530,9 +530,8 @@ export default async function Home() {
                             </T>
                         </div>
                         <Carousel
-                            className="pb-10!"
+                            className="pb-10! [&>*:not(:last-child)]:me-4"
                             slideClassName="!w-[300px] md:!w-[340px]"
-                            spaceBetween={16}
                         >
                             <div className="flex h-96 flex-col justify-between rounded-2xl border border-border/70 bg-background p-6">
                                 <h3 className="font-medium text-[#0A0B0D] text-lg tracking-[-0.5px]">

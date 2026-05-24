@@ -6,6 +6,7 @@ import {
     type ActionError,
     type LibraryCollectionSummary,
     type LibraryCollectionTag,
+    type LibraryItemWithCollections,
 } from "@/lib/collections/utils";
 import { createLogger } from "@/lib/common/logs/console/logger";
 import {
@@ -51,6 +52,10 @@ const LibraryItemDeleteInputSchema = z.object({
         .min(1, "Select a saved item before trying to delete it."),
 });
 
+const LibraryItemFavoriteToggleInputSchema = z.object({
+    itemId: z.string().trim().min(1, "Select a saved item before favoriting."),
+});
+
 export type LibraryItemDeleteResult =
     | {
           collectionSummaries: LibraryCollectionSummary[];
@@ -75,6 +80,13 @@ export type LibraryItemsCollectionsUpdateResult =
               collections: LibraryCollectionTag[];
               itemId: string;
           }>;
+          status: "UPDATED";
+      }
+    | ActionError;
+
+export type LibraryItemFavoriteToggleResult =
+    | {
+          item: LibraryItemWithCollections;
           status: "UPDATED";
       }
     | ActionError;
@@ -167,6 +179,48 @@ export async function updateLibraryItemsCollections(input: {
             error,
             errorFactory: LibraryCollectionError,
             fallbackMessage: "We couldn't update collections for those items.",
+            log,
+        });
+    }
+}
+
+export async function toggleLibraryItemFavorite(
+    itemId: string
+): Promise<LibraryItemFavoriteToggleResult> {
+    const parsed = LibraryItemFavoriteToggleInputSchema.safeParse({ itemId });
+    if (!parsed.success) {
+        return {
+            message: getValidationErrorMessage(
+                parsed,
+                "Select a saved item before favoriting."
+            ),
+            status: "INVALID",
+        };
+    }
+
+    const auth = await requireActionUserId(
+        "Sign in again to manage saved items."
+    );
+    if ("status" in auth) {
+        return auth;
+    }
+
+    try {
+        const result = await service.toggleLibraryItemFavorite({
+            itemId: parsed.data.itemId,
+            userId: auth.userId,
+        });
+
+        return {
+            item: result.item,
+            status: "UPDATED",
+        };
+    } catch (error) {
+        return handleActionError({
+            codeToStatus: STATUS_MAP_NOT_FOUND,
+            error,
+            errorFactory: LibraryCollectionError,
+            fallbackMessage: "We couldn't update this favorite right now.",
             log,
         });
     }

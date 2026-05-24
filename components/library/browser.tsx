@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/peek";
 import {
     NAME_COLLATOR,
+    OpenFavoriteItemRefContext,
     useWorkspaceContext,
 } from "@/components/library/workspace";
 import {
@@ -129,7 +130,6 @@ import {
     type LibraryCollectionSummary,
     type LibraryItemWithCollections,
 } from "@/lib/collections/utils";
-import { isAbortError } from "@/lib/common/abort";
 import { cn } from "@/lib/common/cn";
 import {
     getColorGradientFromName,
@@ -144,8 +144,7 @@ import { parseDate } from "@/lib/common/dates";
 import { getOwnerWindow } from "@/lib/common/dom";
 import { getSystemControlKey } from "@/lib/common/environment";
 import {
-    createFileAttachment,
-    fileOpen,
+    type createFileAttachment,
     revokeFileAttachmentObjectUrl,
     saveFile,
 } from "@/lib/common/file";
@@ -210,6 +209,7 @@ import {
     NotebookPenIcon,
     RotateCcw,
     SearchX,
+    Star,
     Tags,
     Trash2Icon,
     Volume2Icon,
@@ -839,6 +839,8 @@ const DEFAULT_COLUMN_COUNT_MODE: ColumnCountMode = "auto";
 const DEFAULT_LAYOUT_MODE: LayoutMode = "masonry";
 const DEFAULT_COLLECTION_MEMBERSHIP_FILTER: CollectionMembershipFilter = "all";
 const UNASSIGNED_COLLECTION_COLUMN_ID = "__unassigned__";
+const NOTE_DRAWER_NEW = Symbol("note-drawer-new");
+
 const COBALT_SOURCES = new Set<LibraryItemSource>([
     LibraryItemSource.google_photos,
     LibraryItemSource.instagram,
@@ -1702,6 +1704,7 @@ interface BrowserResultsContextValue {
     collections: LibraryCollectionSummary[];
     columnCount?: number;
     enableSectionCollapse: boolean;
+    favoriteItemIdSet: ReadonlySet<string>;
     layoutMode: LayoutMode;
     onCollapseAllSections?: () => void;
     onCopyLink: (item: LibraryItem) => void;
@@ -1712,6 +1715,7 @@ interface BrowserResultsContextValue {
         sectionTitle: string,
         items: LibraryItemWithCollections[]
     ) => void;
+    onItemFavoriteToggle: (item: LibraryItemWithCollections) => void;
     onOpenInNewTab: (item: LibraryItem) => void;
     onOpenNote: (item: LibraryItem) => void;
     onToggleSection: (key: string) => void;
@@ -2163,8 +2167,10 @@ function BrowserMasonry() {
 function BrowserGroup({ children }: { children: ReactNode }) {
     const {
         collections,
+        favoriteItemIdSet,
         onCopyLink,
         onDelete,
+        onItemFavoriteToggle,
         onOpenInNewTab,
         onOpenNote,
         onUpdateItemCollections,
@@ -2176,8 +2182,10 @@ function BrowserGroup({ children }: { children: ReactNode }) {
             <LibraryGridCardContext
                 value={{
                     collections,
+                    favoriteItemIdSet,
                     onCopyLink,
                     onDelete,
+                    onItemFavoriteToggle,
                     onOpenInNewTab,
                     onOpenNote,
                     onUpdateItemCollections,
@@ -3298,8 +3306,10 @@ function PreviewMedia({ isHovered = false, src, videoSrc }: PreviewMediaProps) {
 type LibraryGridCardContextValue = Pick<
     BrowserResultsContextValue,
     | "collections"
+    | "favoriteItemIdSet"
     | "onCopyLink"
     | "onDelete"
+    | "onItemFavoriteToggle"
     | "onOpenInNewTab"
     | "onOpenNote"
     | "onUpdateItemCollections"
@@ -3620,8 +3630,10 @@ function CardMenu({
     previewImageUrl,
 }: LibraryGridCardMenuProps) {
     const {
+        favoriteItemIdSet,
         onCopyLink,
         onDelete,
+        onItemFavoriteToggle,
         onOpenInNewTab,
         onOpenNote,
         pendingDeleteItemId,
@@ -3630,6 +3642,7 @@ function CardMenu({
     const ItemSeparator =
         kind === "context" ? ContextMenuSeparator : MenuSeparator;
     const isNote = item.kind === ITEM_KIND_NOTE;
+    const isFavorite = favoriteItemIdSet.has(item.id);
     const isDeletePending = pendingDeleteItemId === item.id;
     const canPreview = !isNote && toValidUrl(href) !== FALLBACK_URL;
 
@@ -3676,6 +3689,15 @@ function CardMenu({
                 ) : null}
             </div>
             <ItemSeparator />
+            <Item onClick={() => onItemFavoriteToggle(item)}>
+                <Star
+                    className={cn(
+                        "size-4.5 text-muted-foreground",
+                        isFavorite && "fill-current"
+                    )}
+                />
+                {isFavorite ? "Remove from Favorites" : "Add to Favorites"}
+            </Item>
             {isNote ? (
                 <Item onClick={() => onOpenNote?.(item)}>
                     <FilePenLineIcon className="size-4.5 text-muted-foreground" />
@@ -4149,14 +4171,13 @@ function LockedResults({
 }
 
 interface NoteDrawerProps {
-    activeNote: LibraryItemWithCollections | null;
+    activeNote: LibraryItemWithCollections | typeof NOTE_DRAWER_NEW | null;
     containerRef: React.RefObject<HTMLDivElement | null>;
     handlePasteUrlIntoLibrary: (url: string) => Promise<void>;
     handleSaveNote: (draft: NoteDraft) => Promise<boolean>;
-    isNoteDrawerOpen: boolean;
     isSavingNote: boolean;
     isSavingPastedUrl: boolean;
-    setIsNoteDrawerOpen: (open: boolean) => void;
+    onNoteDrawerClose: () => void;
 }
 
 /**
@@ -4175,7 +4196,10 @@ const NoteDrawer = dynamic(
             function NoteDrawerShell({
                 containerRef,
                 isNoteDrawerOpen,
-            }: Pick<NoteDrawerProps, "containerRef" | "isNoteDrawerOpen">) {
+            }: {
+                containerRef: React.RefObject<HTMLDivElement | null>;
+                isNoteDrawerOpen: boolean;
+            }) {
                 const { onOpenChange } = Note.useContext();
 
                 return (
@@ -4218,15 +4242,21 @@ const NoteDrawer = dynamic(
                 containerRef,
                 handlePasteUrlIntoLibrary,
                 handleSaveNote,
-                isNoteDrawerOpen,
                 isSavingNote,
                 isSavingPastedUrl,
-                setIsNoteDrawerOpen,
+                onNoteDrawerClose,
             }: NoteDrawerProps) {
+                const isNoteDrawerOpen = activeNote !== null;
+                const note = activeNote === NOTE_DRAWER_NEW ? null : activeNote;
+
                 return (
                     <Note.Root
-                        note={activeNote}
-                        onOpenChange={setIsNoteDrawerOpen}
+                        note={note}
+                        onOpenChange={(open) => {
+                            if (!open) {
+                                onNoteDrawerClose();
+                            }
+                        }}
                         onSave={handleSaveNote}
                         onUrlPaste={handlePasteUrlIntoLibrary}
                         open={isNoteDrawerOpen}
@@ -4253,25 +4283,31 @@ export function Browser({
 }: LibraryProps) {
     const { data } = useSession();
     const isNewUser = dayjs(data?.user.createdAt).isToday();
+
     const {
         collectionPreviewThumbnailUrlsById,
         collectionSummaries: collections,
+        favoriteItemIdSet,
         items,
         onClearCollectionFilters,
         onCreateCollectionFromResults,
         onDeleteItemSuccess,
         onSelectCollection: onRemoveCollectionFilter,
+        onToggleItemFavorite,
         onUpdateItemCollections,
         onUpdateItemsCollections,
         requestCreate,
         selectedCollectionIds,
         setItems: onItemsChange,
     } = useWorkspaceContext();
+    const openFavoriteItemRef = React.use(OpenFavoriteItemRefContext);
+
     const { hasAccess } = useSubscriptionAccess();
     const router = useRouter();
     const systemControlKey = useClientOnlyValue(getSystemControlKey());
     const isExtensionInstalled = useIsExtensionInstalled();
     const paletteFocusOutTimeout = useTimeout();
+
     const [searchTerms, setSearchTerms] = React.useState<string[]>([]);
     const [paletteInput, setPaletteInput] = React.useState("");
     const [sourceFilters, setSourceFilters] = React.useState<
@@ -4293,9 +4329,9 @@ export function Browser({
     const [commandAttachments, setCommandAttachments] = React.useState<
         LibraryCommandAttachment[]
     >([]);
-    const [activeNote, setActiveNote] =
-        React.useState<LibraryItemWithCollections | null>(null);
-    const [isNoteDrawerOpen, setIsNoteDrawerOpen] = React.useState(false);
+    const [activeNote, setActiveNote] = React.useState<
+        LibraryItemWithCollections | typeof NOTE_DRAWER_NEW | null
+    >(null);
     const [isCreateResultsDialogOpen, setIsCreateResultsDialogOpen] =
         React.useState(false);
     const [createResultsNameDraft, setCreateResultsNameDraft] =
@@ -4307,13 +4343,12 @@ export function Browser({
     >(null);
     const [commandListOpen, setCommandListOpen] = React.useState(false);
     const [isPaletteFocused, setIsPaletteFocused] = React.useState(false);
-    const [isCommandInputFocused, setIsCommandInputFocused] =
-        React.useState(false);
 
     const commandPanelContainerRef = React.useRef<HTMLDivElement>(null);
     const paletteInputRef = React.useRef<HTMLInputElement>(null);
     const commandAttachmentsRef = React.useRef<LibraryCommandAttachment[]>([]);
     commandAttachmentsRef.current = commandAttachments;
+
     const createResultsNameInputId = React.useId();
     const createResultsDescriptionId = React.useId();
     /** Skips one combobox-driven close right after entering a drill-down section. */
@@ -4321,6 +4356,7 @@ export function Browser({
     const collectionUpdateFeedbackVersionByItemIdRef = React.useRef(
         new Map<string, number>()
     );
+
     const {
         handleConfirmDelete,
         handleCopyLink,
@@ -4583,36 +4619,36 @@ export function Browser({
         });
     };
 
-    const handleAttachCommandFiles = useStableCallback(async () => {
-        try {
-            const selectedFiles = await fileOpen({
-                description: "Files",
-                multiple: true,
-            });
-            const files = Array.isArray(selectedFiles)
-                ? selectedFiles
-                : [selectedFiles];
+    // const handleAttachCommandFiles = useStableCallback(async () => {
+    //     try {
+    //         const selectedFiles = await fileOpen({
+    //             description: "Files",
+    //             multiple: true,
+    //         });
+    //         const files = Array.isArray(selectedFiles)
+    //             ? selectedFiles
+    //             : [selectedFiles];
 
-            if (files.length === 0) {
-                return;
-            }
+    //         if (files.length === 0) {
+    //             return;
+    //         }
 
-            const nextAttachments = files.map((file) => ({
-                ...createFileAttachment(file),
-                id: crypto.randomUUID(),
-            }));
+    //         const nextAttachments = files.map((file) => ({
+    //             ...createFileAttachment(file),
+    //             id: crypto.randomUUID(),
+    //         }));
 
-            setCommandAttachments((current) => [
-                ...current,
-                ...nextAttachments,
-            ]);
-            focusPaletteInput();
-        } catch (error) {
-            if (!isAbortError(error)) {
-                log.error("Failed to attach command files", error);
-            }
-        }
-    });
+    //         setCommandAttachments((current) => [
+    //             ...current,
+    //             ...nextAttachments,
+    //         ]);
+    //         focusPaletteInput();
+    //     } catch (error) {
+    //         if (!isAbortError(error)) {
+    //             log.error("Failed to attach command files", error);
+    //         }
+    //     }
+    // });
 
     const clearLibraryPalette = useStableCallback(() => {
         setPaletteInput("");
@@ -4893,8 +4929,7 @@ export function Browser({
     const resultCollectionItemIds = visibleResultItems.map((item) => item.id);
 
     const handleCreateNote = useStableCallback(() => {
-        setActiveNote(null);
-        setIsNoteDrawerOpen(true);
+        setActiveNote(NOTE_DRAWER_NEW);
     });
 
     const handleOpenCommandFromOnboarding = useStableCallback(() => {
@@ -4986,7 +5021,37 @@ export function Browser({
     const handleOpenNote = useStableCallback(
         (item: LibraryItemWithCollections) => {
             setActiveNote(item);
-            setIsNoteDrawerOpen(true);
+        }
+    );
+
+    const handleOpenFavoriteItem = useStableCallback(
+        (item: LibraryItemWithCollections) => {
+            if (item.kind === ITEM_KIND_NOTE) {
+                setActiveNote(item);
+                return;
+            }
+            handleOpenInNewTab(item);
+        }
+    );
+
+    React.useEffect(() => {
+        if (!openFavoriteItemRef) {
+            return;
+        }
+        openFavoriteItemRef.current = handleOpenFavoriteItem;
+        return () => {
+            openFavoriteItemRef.current = null;
+        };
+    }, [handleOpenFavoriteItem, openFavoriteItemRef]);
+
+    const handleItemFavoriteToggle = useStableCallback(
+        (item: LibraryItemWithCollections) => {
+            onToggleItemFavorite(item).catch((error) => {
+                log.error("Failed to toggle item favorite", {
+                    error,
+                    itemId: item.id,
+                });
+            });
         }
     );
 
@@ -5022,7 +5087,8 @@ export function Browser({
             await new Promise<boolean>((resolve) => {
                 startSavingNoteTransition(async () => {
                     const result = await saveLibraryNoteDraft({
-                        activeNote,
+                        activeNote:
+                            activeNote === NOTE_DRAWER_NEW ? null : activeNote,
                         draft,
                     });
 
@@ -5106,12 +5172,8 @@ export function Browser({
                     commandListOpen={commandListOpen}
                     commandPanelContainerRef={commandPanelContainerRef}
                     inputPlaceholder={inputPlaceholder}
-                    isCommandInputFocused={isCommandInputFocused}
-                    onAttachFiles={handleAttachCommandFiles}
                     onCommandInputChange={handleCommandInputChange}
                     onCommandOpenChange={handleCommandOpenChange}
-                    onInputBlur={() => setIsCommandInputFocused(false)}
-                    onInputFocus={() => setIsCommandInputFocused(true)}
                     onPaletteInputKeyDown={handlePaletteInputKeyDown}
                     paletteGroups={paletteGroups}
                     paletteInput={paletteInput}
@@ -5193,6 +5255,7 @@ export function Browser({
                 collections={collections}
                 columnCount={resolvedColumnCount}
                 enableSectionCollapse={enableSectionCollapse}
+                favoriteItemIdSet={favoriteItemIdSet}
                 layoutMode={layoutMode}
                 onCollapseAllSections={collapseAllSections}
                 onCopyLink={handleCopyLink}
@@ -5202,6 +5265,7 @@ export function Browser({
                 onDelete={handleRequestDelete}
                 onExpandAllSections={expandAllSections}
                 onExportSectionResults={handleExportSectionResults}
+                onItemFavoriteToggle={handleItemFavoriteToggle}
                 onOpenInNewTab={handleOpenInNewTab}
                 onOpenNote={handleOpenNote}
                 onToggleSection={toggleSection}
@@ -5255,10 +5319,9 @@ export function Browser({
                 containerRef={containerRef}
                 handlePasteUrlIntoLibrary={handlePasteUrlIntoLibrary}
                 handleSaveNote={handleSaveNote}
-                isNoteDrawerOpen={isNoteDrawerOpen}
                 isSavingNote={isSavingNote}
                 isSavingPastedUrl={isSavingPastedUrl}
-                setIsNoteDrawerOpen={setIsNoteDrawerOpen}
+                onNoteDrawerClose={() => setActiveNote(null)}
             />
             <BackToTopButton />
             <Dialog

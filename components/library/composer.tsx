@@ -73,55 +73,11 @@ interface CommandSuggestion {
     onSelect: () => void;
 }
 
-function LibraryPaletteTrailing({
-    entries,
-    isCommandInputFocused,
-    onAttachFiles: _onAttachFiles,
-}: {
-    entries: PaletteStackEntry[];
-    isCommandInputFocused: boolean;
-    onAttachFiles: () => void | Promise<void>;
-}) {
-    return (
-        <>
-            {entries.length === 0 && !isCommandInputFocused ? (
-                <Kbd className="border-none text-muted-foreground opacity-50">
-                    <CmdKbd />G
-                </Kbd>
-            ) : (
-                <span className="mr-1 flex items-center gap-0.5">
-                    <Kbd className="border-none text-muted-foreground opacity-50">
-                        Tab
-                    </Kbd>
-                    <span className="text-muted-foreground text-xs opacity-50">
-                        Ask Cache
-                    </span>
-                </span>
-            )}
-            <TruncateAfter
-                badgeRender={
-                    <Badge
-                        className="inline-flex h-7! cursor-pointer rounded-full text-xs tabular-nums"
-                        render={<button type="button" />}
-                        variant="secondary"
-                    />
-                }
-                className="justify-end"
-                maxVisible={1}
-            >
-                {entries.map((entry) => entry.chip)}
-            </TruncateAfter>
-        </>
-    );
-}
-
 interface ComposerInputProps {
     canClear: boolean;
     commandListOpen: boolean;
     commandPanelContainerRef: React.RefObject<HTMLDivElement | null>;
     inputPlaceholder: string;
-    isCommandInputFocused: boolean;
-    onAttachFiles: () => void | Promise<void>;
     onCommandInputChange: (
         next: string,
         eventDetails: AutocompleteRootChangeEventDetails
@@ -130,8 +86,6 @@ interface ComposerInputProps {
         nextOpen: boolean,
         eventDetails: AutocompleteRootChangeEventDetails
     ) => void;
-    onInputBlur: () => void;
-    onInputFocus: () => void;
     onPaletteInputKeyDown: (
         event: React.KeyboardEvent<HTMLInputElement>
     ) => void;
@@ -153,10 +107,6 @@ export function ComposerInput({
     visiblePaletteGroups,
     commandPanelContainerRef,
     paletteInputRef,
-    isCommandInputFocused,
-    onInputFocus,
-    onInputBlur,
-    onAttachFiles,
     paletteStackEntries,
     canClear,
 }: ComposerInputProps) {
@@ -179,16 +129,40 @@ export function ComposerInput({
                     render={
                         <CommandInput
                             endAddon={
-                                <LibraryPaletteTrailing
-                                    entries={paletteStackEntries}
-                                    isCommandInputFocused={
-                                        isCommandInputFocused
-                                    }
-                                    onAttachFiles={onAttachFiles}
-                                />
+                                <>
+                                    {paletteStackEntries.length === 0 ? (
+                                        <Kbd className="border-none text-muted-foreground opacity-50">
+                                            <CmdKbd />G
+                                        </Kbd>
+                                    ) : (
+                                        <span className="mr-1 flex items-center gap-0.5">
+                                            <Kbd className="border-none text-muted-foreground opacity-50">
+                                                Tab
+                                            </Kbd>
+                                            <span className="text-muted-foreground text-xs opacity-50">
+                                                Ask Cache
+                                            </span>
+                                        </span>
+                                    )}
+                                    <TruncateAfter
+                                        badgeRender={
+                                            <Badge
+                                                className="inline-flex h-7! cursor-pointer rounded-full text-xs tabular-nums"
+                                                render={
+                                                    <button type="button" />
+                                                }
+                                                variant="secondary"
+                                            />
+                                        }
+                                        className="justify-end"
+                                        maxVisible={1}
+                                    >
+                                        {paletteStackEntries.map(
+                                            (entry) => entry.chip
+                                        )}
+                                    </TruncateAfter>
+                                </>
                             }
-                            onBlur={onInputBlur}
-                            onFocus={onInputFocus}
                             onKeyDown={onPaletteInputKeyDown}
                             placeholder={inputPlaceholder}
                             ref={paletteInputRef}

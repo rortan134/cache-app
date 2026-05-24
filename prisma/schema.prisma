@@ -219,6 +219,8 @@ model LibraryItem {
   activityEvents   LibraryActivityEvent[]
   /// Null means the item has not entered the review workflow yet.
   reviewedAt       DateTime?
+  /// When the user marked this item as a favorite. Null means not favorited.
+  favoritedAt      DateTime?
   createdAt        DateTime               @default(now())
   updatedAt        DateTime               @updatedAt
 
@@ -228,6 +230,7 @@ model LibraryItem {
   @@index([userId, source, browserProfileId])
   @@index([userId, source, browserProfileId, parentExternalId], map: "library_item_user_source_profile_parent_idx")
   @@index([userId, reviewedAt])
+  @@index([userId, favoritedAt])
   @@index([userId, scrapedAt, updatedAt, reviewedAt])
   @@map("library_item")
 }

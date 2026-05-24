@@ -10,6 +10,8 @@ import { resolveCobaltPreview } from "@/lib/integrations/cobalt/service";
 import { isCobaltHost } from "@/lib/integrations/cobalt/utils";
 import { cacheLife, cacheTag } from "next/cache";
 import { createHash } from "node:crypto";
+import { Duplex } from "node:stream";
+import { createZstdCompress } from "node:zlib";
 import { PreviewError, createCache, preview, withCache } from "openlink";
 
 const log = createLogger("api:library:preview");
@@ -50,6 +52,18 @@ const cache = redis
     : undefined;
 const getPagePreview = cache ? withCache(cache, preview) : preview;
 
+function acceptsZstd(request: Request): boolean {
+    const acceptEncoding = request.headers.get("accept-encoding");
+    return acceptEncoding?.toLowerCase().includes("zstd") ?? false;
+}
+
+function createZstdTransform() {
+    return Duplex.toWeb(createZstdCompress()) as unknown as {
+        readable: ReadableStream<Uint8Array>;
+        writable: WritableStream<Uint8Array>;
+    };
+}
+
 export async function GET(request: Request): Promise<Response> {
     const requestUrl = new URL(request.url);
     const targetUrl = await extractTargetUrl(request.url);
@@ -61,6 +75,8 @@ export async function GET(request: Request): Promise<Response> {
     if (!type) {
         return textResponse("Unsupported preview type", 400);
     }
+
+    const useZstd = acceptsZstd(request);
 
     if (type === "video") {
         return handleVideoPreview(targetUrl, request);
@@ -105,11 +121,17 @@ export async function GET(request: Request): Promise<Response> {
             return textResponse("Preview too large", 413);
         }
 
-        return new Response(imageResponse.body, {
+        const body =
+            useZstd && imageResponse.body
+                ? imageResponse.body.pipeThrough(createZstdTransform())
+                : imageResponse.body;
+
+        return new Response(body, {
             headers: {
                 "cache-control": CACHE_CONTROL_HEADER,
                 "content-type": imageContentType,
                 ...createPreviewCacheHeaders(targetUrl, "image"),
+                ...(useZstd ? { "content-encoding": "zstd" } : {}),
             },
             status: 200,
         });
@@ -226,6 +248,7 @@ async function proxyVideoResponse(
 ): Promise<Response> {
     try {
         const rangeHeader = parseRangeHeader(request.headers.get("range"));
+        const useZstd = acceptsZstd(request);
         const tunnelResponse = await fetchWithRedirects(
             videoUrl,
             {
@@ -274,7 +297,19 @@ async function proxyVideoResponse(
         headers.set("cache-control", CACHE_CONTROL_HEADER);
         setPreviewCacheHeaders(headers, targetUrl, "video");
 
-        return new Response(tunnelResponse.body, {
+        const responseBody =
+            useZstd && !rangeHeader && tunnelResponse.body
+                ? tunnelResponse.body.pipeThrough(createZstdTransform())
+                : tunnelResponse.body;
+
+        if (useZstd && !rangeHeader) {
+            headers.delete("content-length");
+            headers.delete("content-range");
+            headers.delete("accept-ranges");
+            headers.set("content-encoding", "zstd");
+        }
+
+        return new Response(responseBody, {
             headers,
             status: tunnelResponse.status,
         });

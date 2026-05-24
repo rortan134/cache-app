@@ -113,6 +113,7 @@ interface NoteContextValue {
     onOpenChange: (open: boolean) => Promise<void>;
     onUrlPaste: (url: string) => Promise<void>;
     query: string;
+    shouldCreateBookmarkFromUrlPaste: () => boolean;
     textMetrics: NoteTextMetrics;
     title: string;
     toggleExpanded: () => void;
@@ -573,11 +574,17 @@ function NoteFormattingToolbarPlugin() {
 function NoteContentPlugin({
     onDraftChange,
     onUrlPaste,
+    shouldCreateBookmarkFromUrlPaste,
 }: {
     onDraftChange: (draft: NoteDraft) => void;
     onUrlPaste: (url: string) => Promise<void> | void;
+    shouldCreateBookmarkFromUrlPaste: () => boolean;
 }) {
     const handlePaste = async (event: ClipboardEvent<HTMLDivElement>) => {
+        if (!shouldCreateBookmarkFromUrlPaste()) {
+            return;
+        }
+
         const pastedText = event.clipboardData.getData("text/plain");
         const parsedUrl = parseStandaloneUrl(pastedText);
         if (!parsedUrl) {
@@ -683,6 +690,9 @@ function NoteRoot({
         await onOpenChange(false);
     };
 
+    const shouldCreateBookmarkFromUrlPaste = () =>
+        !note && isDraftEmpty(latestDraftRef.current);
+
     const handleOpenChange = async (nextOpen: boolean) => {
         if (nextOpen) {
             onOpenChange(true);
@@ -740,6 +750,7 @@ function NoteRoot({
                 onOpenChange: handleOpenChange,
                 onUrlPaste: handleUrlPaste,
                 query,
+                shouldCreateBookmarkFromUrlPaste,
                 textMetrics,
                 title,
                 toggleExpanded,
@@ -896,8 +907,13 @@ function NoteHeader() {
  * the editor instead of recycling stale internal state.
  */
 function NoteEditor() {
-    const { editorKey, initialDraft, onDraftChange, onUrlPaste } =
-        useNoteContext();
+    const {
+        editorKey,
+        initialDraft,
+        onDraftChange,
+        onUrlPaste,
+        shouldCreateBookmarkFromUrlPaste,
+    } = useNoteContext();
     const initialEditorState = getInitialEditorState(initialDraft);
 
     return (
@@ -916,6 +932,9 @@ function NoteEditor() {
             <NoteContentPlugin
                 onDraftChange={onDraftChange}
                 onUrlPaste={onUrlPaste}
+                shouldCreateBookmarkFromUrlPaste={
+                    shouldCreateBookmarkFromUrlPaste
+                }
             />
         </LexicalComposer>
     );

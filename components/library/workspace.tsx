@@ -5,10 +5,12 @@ import {
     type CollectionCreateFromItemsResult,
 } from "@/lib/collections/actions";
 import {
+    toggleLibraryItemFavorite,
     updateLibraryItemCollections,
     updateLibraryItemsCollections,
     type LibraryItemCollectionsUpdateResult,
     type LibraryItemDeleteResult,
+    type LibraryItemFavoriteToggleResult,
     type LibraryItemsCollectionsUpdateResult,
 } from "@/lib/collections/items";
 import {
@@ -196,6 +198,8 @@ interface WorkspaceContextValue {
     collectionPreviewThumbnailUrlsById: Map<string, string[]>;
     collectionSummaries: LibraryCollectionSummary[];
     collections: LibraryCollectionSummary[];
+    favoriteItemIdSet: ReadonlySet<string>;
+    favoriteItems: LibraryItemWithCollections[];
     items: LibraryItemWithCollections[];
     itemsByCollectionId: Map<string, LibraryItemWithCollections[]>;
     onClearCollectionFilters: () => void;
@@ -207,7 +211,11 @@ interface WorkspaceContextValue {
     onDeleteItemSuccess: (
         result: Extract<LibraryItemDeleteResult, { status: "DELETED" }>
     ) => void;
+    onOpenFavoriteItem: (item: LibraryItemWithCollections) => void;
     onSelectCollection: (collectionId: string) => void;
+    onToggleItemFavorite: (
+        item: LibraryItemWithCollections
+    ) => Promise<LibraryItemFavoriteToggleResult>;
     onUpdateItemCollections: (
         itemId: string,
         collectionIds: string[]
@@ -233,6 +241,10 @@ const WorkspaceContext = React.createContext<WorkspaceContextValue | null>(
 
 export const RequestCreateRefContext = React.createContext<React.RefObject<
     ((itemId?: string) => void) | null
+> | null>(null);
+
+export const OpenFavoriteItemRefContext = React.createContext<React.RefObject<
+    ((item: LibraryItemWithCollections) => void) | null
 > | null>(null);
 
 /**
@@ -265,6 +277,9 @@ export function WorkspaceProvider({
     >([]);
 
     const collectionUpdateVersionByItemIdRef = React.useRef(
+        new Map<string, number>()
+    );
+    const itemFavoriteToggleVersionByItemIdRef = React.useRef(
         new Map<string, number>()
     );
 
@@ -313,6 +328,20 @@ export function WorkspaceProvider({
 
     const { collectionPreviewThumbnailUrlsById, itemsByCollectionId } =
         buildCollectionItemIndexes(items);
+
+    const favoriteItems = React.useMemo(() => {
+        const favorited = items.filter((item) => item.favoritedAt !== null);
+        return favorited.toSorted((left, right) => {
+            const leftTime = left.favoritedAt?.getTime() ?? 0;
+            const rightTime = right.favoritedAt?.getTime() ?? 0;
+            return rightTime - leftTime;
+        });
+    }, [items]);
+
+    const favoriteItemIdSet = React.useMemo(
+        () => new Set(favoriteItems.map((item) => item.id)),
+        [favoriteItems]
+    );
 
     const clearCollectionFilters = useStableCallback(() => {
         setSelectedCollectionIds([]);
@@ -435,6 +464,72 @@ export function WorkspaceProvider({
         }
     );
 
+    const handleToggleItemFavorite = useStableCallback(
+        async (
+            item: LibraryItemWithCollections
+        ): Promise<LibraryItemFavoriteToggleResult> => {
+            const requestVersion =
+                (itemFavoriteToggleVersionByItemIdRef.current.get(item.id) ??
+                    0) + 1;
+            itemFavoriteToggleVersionByItemIdRef.current.set(
+                item.id,
+                requestVersion
+            );
+
+            const previousFavoritedAt = item.favoritedAt;
+            const optimisticFavoritedAt = previousFavoritedAt
+                ? null
+                : new Date();
+
+            setItems((current) =>
+                replaceItemFavoritedAt(current, item.id, optimisticFavoritedAt)
+            );
+
+            let result: LibraryItemFavoriteToggleResult;
+            try {
+                result = await toggleLibraryItemFavorite(item.id);
+            } catch {
+                result = {
+                    message: "We couldn't update this favorite right now.",
+                    status: "ERROR",
+                };
+            }
+
+            if (
+                itemFavoriteToggleVersionByItemIdRef.current.get(item.id) !==
+                requestVersion
+            ) {
+                return result;
+            }
+            itemFavoriteToggleVersionByItemIdRef.current.delete(item.id);
+
+            if (result.status === "UPDATED") {
+                setItems((current) =>
+                    replaceItemWithFavoriteState(current, result.item)
+                );
+            } else {
+                setItems((current) =>
+                    replaceItemFavoritedAt(
+                        current,
+                        item.id,
+                        previousFavoritedAt
+                    )
+                );
+            }
+
+            return result;
+        }
+    );
+
+    const openFavoriteItemRef = React.useRef<
+        ((item: LibraryItemWithCollections) => void) | null
+    >(null);
+    const handleOpenFavoriteItem = useStableCallback(
+        (item: LibraryItemWithCollections) => {
+            openFavoriteItemRef.current?.(item);
+        }
+    );
+
     const handleCreateCollectionFromResults = useStableCallback(
         async (input: {
             description?: string;
@@ -483,12 +578,16 @@ export function WorkspaceProvider({
             collectionPreviewThumbnailUrlsById,
             collectionSummaries,
             collections,
+            favoriteItemIdSet,
+            favoriteItems,
             items,
             itemsByCollectionId,
             onClearCollectionFilters: clearCollectionFilters,
             onCreateCollectionFromResults: handleCreateCollectionFromResults,
             onDeleteItemSuccess: handleDeleteItemSuccess,
+            onOpenFavoriteItem: handleOpenFavoriteItem,
             onSelectCollection: toggleCollectionSelection,
+            onToggleItemFavorite: handleToggleItemFavorite,
             onUpdateItemCollections: handleUpdateItemCollections,
             onUpdateItemsCollections: handleUpdateItemsCollections,
             requestCreate,
@@ -501,8 +600,12 @@ export function WorkspaceProvider({
             collectionSummaries,
             collections,
             clearCollectionFilters,
+            favoriteItemIdSet,
+            favoriteItems,
             handleCreateCollectionFromResults,
             handleDeleteItemSuccess,
+            handleOpenFavoriteItem,
+            handleToggleItemFavorite,
             handleUpdateItemCollections,
             handleUpdateItemsCollections,
             items,
@@ -516,7 +619,9 @@ export function WorkspaceProvider({
     return (
         <WorkspaceContext value={value}>
             <RequestCreateRefContext value={requestCreateRef}>
-                {children}
+                <OpenFavoriteItemRefContext value={openFavoriteItemRef}>
+                    {children}
+                </OpenFavoriteItemRefContext>
             </RequestCreateRefContext>
         </WorkspaceContext>
     );
@@ -528,11 +633,28 @@ interface WorkspaceProviderProps {
 }
 
 /**
- * Replace all collections on a single item by ID.
+ * Replace the favoritedAt field on a single item by ID.
  *
- * Used for optimistic updates when adding or removing an item from
- * a collection. Creates a new array so React detects the change.
+ * Used for optimistic updates when toggling the favorite state of
+ * an item. Creates a new array so React detects the change.
  */
+function replaceItemFavoritedAt(
+    items: LibraryItemWithCollections[],
+    itemId: string,
+    favoritedAt: Date | null
+): LibraryItemWithCollections[] {
+    return items.map((item) =>
+        item.id === itemId ? { ...item, favoritedAt } : item
+    );
+}
+
+function replaceItemWithFavoriteState(
+    items: LibraryItemWithCollections[],
+    item: LibraryItemWithCollections
+): LibraryItemWithCollections[] {
+    return items.map((entry) => (entry.id === item.id ? item : entry));
+}
+
 function replaceItemCollections(
     items: LibraryItemWithCollections[],
     itemId: string,

@@ -1,5 +1,7 @@
 import { useStableCallback } from "@base-ui/utils/useStableCallback";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useTimeout } from "@base-ui/utils/useTimeout";
+import { useValueAsRef } from "@base-ui/utils/useValueAsRef";
+import { useEffect, useRef, useState } from "react";
 
 type SaveStatus = "idle" | "saving" | "saved" | "error";
 
@@ -17,6 +19,8 @@ interface UseAutosaveReturn {
     saveStatus: SaveStatus;
 }
 
+const MIN_SAVING_DISPLAY_MS = 600;
+
 /**
  * Shared autosave hook that debounces content changes and persists them automatically.
  * Keeps Cmd+S / Save button working via `saveImmediately`, and flushes on unmount
@@ -25,94 +29,84 @@ interface UseAutosaveReturn {
 export function useAutosave({
     content,
     savedContent,
-    onSave,
+    onSave: onSaveProp,
     delay = 1500,
     enabled = true,
 }: UseAutosaveOptions): UseAutosaveReturn {
     const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
-    const timerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
-    const idleTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
-    const savingRef = useRef(false);
-    const onSaveRef = useRef(onSave);
-    onSaveRef.current = onSave;
-    const enabledRef = useRef(enabled);
-    enabledRef.current = enabled;
-    const savedContentRef = useRef(savedContent);
-    savedContentRef.current = savedContent;
-    const contentRef = useRef(content);
-    contentRef.current = content;
+    const debounceTimeout = useTimeout();
+    const idleTimeout = useTimeout();
+    const onSave = useStableCallback(onSaveProp);
+    const contentRef = useValueAsRef(content);
+    const enabledRef = useValueAsRef(enabled);
+    const savedContentRef = useValueAsRef(savedContent);
+
+    const isSavingRef = useRef(false);
+    const savingStartRef = useRef(0);
 
     const isDirty = content !== savedContent;
-    const savingStartRef = useRef(0);
-    const MIN_SAVING_DISPLAY_MS = 600;
 
     const save = useStableCallback(async () => {
         if (
             !enabledRef.current ||
-            savingRef.current ||
+            isSavingRef.current ||
             contentRef.current === savedContentRef.current
         ) {
             return;
         }
-        savingRef.current = true;
+        isSavingRef.current = true;
         savingStartRef.current = Date.now();
         setSaveStatus("saving");
         let nextStatus: SaveStatus = "saved";
         try {
-            await onSaveRef.current();
+            await onSave();
         } catch {
             nextStatus = "error";
         } finally {
             const elapsed = Date.now() - savingStartRef.current;
             const remaining = Math.max(0, MIN_SAVING_DISPLAY_MS - elapsed);
-            setTimeout(() => {
+            idleTimeout.start(remaining, () => {
                 setSaveStatus(nextStatus);
-                clearTimeout(idleTimerRef.current);
-                idleTimerRef.current = setTimeout(
-                    () => setSaveStatus("idle"),
-                    2000
-                );
-                savingRef.current = false;
+                isSavingRef.current = false;
                 if (
                     nextStatus !== "error" &&
                     contentRef.current !== savedContentRef.current
                 ) {
                     save();
+                } else {
+                    idleTimeout.start(2000, () => setSaveStatus("idle"));
                 }
-            }, remaining);
+            });
         }
     });
 
     useEffect(() => {
-        if (!(enabled && isDirty) || savingRef.current) {
+        if (!(enabled && isDirty) || isSavingRef.current) {
             return;
         }
-        clearTimeout(timerRef.current);
-        timerRef.current = setTimeout(save, delay);
-        return () => clearTimeout(timerRef.current);
-    }, [enabled, isDirty, delay, save]);
+        debounceTimeout.start(delay, save);
+        return () => debounceTimeout.clear();
+    }, [enabled, isDirty, delay, save, debounceTimeout]);
 
     useEffect(
         () => () => {
-            clearTimeout(timerRef.current);
-            clearTimeout(idleTimerRef.current);
             if (
                 enabledRef.current &&
                 contentRef.current !== savedContentRef.current &&
-                !savingRef.current
+                !isSavingRef.current
             ) {
-                onSaveRef.current().catch(() => {
+                onSave().catch(() => {
                     // No-op
                 });
             }
         },
-        []
+        [contentRef, enabledRef, onSave, savedContentRef]
     );
 
-    const saveImmediately = useCallback(async () => {
-        clearTimeout(timerRef.current);
+    const saveImmediately = useStableCallback(async () => {
+        debounceTimeout.clear();
         await save();
-    }, [save]);
+    });
 
     return { isDirty, saveImmediately, saveStatus };
 }
