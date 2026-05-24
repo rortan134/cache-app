@@ -102,7 +102,7 @@ interface IntegrationsListItemActionProps {
 
 function resolveActionLabel(args: {
     connectBehavior?: OAuthLinkConnectBehavior | SocialSignInConnectBehavior;
-    explicitLabel?: string;
+    label?: string;
     isExtensionInstalled: boolean;
     isConnected: boolean;
     openBehavior?: ExtensionOpenBehavior;
@@ -110,15 +110,15 @@ function resolveActionLabel(args: {
 }): string {
     const {
         connectBehavior,
-        explicitLabel,
+        label,
         isExtensionInstalled,
         isConnected,
         openBehavior,
         role,
     } = args;
 
-    if (explicitLabel) {
-        return explicitLabel;
+    if (label) {
+        return label;
     }
 
     switch (role) {
@@ -140,7 +140,7 @@ function resolveActionLabel(args: {
     }
 }
 
-function createCapabilityMissingError(args: {
+function buildCapabilityMissingError(args: {
     capability: "connect" | "copy" | "open" | "sync";
     integrationId: IntegrationId;
     message: string;
@@ -166,7 +166,7 @@ async function executeIntegrationAction(args: {
     switch (role) {
         case "open": {
             if (!integration.behaviors.open) {
-                throw createCapabilityMissingError({
+                throw buildCapabilityMissingError({
                     capability: "open",
                     integrationId: integration.id,
                     message: "This integration cannot be opened yet.",
@@ -177,12 +177,12 @@ async function executeIntegrationAction(args: {
                 integration.behaviors.open,
                 isExtensionInstalled
             );
+
             return { refresh: false, successMessage: null };
         }
-
         case "connect": {
             if (!integration.behaviors.connect) {
-                throw createCapabilityMissingError({
+                throw buildCapabilityMissingError({
                     capability: "connect",
                     integrationId: integration.id,
                     message: "This integration cannot be connected yet.",
@@ -190,12 +190,12 @@ async function executeIntegrationAction(args: {
             }
 
             await executeConnectBehavior(integration.behaviors.connect);
+
             return { refresh: false, successMessage: null };
         }
-
         case "copy": {
             if (!integration.behaviors.copy) {
-                throw createCapabilityMissingError({
+                throw buildCapabilityMissingError({
                     capability: "copy",
                     integrationId: integration.id,
                     message:
@@ -204,12 +204,12 @@ async function executeIntegrationAction(args: {
             }
 
             await executeCopyPromptBehavior(integration.behaviors.copy);
+
             return { refresh: false, successMessage: "Copied to clipboard." };
         }
-
         case "sync": {
             if (!integration.behaviors.sync) {
-                throw createCapabilityMissingError({
+                throw buildCapabilityMissingError({
                     capability: "sync",
                     integrationId: integration.id,
                     message: "This integration cannot sync yet.",
@@ -259,9 +259,7 @@ function useIntegrationAction({
 }: UseIntegrationActionArgs): UseIntegrationActionResult {
     const router = useRouter();
     const isExtensionInstalled = useIsExtensionInstalled();
-
     const integration = getIntegration(id);
-    const { behaviors } = integration;
 
     const [status, setStatus] = React.useState<IntegrationActionStatus | null>(
         null
@@ -284,6 +282,7 @@ function useIntegrationAction({
                 if (result.refresh) {
                     router.refresh();
                 }
+
                 if (result.successMessage) {
                     setStatus({
                         message: result.successMessage,
@@ -291,18 +290,20 @@ function useIntegrationAction({
                     });
                 }
             } catch (error) {
-                const message = getErrorMessage(
-                    error,
-                    "Could not complete this integration action."
-                );
-
                 log.error("Integration action failed", {
                     direction,
                     error,
                     integrationId: integration.id,
                     role,
                 });
-                setStatus({ message, tone: "error" });
+
+                setStatus({
+                    message: getErrorMessage(
+                        error,
+                        "Could not complete this integration action."
+                    ),
+                    tone: "error",
+                });
             } finally {
                 setPendingRole(null);
             }
@@ -316,11 +317,11 @@ function useIntegrationAction({
                 ({
                     isLoading: pendingRole === action.role,
                     label: resolveActionLabel({
-                        connectBehavior: behaviors.connect,
-                        explicitLabel: action.label,
+                        connectBehavior: integration.behaviors.connect,
                         isConnected,
                         isExtensionInstalled,
-                        openBehavior: behaviors.open,
+                        label: action.label,
+                        openBehavior: integration.behaviors.open,
                         role: action.role,
                     }),
                     onClick: () => handleAction(action.role),
