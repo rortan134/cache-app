@@ -25,8 +25,9 @@ export function Carousel({
     return (
         <BlossomCarousel
             aria-roledescription="carousel"
+            as="section"
             className={cn(
-                "relative size-full snap-x snap-mandatory",
+                "no-scrollbar relative size-full shrink-0 snap-x snap-mandatory scroll-smooth",
                 className
             )}
             role="region"
@@ -36,12 +37,15 @@ export function Carousel({
                 const isLastSlide = index === slides.length - 1;
 
                 return (
+                    // biome-ignore lint/a11y/useSemanticElements: Group role
                     <div
+                        aria-roledescription="slide"
                         className={cn(
                             "inline-block shrink-0 snap-start",
                             slideClassName
                         )}
                         key={index}
+                        role="group"
                         style={getSlideStyle(spaceBetween, isLastSlide)}
                     >
                         {child}
