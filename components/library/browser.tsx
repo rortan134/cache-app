@@ -141,7 +141,7 @@ import {
     ITEM_KIND_NOTE,
 } from "@/lib/common/constants";
 import { parseDate } from "@/lib/common/dates";
-import { getOwnerWindow } from "@/lib/common/dom";
+import { getOwnerDocument, getOwnerWindow } from "@/lib/common/dom";
 import { getSystemControlKey } from "@/lib/common/environment";
 import {
     revokeFileAttachmentObjectUrl,
@@ -239,7 +239,6 @@ const CSV_HEADERS = [
     "Saved At",
     "Posted At",
 ] as const;
-
 export interface CommandSuggestion {
     icon: ReactNode;
     label: string;
@@ -682,7 +681,7 @@ interface SectionDescriptionResponse {
     summary: string;
 }
 
-type SectionDescriptionSWRKey = [requestBody: string];
+type SectionDescriptionSWRKey = readonly [requestBody: string];
 
 async function fetchSectionDescription([
     requestBody,
@@ -716,6 +715,13 @@ function toSectionDescriptionResponse(
     }
 
     return { summary };
+}
+
+function getSectionDescriptionSWRKey(
+    payload: string,
+    itemCount: number
+): SectionDescriptionSWRKey | null {
+    return itemCount > 0 ? [payload] : null;
 }
 
 function normalizeSectionDescriptionText(
@@ -805,7 +811,7 @@ const SEARCH_HOTKEYS = [
     "Meta+p",
     "/",
 ] as const;
-const SEARCH_CANCEL_KEYS = ["esc", "tab"] as const;
+const SEARCH_CANCEL_KEYS = new Set(["esc", "tab"]);
 
 const COLLECTION_NAME_MAX_LENGTH = 64;
 
@@ -862,6 +868,18 @@ const FILTERABLE_LIBRARY_SOURCES = [
     LibraryItemSource.youtube_watch_later,
 ] as const satisfies LibraryItemSource[];
 
+const SOURCE_LABEL_BY_VALUE: Partial<Record<string, string>> = {
+    [LibraryItemSource.cache_note]: "Notes",
+    [LibraryItemSource.chrome_bookmarks]: "Chrome",
+    [LibraryItemSource.github_starred_repositories]: "GitHub",
+    [LibraryItemSource.google_photos]: "Google Photos",
+    [LibraryItemSource.instagram]: "Instagram",
+    [LibraryItemSource.pinterest]: "Pinterest",
+    [LibraryItemSource.tiktok]: "TikTok",
+    [LibraryItemSource.x_bookmarks]: "X",
+    [LibraryItemSource.youtube_watch_later]: "YouTube",
+};
+
 /** Stable placeholders for empty-library masonry sneak peek (opacity fades by order). */
 const EMPTY_LIBRARY_PEEK_PLACEHOLDERS = [
     { aspect: "aspect-[3/4]", id: "library-empty-peek-0" },
@@ -877,36 +895,53 @@ const EMPTY_LIBRARY_PEEK_PLACEHOLDERS = [
 ] as const;
 
 const PALETTE_SORT_OPTIONS = [
-    { label: "Added: Newest first", value: "added-newest" as const },
-    { label: "Added: Oldest first", value: "added-oldest" as const },
-    { label: "Created: Newest first", value: "created-newest" as const },
-    { label: "Created: Oldest first", value: "created-oldest" as const },
-    { label: "Count: Most items first", value: "count-desc" as const },
-    { label: "Source", value: "source" as const },
-    { label: "Domain", value: "domain" as const },
-];
+    { label: "Added: Newest first", value: "added-newest" },
+    { label: "Added: Oldest first", value: "added-oldest" },
+    { label: "Created: Newest first", value: "created-newest" },
+    { label: "Created: Oldest first", value: "created-oldest" },
+    { label: "Count: Most items first", value: "count-desc" },
+    { label: "Source", value: "source" },
+    { label: "Domain", value: "domain" },
+] satisfies readonly { label: string; value: SortMode }[];
 
 const PALETTE_GROUP_OPTIONS = [
-    { label: "No grouping", value: "none" as const },
-    { label: "Source", value: "source" as const },
-    { label: "Domain", value: "domain" as const },
-    { label: "Month Added", value: "month-added" as const },
-    { label: "Month Created", value: "month-created" as const },
-];
+    { label: "No grouping", value: "none" },
+    { label: "Source", value: "source" },
+    { label: "Domain", value: "domain" },
+    { label: "Month Added", value: "month-added" },
+    { label: "Month Created", value: "month-created" },
+] satisfies readonly { label: string; value: GroupByMode }[];
 
 const PALETTE_COLUMN_OPTIONS = [
-    { label: "Auto columns", value: "auto" as const },
-    { label: "2 columns", value: "2" as const },
-    { label: "3 columns", value: "3" as const },
-    { label: "4 columns", value: "4" as const },
-    { label: "5 columns", value: "5" as const },
-    { label: "6 columns", value: "6" as const },
-];
+    { label: "Auto columns", value: "auto" },
+    { label: "2 columns", value: "2" },
+    { label: "3 columns", value: "3" },
+    { label: "4 columns", value: "4" },
+    { label: "5 columns", value: "5" },
+    { label: "6 columns", value: "6" },
+] satisfies readonly { label: string; value: ColumnCountMode }[];
 
 const PALETTE_LAYOUT_MODE_OPTIONS = [
-    { label: "Masonry", value: "masonry" as const },
-    { label: "Board", value: "board" as const },
-];
+    { label: "Masonry", value: "masonry" },
+    { label: "Board", value: "board" },
+] satisfies readonly { label: string; value: LayoutMode }[];
+
+const PALETTE_SOURCE_OPTIONS = [
+    { label: "All sources", value: "all" },
+    ...FILTERABLE_LIBRARY_SOURCES.map((source) => ({
+        label: SOURCE_LABEL_BY_VALUE[source] ?? "Other",
+        value: source,
+    })),
+    {
+        label: SOURCE_LABEL_BY_VALUE[LibraryItemSource.other] ?? "Other",
+        value: LibraryItemSource.other,
+    },
+] satisfies readonly { label: string; value: SourceFilterValue | "all" }[];
+
+const PALETTE_SOURCE_FILTER_OPTIONS = PALETTE_SOURCE_OPTIONS.filter(
+    (option): option is { label: string; value: SourceFilterValue } =>
+        option.value !== "all"
+);
 
 export interface CommandPaletteItem {
     active?: boolean;
@@ -932,6 +967,11 @@ interface BrowserGroup {
     key: string;
     title: string | null;
 }
+
+interface BrowserStyle extends React.CSSProperties {
+    "--library-section-sticky-top": string;
+}
+
 interface LibraryCommandAttachment
     extends ReturnType<typeof createFileAttachment> {
     id: string;
@@ -1006,44 +1046,8 @@ function itemPrimaryText(item: LibraryItem): string {
 }
 
 function sourceLabel(source: LibraryItemSource): string {
-    if (source === LibraryItemSource.cache_note) {
-        return "Notes";
-    }
-    if (source === LibraryItemSource.chrome_bookmarks) {
-        return "Chrome";
-    }
-    if (source === LibraryItemSource.github_starred_repositories) {
-        return "GitHub";
-    }
-    if (source === LibraryItemSource.google_photos) {
-        return "Google Photos";
-    }
-    if (source === LibraryItemSource.instagram) {
-        return "Instagram";
-    }
-    if (source === LibraryItemSource.pinterest) {
-        return "Pinterest";
-    }
-    if (source === LibraryItemSource.tiktok) {
-        return "TikTok";
-    }
-    if (source === LibraryItemSource.x_bookmarks) {
-        return "X";
-    }
-    if (source === LibraryItemSource.youtube_watch_later) {
-        return "YouTube";
-    }
-    return "Other";
+    return SOURCE_LABEL_BY_VALUE[source] ?? "Other";
 }
-
-const PALETTE_SOURCE_OPTIONS = [
-    { label: "All sources", value: "all" as const },
-    ...FILTERABLE_LIBRARY_SOURCES.map((source) => ({
-        label: sourceLabel(source),
-        value: source,
-    })),
-    { label: sourceLabel(LibraryItemSource.other), value: "other" as const },
-];
 
 function buildResultsCollectionName(searchTerms: string[]): string {
     const normalizedTerms = searchTerms
@@ -1059,7 +1063,7 @@ function buildResultsCollectionName(searchTerms: string[]): string {
 
 function formatGroupHeading(mode: GroupByMode, key: string): string {
     if (mode === "source") {
-        return sourceLabel(key as LibraryItemSource);
+        return SOURCE_LABEL_BY_VALUE[key] ?? "Other";
     }
     if (mode === "month-added" || mode === "month-created") {
         const [ys, ms] = key.split("-");
@@ -1468,10 +1472,7 @@ function isPrintablePaletteKey(event: KeyboardEvent): boolean {
 function isSearchCancelKey(
     event: React.KeyboardEvent<HTMLInputElement>
 ): boolean {
-    const key = event.key.toLowerCase();
-    return SEARCH_CANCEL_KEYS.includes(
-        key as (typeof SEARCH_CANCEL_KEYS)[number]
-    );
+    return SEARCH_CANCEL_KEYS.has(event.key.toLowerCase());
 }
 
 function sortModeLabel(mode: SortMode): string {
@@ -1885,6 +1886,12 @@ function BrowserHeader() {
     const headerGradient = enableSectionCollapse
         ? getColorGradientFromName(group.accentKey)
         : undefined;
+    const headerStyle: React.CSSProperties | undefined = enableSectionCollapse
+        ? {
+              background: headerGradient,
+              top: "var(--library-section-sticky-top)",
+          }
+        : undefined;
     const hasItems = group.items.length > 0;
     const canCreateCollectionFromResults =
         group.isMainResults && Boolean(onCreateCollectionFromResults);
@@ -1901,14 +1908,7 @@ function BrowserHeader() {
                         enableSectionCollapse &&
                             "sticky z-10 rounded-xl bg-muted/92 backdrop-blur-sm supports-backdrop-filter:bg-muted/50"
                     )}
-                    style={
-                        enableSectionCollapse
-                            ? ({
-                                  background: headerGradient,
-                                  top: "var(--library-section-sticky-top)",
-                              } as React.CSSProperties)
-                            : undefined
-                    }
+                    style={headerStyle}
                 >
                     <div className="flex items-center">
                         {enableSectionCollapse ? (
@@ -2080,7 +2080,7 @@ function BrowserGroupOverviewContent() {
     });
 
     const { data, isLoading } = useSWR<SectionDescriptionResponse>(
-        items.length > 0 ? ([payload] as const) : null,
+        getSectionDescriptionSWRKey(payload, items.length),
         fetchSectionDescription,
         {
             dedupingInterval: 60_000,
@@ -2619,20 +2619,13 @@ function buildLibraryPaletteGroups({
                     onSelect: applyAndStay(() => setSourceFilters([])),
                     value: "filter source all",
                 },
-                ...PALETTE_SOURCE_OPTIONS.filter(
-                    (option) => option.value !== "all"
-                ).map((option) => ({
-                    active: sourceFilters.includes(
-                        option.value as SourceFilterValue
-                    ),
+                ...PALETTE_SOURCE_FILTER_OPTIONS.map((option) => ({
+                    active: sourceFilters.includes(option.value),
                     description: "Toggle this source in the filter stack",
                     label: `Source: ${option.label}`,
                     onSelect: applyAndStay(() =>
                         setSourceFilters((current) =>
-                            toggleValue(
-                                current,
-                                option.value as SourceFilterValue
-                            )
+                            toggleValue(current, option.value)
                         )
                     ),
                     value: `filter source ${option.value}`,
@@ -2722,9 +2715,7 @@ function buildLibraryPaletteGroups({
                     active: groupBy === option.value,
                     description: "Organize the grid into sections",
                     label: option.label,
-                    onSelect: applyAndReturn(() =>
-                        setGroupBy(option.value as GroupByMode)
-                    ),
+                    onSelect: applyAndReturn(() => setGroupBy(option.value)),
                     value: `group ${option.value}`,
                 })),
                 label: "Grouping",
@@ -2740,9 +2731,7 @@ function buildLibraryPaletteGroups({
                     active: sortMode === option.value,
                     description: "Change the ordering within the current view",
                     label: option.label,
-                    onSelect: applyAndReturn(() =>
-                        setSortMode(option.value as SortMode)
-                    ),
+                    onSelect: applyAndReturn(() => setSortMode(option.value)),
                     value: `sort ${option.value}`,
                 })),
                 label: "Sorting",
@@ -2763,9 +2752,7 @@ function buildLibraryPaletteGroups({
                                   : "Force a specific number of columns",
                           label: option.label,
                           onSelect: applyAndReturn(() =>
-                              setColumnCountMode(
-                                  option.value as ColumnCountMode
-                              )
+                              setColumnCountMode(option.value)
                           ),
                           value: `columns ${option.value}`,
                       })),
@@ -2781,9 +2768,7 @@ function buildLibraryPaletteGroups({
                         ? "Group entries by collections in columns"
                         : "Display saved items in a visual grid",
                 label: option.label,
-                onSelect: applyAndReturn(() =>
-                    setLayoutMode(option.value as LayoutMode)
-                ),
+                onSelect: applyAndReturn(() => setLayoutMode(option.value)),
                 value: `layout ${option.value}`,
             })),
             label: "Layout",
@@ -2866,9 +2851,9 @@ function buildLibraryBrowserSections(
     if (groupBy === "none") {
         return [
             {
-                items: sortedItems as LibraryItemWithCollections[],
+                items: sortedItems,
                 key: "all",
-                title: null as string | null,
+                title: null,
             },
         ];
     }
@@ -3801,13 +3786,14 @@ function Card({ item }: LibraryGridCardProps) {
             const result = await downloadMedia(item.url);
             if (result.status === "SUCCESS") {
                 // Use a hidden anchor to trigger download if possible, or just open in new tab
-                const link = document.createElement("a");
+                const ownerDocument = getOwnerDocument();
+                const link = ownerDocument.createElement("a");
                 link.href = result.downloadUrl;
                 link.download = ""; // Cobalt usually provides a good filename or direct link
                 link.target = "_blank";
-                document.body.appendChild(link);
+                ownerDocument.body.appendChild(link);
                 link.click();
-                document.body.removeChild(link);
+                ownerDocument.body.removeChild(link);
             }
         } catch (error) {
             log.error("Failed to prepare media download", error, {
@@ -5155,16 +5141,15 @@ export function Browser({
     );
 
     const containerRef = React.useRef<HTMLDivElement>(null);
+    const browserStyle: BrowserStyle = {
+        "--library-section-sticky-top": "8px",
+    };
 
     return (
         <div
             className="relative z-0 flex w-full min-w-0 max-w-[1024px] flex-1 flex-col gap-4 p-8 2xl:mx-auto"
             ref={containerRef}
-            style={
-                {
-                    "--library-section-sticky-top": "8px",
-                } as React.CSSProperties
-            }
+            style={browserStyle}
         >
             <Composer>
                 <ComposerInput

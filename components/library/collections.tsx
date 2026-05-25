@@ -163,7 +163,6 @@ import { storage } from "stan-js/storage";
 const log = createLogger("library:collections");
 
 const CSV_CONTENT_TYPE = "text/csv";
-
 const CSV_HEADERS = [
     "Collection",
     "Caption",
@@ -551,18 +550,16 @@ function updateItemTags(
     }));
 }
 
-function replaceShareState<T extends LibraryCollectionTag>(
+function replaceCollectionShareState<T extends LibraryCollectionTag>(
     collections: T[],
     next: CollectionShareState
 ): T[] {
-    return sortCollections(
-        updateById(collections, next.id, (collection) => ({
-            ...collection,
-            sharedAt: next.sharedAt,
-            shareId: next.shareId,
-            updatedAt: next.updatedAt,
-        }))
-    );
+    return updateById(collections, next.id, (collection) => ({
+        ...collection,
+        sharedAt: next.sharedAt,
+        shareId: next.shareId,
+        updatedAt: next.updatedAt,
+    }));
 }
 
 function replacePriority<T extends LibraryCollectionTag>(
@@ -1026,8 +1023,12 @@ function useCollectionsController() {
     };
 
     const syncShare = (next: CollectionShareState) => {
-        setCollections((current) => replaceShareState(current, next));
-        syncItemTags((tags) => replaceShareState(tags, next));
+        setCollections((current) =>
+            sortCollections(replaceCollectionShareState(current, next))
+        );
+        syncItemTags((tags) =>
+            sortCollections(replaceCollectionShareState(tags, next))
+        );
     };
 
     const syncPriority = (id: string, priority: CollectionPriority) => {
@@ -2124,6 +2125,7 @@ function FavoriteItemCarouselSlide({
 
     const handleRemoveFavorite = useStableCallback(
         (event: React.MouseEvent<HTMLButtonElement>) => {
+            event.preventDefault();
             event.stopPropagation();
             onToggleItemFavorite(item).catch((error) => {
                 log.error("Failed to remove item from favorites", {
@@ -2135,12 +2137,27 @@ function FavoriteItemCarouselSlide({
     );
 
     return (
-        <button
-            aria-label={previewLabel}
-            className="group relative inline-block aspect-3/4 h-14 w-auto overflow-hidden rounded-md bg-muted ring-1 ring-border/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
-            onClick={handleClick}
-            type="button"
-        >
+        <div className="group relative inline-block aspect-3/4 h-14 w-auto overflow-hidden rounded-md bg-muted ring-1 ring-border/50 focus-within:ring-2 focus-within:ring-ring/60">
+            <button
+                aria-label={previewLabel}
+                className="size-full focus-visible:outline-none"
+                onClick={handleClick}
+                type="button"
+            >
+                {isNote ? (
+                    <div className="flex size-full flex-col justify-between overflow-hidden bg-linear-to-br from-amber-50 via-background to-stone-100 p-1.5">
+                        <p className="line-clamp-4 whitespace-pre-wrap text-left text-[9px] text-foreground leading-snug opacity-90">
+                            {noteExcerpt || "Open note"}
+                        </p>
+                    </div>
+                ) : (
+                    <CollectionsListItemPreviewImage
+                        alt={previewLabel}
+                        className="size-full object-cover"
+                        src={previewImageUrl ?? undefined}
+                    />
+                )}
+            </button>
             <button
                 aria-label="Remove from favorites"
                 className="absolute top-0 left-0 z-10 flex size-4 items-center justify-center rounded-br-md bg-black/40 opacity-0 transition-opacity hover:bg-black/60 group-hover:opacity-100"
@@ -2149,20 +2166,7 @@ function FavoriteItemCarouselSlide({
             >
                 <Trash2Icon className="size-2.5 text-white" />
             </button>
-            {isNote ? (
-                <div className="flex size-full flex-col justify-between overflow-hidden bg-linear-to-br from-amber-50 via-background to-stone-100 p-1.5">
-                    <p className="line-clamp-4 whitespace-pre-wrap text-left text-[9px] text-foreground leading-snug opacity-90">
-                        {noteExcerpt || "Open note"}
-                    </p>
-                </div>
-            ) : (
-                <CollectionsListItemPreviewImage
-                    alt={previewLabel}
-                    className="size-full object-cover"
-                    src={previewImageUrl ?? undefined}
-                />
-            )}
-        </button>
+        </div>
     );
 }
 
