@@ -619,12 +619,12 @@ function ContentPlugin({
     return (
         <>
             <FormattingToolbarPlugin />
-            <div className="relative flex min-h-96 flex-1">
+            <div className="relative min-h-96 flex-1">
                 <RichTextPlugin
                     contentEditable={
                         <ContentEditable
                             className={cn(
-                                "prose prose-stone max-w-none flex-1 overflow-y-auto text-[15px] leading-7 outline-none",
+                                "prose prose-stone h-full min-h-96 max-w-none overflow-y-auto text-[15px] leading-7 outline-none",
                                 "prose-p:my-0 prose-p:min-h-[1.75rem]",
                                 "prose-mark:rounded-sm prose-mark:bg-amber-200/90 prose-mark:px-0.5",
                                 "prose-strong:font-semibold prose-em:italic prose-u:underline prose-s:line-through"
