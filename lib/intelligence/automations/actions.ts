@@ -235,11 +235,10 @@ export async function resumeAutomation(
 export async function pauseAutomation(input: {
     automationId: string;
 }): Promise<AutomationActionResult> {
-    const result = await updateStatusAction(input, service.pauseAutomation, {
+    return await updateStatusAction(input, service.pauseAutomation, {
         fallbackMessage: "We couldn't pause this automation.",
         unauthorizedMessage: "Sign in again to pause automations.",
     });
-    return result;
 }
 
 export async function deleteAutomation(input: { automationId: string }) {

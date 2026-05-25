@@ -5,8 +5,6 @@ import { prisma } from "@/prisma";
 import { isActiveSubscriptionStatus } from "./subscription-status";
 
 export async function getUserActiveSubscriptionStatus(userId: string) {
-    "use cache: remote";
-
     const subscription = await prisma.subscription.findFirst({
         orderBy: {
             periodEnd: "desc",
@@ -26,16 +24,12 @@ export async function getUserActiveSubscriptionStatus(userId: string) {
 export async function userHasActiveSubscription(
     userId: string
 ): Promise<boolean> {
-    "use cache: remote";
-
     const subscription = await getUserActiveSubscriptionStatus(userId);
 
     return isActiveSubscriptionStatus(subscription?.status);
 }
 
 export async function getUserPlanType(userId: string): Promise<PriceType> {
-    "use cache: remote";
-
     const subscription = await getUserActiveSubscriptionStatus(userId);
 
     if (!(subscription && isActiveSubscriptionStatus(subscription.status))) {

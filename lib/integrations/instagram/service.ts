@@ -1,25 +1,15 @@
 import "server-only";
 
 import {
-    upsertLibraryItemsFromIngest,
-    type IngestItemInput,
+    extensionSavedItemBaseSchema,
+    importExtensionSavedItems,
 } from "@/lib/integrations/extension-ingest";
 import { LibraryItemSource } from "@/prisma/client/enums";
 import * as z from "zod";
 
-export const instagramSavedItemSchema = z
-    .object({
-        browserProfileId: z.string().optional(),
-        caption: z.string().optional(),
-        kind: z.enum(["bookmark", "folder"]).optional(),
-        parentExternalId: z.string().optional(),
-        postedAt: z.string().optional(),
-        scrapedAt: z.string().optional(),
+export const instagramSavedItemSchema = extensionSavedItemBaseSchema
+    .extend({
         shortcode: z.string().optional(),
-        sourceDeviceId: z.string().optional(),
-        sourceDeviceName: z.string().optional(),
-        sourceMetadata: z.record(z.string(), z.json()).nullable().optional(),
-        url: z.string(),
     })
     .refine((row) => Boolean(row.shortcode), {
         message: "Each item needs a shortcode",
@@ -30,26 +20,14 @@ export const instagramSavedBodySchema = z.object({
     syncedAt: z.string().optional(),
 });
 
-export async function importInstagramSaved(args: {
+export function importInstagramSaved(args: {
     items: z.infer<typeof instagramSavedItemSchema>[];
     userId: string;
 }) {
-    const { items, userId } = args;
-
-    const ingestItems: IngestItemInput[] = items.map((item) => ({
-        ...item,
-        externalId: item.shortcode,
-    }));
-
-    const result = await upsertLibraryItemsFromIngest(
-        userId,
-        LibraryItemSource.instagram,
-        ingestItems
-    );
-
-    return {
-        received: items.length,
-        smartCollectionItemIds: result.smartCollectionItemIds,
-        upserted: result.upsertedCount,
-    };
+    return importExtensionSavedItems({
+        externalId: (item) => item.shortcode,
+        items: args.items,
+        source: LibraryItemSource.instagram,
+        userId: args.userId,
+    });
 }

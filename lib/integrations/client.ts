@@ -32,6 +32,14 @@ function extractRedirectUrl(payload: unknown): string | null {
     return redirectUrl;
 }
 
+async function readJsonOrNull(response: Response): Promise<unknown> {
+    try {
+        return await response.json();
+    } catch {
+        return null;
+    }
+}
+
 /**
  * Executes the behavior for opening an integration (either the app itself or its install page).
  */
@@ -109,7 +117,7 @@ export async function executeRouteSyncBehavior(
     const response = await fetch(behavior.path, {
         method: behavior.method,
     });
-    const payload = (await response.json().catch(() => null)) as unknown;
+    const payload = await readJsonOrNull(response);
 
     const payloadRecord = asRecord(payload);
     if (
@@ -147,7 +155,7 @@ export async function executeCopyPromptBehavior(
         });
     }
 
-    const data = (await response.json().catch(() => null)) as unknown;
+    const data = await readJsonOrNull(response);
     const record = asRecord(data);
     const prompt =
         typeof record?.prompt === "string" ? record.prompt : undefined;

@@ -143,7 +143,7 @@ function buildMonthlyCandidate(
     schedule: AutomationScheduleInput
 ): Dayjs {
     const monthStart = dayjs.tz(
-        `${localDate.year()}-${String(localDate.month() + 1).padStart(2, "0")}-01T00:00:00`,
+        `${formatYearMonth(localDate)}-01T00:00:00`,
         schedule.timezone
     );
     const day = Math.min(
@@ -164,9 +164,29 @@ function buildLocalWallClockCandidate(
     timezone: string
 ): Dayjs {
     return dayjs.tz(
-        `${localDate.year()}-${String(localDate.month() + 1).padStart(2, "0")}-${String(localDate.date()).padStart(2, "0")}T${String(Math.floor(timeOfDayMinutes / 60)).padStart(2, "0")}:${String(timeOfDayMinutes % 60).padStart(2, "0")}:00`,
+        `${formatLocalDate(localDate)}T${formatLocalTime(timeOfDayMinutes)}:00`,
         timezone
     );
+}
+
+function formatLocalDate(localDate: Dayjs): string {
+    return `${formatYearMonth(localDate)}-${formatTwoDigitNumber(
+        localDate.date()
+    )}`;
+}
+
+function formatYearMonth(localDate: Dayjs): string {
+    return `${localDate.year()}-${formatTwoDigitNumber(localDate.month() + 1)}`;
+}
+
+function formatLocalTime(timeOfDayMinutes: number): string {
+    return `${formatTwoDigitNumber(
+        Math.floor(timeOfDayMinutes / 60)
+    )}:${formatTwoDigitNumber(timeOfDayMinutes % 60)}`;
+}
+
+function formatTwoDigitNumber(value: number): string {
+    return String(value).padStart(2, "0");
 }
 
 function isIntegerBetween(

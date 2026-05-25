@@ -4,7 +4,6 @@ import { parsePublicHttpUrl } from "@/lib/common/server-net";
 import { fetchWithTimeout } from "@/lib/common/timeout";
 import { prisma } from "@/prisma";
 import { AutomationPayloadScope } from "@/prisma/client/enums";
-import * as z from "zod";
 import {
     AUTOMATION_ITEM_PAGE_LIMIT_DEFAULT,
     AUTOMATION_ITEM_PAGE_LIMIT_MAX,
@@ -12,25 +11,13 @@ import {
     AUTOMATION_WEB_FETCH_BODY_LENGTH_MAX,
     AUTOMATION_WEB_FETCH_TIMEOUT_MS,
 } from "./constants";
+export {
+    AutomationPayloadItemsInputSchema,
+    AutomationWebFetchInputSchema,
+    AutomationWebSearchInputSchema,
+} from "./tool-inputs";
 
 const AUTOMATION_WEB_FETCH_REDIRECT_LIMIT = 5;
-
-export const AutomationPayloadItemsInputSchema = z.object({
-    cursor: z.string().trim().min(1).optional(),
-    limit: z.int().min(1).max(AUTOMATION_ITEM_PAGE_LIMIT_MAX).optional(),
-    search: z.string().trim().max(200).optional(),
-});
-
-export const AutomationWebFetchInputSchema = z.object({
-    url: z.url({ protocol: /^https?$/ }),
-});
-
-export const AutomationWebSearchInputSchema = z.object({
-    query: z.string().trim().min(1).max(500),
-    timeRange: z
-        .enum(["year", "month", "week", "day", "y", "m", "w", "d"])
-        .optional(),
-});
 
 interface AutomationRunPayloadScope {
     collectionIdSnapshot: string | null;

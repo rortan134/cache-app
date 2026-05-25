@@ -1,29 +1,22 @@
+import { createLogger } from "@/lib/common/logs/console/logger";
 import { DurableAgent } from "@workflow/ai/agent";
 import type { UIMessageChunk } from "ai";
 import { stepCountIs, tool, type LanguageModelUsage } from "ai";
 import { getWritable } from "workflow";
-import * as z from "zod";
 import {
     AUTOMATION_AGENT_MODEL_DEFAULT,
     AUTOMATION_INSPECTED_ITEM_COUNT_MAX,
-    AUTOMATION_ITEM_PAGE_LIMIT_MAX,
 } from "./constants";
+import {
+    AutomationPayloadItemsInputSchema,
+    AutomationWebFetchInputSchema,
+    AutomationWebSearchInputSchema,
+    EmptyAutomationToolInputSchema,
+    type AutomationWebSearchTimeRange,
+} from "./tool-inputs";
 
 const AUTOMATION_OUTPUT_TOKEN_LIMIT = 1200;
-const AutomationPayloadItemsInputSchema = z.object({
-    cursor: z.string().trim().min(1).optional(),
-    limit: z.int().min(1).max(AUTOMATION_ITEM_PAGE_LIMIT_MAX).optional(),
-    search: z.string().trim().max(200).optional(),
-});
-const AutomationWebFetchInputSchema = z.object({
-    url: z.url({ protocol: /^https?$/ }),
-});
-const AutomationWebSearchInputSchema = z.object({
-    query: z.string().trim().min(1).max(500),
-    timeRange: z
-        .enum(["year", "month", "week", "day", "y", "m", "w", "d"])
-        .optional(),
-});
+const log = createLogger("automations:workflow");
 
 interface PreparedAutomationRun {
     modelId: string | null;
@@ -114,7 +107,7 @@ export async function executeReadOnlyAutomationRun(
                     getAutomationPayloadSummaryForWorkflow({
                         runId: prepared.runId,
                     }),
-                inputSchema: z.object({}),
+                inputSchema: EmptyAutomationToolInputSchema,
             }),
             listAutomationPayloadItems: tool({
                 description:
@@ -212,7 +205,7 @@ export async function executeReadOnlyAutomationRun(
             return;
         }
 
-        console.error("Automation agent run failed", error);
+        log.error("Automation agent run failed", error);
         await finishAutomationRunForWorkflow({
             errorCode: "agent_failed",
             errorMessage:
@@ -272,7 +265,7 @@ async function automationWebFetchForWorkflow(args: { url: string }) {
 
 async function automationWebSearchForWorkflow(args: {
     query: string;
-    timeRange?: "year" | "month" | "week" | "day" | "y" | "m" | "w" | "d";
+    timeRange?: AutomationWebSearchTimeRange;
 }) {
     "use step";
     const { automationWebSearch } = await import("./web-search");

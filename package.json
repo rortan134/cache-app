@@ -106,6 +106,7 @@
         "db-migrate": "prisma migrate dev",
         "lint": "ultracite check",
         "lint:fix": "ultracite fix",
+        "test": "bun test",
         "analyze": "next experimental-analyze",
         "type-check": "tsc --noEmit --emitDeclarationOnly false",
         "validate": "knip --cache --strict",

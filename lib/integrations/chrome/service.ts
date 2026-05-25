@@ -234,33 +234,11 @@ function buildChromeBookmarkUpdateData(
     };
 }
 
-function findChromeByAlias(
-    delegate: ChromeLibraryItemDelegate,
-    userId: string,
-    browserProfileId: string,
-    externalId: string
-) {
-    return delegate.findFirst({
-        where: {
-            browserProfileId,
-            source: LibraryItemSource.chrome_bookmarks,
-            sourceAliasIds: {
-                has: externalId,
-            },
-            userId,
-        },
-    });
-}
-
 function promoteAliasToPrimary(
     delegate: ChromeLibraryItemDelegate,
-    row: Awaited<ReturnType<typeof findChromeByAlias>>,
+    row: ChromeLibraryRow,
     externalId: string
 ) {
-    if (!row) {
-        return null;
-    }
-
     const aliasIds = new Set(row.sourceAliasIds);
     aliasIds.delete(externalId);
     aliasIds.add(row.externalId);
@@ -416,13 +394,11 @@ async function handleChromeBookmarkWriteEvent(args: {
             aliasOwner,
             record.externalId
         );
-        if (promoted) {
-            const updated = await args.delegate.update({
-                data: buildChromeBookmarkUpdateData(record),
-                where: { id: promoted.id },
-            });
-            replaceChromeLookupRow(args.lookup, aliasOwner, updated);
-        }
+        const updated = await args.delegate.update({
+            data: buildChromeBookmarkUpdateData(record),
+            where: { id: promoted.id },
+        });
+        replaceChromeLookupRow(args.lookup, aliasOwner, updated);
         return { deduped: false };
     }
 
@@ -593,64 +569,61 @@ async function processChromeBookmarkEventBatch(args: {
 // Exports
 // ---------------------------------------------------------------------------
 
-export function applyChromeBookmarkSyncEvents(
+export async function applyChromeBookmarkSyncEvents(
     userId: string,
     body: ChromeBookmarkSyncBody
 ): Promise<ChromeSyncResult> {
     const browserProfileId =
         body.browserProfileId || DEFAULT_BROWSER_PROFILE_ID;
+    const accumulator: ChromeSyncAccumulator = {
+        deduped: 0,
+        deleted: 0,
+        processed: body.events.length,
+        pruned: 0,
+        smartCollectionItemIds: [],
+        upserted: 0,
+    };
 
-    return (async () => {
-        const accumulator: ChromeSyncAccumulator = {
-            deduped: 0,
-            deleted: 0,
-            processed: body.events.length,
-            pruned: 0,
-            smartCollectionItemIds: [],
-            upserted: 0,
-        };
+    const snapshotEvents = body.events.filter(
+        (event) => event.type === "import_complete"
+    );
+    const mutationEvents = body.events.filter(
+        (event) => event.type !== "import_complete"
+    );
 
-        const snapshotEvents = body.events.filter(
-            (event) => event.type === "import_complete"
+    for (const batch of chunk(
+        mutationEvents,
+        CHROME_BOOKMARK_SYNC_BATCH_SIZE
+    )) {
+        const result = await processChromeBookmarkEventBatch({
+            browserProfileId,
+            device: body.device,
+            events: batch,
+            userId,
+        });
+        accumulator.deduped += result.deduped;
+        accumulator.deleted += result.deleted;
+        accumulator.smartCollectionItemIds.push(
+            ...result.smartCollectionItemIds
         );
-        const mutationEvents = body.events.filter(
-            (event) => event.type !== "import_complete"
+        accumulator.upserted += result.upserted;
+    }
+
+    for (const event of snapshotEvents) {
+        accumulator.pruned += await pruneChromeSnapshot(
+            prisma.libraryItem,
+            userId,
+            browserProfileId,
+            event.snapshotExternalIds ?? []
         );
+    }
 
-        for (const batch of chunk(
-            mutationEvents,
-            CHROME_BOOKMARK_SYNC_BATCH_SIZE
-        )) {
-            const result = await processChromeBookmarkEventBatch({
-                browserProfileId,
-                device: body.device,
-                events: batch,
-                userId,
-            });
-            accumulator.deduped += result.deduped;
-            accumulator.deleted += result.deleted;
-            accumulator.smartCollectionItemIds.push(
-                ...result.smartCollectionItemIds
-            );
-            accumulator.upserted += result.upserted;
-        }
-
-        for (const event of snapshotEvents) {
-            accumulator.pruned += await pruneChromeSnapshot(
-                prisma.libraryItem,
-                userId,
-                browserProfileId,
-                event.snapshotExternalIds ?? []
-            );
-        }
-
-        return {
-            ...accumulator,
-            smartCollectionItemIds: [
-                ...new Set(accumulator.smartCollectionItemIds),
-            ],
-        };
-    })();
+    return {
+        ...accumulator,
+        smartCollectionItemIds: [
+            ...new Set(accumulator.smartCollectionItemIds),
+        ],
+    };
 }
 
 export async function purgeChromeBookmarksForUser(
@@ -671,11 +644,11 @@ export async function purgeChromeBookmarksForUser(
     return result.count;
 }
 
-export async function getChromeBookmarkItemForUserByExternalId(
+export function getChromeBookmarkItemForUserByExternalId(
     userId: string,
     externalId: string
 ): Promise<LibraryItemWithCollections | null> {
-    return (await prisma.libraryItem.findFirst({
+    return prisma.libraryItem.findFirst({
         include: LIBRARY_ITEM_COLLECTIONS_INCLUDE,
         where: {
             browserProfileId: DEFAULT_BROWSER_PROFILE_ID,
@@ -692,5 +665,5 @@ export async function getChromeBookmarkItemForUserByExternalId(
             source: LibraryItemSource.chrome_bookmarks,
             userId,
         },
-    })) as LibraryItemWithCollections | null;
+    });
 }

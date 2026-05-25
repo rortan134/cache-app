@@ -464,7 +464,7 @@ const INTEGRATION_BY_ID = new Map<IntegrationId, SupportedIntegration>(
     INTEGRATIONS.map((item) => [item.id, item])
 );
 
-const INTEGRATION_ID_SET = new Set<IntegrationId>(
+const INTEGRATION_ID_SET: ReadonlySet<string> = new Set(
     INTEGRATIONS.map((item) => item.id)
 );
 
@@ -557,10 +557,7 @@ function integrationMatchesSignal(
 // ---------------------------------------------------------------------------
 
 export function isIntegrationId(value: unknown): value is IntegrationId {
-    return (
-        typeof value === "string" &&
-        INTEGRATION_ID_SET.has(value as IntegrationId)
-    );
+    return typeof value === "string" && INTEGRATION_ID_SET.has(value);
 }
 
 export function assertIntegrationId(value: unknown): IntegrationId {

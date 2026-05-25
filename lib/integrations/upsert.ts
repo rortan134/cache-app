@@ -14,6 +14,7 @@ import { prisma } from "@/prisma";
 import type { LibraryItemSource } from "@/prisma/client/enums";
 
 const EXISTING_IMPORT_LOOKUP_BATCH_SIZE = 250;
+const IMPORT_UPSERT_BATCH_SIZE = 50;
 
 type ExistingImportRow = Pick<
     LibraryItemImportRow,
@@ -114,28 +115,36 @@ export async function upsertLibraryItemImports(
         args.shouldAddToSmartCollections ??
         ((row: LibraryItemImportRow) => row.kind !== ITEM_KIND_FOLDER);
 
-    for (const row of rows) {
-        const savedRow = await prisma.libraryItem.upsert({
-            create: buildLibraryItemCreateData(row, args.userId),
-            select: {
-                id: true,
-            },
-            update: buildLibraryItemUpdateData(row),
-            where: {
-                userId_source_browserProfileId_externalId: {
-                    browserProfileId: row.browserProfileId,
-                    externalId: row.externalId,
-                    source: args.source,
-                    userId: args.userId,
-                },
-            },
-        });
+    for (const batch of chunk(rows, IMPORT_UPSERT_BATCH_SIZE)) {
+        const savedRows = await Promise.all(
+            batch.map((row) =>
+                prisma.libraryItem.upsert({
+                    create: buildLibraryItemCreateData(row, args.userId),
+                    select: {
+                        id: true,
+                    },
+                    update: buildLibraryItemUpdateData(row),
+                    where: {
+                        userId_source_browserProfileId_externalId: {
+                            browserProfileId: row.browserProfileId,
+                            externalId: row.externalId,
+                            source: args.source,
+                            userId: args.userId,
+                        },
+                    },
+                })
+            )
+        );
 
-        if (
-            shouldAddToSmartCollections(row) &&
-            !existingKeys.has(libraryItemIdentityKey(row))
-        ) {
-            smartCollectionItemIds.add(savedRow.id);
+        for (const [index, savedRow] of savedRows.entries()) {
+            const row = batch[index];
+            if (
+                row &&
+                shouldAddToSmartCollections(row) &&
+                !existingKeys.has(libraryItemIdentityKey(row))
+            ) {
+                smartCollectionItemIds.add(savedRow.id);
+            }
         }
     }
 

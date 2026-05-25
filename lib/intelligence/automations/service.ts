@@ -2,7 +2,6 @@ import "server-only";
 
 import { serverEnv } from "@/env/server";
 import { userHasActiveSubscription } from "@/lib/billing/service";
-import { createLogger } from "@/lib/common/logs/console/logger";
 import { prisma } from "@/prisma";
 import type { Prisma } from "@/prisma/client/client";
 import {
@@ -26,8 +25,6 @@ import {
     validateAutomationSchedule,
     type AutomationScheduleInput,
 } from "./schedule";
-
-const log = createLogger("automations:service");
 
 type AutomationTransaction = Prisma.TransactionClient;
 type AutomationRunClaimResult =
@@ -82,7 +79,7 @@ const AUTOMATION_SELECT = {
     weekDay: true,
 } satisfies Prisma.AutomationSelect;
 
-export interface AutomationScheduleData extends AutomationScheduleInput {}
+export type AutomationScheduleData = AutomationScheduleInput;
 
 export interface AutomationInput {
     collectionId?: string | null;
@@ -337,7 +334,7 @@ export async function pauseAutomation(args: {
     automationId: string;
     userId: string;
 }): Promise<AutomationListItem> {
-    const automation = await prisma.$transaction(async (tx) => {
+    return await prisma.$transaction(async (tx) => {
         const current = await requireAutomationOwned(tx, {
             automationId: args.automationId,
             operation: "pauseAutomation",
@@ -364,7 +361,6 @@ export async function pauseAutomation(args: {
 
         return toAutomationListItem(automation);
     });
-    return automation;
 }
 
 export async function deleteAutomation(args: {
@@ -435,7 +431,6 @@ export async function claimDueAutomationRuns(
             scheduledForUtc: "asc",
         },
         select: {
-            automationId: true,
             id: true,
         },
         take: limit,
@@ -787,10 +782,10 @@ async function createPendingRun(
             payloadScopeSnapshot: automation.payloadScope,
             promptSnapshot: automation.prompt,
             scheduledForUtc,
-            scheduleSnapshot: buildScheduleSnapshot({
+            scheduleSnapshot: buildScheduleSnapshotJson({
                 nextRunAtUtc: scheduledForUtc,
                 schedule,
-            }) as unknown as Prisma.InputJsonValue,
+            }),
             status: AutomationRunStatus.pending,
             templateKeySnapshot: automation.templateKey,
             userId: automation.userId,
@@ -836,6 +831,22 @@ function getAutomationSchedule(
         timeOfDayMinutes: automation.timeOfDayMinutes,
         timezone: automation.timezone,
         weekDay: automation.weekDay,
+    };
+}
+
+function buildScheduleSnapshotJson(args: {
+    nextRunAtUtc: Date;
+    schedule: AutomationScheduleData;
+}): Prisma.InputJsonObject {
+    const snapshot = buildScheduleSnapshot(args);
+
+    return {
+        cadence: snapshot.cadence,
+        monthDay: snapshot.monthDay ?? null,
+        nextRunAtUtc: snapshot.nextRunAtUtc,
+        timeOfDayMinutes: snapshot.timeOfDayMinutes,
+        timezone: snapshot.timezone,
+        weekDay: snapshot.weekDay ?? null,
     };
 }
 
@@ -965,10 +976,10 @@ async function materializeNextRunAfterClaim(
                 payloadScopeSnapshot: updated.payloadScope,
                 promptSnapshot: updated.prompt,
                 scheduledForUtc: nextRunAtUtc,
-                scheduleSnapshot: buildScheduleSnapshot({
+                scheduleSnapshot: buildScheduleSnapshotJson({
                     nextRunAtUtc,
                     schedule: getAutomationSchedule(updated),
-                }) as unknown as Prisma.InputJsonValue,
+                }),
                 status: AutomationRunStatus.pending,
                 templateKeySnapshot: updated.templateKey,
                 userId: updated.userId,
@@ -1069,8 +1080,4 @@ function toAutomationListItem(automation: {
         updatedAt: automation.updatedAt,
         weekDay: automation.weekDay,
     };
-}
-
-export function logAutomationServiceError(message: string, error: unknown) {
-    log.error(message, error);
 }

@@ -9,7 +9,7 @@ import type {
 import { prisma } from "@/prisma";
 import type { Prisma } from "@/prisma/client/client";
 import type { LibraryItemSource } from "@/prisma/client/enums";
-import type * as z from "zod";
+import * as z from "zod";
 
 const INGEST_CORS_HEADERS = {
     "Access-Control-Allow-Headers": "authorization, content-type",
@@ -30,6 +30,19 @@ const TRUSTED_CACHE_WEB_ORIGIN_PATTERNS = [
 ];
 
 const CHROME_EXTENSION_ORIGIN_PATTERN = /^chrome-extension:\/\/[a-p]{32}$/;
+
+export const extensionSavedItemBaseSchema = z.object({
+    browserProfileId: z.string().optional(),
+    caption: z.string().optional(),
+    kind: z.enum(["bookmark", "folder"]).optional(),
+    parentExternalId: z.string().optional(),
+    postedAt: z.string().optional(),
+    scrapedAt: z.string().optional(),
+    sourceDeviceId: z.string().optional(),
+    sourceDeviceName: z.string().optional(),
+    sourceMetadata: z.record(z.string(), z.json()).nullable().optional(),
+    url: z.string(),
+});
 
 function isTrustedCacheWebOrigin(origin: string): boolean {
     return TRUSTED_CACHE_WEB_ORIGIN_PATTERNS.some((pattern) =>
@@ -292,5 +305,33 @@ export async function upsertLibraryItemsFromIngest(
     return {
         smartCollectionItemIds: result.smartCollectionItemIds,
         upsertedCount: result.upsertedCount,
+    };
+}
+
+export async function importExtensionSavedItems<
+    TItem extends IngestItemInput,
+>(args: {
+    externalId: (item: TItem) => string | undefined;
+    items: TItem[];
+    source: LibraryItemSource;
+    userId: string;
+}): Promise<{
+    received: number;
+    smartCollectionItemIds: string[];
+    upserted: number;
+}> {
+    const result = await upsertLibraryItemsFromIngest(
+        args.userId,
+        args.source,
+        args.items.map((item) => ({
+            ...item,
+            externalId: args.externalId(item),
+        }))
+    );
+
+    return {
+        received: args.items.length,
+        smartCollectionItemIds: result.smartCollectionItemIds,
+        upserted: result.upsertedCount,
     };
 }

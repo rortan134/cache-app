@@ -17,6 +17,8 @@ export const serverEnv = createEnv({
         DATABASE_URL: z.string().startsWith("postgres://"),
 
         GEMINI_API_KEY: z.string(),
+        GITHUB_CLIENT_ID: z.string().optional(),
+        GITHUB_CLIENT_SECRET: z.string().optional(),
         GOOGLE_CLIENT_ID: z.string(),
         GOOGLE_CLIENT_SECRET: z.string().startsWith("G"),
 
@@ -30,7 +32,10 @@ export const serverEnv = createEnv({
         STRIPE_PRICE_ID_YEARLY: z.string().startsWith("price_"), // Stripe price ID for yearly subscription
         STRIPE_SECRET_KEY: z.string().startsWith("sk_"), // Stripe secret key for payment processing
         STRIPE_WEBHOOK_SECRET: z.string().startsWith("whsec_"), // Webhook secret for Stripe events
+
         TAVILY_API_KEY: z.string().optional(),
+        X_CLIENT_ID: z.string().optional(),
+        X_CLIENT_SECRET: z.string().optional(),
     },
     // Variables available on both server and client
     shared: {

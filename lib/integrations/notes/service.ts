@@ -45,18 +45,18 @@ export function normalizeNotePayload(input: {
     };
 }
 
-export async function getNoteItemForUser(
+export function getNoteItemForUser(
     userId: string,
     itemId: string
 ): Promise<LibraryItemWithCollections | null> {
-    return (await prisma.libraryItem.findFirst({
+    return prisma.libraryItem.findFirst({
         include: LIBRARY_ITEM_COLLECTIONS_INCLUDE,
         where: {
             id: itemId,
             kind: ITEM_KIND_NOTE,
             userId,
         },
-    })) as LibraryItemWithCollections | null;
+    });
 }
 
 export async function createNote(

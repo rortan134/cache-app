@@ -13,12 +13,7 @@ import {
     protectGenAiRequest,
 } from "@/lib/intelligence/protection";
 
-import {
-    ITEM_KIND_BOOKMARK,
-    type ITEM_KIND_FOLDER,
-    type ITEM_KIND_NOTE,
-    SORT_ASC,
-} from "@/lib/common/constants";
+import { ITEM_KIND_BOOKMARK, SORT_ASC } from "@/lib/common/constants";
 import {
     decodeHtmlEntities,
     normalizeCollectionName,
@@ -28,7 +23,7 @@ import { isHttpUrl } from "@/lib/common/url";
 import { resolveCobaltDownloadUrl } from "@/lib/integrations/cobalt/service";
 import { prisma } from "@/prisma";
 
-import { LibraryItemSource } from "@/prisma/client/enums";
+import { type LibraryItemKind, LibraryItemSource } from "@/prisma/client/enums";
 import {
     ApiError,
     createPartFromText,
@@ -100,10 +95,7 @@ interface SmartCollectionItem {
         name: string;
     }>;
     id: string;
-    kind:
-        | typeof ITEM_KIND_BOOKMARK
-        | typeof ITEM_KIND_FOLDER
-        | typeof ITEM_KIND_NOTE;
+    kind: LibraryItemKind;
     source: LibraryItemSource;
     sourceMetadata: unknown;
     url: string;
@@ -181,7 +173,7 @@ function delay(ms: number): Promise<void> {
 }
 
 function normalizeMimeType(value: string | null | undefined): string | null {
-    const normalized = value?.split(";")[0]?.trim().toLocaleLowerCase();
+    const normalized = value?.split(";")[0]?.trim().toLowerCase();
     return normalized && normalized.length > 0 ? normalized : null;
 }
 
@@ -225,7 +217,7 @@ const MIME_TYPE_BY_EXTENSION: Record<string, string> = {
 
 function inferMimeTypeFromUrl(url: string): string | null {
     try {
-        const extension = extname(new URL(url).pathname).toLocaleLowerCase();
+        const extension = extname(new URL(url).pathname).toLowerCase();
         return MIME_TYPE_BY_EXTENSION[extension] ?? null;
     } catch {
         return null;
@@ -380,6 +372,8 @@ async function downloadRemoteAsset(
         () => controller.abort(),
         SMART_COLLECTIONS_FETCH_TIMEOUT_MS
     );
+    let filePath: string | null = null;
+    let shouldKeepFile = false;
 
     try {
         const response = await fetch(url, {
@@ -399,7 +393,7 @@ async function downloadRemoteAsset(
             normalizeMimeType(response.headers.get("content-type")) ??
             inferMimeTypeFromUrl(resolvedUrl) ??
             "application/octet-stream";
-        const filePath = join(
+        filePath = join(
             /* turbopackIgnore: true */ tmpdir(),
             `cache-smart-collections-${randomUUID()}${extensionForMimeType(mimeType)}`
         );
@@ -426,10 +420,6 @@ async function downloadRemoteAsset(
                     await reader.cancel(
                         "Smart collections asset exceeded the maximum download size."
                     );
-                    await fileHandle.close();
-                    await rm(/* turbopackIgnore: true */ filePath, {
-                        force: true,
-                    });
                     return null;
                 }
 
@@ -439,20 +429,31 @@ async function downloadRemoteAsset(
             await fileHandle.close();
         }
 
+        if (filePath === null) {
+            throw new Error("Remote asset download did not create a file.");
+        }
+
+        const downloadedPath = filePath;
+        shouldKeepFile = true;
         return {
             cleanup: async () => {
-                await rm(/* turbopackIgnore: true */ filePath, {
+                await rm(/* turbopackIgnore: true */ downloadedPath, {
                     force: true,
                 });
             },
             mimeType,
-            path: filePath,
+            path: downloadedPath,
             sourceUrl: resolvedUrl,
         };
     } catch {
         return null;
     } finally {
         clearTimeout(timeout);
+        if (!(shouldKeepFile || filePath === null)) {
+            await rm(/* turbopackIgnore: true */ filePath, {
+                force: true,
+            }).catch(() => undefined);
+        }
     }
 }
 
@@ -978,10 +979,7 @@ export async function autoTagLibraryItemsByIds(args: {
             continue;
         }
 
-        const item: SmartCollectionItem = {
-            ...rawItem,
-            kind: rawItem.kind as SmartCollectionItem["kind"],
-        };
+        const item: SmartCollectionItem = rawItem;
 
         if (!isTaggableItem(item)) {
             continue;

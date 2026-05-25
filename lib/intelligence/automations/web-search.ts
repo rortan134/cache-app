@@ -3,20 +3,10 @@ import "server-only";
 import { serverEnv } from "@/env/server";
 import { tavilySearch } from "@tavily/ai-sdk";
 import * as z from "zod";
+import type { AutomationWebSearchTimeRange } from "./tool-inputs";
 
 const TAVILY_TIMEOUT_MS = 15_000;
 const TAVILY_RESULT_COUNT_MAX = 5;
-const TAVILY_TIME_RANGES = [
-    "year",
-    "month",
-    "week",
-    "day",
-    "y",
-    "m",
-    "w",
-    "d",
-] as const;
-type TavilyTimeRange = (typeof TAVILY_TIME_RANGES)[number];
 const TavilySearchPayloadSchema = z.object({
     answer: z.string().optional(),
     query: z.string().optional(),
@@ -34,7 +24,7 @@ const TavilySearchPayloadSchema = z.object({
 
 export async function automationWebSearch(args: {
     query: string;
-    timeRange?: TavilyTimeRange;
+    timeRange?: AutomationWebSearchTimeRange;
 }) {
     "use step";
 
