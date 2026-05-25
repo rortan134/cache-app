@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/menu";
 import type { LibraryItemWithCollections } from "@/lib/collections/utils";
 import { cn } from "@/lib/common/cn";
+import { getOwnerDocument } from "@/lib/common/dom";
 import { createLogger } from "@/lib/common/logs/console/logger";
 import { parseStandaloneUrl } from "@/lib/common/url";
 import {
@@ -25,6 +26,7 @@ import {
     type NoteSerializedEditorState,
 } from "@/lib/integrations/notes/utils";
 import AppIconSmall from "@/public/cache-icon-small.png";
+import { useAnimationFrame } from "@base-ui/utils/useAnimationFrame";
 import { $generateNodesFromDOM } from "@lexical/html";
 import { AutoFocusPlugin as LexicalAutoFocusPlugin } from "@lexical/react/LexicalAutoFocusPlugin";
 import {
@@ -568,18 +570,19 @@ function FormattingToolbarPlugin() {
 /**
  * Focus the Lexical editor root element when the editor mounts.
  *
- * Uses `requestAnimationFrame` so that focus happens after the DOM
- * paint, guaranteeing the contenteditable element is in the tree.
+ * Schedules focus for the next animation frame so the contenteditable
+ * element is already mounted before Lexical receives focus.
  */
 function AutoFocusPlugin() {
     const [editor] = useLexicalComposerContext();
+    const focusFrame = useAnimationFrame();
 
     useEffect(() => {
-        const raf = requestAnimationFrame(() => {
+        focusFrame.request(() => {
             editor.focus();
         });
-        return () => cancelAnimationFrame(raf);
-    }, [editor]);
+        return focusFrame.cancel;
+    }, [editor, focusFrame]);
 
     return <LexicalAutoFocusPlugin />;
 }
@@ -811,7 +814,8 @@ function NoteHeader() {
         const markdown = convertNoteHtmlToMarkdown(contentHtml);
         const blob = new Blob([markdown], { type: "text/markdown" });
         const url = URL.createObjectURL(blob);
-        const link = document.createElement("a");
+        const ownerDocument = getOwnerDocument();
+        const link = ownerDocument.createElement("a");
         link.href = url;
         link.download = "note.md";
         link.click();

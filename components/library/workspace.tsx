@@ -329,19 +329,15 @@ export function WorkspaceProvider({
     const { collectionPreviewThumbnailUrlsById, itemsByCollectionId } =
         buildCollectionItemIndexes(items);
 
-    const favoriteItems = React.useMemo(() => {
-        const favorited = items.filter((item) => item.favoritedAt !== null);
-        return favorited.toSorted((left, right) => {
+    const favoriteItems = items
+        .filter((item) => item.favoritedAt !== null)
+        .toSorted((left, right) => {
             const leftTime = left.favoritedAt?.getTime() ?? 0;
             const rightTime = right.favoritedAt?.getTime() ?? 0;
             return rightTime - leftTime;
         });
-    }, [items]);
 
-    const favoriteItemIdSet = React.useMemo(
-        () => new Set(favoriteItems.map((item) => item.id)),
-        [favoriteItems]
-    );
+    const favoriteItemIdSet = new Set(favoriteItems.map((item) => item.id));
 
     const clearCollectionFilters = useStableCallback(() => {
         setSelectedCollectionIds([]);
