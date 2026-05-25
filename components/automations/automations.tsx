@@ -12,8 +12,8 @@ import {
     deleteAutomation,
     pauseAutomation,
     resumeAutomation,
-} from "@/lib/collections/intelligence/automations/actions";
-import type { AutomationListItem } from "@/lib/collections/intelligence/automations/service";
+} from "@/lib/intelligence/automations/actions";
+import type { AutomationListItem } from "@/lib/intelligence/automations/service";
 import { useStableCallback } from "@base-ui/utils/useStableCallback";
 import {
     Bot,
@@ -28,7 +28,7 @@ import * as React from "react";
 
 type AutomationRunListItem = Awaited<
     ReturnType<
-        typeof import("@/lib/collections/intelligence/automations/service").listAutomationRuns
+        typeof import("@/lib/intelligence/automations/service").listAutomationRuns
     >
 >[number];
 

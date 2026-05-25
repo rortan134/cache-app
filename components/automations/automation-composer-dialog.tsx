@@ -29,9 +29,11 @@ import {
     createAutomation,
     resumeAutomation,
     updateAutomation,
-} from "@/lib/collections/intelligence/automations/actions";
+} from "@/lib/intelligence/automations/actions";
 import AppIconSmall from "@/public/cache-icon-small.png";
 import { useStableCallback } from "@base-ui/utils/useStableCallback";
+import { parseDate } from "chrono-node";
+import { useLocale } from "gt-next";
 import {
     CalendarDays,
     ChevronDown,
@@ -42,8 +44,6 @@ import {
     Pencil,
     Plus,
 } from "lucide-react";
-import { parseDate } from "chrono-node";
-import { useLocale } from "gt-next";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import * as React from "react";

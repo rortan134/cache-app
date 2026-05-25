@@ -402,6 +402,18 @@
     },
     " a gran escala. Desde 8 $/mes."
   ],
+  "af34d21966b17dd8": {
+    "c": [
+      {
+        "i": 2,
+        "k": "_gt_value_2",
+        "v": "v"
+      },
+      " min de lectura"
+    ],
+    "i": 1,
+    "t": "span"
+  },
   "b0218088cb0cf61f": "Atajos de teclado",
   "b14d974a53e3f53e": [
     {

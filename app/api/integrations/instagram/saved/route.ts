@@ -1,4 +1,3 @@
-import { scheduleAutoTagging } from "@/lib/collections/intelligence/schedule";
 import {
     extensionIngestCorsHeaders,
     runExtensionIngestImport,
@@ -7,6 +6,7 @@ import {
     importInstagramSaved,
     instagramSavedBodySchema,
 } from "@/lib/integrations/instagram/service";
+import { scheduleAutoTagging } from "@/lib/intelligence/schedule";
 
 export function OPTIONS(request: Request) {
     return new Response(null, {

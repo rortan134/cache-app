@@ -18,10 +18,6 @@ const SNAPSHOT_UPSERT_BATCH_SIZE = 50;
 const SNAPSHOT_IMPORT_TRANSACTION_TIMEOUT_MS = 60_000;
 const SNAPSHOT_IMPORT_TRANSACTION_MAX_WAIT_MS = 10_000;
 
-// ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
-
 type SnapshotImportItemInput = Omit<LibraryItemImportRowInput, "source">;
 
 interface SnapshotImportResult {
@@ -43,10 +39,6 @@ interface SnapshotProfileImportResult {
     smartCollectionItemIds: string[];
     updatedCount: number;
 }
-
-// ---------------------------------------------------------------------------
-// Internal helpers
-// ---------------------------------------------------------------------------
 
 function groupRowsByProfile(rows: LibraryItemImportRow[]) {
     const grouped = new Map<string, Map<string, LibraryItemImportRow>>();
@@ -156,10 +148,6 @@ async function importSnapshotProfileRows(args: {
         updatedCount,
     };
 }
-
-// ---------------------------------------------------------------------------
-// Exports
-// ---------------------------------------------------------------------------
 
 export async function importLibraryItemSnapshot(args: {
     browserProfileIdsToSync?: string[];

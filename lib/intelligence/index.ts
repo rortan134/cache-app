@@ -1,17 +1,17 @@
 import "server-only";
 
 import { serverEnv } from "@/env/server";
-import { GenAiProtectionError } from "@/lib/collections/intelligence/error";
+import { COLLECTION_NAME_LENGTH_MAX } from "@/lib/collections/utils";
+import { createLogger } from "@/lib/common/logs/console/logger";
+import { GenAiProtectionError } from "@/lib/intelligence/error";
 import {
     SECTION_DESCRIPTION_EXPANDED_OUTPUT_TOKEN_LIMIT,
     SECTION_DESCRIPTION_RESPONSE_MAX_LENGTH,
-} from "@/lib/collections/intelligence/overview";
+} from "@/lib/intelligence/overview";
 import {
     estimateGenAiTokens,
     protectGenAiRequest,
-} from "@/lib/collections/intelligence/protection";
-import { COLLECTION_NAME_LENGTH_MAX } from "@/lib/collections/utils";
-import { createLogger } from "@/lib/common/logs/console/logger";
+} from "@/lib/intelligence/protection";
 
 import {
     ITEM_KIND_BOOKMARK,

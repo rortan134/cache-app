@@ -10,7 +10,7 @@ import { getServerSession } from "@/lib/auth/session";
 import { userHasActiveSubscription } from "@/lib/billing/service";
 import { getLibraryItems, listCollections } from "@/lib/collections/service";
 import { gtPublicString } from "@/lib/i18n/gt-public-json";
-import { listLinkedIntegrationAccounts } from "@/lib/integrations/service";
+import { listLinkedIntegrationAccounts } from "@/lib/integrations/account";
 import {
     listConnectedIntegrationIds,
     type IntegrationId,

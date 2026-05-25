@@ -1,11 +1,11 @@
 import { requireRouteUserId } from "@/lib/auth/route";
+import { resolveProviderAccountAccessToken } from "@/lib/integrations/account";
 import { IntegrationApiError } from "@/lib/integrations/error";
 import {
     createPickerSession,
     getPickerSession,
 } from "@/lib/integrations/google-photos/api";
 import { mapPickerSessionToViewModel } from "@/lib/integrations/google-photos/service";
-import { resolveProviderAccessToken } from "@/lib/integrations/provider-account";
 
 export async function POST() {
     const sessionResult = await requireRouteUserId();
@@ -13,7 +13,7 @@ export async function POST() {
         return sessionResult;
     }
 
-    const accessToken = await resolveProviderAccessToken({
+    const accessToken = await resolveProviderAccountAccessToken({
         providerId: "google",
     });
     if (!accessToken) {
@@ -56,7 +56,7 @@ export async function GET(request: Request) {
         return Response.json({ error: "Missing session id" }, { status: 400 });
     }
 
-    const accessToken = await resolveProviderAccessToken({
+    const accessToken = await resolveProviderAccountAccessToken({
         providerId: "google",
     });
     if (!accessToken) {

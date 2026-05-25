@@ -5,12 +5,12 @@ import { AutomationsList } from "@/components/automations/automations";
 import { PageShell } from "@/components/ui/page-shell";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { getServerSession } from "@/lib/auth/session";
+import { listCollections } from "@/lib/collections/service";
+import { gtPublicString } from "@/lib/i18n/gt-public-json";
 import {
     listAutomationRuns,
     listAutomations,
-} from "@/lib/collections/intelligence/automations/service";
-import { listCollections } from "@/lib/collections/service";
-import { gtPublicString } from "@/lib/i18n/gt-public-json";
+} from "@/lib/intelligence/automations/service";
 import { Bot } from "lucide-react";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";

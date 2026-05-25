@@ -106,19 +106,6 @@ import { useSession } from "@/lib/auth/client";
 import type { CollectionCreateFromItemsResult } from "@/lib/collections/actions";
 import { downloadMedia } from "@/lib/collections/actions";
 import {
-    getSectionDescription,
-    type SectionDescriptionResult,
-} from "@/lib/collections/intelligence/actions";
-import {
-    SECTION_DESCRIPTION_CONTEXT_ITEMS_LIMIT,
-    SECTION_DESCRIPTION_DOMAIN_MAX_LENGTH,
-    SECTION_DESCRIPTION_TEXT_MAX_LENGTH,
-    SECTION_DESCRIPTION_TITLE_MAX_LENGTH,
-    SECTION_DESCRIPTION_URL_MAX_LENGTH,
-    SectionDescriptionRequestSchema,
-    type SectionDescriptionContextItem,
-} from "@/lib/collections/intelligence/overview";
-import {
     deleteLibraryItem,
     type LibraryItemCollectionsUpdateResult,
     type LibraryItemDeleteResult,
@@ -172,6 +159,19 @@ import {
     updateNote,
     type NoteMutationResult,
 } from "@/lib/integrations/notes/actions";
+import {
+    getSectionDescription,
+    type SectionDescriptionResult,
+} from "@/lib/intelligence/actions";
+import {
+    SECTION_DESCRIPTION_CONTEXT_ITEMS_LIMIT,
+    SECTION_DESCRIPTION_DOMAIN_MAX_LENGTH,
+    SECTION_DESCRIPTION_TEXT_MAX_LENGTH,
+    SECTION_DESCRIPTION_TITLE_MAX_LENGTH,
+    SECTION_DESCRIPTION_URL_MAX_LENGTH,
+    SectionDescriptionRequestSchema,
+    type SectionDescriptionContextItem,
+} from "@/lib/intelligence/overview";
 import { LibraryItemSource } from "@/prisma/client/enums";
 import AppIconSmall from "@/public/cache-icon-small.png";
 import type {

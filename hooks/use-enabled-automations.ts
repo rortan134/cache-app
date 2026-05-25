@@ -1,4 +1,4 @@
-import { listAutomations } from "@/lib/collections/intelligence/automations/actions";
+import { listAutomations } from "@/lib/intelligence/automations/actions";
 import useSWR from "swr";
 
 const ENABLED_AUTOMATIONS_KEY = "enabled-automations";

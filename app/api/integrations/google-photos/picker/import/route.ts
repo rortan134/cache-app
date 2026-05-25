@@ -1,5 +1,5 @@
 import { requireRouteUserId } from "@/lib/auth/route";
-import { autoTagLibraryItemsByIds } from "@/lib/collections/intelligence";
+import { resolveProviderAccountAccessToken } from "@/lib/integrations/account";
 import { IntegrationApiError } from "@/lib/integrations/error";
 import {
     deletePickerSession,
@@ -10,7 +10,7 @@ import {
     collectGooglePhotosImportCandidates,
     importGooglePhotosCandidates,
 } from "@/lib/integrations/google-photos/service";
-import { resolveProviderAccessToken } from "@/lib/integrations/provider-account";
+import { autoTagLibraryItemsByIds } from "@/lib/intelligence";
 import { after } from "next/server";
 import * as z from "zod";
 
@@ -34,7 +34,7 @@ export async function POST(request: Request) {
         );
     }
 
-    const accessToken = await resolveProviderAccessToken({
+    const accessToken = await resolveProviderAccountAccessToken({
         providerId: "google",
     });
     if (!accessToken) {

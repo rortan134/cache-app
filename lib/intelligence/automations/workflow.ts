@@ -1,12 +1,12 @@
 import { DurableAgent } from "@workflow/ai/agent";
+import type { UIMessageChunk } from "ai";
 import { stepCountIs, tool, type LanguageModelUsage } from "ai";
 import { getWritable } from "workflow";
-import type { UIMessageChunk } from "ai";
 import * as z from "zod";
 import {
     AUTOMATION_AGENT_MODEL_DEFAULT,
-    AUTOMATION_ITEM_PAGE_LIMIT_MAX,
     AUTOMATION_INSPECTED_ITEM_COUNT_MAX,
+    AUTOMATION_ITEM_PAGE_LIMIT_MAX,
 } from "./constants";
 
 const AUTOMATION_OUTPUT_TOKEN_LIMIT = 1200;
@@ -66,7 +66,7 @@ export async function executeSmartCollectionsAutomationRun(args: {
     "use step";
 
     const [{ autoTagLibraryItemsByIds }, service] = await Promise.all([
-        import("@/lib/collections/intelligence"),
+        import("@/lib/intelligence"),
         import("./service"),
     ]);
     const itemIds = await service.getSmartCollectionItemIdsForRun({
@@ -232,7 +232,7 @@ async function protectAutomationAgentRun(args: {
     "use step";
 
     const { estimateGenAiTokens, protectGenAiRequest } = await import(
-        "@/lib/collections/intelligence/protection"
+        "@/lib/intelligence/protection"
     );
 
     await protectGenAiRequest({

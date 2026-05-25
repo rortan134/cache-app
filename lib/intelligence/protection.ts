@@ -4,8 +4,8 @@ import { serverEnv } from "@/env/server";
 import type { PriceType } from "@/lib/billing/prices";
 import { GEN_AI_QUOTAS } from "@/lib/billing/quotas";
 import { getUserPlanType } from "@/lib/billing/service";
-import { GenAiProtectionError } from "@/lib/collections/intelligence/error";
 import { createLogger } from "@/lib/common/logs/console/logger";
+import { GenAiProtectionError } from "@/lib/intelligence/error";
 import type { ArcjetNextRequest } from "@arcjet/next";
 import arcjet, {
     detectPromptInjection,

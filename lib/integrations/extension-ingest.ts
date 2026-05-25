@@ -93,7 +93,7 @@ export function extensionTokenCorsHeaders(request: Request): HeadersInit {
     );
 }
 
-export function parseBearerToken(request: Request): string | null {
+function parseBearerToken(request: Request): string | null {
     const raw = request.headers.get("authorization");
     if (!raw?.startsWith("Bearer ")) {
         return null;
@@ -105,7 +105,7 @@ export function parseBearerToken(request: Request): string | null {
 /**
  * Resolves the Cache user id for an extension ingest Bearer token.
  */
-export async function resolveExtensionIngestUserId(
+async function resolveExtensionIngestUserId(
     bearerToken: string
 ): Promise<string | null> {
     const byToken = await prisma.user.findFirst({

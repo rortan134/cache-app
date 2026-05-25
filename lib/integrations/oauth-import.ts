@@ -1,12 +1,12 @@
 import "server-only";
 
 import { requireRouteUserId } from "@/lib/auth/route";
-import { scheduleAutoTagging } from "@/lib/collections/intelligence/schedule";
-import { IntegrationApiError } from "@/lib/integrations/error";
 import {
     getIntegrationAccountId,
-    resolveProviderAccessToken,
-} from "@/lib/integrations/provider-account";
+    resolveProviderAccountAccessToken,
+} from "@/lib/integrations/account";
+import { IntegrationApiError } from "@/lib/integrations/error";
+import { scheduleAutoTagging } from "@/lib/intelligence/schedule";
 
 interface OAuthImportConfig<T> {
     importFn: (args: {
@@ -45,7 +45,7 @@ export async function runOAuthImport<T>(
         );
     }
 
-    const accessToken = await resolveProviderAccessToken({
+    const accessToken = await resolveProviderAccountAccessToken({
         accountId,
         providerId: config.providerId,
     });

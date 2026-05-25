@@ -1,5 +1,4 @@
 import { requireRouteUserId } from "@/lib/auth/route";
-import { autoTagLibraryItemsByIds } from "@/lib/collections/intelligence";
 import { createLogger } from "@/lib/common/logs/console/logger";
 import {
     applyChromeBookmarkSyncEvents,
@@ -10,6 +9,7 @@ import {
     authenticateExtensionIngest,
     extensionIngestCorsHeaders,
 } from "@/lib/integrations/extension-ingest";
+import { autoTagLibraryItemsByIds } from "@/lib/intelligence";
 import { after } from "next/server";
 
 const log = createLogger("api:sync:chrome-bookmarks");

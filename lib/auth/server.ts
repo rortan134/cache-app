@@ -1,9 +1,9 @@
 import { getStripeClient, getStripeWebhookSecret } from "@/lib/billing/client";
 import { getPlanPriceIds } from "@/lib/billing/prices";
-import { seedBuiltInAutomationsForUser } from "@/lib/collections/intelligence/automations/service";
 import { APP_NAME, BASE_URL } from "@/lib/common/constants";
 import { createLogger } from "@/lib/common/logs/console/logger";
 import { getSafeOrigin } from "@/lib/common/url";
+import { seedBuiltInAutomationsForUser } from "@/lib/intelligence/automations/service";
 import { prisma } from "@/prisma";
 import type { OAuth2Tokens } from "@better-auth/core/oauth2";
 import { stripe } from "@better-auth/stripe";

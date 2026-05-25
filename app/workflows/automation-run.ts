@@ -1,9 +1,9 @@
-import { getWorkflowMetadata } from "workflow";
 import {
     executeReadOnlyAutomationRun,
     executeSmartCollectionsAutomationRun,
     prepareAutomationRunForWorkflow,
-} from "@/lib/collections/intelligence/automations/workflow";
+} from "@/lib/intelligence/automations/workflow";
+import { getWorkflowMetadata } from "workflow";
 
 export async function automationRunWorkflow(runId: string) {
     "use workflow";

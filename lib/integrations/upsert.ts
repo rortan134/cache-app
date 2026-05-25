@@ -27,7 +27,6 @@ interface UpsertLibraryItemImportsArgs {
     userId: string;
 }
 
-/* @internal */
 function normalizeImportRows(args: UpsertLibraryItemImportsArgs): {
     skippedCount: number;
     rows: LibraryItemImportRow[];
@@ -90,7 +89,6 @@ async function findExistingImportRows(args: {
     return existingRows;
 }
 
-/** @public */
 export async function upsertLibraryItemImports(
     args: UpsertLibraryItemImportsArgs
 ): Promise<UpsertLibraryItemImportsResult> {

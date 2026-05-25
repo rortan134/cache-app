@@ -1,6 +1,6 @@
 import "server-only";
 
-import { autoTagLibraryItemsByIds } from "@/lib/collections/intelligence";
+import { autoTagLibraryItemsByIds } from "@/lib/intelligence";
 import { after } from "next/server";
 
 /**
