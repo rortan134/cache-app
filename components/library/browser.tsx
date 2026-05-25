@@ -18,11 +18,6 @@ import {
 } from "@/components/library/composer";
 import type { NoteDraft } from "@/components/library/notes";
 import {
-    PeekDrawer,
-    PeekDrawerContent,
-    PeekDrawerTrigger,
-} from "@/components/ui/peek";
-import {
     NAME_COLLATOR,
     OpenFavoriteItemRefContext,
     useWorkspaceContext,
@@ -97,6 +92,11 @@ import {
     MenuSeparator,
     MenuTrigger,
 } from "@/components/ui/menu";
+import {
+    PeekDrawer,
+    PeekDrawerContent,
+    PeekDrawerTrigger,
+} from "@/components/ui/peek";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { Ticker } from "@/components/ui/ticker";
@@ -144,9 +144,9 @@ import { parseDate } from "@/lib/common/dates";
 import { getOwnerWindow } from "@/lib/common/dom";
 import { getSystemControlKey } from "@/lib/common/environment";
 import {
-    type createFileAttachment,
     revokeFileAttachmentObjectUrl,
     saveFile,
+    type createFileAttachment,
 } from "@/lib/common/file";
 import { filterValidImageUrls } from "@/lib/common/image";
 import { getImageColors } from "@/lib/common/image-colors";
@@ -3504,7 +3504,7 @@ function CollectionComboboxPicker({
                                 ? `Edit collections (${selectedCount} selected)`
                                 : "Add to collections"
                         }
-                        className="z-1 rounded-full mix-blend-difference invert transition-transform ease-in-out hover:scale-110 hover:brightness-125 active:scale-95"
+                        className="z-1 rounded-full mix-blend-difference invert transition-transform ease-in-out hover:brightness-125 active:scale-95"
                         size="icon-sm"
                         variant="ghost"
                     />

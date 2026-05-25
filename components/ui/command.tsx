@@ -38,7 +38,7 @@ export function CommandInput({
 }) {
     return (
         <Autocomplete.InputGroup
-            className="relative flex not-has-[>*.w-full]:w-fit w-full text-foreground has-disabled:opacity-64"
+            className="group/input relative flex not-has-[>*.w-full]:w-fit w-full text-foreground has-disabled:opacity-64"
             data-slot="command-input-group"
         >
             {startAddon && (

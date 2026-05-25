@@ -45,9 +45,6 @@ import * as React from "react";
 import { createStore } from "stan-js";
 import { storage } from "stan-js/storage";
 
-const ONBOARDING_SHARE_ERROR_MESSAGE =
-    "We couldn't create a public link right now.";
-
 const ONBOARDING_TASK_META = [
     {
         id: "integration",
@@ -444,7 +441,7 @@ async function shareCollectionPubliclySafely(
         return await shareCollectionPublicly(input);
     } catch {
         return {
-            message: ONBOARDING_SHARE_ERROR_MESSAGE,
+            message: "We couldn't create a public link right now.",
             status: "ERROR",
         };
     }

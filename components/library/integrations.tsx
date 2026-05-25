@@ -428,9 +428,7 @@ function IntegrationsListTrigger({
                     />
                 }
             >
-                <span className="min-w-0 text-xs">
-                    {children}&nbsp;({INTEGRATIONS.length})
-                </span>
+                <span className="min-w-0 text-xs">{children}</span>
                 <ChevronDownFilledIcon className="-ml-0.5" />
                 <Kbd className="ml-auto bg-transparent opacity-0 group-hover:opacity-50 group-has-data-open/collapsible:hidden">
                     <CmdKbd />I

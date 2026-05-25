@@ -102,8 +102,8 @@ import {
     type LibraryItemWithCollections,
 } from "@/lib/collections/utils";
 import { cn } from "@/lib/common/cn";
-import { ITEM_KIND_NOTE } from "@/lib/common/constants";
 import { getHexColorFromName } from "@/lib/common/colors";
+import { ITEM_KIND_NOTE } from "@/lib/common/constants";
 import { getSystemControlKey } from "@/lib/common/environment";
 import { saveFile } from "@/lib/common/file";
 import { filterValidImageUrls } from "@/lib/common/image";
@@ -698,7 +698,7 @@ export function Collections() {
                     <CollectionsListToolbarGroup>
                         <Kbd className="bg-transparent opacity-0 group-hover:opacity-50 group-has-data-open/collapsible:hidden">
                             <ShiftKbd />
-                            <CmdKbd />C
+                            <CmdKbd />F
                         </Kbd>
                     </CollectionsListToolbarGroup>
                 </CollectionsListToolbar>
@@ -1111,10 +1111,9 @@ function useCollectionsController() {
 
     useHotkeys("mod+c", handleCollectionsListShortcutPress, {
         description: "Toggle collections panel",
-        preventDefault: true,
     });
 
-    useHotkeys("mod+shift+c", handleFavoritesListShortcutPress, {
+    useHotkeys("shift+mod+f", handleFavoritesListShortcutPress, {
         description: "Toggle favorites panel",
         preventDefault: true,
     });
@@ -1122,6 +1121,7 @@ function useCollectionsController() {
     useHotkeys("mod+f", handleSortShortcutPress, {
         description: "Sort and organize collections",
         enabled: !isSortOpen,
+        preventDefault: true,
     });
 
     const requestDelete = (collection: LibraryCollectionSummary) => {
@@ -2097,7 +2097,7 @@ function ListFavoritesCarouselContent({
     }
 
     return (
-        <Carousel className="mb-0.5 ml-2.5 [&>*:not(:last-child)]:me-1">
+        <Carousel className="mb-1 ml-2.5 [&>*:not(:last-child)]:me-1.5">
             {favoriteItems.map(children)}
         </Carousel>
     );
@@ -2108,7 +2108,7 @@ function FavoriteItemCarouselSlide({
 }: {
     item: LibraryItemWithCollections;
 }) {
-    const { onOpenFavoriteItem } = useCollections();
+    const { onOpenFavoriteItem, onToggleItemFavorite } = useCollections();
     const isNote = item.kind === ITEM_KIND_NOTE;
     const previewImageUrl = itemPreviewImageUrl(item);
     const noteExcerpt = getNoteExcerpt(item.noteContentText);
@@ -2122,13 +2122,33 @@ function FavoriteItemCarouselSlide({
         }
     );
 
+    const handleRemoveFavorite = useStableCallback(
+        (event: React.MouseEvent<HTMLButtonElement>) => {
+            event.stopPropagation();
+            onToggleItemFavorite(item).catch((error) => {
+                log.error("Failed to remove item from favorites", {
+                    error,
+                    itemId: item.id,
+                });
+            });
+        }
+    );
+
     return (
         <button
             aria-label={previewLabel}
-            className="relative inline-block aspect-3/4 h-14 w-auto overflow-hidden rounded-md bg-muted ring-1 ring-border/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
+            className="group relative inline-block aspect-3/4 h-14 w-auto overflow-hidden rounded-md bg-muted ring-1 ring-border/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
             onClick={handleClick}
             type="button"
         >
+            <button
+                aria-label="Remove from favorites"
+                className="absolute top-0 left-0 z-10 flex size-4 items-center justify-center rounded-br-md bg-black/40 opacity-0 transition-opacity hover:bg-black/60 group-hover:opacity-100"
+                onClick={handleRemoveFavorite}
+                type="button"
+            >
+                <Trash2Icon className="size-2.5 text-white" />
+            </button>
             {isNote ? (
                 <div className="flex size-full flex-col justify-between overflow-hidden bg-linear-to-br from-amber-50 via-background to-stone-100 p-1.5">
                     <p className="line-clamp-4 whitespace-pre-wrap text-left text-[9px] text-foreground leading-snug opacity-90">

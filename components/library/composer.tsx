@@ -131,19 +131,20 @@ export function ComposerInput({
                             endAddon={
                                 <>
                                     {paletteStackEntries.length === 0 ? (
-                                        <Kbd className="border-none text-muted-foreground opacity-50">
-                                            <CmdKbd />G
-                                        </Kbd>
-                                    ) : (
-                                        <span className="mr-1 flex items-center gap-0.5">
-                                            <Kbd className="border-none text-muted-foreground opacity-50">
-                                                Tab
+                                        <>
+                                            <Kbd className="border-none text-muted-foreground opacity-50 group-data-popup-open/input:opacity-0">
+                                                <CmdKbd />G
                                             </Kbd>
-                                            <span className="text-muted-foreground text-xs opacity-50">
-                                                Ask Cache
+                                            <span className="absolute right-3 flex items-center text-nowrap opacity-0 group-data-popup-open/input:opacity-100">
+                                                <Kbd className="border-none text-muted-foreground opacity-50">
+                                                    Tab
+                                                </Kbd>
+                                                <span className="text-muted-foreground text-xs opacity-50">
+                                                    Ask Cache
+                                                </span>
                                             </span>
-                                        </span>
-                                    )}
+                                        </>
+                                    ) : null}
                                     <TruncateAfter
                                         badgeRender={
                                             <Badge
@@ -180,7 +181,7 @@ export function ComposerInput({
                                     {group.label}
                                 </CommandGroupLabel>
                                 {group.layout === "horizontal" ? (
-                                    <CommandRow className="gap-2 pt-1 pr-2 pb-4">
+                                    <CommandRow className="grid grid-cols-2 gap-2 pt-1 pr-2 pb-4 md:grid-cols-3 lg:grid-cols-4">
                                         <CommandCollection>
                                             {(item: CommandPaletteItem) => (
                                                 <CommandItem
