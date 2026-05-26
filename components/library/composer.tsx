@@ -1,6 +1,10 @@
 "use client";
 
 import { OnboardingMenu } from "@/components/library/onboarding";
+import type {
+    CommandPaletteItem,
+    CommandPaletteGroup,
+} from "@/components/library/browser";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -27,7 +31,6 @@ import { cn } from "@/lib/common/cn";
 import {
     Toolbar,
     type AutocompleteRootChangeEventDetails,
-    type BaseUIEvent,
 } from "@base-ui/react";
 import { Calligraph } from "calligraph";
 import {
@@ -41,25 +44,6 @@ import {
 } from "lucide-react";
 import type { ReactNode } from "react";
 import * as React from "react";
-
-interface CommandPaletteItem {
-    active?: boolean;
-    description?: string;
-    disabled?: boolean;
-    label: string;
-    onSelect: (
-        event: BaseUIEvent<React.MouseEvent> | KeyboardEvent
-    ) => void | Promise<void>;
-    render?: (item: CommandPaletteItem) => ReactNode;
-    shortcut?: string;
-    value: string;
-}
-
-interface CommandPaletteGroup {
-    items: CommandPaletteItem[];
-    label: string;
-    layout?: "horizontal" | "vertical";
-}
 
 interface PaletteStackEntry {
     chip: ReactNode;
@@ -94,6 +78,46 @@ interface ComposerInputProps {
     paletteInputRef: React.RefObject<HTMLInputElement | null>;
     paletteStackEntries: PaletteStackEntry[];
     visiblePaletteGroups: CommandPaletteGroup[];
+}
+
+function CommandPaletteItemComponent({
+    item,
+    isHorizontal,
+}: {
+    item: CommandPaletteItem;
+    isHorizontal: boolean;
+}) {
+    return (
+        <CommandItem
+            className={cn(
+                isHorizontal &&
+                    "group relative flex-1 overflow-hidden rounded-xl bg-accent text-accent-foreground shadow-xs"
+            )}
+            disabled={item.disabled}
+            key={item.value}
+            onClick={item.onSelect}
+            value={item.value}
+        >
+            {item.render ? (
+                item.render(item)
+            ) : (
+                <div className="flex min-w-0 flex-1 items-center gap-2.5">
+                    <div className="truncate">{item.label}</div>
+                    {item.description ? (
+                        <span className="max-w-xs truncate text-muted-foreground/80 text-xs">
+                            {item.description}
+                        </span>
+                    ) : null}
+                    {item.active ? (
+                        <Badge variant="secondary">Active</Badge>
+                    ) : null}
+                    {item.shortcut ? (
+                        <CommandShortcut>{item.shortcut}</CommandShortcut>
+                    ) : null}
+                </div>
+            )}
+        </CommandItem>
+    );
 }
 
 export function ComposerInput({
@@ -184,81 +208,20 @@ export function ComposerInput({
                                     <CommandRow className="grid grid-cols-2 gap-2 pt-1 pr-2 pb-4 md:grid-cols-3 lg:grid-cols-4">
                                         <CommandCollection>
                                             {(item: CommandPaletteItem) => (
-                                                <CommandItem
-                                                    className="group relative flex-1 overflow-hidden rounded-xl bg-accent text-accent-foreground shadow-xs"
-                                                    disabled={item.disabled}
-                                                    key={item.value}
-                                                    onClick={item.onSelect}
-                                                    value={item.value}
-                                                >
-                                                    {item.render ? (
-                                                        item.render(item)
-                                                    ) : (
-                                                        <div className="flex min-w-0 flex-1 items-center gap-2.5">
-                                                            <div className="truncate">
-                                                                {item.label}
-                                                            </div>
-                                                            {item.description ? (
-                                                                <span className="max-w-xs truncate text-muted-foreground/80 text-xs">
-                                                                    {
-                                                                        item.description
-                                                                    }
-                                                                </span>
-                                                            ) : null}
-                                                            {item.active ? (
-                                                                <Badge variant="secondary">
-                                                                    Active
-                                                                </Badge>
-                                                            ) : null}
-                                                            {item.shortcut ? (
-                                                                <CommandShortcut>
-                                                                    {
-                                                                        item.shortcut
-                                                                    }
-                                                                </CommandShortcut>
-                                                            ) : null}
-                                                        </div>
-                                                    )}
-                                                </CommandItem>
+                                                <CommandPaletteItemComponent
+                                                    isHorizontal
+                                                    item={item}
+                                                />
                                             )}
                                         </CommandCollection>
                                     </CommandRow>
                                 ) : (
                                     <CommandCollection>
                                         {(item: CommandPaletteItem) => (
-                                            <CommandItem
-                                                disabled={item.disabled}
-                                                key={item.value}
-                                                onClick={item.onSelect}
-                                                value={item.value}
-                                            >
-                                                {item.render ? (
-                                                    item.render(item)
-                                                ) : (
-                                                    <div className="flex min-w-0 flex-1 items-center gap-2.5">
-                                                        <div className="truncate">
-                                                            {item.label}
-                                                        </div>
-                                                        {item.description ? (
-                                                            <span className="max-w-xs truncate text-muted-foreground/80 text-xs">
-                                                                {
-                                                                    item.description
-                                                                }
-                                                            </span>
-                                                        ) : null}
-                                                        {item.active ? (
-                                                            <Badge variant="secondary">
-                                                                Active
-                                                            </Badge>
-                                                        ) : null}
-                                                        {item.shortcut ? (
-                                                            <CommandShortcut>
-                                                                {item.shortcut}
-                                                            </CommandShortcut>
-                                                        ) : null}
-                                                    </div>
-                                                )}
-                                            </CommandItem>
+                                            <CommandPaletteItemComponent
+                                                isHorizontal={false}
+                                                item={item}
+                                            />
                                         )}
                                     </CommandCollection>
                                 )}
@@ -297,20 +260,7 @@ export function ComposerInput({
     );
 }
 
-interface ComposerActionsContextValue {
-    canClear: boolean;
-    canCreateCollectionFromResults: boolean;
-    connectedIntegrationCount: number;
-    groupBy: string;
-    isNewUser: boolean;
-    onClearPalette: () => void;
-    onCreateCollection: () => void;
-    onCreateNote: () => void;
-    onCreateResultsDialogOpen: (open: boolean) => void;
-    onOpenCommandFromOnboarding: () => void;
-    resultsSummary: string;
-    sectionsLength: number;
-}
+type ComposerActionsContextValue = Omit<ComposerActionsProps, "children">;
 
 const ComposerActionsContext =
     React.createContext<ComposerActionsContextValue | null>(null);
@@ -323,6 +273,32 @@ function useComposerActionsContext(): ComposerActionsContextValue {
         );
     }
     return context;
+}
+
+function ActionButton({
+    onClick,
+    title,
+    children,
+}: {
+    onClick: () => void;
+    title?: string;
+    children: ReactNode;
+}) {
+    return (
+        <Toolbar.Button
+            render={
+                <Button
+                    className="rounded-full"
+                    onClick={onClick}
+                    size="xs"
+                    title={title}
+                    variant="ghost"
+                >
+                    {children}
+                </Button>
+            }
+        />
+    );
 }
 
 interface ComposerActionsProps {
@@ -353,20 +329,12 @@ export function ComposerActions({ children, ...value }: ComposerActionsProps) {
 
 export function ComposerActionNew() {
     const { onCreateNote } = useComposerActionsContext();
+
     return (
-        <Toolbar.Button
-            render={
-                <Button
-                    className="rounded-full"
-                    onClick={onCreateNote}
-                    size="xs"
-                    variant="ghost"
-                >
-                    <SquarePen className="inline-block size-3.5 shrink-0" />
-                    &nbsp;New
-                </Button>
-            }
-        />
+        <ActionButton onClick={onCreateNote}>
+            <SquarePen className="inline-block size-3.5 shrink-0" />
+            &nbsp;New
+        </ActionButton>
     );
 }
 
@@ -380,33 +348,22 @@ export function ComposerActionClear() {
     } = useComposerActionsContext();
 
     return (
-        <Toolbar.Button
-            render={
-                <Button
-                    className="rounded-full"
-                    onClick={onClearPalette}
-                    size="xs"
-                    title="Reset browser"
-                    variant="ghost"
-                >
-                    {canClear ? (
-                        <Grid2x2X className="inline-block size-3.5 shrink-0" />
-                    ) : (
-                        <Grid2x2 className="inline-block size-3.5 shrink-0" />
-                    )}
-                    <span className="tabular-nums">
-                        &nbsp;Showing <Calligraph>{resultsSummary}</Calligraph>
-                        {groupBy === "none" ? null : (
-                            <>
-                                , <Calligraph>{sectionsLength}</Calligraph>{" "}
-                                group
-                                {sectionsLength === 1 ? "" : "s"}
-                            </>
-                        )}
-                    </span>
-                </Button>
-            }
-        />
+        <ActionButton onClick={onClearPalette} title="Reset browser">
+            {canClear ? (
+                <Grid2x2X className="inline-block size-3.5 shrink-0" />
+            ) : (
+                <Grid2x2 className="inline-block size-3.5 shrink-0" />
+            )}
+            <span className="tabular-nums">
+                &nbsp;Showing <Calligraph>{resultsSummary}</Calligraph>
+                {groupBy === "none" ? null : (
+                    <>
+                        , <Calligraph>{sectionsLength}</Calligraph> group
+                        {sectionsLength === 1 ? "" : "s"}
+                    </>
+                )}
+            </span>
+        </ActionButton>
     );
 }
 
@@ -419,19 +376,10 @@ export function ComposerActionNewCollection() {
     }
 
     return (
-        <Toolbar.Button
-            render={
-                <Button
-                    className="rounded-full"
-                    onClick={() => onCreateResultsDialogOpen(true)}
-                    size="xs"
-                    variant="ghost"
-                >
-                    <CircleFadingPlus className="inline-block size-4 shrink-0" />
-                    &nbsp;Collection with results
-                </Button>
-            }
-        />
+        <ActionButton onClick={() => onCreateResultsDialogOpen(true)}>
+            <CircleFadingPlus className="inline-block size-3.5 shrink-0" />
+            &nbsp;Collection with results
+        </ActionButton>
     );
 }
 
@@ -503,7 +451,6 @@ export function Composer({
     const toolbarChildren: ReactNode[] = [];
     let suggestionsChild: ReactNode = null;
 
-    // Enforce structure
     for (const child of childrenArray) {
         if (React.isValidElement(child) && child.type === ComposerSuggestions) {
             suggestionsChild = child;
