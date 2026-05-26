@@ -25,7 +25,6 @@ import OrganizeSectionImage from "@/public/organize-section.webp";
 import SmartCollectionsBackgroundImage from "@/public/smart-collections-background.webp";
 import { LocaleSelector, T } from "gt-next";
 import {
-    Bot,
     CircleCheck,
     CloudDownload,
     Component,
@@ -175,11 +174,8 @@ export default async function Home() {
                         </h2>
                         <p className="mx-auto text-center text-xs">
                             <T>
-                                A tool managing all of your{" "}
-                                <span className="underline decoration-muted-foreground decoration-dotted underline-offset-2">
-                                    personal knowledge
-                                </span>{" "}
-                                at scale. Starting from $8/mo.
+                                A smarter way to handle everything you save
+                                online. Starting from $8/mo.
                             </T>
                         </p>
                     </div>
@@ -190,9 +186,9 @@ export default async function Home() {
                                     Curate a library of all the content you love
                                 </h2>
                                 <p className="text-pretty font-medium font-regular text-[#0A0B0D] text-[16px] leading-[1.2] tracking-[-3%] opacity-50">
-                                    Get inspired, find that one lesson, piece of
-                                    advice, recipe, or idea you've been looking
-                                    for in the span of a coffee break.
+                                    Get inspired, find that one lesson, advice,
+                                    recipe, or idea you've been looking for in
+                                    the span of a coffee break.
                                 </p>
                             </T>
                         </div>
@@ -214,16 +210,14 @@ export default async function Home() {
                         <div className="flex max-w-[340px] flex-col gap-3 py-5 md:gap-4">
                             <T context="Integrations">
                                 <h2 className="font-medium text-[#0A0B0D] text-[28px] leading-[1.1] tracking-[-1.28px] lg:text-[32px]">
-                                    Import everything you've ever saved,{" "}
-                                    <span className="opacity-50">
-                                        from everywhere.
-                                    </span>
+                                    Bring in everything you’ve already saved
                                 </h2>
                                 <p className="text-pretty font-medium font-regular text-[#0A0B0D] text-[16px] leading-[1.2] tracking-[-3%] opacity-50">
-                                    Bring together bookmarks from social, video,
-                                    and browser automatically. Ditch the endless
-                                    scrolling and tabbing through multiple
-                                    platforms to find what matters to you.
+                                    Bring together bookmarks your browser,
+                                    social apps, and videos automatically. Ditch
+                                    the endless scrolling and tabbing through
+                                    multiple platforms to find what matters to
+                                    you.
                                 </p>
                             </T>
                         </div>
@@ -299,10 +293,8 @@ export default async function Home() {
                                     Stop leaving it for "later"
                                 </h2>
                                 <p className="text-pretty font-medium font-regular text-[#0A0B0D] text-[16px] leading-[1.2] tracking-[-3%] opacity-50">
-                                    Create more actionable opportunities for
-                                    yourself by keeping your most insightful
-                                    saved content top of mind instead of losing
-                                    it in a backlog of forgotten bookmarks.
+                                    Cache brings your best saved content back to
+                                    you, so you actually use it.
                                 </p>
                             </T>
                             <ul className="mt-2 flex flex-col space-y-2 text-xs">
@@ -310,9 +302,16 @@ export default async function Home() {
                                     <li className="flex items-center gap-2">
                                         <Workflow className="inline-block size-4 shrink-0" />
                                         <span>
-                                            Set up routine Automations with
-                                            custom instructions. Get a daily
-                                            digest of your recent bookmarks.
+                                            Set up simple routines that show you
+                                            a daily digest of new saves
+                                        </span>
+                                    </li>
+                                    <li className="flex items-center gap-2">
+                                        <Workflow className="inline-block size-4 shrink-0" />
+                                        <span>
+                                            Keep important links top of mind
+                                            instead of buried in a backlog of
+                                            forgotten bookmarks
                                         </span>
                                     </li>
                                 </T>
@@ -414,13 +413,6 @@ export default async function Home() {
                                         <span>
                                             Gain AI-powered insights into your
                                             content
-                                        </span>
-                                    </li>
-                                    <li className="flex items-center gap-2 text-xs">
-                                        <Bot className="inline-block size-4 shrink-0" />
-                                        <span>
-                                            Give your agents the ability to
-                                            interact with your bookmarks (MCP)
                                         </span>
                                     </li>
                                 </T>
@@ -564,7 +556,7 @@ export default async function Home() {
                                 <p className="text-pretty font-medium text-[#0A0B0D] text-[15px] leading-[1.4] opacity-50">
                                     <T>
                                         Docs, issues, code, tutorials. Find that
-                                        one link instantly without re‑searching.
+                                        one link instantly.
                                     </T>
                                 </p>
                             </div>
@@ -575,7 +567,7 @@ export default async function Home() {
                                 <p className="text-pretty font-medium text-[#0A0B0D] text-[15px] leading-[1.4] opacity-50">
                                     <T>
                                         Threads, videos, inspiration. Group
-                                        ideas into collections and publish.
+                                        ideas into collections and share them.
                                     </T>
                                 </p>
                             </div>
@@ -585,8 +577,9 @@ export default async function Home() {
                                 </h3>
                                 <p className="text-pretty font-medium text-[#0A0B0D] text-[15px] leading-[1.4] opacity-50">
                                     <T>
-                                        An opinionated inbox between bookmarking
-                                        and note‑taking. Structured, searchable,
+                                        Use Cache as the missing step between
+                                        bookmarking and note-taking, made for
+                                        thought. Structured, searchable,
                                         trusted.
                                     </T>
                                 </p>
