@@ -53,7 +53,6 @@ export function saveFile(
         extension: FILE_EXTENSION;
         mimeTypes?: string[];
         description: string;
-        /** existing FileSystemHandle */
         fileHandle?: FileSystemFileHandle | null;
     }
 ) {

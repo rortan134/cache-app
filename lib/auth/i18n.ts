@@ -1,28 +1,26 @@
 import { localization, type BuiltInLocales } from "better-auth-localization";
 
 const LOCALE_COOKIE_NAME = "generaltranslation.locale";
+const LOCALE_FALLBACK = "default";
 
-export function createi18n() {
+export function i18nPlugin() {
     return localization({
-        defaultLocale: "default",
-        fallbackLocale: "default",
+        defaultLocale: LOCALE_FALLBACK,
+        fallbackLocale: LOCALE_FALLBACK,
         getLocale: (request) => {
             if (!request) {
-                return "default";
+                return LOCALE_FALLBACK;
             }
             const cookies = request.headers.get("cookie");
             if (!cookies) {
-                return "default";
+                return LOCALE_FALLBACK;
             }
-            const match = cookies
+            const locale = cookies
                 .split("; ")
-                .find((c) => c.startsWith(`${LOCALE_COOKIE_NAME}=`));
-            if (!match) {
-                return "default";
-            }
-            const locale = match.split("=")[1];
-            if (locale === "en-US") {
-                return "default";
+                .find((c) => c.startsWith(`${LOCALE_COOKIE_NAME}=`))
+                ?.split("=")[1];
+            if (!locale || locale === "en-US") {
+                return LOCALE_FALLBACK;
             }
             return locale as BuiltInLocales;
         },

@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
     authClient,
-    hasGoogleOneTapClientId,
+    HAS_GOOGLE_ONE_TAP_CLIENT_ID,
     useSession,
 } from "@/lib/auth/client";
 import type { auth } from "@/lib/auth/server";
@@ -28,7 +28,7 @@ export function GoogleOneTapTrigger() {
     const { data: session } = useSession();
 
     React.useEffect(() => {
-        if (session || !hasGoogleOneTapClientId) {
+        if (session || !HAS_GOOGLE_ONE_TAP_CLIENT_ID) {
             return;
         }
 

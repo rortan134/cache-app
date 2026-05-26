@@ -14,13 +14,8 @@ export interface PlanPrice {
     nickname?: string | null;
 }
 
-export async function getPlanPriceById(
-    priceId: string
-): Promise<PlanPrice | null> {
+export async function getPlanPriceById(priceId: string): Promise<PlanPrice> {
     const price = await withStripe((stripe) => stripe.prices.retrieve(priceId));
-    if (!price) {
-        return null;
-    }
 
     if (price.type !== "recurring" || !price.recurring?.interval) {
         throw new StripeError({
@@ -54,8 +49,8 @@ export function getPlanPriceIds(): { monthly: string; yearly: string } {
 }
 
 export async function getPlanPrices(): Promise<{
-    monthly: PlanPrice | null;
-    yearly: PlanPrice | null;
+    monthly: PlanPrice;
+    yearly: PlanPrice;
 }> {
     const prices = getPlanPriceIds();
     const [monthly, yearly] = await Promise.all([
@@ -70,12 +65,9 @@ const STRIPE_FEE_PERCENT = 0.044;
 const STRIPE_FEE_FLAT_CENTS = 30;
 const STRIPE_FEE_NET_MULTIPLIER = 1 - STRIPE_FEE_PERCENT;
 
-export function calculatePriceFeeInCents(x: number) {
-    // math: x = total - (total * STRIPE_FEE_PERCENT + STRIPE_FEE_FLAT_CENTS)
-    // math: x = total * STRIPE_FEE_NET_MULTIPLIER - STRIPE_FEE_FLAT_CENTS
-    // math: (x + STRIPE_FEE_FLAT_CENTS) / STRIPE_FEE_NET_MULTIPLIER = total
+export function calculatePriceFeeInCents(netAmountCents: number) {
     return Math.round(
-        ((x + STRIPE_FEE_FLAT_CENTS) / STRIPE_FEE_NET_MULTIPLIER) *
+        ((netAmountCents + STRIPE_FEE_FLAT_CENTS) / STRIPE_FEE_NET_MULTIPLIER) *
             STRIPE_FEE_PERCENT +
             STRIPE_FEE_FLAT_CENTS
     );

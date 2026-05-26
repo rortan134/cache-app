@@ -13,7 +13,9 @@ const EXTENSION_INGEST_TOKEN_LENGTH = 48;
  * so this helper keeps that transport shape close to auth without coupling
  * domain-agnostic procedure utilities to the auth module.
  */
-export async function requireActionUserId(unauthorizedMessage: string): Promise<
+export async function requireActionUserId(
+    unauthorizedMessage = "Sign in to continue."
+): Promise<
     | {
           status: "UNAUTHORIZED";
           message: string;
@@ -40,8 +42,17 @@ export async function requireActionUserId(unauthorizedMessage: string): Promise<
 export async function getOrCreateExtensionIngestToken(args: {
     userId: string;
 }): Promise<string> {
+    const existing = await prisma.user.findUnique({
+        select: { extensionIngestToken: true },
+        where: { id: args.userId },
+    });
+
+    if (existing?.extensionIngestToken) {
+        return existing.extensionIngestToken;
+    }
+
     const token = createExtensionIngestToken();
-    const updateResult = await prisma.user.updateMany({
+    const { count } = await prisma.user.updateMany({
         data: { extensionIngestToken: token },
         where: {
             extensionIngestToken: null,
@@ -49,7 +60,7 @@ export async function getOrCreateExtensionIngestToken(args: {
         },
     });
 
-    if (updateResult.count > 0) {
+    if (count > 0) {
         return token;
     }
 
@@ -58,11 +69,11 @@ export async function getOrCreateExtensionIngestToken(args: {
         where: { id: args.userId },
     });
 
-    if (user.extensionIngestToken) {
-        return user.extensionIngestToken;
+    if (!user.extensionIngestToken) {
+        throw new Error("Failed to persist extension ingest token");
     }
 
-    throw new Error("Failed to persist extension ingest token");
+    return user.extensionIngestToken;
 }
 
 /**

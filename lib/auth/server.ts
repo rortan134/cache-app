@@ -2,7 +2,6 @@ import { getStripeClient, getStripeWebhookSecret } from "@/lib/billing/client";
 import { getPlanPriceIds } from "@/lib/billing/prices";
 import { APP_NAME, BASE_URL } from "@/lib/common/constants";
 import { createLogger } from "@/lib/common/logs/console/logger";
-import { getSafeOrigin } from "@/lib/common/url";
 import { seedBuiltInAutomationsForUser } from "@/lib/intelligence/automations/service";
 import { prisma } from "@/prisma";
 import type { OAuth2Tokens } from "@better-auth/core/oauth2";
@@ -13,10 +12,9 @@ import { nextCookies } from "better-auth/next-js";
 import type { GenericOAuthConfig } from "better-auth/plugins";
 import { genericOAuth, multiSession, oneTap } from "better-auth/plugins";
 import * as z from "zod";
-import { createi18n } from "./i18n";
+import { i18nPlugin } from "./i18n";
 
-const BASE_AUTH_URL =
-    process.env.BETTER_AUTH_URL ?? BASE_URL ?? getSafeOrigin();
+const BASE_AUTH_URL = process.env.BETTER_AUTH_URL ?? BASE_URL;
 
 const TRUSTED_ORIGINS = [
     BASE_AUTH_URL,
@@ -35,7 +33,6 @@ const GOOGLE_CLIENT_SECRET = requiredEnv("GOOGLE_CLIENT_SECRET");
 
 const GOOGLE_PHOTOS_SCOPE =
     "https://www.googleapis.com/auth/photospicker.mediaitems.readonly";
-const GITHUB_USER_AGENT = APP_NAME;
 const log = createLogger("Auth:server");
 
 // ---------------------------------------------------------------------------
@@ -263,7 +260,7 @@ function buildGitHubOAuthConfig(): GenericOAuthConfig | null {
                 mapGitHubUser,
                 {
                     Accept: "application/vnd.github+json",
-                    "User-Agent": GITHUB_USER_AGENT,
+                    "User-Agent": APP_NAME,
                 }
             ),
         providerId: "github",
@@ -323,7 +320,7 @@ export const auth = betterAuth({
         enabled: false,
     },
     plugins: [
-        createi18n(),
+        i18nPlugin(),
         multiSession(),
         oneTap({ clientId: GOOGLE_CLIENT_ID }),
         genericOAuth({ config: genericOAuthConfig }),

@@ -52,7 +52,7 @@ export type Capability = (typeof Capabilities)[keyof typeof Capabilities];
 type PlanCapabilities = Record<Capability, boolean>;
 
 export function getSubscriptionPlanCapabilities(
-    subscription: Subscription
+    subscription: Subscription | null
 ): PlanCapabilities {
     const hasAccess = isActiveSubscriptionStatus(subscription?.status);
 

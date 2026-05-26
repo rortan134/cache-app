@@ -41,7 +41,7 @@
         "copy-to-clipboard": "^4.0.2",
         "cron": "^4.4.0",
         "culori": "^4.0.2",
-        "dayjs": "^1.11.20",
+        "dayjs": "^1.11.21",
         "dotenv": "^17.4.2",
         "gt-next": "^6.16.30",
         "ipaddr.js": "^2.4.0",
@@ -93,7 +93,7 @@
         "prisma": "^7.8.0",
         "tailwindcss": "^4",
         "typescript": "^6.0.3",
-        "ultracite": "7.7.0"
+        "ultracite": "7.8.0"
     },
     "name": "cache",
     "scripts": {

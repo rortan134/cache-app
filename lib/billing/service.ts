@@ -18,7 +18,7 @@ export async function getUserActiveSubscriptionStatus(userId: string) {
         },
     });
 
-    return subscription ?? null;
+    return subscription;
 }
 
 export async function userHasActiveSubscription(
