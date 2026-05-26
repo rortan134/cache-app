@@ -2198,7 +2198,7 @@ function BrowserGroup({ children }: { children: ReactNode }) {
     );
 }
 
-function ValidCategoryThumbnail({ urls }: { urls: string[] }) {
+function CategoryThumbnail({ urls }: { urls: string[] }) {
     const [validUrls, setValidUrls] = React.useState<string[]>([]);
     const [imageError, setImageError] = React.useState(false);
 
@@ -2371,9 +2371,7 @@ function buildSearchPaletteGroups({
                             render: () => (
                                 <div className="flex aspect-4/3 size-full flex-1 flex-col">
                                     {thumbnails.length > 0 && (
-                                        <ValidCategoryThumbnail
-                                            urls={thumbnails}
-                                        />
+                                        <CategoryThumbnail urls={thumbnails} />
                                     )}
                                     <span className="z-30 truncate p-1 font-medium">
                                         {collection.name}

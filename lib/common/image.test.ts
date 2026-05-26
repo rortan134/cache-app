@@ -13,11 +13,14 @@ describe("filterValidImageUrls", () => {
             "ftp://example.com/image.jpg",
             "https://example.com/photo.jpg",
             "http://cdn.example.com/image.png",
+            "/api/preview?url=https%3A%2F%2Fexample.com%2Fpage",
+            "//cdn.example.com/protocol-relative.png",
         ]);
 
         expect(result).toEqual([
             "https://example.com/photo.jpg",
             "http://cdn.example.com/image.png",
+            "/api/preview?url=https%3A%2F%2Fexample.com%2Fpage",
         ]);
     });
 
