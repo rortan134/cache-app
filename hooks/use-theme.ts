@@ -1,3 +1,4 @@
+import { canUseDOM } from "@/lib/common/dom";
 import { useStableCallback } from "@base-ui/utils/useStableCallback";
 import { useEffect, useSyncExternalStore } from "react";
 
@@ -28,13 +29,11 @@ function emitChange() {
 }
 
 function hasThemeStorage() {
-    return typeof window !== "undefined" && typeof localStorage !== "undefined";
+    return canUseDOM && typeof localStorage !== "undefined";
 }
 
 function getSystemDark() {
-    return (
-        typeof window !== "undefined" && window.matchMedia(MEDIA_QUERY).matches
-    );
+    return canUseDOM && window.matchMedia(MEDIA_QUERY).matches;
 }
 
 function getStored(): Theme {
@@ -111,7 +110,7 @@ export function syncBrowserChromeTheme() {
 }
 
 function applyTheme(theme: Theme, suppressTransitions = false) {
-    if (typeof document === "undefined" || typeof window === "undefined") {
+    if (!canUseDOM) {
         return;
     }
     if (suppressTransitions) {
@@ -129,8 +128,7 @@ function applyTheme(theme: Theme, suppressTransitions = false) {
     }
 }
 
-// Apply immediately on module load to prevent flash
-if (typeof document !== "undefined" && hasThemeStorage()) {
+if (canUseDOM) {
     applyTheme(getStored());
 }
 
@@ -158,9 +156,9 @@ function getServerSnapshot() {
 }
 
 function subscribe(listener: () => void): () => void {
-    if (typeof window === "undefined") {
+    if (!canUseDOM) {
         return () => {
-            // No-op
+            // No-op during SSR
         };
     }
     listeners.push(listener);
@@ -199,9 +197,9 @@ export function useTheme() {
     );
     const theme = snapshot.theme;
 
-    const snapshot_ = snapshot.systemDark ? "dark" : "light";
+    const colorScheme = snapshot.systemDark ? "dark" : "light";
     const resolvedTheme: "light" | "dark" =
-        theme === "system" ? snapshot_ : theme;
+        theme === "system" ? colorScheme : theme;
 
     const setTheme = useStableCallback((next: Theme) => {
         if (!hasThemeStorage()) {

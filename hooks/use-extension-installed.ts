@@ -9,7 +9,6 @@ function readExtensionInstalledFlag(window: Window): boolean {
             "true"
         );
     } catch {
-        // If accessing the object fails, the extension is likely not installed
         return false;
     }
 }
@@ -33,16 +32,10 @@ function subscribe(callbackFn: () => void) {
     };
 }
 
-/**
- * Tracks whether the Cache browser extension is installed by checking a DOM
- * data attribute and listening for extension readiness events.
- */
 export function useIsExtensionInstalled(): boolean {
-    const isInstalled = React.useSyncExternalStore(
+    return React.useSyncExternalStore(
         subscribe,
         () => readExtensionInstalledFlag(getOwnerWindow()),
         () => false
     );
-
-    return isInstalled;
 }

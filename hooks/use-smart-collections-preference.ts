@@ -15,12 +15,6 @@ async function fetchSmartCollectionsPreference(): Promise<SmartCollectionsPrefer
     return { disabled: result.disabled };
 }
 
-/**
- * Fetches the user's Smart Collections preference client-side.
- *
- * Returns `true` when the user has disabled Smart Collections. Falls back to
- * `false` on error so the feature stays enabled by default.
- */
 export function useSmartCollectionsPreference() {
     const { data, error, isLoading, mutate } = useSWR(
         "smart-collections-preference",

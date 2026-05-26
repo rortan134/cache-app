@@ -1,3 +1,4 @@
+import { getOwnerWindow } from "@/lib/common/dom";
 import * as React from "react";
 
 const handleBeforeUnload = (event: BeforeUnloadEvent) => {
@@ -14,11 +15,14 @@ export const usePreventWindowUnload = (
     React.useEffect(() => {
         const enabled =
             typeof isEnabled === "function" ? isEnabled() : isEnabled;
+
         if (!enabled) {
             return;
         }
-        window.addEventListener("beforeunload", handleBeforeUnload);
+
+        const ownerWindow = getOwnerWindow();
+        ownerWindow.addEventListener("beforeunload", handleBeforeUnload);
         return () =>
-            window.removeEventListener("beforeunload", handleBeforeUnload);
+            ownerWindow.removeEventListener("beforeunload", handleBeforeUnload);
     }, [isEnabled]);
 };
