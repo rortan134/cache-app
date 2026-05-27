@@ -86,7 +86,7 @@
         "@types/react": "^19",
         "@types/react-dom": "^19",
         "babel-plugin-react-compiler": "1.0.0",
-        "gt": "^2.14.41",
+        "gt": "^2.14.42",
         "husky": "^9.1.7",
         "knip": "^6.14.2",
         "mitata": "^1.0.34",
