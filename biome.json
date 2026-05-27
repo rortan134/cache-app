@@ -39,13 +39,13 @@
     "linter": {
         "rules": {
             "complexity": {
-                "noUselessCatchBinding": "off",
-                "noExcessiveCognitiveComplexity": "off"
+                "noExcessiveCognitiveComplexity": "off",
+                "noUselessCatchBinding": "off"
             },
             "performance": {
-                "noNamespaceImport": "off",
+                "noBarrelFile": "off",
                 "noImgElement": "off",
-                "noBarrelFile": "off"
+                "noNamespaceImport": "off"
             },
             "suspicious": {
                 "noArrayIndexKey": "off",
