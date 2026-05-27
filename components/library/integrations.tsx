@@ -34,7 +34,6 @@ import { executeGooglePhotosPickerFlow } from "@/lib/integrations/google-photos/
 import {
     INTEGRATIONS,
     getIntegration,
-    listIntegrationActions,
     type ExtensionOpenBehavior,
     type IntegrationActionRole,
     type IntegrationDirection,
@@ -205,15 +204,19 @@ function isActionVisible(
     return true;
 }
 
-function buildCapabilityMissingError(args: {
+function buildCapabilityMissingError({
+    capability,
+    integrationId,
+    message,
+}: {
     capability: "connect" | "copy" | "open" | "sync";
     integrationId: IntegrationId;
     message: string;
 }): IntegrationUserError {
     return new IntegrationUserError({
-        capability: args.capability,
-        integrationId: args.integrationId,
-        message: args.message,
+        capability,
+        integrationId,
+        message,
         operation: "executeIntegrationAction",
     });
 }
@@ -351,7 +354,8 @@ function useIntegrationAction({
         }
     );
 
-    const actions = listIntegrationActions(id, direction)
+    const actions = integration.actions
+        .filter((action) => action.for === direction)
         .filter((action) => isActionVisible(action, isConnected))
         .map(
             (action) =>

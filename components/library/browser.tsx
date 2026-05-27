@@ -160,9 +160,19 @@ import {
     type NoteMutationResult,
 } from "@/lib/integrations/notes/actions";
 import {
+    askCache,
     getSectionDescription,
     type SectionDescriptionResult,
 } from "@/lib/intelligence/actions";
+import {
+    ASK_CACHE_CONTEXT_COLLECTION_LIMIT,
+    ASK_CACHE_CONTEXT_DOMAIN_LIMIT,
+} from "@/lib/intelligence/ask-cache";
+import type {
+    AskCacheComposerPatch,
+    AskCacheResult,
+    AskCacheRequest,
+} from "@/lib/intelligence/ask-cache";
 import {
     SECTION_DESCRIPTION_CONTEXT_ITEMS_LIMIT,
     SECTION_DESCRIPTION_DOMAIN_MAX_LENGTH,
@@ -838,7 +848,13 @@ type CollectionMembershipFilter =
     | "not-in-collections";
 type ColumnCountMode = "auto" | "2" | "3" | "4" | "5" | "6";
 type LayoutMode = "masonry" | "board";
-type PaletteSection = "search" | "filter" | "group" | "sort" | "layout";
+type PaletteSection =
+    | "search"
+    | "filter"
+    | "group"
+    | "sort"
+    | "layout"
+    | "ai-response";
 
 const DEFAULT_SORT_MODE: SortMode = "added-newest";
 const DEFAULT_COLUMN_COUNT_MODE: ColumnCountMode = "auto";
@@ -976,6 +992,23 @@ interface LibraryCommandAttachment
     extends ReturnType<typeof createFileAttachment> {
     id: string;
 }
+
+type AskCacheResponseState =
+    | {
+          prompt: string;
+          status: "loading";
+      }
+    | {
+          markdown: string;
+          operationCount: number;
+          prompt: string;
+          status: "success";
+      }
+    | {
+          message: string;
+          prompt: string;
+          status: "error";
+      };
 
 function itemDomain(url: string): string {
     return parseDisplayUrl(url) || "Other";
@@ -1625,6 +1658,69 @@ function PaletteChip({
     );
 }
 
+function AskCacheResponsePanel({
+    response,
+}: {
+    response: AskCacheResponseState | null;
+}) {
+    if (!response || response.status === "loading") {
+        return (
+            <div className="flex min-w-0 flex-1 flex-col gap-2 py-1 pr-2">
+                <div className="flex items-center gap-2">
+                    <GradientWaveText
+                        ariaLabel="Ask Cache"
+                        className="font-medium text-muted-foreground text-xs"
+                    >
+                        Ask Cache
+                    </GradientWaveText>
+                    {response?.prompt ? (
+                        <span className="truncate text-muted-foreground text-xs">
+                            {response.prompt}
+                        </span>
+                    ) : null}
+                </div>
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-2/3" />
+            </div>
+        );
+    }
+
+    if (response.status === "error") {
+        return (
+            <div className="flex min-w-0 flex-1 flex-col gap-1 py-1 pr-2">
+                <GradientWaveText
+                    ariaLabel="Ask Cache"
+                    className="font-medium text-muted-foreground text-xs"
+                >
+                    Ask Cache
+                </GradientWaveText>
+                <p className="text-sm">{response.message}</p>
+            </div>
+        );
+    }
+
+    return (
+        <div className="flex min-w-0 flex-1 flex-col gap-2 py-1 pr-2">
+            <div className="flex items-center gap-2">
+                <GradientWaveText
+                    ariaLabel="Ask Cache"
+                    className="font-medium text-muted-foreground text-xs"
+                >
+                    Ask Cache
+                </GradientWaveText>
+                {response.operationCount > 0 ? (
+                    <Badge variant="secondary">
+                        Applied {response.operationCount}
+                    </Badge>
+                ) : null}
+            </div>
+            <Streamdown className="text-sm leading-relaxed">
+                {response.markdown}
+            </Streamdown>
+        </div>
+    );
+}
+
 function PaletteAttachmentChip({
     attachment,
     onRemove,
@@ -2246,6 +2342,7 @@ function buildSearchPaletteGroups({
     draft,
     hasAnyRefinements,
     navigationItems,
+    onAskCacheSubmit,
     onClearCollectionFilters,
     onToggleCollectionSelection,
     selectedCollectionIds,
@@ -2260,6 +2357,7 @@ function buildSearchPaletteGroups({
     draft: string;
     hasAnyRefinements: boolean;
     navigationItems: CommandPaletteItem[];
+    onAskCacheSubmit: (prompt: string) => void | Promise<void>;
     onClearCollectionFilters: () => void;
     onToggleCollectionSelection: (id: string) => void;
     selectedCollectionIds: string[];
@@ -2306,9 +2404,7 @@ function buildSearchPaletteGroups({
                 {
                     description: "AI Search",
                     label: "Ask Cache",
-                    onSelect: () => {
-                        // ! TODO: intentionally disabled for now
-                    },
+                    onSelect: () => onAskCacheSubmit(draft),
                     shortcut: "Tab",
                     value: `ask cache ${draft}`,
                 },
@@ -2421,7 +2517,36 @@ function buildSearchPaletteGroups({
     return groups;
 }
 
+function buildAskCachePaletteGroups({
+    askCacheResponse,
+    backItem,
+}: {
+    askCacheResponse: AskCacheResponseState | null;
+    backItem: CommandPaletteItem;
+}): CommandPaletteGroup[] {
+    return [
+        {
+            items: [backItem],
+            label: "Navigation",
+        },
+        {
+            items: [
+                {
+                    label: "Ask Cache response",
+                    onSelect: () => undefined,
+                    render: () => (
+                        <AskCacheResponsePanel response={askCacheResponse} />
+                    ),
+                    value: "ask cache response",
+                },
+            ],
+            label: "Ask Cache",
+        },
+    ];
+}
+
 interface BuildLibraryPaletteGroupsInput {
+    askCacheResponse: AskCacheResponseState | null;
     clearLibraryPalette: () => void;
     collectionMembershipFilter: CollectionMembershipFilter;
     collectionPreviewThumbnailUrlsById: Map<string, string[]>;
@@ -2434,6 +2559,7 @@ interface BuildLibraryPaletteGroupsInput {
     }[];
     groupBy: GroupByMode;
     layoutMode: LayoutMode;
+    onAskCacheSubmit: (prompt: string) => void | Promise<void>;
     onClearCollectionFilters: () => void;
     onToggleCollectionSelection: (id: string) => void;
     openPaletteSection: (
@@ -2493,6 +2619,7 @@ function buildDomainPaletteOptions(
 }
 
 function buildLibraryPaletteGroups({
+    askCacheResponse,
     collections,
     clearLibraryPalette,
     columnCountMode,
@@ -2503,6 +2630,7 @@ function buildLibraryPaletteGroups({
     groupBy,
     layoutMode,
     onClearCollectionFilters,
+    onAskCacheSubmit,
     onToggleCollectionSelection,
     openPaletteSection,
     paletteInput,
@@ -2593,6 +2721,7 @@ function buildLibraryPaletteGroups({
             draft,
             hasAnyRefinements,
             navigationItems,
+            onAskCacheSubmit,
             onClearCollectionFilters,
             onToggleCollectionSelection,
             searchTerms: [...searchTerms],
@@ -2600,6 +2729,13 @@ function buildLibraryPaletteGroups({
             setCommandListOpen,
             setPaletteInput,
             setSearchTerms,
+        });
+    }
+
+    if (paletteSection === "ai-response") {
+        return buildAskCachePaletteGroups({
+            askCacheResponse,
+            backItem,
         });
     }
 
@@ -4313,6 +4449,8 @@ export function Browser({
     const [commandAttachments, setCommandAttachments] = React.useState<
         LibraryCommandAttachment[]
     >([]);
+    const [askCacheResponse, setAskCacheResponse] =
+        React.useState<AskCacheResponseState | null>(null);
     const [activeNote, setActiveNote] = React.useState<
         LibraryItemWithCollections | typeof NOTE_DRAWER_NEW | null
     >(null);
@@ -4331,6 +4469,7 @@ export function Browser({
     const commandPanelContainerRef = React.useRef<HTMLDivElement>(null);
     const paletteInputRef = React.useRef<HTMLInputElement>(null);
     const commandAttachmentsRef = React.useRef<LibraryCommandAttachment[]>([]);
+    const askCacheRequestVersionRef = React.useRef(0);
     commandAttachmentsRef.current = commandAttachments;
 
     const createResultsNameInputId = React.useId();
@@ -4650,6 +4789,147 @@ export function Browser({
         setCommandListOpen(false);
     });
 
+    const buildAskCacheRequest = useStableCallback(
+        (prompt: string): AskCacheRequest => ({
+            composerState: {
+                collectionMembershipFilter,
+                columnCountMode,
+                domainFilters,
+                groupBy,
+                layoutMode,
+                searchTerms,
+                selectedCollectionIds,
+                sortMode,
+                sourceFilters,
+            },
+            prompt,
+            visibleContext: {
+                availableCollections: collections
+                    .slice(0, ASK_CACHE_CONTEXT_COLLECTION_LIMIT)
+                    .map((collection) => ({
+                        id: collection.id,
+                        itemCount: collection.itemCount,
+                        name: collection.name,
+                    })),
+                availableDomains: domainOptions
+                    .filter((option) => option.value !== ALL_DOMAIN_FILTER)
+                    .slice(0, ASK_CACHE_CONTEXT_DOMAIN_LIMIT)
+                    .map((option) => option.value),
+                filteredItemCount: filterLibraryBrowserItems(items, {
+                    collectionMembershipFilter,
+                    domainFilters,
+                    searchTerms,
+                    selectedCollectionIds,
+                    sourceFilters,
+                }).length,
+                totalItemCount,
+            },
+        })
+    );
+
+    const applyAskCachePatch = useStableCallback(
+        (patch: AskCacheComposerPatch) => {
+            if (patch.reset) {
+                clearLibraryPalette();
+            }
+
+            if (patch.searchTerms) {
+                setSearchTerms(patch.searchTerms);
+            }
+            if (patch.sourceFilters) {
+                setSourceFilters(patch.sourceFilters);
+            }
+            if (patch.domainFilters) {
+                setDomainFilters(patch.domainFilters);
+            }
+            if (patch.collectionMembershipFilter) {
+                setCollectionMembershipFilter(patch.collectionMembershipFilter);
+            }
+            if (patch.groupBy) {
+                setGroupBy(patch.groupBy);
+            }
+            if (patch.sortMode) {
+                setSortMode(patch.sortMode);
+            }
+            if (patch.columnCountMode) {
+                setColumnCountMode(patch.columnCountMode);
+            }
+            if (patch.layoutMode) {
+                setLayoutMode(patch.layoutMode);
+            }
+            if (patch.selectedCollectionIds) {
+                onClearCollectionFilters();
+                for (const collectionId of patch.selectedCollectionIds) {
+                    onRemoveCollectionFilter(collectionId);
+                }
+            }
+        }
+    );
+
+    const handleAskCacheResult = useStableCallback(
+        (prompt: string, result: AskCacheResult) => {
+            if (result.status !== "SUCCESS") {
+                setAskCacheResponse({
+                    message: result.message,
+                    prompt,
+                    status: "error",
+                });
+                return;
+            }
+
+            for (const operation of result.operations) {
+                applyAskCachePatch(operation);
+            }
+            setPaletteSection("ai-response");
+            setCommandListOpen(true);
+            setAskCacheResponse({
+                markdown: result.markdown,
+                operationCount: result.operations.length,
+                prompt,
+                status: "success",
+            });
+        }
+    );
+
+    const handleAskCacheSubmit = useStableCallback(
+        async (rawPrompt: string) => {
+            const prompt = rawPrompt.trim();
+            if (prompt.length === 0) {
+                return;
+            }
+
+            const requestVersion = askCacheRequestVersionRef.current + 1;
+            askCacheRequestVersionRef.current = requestVersion;
+            setAskCacheResponse({ prompt, status: "loading" });
+            setPaletteSection("ai-response");
+            setPaletteInput("");
+            setCommandListOpen(true);
+
+            try {
+                const result = await askCache(buildAskCacheRequest(prompt));
+                if (askCacheRequestVersionRef.current !== requestVersion) {
+                    return;
+                }
+                handleAskCacheResult(prompt, result);
+            } catch (error) {
+                if (askCacheRequestVersionRef.current !== requestVersion) {
+                    return;
+                }
+                log.error("Failed to submit Ask Cache request", error);
+                setAskCacheResponse({
+                    message: "Ask Cache is unavailable right now.",
+                    prompt,
+                    status: "error",
+                });
+            } finally {
+                if (askCacheRequestVersionRef.current === requestVersion) {
+                    setPaletteSection("ai-response");
+                    setCommandListOpen(true);
+                }
+            }
+        }
+    );
+
     const handlePaletteInputKeyDown = useStableCallback(
         (event: React.KeyboardEvent<HTMLInputElement>) => {
             if (event.key === "Escape") {
@@ -4666,6 +4946,19 @@ export function Browser({
                 }
                 setCommandListOpen(false);
                 event.currentTarget.blur();
+                return;
+            }
+
+            if (
+                event.key === "Tab" &&
+                paletteSection === "search" &&
+                paletteInput.trim() !== ""
+            ) {
+                event.preventDefault();
+                event.stopPropagation();
+                handleAskCacheSubmit(paletteInput).catch((error) => {
+                    log.error("Failed to handle Ask Cache shortcut", error);
+                });
                 return;
             }
 
@@ -4715,6 +5008,7 @@ export function Browser({
     );
 
     const paletteGroups = buildLibraryPaletteGroups({
+        askCacheResponse,
         clearLibraryPalette,
         collectionMembershipFilter,
         collectionPreviewThumbnailUrlsById,
@@ -4724,6 +5018,7 @@ export function Browser({
         domainOptions,
         groupBy,
         layoutMode,
+        onAskCacheSubmit: handleAskCacheSubmit,
         onClearCollectionFilters,
         onToggleCollectionSelection: onRemoveCollectionFilter,
         openPaletteSection,
@@ -4766,6 +5061,8 @@ export function Browser({
         inputPlaceholder = "Sort results…";
     } else if (paletteSection === "layout") {
         inputPlaceholder = "Change the layout…";
+    } else if (paletteSection === "ai-response") {
+        inputPlaceholder = "Ask Cache…";
     }
 
     const filteredItems = filterLibraryBrowserItems(items, {

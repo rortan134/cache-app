@@ -6,10 +6,16 @@ import { requireActionUserId } from "@/lib/auth/service";
 import { request as getArcjetRequest } from "@arcjet/next";
 import { GenAiGenerationError, GenAiProtectionError } from "./error";
 import {
+    AskCacheRequestSchema,
+    type AskCacheRequest,
+    type AskCacheResult,
+} from "./ask-cache";
+import {
     SECTION_DESCRIPTION_FALLBACK_TEXT,
     SectionDescriptionRequestSchema,
     type DescriptionRequest,
 } from "./overview";
+import { runAskCacheAgent } from "./ask-cache-service";
 import { generateCollectionSummary } from "./service";
 
 const log = createLogger("intelligence:actions");
@@ -88,6 +94,67 @@ export async function getSectionDescription(
             message: "We couldn't generate this overview right now.",
             status: "ERROR",
             summary: SECTION_DESCRIPTION_FALLBACK_TEXT,
+        };
+    }
+}
+
+export async function askCache(
+    input: AskCacheRequest
+): Promise<AskCacheResult> {
+    const parsed = AskCacheRequestSchema.safeParse(input);
+    if (!parsed.success) {
+        return {
+            message: getValidationErrorMessage(
+                parsed,
+                "Enter a valid Ask Cache request."
+            ),
+            status: "INVALID",
+        };
+    }
+
+    const auth = await requireActionUserId("Sign in again to ask Cache.");
+    if ("status" in auth) {
+        return auth;
+    }
+
+    try {
+        const result = await runAskCacheAgent({
+            input: parsed.data,
+            request: await getArcjetRequest(),
+            userId: auth.userId,
+        });
+
+        return {
+            markdown: result.markdown,
+            operations: result.operations,
+            status: "SUCCESS",
+        };
+    } catch (error) {
+        if (GenAiProtectionError.isInstance(error)) {
+            return {
+                message: error.data.message,
+                status:
+                    error.data.reason === "quota_exceeded"
+                        ? "QUOTA_EXCEEDED"
+                        : "FORBIDDEN",
+            };
+        }
+
+        if (GenAiGenerationError.isInstance(error)) {
+            return {
+                markdown:
+                    "Ask Cache could not complete that request. Please try again.",
+                message: error.data.message,
+                status: "ERROR",
+            };
+        }
+
+        log.error("Failed to ask Cache", error);
+        return {
+            markdown:
+                "Ask Cache could not complete that request. Please try again.",
+            message: "We couldn't ask Cache right now.",
+            status: "ERROR",
         };
     }
 }

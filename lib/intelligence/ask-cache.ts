@@ -1,0 +1,166 @@
+import { LibraryItemSource } from "@/prisma/client/enums";
+import * as z from "zod";
+
+export const ASK_CACHE_PROMPT_MAX_LENGTH = 500;
+export const ASK_CACHE_SEARCH_TERM_MAX_LENGTH = 200;
+export const ASK_CACHE_DOMAIN_FILTER_MAX_LENGTH = 120;
+export const ASK_CACHE_COLLECTION_NAME_MAX_LENGTH = 120;
+export const ASK_CACHE_CONTEXT_COLLECTION_LIMIT = 200;
+export const ASK_CACHE_CONTEXT_DOMAIN_LIMIT = 200;
+export const ASK_CACHE_OPERATION_LIMIT = 4;
+
+export const ASK_CACHE_SOURCE_FILTER_VALUES = [
+    LibraryItemSource.cache_note,
+    LibraryItemSource.chrome_bookmarks,
+    LibraryItemSource.github_starred_repositories,
+    LibraryItemSource.google_photos,
+    LibraryItemSource.instagram,
+    LibraryItemSource.other,
+    LibraryItemSource.pinterest,
+    LibraryItemSource.tiktok,
+    LibraryItemSource.x_bookmarks,
+    LibraryItemSource.youtube_watch_later,
+] as const;
+
+export const ASK_CACHE_GROUP_BY_VALUES = [
+    "none",
+    "source",
+    "domain",
+    "month-added",
+    "month-created",
+] as const;
+
+export const ASK_CACHE_SORT_MODE_VALUES = [
+    "added-newest",
+    "added-oldest",
+    "created-newest",
+    "created-oldest",
+    "count-desc",
+    "source",
+    "domain",
+] as const;
+
+export const ASK_CACHE_COLUMN_COUNT_VALUES = [
+    "auto",
+    "2",
+    "3",
+    "4",
+    "5",
+    "6",
+] as const;
+
+export const ASK_CACHE_LAYOUT_MODE_VALUES = ["masonry", "board"] as const;
+
+export const ASK_CACHE_COLLECTION_MEMBERSHIP_FILTER_VALUES = [
+    "all",
+    "in-collections",
+    "not-in-collections",
+] as const;
+
+const AskCacheTextSchema = z
+    .string()
+    .trim()
+    .min(1)
+    .max(ASK_CACHE_SEARCH_TERM_MAX_LENGTH);
+
+const AskCacheCollectionIdSchema = z.string().trim().min(1).max(128);
+
+export const AskCacheComposerStateSchema = z.strictObject({
+    collectionMembershipFilter: z.enum(
+        ASK_CACHE_COLLECTION_MEMBERSHIP_FILTER_VALUES
+    ),
+    columnCountMode: z.enum(ASK_CACHE_COLUMN_COUNT_VALUES),
+    domainFilters: z
+        .array(z.string().trim().min(1).max(ASK_CACHE_DOMAIN_FILTER_MAX_LENGTH))
+        .max(20),
+    groupBy: z.enum(ASK_CACHE_GROUP_BY_VALUES),
+    layoutMode: z.enum(ASK_CACHE_LAYOUT_MODE_VALUES),
+    searchTerms: z.array(AskCacheTextSchema).max(10),
+    selectedCollectionIds: z.array(AskCacheCollectionIdSchema).max(50),
+    sortMode: z.enum(ASK_CACHE_SORT_MODE_VALUES),
+    sourceFilters: z
+        .array(z.enum(ASK_CACHE_SOURCE_FILTER_VALUES))
+        .max(ASK_CACHE_SOURCE_FILTER_VALUES.length),
+});
+
+export const AskCacheComposerPatchSchema = z
+    .strictObject({
+        collectionMembershipFilter: z
+            .enum(ASK_CACHE_COLLECTION_MEMBERSHIP_FILTER_VALUES)
+            .optional(),
+        columnCountMode: z.enum(ASK_CACHE_COLUMN_COUNT_VALUES).optional(),
+        domainFilters: z
+            .array(
+                z.string().trim().min(1).max(ASK_CACHE_DOMAIN_FILTER_MAX_LENGTH)
+            )
+            .max(20)
+            .optional(),
+        groupBy: z.enum(ASK_CACHE_GROUP_BY_VALUES).optional(),
+        layoutMode: z.enum(ASK_CACHE_LAYOUT_MODE_VALUES).optional(),
+        reset: z.boolean().optional(),
+        searchTerms: z.array(AskCacheTextSchema).max(10).optional(),
+        selectedCollectionIds: z
+            .array(AskCacheCollectionIdSchema)
+            .max(50)
+            .optional(),
+        sortMode: z.enum(ASK_CACHE_SORT_MODE_VALUES).optional(),
+        sourceFilters: z
+            .array(z.enum(ASK_CACHE_SOURCE_FILTER_VALUES))
+            .max(ASK_CACHE_SOURCE_FILTER_VALUES.length)
+            .optional(),
+    })
+    .refine(
+        (patch) => Object.values(patch).some((value) => value !== undefined),
+        {
+            message: "Enter at least one composer change.",
+        }
+    );
+
+export const AskCacheAvailableCollectionSchema = z.strictObject({
+    id: AskCacheCollectionIdSchema,
+    itemCount: z.int().min(0).max(100_000),
+    name: z.string().trim().min(1).max(ASK_CACHE_COLLECTION_NAME_MAX_LENGTH),
+});
+
+export const AskCacheVisibleContextSchema = z.strictObject({
+    availableCollections: z
+        .array(AskCacheAvailableCollectionSchema)
+        .max(ASK_CACHE_CONTEXT_COLLECTION_LIMIT),
+    availableDomains: z
+        .array(z.string().trim().min(1).max(ASK_CACHE_DOMAIN_FILTER_MAX_LENGTH))
+        .max(ASK_CACHE_CONTEXT_DOMAIN_LIMIT),
+    filteredItemCount: z.int().min(0).max(1_000_000),
+    totalItemCount: z.int().min(0).max(1_000_000),
+});
+
+export const AskCacheRequestSchema = z.strictObject({
+    composerState: AskCacheComposerStateSchema,
+    prompt: z.string().trim().min(1).max(ASK_CACHE_PROMPT_MAX_LENGTH),
+    visibleContext: AskCacheVisibleContextSchema,
+});
+
+export const AskCacheToolUpdateInputSchema = z.strictObject({
+    patch: AskCacheComposerPatchSchema,
+    summary: z.string().trim().min(1).max(200),
+});
+
+export type AskCacheComposerPatch = z.infer<typeof AskCacheComposerPatchSchema>;
+export type AskCacheComposerState = z.infer<typeof AskCacheComposerStateSchema>;
+export type AskCacheRequest = z.infer<typeof AskCacheRequestSchema>;
+
+export type AskCacheResult =
+    | {
+          markdown: string;
+          operations: AskCacheComposerPatch[];
+          status: "SUCCESS";
+      }
+    | {
+          markdown?: string;
+          message: string;
+          status:
+              | "ERROR"
+              | "FORBIDDEN"
+              | "INVALID"
+              | "QUOTA_EXCEEDED"
+              | "UNAUTHORIZED";
+      };
