@@ -143,11 +143,11 @@ export default async function VersusDetailPage({
                                 {title}
                             </h1>
                             <p className="mt-5 max-w-xl text-pretty text-[1.02rem] text-white/68 leading-7">
-                                Cache is built for unifying what you save across
-                                platforms and making it useful later.{" "}
-                                {entry.name} is better known for {entry.focus}.
-                                This page is for people deciding which workflow
-                                fits their saved-content habits better.
+                                Cache unifies what you save across platforms and
+                                makes it useful later. {entry.name} is better
+                                known for {entry.focus}. This page is for people
+                                deciding which workflow fits their saved-content
+                                habits better.
                             </p>
                             <div className="mt-8 flex flex-wrap gap-3">
                                 <Link
@@ -243,9 +243,8 @@ export default async function VersusDetailPage({
                                     {reason.title}
                                 </h3>
                                 <p className="mt-4 text-pretty text-black/62 leading-7">
-                                    {reason.description} In the case of{" "}
-                                    {entry.name}, the main tradeoff is its focus
-                                    on {entry.focus}.
+                                    {reason.description} With {entry.name}, the
+                                    main tradeoff is its focus on {entry.focus}.
                                 </p>
                             </div>
                         ))}
@@ -400,7 +399,7 @@ export default async function VersusDetailPage({
                         Final takeaway
                     </p>
                     <h2 className="mt-4 max-w-2xl text-balance font-medium text-3xl leading-[0.96] tracking-[-0.05em] md:text-5xl">
-                        Cache is for people who want saved things to become
+                        Cache is for people who want what they save to become
                         useful.
                     </h2>
                     <p className="mt-5 max-w-2xl text-pretty text-black/62 leading-7">
@@ -449,7 +448,7 @@ function buildFaqs(
             question: `Who should choose ${entry.name} instead of Cache?`,
         },
         {
-            answer: `Cache overlaps with ${entry.name} because both sit near the ${category.label.toLowerCase()} space, but Cache is positioned around making saved knowledge retrievable and actionable across fragmented sources.`,
+            answer: `Cache overlaps with ${entry.name} because both occupy the ${category.label.toLowerCase()} space, but Cache focuses on making saved knowledge retrievable and actionable across fragmented sources.`,
             question: `Is Cache App an alternative to ${entry.name}?`,
         },
     ];

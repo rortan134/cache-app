@@ -32,7 +32,7 @@ export default function TermsOfServicePage() {
         <article className="flex flex-col gap-8 text-[0.95rem] text-stone-800 leading-relaxed">
             <header className="flex flex-col gap-3">
                 <h1 className="font-semibold text-2xl text-stone-950 tracking-tight">
-                    CachdApp, Inc Terms of Service
+                    CachdApp, Inc. Terms of Service
                 </h1>
                 <p>
                     <strong>Last Updated:</strong> March 31, 2026
@@ -44,7 +44,7 @@ export default function TermsOfServicePage() {
                     Cover Page applies to your use of the Product.
                 </p>
                 <p>
-                    This Agreement is between CachdApp, Inc and the company or
+                    This Agreement is between CachdApp, Inc. and the company or
                     person accessing or using the Product. This Agreement
                     consists of: (1) the Order Form below and (2) the Framework
                     Terms defined below.
@@ -53,9 +53,9 @@ export default function TermsOfServicePage() {
                     If you are accessing or using the Product on behalf of your
                     company, you represent that you are authorized to accept
                     this Agreement on behalf of your company. By signing up,
-                    accessing, or using the Product, Customer indicates its
-                    acceptance of this Agreement and agrees to be bound by the
-                    terms and conditions of this Agreement.
+                    accessing, or using the Product, Customer accepts this
+                    Agreement and agrees to be bound by its terms and
+                    conditions.
                 </p>
             </header>
 
@@ -102,7 +102,7 @@ export default function TermsOfServicePage() {
                     </p>
 
                     <p>
-                        <strong>Subscription Period:</strong> 1 month(s)
+                        <strong>Subscription Period:</strong> 1 month
                     </p>
 
                     <p>
@@ -110,7 +110,7 @@ export default function TermsOfServicePage() {
                         plans. Customer will pay Provider the applicable Fees
                         based on the Product tier and Customer&apos;s usage.
                         Provider may update Product pricing by giving at least
-                        36 days notice to Customer (including by email or
+                        36 days' notice to Customer (including by email or
                         notification within the Product), and the change will
                         apply in the next Subscription Period.
                     </p>
@@ -150,7 +150,7 @@ export default function TermsOfServicePage() {
                     </p>
 
                     <p>
-                        <strong>Provider:</strong> CachdApp, Inc
+                        <strong>Provider:</strong> CachdApp, Inc.
                     </p>
 
                     <p>
@@ -194,7 +194,7 @@ export default function TermsOfServicePage() {
 
                     <p>
                         <strong>General Cap Amount:</strong> The fees paid or
-                        payable by Customer to provider in the 12 month period
+                        payable by Customer to Provider in the 12-month period
                         immediately before the claim
                     </p>
 

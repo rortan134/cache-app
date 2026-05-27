@@ -15,7 +15,7 @@ export async function generateMetadata({
             description: gtPublicString(
                 locale,
                 "logout.metadata.description",
-                "You are being signed out securely."
+                "Signing you out securely."
             ),
             keywords: ["sign out", "logout", "Cache App"],
             locale,

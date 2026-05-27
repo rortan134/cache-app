@@ -128,7 +128,7 @@ export default function VersusIndexPage() {
                             <div className="mt-6 grid gap-3 sm:grid-cols-2">
                                 <PreviewPanel
                                     eyebrow="Cache"
-                                    text="Built for unifying what you save across platforms, then making it searchable, organized, and useful."
+                                    text="Built for unifying what you save across platforms and making it searchable, organized, and useful."
                                 />
                                 <PreviewPanel
                                     eyebrow="Alternatives"
@@ -152,11 +152,11 @@ export default function VersusIndexPage() {
                             </h2>
                         </div>
                         <p className="max-w-2xl text-pretty text-[0.98rem] text-black/62 leading-7">
-                            Cache overlaps several product markets. These pages
-                            help people compare the job-to-be-done more clearly:
-                            unified saved-content retrieval versus reading
-                            queues, classic bookmarking, inspiration boards, or
-                            full PKM systems.
+                            Cache overlaps with several product markets. These
+                            pages help people compare the job-to-be-done more
+                            clearly: unified saved-content retrieval versus
+                            reading queues, classic bookmarking, inspiration
+                            boards, or full PKM systems.
                         </p>
                     </div>
 
@@ -263,7 +263,7 @@ export default function VersusIndexPage() {
                         Cache starts where the algorithmic feed ends.
                     </h2>
                     <p className="mt-5 max-w-2xl text-pretty text-black/62 leading-7">
-                        Every comparison page explains the same product truth
+                        Every comparison page explains the same core positioning
                         from a different angle: Cache is for people who want the
                         things they save to become searchable, organized, and
                         useful when they actually matter.

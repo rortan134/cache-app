@@ -230,7 +230,7 @@ export default function Manifesto() {
                                 <p className="text-[1.25rem] leading-[1.4] opacity-80">
                                     The consumption loop becomes a record of
                                     what caught your eye, what made you think,
-                                    what you wanted to hold onto.
+                                    what you wanted to hold on to.
                                 </p>
                                 <p className="font-medium text-[1.5rem] leading-[1.3]">
                                     Meaning isn't in the feed. It's in what you

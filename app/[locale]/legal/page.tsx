@@ -46,7 +46,8 @@ export default async function LegalIndexPage({
         {
             description: (
                 <T>
-                    Rules for using the service, accounts, and acceptable use.
+                    Rules governing use of the service, management of your
+                    account, and acceptable use.
                 </T>
             ),
             href: `${base}/terms-of-service`,
@@ -88,7 +89,7 @@ export default async function LegalIndexPage({
                     </T>
                 </p>
                 <h1 className="font-semibold text-3xl text-stone-950 tracking-tight sm:text-[2rem] sm:leading-tight">
-                    <T>Legal & policies</T>
+                    <T>Legal and policies</T>
                 </h1>
                 <p className="max-w-2xl text-[0.95rem] text-stone-600 leading-relaxed">
                     <T>
@@ -129,8 +130,8 @@ export default async function LegalIndexPage({
             </ul>
             <p className="relative border-muted border-t pt-6 text-[0.85rem] text-stone-500 leading-relaxed">
                 <T>
-                    These pages may be updated from time to time. The version on
-                    this site is the one in effect when you visit.
+                    These pages may be updated periodically. The version on this
+                    site is the version in effect at the time of your visit.
                 </T>
             </p>
         </div>

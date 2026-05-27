@@ -83,7 +83,7 @@ export default async function Home() {
             {
                 "@type": "Organization",
                 logo: `${BASE_URL}/icon1.png`,
-                name: "CachdApp, Inc",
+                name: "CachdApp, Inc.",
                 url: BASE_URL,
             },
             {
@@ -186,9 +186,9 @@ export default async function Home() {
                                     Curate a library of all the content you love
                                 </h2>
                                 <p className="text-pretty font-medium font-regular text-[#0A0B0D] text-[16px] leading-[1.2] tracking-[-3%] opacity-50">
-                                    Get inspired, find that one lesson, advice,
-                                    recipe, or idea you've been looking for in
-                                    the span of a coffee break.
+                                    Get inspired, find that one lesson, piece of
+                                    advice, recipe, or idea you've been looking
+                                    for in the span of a coffee break.
                                 </p>
                             </T>
                         </div>
@@ -213,7 +213,7 @@ export default async function Home() {
                                     Bring in everything you’ve already saved
                                 </h2>
                                 <p className="text-pretty font-medium font-regular text-[#0A0B0D] text-[16px] leading-[1.2] tracking-[-3%] opacity-50">
-                                    Bring together bookmarks your browser,
+                                    Bring together bookmarks from your browser,
                                     social apps, and videos automatically. Ditch
                                     the endless scrolling and tabbing through
                                     multiple platforms to find what matters to
@@ -336,7 +336,7 @@ export default async function Home() {
                                 </h2>
                                 <p className="text-pretty font-medium font-regular text-[#0A0B0D] text-[16px] leading-[1.2] tracking-[-3%] opacity-50">
                                     Streamline the way you consume and re-engage
-                                    with your saved content from a modern and
+                                    with your saved content through a modern and
                                     powerful interface, right in your browser.
                                 </p>
                             </T>

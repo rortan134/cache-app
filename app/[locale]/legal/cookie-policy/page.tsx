@@ -14,7 +14,7 @@ export async function generateMetadata({
         description: gtPublicString(
             locale,
             "legal.cookies.metadata.description",
-            `Cookie Policy for ${APP_NAME} — cookies and similar technologies used on our sites and products.`
+            `Cookie Policy for ${APP_NAME} — cookies and similar technologies used on our platform.`
         ),
         keywords: ["cookie policy", "cookies", APP_NAME],
         locale,
@@ -34,7 +34,8 @@ export default function CookiePolicyPage() {
                 Cookie Policy
             </h1>
             <p className="text-[0.95rem] leading-relaxed">
-                Placeholder content. Final cookie policy will be published here.
+                This page is under construction. The full Cookie Policy will be
+                published here soon.
             </p>
         </article>
     );

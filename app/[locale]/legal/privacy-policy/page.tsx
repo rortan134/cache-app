@@ -63,7 +63,7 @@ export default function PrivacyPolicyPage() {
 
                 <p className="max-w-2xl text-base text-stone-600 leading-relaxed">
                     This plain-English summary explains the main privacy choices
-                    behind {APP_NAME}. The full Privacy Policy below controls.
+                    behind {APP_NAME}. The full Privacy Policy below governs.
                 </p>
 
                 <div className="grid gap-4 border-stone-200 border-t pt-5 text-[0.9rem] text-stone-700 leading-relaxed sm:grid-cols-2">
@@ -401,8 +401,8 @@ export default function PrivacyPolicyPage() {
                 </p>
                 <p>
                     Where required by applicable law, we use contractual or
-                    other lawful safeguards intended to help protect personal
-                    data when it is transferred across borders.
+                    other lawful safeguards designed to protect personal data
+                    when it is transferred across borders.
                 </p>
             </section>
 
@@ -412,10 +412,10 @@ export default function PrivacyPolicyPage() {
                 </h2>
                 <p>
                     We retain personal data for as long as reasonably necessary
-                    to provide the service, maintain your account, complete the
-                    workflows you request, comply with legal, tax, accounting,
-                    and security obligations, resolve disputes, and enforce our
-                    agreements.
+                    to provide the service and maintain your account. We also
+                    retain data as needed to complete the workflows you request,
+                    comply with legal, tax, accounting, and security
+                    obligations, resolve disputes, and enforce our agreements.
                 </p>
                 <ul className="list-disc space-y-2 pl-5">
                     <li>
@@ -440,7 +440,7 @@ export default function PrivacyPolicyPage() {
                     safeguards designed to protect personal data, including
                     access controls, authenticated service requests, secret
                     management, monitoring, and logging. No method of
-                    transmission or storage is completely secure, and we cannot
+                    transmission or storage is completely secure, but we cannot
                     guarantee absolute security.
                 </p>
             </section>
@@ -529,7 +529,7 @@ export default function PrivacyPolicyPage() {
                 </h2>
                 <p>
                     If you sign in with Google or connect Google Photos, the
-                    following additional disclosures apply.
+                    following disclosures also apply.
                 </p>
                 <ul className="list-disc space-y-2 pl-5">
                     <li>
@@ -586,8 +586,8 @@ export default function PrivacyPolicyPage() {
                     </li>
                 </ul>
                 <p>
-                    Our use of information received from Google APIs will adhere
-                    to the{" "}
+                    Our use of information received from Google APIs adheres to
+                    the{" "}
                     <LinkText href="https://developers.google.com/terms/api-services-user-data-policy">
                         Google API Services User Data Policy
                     </LinkText>

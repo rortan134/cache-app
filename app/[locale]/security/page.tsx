@@ -128,7 +128,7 @@ const securityCards: SecurityCard[] = [
     },
     {
         description:
-            "The web application ships a baseline set of browser and transport hardening headers across routes.",
+            "The web application ships with a baseline set of browser and transport hardening headers across routes.",
         icon: Shield,
         points: [
             "Strict-Transport-Security is enabled with preload and subdomain coverage.",
