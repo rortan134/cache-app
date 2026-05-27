@@ -164,14 +164,14 @@ import {
     getSectionDescription,
     type SectionDescriptionResult,
 } from "@/lib/intelligence/actions";
+import type {
+    AskCacheComposerPatch,
+    AskCacheRequest,
+    AskCacheResult,
+} from "@/lib/intelligence/ask-cache";
 import {
     ASK_CACHE_CONTEXT_COLLECTION_LIMIT,
     ASK_CACHE_CONTEXT_DOMAIN_LIMIT,
-} from "@/lib/intelligence/ask-cache";
-import type {
-    AskCacheComposerPatch,
-    AskCacheResult,
-    AskCacheRequest,
 } from "@/lib/intelligence/ask-cache";
 import {
     SECTION_DESCRIPTION_CONTEXT_ITEMS_LIMIT,
@@ -237,9 +237,8 @@ import useSWR from "swr";
 
 const log = createLogger("library:browser");
 
-const SECTION_DESCRIPTION_FALLBACK_TEXT =
-    "Description is unavailable right now.";
 const CSV_CONTENT_TYPE = "text/csv";
+
 const CSV_HEADERS = [
     "Section",
     "Caption",
@@ -249,6 +248,7 @@ const CSV_HEADERS = [
     "Saved At",
     "Posted At",
 ] as const;
+
 export interface CommandSuggestion {
     icon: ReactNode;
     label: string;
@@ -1671,10 +1671,10 @@ function AskCacheResponsePanel({
                         ariaLabel="Ask Cache"
                         className="font-medium text-muted-foreground text-xs"
                     >
-                        Ask Cache
+                        Cache AI
                     </GradientWaveText>
                     {response?.prompt ? (
-                        <span className="truncate text-muted-foreground text-xs">
+                        <span className="min-w-0 max-w-xs truncate text-muted-foreground text-xs">
                             {response.prompt}
                         </span>
                     ) : null}
@@ -1692,7 +1692,7 @@ function AskCacheResponsePanel({
                     ariaLabel="Ask Cache"
                     className="font-medium text-muted-foreground text-xs"
                 >
-                    Ask Cache
+                    Cache AI
                 </GradientWaveText>
                 <p className="text-sm">{response.message}</p>
             </div>
@@ -1701,19 +1701,12 @@ function AskCacheResponsePanel({
 
     return (
         <div className="flex min-w-0 flex-1 flex-col gap-2 py-1 pr-2">
-            <div className="flex items-center gap-2">
-                <GradientWaveText
-                    ariaLabel="Ask Cache"
-                    className="font-medium text-muted-foreground text-xs"
-                >
-                    Ask Cache
-                </GradientWaveText>
-                {response.operationCount > 0 ? (
-                    <Badge variant="secondary">
-                        Applied {response.operationCount}
-                    </Badge>
-                ) : null}
-            </div>
+            <GradientWaveText
+                ariaLabel="Ask Cache"
+                className="font-medium text-muted-foreground text-xs"
+            >
+                Cache AI
+            </GradientWaveText>
             <Streamdown className="text-sm leading-relaxed">
                 {response.markdown}
             </Streamdown>
@@ -2209,7 +2202,7 @@ function BrowserGroupOverviewContent() {
             <Streamdown className="flex-1">
                 {summary && summary.length > 0
                     ? summary
-                    : SECTION_DESCRIPTION_FALLBACK_TEXT}
+                    : "Description is unavailable right now."}
             </Streamdown>
             &nbsp;
             <div className="inline-flex items-center justify-end">
@@ -2222,10 +2215,6 @@ function BrowserGroupOverviewContent() {
                 >
                     {isExpanded ? "Collapse" : "Expand"}
                     &nbsp;
-                    <ListChevronsUpDown className="mb-px inline-block size-3.5 shrink-0" />
-                </Button>
-                <Button size="xs" variant="link">
-                    Personalize &nbsp;
                     <ListChevronsUpDown className="mb-px inline-block size-3.5 shrink-0" />
                 </Button>
             </div>
@@ -5280,9 +5269,7 @@ export function Browser({
                 await saveFile(
                     new Blob(
                         [buildBrowserSectionCsv(sectionTitle, sectionItems)],
-                        {
-                            type: CSV_CONTENT_TYPE,
-                        }
+                        { type: CSV_CONTENT_TYPE }
                     ),
                     {
                         description: "CSV file",

@@ -708,7 +708,6 @@ export function Collections() {
                             />
                         )}
                     </ListFavoritesCarouselContent>
-                    {/* Favorites list doesn't need disclosure truncation */}
                     <CollectionsListFavoritesContent>
                         {(collection) => (
                             <CollectionItemRow
@@ -744,7 +743,7 @@ export function Collections() {
                     </CollectionsListToolbarGroup>
                 </CollectionsListToolbar>
                 <CollectionsListPanel>
-                    <div className="p-1.5 pt-1">
+                    <div className="p-1.5 pt-1 pl-2.5">
                         <CollectionsCalloutPopover />
                     </div>
                     <CollectionsListEmpty>
@@ -753,17 +752,15 @@ export function Collections() {
                             to start grouping saved items.
                         </T>
                     </CollectionsListEmpty>
-                    <DisclosureList maxVisible={10}>
-                        <CollectionsListContent>
-                            {(collection) => (
-                                <CollectionItemRow
-                                    collection={collection}
-                                    key={collection.id}
-                                    metadataDisplay="item-count"
-                                />
-                            )}
-                        </CollectionsListContent>
-                    </DisclosureList>
+                    <CollectionsListContent>
+                        {(collection) => (
+                            <CollectionItemRow
+                                collection={collection}
+                                key={collection.id}
+                                metadataDisplay="item-count"
+                            />
+                        )}
+                    </CollectionsListContent>
                 </CollectionsListPanel>
             </CollectionsList>
             <CollectionsListStatus data-sidebar-collapsible="" />
@@ -2197,7 +2194,11 @@ function CollectionsListContent({ children }: CollectionsListContentProps) {
         return null;
     }
 
-    return collectionSummaries.map(children);
+    return (
+        <DisclosureList maxVisible={10}>
+            {collectionSummaries.map(children)}
+        </DisclosureList>
+    );
 }
 
 /**

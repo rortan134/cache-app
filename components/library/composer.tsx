@@ -195,7 +195,7 @@ export function ComposerInput({
                         />
                     }
                 />
-                <CommandPopup>
+                <CommandPopup className="max-w-xl">
                     <CommandEmpty>No matching commands found.</CommandEmpty>
                     <CommandStatus />
                     <CommandList>
