@@ -1,21 +1,21 @@
 "use server";
 
+import { requireActionUserId } from "@/lib/auth/service";
 import { createLogger } from "@/lib/common/logs/console/logger";
 import { getValidationErrorMessage } from "@/lib/common/procedure";
-import { requireActionUserId } from "@/lib/auth/service";
 import { request as getArcjetRequest } from "@arcjet/next";
-import { GenAiGenerationError, GenAiProtectionError } from "./error";
 import {
     AskCacheRequestSchema,
     type AskCacheRequest,
     type AskCacheResult,
-} from "./ask-cache";
+} from "./composer/ask-cache";
+import { runAskCacheAgent } from "./composer/service";
+import { GenAiGenerationError, GenAiProtectionError } from "./error";
 import {
     SECTION_DESCRIPTION_FALLBACK_TEXT,
     SectionDescriptionRequestSchema,
     type DescriptionRequest,
 } from "./overview";
-import { runAskCacheAgent } from "./ask-cache-service";
 import { generateCollectionSummary } from "./service";
 
 const log = createLogger("intelligence:actions");

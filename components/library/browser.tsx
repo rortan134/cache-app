@@ -168,11 +168,11 @@ import type {
     AskCacheComposerPatch,
     AskCacheRequest,
     AskCacheResult,
-} from "@/lib/intelligence/ask-cache";
+} from "@/lib/intelligence/composer/ask-cache";
 import {
     ASK_CACHE_CONTEXT_COLLECTION_LIMIT,
     ASK_CACHE_CONTEXT_DOMAIN_LIMIT,
-} from "@/lib/intelligence/ask-cache";
+} from "@/lib/intelligence/composer/ask-cache";
 import {
     SECTION_DESCRIPTION_CONTEXT_ITEMS_LIMIT,
     SECTION_DESCRIPTION_DOMAIN_MAX_LENGTH,
