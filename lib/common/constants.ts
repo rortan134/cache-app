@@ -16,7 +16,7 @@ export const APP_NAME = "Cache App";
 /** Root / default document title when a segment does not override `title`. */
 export const SITE_DEFAULT_TITLE = `Bookmark manager | ${APP_NAME}`;
 
-export const SITE_DOMAIN = "cachd.app";
+export const SITE_DOMAIN = "www.cachd.app";
 
 export const CACHE_EXTENSION_DOWNLOAD_URL = `https://${SITE_DOMAIN}`;
 export const CACHE_EXTENSION_READY_EVENT = "CACHE_EXTENSION_READY";

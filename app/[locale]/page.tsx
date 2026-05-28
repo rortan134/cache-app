@@ -508,18 +508,9 @@ export default async function Home() {
                     </section>
                     <section className="flex w-full flex-col gap-8">
                         <div className="flex flex-col gap-3">
-                            <T context="Target audience">
-                                <h2 className="font-medium text-[#0A0B0D] text-[28px] leading-[1.1] tracking-[-1.28px] lg:text-[32px]">
-                                    <T>Cache is for…</T>
-                                </h2>
-                                <p className="max-w-lg text-pretty font-medium font-regular text-[#0A0B0D] text-[16px] leading-[1.2] tracking-[-3%] opacity-50">
-                                    <T>
-                                        Cache is built for people who save a
-                                        lot, think a lot, and don’t want their
-                                        best finds to disappear into “later.”
-                                    </T>
-                                </p>
-                            </T>
+                            <h2 className="font-medium text-[#0A0B0D] text-[28px] leading-[1.1] tracking-[-1.28px] lg:text-[32px]">
+                                <T context="target audience">Cache is for…</T>
+                            </h2>
                         </div>
                         <Carousel
                             className="pb-10! [&>*:not(:last-child)]:me-4"
