@@ -26,6 +26,7 @@
         "@prisma/adapter-pg": "^7.8.0",
         "@prisma/client": "^7.8.0",
         "@t3-oss/env-nextjs": "^0.13.11",
+        "@tanstack/react-virtual": "^3.13.26",
         "@tavily/ai-sdk": "^0.5.0",
         "@vercel/analytics": "^2.0.1",
         "@vercel/otel": "^2.1.2",
