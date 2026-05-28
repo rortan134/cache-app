@@ -106,7 +106,6 @@ import { getHexColorFromName } from "@/lib/common/colors";
 import { ITEM_KIND_NOTE } from "@/lib/common/constants";
 import { getSystemControlKey } from "@/lib/common/environment";
 import { saveFile } from "@/lib/common/file";
-import { filterValidImageUrls } from "@/lib/common/image";
 import { createLogger } from "@/lib/common/logs/console/logger";
 import {
     getNoteExcerpt,
@@ -119,6 +118,7 @@ import { getSourceLabel } from "@/lib/integrations/support";
 import type { CollectionPriority } from "@/prisma/client/enums";
 import AppIconSmall from "@/public/cache-icon-small.png";
 import SmartCollectionsBackgroundImg from "@/public/smart-collections-background-wide.webp";
+import type { BaseUIEvent } from "@base-ui/react";
 import { Toolbar } from "@base-ui/react/toolbar";
 import { useInterval } from "@base-ui/utils/useInterval";
 import { useStableCallback } from "@base-ui/utils/useStableCallback";
@@ -172,11 +172,6 @@ const CSV_HEADERS = [
     "Saved At",
     "Posted At",
 ] as const;
-
-const COLLECTION_LABEL_LIST_FORMAT_OPTIONS: Intl.ListFormatOptions = {
-    style: "long",
-    type: "conjunction",
-};
 
 const CREATE_ERROR_MESSAGE = "We couldn't create this collection right now.";
 const DELETE_ERROR_MESSAGE = "We couldn't delete this collection right now.";
@@ -516,20 +511,6 @@ function useCollections(): CollectionsContextValue {
     return context;
 }
 
-function formatCollectionLabelList(collectionLabels: string[], locale: string) {
-    return new Intl.ListFormat(
-        locale,
-        COLLECTION_LABEL_LIST_FORMAT_OPTIONS
-    ).format(collectionLabels);
-}
-
-function CollectionsListProvider({ children }: { children: React.ReactNode }) {
-    const controller = useCollectionsController();
-    return (
-        <CollectionsContext value={controller}>{children}</CollectionsContext>
-    );
-}
-
 function updateById<T extends LibraryCollectionTag>(
     collections: T[],
     id: string,
@@ -621,11 +602,6 @@ function buildCsv(
     return [CSV_HEADERS, ...rows]
         .map((row) => row.map(escapeCsv).join(","))
         .join("\n");
-}
-
-function getExportFileName(name: string): string {
-    const slug = slugify(name);
-    return slug.length > 0 ? `${slug}-links` : "collection-links";
 }
 
 function getCreatedAssignedItemIds(
@@ -772,100 +748,6 @@ export function Collections() {
 }
 
 /**
- * Validate preview image URLs asynchronously with caching.
- *
- * Filters out broken or unreachable images so the preview card never shows
- * a failed load state.
- */
-function usePreviewUrls(
-    collectionPreviewThumbnailUrlsById: ReadonlyMap<string, readonly string[]>
-): Map<string, readonly string[]> {
-    const [validatedPreviewUrls, setValidatedPreviewUrls] = React.useState(
-        new Map(collectionPreviewThumbnailUrlsById)
-    );
-    const validationCacheRef = React.useRef(new Map<string, boolean>());
-
-    React.useEffect(() => {
-        let cancelled = false;
-        const cache = validationCacheRef.current;
-
-        async function validate() {
-            const allUrls = new Set<string>();
-            const urlsToValidate: string[] = [];
-
-            for (const urls of collectionPreviewThumbnailUrlsById.values()) {
-                for (const url of urls) {
-                    if (allUrls.has(url)) {
-                        continue;
-                    }
-                    allUrls.add(url);
-                    if (!cache.has(url)) {
-                        urlsToValidate.push(url);
-                    }
-                }
-            }
-
-            if (allUrls.size === 0) {
-                if (!cancelled) {
-                    setValidatedPreviewUrls(new Map());
-                }
-                return;
-            }
-
-            const buildValidatedMap = () => {
-                const next = new Map<string, string[]>();
-                for (const [id, urls] of collectionPreviewThumbnailUrlsById) {
-                    const filtered = urls.filter((url) => cache.get(url));
-                    if (filtered.length > 0) {
-                        next.set(id, filtered);
-                    }
-                }
-                return next;
-            };
-
-            if (urlsToValidate.length === 0) {
-                if (!cancelled) {
-                    setValidatedPreviewUrls(buildValidatedMap());
-                }
-                return;
-            }
-
-            if (!cancelled) {
-                setValidatedPreviewUrls(
-                    new Map(collectionPreviewThumbnailUrlsById)
-                );
-            }
-
-            try {
-                const validUrls = await filterValidImageUrls(urlsToValidate);
-                for (const url of urlsToValidate) {
-                    cache.set(url, validUrls.includes(url));
-                }
-
-                if (!cancelled) {
-                    setValidatedPreviewUrls(buildValidatedMap());
-                }
-            } catch (err) {
-                log.error("Preview URL validation failed", { error: err });
-                if (!cancelled) {
-                    setValidatedPreviewUrls(
-                        new Map(collectionPreviewThumbnailUrlsById)
-                    );
-                }
-            }
-        }
-
-        validate();
-
-        return () => {
-            cancelled = true;
-        };
-    }, [collectionPreviewThumbnailUrlsById]);
-
-    return validatedPreviewUrls;
-}
-
-/**
  * Central controller for all collection-related UI state and side effects.
  *
  * Coordinates dialog open states, server actions, optimistic updates,
@@ -928,8 +810,6 @@ function useCollectionsController() {
     const [feedback, setFeedback] = React.useState<CollectionFeedback | null>(
         null
     );
-
-    const previewURLs = usePreviewUrls(collectionPreviewThumbnailUrlsById);
 
     const {
         favoriteCollectionIds,
@@ -1276,7 +1156,7 @@ function useCollectionsController() {
                     {
                         description: "CSV file",
                         extension: "csv",
-                        name: getExportFileName(collection.name),
+                        name: `${slugify(collection.name) || "collection"}-links`,
                     }
                 );
 
@@ -1526,7 +1406,7 @@ function useCollectionsController() {
 
     return {
         collectionLabels,
-        collectionPreviewThumbnailUrlsById: previewURLs,
+        collectionPreviewThumbnailUrlsById,
         collectionSummaries,
         createDialog: {
             descriptionDraft: createDescription,
@@ -1599,6 +1479,13 @@ function useCollectionsController() {
     };
 }
 
+function CollectionsListProvider({ children }: React.PropsWithChildren) {
+    const controller = useCollectionsController();
+    return (
+        <CollectionsContext value={controller}>{children}</CollectionsContext>
+    );
+}
+
 /**
  * Register a keyboard shortcut scoped to the hovered collection item.
  *
@@ -1637,7 +1524,6 @@ function CollectionItemRow({
 }: CollectionItemRowProps) {
     const controller = useCollections();
     const isSelected = controller.selectedCollectionIds.includes(collection.id);
-    const isFavorite = controller.favoriteCollectionIdSet.has(collection.id);
 
     return (
         <CollectionItem collection={collection} isSelected={isSelected}>
@@ -1651,30 +1537,7 @@ function CollectionItemRow({
             >
                 <CollectionItemValue />
             </CollectionItemTrigger>
-            <CollectionItemMetadata
-                isFavorite={isFavorite}
-                isSharePending={
-                    controller.pendingShareId === collection.id &&
-                    controller.isSharePending
-                }
-                metadataDisplay={metadataDisplay}
-                onCopyLinks={() => controller.onCopyLinks(collection)}
-                onCopyShareLink={() => controller.onCopyShareLink(collection)}
-                onCopyTitle={() => controller.onCopyTitle(collection)}
-                onDelete={() => controller.onDelete(collection)}
-                onDisableShare={() => controller.onDisableShare(collection)}
-                onEnableShare={() => controller.onEnableShare(collection)}
-                onExportCsv={() => controller.onExportCsv(collection)}
-                onFavoriteToggle={() => controller.onFavoriteToggle(collection)}
-                onMakeCopy={() => controller.onDuplicate(collection)}
-                onOpenLinks={() => controller.onOpenLinks(collection)}
-                onRename={() => controller.onRename(collection)}
-                shareUrl={
-                    collection.shareId
-                        ? buildPublicCollectionShareUrl(collection.shareId)
-                        : null
-                }
-            />
+            <CollectionItemMetadata metadataDisplay={metadataDisplay} />
         </CollectionItem>
     );
 }
@@ -1859,12 +1722,13 @@ function CollectionsListItemPreviewImage({
     src,
     ...props
 }: React.ComponentProps<"img">) {
-    const [didFail, setDidFail] = React.useState(false);
+    const [hasFailed, setHasFailed] = React.useState(false);
+
     const handleError = useStableCallback(() => {
-        setDidFail(true);
+        setHasFailed(true);
     });
 
-    if (!src || didFail) {
+    if (!src || hasFailed) {
         return <CollectionsListPreviewImageFallback />;
     }
 
@@ -1879,21 +1743,6 @@ function CollectionsListItemPreviewImage({
             onError={handleError}
             src={src}
             width={288}
-        />
-    );
-}
-
-function CollectionsListInlineRow({
-    className,
-    ...props
-}: React.ComponentProps<"div">) {
-    return (
-        <div
-            {...props}
-            className={cn(
-                "flex items-center justify-between gap-2 px-2.5",
-                className
-            )}
         />
     );
 }
@@ -2074,7 +1923,10 @@ function CollectionsListGroupTrigger({
             >
                 <p className="wrap-break-word w-full whitespace-normal font-medium leading-tight">
                     {labels.length > 0
-                        ? formatCollectionLabelList(labels, locale)
+                        ? new Intl.ListFormat(locale, {
+                              style: "long",
+                              type: "conjunction",
+                          }).format(labels)
                         : placeholder}
                 </p>
             </PopoverPopup>
@@ -2275,6 +2127,7 @@ function CollectionsListEmpty({
         </div>
     );
 }
+
 /**
  * Accessibility-friendly status message for collection operations.
  *
@@ -2293,7 +2146,10 @@ function CollectionsListStatus({
     }
 
     return (
-        <CollectionsListInlineRow className="pr-1" data-sidebar-collapsible="">
+        <div
+            className="flex items-center justify-between gap-2 px-2.5 pr-1"
+            data-sidebar-collapsible=""
+        >
             <p
                 {...props}
                 aria-atomic="true"
@@ -2312,7 +2168,7 @@ function CollectionsListStatus({
             <Button onClick={onDismissFeedback} size="xs" variant="ghost">
                 Dismiss
             </Button>
-        </CollectionsListInlineRow>
+        </div>
     );
 }
 
@@ -2461,7 +2317,7 @@ function CollectionsListSortingCombobox({
 function CollectionsListCreateButton({
     onClick: onClickProp,
     ...props
-}: React.ComponentProps<"button">) {
+}: React.ComponentProps<typeof Button>) {
     const { requestCreate } = useCollections();
 
     const onClick = useStableCallback(onClickProp);
@@ -2621,16 +2477,22 @@ function CollectionItemTrigger({
     const activeThumbnail = thumbnails[activePreviewIndex];
     const onClick = useStableCallback(onClickProp);
 
+    const handleClick = useStableCallback(
+        (
+            event: BaseUIEvent<React.MouseEvent<HTMLAnchorElement, MouseEvent>>
+        ) => {
+            onClick?.(event);
+            controller.onSelectCollection(collection.id);
+            setIsOpen(false);
+        }
+    );
+
     return (
         <PreviewCard onOpenChange={setIsOpen} open={isOpen}>
             <PreviewCardTrigger
                 {...props}
                 closeDelay={0}
-                onClick={(event) => {
-                    onClick?.(event);
-                    controller.onSelectCollection(collection.id);
-                    setIsOpen(false);
-                }}
+                onClick={handleClick}
                 render={
                     <SidebarItem
                         className="w-full min-w-0 flex-1 justify-start pr-8 pl-10.5 text-left hover:bg-transparent focus-visible:ring-(--focus-ring-color)"
@@ -2757,15 +2619,6 @@ function CollectionItemPriorityCombobox() {
     );
 }
 
-interface CollectionItemShareSubMenuProps {
-    collection: LibraryCollectionSummary;
-    isSharePending: boolean;
-    onCopyShareLink: () => void;
-    onDisableShare: () => void;
-    onEnableShare: () => void;
-    shareUrl: string | null;
-}
-
 function CollectionItemShareStatus({ isShared }: { isShared: boolean }) {
     return (
         <div className="mt-3 rounded-xl border bg-muted/40 p-2">
@@ -2792,22 +2645,23 @@ function CollectionItemShareStatus({ isShared }: { isShared: boolean }) {
     );
 }
 
-interface CollectionItemShareControlsProps {
-    collection: LibraryCollectionSummary;
-    isSharePending: boolean;
-    onCopyShareLink: () => void;
-    onDisableShare: () => void;
-    shareUrl: string | null;
-}
-
-function CollectionItemShareControls({
-    collection,
-    isSharePending,
-    onCopyShareLink,
-    onDisableShare,
-    shareUrl,
-}: CollectionItemShareControlsProps) {
+function CollectionItemShareControls() {
+    const controller = useCollections();
+    const { collection } = useCollectionsListItemContext();
     const shareInputId = React.useId();
+    const isSharePending =
+        controller.pendingShareId === collection.id &&
+        controller.isSharePending;
+    const shareUrl = collection.shareId
+        ? buildPublicCollectionShareUrl(collection.shareId)
+        : null;
+
+    const onCopyShareLink = useStableCallback(() =>
+        controller.onCopyShareLink(collection)
+    );
+    const onDisableShare = useStableCallback(() =>
+        controller.onDisableShare(collection)
+    );
 
     return (
         <div className="mt-4 space-y-3">
@@ -2855,13 +2709,17 @@ function CollectionItemShareControls({
     );
 }
 
-function CollectionItemShareEnablePanel({
-    isSharePending,
-    onEnableShare,
-}: {
-    isSharePending: boolean;
-    onEnableShare: () => void;
-}) {
+function CollectionItemShareEnablePanel() {
+    const controller = useCollections();
+    const { collection } = useCollectionsListItemContext();
+    const isSharePending =
+        controller.pendingShareId === collection.id &&
+        controller.isSharePending;
+
+    const onEnableShare = useStableCallback(() =>
+        controller.onEnableShare(collection)
+    );
+
     return (
         <div className="mt-4 flex items-center justify-between gap-3">
             <p className="text-[11px] text-muted-foreground leading-tight">
@@ -2880,15 +2738,9 @@ function CollectionItemShareEnablePanel({
     );
 }
 
-function CollectionItemShareSubMenu({
-    collection,
-    isSharePending,
-    onCopyShareLink,
-    onDisableShare,
-    onEnableShare,
-    shareUrl,
-}: CollectionItemShareSubMenuProps) {
-    const isShared = Boolean(collection.shareId);
+function CollectionItemShareSubMenu() {
+    const { collection } = useCollectionsListItemContext();
+    const isShared = !!collection.shareId;
 
     return (
         <MenuSub>
@@ -2910,18 +2762,9 @@ function CollectionItemShareSubMenu({
                     </div>
                     <CollectionItemShareStatus isShared={isShared} />
                     {isShared ? (
-                        <CollectionItemShareControls
-                            collection={collection}
-                            isSharePending={isSharePending}
-                            onCopyShareLink={onCopyShareLink}
-                            onDisableShare={onDisableShare}
-                            shareUrl={shareUrl}
-                        />
+                        <CollectionItemShareControls />
                     ) : (
-                        <CollectionItemShareEnablePanel
-                            isSharePending={isSharePending}
-                            onEnableShare={onEnableShare}
-                        />
+                        <CollectionItemShareEnablePanel />
                     )}
                 </div>
             </MenuSubPopup>
@@ -2929,26 +2772,29 @@ function CollectionItemShareSubMenu({
     );
 }
 
-interface CollectionItemExportSubMenuProps {
-    hasItems: boolean;
-    onCopyLinks: () => void;
-    onCopyTitle: () => void;
-    onExportCsv: () => void;
-    onOpenLinks: () => void;
-}
-
 /**
  * Sub-menu with export actions for a collection.
  *
  * Some items are disabled when the collection has no entries.
  */
-function CollectionItemExportSubMenu({
-    hasItems,
-    onCopyLinks,
-    onCopyTitle,
-    onExportCsv,
-    onOpenLinks,
-}: CollectionItemExportSubMenuProps) {
+function CollectionItemExportSubMenu() {
+    const { collection } = useCollectionsListItemContext();
+    const controller = useCollections();
+    const hasItems = collection.itemCount > 0;
+
+    const onCopyLinks = useStableCallback(() =>
+        controller.onCopyLinks(collection)
+    );
+    const onCopyTitle = useStableCallback(() =>
+        controller.onCopyTitle(collection)
+    );
+    const onExportCsv = useStableCallback(() =>
+        controller.onExportCsv(collection)
+    );
+    const onOpenLinks = useStableCallback(() =>
+        controller.onOpenLinks(collection)
+    );
+
     return (
         <MenuSub>
             <MenuSubTrigger>
@@ -3006,21 +2852,7 @@ function CollectionItemSubscribeSubMenu() {
 }
 
 interface CollectionItemMetadataProps {
-    isFavorite: boolean;
-    isSharePending: boolean;
     metadataDisplay: CollectionItemMetadataDisplay;
-    onCopyLinks: () => void;
-    onCopyShareLink: () => void;
-    onCopyTitle: () => void;
-    onDelete: () => void;
-    onDisableShare: () => void;
-    onEnableShare: () => void;
-    onExportCsv: () => void;
-    onFavoriteToggle: () => void;
-    onMakeCopy: () => void;
-    onOpenLinks: () => void;
-    onRename: () => void;
-    shareUrl: string | null;
 }
 
 /**
@@ -3030,24 +2862,24 @@ interface CollectionItemMetadataProps {
  * menu. Keyboard shortcuts (E, Delete/Backspace, C) are active while hovered.
  */
 function CollectionItemMetadata({
-    isFavorite,
-    isSharePending,
     metadataDisplay,
-    onCopyLinks,
-    onCopyShareLink,
-    onCopyTitle,
-    onDelete,
-    onDisableShare,
-    onEnableShare,
-    onExportCsv,
-    onFavoriteToggle,
-    onMakeCopy,
-    onOpenLinks,
-    onRename,
-    shareUrl,
 }: CollectionItemMetadataProps) {
     const { collection } = useCollectionsListItemContext();
+    const controller = useCollections();
+    const isFavorite = controller.favoriteCollectionIdSet.has(collection.id);
     const hasItems = collection.itemCount > 0;
+
+    const onRename = useStableCallback(() => controller.onRename(collection));
+    const onDelete = useStableCallback(() => controller.onDelete(collection));
+    const onFavoriteToggle = useStableCallback(() =>
+        controller.onFavoriteToggle(collection)
+    );
+    const onMakeCopy = useStableCallback(() =>
+        controller.onDuplicate(collection)
+    );
+    const onCopyLinks = useStableCallback(() =>
+        controller.onCopyLinks(collection)
+    );
 
     useCollectionItemHotkey("e", onRename, "Rename hovered collection");
     useCollectionItemHotkey(
@@ -3112,21 +2944,8 @@ function CollectionItemMetadata({
                     </MenuGroup>
                     <MenuSeparator />
                     <MenuGroup>
-                        <CollectionItemShareSubMenu
-                            collection={collection}
-                            isSharePending={isSharePending}
-                            onCopyShareLink={onCopyShareLink}
-                            onDisableShare={onDisableShare}
-                            onEnableShare={onEnableShare}
-                            shareUrl={shareUrl}
-                        />
-                        <CollectionItemExportSubMenu
-                            hasItems={hasItems}
-                            onCopyLinks={onCopyLinks}
-                            onCopyTitle={onCopyTitle}
-                            onExportCsv={onExportCsv}
-                            onOpenLinks={onOpenLinks}
-                        />
+                        <CollectionItemShareSubMenu />
+                        <CollectionItemExportSubMenu />
                         <CollectionItemSubscribeSubMenu />
                     </MenuGroup>
                     <MenuSeparator />
@@ -3148,6 +2967,19 @@ function CollectionItemMetadata({
                 </MenuPopup>
             </Menu>
         </div>
+    );
+}
+
+function DialogFieldError({ children }: { children: React.ReactNode }) {
+    return (
+        <p
+            aria-atomic="true"
+            aria-live="polite"
+            className="pt-2 text-destructive text-xs"
+            role="alert"
+        >
+            {children}
+        </p>
     );
 }
 
@@ -3201,9 +3033,9 @@ function CollectionsRenameDialog() {
                                 value={nameDraft}
                             />
                             {errorMessage ? (
-                                <p className="pt-2 text-destructive text-xs">
+                                <DialogFieldError>
                                     {errorMessage}
-                                </p>
+                                </DialogFieldError>
                             ) : null}
                         </div>
                     </DialogPanel>
@@ -3315,14 +3147,7 @@ function CollectionsCreateDialog() {
                             />
                         </div>
                         {errorMessage ? (
-                            <p
-                                aria-atomic="true"
-                                aria-live="polite"
-                                className="text-destructive text-xs"
-                                role="alert"
-                            >
-                                {errorMessage}
-                            </p>
+                            <DialogFieldError>{errorMessage}</DialogFieldError>
                         ) : null}
                         <Alert>
                             <Lightbulb />
