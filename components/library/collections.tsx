@@ -180,7 +180,7 @@ const DUPLICATE_ERROR_MESSAGE =
 const EMPTY_LINKS_MESSAGE = "There are no links in this collection yet.";
 const RENAME_ERROR_MESSAGE = "We couldn't rename this collection right now.";
 const SHARE_ERROR_MESSAGE = "We couldn't create a public link right now.";
-const STOP_SHARING_ERROR_MESSAGE =
+const DISABLE_SHARING_ERROR_MESSAGE =
     "We couldn't stop sharing this collection right now.";
 const UPDATE_PRIORITY_ERROR_MESSAGE =
     "We couldn't update this collection priority right now.";
@@ -654,7 +654,7 @@ const shareCollectionPubliclySafely = safeAction(
 );
 const disableCollectionSharingSafely = safeAction(
     disableCollectionSharing,
-    STOP_SHARING_ERROR_MESSAGE
+    DISABLE_SHARING_ERROR_MESSAGE
 );
 
 export function Collections() {
@@ -720,7 +720,7 @@ export function Collections() {
                 </CollectionsListToolbar>
                 <CollectionsListPanel>
                     <div className="p-1.5 pt-1 pl-2.5">
-                        <CollectionsCalloutPopover />
+                        <CollectionsListCalloutPopover />
                     </div>
                     <CollectionsListEmpty>
                         <T>
@@ -739,7 +739,7 @@ export function Collections() {
                     </CollectionsListContent>
                 </CollectionsListPanel>
             </CollectionsList>
-            <CollectionsListStatus data-sidebar-collapsible="" />
+            <CollectionsListStatus />
             <CollectionsRenameDialog />
             <CollectionsCreateDialog />
             <CollectionsDeleteDialog />
@@ -1911,7 +1911,11 @@ function CollectionsListGroupTrigger({
                 <span className="min-w-0 text-xs">
                     {children}&nbsp;({count})
                 </span>
-                <ChevronDownFilledIcon className="-ml-0.5" />
+                <ChevronDownFilledIcon
+                    aria-hidden
+                    className="-ml-0.5"
+                    focusable="false"
+                />
             </PopoverTrigger>
             <PopoverPopup
                 align="start"
@@ -1986,7 +1990,7 @@ function FavoriteItemCarouselSlide({
     );
 
     return (
-        <div className="group relative inline-block aspect-3/4 h-14 w-auto overflow-hidden rounded-md bg-muted ring-1 ring-border/50 focus-within:ring-2 focus-within:ring-ring/60">
+        <div className="group relative inline-block aspect-3/4 h-14 overflow-hidden rounded-md bg-muted ring-1 ring-border/50 focus-within:ring-2 focus-within:ring-ring/60">
             <button
                 aria-label={previewLabel}
                 className="size-full focus-visible:outline-none"
@@ -2345,7 +2349,7 @@ function CollectionsListCreateButton({
     );
 }
 
-function CollectionsCalloutPopover() {
+function CollectionsListCalloutPopover() {
     const controller = useCollections();
     const isDisabled = controller.isSmartCollectionsDisabled;
 
@@ -2373,14 +2377,17 @@ function CollectionsCalloutPopover() {
                     Smart Collections
                 </GradientWaveText>
                 &nbsp;is active{" "}
-                <ChevronDownFilledIcon className="mb-px size-4 rotate-90 group-data-popup-open:opacity-10!" />
+                <ChevronDownFilledIcon
+                    aria-hidden
+                    className="mb-px size-4 rotate-90 group-data-popup-open:opacity-10!"
+                    focusable="false"
+                />
             </PopoverTrigger>
             <PopoverPopup align="start" positionMethod="fixed">
                 <Image
                     alt=""
                     aria-hidden
                     className="-mx-(--viewport-inline-padding) -mt-4 aspect-32/9 h-auto max-h-24 w-(--positioner-width) min-w-0 max-w-(--positioner-width) rounded-t-lg"
-                    loading="eager"
                     priority
                     sizes="auto,288px"
                     src={SmartCollectionsBackgroundImg}
@@ -2557,7 +2564,7 @@ function CollectionItemPriorityCombobox() {
         () => {
             setIsOpen(true);
         },
-        "Priority picker for hovered collection",
+        "Set priority for hovered collection",
         !isOpen
     );
 
@@ -2625,9 +2632,17 @@ function CollectionItemShareStatus({ isShared }: { isShared: boolean }) {
             <div className="flex items-start gap-3">
                 <div className="mt-0.5 flex size-9 items-center justify-center rounded-lg bg-background text-muted-foreground shadow-xs/5">
                     {isShared ? (
-                        <LinkIcon className="size-4" />
+                        <LinkIcon
+                            aria-hidden
+                            className="size-4"
+                            focusable="false"
+                        />
                     ) : (
-                        <LockKeyhole className="size-4" />
+                        <LockKeyhole
+                            aria-hidden
+                            className="size-4"
+                            focusable="false"
+                        />
                     )}
                 </div>
                 <div className="min-w-0 flex-1">
@@ -2676,6 +2691,7 @@ function CollectionItemShareControls() {
                     id={shareInputId}
                     readOnly
                     size="sm"
+                    type="text"
                     value={shareUrl ?? ""}
                 />
             </div>
@@ -2700,7 +2716,11 @@ function CollectionItemShareControls() {
                         onClick={onCopyShareLink}
                         size="sm"
                     >
-                        <CopyIcon className="size-4" />
+                        <CopyIcon
+                            aria-hidden
+                            className="size-4"
+                            focusable="false"
+                        />
                         Copy link
                     </Button>
                 </div>
@@ -2745,7 +2765,7 @@ function CollectionItemShareSubMenu() {
     return (
         <MenuSub>
             <MenuSubTrigger>
-                <UserRoundPlus className="size-4 text-muted-foreground" />
+                <UserRoundPlus className="inline-block size-4 text-muted-foreground" />
                 Share
             </MenuSubTrigger>
             <MenuSubPopup>
@@ -2778,8 +2798,8 @@ function CollectionItemShareSubMenu() {
  * Some items are disabled when the collection has no entries.
  */
 function CollectionItemExportSubMenu() {
-    const { collection } = useCollectionsListItemContext();
     const controller = useCollections();
+    const { collection } = useCollectionsListItemContext();
     const hasItems = collection.itemCount > 0;
 
     const onCopyLinks = useStableCallback(() =>
@@ -2798,28 +2818,52 @@ function CollectionItemExportSubMenu() {
     return (
         <MenuSub>
             <MenuSubTrigger>
-                <Forward className="inline-block size-4 text-muted-foreground" />
+                <Forward
+                    aria-hidden
+                    className="inline-block size-4 text-muted-foreground"
+                    focusable="false"
+                />
                 Export
             </MenuSubTrigger>
             <MenuSubPopup>
                 <MenuItem onClick={onCopyTitle}>
-                    <CopyIcon className="size-4 text-muted-foreground" />
+                    <CopyIcon
+                        aria-hidden
+                        className="size-4 text-muted-foreground"
+                        focusable="false"
+                    />
                     Copy title
                 </MenuItem>
                 <MenuItem disabled={!hasItems} onClick={onCopyLinks}>
-                    <CopyIcon className="size-4 text-muted-foreground" />
+                    <CopyIcon
+                        aria-hidden
+                        className="size-4 text-muted-foreground"
+                        focusable="false"
+                    />
                     Copy all links
                 </MenuItem>
                 <MenuItem disabled={!hasItems} onClick={onOpenLinks}>
-                    <ExternalLinkIcon className="size-4 text-muted-foreground" />
+                    <ExternalLinkIcon
+                        aria-hidden
+                        className="size-4 text-muted-foreground"
+                        focusable="false"
+                    />
                     Open all links
                 </MenuItem>
                 <MenuItem disabled={!hasItems} onClick={onExportCsv}>
-                    <FileSpreadsheetIcon className="size-4 text-muted-foreground" />
+                    <FileSpreadsheetIcon
+                        aria-hidden
+                        className="size-4 text-muted-foreground"
+                        focusable="false"
+                    />
                     Export to CSV
                 </MenuItem>
                 <MenuItem disabled={!hasItems}>
-                    <NotionIcon />
+                    <NotionIcon
+                        aria-hidden
+                        className="size-4"
+                        focusable="false"
+                    />
                     Send to Notion
                 </MenuItem>
             </MenuSubPopup>
@@ -2831,7 +2875,11 @@ function CollectionItemSubscribeSubMenu() {
     return (
         <MenuSub>
             <MenuSubTrigger disabled>
-                <BellIcon className="inline-block size-4 text-muted-foreground" />
+                <BellIcon
+                    aria-hidden
+                    className="inline-block size-4 text-muted-foreground"
+                    focusable="false"
+                />
                 Subscribe
             </MenuSubTrigger>
             <MenuSubPopup>
@@ -2864,8 +2912,8 @@ interface CollectionItemMetadataProps {
 function CollectionItemMetadata({
     metadataDisplay,
 }: CollectionItemMetadataProps) {
-    const { collection } = useCollectionsListItemContext();
     const controller = useCollections();
+    const { collection } = useCollectionsListItemContext();
     const isFavorite = controller.favoriteCollectionIdSet.has(collection.id);
     const hasItems = collection.itemCount > 0;
 
@@ -2922,23 +2970,33 @@ function CollectionItemMetadata({
                     <MenuGroup>
                         <MenuGroupLabel>Collection</MenuGroupLabel>
                         <MenuItem onClick={onRename}>
-                            <PencilIcon className="size-4 text-muted-foreground" />
+                            <PencilIcon
+                                aria-hidden
+                                className="size-4 text-muted-foreground"
+                                focusable="false"
+                            />
                             Rename
                             <MenuShortcut>E</MenuShortcut>
                         </MenuItem>
                         <MenuItem onClick={onFavoriteToggle}>
                             <Star
+                                aria-hidden
                                 className={cn(
                                     "size-4 text-muted-foreground",
                                     isFavorite && "fill-current"
                                 )}
+                                focusable="false"
                             />
                             {isFavorite
                                 ? "Remove from Favorites"
                                 : "Add to Favorites"}
                         </MenuItem>
                         <MenuItem onClick={onMakeCopy}>
-                            <CopyPlus className="size-4 text-muted-foreground" />
+                            <CopyPlus
+                                aria-hidden
+                                className="size-4 text-muted-foreground"
+                                focusable="false"
+                            />
                             Make a copy
                         </MenuItem>
                     </MenuGroup>
@@ -2951,7 +3009,11 @@ function CollectionItemMetadata({
                     <MenuSeparator />
                     <MenuGroup>
                         <MenuItem onClick={onDelete} variant="destructive">
-                            <Trash2Icon className="size-4" />
+                            <Trash2Icon
+                                aria-hidden
+                                className="size-4"
+                                focusable="false"
+                            />
                             Delete
                         </MenuItem>
                     </MenuGroup>
@@ -2974,7 +3036,6 @@ function DialogFieldError({ children }: { children: React.ReactNode }) {
     return (
         <p
             aria-atomic="true"
-            aria-live="polite"
             className="pt-2 text-destructive text-xs"
             role="alert"
         >
@@ -3240,29 +3301,39 @@ function CollectionsDeleteDialog() {
     return (
         <Dialog onOpenChange={onOpenChange} open={collection !== null}>
             <DialogPopup>
-                <DialogHeader>
-                    <DialogTitle>Delete collection?</DialogTitle>
-                    <DialogDescription>
-                        Remove {collection?.name || "this collection"} from
-                        Cache. Saved items will remain in your library, but they
-                        won't belong to this collection anymore.
-                    </DialogDescription>
-                </DialogHeader>
-                <DialogFooter>
-                    <DialogClose
-                        disabled={isPending}
-                        render={<Button variant="ghost" />}
-                    >
-                        Cancel
-                    </DialogClose>
-                    <Button
-                        loading={isPending}
-                        onClick={onConfirm}
-                        variant="destructive"
-                    >
-                        Delete
-                    </Button>
-                </DialogFooter>
+                <form
+                    className="contents"
+                    onSubmit={(event) => {
+                        event.preventDefault();
+                        onConfirm();
+                    }}
+                >
+                    <DialogHeader>
+                        <DialogTitle>Delete collection?</DialogTitle>
+                        <DialogDescription>
+                            Remove {collection?.name || "this collection"} from
+                            Cache. Saved items will remain in your library, but
+                            they won't belong to this collection anymore.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogPanel />
+                    <DialogFooter>
+                        <DialogClose
+                            disabled={isPending}
+                            render={<Button size="sm" variant="ghost" />}
+                        >
+                            Cancel
+                        </DialogClose>
+                        <Button
+                            loading={isPending}
+                            size="sm"
+                            type="submit"
+                            variant="destructive"
+                        >
+                            Delete
+                        </Button>
+                    </DialogFooter>
+                </form>
             </DialogPopup>
         </Dialog>
     );

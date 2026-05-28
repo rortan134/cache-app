@@ -187,6 +187,7 @@ function resolveActionLabel(args: {
         case "copy":
             return "Copy";
         default:
+            ((_: never) => _)(role);
             return "Open";
     }
 }
@@ -349,7 +350,9 @@ function useIntegrationAction({
                     tone: "error",
                 });
             } finally {
-                setPendingRole(null);
+                setPendingRole((current) =>
+                    current === role ? null : current
+                );
             }
         }
     );
@@ -451,7 +454,7 @@ function IntegrationsListTrigger({
                     aria-hidden
                     className="-mx-(--viewport-inline-padding) -mt-4 h-auto w-(--positioner-width) min-w-0 max-w-(--positioner-width) rounded-t-lg border-b"
                     priority
-                    sizes="auto,400px"
+                    sizes="400px"
                     src={IntegrationsPreviewImage}
                 />
                 <div className="mt-4 flex max-w-64 flex-col gap-2">
