@@ -183,7 +183,7 @@ import type {
 import { useIsoLayoutEffect } from "@base-ui/utils/useIsoLayoutEffect";
 import { useStableCallback } from "@base-ui/utils/useStableCallback";
 import { useTimeout } from "@base-ui/utils/useTimeout";
-import { useWindowVirtualizer } from "@tanstack/react-virtual";
+import { useVirtualizer, type Virtualizer } from "@tanstack/react-virtual";
 import {
     ArrowDownWideNarrow,
     Check,
@@ -868,6 +868,7 @@ const NOTE_DRAWER_NEW = Symbol("note-drawer-new");
 const LIST_LAYOUT_ROW_ESTIMATED_SIZE = 82;
 const LIST_LAYOUT_ROW_OVERSCAN = 8;
 const LIST_ROW_COLLECTION_PREVIEW_LIMIT = 2;
+const VIRTUAL_SCROLL_EVENT_OPTIONS = { passive: true } as const;
 
 const COBALT_SOURCES = new Set<LibraryItemSource>([
     LibraryItemSource.google_photos,
@@ -2318,10 +2319,14 @@ function BrowserListResults({ sections }: { sections: BrowserGroup[] }) {
         (index: number) => entries[index]?.key ?? index
     );
 
-    const rowVirtualizer = useWindowVirtualizer({
+    const rowVirtualizer = useVirtualizer<HTMLElement, HTMLLIElement>({
         count: entries.length,
         estimateSize: () => LIST_LAYOUT_ROW_ESTIMATED_SIZE,
         getItemKey,
+        getScrollElement: () =>
+            listRef.current?.ownerDocument.documentElement ?? null,
+        observeElementOffset: observeDocumentElementVirtualOffset,
+        observeElementRect: observeDocumentElementVirtualRect,
         overscan: LIST_LAYOUT_ROW_OVERSCAN,
         scrollMargin,
     });
@@ -2437,6 +2442,68 @@ function getBrowserListEntryAria(
     return {
         "aria-posinset": entry.itemPosition,
         "aria-setsize": entry.totalItemCount,
+    };
+}
+
+function observeDocumentElementVirtualRect(
+    instance: Virtualizer<HTMLElement, HTMLLIElement>,
+    cb: (rect: { height: number; width: number }) => void
+) {
+    const scrollElement = instance.scrollElement;
+    if (!scrollElement) {
+        return;
+    }
+
+    const ownerWindow = getOwnerWindow(scrollElement);
+    const handler = () => {
+        cb({
+            height: ownerWindow.innerHeight,
+            width: ownerWindow.innerWidth,
+        });
+    };
+
+    handler();
+    ownerWindow.addEventListener(
+        "resize",
+        handler,
+        VIRTUAL_SCROLL_EVENT_OPTIONS
+    );
+
+    return () => {
+        ownerWindow.removeEventListener("resize", handler);
+    };
+}
+
+function observeDocumentElementVirtualOffset(
+    instance: Virtualizer<HTMLElement, HTMLLIElement>,
+    cb: (offset: number, isScrolling: boolean) => void
+) {
+    const scrollElement = instance.scrollElement;
+    if (!scrollElement) {
+        return;
+    }
+
+    const ownerWindow = getOwnerWindow(scrollElement);
+    let scrollEndTimeoutId = 0;
+    const handleScrollEnd = () => {
+        cb(scrollElement.scrollTop, false);
+    };
+    const handleScroll = () => {
+        cb(scrollElement.scrollTop, true);
+        ownerWindow.clearTimeout(scrollEndTimeoutId);
+        scrollEndTimeoutId = ownerWindow.setTimeout(handleScrollEnd, 150);
+    };
+
+    handleScrollEnd();
+    scrollElement.addEventListener(
+        "scroll",
+        handleScroll,
+        VIRTUAL_SCROLL_EVENT_OPTIONS
+    );
+
+    return () => {
+        ownerWindow.clearTimeout(scrollEndTimeoutId);
+        scrollElement.removeEventListener("scroll", handleScroll);
     };
 }
 
@@ -4296,16 +4363,9 @@ function Card({ item }: LibraryGridCardProps) {
 }
 
 function ListRow({ item }: LibraryGridCardProps) {
-    const {
-        collections,
-        favoriteItemIdSet,
-        onItemFavoriteToggle,
-        onOpenInNewTab,
-        onOpenNote,
-        onUpdateItemCollections,
-    } = useLibraryGridCardContext();
+    const { collections, onOpenInNewTab, onOpenNote, onUpdateItemCollections } =
+        useLibraryGridCardContext();
     const isNote = item.kind === ITEM_KIND_NOTE;
-    const isFavorite = favoriteItemIdSet.has(item.id);
     const [isDownloading, setIsDownloading] = React.useState(false);
     const [isCollectionPickerOpen, setIsCollectionPickerOpen] =
         React.useState(false);
@@ -4337,10 +4397,6 @@ function ListRow({ item }: LibraryGridCardProps) {
             onOpenInNewTab?.(item);
         }
     );
-
-    const handleFavoriteToggle = useStableCallback(() => {
-        onItemFavoriteToggle(item);
-    });
 
     const handleDownload = useStableCallback(async () => {
         setIsDownloading(true);
@@ -4406,14 +4462,9 @@ function ListRow({ item }: LibraryGridCardProps) {
                             <p className="truncate font-medium text-sm">
                                 {title}
                             </p>
-                            <span className="hidden shrink-0 text-muted-foreground text-xs sm:inline">
-                                {isNote ? "Note" : domain}
-                            </span>
                         </div>
                         <div className="flex min-w-0 items-center gap-2 text-muted-foreground text-xs">
-                            <span className="shrink-0">
-                                {sourceLabel(item.source)}
-                            </span>
+                            <span className="shrink-0">{domain}</span>
                             {addedLabel ? (
                                 <>
                                     <span aria-hidden>·</span>
@@ -4459,25 +4510,6 @@ function ListRow({ item }: LibraryGridCardProps) {
                         onUpdateItemCollections={onUpdateItemCollections}
                         open={isCollectionPickerOpen}
                     />
-                    <Button
-                        aria-label={
-                            isFavorite
-                                ? "Remove from Favorites"
-                                : "Add to Favorites"
-                        }
-                        aria-pressed={isFavorite}
-                        className="rounded-full"
-                        onClick={handleFavoriteToggle}
-                        size="icon-sm"
-                        variant="ghost"
-                    >
-                        <Star
-                            className={cn(
-                                "size-4 text-muted-foreground",
-                                isFavorite && "fill-current text-foreground"
-                            )}
-                        />
-                    </Button>
                     <Menu>
                         <MenuTrigger
                             render={

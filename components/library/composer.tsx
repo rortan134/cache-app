@@ -394,11 +394,7 @@ export function Composer({
     let suggestionsChild: React.ReactNode = null;
 
     for (const child of childrenArray) {
-        if (
-            React.isValidElement(child) &&
-            (child.type as React.ComponentType).displayName ===
-                "ComposerSuggestions"
-        ) {
+        if (React.isValidElement(child) && child.type === ComposerSuggestions) {
             suggestionsChild = child;
         } else {
             toolbarChildren.push(child);
