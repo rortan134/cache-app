@@ -971,7 +971,7 @@ function NoteMetrics() {
     const shouldShowReadTime = textMetrics.readMinuteCount > 2;
 
     return (
-        <div className="flex items-center justify-end gap-4 border-border/60 border-t pt-3 text-muted-foreground text-xs">
+        <div className="mt-3 flex items-center justify-end gap-4 border-border/60 border-t pt-3 text-muted-foreground text-xs">
             <T>
                 <span>
                     <Var>{textMetrics.wordCount}</Var> words
