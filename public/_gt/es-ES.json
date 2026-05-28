@@ -1,6 +1,18 @@
 {
   "019869a6c0157892": "Términos del servicio",
   "03560a0d75adf329": "Productividad",
+  "056f630707f07061": [
+    {
+      "c": "Busca y explora desde un único feed ágil",
+      "i": 1,
+      "t": "h2"
+    },
+    {
+      "c": "Agiliza tu forma de consumir y retomar tu contenido guardado con una interfaz moderna y potente, directamente en tu navegador.",
+      "i": 2,
+      "t": "p"
+    }
+  ],
   "062b5e45e86d2cc4": {
     "c": [
       {
@@ -20,33 +32,6 @@
   },
   "090dd58a9e726297": "Lectores curiosos",
   "0d5988f4c0fbf2ad": "Cuenta de Cache",
-  "0db38849903f7632": [
-    {
-      "c": "Cada vez que pulsas Guardar, haces una pequeña apuesta a que este momento de atención valía algo.",
-      "i": 1,
-      "t": "p"
-    },
-    {
-      "c": "Cache reúne esas apuestas. Saca lo que guardas de los silos —los tuits, los vídeos, los enlaces— y lo lleva a un lugar al que de verdad puedes volver y del que realmente sacar algo.",
-      "i": 2,
-      "t": "p"
-    },
-    {
-      "c": "El scroll se convierte en una biblioteca.",
-      "i": 3,
-      "t": "p"
-    },
-    {
-      "c": "El bucle de consumo se convierte en un registro de lo que te llamó la atención, de lo que te hizo pensar, de lo que quisiste conservar.",
-      "i": 4,
-      "t": "p"
-    },
-    {
-      "c": "El significado no está en el feed. Está en lo que eliges guardar.",
-      "i": 5,
-      "t": "p"
-    }
-  ],
   "0e0f0cb623f12ffc": "Cookies y tecnologías similares que usamos en nuestros sitios y productos.",
   "11503a3d12f43fdd": "Documentos oficiales que rigen tu relación con nosotros y explican cómo tratamos los datos. Elige un tema a continuación para leer el texto completo.",
   "11ccc132c8c38c40": [
@@ -93,92 +78,7 @@
   "26fe9d3e34588477": "Cerrar sesión",
   "2e477bab4317c062": "No se pudo añadir otra cuenta.",
   "2e9224bc11574ab5": "Exportar a Markdown",
-  "30a94c403df733bc": "Documentación, incidencias, código, tutoriales. Encuentra ese enlace al instante sin tener que volver a buscar.",
-  "352155f34be926bb": [
-    {
-      "c": [
-        {
-          "i": 2,
-          "t": "Component"
-        },
-        {
-          "c": [
-            {
-              "c": "Colecciones inteligentes",
-              "i": 4,
-              "t": "span"
-            },
-            " te ayudan a separar lo pendiente de la inspiración"
-          ],
-          "i": 3,
-          "t": "span"
-        }
-      ],
-      "i": 1,
-      "t": "li"
-    },
-    {
-      "c": [
-        {
-          "i": 6,
-          "t": "CloudDownload"
-        },
-        {
-          "c": "Comparte o exporta colecciones desde Cache cuando quieras",
-          "i": 7,
-          "t": "span"
-        }
-      ],
-      "i": 5,
-      "t": "li"
-    },
-    {
-      "c": [
-        {
-          "i": 9,
-          "t": "Unlink"
-        },
-        {
-          "c": "Elimina duplicados y enlaces rotos",
-          "i": 10,
-          "t": "span"
-        }
-      ],
-      "i": 8,
-      "t": "li"
-    },
-    {
-      "c": [
-        {
-          "i": 12,
-          "t": "Sparkles"
-        },
-        {
-          "c": "Obtén insights basados en IA sobre tu contenido",
-          "i": 13,
-          "t": "span"
-        }
-      ],
-      "i": 11,
-      "t": "li"
-    },
-    {
-      "c": [
-        {
-          "i": 15,
-          "t": "Bot"
-        },
-        {
-          "c": "Permite que tus agentes interactúen con tus marcadores (MCP)",
-          "i": 16,
-          "t": "span"
-        }
-      ],
-      "i": 14,
-      "t": "li"
-    }
-  ],
-  "3ac9f15975d41fb7": "Una bandeja de entrada con criterio, a medio camino entre los marcadores y la toma de notas. Estructurada, fácil de consultar, fiable.",
+  "314d8db9f59adb60": "Una forma más inteligente de gestionar todo lo que guardas online. Desde 8 $ al mes.",
   "3b205a1c17c06fbd": "Favoritos",
   "3befbe3dae383b10": "Actualizar",
   "3c61319be1bc2db7": "*Las plataformas de terceros a las que te conectas a través del Servicio operan de forma independiente a Cache. Cache no controla sus políticas ni cómo las aplican, y no es responsable de las decisiones que esas plataformas tomen sobre tus cuentas o tu acceso a sus servicios —incluidos, entre otros, los cambios en la disponibilidad—, estén o no relacionadas con tu uso de Cache. Eres responsable de cumplir con los términos, políticas y directrices de la comunidad de cada plataforma. Cache no es responsable de ningún inconveniente, pérdida u otra consecuencia derivada de tu relación con esas plataformas o de tu uso del Servicio en conexión con ellas. Puedes encontrar más información",
@@ -202,6 +102,33 @@
     "i": 1,
     "t": "p"
   },
+  "4715956ecfecd1e2": [
+    {
+      "c": "Cada vez que guardas algo, haces una pequeña apuesta a que ese momento de atención valía la pena.",
+      "i": 1,
+      "t": "p"
+    },
+    {
+      "c": "Cache reúne todas esas apuestas. Saca todo lo que guardas de los silos —los tuits, los vídeos, los enlaces— y lo lleva a un lugar al que de verdad puedes volver y del que sacar algo valioso.",
+      "i": 2,
+      "t": "p"
+    },
+    {
+      "c": "El scroll se convierte en una biblioteca.",
+      "i": 3,
+      "t": "p"
+    },
+    {
+      "c": "El bucle de consumo se convierte en un registro de lo que te llamó la atención, de lo que te hizo pensar, de lo que quisiste conservar.",
+      "i": 4,
+      "t": "p"
+    },
+    {
+      "c": "El sentido no está en el feed. Está en lo que eliges guardar.",
+      "i": 5,
+      "t": "p"
+    }
+  ],
   "48de21dffb27aea4": "Registro de cambios",
   "4d587a9524c95dd7": [
     "Accede a todos los marcadores de ",
@@ -231,6 +158,7 @@
   "5930189d0848c328": "Creadores y curadores",
   "59470116de88a745": "Artículos, ensayos, newsletters. Una biblioteca viva en vez de un cementerio de cosas para leer‑más‑tarde.",
   "5a0a4ee1bf2a58dc": "No se pudieron cargar las cuentas guardadas.",
+  "5f7836df60f0e71e": "Estas páginas pueden actualizarse periódicamente. La versión de este sitio es la que está en vigor en el momento de tu visita.",
   "600433e7972a7e75": "Facturación",
   "606daf45fd88b674": "Escritores y pensadores",
   "627bafce1f587e82": [
@@ -266,21 +194,6 @@
     "i": 1,
     "t": "p"
   },
-  "6d91c49b93fca2a6": {
-    "c": [
-      {
-        "i": 2,
-        "t": "Workflow"
-      },
-      {
-        "c": "Configura Automations periódicas con instrucciones personalizadas. Recibe un resumen diario de tus marcadores recientes.",
-        "i": 3,
-        "t": "span"
-      }
-    ],
-    "i": 1,
-    "t": "li"
-  },
   "6f1b661d2c2cb538": "Desconocido",
   "731e805e4730862c": {
     "c": "Seguridad",
@@ -289,7 +202,90 @@
   },
   "75d4d73501e837d5": "Consigue Pro",
   "7721d8d00edabeda": "Cerrando sesión…",
+  "77d5c5ea3c0c9f0d": [
+    {
+      "c": [
+        {
+          "i": 2,
+          "t": "Component"
+        },
+        {
+          "c": [
+            {
+              "c": "Colecciones inteligentes",
+              "i": 4,
+              "t": "span"
+            },
+            " te ayuda a separar lo práctico de la inspiración"
+          ],
+          "i": 3,
+          "t": "span"
+        }
+      ],
+      "i": 1,
+      "t": "li"
+    },
+    {
+      "c": [
+        {
+          "i": 6,
+          "t": "CloudDownload"
+        },
+        {
+          "c": "Compartir o exportar colecciones desde Cache cuando quieras",
+          "i": 7,
+          "t": "span"
+        }
+      ],
+      "i": 5,
+      "t": "li"
+    },
+    {
+      "c": [
+        {
+          "i": 9,
+          "t": "Unlink"
+        },
+        {
+          "c": "Eliminar duplicados y enlaces rotos",
+          "i": 10,
+          "t": "span"
+        }
+      ],
+      "i": 8,
+      "t": "li"
+    },
+    {
+      "c": [
+        {
+          "i": 12,
+          "t": "Sparkles"
+        },
+        {
+          "c": "Obtén insights basados en IA sobre tu contenido",
+          "i": 13,
+          "t": "span"
+        }
+      ],
+      "i": 11,
+      "t": "li"
+    }
+  ],
+  "783efa5acbf9fc63": [
+    {
+      "c": "Deja de dejarlo para «más tarde»",
+      "i": 1,
+      "t": "h2"
+    },
+    {
+      "c": "Cache recupera para ti tu mejor contenido guardado, para que de verdad lo aproveches.",
+      "i": 2,
+      "t": "p"
+    }
+  ],
   "7a6c957300c408f9": "Privacidad",
+  "7b4f31f7267a32c7": "Usa Cache como ese paso que faltaba entre guardar marcadores y tomar notas: hecho para pensar. Estructurado, fácil de buscar y fiable.",
+  "7d288c9b77b0a60e": "Aviso legal y políticas",
   "815fe7576d49381e": [
     {
       "c": {
@@ -349,20 +345,8 @@
       "t": "li"
     }
   ],
-  "8dce8ff73ffc32be": [
-    {
-      "c": "Deja de dejarlo para «más tarde»",
-      "i": 1,
-      "t": "h2"
-    },
-    {
-      "c": "Crea más oportunidades de pasar a la acción manteniendo tu contenido guardado más valioso siempre presente, en lugar de perderlo en una acumulación de marcadores olvidados.",
-      "i": 2,
-      "t": "p"
-    }
-  ],
   "8ebdbcb486fb7060": "Suscripción",
-  "93e5f3e6c3870fab": "Hilos, vídeos, inspiración. Agrupa ideas en colecciones y publícalas.",
+  "8eeee33f47318d9a": "Hilos, vídeos, inspiración. Agrupa ideas en colecciones y compártelas.",
   "94c20ff6b75d8acb": "Cómo recopilamos, usamos y protegemos la información personal.",
   "97f68bd29d3d4247": {
     "c": [
@@ -377,6 +361,38 @@
     "t": "span"
   },
   "9e172217c3e3d8ae": "Actualizar a Pro",
+  "9fb0204c42a8c2df": [
+    {
+      "c": [
+        {
+          "i": 2,
+          "t": "Workflow"
+        },
+        {
+          "c": "Configura rutinas sencillas que te muestren un resumen diario de lo que acabas de guardar",
+          "i": 3,
+          "t": "span"
+        }
+      ],
+      "i": 1,
+      "t": "li"
+    },
+    {
+      "c": [
+        {
+          "i": 5,
+          "t": "Workflow"
+        },
+        {
+          "c": "Mantén los enlaces importantes siempre presentes, en vez de enterrados en un montón de marcadores olvidados",
+          "i": 6,
+          "t": "span"
+        }
+      ],
+      "i": 4,
+      "t": "li"
+    }
+  ],
   "a06f2446c9ee9132": "Referencias, citas, fragmentos. Un archivo de investigación con buscador para tu materia prima.",
   "a3bf9c945c7318bb": "Automations",
   "a4ecc2d52fb9c50b": "Política de privacidad",
@@ -393,15 +409,6 @@
     }
   ],
   "a586e0692358c532": "Actualiza para obtener acceso completo a Cache y a todas las integraciones",
-  "a744c6f0270dcd21": [
-    "Una herramienta que gestiona todo tu ",
-    {
-      "c": "conocimiento personal",
-      "i": 1,
-      "t": "span"
-    },
-    " a gran escala. Desde 8 $/mes."
-  ],
   "af34d21966b17dd8": {
     "c": [
       {
@@ -462,6 +469,7 @@
       "t": "p"
     }
   ],
+  "c1172428bea235ca": "Normas que regulan el uso del servicio, la gestión de tu cuenta y el uso aceptable.",
   "c26fd6852bfece9e": "Continuar con Google",
   "c884609397b72df2": "anual",
   "cca6a310f45ce736": [
@@ -543,7 +551,20 @@
     }
   ],
   "e144e2404ea58e71": "No se han encontrado colecciones. Crea tu primera colección para empezar a agrupar elementos guardados.",
+  "e1897047828fc955": "Docs, incidencias, código, tutoriales. Encuentra ese enlace al instante.",
   "e42f8301efa106ae": "Bookmark Intelligence™",
+  "e6fee0a475a0476d": [
+    {
+      "c": "Trae todo lo que ya has guardado",
+      "i": 1,
+      "t": "h2"
+    },
+    {
+      "c": "Reúne automáticamente marcadores de tu navegador, apps sociales y vídeos. Olvídate del scroll infinito y de ir saltando entre plataformas para encontrar lo que de verdad te importa.",
+      "i": 2,
+      "t": "p"
+    }
+  ],
   "e768c8a859e016d2": [
     {
       "c": "Si de todos modos vas a hacer scroll, asegúrate de sacar algo de ello.",
@@ -566,28 +587,7 @@
       "t": "p"
     }
   ],
-  "e87d348b3dd99eca": "Aviso legal y políticas",
-  "ec8f820ad0c28581": [
-    {
-      "c": [
-        "Importa todo lo que has guardado alguna vez, ",
-        {
-          "c": "desde cualquier lugar.",
-          "i": 2,
-          "t": "span"
-        }
-      ],
-      "i": 1,
-      "t": "h2"
-    },
-    {
-      "c": "Reúne automáticamente marcadores de redes sociales, plataformas de vídeo y el navegador. Olvídate del desplazamiento infinito y de ir saltando entre varias plataformas para encontrar lo que de verdad te importa.",
-      "i": 3,
-      "t": "p"
-    }
-  ],
   "f137946f63b397fd": "Abrir en...",
-  "f76f62457e672828": "Estas páginas pueden actualizarse de vez en cuando. La versión vigente es la publicada en este sitio en el momento de tu visita.",
   "f96c9823ce4c4167": [
     {
       "c": {
@@ -601,19 +601,6 @@
     {
       "c": "Por qué creamos Cache.",
       "i": 3,
-      "t": "p"
-    }
-  ],
-  "fee961fc81f1f189": "Normas para usar el servicio, las cuentas y lo que se considera un uso aceptable.",
-  "fefb8ae2927f6a0c": [
-    {
-      "c": "Busca y explora desde un único feed ágil",
-      "i": 1,
-      "t": "h2"
-    },
-    {
-      "c": "Simplifica la forma en que consumes y vuelves a conectar con tu contenido guardado desde una interfaz moderna y potente, directamente en tu navegador.",
-      "i": 2,
       "t": "p"
     }
   ]

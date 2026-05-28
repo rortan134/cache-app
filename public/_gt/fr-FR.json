@@ -1,6 +1,18 @@
 {
   "019869a6c0157892": "Conditions d’utilisation",
   "03560a0d75adf329": "Productivité",
+  "056f630707f07061": [
+    {
+      "c": "Recherchez et explorez dans un flux unique et rapide",
+      "i": 1,
+      "t": "h2"
+    },
+    {
+      "c": "Simplifiez votre façon de consulter et de redécouvrir vos contenus sauvegardés grâce à une interface moderne et puissante, directement dans votre navigateur.",
+      "i": 2,
+      "t": "p"
+    }
+  ],
   "062b5e45e86d2cc4": {
     "c": [
       {
@@ -20,33 +32,6 @@
   },
   "090dd58a9e726297": "Lecteurs curieux",
   "0d5988f4c0fbf2ad": "Compte Cache",
-  "0db38849903f7632": [
-    {
-      "c": "Chaque fois que vous cliquez sur Enregistrer, vous faites un petit pari : que ce moment d’attention valait quelque chose.",
-      "i": 1,
-      "t": "p"
-    },
-    {
-      "c": "Cache recueille tous ces paris. Il sort vos sauvegardes des silos — tweets, vidéos, liens — et les met dans un endroit où vous pouvez vraiment les retrouver et en tirer quelque chose.",
-      "i": 2,
-      "t": "p"
-    },
-    {
-      "c": "Le défilement devient une bibliothèque.",
-      "i": 3,
-      "t": "p"
-    },
-    {
-      "c": "La boucle de consommation devient une trace de ce qui a retenu votre attention, de ce qui vous a fait réfléchir, de ce que vous vouliez garder.",
-      "i": 4,
-      "t": "p"
-    },
-    {
-      "c": "Le sens n’est pas dans le fil. Il est dans ce que vous choisissez de conserver.",
-      "i": 5,
-      "t": "p"
-    }
-  ],
   "0e0f0cb623f12ffc": "Cookies et technologies similaires utilisés sur nos sites et dans nos produits.",
   "11503a3d12f43fdd": "Les documents officiels qui encadrent votre relation avec nous et expliquent comment nous traitons les données. Choisissez un thème ci-dessous pour lire le texte complet.",
   "11ccc132c8c38c40": [
@@ -93,8 +78,131 @@
   "26fe9d3e34588477": "Se déconnecter",
   "2e477bab4317c062": "Impossible d’ajouter un autre compte.",
   "2e9224bc11574ab5": "Exporter en Markdown",
-  "30a94c403df733bc": "Docs, tickets, code, tutoriels. Retrouvez ce lien instantanément, sans devoir le rechercher à nouveau.",
-  "352155f34be926bb": [
+  "314d8db9f59adb60": "Une façon plus intelligente de gérer tout ce que vous enregistrez en ligne. À partir de 8 $/mois.",
+  "3b205a1c17c06fbd": "Favoris",
+  "3befbe3dae383b10": "Passer à la version supérieure",
+  "3c61319be1bc2db7": "*Les plateformes tierces auxquelles vous vous connectez via le Service sont exploitées indépendamment de Cache. Cache ne contrôle ni leurs politiques ni la manière dont elles les appliquent, et n’est pas responsable des décisions que ces plateformes prennent concernant vos Comptes ou votre accès à leurs services — y compris, sans s’y limiter, les changements de disponibilité — qu’elles soient ou non liés à votre utilisation de Cache. Il vous incombe de respecter les conditions, politiques et règles de la communauté de chaque plateforme. Cache n’est pas responsable des désagréments, pertes ou autres conséquences découlant de votre relation avec ces plateformes ou de votre utilisation du Service en lien avec celles-ci. Des informations complémentaires sont disponibles",
+  "3d26c791d3bcb69a": "Sécurité",
+  "408574e37e8d91ee": "bientôt",
+  "44205dc5e0c99d88": [
+    {
+      "c": "Vous y consacrez déjà votre attention.",
+      "i": 1,
+      "t": "p"
+    },
+    {
+      "c": "Cache veille à ce qu’elle porte ses fruits.",
+      "i": 2,
+      "t": "p"
+    }
+  ],
+  "446fc0e1621b7ae8": "Assistance",
+  "4570406e2d38d956": {
+    "c": "Politique de confidentialité",
+    "i": 1,
+    "t": "p"
+  },
+  "4715956ecfecd1e2": [
+    {
+      "c": "Chaque fois que vous cliquez sur Enregistrer, vous faites le pari que ce moment d’attention valait quelque chose.",
+      "i": 1,
+      "t": "p"
+    },
+    {
+      "c": "Cache recueille tous ces paris. Il sort vos éléments enregistrés des silos — les tweets, les vidéos, les liens — et les rassemble dans un endroit où vous pouvez vraiment les retrouver et en tirer quelque chose.",
+      "i": 2,
+      "t": "p"
+    },
+    {
+      "c": "Le défilement devient une bibliothèque.",
+      "i": 3,
+      "t": "p"
+    },
+    {
+      "c": "La boucle de consommation devient une trace de ce qui a retenu votre attention, de ce qui vous a fait réfléchir, de ce que vous vouliez conserver.",
+      "i": 4,
+      "t": "p"
+    },
+    {
+      "c": "Le sens n’est pas dans le fil. Il est dans ce que vous choisissez de garder.",
+      "i": 5,
+      "t": "p"
+    }
+  ],
+  "48de21dffb27aea4": "Journal des modifications",
+  "4d587a9524c95dd7": [
+    "Accédez à tous les signets ",
+    {
+      "i": 1,
+      "k": "_gt_value_1",
+      "v": "v"
+    },
+    "."
+  ],
+  "574ce438c4568c94": [
+    {
+      "c": {
+        "c": "Unifiez vos signets.",
+        "i": 2,
+        "t": "GradientWaveText"
+      },
+      "i": 1,
+      "t": "h1"
+    },
+    {
+      "c": "Découvrez Cache — le gestionnaire de signets pensé pour les personnes très occupées. Collectez, organisez et redécouvrez tout ce que vous avez enregistré sur toutes les plateformes.",
+      "i": 3,
+      "t": "p"
+    }
+  ],
+  "5930189d0848c328": "Créateurs et curateurs",
+  "59470116de88a745": "Articles, essais, newsletters. Une bibliothèque vivante plutôt qu’un cimetière à‑lire‑plus‑tard.",
+  "5a0a4ee1bf2a58dc": "Impossible de charger les comptes enregistrés.",
+  "5f7836df60f0e71e": "Ces pages peuvent être mises à jour régulièrement. La version affichée sur ce site est celle en vigueur au moment de votre visite.",
+  "600433e7972a7e75": "Facturation",
+  "606daf45fd88b674": "Écrivains et penseurs",
+  "627bafce1f587e82": [
+    {
+      "c": "Restez organisé. Repérez ce qui ne sert plus, gardez l’essentiel",
+      "i": 1,
+      "t": "h2"
+    },
+    {
+      "c": "Créez une base de connaissances à partir du contenu que vous jugez déjà important. Importez une seule fois et passez du chaos à l’ordre en quelques minutes.",
+      "i": 2,
+      "t": "p"
+    }
+  ],
+  "634fd36cce8909a0": "Installer l’extension",
+  "69a327815dc1270a": "Politique relative aux cookies",
+  "69cac161cf484cd9": "Nous ne pouvons pas ouvrir le paiement pour le moment.",
+  "6b75fd08ca7c6ae3": [
+    {
+      "i": 1,
+      "k": "_gt_value_1",
+      "v": "v"
+    },
+    " prend fin le ",
+    {
+      "i": 2,
+      "k": "_gt_value_2",
+      "v": "v"
+    }
+  ],
+  "6c231374bfad8483": {
+    "c": "Politique relative aux cookies",
+    "i": 1,
+    "t": "p"
+  },
+  "6f1b661d2c2cb538": "Inconnu",
+  "731e805e4730862c": {
+    "c": "Sécurité",
+    "i": 1,
+    "t": "p"
+  },
+  "75d4d73501e837d5": "Passer à Pro",
+  "7721d8d00edabeda": "Déconnexion…",
+  "77d5c5ea3c0c9f0d": [
     {
       "c": [
         {
@@ -108,7 +216,7 @@
               "i": 4,
               "t": "span"
             },
-            " vous aide à séparer ce qui est actionnable de ce qui inspire"
+            " vous aide à séparer ce qui appelle à l’action de ce qui relève de l’inspiration"
           ],
           "i": 3,
           "t": "span"
@@ -154,142 +262,30 @@
           "t": "Sparkles"
         },
         {
-          "c": "Obtenez des insights alimentés par l’IA sur votre contenu",
+          "c": "Obtenez des insights alimentés par l’IA sur vos contenus",
           "i": 13,
           "t": "span"
         }
       ],
       "i": 11,
       "t": "li"
-    },
-    {
-      "c": [
-        {
-          "i": 15,
-          "t": "Bot"
-        },
-        {
-          "c": "Donnez à vos agents la possibilité d’interagir avec vos signets (MCP)",
-          "i": 16,
-          "t": "span"
-        }
-      ],
-      "i": 14,
-      "t": "li"
     }
   ],
-  "3ac9f15975d41fb7": "Une boîte de réception pensée avec parti pris, entre le bookmarking et la prise de notes. Structurée, facile à explorer, fiable.",
-  "3b205a1c17c06fbd": "Favoris",
-  "3befbe3dae383b10": "Passer à la version supérieure",
-  "3c61319be1bc2db7": "*Les plateformes tierces auxquelles vous vous connectez via le Service sont exploitées indépendamment de Cache. Cache ne contrôle ni leurs politiques ni la manière dont elles les appliquent, et n’est pas responsable des décisions que ces plateformes prennent concernant vos Comptes ou votre accès à leurs services — y compris, sans s’y limiter, les changements de disponibilité — qu’elles soient ou non liés à votre utilisation de Cache. Il vous incombe de respecter les conditions, politiques et règles de la communauté de chaque plateforme. Cache n’est pas responsable des désagréments, pertes ou autres conséquences découlant de votre relation avec ces plateformes ou de votre utilisation du Service en lien avec celles-ci. Des informations complémentaires sont disponibles",
-  "3d26c791d3bcb69a": "Sécurité",
-  "408574e37e8d91ee": "bientôt",
-  "44205dc5e0c99d88": [
+  "783efa5acbf9fc63": [
     {
-      "c": "Vous y consacrez déjà votre attention.",
-      "i": 1,
-      "t": "p"
-    },
-    {
-      "c": "Cache veille à ce qu’elle porte ses fruits.",
-      "i": 2,
-      "t": "p"
-    }
-  ],
-  "446fc0e1621b7ae8": "Assistance",
-  "4570406e2d38d956": {
-    "c": "Politique de confidentialité",
-    "i": 1,
-    "t": "p"
-  },
-  "48de21dffb27aea4": "Journal des modifications",
-  "4d587a9524c95dd7": [
-    "Accédez à tous les signets ",
-    {
-      "i": 1,
-      "k": "_gt_value_1",
-      "v": "v"
-    },
-    "."
-  ],
-  "574ce438c4568c94": [
-    {
-      "c": {
-        "c": "Unifiez vos signets.",
-        "i": 2,
-        "t": "GradientWaveText"
-      },
-      "i": 1,
-      "t": "h1"
-    },
-    {
-      "c": "Découvrez Cache — le gestionnaire de signets pensé pour les personnes très occupées. Collectez, organisez et redécouvrez tout ce que vous avez enregistré sur toutes les plateformes.",
-      "i": 3,
-      "t": "p"
-    }
-  ],
-  "5930189d0848c328": "Créateurs et curateurs",
-  "59470116de88a745": "Articles, essais, newsletters. Une bibliothèque vivante plutôt qu’un cimetière à‑lire‑plus‑tard.",
-  "5a0a4ee1bf2a58dc": "Impossible de charger les comptes enregistrés.",
-  "600433e7972a7e75": "Facturation",
-  "606daf45fd88b674": "Écrivains et penseurs",
-  "627bafce1f587e82": [
-    {
-      "c": "Restez organisé. Repérez ce qui ne sert plus, gardez l’essentiel",
+      "c": "Arrêtez de remettre ça à « plus tard »",
       "i": 1,
       "t": "h2"
     },
     {
-      "c": "Créez une base de connaissances à partir du contenu que vous jugez déjà important. Importez une seule fois et passez du chaos à l’ordre en quelques minutes.",
+      "c": "Cache remet sous vos yeux vos meilleurs contenus sauvegardés, pour que vous les utilisiez vraiment.",
       "i": 2,
       "t": "p"
     }
   ],
-  "634fd36cce8909a0": "Installer l’extension",
-  "69a327815dc1270a": "Politique relative aux cookies",
-  "69cac161cf484cd9": "Nous ne pouvons pas ouvrir le paiement pour le moment.",
-  "6b75fd08ca7c6ae3": [
-    {
-      "i": 1,
-      "k": "_gt_value_1",
-      "v": "v"
-    },
-    " prend fin le ",
-    {
-      "i": 2,
-      "k": "_gt_value_2",
-      "v": "v"
-    }
-  ],
-  "6c231374bfad8483": {
-    "c": "Politique relative aux cookies",
-    "i": 1,
-    "t": "p"
-  },
-  "6d91c49b93fca2a6": {
-    "c": [
-      {
-        "i": 2,
-        "t": "Workflow"
-      },
-      {
-        "c": "Configurez des Automations récurrentes avec des instructions personnalisées. Recevez un résumé quotidien de vos signets récents.",
-        "i": 3,
-        "t": "span"
-      }
-    ],
-    "i": 1,
-    "t": "li"
-  },
-  "6f1b661d2c2cb538": "Inconnu",
-  "731e805e4730862c": {
-    "c": "Sécurité",
-    "i": 1,
-    "t": "p"
-  },
-  "75d4d73501e837d5": "Passer à Pro",
-  "7721d8d00edabeda": "Déconnexion…",
   "7a6c957300c408f9": "Confidentialité",
+  "7b4f31f7267a32c7": "Utilisez Cache comme l’étape manquante entre les signets et la prise de notes, pensée pour la réflexion. Structuré, facile à retrouver, fiable.",
+  "7d288c9b77b0a60e": "Mentions légales et politiques",
   "815fe7576d49381e": [
     {
       "c": {
@@ -349,20 +345,8 @@
       "t": "li"
     }
   ],
-  "8dce8ff73ffc32be": [
-    {
-      "c": "Arrêtez de tout remettre à « plus tard »",
-      "i": 1,
-      "t": "h2"
-    },
-    {
-      "c": "Créez plus d’occasions de passer à l’action en gardant vos contenus enregistrés les plus utiles en tête, au lieu de les laisser se perdre dans une pile de signets oubliés.",
-      "i": 2,
-      "t": "p"
-    }
-  ],
   "8ebdbcb486fb7060": "Abonnement",
-  "93e5f3e6c3870fab": "Threads, vidéos, inspiration. Regroupez vos idées en collections et publiez.",
+  "8eeee33f47318d9a": "Threads, vidéos, inspiration. Regroupez vos idées en collections et partagez-les.",
   "94c20ff6b75d8acb": "Comment nous collectons, utilisons et protégeons les informations personnelles.",
   "97f68bd29d3d4247": {
     "c": [
@@ -377,6 +361,38 @@
     "t": "span"
   },
   "9e172217c3e3d8ae": "Passer à Pro",
+  "9fb0204c42a8c2df": [
+    {
+      "c": [
+        {
+          "i": 2,
+          "t": "Workflow"
+        },
+        {
+          "c": "Mettez en place des routines simples qui vous montrent un résumé quotidien de vos nouveaux éléments sauvegardés",
+          "i": 3,
+          "t": "span"
+        }
+      ],
+      "i": 1,
+      "t": "li"
+    },
+    {
+      "c": [
+        {
+          "i": 5,
+          "t": "Workflow"
+        },
+        {
+          "c": "Gardez vos liens importants en tête au lieu de les laisser se perdre dans une pile de signets oubliés",
+          "i": 6,
+          "t": "span"
+        }
+      ],
+      "i": 4,
+      "t": "li"
+    }
+  ],
   "a06f2446c9ee9132": "Références, citations, extraits. Une base de recherche consultable pour votre matière brute.",
   "a3bf9c945c7318bb": "Automations",
   "a4ecc2d52fb9c50b": "Politique de confidentialité",
@@ -393,15 +409,6 @@
     }
   ],
   "a586e0692358c532": "Passez à la version supérieure pour profiter d’un accès complet à Cache et à toutes les Integrations",
-  "a744c6f0270dcd21": [
-    "Un outil pour gérer toutes vos ",
-    {
-      "c": "connaissances personnelles",
-      "i": 1,
-      "t": "span"
-    },
-    " à grande échelle. À partir de 8 $/mois."
-  ],
   "af34d21966b17dd8": {
     "c": [
       {
@@ -462,6 +469,7 @@
       "t": "p"
     }
   ],
+  "c1172428bea235ca": "Règles régissant l’utilisation du service, la gestion de votre compte et l’utilisation autorisée.",
   "c26fd6852bfece9e": "Continuer avec Google",
   "c884609397b72df2": "annuel",
   "cca6a310f45ce736": [
@@ -543,7 +551,20 @@
     }
   ],
   "e144e2404ea58e71": "Aucune collection trouvée. Créez votre première collection pour commencer à regrouper les éléments enregistrés.",
+  "e1897047828fc955": "Docs, issues, code, tutoriels. Retrouvez ce lien en un instant.",
   "e42f8301efa106ae": "Bookmark Intelligence™",
+  "e6fee0a475a0476d": [
+    {
+      "c": "Importez tout ce que vous avez déjà sauvegardé",
+      "i": 1,
+      "t": "h2"
+    },
+    {
+      "c": "Rassemblez automatiquement les signets de votre navigateur, de vos apps sociales et de vos plateformes vidéo. Fini le défilement sans fin et les allers-retours entre plusieurs plateformes pour retrouver ce qui compte pour vous.",
+      "i": 2,
+      "t": "p"
+    }
+  ],
   "e768c8a859e016d2": [
     {
       "c": "Puisque vous allez scroller de toute façon, autant en tirer quelque chose.",
@@ -566,28 +587,7 @@
       "t": "p"
     }
   ],
-  "e87d348b3dd99eca": "Mentions légales et politiques",
-  "ec8f820ad0c28581": [
-    {
-      "c": [
-        "Importez tout ce que vous avez déjà enregistré, ",
-        {
-          "c": "depuis n’importe où.",
-          "i": 2,
-          "t": "span"
-        }
-      ],
-      "i": 1,
-      "t": "h2"
-    },
-    {
-      "c": "Rassemblez automatiquement vos signets issus des réseaux sociaux, des plateformes vidéo et de votre navigateur. Fini le défilement sans fin et les allers-retours entre les plateformes pour retrouver ce qui compte pour vous.",
-      "i": 3,
-      "t": "p"
-    }
-  ],
   "f137946f63b397fd": "Ouvrir dans...",
-  "f76f62457e672828": "Ces pages peuvent être mises à jour de temps à autre. La version publiée sur ce site est celle en vigueur au moment de votre visite.",
   "f96c9823ce4c4167": [
     {
       "c": {
@@ -601,19 +601,6 @@
     {
       "c": "Pourquoi nous avons créé Cache.",
       "i": 3,
-      "t": "p"
-    }
-  ],
-  "fee961fc81f1f189": "Règles d’utilisation du service, des comptes et des usages autorisés.",
-  "fefb8ae2927f6a0c": [
-    {
-      "c": "Recherchez et explorez depuis un flux unique et rapide",
-      "i": 1,
-      "t": "h2"
-    },
-    {
-      "c": "Fluidifiez votre façon de consulter et de retrouver vos contenus enregistrés grâce à une interface moderne et puissante, directement dans votre navigateur.",
-      "i": 2,
       "t": "p"
     }
   ]

@@ -1,6 +1,18 @@
 {
   "019869a6c0157892": "Termos de Serviço",
   "03560a0d75adf329": "Produtividade",
+  "056f630707f07061": [
+    {
+      "c": "Pesquise e explore em um feed rápido e único",
+      "i": 1,
+      "t": "h2"
+    },
+    {
+      "c": "Simplifique a forma como você consome e revisita seu conteúdo salvo com uma interface moderna e poderosa, direto no navegador.",
+      "i": 2,
+      "t": "p"
+    }
+  ],
   "062b5e45e86d2cc4": {
     "c": [
       {
@@ -20,33 +32,6 @@
   },
   "090dd58a9e726297": "Leitores curiosos",
   "0d5988f4c0fbf2ad": "Conta Cache",
-  "0db38849903f7632": [
-    {
-      "c": "Toda vez que você aperta em salvar, faz uma pequena aposta de que esse momento de atenção valeu alguma coisa.",
-      "i": 1,
-      "t": "p"
-    },
-    {
-      "c": "Cache reúne essas apostas. Tira seus itens salvos dos silos — os tweets, os vídeos, os links — e coloca tudo num lugar para o qual você pode realmente voltar e do qual pode realmente tirar proveito.",
-      "i": 2,
-      "t": "p"
-    },
-    {
-      "c": "O scroll vira uma biblioteca.",
-      "i": 3,
-      "t": "p"
-    },
-    {
-      "c": "O ciclo de consumo vira um registro do que chamou sua atenção, do que fez você pensar, do que você quis guardar.",
-      "i": 4,
-      "t": "p"
-    },
-    {
-      "c": "O significado não está no feed. Está no que você escolhe guardar.",
-      "i": 5,
-      "t": "p"
-    }
-  ],
   "0e0f0cb623f12ffc": "Cookies e tecnologias semelhantes usados em nossos sites e produtos.",
   "11503a3d12f43fdd": "Documentos oficiais que regem sua relação com a gente e explicam como lidamos com os dados. Escolha um tema abaixo para ler o texto completo.",
   "11ccc132c8c38c40": [
@@ -93,8 +78,131 @@
   "26fe9d3e34588477": "Sair",
   "2e477bab4317c062": "Não foi possível adicionar outra conta.",
   "2e9224bc11574ab5": "Exportar para Markdown",
-  "30a94c403df733bc": "Documentação, issues, código, tutoriais. Encontre aquele link na hora, sem precisar pesquisar de novo.",
-  "352155f34be926bb": [
+  "314d8db9f59adb60": "Uma forma mais inteligente de lidar com tudo o que você salva online. A partir de US$ 8/mês.",
+  "3b205a1c17c06fbd": "Favoritos",
+  "3befbe3dae383b10": "Fazer upgrade",
+  "3c61319be1bc2db7": "*As plataformas de terceiros às quais você se conecta por meio do Serviço operam de forma independente do Cache. O Cache não controla as políticas dessas plataformas nem a forma como elas são aplicadas, e não se responsabiliza pelas decisões que essas plataformas tomam em relação às suas contas ou ao seu acesso aos serviços delas — incluindo, sem limitação, alterações na disponibilidade — estejam ou não relacionadas ao seu uso do Cache. Cabe a você cumprir os termos, políticas e diretrizes da comunidade de cada plataforma. O Cache não se responsabiliza por qualquer inconveniente, perda ou outro resultado decorrente da sua relação com essas plataformas ou do seu uso do Serviço em conexão com elas. Mais detalhes podem ser encontrados",
+  "3d26c791d3bcb69a": "Segurança",
+  "408574e37e8d91ee": "em breve",
+  "44205dc5e0c99d88": [
+    {
+      "c": "Você já está prestando atenção.",
+      "i": 1,
+      "t": "p"
+    },
+    {
+      "c": "Cache faz com que ela renda.",
+      "i": 2,
+      "t": "p"
+    }
+  ],
+  "446fc0e1621b7ae8": "Suporte",
+  "4570406e2d38d956": {
+    "c": "Política de Privacidade",
+    "i": 1,
+    "t": "p"
+  },
+  "4715956ecfecd1e2": [
+    {
+      "c": "Toda vez que você salva algo, faz uma pequena aposta de que esse momento de atenção valeu alguma coisa.",
+      "i": 1,
+      "t": "p"
+    },
+    {
+      "c": "O Cache reúne essas apostas. Ele tira o que você salvou dos silos — os tweets, os vídeos, os links — e coloca tudo em um lugar ao qual você pode realmente voltar e do qual pode, de fato, tirar proveito.",
+      "i": 2,
+      "t": "p"
+    },
+    {
+      "c": "O scroll vira uma biblioteca.",
+      "i": 3,
+      "t": "p"
+    },
+    {
+      "c": "O ciclo de consumo vira um registro do que chamou sua atenção, do que fez você pensar, do que você quis guardar.",
+      "i": 4,
+      "t": "p"
+    },
+    {
+      "c": "O significado não está no feed. Está no que você escolhe guardar.",
+      "i": 5,
+      "t": "p"
+    }
+  ],
+  "48de21dffb27aea4": "Registro de alterações",
+  "4d587a9524c95dd7": [
+    "Acesse todos os favoritos ",
+    {
+      "i": 1,
+      "k": "_gt_value_1",
+      "v": "v"
+    },
+    "."
+  ],
+  "574ce438c4568c94": [
+    {
+      "c": {
+        "c": "Reúna seus favoritos em um só lugar.",
+        "i": 2,
+        "t": "GradientWaveText"
+      },
+      "i": 1,
+      "t": "h1"
+    },
+    {
+      "c": "Conheça o Cache — o gerenciador de favoritos para quem vive na correria. Colete, organize e reencontre tudo o que você salvou em diferentes plataformas.",
+      "i": 3,
+      "t": "p"
+    }
+  ],
+  "5930189d0848c328": "Criadores e curadores",
+  "59470116de88a745": "Artigos, ensaios, newsletters. Uma biblioteca viva em vez de um cemitério de ler‑mais‑tarde.",
+  "5a0a4ee1bf2a58dc": "Não foi possível carregar as contas salvas.",
+  "5f7836df60f0e71e": "Estas páginas podem ser atualizadas periodicamente. A versão disponível neste site é a que está em vigor no momento da sua visita.",
+  "600433e7972a7e75": "Faturamento",
+  "606daf45fd88b674": "Escritores e pensadores",
+  "627bafce1f587e82": [
+    {
+      "c": "Mantenha tudo organizado. Identifique o que está desatualizado e fique com o que é útil",
+      "i": 1,
+      "t": "h2"
+    },
+    {
+      "c": "Monte uma base de conhecimento com o conteúdo que você já considerou importante. Importe uma vez e passe da bagunça à organização em minutos.",
+      "i": 2,
+      "t": "p"
+    }
+  ],
+  "634fd36cce8909a0": "Instale a extensão",
+  "69a327815dc1270a": "Política de Cookies",
+  "69cac161cf484cd9": "Não foi possível abrir o checkout agora.",
+  "6b75fd08ca7c6ae3": [
+    {
+      "i": 1,
+      "k": "_gt_value_1",
+      "v": "v"
+    },
+    " encerra em ",
+    {
+      "i": 2,
+      "k": "_gt_value_2",
+      "v": "v"
+    }
+  ],
+  "6c231374bfad8483": {
+    "c": "Política de Cookies",
+    "i": 1,
+    "t": "p"
+  },
+  "6f1b661d2c2cb538": "Desconhecido",
+  "731e805e4730862c": {
+    "c": "Segurança",
+    "i": 1,
+    "t": "p"
+  },
+  "75d4d73501e837d5": "Obter Pro",
+  "7721d8d00edabeda": "Saindo…",
+  "77d5c5ea3c0c9f0d": [
     {
       "c": [
         {
@@ -108,7 +216,7 @@
               "i": 4,
               "t": "span"
             },
-            " ajudam você a separar o que exige ação do que é inspiração"
+            " ajudam você a separar o que pede ação do que serve de inspiração"
           ],
           "i": 3,
           "t": "span"
@@ -154,142 +262,30 @@
           "t": "Sparkles"
         },
         {
-          "c": "Ganhe insights com tecnologia de AI sobre seu conteúdo",
+          "c": "Tenha insights com tecnologia de AI sobre seu conteúdo",
           "i": 13,
           "t": "span"
         }
       ],
       "i": 11,
       "t": "li"
-    },
-    {
-      "c": [
-        {
-          "i": 15,
-          "t": "Bot"
-        },
-        {
-          "c": "Permita que seus agentes interajam com seus favoritos (MCP)",
-          "i": 16,
-          "t": "span"
-        }
-      ],
-      "i": 14,
-      "t": "li"
     }
   ],
-  "3ac9f15975d41fb7": "Uma caixa de entrada bem definida, entre favoritos e anotações. Estruturada, fácil de buscar, confiável.",
-  "3b205a1c17c06fbd": "Favoritos",
-  "3befbe3dae383b10": "Fazer upgrade",
-  "3c61319be1bc2db7": "*As plataformas de terceiros às quais você se conecta por meio do Serviço operam de forma independente do Cache. O Cache não controla as políticas dessas plataformas nem a forma como elas são aplicadas, e não se responsabiliza pelas decisões que essas plataformas tomam em relação às suas contas ou ao seu acesso aos serviços delas — incluindo, sem limitação, alterações na disponibilidade — estejam ou não relacionadas ao seu uso do Cache. Cabe a você cumprir os termos, políticas e diretrizes da comunidade de cada plataforma. O Cache não se responsabiliza por qualquer inconveniente, perda ou outro resultado decorrente da sua relação com essas plataformas ou do seu uso do Serviço em conexão com elas. Mais detalhes podem ser encontrados",
-  "3d26c791d3bcb69a": "Segurança",
-  "408574e37e8d91ee": "em breve",
-  "44205dc5e0c99d88": [
+  "783efa5acbf9fc63": [
     {
-      "c": "Você já está prestando atenção.",
-      "i": 1,
-      "t": "p"
-    },
-    {
-      "c": "Cache faz com que ela renda.",
-      "i": 2,
-      "t": "p"
-    }
-  ],
-  "446fc0e1621b7ae8": "Suporte",
-  "4570406e2d38d956": {
-    "c": "Política de Privacidade",
-    "i": 1,
-    "t": "p"
-  },
-  "48de21dffb27aea4": "Registro de alterações",
-  "4d587a9524c95dd7": [
-    "Acesse todos os favoritos ",
-    {
-      "i": 1,
-      "k": "_gt_value_1",
-      "v": "v"
-    },
-    "."
-  ],
-  "574ce438c4568c94": [
-    {
-      "c": {
-        "c": "Reúna seus favoritos em um só lugar.",
-        "i": 2,
-        "t": "GradientWaveText"
-      },
-      "i": 1,
-      "t": "h1"
-    },
-    {
-      "c": "Conheça o Cache — o gerenciador de favoritos para quem vive na correria. Colete, organize e reencontre tudo o que você salvou em diferentes plataformas.",
-      "i": 3,
-      "t": "p"
-    }
-  ],
-  "5930189d0848c328": "Criadores e curadores",
-  "59470116de88a745": "Artigos, ensaios, newsletters. Uma biblioteca viva em vez de um cemitério de ler‑mais‑tarde.",
-  "5a0a4ee1bf2a58dc": "Não foi possível carregar as contas salvas.",
-  "600433e7972a7e75": "Faturamento",
-  "606daf45fd88b674": "Escritores e pensadores",
-  "627bafce1f587e82": [
-    {
-      "c": "Mantenha tudo organizado. Identifique o que está desatualizado e fique com o que é útil",
+      "c": "Pare de deixar para \"depois\"",
       "i": 1,
       "t": "h2"
     },
     {
-      "c": "Monte uma base de conhecimento com o conteúdo que você já considerou importante. Importe uma vez e passe da bagunça à organização em minutos.",
+      "c": "O Cache traz de volta o melhor do seu conteúdo salvo, para que você realmente aproveite o que guardou.",
       "i": 2,
       "t": "p"
     }
   ],
-  "634fd36cce8909a0": "Instale a extensão",
-  "69a327815dc1270a": "Política de Cookies",
-  "69cac161cf484cd9": "Não foi possível abrir o checkout agora.",
-  "6b75fd08ca7c6ae3": [
-    {
-      "i": 1,
-      "k": "_gt_value_1",
-      "v": "v"
-    },
-    " encerra em ",
-    {
-      "i": 2,
-      "k": "_gt_value_2",
-      "v": "v"
-    }
-  ],
-  "6c231374bfad8483": {
-    "c": "Política de Cookies",
-    "i": 1,
-    "t": "p"
-  },
-  "6d91c49b93fca2a6": {
-    "c": [
-      {
-        "i": 2,
-        "t": "Workflow"
-      },
-      {
-        "c": "Configure Automations recorrentes com instruções personalizadas. Receba um resumo diário dos seus favoritos recentes.",
-        "i": 3,
-        "t": "span"
-      }
-    ],
-    "i": 1,
-    "t": "li"
-  },
-  "6f1b661d2c2cb538": "Desconhecido",
-  "731e805e4730862c": {
-    "c": "Segurança",
-    "i": 1,
-    "t": "p"
-  },
-  "75d4d73501e837d5": "Obter Pro",
-  "7721d8d00edabeda": "Saindo…",
   "7a6c957300c408f9": "Privacidade",
+  "7b4f31f7267a32c7": "Use o Cache como o passo que faltava entre salvar favoritos e fazer anotações — feito para pensar. Estruturado, pesquisável, confiável.",
+  "7d288c9b77b0a60e": "Jurídico e políticas",
   "815fe7576d49381e": [
     {
       "c": {
@@ -349,20 +345,8 @@
       "t": "li"
     }
   ],
-  "8dce8ff73ffc32be": [
-    {
-      "c": "Pare de deixar para \"depois\"",
-      "i": 1,
-      "t": "h2"
-    },
-    {
-      "c": "Crie mais oportunidades de agir mantendo seu conteúdo salvo mais valioso sempre em mente, em vez de perdê-lo em uma pilha de favoritos esquecidos.",
-      "i": 2,
-      "t": "p"
-    }
-  ],
   "8ebdbcb486fb7060": "Assinatura",
-  "93e5f3e6c3870fab": "Threads, vídeos, inspiração. Agrupe ideias em Coleções e publique.",
+  "8eeee33f47318d9a": "Threads, vídeos, inspiração. Organize ideias em coleções e compartilhe.",
   "94c20ff6b75d8acb": "Como coletamos, usamos e protegemos informações pessoais.",
   "97f68bd29d3d4247": {
     "c": [
@@ -377,6 +361,38 @@
     "t": "span"
   },
   "9e172217c3e3d8ae": "Fazer upgrade para Pro",
+  "9fb0204c42a8c2df": [
+    {
+      "c": [
+        {
+          "i": 2,
+          "t": "Workflow"
+        },
+        {
+          "c": "Configure rotinas simples que mostram um resumo diário dos novos itens salvos",
+          "i": 3,
+          "t": "span"
+        }
+      ],
+      "i": 1,
+      "t": "li"
+    },
+    {
+      "c": [
+        {
+          "i": 5,
+          "t": "Workflow"
+        },
+        {
+          "c": "Mantenha links importantes sempre em mente, em vez de deixá-los soterrados em uma pilha de favoritos esquecidos",
+          "i": 6,
+          "t": "span"
+        }
+      ],
+      "i": 4,
+      "t": "li"
+    }
+  ],
   "a06f2446c9ee9132": "Referências, citações, trechos. Um acervo de pesquisa com busca para sua matéria-prima.",
   "a3bf9c945c7318bb": "Automations",
   "a4ecc2d52fb9c50b": "Política de Privacidade",
@@ -393,15 +409,6 @@
     }
   ],
   "a586e0692358c532": "Faça upgrade para ter acesso completo ao Cache e a todas as integrações",
-  "a744c6f0270dcd21": [
-    "Uma ferramenta para gerenciar todo o seu ",
-    {
-      "c": "conhecimento pessoal",
-      "i": 1,
-      "t": "span"
-    },
-    " em escala. A partir de US$ 8/mês."
-  ],
   "af34d21966b17dd8": {
     "c": [
       {
@@ -462,6 +469,7 @@
       "t": "p"
     }
   ],
+  "c1172428bea235ca": "Regras que regem o uso do serviço, o gerenciamento da sua conta e o uso aceitável.",
   "c26fd6852bfece9e": "Continuar com Google",
   "c884609397b72df2": "anual",
   "cca6a310f45ce736": [
@@ -543,7 +551,20 @@
     }
   ],
   "e144e2404ea58e71": "Nenhuma coleção encontrada. Crie sua primeira coleção para começar a agrupar itens salvos.",
+  "e1897047828fc955": "Docs, issues, código, tutoriais. Encontre aquele link na hora.",
   "e42f8301efa106ae": "Bookmark Intelligence™",
+  "e6fee0a475a0476d": [
+    {
+      "c": "Traga tudo o que você já salvou",
+      "i": 1,
+      "t": "h2"
+    },
+    {
+      "c": "Reúna automaticamente favoritos do seu navegador, apps sociais e vídeos. Chega de rolar sem parar e alternar entre várias plataformas para encontrar o que importa para você.",
+      "i": 2,
+      "t": "p"
+    }
+  ],
   "e768c8a859e016d2": [
     {
       "c": "Se você vai ficar rolando mesmo, pelo menos tire algo disso.",
@@ -566,28 +587,7 @@
       "t": "p"
     }
   ],
-  "e87d348b3dd99eca": "Jurídico e políticas",
-  "ec8f820ad0c28581": [
-    {
-      "c": [
-        "Importe tudo o que você já salvou, ",
-        {
-          "c": "de qualquer lugar.",
-          "i": 2,
-          "t": "span"
-        }
-      ],
-      "i": 1,
-      "t": "h2"
-    },
-    {
-      "c": "Reúna automaticamente favoritos de redes sociais, plataformas de vídeo e do navegador. Deixe para trás a rolagem sem fim e a troca entre várias plataformas para encontrar o que realmente importa para você.",
-      "i": 3,
-      "t": "p"
-    }
-  ],
   "f137946f63b397fd": "Abrir em...",
-  "f76f62457e672828": "Estas páginas podem ser atualizadas de tempos em tempos. A versão disponível neste site é a que está em vigor quando você o visita.",
   "f96c9823ce4c4167": [
     {
       "c": {
@@ -601,19 +601,6 @@
     {
       "c": "Por que criamos o Cache.",
       "i": 3,
-      "t": "p"
-    }
-  ],
-  "fee961fc81f1f189": "Regras para usar o serviço, as Contas e o uso aceitável.",
-  "fefb8ae2927f6a0c": [
-    {
-      "c": "Pesquise e explore em um feed único e rápido",
-      "i": 1,
-      "t": "h2"
-    },
-    {
-      "c": "Simplifique a forma como você consome e revisita seu conteúdo salvo em uma interface moderna e poderosa, direto no navegador.",
-      "i": 2,
       "t": "p"
     }
   ]
