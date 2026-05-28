@@ -811,6 +811,7 @@ function buildSectionDescriptionContextItem(
 const COMBOBOX_ITEM_PRESS_REASON = "item-press";
 const COMBOBOX_ESCAPE_KEY_REASON = "escape-key";
 const ALL_DOMAIN_FILTER = "__all_domains__";
+const UNSPECIFIC_DOMAIN_FILTER = "Other";
 
 const SEARCH_HOTKEYS = [
     "ctrl+g",
@@ -877,6 +878,11 @@ const COBALT_SOURCES = new Set<LibraryItemSource>([
     LibraryItemSource.tiktok,
     LibraryItemSource.x_bookmarks,
     LibraryItemSource.youtube_watch_later,
+]);
+
+const DOMAIN_RELATED_SOURCES = new Set<LibraryItemSource>([
+    LibraryItemSource.chrome_bookmarks,
+    LibraryItemSource.other,
 ]);
 
 const FILTERABLE_LIBRARY_SOURCES = [
@@ -1040,7 +1046,7 @@ type AskCacheResponseState =
       };
 
 function itemDomain(url: string): string {
-    return parseDisplayUrl(url) || "Other";
+    return parseDisplayUrl(url) || UNSPECIFIC_DOMAIN_FILTER;
 }
 
 function escapeCsv(value: string): string {
@@ -3242,7 +3248,7 @@ function buildBrowserSections(
 
     const buckets = new Map<string, LibraryItemWithCollections[]>();
     for (const item of sortedItems) {
-        let key = "Other";
+        let key = UNSPECIFIC_DOMAIN_FILTER;
         if (groupBy === "source") {
             key = item.source;
         } else if (groupBy === "domain") {
@@ -4216,7 +4222,8 @@ function Card({ item }: LibraryGridCardProps) {
     const previewImageUrl = itemPreviewImageUrl(item);
     const previewVideoUrl = itemPreviewVideoUrl(item);
     const previewTitle = alt === "Saved item" ? "Preview" : alt;
-    const previewDescription = domain === "Other" ? item.url : domain;
+    const previewDescription =
+        domain === UNSPECIFIC_DOMAIN_FILTER ? item.url : domain;
     const createdLabel = itemDateLabel(item.createdAt);
     const addedLabel = itemDateLabel(item.scrapedAt ?? item.createdAt);
     const noteExcerpt = getNoteExcerpt(item.noteContentText);
@@ -4375,7 +4382,8 @@ function ListRow({ item }: LibraryGridCardProps) {
     const domain = itemDomain(item.url);
     const previewImageUrl = itemPreviewImageUrl(item);
     const previewTitle = title === "Saved item" ? "Preview" : title;
-    const previewDescription = domain === "Other" ? item.url : domain;
+    const previewDescription =
+        domain === UNSPECIFIC_DOMAIN_FILTER ? item.url : domain;
     const createdLabel = itemDateLabel(item.createdAt);
     const addedLabel = itemDateLabel(item.scrapedAt ?? item.createdAt);
     const collectionPreview = item.collections.slice(
@@ -4976,43 +4984,35 @@ const NoteDrawer = dynamic(
     { loading: () => null, ssr: false }
 );
 
-type BrowserCollectionMembershipFilter =
-    | "all"
-    | "in-collections"
-    | "not-in-collections";
-
 interface BrowserRelatedFilterState {
-    collectionMembershipFilter: BrowserCollectionMembershipFilter;
+    collectionMembershipFilter: CollectionMembershipFilter;
     domainFilters: string[];
     searchTerms: string[];
     selectedCollectionIds: string[];
-    sourceFilters: LibraryItemSource[];
+    sourceFilters: SourceFilterValue[];
 }
 
 interface BrowserRelatedFilterOptions {
     domain: string;
-    source: LibraryItemSource;
+    source: SourceFilterValue;
 }
 
-function mergeRelatedBrowserFilterOptions(
+function buildRelatedBrowserFilterState(
     state: BrowserRelatedFilterState,
     options: BrowserRelatedFilterOptions
 ): BrowserRelatedFilterState {
+    const shouldUseDomainFilter =
+        DOMAIN_RELATED_SOURCES.has(options.source) &&
+        options.domain !== UNSPECIFIC_DOMAIN_FILTER;
+
     return {
         ...state,
-        domainFilters: appendUniqueFilterOption(
-            state.domainFilters,
-            options.domain
-        ),
-        sourceFilters: appendUniqueFilterOption(
-            state.sourceFilters,
-            options.source
-        ),
+        collectionMembershipFilter: DEFAULT_COLLECTION_MEMBERSHIP_FILTER,
+        domainFilters: shouldUseDomainFilter ? [options.domain] : [],
+        searchTerms: [],
+        selectedCollectionIds: [],
+        sourceFilters: shouldUseDomainFilter ? [] : [options.source],
     };
-}
-
-function appendUniqueFilterOption<T>(values: T[], value: T): T[] {
-    return values.includes(value) ? values : [...values, value];
 }
 
 export function Browser({
@@ -5820,7 +5820,7 @@ export function Browser({
     const handleFindRelated = useStableCallback(
         (item: LibraryItemWithCollections) => {
             const relatedDomain = itemDomain(item.url);
-            const nextFilters = mergeRelatedBrowserFilterOptions(
+            const nextFilters = buildRelatedBrowserFilterState(
                 {
                     collectionMembershipFilter,
                     domainFilters,
@@ -5833,8 +5833,14 @@ export function Browser({
 
             setPaletteInput("");
             setPaletteSection("search");
+            setCommandListOpen(false);
+            setSearchTerms(nextFilters.searchTerms);
             setSourceFilters(nextFilters.sourceFilters);
             setDomainFilters(nextFilters.domainFilters);
+            setCollectionMembershipFilter(
+                nextFilters.collectionMembershipFilter
+            );
+            onClearCollectionFilters();
         }
     );
 
