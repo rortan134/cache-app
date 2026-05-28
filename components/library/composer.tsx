@@ -303,7 +303,6 @@ interface ComposerActionsProps {
     children: ReactNode;
     connectedIntegrationCount: number;
     groupBy: string;
-    isNewUser: boolean;
     onClearPalette: () => void;
     onCreateCollection: () => void;
     onCreateNote: () => void;
@@ -315,11 +314,11 @@ interface ComposerActionsProps {
 
 export function ComposerActions({ children, ...value }: ComposerActionsProps) {
     return (
-        <ComposerActionsContext.Provider value={value}>
+        <ComposerActionsContext value={value}>
             <Toolbar.Group className="flex items-center gap-2 px-3 py-2">
                 {children}
             </Toolbar.Group>
-        </ComposerActionsContext.Provider>
+        </ComposerActionsContext>
     );
 }
 

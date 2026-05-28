@@ -16,7 +16,6 @@ import {
     ComposerInput,
     ComposerSuggestions,
 } from "@/components/library/composer";
-import { mergeRelatedBrowserFilterOptions } from "@/components/library/browser-filter-options";
 import type { NoteDraft } from "@/components/library/notes";
 import {
     NAME_COLLATOR,
@@ -102,7 +101,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Ticker } from "@/components/ui/ticker";
 import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
 import { useIsExtensionInstalled } from "@/hooks/use-extension-installed";
-import { useSession } from "@/lib/auth/client";
 import type { CollectionCreateFromItemsResult } from "@/lib/collections/actions";
 import { downloadMedia } from "@/lib/collections/actions";
 import {
@@ -148,7 +146,6 @@ import {
     parseDisplayUrl,
     toValidUrl,
 } from "@/lib/common/url";
-import { dayjs } from "@/lib/dayjs";
 import {
     createChromeBookmarkFromUrl,
     type CreateChromeBookmarkFromUrlResult,
@@ -1923,7 +1920,7 @@ function BrowserList({
         useBrowserResultsContext();
 
     return sections.map((section) => (
-        <BrowserGroupContext.Provider
+        <BrowserGroupContext
             key={section.key}
             value={{
                 accentKey: section.key,
@@ -1936,7 +1933,7 @@ function BrowserList({
             }}
         >
             {children(section)}
-        </BrowserGroupContext.Provider>
+        </BrowserGroupContext>
     ));
 }
 
@@ -4331,6 +4328,45 @@ const NoteDrawer = dynamic(
     { loading: () => null, ssr: false }
 );
 
+type BrowserCollectionMembershipFilter =
+    | "all"
+    | "in-collections"
+    | "not-in-collections";
+
+interface BrowserRelatedFilterState {
+    collectionMembershipFilter: BrowserCollectionMembershipFilter;
+    domainFilters: string[];
+    searchTerms: string[];
+    selectedCollectionIds: string[];
+    sourceFilters: LibraryItemSource[];
+}
+
+interface BrowserRelatedFilterOptions {
+    domain: string;
+    source: LibraryItemSource;
+}
+
+function mergeRelatedBrowserFilterOptions(
+    state: BrowserRelatedFilterState,
+    options: BrowserRelatedFilterOptions
+): BrowserRelatedFilterState {
+    return {
+        ...state,
+        domainFilters: appendUniqueFilterOption(
+            state.domainFilters,
+            options.domain
+        ),
+        sourceFilters: appendUniqueFilterOption(
+            state.sourceFilters,
+            options.source
+        ),
+    };
+}
+
+function appendUniqueFilterOption<T>(values: T[], value: T): T[] {
+    return values.includes(value) ? values : [...values, value];
+}
+
 export function Browser({
     connectedIntegrationCount,
     lockedItemCount,
@@ -4338,8 +4374,6 @@ export function Browser({
 }: LibraryProps) {
     const router = useRouter();
     const { hasAccess } = useSubscriptionAccess();
-    const { data } = useSession();
-    const isNewUser = dayjs(data?.user.createdAt).isToday();
     const isExtensionInstalled = useIsExtensionInstalled();
     const paletteFocusOutTimeout = useTimeout();
 
@@ -5396,7 +5430,6 @@ export function Browser({
                     }
                     connectedIntegrationCount={connectedIntegrationCount}
                     groupBy={groupBy}
-                    isNewUser={isNewUser}
                     onClearPalette={clearLibraryPalette}
                     onCreateCollection={requestCreate}
                     onCreateNote={handleCreateNote}
