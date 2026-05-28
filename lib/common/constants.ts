@@ -10,13 +10,15 @@ export const DEFAULT_LOCALE: SupportedLocale = "en-US";
 
 export const FOUNDING_DATE = new Date("2026-04-09T00:00:00.000Z");
 
-/** Shown after the page-specific title, e.g. "Settings | Cache". */
+/** Shown after the page-specific title, e.g. "Settings | Cache App". */
 export const APP_NAME = "Cache App";
 
 /** Root / default document title when a segment does not override `title`. */
 export const SITE_DEFAULT_TITLE = `Bookmark manager | ${APP_NAME}`;
 
-export const CACHE_EXTENSION_DOWNLOAD_URL = "https://cachd.app";
+export const SITE_DOMAIN = "cachd.app";
+
+export const CACHE_EXTENSION_DOWNLOAD_URL = `https://${SITE_DOMAIN}`;
 export const CACHE_EXTENSION_READY_EVENT = "CACHE_EXTENSION_READY";
 
 export const APPLE_DOMAIN_ASSOCIATION = "";
@@ -29,7 +31,7 @@ const VERCEL_URL =
 export const BASE_URL =
     process.env.NODE_ENV === "development"
         ? "http://localhost:3000"
-        : `https://${VERCEL_URL}`;
+        : `https://${VERCEL_URL ?? SITE_DOMAIN}`;
 
 export const FALLBACK_URL = "about:blank";
 
@@ -41,8 +43,6 @@ export const ITEM_KIND_FOLDER = "folder" as const;
 export const ITEM_KIND_NOTE = "note" as const;
 
 export const DESCRIPTION_MAX_LENGTH = 1024;
-
-export const DEFAULT_CURRENCY = "usd";
 
 export const PRISMA_UNIQUE_CONSTRAINT_ERROR = "P2002";
 
