@@ -1642,7 +1642,7 @@ function CollectionItemRow({
     return (
         <CollectionItem collection={collection} isSelected={isSelected}>
             <CollectionItemPriorityCombobox />
-            <CollectionItemPreview
+            <CollectionItemTrigger
                 {...(isSelected
                     ? {
                           "data-active": true,
@@ -1650,7 +1650,7 @@ function CollectionItemRow({
                     : {})}
             >
                 <CollectionItemValue />
-            </CollectionItemPreview>
+            </CollectionItemTrigger>
             <CollectionItemMetadata
                 isFavorite={isFavorite}
                 isSharePending={
@@ -2605,7 +2605,7 @@ function CollectionItem({
  *
  * Clicking selects the collection and closes the preview popup.
  */
-function CollectionItemPreview({
+function CollectionItemTrigger({
     onClick: onClickProp,
     ...props
 }: React.ComponentProps<typeof PreviewCardTrigger>) {

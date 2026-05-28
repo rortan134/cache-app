@@ -1,10 +1,10 @@
 "use client";
 
-import { OnboardingMenu } from "@/components/library/onboarding";
 import type {
-    CommandPaletteItem,
     CommandPaletteGroup,
+    CommandPaletteItem,
 } from "@/components/library/browser";
+import { OnboardingMenu } from "@/components/library/onboarding";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -20,7 +20,6 @@ import {
     CommandPanel,
     CommandPopup,
     CommandRow,
-    CommandShortcut,
     CommandStatus,
 } from "@/components/ui/command";
 import { CmdKbd, Kbd, KbdGroup } from "@/components/ui/kbd";
@@ -110,9 +109,6 @@ function CommandPaletteItemComponent({
                     ) : null}
                     {item.active ? (
                         <Badge variant="secondary">Active</Badge>
-                    ) : null}
-                    {item.shortcut ? (
-                        <CommandShortcut>{item.shortcut}</CommandShortcut>
                     ) : null}
                 </div>
             )}

@@ -38,7 +38,6 @@ import { Avatar, AvatarFallback, AvatarGroup } from "@/components/ui/avatar";
 import { BackToTopButton } from "@/components/ui/back-to-top-button";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { useClientOnlyValue } from "@/components/ui/client-only";
 import {
     Combobox,
     ComboboxCollection,
@@ -129,7 +128,6 @@ import {
 } from "@/lib/common/constants";
 import { parseDate } from "@/lib/common/dates";
 import { getOwnerDocument, getOwnerWindow } from "@/lib/common/dom";
-import { getSystemControlKey } from "@/lib/common/environment";
 import {
     revokeFileAttachmentObjectUrl,
     saveFile,
@@ -159,11 +157,7 @@ import {
     updateNote,
     type NoteMutationResult,
 } from "@/lib/integrations/notes/actions";
-import {
-    askCache,
-    getSectionDescription,
-    type SectionDescriptionResult,
-} from "@/lib/intelligence/actions";
+import { askCache, getSectionDescription } from "@/lib/intelligence/actions";
 import type {
     AskCacheComposerPatch,
     AskCacheRequest,
@@ -249,7 +243,7 @@ const CSV_HEADERS = [
     "Posted At",
 ] as const;
 
-export interface CommandSuggestion {
+interface CommandSuggestion {
     icon: ReactNode;
     label: string;
     onSelect: () => void;
@@ -694,11 +688,11 @@ interface SectionDescriptionResponse {
 type SectionDescriptionSWRKey = readonly [requestBody: string];
 
 async function fetchSectionDescription([
-    requestBody,
+    payload,
 ]: SectionDescriptionSWRKey): Promise<SectionDescriptionResponse> {
     let rawInput: unknown;
     try {
-        rawInput = JSON.parse(requestBody);
+        rawInput = JSON.parse(payload);
     } catch {
         throw new Error("Invalid section description request.");
     }
@@ -709,12 +703,7 @@ async function fetchSectionDescription([
     }
 
     const result = await getSectionDescription(parsed.data);
-    return toSectionDescriptionResponse(result);
-}
 
-function toSectionDescriptionResponse(
-    result: SectionDescriptionResult
-): SectionDescriptionResponse {
     if (result.status !== "SUCCESS") {
         throw new Error(result.message);
     }
@@ -739,11 +728,9 @@ function normalizeSectionDescriptionText(
     maxLength: number
 ): string {
     const normalized = normalizeWhitespace(value ?? "");
-
     if (normalized.length <= maxLength) {
         return normalized;
     }
-
     return `${normalized.slice(0, maxLength - 1).trimEnd()}…`;
 }
 
@@ -760,6 +747,7 @@ function buildSectionDescriptionContextItem(
             getItemTitle(item),
             SECTION_DESCRIPTION_TITLE_MAX_LENGTH
         ) || "Untitled";
+
     const noteExcerpt =
         item.kind === "note"
             ? normalizeSectionDescriptionText(
@@ -767,6 +755,7 @@ function buildSectionDescriptionContextItem(
                   SECTION_DESCRIPTION_TEXT_MAX_LENGTH
               ) || undefined
             : undefined;
+
     const primaryText =
         noteExcerpt ??
         (normalizeSectionDescriptionText(
@@ -774,6 +763,7 @@ function buildSectionDescriptionContextItem(
             SECTION_DESCRIPTION_TEXT_MAX_LENGTH
         ) ||
             title);
+
     const normalizedUrl =
         item.kind === "note"
             ? undefined
@@ -781,6 +771,7 @@ function buildSectionDescriptionContextItem(
                   normalizeURL(item.url),
                   SECTION_DESCRIPTION_URL_MAX_LENGTH
               ) || undefined;
+
     const domain =
         item.kind === "note"
             ? undefined
@@ -982,10 +973,6 @@ interface BrowserGroup {
     items: LibraryItemWithCollections[];
     key: string;
     title: string | null;
-}
-
-interface BrowserStyle extends React.CSSProperties {
-    "--library-section-sticky-top": string;
 }
 
 interface LibraryCommandAttachment
@@ -1192,21 +1179,6 @@ function appendUniqueSearchTerm(values: string[], next: string): string[] {
         : [...values, normalized];
 }
 
-function matchesCommandPaletteItem(
-    item: CommandPaletteItem,
-    query: string
-): boolean {
-    const normalizedQuery = query.trim().toLowerCase();
-
-    if (!normalizedQuery) {
-        return true;
-    }
-
-    return [item.label, item.description, item.value].some((field) =>
-        field?.toLowerCase().includes(normalizedQuery)
-    );
-}
-
 function removeValue<T>(values: T[], value: T): T[] {
     return values.filter((entry) => entry !== value);
 }
@@ -1217,7 +1189,7 @@ function toggleValue<T>(values: T[], next: T): T[] {
         : [...values, next];
 }
 
-export interface PaletteStackEntry {
+interface PaletteStackEntry {
     chip: ReactNode;
     key: string;
     onRemove: () => void;
@@ -1859,14 +1831,15 @@ function BrowserResults({
     ...contextValue
 }: BrowserResultsContextValue & { children: ReactNode }) {
     return (
-        <BrowserResultsContext.Provider value={contextValue}>
+        <BrowserResultsContext value={contextValue}>
             {children}
-        </BrowserResultsContext.Provider>
+        </BrowserResultsContext>
     );
 }
 
 function BrowserEmpty() {
     const { showEmptyLibraryPeek } = useBrowserResultsContext();
+
     if (!showEmptyLibraryPeek) {
         return null;
     }
@@ -1919,6 +1892,7 @@ function BrowserEmpty() {
 function BrowserFiltersEmpty() {
     const { showNoFilteredResults, clearLibraryPalette } =
         useBrowserResultsContext();
+
     if (!showNoFilteredResults) {
         return null;
     }
@@ -2607,7 +2581,7 @@ function buildDomainPaletteOptions(
     ];
 }
 
-function buildLibraryPaletteGroups({
+function buildPaletteGroups({
     askCacheResponse,
     collections,
     clearLibraryPalette,
@@ -2658,28 +2632,24 @@ function buildLibraryPaletteGroups({
             description: "Source and domain filters",
             label: "Filter by…",
             onSelect: (event) => openPaletteSection("filter", event),
-            shortcut: "F",
             value: "navigate filters",
         },
         {
             description: `Current: ${groupByLabel(groupBy)}`,
             label: "Group by…",
             onSelect: (event) => openPaletteSection("group", event),
-            shortcut: "G",
             value: "navigate grouping",
         },
         {
             description: `Current: ${sortModeLabel(sortMode)}`,
             label: "Sort by…",
             onSelect: (event) => openPaletteSection("sort", event),
-            shortcut: "S",
             value: "navigate sorting",
         },
         {
             description: `Current: ${layoutModeLabel(layoutMode)}`,
             label: "Layout…",
             onSelect: (event) => openPaletteSection("layout", event),
-            shortcut: "L",
             value: "navigate layout",
         },
     ];
@@ -2899,7 +2869,7 @@ function buildLibraryPaletteGroups({
     ];
 }
 
-function filterLibraryBrowserItems(
+function filterBrowserItems(
     items: LibraryItemWithCollections[],
     input: {
         collectionMembershipFilter: CollectionMembershipFilter;
@@ -2957,7 +2927,7 @@ function filterLibraryBrowserItems(
     return list;
 }
 
-function sortLibraryBrowserItems(
+function sortBrowserItems(
     filteredItems: LibraryItemWithCollections[],
     sortMode: SortMode
 ): LibraryItemWithCollections[] {
@@ -2966,7 +2936,7 @@ function sortLibraryBrowserItems(
     return [...filteredItems].sort((a, b) => compareItems(a, b, itemSortMode));
 }
 
-function buildLibraryBrowserSections(
+function buildBrowserSections(
     sortedItems: LibraryItemWithCollections[],
     groupBy: GroupByMode,
     sortMode: SortMode
@@ -3065,7 +3035,7 @@ async function createLibraryBookmarkFromPastedUrl({
     }
 }
 
-function libraryBrowserHasActiveFilters(input: {
+function browserHasActiveFilters(input: {
     collectionMembershipFilter: CollectionMembershipFilter;
     domainFilters: string[];
     searchTerms: string[];
@@ -3080,38 +3050,6 @@ function libraryBrowserHasActiveFilters(input: {
         input.collectionMembershipFilter !==
             DEFAULT_COLLECTION_MEMBERSHIP_FILTER
     );
-}
-
-function applyVisiblePaletteShortcuts(
-    paletteGroups: CommandPaletteGroup[],
-    paletteInput: string,
-    systemControlKey: string
-): CommandPaletteGroup[] {
-    const filtered = paletteGroups
-        .map((group) => ({
-            ...group,
-            items: group.items.filter((item) =>
-                matchesCommandPaletteItem(item, paletteInput)
-            ),
-        }))
-        .filter((group) => group.items.length > 0);
-
-    let globalIndex = 0;
-    return filtered.map((group) => ({
-        ...group,
-        items: group.items.map((item) => {
-            globalIndex++;
-            if (globalIndex <= 9 && !item.shortcut) {
-                return {
-                    ...item,
-                    shortcut: systemControlKey
-                        ? `${systemControlKey}${globalIndex}`
-                        : item.shortcut,
-                };
-            }
-            return item;
-        }),
-    }));
 }
 
 function useSectionCollapseState({
@@ -4379,10 +4317,7 @@ const NoteDrawer = dynamic(
                 );
             };
         }),
-    {
-        loading: () => null,
-        ssr: false,
-    }
+    { loading: () => null, ssr: false }
 );
 
 export function Browser({
@@ -4390,8 +4325,12 @@ export function Browser({
     lockedItemCount,
     totalItemCount,
 }: LibraryProps) {
+    const router = useRouter();
+    const { hasAccess } = useSubscriptionAccess();
     const { data } = useSession();
     const isNewUser = dayjs(data?.user.createdAt).isToday();
+    const isExtensionInstalled = useIsExtensionInstalled();
+    const paletteFocusOutTimeout = useTimeout();
 
     const {
         collectionPreviewThumbnailUrlsById,
@@ -4410,12 +4349,6 @@ export function Browser({
         setItems: onItemsChange,
     } = useWorkspaceContext();
     const openFavoriteItemRef = React.use(OpenFavoriteItemRefContext);
-
-    const { hasAccess } = useSubscriptionAccess();
-    const router = useRouter();
-    const systemControlKey = useClientOnlyValue(getSystemControlKey());
-    const isExtensionInstalled = useIsExtensionInstalled();
-    const paletteFocusOutTimeout = useTimeout();
 
     const [searchTerms, setSearchTerms] = React.useState<string[]>([]);
     const [paletteInput, setPaletteInput] = React.useState("");
@@ -4495,272 +4428,14 @@ export function Browser({
         startCreateResultsCollectionTransition,
     ] = React.useTransition();
 
-    const domainOptions = buildDomainPaletteOptions(items);
-
-    const focusPaletteInput = useStableCallback((select = false) => {
-        setCommandListOpen(true);
-        queueMicrotask(() => {
-            paletteInputRef.current?.focus();
-            if (select) {
-                paletteInputRef.current?.select();
-            }
-        });
-    });
-
-    const handleCommandOpenChange = useStableCallback(
-        (
-            nextOpen: boolean,
-            eventDetails: AutocompleteRootChangeEventDetails
-        ) => {
-            if (
-                !nextOpen &&
-                eventDetails.reason === COMBOBOX_ESCAPE_KEY_REASON &&
-                paletteSection !== "search"
-            ) {
-                eventDetails.cancel();
-
-                if (paletteInput.trim() === "") {
-                    returnToSearchSection();
-                    return;
-                }
-
-                setCommandListOpen(true);
-                return;
-            }
-
-            setCommandListOpen(() => {
-                if (!nextOpen && suppressNextCommandCloseRef.current) {
-                    suppressNextCommandCloseRef.current = false;
-                    return true;
-                }
-
-                if (!nextOpen) {
-                    const shell = commandPanelContainerRef.current;
-                    const ownerWindow = shell?.ownerDocument.defaultView;
-                    const active = shell?.ownerDocument.activeElement;
-                    const focusInsidePalette = Boolean(
-                        shell &&
-                            ownerWindow &&
-                            active instanceof ownerWindow.Node &&
-                            shell.contains(active)
-                    );
-                    const reason = eventDetails.reason;
-
-                    // Inline autocomplete always requests close on item pick; keep the list
-                    // visible while focus stays in the palette so the field matches the list.
-                    if (
-                        focusInsidePalette &&
-                        reason === COMBOBOX_ITEM_PRESS_REASON
-                    ) {
-                        return true;
-                    }
-                }
-
-                if (nextOpen) {
-                    suppressNextCommandCloseRef.current = false;
-                }
-
-                return nextOpen;
-            });
-        }
-    );
-
-    useIsoLayoutEffect(() => {
-        const element = commandPanelContainerRef.current;
-        if (!element) {
-            return;
-        }
-        const ownerWindow = getOwnerWindow(element);
-        if (!ownerWindow) {
-            return;
-        }
-
-        const handleFocusIn = (event: FocusEvent) => {
-            setIsPaletteFocused(true);
-            if (event.target instanceof ownerWindow.HTMLInputElement) {
-                setCommandListOpen(true);
-            }
-        };
-
-        const handleFocusOut = (event: FocusEvent) => {
-            const { relatedTarget } = event;
-            if (
-                relatedTarget instanceof ownerWindow.Node &&
-                element.contains(relatedTarget)
-            ) {
-                return;
-            }
-            const closeIfLeft = () => {
-                const active = element.ownerDocument.activeElement;
-                if (
-                    !(
-                        active instanceof ownerWindow.Node &&
-                        element.contains(active)
-                    )
-                ) {
-                    setIsPaletteFocused(false);
-                    setCommandListOpen(false);
-                }
-            };
-            queueMicrotask(closeIfLeft);
-            paletteFocusOutTimeout.start(0, closeIfLeft);
-        };
-
-        element.addEventListener("focusin", handleFocusIn);
-        element.addEventListener("focusout", handleFocusOut);
-        return () => {
-            paletteFocusOutTimeout.clear();
-            element.removeEventListener("focusin", handleFocusIn);
-            element.removeEventListener("focusout", handleFocusOut);
-        };
-    }, [paletteFocusOutTimeout]);
-
-    const handleWindowKeyDown = useStableCallback((event: KeyboardEvent) => {
-        const target = event.target;
-        const ownerWindow = commandPanelContainerRef.current
-            ? getOwnerWindow(commandPanelContainerRef.current)
-            : getOwnerWindow();
-        const isTextEntry = isTextEntryTarget(target, ownerWindow);
-        const isPaletteEventTarget =
-            target instanceof ownerWindow.Node &&
-            commandPanelContainerRef.current?.contains(target);
-
-        if (isSearchHotkey(event)) {
-            event.preventDefault();
-            focusPaletteInput(true);
-            return;
-        }
-
-        if (
-            event.key === "/" &&
-            !event.metaKey &&
-            !event.ctrlKey &&
-            !event.altKey &&
-            !isTextEntry
-        ) {
-            event.preventDefault();
-            focusPaletteInput();
-            return;
-        }
-
-        if (
-            event.defaultPrevented ||
-            isTextEntry ||
-            isPaletteEventTarget ||
-            !isPrintablePaletteKey(event)
-        ) {
-            return;
-        }
-
-        event.preventDefault();
-        setPaletteInput((current) => `${current}${event.key}`);
-        focusPaletteInput();
-    });
-
-    useHotkeys(
-        SEARCH_HOTKEYS,
-        handleWindowKeyDown,
-        {
-            description: "Focus command menu",
-        },
-        [focusPaletteInput]
-    );
-
-    React.useEffect(
-        () => () => {
-            for (const attachment of commandAttachmentsRef.current) {
-                revokeFileAttachmentObjectUrl(attachment.url);
-            }
-        },
-        []
-    );
-
-    const returnToSearchSection = useStableCallback(() => {
-        setPaletteSection("search");
-        setPaletteInput("");
-        setCommandListOpen(true);
-    });
-
-    const openPaletteSection = useStableCallback(
-        (
-            section: Exclude<PaletteSection, "search">,
-            event: BaseUIEvent<React.MouseEvent> | KeyboardEvent
-        ) => {
-            event.preventDefault();
-            suppressNextCommandCloseRef.current = true;
-            setPaletteSection(section);
-            setPaletteInput("");
-        }
-    );
-
-    const handleCommandInputChange = useStableCallback(
-        (next: string, eventDetails: AutocompleteRootChangeEventDetails) => {
-            if (
-                paletteGroups
-                    .flatMap((group) => group.items)
-                    .some((value) => value.value === next)
-            ) {
-                eventDetails.cancel();
-                return;
-            }
-
-            setPaletteInput(next);
-        }
-    );
-
-    const removeCommandAttachment = useStableCallback((id: string) => {
-        setCommandAttachments((current) => {
-            const nextAttachments: LibraryCommandAttachment[] = [];
-            for (const attachment of current) {
-                if (attachment.id === id) {
-                    revokeFileAttachmentObjectUrl(attachment.url);
-                    continue;
-                }
-                nextAttachments.push(attachment);
-            }
-            return nextAttachments;
-        });
-    });
-
-    const clearCommandAttachments = () => {
+    const clearCommandAttachments = useStableCallback(() => {
         setCommandAttachments((current) => {
             for (const attachment of current) {
                 revokeFileAttachmentObjectUrl(attachment.url);
             }
             return [];
         });
-    };
-
-    // const handleAttachCommandFiles = useStableCallback(async () => {
-    //     try {
-    //         const selectedFiles = await fileOpen({
-    //             description: "Files",
-    //             multiple: true,
-    //         });
-    //         const files = Array.isArray(selectedFiles)
-    //             ? selectedFiles
-    //             : [selectedFiles];
-
-    //         if (files.length === 0) {
-    //             return;
-    //         }
-
-    //         const nextAttachments = files.map((file) => ({
-    //             ...createFileAttachment(file),
-    //             id: crypto.randomUUID(),
-    //         }));
-
-    //         setCommandAttachments((current) => [
-    //             ...current,
-    //             ...nextAttachments,
-    //         ]);
-    //         focusPaletteInput();
-    //     } catch (error) {
-    //         if (!isAbortError(error)) {
-    //             log.error("Failed to attach command files", error);
-    //         }
-    //     }
-    // });
+    });
 
     const clearLibraryPalette = useStableCallback(() => {
         setPaletteInput("");
@@ -4804,7 +4479,7 @@ export function Browser({
                     .filter((option) => option.value !== ALL_DOMAIN_FILTER)
                     .slice(0, ASK_CACHE_CONTEXT_DOMAIN_LIMIT)
                     .map((option) => option.value),
-                filteredItemCount: filterLibraryBrowserItems(items, {
+                filteredItemCount: filterBrowserItems(items, {
                     collectionMembershipFilter,
                     domainFilters,
                     searchTerms,
@@ -4919,6 +4594,344 @@ export function Browser({
         }
     );
 
+    const returnToSearchSection = useStableCallback(() => {
+        setPaletteSection("search");
+        setPaletteInput("");
+        setCommandListOpen(true);
+    });
+
+    const openPaletteSection = useStableCallback(
+        (
+            section: Exclude<PaletteSection, "search">,
+            event: BaseUIEvent<React.MouseEvent> | KeyboardEvent
+        ) => {
+            event.preventDefault();
+            suppressNextCommandCloseRef.current = true;
+            setPaletteSection(section);
+            setPaletteInput("");
+        }
+    );
+
+    const domainOptions = buildDomainPaletteOptions(items);
+
+    const paletteGroups = buildPaletteGroups({
+        askCacheResponse,
+        clearLibraryPalette,
+        collectionMembershipFilter,
+        collectionPreviewThumbnailUrlsById,
+        collections,
+        columnCountMode,
+        domainFilters,
+        domainOptions,
+        groupBy,
+        layoutMode,
+        onAskCacheSubmit: handleAskCacheSubmit,
+        onClearCollectionFilters,
+        onToggleCollectionSelection: onRemoveCollectionFilter,
+        openPaletteSection,
+        paletteInput,
+        paletteSection,
+        returnToSearchSection,
+        searchTerms,
+        selectedCollectionIds,
+        setCollectionMembershipFilter,
+        setColumnCountMode,
+        setCommandListOpen,
+        setDomainFilters,
+        setGroupBy,
+        setLayoutMode,
+        setPaletteInput,
+        setSearchTerms,
+        setSortMode,
+        setSourceFilters,
+        sortMode,
+        sourceFilters,
+    });
+
+    const filteredItems = filterBrowserItems(items, {
+        collectionMembershipFilter,
+        domainFilters,
+        searchTerms,
+        selectedCollectionIds,
+        sourceFilters,
+    });
+
+    const sortedItems = sortBrowserItems(filteredItems, sortMode);
+
+    const sections = buildBrowserSections(sortedItems, groupBy, sortMode);
+
+    const hasActiveFilters = browserHasActiveFilters({
+        collectionMembershipFilter,
+        domainFilters,
+        searchTerms,
+        selectedCollectionIds,
+        sourceFilters,
+    });
+
+    const hasNonDefaultView =
+        groupBy !== "none" ||
+        sortMode !== DEFAULT_SORT_MODE ||
+        columnCountMode !== DEFAULT_COLUMN_COUNT_MODE ||
+        layoutMode !== DEFAULT_LAYOUT_MODE ||
+        sourceFilters.length > 0;
+
+    const showEmptyLibraryPeek =
+        items.length === 0 && filteredItems.length === 0 && !hasActiveFilters;
+
+    const showNoFilteredResults =
+        filteredItems.length === 0 && !showEmptyLibraryPeek;
+
+    const {
+        collapseAllSections,
+        collapsedSectionKeys,
+        enableSectionCollapse,
+        expandAllSections,
+        toggleSection,
+    } = useSectionCollapseState({
+        groupBy,
+        hasActiveFilters,
+        sections,
+        showEmptyLibraryPeek,
+        showNoFilteredResults,
+    });
+
+    const resolvedColumnCount =
+        layoutMode === "masonry" && columnCountMode !== "auto"
+            ? Number(columnCountMode)
+            : undefined;
+
+    const collapsedSectionKeySet = new Set(collapsedSectionKeys);
+
+    const isPreviewOnly = !hasAccess && lockedItemCount > 0;
+    let resultsSummary = `${filteredItems.length} of ${items.length} items`;
+    if (filteredItems.length === items.length) {
+        resultsSummary = `${items.length} item${items.length === 1 ? "" : "s"}`;
+    }
+    if (isPreviewOnly) {
+        resultsSummary =
+            filteredItems.length === items.length
+                ? `${items.length} preview item${items.length === 1 ? "" : "s"} of ${totalItemCount}`
+                : `${filteredItems.length} preview result${filteredItems.length === 1 ? "" : "s"} from ${items.length} visible`;
+    }
+
+    const visibleResultItems = sections.flatMap((section) => section.items);
+
+    const canCreateCollectionFromResults =
+        (searchTerms.length > 0 || hasNonDefaultView) &&
+        visibleResultItems.length > 0;
+
+    const showLockedPreview =
+        isPreviewOnly && !hasActiveFilters && groupBy === "none";
+
+    const canClear =
+        (hasActiveFilters || hasNonDefaultView) && !showEmptyLibraryPeek;
+
+    const resultCollectionItemIds = visibleResultItems.map((item) => item.id);
+
+    const suggestions = buildCommandSuggestions({
+        clearLibraryPalette,
+        collectionMembershipFilter,
+        collections,
+        domainFilters,
+        groupBy,
+        isExtensionInstalled,
+        items: filteredItems,
+        layoutMode,
+        onClearCollectionFilters,
+        onCreateCollection: requestCreate,
+        onToggleCollectionSelection: onRemoveCollectionFilter,
+        searchTerms,
+        selectedCollectionIds,
+        setCollectionMembershipFilter,
+        setCommandListOpen,
+        setDomainFilters,
+        setGroupBy,
+        setLayoutMode,
+        setPaletteInput,
+        setSearchTerms,
+        setSortMode,
+        setSourceFilters,
+        sortMode,
+        sourceFilters,
+    });
+
+    const focusPaletteInput = useStableCallback((select = false) => {
+        setCommandListOpen(true);
+        queueMicrotask(() => {
+            paletteInputRef.current?.focus();
+            if (select) {
+                paletteInputRef.current?.select();
+            }
+        });
+    });
+
+    const handleCommandOpenChange = useStableCallback(
+        (
+            nextOpen: boolean,
+            eventDetails: AutocompleteRootChangeEventDetails
+        ) => {
+            if (
+                !nextOpen &&
+                eventDetails.reason === COMBOBOX_ESCAPE_KEY_REASON &&
+                paletteSection !== "search"
+            ) {
+                eventDetails.cancel();
+
+                if (paletteInput.trim() === "") {
+                    returnToSearchSection();
+                    return;
+                }
+
+                setCommandListOpen(true);
+                return;
+            }
+
+            setCommandListOpen(() => {
+                if (!nextOpen && suppressNextCommandCloseRef.current) {
+                    suppressNextCommandCloseRef.current = false;
+                    return true;
+                }
+
+                if (!nextOpen) {
+                    const shell = commandPanelContainerRef.current;
+                    const ownerWindow = shell?.ownerDocument.defaultView;
+                    const active = shell?.ownerDocument.activeElement;
+                    const focusInsidePalette = Boolean(
+                        shell &&
+                            ownerWindow &&
+                            active instanceof ownerWindow.Node &&
+                            shell.contains(active)
+                    );
+                    const reason = eventDetails.reason;
+
+                    // Inline autocomplete always requests close on item pick; keep the list
+                    // visible while focus stays in the palette so the field matches the list.
+                    if (
+                        focusInsidePalette &&
+                        reason === COMBOBOX_ITEM_PRESS_REASON
+                    ) {
+                        return true;
+                    }
+                }
+
+                if (nextOpen) {
+                    suppressNextCommandCloseRef.current = false;
+                }
+
+                return nextOpen;
+            });
+        }
+    );
+
+    const handleWindowKeyDown = useStableCallback((event: KeyboardEvent) => {
+        const target = event.target;
+        const ownerWindow = commandPanelContainerRef.current
+            ? getOwnerWindow(commandPanelContainerRef.current)
+            : getOwnerWindow();
+        const isTextEntry = isTextEntryTarget(target, ownerWindow);
+        const isPaletteEventTarget =
+            target instanceof ownerWindow.Node &&
+            commandPanelContainerRef.current?.contains(target);
+
+        if (isSearchHotkey(event)) {
+            event.preventDefault();
+            focusPaletteInput(true);
+            return;
+        }
+
+        if (
+            event.key === "/" &&
+            !event.metaKey &&
+            !event.ctrlKey &&
+            !event.altKey &&
+            !isTextEntry
+        ) {
+            event.preventDefault();
+            focusPaletteInput();
+            return;
+        }
+
+        if (
+            event.defaultPrevented ||
+            isTextEntry ||
+            isPaletteEventTarget ||
+            !isPrintablePaletteKey(event)
+        ) {
+            return;
+        }
+
+        event.preventDefault();
+        setPaletteInput((current) => `${current}${event.key}`);
+        focusPaletteInput();
+    });
+
+    useHotkeys(
+        SEARCH_HOTKEYS,
+        handleWindowKeyDown,
+        { description: "Focus command menu" },
+        [focusPaletteInput]
+    );
+
+    const handleCommandInputChange = useStableCallback(
+        (next: string, eventDetails: AutocompleteRootChangeEventDetails) => {
+            if (
+                paletteGroups
+                    .flatMap((group) => group.items)
+                    .some((value) => value.value === next)
+            ) {
+                eventDetails.cancel();
+                return;
+            }
+
+            setPaletteInput(next);
+        }
+    );
+
+    const removeCommandAttachment = useStableCallback((id: string) => {
+        setCommandAttachments((current) => {
+            const nextAttachments: LibraryCommandAttachment[] = [];
+            for (const attachment of current) {
+                if (attachment.id === id) {
+                    revokeFileAttachmentObjectUrl(attachment.url);
+                    continue;
+                }
+                nextAttachments.push(attachment);
+            }
+            return nextAttachments;
+        });
+    });
+
+    // const handleAttachCommandFiles = useStableCallback(async () => {
+    //     try {
+    //         const selectedFiles = await fileOpen({
+    //             description: "Files",
+    //             multiple: true,
+    //         });
+    //         const files = Array.isArray(selectedFiles)
+    //             ? selectedFiles
+    //             : [selectedFiles];
+
+    //         if (files.length === 0) {
+    //             return;
+    //         }
+
+    //         const nextAttachments = files.map((file) => ({
+    //             ...createFileAttachment(file),
+    //             id: crypto.randomUUID(),
+    //         }));
+
+    //         setCommandAttachments((current) => [
+    //             ...current,
+    //             ...nextAttachments,
+    //         ]);
+    //         focusPaletteInput();
+    //     } catch (error) {
+    //         if (!isAbortError(error)) {
+    //             log.error("Failed to attach command files", error);
+    //         }
+    //     }
+    // });
+
     const handlePaletteInputKeyDown = useStableCallback(
         (event: React.KeyboardEvent<HTMLInputElement>) => {
             if (event.key === "Escape") {
@@ -4995,208 +5008,6 @@ export function Browser({
             }
         }
     );
-
-    const paletteGroups = buildLibraryPaletteGroups({
-        askCacheResponse,
-        clearLibraryPalette,
-        collectionMembershipFilter,
-        collectionPreviewThumbnailUrlsById,
-        collections,
-        columnCountMode,
-        domainFilters,
-        domainOptions,
-        groupBy,
-        layoutMode,
-        onAskCacheSubmit: handleAskCacheSubmit,
-        onClearCollectionFilters,
-        onToggleCollectionSelection: onRemoveCollectionFilter,
-        openPaletteSection,
-        paletteInput,
-        paletteSection,
-        returnToSearchSection,
-        searchTerms,
-        selectedCollectionIds,
-        setCollectionMembershipFilter,
-        setColumnCountMode,
-        setCommandListOpen,
-        setDomainFilters,
-        setGroupBy,
-        setLayoutMode,
-        setPaletteInput,
-        setSearchTerms,
-        setSortMode,
-        setSourceFilters,
-        sortMode,
-        sourceFilters,
-    });
-
-    const visiblePaletteGroups = applyVisiblePaletteShortcuts(
-        paletteGroups,
-        paletteInput,
-        systemControlKey ?? "Ctrl"
-    );
-
-    let inputPlaceholder = "Search, filter, group, sort, and more…";
-    if (paletteSection === "search") {
-        inputPlaceholder = "Search, filter, group, sort, and more…";
-        if (isPaletteFocused) {
-            inputPlaceholder = "What are you looking for?";
-        }
-    } else if (paletteSection === "filter") {
-        inputPlaceholder = "Filter the library…";
-    } else if (paletteSection === "group") {
-        inputPlaceholder = "Group results…";
-    } else if (paletteSection === "sort") {
-        inputPlaceholder = "Sort results…";
-    } else if (paletteSection === "layout") {
-        inputPlaceholder = "Change the layout…";
-    } else if (paletteSection === "ai-response") {
-        inputPlaceholder = "Ask Cache…";
-    }
-
-    const filteredItems = filterLibraryBrowserItems(items, {
-        collectionMembershipFilter,
-        domainFilters,
-        searchTerms,
-        selectedCollectionIds,
-        sourceFilters,
-    });
-
-    const sortedItems = sortLibraryBrowserItems(filteredItems, sortMode);
-
-    const sections = buildLibraryBrowserSections(
-        sortedItems,
-        groupBy,
-        sortMode
-    );
-
-    const hasActiveFilters = libraryBrowserHasActiveFilters({
-        collectionMembershipFilter,
-        domainFilters,
-        searchTerms,
-        selectedCollectionIds,
-        sourceFilters,
-    });
-
-    const hasNonDefaultView =
-        groupBy !== "none" ||
-        sortMode !== DEFAULT_SORT_MODE ||
-        columnCountMode !== DEFAULT_COLUMN_COUNT_MODE ||
-        layoutMode !== DEFAULT_LAYOUT_MODE ||
-        sourceFilters.length > 0;
-
-    const showEmptyLibraryPeek =
-        items.length === 0 && filteredItems.length === 0 && !hasActiveFilters;
-
-    const showNoFilteredResults =
-        filteredItems.length === 0 && !showEmptyLibraryPeek;
-
-    const {
-        collapseAllSections,
-        collapsedSectionKeys,
-        enableSectionCollapse,
-        expandAllSections,
-        toggleSection,
-    } = useSectionCollapseState({
-        groupBy,
-        hasActiveFilters,
-        sections,
-        showEmptyLibraryPeek,
-        showNoFilteredResults,
-    });
-
-    const resolvedColumnCount =
-        layoutMode === "masonry" && columnCountMode !== "auto"
-            ? Number(columnCountMode)
-            : undefined;
-
-    const collapsedSectionKeySet = new Set(collapsedSectionKeys);
-
-    const isPreviewOnly = !hasAccess && lockedItemCount > 0;
-    let resultsSummary = `${filteredItems.length} of ${items.length} items`;
-    if (filteredItems.length === items.length) {
-        resultsSummary = `${items.length} item${items.length === 1 ? "" : "s"}`;
-    }
-    if (isPreviewOnly) {
-        resultsSummary =
-            filteredItems.length === items.length
-                ? `${items.length} preview item${items.length === 1 ? "" : "s"} of ${totalItemCount}`
-                : `${filteredItems.length} preview result${filteredItems.length === 1 ? "" : "s"} from ${items.length} visible`;
-    }
-
-    const visibleResultItems = sections.flatMap((section) => section.items);
-
-    const canCreateCollectionFromResults =
-        (searchTerms.length > 0 || hasNonDefaultView) &&
-        visibleResultItems.length > 0;
-
-    const showLockedPreview =
-        isPreviewOnly && !hasActiveFilters && groupBy === "none";
-
-    const canClear =
-        (hasActiveFilters || hasNonDefaultView) && !showEmptyLibraryPeek;
-
-    const suggestions = buildCommandSuggestions({
-        clearLibraryPalette,
-        collectionMembershipFilter,
-        collections,
-        domainFilters,
-        groupBy,
-        isExtensionInstalled,
-        items: filteredItems,
-        layoutMode,
-        onClearCollectionFilters,
-        onCreateCollection: requestCreate,
-        onToggleCollectionSelection: onRemoveCollectionFilter,
-        searchTerms,
-        selectedCollectionIds,
-        setCollectionMembershipFilter,
-        setCommandListOpen,
-        setDomainFilters,
-        setGroupBy,
-        setLayoutMode,
-        setPaletteInput,
-        setSearchTerms,
-        setSortMode,
-        setSourceFilters,
-        sortMode,
-        sourceFilters,
-    });
-
-    const handleNumericHotkeySelect = useStableCallback(
-        (event: KeyboardEvent) => {
-            const digit = Number(event.key);
-            if (Number.isNaN(digit)) {
-                return;
-            }
-            const index = digit - 1;
-            if (index < suggestions.length) {
-                suggestions[index]?.onSelect?.();
-                return;
-            }
-            const paletteIndex = index - suggestions.length;
-            const flatItems = visiblePaletteGroups.flatMap((g) => g.items);
-            const item = flatItems[paletteIndex];
-            if (item) {
-                item.onSelect(event);
-            }
-        }
-    );
-
-    useHotkeys(
-        "mod+1, mod+2, mod+3, mod+4, mod+5, mod+6, mod+7, mod+8, mod+9",
-        handleNumericHotkeySelect,
-        {
-            description: "Select command option",
-            enabled: commandListOpen,
-            enableOnFormTags: true,
-            eventListenerOptions: { capture: true },
-            preventDefault: true,
-        },
-        [commandListOpen, suggestions, visiblePaletteGroups]
-    );
-
-    const resultCollectionItemIds = visibleResultItems.map((item) => item.id);
 
     const handleCreateNote = useStableCallback(() => {
         setActiveNote(NOTE_DRAWER_NEW);
@@ -5301,16 +5112,6 @@ export function Browser({
             handleOpenInNewTab(item);
         }
     );
-
-    React.useEffect(() => {
-        if (!openFavoriteItemRef) {
-            return;
-        }
-        openFavoriteItemRef.current = handleOpenFavoriteItem;
-        return () => {
-            openFavoriteItemRef.current = null;
-        };
-    }, [handleOpenFavoriteItem, openFavoriteItemRef]);
 
     const handleItemFavoriteToggle = useStableCallback(
         (item: LibraryItemWithCollections) => {
@@ -5422,16 +5223,102 @@ export function Browser({
             })
     );
 
+    useIsoLayoutEffect(() => {
+        const element = commandPanelContainerRef.current;
+        if (!element) {
+            return;
+        }
+        const ownerWindow = getOwnerWindow(element);
+        if (!ownerWindow) {
+            return;
+        }
+
+        const handleFocusIn = (event: FocusEvent) => {
+            setIsPaletteFocused(true);
+            if (event.target instanceof ownerWindow.HTMLInputElement) {
+                setCommandListOpen(true);
+            }
+        };
+
+        const handleFocusOut = (event: FocusEvent) => {
+            const { relatedTarget } = event;
+            if (
+                relatedTarget instanceof ownerWindow.Node &&
+                element.contains(relatedTarget)
+            ) {
+                return;
+            }
+            const closeIfLeft = () => {
+                const active = element.ownerDocument.activeElement;
+                if (
+                    !(
+                        active instanceof ownerWindow.Node &&
+                        element.contains(active)
+                    )
+                ) {
+                    setIsPaletteFocused(false);
+                    setCommandListOpen(false);
+                }
+            };
+            queueMicrotask(closeIfLeft);
+            paletteFocusOutTimeout.start(0, closeIfLeft);
+        };
+
+        element.addEventListener("focusin", handleFocusIn);
+        element.addEventListener("focusout", handleFocusOut);
+        return () => {
+            paletteFocusOutTimeout.clear();
+            element.removeEventListener("focusin", handleFocusIn);
+            element.removeEventListener("focusout", handleFocusOut);
+        };
+    }, [paletteFocusOutTimeout]);
+
+    React.useEffect(
+        () => () => {
+            for (const attachment of commandAttachmentsRef.current) {
+                revokeFileAttachmentObjectUrl(attachment.url);
+            }
+        },
+        []
+    );
+
+    React.useEffect(() => {
+        if (!openFavoriteItemRef) {
+            return;
+        }
+        openFavoriteItemRef.current = handleOpenFavoriteItem;
+        return () => {
+            openFavoriteItemRef.current = null;
+        };
+    }, [handleOpenFavoriteItem, openFavoriteItemRef]);
+
     const containerRef = React.useRef<HTMLDivElement>(null);
-    const browserStyle: BrowserStyle = {
-        "--library-section-sticky-top": "8px",
-    };
+
+    let inputPlaceholder = "Search, filter, group, sort, and more…";
+    if (paletteSection === "search") {
+        inputPlaceholder = "Search, filter, group, sort, and more…";
+        if (isPaletteFocused) {
+            inputPlaceholder = "What are you looking for?";
+        }
+    } else if (paletteSection === "filter") {
+        inputPlaceholder = "Filter the library…";
+    } else if (paletteSection === "group") {
+        inputPlaceholder = "Group results…";
+    } else if (paletteSection === "sort") {
+        inputPlaceholder = "Sort results…";
+    } else if (paletteSection === "layout") {
+        inputPlaceholder = "Change the layout…";
+    } else if (paletteSection === "ai-response") {
+        inputPlaceholder = "Ask Cache…";
+    }
 
     return (
         <div
             className="relative z-0 flex w-full min-w-0 max-w-[1024px] flex-1 flex-col gap-4 p-8 2xl:mx-auto"
             ref={containerRef}
-            style={browserStyle}
+            style={
+                { "--library-section-sticky-top": "8px" } as React.CSSProperties
+            }
         >
             <Composer>
                 <ComposerInput
@@ -5468,7 +5355,7 @@ export function Browser({
                         sortMode,
                         sourceFilters,
                     })}
-                    visiblePaletteGroups={visiblePaletteGroups}
+                    visiblePaletteGroups={paletteGroups}
                 />
                 <ComposerActions
                     canClear={canClear}
