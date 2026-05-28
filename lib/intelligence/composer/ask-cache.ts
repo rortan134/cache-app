@@ -49,7 +49,11 @@ export const ASK_CACHE_COLUMN_COUNT_VALUES = [
     "6",
 ] as const;
 
-export const ASK_CACHE_LAYOUT_MODE_VALUES = ["masonry", "board"] as const;
+export const ASK_CACHE_LAYOUT_MODE_VALUES = [
+    "masonry",
+    "board",
+    "list",
+] as const;
 
 export const ASK_CACHE_COLLECTION_MEMBERSHIP_FILTER_VALUES = [
     "all",

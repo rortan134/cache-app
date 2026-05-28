@@ -183,6 +183,7 @@ import type {
 import { useIsoLayoutEffect } from "@base-ui/utils/useIsoLayoutEffect";
 import { useStableCallback } from "@base-ui/utils/useStableCallback";
 import { useTimeout } from "@base-ui/utils/useTimeout";
+import { useWindowVirtualizer } from "@tanstack/react-virtual";
 import {
     ArrowDownWideNarrow,
     Check,
@@ -207,6 +208,7 @@ import {
     KanbanIcon,
     Layers3,
     LinkIcon,
+    List,
     ListChevronsUpDown,
     NotebookPenIcon,
     RotateCcw,
@@ -675,6 +677,17 @@ function buildCommandSuggestions({
             label: "Try Board layout",
             onSelect: commitSelection(() => setLayoutMode("board")),
         });
+        addSuggestion({
+            icon: <List className={SUGGESTION_ICON_CLASS} />,
+            label: "Try List layout",
+            onSelect: commitSelection(() => setLayoutMode("list")),
+        });
+    } else if (layoutMode === "board" && !hasAnyRefinements) {
+        addSuggestion({
+            icon: <List className={SUGGESTION_ICON_CLASS} />,
+            label: "Try List layout",
+            onSelect: commitSelection(() => setLayoutMode("list")),
+        });
     }
 
     return suggestions;
@@ -837,7 +850,7 @@ type CollectionMembershipFilter =
     | "in-collections"
     | "not-in-collections";
 type ColumnCountMode = "auto" | "2" | "3" | "4" | "5" | "6";
-type LayoutMode = "masonry" | "board";
+type LayoutMode = "masonry" | "board" | "list";
 type PaletteSection =
     | "search"
     | "filter"
@@ -852,6 +865,9 @@ const DEFAULT_LAYOUT_MODE: LayoutMode = "masonry";
 const DEFAULT_COLLECTION_MEMBERSHIP_FILTER: CollectionMembershipFilter = "all";
 const UNASSIGNED_COLLECTION_COLUMN_ID = "__unassigned__";
 const NOTE_DRAWER_NEW = Symbol("note-drawer-new");
+const LIST_LAYOUT_ROW_ESTIMATED_SIZE = 82;
+const LIST_LAYOUT_ROW_OVERSCAN = 8;
+const LIST_ROW_COLLECTION_PREVIEW_LIMIT = 2;
 
 const COBALT_SOURCES = new Set<LibraryItemSource>([
     LibraryItemSource.google_photos,
@@ -930,6 +946,7 @@ const PALETTE_COLUMN_OPTIONS = [
 const PALETTE_LAYOUT_MODE_OPTIONS = [
     { label: "Masonry", value: "masonry" },
     { label: "Board", value: "board" },
+    { label: "List", value: "list" },
 ] satisfies readonly { label: string; value: LayoutMode }[];
 
 const PALETTE_SOURCE_OPTIONS = [
@@ -973,6 +990,31 @@ interface BrowserGroup {
     key: string;
     title: string | null;
 }
+
+type BrowserListEntry =
+    | {
+          key: string;
+          section: BrowserGroup;
+          type: "empty";
+      }
+    | {
+          key: string;
+          section: BrowserGroup;
+          type: "header";
+      }
+    | {
+          key: string;
+          section: BrowserGroup;
+          type: "overview";
+      }
+    | {
+          item: LibraryItemWithCollections;
+          itemPosition: number;
+          key: string;
+          section: BrowserGroup;
+          totalItemCount: number;
+          type: "item";
+      };
 
 interface LibraryCommandAttachment
     extends ReturnType<typeof createFileAttachment> {
@@ -1525,7 +1567,23 @@ function columnCountLabel(mode: ColumnCountMode): string {
 }
 
 function layoutModeLabel(mode: LayoutMode): string {
-    return mode === "board" ? "Board" : "Masonry";
+    if (mode === "board") {
+        return "Board";
+    }
+    if (mode === "list") {
+        return "List";
+    }
+    return "Masonry";
+}
+
+function layoutModeDescription(mode: LayoutMode): string {
+    if (mode === "board") {
+        return "Group entries by collections in columns";
+    }
+    if (mode === "list") {
+        return "Scan saved items in a compact virtualized list";
+    }
+    return "Display saved items in a visual grid";
 }
 
 function collectionMembershipFilterLabel(
@@ -1916,12 +1974,25 @@ function BrowserList({
     sections: BrowserGroup[];
     children: (section: BrowserGroup) => ReactNode;
 }) {
+    return sections.map((section) => (
+        <BrowserGroupProvider key={section.key} section={section}>
+            {children(section)}
+        </BrowserGroupProvider>
+    ));
+}
+
+function BrowserGroupProvider({
+    children,
+    section,
+}: {
+    children: ReactNode;
+    section: BrowserGroup;
+}) {
     const { collapsedSectionKeys, onToggleSection } =
         useBrowserResultsContext();
 
-    return sections.map((section) => (
+    return (
         <BrowserGroupContext
-            key={section.key}
             value={{
                 accentKey: section.key,
                 collapsed: collapsedSectionKeys.has(section.key),
@@ -1932,9 +2003,9 @@ function BrowserList({
                 title: section.title ?? "Results",
             }}
         >
-            {children(section)}
+            {children}
         </BrowserGroupContext>
-    ));
+    );
 }
 
 function BrowserHeader() {
@@ -2223,7 +2294,153 @@ function BrowserMasonry() {
     );
 }
 
-function BrowserGroup({ children }: { children: ReactNode }) {
+function BrowserCurrentLayout() {
+    const { layoutMode } = useBrowserResultsContext();
+
+    if (layoutMode === "board") {
+        return <BrowserBoard />;
+    }
+    return <BrowserMasonry />;
+}
+
+function BrowserListResults({ sections }: { sections: BrowserGroup[] }) {
+    const { collapsedSectionKeys, enableSectionCollapse } =
+        useBrowserResultsContext();
+    const entries = buildBrowserListEntries({
+        collapsedSectionKeys,
+        enableSectionCollapse,
+        sections,
+    });
+    const [scrollMargin, setScrollMargin] = React.useState(0);
+    const listRef = React.useRef<HTMLOListElement>(null);
+
+    const getItemKey = useStableCallback(
+        (index: number) => entries[index]?.key ?? index
+    );
+
+    const rowVirtualizer = useWindowVirtualizer({
+        count: entries.length,
+        estimateSize: () => LIST_LAYOUT_ROW_ESTIMATED_SIZE,
+        getItemKey,
+        overscan: LIST_LAYOUT_ROW_OVERSCAN,
+        scrollMargin,
+    });
+
+    useIsoLayoutEffect(() => {
+        const element = listRef.current;
+        if (!element) {
+            return;
+        }
+
+        const ownerWindow = getOwnerWindow(element);
+        if (!ownerWindow) {
+            return;
+        }
+
+        const updateScrollMargin = () => {
+            const nextScrollMargin =
+                element.getBoundingClientRect().top + ownerWindow.scrollY;
+            setScrollMargin((current) =>
+                Math.abs(current - nextScrollMargin) < 1
+                    ? current
+                    : nextScrollMargin
+            );
+        };
+
+        updateScrollMargin();
+        ownerWindow.addEventListener("resize", updateScrollMargin);
+
+        const ResizeObserverCtor = ownerWindow.ResizeObserver;
+        if (typeof ResizeObserverCtor !== "function") {
+            return () => {
+                ownerWindow.removeEventListener("resize", updateScrollMargin);
+            };
+        }
+
+        const resizeObserver = new ResizeObserverCtor(updateScrollMargin);
+        resizeObserver.observe(element);
+        resizeObserver.observe(element.ownerDocument.documentElement);
+        resizeObserver.observe(element.ownerDocument.body);
+
+        return () => {
+            resizeObserver.disconnect();
+            ownerWindow.removeEventListener("resize", updateScrollMargin);
+        };
+    }, []);
+
+    if (entries.length === 0) {
+        return null;
+    }
+
+    return (
+        <BrowserCardProvider>
+            <ol
+                aria-label="Saved items"
+                className="relative m-0 w-full list-none p-0"
+                ref={listRef}
+                style={{ height: rowVirtualizer.getTotalSize() }}
+            >
+                {rowVirtualizer.getVirtualItems().map((virtualRow) => {
+                    const entry = entries[virtualRow.index];
+                    if (!entry) {
+                        return null;
+                    }
+
+                    return (
+                        <li
+                            className="absolute top-0 left-0 w-full pb-2"
+                            {...getBrowserListEntryAria(entry)}
+                            data-index={virtualRow.index}
+                            key={virtualRow.key}
+                            ref={rowVirtualizer.measureElement}
+                            style={{
+                                transform: `translateY(${
+                                    virtualRow.start - scrollMargin
+                                }px)`,
+                            }}
+                        >
+                            <BrowserGroupProvider section={entry.section}>
+                                {renderBrowserListEntry(entry)}
+                            </BrowserGroupProvider>
+                        </li>
+                    );
+                })}
+            </ol>
+        </BrowserCardProvider>
+    );
+}
+
+function renderBrowserListEntry(entry: BrowserListEntry): ReactNode {
+    if (entry.type === "header") {
+        return <BrowserHeader />;
+    }
+    if (entry.type === "overview") {
+        return (
+            <BrowserGroupOverview>
+                <BrowserGroupOverviewContent />
+            </BrowserGroupOverview>
+        );
+    }
+    if (entry.type === "empty") {
+        return <BrowserGroupEmpty />;
+    }
+    return <ListRow item={entry.item} />;
+}
+
+function getBrowserListEntryAria(
+    entry: BrowserListEntry
+): React.LiHTMLAttributes<HTMLLIElement> {
+    if (entry.type !== "item") {
+        return { role: "presentation" };
+    }
+
+    return {
+        "aria-posinset": entry.itemPosition,
+        "aria-setsize": entry.totalItemCount,
+    };
+}
+
+function BrowserCardProvider({ children }: { children: ReactNode }) {
     const {
         collections,
         favoriteItemIdSet,
@@ -2238,23 +2455,29 @@ function BrowserGroup({ children }: { children: ReactNode }) {
     } = useBrowserResultsContext();
 
     return (
+        <LibraryGridCardContext
+            value={{
+                collections,
+                favoriteItemIdSet,
+                onCopyLink,
+                onDelete,
+                onFindRelated,
+                onItemFavoriteToggle,
+                onOpenInNewTab,
+                onOpenNote,
+                onUpdateItemCollections,
+                pendingDeleteItemId,
+            }}
+        >
+            {children}
+        </LibraryGridCardContext>
+    );
+}
+
+function BrowserGroup({ children }: { children: ReactNode }) {
+    return (
         <section className="flex w-full flex-col gap-3">
-            <LibraryGridCardContext
-                value={{
-                    collections,
-                    favoriteItemIdSet,
-                    onCopyLink,
-                    onDelete,
-                    onFindRelated,
-                    onItemFavoriteToggle,
-                    onOpenInNewTab,
-                    onOpenNote,
-                    onUpdateItemCollections,
-                    pendingDeleteItemId,
-                }}
-            >
-                {children}
-            </LibraryGridCardContext>
+            <BrowserCardProvider>{children}</BrowserCardProvider>
         </section>
     );
 }
@@ -2858,10 +3081,7 @@ function buildPaletteGroups({
         {
             items: PALETTE_LAYOUT_MODE_OPTIONS.map((option) => ({
                 active: layoutMode === option.value,
-                description:
-                    option.value === "board"
-                        ? "Group entries by collections in columns"
-                        : "Display saved items in a visual grid",
+                description: layoutModeDescription(option.value),
                 label: option.label,
                 onSelect: applyAndReturn(() => setLayoutMode(option.value)),
                 value: `layout ${option.value}`,
@@ -2987,6 +3207,74 @@ function buildBrowserSections(
             key,
             title: formatGroupHeading(groupBy, key),
         }));
+}
+
+function buildBrowserListEntries({
+    collapsedSectionKeys,
+    enableSectionCollapse,
+    sections,
+}: {
+    collapsedSectionKeys: Set<string>;
+    enableSectionCollapse: boolean;
+    sections: BrowserGroup[];
+}): BrowserListEntry[] {
+    let totalItemCount = 0;
+    for (const section of sections) {
+        if (enableSectionCollapse && collapsedSectionKeys.has(section.key)) {
+            continue;
+        }
+        totalItemCount += section.items.length;
+    }
+
+    let itemPosition = 0;
+    const entries: BrowserListEntry[] = [];
+    for (const section of sections) {
+        const isCollapsed =
+            enableSectionCollapse && collapsedSectionKeys.has(section.key);
+
+        if (enableSectionCollapse) {
+            entries.push({
+                key: `${section.key}:header`,
+                section,
+                type: "header",
+            });
+
+            if (!(section.title || isCollapsed)) {
+                entries.push({
+                    key: `${section.key}:overview`,
+                    section,
+                    type: "overview",
+                });
+            }
+        }
+
+        if (isCollapsed) {
+            continue;
+        }
+
+        if (section.items.length === 0) {
+            entries.push({
+                key: `${section.key}:empty`,
+                section,
+                type: "empty",
+            });
+            continue;
+        }
+
+        for (const item of section.items) {
+            itemPosition += 1;
+            entries.push({
+                item,
+                itemPosition,
+                key: `${section.key}:item:${item.id}`,
+                section,
+                totalItemCount,
+                type: "item",
+            });
+        }
+    }
+
+    return entries;
 }
 
 async function saveLibraryNoteDraft({
@@ -3365,8 +3653,11 @@ type LibraryGridCardContextValue = Pick<
     | "pendingDeleteItemId"
 >;
 
+type CollectionComboboxPickerAppearance = "overlay" | "inline";
+
 interface CollectionComboboxPickerProps
     extends React.ComponentProps<typeof ComboboxTrigger> {
+    appearance?: CollectionComboboxPickerAppearance;
     collections: LibraryCollectionSummary[];
     items: LibraryItemWithCollections[];
     onOpenChange?: (open: boolean) => void;
@@ -3494,7 +3785,31 @@ function getItemTitle(item: LibraryItemWithCollections): string {
     return item.url;
 }
 
+async function downloadLibraryItemMedia(
+    item: LibraryItemWithCollections
+): Promise<void> {
+    if (!COBALT_SOURCES.has(item.source)) {
+        // TODO: more download options
+        return;
+    }
+
+    const result = await downloadMedia(item.url);
+    if (result.status !== "SUCCESS") {
+        return;
+    }
+
+    const ownerDocument = getOwnerDocument();
+    const link = ownerDocument.createElement("a");
+    link.href = result.downloadUrl;
+    link.download = "";
+    link.target = "_blank";
+    ownerDocument.body.appendChild(link);
+    link.click();
+    ownerDocument.body.removeChild(link);
+}
+
 function CollectionComboboxPicker({
+    appearance = "overlay",
     collections,
     items,
     onUpdateItemsCollections,
@@ -3553,9 +3868,14 @@ function CollectionComboboxPicker({
                                 ? `Edit collections (${selectedCount} selected)`
                                 : "Add to collections"
                         }
-                        className="z-1 rounded-full mix-blend-difference invert transition-transform ease-in-out hover:brightness-125 active:scale-95"
+                        className={cn(
+                            "z-1 rounded-full transition-transform ease-in-out active:scale-95",
+                            appearance === "overlay"
+                                ? "mix-blend-difference invert hover:brightness-125"
+                                : "border-border/70 text-muted-foreground hover:text-foreground"
+                        )}
                         size="icon-sm"
-                        variant="ghost"
+                        variant={appearance === "overlay" ? "ghost" : "outline"}
                     />
                 }
                 {...props}
@@ -3845,25 +4165,9 @@ function Card({ item }: LibraryGridCardProps) {
     };
 
     const handleDownload = async () => {
-        if (!COBALT_SOURCES.has(item.source)) {
-            // TODO: more download options
-            return;
-        }
-
         setIsDownloading(true);
         try {
-            const result = await downloadMedia(item.url);
-            if (result.status === "SUCCESS") {
-                // Use a hidden anchor to trigger download if possible, or just open in new tab
-                const ownerDocument = getOwnerDocument();
-                const link = ownerDocument.createElement("a");
-                link.href = result.downloadUrl;
-                link.download = ""; // Cobalt usually provides a good filename or direct link
-                link.target = "_blank";
-                ownerDocument.body.appendChild(link);
-                link.click();
-                ownerDocument.body.removeChild(link);
-            }
+            await downloadLibraryItemMedia(item);
         } catch (error) {
             log.error("Failed to prepare media download", error, {
                 itemId: item.id,
@@ -3988,6 +4292,285 @@ function Card({ item }: LibraryGridCardProps) {
                 />
             </ContextMenuPopup>
         </ContextMenu>
+    );
+}
+
+function ListRow({ item }: LibraryGridCardProps) {
+    const {
+        collections,
+        favoriteItemIdSet,
+        onItemFavoriteToggle,
+        onOpenInNewTab,
+        onOpenNote,
+        onUpdateItemCollections,
+    } = useLibraryGridCardContext();
+    const isNote = item.kind === ITEM_KIND_NOTE;
+    const isFavorite = favoriteItemIdSet.has(item.id);
+    const [isDownloading, setIsDownloading] = React.useState(false);
+    const [isCollectionPickerOpen, setIsCollectionPickerOpen] =
+        React.useState(false);
+    const [isRowHovered, setIsRowHovered] = React.useState(false);
+    const href = normalizeURL(item.url);
+    const title = itemPrimaryText(item);
+    const domain = itemDomain(item.url);
+    const previewImageUrl = itemPreviewImageUrl(item);
+    const previewTitle = title === "Saved item" ? "Preview" : title;
+    const previewDescription = domain === "Other" ? item.url : domain;
+    const createdLabel = itemDateLabel(item.createdAt);
+    const addedLabel = itemDateLabel(item.scrapedAt ?? item.createdAt);
+    const collectionPreview = item.collections.slice(
+        0,
+        LIST_ROW_COLLECTION_PREVIEW_LIMIT
+    );
+    const hiddenCollectionCount = Math.max(
+        0,
+        item.collections.length - collectionPreview.length
+    );
+
+    const handlePrimaryClick = useStableCallback(
+        (event: React.MouseEvent<HTMLAnchorElement>) => {
+            event.preventDefault();
+            if (isNote) {
+                onOpenNote?.(item);
+                return;
+            }
+            onOpenInNewTab?.(item);
+        }
+    );
+
+    const handleFavoriteToggle = useStableCallback(() => {
+        onItemFavoriteToggle(item);
+    });
+
+    const handleDownload = useStableCallback(async () => {
+        setIsDownloading(true);
+        try {
+            await downloadLibraryItemMedia(item);
+        } catch (error) {
+            log.error("Failed to prepare media download", error, {
+                itemId: item.id,
+                url: item.url,
+            });
+        } finally {
+            setIsDownloading(false);
+        }
+    });
+
+    const handleRowKeyDown = useStableCallback(
+        (event: React.KeyboardEvent<HTMLElement>) => {
+            if (
+                event.defaultPrevented ||
+                event.nativeEvent.isComposing ||
+                event.metaKey ||
+                event.ctrlKey ||
+                event.altKey ||
+                isCollectionPickerOpen ||
+                isTextEntryTarget(
+                    event.target,
+                    getOwnerWindow(event.currentTarget)
+                ) ||
+                event.key.toLowerCase() !== "s"
+            ) {
+                return;
+            }
+
+            event.preventDefault();
+            setIsCollectionPickerOpen(true);
+        }
+    );
+
+    return (
+        <ContextMenu>
+            <ContextMenuTrigger
+                onKeyDown={handleRowKeyDown}
+                render={
+                    <div className="group flex min-h-18 w-full items-center gap-2 rounded-lg border border-border/60 bg-card/45 px-2.5 py-2 transition-colors hover:bg-card/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60" />
+                }
+            >
+                <a
+                    className="flex min-w-0 flex-1 items-center gap-3 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
+                    href={href}
+                    onClick={handlePrimaryClick}
+                    onMouseEnter={() => setIsRowHovered(true)}
+                    onMouseLeave={() => setIsRowHovered(false)}
+                    rel="noopener noreferrer"
+                    target={isNote ? undefined : "_blank"}
+                >
+                    <ListRowPreview
+                        isHovered={isRowHovered}
+                        item={item}
+                        previewImageUrl={previewImageUrl}
+                    />
+                    <div className="grid min-w-0 flex-1 gap-1">
+                        <div className="flex min-w-0 items-center gap-2">
+                            <p className="truncate font-medium text-sm">
+                                {title}
+                            </p>
+                            <span className="hidden shrink-0 text-muted-foreground text-xs sm:inline">
+                                {isNote ? "Note" : domain}
+                            </span>
+                        </div>
+                        <div className="flex min-w-0 items-center gap-2 text-muted-foreground text-xs">
+                            <span className="shrink-0">
+                                {sourceLabel(item.source)}
+                            </span>
+                            {addedLabel ? (
+                                <>
+                                    <span aria-hidden>·</span>
+                                    <span className="shrink-0 tabular-nums">
+                                        Added {addedLabel}
+                                    </span>
+                                </>
+                            ) : null}
+                            {createdLabel && createdLabel !== addedLabel ? (
+                                <>
+                                    <span aria-hidden>·</span>
+                                    <span className="hidden shrink-0 tabular-nums md:inline">
+                                        Created {createdLabel}
+                                    </span>
+                                </>
+                            ) : null}
+                        </div>
+                    </div>
+                </a>
+                <div className="hidden min-w-0 max-w-56 shrink items-center justify-end gap-1 lg:flex">
+                    {collectionPreview.map((collection) => (
+                        <Badge
+                            className="max-w-28 truncate"
+                            key={collection.id}
+                            size="sm"
+                            variant="secondary"
+                        >
+                            {collection.name}
+                        </Badge>
+                    ))}
+                    {hiddenCollectionCount > 0 ? (
+                        <Badge size="sm" variant="secondary">
+                            +{hiddenCollectionCount}
+                        </Badge>
+                    ) : null}
+                </div>
+                <div className="flex shrink-0 items-center gap-1">
+                    <CollectionComboboxPicker
+                        appearance="inline"
+                        collections={collections}
+                        items={[item]}
+                        onOpenChange={setIsCollectionPickerOpen}
+                        onUpdateItemCollections={onUpdateItemCollections}
+                        open={isCollectionPickerOpen}
+                    />
+                    <Button
+                        aria-label={
+                            isFavorite
+                                ? "Remove from Favorites"
+                                : "Add to Favorites"
+                        }
+                        aria-pressed={isFavorite}
+                        className="rounded-full"
+                        onClick={handleFavoriteToggle}
+                        size="icon-sm"
+                        variant="ghost"
+                    >
+                        <Star
+                            className={cn(
+                                "size-4 text-muted-foreground",
+                                isFavorite && "fill-current text-foreground"
+                            )}
+                        />
+                    </Button>
+                    <Menu>
+                        <MenuTrigger
+                            render={
+                                <Button
+                                    aria-label="Open item menu"
+                                    className="rounded-full"
+                                    size="icon-sm"
+                                    variant="ghost"
+                                >
+                                    <Ellipsis className="size-4 text-muted-foreground" />
+                                </Button>
+                            }
+                        />
+                        <MenuPopup align="end">
+                            <CardMenu
+                                addedLabel={addedLabel}
+                                createdLabel={createdLabel}
+                                href={href}
+                                isDownloading={isDownloading}
+                                item={item}
+                                kind="menu"
+                                onDownload={handleDownload}
+                                previewDescription={previewDescription}
+                                previewImageUrl={previewImageUrl}
+                                previewTitle={previewTitle}
+                            />
+                        </MenuPopup>
+                    </Menu>
+                </div>
+            </ContextMenuTrigger>
+            <ContextMenuPopup>
+                <CardMenu
+                    addedLabel={addedLabel}
+                    createdLabel={createdLabel}
+                    href={href}
+                    isDownloading={isDownloading}
+                    item={item}
+                    kind="context"
+                    onDownload={handleDownload}
+                    previewDescription={previewDescription}
+                    previewImageUrl={previewImageUrl}
+                    previewTitle={previewTitle}
+                />
+            </ContextMenuPopup>
+        </ContextMenu>
+    );
+}
+
+function ListRowPreview({
+    isHovered,
+    item,
+    previewImageUrl,
+}: {
+    isHovered: boolean;
+    item: LibraryItemWithCollections;
+    previewImageUrl: string | null;
+}) {
+    const [hasImageFailed, setHasImageFailed] = React.useState(false);
+
+    const handleImageError = useStableCallback(() => {
+        setHasImageFailed(true);
+    });
+
+    if (item.kind === ITEM_KIND_NOTE) {
+        return (
+            <div className="flex size-12 shrink-0 items-center justify-center rounded-md bg-linear-to-br from-amber-50 via-background to-stone-100 ring-1 ring-border/50">
+                <NotebookPenIcon className="size-5 text-amber-700/80" />
+            </div>
+        );
+    }
+
+    return (
+        <div className="relative size-12 shrink-0 overflow-hidden rounded-md bg-muted ring-1 ring-border/50">
+            {previewImageUrl && !hasImageFailed ? (
+                // biome-ignore lint/a11y/noNoninteractiveElementInteractions: image load failures drive the visual fallback state
+                <img
+                    alt=""
+                    className={cn(
+                        "size-full object-cover transition-transform duration-150",
+                        isHovered && "scale-105"
+                    )}
+                    height={48}
+                    loading="lazy"
+                    onError={handleImageError}
+                    src={previewImageUrl}
+                    width={48}
+                />
+            ) : (
+                <div className="flex size-full items-center justify-center">
+                    <Globe className="size-5 text-muted-foreground/60" />
+                </div>
+            )}
+        </div>
     );
 }
 
@@ -4162,6 +4745,29 @@ function LockedPreviewCard({
     );
 }
 
+function LockedPreviewListRow({
+    placeholder,
+}: {
+    placeholder: LockedLibraryPreviewPlaceholder;
+}) {
+    return (
+        <div className="flex min-h-18 items-center gap-3 rounded-lg border border-border/50 bg-card/45 px-3 py-2">
+            <div className="flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-md bg-muted ring-1 ring-border/40">
+                {placeholder.kind === "note" ? (
+                    <NotebookPenIcon className="size-5 text-muted-foreground/60" />
+                ) : (
+                    <Globe className="size-5 text-muted-foreground/60" />
+                )}
+            </div>
+            <div className="grid min-w-0 flex-1 gap-2">
+                <Skeleton className="h-3 w-[72%]" />
+                <Skeleton className="h-2.5 w-[48%]" />
+            </div>
+            <Skeleton className="hidden h-6 w-24 rounded-full md:block" />
+        </div>
+    );
+}
+
 function LockedResults({
     columnCount,
     layoutMode,
@@ -4171,55 +4777,65 @@ function LockedResults({
     layoutMode: LayoutMode;
     totalItemCount: number;
 }) {
+    let lockedPreviewContent: ReactNode;
+    if (layoutMode === "list") {
+        lockedPreviewContent = (
+            <div className="flex flex-col gap-2">
+                {LOCKED_LIBRARY_PREVIEW_PLACEHOLDERS.map((placeholder) => (
+                    <LockedPreviewListRow
+                        key={placeholder.id}
+                        placeholder={placeholder}
+                    />
+                ))}
+            </div>
+        );
+    } else if (layoutMode === "board") {
+        lockedPreviewContent = (
+            <div className="grid gap-3 md:grid-cols-3">
+                {["Locked", "Preview", "Upgrade"].map((label, index) => (
+                    <div
+                        className="rounded-2xl border border-border/50 bg-card/35 p-3"
+                        key={label}
+                    >
+                        <div className="mb-3 flex items-center justify-between gap-3">
+                            <h3 className="font-medium text-sm">{label}</h3>
+                            <span className="font-medium text-muted-foreground text-xs tabular-nums">
+                                3
+                            </span>
+                        </div>
+                        <div className="flex flex-col gap-3">
+                            {LOCKED_LIBRARY_PREVIEW_PLACEHOLDERS.slice(
+                                index * 3,
+                                index * 3 + 3
+                            ).map((placeholder) => (
+                                <LockedPreviewCard
+                                    key={placeholder.id}
+                                    placeholder={placeholder}
+                                />
+                            ))}
+                        </div>
+                    </div>
+                ))}
+            </div>
+        );
+    } else {
+        lockedPreviewContent = (
+            <Masonry columnCount={columnCount} gap={4}>
+                {LOCKED_LIBRARY_PREVIEW_PLACEHOLDERS.map((placeholder) => (
+                    <MasonryItem key={placeholder.id}>
+                        <LockedPreviewCard placeholder={placeholder} />
+                    </MasonryItem>
+                ))}
+            </Masonry>
+        );
+    }
+
     return (
         <div className="relative isolate flex flex-col gap-8">
             <BlockPaywallBanner length={totalItemCount} />
             <div className="pointer-events-none absolute inset-0 z-10 rounded-[2rem] bg-linear-to-b from-background/10 via-background/45 to-background/75" />
             <div className="select-none opacity-70 blur-[1.5px] saturate-75">
-                {layoutMode === "board" ? (
-                    <div className="grid gap-3 md:grid-cols-3">
-                        {["Locked", "Preview", "Upgrade"].map(
-                            (label, index) => (
-                                <div
-                                    className="rounded-2xl border border-border/50 bg-card/35 p-3"
-                                    key={label}
-                                >
-                                    <div className="mb-3 flex items-center justify-between gap-3">
-                                        <h3 className="font-medium text-sm">
-                                            {label}
-                                        </h3>
-                                        <span className="font-medium text-muted-foreground text-xs tabular-nums">
-                                            3
-                                        </span>
-                                    </div>
-                                    <div className="flex flex-col gap-3">
-                                        {LOCKED_LIBRARY_PREVIEW_PLACEHOLDERS.slice(
-                                            index * 3,
-                                            index * 3 + 3
-                                        ).map((placeholder) => (
-                                            <LockedPreviewCard
-                                                key={placeholder.id}
-                                                placeholder={placeholder}
-                                            />
-                                        ))}
-                                    </div>
-                                </div>
-                            )
-                        )}
-                    </div>
-                ) : (
-                    <Masonry columnCount={columnCount} gap={4}>
-                        {LOCKED_LIBRARY_PREVIEW_PLACEHOLDERS.map(
-                            (placeholder) => (
-                                <MasonryItem key={placeholder.id}>
-                                    <LockedPreviewCard
-                                        placeholder={placeholder}
-                                    />
-                                </MasonryItem>
-                            )
-                        )}
-                    </Masonry>
-                )}
+                {lockedPreviewContent}
             </div>
         </div>
     );
@@ -5498,34 +6114,30 @@ export function Browser({
             >
                 <BrowserEmpty />
                 <BrowserFiltersEmpty />
-                <BrowserList sections={sections}>
-                    {(section) =>
-                        enableSectionCollapse ? (
-                            <BrowserGroup>
-                                <BrowserHeader />
-                                {!section.title && (
-                                    <BrowserGroupOverview>
-                                        <BrowserGroupOverviewContent />
-                                    </BrowserGroupOverview>
-                                )}
-                                <BrowserGroupEmpty />
-                                {layoutMode === "board" ? (
-                                    <BrowserBoard />
-                                ) : (
-                                    <BrowserMasonry />
-                                )}
-                            </BrowserGroup>
-                        ) : (
-                            <BrowserGroup>
-                                {layoutMode === "board" ? (
-                                    <BrowserBoard />
-                                ) : (
-                                    <BrowserMasonry />
-                                )}
-                            </BrowserGroup>
-                        )
-                    }
-                </BrowserList>
+                {layoutMode === "list" ? (
+                    <BrowserListResults sections={sections} />
+                ) : (
+                    <BrowserList sections={sections}>
+                        {(section) =>
+                            enableSectionCollapse ? (
+                                <BrowserGroup>
+                                    <BrowserHeader />
+                                    {!section.title && (
+                                        <BrowserGroupOverview>
+                                            <BrowserGroupOverviewContent />
+                                        </BrowserGroupOverview>
+                                    )}
+                                    <BrowserGroupEmpty />
+                                    <BrowserCurrentLayout />
+                                </BrowserGroup>
+                            ) : (
+                                <BrowserGroup>
+                                    <BrowserCurrentLayout />
+                                </BrowserGroup>
+                            )
+                        }
+                    </BrowserList>
+                )}
             </BrowserResults>
             {showLockedPreview ? (
                 <LockedResults
