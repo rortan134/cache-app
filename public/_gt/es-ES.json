@@ -57,7 +57,6 @@
     "i": 1,
     "t": "p"
   },
-  "1ce9017c460bbdf2": "Cache está pensado para quienes guardan mucho, piensan mucho y no quieren que sus mejores descubrimientos se pierdan en el «para luego».",
   "1d1c7a1398fc122d": "mensual",
   "1d829f40405b2c18": "Biblioteca",
   "1df7f7e3e7bcec8f": {
@@ -286,31 +285,12 @@
   "7a6c957300c408f9": "Privacidad",
   "7b4f31f7267a32c7": "Usa Cache como ese paso que faltaba entre guardar marcadores y tomar notas: hecho para pensar. Estructurado, fácil de buscar y fiable.",
   "7d288c9b77b0a60e": "Aviso legal y políticas",
-  "815fe7576d49381e": [
-    {
-      "c": {
-        "c": "Cache es para…",
-        "i": 2,
-        "t": "T"
-      },
-      "i": 1,
-      "t": "h2"
-    },
-    {
-      "c": {
-        "c": "Cache está pensado para quienes guardan mucho, piensan mucho y no quieren que sus mejores descubrimientos se pierdan en el «para luego».",
-        "i": 4,
-        "t": "T"
-      },
-      "i": 3,
-      "t": "p"
-    }
-  ],
   "817e49763f46cca2": {
     "c": "Manifiesto",
     "i": 1,
     "t": "p"
   },
+  "86489a55ce454582": "Cache está pensado para…",
   "87254fc32f854b77": "No se pudo cambiar de cuenta.",
   "8b045bc1a6270fb5": "Colecciones",
   "8c6e42c48134ab7e": [
@@ -511,7 +491,6 @@
     "i": 1,
     "t": "span"
   },
-  "dac8f5941922669f": "Cache es para…",
   "daf8daec701f0863": "Cuenta",
   "db72ad3b2501e7a9": "Cargando cuentas",
   "dc43f2f8b9531cf9": [
