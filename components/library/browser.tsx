@@ -4430,7 +4430,7 @@ export function Browser({
     const [createResultsError, setCreateResultsError] = React.useState<
         string | null
     >(null);
-    const [commandListOpen, setCommandListOpen] = React.useState(false);
+    const [isCommandListOpen, setCommandListOpen] = React.useState(false);
     const [isPaletteFocused, setIsPaletteFocused] = React.useState(false);
 
     const commandPanelContainerRef = React.useRef<HTMLDivElement>(null);
@@ -5048,7 +5048,7 @@ export function Browser({
                 return;
             }
 
-            if (event.key === "ArrowDown" && !commandListOpen) {
+            if (event.key === "ArrowDown" && !isCommandListOpen) {
                 setCommandListOpen(true);
             }
         }
@@ -5389,9 +5389,9 @@ export function Browser({
             <Composer>
                 <ComposerInput
                     canClear={canClear}
-                    commandListOpen={commandListOpen}
                     commandPanelContainerRef={commandPanelContainerRef}
                     inputPlaceholder={inputPlaceholder}
+                    isCommandListOpen={isCommandListOpen}
                     onCommandInputChange={handleCommandInputChange}
                     onCommandOpenChange={handleCommandOpenChange}
                     onPaletteInputKeyDown={handlePaletteInputKeyDown}

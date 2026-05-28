@@ -20,6 +20,7 @@ import {
     CommandPanel,
     CommandPopup,
     CommandRow,
+    CommandShortcut,
     CommandStatus,
 } from "@/components/ui/command";
 import { CmdKbd, Kbd, KbdGroup } from "@/components/ui/kbd";
@@ -41,84 +42,41 @@ import {
     Grid2x2X,
     SquarePen,
 } from "lucide-react";
-import type { ReactNode } from "react";
 import * as React from "react";
 
 interface PaletteStackEntry {
-    chip: ReactNode;
+    chip: React.ReactNode;
     key: string;
     onRemove: () => void;
 }
 
 interface CommandSuggestion {
-    icon: ReactNode;
+    icon: React.ReactNode;
     label: string;
     onSelect: () => void;
 }
 
-interface ComposerInputProps {
-    canClear: boolean;
-    commandListOpen: boolean;
-    commandPanelContainerRef: React.RefObject<HTMLDivElement | null>;
-    inputPlaceholder: string;
-    onCommandInputChange: (
-        next: string,
-        eventDetails: AutocompleteRootChangeEventDetails
-    ) => void;
-    onCommandOpenChange: (
-        nextOpen: boolean,
-        eventDetails: AutocompleteRootChangeEventDetails
-    ) => void;
-    onPaletteInputKeyDown: (
-        event: React.KeyboardEvent<HTMLInputElement>
-    ) => void;
-    paletteGroups: CommandPaletteGroup[];
-    paletteInput: string;
-    paletteInputRef: React.RefObject<HTMLInputElement | null>;
-    paletteStackEntries: PaletteStackEntry[];
-    visiblePaletteGroups: CommandPaletteGroup[];
-}
+type ComposerActionsContextValue = Omit<
+    ComposerActionsProps,
+    "children" | "className"
+>;
 
-function CommandPaletteItemComponent({
-    item,
-    isHorizontal,
-}: {
-    item: CommandPaletteItem;
-    isHorizontal: boolean;
-}) {
-    return (
-        <CommandItem
-            className={cn(
-                isHorizontal &&
-                    "group relative flex-1 overflow-hidden rounded-xl bg-accent text-accent-foreground shadow-xs"
-            )}
-            disabled={item.disabled}
-            key={item.value}
-            onClick={item.onSelect}
-            value={item.value}
-        >
-            {item.render ? (
-                item.render(item)
-            ) : (
-                <div className="flex min-w-0 flex-1 items-center gap-2.5">
-                    <div className="truncate">{item.label}</div>
-                    {item.description ? (
-                        <span className="max-w-xs truncate text-muted-foreground/80 text-xs">
-                            {item.description}
-                        </span>
-                    ) : null}
-                    {item.active ? (
-                        <Badge variant="secondary">Active</Badge>
-                    ) : null}
-                </div>
-            )}
-        </CommandItem>
-    );
+const ComposerActionsContext =
+    React.createContext<ComposerActionsContextValue | null>(null);
+
+function useComposerActionsContext(): ComposerActionsContextValue {
+    const context = React.use(ComposerActionsContext);
+    if (!context) {
+        throw new Error(
+            "ComposerActions sub-components must be used inside <ComposerActions>."
+        );
+    }
+    return context;
 }
 
 export function ComposerInput({
     paletteInput,
-    commandListOpen,
+    isCommandListOpen,
     onCommandInputChange,
     onCommandOpenChange,
     onPaletteInputKeyDown,
@@ -141,7 +99,7 @@ export function ComposerInput({
             }))}
             onOpenChange={onCommandOpenChange}
             onValueChange={onCommandInputChange}
-            open={commandListOpen}
+            open={isCommandListOpen}
             value={paletteInput}
         >
             <CommandPanel ref={commandPanelContainerRef}>
@@ -256,51 +214,50 @@ export function ComposerInput({
     );
 }
 
-type ComposerActionsContextValue = Omit<ComposerActionsProps, "children">;
-
-const ComposerActionsContext =
-    React.createContext<ComposerActionsContextValue | null>(null);
-
-function useComposerActionsContext(): ComposerActionsContextValue {
-    const context = React.use(ComposerActionsContext);
-    if (!context) {
-        throw new Error(
-            "ComposerActions sub-components must be used inside <ComposerActions>."
-        );
-    }
-    return context;
+interface ComposerInputProps {
+    canClear: boolean;
+    commandPanelContainerRef: React.RefObject<HTMLDivElement | null>;
+    inputPlaceholder: string;
+    isCommandListOpen: boolean;
+    onCommandInputChange: (
+        next: string,
+        eventDetails: AutocompleteRootChangeEventDetails
+    ) => void;
+    onCommandOpenChange: (
+        nextOpen: boolean,
+        eventDetails: AutocompleteRootChangeEventDetails
+    ) => void;
+    onPaletteInputKeyDown: (
+        event: React.KeyboardEvent<HTMLInputElement>
+    ) => void;
+    paletteGroups: CommandPaletteGroup[];
+    paletteInput: string;
+    paletteInputRef: React.RefObject<HTMLInputElement | null>;
+    paletteStackEntries: PaletteStackEntry[];
+    visiblePaletteGroups: CommandPaletteGroup[];
 }
 
-function ActionButton({
-    onClick,
-    title,
+export function ComposerActions({
     children,
-}: {
-    onClick: () => void;
-    title?: string;
-    children: ReactNode;
-}) {
+    className,
+    ...value
+}: ComposerActionsProps) {
     return (
-        <Toolbar.Button
-            render={
-                <Button
-                    className="rounded-full"
-                    onClick={onClick}
-                    size="xs"
-                    title={title}
-                    variant="ghost"
-                >
-                    {children}
-                </Button>
-            }
-        />
+        <ComposerActionsContext value={value}>
+            <Toolbar.Group
+                className={cn("flex items-center gap-2 px-3 py-2", className)}
+            >
+                {children}
+            </Toolbar.Group>
+        </ComposerActionsContext>
     );
 }
 
-interface ComposerActionsProps {
+export interface ComposerActionsProps {
     canClear: boolean;
     canCreateCollectionFromResults: boolean;
-    children: ReactNode;
+    children: React.ReactNode;
+    className?: string;
     connectedIntegrationCount: number;
     groupBy: string;
     onClearPalette: () => void;
@@ -310,16 +267,6 @@ interface ComposerActionsProps {
     onOpenCommandFromOnboarding: () => void;
     resultsSummary: string;
     sectionsLength: number;
-}
-
-export function ComposerActions({ children, ...value }: ComposerActionsProps) {
-    return (
-        <ComposerActionsContext value={value}>
-            <Toolbar.Group className="flex items-center gap-2 px-3 py-2">
-                {children}
-            </Toolbar.Group>
-        </ComposerActionsContext>
-    );
 }
 
 export function ComposerActionNew() {
@@ -353,7 +300,7 @@ export function ComposerActionClear() {
                 &nbsp;Showing <Calligraph>{resultsSummary}</Calligraph>
                 {groupBy === "none" ? null : (
                     <>
-                        , <Calligraph>{sectionsLength}</Calligraph> group
+                        , <Calligraph>{sectionsLength}</Calligraph> section
                         {sectionsLength === 1 ? "" : "s"}
                     </>
                 )}
@@ -401,12 +348,6 @@ export function ComposerActionOnboarding() {
     );
 }
 
-interface ComposerSuggestionsProps
-    extends Omit<React.ComponentProps<"div">, "children"> {
-    children: (suggestion: CommandSuggestion, index: number) => ReactNode;
-    suggestions: CommandSuggestion[];
-}
-
 export function ComposerSuggestions({
     children,
     suggestions,
@@ -436,6 +377,12 @@ export function ComposerSuggestions({
     );
 }
 
+interface ComposerSuggestionsProps
+    extends Omit<React.ComponentProps<"div">, "children"> {
+    children: (suggestion: CommandSuggestion, index: number) => React.ReactNode;
+    suggestions: CommandSuggestion[];
+}
+
 export function Composer({
     children,
     className,
@@ -443,11 +390,15 @@ export function Composer({
 }: React.ComponentProps<typeof Toolbar.Root>) {
     const childrenArray = React.Children.toArray(children);
 
-    const toolbarChildren: ReactNode[] = [];
-    let suggestionsChild: ReactNode = null;
+    const toolbarChildren: React.ReactNode[] = [];
+    let suggestionsChild: React.ReactNode = null;
 
     for (const child of childrenArray) {
-        if (React.isValidElement(child) && child.type === ComposerSuggestions) {
+        if (
+            React.isValidElement(child) &&
+            (child.type as React.ComponentType).displayName ===
+                "ComposerSuggestions"
+        ) {
             suggestionsChild = child;
         } else {
             toolbarChildren.push(child);
@@ -467,5 +418,71 @@ export function Composer({
             </Toolbar.Root>
             {suggestionsChild}
         </>
+    );
+}
+
+function CommandPaletteItemComponent({
+    item,
+    isHorizontal,
+}: {
+    item: CommandPaletteItem;
+    isHorizontal: boolean;
+}) {
+    return (
+        <CommandItem
+            className={cn(
+                isHorizontal &&
+                    "group relative flex-1 overflow-hidden rounded-xl bg-accent text-accent-foreground shadow-xs"
+            )}
+            disabled={item.disabled}
+            key={item.value}
+            onClick={item.onSelect}
+            value={item.value}
+        >
+            {item.render ? (
+                item.render(item)
+            ) : (
+                <div className="flex min-w-0 flex-1 items-center gap-2.5">
+                    <div className="truncate">{item.label}</div>
+                    {item.description ? (
+                        <span className="max-w-xs truncate text-muted-foreground/80 text-xs">
+                            {item.description}
+                        </span>
+                    ) : null}
+                    {item.active ? (
+                        <Badge variant="secondary">Active</Badge>
+                    ) : null}
+                    {item.shortcut ? (
+                        <CommandShortcut>{item.shortcut}</CommandShortcut>
+                    ) : null}
+                </div>
+            )}
+        </CommandItem>
+    );
+}
+
+function ActionButton({
+    onClick,
+    title,
+    children,
+}: {
+    onClick: () => void;
+    title?: string;
+    children: React.ReactNode;
+}) {
+    return (
+        <Toolbar.Button
+            render={
+                <Button
+                    className="rounded-full"
+                    onClick={onClick}
+                    size="xs"
+                    title={title}
+                    variant="ghost"
+                >
+                    {children}
+                </Button>
+            }
+        />
     );
 }
