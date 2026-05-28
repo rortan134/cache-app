@@ -16,6 +16,7 @@ import {
     ComposerInput,
     ComposerSuggestions,
 } from "@/components/library/composer";
+import { mergeRelatedBrowserFilterOptions } from "@/components/library/browser-filter-options";
 import type { NoteDraft } from "@/components/library/notes";
 import {
     NAME_COLLATOR,
@@ -212,6 +213,7 @@ import {
     ListChevronsUpDown,
     NotebookPenIcon,
     RotateCcw,
+    SearchIcon,
     SearchX,
     Star,
     Tags,
@@ -1777,6 +1779,7 @@ interface BrowserResultsContextValue {
         sectionTitle: string,
         items: LibraryItemWithCollections[]
     ) => void;
+    onFindRelated: (item: LibraryItemWithCollections) => void;
     onItemFavoriteToggle: (item: LibraryItemWithCollections) => void;
     onOpenInNewTab: (item: LibraryItem) => void;
     onOpenNote: (item: LibraryItem) => void;
@@ -2229,6 +2232,7 @@ function BrowserGroup({ children }: { children: ReactNode }) {
         favoriteItemIdSet,
         onCopyLink,
         onDelete,
+        onFindRelated,
         onItemFavoriteToggle,
         onOpenInNewTab,
         onOpenNote,
@@ -2244,6 +2248,7 @@ function BrowserGroup({ children }: { children: ReactNode }) {
                     favoriteItemIdSet,
                     onCopyLink,
                     onDelete,
+                    onFindRelated,
                     onItemFavoriteToggle,
                     onOpenInNewTab,
                     onOpenNote,
@@ -3355,6 +3360,7 @@ type LibraryGridCardContextValue = Pick<
     | "favoriteItemIdSet"
     | "onCopyLink"
     | "onDelete"
+    | "onFindRelated"
     | "onItemFavoriteToggle"
     | "onOpenInNewTab"
     | "onOpenNote"
@@ -3679,6 +3685,7 @@ function CardMenu({
         favoriteItemIdSet,
         onCopyLink,
         onDelete,
+        onFindRelated,
         onItemFavoriteToggle,
         onOpenInNewTab,
         onOpenNote,
@@ -3781,6 +3788,10 @@ function CardMenu({
                     <Item disabled={isDownloading} onClick={onDownload}>
                         <DownloadIcon className="size-4.5 text-muted-foreground" />
                         {isDownloading ? "Downloading..." : "Download media"}
+                    </Item>
+                    <Item onClick={() => onFindRelated(item)}>
+                        <SearchIcon className="size-4.5 text-muted-foreground" />
+                        Find related
                     </Item>
                     <ItemSeparator />
                 </>
@@ -5124,6 +5135,27 @@ export function Browser({
         }
     );
 
+    const handleFindRelated = useStableCallback(
+        (item: LibraryItemWithCollections) => {
+            const relatedDomain = itemDomain(item.url);
+            const nextFilters = mergeRelatedBrowserFilterOptions(
+                {
+                    collectionMembershipFilter,
+                    domainFilters,
+                    searchTerms,
+                    selectedCollectionIds,
+                    sourceFilters,
+                },
+                { domain: relatedDomain, source: item.source }
+            );
+
+            setPaletteInput("");
+            setPaletteSection("search");
+            setSourceFilters(nextFilters.sourceFilters);
+            setDomainFilters(nextFilters.domainFilters);
+        }
+    );
+
     const handleUpdateItemCollectionsWithFeedback = useStableCallback(
         async (
             itemId: string,
@@ -5419,6 +5451,7 @@ export function Browser({
                 onDelete={handleRequestDelete}
                 onExpandAllSections={expandAllSections}
                 onExportSectionResults={handleExportSectionResults}
+                onFindRelated={handleFindRelated}
                 onItemFavoriteToggle={handleItemFavoriteToggle}
                 onOpenInNewTab={handleOpenInNewTab}
                 onOpenNote={handleOpenNote}
