@@ -4,18 +4,27 @@ import { serverEnv } from "@/env/server";
 import { LIBRARY_ITEM_COLLECTIONS_INCLUDE } from "@/lib/collections/utils";
 import { ITEM_KIND_FOLDER, SORT_DESC } from "@/lib/common/constants";
 import { createLogger } from "@/lib/common/logs/console/logger";
+import { isRecord } from "@/lib/common/objects";
 import { parseDisplayUrl } from "@/lib/common/url";
 import { prisma } from "@/prisma";
 import type { Prisma } from "@/prisma/client/client";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import type { ArcjetNextRequest } from "@arcjet/next";
 import { DurableAgent } from "@workflow/ai/agent";
-import type { UIMessageChunk } from "ai";
-import { stepCountIs, tool, type LanguageModelUsage } from "ai";
+import {
+    APICallError,
+    LoadAPIKeyError,
+    RetryError,
+    stepCountIs,
+    tool,
+    type LanguageModelUsage,
+    type UIMessageChunk,
+} from "ai";
 import * as z from "zod";
 import { AUTOMATION_WEB_SEARCH_TIME_RANGES } from "../automations/tool-inputs";
 import { automationWebSearch } from "../automations/web-search";
 import { GenAiGenerationError } from "../error";
+import { normalizeGeneratedMarkdown } from "../markdown";
 import { estimateGenAiTokens, protectGenAiRequest } from "../protection";
 import {
     ASK_CACHE_OPERATION_LIMIT,
@@ -31,6 +40,8 @@ const ASK_CACHE_MAX_STEPS = 5;
 const ASK_CACHE_TIMEOUT_MS = 45_000;
 const ASK_CACHE_LIBRARY_SEARCH_LIMIT_MAX = 12;
 const ASK_CACHE_LIBRARY_TEXT_PREVIEW_LENGTH_MAX = 800;
+const ASK_CACHE_PROVIDER_CONFIGURATION_ERROR_MESSAGE =
+    "Cache AI provider credentials are missing or invalid.";
 
 const log = createLogger("intelligence:ask-cache");
 
@@ -80,14 +91,13 @@ export async function runAskCacheAgent({
     const operations: AskCacheComposerPatch[] = [];
     const instructions = buildAskCacheInstructions(input);
     const userMessage = buildAskCacheUserMessage(input);
-    const protectionPrompt = `${instructions}\n\n${userMessage}`;
 
     await protectGenAiRequest({
         feature: "ask_cache_agent",
-        prompt: protectionPrompt,
+        prompt: input.prompt,
         request,
         requestedTokens: estimateGenAiTokens(
-            protectionPrompt,
+            `${instructions}\n\n${userMessage}`,
             ASK_CACHE_OUTPUT_TOKEN_LIMIT
         ),
         userId,
@@ -159,17 +169,19 @@ export async function runAskCacheAgent({
             usage: normalizeStepUsage(result.steps),
         };
     } catch (error) {
+        const apiError = classifyAskCacheApiError(error);
         log.error("Ask Cache agent run failed", {
             errorMessage:
                 error instanceof Error ? error.message : String(error),
             errorName: error instanceof Error ? error.name : undefined,
+            status: apiError.status,
             userId,
         });
 
         throw new GenAiGenerationError({
-            message: "We couldn't ask Cache right now.",
+            message: apiError.message,
             operation: "runAskCacheAgent",
-            status: 500,
+            status: apiError.status,
         });
     }
 }
@@ -379,7 +391,9 @@ function truncateText(value: string | null): string | null {
 }
 
 function getFinalStepText(steps: Array<{ text?: string }>): string {
-    const finalText = steps.findLast((step) => step.text?.trim())?.text?.trim();
+    const finalText = normalizeGeneratedMarkdown(
+        steps.findLast((step) => step.text?.trim())?.text
+    );
     if (finalText) {
         return finalText;
     }
@@ -404,4 +418,100 @@ function normalizeStepUsage(
     }
 
     return { inputTokens, outputTokens, totalTokens };
+}
+
+function classifyAskCacheApiError(error: unknown): {
+    message: string;
+    status: number;
+} {
+    const providerError = unwrapAskCacheProviderError(error);
+    if (LoadAPIKeyError.isInstance(providerError)) {
+        return {
+            message: ASK_CACHE_PROVIDER_CONFIGURATION_ERROR_MESSAGE,
+            status: 500,
+        };
+    }
+
+    if (APICallError.isInstance(providerError)) {
+        if (isProviderCredentialError(providerError)) {
+            return {
+                message: ASK_CACHE_PROVIDER_CONFIGURATION_ERROR_MESSAGE,
+                status: 500,
+            };
+        }
+
+        if (providerError.statusCode === 429) {
+            return {
+                message: "AI service quota exceeded. Please try again later.",
+                status: 429,
+            };
+        }
+
+        if (
+            providerError.statusCode === 408 ||
+            providerError.message.toLowerCase().includes("timeout")
+        ) {
+            return {
+                message: "Request timed out. Please try again.",
+                status: 408,
+            };
+        }
+
+        if (
+            providerError.statusCode !== undefined &&
+            providerError.statusCode >= 500
+        ) {
+            return {
+                message: "AI service temporarily unavailable.",
+                status: 502,
+            };
+        }
+    }
+
+    if (error instanceof Error) {
+        const message = error.message.toLowerCase();
+        if (message.includes("timeout") || message.includes("abort")) {
+            return {
+                message: "Request timed out. Please try again.",
+                status: 408,
+            };
+        }
+    }
+
+    return {
+        message: "We couldn't ask Cache right now.",
+        status: 500,
+    };
+}
+
+function unwrapAskCacheProviderError(error: unknown): unknown {
+    if (RetryError.isInstance(error)) {
+        return unwrapAskCacheProviderError(error.lastError);
+    }
+
+    if (!isRecord(error)) {
+        return error;
+    }
+
+    const { cause } = error;
+    if (cause) {
+        return unwrapAskCacheProviderError(cause);
+    }
+
+    return error;
+}
+
+function isProviderCredentialError(error: APICallError): boolean {
+    const message = error.message.toLowerCase();
+    return (
+        error.statusCode === 401 ||
+        error.statusCode === 403 ||
+        (error.statusCode === 400 &&
+            (message.includes("api key") ||
+                message.includes("apikey") ||
+                message.includes("credential"))) ||
+        message.includes("unauthenticated") ||
+        message.includes("authentication") ||
+        message.includes("permission denied")
+    );
 }

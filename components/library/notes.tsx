@@ -27,6 +27,7 @@ import {
 } from "@/lib/integrations/notes/utils";
 import AppIconSmall from "@/public/cache-icon-small.png";
 import { useAnimationFrame } from "@base-ui/utils/useAnimationFrame";
+import { useStableCallback } from "@base-ui/utils/useStableCallback";
 import { $generateNodesFromDOM } from "@lexical/html";
 import { AutoFocusPlugin as LexicalAutoFocusPlugin } from "@lexical/react/LexicalAutoFocusPlugin";
 import {
@@ -54,9 +55,11 @@ import {
     $isRootNode,
     COMMAND_PRIORITY_LOW,
     FORMAT_TEXT_COMMAND,
+    PASTE_COMMAND,
     SELECTION_CHANGE_COMMAND,
     mergeRegister,
     type LexicalEditor,
+    type PasteCommandType,
     type TextFormatType,
 } from "lexical";
 import {
@@ -84,7 +87,6 @@ import {
     useEffect,
     useRef,
     useState,
-    type ClipboardEvent,
     type ComponentType,
     type ReactNode,
     type SVGProps,
@@ -602,19 +604,42 @@ function ContentPlugin({
     onUrlPaste: (url: string) => Promise<void> | void;
     shouldCreateBookmarkFromUrlPaste: () => boolean;
 }) {
-    const handlePaste = async (event: ClipboardEvent<HTMLDivElement>) => {
+    const [editor] = useLexicalComposerContext();
+
+    const handlePaste = useStableCallback((event: PasteCommandType) => {
         if (!shouldCreateBookmarkFromUrlPaste()) {
-            return;
+            return false;
+        }
+
+        if (!("clipboardData" in event && event.clipboardData)) {
+            return false;
         }
 
         const pastedText = event.clipboardData.getData("text/plain");
         const parsedUrl = parseStandaloneUrl(pastedText);
         if (!parsedUrl) {
-            return;
+            return false;
         }
+
         event.preventDefault();
-        await onUrlPaste(parsedUrl.href);
-    };
+        const pasteResult = onUrlPaste(parsedUrl.href);
+        if (pasteResult) {
+            pasteResult.catch((error: unknown) => {
+                log.error("Unexpected note URL paste failure", error);
+            });
+        }
+        return true;
+    });
+
+    useEffect(
+        () =>
+            editor.registerCommand(
+                PASTE_COMMAND,
+                handlePaste,
+                COMMAND_PRIORITY_LOW
+            ),
+        [editor, handlePaste]
+    );
 
     return (
         <>
@@ -629,7 +654,6 @@ function ContentPlugin({
                                 "prose-mark:rounded-sm prose-mark:bg-amber-200/90 prose-mark:px-0.5",
                                 "prose-strong:font-semibold prose-em:italic prose-u:underline prose-s:line-through"
                             )}
-                            onPaste={handlePaste}
                         />
                     }
                     ErrorBoundary={LexicalErrorBoundary}

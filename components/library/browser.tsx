@@ -1743,7 +1743,7 @@ function AskCacheResponsePanel({
             >
                 Cache AI
             </GradientWaveText>
-            <Streamdown className="text-sm leading-relaxed">
+            <Streamdown className="whitespace-pre-line text-sm leading-relaxed">
                 {response.markdown}
             </Streamdown>
         </div>
@@ -2246,12 +2246,12 @@ function BrowserGroupOverviewContent() {
         <div
             aria-busy={isLoading}
             className={cn(
-                "fade-in-0 flex w-full animate-in items-center gap-2 text-xs leading-snug motion-reduce:animate-none",
+                "fade-in-0 flex w-full animate-in items-start gap-2 text-xs leading-snug motion-reduce:animate-none",
                 isLoading && "opacity-60"
             )}
             id={contentId}
         >
-            <Streamdown className="flex-1">
+            <Streamdown className="min-w-0 flex-1 whitespace-pre-line">
                 {summary && summary.length > 0
                     ? summary
                     : "Description is unavailable right now."}
@@ -4740,10 +4740,6 @@ function LockedPreviewCard({
                 <div className="relative min-h-56 bg-linear-to-br from-amber-50 via-background to-stone-100 p-4">
                     <div className="absolute inset-0 bg-background/30 backdrop-blur-sm" />
                     <div className="relative flex h-full flex-col gap-3">
-                        <span className="inline-flex w-fit items-center gap-1 rounded-full border border-amber-500/20 bg-white/70 px-2.5 py-1 font-medium text-[11px] text-stone-700">
-                            <NotebookPenIcon className="size-3.5" />
-                            Locked note
-                        </span>
                         <div className="space-y-2">
                             <Skeleton className="h-3 w-[86%]" />
                             <Skeleton className="h-3 w-[74%]" />
@@ -4762,13 +4758,6 @@ function LockedPreviewCard({
                     <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.45),transparent_38%)]" />
                     <div className="absolute inset-0 bg-background/25 backdrop-blur-sm" />
                     <div className="relative flex h-full flex-col justify-between p-4">
-                        <Badge
-                            className="w-fit bg-background/80"
-                            size="sm"
-                            variant="secondary"
-                        >
-                            Locked preview
-                        </Badge>
                         <div className="space-y-2">
                             <Skeleton className="h-3 w-[88%]" />
                             <Skeleton className="h-3 w-[62%]" />
@@ -4776,11 +4765,6 @@ function LockedPreviewCard({
                     </div>
                 </div>
             )}
-            <div className="border-border/30 border-t bg-background/75 px-3 py-2">
-                <p className="text-muted-foreground text-xs">
-                    Upgrade to reveal this item.
-                </p>
-            </div>
         </div>
     );
 }
@@ -5396,6 +5380,7 @@ export function Browser({
     const collapsedSectionKeySet = new Set(collapsedSectionKeys);
 
     const isPreviewOnly = !hasAccess && lockedItemCount > 0;
+
     let resultsSummary = `${filteredItems.length} of ${items.length} items`;
     if (filteredItems.length === items.length) {
         resultsSummary = `${items.length} item${items.length === 1 ? "" : "s"}`;
@@ -5403,8 +5388,8 @@ export function Browser({
     if (isPreviewOnly) {
         resultsSummary =
             filteredItems.length === items.length
-                ? `${items.length} preview item${items.length === 1 ? "" : "s"} of ${totalItemCount}`
-                : `${filteredItems.length} preview result${filteredItems.length === 1 ? "" : "s"} from ${items.length} visible`;
+                ? `${items.length} item${items.length === 1 ? "" : "s"} of ${totalItemCount}`
+                : `${filteredItems.length} result${filteredItems.length === 1 ? "" : "s"} from ${items.length} visible`;
     }
 
     const visibleResultItems = sections.flatMap((section) => section.items);
@@ -5413,13 +5398,13 @@ export function Browser({
         (searchTerms.length > 0 || hasNonDefaultView) &&
         visibleResultItems.length > 0;
 
+    const resultCollectionItemIds = visibleResultItems.map((item) => item.id);
+
     const showLockedPreview =
         isPreviewOnly && !hasActiveFilters && groupBy === "none";
 
     const canClear =
         (hasActiveFilters || hasNonDefaultView) && !showEmptyLibraryPeek;
-
-    const resultCollectionItemIds = visibleResultItems.map((item) => item.id);
 
     const suggestions = buildCommandSuggestions({
         clearLibraryPalette,

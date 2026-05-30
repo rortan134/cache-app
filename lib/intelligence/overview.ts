@@ -1,5 +1,6 @@
 import { LibraryItemSource } from "@/prisma/client/enums";
 import * as z from "zod";
+import { normalizeGeneratedMarkdown } from "./markdown";
 
 // --- Input Limits ---
 
@@ -327,11 +328,11 @@ function isGrammaticallyComplete(value: string): boolean {
  * Returns the cleaned summary string, or null if the output is empty.
  */
 export function normalizeSummary(value: string | undefined): string | null {
-    const normalized = value
-        ?.replace(WHITESPACE_PATTERN, " ")
+    const normalized = normalizeGeneratedMarkdown(value)
+        .replace(WHITESPACE_PATTERN, " ")
         .replace(SUMMARY_PREFIX_PATTERN, "")
         .trim();
-    const singleSentence = firstSentence(normalized ?? "");
+    const singleSentence = firstSentence(normalized);
     const cleaned = singleSentence
         .replace(SURROUNDING_QUOTES_PATTERN, "")
         .trim();
@@ -363,27 +364,12 @@ const MARKDOWN_CODE_FENCE_PATTERN = /^```(?:markdown|md)?\s*|\s*```$/gi;
 export function normalizeExpandedSummary(
     value: string | undefined
 ): string | null {
-    if (!value) {
+    const normalized = normalizeGeneratedMarkdown(value);
+    if (!normalized) {
         return null;
     }
 
-    let rawSummary = value;
-
-    try {
-        const parsed: unknown = JSON.parse(value);
-        if (
-            parsed !== null &&
-            typeof parsed === "object" &&
-            "summary" in parsed &&
-            typeof parsed.summary === "string"
-        ) {
-            rawSummary = parsed.summary;
-        }
-    } catch {
-        // Not valid JSON — keep treating it as markdown.
-    }
-
-    const cleaned = rawSummary
+    const cleaned = normalized
         .replace(MARKDOWN_CODE_FENCE_PATTERN, "")
         .split("\n")
         .map((line) => line.trimEnd())

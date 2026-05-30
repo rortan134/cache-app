@@ -6,9 +6,9 @@ import { ArrowUpRight } from "lucide-react";
 
 export function InlinePaywallBanner() {
     return (
-        <Alert>
+        <Alert className="grid-cols-[calc(var(--spacing)*10)_1fr_auto]">
             <Badge>PRO</Badge>
-            <AlertTitle className="flex items-center font-medium text-sm">
+            <AlertTitle className="inline-flex items-center text-sm">
                 <T>Upgrade for full access to Cache and all integrations</T>
                 &nbsp;—&nbsp;
                 <SubscriptionUpgradeButton
