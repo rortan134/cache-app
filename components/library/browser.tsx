@@ -2181,6 +2181,12 @@ function BrowserGroupOverview({
     children,
     ...props
 }: React.ComponentProps<"div">) {
+    const { collapsed } = useBrowserGroupContext();
+
+    if (collapsed) {
+        return null;
+    }
+
     return (
         <div
             {...props}
@@ -5144,6 +5150,12 @@ export function Browser({
                 sourceFilters,
             },
             prompt,
+            runtimeContext: {
+                clientLocale: navigator.language,
+                clientTimeZone:
+                    Intl.DateTimeFormat().resolvedOptions().timeZone,
+                surface: "library_composer",
+            },
             visibleContext: {
                 availableCollections: collections
                     .slice(0, ASK_CACHE_CONTEXT_COLLECTION_LIMIT)

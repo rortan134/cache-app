@@ -8,6 +8,8 @@ export const ASK_CACHE_COLLECTION_NAME_MAX_LENGTH = 120;
 export const ASK_CACHE_CONTEXT_COLLECTION_LIMIT = 200;
 export const ASK_CACHE_CONTEXT_DOMAIN_LIMIT = 200;
 export const ASK_CACHE_OPERATION_LIMIT = 4;
+export const ASK_CACHE_LOCALE_MAX_LENGTH = 64;
+export const ASK_CACHE_TIME_ZONE_MAX_LENGTH = 64;
 
 export const ASK_CACHE_SOURCE_FILTER_VALUES = [
     LibraryItemSource.cache_note,
@@ -137,9 +139,26 @@ export const AskCacheVisibleContextSchema = z.strictObject({
     totalItemCount: z.int().min(0).max(1_000_000),
 });
 
+export const AskCacheRuntimeContextSchema = z.strictObject({
+    clientLocale: z
+        .string()
+        .trim()
+        .min(1)
+        .max(ASK_CACHE_LOCALE_MAX_LENGTH)
+        .optional(),
+    clientTimeZone: z
+        .string()
+        .trim()
+        .min(1)
+        .max(ASK_CACHE_TIME_ZONE_MAX_LENGTH)
+        .optional(),
+    surface: z.literal("library_composer"),
+});
+
 export const AskCacheRequestSchema = z.strictObject({
     composerState: AskCacheComposerStateSchema,
     prompt: z.string().trim().min(1).max(ASK_CACHE_PROMPT_MAX_LENGTH),
+    runtimeContext: AskCacheRuntimeContextSchema,
     visibleContext: AskCacheVisibleContextSchema,
 });
 
@@ -151,6 +170,9 @@ export const AskCacheToolUpdateInputSchema = z.strictObject({
 export type AskCacheComposerPatch = z.infer<typeof AskCacheComposerPatchSchema>;
 export type AskCacheComposerState = z.infer<typeof AskCacheComposerStateSchema>;
 export type AskCacheRequest = z.infer<typeof AskCacheRequestSchema>;
+export type AskCacheRuntimeContext = z.infer<
+    typeof AskCacheRuntimeContextSchema
+>;
 
 export type AskCacheResult =
     | {

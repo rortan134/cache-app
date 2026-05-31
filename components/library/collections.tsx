@@ -2400,11 +2400,11 @@ function CollectionsListCalloutPopover() {
                         learns your preferences over time.{" "}
                         <Button
                             className="h-fit! px-0 leading-snug sm:text-xs"
-                            render={<Link href="/activity" />}
+                            render={<Link href="/automations" />}
                             size="xs"
                             variant="link"
                         >
-                            Activity
+                            Automations
                             <ArrowUpRight className="inline-block size-3 shrink-0 text-muted-foreground" />
                         </Button>
                     </PopoverDescription>

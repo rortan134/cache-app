@@ -39,6 +39,19 @@ describe("normalizeGeneratedMarkdown", () => {
         ).toBe("Done.\n- Added filters\n- Sorted newest");
     });
 
+    test("repairs inline bold bullet markers into markdown list lines", () => {
+        expect(
+            normalizeGeneratedMarkdown(
+                "Overview sentence. * **First** one. * **Second** two."
+            )
+        ).toBe("Overview sentence.\n* **First** one.\n* **Second** two.");
+        expect(
+            normalizeGeneratedMarkdown(
+                "Takeaways: 1. **First** one. 2. **Second** two."
+            )
+        ).toBe("Takeaways:\n1. **First** one.\n2. **Second** two.");
+    });
+
     test("unwraps encoded strings and joins arrays", () => {
         expect(normalizeGeneratedMarkdown('"Done.\\\\n- Added filters"')).toBe(
             "Done.\n- Added filters"
@@ -67,6 +80,16 @@ describe("section overview normalization", () => {
             )
         ).toBe(
             "Automotive culture and lifestyle trends.\n- Car clips\n- Motivation"
+        );
+    });
+
+    test("normalizes expanded inline list summaries into markdown lines", () => {
+        expect(
+            normalizeExpandedSummary(
+                '{"summary":"These insights emphasize focus. * **Minimize interruptions** to protect attention. * **Build with purpose** for real users."}'
+            )
+        ).toBe(
+            "These insights emphasize focus.\n* **Minimize interruptions** to protect attention.\n* **Build with purpose** for real users."
         );
     });
 });

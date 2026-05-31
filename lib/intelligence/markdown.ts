@@ -13,6 +13,7 @@ const JSON_MARKDOWN_FIELD_NAMES = [
 const COMPLETE_CODE_FENCE_PATTERN =
     /^```(?<language>[a-zA-Z0-9_-]+)?[^\S\r\n]*\r?\n(?<content>[\s\S]*?)\r?\n```$/;
 const ESCAPED_NEWLINE_PATTERN = /\\r\\n|\\n/g;
+const INLINE_LIST_MARKER_PATTERN = /([.!?:]) (?=(?:[-*+]|\d+\.) \*\*)/g;
 
 /**
  * Normalizes generated markdown that may arrive wrapped in a model-authored
@@ -53,7 +54,7 @@ function normalizeGeneratedMarkdownValue(
             }
         }
 
-        return unfenced.replace(ESCAPED_NEWLINE_PATTERN, "\n");
+        return normalizeGeneratedMarkdownText(unfenced);
     }
 
     if (Array.isArray(value)) {
@@ -92,6 +93,12 @@ function normalizeGeneratedMarkdownValue(
 function removeCompleteCodeFence(value: string): string {
     const match = value.match(COMPLETE_CODE_FENCE_PATTERN);
     return match?.groups?.content?.trim() ?? value;
+}
+
+function normalizeGeneratedMarkdownText(value: string): string {
+    return value
+        .replace(ESCAPED_NEWLINE_PATTERN, "\n")
+        .replace(INLINE_LIST_MARKER_PATTERN, "$1\n");
 }
 
 function parseJson(

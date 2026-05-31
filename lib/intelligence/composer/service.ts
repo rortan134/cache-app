@@ -42,6 +42,10 @@ const ASK_CACHE_LIBRARY_SEARCH_LIMIT_MAX = 12;
 const ASK_CACHE_LIBRARY_TEXT_PREVIEW_LENGTH_MAX = 800;
 const ASK_CACHE_PROVIDER_CONFIGURATION_ERROR_MESSAGE =
     "Cache AI provider credentials are missing or invalid.";
+const ASK_CACHE_RUNTIME_CONTEXT_LOCALE_DEFAULT = "en-US";
+const ASK_CACHE_RUNTIME_CONTEXT_SURFACE_LABEL_BY_VALUE = {
+    library_composer: "Cache library composer",
+} as const;
 
 const log = createLogger("intelligence:ask-cache");
 
@@ -315,6 +319,7 @@ function buildAskCacheInstructions(input: AskCacheRequest): string {
             name: collection.name,
         })
     );
+    const runtimeContext = buildAskCacheRuntimeContext(input);
 
     return [
         "You are Ask Cache, an assistant embedded in Cache's library composer.",
@@ -325,6 +330,9 @@ function buildAskCacheInstructions(input: AskCacheRequest): string {
         "Use exact domains from the available domain list when applying domain filters.",
         "Prefer concise markdown. Mention applied composer changes in one short sentence when you call update_composer.",
         "Do not mutate saved items, collections, notes, or external services.",
+        "",
+        "Runtime context:",
+        JSON.stringify(runtimeContext),
         "",
         "Current composer state:",
         JSON.stringify(input.composerState),
@@ -339,6 +347,60 @@ function buildAskCacheInstructions(input: AskCacheRequest): string {
         "Collection catalog:",
         JSON.stringify(collectionCatalog),
     ].join("\n");
+}
+
+function buildAskCacheRuntimeContext(input: AskCacheRequest) {
+    const now = new Date();
+    const clientTimeZone = normalizeAskCacheTimeZone(
+        input.runtimeContext.clientTimeZone
+    );
+    const clientLocale = normalizeAskCacheLocale(
+        input.runtimeContext.clientLocale
+    );
+    const formatter = new Intl.DateTimeFormat(clientLocale, {
+        dateStyle: "full",
+        timeStyle: "short",
+        timeZone: clientTimeZone,
+    });
+
+    return {
+        app: "Cache",
+        currentDateTime: formatter.format(now),
+        currentIsoDateTime: now.toISOString(),
+        surface:
+            ASK_CACHE_RUNTIME_CONTEXT_SURFACE_LABEL_BY_VALUE[
+                input.runtimeContext.surface
+            ],
+        timeZone: clientTimeZone,
+    };
+}
+
+function normalizeAskCacheTimeZone(timeZone: string | undefined): string {
+    if (!timeZone) {
+        return "UTC";
+    }
+
+    try {
+        new Intl.DateTimeFormat(ASK_CACHE_RUNTIME_CONTEXT_LOCALE_DEFAULT, {
+            timeZone,
+        }).format(new Date());
+        return timeZone;
+    } catch {
+        return "UTC";
+    }
+}
+
+function normalizeAskCacheLocale(locale: string | undefined): string {
+    if (!locale) {
+        return ASK_CACHE_RUNTIME_CONTEXT_LOCALE_DEFAULT;
+    }
+
+    try {
+        Intl.getCanonicalLocales(locale);
+        return locale;
+    } catch {
+        return ASK_CACHE_RUNTIME_CONTEXT_LOCALE_DEFAULT;
+    }
 }
 
 function buildAskCacheUserMessage(input: AskCacheRequest): string {
