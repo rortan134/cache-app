@@ -33,16 +33,13 @@ export function KbdGroup({ className, ...props }: React.ComponentProps<"kbd">) {
 }
 
 export function CmdKbd() {
-    const modKey = useClientOnlyValue(getSystemControlKey());
-    return modKey;
+    return useClientOnlyValue(getSystemControlKey());
 }
 
 export function AltKbd() {
-    const altKey = useClientOnlyValue(getSystemAltKey());
-    return altKey;
+    return useClientOnlyValue(getSystemAltKey());
 }
 
 export function ShiftKbd() {
-    const shiftKey = useClientOnlyValue(getSystemShiftKey());
-    return shiftKey;
+    return useClientOnlyValue(getSystemShiftKey());
 }

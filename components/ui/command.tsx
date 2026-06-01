@@ -1,6 +1,7 @@
 "use client";
 
 import { Input, type InputSize } from "@/components/ui/input";
+import { Kbd } from "@/components/ui/kbd";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/common/cn";
 import { Autocomplete } from "@base-ui/react/autocomplete";
@@ -251,11 +252,8 @@ export function CommandShortcut({
     ...props
 }: React.ComponentProps<"kbd">) {
     return (
-        <kbd
-            className={cn(
-                "ms-auto font-sans text-muted-foreground/50 text-xs tracking-wider",
-                className
-            )}
+        <Kbd
+            className={cn("ms-auto text-muted-foreground/50", className)}
             data-slot="command-shortcut"
             {...props}
         />
