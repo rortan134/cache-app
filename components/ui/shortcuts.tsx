@@ -77,7 +77,7 @@ export const KeyboardShortcutsDialogTrigger = (
                         <DrawerTitle>Keyboard shortcuts</DrawerTitle>
                     </DrawerHeader>
                     <DrawerPanel scrollable={false}>
-                        <Command inline items={[{ items: shortcutItems }]} open>
+                        <Command inline items={shortcutItems} open>
                             <CommandInput
                                 placeholder="Search shortcuts..."
                                 startAddon={<SearchIcon className="size-4" />}
@@ -87,7 +87,7 @@ export const KeyboardShortcutsDialogTrigger = (
                                 <CommandCollection>
                                     {(item: ShortcutItem) => (
                                         <CommandItem
-                                            key={item.description}
+                                            key={`${item.description}:${item.hotkey}`}
                                             value={item.label}
                                         >
                                             <div className="flex w-full items-center justify-between">

@@ -120,6 +120,11 @@ function NextChatSDKBootstrap({ baseUrl }: { baseUrl: string }) {
                             return;
                         }
                         const htmlElement = getOwnerDocument().documentElement;
+                        const managedHtmlAttributes = new Set([
+                            "class",
+                            "style",
+                            "suppresshydrationwarning",
+                        ]);
                         const observer = new MutationObserver((mutations) => {
                             for (const mutation of mutations) {
                                 if (
@@ -129,7 +134,7 @@ function NextChatSDKBootstrap({ baseUrl }: { baseUrl: string }) {
                                     const attrName = mutation.attributeName;
                                     if (
                                         attrName &&
-                                        attrName !== "suppresshydrationwarning"
+                                        !managedHtmlAttributes.has(attrName)
                                     ) {
                                         htmlElement.removeAttribute(attrName);
                                     }

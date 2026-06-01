@@ -1621,7 +1621,7 @@ function buildCollectionPaletteDescription(
 
     return isActive
         ? `Active collection filter. ${details.join(". ")}`
-        : `Toggle this collection in the filter stack. ${details.join(". ")}`;
+        : details.join(". ");
 }
 
 function buildCollectionPaletteItems({
@@ -1841,7 +1841,7 @@ interface BrowserResultsContextValue {
         sectionTitle: string,
         items: LibraryItemWithCollections[]
     ) => void;
-    onFindRelated: (item: LibraryItemWithCollections) => void;
+    onFindSimilar: (item: LibraryItemWithCollections) => void;
     onItemFavoriteToggle: (item: LibraryItemWithCollections) => void;
     onOpenInNewTab: (item: LibraryItem) => void;
     onOpenNote: (item: LibraryItem) => void;
@@ -2257,7 +2257,7 @@ function BrowserGroupOverviewContent() {
             )}
             id={contentId}
         >
-            <Streamdown className="min-w-0 flex-1 whitespace-pre-line">
+            <Streamdown className="min-w-0 flex-1 whitespace-pre-line pt-1">
                 {summary && summary.length > 0
                     ? summary
                     : "Description is unavailable right now."}
@@ -2525,7 +2525,7 @@ function BrowserCardProvider({ children }: { children: ReactNode }) {
         favoriteItemIdSet,
         onCopyLink,
         onDelete,
-        onFindRelated,
+        onFindSimilar,
         onItemFavoriteToggle,
         onOpenInNewTab,
         onOpenNote,
@@ -2540,7 +2540,7 @@ function BrowserCardProvider({ children }: { children: ReactNode }) {
                 favoriteItemIdSet,
                 onCopyLink,
                 onDelete,
-                onFindRelated,
+                onFindSimilar,
                 onItemFavoriteToggle,
                 onOpenInNewTab,
                 onOpenNote,
@@ -2591,7 +2591,7 @@ function CategoryThumbnail({ urls }: { urls: string[] }) {
         // biome-ignore lint/a11y/noNoninteractiveElementInteractions: image load failures drive the visual fallback state
         <img
             alt=""
-            className="absolute top-10 left-3 z-10 h-full w-auto rounded-sm object-cover transition-transform group-data-highlighted:-translate-y-1"
+            className="absolute top-10 left-3 z-10 h-auto w-full rounded-sm object-cover transition-transform group-data-highlighted:-translate-y-1"
             fetchPriority="high"
             height={104}
             loading="eager"
@@ -3724,7 +3724,7 @@ type LibraryGridCardContextValue = Pick<
     | "favoriteItemIdSet"
     | "onCopyLink"
     | "onDelete"
-    | "onFindRelated"
+    | "onFindSimilar"
     | "onItemFavoriteToggle"
     | "onOpenInNewTab"
     | "onOpenNote"
@@ -4081,7 +4081,7 @@ function CardMenu({
         favoriteItemIdSet,
         onCopyLink,
         onDelete,
-        onFindRelated,
+        onFindSimilar,
         onItemFavoriteToggle,
         onOpenInNewTab,
         onOpenNote,
@@ -4185,13 +4185,13 @@ function CardMenu({
                         <DownloadIcon className="size-4.5 text-muted-foreground" />
                         {isDownloading ? "Downloading..." : "Download media"}
                     </Item>
-                    <Item onClick={() => onFindRelated(item)}>
-                        <SearchIcon className="size-4.5 text-muted-foreground" />
-                        Find related
-                    </Item>
-                    <ItemSeparator />
                 </>
             )}
+            <Item onClick={() => onFindSimilar(item)}>
+                <SearchIcon className="size-4.5 text-muted-foreground" />
+                Find similar
+            </Item>
+            <ItemSeparator />
             {kind === "context" ? (
                 <ContextMenuItem
                     className="text-destructive data-highlighted:bg-destructive/10 data-highlighted:text-destructive"
@@ -4974,7 +4974,7 @@ const NoteDrawer = dynamic(
     { loading: () => null, ssr: false }
 );
 
-interface BrowserRelatedFilterState {
+interface BrowserSimilarFilterState {
     collectionMembershipFilter: CollectionMembershipFilter;
     domainFilters: string[];
     searchTerms: string[];
@@ -4982,15 +4982,15 @@ interface BrowserRelatedFilterState {
     sourceFilters: SourceFilterValue[];
 }
 
-interface BrowserRelatedFilterOptions {
+interface BrowserSimilarFilterOptions {
     domain: string;
     source: SourceFilterValue;
 }
 
-function buildRelatedBrowserFilterState(
-    state: BrowserRelatedFilterState,
-    options: BrowserRelatedFilterOptions
-): BrowserRelatedFilterState {
+function buildSimilarBrowserFilterState(
+    state: BrowserSimilarFilterState,
+    options: BrowserSimilarFilterOptions
+): BrowserSimilarFilterState {
     const shouldUseDomainFilter =
         DOMAIN_RELATED_SOURCES.has(options.source) &&
         options.domain !== UNSPECIFIC_DOMAIN_FILTER;
@@ -5814,10 +5814,10 @@ export function Browser({
         }
     );
 
-    const handleFindRelated = useStableCallback(
+    const handleFindSimilar = useStableCallback(
         (item: LibraryItemWithCollections) => {
-            const relatedDomain = itemDomain(item.url);
-            const nextFilters = buildRelatedBrowserFilterState(
+            const similarDomain = itemDomain(item.url);
+            const nextFilters = buildSimilarBrowserFilterState(
                 {
                     collectionMembershipFilter,
                     domainFilters,
@@ -5825,7 +5825,7 @@ export function Browser({
                     selectedCollectionIds,
                     sourceFilters,
                 },
-                { domain: relatedDomain, source: item.source }
+                { domain: similarDomain, source: item.source }
             );
 
             setPaletteInput("");
@@ -6072,7 +6072,6 @@ export function Browser({
                         sortMode,
                         sourceFilters,
                     })}
-                    visiblePaletteGroups={paletteGroups}
                 />
                 <ComposerActions
                     canClear={canClear}
@@ -6135,7 +6134,7 @@ export function Browser({
                 onDelete={handleRequestDelete}
                 onExpandAllSections={expandAllSections}
                 onExportSectionResults={handleExportSectionResults}
-                onFindRelated={handleFindRelated}
+                onFindSimilar={handleFindSimilar}
                 onItemFavoriteToggle={handleItemFavoriteToggle}
                 onOpenInNewTab={handleOpenInNewTab}
                 onOpenNote={handleOpenNote}

@@ -1,8 +1,10 @@
-import { canUseDOM } from "@/lib/common/dom";
+"use client";
+
+import { canUseDOM, getOwnerDocument, getOwnerWindow } from "@/lib/common/dom";
 import { useStableCallback } from "@base-ui/utils/useStableCallback";
 import { useEffect, useSyncExternalStore } from "react";
 
-type Theme = "light" | "dark" | "system";
+export type Theme = "light" | "dark" | "system";
 
 interface ThemeSnapshot {
     systemDark: boolean;
@@ -29,36 +31,41 @@ function emitChange() {
 }
 
 function hasThemeStorage() {
-    return canUseDOM && typeof localStorage !== "undefined";
+    return canUseDOM && typeof getOwnerWindow().localStorage !== "undefined";
 }
 
 function getSystemDark() {
-    return canUseDOM && window.matchMedia(MEDIA_QUERY).matches;
+    return canUseDOM && getOwnerWindow().matchMedia(MEDIA_QUERY).matches;
 }
 
 function getStored(): Theme {
     if (!hasThemeStorage()) {
         return DEFAULT_THEME_SNAPSHOT.theme;
     }
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw === "light" || raw === "dark" || raw === "system") {
-        return raw;
+    try {
+        const raw = getOwnerWindow().localStorage.getItem(STORAGE_KEY);
+        if (raw === "light" || raw === "dark" || raw === "system") {
+            return raw;
+        }
+    } catch {
+        return DEFAULT_THEME_SNAPSHOT.theme;
     }
     return DEFAULT_THEME_SNAPSHOT.theme;
 }
 
 function ensureThemeColorMetaTag(): HTMLMetaElement {
-    let element = document.querySelector<HTMLMetaElement>(
+    const ownerDocument = getOwnerDocument();
+    let element = ownerDocument.querySelector<HTMLMetaElement>(
         DYNAMIC_THEME_COLOR_SELECTOR
     );
     if (element) {
         return element;
     }
 
-    element = document.createElement("meta");
+    element = ownerDocument.createElement("meta");
     element.name = THEME_COLOR_META_NAME;
     element.setAttribute("data-dynamic-theme-color", "true");
-    document.head.append(element);
+    ownerDocument.head.append(element);
     return element;
 }
 
@@ -77,35 +84,38 @@ function normalizeThemeColor(value: string | null | undefined): string | null {
 }
 
 function resolveBrowserChromeSurface(): HTMLElement {
+    const ownerDocument = getOwnerDocument();
     return (
-        document.querySelector<HTMLElement>(
+        ownerDocument.querySelector<HTMLElement>(
             "main[data-slot='sidebar-inset']"
         ) ??
-        document.querySelector<HTMLElement>("[data-slot='sidebar-inner']") ??
-        document.body
+        ownerDocument.querySelector<HTMLElement>(
+            "[data-slot='sidebar-inner']"
+        ) ??
+        ownerDocument.body
     );
 }
 
 export function syncBrowserChromeTheme() {
-    if (
-        typeof document === "undefined" ||
-        typeof getComputedStyle === "undefined"
-    ) {
+    if (!canUseDOM) {
         return;
     }
+    const ownerDocument = getOwnerDocument();
+    const ownerWindow = getOwnerWindow();
     const surfaceColor = normalizeThemeColor(
-        getComputedStyle(resolveBrowserChromeSurface()).backgroundColor
+        ownerWindow.getComputedStyle(resolveBrowserChromeSurface())
+            .backgroundColor
     );
     const fallbackColor = normalizeThemeColor(
-        getComputedStyle(document.body).backgroundColor
+        ownerWindow.getComputedStyle(ownerDocument.body).backgroundColor
     );
     const backgroundColor = surfaceColor ?? fallbackColor;
     if (!backgroundColor) {
         return;
     }
 
-    document.documentElement.style.backgroundColor = backgroundColor;
-    document.body.style.backgroundColor = backgroundColor;
+    ownerDocument.documentElement.style.backgroundColor = backgroundColor;
+    ownerDocument.body.style.backgroundColor = backgroundColor;
     ensureThemeColorMetaTag().setAttribute("content", backgroundColor);
 }
 
@@ -113,17 +123,21 @@ function applyTheme(theme: Theme, suppressTransitions = false) {
     if (!canUseDOM) {
         return;
     }
+    const ownerDocument = getOwnerDocument();
+    const ownerWindow = getOwnerWindow();
+    const documentElement = ownerDocument.documentElement;
     if (suppressTransitions) {
-        document.documentElement.classList.add("no-transitions");
+        documentElement.classList.add("no-transitions");
     }
     const isDark = theme === "dark" || (theme === "system" && getSystemDark());
-    document.documentElement.classList.toggle("dark", isDark);
+    documentElement.classList.toggle("dark", isDark);
+    documentElement.style.colorScheme = isDark ? "dark" : "light";
     syncBrowserChromeTheme();
     if (suppressTransitions) {
         // biome-ignore lint/suspicious/noUnusedExpressions: Force a reflow so the no-transitions class takes effect before removal
-        document.documentElement.offsetHeight;
-        requestAnimationFrame(() => {
-            document.documentElement.classList.remove("no-transitions");
+        documentElement.offsetHeight;
+        ownerWindow.requestAnimationFrame(() => {
+            documentElement.classList.remove("no-transitions");
         });
     }
 }
@@ -164,7 +178,8 @@ function subscribe(listener: () => void): () => void {
     listeners.push(listener);
 
     // Listen for system preference changes
-    const mq = window.matchMedia(MEDIA_QUERY);
+    const ownerWindow = getOwnerWindow();
+    const mq = ownerWindow.matchMedia(MEDIA_QUERY);
     const handleChange = () => {
         if (getStored() === "system") {
             applyTheme("system", true);
@@ -180,12 +195,12 @@ function subscribe(listener: () => void): () => void {
             emitChange();
         }
     };
-    window.addEventListener("storage", handleStorage);
+    ownerWindow.addEventListener("storage", handleStorage);
 
     return () => {
         listeners = listeners.filter((l) => l !== listener);
         mq.removeEventListener("change", handleChange);
-        window.removeEventListener("storage", handleStorage);
+        ownerWindow.removeEventListener("storage", handleStorage);
     };
 }
 
@@ -205,7 +220,7 @@ export function useTheme() {
         if (!hasThemeStorage()) {
             return;
         }
-        localStorage.setItem(STORAGE_KEY, next);
+        getOwnerWindow().localStorage.setItem(STORAGE_KEY, next);
         applyTheme(next, true);
         emitChange();
     });

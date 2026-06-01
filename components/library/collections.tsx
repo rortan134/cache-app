@@ -617,12 +617,17 @@ function getCreatedAssignedItemIds(
  */
 function safeAction<TInput, TOutput extends { status: string }>(
     action: (input: TInput) => Promise<TOutput>,
-    errorMessage: string
+    errorMessage: string,
+    operation: string
 ): (input: TInput) => Promise<TOutput | { message: string; status: "ERROR" }> {
     return async (input) => {
         try {
             return await action(input);
-        } catch {
+        } catch (error) {
+            log.error("Server action failed before returning a result", {
+                error,
+                operation,
+            });
             return { message: errorMessage, status: "ERROR" as const };
         }
     };
@@ -630,31 +635,38 @@ function safeAction<TInput, TOutput extends { status: string }>(
 
 const createCollectionSafely = safeAction(
     createCollection,
-    CREATE_ERROR_MESSAGE
+    CREATE_ERROR_MESSAGE,
+    "createCollection"
 );
 const deleteCollectionSafely = safeAction(
     deleteCollection,
-    DELETE_ERROR_MESSAGE
+    DELETE_ERROR_MESSAGE,
+    "deleteCollection"
 );
 const duplicateCollectionSafely = safeAction(
     duplicateCollection,
-    DUPLICATE_ERROR_MESSAGE
+    DUPLICATE_ERROR_MESSAGE,
+    "duplicateCollection"
 );
 const renameCollectionSafely = safeAction(
     renameCollection,
-    RENAME_ERROR_MESSAGE
+    RENAME_ERROR_MESSAGE,
+    "renameCollection"
 );
 const updateCollectionPrioritySafely = safeAction(
     updateCollectionPriority,
-    UPDATE_PRIORITY_ERROR_MESSAGE
+    UPDATE_PRIORITY_ERROR_MESSAGE,
+    "updateCollectionPriority"
 );
 const shareCollectionPubliclySafely = safeAction(
     shareCollectionPublicly,
-    SHARE_ERROR_MESSAGE
+    SHARE_ERROR_MESSAGE,
+    "shareCollectionPublicly"
 );
 const disableCollectionSharingSafely = safeAction(
     disableCollectionSharing,
-    DISABLE_SHARING_ERROR_MESSAGE
+    DISABLE_SHARING_ERROR_MESSAGE,
+    "disableCollectionSharing"
 );
 
 export function Collections() {
@@ -2353,6 +2365,16 @@ function CollectionsListCalloutPopover() {
     const controller = useCollections();
     const isDisabled = controller.isSmartCollectionsDisabled;
 
+    const handleDisableSmartCollections = useStableCallback(() => {
+        controller.onDisableSmartCollections().catch((error) => {
+            log.error("Failed to disable smart collections", { error });
+        });
+    });
+
+    if (isDisabled) {
+        return null;
+    }
+
     return (
         <Popover>
             <span
@@ -2361,9 +2383,7 @@ function CollectionsListCalloutPopover() {
                 className="sr-only"
                 role="status"
             >
-                {isDisabled
-                    ? "Smart Collections"
-                    : "Smart Collections is active"}
+                Smart Collections is active
             </span>
             <PopoverTrigger
                 className="group not-sr-only flex items-center text-nowrap font-medium text-[11px] opacity-70 data-popup-open:opacity-100"
@@ -2408,6 +2428,14 @@ function CollectionsListCalloutPopover() {
                             <ArrowUpRight className="inline-block size-3 shrink-0 text-muted-foreground" />
                         </Button>
                     </PopoverDescription>
+                    <Button
+                        className="w-fit px-0 text-muted-foreground text-xs"
+                        onClick={handleDisableSmartCollections}
+                        size="xs"
+                        variant="link"
+                    >
+                        Turn off Smart Collections
+                    </Button>
                 </div>
             </PopoverPopup>
         </Popover>
