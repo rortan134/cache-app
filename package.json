@@ -89,8 +89,6 @@
         "babel-plugin-react-compiler": "1.0.0",
         "gt": "^2.14.45",
         "husky": "^9.1.7",
-        "knip": "^6.15.0",
-        "mitata": "^1.0.34",
         "prisma": "^7.8.0",
         "tailwindcss": "^4",
         "typescript": "^6.0.3",
@@ -110,7 +108,6 @@
         "test": "bun test",
         "analyze": "next experimental-analyze",
         "type-check": "tsc --noEmit --emitDeclarationOnly false",
-        "validate": "knip --cache --strict",
         "prepare": "husky"
     },
     "type": "module",

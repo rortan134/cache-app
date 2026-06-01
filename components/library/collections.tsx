@@ -1863,6 +1863,7 @@ function CollectionsListGroupTrigger({
     isOpen,
     labels,
     placeholder,
+    render,
     ...props
 }: CollectionsListGroupTriggerProps) {
     const locale = useLocale();
@@ -1875,7 +1876,11 @@ function CollectionsListGroupTrigger({
                     <CollapsibleTrigger
                         {...props}
                         render={
-                            <SidebarItem render={<button type="button" />} />
+                            render ?? (
+                                <SidebarItem
+                                    render={<button type="button" />}
+                                />
+                            )
                         }
                         title={isOpen ? "Collapse group" : "Expand group"}
                     />
