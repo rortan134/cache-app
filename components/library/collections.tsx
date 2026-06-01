@@ -108,6 +108,7 @@ import { getSystemControlKey } from "@/lib/common/environment";
 import { saveFile } from "@/lib/common/file";
 import { createLogger } from "@/lib/common/logs/console/logger";
 import {
+    escapeCsv,
     getNoteExcerpt,
     normalizeWhitespace,
     slugify,
@@ -581,10 +582,6 @@ function getItemUrls(items: LibraryItemWithCollections[]): string[] {
     return items.map((item) => normalizeURL(item.url));
 }
 
-function escapeCsv(value: string): string {
-    return `"${value.replaceAll('"', '""')}"`;
-}
-
 function buildCsv(
     collection: LibraryCollectionSummary,
     items: LibraryItemWithCollections[]
@@ -915,14 +912,14 @@ function useCollectionsController() {
         setCollections((current) =>
             sortCollections(replaceCollectionShareState(current, next))
         );
-        syncItemTags((tags) =>
-            sortCollections(replaceCollectionShareState(tags, next))
-        );
+        syncItemTags((tags) => replaceCollectionShareState(tags, next));
     };
 
     const syncPriority = (id: string, priority: CollectionPriority) => {
         setCollections((current) => replacePriority(current, id, priority));
-        syncItemTags((tags) => replacePriority(tags, id, priority));
+        syncItemTags((tags) =>
+            updateById(tags, id, (tag) => ({ ...tag, priority }))
+        );
     };
 
     const syncName = (id: string, name: string) => {
@@ -3046,13 +3043,15 @@ function CollectionItemMetadata({
                         </MenuItem>
                     </MenuGroup>
                     <MenuSeparator />
-                    <p className="text-nowrap p-2 pb-0 text-[10px] text-muted-foreground leading-none">
-                        Last updated {dayjs(collection.updatedAt).fromNow()}
-                    </p>
-                    <p className="text-nowrap p-2 pt-1 text-[10px] text-muted-foreground leading-none">
-                        {dayjs(collection.updatedAt).format(
-                            "MMM DD, YYYY, h:mm A"
-                        )}
+                    <p className="space-y-1 text-nowrap p-2 text-[10px] text-muted-foreground leading-none">
+                        <span className="block pb-1">
+                            Last updated {dayjs(collection.updatedAt).fromNow()}
+                        </span>
+                        <span className="block pt-1">
+                            {dayjs(collection.updatedAt).format(
+                                "MMM DD, YYYY, h:mm A"
+                            )}
+                        </span>
                     </p>
                 </MenuPopup>
             </Menu>

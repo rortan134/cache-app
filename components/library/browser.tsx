@@ -115,6 +115,7 @@ import {
     type LibraryCollectionSummary,
     type LibraryItemWithCollections,
 } from "@/lib/collections/utils";
+import { removeValue, toggleValue } from "@/lib/common/arrays";
 import { cn } from "@/lib/common/cn";
 import {
     getColorGradientFromName,
@@ -136,9 +137,11 @@ import { filterValidImageUrls } from "@/lib/common/image";
 import { getImageColors } from "@/lib/common/image-colors";
 import { createLogger } from "@/lib/common/logs/console/logger";
 import {
+    escapeCsv,
     getNoteExcerpt,
     normalizeWhitespace,
     slugify,
+    truncateLabel,
 } from "@/lib/common/strings";
 import {
     normalizeURL,
@@ -1049,10 +1052,6 @@ function itemDomain(url: string): string {
     return parseDisplayUrl(url) || UNSPECIFIC_DOMAIN_FILTER;
 }
 
-function escapeCsv(value: string): string {
-    return `"${value.replaceAll('"', '""')}"`;
-}
-
 function buildBrowserSectionCsv(
     sectionTitle: string,
     items: LibraryItemWithCollections[]
@@ -1211,10 +1210,6 @@ function compareSectionKeys(
     return NAME_COLLATOR.compare(a, b);
 }
 
-function truncateLabel(label: string, max = 22): string {
-    return label.length > max ? `${label.slice(0, max)}…` : label;
-}
-
 function appendUniqueSearchTerm(values: string[], next: string): string[] {
     const normalized = next.trim();
     if (!normalized) {
@@ -1225,16 +1220,6 @@ function appendUniqueSearchTerm(values: string[], next: string): string[] {
     )
         ? [...values]
         : [...values, normalized];
-}
-
-function removeValue<T>(values: T[], value: T): T[] {
-    return values.filter((entry) => entry !== value);
-}
-
-function toggleValue<T>(values: T[], next: T): T[] {
-    return values.includes(next)
-        ? values.filter((entry) => entry !== next)
-        : [...values, next];
 }
 
 interface PaletteStackEntry {
@@ -2566,6 +2551,7 @@ function CategoryThumbnail({ urls }: { urls: string[] }) {
     const [imageError, setImageError] = React.useState(false);
 
     React.useEffect(() => {
+        setImageError(false);
         if (urls.length === 0) {
             setValidUrls([]);
             return;
@@ -3234,7 +3220,7 @@ function sortBrowserItems(
 ): LibraryItemWithCollections[] {
     const itemSortMode =
         sortMode === "count-desc" ? DEFAULT_SORT_MODE : sortMode;
-    return [...filteredItems].sort((a, b) => compareItems(a, b, itemSortMode));
+    return filteredItems.toSorted((a, b) => compareItems(a, b, itemSortMode));
 }
 
 function buildBrowserSections(
@@ -3548,7 +3534,6 @@ function useLibraryItemActions(args: {
                 );
                 args.onDeleteSuccess?.(result);
                 setPendingDeleteItem(null);
-                return;
             }
         });
     });

@@ -5,3 +5,13 @@ export function chunk<T>(items: readonly T[], size: number): T[][] {
     }
     return chunks;
 }
+
+export function removeValue<T>(values: T[], value: T): T[] {
+    return values.filter((entry) => entry !== value);
+}
+
+export function toggleValue<T>(values: T[], next: T): T[] {
+    return values.includes(next)
+        ? values.filter((entry) => entry !== next)
+        : [...values, next];
+}

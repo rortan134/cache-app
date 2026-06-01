@@ -95,6 +95,14 @@ export const description = z
     .optional()
     .or(z.literal(""));
 
+export function escapeCsv(value: string): string {
+    return `"${value.replaceAll('"', '""')}"`;
+}
+
+export function truncateLabel(label: string, max = 22): string {
+    return label.length > max ? `${label.slice(0, max)}…` : label;
+}
+
 export function getNoteExcerpt(
     text: string | null | undefined,
     maxLength = 180

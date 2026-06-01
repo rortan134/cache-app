@@ -22,7 +22,6 @@ const DYNAMIC_THEME_COLOR_SELECTOR = `meta[name="${THEME_COLOR_META_NAME}"][data
 
 let listeners: Array<() => void> = [];
 let lastSnapshot: ThemeSnapshot | null = null;
-// const lastDesktopTheme: Theme | null = null;
 
 function emitChange() {
     for (const listener of listeners) {

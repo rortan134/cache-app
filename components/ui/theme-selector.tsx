@@ -2,18 +2,14 @@
 
 import { Button } from "@/components/ui/button";
 import { Group } from "@/components/ui/group";
-import { useTheme, type Theme } from "@/hooks/use-theme";
+import { useTheme } from "@/hooks/use-theme";
 import { Monitor, Moon, Sun } from "lucide-react";
 
-const THEME_OPTIONS: Array<{
-    icon: typeof Sun;
-    label: string;
-    value: Theme;
-}> = [
+const THEME_OPTIONS = [
     { icon: Sun, label: "Use light theme", value: "light" },
     { icon: Moon, label: "Use dark theme", value: "dark" },
     { icon: Monitor, label: "Use system theme", value: "system" },
-];
+] as const;
 
 export function ThemeSelector() {
     const { setTheme, theme } = useTheme();
