@@ -250,14 +250,6 @@ interface CollectionNotificationOption {
     value: string;
 }
 
-/**
- * Composite value for the collections combobox.
- *
- * Each item carries the full state (sort + view) so that
- * `isItemEqualToValue` can match multiple items simultaneously —
- * one from the sort group and one from the view group — causing the
- * built-in ItemIndicator to render for both.
- */
 interface ComboboxValue {
     icon: CollectionOptionIcon;
     label: string;
@@ -544,19 +536,6 @@ function replaceCollectionShareState<T extends LibraryCollectionTag>(
     }));
 }
 
-function replacePriority<T extends LibraryCollectionTag>(
-    collections: T[],
-    id: string,
-    priority: CollectionPriority
-): T[] {
-    return sortCollections(
-        updateById(collections, id, (collection) => ({
-            ...collection,
-            priority,
-        }))
-    );
-}
-
 function replaceName<T extends LibraryCollectionTag>(
     collections: T[],
     id: string,
@@ -568,14 +547,6 @@ function replaceName<T extends LibraryCollectionTag>(
             name,
         }))
     );
-}
-
-function replaceItemCollectionNames(
-    items: LibraryItemWithCollections[],
-    id: string,
-    name: string
-): LibraryItemWithCollections[] {
-    return updateItemTags(items, (tags) => replaceName(tags, id, name));
 }
 
 function getItemUrls(items: LibraryItemWithCollections[]): string[] {
@@ -607,15 +578,9 @@ function getCreatedAssignedItemIds(
     return result.assignedItemId ? [result.assignedItemId] : [];
 }
 
-/**
- * Wrap a server action so network failures surface as typed errors instead
- * of uncaught exceptions. Callers expect a result object; throwing would
- * break the controller's optimistic-update rollback logic.
- */
 function safeAction<TInput, TOutput extends { status: string }>(
     action: (input: TInput) => Promise<TOutput>,
-    errorMessage: string,
-    operation: string
+    errorMessage: string
 ): (input: TInput) => Promise<TOutput | { message: string; status: "ERROR" }> {
     return async (input) => {
         try {
@@ -623,7 +588,6 @@ function safeAction<TInput, TOutput extends { status: string }>(
         } catch (error) {
             log.error("Server action failed before returning a result", {
                 error,
-                operation,
             });
             return { message: errorMessage, status: "ERROR" as const };
         }
@@ -632,38 +596,31 @@ function safeAction<TInput, TOutput extends { status: string }>(
 
 const createCollectionSafely = safeAction(
     createCollection,
-    CREATE_ERROR_MESSAGE,
-    "createCollection"
+    CREATE_ERROR_MESSAGE
 );
 const deleteCollectionSafely = safeAction(
     deleteCollection,
-    DELETE_ERROR_MESSAGE,
-    "deleteCollection"
+    DELETE_ERROR_MESSAGE
 );
 const duplicateCollectionSafely = safeAction(
     duplicateCollection,
-    DUPLICATE_ERROR_MESSAGE,
-    "duplicateCollection"
+    DUPLICATE_ERROR_MESSAGE
 );
 const renameCollectionSafely = safeAction(
     renameCollection,
-    RENAME_ERROR_MESSAGE,
-    "renameCollection"
+    RENAME_ERROR_MESSAGE
 );
 const updateCollectionPrioritySafely = safeAction(
     updateCollectionPriority,
-    UPDATE_PRIORITY_ERROR_MESSAGE,
-    "updateCollectionPriority"
+    UPDATE_PRIORITY_ERROR_MESSAGE
 );
 const shareCollectionPubliclySafely = safeAction(
     shareCollectionPublicly,
-    SHARE_ERROR_MESSAGE,
-    "shareCollectionPublicly"
+    SHARE_ERROR_MESSAGE
 );
 const disableCollectionSharingSafely = safeAction(
     disableCollectionSharing,
-    DISABLE_SHARING_ERROR_MESSAGE,
-    "disableCollectionSharing"
+    DISABLE_SHARING_ERROR_MESSAGE
 );
 
 export function Collections() {
@@ -758,9 +715,6 @@ export function Collections() {
 
 /**
  * Central controller for all collection-related UI state and side effects.
- *
- * Coordinates dialog open states, server actions, optimistic updates,
- * keyboard shortcuts, and feedback messages.
  */
 function useCollectionsController() {
     const {
@@ -916,7 +870,14 @@ function useCollectionsController() {
     };
 
     const syncPriority = (id: string, priority: CollectionPriority) => {
-        setCollections((current) => replacePriority(current, id, priority));
+        setCollections((current) =>
+            sortCollections(
+                updateById(current, id, (collection) => ({
+                    ...collection,
+                    priority,
+                }))
+            )
+        );
         syncItemTags((tags) =>
             updateById(tags, id, (tag) => ({ ...tag, priority }))
         );
@@ -924,7 +885,9 @@ function useCollectionsController() {
 
     const syncName = (id: string, name: string) => {
         setCollections((current) => replaceName(current, id, name));
-        setItems((current) => replaceItemCollectionNames(current, id, name));
+        setItems((current) =>
+            updateItemTags(current, (tags) => replaceName(tags, id, name))
+        );
     };
 
     const syncCreated = (input: SyncCreatedCollectionInput) => {
@@ -1490,6 +1453,7 @@ function useCollectionsController() {
 
 function CollectionsListProvider({ children }: React.PropsWithChildren) {
     const controller = useCollectionsController();
+
     return (
         <CollectionsContext value={controller}>{children}</CollectionsContext>
     );
