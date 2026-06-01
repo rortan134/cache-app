@@ -255,6 +255,7 @@ interface CommandSuggestion {
 
 const SUGGESTION_LIMIT = 3;
 const SUGGESTION_ICON_CLASS = "size-3.5 shrink-0";
+const MULTI_WORD_QUERY_PATTERN = /\S+\s+\S+/;
 
 interface BuildCommandSuggestionsInput {
     clearLibraryPalette: () => void;
@@ -1222,6 +1223,10 @@ function appendUniqueSearchTerm(values: string[], next: string): string[] {
     )
         ? [...values]
         : [...values, normalized];
+}
+
+function isMultiWordQuery(query: string): boolean {
+    return MULTI_WORD_QUERY_PATTERN.test(query.trim());
 }
 
 interface PaletteStackEntry {
@@ -2639,32 +2644,35 @@ function buildSearchPaletteGroups({
     };
 
     if (draft) {
+        const shouldDefaultToAskCache = isMultiWordQuery(draft);
+        const addSearchItem: CommandPaletteItem = {
+            active: draftAlreadyIncluded,
+            description: draftAlreadyIncluded
+                ? "Already included in the search"
+                : "Add this search term",
+            label: `Add search "${draft}"`,
+            onSelect: () => {
+                setSearchTerms((current) =>
+                    appendUniqueSearchTerm(current, draft)
+                );
+                setQuery("");
+                setIsCommandOpen(true);
+            },
+            shortcut: shouldDefaultToAskCache ? undefined : "Enter",
+            value: `add search ${draft}`,
+        };
+        const askCacheItem: CommandPaletteItem = {
+            description: "AI Search",
+            label: `Ask Cache "${draft}"`,
+            onSelect: () => onAskCacheSubmit(draft),
+            shortcut: shouldDefaultToAskCache ? "Enter" : "Tab",
+            value: `ask cache ${draft}`,
+        };
+
         groups.push({
-            items: [
-                {
-                    active: draftAlreadyIncluded,
-                    description: draftAlreadyIncluded
-                        ? "Already included in the stacked search"
-                        : "Add this search term to the current stack",
-                    label: `Add search "${draft}"`,
-                    onSelect: () => {
-                        setSearchTerms((current) =>
-                            appendUniqueSearchTerm(current, draft)
-                        );
-                        setQuery("");
-                        setIsCommandOpen(true);
-                    },
-                    shortcut: "Enter",
-                    value: `add search ${draft}`,
-                },
-                {
-                    description: "AI Search",
-                    label: "Ask Cache",
-                    onSelect: () => onAskCacheSubmit(draft),
-                    shortcut: "Tab",
-                    value: `ask cache ${draft}`,
-                },
-            ],
+            items: shouldDefaultToAskCache
+                ? [askCacheItem, addSearchItem]
+                : [addSearchItem, askCacheItem],
             label: "Search",
         });
     }
@@ -2681,7 +2689,7 @@ function buildSearchPaletteGroups({
                     value: `remove search ${term}`,
                 })),
                 {
-                    description: "Remove every committed search term",
+                    description: "Remove every search term",
                     label: "Clear all searches",
                     onSelect: () => {
                         setSearchTerms([]);

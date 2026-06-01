@@ -91,6 +91,10 @@ interface OnboardingTask extends OnboardingTaskMeta {
     onSelect: () => void | Promise<void>;
 }
 
+interface OnboardingShareStatusProps extends React.ComponentProps<"p"> {
+    tone?: "error" | "success";
+}
+
 interface CompletedTaskInput {
     clientCompletedTaskIds: OnboardingTaskId[];
     collections: LibraryCollectionSummary[];
@@ -128,6 +132,9 @@ export function OnboardingMenu({
 
     const [pendingShareCollection, setPendingShareCollection] =
         React.useState<LibraryCollectionSummary | null>(null);
+    const [shareErrorMessage, setShareErrorMessage] = React.useState<
+        string | null
+    >(null);
     const [isSharePending, startShareTransition] = React.useTransition();
 
     const completedTaskIdSet = getCompletedTaskIdSet({
@@ -185,6 +192,7 @@ export function OnboardingMenu({
 
     const handleShareDialogOpenChange = (open: boolean) => {
         if (!(open || isSharePending)) {
+            setShareErrorMessage(null);
             setPendingShareCollection(null);
         }
     };
@@ -195,12 +203,14 @@ export function OnboardingMenu({
             return;
         }
 
+        setShareErrorMessage(null);
         startShareTransition(async () => {
             const result = await shareCollectionPubliclySafely({
                 collectionId: collection.id,
             });
 
             if (result.status !== "SHARED") {
+                setShareErrorMessage(result.message);
                 return;
             }
 
@@ -293,11 +303,12 @@ export function OnboardingMenu({
                                                 collection.id && "bg-accent"
                                         )}
                                         key={collection.id}
-                                        onClick={() =>
+                                        onClick={() => {
+                                            setShareErrorMessage(null);
                                             setPendingShareCollection(
                                                 collection
-                                            )
-                                        }
+                                            );
+                                        }}
                                         size="sm"
                                         variant="ghost"
                                     >
@@ -309,6 +320,11 @@ export function OnboardingMenu({
                                 ))}
                             </div>
                         </DialogPanel>
+                    ) : null}
+                    {shareErrorMessage ? (
+                        <OnboardingShareStatus tone="error">
+                            {shareErrorMessage}
+                        </OnboardingShareStatus>
                     ) : null}
                     <DialogFooter>
                         <DialogClose
@@ -328,6 +344,32 @@ export function OnboardingMenu({
                 </DialogPopup>
             </Dialog>
         </>
+    );
+}
+
+function OnboardingShareStatus({
+    tone = "success",
+    className,
+    ...props
+}: OnboardingShareStatusProps) {
+    if (!props.children) {
+        return null;
+    }
+
+    const isError = tone === "error";
+
+    return (
+        <p
+            aria-atomic="true"
+            aria-live={isError ? "assertive" : "polite"}
+            className={cn(
+                "px-1 text-xs italic leading-tight",
+                isError ? "text-destructive" : "text-muted-foreground",
+                className
+            )}
+            role={isError ? "alert" : "status"}
+            {...props}
+        />
     );
 }
 

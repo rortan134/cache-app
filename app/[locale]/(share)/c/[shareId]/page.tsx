@@ -20,11 +20,6 @@ interface CollectionSharePageProps {
     }>;
 }
 
-const getCachedPublicCollectionShare = React.cache(async (shareId: string) => {
-    "use cache";
-    return getPublicCollectionShareById(shareId);
-});
-
 function getSharedItemTitle(item: {
     caption: string | null;
     kind: string;
@@ -59,7 +54,7 @@ export async function generateMetadata(
     props: CollectionSharePageProps
 ): Promise<Metadata> {
     const { shareId } = await props.params;
-    const collection = await getCachedPublicCollectionShare(shareId);
+    const collection = await getPublicCollectionShareById(shareId);
 
     return {
         description: `${
@@ -80,7 +75,7 @@ export async function generateMetadata(
 
 async function PageComp(props: CollectionSharePageProps) {
     const { shareId } = await props.params;
-    const collection = await getCachedPublicCollectionShare(shareId);
+    const collection = await getPublicCollectionShareById(shareId);
 
     if (!collection) {
         notFound();

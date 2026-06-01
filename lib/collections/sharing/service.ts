@@ -4,20 +4,24 @@ import {
     LIBRARY_COLLECTION_TAG_SELECT,
     toLibraryCollectionTag,
 } from "@/lib/collections/utils";
+import { isActiveSubscriptionStatus } from "@/lib/billing/subscription-status";
+import {
+    FREE_LIBRARY_PREVIEW_ITEMS,
+    PRISMA_UNIQUE_CONSTRAINT_ERROR,
+    SORT_DESC,
+} from "@/lib/common/constants";
 import { createLogger } from "@/lib/common/logs/console/logger";
 import { prisma } from "@/prisma";
 import { Prisma } from "@/prisma/client/client";
 import { LibraryItemKind, type LibraryItemSource } from "@/prisma/client/enums";
 import { nanoid } from "nanoid";
-import {
-    PRISMA_UNIQUE_CONSTRAINT_ERROR,
-    SORT_DESC,
-} from "@/lib/common/constants";
 import { CollectionShareError } from "./error";
 
 const log = createLogger("collection-sharing:service");
 const COLLECTION_SHARE_ID_LENGTH = 12;
 const COLLECTION_SHARE_ID_ATTEMPT_COUNT_MAX = 3;
+
+type CollectionShareTransaction = Prisma.TransactionClient;
 
 interface PublicCollectionShareItem {
     caption: string | null;
@@ -51,9 +55,12 @@ export type SharedLibraryCollectionTag = ReturnType<
 
 function findCollectionTagOwned(args: {
     collectionId: string;
+    tx?: CollectionShareTransaction;
     userId: string;
 }) {
-    return prisma.collection.findFirst({
+    const tx = args.tx ?? prisma;
+
+    return tx.collection.findFirst({
         select: LIBRARY_COLLECTION_TAG_SELECT,
         where: {
             id: args.collectionId,
@@ -65,6 +72,7 @@ function findCollectionTagOwned(args: {
 async function requireCollectionTagOwned(args: {
     collectionId: string;
     operation: string;
+    tx?: CollectionShareTransaction;
     userId: string;
 }) {
     const collection = await findCollectionTagOwned(args);
@@ -104,49 +112,153 @@ function isPrismaUniqueConstraintError(error: unknown): boolean {
     );
 }
 
+async function userHasActiveSubscriptionInTransaction(
+    tx: CollectionShareTransaction,
+    userId: string
+): Promise<boolean> {
+    const subscription = await tx.subscription.findFirst({
+        orderBy: {
+            periodEnd: SORT_DESC,
+        },
+        select: {
+            status: true,
+        },
+        where: {
+            referenceId: userId,
+        },
+    });
+
+    return isActiveSubscriptionStatus(subscription?.status);
+}
+
+async function getFreePreviewItemIdsInTransaction(
+    tx: CollectionShareTransaction,
+    userId: string
+): Promise<string[]> {
+    const previewItems = await tx.libraryItem.findMany({
+        orderBy: [{ scrapedAt: SORT_DESC }, { updatedAt: SORT_DESC }],
+        select: { id: true },
+        take: FREE_LIBRARY_PREVIEW_ITEMS,
+        where: {
+            kind: { not: LibraryItemKind.folder },
+            userId,
+        },
+    });
+
+    return previewItems.map((item) => item.id);
+}
+
+async function hasPublicShareAccess(args: {
+    collectionId: string;
+    tx: CollectionShareTransaction;
+    userId: string;
+}): Promise<boolean> {
+    if (await userHasActiveSubscriptionInTransaction(args.tx, args.userId)) {
+        return true;
+    }
+
+    const previewItemIds = await getFreePreviewItemIdsInTransaction(
+        args.tx,
+        args.userId
+    );
+    const hiddenCollectionItemCount = await args.tx.libraryItem.count({
+        where: {
+            collections: { some: { id: args.collectionId } },
+            id:
+                previewItemIds.length > 0
+                    ? { notIn: previewItemIds }
+                    : undefined,
+            kind: { not: LibraryItemKind.folder },
+            userId: args.userId,
+        },
+    });
+
+    return hiddenCollectionItemCount === 0;
+}
+
+async function assertCollectionShareAccess(args: {
+    collectionId: string;
+    operation: string;
+    tx: CollectionShareTransaction;
+    userId: string;
+}) {
+    if (
+        !(await hasPublicShareAccess({
+            collectionId: args.collectionId,
+            tx: args.tx,
+            userId: args.userId,
+        }))
+    ) {
+        throw new CollectionShareError({
+            code: "subscription_required",
+            message: "Upgrade to share every item in this collection.",
+            operation: args.operation,
+        });
+    }
+}
+
 export async function enablePublicCollectionShare(input: {
     collectionId: string;
     userId: string;
 }): Promise<SharedLibraryCollectionTag> {
-    const existingCollection = await requireCollectionTagOwned({
-        collectionId: input.collectionId,
-        operation: "enablePublicCollectionShare",
-        userId: input.userId,
-    });
-
-    if (existingCollection.shareId && existingCollection.sharedAt) {
-        return requireCollectionTagShared(
-            toLibraryCollectionTag(existingCollection),
-            "enablePublicCollectionShare"
-        );
-    }
-
     for (
         let attempt = 0;
         attempt < COLLECTION_SHARE_ID_ATTEMPT_COUNT_MAX;
         attempt += 1
     ) {
         try {
-            const sharedCollection = await prisma.collection.update({
-                data: {
-                    sharedAt: new Date(),
-                    shareId: nanoid(COLLECTION_SHARE_ID_LENGTH),
-                },
-                select: LIBRARY_COLLECTION_TAG_SELECT,
-                where: {
-                    id: existingCollection.id,
-                },
-            });
+            return await prisma.$transaction(
+                async (tx) => {
+                    const existingCollection = await requireCollectionTagOwned({
+                        collectionId: input.collectionId,
+                        operation: "enablePublicCollectionShare",
+                        tx,
+                        userId: input.userId,
+                    });
 
-            log.info("Enabled public collection share", {
-                collectionId: sharedCollection.id,
-                shareId: sharedCollection.shareId,
-                userId: input.userId,
-            });
+                    await assertCollectionShareAccess({
+                        collectionId: existingCollection.id,
+                        operation: "enablePublicCollectionShare",
+                        tx,
+                        userId: input.userId,
+                    });
 
-            return requireCollectionTagShared(
-                toLibraryCollectionTag(sharedCollection),
-                "enablePublicCollectionShare"
+                    if (
+                        existingCollection.shareId &&
+                        existingCollection.sharedAt
+                    ) {
+                        return requireCollectionTagShared(
+                            toLibraryCollectionTag(existingCollection),
+                            "enablePublicCollectionShare"
+                        );
+                    }
+
+                    const sharedCollection = await tx.collection.update({
+                        data: {
+                            sharedAt: new Date(),
+                            shareId: nanoid(COLLECTION_SHARE_ID_LENGTH),
+                        },
+                        select: LIBRARY_COLLECTION_TAG_SELECT,
+                        where: {
+                            id: existingCollection.id,
+                        },
+                    });
+
+                    log.info("Enabled public collection share", {
+                        collectionId: sharedCollection.id,
+                        shareId: sharedCollection.shareId,
+                        userId: input.userId,
+                    });
+
+                    return requireCollectionTagShared(
+                        toLibraryCollectionTag(sharedCollection),
+                        "enablePublicCollectionShare"
+                    );
+                },
+                {
+                    isolationLevel:
+                        Prisma.TransactionIsolationLevel.RepeatableRead,
+                }
             );
         } catch (error) {
             if (isPrismaUniqueConstraintError(error)) {
@@ -205,55 +317,95 @@ export async function getPublicCollectionShareById(
         return null;
     }
 
-    const sharedCollection = await prisma.collection.findFirst({
-        select: {
-            description: true,
-            items: {
-                orderBy: [{ scrapedAt: SORT_DESC }, { updatedAt: SORT_DESC }],
+    return await prisma.$transaction(
+        async (tx) => {
+            const sharedCollectionLookup = await tx.collection.findFirst({
                 select: {
-                    caption: true,
-                    createdAt: true,
                     id: true,
-                    kind: true,
-                    noteContentText: true,
-                    postedAt: true,
-                    scrapedAt: true,
-                    source: true,
-                    url: true,
+                    sharedAt: true,
+                    shareId: true,
+                    userId: true,
                 },
                 where: {
-                    kind: {
-                        not: LibraryItemKind.folder,
+                    shareId: normalizedShareId,
+                },
+            });
+
+            if (
+                !(
+                    sharedCollectionLookup?.shareId &&
+                    sharedCollectionLookup.sharedAt
+                )
+            ) {
+                return null;
+            }
+
+            const canViewPublicShare = await hasPublicShareAccess({
+                collectionId: sharedCollectionLookup.id,
+                tx,
+                userId: sharedCollectionLookup.userId,
+            });
+
+            if (!canViewPublicShare) {
+                return null;
+            }
+
+            const sharedCollection = await tx.collection.findFirst({
+                select: {
+                    description: true,
+                    items: {
+                        orderBy: [
+                            { scrapedAt: SORT_DESC },
+                            { updatedAt: SORT_DESC },
+                        ],
+                        select: {
+                            caption: true,
+                            createdAt: true,
+                            id: true,
+                            kind: true,
+                            noteContentText: true,
+                            postedAt: true,
+                            scrapedAt: true,
+                            source: true,
+                            url: true,
+                        },
+                        where: {
+                            kind: {
+                                not: LibraryItemKind.folder,
+                            },
+                        },
+                    },
+                    name: true,
+                    sharedAt: true,
+                    shareId: true,
+                    updatedAt: true,
+                    user: {
+                        select: {
+                            name: true,
+                        },
                     },
                 },
-            },
-            name: true,
-            sharedAt: true,
-            shareId: true,
-            updatedAt: true,
-            user: {
-                select: {
-                    name: true,
+                where: {
+                    id: sharedCollectionLookup.id,
+                    shareId: normalizedShareId,
                 },
-            },
-        },
-        where: {
-            shareId: normalizedShareId,
-        },
-    });
+            });
 
-    if (!(sharedCollection?.shareId && sharedCollection.sharedAt)) {
-        return null;
-    }
+            if (!(sharedCollection?.shareId && sharedCollection.sharedAt)) {
+                return null;
+            }
 
-    return {
-        description: sharedCollection.description,
-        itemCount: sharedCollection.items.length,
-        items: sharedCollection.items,
-        name: sharedCollection.name,
-        ownerName: sharedCollection.user.name,
-        sharedAt: sharedCollection.sharedAt,
-        shareId: sharedCollection.shareId,
-        updatedAt: sharedCollection.updatedAt,
-    };
+            return {
+                description: sharedCollection.description,
+                itemCount: sharedCollection.items.length,
+                items: sharedCollection.items,
+                name: sharedCollection.name,
+                ownerName: sharedCollection.user.name,
+                sharedAt: sharedCollection.sharedAt,
+                shareId: sharedCollection.shareId,
+                updatedAt: sharedCollection.updatedAt,
+            };
+        },
+        { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead }
+    );
 }

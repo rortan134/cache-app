@@ -25,13 +25,19 @@ const CollectionShareInputSchema = z.object({
     collectionId: z.string().trim().min(1, "Select a collection to share."),
 });
 
+interface SubscriptionRequiredActionError {
+    message: string;
+    status: "SUBSCRIPTION_REQUIRED";
+}
+
 export type CollectionPublicShareResult =
     | {
           collection: SharedLibraryCollectionTag;
           shareUrl: string;
           status: "SHARED";
       }
-    | ActionError;
+    | ActionError
+    | SubscriptionRequiredActionError;
 
 export type CollectionPublicShareDisableResult =
     | {
@@ -74,7 +80,10 @@ export async function shareCollectionPublicly(input: {
         };
     } catch (error) {
         return handleActionError({
-            codeToStatus: { not_found: "NOT_FOUND" },
+            codeToStatus: {
+                not_found: "NOT_FOUND",
+                subscription_required: "SUBSCRIPTION_REQUIRED",
+            },
             error,
             errorFactory: CollectionShareError,
             fallbackMessage: "We couldn't create a public link right now.",

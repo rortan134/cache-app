@@ -192,6 +192,8 @@ const COPY_SHARE_LINK_ERROR_MESSAGE =
     "We couldn't copy this public link right now.";
 const EXPORT_CSV_ERROR_MESSAGE =
     "We couldn't export this collection right now.";
+const DISABLE_SMART_COLLECTIONS_ERROR_MESSAGE =
+    "We couldn't disable smart collections right now.";
 
 type CollectionOptionIcon = React.ComponentType<{ className?: string }>;
 
@@ -724,8 +726,8 @@ function useCollectionsController() {
 
     const {
         collectionPreviewThumbnailUrlsById,
-        collectionSummaries,
         collections,
+        collectionSummaries,
         favoriteItemIdSet,
         favoriteItems,
         itemsByCollectionId,
@@ -761,10 +763,8 @@ function useCollectionsController() {
     const [isDeletePending, startDelete] = React.useTransition();
 
     // Share state
-    const [pendingShareId, setPendingShareId] = React.useState<string | null>(
-        null
-    );
-    const [isSharePending, startShare] = React.useTransition();
+    const [pendingShareIds, setPendingShareIds] = React.useState<string[]>([]);
+    const [, startShare] = React.useTransition();
 
     // Duplicate transition
     const [, startDuplicate] = React.useTransition();
@@ -796,6 +796,11 @@ function useCollectionsController() {
 
     const [isSortOpen, setIsSortOpen] = React.useState(false);
     const [sortInputValue, setSortInputValue] = React.useState("");
+    const createSubmissionPendingRef = React.useRef(false);
+    const pendingPriorityUpdateIdsRef = React.useRef(new Set<string>());
+    const pendingShareIdSetRef = React.useRef(new Set<string>());
+    const renameSubmissionPendingRef = React.useRef(false);
+    const renameSubmissionVersionRef = React.useRef(0);
 
     const hasAnySelected = selectedCollectionIds.length > 0;
     const collectionLabels = collectionSummaries.map(
@@ -841,6 +846,26 @@ function useCollectionsController() {
         }
         showError(`Upgrade to ${action} every item in ${collection.name}.`);
         return false;
+    };
+
+    const setCollectionSharePending = (
+        collectionId: string,
+        isPending: boolean
+    ) => {
+        if (isPending) {
+            pendingShareIdSetRef.current.add(collectionId);
+        } else {
+            pendingShareIdSetRef.current.delete(collectionId);
+        }
+
+        setPendingShareIds((current) => {
+            if (isPending) {
+                return current.includes(collectionId)
+                    ? current
+                    : [...current, collectionId];
+            }
+            return current.filter((id) => id !== collectionId);
+        });
     };
 
     const resetCreate = () => {
@@ -906,19 +931,27 @@ function useCollectionsController() {
         input: Parameters<typeof createCollection>[0],
         onSuccess?: () => void
     ) => {
+        if (createSubmissionPendingRef.current) {
+            return;
+        }
+        createSubmissionPendingRef.current = true;
         startCreate(async () => {
-            const result = await createCollectionSafely(input);
-            if (result.status !== "CREATED") {
-                setCreateError(result.message);
-                return;
+            try {
+                const result = await createCollectionSafely(input);
+                if (result.status !== "CREATED") {
+                    setCreateError(result.message);
+                    return;
+                }
+                syncCreated({
+                    assignedItemIds: getCreatedAssignedItemIds(result),
+                    collection: result.collection,
+                });
+                onSuccess?.();
+                resetCreate();
+                setIsCreateOpen(false);
+            } finally {
+                createSubmissionPendingRef.current = false;
             }
-            syncCreated({
-                assignedItemIds: getCreatedAssignedItemIds(result),
-                collection: result.collection,
-            });
-            onSuccess?.();
-            resetCreate();
-            setIsCreateOpen(false);
         });
     };
 
@@ -931,6 +964,9 @@ function useCollectionsController() {
     };
 
     const handleCreateShortcutPress = useStableCallback(() => {
+        if (createSubmissionPendingRef.current) {
+            return;
+        }
         if (isCreateOpen) {
             setIsCreateOpen(false);
             return;
@@ -1043,45 +1079,65 @@ function useCollectionsController() {
     };
 
     const handleEnableShare = (collection: LibraryCollectionSummary) => {
+        if (pendingShareIdSetRef.current.has(collection.id)) {
+            return;
+        }
+
+        if (!ensureAccess(collection, "share")) {
+            return;
+        }
+
         setFeedback(null);
-        setPendingShareId(collection.id);
+        setCollectionSharePending(collection.id, true);
 
         startShare(async () => {
-            const result = await shareCollectionPubliclySafely({
-                collectionId: collection.id,
-            });
+            try {
+                const result = await shareCollectionPubliclySafely({
+                    collectionId: collection.id,
+                });
 
-            if (result.status === "SHARED") {
-                syncShare(result.collection);
-                const linkCopied = await copyToClipboard(result.shareUrl);
-                showSuccess(
-                    linkCopied
-                        ? `${collection.name} is now publicly shared. Link copied to the clipboard.`
-                        : `${collection.name} is now publicly shared.`
-                );
-            } else {
-                showError(result.message);
+                if (result.status === "SHARED") {
+                    syncShare(result.collection);
+                    const linkCopied = await copyToClipboard(result.shareUrl);
+                    showSuccess(
+                        linkCopied
+                            ? `${collection.name} is now publicly shared. Link copied to the clipboard.`
+                            : `${collection.name} is now publicly shared.`
+                    );
+                } else {
+                    showError(result.message);
+                }
+            } finally {
+                setCollectionSharePending(collection.id, false);
             }
-            setPendingShareId(null);
         });
     };
 
     const handleDisableShare = (collection: LibraryCollectionSummary) => {
+        if (pendingShareIdSetRef.current.has(collection.id)) {
+            return;
+        }
+
         setFeedback(null);
-        setPendingShareId(collection.id);
+        setCollectionSharePending(collection.id, true);
 
         startShare(async () => {
-            const result = await disableCollectionSharingSafely({
-                collectionId: collection.id,
-            });
+            try {
+                const result = await disableCollectionSharingSafely({
+                    collectionId: collection.id,
+                });
 
-            if (result.status === "DISABLED") {
-                syncShare(result.collection);
-                showSuccess(`${collection.name} is no longer publicly shared.`);
-            } else {
-                showError(result.message);
+                if (result.status === "DISABLED") {
+                    syncShare(result.collection);
+                    showSuccess(
+                        `${collection.name} is no longer publicly shared.`
+                    );
+                } else {
+                    showError(result.message);
+                }
+            } finally {
+                setCollectionSharePending(collection.id, false);
             }
-            setPendingShareId(null);
         });
     };
 
@@ -1177,6 +1233,10 @@ function useCollectionsController() {
         collectionId: string,
         priority: CollectionPriority
     ) => {
+        if (pendingPriorityUpdateIdsRef.current.has(collectionId)) {
+            return;
+        }
+
         const previous = collections.find(
             (c) => c.id === collectionId
         )?.priority;
@@ -1185,22 +1245,31 @@ function useCollectionsController() {
             return;
         }
 
+        pendingPriorityUpdateIdsRef.current.add(collectionId);
         syncPriority(collectionId, priority);
 
-        const result = await updateCollectionPrioritySafely({
-            collectionId,
-            priority,
-        });
+        try {
+            const result = await updateCollectionPrioritySafely({
+                collectionId,
+                priority,
+            });
 
-        if (result.status === "UPDATED") {
-            syncPriority(result.collection.id, result.collection.priority);
-        } else {
-            syncPriority(collectionId, previous);
-            showError(result.message);
+            if (result.status === "UPDATED") {
+                syncPriority(result.collection.id, result.collection.priority);
+            } else {
+                syncPriority(collectionId, previous);
+                showError(result.message);
+            }
+        } finally {
+            pendingPriorityUpdateIdsRef.current.delete(collectionId);
         }
     };
 
     const handleRenameSubmit = () => {
+        if (isRenamePending || renameSubmissionPendingRef.current) {
+            return;
+        }
+
         const target = pendingRename;
         if (!target) {
             return;
@@ -1220,22 +1289,37 @@ function useCollectionsController() {
         }
 
         syncName(target.id, nextName);
+        const submissionVersion = renameSubmissionVersionRef.current + 1;
+        renameSubmissionVersionRef.current = submissionVersion;
+        renameSubmissionPendingRef.current = true;
 
         startRename(async () => {
-            const result = await renameCollectionSafely({
-                collectionId: target.id,
-                name: nextName,
-            });
+            try {
+                const result = await renameCollectionSafely({
+                    collectionId: target.id,
+                    name: nextName,
+                });
+                const isCurrentSubmission =
+                    renameSubmissionVersionRef.current === submissionVersion;
 
-            if (result.status === "UPDATED") {
-                syncName(result.collection.id, result.collection.name);
-                resetRename();
-                showSuccess(`${result.collection.name} renamed.`);
-                return;
+                if (!isCurrentSubmission) {
+                    return;
+                }
+
+                if (result.status === "UPDATED") {
+                    syncName(result.collection.id, result.collection.name);
+                    resetRename();
+                    showSuccess(`${result.collection.name} renamed.`);
+                    return;
+                }
+
+                syncName(target.id, previousName);
+                setRenameError(result.message);
+            } finally {
+                if (renameSubmissionVersionRef.current === submissionVersion) {
+                    renameSubmissionPendingRef.current = false;
+                }
             }
-
-            syncName(target.id, previousName);
-            setRenameError(result.message);
         });
     };
 
@@ -1277,14 +1361,23 @@ function useCollectionsController() {
     };
 
     const handleCreateSubmit = () => {
+        const name = normalizeWhitespace(createName);
+        if (name.length === 0) {
+            setCreateError("Enter a collection name.");
+            return;
+        }
+
         startCreateCollection({
             assignToItemId: createItemId ?? undefined,
-            description: createDescription || undefined,
-            name: createName,
+            description: normalizeWhitespace(createDescription) || undefined,
+            name,
         });
     };
 
     const handleCreateFromTemplate = (value: TemplateValue | null) => {
+        if (createSubmissionPendingRef.current) {
+            return;
+        }
         if (!value) {
             return;
         }
@@ -1318,6 +1411,9 @@ function useCollectionsController() {
     };
 
     const handleCreateOpenChange = (open: boolean) => {
+        if (!open && (isCreatePending || createSubmissionPendingRef.current)) {
+            return;
+        }
         if (!(open || isCreatePending)) {
             resetCreate();
         }
@@ -1331,23 +1427,28 @@ function useCollectionsController() {
     };
 
     const handleRenameOpenChange = (open: boolean) => {
-        if (!(open || isRenamePending)) {
+        if (!(open || isRenamePending || renameSubmissionPendingRef.current)) {
             resetRename();
         }
     };
 
     const handleDisableSmartCollections = async () => {
-        await mutateSmartCollectionsPreference(
-            async () => {
-                const result = await disableSmartCollections();
-                if (result.status !== "DISABLED") {
-                    showError(result.message);
-                    throw new Error(result.message);
-                }
-                return { disabled: true };
-            },
-            { optimisticData: { disabled: true }, rollbackOnError: true }
-        );
+        try {
+            await mutateSmartCollectionsPreference(
+                async () => {
+                    const result = await disableSmartCollections();
+                    if (result.status !== "DISABLED") {
+                        showError(result.message);
+                        throw new Error(result.message);
+                    }
+                    return { disabled: true };
+                },
+                { optimisticData: { disabled: true }, rollbackOnError: true }
+            );
+        } catch (error) {
+            log.error("Failed to disable smart collections", { error });
+            showError(DISABLE_SMART_COLLECTIONS_ERROR_MESSAGE);
+        }
     };
 
     const handleComboboxValueChange = (nextValue: ComboboxValue | null) => {
@@ -1377,6 +1478,7 @@ function useCollectionsController() {
     };
 
     return {
+        collectionCount: collections.length,
         collectionLabels,
         collectionPreviewThumbnailUrlsById,
         collectionSummaries,
@@ -1406,7 +1508,6 @@ function useCollectionsController() {
         hasAnySelected,
         isCollectionsListOpen,
         isFavoritesListOpen,
-        isSharePending,
         isSmartCollectionsDisabled,
         onClearCollectionFilters,
         onCopyLinks: handleCopyLinks,
@@ -1426,7 +1527,7 @@ function useCollectionsController() {
         onSelectCollection,
         onToggleItemFavorite,
         onUpdatePriority: handleUpdatePriority,
-        pendingShareId,
+        pendingShareIds,
         renameDialog: {
             errorMessage: renameError,
             isOpen: pendingRename !== null,
@@ -1778,9 +1879,6 @@ function CollectionsListTrigger({
     );
 }
 
-/**
- * Collapsible panel that holds the collection list contents.
- */
 function CollectionsListPanel(
     props: React.ComponentProps<typeof CollapsiblePanel>
 ) {
@@ -1916,9 +2014,6 @@ function CollectionsListGroupTrigger({
     );
 }
 
-/**
- * Renders favorite items in a horizontal scrollable carousel.
- */
 function ListFavoritesCarouselContent({
     children,
 }: FavoriteItemsCarouselContentProps) {
@@ -1985,13 +2080,14 @@ function FavoriteItemCarouselSlide({
                     <CollectionsListItemPreviewImage
                         alt={previewLabel}
                         className="size-full object-cover"
+                        key={previewImageUrl ?? "missing-preview"}
                         src={previewImageUrl ?? undefined}
                     />
                 )}
             </button>
             <button
                 aria-label="Remove from favorites"
-                className="absolute top-0 left-0 z-10 flex size-4 items-center justify-center rounded-br-md bg-black/40 opacity-0 transition-opacity hover:bg-black/60 group-hover:opacity-100"
+                className="absolute top-0 left-0 z-10 flex size-4 items-center justify-center rounded-br-md bg-black/40 opacity-0 transition-opacity hover:bg-black/60 focus-visible:opacity-100 group-hover:opacity-100"
                 onClick={handleRemoveFavorite}
                 type="button"
             >
@@ -2001,10 +2097,6 @@ function FavoriteItemCarouselSlide({
     );
 }
 
-/**
- * Renders filtered list items.
- * Doesn't render its own HTML element.
- */
 function CollectionsListFavoritesContent({
     children,
 }: CollectionsListContentProps) {
@@ -2017,10 +2109,6 @@ function CollectionsListFavoritesContent({
     return favoriteCollectionSummaries.map(children);
 }
 
-/**
- * Renders filtered list items.
- * Doesn't render its own HTML element.
- */
 function CollectionsListContent({ children }: CollectionsListContentProps) {
     const { collectionSummaries } = useCollections();
 
@@ -2035,10 +2123,6 @@ function CollectionsListContent({ children }: CollectionsListContentProps) {
     );
 }
 
-/**
- * Toolbar that sits above the collection list and hosts the trigger,
- * sort combobox, and create button.
- */
 function CollectionsListToolbar({
     className,
     ...props
@@ -2047,7 +2131,7 @@ function CollectionsListToolbar({
         <Toolbar.Root
             {...props}
             className={cn(
-                "flex w-full items-center justify-between",
+                "relative flex w-full items-center justify-between",
                 className
             )}
         />
@@ -2082,16 +2166,15 @@ function CollectionsListToolbarButton({
 }
 
 /**
- * Empty state shown when the user has no collections.
- *
  * Renders inside a dashed-border card so it looks intentional rather than
  * like missing data.
  */
 function CollectionsListEmpty({
     className,
+    children,
     ...props
 }: React.ComponentProps<"p">) {
-    const { collectionSummaries } = useCollections();
+    const { collectionCount, collectionSummaries } = useCollections();
 
     if (collectionSummaries.length > 0) {
         return null;
@@ -2105,7 +2188,11 @@ function CollectionsListEmpty({
                     className
                 )}
                 {...props}
-            />
+            >
+                {collectionCount > 0
+                    ? "No collections match this view."
+                    : children}
+            </p>
         </div>
     );
 }
@@ -2237,6 +2324,7 @@ function CollectionsListSortingCombobox({
                 render={
                     render ?? (
                         <Button
+                            aria-label="Sort and organize collections"
                             className={
                                 isCollectionsListOpen ? undefined : "hidden"
                             }
@@ -2313,6 +2401,7 @@ function CollectionsListCreateButton({
     return (
         <Button
             {...props}
+            aria-label="Create collection"
             onClick={handleOnClick}
             size="icon-xs"
             title={`Create a new collection (${getSystemControlKey()}N)`}
@@ -2569,6 +2658,7 @@ function CollectionItemPriorityCombobox() {
             onOpenChange={setIsOpen}
             onValueChange={(nextPriority) => {
                 if (!nextPriority || nextPriority === collection.priority) {
+                    setIsOpen(false);
                     return;
                 }
                 controller.onUpdatePriority(collection.id, nextPriority);
@@ -2620,50 +2710,11 @@ function CollectionItemPriorityCombobox() {
     );
 }
 
-function CollectionItemShareStatus({ isShared }: { isShared: boolean }) {
-    return (
-        <div className="mt-3 rounded-xl border bg-muted/40 p-2">
-            <div className="flex items-start gap-3">
-                <div className="mt-0.5 flex size-9 items-center justify-center rounded-lg bg-background text-muted-foreground shadow-xs/5">
-                    {isShared ? (
-                        <LinkIcon
-                            aria-hidden
-                            className="size-4"
-                            focusable="false"
-                        />
-                    ) : (
-                        <LockKeyhole
-                            aria-hidden
-                            className="size-4"
-                            focusable="false"
-                        />
-                    )}
-                </div>
-                <div className="min-w-0 flex-1">
-                    <p className="font-medium text-sm">
-                        {isShared ? "Anyone with the link" : "Only you"}
-                    </p>
-                    <p className="mt-0.5 text-muted-foreground text-xs leading-relaxed">
-                        {isShared
-                            ? "Shared publicly as a read-only page."
-                            : "Create a read-only link for this collection."}
-                    </p>
-                </div>
-            </div>
-        </div>
-    );
-}
-
-function CollectionItemShareControls() {
+function CollectionItemShareSubMenu() {
     const controller = useCollections();
     const { collection } = useCollectionsListItemContext();
-    const shareInputId = React.useId();
-    const isSharePending =
-        controller.pendingShareId === collection.id &&
-        controller.isSharePending;
-    const shareUrl = collection.shareId
-        ? buildPublicCollectionShareUrl(collection.shareId)
-        : null;
+    const isShared = !!collection.shareId;
+    const isSharePending = controller.pendingShareIds.includes(collection.id);
 
     const onCopyShareLink = useStableCallback(() =>
         controller.onCopyShareLink(collection)
@@ -2671,90 +2722,9 @@ function CollectionItemShareControls() {
     const onDisableShare = useStableCallback(() =>
         controller.onDisableShare(collection)
     );
-
-    return (
-        <div className="mt-4 space-y-3">
-            <div className="space-y-1">
-                <label
-                    className="font-medium text-muted-foreground text-xs"
-                    htmlFor={shareInputId}
-                >
-                    Public link
-                </label>
-                <Input
-                    id={shareInputId}
-                    readOnly
-                    size="sm"
-                    type="text"
-                    value={shareUrl ?? ""}
-                />
-            </div>
-            <div className="flex items-center justify-between gap-2">
-                <p className="text-muted-foreground text-xs">
-                    Shared{" "}
-                    {collection.sharedAt
-                        ? dayjs(collection.sharedAt).fromNow()
-                        : "just now"}
-                </p>
-                <div className="flex items-center gap-2">
-                    <Button
-                        loading={isSharePending}
-                        onClick={onDisableShare}
-                        size="sm"
-                        variant="ghost"
-                    >
-                        Disable
-                    </Button>
-                    <Button
-                        disabled={!shareUrl || isSharePending}
-                        onClick={onCopyShareLink}
-                        size="sm"
-                    >
-                        <CopyIcon
-                            aria-hidden
-                            className="size-4"
-                            focusable="false"
-                        />
-                        Copy link
-                    </Button>
-                </div>
-            </div>
-        </div>
-    );
-}
-
-function CollectionItemShareEnablePanel() {
-    const controller = useCollections();
-    const { collection } = useCollectionsListItemContext();
-    const isSharePending =
-        controller.pendingShareId === collection.id &&
-        controller.isSharePending;
-
     const onEnableShare = useStableCallback(() =>
         controller.onEnableShare(collection)
     );
-
-    return (
-        <div className="mt-4 flex items-center justify-between gap-3">
-            <p className="text-[11px] text-muted-foreground leading-tight">
-                Public links stay simple and read-only so your collection can be
-                browsed without signing in.
-            </p>
-            <Button
-                autoFocus
-                loading={isSharePending}
-                onClick={onEnableShare}
-                size="sm"
-            >
-                Create link
-            </Button>
-        </div>
-    );
-}
-
-function CollectionItemShareSubMenu() {
-    const { collection } = useCollectionsListItemContext();
-    const isShared = !!collection.shareId;
 
     return (
         <MenuSub>
@@ -2763,24 +2733,50 @@ function CollectionItemShareSubMenu() {
                 Share
             </MenuSubTrigger>
             <MenuSubPopup>
-                <div className="max-w-xs p-2.5">
-                    <div className="flex items-start justify-between gap-3">
-                        <div className="space-y-1">
-                            <h3 className="font-medium text-sm">
-                                Share collection
-                            </h3>
-                            <p className="text-muted-foreground text-xs leading-snug">
-                                Anyone with the link can view this collection.
-                            </p>
-                        </div>
-                    </div>
-                    <CollectionItemShareStatus isShared={isShared} />
-                    {isShared ? (
-                        <CollectionItemShareControls />
-                    ) : (
-                        <CollectionItemShareEnablePanel />
-                    )}
-                </div>
+                {isShared ? (
+                    <MenuItem
+                        disabled={!collection.shareId || isSharePending}
+                        onClick={onCopyShareLink}
+                    >
+                        <LinkIcon
+                            aria-hidden
+                            className="size-4 text-muted-foreground"
+                            focusable="false"
+                        />
+                        Copy public link
+                    </MenuItem>
+                ) : (
+                    <MenuItem disabled={isSharePending} onClick={onEnableShare}>
+                        <UserRoundPlus
+                            aria-hidden
+                            className="size-4 text-muted-foreground"
+                            focusable="false"
+                        />
+                        Create public link
+                    </MenuItem>
+                )}
+                <MenuItem disabled={!isShared || isSharePending}>
+                    <LockKeyhole
+                        aria-hidden
+                        className="size-4 text-muted-foreground"
+                        focusable="false"
+                    />
+                    {isShared ? "Anyone with the link" : "Only you"}
+                </MenuItem>
+                {isShared ? (
+                    <MenuItem
+                        disabled={isSharePending}
+                        onClick={onDisableShare}
+                        variant="destructive"
+                    >
+                        <Trash2Icon
+                            aria-hidden
+                            className="size-4"
+                            focusable="false"
+                        />
+                        Disable public link
+                    </MenuItem>
+                ) : null}
             </MenuSubPopup>
         </MenuSub>
     );
@@ -3011,28 +3007,37 @@ function CollectionItemMetadata({
                             Delete
                         </MenuItem>
                     </MenuGroup>
-                    <MenuSeparator />
-                    <p className="space-y-1 text-nowrap p-2 text-[10px] text-muted-foreground leading-none">
-                        <span className="block pb-1">
-                            Last updated {dayjs(collection.updatedAt).fromNow()}
+                    <MenuItem disabled>
+                        <span className="space-y-1 text-nowrap text-[10px] text-muted-foreground leading-none">
+                            <span className="block pb-1">
+                                Last updated{" "}
+                                {dayjs(collection.updatedAt).fromNow()}
+                            </span>
+                            <span className="block pt-1">
+                                {dayjs(collection.updatedAt).format(
+                                    "MMM DD, YYYY, h:mm A"
+                                )}
+                            </span>
                         </span>
-                        <span className="block pt-1">
-                            {dayjs(collection.updatedAt).format(
-                                "MMM DD, YYYY, h:mm A"
-                            )}
-                        </span>
-                    </p>
+                    </MenuItem>
                 </MenuPopup>
             </Menu>
         </div>
     );
 }
 
-function DialogFieldError({ children }: { children: React.ReactNode }) {
+function DialogFieldError({
+    children,
+    id,
+}: {
+    children: React.ReactNode;
+    id: string;
+}) {
     return (
         <p
             aria-atomic="true"
             className="pt-2 text-destructive text-xs"
+            id={id}
             role="alert"
         >
             {children}
@@ -3051,6 +3056,7 @@ function CollectionsRenameDialog() {
         onSubmit,
     } = useCollections().renameDialog;
     const inputId = React.useId();
+    const errorId = React.useId();
 
     return (
         <Dialog onOpenChange={onOpenChange} open={isOpen}>
@@ -3078,6 +3084,10 @@ function CollectionsRenameDialog() {
                                 Name
                             </label>
                             <Input
+                                aria-describedby={
+                                    errorMessage ? errorId : undefined
+                                }
+                                aria-invalid={errorMessage ? true : undefined}
                                 autoFocus
                                 id={inputId}
                                 maxLength={NAME_MAX_LENGTH}
@@ -3090,7 +3100,7 @@ function CollectionsRenameDialog() {
                                 value={nameDraft}
                             />
                             {errorMessage ? (
-                                <DialogFieldError>
+                                <DialogFieldError id={errorId}>
                                     {errorMessage}
                                 </DialogFieldError>
                             ) : null}
@@ -3127,6 +3137,7 @@ function CollectionsCreateDialog() {
         onSubmit,
     } = useCollections().createDialog;
     const nameInputId = React.useId();
+    const errorId = React.useId();
     const descriptionInputId = React.useId();
     const { disabled } = useSmartCollectionsPreference();
 
@@ -3166,6 +3177,10 @@ function CollectionsCreateDialog() {
                                 Name
                             </label>
                             <Input
+                                aria-describedby={
+                                    errorMessage ? errorId : undefined
+                                }
+                                aria-invalid={errorMessage ? true : undefined}
                                 autoFocus
                                 className="-mx-[calc(--spacing(3)-1px)] font-semibold text-xl"
                                 id={nameInputId}
@@ -3204,7 +3219,9 @@ function CollectionsCreateDialog() {
                             />
                         </div>
                         {errorMessage ? (
-                            <DialogFieldError>{errorMessage}</DialogFieldError>
+                            <DialogFieldError id={errorId}>
+                                {errorMessage}
+                            </DialogFieldError>
                         ) : null}
                         <Alert>
                             <Lightbulb />
