@@ -19,8 +19,7 @@ import {
 } from "@/components/ui/drawer";
 import { AltKbd, CmdKbd, Kbd, KbdGroup, ShiftKbd } from "@/components/ui/kbd";
 import { SearchIcon } from "lucide-react";
-import type * as React from "react";
-import { useState } from "react";
+import * as React from "react";
 import { useHotkeys, useHotkeysContext } from "react-hotkeys-hook";
 
 interface ShortcutItem {
@@ -48,10 +47,10 @@ function ShortcutKeyPart({ part }: { part: string }) {
  * Splits `keys` on "+" so multi-part shortcuts render as separate `<Kbd>`
  * pills without callers having to pre-format them.
  */
-export const KeyboardShortcutsDialogTrigger = (
+export function KeyboardShortcutsDialogTrigger(
     props: React.ComponentProps<typeof DrawerTrigger>
-) => {
-    const [open, setOpen] = useState(false);
+) {
+    const [open, setOpen] = React.useState(false);
     const { hotkeys } = useHotkeysContext();
 
     useHotkeys(
@@ -117,7 +116,7 @@ export const KeyboardShortcutsDialogTrigger = (
             </DrawerViewport>
         </Drawer>
     );
-};
+}
 
 // Re-exporting with "use client"
 export { HotkeysProvider as ShortcutsProvider } from "react-hotkeys-hook";

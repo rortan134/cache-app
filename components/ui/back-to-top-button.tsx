@@ -39,7 +39,6 @@ export function BackToTopButton({
 
     return (
         <div
-            {...props}
             className={cn(
                 "fixed top-3 left-1/2 z-50 -translate-x-1/2 transition-all duration-300",
                 isVisible
@@ -48,6 +47,7 @@ export function BackToTopButton({
                 className
             )}
             ref={containerRef}
+            {...props}
         >
             <Button
                 aria-label="Back to top"

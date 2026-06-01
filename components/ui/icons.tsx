@@ -260,6 +260,7 @@ export const NotionIcon = ({
 }: SVGProps<SVGSVGElement>) => (
     <svg
         aria-hidden="true"
+        aria-label="Notion"
         className={cn("inline-block size-4 shrink-0", className)}
         focusable="false"
         height="268"
@@ -283,6 +284,7 @@ export const GoogleDocsIcon = ({
 }: SVGProps<SVGSVGElement>) => (
     <svg
         aria-hidden="true"
+        aria-label="Google Docs"
         className={cn("inline-block size-4 shrink-0", className)}
         focusable="false"
         role="img"
@@ -307,6 +309,7 @@ export const CheckmarkIcon = ({
 }: SVGProps<SVGSVGElement>) => (
     <svg
         aria-hidden="true"
+        aria-label="Checkmark"
         className={cn("size-6 shrink-0", className)}
         fill="none"
         focusable="false"
@@ -373,6 +376,7 @@ export const ChevronDownFilledIcon = ({
 }: SVGProps<SVGSVGElement>) => (
     <svg
         aria-hidden="true"
+        aria-label="Chevron down"
         className={cn(
             "pointer-events-none inline-block size-4 shrink-0 opacity-80 transition-[opacity,transform] group-hover:opacity-80! group-data-panel-open:rotate-90 group-data-panel-open:opacity-30",
             className
@@ -395,6 +399,7 @@ export const CrownFilledIcon = ({
 }: SVGProps<SVGSVGElement>) => (
     <svg
         aria-hidden="true"
+        aria-label="Crown"
         className={cn("inline-block size-4 shrink-0", className)}
         fill="currentColor"
         focusable="false"

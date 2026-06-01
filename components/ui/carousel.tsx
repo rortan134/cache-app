@@ -2,7 +2,7 @@
 
 import { cn } from "@/lib/common/cn";
 import "@blossom-carousel/core/style.css";
-// @ts-expect-error Types not being found for some reason
+// @ts-expect-error @blossom-carousel/react does not ship type definitions
 import { BlossomCarousel } from "@blossom-carousel/react";
 import * as React from "react";
 

@@ -36,9 +36,6 @@ export function KanbanBoard({ className, ...props }: KanbanBoardProps) {
     return (
         <KanbanBoardContext value={true}>
             <div
-                data-orientation={context.orientation}
-                data-slot="kanban-board"
-                {...props}
                 className={cn(
                     "flex size-full gap-4",
                     context.orientation === "horizontal"
@@ -46,6 +43,9 @@ export function KanbanBoard({ className, ...props }: KanbanBoardProps) {
                         : "flex-col",
                     className
                 )}
+                data-orientation={context.orientation}
+                data-slot="kanban-board"
+                {...props}
             />
         </KanbanBoardContext>
     );
@@ -71,9 +71,6 @@ export function KanbanColumn({
     return (
         <div
             aria-disabled={disabled}
-            data-disabled={disabled}
-            data-slot="kanban-column"
-            {...props}
             className={cn(
                 "flex size-full shrink-0 flex-col gap-2 rounded-lg bg-muted/80 p-3 aria-disabled:pointer-events-none aria-disabled:opacity-50",
                 {
@@ -81,6 +78,9 @@ export function KanbanColumn({
                 },
                 className
             )}
+            data-disabled={disabled}
+            data-slot="kanban-column"
+            {...props}
         />
     );
 }
@@ -101,9 +101,6 @@ export function KanbanItem({ disabled, className, ...props }: KanbanItemProps) {
     return (
         <div
             aria-disabled={disabled}
-            data-disabled={disabled}
-            data-slot="kanban-item"
-            {...props}
             className={cn(
                 "focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring focus-visible:ring-offset-1",
                 {
@@ -111,6 +108,9 @@ export function KanbanItem({ disabled, className, ...props }: KanbanItemProps) {
                 },
                 className
             )}
+            data-disabled={disabled}
+            data-slot="kanban-item"
+            {...props}
         />
     );
 }

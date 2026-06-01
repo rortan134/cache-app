@@ -126,8 +126,6 @@ export function CommandPopup({
     );
 }
 
-// ── List ──────────────────────────────────────────
-
 export function CommandList({
     className,
     scrollFade = false,
@@ -159,8 +157,7 @@ export function CommandItem({
     return (
         <Autocomplete.Item
             className={cn(
-                "flex min-h-8 cursor-default select-none items-center rounded-md px-2 py-1 text-base outline-none data-disabled:pointer-events-none data-highlighted:bg-accent data-highlighted:text-accent-foreground data-disabled:opacity-64 sm:min-h-7 sm:text-sm",
-                "py-1.5",
+                "flex min-h-8 cursor-default select-none items-center rounded-md px-2 py-1.5 text-base outline-none data-disabled:pointer-events-none data-highlighted:bg-accent data-highlighted:text-accent-foreground data-disabled:opacity-64 sm:min-h-7 sm:text-sm",
                 className
             )}
             data-slot="command-item"

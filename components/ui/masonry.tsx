@@ -1791,7 +1791,6 @@ function Masonry({
             }}
         >
             <div
-                {...props}
                 data-slot="masonry"
                 ref={composedRef}
                 style={{
@@ -1800,6 +1799,7 @@ function Masonry({
                     width: "100%",
                     ...style,
                 }}
+                {...props}
             >
                 <MasonryViewport>{children}</MasonryViewport>
             </div>
@@ -1976,7 +1976,6 @@ function MasonryViewport({
 
     return (
         <div
-            {...props}
             data-version={layoutVersion}
             style={{
                 height: estimatedHeight,
@@ -1988,6 +1987,7 @@ function MasonryViewport({
                 willChange: isScrolling ? "contents" : undefined,
                 ...style,
             }}
+            {...props}
         >
             {positionedChildren}
         </div>

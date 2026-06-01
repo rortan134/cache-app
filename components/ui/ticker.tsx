@@ -76,7 +76,6 @@ export function Ticker({
 
     return (
         <span
-            {...props}
             className={cn(
                 "group relative inline-flex size-full select-none overflow-hidden [--gap:1rem]",
                 {
@@ -87,6 +86,7 @@ export function Ticker({
                 },
                 className
             )}
+            {...props}
         >
             <span
                 className={cn("group-hover:running paused flex shrink-0", {
