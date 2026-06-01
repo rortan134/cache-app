@@ -271,15 +271,15 @@ interface BuildCommandSuggestionsInput {
     searchTerms: string[];
     selectedCollectionIds: string[];
     setCollectionMembershipFilter: (value: CollectionMembershipFilter) => void;
-    setCommandListOpen: (
-        value: boolean | ((previous: boolean) => boolean)
-    ) => void;
     setDomainFilters: (
         value: string[] | ((value: string[]) => string[])
     ) => void;
     setGroupBy: (value: GroupByMode) => void;
+    setIsCommandOpen: (
+        value: boolean | ((previous: boolean) => boolean)
+    ) => void;
     setLayoutMode: (value: LayoutMode) => void;
-    setPaletteInput: (value: string) => void;
+    setQuery: (value: string) => void;
     setSearchTerms: (value: string[] | ((value: string[]) => string[])) => void;
     setSortMode: (value: SortMode) => void;
     setSourceFilters: (
@@ -311,8 +311,8 @@ function buildCommandSuggestions({
     setSearchTerms,
     setSortMode,
     setSourceFilters,
-    setPaletteInput,
-    setCommandListOpen,
+    setQuery,
+    setIsCommandOpen,
     onToggleCollectionSelection,
     layoutMode,
     setLayoutMode,
@@ -358,8 +358,8 @@ function buildCommandSuggestions({
 
     const commitSelection = (fn: () => void) => () => {
         fn();
-        setPaletteInput("");
-        setCommandListOpen(false);
+        setQuery("");
+        setIsCommandOpen(false);
     };
 
     const addSuggestion = (suggestion: CommandSuggestion | null) => {
@@ -2294,7 +2294,6 @@ function BrowserMasonry() {
 
 function BrowserCurrentLayout() {
     const { layoutMode } = useBrowserResultsContext();
-
     if (layoutMode === "board") {
         return <BrowserBoard />;
     }
@@ -2600,8 +2599,8 @@ function buildSearchPaletteGroups({
     onToggleCollectionSelection,
     selectedCollectionIds,
     searchTerms,
-    setCommandListOpen,
-    setPaletteInput,
+    setIsCommandOpen,
+    setQuery,
     setSearchTerms,
 }: {
     collections: LibraryCollectionSummary[];
@@ -2615,8 +2614,8 @@ function buildSearchPaletteGroups({
     onToggleCollectionSelection: (id: string) => void;
     selectedCollectionIds: string[];
     searchTerms: string[];
-    setCommandListOpen: (value: boolean) => void;
-    setPaletteInput: (value: string) => void;
+    setIsCommandOpen: (value: boolean) => void;
+    setQuery: (value: string) => void;
     setSearchTerms: (value: string[] | ((value: string[]) => string[])) => void;
 }): CommandPaletteGroup[] {
     const groups: CommandPaletteGroup[] = [];
@@ -2629,10 +2628,11 @@ function buildSearchPaletteGroups({
         (draft.length > 0 ||
             selectedCollectionIds.length > 0 ||
             isDefaultState);
+
     const applyCollectionFilter = (fn: () => void) => () => {
         fn();
-        setPaletteInput("");
-        setCommandListOpen(true);
+        setQuery("");
+        setIsCommandOpen(true);
     };
 
     if (draft) {
@@ -2648,8 +2648,8 @@ function buildSearchPaletteGroups({
                         setSearchTerms((current) =>
                             appendUniqueSearchTerm(current, draft)
                         );
-                        setPaletteInput("");
-                        setCommandListOpen(true);
+                        setQuery("");
+                        setIsCommandOpen(true);
                     },
                     shortcut: "Enter",
                     value: `add search ${draft}`,
@@ -2682,7 +2682,7 @@ function buildSearchPaletteGroups({
                     label: "Clear all searches",
                     onSelect: () => {
                         setSearchTerms([]);
-                        setCommandListOpen(true);
+                        setIsCommandOpen(true);
                     },
                     value: "clear all searches",
                 },
@@ -2798,7 +2798,7 @@ function buildAskCachePaletteGroups({
     ];
 }
 
-interface BuildLibraryPaletteGroupsInput {
+interface BuildPaletteGroupsInput {
     askCacheResponse: AskCacheResponseState | null;
     clearLibraryPalette: () => void;
     collectionMembershipFilter: CollectionMembershipFilter;
@@ -2819,22 +2819,22 @@ interface BuildLibraryPaletteGroupsInput {
         section: Exclude<PaletteSection, "search">,
         event: BaseUIEvent<React.MouseEvent> | KeyboardEvent
     ) => void;
-    paletteInput: string;
     paletteSection: PaletteSection;
+    query: string;
     returnToSearchSection: () => void;
     searchTerms: string[];
     selectedCollectionIds: string[];
     setCollectionMembershipFilter: (value: CollectionMembershipFilter) => void;
     setColumnCountMode: (value: ColumnCountMode) => void;
-    setCommandListOpen: (
-        value: boolean | ((previous: boolean) => boolean)
-    ) => void;
     setDomainFilters: (
         value: string[] | ((value: string[]) => string[])
     ) => void;
     setGroupBy: (value: GroupByMode) => void;
+    setIsCommandOpen: (
+        value: boolean | ((previous: boolean) => boolean)
+    ) => void;
     setLayoutMode: (value: LayoutMode) => void;
-    setPaletteInput: (value: string) => void;
+    setQuery: (value: string) => void;
     setSearchTerms: (value: string[] | ((value: string[]) => string[])) => void;
     setSortMode: (value: SortMode) => void;
     setSourceFilters: (
@@ -2886,35 +2886,36 @@ function buildPaletteGroups({
     onAskCacheSubmit,
     onToggleCollectionSelection,
     openPaletteSection,
-    paletteInput,
+    query,
     paletteSection,
     returnToSearchSection,
     searchTerms,
     selectedCollectionIds,
     setCollectionMembershipFilter,
     setColumnCountMode,
-    setCommandListOpen,
+    setIsCommandOpen,
     setDomainFilters,
     setGroupBy,
     setLayoutMode,
-    setPaletteInput,
+    setQuery,
     setSearchTerms,
     setSortMode,
     setSourceFilters,
     sortMode,
     sourceFilters,
-}: BuildLibraryPaletteGroupsInput): CommandPaletteGroup[] {
-    const draft = paletteInput.trim();
+}: BuildPaletteGroupsInput): CommandPaletteGroup[] {
+    const draft = query.trim();
     const groups: CommandPaletteGroup[] = [];
 
     const applyAndReturn = (fn: () => void | Promise<void>) => async () => {
         await fn();
         returnToSearchSection();
     };
+
     const applyAndStay = (fn: () => void) => () => {
         fn();
-        setPaletteInput("");
-        setCommandListOpen(true);
+        setQuery("");
+        setIsCommandOpen(true);
     };
 
     const navigationItems: CommandPaletteItem[] = [
@@ -2951,6 +2952,7 @@ function buildPaletteGroups({
         shortcut: "Esc",
         value: "navigate back",
     };
+
     const hasAnyRefinements =
         searchTerms.length > 0 ||
         selectedCollectionIds.length > 0 ||
@@ -2973,10 +2975,10 @@ function buildPaletteGroups({
             onAskCacheSubmit,
             onClearCollectionFilters,
             onToggleCollectionSelection,
-            searchTerms: [...searchTerms],
-            selectedCollectionIds: [...selectedCollectionIds],
-            setCommandListOpen,
-            setPaletteInput,
+            searchTerms,
+            selectedCollectionIds,
+            setIsCommandOpen,
+            setQuery,
             setSearchTerms,
         });
     }
@@ -3156,7 +3158,7 @@ function buildPaletteGroups({
     ];
 }
 
-function filterBrowserItems(
+function filterCommandItems(
     items: LibraryItemWithCollections[],
     input: {
         collectionMembershipFilter: CollectionMembershipFilter;
@@ -3214,7 +3216,7 @@ function filterBrowserItems(
     return list;
 }
 
-function sortBrowserItems(
+function sortCommandItems(
     filteredItems: LibraryItemWithCollections[],
     sortMode: SortMode
 ): LibraryItemWithCollections[] {
@@ -4858,7 +4860,7 @@ function LockedResults({
 
 interface NoteDrawerProps {
     activeNote: LibraryItemWithCollections | typeof NOTE_DRAWER_NEW | null;
-    containerRef: React.RefObject<HTMLDivElement | null>;
+    container: React.RefObject<HTMLDivElement | null>;
     handlePasteUrlIntoLibrary: (url: string) => Promise<void>;
     handleSaveNote: (draft: NoteDraft) => Promise<boolean>;
     isSavingNote: boolean;
@@ -4879,11 +4881,12 @@ const NoteDrawer = dynamic(
     () =>
         import("@/components/library/notes").then((mod) => {
             const Note = mod.Note;
+
             function NoteDrawerShell({
-                containerRef,
+                container,
                 isNoteDrawerOpen,
             }: {
-                containerRef: React.RefObject<HTMLDivElement | null>;
+                container: React.RefObject<HTMLDivElement | null>;
                 isNoteDrawerOpen: boolean;
             }) {
                 const { onOpenChange } = Note.useContext();
@@ -4897,7 +4900,7 @@ const NoteDrawer = dynamic(
                     >
                         <DrawerViewport
                             portalProps={{
-                                container: containerRef,
+                                container,
                             }}
                         >
                             <DrawerPopup
@@ -4925,7 +4928,7 @@ const NoteDrawer = dynamic(
 
             return function NoteDrawer({
                 activeNote,
-                containerRef,
+                container,
                 handlePasteUrlIntoLibrary,
                 handleSaveNote,
                 isSavingNote,
@@ -4949,7 +4952,7 @@ const NoteDrawer = dynamic(
                         saving={isSavingNote || isSavingPastedUrl}
                     >
                         <NoteDrawerShell
-                            containerRef={containerRef}
+                            container={container}
                             isNoteDrawerOpen={isNoteDrawerOpen}
                         />
                     </Note.Root>
@@ -5016,10 +5019,11 @@ export function Browser({
         selectedCollectionIds,
         setItems: onItemsChange,
     } = useWorkspaceContext();
+
     const openFavoriteItemRef = React.use(OpenFavoriteItemRefContext);
 
+    const [query, setQuery] = React.useState("");
     const [searchTerms, setSearchTerms] = React.useState<string[]>([]);
-    const [paletteInput, setPaletteInput] = React.useState("");
     const [sourceFilters, setSourceFilters] = React.useState<
         SourceFilterValue[]
     >([]);
@@ -5053,11 +5057,12 @@ export function Browser({
     const [createResultsError, setCreateResultsError] = React.useState<
         string | null
     >(null);
-    const [isCommandListOpen, setCommandListOpen] = React.useState(false);
-    const [isPaletteFocused, setIsPaletteFocused] = React.useState(false);
+
+    const [isCommandOpen, setIsCommandOpen] = React.useState(false);
+    const [isCommandFocused, setIsCommandFocused] = React.useState(false);
 
     const commandPanelContainerRef = React.useRef<HTMLDivElement>(null);
-    const paletteInputRef = React.useRef<HTMLInputElement>(null);
+    const inputRef = React.useRef<HTMLInputElement>(null);
     const commandAttachmentsRef = React.useRef<LibraryCommandAttachment[]>([]);
     const askCacheRequestVersionRef = React.useRef(0);
     commandAttachmentsRef.current = commandAttachments;
@@ -5106,7 +5111,7 @@ export function Browser({
     });
 
     const clearLibraryPalette = useStableCallback(() => {
-        setPaletteInput("");
+        setQuery("");
         setSearchTerms([]);
         setSourceFilters([]);
         setDomainFilters([]);
@@ -5118,7 +5123,7 @@ export function Browser({
         setColumnCountMode(DEFAULT_COLUMN_COUNT_MODE);
         setLayoutMode(DEFAULT_LAYOUT_MODE);
         setPaletteSection("search");
-        setCommandListOpen(false);
+        setIsCommandOpen(false);
     });
 
     const buildAskCacheRequest = useStableCallback(
@@ -5153,7 +5158,7 @@ export function Browser({
                     .filter((option) => option.value !== ALL_DOMAIN_FILTER)
                     .slice(0, ASK_CACHE_CONTEXT_DOMAIN_LIMIT)
                     .map((option) => option.value),
-                filteredItemCount: filterBrowserItems(items, {
+                filteredItemCount: filterCommandItems(items, {
                     collectionMembershipFilter,
                     domainFilters,
                     searchTerms,
@@ -5219,7 +5224,7 @@ export function Browser({
                 applyAskCachePatch(operation);
             }
             setPaletteSection("ai-response");
-            setCommandListOpen(true);
+            setIsCommandOpen(true);
             setAskCacheResponse({
                 markdown: result.markdown,
                 operationCount: result.operations.length,
@@ -5240,8 +5245,8 @@ export function Browser({
             askCacheRequestVersionRef.current = requestVersion;
             setAskCacheResponse({ prompt, status: "loading" });
             setPaletteSection("ai-response");
-            setPaletteInput("");
-            setCommandListOpen(true);
+            setQuery("");
+            setIsCommandOpen(true);
 
             try {
                 const result = await askCache(buildAskCacheRequest(prompt));
@@ -5262,7 +5267,7 @@ export function Browser({
             } finally {
                 if (askCacheRequestVersionRef.current === requestVersion) {
                     setPaletteSection("ai-response");
-                    setCommandListOpen(true);
+                    setIsCommandOpen(true);
                 }
             }
         }
@@ -5270,8 +5275,8 @@ export function Browser({
 
     const returnToSearchSection = useStableCallback(() => {
         setPaletteSection("search");
-        setPaletteInput("");
-        setCommandListOpen(true);
+        setQuery("");
+        setIsCommandOpen(true);
     });
 
     const openPaletteSection = useStableCallback(
@@ -5282,13 +5287,13 @@ export function Browser({
             event.preventDefault();
             suppressNextCommandCloseRef.current = true;
             setPaletteSection(section);
-            setPaletteInput("");
+            setQuery("");
         }
     );
 
     const domainOptions = buildDomainPaletteOptions(items);
 
-    const paletteGroups = buildPaletteGroups({
+    const groups = buildPaletteGroups({
         askCacheResponse,
         clearLibraryPalette,
         collectionMembershipFilter,
@@ -5303,18 +5308,18 @@ export function Browser({
         onClearCollectionFilters,
         onToggleCollectionSelection: onRemoveCollectionFilter,
         openPaletteSection,
-        paletteInput,
         paletteSection,
+        query,
         returnToSearchSection,
         searchTerms,
         selectedCollectionIds,
         setCollectionMembershipFilter,
         setColumnCountMode,
-        setCommandListOpen,
         setDomainFilters,
         setGroupBy,
+        setIsCommandOpen,
         setLayoutMode,
-        setPaletteInput,
+        setQuery,
         setSearchTerms,
         setSortMode,
         setSourceFilters,
@@ -5322,7 +5327,7 @@ export function Browser({
         sourceFilters,
     });
 
-    const filteredItems = filterBrowserItems(items, {
+    const filteredItems = filterCommandItems(items, {
         collectionMembershipFilter,
         domainFilters,
         searchTerms,
@@ -5330,7 +5335,7 @@ export function Browser({
         sourceFilters,
     });
 
-    const sortedItems = sortBrowserItems(filteredItems, sortMode);
+    const sortedItems = sortCommandItems(filteredItems, sortMode);
 
     const sections = buildBrowserSections(sortedItems, groupBy, sortMode);
 
@@ -5418,11 +5423,11 @@ export function Browser({
         searchTerms,
         selectedCollectionIds,
         setCollectionMembershipFilter,
-        setCommandListOpen,
         setDomainFilters,
         setGroupBy,
+        setIsCommandOpen,
         setLayoutMode,
-        setPaletteInput,
+        setQuery,
         setSearchTerms,
         setSortMode,
         setSourceFilters,
@@ -5431,11 +5436,11 @@ export function Browser({
     });
 
     const focusPaletteInput = useStableCallback((select = false) => {
-        setCommandListOpen(true);
+        setIsCommandOpen(true);
         queueMicrotask(() => {
-            paletteInputRef.current?.focus();
+            inputRef.current?.focus();
             if (select) {
-                paletteInputRef.current?.select();
+                inputRef.current?.select();
             }
         });
     });
@@ -5452,16 +5457,16 @@ export function Browser({
             ) {
                 eventDetails.cancel();
 
-                if (paletteInput.trim() === "") {
+                if (query.trim() === "") {
                     returnToSearchSection();
                     return;
                 }
 
-                setCommandListOpen(true);
+                setIsCommandOpen(true);
                 return;
             }
 
-            setCommandListOpen(() => {
+            setIsCommandOpen(() => {
                 if (!nextOpen && suppressNextCommandCloseRef.current) {
                     suppressNextCommandCloseRef.current = false;
                     return true;
@@ -5536,7 +5541,7 @@ export function Browser({
         }
 
         event.preventDefault();
-        setPaletteInput((current) => `${current}${event.key}`);
+        setQuery((current) => `${current}${event.key}`);
         focusPaletteInput();
     });
 
@@ -5550,7 +5555,7 @@ export function Browser({
     const handleCommandInputChange = useStableCallback(
         (next: string, eventDetails: AutocompleteRootChangeEventDetails) => {
             if (
-                paletteGroups
+                groups
                     .flatMap((group) => group.items)
                     .some((value) => value.value === next)
             ) {
@@ -5558,7 +5563,7 @@ export function Browser({
                 return;
             }
 
-            setPaletteInput(next);
+            setQuery(next);
         }
     );
 
@@ -5612,16 +5617,16 @@ export function Browser({
             if (event.key === "Escape") {
                 event.preventDefault();
                 event.stopPropagation();
-                if (paletteInput.trim() !== "") {
-                    setPaletteInput("");
-                    setCommandListOpen(true);
+                if (query.trim() !== "") {
+                    setQuery("");
+                    setIsCommandOpen(true);
                     return;
                 }
                 if (paletteSection !== "search") {
                     returnToSearchSection();
                     return;
                 }
-                setCommandListOpen(false);
+                setIsCommandOpen(false);
                 event.currentTarget.blur();
                 return;
             }
@@ -5629,22 +5634,22 @@ export function Browser({
             if (
                 event.key === "Tab" &&
                 paletteSection === "search" &&
-                paletteInput.trim() !== ""
+                query.trim() !== ""
             ) {
                 event.preventDefault();
                 event.stopPropagation();
-                handleAskCacheSubmit(paletteInput).catch((error) => {
+                handleAskCacheSubmit(query).catch((error) => {
                     log.error("Failed to handle Ask Cache shortcut", error);
                 });
                 return;
             }
 
             if (isSearchCancelKey(event)) {
-                setCommandListOpen(false);
+                setIsCommandOpen(false);
                 return;
             }
 
-            if (event.key === "Backspace" && paletteInput.trim() === "") {
+            if (event.key === "Backspace" && query.trim() === "") {
                 event.preventDefault();
                 if (paletteSection !== "search") {
                     returnToSearchSection();
@@ -5678,8 +5683,8 @@ export function Browser({
                 return;
             }
 
-            if (event.key === "ArrowDown" && !isCommandListOpen) {
-                setCommandListOpen(true);
+            if (event.key === "ArrowDown" && !isCommandOpen) {
+                setIsCommandOpen(true);
             }
         }
     );
@@ -5813,9 +5818,9 @@ export function Browser({
                 { domain: similarDomain, source: item.source }
             );
 
-            setPaletteInput("");
+            setQuery("");
             setPaletteSection("search");
-            setCommandListOpen(false);
+            setIsCommandOpen(false);
             setSearchTerms(nextFilters.searchTerms);
             setSourceFilters(nextFilters.sourceFilters);
             setDomainFilters(nextFilters.domainFilters);
@@ -5936,9 +5941,9 @@ export function Browser({
         }
 
         const handleFocusIn = (event: FocusEvent) => {
-            setIsPaletteFocused(true);
+            setIsCommandFocused(true);
             if (event.target instanceof ownerWindow.HTMLInputElement) {
-                setCommandListOpen(true);
+                setIsCommandOpen(true);
             }
         };
 
@@ -5958,8 +5963,8 @@ export function Browser({
                         element.contains(active)
                     )
                 ) {
-                    setIsPaletteFocused(false);
-                    setCommandListOpen(false);
+                    setIsCommandFocused(false);
+                    setIsCommandOpen(false);
                 }
             };
             queueMicrotask(closeIfLeft);
@@ -5996,22 +6001,22 @@ export function Browser({
 
     const containerRef = React.useRef<HTMLDivElement>(null);
 
-    let inputPlaceholder = "Search, filter, group, sort, and more…";
+    let placeholder = "Search, filter, group, sort, and more…";
     if (paletteSection === "search") {
-        inputPlaceholder = "Search, filter, group, sort, and more…";
-        if (isPaletteFocused) {
-            inputPlaceholder = "What are you looking for?";
+        placeholder = "Search, filter, group, sort, and more…";
+        if (isCommandFocused) {
+            placeholder = "What are you looking for?";
         }
     } else if (paletteSection === "filter") {
-        inputPlaceholder = "Filter the library…";
+        placeholder = "Filter the library…";
     } else if (paletteSection === "group") {
-        inputPlaceholder = "Group results…";
+        placeholder = "Group results…";
     } else if (paletteSection === "sort") {
-        inputPlaceholder = "Sort results…";
+        placeholder = "Sort results…";
     } else if (paletteSection === "layout") {
-        inputPlaceholder = "Change the layout…";
+        placeholder = "Change the layout…";
     } else if (paletteSection === "ai-response") {
-        inputPlaceholder = "Ask Cache…";
+        placeholder = "Ask Cache…";
     }
 
     return (
@@ -6025,16 +6030,16 @@ export function Browser({
             <Composer>
                 <ComposerInput
                     canClear={canClear}
-                    commandPanelContainerRef={commandPanelContainerRef}
-                    inputPlaceholder={inputPlaceholder}
-                    isCommandListOpen={isCommandListOpen}
-                    onCommandInputChange={handleCommandInputChange}
-                    onCommandOpenChange={handleCommandOpenChange}
-                    onPaletteInputKeyDown={handlePaletteInputKeyDown}
-                    paletteGroups={paletteGroups}
-                    paletteInput={paletteInput}
-                    paletteInputRef={paletteInputRef}
-                    paletteStackEntries={buildPaletteStackEntries({
+                    containerRef={commandPanelContainerRef}
+                    groups={groups}
+                    isOpen={isCommandOpen}
+                    onKeyDown={handlePaletteInputKeyDown}
+                    onOpenChange={handleCommandOpenChange}
+                    onValueChange={handleCommandInputChange}
+                    placeholder={placeholder}
+                    query={query}
+                    ref={inputRef}
+                    stackEntries={buildPaletteStackEntries({
                         collectionMembershipFilter,
                         collections,
                         columnCountMode,
@@ -6167,7 +6172,7 @@ export function Browser({
             ) : null}
             <NoteDrawer
                 activeNote={activeNote}
-                containerRef={containerRef}
+                container={containerRef}
                 handlePasteUrlIntoLibrary={handlePasteUrlIntoLibrary}
                 handleSaveNote={handleSaveNote}
                 isSavingNote={isSavingNote}

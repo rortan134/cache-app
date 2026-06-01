@@ -78,45 +78,42 @@ function useComposerActionsContext(): ComposerActionsContextValue {
 }
 
 export function ComposerInput({
-    paletteInput,
-    isCommandListOpen,
-    onCommandInputChange,
-    onCommandOpenChange,
-    onPaletteInputKeyDown,
-    inputPlaceholder,
-    paletteGroups,
-    commandPanelContainerRef,
-    paletteInputRef,
-    paletteStackEntries,
+    query,
+    isOpen,
+    onValueChange,
+    onOpenChange,
+    onKeyDown,
+    placeholder,
+    groups,
+    containerRef,
+    ref,
+    stackEntries,
     canClear,
 }: ComposerInputProps) {
-    const commandFilter = useCommandFilter();
-    const visiblePaletteGroups = getVisiblePaletteGroups({
-        filter: commandFilter,
-        groups: paletteGroups,
-        query: paletteInput,
-    });
+    const filteredGroups = useGetVisibleGroups({ groups, query });
+    const filteredItems = filteredGroups.map((group) => ({
+        items: group.items,
+    }));
+    const items = groups.map((group) => ({
+        items: group.items,
+    }));
 
     return (
         <Command
-            filteredItems={visiblePaletteGroups.map((group) => ({
-                items: group.items,
-            }))}
-            items={paletteGroups.map((group) => ({
-                items: group.items,
-            }))}
-            onOpenChange={onCommandOpenChange}
-            onValueChange={onCommandInputChange}
-            open={isCommandListOpen}
-            value={paletteInput}
+            filteredItems={filteredItems}
+            items={items}
+            onOpenChange={onOpenChange}
+            onValueChange={onValueChange}
+            open={isOpen}
+            value={query}
         >
-            <CommandPanel ref={commandPanelContainerRef}>
+            <CommandPanel ref={containerRef}>
                 <Toolbar.Input
                     render={
                         <CommandInput
                             endAddon={
                                 <>
-                                    {paletteStackEntries.length === 0 ? (
+                                    {stackEntries.length === 0 ? (
                                         <>
                                             <Kbd className="border-none text-muted-foreground opacity-50 group-data-popup-open/input:opacity-0">
                                                 <CmdKbd />G
@@ -144,15 +141,15 @@ export function ComposerInput({
                                         className="justify-end"
                                         maxVisible={1}
                                     >
-                                        {paletteStackEntries.map(
+                                        {stackEntries.map(
                                             (entry) => entry.chip
                                         )}
                                     </TruncateAfter>
                                 </>
                             }
-                            onKeyDown={onPaletteInputKeyDown}
-                            placeholder={inputPlaceholder}
-                            ref={paletteInputRef}
+                            onKeyDown={onKeyDown}
+                            placeholder={placeholder}
+                            ref={ref}
                             size="lg"
                         />
                     }
@@ -160,8 +157,8 @@ export function ComposerInput({
                 <CommandPopup className="max-w-xl">
                     <CommandEmpty>No matching commands found.</CommandEmpty>
                     <CommandStatus />
-                    <CommandList>
-                        {visiblePaletteGroups.map((group) => (
+                    <CommandList className="max-w-xl">
+                        {filteredGroups.map((group) => (
                             <CommandGroup items={group.items} key={group.label}>
                                 <CommandGroupLabel>
                                     {group.label}
@@ -224,24 +221,22 @@ export function ComposerInput({
 
 interface ComposerInputProps {
     canClear: boolean;
-    commandPanelContainerRef: React.RefObject<HTMLDivElement | null>;
-    inputPlaceholder: string;
-    isCommandListOpen: boolean;
-    onCommandInputChange: (
-        next: string,
-        eventDetails: AutocompleteRootChangeEventDetails
-    ) => void;
-    onCommandOpenChange: (
+    containerRef: React.RefObject<HTMLDivElement | null>;
+    groups: CommandPaletteGroup[];
+    isOpen: boolean;
+    onKeyDown: (event: React.KeyboardEvent<HTMLInputElement>) => void;
+    onOpenChange: (
         nextOpen: boolean,
         eventDetails: AutocompleteRootChangeEventDetails
     ) => void;
-    onPaletteInputKeyDown: (
-        event: React.KeyboardEvent<HTMLInputElement>
+    onValueChange: (
+        next: string,
+        eventDetails: AutocompleteRootChangeEventDetails
     ) => void;
-    paletteGroups: CommandPaletteGroup[];
-    paletteInput: string;
-    paletteInputRef: React.RefObject<HTMLInputElement | null>;
-    paletteStackEntries: PaletteStackEntry[];
+    placeholder: string;
+    query: string;
+    ref: React.RefObject<HTMLInputElement | null>;
+    stackEntries: PaletteStackEntry[];
 }
 
 export function ComposerActions({
@@ -464,15 +459,15 @@ function CommandPaletteItemComponent({
     );
 }
 
-function getVisiblePaletteGroups({
+function useGetVisibleGroups({
     groups,
     query,
-    filter,
 }: {
-    filter: ReturnType<typeof useCommandFilter>;
     groups: CommandPaletteGroup[];
     query: string;
 }): CommandPaletteGroup[] {
+    const filter = useCommandFilter();
+
     const normalizedQuery = query.trim();
     if (normalizedQuery.length === 0) {
         return groups;
@@ -482,7 +477,7 @@ function getVisiblePaletteGroups({
 
     for (const group of groups) {
         const rankedItems = group.items.flatMap((item, index) => {
-            const rank = getCommandPaletteItemRank({
+            const rank = getCommandItemRank({
                 filter,
                 index,
                 item,
@@ -510,7 +505,7 @@ function getVisiblePaletteGroups({
     return visibleGroups;
 }
 
-function getCommandPaletteItemRank({
+function getCommandItemRank({
     filter,
     index,
     item,
@@ -525,7 +520,7 @@ function getCommandPaletteItemRank({
     const value = item.value;
     const description = item.description ?? "";
 
-    if (normalizeCommandMatchText(label) === normalizeCommandMatchText(query)) {
+    if (label.trim().toLocaleLowerCase() === query.trim().toLocaleLowerCase()) {
         return { index, score: 0 };
     }
     if (filter.startsWith(label, query)) {
@@ -552,10 +547,6 @@ function getCommandPaletteItemRank({
     }
 
     return null;
-}
-
-function normalizeCommandMatchText(value: string): string {
-    return value.trim().toLocaleLowerCase();
 }
 
 function ActionButton({
