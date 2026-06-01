@@ -51,12 +51,6 @@ export const ASK_CACHE_COLUMN_COUNT_VALUES = [
     "6",
 ] as const;
 
-export const ASK_CACHE_LAYOUT_MODE_VALUES = [
-    "masonry",
-    "board",
-    "list",
-] as const;
-
 export const ASK_CACHE_COLLECTION_MEMBERSHIP_FILTER_VALUES = [
     "all",
     "in-collections",
@@ -80,7 +74,6 @@ export const AskCacheComposerStateSchema = z.strictObject({
         .array(z.string().trim().min(1).max(ASK_CACHE_DOMAIN_FILTER_MAX_LENGTH))
         .max(20),
     groupBy: z.enum(ASK_CACHE_GROUP_BY_VALUES),
-    layoutMode: z.enum(ASK_CACHE_LAYOUT_MODE_VALUES),
     searchTerms: z.array(AskCacheTextSchema).max(10),
     selectedCollectionIds: z.array(AskCacheCollectionIdSchema).max(50),
     sortMode: z.enum(ASK_CACHE_SORT_MODE_VALUES),
@@ -102,7 +95,6 @@ export const AskCacheComposerPatchSchema = z
             .max(20)
             .optional(),
         groupBy: z.enum(ASK_CACHE_GROUP_BY_VALUES).optional(),
-        layoutMode: z.enum(ASK_CACHE_LAYOUT_MODE_VALUES).optional(),
         reset: z.boolean().optional(),
         searchTerms: z.array(AskCacheTextSchema).max(10).optional(),
         selectedCollectionIds: z

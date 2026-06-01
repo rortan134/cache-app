@@ -125,7 +125,7 @@ export async function runAskCacheAgent({
             }),
             update_composer: tool({
                 description:
-                    "Apply a validated composer patch. Use this to change search terms, collection/source/domain filters, collection membership, grouping, sorting, layout, columns, or reset state.",
+                    "Apply a validated composer patch. Use this to change search terms, collection/source/domain filters, collection membership, grouping, sorting, columns, or reset state.",
                 execute: (toolInput) => {
                     if (operations.length >= ASK_CACHE_OPERATION_LIMIT) {
                         return {
@@ -325,7 +325,7 @@ function buildAskCacheInstructions(input: AskCacheRequest): string {
         "You are Ask Cache, an assistant embedded in Cache's library composer.",
         "You can answer conversationally and can update the composer by calling update_composer.",
         "Never claim to inspect library items unless you called search_library.",
-        "Use update_composer for requests that ask to show, find, filter, sort, group, reset, or change the layout.",
+        "Use update_composer for requests that ask to show, find, filter, sort, group, or reset.",
         "Use exact collection ids from the collection catalog when selecting collection filters.",
         "Use exact domains from the available domain list when applying domain filters.",
         "When a user asks for conceptual matches, infer what qualifies instead of searching only for the user's literal words.",

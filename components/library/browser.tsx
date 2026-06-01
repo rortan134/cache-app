@@ -5,7 +5,6 @@ import {
     InlinePaywallBanner,
 } from "@/components/billing/paywall";
 import { useSubscriptionAccess } from "@/components/billing/subscription";
-import { getPriorityOption } from "@/components/library/collections";
 import {
     Composer,
     ComposerActionClear,
@@ -76,12 +75,7 @@ import {
 import { GradientWaveText } from "@/components/ui/gradient-wave-text";
 import { ChevronDownFilledIcon } from "@/components/ui/icons";
 import { Input } from "@/components/ui/input";
-import {
-    Kanban,
-    KanbanBoard,
-    KanbanColumn,
-    KanbanItem,
-} from "@/components/ui/kanban";
+
 import { CmdKbd, Kbd } from "@/components/ui/kbd";
 import { Masonry, MasonryItem } from "@/components/ui/masonry";
 import {
@@ -117,10 +111,7 @@ import {
 } from "@/lib/collections/utils";
 import { removeValue, toggleValue } from "@/lib/common/arrays";
 import { cn } from "@/lib/common/cn";
-import {
-    getColorGradientFromName,
-    getHexColorFromName,
-} from "@/lib/common/colors";
+import { getColorGradientFromName } from "@/lib/common/colors";
 import {
     CACHE_EXTENSION_DOWNLOAD_URL,
     FALLBACK_URL,
@@ -186,7 +177,7 @@ import type {
 import { useIsoLayoutEffect } from "@base-ui/utils/useIsoLayoutEffect";
 import { useStableCallback } from "@base-ui/utils/useStableCallback";
 import { useTimeout } from "@base-ui/utils/useTimeout";
-import { useVirtualizer, type Virtualizer } from "@tanstack/react-virtual";
+
 import {
     ArrowDownWideNarrow,
     Check,
@@ -208,12 +199,9 @@ import {
     FolderOpen,
     Funnel,
     Globe,
-    KanbanIcon,
     Layers3,
     LinkIcon,
-    List,
     ListChevronsUpDown,
-    NotebookPenIcon,
     RotateCcw,
     SearchIcon,
     SearchX,
@@ -265,7 +253,6 @@ interface BuildCommandSuggestionsInput {
     groupBy: GroupByMode;
     isExtensionInstalled: boolean;
     items: LibraryItemWithCollections[];
-    layoutMode: LayoutMode;
     onClearCollectionFilters: () => void;
     onCreateCollection: () => void;
     onToggleCollectionSelection: (id: string) => void;
@@ -279,7 +266,6 @@ interface BuildCommandSuggestionsInput {
     setIsCommandOpen: (
         value: boolean | ((previous: boolean) => boolean)
     ) => void;
-    setLayoutMode: (value: LayoutMode) => void;
     setQuery: (value: string) => void;
     setSearchTerms: (value: string[] | ((value: string[]) => string[])) => void;
     setSortMode: (value: SortMode) => void;
@@ -315,8 +301,6 @@ function buildCommandSuggestions({
     setQuery,
     setIsCommandOpen,
     onToggleCollectionSelection,
-    layoutMode,
-    setLayoutMode,
 }: BuildCommandSuggestionsInput): CommandSuggestion[] {
     const suggestions: CommandSuggestion[] = [];
     const suggestionLabels = new Set<string>();
@@ -675,25 +659,6 @@ function buildCommandSuggestions({
         });
     }
 
-    if (layoutMode === "masonry" && !hasAnyRefinements) {
-        addSuggestion({
-            icon: <KanbanIcon className={SUGGESTION_ICON_CLASS} />,
-            label: "Try Board layout",
-            onSelect: commitSelection(() => setLayoutMode("board")),
-        });
-        addSuggestion({
-            icon: <List className={SUGGESTION_ICON_CLASS} />,
-            label: "Try List layout",
-            onSelect: commitSelection(() => setLayoutMode("list")),
-        });
-    } else if (layoutMode === "board" && !hasAnyRefinements) {
-        addSuggestion({
-            icon: <List className={SUGGESTION_ICON_CLASS} />,
-            label: "Try List layout",
-            onSelect: commitSelection(() => setLayoutMode("list")),
-        });
-    }
-
     return suggestions;
 }
 
@@ -857,25 +822,12 @@ type CollectionMembershipFilter =
     | "in-collections"
     | "not-in-collections";
 type ColumnCountMode = "auto" | "2" | "3" | "4" | "5" | "6";
-type LayoutMode = "masonry" | "board" | "list";
-type PaletteSection =
-    | "search"
-    | "filter"
-    | "group"
-    | "sort"
-    | "layout"
-    | "ai-response";
+type PaletteSection = "search" | "filter" | "group" | "sort" | "ai-response";
 
 const DEFAULT_SORT_MODE: SortMode = "added-newest";
 const DEFAULT_COLUMN_COUNT_MODE: ColumnCountMode = "auto";
-const DEFAULT_LAYOUT_MODE: LayoutMode = "masonry";
 const DEFAULT_COLLECTION_MEMBERSHIP_FILTER: CollectionMembershipFilter = "all";
-const UNASSIGNED_COLLECTION_COLUMN_ID = "__unassigned__";
 const NOTE_DRAWER_NEW = Symbol("note-drawer-new");
-const LIST_LAYOUT_ROW_ESTIMATED_SIZE = 82;
-const LIST_LAYOUT_ROW_OVERSCAN = 8;
-const LIST_ROW_COLLECTION_PREVIEW_LIMIT = 2;
-const VIRTUAL_SCROLL_EVENT_OPTIONS = { passive: true } as const;
 
 const COBALT_SOURCES = new Set<LibraryItemSource>([
     LibraryItemSource.google_photos,
@@ -956,12 +908,6 @@ const PALETTE_COLUMN_OPTIONS = [
     { label: "6 columns", value: "6" },
 ] satisfies readonly { label: string; value: ColumnCountMode }[];
 
-const PALETTE_LAYOUT_MODE_OPTIONS = [
-    { label: "Masonry", value: "masonry" },
-    { label: "Board", value: "board" },
-    { label: "List", value: "list" },
-] satisfies readonly { label: string; value: LayoutMode }[];
-
 const PALETTE_SOURCE_OPTIONS = [
     { label: "All sources", value: "all" },
     ...FILTERABLE_LIBRARY_SOURCES.map((source) => ({
@@ -1003,31 +949,6 @@ interface BrowserGroup {
     key: string;
     title: string | null;
 }
-
-type BrowserListEntry =
-    | {
-          key: string;
-          section: BrowserGroup;
-          type: "empty";
-      }
-    | {
-          key: string;
-          section: BrowserGroup;
-          type: "header";
-      }
-    | {
-          key: string;
-          section: BrowserGroup;
-          type: "overview";
-      }
-    | {
-          item: LibraryItemWithCollections;
-          itemPosition: number;
-          key: string;
-          section: BrowserGroup;
-          totalItemCount: number;
-          type: "item";
-      };
 
 interface LibraryCommandAttachment
     extends ReturnType<typeof createFileAttachment> {
@@ -1248,7 +1169,6 @@ interface BuildPaletteStackEntriesInput {
     commandAttachments: LibraryCommandAttachment[];
     domainFilters: string[];
     groupBy: GroupByMode;
-    layoutMode: LayoutMode;
     onRemoveCollectionFilter: (id: string) => void;
     onRemoveCommandAttachment: (id: string) => void;
     searchTerms: string[];
@@ -1259,7 +1179,6 @@ interface BuildPaletteStackEntriesInput {
         value: string[] | ((value: string[]) => string[])
     ) => void;
     setGroupBy: (value: GroupByMode) => void;
-    setLayoutMode: (value: LayoutMode) => void;
     setSearchTerms: (value: string[] | ((value: string[]) => string[])) => void;
     setSortMode: (value: SortMode) => void;
     setSourceFilters: (
@@ -1278,7 +1197,6 @@ function buildPaletteStackEntries({
     commandAttachments,
     domainFilters,
     groupBy,
-    layoutMode,
     onRemoveCollectionFilter,
     onRemoveCommandAttachment,
     searchTerms,
@@ -1287,7 +1205,6 @@ function buildPaletteStackEntries({
     setColumnCountMode,
     setDomainFilters,
     setGroupBy,
-    setLayoutMode,
     setSearchTerms,
     setSortMode,
     setSourceFilters,
@@ -1423,25 +1340,7 @@ function buildPaletteStackEntries({
         });
     }
 
-    if (layoutMode !== DEFAULT_LAYOUT_MODE) {
-        const onRemove = () => setLayoutMode(DEFAULT_LAYOUT_MODE);
-        entries.push({
-            chip: (
-                <PaletteChip
-                    key="layout-mode"
-                    label={`Layout: ${layoutModeLabel(layoutMode)}`}
-                    onRemove={onRemove}
-                />
-            ),
-            key: "layout-mode",
-            onRemove,
-        });
-    }
-
-    if (
-        layoutMode === "masonry" &&
-        columnCountMode !== DEFAULT_COLUMN_COUNT_MODE
-    ) {
+    if (columnCountMode !== DEFAULT_COLUMN_COUNT_MODE) {
         const onRemove = () => setColumnCountMode(DEFAULT_COLUMN_COUNT_MODE);
         entries.push({
             chip: (
@@ -1563,26 +1462,6 @@ function groupByLabel(mode: GroupByMode): string {
 
 function columnCountLabel(mode: ColumnCountMode): string {
     return mode === "auto" ? "Auto columns" : `${mode} columns`;
-}
-
-function layoutModeLabel(mode: LayoutMode): string {
-    if (mode === "board") {
-        return "Board";
-    }
-    if (mode === "list") {
-        return "List";
-    }
-    return "Masonry";
-}
-
-function layoutModeDescription(mode: LayoutMode): string {
-    if (mode === "board") {
-        return "Group entries by collections in columns";
-    }
-    if (mode === "list") {
-        return "Scan saved items in a compact virtualized list";
-    }
-    return "Display saved items in a visual grid";
 }
 
 function collectionMembershipFilterLabel(
@@ -1823,7 +1702,6 @@ interface BrowserResultsContextValue {
     columnCount?: number;
     enableSectionCollapse: boolean;
     favoriteItemIdSet: ReadonlySet<string>;
-    layoutMode: LayoutMode;
     onCollapseAllSections?: () => void;
     onCopyLink: (item: LibraryItem) => void;
     onCreateCollectionFromResults?: () => void;
@@ -2273,14 +2151,6 @@ function BrowserGroupOverviewContent() {
     );
 }
 
-function BrowserBoard() {
-    const { collapsed, items } = useBrowserGroupContext();
-    if (collapsed) {
-        return null;
-    }
-    return <BoardLayout items={items} />;
-}
-
 function BrowserMasonry() {
     const { collapsed, items } = useBrowserGroupContext();
     const { columnCount } = useBrowserResultsContext();
@@ -2298,217 +2168,6 @@ function BrowserMasonry() {
             ))}
         </Masonry>
     );
-}
-
-function BrowserCurrentLayout() {
-    const { layoutMode } = useBrowserResultsContext();
-    if (layoutMode === "board") {
-        return <BrowserBoard />;
-    }
-    return <BrowserMasonry />;
-}
-
-function BrowserListResults({ sections }: { sections: BrowserGroup[] }) {
-    const { collapsedSectionKeys, enableSectionCollapse } =
-        useBrowserResultsContext();
-    const entries = buildBrowserListEntries({
-        collapsedSectionKeys,
-        enableSectionCollapse,
-        sections,
-    });
-    const [scrollMargin, setScrollMargin] = React.useState(0);
-    const listRef = React.useRef<HTMLOListElement>(null);
-
-    const getItemKey = useStableCallback(
-        (index: number) => entries[index]?.key ?? index
-    );
-
-    const rowVirtualizer = useVirtualizer<HTMLElement, HTMLLIElement>({
-        count: entries.length,
-        estimateSize: () => LIST_LAYOUT_ROW_ESTIMATED_SIZE,
-        getItemKey,
-        getScrollElement: () =>
-            listRef.current?.ownerDocument.documentElement ?? null,
-        observeElementOffset: observeDocumentElementVirtualOffset,
-        observeElementRect: observeDocumentElementVirtualRect,
-        overscan: LIST_LAYOUT_ROW_OVERSCAN,
-        scrollMargin,
-    });
-
-    useIsoLayoutEffect(() => {
-        const element = listRef.current;
-        if (!element) {
-            return;
-        }
-
-        const ownerWindow = getOwnerWindow(element);
-        if (!ownerWindow) {
-            return;
-        }
-
-        const updateScrollMargin = () => {
-            const nextScrollMargin =
-                element.getBoundingClientRect().top + ownerWindow.scrollY;
-            setScrollMargin((current) =>
-                Math.abs(current - nextScrollMargin) < 1
-                    ? current
-                    : nextScrollMargin
-            );
-        };
-
-        updateScrollMargin();
-        ownerWindow.addEventListener("resize", updateScrollMargin);
-
-        const ResizeObserverCtor = ownerWindow.ResizeObserver;
-        if (typeof ResizeObserverCtor !== "function") {
-            return () => {
-                ownerWindow.removeEventListener("resize", updateScrollMargin);
-            };
-        }
-
-        const resizeObserver = new ResizeObserverCtor(updateScrollMargin);
-        resizeObserver.observe(element);
-        resizeObserver.observe(element.ownerDocument.documentElement);
-        resizeObserver.observe(element.ownerDocument.body);
-
-        return () => {
-            resizeObserver.disconnect();
-            ownerWindow.removeEventListener("resize", updateScrollMargin);
-        };
-    }, []);
-
-    if (entries.length === 0) {
-        return null;
-    }
-
-    return (
-        <BrowserCardProvider>
-            <ol
-                aria-label="Saved items"
-                className="relative m-0 w-full list-none p-0"
-                ref={listRef}
-                style={{ height: rowVirtualizer.getTotalSize() }}
-            >
-                {rowVirtualizer.getVirtualItems().map((virtualRow) => {
-                    const entry = entries[virtualRow.index];
-                    if (!entry) {
-                        return null;
-                    }
-
-                    return (
-                        <li
-                            className="absolute top-0 left-0 w-full pb-2"
-                            {...getBrowserListEntryAria(entry)}
-                            data-index={virtualRow.index}
-                            key={virtualRow.key}
-                            ref={rowVirtualizer.measureElement}
-                            style={{
-                                transform: `translateY(${
-                                    virtualRow.start - scrollMargin
-                                }px)`,
-                            }}
-                        >
-                            <BrowserGroupProvider section={entry.section}>
-                                {renderBrowserListEntry(entry)}
-                            </BrowserGroupProvider>
-                        </li>
-                    );
-                })}
-            </ol>
-        </BrowserCardProvider>
-    );
-}
-
-function renderBrowserListEntry(entry: BrowserListEntry): ReactNode {
-    if (entry.type === "header") {
-        return <BrowserHeader />;
-    }
-    if (entry.type === "overview") {
-        return (
-            <BrowserGroupOverview>
-                <BrowserGroupOverviewContent />
-            </BrowserGroupOverview>
-        );
-    }
-    if (entry.type === "empty") {
-        return <BrowserGroupEmpty />;
-    }
-    return <ListRow item={entry.item} />;
-}
-
-function getBrowserListEntryAria(
-    entry: BrowserListEntry
-): React.LiHTMLAttributes<HTMLLIElement> {
-    if (entry.type !== "item") {
-        return { role: "presentation" };
-    }
-
-    return {
-        "aria-posinset": entry.itemPosition,
-        "aria-setsize": entry.totalItemCount,
-    };
-}
-
-function observeDocumentElementVirtualRect(
-    instance: Virtualizer<HTMLElement, HTMLLIElement>,
-    cb: (rect: { height: number; width: number }) => void
-) {
-    const scrollElement = instance.scrollElement;
-    if (!scrollElement) {
-        return;
-    }
-
-    const ownerWindow = getOwnerWindow(scrollElement);
-    const handler = () => {
-        cb({
-            height: ownerWindow.innerHeight,
-            width: ownerWindow.innerWidth,
-        });
-    };
-
-    handler();
-    ownerWindow.addEventListener(
-        "resize",
-        handler,
-        VIRTUAL_SCROLL_EVENT_OPTIONS
-    );
-
-    return () => {
-        ownerWindow.removeEventListener("resize", handler);
-    };
-}
-
-function observeDocumentElementVirtualOffset(
-    instance: Virtualizer<HTMLElement, HTMLLIElement>,
-    cb: (offset: number, isScrolling: boolean) => void
-) {
-    const scrollElement = instance.scrollElement;
-    if (!scrollElement) {
-        return;
-    }
-
-    const ownerWindow = getOwnerWindow(scrollElement);
-    let scrollEndTimeoutId = 0;
-    const handleScrollEnd = () => {
-        cb(scrollElement.scrollTop, false);
-    };
-    const handleScroll = () => {
-        cb(scrollElement.scrollTop, true);
-        ownerWindow.clearTimeout(scrollEndTimeoutId);
-        scrollEndTimeoutId = ownerWindow.setTimeout(handleScrollEnd, 150);
-    };
-
-    handleScrollEnd();
-    scrollElement.addEventListener(
-        "scroll",
-        handleScroll,
-        VIRTUAL_SCROLL_EVENT_OPTIONS
-    );
-
-    return () => {
-        ownerWindow.clearTimeout(scrollEndTimeoutId);
-        scrollElement.removeEventListener("scroll", handleScroll);
-    };
 }
 
 function BrowserCardProvider({ children }: { children: ReactNode }) {
@@ -2822,7 +2481,6 @@ interface BuildPaletteGroupsInput {
         value: string;
     }[];
     groupBy: GroupByMode;
-    layoutMode: LayoutMode;
     onAskCacheSubmit: (prompt: string) => void | Promise<void>;
     onClearCollectionFilters: () => void;
     onToggleCollectionSelection: (id: string) => void;
@@ -2844,7 +2502,6 @@ interface BuildPaletteGroupsInput {
     setIsCommandOpen: (
         value: boolean | ((previous: boolean) => boolean)
     ) => void;
-    setLayoutMode: (value: LayoutMode) => void;
     setQuery: (value: string) => void;
     setSearchTerms: (value: string[] | ((value: string[]) => string[])) => void;
     setSortMode: (value: SortMode) => void;
@@ -2892,7 +2549,6 @@ function buildPaletteGroups({
     domainFilters,
     domainOptions,
     groupBy,
-    layoutMode,
     onClearCollectionFilters,
     onAskCacheSubmit,
     onToggleCollectionSelection,
@@ -2907,7 +2563,6 @@ function buildPaletteGroups({
     setIsCommandOpen,
     setDomainFilters,
     setGroupBy,
-    setLayoutMode,
     setQuery,
     setSearchTerms,
     setSortMode,
@@ -2948,12 +2603,6 @@ function buildPaletteGroups({
             onSelect: (event) => openPaletteSection("sort", event),
             value: "navigate sorting",
         },
-        {
-            description: `Current: ${layoutModeLabel(layoutMode)}`,
-            label: "Layout…",
-            onSelect: (event) => openPaletteSection("layout", event),
-            value: "navigate layout",
-        },
     ];
 
     const backItem: CommandPaletteItem = {
@@ -2972,8 +2621,7 @@ function buildPaletteGroups({
         collectionMembershipFilter !== DEFAULT_COLLECTION_MEMBERSHIP_FILTER ||
         groupBy !== "none" ||
         sortMode !== DEFAULT_SORT_MODE ||
-        columnCountMode !== DEFAULT_COLUMN_COUNT_MODE ||
-        layoutMode !== DEFAULT_LAYOUT_MODE;
+        columnCountMode !== DEFAULT_COLUMN_COUNT_MODE;
 
     if (paletteSection === "search") {
         return buildSearchPaletteGroups({
@@ -3137,34 +2785,20 @@ function buildPaletteGroups({
 
     return [
         { items: [backItem], label: "Navigation" },
-        ...(layoutMode === "masonry"
-            ? [
-                  {
-                      items: PALETTE_COLUMN_OPTIONS.map((option) => ({
-                          active: columnCountMode === option.value,
-                          description:
-                              option.value === "auto"
-                                  ? "Let the masonry adapt to the available width"
-                                  : "Force a specific number of columns",
-                          label: option.label,
-                          onSelect: applyAndReturn(() =>
-                              setColumnCountMode(option.value)
-                          ),
-                          value: `columns ${option.value}`,
-                      })),
-                      label: "Columns",
-                  },
-              ]
-            : []),
         {
-            items: PALETTE_LAYOUT_MODE_OPTIONS.map((option) => ({
-                active: layoutMode === option.value,
-                description: layoutModeDescription(option.value),
+            items: PALETTE_COLUMN_OPTIONS.map((option) => ({
+                active: columnCountMode === option.value,
+                description:
+                    option.value === "auto"
+                        ? "Let the masonry adapt to the available width"
+                        : "Force a specific number of columns",
                 label: option.label,
-                onSelect: applyAndReturn(() => setLayoutMode(option.value)),
-                value: `layout ${option.value}`,
+                onSelect: applyAndReturn(() =>
+                    setColumnCountMode(option.value)
+                ),
+                value: `columns ${option.value}`,
             })),
-            label: "Layout",
+            label: "Columns",
         },
     ];
 }
@@ -3285,74 +2919,6 @@ function buildBrowserSections(
             key,
             title: formatGroupHeading(groupBy, key),
         }));
-}
-
-function buildBrowserListEntries({
-    collapsedSectionKeys,
-    enableSectionCollapse,
-    sections,
-}: {
-    collapsedSectionKeys: Set<string>;
-    enableSectionCollapse: boolean;
-    sections: BrowserGroup[];
-}): BrowserListEntry[] {
-    let totalItemCount = 0;
-    for (const section of sections) {
-        if (enableSectionCollapse && collapsedSectionKeys.has(section.key)) {
-            continue;
-        }
-        totalItemCount += section.items.length;
-    }
-
-    let itemPosition = 0;
-    const entries: BrowserListEntry[] = [];
-    for (const section of sections) {
-        const isCollapsed =
-            enableSectionCollapse && collapsedSectionKeys.has(section.key);
-
-        if (enableSectionCollapse) {
-            entries.push({
-                key: `${section.key}:header`,
-                section,
-                type: "header",
-            });
-
-            if (!(section.title || isCollapsed)) {
-                entries.push({
-                    key: `${section.key}:overview`,
-                    section,
-                    type: "overview",
-                });
-            }
-        }
-
-        if (isCollapsed) {
-            continue;
-        }
-
-        if (section.items.length === 0) {
-            entries.push({
-                key: `${section.key}:empty`,
-                section,
-                type: "empty",
-            });
-            continue;
-        }
-
-        for (const item of section.items) {
-            itemPosition += 1;
-            entries.push({
-                item,
-                itemPosition,
-                key: `${section.key}:item:${item.id}`,
-                section,
-                totalItemCount,
-                type: "item",
-            });
-        }
-    }
-
-    return entries;
 }
 
 async function saveLibraryNoteDraft({
@@ -3562,11 +3128,6 @@ function useLibraryItemActions(args: {
     };
 }
 
-interface BoardColumnItem {
-    item: LibraryItemWithCollections;
-    value: string;
-}
-
 interface PreviewMediaProps {
     isHovered?: boolean;
     src: string | null;
@@ -3763,49 +3324,6 @@ interface LibraryGridCardMenuProps {
     kind: "context" | "menu";
     onDownload: () => void;
     previewImageUrl: string | null;
-}
-
-interface LibraryGridLayoutProps {
-    items: LibraryItemWithCollections[];
-}
-
-function buildBoardColumns(
-    collections: LibraryCollectionSummary[],
-    items: LibraryItemWithCollections[]
-): Record<string, BoardColumnItem[]> {
-    const columns: Record<string, BoardColumnItem[]> = {
-        [UNASSIGNED_COLLECTION_COLUMN_ID]: [],
-    };
-
-    for (const collection of collections) {
-        columns[collection.id] = [];
-    }
-
-    for (const item of items) {
-        if (item.collections.length === 0) {
-            columns[UNASSIGNED_COLLECTION_COLUMN_ID]?.push({
-                item,
-                value: `${UNASSIGNED_COLLECTION_COLUMN_ID}:${item.id}`,
-            });
-            continue;
-        }
-
-        for (const collection of collections) {
-            const belongsToCollection = item.collections.some(
-                (entry) => entry.id === collection.id
-            );
-            if (!belongsToCollection) {
-                continue;
-            }
-
-            columns[collection.id]?.push({
-                item,
-                value: `${collection.id}:${item.id}`,
-            });
-        }
-    }
-
-    return columns;
 }
 
 function itemDateLabel(dateValue: Date | string | null | undefined): string {
@@ -4362,317 +3880,6 @@ function Card({ item }: LibraryGridCardProps) {
     );
 }
 
-function ListRow({ item }: LibraryGridCardProps) {
-    const { collections, onOpenInNewTab, onOpenNote, onUpdateItemCollections } =
-        useLibraryGridCardContext();
-    const isNote = item.kind === ITEM_KIND_NOTE;
-    const [isDownloading, setIsDownloading] = React.useState(false);
-    const [isCollectionPickerOpen, setIsCollectionPickerOpen] =
-        React.useState(false);
-    const [isRowHovered, setIsRowHovered] = React.useState(false);
-    const href = normalizeURL(item.url);
-    const title = itemPrimaryText(item);
-    const domain = itemDomain(item.url);
-    const previewImageUrl = itemPreviewImageUrl(item);
-    const createdLabel = itemDateLabel(item.createdAt);
-    const addedLabel = itemDateLabel(item.scrapedAt ?? item.createdAt);
-    const collectionPreview = item.collections.slice(
-        0,
-        LIST_ROW_COLLECTION_PREVIEW_LIMIT
-    );
-    const hiddenCollectionCount = Math.max(
-        0,
-        item.collections.length - collectionPreview.length
-    );
-
-    const handlePrimaryClick = useStableCallback(
-        (event: React.MouseEvent<HTMLAnchorElement>) => {
-            event.preventDefault();
-            if (isNote) {
-                onOpenNote?.(item);
-                return;
-            }
-            onOpenInNewTab?.(item);
-        }
-    );
-
-    const handleDownload = useStableCallback(async () => {
-        setIsDownloading(true);
-        try {
-            await downloadLibraryItemMedia(item);
-        } catch (error) {
-            log.error("Failed to prepare media download", error, {
-                itemId: item.id,
-                url: item.url,
-            });
-        } finally {
-            setIsDownloading(false);
-        }
-    });
-
-    const handleRowKeyDown = useStableCallback(
-        (event: React.KeyboardEvent<HTMLElement>) => {
-            if (
-                event.defaultPrevented ||
-                event.nativeEvent.isComposing ||
-                event.metaKey ||
-                event.ctrlKey ||
-                event.altKey ||
-                isCollectionPickerOpen ||
-                isTextEntryTarget(
-                    event.target,
-                    getOwnerWindow(event.currentTarget)
-                ) ||
-                event.key.toLowerCase() !== "s"
-            ) {
-                return;
-            }
-
-            event.preventDefault();
-            setIsCollectionPickerOpen(true);
-        }
-    );
-
-    return (
-        <ContextMenu>
-            <ContextMenuTrigger
-                onKeyDown={handleRowKeyDown}
-                render={
-                    <div className="group flex min-h-18 w-full items-center gap-2 rounded-lg border border-border/60 bg-card/45 px-2.5 py-2 transition-colors hover:bg-card/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60" />
-                }
-            >
-                <a
-                    className="flex min-w-0 flex-1 items-center gap-3 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
-                    href={href}
-                    onClick={handlePrimaryClick}
-                    onMouseEnter={() => setIsRowHovered(true)}
-                    onMouseLeave={() => setIsRowHovered(false)}
-                    rel="noopener noreferrer"
-                    target={isNote ? undefined : "_blank"}
-                >
-                    <ListRowPreview
-                        isHovered={isRowHovered}
-                        item={item}
-                        previewImageUrl={previewImageUrl}
-                    />
-                    <div className="grid min-w-0 flex-1 gap-1">
-                        <div className="flex min-w-0 items-center gap-2">
-                            <p className="truncate font-medium text-sm">
-                                {title}
-                            </p>
-                        </div>
-                        <div className="flex min-w-0 items-center gap-2 text-muted-foreground text-xs">
-                            <span className="shrink-0">{domain}</span>
-                            {addedLabel ? (
-                                <>
-                                    <span aria-hidden>·</span>
-                                    <span className="shrink-0 tabular-nums">
-                                        Added {addedLabel}
-                                    </span>
-                                </>
-                            ) : null}
-                            {createdLabel && createdLabel !== addedLabel ? (
-                                <>
-                                    <span aria-hidden>·</span>
-                                    <span className="hidden shrink-0 tabular-nums md:inline">
-                                        Created {createdLabel}
-                                    </span>
-                                </>
-                            ) : null}
-                        </div>
-                    </div>
-                </a>
-                <div className="hidden min-w-0 max-w-56 shrink items-center justify-end gap-1 lg:flex">
-                    {collectionPreview.map((collection) => (
-                        <Badge
-                            className="max-w-28 truncate"
-                            key={collection.id}
-                            size="sm"
-                            variant="secondary"
-                        >
-                            {collection.name}
-                        </Badge>
-                    ))}
-                    {hiddenCollectionCount > 0 ? (
-                        <Badge size="sm" variant="secondary">
-                            +{hiddenCollectionCount}
-                        </Badge>
-                    ) : null}
-                </div>
-                <div className="flex shrink-0 items-center gap-1">
-                    <CollectionComboboxPicker
-                        appearance="inline"
-                        collections={collections}
-                        items={[item]}
-                        onOpenChange={setIsCollectionPickerOpen}
-                        onUpdateItemCollections={onUpdateItemCollections}
-                        open={isCollectionPickerOpen}
-                    />
-                    <Menu>
-                        <MenuTrigger
-                            render={
-                                <Button
-                                    aria-label="Open item menu"
-                                    className="rounded-full"
-                                    size="icon-sm"
-                                    variant="ghost"
-                                >
-                                    <Ellipsis className="size-4 text-muted-foreground" />
-                                </Button>
-                            }
-                        />
-                        <MenuPopup align="end">
-                            <CardMenu
-                                addedLabel={addedLabel}
-                                createdLabel={createdLabel}
-                                href={href}
-                                isDownloading={isDownloading}
-                                item={item}
-                                kind="menu"
-                                onDownload={handleDownload}
-                                previewImageUrl={previewImageUrl}
-                            />
-                        </MenuPopup>
-                    </Menu>
-                </div>
-            </ContextMenuTrigger>
-            <ContextMenuPopup>
-                <CardMenu
-                    addedLabel={addedLabel}
-                    createdLabel={createdLabel}
-                    href={href}
-                    isDownloading={isDownloading}
-                    item={item}
-                    kind="context"
-                    onDownload={handleDownload}
-                    previewImageUrl={previewImageUrl}
-                />
-            </ContextMenuPopup>
-        </ContextMenu>
-    );
-}
-
-function ListRowPreview({
-    isHovered,
-    item,
-    previewImageUrl,
-}: {
-    isHovered: boolean;
-    item: LibraryItemWithCollections;
-    previewImageUrl: string | null;
-}) {
-    const [hasImageFailed, setHasImageFailed] = React.useState(false);
-
-    const handleImageError = useStableCallback(() => {
-        setHasImageFailed(true);
-    });
-
-    if (item.kind === ITEM_KIND_NOTE) {
-        return (
-            <div className="flex size-12 shrink-0 items-center justify-center rounded-md bg-linear-to-br from-amber-50 via-background to-stone-100 ring-1 ring-border/50">
-                <NotebookPenIcon className="size-5 text-amber-700/80" />
-            </div>
-        );
-    }
-
-    return (
-        <div className="relative size-12 shrink-0 overflow-hidden rounded-md bg-muted ring-1 ring-border/50">
-            {previewImageUrl && !hasImageFailed ? (
-                // biome-ignore lint/a11y/noNoninteractiveElementInteractions: image load failures drive the visual fallback state
-                <img
-                    alt=""
-                    className={cn(
-                        "size-full object-cover transition-transform duration-150",
-                        isHovered && "scale-105"
-                    )}
-                    height={48}
-                    loading="lazy"
-                    onError={handleImageError}
-                    src={previewImageUrl}
-                    width={48}
-                />
-            ) : (
-                <div className="flex size-full items-center justify-center">
-                    <Globe className="size-5 text-muted-foreground/60" />
-                </div>
-            )}
-        </div>
-    );
-}
-
-function BoardLayout({ items }: LibraryGridLayoutProps) {
-    const { collections } = useLibraryGridCardContext();
-    const boardColumns = buildBoardColumns(collections, items);
-    const columnIds = [
-        UNASSIGNED_COLLECTION_COLUMN_ID,
-        ...collections.map((collection) => collection.id),
-    ];
-
-    return (
-        <div className="overflow-x-auto pb-1">
-            <Kanban orientation="horizontal">
-                <KanbanBoard className="min-w-max items-start gap-3">
-                    {columnIds.map((columnId) => {
-                        const column = collections.find(
-                            (item) => item.id === columnId
-                        );
-                        const PriorityIcon = column
-                            ? getPriorityOption(column.priority).icon
-                            : null;
-                        const columnName =
-                            columnId === UNASSIGNED_COLLECTION_COLUMN_ID
-                                ? "No collection"
-                                : (column?.name ?? "Collection");
-                        const columnItems = boardColumns[columnId] ?? [];
-                        const priorityIconColor = column
-                            ? `color-mix(in srgb, ${getHexColorFromName(column.name)}, black 50%)`
-                            : undefined;
-
-                        return (
-                            <KanbanColumn className="w-76" key={columnId}>
-                                <div className="mb-2 flex items-center gap-3">
-                                    <div className="flex min-w-0 items-center gap-2">
-                                        {PriorityIcon ? (
-                                            <span
-                                                aria-hidden
-                                                className="flex size-4 shrink-0 items-center justify-center"
-                                                style={{
-                                                    color: priorityIconColor,
-                                                }}
-                                            >
-                                                <PriorityIcon className="size-4" />
-                                            </span>
-                                        ) : null}
-                                        <h3 className="truncate font-medium text-sm">
-                                            {columnName}
-                                        </h3>
-                                    </div>
-                                    <span className="shrink-0 font-medium text-muted-foreground text-xs tabular-nums">
-                                        {columnItems.length}
-                                    </span>
-                                </div>
-                                <div className="flex min-h-24 flex-col gap-3">
-                                    {columnItems.length === 0 ? (
-                                        <p className="rounded-lg border border-border/60 border-dashed px-3 py-4 text-center text-muted-foreground text-xs">
-                                            No items yet
-                                        </p>
-                                    ) : (
-                                        columnItems.map((columnItem) => (
-                                            <KanbanItem key={columnItem.value}>
-                                                <Card item={columnItem.item} />
-                                            </KanbanItem>
-                                        ))
-                                    )}
-                                </div>
-                            </KanbanColumn>
-                        );
-                    })}
-                </KanbanBoard>
-            </Kanban>
-        </div>
-    );
-}
-
 interface LockedLibraryPreviewPlaceholder {
     aspect: string;
     id: string;
@@ -4755,97 +3962,25 @@ function LockedPreviewCard({
     );
 }
 
-function LockedPreviewListRow({
-    placeholder,
-}: {
-    placeholder: LockedLibraryPreviewPlaceholder;
-}) {
-    return (
-        <div className="flex min-h-18 items-center gap-3 rounded-lg border border-border/50 bg-card/45 px-3 py-2">
-            <div className="flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-md bg-muted ring-1 ring-border/40">
-                {placeholder.kind === "note" ? (
-                    <NotebookPenIcon className="size-5 text-muted-foreground/60" />
-                ) : (
-                    <Globe className="size-5 text-muted-foreground/60" />
-                )}
-            </div>
-            <div className="grid min-w-0 flex-1 gap-2">
-                <Skeleton className="h-3 w-[72%]" />
-                <Skeleton className="h-2.5 w-[48%]" />
-            </div>
-            <Skeleton className="hidden h-6 w-24 rounded-full md:block" />
-        </div>
-    );
-}
-
 function LockedResults({
     columnCount,
-    layoutMode,
     totalItemCount,
 }: {
     columnCount?: number;
-    layoutMode: LayoutMode;
     totalItemCount: number;
 }) {
-    let lockedPreviewContent: ReactNode;
-    if (layoutMode === "list") {
-        lockedPreviewContent = (
-            <div className="flex flex-col gap-2">
-                {LOCKED_LIBRARY_PREVIEW_PLACEHOLDERS.map((placeholder) => (
-                    <LockedPreviewListRow
-                        key={placeholder.id}
-                        placeholder={placeholder}
-                    />
-                ))}
-            </div>
-        );
-    } else if (layoutMode === "board") {
-        lockedPreviewContent = (
-            <div className="grid gap-3 md:grid-cols-3">
-                {["Locked", "Preview", "Upgrade"].map((label, index) => (
-                    <div
-                        className="rounded-2xl border border-border/50 bg-card/35 p-3"
-                        key={label}
-                    >
-                        <div className="mb-3 flex items-center justify-between gap-3">
-                            <h3 className="font-medium text-sm">{label}</h3>
-                            <span className="font-medium text-muted-foreground text-xs tabular-nums">
-                                3
-                            </span>
-                        </div>
-                        <div className="flex flex-col gap-3">
-                            {LOCKED_LIBRARY_PREVIEW_PLACEHOLDERS.slice(
-                                index * 3,
-                                index * 3 + 3
-                            ).map((placeholder) => (
-                                <LockedPreviewCard
-                                    key={placeholder.id}
-                                    placeholder={placeholder}
-                                />
-                            ))}
-                        </div>
-                    </div>
-                ))}
-            </div>
-        );
-    } else {
-        lockedPreviewContent = (
-            <Masonry columnCount={columnCount} gap={4}>
-                {LOCKED_LIBRARY_PREVIEW_PLACEHOLDERS.map((placeholder) => (
-                    <MasonryItem key={placeholder.id}>
-                        <LockedPreviewCard placeholder={placeholder} />
-                    </MasonryItem>
-                ))}
-            </Masonry>
-        );
-    }
-
     return (
         <div className="relative isolate flex flex-col gap-8">
             <BlockPaywallBanner length={totalItemCount} />
             <div className="pointer-events-none absolute inset-0 z-10 rounded-[2rem] bg-linear-to-b from-background/10 via-background/45 to-background/75" />
             <div className="select-none opacity-70 blur-[1.5px] saturate-75">
-                {lockedPreviewContent}
+                <Masonry columnCount={columnCount} gap={4}>
+                    {LOCKED_LIBRARY_PREVIEW_PLACEHOLDERS.map((placeholder) => (
+                        <MasonryItem key={placeholder.id}>
+                            <LockedPreviewCard placeholder={placeholder} />
+                        </MasonryItem>
+                    ))}
+                </Masonry>
             </div>
         </div>
     );
@@ -5029,8 +4164,6 @@ export function Browser({
     const [sortMode, setSortMode] = React.useState<SortMode>(DEFAULT_SORT_MODE);
     const [columnCountMode, setColumnCountMode] =
         React.useState<ColumnCountMode>(DEFAULT_COLUMN_COUNT_MODE);
-    const [layoutMode, setLayoutMode] =
-        React.useState<LayoutMode>(DEFAULT_LAYOUT_MODE);
     const [paletteSection, setPaletteSection] =
         React.useState<PaletteSection>("search");
     const [commandAttachments, setCommandAttachments] = React.useState<
@@ -5114,7 +4247,6 @@ export function Browser({
         setGroupBy("none");
         setSortMode(DEFAULT_SORT_MODE);
         setColumnCountMode(DEFAULT_COLUMN_COUNT_MODE);
-        setLayoutMode(DEFAULT_LAYOUT_MODE);
         setPaletteSection("search");
         setIsCommandOpen(false);
     });
@@ -5126,7 +4258,6 @@ export function Browser({
                 columnCountMode,
                 domainFilters,
                 groupBy,
-                layoutMode,
                 searchTerms,
                 selectedCollectionIds,
                 sortMode,
@@ -5189,9 +4320,6 @@ export function Browser({
             }
             if (patch.columnCountMode) {
                 setColumnCountMode(patch.columnCountMode);
-            }
-            if (patch.layoutMode) {
-                setLayoutMode(patch.layoutMode);
             }
             if (patch.selectedCollectionIds) {
                 onClearCollectionFilters();
@@ -5296,7 +4424,6 @@ export function Browser({
         domainFilters,
         domainOptions,
         groupBy,
-        layoutMode,
         onAskCacheSubmit: handleAskCacheSubmit,
         onClearCollectionFilters,
         onToggleCollectionSelection: onRemoveCollectionFilter,
@@ -5311,7 +4438,6 @@ export function Browser({
         setDomainFilters,
         setGroupBy,
         setIsCommandOpen,
-        setLayoutMode,
         setQuery,
         setSearchTerms,
         setSortMode,
@@ -5344,7 +4470,6 @@ export function Browser({
         groupBy !== "none" ||
         sortMode !== DEFAULT_SORT_MODE ||
         columnCountMode !== DEFAULT_COLUMN_COUNT_MODE ||
-        layoutMode !== DEFAULT_LAYOUT_MODE ||
         sourceFilters.length > 0;
 
     const shouldShowEmptyLibraryPeek =
@@ -5368,9 +4493,7 @@ export function Browser({
     });
 
     const resolvedColumnCount =
-        layoutMode === "masonry" && columnCountMode !== "auto"
-            ? Number(columnCountMode)
-            : undefined;
+        columnCountMode === "auto" ? undefined : Number(columnCountMode);
 
     const collapsedSectionKeySet = new Set(collapsedSectionKeys);
 
@@ -5409,7 +4532,6 @@ export function Browser({
         groupBy,
         isExtensionInstalled,
         items: filteredItems,
-        layoutMode,
         onClearCollectionFilters,
         onCreateCollection: requestCreate,
         onToggleCollectionSelection: onRemoveCollectionFilter,
@@ -5419,7 +4541,6 @@ export function Browser({
         setDomainFilters,
         setGroupBy,
         setIsCommandOpen,
-        setLayoutMode,
         setQuery,
         setSearchTerms,
         setSortMode,
@@ -5581,7 +4702,6 @@ export function Browser({
         commandAttachments,
         domainFilters,
         groupBy,
-        layoutMode,
         onRemoveCollectionFilter,
         onRemoveCommandAttachment: removeCommandAttachment,
         searchTerms,
@@ -5590,7 +4710,6 @@ export function Browser({
         setColumnCountMode,
         setDomainFilters,
         setGroupBy,
-        setLayoutMode,
         setSearchTerms,
         setSortMode,
         setSourceFilters,
@@ -5975,8 +5094,6 @@ export function Browser({
         placeholder = "Group results…";
     } else if (paletteSection === "sort") {
         placeholder = "Sort results…";
-    } else if (paletteSection === "layout") {
-        placeholder = "Change the layout…";
     } else if (paletteSection === "ai-response") {
         placeholder = "Ask Cache…";
     }
@@ -6055,7 +5172,6 @@ export function Browser({
                 columnCount={resolvedColumnCount}
                 enableSectionCollapse={enableSectionCollapse}
                 favoriteItemIdSet={favoriteItemIdSet}
-                layoutMode={layoutMode}
                 onCollapseAllSections={collapseAllSections}
                 onCopyLink={handleCopyLink}
                 onCreateCollectionFromResults={() =>
@@ -6078,35 +5194,30 @@ export function Browser({
             >
                 <BrowserEmpty />
                 <BrowserFiltersEmpty />
-                {layoutMode === "list" ? (
-                    <BrowserListResults sections={sections} />
-                ) : (
-                    <BrowserList sections={sections}>
-                        {(section) =>
-                            enableSectionCollapse ? (
-                                <BrowserGroup>
-                                    <BrowserHeader />
-                                    {!section.title && (
-                                        <BrowserGroupOverview>
-                                            <BrowserGroupOverviewContent />
-                                        </BrowserGroupOverview>
-                                    )}
-                                    <BrowserGroupEmpty />
-                                    <BrowserCurrentLayout />
-                                </BrowserGroup>
-                            ) : (
-                                <BrowserGroup>
-                                    <BrowserCurrentLayout />
-                                </BrowserGroup>
-                            )
-                        }
-                    </BrowserList>
-                )}
+                <BrowserList sections={sections}>
+                    {(section) =>
+                        enableSectionCollapse ? (
+                            <BrowserGroup>
+                                <BrowserHeader />
+                                {!section.title && (
+                                    <BrowserGroupOverview>
+                                        <BrowserGroupOverviewContent />
+                                    </BrowserGroupOverview>
+                                )}
+                                <BrowserGroupEmpty />
+                                <BrowserMasonry />
+                            </BrowserGroup>
+                        ) : (
+                            <BrowserGroup>
+                                <BrowserMasonry />
+                            </BrowserGroup>
+                        )
+                    }
+                </BrowserList>
             </BrowserResults>
             {shouldShowLockedPreview ? (
                 <LockedResults
                     columnCount={resolvedColumnCount}
-                    layoutMode={layoutMode}
                     totalItemCount={totalItemCount}
                 />
             ) : null}
