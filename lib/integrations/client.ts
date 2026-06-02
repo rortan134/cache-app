@@ -48,9 +48,9 @@ export function executeOpenBehavior(
     extensionInstalled: boolean
 ) {
     const targetUrl =
-        extensionInstalled || !behavior.installUrl
-            ? behavior.openUrl
-            : behavior.installUrl;
+        extensionInstalled || !behavior.installURL
+            ? behavior.openURL
+            : behavior.installURL;
 
     openExternal(targetUrl);
 }

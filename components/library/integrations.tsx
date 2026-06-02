@@ -174,7 +174,7 @@ function resolveActionLabel(args: {
 
     switch (role) {
         case "open":
-            return !isExtensionInstalled && openBehavior?.installUrl
+            return !isExtensionInstalled && openBehavior?.installURL
                 ? "Get Extension"
                 : "Open";
         case "connect":

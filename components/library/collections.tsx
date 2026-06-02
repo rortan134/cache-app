@@ -3111,7 +3111,7 @@ function CollectionsRenameDialog() {
                                 onChange={(event) =>
                                     onNameDraftChange(event.currentTarget.value)
                                 }
-                                placeholder="Collection title"
+                                placeholder="Collection name"
                                 required
                                 type="text"
                                 value={nameDraft}
@@ -3205,7 +3205,7 @@ function CollectionsCreateDialog() {
                                 onChange={(event) =>
                                     onNameDraftChange(event.currentTarget.value)
                                 }
-                                placeholder="Collection title"
+                                placeholder="Collection name"
                                 required
                                 size="lg"
                                 type="text"
@@ -3243,9 +3243,9 @@ function CollectionsCreateDialog() {
                         <Alert>
                             <Lightbulb />
                             <AlertDescription>
-                                Collections keep your best saved items in one
-                                place. Use them for ongoing work, or just to
-                                keep things tidy.
+                                Collections keep your best saves and content in
+                                one place. Use them for ongoing goals, or just
+                                to keep things tidy.
                             </AlertDescription>
                         </Alert>
                     </DialogPanel>

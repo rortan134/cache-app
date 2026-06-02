@@ -63,9 +63,9 @@ export interface SupportedIntegrationAction {
 }
 
 export interface ExtensionOpenBehavior {
-    installUrl: string;
+    installURL: string;
     kind: "extension-entry";
-    openUrl: string;
+    openURL: string;
 }
 
 export interface OAuthLinkConnectBehavior {
@@ -130,14 +130,14 @@ const LIBRARY_CALLBACK_URL = "/library";
 
 function formatImportedCountMessage(
     payload: Record<string, unknown>,
-    noun: string
+    noun: string,
+    plural?: string
 ): string | null {
     const importedCount = payload.importedCount;
     if (typeof importedCount !== "number") {
         return null;
     }
-
-    return `Imported ${importedCount} ${noun}${importedCount === 1 ? "" : "s"}.`;
+    return `Imported ${importedCount} ${importedCount === 1 ? noun : (plural ?? `${noun}s`)}.`;
 }
 
 export const INTEGRATIONS = [
@@ -161,7 +161,7 @@ export const INTEGRATIONS = [
                 providerId: "x",
             },
             sync: {
-                errorMessage: "Could not import bookmarks from X right now.",
+                errorMessage: "Could not import bookmarks from X.",
                 kind: "route",
                 method: "POST",
                 path: "/api/integrations/x/import",
@@ -195,13 +195,13 @@ export const INTEGRATIONS = [
         ],
         behaviors: {
             open: {
-                installUrl: CACHE_EXTENSION_DOWNLOAD_URL,
+                installURL: CACHE_EXTENSION_DOWNLOAD_URL,
                 kind: "extension-entry",
-                openUrl: CACHE_EXTENSION_DOWNLOAD_URL,
+                openURL: CACHE_EXTENSION_DOWNLOAD_URL,
             },
         },
         category: "social",
-        description: "Bookmarks from your browser",
+        description: "Bookmarks you save in your browser",
         Icon: ChromeIcon,
         id: "chrome",
         label: "Chrome",
@@ -225,13 +225,13 @@ export const INTEGRATIONS = [
         ],
         behaviors: {
             open: {
-                installUrl: CACHE_EXTENSION_DOWNLOAD_URL,
+                installURL: CACHE_EXTENSION_DOWNLOAD_URL,
                 kind: "extension-entry",
-                openUrl: "https://www.youtube.com/playlist?list=WL",
+                openURL: "https://www.youtube.com/playlist?list=WL",
             },
         },
         category: "media",
-        description: "Videos in your playlists",
+        description: "Videos you save to playlists",
         Icon: YouTubeIcon,
         id: "youtube",
         label: "YouTube",
@@ -255,9 +255,9 @@ export const INTEGRATIONS = [
         ],
         behaviors: {
             open: {
-                installUrl: CACHE_EXTENSION_DOWNLOAD_URL,
+                installURL: CACHE_EXTENSION_DOWNLOAD_URL,
                 kind: "extension-entry",
-                openUrl: "https://www.instagram.com/explore/saved/",
+                openURL: "https://www.instagram.com/explore/saved/",
             },
         },
         category: "social",
@@ -285,13 +285,13 @@ export const INTEGRATIONS = [
         ],
         behaviors: {
             open: {
-                installUrl: CACHE_EXTENSION_DOWNLOAD_URL,
+                installURL: CACHE_EXTENSION_DOWNLOAD_URL,
                 kind: "extension-entry",
-                openUrl: "https://www.tiktok.com/profile",
+                openURL: "https://www.tiktok.com/profile",
             },
         },
         category: "social",
-        description: "Videos in your Favorites",
+        description: "Videos you save to Favorites",
         Icon: TikTokIcon,
         id: "tiktok",
         label: "TikTok",
@@ -332,7 +332,7 @@ export const INTEGRATIONS = [
             },
         },
         category: "media",
-        description: "Starred photos and albums",
+        description: "Photos and albums you star",
         Icon: PhotosIcon,
         id: "google-photos",
         label: "Google Photos",
@@ -367,7 +367,7 @@ export const INTEGRATIONS = [
                 providerId: "pinterest",
             },
             sync: {
-                errorMessage: "Could not import pins from Pinterest right now.",
+                errorMessage: "Could not import pins from Pinterest.",
                 kind: "route",
                 method: "POST",
                 path: "/api/integrations/pinterest/import",
@@ -377,7 +377,7 @@ export const INTEGRATIONS = [
             },
         },
         category: "social",
-        description: "Pins saved to boards",
+        description: "Pins you save to boards",
         Icon: PinterestIcon,
         id: "pinterest",
         label: "Pinterest",
@@ -413,17 +413,21 @@ export const INTEGRATIONS = [
             },
             sync: {
                 errorMessage:
-                    "Could not import starred repositories from GitHub right now.",
+                    "Could not import starred repositories from GitHub.",
                 kind: "route",
                 method: "POST",
                 path: "/api/integrations/github/import",
                 successKey: "importedCount",
                 successMessage: (payload) =>
-                    formatImportedCountMessage(payload, "repository"),
+                    formatImportedCountMessage(
+                        payload,
+                        "repository",
+                        "repositories"
+                    ),
             },
         },
         category: "developer",
-        description: "Repositories you star to revisit later",
+        description: "Repositories you star",
         Icon: GithubIcon,
         id: "github",
         label: "GitHub",
