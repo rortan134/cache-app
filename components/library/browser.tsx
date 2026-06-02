@@ -3919,7 +3919,7 @@ function MediaCard({ item }: LibraryGridCardProps) {
                 </a>
                 <div
                     className={cn(
-                        "overflow-fade-top absolute inset-x-0 bottom-0 flex items-center gap-0.5 overflow-hidden bg-black/35 px-1.5 pt-2 pb-1 backdrop-blur-[2px]",
+                        "overflow-fade-top absolute inset-x-0 bottom-0 flex items-center gap-0.5 overflow-hidden bg-black/35 px-1.5 pt-2 pb-0.5 backdrop-blur-[2px]",
                         {
                             "bg-black/4 opacity-80 mix-blend-difference":
                                 isNote,

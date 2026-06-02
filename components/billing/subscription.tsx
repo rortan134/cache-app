@@ -147,7 +147,7 @@ function SubscriptionStatusBadge() {
             {(subscription) => {
                 if (!subscription) {
                     return (
-                        <SubscriptionBadge>
+                        <SubscriptionBadge hideIcon>
                             <T context="Free plan label">Free plan</T>
                         </SubscriptionBadge>
                     );
@@ -406,16 +406,17 @@ function subscriptionStatusLabel(status: string | null | undefined) {
 function SubscriptionBadge({
     className,
     children,
+    hideIcon,
     variant = "secondary",
     ...props
-}: React.ComponentProps<typeof Badge>) {
+}: React.ComponentProps<typeof Badge> & { hideIcon?: boolean }) {
     return (
         <Badge
             className={cn("h-7! w-full", className)}
             variant={variant}
             {...props}
         >
-            <CrownFilledIcon />
+            {hideIcon ? null : <CrownFilledIcon />}
             {children}
         </Badge>
     );

@@ -35,6 +35,8 @@ import { Calligraph } from "calligraph";
 import { CircleFadingPlus, Grid2x2, Grid2x2X, SquarePen } from "lucide-react";
 import * as React from "react";
 
+const COMMAND_MATCH_WORD_SEPARATOR_PATTERN = /[\s:./_-]+/;
+
 interface PaletteStackEntry {
     chip: React.ReactNode;
     key: string;
@@ -47,7 +49,15 @@ interface CommandSuggestion {
     onSelect: () => void;
 }
 
-const COMMAND_MATCH_WORD_SEPARATOR_PATTERN = /[\s:./_-]+/;
+interface CommandItemRank {
+    index: number;
+    score: number;
+}
+
+interface RankedCommandPaletteItem {
+    item: CommandPaletteItem;
+    rank: CommandItemRank;
+}
 
 type ComposerActionsContextValue = Omit<
     ComposerActionsProps,
@@ -80,17 +90,11 @@ export function ComposerInput({
     stackEntries,
 }: ComposerInputProps) {
     const filteredGroups = useGetVisibleGroups({ groups, query });
-    const filteredItems = filteredGroups.map((group) => ({
-        items: group.items,
-    }));
-    const items = groups.map((group) => ({
-        items: group.items,
-    }));
 
     return (
         <Command
-            filteredItems={filteredItems}
-            items={items}
+            filteredItems={filteredGroups}
+            items={groups}
             onOpenChange={onOpenChange}
             onValueChange={onValueChange}
             open={isOpen}
@@ -130,9 +134,11 @@ export function ComposerInput({
                                         className="justify-end"
                                         maxVisible={1}
                                     >
-                                        {stackEntries.map(
-                                            (entry) => entry.chip
-                                        )}
+                                        {stackEntries.map((entry) => (
+                                            <React.Fragment key={entry.key}>
+                                                {entry.chip}
+                                            </React.Fragment>
+                                        ))}
                                     </TruncateAfter>
                                 </>
                             }
@@ -381,6 +387,100 @@ export function Composer({
     );
 }
 
+function useGetVisibleGroups({
+    groups,
+    query,
+}: {
+    groups: CommandPaletteGroup[];
+    query: string;
+}): CommandPaletteGroup[] {
+    const filter = useCommandFilter();
+
+    const normalizedQuery = query.trim();
+    if (normalizedQuery.length === 0) {
+        return groups;
+    }
+
+    const visibleGroups: CommandPaletteGroup[] = [];
+
+    for (const group of groups) {
+        const rankedItems: RankedCommandPaletteItem[] = [];
+
+        for (const [index, item] of group.items.entries()) {
+            const rank = getCommandItemRank({
+                filter,
+                index,
+                item,
+                query: normalizedQuery,
+            });
+            if (rank !== null) {
+                rankedItems.push({ item, rank });
+            }
+        }
+
+        if (rankedItems.length === 0) {
+            continue;
+        }
+
+        rankedItems.sort(
+            (first, second) =>
+                first.rank.score - second.rank.score ||
+                first.rank.index - second.rank.index
+        );
+
+        visibleGroups.push({
+            ...group,
+            items: rankedItems.map(({ item }) => item),
+        });
+    }
+
+    return visibleGroups;
+}
+
+function getCommandItemRank({
+    filter,
+    index,
+    item,
+    query,
+}: {
+    filter: ReturnType<typeof useCommandFilter>;
+    index: number;
+    item: CommandPaletteItem;
+    query: string;
+}): CommandItemRank | null {
+    const label = item.label;
+    const value = item.value;
+    const description = item.description ?? "";
+
+    if (label.trim().toLocaleLowerCase() === query.toLocaleLowerCase()) {
+        return { index, score: 0 };
+    }
+    if (filter.startsWith(label, query)) {
+        return { index, score: 1 };
+    }
+    if (
+        label
+            .split(COMMAND_MATCH_WORD_SEPARATOR_PATTERN)
+            .some((word) => filter.startsWith(word, query))
+    ) {
+        return { index, score: 2 };
+    }
+    if (filter.contains(label, query)) {
+        return { index, score: 3 };
+    }
+    if (filter.startsWith(value, query)) {
+        return { index, score: 4 };
+    }
+    if (filter.contains(value, query)) {
+        return { index, score: 5 };
+    }
+    if (description !== "" && filter.contains(description, query)) {
+        return { index, score: 6 };
+    }
+
+    return null;
+}
+
 function CommandPaletteItemComponent({
     item,
     isHorizontal,
@@ -419,96 +519,6 @@ function CommandPaletteItemComponent({
             )}
         </CommandItem>
     );
-}
-
-function useGetVisibleGroups({
-    groups,
-    query,
-}: {
-    groups: CommandPaletteGroup[];
-    query: string;
-}): CommandPaletteGroup[] {
-    const filter = useCommandFilter();
-
-    const normalizedQuery = query.trim();
-    if (normalizedQuery.length === 0) {
-        return groups;
-    }
-
-    const visibleGroups: CommandPaletteGroup[] = [];
-
-    for (const group of groups) {
-        const rankedItems = group.items.flatMap((item, index) => {
-            const rank = getCommandItemRank({
-                filter,
-                index,
-                item,
-                query: normalizedQuery,
-            });
-            return rank === null ? [] : [{ item, rank }];
-        });
-
-        if (rankedItems.length === 0) {
-            continue;
-        }
-
-        rankedItems.sort(
-            (first, second) =>
-                first.rank.score - second.rank.score ||
-                first.rank.index - second.rank.index
-        );
-
-        visibleGroups.push({
-            ...group,
-            items: rankedItems.map(({ item }) => item),
-        });
-    }
-
-    return visibleGroups;
-}
-
-function getCommandItemRank({
-    filter,
-    index,
-    item,
-    query,
-}: {
-    filter: ReturnType<typeof useCommandFilter>;
-    index: number;
-    item: CommandPaletteItem;
-    query: string;
-}): { index: number; score: number } | null {
-    const label = item.label;
-    const value = item.value;
-    const description = item.description ?? "";
-
-    if (label.trim().toLocaleLowerCase() === query.trim().toLocaleLowerCase()) {
-        return { index, score: 0 };
-    }
-    if (filter.startsWith(label, query)) {
-        return { index, score: 1 };
-    }
-    if (
-        label
-            .split(COMMAND_MATCH_WORD_SEPARATOR_PATTERN)
-            .some((word) => filter.startsWith(word, query))
-    ) {
-        return { index, score: 2 };
-    }
-    if (filter.contains(label, query)) {
-        return { index, score: 3 };
-    }
-    if (filter.startsWith(value, query)) {
-        return { index, score: 4 };
-    }
-    if (filter.contains(value, query)) {
-        return { index, score: 5 };
-    }
-    if (description !== "" && filter.contains(description, query)) {
-        return { index, score: 6 };
-    }
-
-    return null;
 }
 
 function ActionButton({

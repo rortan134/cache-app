@@ -7,7 +7,8 @@ import { headers } from "next/headers";
 import { cache } from "react";
 
 const log = createLogger("Auth:session");
-const BETTER_AUTH_COOKIE_PREFIXES = ["better-auth.", "__Secure-better-auth."];
+
+const BETTER_AUTH_COOKIE_PREFIXES = ["__Secure-better-auth.", "better-auth."];
 const SESSION_DATA_COOKIE_NAME = "session_data";
 const SESSION_TOKEN_COOKIE_NAME = "session_token";
 
@@ -16,11 +17,9 @@ export const getServerSession = cache(async () => {
     const session = await auth.api.getSession({
         headers: requestHeaders,
     });
-
     if (session || !shouldRetryWithoutSessionDataCookie(requestHeaders)) {
         return session;
     }
-
     /**
      * better-auth reads the cache cookie before the durable session token.
      * If a refreshed response races with a client-side router refresh, that

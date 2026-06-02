@@ -145,228 +145,6 @@ export const INTEGRATIONS = [
         actions: [
             {
                 for: "source",
-                role: "open",
-            },
-        ],
-        behaviors: {
-            open: {
-                installUrl: CACHE_EXTENSION_DOWNLOAD_URL,
-                kind: "extension-entry",
-                openUrl: CACHE_EXTENSION_DOWNLOAD_URL,
-            },
-        },
-        category: "social",
-        description: "Bookmarks from your browser",
-        Icon: ChromeIcon,
-        id: "chrome",
-        label: "Chrome",
-        source: {
-            connectedWhen: [
-                {
-                    kind: "library-item-source",
-                    source: LibraryItemSource.chrome_bookmarks,
-                },
-            ],
-            libraryItemSources: [LibraryItemSource.chrome_bookmarks],
-            syncable: true,
-        },
-    },
-    {
-        actions: [
-            {
-                for: "source",
-                role: "connect",
-            },
-            {
-                for: "source",
-                role: "sync",
-                visibleWhen: "connected",
-            },
-        ],
-        behaviors: {
-            connect: {
-                callbackURL: LIBRARY_CALLBACK_URL,
-                errorCallbackURL: LIBRARY_CALLBACK_URL,
-                kind: "oauth-link",
-                providerId: "github",
-            },
-            sync: {
-                errorMessage:
-                    "Could not import starred repositories from GitHub right now.",
-                kind: "route",
-                method: "POST",
-                path: "/api/integrations/github/import",
-                successKey: "importedCount",
-                successMessage: (payload) =>
-                    formatImportedCountMessage(payload, "repository"),
-            },
-        },
-        category: "developer",
-        description: "Repositories you star to revisit later",
-        Icon: GithubIcon,
-        id: "github",
-        label: "GitHub",
-        source: {
-            connectedWhen: [
-                {
-                    kind: "linked-provider",
-                    providerId: "github",
-                },
-            ],
-            libraryItemSources: [LibraryItemSource.github_starred_repositories],
-            syncable: true,
-        },
-    },
-    {
-        actions: [
-            {
-                for: "source",
-                role: "connect",
-                visibleWhen: "disconnected",
-            },
-            {
-                for: "source",
-                label: "Open",
-                role: "sync",
-                visibleWhen: "connected",
-            },
-        ],
-        behaviors: {
-            connect: {
-                callbackURL: LIBRARY_CALLBACK_URL,
-                errorCallbackURL: LIBRARY_CALLBACK_URL,
-                kind: "social-sign-in",
-                provider: "google",
-            },
-            sync: {
-                kind: "google-photos-picker",
-            },
-        },
-        category: "media",
-        description: "Starred photos and albums",
-        Icon: PhotosIcon,
-        id: "google-photos",
-        label: "Google Photos",
-        source: {
-            connectedWhen: [
-                {
-                    kind: "linked-provider",
-                    providerId: "google",
-                },
-            ],
-            libraryItemSources: [LibraryItemSource.google_photos],
-            syncable: true,
-        },
-    },
-    {
-        actions: [
-            {
-                for: "source",
-                role: "open",
-            },
-        ],
-        behaviors: {
-            open: {
-                installUrl: CACHE_EXTENSION_DOWNLOAD_URL,
-                kind: "extension-entry",
-                openUrl: "https://www.instagram.com/explore/saved/",
-            },
-        },
-        category: "social",
-        description: "Posts you save to Favorites",
-        Icon: InstagramIcon,
-        id: "instagram",
-        label: "Instagram",
-        source: {
-            connectedWhen: [
-                {
-                    kind: "library-item-source",
-                    source: LibraryItemSource.instagram,
-                },
-            ],
-            libraryItemSources: [LibraryItemSource.instagram],
-            syncable: true,
-        },
-    },
-    {
-        actions: [
-            {
-                for: "source",
-                role: "connect",
-            },
-            {
-                for: "source",
-                role: "sync",
-                visibleWhen: "connected",
-            },
-        ],
-        behaviors: {
-            connect: {
-                callbackURL: LIBRARY_CALLBACK_URL,
-                errorCallbackURL: LIBRARY_CALLBACK_URL,
-                kind: "oauth-link",
-                providerId: "pinterest",
-            },
-            sync: {
-                errorMessage: "Could not import pins from Pinterest right now.",
-                kind: "route",
-                method: "POST",
-                path: "/api/integrations/pinterest/import",
-                successKey: "importedCount",
-                successMessage: (payload) =>
-                    formatImportedCountMessage(payload, "pin"),
-            },
-        },
-        category: "social",
-        description: "Pins saved to boards",
-        Icon: PinterestIcon,
-        id: "pinterest",
-        label: "Pinterest",
-        source: {
-            connectedWhen: [
-                {
-                    kind: "linked-provider",
-                    providerId: "pinterest",
-                },
-            ],
-            libraryItemSources: [LibraryItemSource.pinterest],
-            syncable: true,
-        },
-    },
-    {
-        actions: [
-            {
-                for: "source",
-                role: "open",
-            },
-        ],
-        behaviors: {
-            open: {
-                installUrl: CACHE_EXTENSION_DOWNLOAD_URL,
-                kind: "extension-entry",
-                openUrl: "https://www.tiktok.com/profile",
-            },
-        },
-        category: "social",
-        description: "Videos in your Favorites",
-        Icon: TikTokIcon,
-        id: "tiktok",
-        label: "TikTok",
-        source: {
-            connectedWhen: [
-                {
-                    kind: "library-item-source",
-                    source: LibraryItemSource.tiktok,
-                },
-            ],
-            libraryItemSources: [LibraryItemSource.tiktok],
-            syncable: true,
-        },
-    },
-    {
-        actions: [
-            {
-                for: "source",
                 role: "connect",
             },
             {
@@ -419,6 +197,36 @@ export const INTEGRATIONS = [
             open: {
                 installUrl: CACHE_EXTENSION_DOWNLOAD_URL,
                 kind: "extension-entry",
+                openUrl: CACHE_EXTENSION_DOWNLOAD_URL,
+            },
+        },
+        category: "social",
+        description: "Bookmarks from your browser",
+        Icon: ChromeIcon,
+        id: "chrome",
+        label: "Chrome",
+        source: {
+            connectedWhen: [
+                {
+                    kind: "library-item-source",
+                    source: LibraryItemSource.chrome_bookmarks,
+                },
+            ],
+            libraryItemSources: [LibraryItemSource.chrome_bookmarks],
+            syncable: true,
+        },
+    },
+    {
+        actions: [
+            {
+                for: "source",
+                role: "open",
+            },
+        ],
+        behaviors: {
+            open: {
+                installUrl: CACHE_EXTENSION_DOWNLOAD_URL,
+                kind: "extension-entry",
                 openUrl: "https://www.youtube.com/playlist?list=WL",
             },
         },
@@ -435,6 +243,198 @@ export const INTEGRATIONS = [
                 },
             ],
             libraryItemSources: [LibraryItemSource.youtube_watch_later],
+            syncable: true,
+        },
+    },
+    {
+        actions: [
+            {
+                for: "source",
+                role: "open",
+            },
+        ],
+        behaviors: {
+            open: {
+                installUrl: CACHE_EXTENSION_DOWNLOAD_URL,
+                kind: "extension-entry",
+                openUrl: "https://www.instagram.com/explore/saved/",
+            },
+        },
+        category: "social",
+        description: "Posts you save to Favorites",
+        Icon: InstagramIcon,
+        id: "instagram",
+        label: "Instagram",
+        source: {
+            connectedWhen: [
+                {
+                    kind: "library-item-source",
+                    source: LibraryItemSource.instagram,
+                },
+            ],
+            libraryItemSources: [LibraryItemSource.instagram],
+            syncable: true,
+        },
+    },
+    {
+        actions: [
+            {
+                for: "source",
+                role: "open",
+            },
+        ],
+        behaviors: {
+            open: {
+                installUrl: CACHE_EXTENSION_DOWNLOAD_URL,
+                kind: "extension-entry",
+                openUrl: "https://www.tiktok.com/profile",
+            },
+        },
+        category: "social",
+        description: "Videos in your Favorites",
+        Icon: TikTokIcon,
+        id: "tiktok",
+        label: "TikTok",
+        source: {
+            connectedWhen: [
+                {
+                    kind: "library-item-source",
+                    source: LibraryItemSource.tiktok,
+                },
+            ],
+            libraryItemSources: [LibraryItemSource.tiktok],
+            syncable: true,
+        },
+    },
+    {
+        actions: [
+            {
+                for: "source",
+                role: "connect",
+                visibleWhen: "disconnected",
+            },
+            {
+                for: "source",
+                label: "Open",
+                role: "sync",
+                visibleWhen: "connected",
+            },
+        ],
+        behaviors: {
+            connect: {
+                callbackURL: LIBRARY_CALLBACK_URL,
+                errorCallbackURL: LIBRARY_CALLBACK_URL,
+                kind: "social-sign-in",
+                provider: "google",
+            },
+            sync: {
+                kind: "google-photos-picker",
+            },
+        },
+        category: "media",
+        description: "Starred photos and albums",
+        Icon: PhotosIcon,
+        id: "google-photos",
+        label: "Google Photos",
+        source: {
+            connectedWhen: [
+                {
+                    kind: "linked-provider",
+                    providerId: "google",
+                },
+            ],
+            libraryItemSources: [LibraryItemSource.google_photos],
+            syncable: true,
+        },
+    },
+    {
+        actions: [
+            {
+                for: "source",
+                role: "connect",
+            },
+            {
+                for: "source",
+                role: "sync",
+                visibleWhen: "connected",
+            },
+        ],
+        behaviors: {
+            connect: {
+                callbackURL: LIBRARY_CALLBACK_URL,
+                errorCallbackURL: LIBRARY_CALLBACK_URL,
+                kind: "oauth-link",
+                providerId: "pinterest",
+            },
+            sync: {
+                errorMessage: "Could not import pins from Pinterest right now.",
+                kind: "route",
+                method: "POST",
+                path: "/api/integrations/pinterest/import",
+                successKey: "importedCount",
+                successMessage: (payload) =>
+                    formatImportedCountMessage(payload, "pin"),
+            },
+        },
+        category: "social",
+        description: "Pins saved to boards",
+        Icon: PinterestIcon,
+        id: "pinterest",
+        label: "Pinterest",
+        source: {
+            connectedWhen: [
+                {
+                    kind: "linked-provider",
+                    providerId: "pinterest",
+                },
+            ],
+            libraryItemSources: [LibraryItemSource.pinterest],
+            syncable: true,
+        },
+    },
+    {
+        actions: [
+            {
+                for: "source",
+                role: "connect",
+            },
+            {
+                for: "source",
+                role: "sync",
+                visibleWhen: "connected",
+            },
+        ],
+        behaviors: {
+            connect: {
+                callbackURL: LIBRARY_CALLBACK_URL,
+                errorCallbackURL: LIBRARY_CALLBACK_URL,
+                kind: "oauth-link",
+                providerId: "github",
+            },
+            sync: {
+                errorMessage:
+                    "Could not import starred repositories from GitHub right now.",
+                kind: "route",
+                method: "POST",
+                path: "/api/integrations/github/import",
+                successKey: "importedCount",
+                successMessage: (payload) =>
+                    formatImportedCountMessage(payload, "repository"),
+            },
+        },
+        category: "developer",
+        description: "Repositories you star to revisit later",
+        Icon: GithubIcon,
+        id: "github",
+        label: "GitHub",
+        source: {
+            connectedWhen: [
+                {
+                    kind: "linked-provider",
+                    providerId: "github",
+                },
+            ],
+            libraryItemSources: [LibraryItemSource.github_starred_repositories],
             syncable: true,
         },
     },
