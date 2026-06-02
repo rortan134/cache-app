@@ -2899,7 +2899,8 @@ interface CollectionItemMetadataProps {
  * Action menu and metadata for a collection list item.
  *
  * Renders a count badge that hides on hover, replacing it with an ellipsis
- * menu. Keyboard shortcuts (E, Delete/Backspace, C) are active while hovered.
+ * menu. Keyboard shortcuts (E, Delete/Backspace, C, Option+F) are active
+ * while hovered.
  */
 function CollectionItemMetadata({
     metadataDisplay,
@@ -2911,9 +2912,14 @@ function CollectionItemMetadata({
 
     const onRename = useStableCallback(() => controller.onRename(collection));
     const onDelete = useStableCallback(() => controller.onDelete(collection));
-    const onFavoriteToggle = useStableCallback(() =>
-        controller.onFavoriteToggle(collection)
-    );
+    const onAddFavorite = useStableCallback(() => {
+        if (!isFavorite) {
+            controller.onFavoriteToggle(collection);
+        }
+    });
+    const onFavoriteToggle = useStableCallback(() => {
+        controller.onFavoriteToggle(collection);
+    });
     const onMakeCopy = useStableCallback(() =>
         controller.onDuplicate(collection)
     );
@@ -2932,6 +2938,12 @@ function CollectionItemMetadata({
         onCopyLinks,
         "Copy hovered collection",
         hasItems
+    );
+    useCollectionItemHotkey(
+        "alt+f",
+        onAddFavorite,
+        "Add hovered collection to Favorites",
+        !isFavorite
     );
 
     return (
@@ -2973,6 +2985,9 @@ function CollectionItemMetadata({
                             {isFavorite
                                 ? "Remove from Favorites"
                                 : "Add to Favorites"}
+                            {isFavorite ? null : (
+                                <MenuShortcut>Alt+F</MenuShortcut>
+                            )}
                         </MenuItem>
                         <MenuItem onClick={onRename}>
                             <PencilIcon

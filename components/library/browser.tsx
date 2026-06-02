@@ -909,7 +909,7 @@ const PALETTE_GROUP_OPTIONS = [
 ] satisfies readonly { label: string; value: GroupByMode }[];
 
 const PALETTE_COLUMN_OPTIONS = [
-    { label: "Auto columns", value: "auto" },
+    { label: "Adjust automatically", value: "auto" },
     { label: "2 columns", value: "2" },
     { label: "3 columns", value: "3" },
     { label: "4 columns", value: "4" },
@@ -1483,7 +1483,7 @@ function groupByLabel(mode: GroupByMode): string {
 }
 
 function columnCountLabel(mode: ColumnCountMode): string {
-    return mode === "auto" ? "Auto columns" : `${mode} columns`;
+    return mode === "auto" ? "Adjust automatically" : `${mode} columns`;
 }
 
 function collectionMembershipFilterLabel(
@@ -2838,7 +2838,7 @@ function buildPaletteGroups({
                     active: columnCountMode === option.value,
                     description:
                         option.value === "auto"
-                            ? "Let the masonry adapt to the available width"
+                            ? "Choose the best column count for the available width"
                             : "Force a specific number of columns",
                     label: option.label,
                     onSelect: applyAndReturn(() =>
