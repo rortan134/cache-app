@@ -11,7 +11,6 @@ import {
     Command,
     CommandCollection,
     CommandEmpty,
-    CommandFooter,
     CommandGroup,
     CommandGroupLabel,
     CommandInput,
@@ -24,9 +23,8 @@ import {
     CommandStatus,
     useCommandFilter,
 } from "@/components/ui/command";
-import { CmdKbd, Kbd, KbdGroup } from "@/components/ui/kbd";
+import { CmdKbd, Kbd } from "@/components/ui/kbd";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
-import { Separator } from "@/components/ui/separator";
 import { TruncateAfter } from "@/components/ui/truncate-after";
 import { cn } from "@/lib/common/cn";
 import {
@@ -34,15 +32,7 @@ import {
     type AutocompleteRootChangeEventDetails,
 } from "@base-ui/react";
 import { Calligraph } from "calligraph";
-import {
-    ArrowDownIcon,
-    ArrowUpIcon,
-    CircleFadingPlus,
-    CornerDownLeftIcon,
-    Grid2x2,
-    Grid2x2X,
-    SquarePen,
-} from "lucide-react";
+import { CircleFadingPlus, Grid2x2, Grid2x2X, SquarePen } from "lucide-react";
 import * as React from "react";
 
 interface PaletteStackEntry {
@@ -88,7 +78,6 @@ export function ComposerInput({
     containerRef,
     ref,
     stackEntries,
-    canClear,
 }: ComposerInputProps) {
     const filteredGroups = useGetVisibleGroups({ groups, query });
     const filteredItems = filteredGroups.map((group) => ({
@@ -118,7 +107,7 @@ export function ComposerInput({
                                             <Kbd className="border-none text-muted-foreground opacity-50 group-data-popup-open/input:opacity-0">
                                                 <CmdKbd />G
                                             </Kbd>
-                                            <span className="absolute right-3 flex items-center text-nowrap opacity-0 group-data-popup-open/input:opacity-100">
+                                            <span className="absolute right-3 flex items-center gap-0.5 text-nowrap opacity-0 group-data-popup-open/input:opacity-100">
                                                 <Kbd className="border-none text-muted-foreground opacity-50">
                                                     Tab
                                                 </Kbd>
@@ -187,32 +176,6 @@ export function ComposerInput({
                             </CommandGroup>
                         ))}
                     </CommandList>
-                    <CommandFooter>
-                        {canClear ? (
-                            <div className="mr-auto flex items-center gap-1.5">
-                                <span className="font-medium">Back</span>
-                                <Kbd>Esc</Kbd>
-                            </div>
-                        ) : null}
-                        <div className="flex items-center gap-1.5">
-                            <span className="font-medium">Navigate</span>
-                            <KbdGroup>
-                                <Kbd>
-                                    <ArrowUpIcon />
-                                </Kbd>
-                                <Kbd>
-                                    <ArrowDownIcon />
-                                </Kbd>
-                            </KbdGroup>
-                        </div>
-                        <Separator orientation="vertical" />
-                        <div className="flex items-center gap-1.5">
-                            <span className="font-medium">Open Command</span>
-                            <Kbd>
-                                <CornerDownLeftIcon />
-                            </Kbd>
-                        </div>
-                    </CommandFooter>
                 </CommandPopup>
             </CommandPanel>
         </Command>
@@ -220,7 +183,6 @@ export function ComposerInput({
 }
 
 interface ComposerInputProps {
-    canClear: boolean;
     containerRef: React.RefObject<HTMLDivElement | null>;
     groups: CommandPaletteGroup[];
     isOpen: boolean;

@@ -48,6 +48,7 @@ import {
     ChevronDownFilledIcon,
     NotionIcon,
     PriorityNoneIcon,
+    ShareArrowSolidIcon,
 } from "@/components/ui/icons";
 import { Input } from "@/components/ui/input";
 import { CmdKbd, Kbd, ShiftKbd } from "@/components/ui/kbd";
@@ -134,10 +135,10 @@ import {
     Component,
     CopyIcon,
     CopyPlus,
+    Download,
     EllipsisIcon,
     ExternalLinkIcon,
     FileSpreadsheetIcon,
-    Forward,
     Info,
     Lightbulb,
     LinkIcon,
@@ -2673,6 +2674,7 @@ function CollectionItemPriorityCombobox() {
                         aria-label={`Change priority for ${collection.name}`}
                         className="absolute top-1/2 left-2.5 z-10 -translate-y-1/2 border-none bg-(--collection-background) text-(--focus-ring-color)"
                         size="icon-xs"
+                        title="Organize collections by relevance level"
                         variant="ghost"
                     />
                 }
@@ -2729,7 +2731,7 @@ function CollectionItemShareSubMenu() {
     return (
         <MenuSub>
             <MenuSubTrigger>
-                <UserRoundPlus className="inline-block size-4 text-muted-foreground" />
+                <ShareArrowSolidIcon className="inline-block size-4 text-muted-foreground" />
                 Share
             </MenuSubTrigger>
             <MenuSubPopup>
@@ -2808,7 +2810,7 @@ function CollectionItemExportSubMenu() {
     return (
         <MenuSub>
             <MenuSubTrigger>
-                <Forward
+                <Download
                     aria-hidden
                     className="inline-block size-4 text-muted-foreground"
                     focusable="false"
@@ -2959,15 +2961,6 @@ function CollectionItemMetadata({
                 <MenuPopup align="start" side="right">
                     <MenuGroup>
                         <MenuGroupLabel>Collection</MenuGroupLabel>
-                        <MenuItem onClick={onRename}>
-                            <PencilIcon
-                                aria-hidden
-                                className="size-4 text-muted-foreground"
-                                focusable="false"
-                            />
-                            Rename
-                            <MenuShortcut>E</MenuShortcut>
-                        </MenuItem>
                         <MenuItem onClick={onFavoriteToggle}>
                             <Star
                                 aria-hidden
@@ -2980,6 +2973,15 @@ function CollectionItemMetadata({
                             {isFavorite
                                 ? "Remove from Favorites"
                                 : "Add to Favorites"}
+                        </MenuItem>
+                        <MenuItem onClick={onRename}>
+                            <PencilIcon
+                                aria-hidden
+                                className="size-4 text-muted-foreground"
+                                focusable="false"
+                            />
+                            Rename
+                            <MenuShortcut>E</MenuShortcut>
                         </MenuItem>
                         <MenuItem onClick={onMakeCopy}>
                             <CopyPlus

@@ -13,6 +13,7 @@ interface ThemeSnapshot {
 
 const STORAGE_KEY = "t3code:theme";
 const MEDIA_QUERY = "(prefers-color-scheme: dark)";
+const DARK_MODE_ENABLED = false;
 const DEFAULT_THEME_SNAPSHOT: ThemeSnapshot = {
     systemDark: false,
     theme: "system",
@@ -43,6 +44,9 @@ function getStored(): Theme {
     }
     try {
         const raw = getOwnerWindow().localStorage.getItem(STORAGE_KEY);
+        if (raw === "dark" && !DARK_MODE_ENABLED) {
+            return "light";
+        }
         if (raw === "light" || raw === "dark" || raw === "system") {
             return raw;
         }
@@ -128,7 +132,9 @@ function applyTheme(theme: Theme, suppressTransitions = false) {
     if (suppressTransitions) {
         documentElement.classList.add("no-transitions");
     }
-    const isDark = theme === "dark" || (theme === "system" && getSystemDark());
+    const isDark =
+        DARK_MODE_ENABLED &&
+        (theme === "dark" || (theme === "system" && getSystemDark()));
     documentElement.classList.toggle("dark", isDark);
     documentElement.style.colorScheme = isDark ? "dark" : "light";
     syncBrowserChromeTheme();
@@ -150,7 +156,8 @@ function getSnapshot(): ThemeSnapshot {
         return DEFAULT_THEME_SNAPSHOT;
     }
     const theme = getStored();
-    const systemDark = theme === "system" ? getSystemDark() : false;
+    const systemDark =
+        DARK_MODE_ENABLED && theme === "system" ? getSystemDark() : false;
 
     if (
         lastSnapshot &&
@@ -219,8 +226,9 @@ export function useTheme() {
         if (!hasThemeStorage()) {
             return;
         }
-        getOwnerWindow().localStorage.setItem(STORAGE_KEY, next);
-        applyTheme(next, true);
+        const theme = next === "dark" && !DARK_MODE_ENABLED ? "light" : next;
+        getOwnerWindow().localStorage.setItem(STORAGE_KEY, theme);
+        applyTheme(theme, true);
         emitChange();
     });
 

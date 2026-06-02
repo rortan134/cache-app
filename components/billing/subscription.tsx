@@ -10,8 +10,8 @@ import { getActiveSubscription } from "@/lib/billing/subscriptions";
 import { cn } from "@/lib/common/cn";
 import { useStableCallback } from "@base-ui/utils/useStableCallback";
 import { T, useLocale, Var } from "gt-next";
-import useSWR from "swr";
 import * as React from "react";
+import useSWR from "swr";
 
 /**
  * Derives the current user's paid access from the live auth session and active
@@ -411,9 +411,9 @@ function SubscriptionBadge({
 }: React.ComponentProps<typeof Badge>) {
     return (
         <Badge
-            {...props}
-            className={cn("h-6! w-full", className)}
+            className={cn("h-7! w-full", className)}
             variant={variant}
+            {...props}
         >
             <CrownFilledIcon />
             {children}
@@ -433,9 +433,10 @@ function SubscriptionErrorMessage(props: React.ComponentProps<"p">) {
 
     return (
         <p
-            aria-live="polite"
+            aria-atomic="true"
+            aria-live="assertive"
             className="px-2 text-destructive text-xs"
-            role="status"
+            role="alert"
             {...props}
         />
     );

@@ -174,7 +174,7 @@ function SidebarTrigger({
     return (
         <Button
             className={cn(
-                "hidden h-8 min-h-8 min-w-8 lg:inline-flex",
+                "hidden h-8 min-h-8 min-w-8 opacity-50 hover:opacity-100 lg:inline-flex",
                 open ? "cursor-w-resize" : "cursor-e-resize",
                 className
             )}
@@ -195,13 +195,13 @@ function SidebarTrigger({
             {open ? (
                 <PanelLeft
                     aria-hidden
-                    className="inline-block size-4 shrink-0 opacity-80"
+                    className="inline-block size-4 shrink-0"
                     focusable="false"
                 />
             ) : (
                 <PanelLeftOpen
                     aria-hidden
-                    className="inline-block size-4 shrink-0 opacity-80"
+                    className="inline-block size-4 shrink-0"
                     focusable="false"
                 />
             )}

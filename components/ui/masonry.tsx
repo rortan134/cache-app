@@ -1975,8 +1975,11 @@ function MasonryViewport({
     })();
 
     return (
+        // biome-ignore lint/a11y/useSemanticElements: List role
         <div
+            aria-busy={false}
             data-version={layoutVersion}
+            role="list"
             style={{
                 height: estimatedHeight,
                 maxHeight: estimatedHeight,
@@ -1995,7 +1998,8 @@ function MasonryViewport({
 }
 
 function MasonryItem(props: React.ComponentProps<"div">) {
-    return <section data-slot="masonry-item" {...props} />;
+    // biome-ignore lint/a11y/useSemanticElements: List role
+    return <section data-slot="masonry-item" role="listitem" {...props} />;
 }
 // #endregion
 

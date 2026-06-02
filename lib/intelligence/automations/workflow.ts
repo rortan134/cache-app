@@ -16,6 +16,7 @@ import {
 } from "./tool-inputs";
 
 const AUTOMATION_OUTPUT_TOKEN_LIMIT = 1200;
+
 const log = createLogger("automations:workflow");
 
 interface PreparedAutomationRun {

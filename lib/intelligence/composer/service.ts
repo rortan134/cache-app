@@ -35,6 +35,11 @@ import {
 } from "./ask-cache";
 
 const ASK_CACHE_MODEL_DEFAULT = "gemini-3.1-flash-lite";
+const ASK_CACHE_MODELS_FALLBACK = ["gemini-2.5-flash"] as const;
+const ASK_CACHE_MODELS = [
+    ASK_CACHE_MODEL_DEFAULT,
+    ...ASK_CACHE_MODELS_FALLBACK,
+] as const;
 const ASK_CACHE_OUTPUT_TOKEN_LIMIT = 900;
 const ASK_CACHE_MAX_STEPS = 5;
 const ASK_CACHE_TIMEOUT_MS = 45_000;
@@ -59,7 +64,14 @@ const AskCacheLibrarySearchInputSchema = z.strictObject({
         .max(10)
         .optional(),
     limit: z.int().min(1).max(ASK_CACHE_LIBRARY_SEARCH_LIMIT_MAX).optional(),
-    query: z.string().trim().max(200).optional(),
+    query: z
+        .string()
+        .trim()
+        .max(200)
+        .describe(
+            "Optional lexical search over captions, note text, and URLs. For conceptual requests, use concrete candidate names, brands, domains, or terms instead of broad category labels."
+        )
+        .optional(),
     sourceFilters: z
         .array(z.enum(ASK_CACHE_SOURCE_FILTER_VALUES))
         .max(10)
@@ -83,6 +95,15 @@ interface RunAskCacheAgentResult {
     usage?: Record<string, number>;
 }
 
+type AskCacheModelId = (typeof ASK_CACHE_MODELS)[number];
+
+class EmptyAskCacheAgentResultError extends Error {
+    constructor(model: AskCacheModelId) {
+        super(`Ask Cache model ${model} returned no text or operations.`);
+        this.name = "EmptyAskCacheAgentResultError";
+    }
+}
+
 const googleGenAi = createGoogleGenerativeAI({
     apiKey: serverEnv.GEMINI_API_KEY,
 });
@@ -92,7 +113,6 @@ export async function runAskCacheAgent({
     request,
     userId,
 }: RunAskCacheAgentInput): Promise<RunAskCacheAgentResult> {
-    const operations: AskCacheComposerPatch[] = [];
     const instructions = buildAskCacheInstructions(input);
     const userMessage = buildAskCacheUserMessage(input);
 
@@ -107,25 +127,77 @@ export async function runAskCacheAgent({
         userId,
     });
 
+    let lastError: unknown;
+
+    for (const model of ASK_CACHE_MODELS) {
+        try {
+            return await runAskCacheAgentModel({
+                input,
+                instructions,
+                model,
+                userId,
+                userMessage,
+            });
+        } catch (error) {
+            lastError = error;
+            if (!shouldRetryAskCacheModelError(error)) {
+                break;
+            }
+
+            log.warn("Ask Cache model attempt failed", {
+                errorMessage:
+                    error instanceof Error ? error.message : String(error),
+                errorName: error instanceof Error ? error.name : undefined,
+                model,
+                userId,
+            });
+        }
+    }
+
+    const apiError = classifyAskCacheApiError(lastError);
+    log.error("Ask Cache agent run failed", {
+        errorMessage:
+            lastError instanceof Error ? lastError.message : String(lastError),
+        errorName: lastError instanceof Error ? lastError.name : undefined,
+        status: apiError.status,
+        userId,
+    });
+
+    throw new GenAiGenerationError({
+        message: apiError.message,
+        operation: "runAskCacheAgent",
+        status: apiError.status,
+    });
+}
+
+async function runAskCacheAgentModel(args: {
+    input: AskCacheRequest;
+    instructions: string;
+    model: AskCacheModelId;
+    userId: string;
+    userMessage: string;
+}): Promise<RunAskCacheAgentResult> {
+    const operations: AskCacheComposerPatch[] = [];
+    const operationSummaries: string[] = [];
     const agent = new DurableAgent({
-        instructions,
+        instructions: args.instructions,
         maxOutputTokens: ASK_CACHE_OUTPUT_TOKEN_LIMIT,
-        model: () => Promise.resolve(googleGenAi(ASK_CACHE_MODEL_DEFAULT)),
+        model: () => Promise.resolve(googleGenAi(args.model)),
         temperature: 0.2,
         tools: {
             search_library: tool({
                 description:
-                    "Search the user's saved Cache library. Use this when the answer depends on saved bookmarks or notes.",
+                    "Search the user's saved Cache library. Use this when the answer depends on saved bookmarks or notes. This is lexical search, not semantic search: broad concepts need concrete candidate terms, names, brands, domains, or URL patterns.",
                 execute: (toolInput) =>
                     searchAskCacheLibrary({
                         input: toolInput,
-                        userId,
+                        userId: args.userId,
                     }),
                 inputSchema: AskCacheLibrarySearchInputSchema,
             }),
             update_composer: tool({
                 description:
-                    "Apply a validated composer patch. Use this to change search terms, collection/source/domain filters, collection membership, grouping, sorting, columns, or reset state.",
+                    "Apply a validated composer patch. Use this to change search terms, collection/source/domain filters, collection membership, grouping, sorting, columns, or reset state. Do not represent broad conceptual matches with only generic search terms; use high-confidence concrete filters.",
                 execute: (toolInput) => {
                     if (operations.length >= ASK_CACHE_OPERATION_LIMIT) {
                         return {
@@ -136,9 +208,10 @@ export async function runAskCacheAgent({
 
                     const patch = normalizeComposerPatchForContext(
                         toolInput.patch,
-                        input
+                        args.input
                     );
                     operations.push(patch);
+                    operationSummaries.push(toolInput.summary);
                     return {
                         appliedOperationCount: operations.length,
                         ok: true,
@@ -157,37 +230,23 @@ export async function runAskCacheAgent({
         },
     });
 
-    try {
-        const result = await agent.stream({
-            maxSteps: ASK_CACHE_MAX_STEPS,
-            messages: [{ content: userMessage, role: "user" }],
-            stopWhen: stepCountIs(ASK_CACHE_MAX_STEPS),
-            timeout: ASK_CACHE_TIMEOUT_MS,
-            writable: new WritableStream<UIMessageChunk>(),
-        });
-        const markdown = getFinalStepText(result.steps);
-
-        return {
-            markdown,
-            operations,
-            usage: normalizeStepUsage(result.steps),
-        };
-    } catch (error) {
-        const apiError = classifyAskCacheApiError(error);
-        log.error("Ask Cache agent run failed", {
-            errorMessage:
-                error instanceof Error ? error.message : String(error),
-            errorName: error instanceof Error ? error.name : undefined,
-            status: apiError.status,
-            userId,
-        });
-
-        throw new GenAiGenerationError({
-            message: apiError.message,
-            operation: "runAskCacheAgent",
-            status: apiError.status,
-        });
+    const result = await agent.stream({
+        maxSteps: ASK_CACHE_MAX_STEPS,
+        messages: [{ content: args.userMessage, role: "user" }],
+        stopWhen: stepCountIs(ASK_CACHE_MAX_STEPS),
+        timeout: ASK_CACHE_TIMEOUT_MS,
+        writable: new WritableStream<UIMessageChunk>(),
+    });
+    const markdown = getFinalStepText(result.steps, operationSummaries);
+    if (!markdown) {
+        throw new EmptyAskCacheAgentResultError(args.model);
     }
+
+    return {
+        markdown,
+        operations,
+        usage: normalizeStepUsage(result.steps),
+    };
 }
 
 async function searchAskCacheLibrary(args: {
@@ -324,6 +383,8 @@ function buildAskCacheInstructions(input: AskCacheRequest): string {
     return [
         "You are Ask Cache, an assistant embedded in Cache's library composer.",
         "You can answer conversationally and can update the composer by calling update_composer.",
+        "This is a one-shot interaction, not a chat thread. Do not ask the user follow-up questions or end with offers to continue.",
+        "When the request is ambiguous, make the best reasonable assumption from the current composer state and visible context, state that assumption briefly, then act.",
         "Never claim to inspect library items unless you called search_library.",
         "Use update_composer for requests that ask to show, find, filter, sort, group, or reset.",
         "Use exact collection ids from the collection catalog when selecting collection filters.",
@@ -331,7 +392,10 @@ function buildAskCacheInstructions(input: AskCacheRequest): string {
         "When a user asks for conceptual matches, infer what qualifies instead of searching only for the user's literal words.",
         "Library entries may not contain category labels like software product, recipe, tutorial, or inspiration in their caption, note text, URL, or metadata.",
         "For conceptual filters, search and filter by concrete signals that imply the concept: product names, company names, domains, source type, collections, URL patterns, captions, and note text.",
-        "If the request is broad, inspect candidate items with search_library before applying filters, then update the composer with the strongest available search terms, source filters, domain filters, or collection filters.",
+        "Do not use broad category words such as software, product, tool, recipe, tutorial, article, inspiration, or design as the only searchTerms unless the user explicitly asks for those literal words.",
+        "For broad conceptual requests, inspect candidate items with search_library before applying filters, and prefer exact domains, collection filters, source filters, or specific entity names over generic category terms.",
+        "Example: for 'I'm looking for software products', do not set searchTerms to ['software']; instead identify recognizable software companies, apps, SaaS tools, developer tools, AI products, or product domains from availableDomains and search_library results, then filter by those concrete signals.",
+        "If the available composer filters cannot represent the conceptual match well, say so briefly and apply only high-confidence filters rather than pretending a generic keyword search is sufficient.",
         "Prefer concise markdown. Mention applied composer changes in one short sentence when you call update_composer.",
         "Do not mutate saved items, collections, notes, or external services.",
         "",
@@ -414,6 +478,7 @@ function buildAskCacheUserMessage(input: AskCacheRequest): string {
         "",
         "If this is a library navigation command, call update_composer with the exact state changes and then briefly explain what changed.",
         "If this is a normal question, answer directly and call tools only when they are useful.",
+        "Do not ask follow-up questions. If details are missing, proceed with a reasonable assumption or explain the limitation as a final answer.",
     ].join("\n");
 }
 
@@ -456,7 +521,10 @@ function truncateText(value: string | null): string | null {
         : value;
 }
 
-function getFinalStepText(steps: Array<{ text?: string }>): string {
+function getFinalStepText(
+    steps: Array<{ text?: string }>,
+    operationSummaries: string[]
+): string | null {
     const finalText = normalizeGeneratedMarkdown(
         steps.findLast((step) => step.text?.trim())?.text
     );
@@ -464,7 +532,14 @@ function getFinalStepText(steps: Array<{ text?: string }>): string {
         return finalText;
     }
 
-    return "Done.";
+    const fallbackText = normalizeGeneratedMarkdown(
+        operationSummaries.join("\n")
+    );
+    if (fallbackText) {
+        return fallbackText;
+    }
+
+    return null;
 }
 
 function normalizeStepUsage(
@@ -484,6 +559,19 @@ function normalizeStepUsage(
     }
 
     return { inputTokens, outputTokens, totalTokens };
+}
+
+function shouldRetryAskCacheModelError(error: unknown): boolean {
+    if (error instanceof EmptyAskCacheAgentResultError) {
+        return true;
+    }
+
+    const providerError = unwrapAskCacheProviderError(error);
+    if (!APICallError.isInstance(providerError)) {
+        return false;
+    }
+
+    return providerError.statusCode !== 429;
 }
 
 function classifyAskCacheApiError(error: unknown): {

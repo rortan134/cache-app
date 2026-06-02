@@ -271,11 +271,11 @@ interface BuildCommandSuggestionsInput {
     setSortMode: (value: SortMode) => void;
     setSourceFilters: (
         value:
-            | SourceFilterValue[]
-            | ((value: SourceFilterValue[]) => SourceFilterValue[])
+            | LibraryItemSource[]
+            | ((value: LibraryItemSource[]) => LibraryItemSource[])
     ) => void;
     sortMode: SortMode;
-    sourceFilters: SourceFilterValue[];
+    sourceFilters: LibraryItemSource[];
 }
 
 function buildCommandSuggestions({
@@ -796,11 +796,8 @@ const SEARCH_HOTKEYS = [
     "Meta+p",
     "/",
 ] as const;
-const SEARCH_CANCEL_KEYS = new Set(["esc", "tab"]);
 
 const COLLECTION_NAME_MAX_LENGTH = 64;
-
-type LibraryItem = LibraryItemWithCollections;
 
 type GroupByMode =
     | "none"
@@ -808,6 +805,7 @@ type GroupByMode =
     | "domain"
     | "month-added"
     | "month-created";
+
 type SortMode =
     | "added-newest"
     | "added-oldest"
@@ -816,16 +814,27 @@ type SortMode =
     | "count-desc"
     | "source"
     | "domain";
-type SourceFilterValue = LibraryItemSource;
+
 type CollectionMembershipFilter =
     | "all"
     | "in-collections"
     | "not-in-collections";
 type ColumnCountMode = "auto" | "2" | "3" | "4" | "5" | "6";
-type PaletteSection = "search" | "filter" | "group" | "sort" | "ai-response";
+
+type ContainerWidth = "comfortable" | "full";
+
+type PaletteSection =
+    | "search"
+    | "filter"
+    | "group"
+    | "sort"
+    | "columns"
+    | "width"
+    | "ai-response";
 
 const DEFAULT_SORT_MODE: SortMode = "added-newest";
 const DEFAULT_COLUMN_COUNT_MODE: ColumnCountMode = "auto";
+const DEFAULT_CONTAINER_WIDTH: ContainerWidth = "comfortable";
 const DEFAULT_COLLECTION_MEMBERSHIP_FILTER: CollectionMembershipFilter = "all";
 const NOTE_DRAWER_NEW = Symbol("note-drawer-new");
 
@@ -918,10 +927,10 @@ const PALETTE_SOURCE_OPTIONS = [
         label: SOURCE_LABEL_BY_VALUE[LibraryItemSource.other] ?? "Other",
         value: LibraryItemSource.other,
     },
-] satisfies readonly { label: string; value: SourceFilterValue | "all" }[];
+] satisfies readonly { label: string; value: LibraryItemSource | "all" }[];
 
 const PALETTE_SOURCE_FILTER_OPTIONS = PALETTE_SOURCE_OPTIONS.filter(
-    (option): option is { label: string; value: SourceFilterValue } =>
+    (option): option is { label: string; value: LibraryItemSource } =>
         option.value !== "all"
 );
 
@@ -1001,7 +1010,7 @@ function getBrowserSectionExportFileName(sectionTitle: string): string {
 }
 
 function itemDate(
-    item: LibraryItem,
+    item: LibraryItemWithCollections,
     mode: "added" | "created" = "added"
 ): Date {
     const value =
@@ -1012,14 +1021,14 @@ function itemDate(
 }
 
 function itemTimestamp(
-    item: LibraryItem,
+    item: LibraryItemWithCollections,
     mode: "added" | "created" = "added"
 ): number {
     return itemDate(item, mode).getTime();
 }
 
 function itemMonthKey(
-    item: LibraryItem,
+    item: LibraryItemWithCollections,
     mode: "added" | "created" = "added"
 ): string {
     const date = itemDate(item, mode);
@@ -1028,7 +1037,7 @@ function itemMonthKey(
     return `${y}-${m}`;
 }
 
-function itemPrimaryText(item: LibraryItem): string {
+function itemPrimaryText(item: LibraryItemWithCollections): string {
     if (item.kind === "note") {
         return item.noteContentText?.trim() || "Untitled note";
     }
@@ -1072,8 +1081,8 @@ function formatGroupHeading(mode: GroupByMode, key: string): string {
 }
 
 function compareItems(
-    a: LibraryItem,
-    b: LibraryItem,
+    a: LibraryItemWithCollections,
+    b: LibraryItemWithCollections,
     sortMode: SortMode
 ): number {
     if (sortMode === "added-newest") {
@@ -1167,6 +1176,7 @@ interface BuildPaletteStackEntriesInput {
     collections: LibraryCollectionSummary[];
     columnCountMode: ColumnCountMode;
     commandAttachments: LibraryCommandAttachment[];
+    containerWidth: ContainerWidth;
     domainFilters: string[];
     groupBy: GroupByMode;
     onRemoveCollectionFilter: (id: string) => void;
@@ -1175,6 +1185,7 @@ interface BuildPaletteStackEntriesInput {
     selectedCollectionIds: string[];
     setCollectionMembershipFilter: (value: CollectionMembershipFilter) => void;
     setColumnCountMode: (value: ColumnCountMode) => void;
+    setContainerWidth: (value: ContainerWidth) => void;
     setDomainFilters: (
         value: string[] | ((value: string[]) => string[])
     ) => void;
@@ -1183,11 +1194,11 @@ interface BuildPaletteStackEntriesInput {
     setSortMode: (value: SortMode) => void;
     setSourceFilters: (
         value:
-            | SourceFilterValue[]
-            | ((value: SourceFilterValue[]) => SourceFilterValue[])
+            | LibraryItemSource[]
+            | ((value: LibraryItemSource[]) => LibraryItemSource[])
     ) => void;
     sortMode: SortMode;
-    sourceFilters: SourceFilterValue[];
+    sourceFilters: LibraryItemSource[];
 }
 
 function buildPaletteStackEntries({
@@ -1195,6 +1206,7 @@ function buildPaletteStackEntries({
     collections,
     columnCountMode,
     commandAttachments,
+    containerWidth,
     domainFilters,
     groupBy,
     onRemoveCollectionFilter,
@@ -1203,6 +1215,7 @@ function buildPaletteStackEntries({
     selectedCollectionIds,
     setCollectionMembershipFilter,
     setColumnCountMode,
+    setContainerWidth,
     setDomainFilters,
     setGroupBy,
     setSearchTerms,
@@ -1355,6 +1368,21 @@ function buildPaletteStackEntries({
         });
     }
 
+    if (containerWidth !== DEFAULT_CONTAINER_WIDTH) {
+        const onRemove = () => setContainerWidth(DEFAULT_CONTAINER_WIDTH);
+        entries.push({
+            chip: (
+                <PaletteChip
+                    key="width"
+                    label={`Width: ${containerWidth === "full" ? "Full width" : "Comfortable"}`}
+                    onRemove={onRemove}
+                />
+            ),
+            key: "width",
+            onRemove,
+        });
+    }
+
     return entries;
 }
 
@@ -1411,12 +1439,6 @@ function isPrintablePaletteKey(event: KeyboardEvent): boolean {
         !event.ctrlKey &&
         !event.altKey
     );
-}
-
-function isSearchCancelKey(
-    event: React.KeyboardEvent<HTMLInputElement>
-): boolean {
-    return SEARCH_CANCEL_KEYS.has(event.key.toLowerCase());
 }
 
 function sortModeLabel(mode: SortMode): string {
@@ -1703,9 +1725,9 @@ interface BrowserResultsContextValue {
     enableSectionCollapse: boolean;
     favoriteItemIdSet: ReadonlySet<string>;
     onCollapseAllSections?: () => void;
-    onCopyLink: (item: LibraryItem) => void;
+    onCopyLink: (item: LibraryItemWithCollections) => void;
     onCreateCollectionFromResults?: () => void;
-    onDelete: (item: LibraryItem) => void;
+    onDelete: (item: LibraryItemWithCollections) => void;
     onExpandAllSections?: () => void;
     onExportSectionResults?: (
         sectionTitle: string,
@@ -1713,8 +1735,8 @@ interface BrowserResultsContextValue {
     ) => void;
     onFindSimilar: (item: LibraryItemWithCollections) => void;
     onItemFavoriteToggle: (item: LibraryItemWithCollections) => void;
-    onOpenInNewTab: (item: LibraryItem) => void;
-    onOpenNote: (item: LibraryItem) => void;
+    onOpenInNewTab: (item: LibraryItemWithCollections) => void;
+    onOpenNote: (item: LibraryItemWithCollections) => void;
     onToggleSection: (key: string) => void;
     onUpdateItemCollections: (
         itemId: string,
@@ -2034,16 +2056,18 @@ function BrowserHeader() {
     );
 }
 
-function BrowserGroupEmpty() {
+function BrowserGroupEmpty({ className, ...props }: React.ComponentProps<"p">) {
     const { collapsed, items } = useBrowserGroupContext();
+
     if (collapsed || items.length > 0) {
         return null;
     }
 
     return (
-        <p className="text-muted-foreground text-sm">
-            No items were found in this group.
-        </p>
+        <p
+            className={cn("text-muted-foreground text-sm", className)}
+            {...props}
+        />
     );
 }
 
@@ -2151,7 +2175,14 @@ function BrowserGroupOverviewContent() {
     );
 }
 
-function BrowserMasonry() {
+interface BrowserMansonryProps {
+    children: (
+        item: LibraryItemWithCollections,
+        index: number
+    ) => React.ReactNode;
+}
+
+function BrowserMasonry({ children }: BrowserMansonryProps) {
     const { collapsed, items } = useBrowserGroupContext();
     const { columnCount } = useBrowserResultsContext();
 
@@ -2160,12 +2191,8 @@ function BrowserMasonry() {
     }
 
     return (
-        <Masonry columnCount={columnCount} gap={4}>
-            {items.map((item) => (
-                <MasonryItem key={item.id}>
-                    <Card item={item} />
-                </MasonryItem>
-            ))}
+        <Masonry columnCount={columnCount} gap={6}>
+            {items.map(children)}
         </Masonry>
     );
 }
@@ -2244,6 +2271,7 @@ function CategoryThumbnail({ urls }: { urls: string[] }) {
         <img
             alt=""
             className="absolute top-10 left-3 z-10 h-auto w-full rounded-sm object-cover transition-transform group-data-highlighted:-translate-y-1"
+            draggable="false"
             fetchPriority="high"
             height={104}
             loading="eager"
@@ -2419,7 +2447,7 @@ function buildSearchPaletteGroups({
 
     groups.push({
         items: navigationItems,
-        label: "View",
+        label: "Customize display",
     });
 
     if (hasAnyRefinements) {
@@ -2475,6 +2503,7 @@ interface BuildPaletteGroupsInput {
     collectionPreviewThumbnailUrlsById: Map<string, string[]>;
     collections: LibraryCollectionSummary[];
     columnCountMode: ColumnCountMode;
+    containerWidth: ContainerWidth;
     domainFilters: string[];
     domainOptions: {
         label: string;
@@ -2495,6 +2524,7 @@ interface BuildPaletteGroupsInput {
     selectedCollectionIds: string[];
     setCollectionMembershipFilter: (value: CollectionMembershipFilter) => void;
     setColumnCountMode: (value: ColumnCountMode) => void;
+    setContainerWidth: (value: ContainerWidth) => void;
     setDomainFilters: (
         value: string[] | ((value: string[]) => string[])
     ) => void;
@@ -2507,15 +2537,15 @@ interface BuildPaletteGroupsInput {
     setSortMode: (value: SortMode) => void;
     setSourceFilters: (
         value:
-            | SourceFilterValue[]
-            | ((value: SourceFilterValue[]) => SourceFilterValue[])
+            | LibraryItemSource[]
+            | ((value: LibraryItemSource[]) => LibraryItemSource[])
     ) => void;
     sortMode: SortMode;
-    sourceFilters: SourceFilterValue[];
+    sourceFilters: LibraryItemSource[];
 }
 
 function buildDomainPaletteOptions(
-    items: LibraryItem[]
+    items: LibraryItemWithCollections[]
 ): { label: string; value: string }[] {
     const counts = new Map<string, number>();
     for (const item of items) {
@@ -2541,11 +2571,12 @@ function buildDomainPaletteOptions(
 
 function buildPaletteGroups({
     askCacheResponse,
-    collections,
     clearLibraryPalette,
     columnCountMode,
     collectionMembershipFilter,
     collectionPreviewThumbnailUrlsById,
+    collections,
+    containerWidth,
     domainFilters,
     domainOptions,
     groupBy,
@@ -2560,6 +2591,7 @@ function buildPaletteGroups({
     selectedCollectionIds,
     setCollectionMembershipFilter,
     setColumnCountMode,
+    setContainerWidth,
     setIsCommandOpen,
     setDomainFilters,
     setGroupBy,
@@ -2587,21 +2619,36 @@ function buildPaletteGroups({
     const navigationItems: CommandPaletteItem[] = [
         {
             description: "Source and domain filters",
-            label: "Filter by…",
+            label: "Add filters…",
             onSelect: (event) => openPaletteSection("filter", event),
             value: "navigate filters",
         },
         {
             description: `Current: ${groupByLabel(groupBy)}`,
-            label: "Group by…",
+            label: "Group items…",
             onSelect: (event) => openPaletteSection("group", event),
             value: "navigate grouping",
         },
         {
             description: `Current: ${sortModeLabel(sortMode)}`,
-            label: "Sort by…",
+            label: "Sort items…",
             onSelect: (event) => openPaletteSection("sort", event),
             value: "navigate sorting",
+        },
+        {
+            description: `Current: ${columnCountLabel(columnCountMode)}`,
+            label: "Columns…",
+            onSelect: (event) => openPaletteSection("columns", event),
+            value: "navigate columns",
+        },
+        {
+            description:
+                containerWidth === "comfortable"
+                    ? "Constrain to a comfortable reading width"
+                    : "Expand to the full viewport width",
+            label: "Width…",
+            onSelect: (event) => openPaletteSection("width", event),
+            value: "navigate width",
         },
     ];
 
@@ -2783,24 +2830,58 @@ function buildPaletteGroups({
         ];
     }
 
-    return [
-        { items: [backItem], label: "Navigation" },
-        {
-            items: PALETTE_COLUMN_OPTIONS.map((option) => ({
-                active: columnCountMode === option.value,
-                description:
-                    option.value === "auto"
-                        ? "Let the masonry adapt to the available width"
-                        : "Force a specific number of columns",
-                label: option.label,
-                onSelect: applyAndReturn(() =>
-                    setColumnCountMode(option.value)
-                ),
-                value: `columns ${option.value}`,
-            })),
-            label: "Columns",
-        },
-    ];
+    if (paletteSection === "columns") {
+        return [
+            { items: [backItem], label: "Navigation" },
+            {
+                items: PALETTE_COLUMN_OPTIONS.map((option) => ({
+                    active: columnCountMode === option.value,
+                    description:
+                        option.value === "auto"
+                            ? "Let the masonry adapt to the available width"
+                            : "Force a specific number of columns",
+                    label: option.label,
+                    onSelect: applyAndReturn(() =>
+                        setColumnCountMode(option.value)
+                    ),
+                    value: `columns ${option.value}`,
+                })),
+                label: "Columns",
+            },
+        ];
+    }
+
+    if (paletteSection === "width") {
+        return [
+            { items: [backItem], label: "Navigation" },
+            {
+                items: [
+                    {
+                        active: containerWidth === "comfortable",
+                        description:
+                            "Constrain results to a comfortable reading width",
+                        label: "Comfortable",
+                        onSelect: applyAndReturn(() =>
+                            setContainerWidth("comfortable")
+                        ),
+                        value: "width comfortable",
+                    },
+                    {
+                        active: containerWidth === "full",
+                        description: "Expand results to the full viewport",
+                        label: "Full width",
+                        onSelect: applyAndReturn(() =>
+                            setContainerWidth("full")
+                        ),
+                        value: "width full",
+                    },
+                ],
+                label: "Width",
+            },
+        ];
+    }
+
+    return [{ items: [backItem], label: "Navigation" }];
 }
 
 function filterCommandItems(
@@ -2810,7 +2891,7 @@ function filterCommandItems(
         domainFilters: string[];
         searchTerms: string[];
         selectedCollectionIds: string[];
-        sourceFilters: SourceFilterValue[];
+        sourceFilters: LibraryItemSource[];
     }
 ): LibraryItemWithCollections[] {
     let list = [...items];
@@ -2974,7 +3055,7 @@ function browserHasActiveFilters(input: {
     domainFilters: string[];
     searchTerms: string[];
     selectedCollectionIds: string[];
-    sourceFilters: SourceFilterValue[];
+    sourceFilters: LibraryItemSource[];
 }): boolean {
     return (
         input.searchTerms.length > 0 ||
@@ -3067,21 +3148,27 @@ function useLibraryItemActions(args: {
     ) => void;
 }) {
     const [pendingDeleteItem, setPendingDeleteItem] =
-        React.useState<LibraryItem | null>(null);
+        React.useState<LibraryItemWithCollections | null>(null);
     const [isDeletePending, startDeleteTransition] = React.useTransition();
     const { copyToClipboard } = useCopyToClipboard();
 
-    const handleOpenInNewTab = useStableCallback((item: LibraryItem) => {
-        openExternal(normalizeURL(item.url));
-    });
+    const handleOpenInNewTab = useStableCallback(
+        (item: LibraryItemWithCollections) => {
+            openExternal(normalizeURL(item.url));
+        }
+    );
 
-    const handleCopyLink = useStableCallback(async (item: LibraryItem) => {
-        await copyToClipboard(normalizeURL(item.url));
-    });
+    const handleCopyLink = useStableCallback(
+        async (item: LibraryItemWithCollections) => {
+            await copyToClipboard(normalizeURL(item.url));
+        }
+    );
 
-    const handleRequestDelete = useStableCallback((item: LibraryItem) => {
-        setPendingDeleteItem(item);
-    });
+    const handleRequestDelete = useStableCallback(
+        (item: LibraryItemWithCollections) => {
+            setPendingDeleteItem(item);
+        }
+    );
 
     const handleDeleteDialogOpenChange = useStableCallback((open: boolean) => {
         if (!(open || isDeletePending)) {
@@ -3128,22 +3215,24 @@ function useLibraryItemActions(args: {
     };
 }
 
-interface PreviewMediaProps {
+function MediaPreview({
+    isHovered = false,
+    src,
+    videoSrc,
+}: {
     isHovered?: boolean;
     src: string | null;
     videoSrc?: string | null;
-}
-
-function PreviewMedia({ isHovered = false, src, videoSrc }: PreviewMediaProps) {
-    const imageSrc = src ?? undefined;
-    const canRenderImage = Boolean(imageSrc);
+}) {
     const [hasImageFailed, setHasImageFailed] = React.useState(false);
     const [hasVideoFailed, setHasVideoFailed] = React.useState(false);
     const [hasHoverIntent, setHasHoverIntent] = React.useState(false);
     const [isSoundEnabled, setIsSoundEnabled] = React.useState(true);
     const videoRef = React.useRef<HTMLVideoElement | null>(null);
 
-    const canRenderVideo = Boolean(videoSrc) && !hasVideoFailed;
+    const imageSrc = src ?? undefined;
+    const canRenderImage = !!imageSrc;
+    const canRenderVideo = !!videoSrc && !hasVideoFailed;
     const shouldLoadVideo = hasHoverIntent || hasImageFailed;
     const isVideoVisible = isHovered || (hasImageFailed && canRenderVideo);
     const hasBothFailed = hasImageFailed && !canRenderVideo;
@@ -3209,13 +3298,13 @@ function PreviewMedia({ isHovered = false, src, videoSrc }: PreviewMediaProps) {
                 <img
                     alt=""
                     className={cn(
-                        "size-full object-cover transition-opacity duration-150",
-                        {
-                            "opacity-0": canRenderVideo && isVideoVisible,
-                        }
+                        "size-full object-cover transition-opacity duration-100",
+                        { "opacity-0": canRenderVideo && isVideoVisible }
                     )}
+                    draggable="false"
+                    fetchPriority="auto"
                     height={400}
-                    loading="lazy"
+                    loading="eager"
                     onError={handleImageError}
                     src={imageSrc}
                     width={300}
@@ -3498,6 +3587,7 @@ function CollectionComboboxPicker({
                     <ComboboxCollection>
                         {(collection) => (
                             <ComboboxItem
+                                className="group/item"
                                 key={collection.id}
                                 value={collection.id}
                             >
@@ -3505,9 +3595,14 @@ function CollectionComboboxPicker({
                                     <span className="min-w-0 max-w-full flex-1 truncate text-foreground text-sm">
                                         {collection.name}
                                     </span>
-                                    <span className="shrink-0 text-nowrap text-muted-foreground text-xs tabular-nums">
-                                        {collection.itemCount}
-                                    </span>
+                                    <div className="relative flex w-fit items-center justify-end">
+                                        <span className="shrink-0 text-nowrap text-muted-foreground text-xs tabular-nums group-data-highlighted/item:opacity-0">
+                                            {collection.itemCount}
+                                        </span>
+                                        <span className="absolute right-0 shrink-0 text-nowrap text-muted-foreground text-xs opacity-0 group-data-highlighted/item:opacity-100">
+                                            Save
+                                        </span>
+                                    </div>
                                 </div>
                             </ComboboxItem>
                         )}
@@ -3729,10 +3824,10 @@ function CardMenu({
     );
 }
 
-function Card({ item }: LibraryGridCardProps) {
+function MediaCard({ item }: LibraryGridCardProps) {
     const { onOpenInNewTab, onOpenNote } = useLibraryGridCardContext();
     const isNote = item.kind === ITEM_KIND_NOTE;
-    const [isDownloading, setIsDownloading] = React.useState(false);
+    const [isDownloading, startDownloadTransition] = React.useTransition();
     const [isCollectionPickerOpen, setIsCollectionPickerOpen] =
         React.useState(false);
     const [isCardHovered, setIsCardHovered] = React.useState(false);
@@ -3753,18 +3848,17 @@ function Card({ item }: LibraryGridCardProps) {
         onOpenInNewTab?.(item);
     };
 
-    const handleDownload = async () => {
-        setIsDownloading(true);
-        try {
-            await downloadLibraryItemMedia(item);
-        } catch (error) {
-            log.error("Failed to prepare media download", error, {
-                itemId: item.id,
-                url: item.url,
-            });
-        } finally {
-            setIsDownloading(false);
-        }
+    const handleDownload = () => {
+        startDownloadTransition(async () => {
+            try {
+                await downloadLibraryItemMedia(item);
+            } catch (error) {
+                log.error("Failed to prepare media download", error, {
+                    itemId: item.id,
+                    url: item.url,
+                });
+            }
+        });
     };
 
     const handleCardKeyDown = (event: React.KeyboardEvent<HTMLElement>) => {
@@ -3816,7 +3910,7 @@ function Card({ item }: LibraryGridCardProps) {
                             </div>
                         </div>
                     ) : (
-                        <PreviewMedia
+                        <MediaPreview
                             isHovered={isCardHovered}
                             src={previewImageUrl}
                             videoSrc={previewVideoUrl}
@@ -3825,7 +3919,7 @@ function Card({ item }: LibraryGridCardProps) {
                 </a>
                 <div
                     className={cn(
-                        "overflow-fade-top absolute inset-x-0 bottom-0 flex items-center gap-0.5 overflow-hidden bg-black/35 px-1.5 pt-2 pb-1 backdrop-blur-[2.5px]",
+                        "overflow-fade-top absolute inset-x-0 bottom-0 flex items-center gap-0.5 overflow-hidden bg-black/35 px-1.5 pt-2 pb-1 backdrop-blur-[2px]",
                         {
                             "bg-black/4 opacity-80 mix-blend-difference":
                                 isNote,
@@ -4095,12 +4189,12 @@ interface BrowserSimilarFilterState {
     domainFilters: string[];
     searchTerms: string[];
     selectedCollectionIds: string[];
-    sourceFilters: SourceFilterValue[];
+    sourceFilters: LibraryItemSource[];
 }
 
 interface BrowserSimilarFilterOptions {
     domain: string;
-    source: SourceFilterValue;
+    source: LibraryItemSource;
 }
 
 function buildSimilarBrowserFilterState(
@@ -4153,7 +4247,7 @@ export function Browser({
     const [query, setQuery] = React.useState("");
     const [searchTerms, setSearchTerms] = React.useState<string[]>([]);
     const [sourceFilters, setSourceFilters] = React.useState<
-        SourceFilterValue[]
+        LibraryItemSource[]
     >([]);
     const [domainFilters, setDomainFilters] = React.useState<string[]>([]);
     const [collectionMembershipFilter, setCollectionMembershipFilter] =
@@ -4164,6 +4258,9 @@ export function Browser({
     const [sortMode, setSortMode] = React.useState<SortMode>(DEFAULT_SORT_MODE);
     const [columnCountMode, setColumnCountMode] =
         React.useState<ColumnCountMode>(DEFAULT_COLUMN_COUNT_MODE);
+    const [containerWidth, setContainerWidth] = React.useState<ContainerWidth>(
+        DEFAULT_CONTAINER_WIDTH
+    );
     const [paletteSection, setPaletteSection] =
         React.useState<PaletteSection>("search");
     const [commandAttachments, setCommandAttachments] = React.useState<
@@ -4247,6 +4344,7 @@ export function Browser({
         setGroupBy("none");
         setSortMode(DEFAULT_SORT_MODE);
         setColumnCountMode(DEFAULT_COLUMN_COUNT_MODE);
+        setContainerWidth(DEFAULT_CONTAINER_WIDTH);
         setPaletteSection("search");
         setIsCommandOpen(false);
     });
@@ -4256,6 +4354,7 @@ export function Browser({
             composerState: {
                 collectionMembershipFilter,
                 columnCountMode,
+                containerWidth,
                 domainFilters,
                 groupBy,
                 searchTerms,
@@ -4320,6 +4419,9 @@ export function Browser({
             }
             if (patch.columnCountMode) {
                 setColumnCountMode(patch.columnCountMode);
+            }
+            if (patch.containerWidth) {
+                setContainerWidth(patch.containerWidth);
             }
             if (patch.selectedCollectionIds) {
                 onClearCollectionFilters();
@@ -4421,6 +4523,7 @@ export function Browser({
         collectionPreviewThumbnailUrlsById,
         collections,
         columnCountMode,
+        containerWidth,
         domainFilters,
         domainOptions,
         groupBy,
@@ -4435,6 +4538,7 @@ export function Browser({
         selectedCollectionIds,
         setCollectionMembershipFilter,
         setColumnCountMode,
+        setContainerWidth,
         setDomainFilters,
         setGroupBy,
         setIsCommandOpen,
@@ -4470,6 +4574,7 @@ export function Browser({
         groupBy !== "none" ||
         sortMode !== DEFAULT_SORT_MODE ||
         columnCountMode !== DEFAULT_COLUMN_COUNT_MODE ||
+        containerWidth !== DEFAULT_CONTAINER_WIDTH ||
         sourceFilters.length > 0;
 
     const shouldShowEmptyLibraryPeek =
@@ -4660,7 +4765,7 @@ export function Browser({
     });
 
     useHotkeys(
-        SEARCH_HOTKEYS,
+        "*",
         handleWindowKeyDown,
         { description: "Focus command menu" },
         [focusPaletteInput]
@@ -4700,6 +4805,7 @@ export function Browser({
         collections,
         columnCountMode,
         commandAttachments,
+        containerWidth,
         domainFilters,
         groupBy,
         onRemoveCollectionFilter,
@@ -4708,6 +4814,7 @@ export function Browser({
         selectedCollectionIds,
         setCollectionMembershipFilter,
         setColumnCountMode,
+        setContainerWidth,
         setDomainFilters,
         setGroupBy,
         setSearchTerms,
@@ -4746,11 +4853,6 @@ export function Browser({
                 handleAskCacheSubmit(query).catch((error) => {
                     log.error("Failed to handle Ask Cache shortcut", error);
                 });
-                return;
-            }
-
-            if (isSearchCancelKey(event)) {
-                setIsCommandOpen(false);
                 return;
             }
 
@@ -5082,25 +5184,32 @@ export function Browser({
 
     const containerRef = React.useRef<HTMLDivElement>(null);
 
-    let placeholder = "Search, filter, group, sort, and more…";
+    let placeholder = "Search, filter, group, sort, and more";
     if (paletteSection === "search") {
-        placeholder = "Search, filter, group, sort, and more…";
+        placeholder = "Search, filter, group, sort, and more";
         if (isCommandFocused) {
             placeholder = "What are you looking for?";
         }
     } else if (paletteSection === "filter") {
-        placeholder = "Filter the library…";
+        placeholder = "Filter the library";
     } else if (paletteSection === "group") {
-        placeholder = "Group results…";
+        placeholder = "Group results";
     } else if (paletteSection === "sort") {
-        placeholder = "Sort results…";
+        placeholder = "Sort results";
+    } else if (paletteSection === "columns") {
+        placeholder = "Set the number of columns";
+    } else if (paletteSection === "width") {
+        placeholder = "Set the container width";
     } else if (paletteSection === "ai-response") {
-        placeholder = "Ask Cache…";
+        placeholder = "Ask Cache";
     }
 
     return (
         <div
-            className="relative z-0 flex w-full min-w-0 max-w-[1024px] flex-1 flex-col gap-4 p-8 2xl:mx-auto"
+            className={cn(
+                "relative z-0 flex w-full min-w-0 max-w-[1024px] flex-1 flex-col gap-4 p-8 2xl:mx-auto",
+                { "max-w-full": containerWidth !== "comfortable" }
+            )}
             ref={containerRef}
             style={
                 { "--library-section-sticky-top": "8px" } as React.CSSProperties
@@ -5108,7 +5217,6 @@ export function Browser({
         >
             <Composer>
                 <ComposerInput
-                    canClear={canClear}
                     containerRef={commandPanelContainerRef}
                     groups={groups}
                     isOpen={isCommandOpen}
@@ -5204,12 +5312,26 @@ export function Browser({
                                         <BrowserGroupOverviewContent />
                                     </BrowserGroupOverview>
                                 )}
-                                <BrowserGroupEmpty />
-                                <BrowserMasonry />
+                                <BrowserGroupEmpty>
+                                    No items were found in this section.
+                                </BrowserGroupEmpty>
+                                <BrowserMasonry>
+                                    {(item) => (
+                                        <MasonryItem key={item.id}>
+                                            <MediaCard item={item} />
+                                        </MasonryItem>
+                                    )}
+                                </BrowserMasonry>
                             </BrowserGroup>
                         ) : (
                             <BrowserGroup>
-                                <BrowserMasonry />
+                                <BrowserMasonry>
+                                    {(item) => (
+                                        <MasonryItem key={item.id}>
+                                            <MediaCard item={item} />
+                                        </MasonryItem>
+                                    )}
+                                </BrowserMasonry>
                             </BrowserGroup>
                         )
                     }

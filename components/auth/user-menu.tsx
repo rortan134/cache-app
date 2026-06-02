@@ -9,6 +9,7 @@ import {
     SubscriptionUpgradeButton,
     UnsubscribedOnly,
 } from "@/components/billing/subscription";
+import { FeedbackWidget } from "@/components/feedback/feedback-widget";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { CmdKbd, Kbd } from "@/components/ui/kbd";
@@ -35,7 +36,13 @@ import { createLogger } from "@/lib/common/logs/console/logger";
 import { getInitials } from "@/lib/common/strings";
 import { useStableCallback } from "@base-ui/utils/useStableCallback";
 import { LocaleSelector, T } from "gt-next";
-import { ChevronDown, LoaderCircle, LogOut, PlusIcon } from "lucide-react";
+import {
+    ChevronDown,
+    Globe,
+    LoaderCircle,
+    LogOut,
+    PlusIcon,
+} from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import * as React from "react";
@@ -88,7 +95,7 @@ export function UserMenuTrigger(
             </WithUserSessionOnly>
             <ChevronDown
                 aria-hidden
-                className="pointer-events-none inline-block size-3.5 shrink-0 opacity-80 group-data-popup-open:opacity-30"
+                className="pointer-events-none inline-block size-3.5 shrink-0 hover:opacity-0 group-hover:opacity-80 group-data-popup-open:opacity-30"
                 focusable="false"
             />
         </MenuTrigger>
@@ -143,6 +150,14 @@ export function UserMenuContent() {
         <>
             <MenuSeparator />
             <MenuGroup>
+                <FeedbackWidget
+                    context="user-menu"
+                    render={<MenuItem closeOnClick={false} />}
+                >
+                    Give feedback
+                    <Globe className="ml-auto inline-block size-3.5 shrink-0 text-muted-foreground" />
+                </FeedbackWidget>
+                <MenuSeparator />
                 <div className="flex items-center justify-between pr-2 pl-2.5">
                     <span className="font-regular text-foreground text-sm">
                         <T>Theme</T>
@@ -219,7 +234,7 @@ export function UserMenuFooter() {
                 <LocaleSelector />
             </div>
             <MenuSeparator className="mt-1.5" />
-            <div className="flex flex-wrap p-1 opacity-80">
+            <div className="flex flex-wrap -space-x-0.5 p-1 opacity-50">
                 <Button
                     render={<Link href="/legal/privacy-policy" />}
                     size="xs"

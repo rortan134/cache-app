@@ -438,3 +438,24 @@ export const GDPRIcon = ({ className, ...props }: SVGProps<SVGSVGElement>) => (
         </defs>
     </svg>
 );
+
+export const ShareArrowSolidIcon = ({
+    className,
+    ...props
+}: SVGProps<SVGSVGElement>) => (
+    <svg
+        aria-hidden="true"
+        aria-label="Share Arrow"
+        className={cn("inline-block size-5 shrink-0", className)}
+        fill="currentColor"
+        focusable="false"
+        height="28"
+        role="img"
+        viewBox="0 0 48 48"
+        width="28"
+        {...props}
+    >
+        <rect fill="none" height="48" width="48" />
+        <path d="M28.3,6a1.2,1.2,0,0,0-1.1,1.3V17.9C12,19.4,2.2,29.8,2,40.3c0,.6.2,1,.6,1s.7-.3,1.1-1.1c2.4-5.4,7.8-8.5,23.5-9.2v9.7A1.2,1.2,0,0,0,28.3,42a.9.9,0,0,0,.8-.4L45.6,25.1a1.5,1.5,0,0,0,0-2L29.1,6.4a.9.9,0,0,0-.8-.4Z" />
+    </svg>
+);

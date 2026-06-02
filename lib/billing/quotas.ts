@@ -25,18 +25,18 @@ const ONE_HOUR_SECONDS = 60 * 60;
 
 export const GEN_AI_QUOTAS = QuotaSchema.parse({
     free: {
-        fixedLimit: 12_000,
-        rollingLimit: 2000,
+        fixedLimit: 50_000,
+        rollingLimit: 10_000,
         rollingWindow: ONE_HOUR_SECONDS,
     },
     monthly: {
-        fixedLimit: 120_000,
-        rollingLimit: 20_000,
+        fixedLimit: 1_000_000,
+        rollingLimit: 200_000,
         rollingWindow: ONE_HOUR_SECONDS,
     },
     yearly: {
-        fixedLimit: 120_000,
-        rollingLimit: 20_000,
+        fixedLimit: 1_000_000,
+        rollingLimit: 200_000,
         rollingWindow: ONE_HOUR_SECONDS,
     },
 } as const satisfies Quota);
