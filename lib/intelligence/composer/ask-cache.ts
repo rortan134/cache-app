@@ -29,7 +29,9 @@ export const ASK_CACHE_GROUP_BY_VALUES = [
     "source",
     "domain",
     "month-added",
+    "year-added",
     "month-created",
+    "year-created",
 ] as const;
 
 export const ASK_CACHE_SORT_MODE_VALUES = [
@@ -39,6 +41,7 @@ export const ASK_CACHE_SORT_MODE_VALUES = [
     "created-oldest",
     "count-desc",
     "source",
+    "title",
     "domain",
 ] as const;
 

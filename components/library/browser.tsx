@@ -317,6 +317,8 @@ function buildCommandSuggestions({
     const domainCounts = new Map<string, number>();
     const addedMonthKeys = new Set<string>();
     const createdMonthKeys = new Set<string>();
+    const addedYearKeys = new Set<string>();
+    const createdYearKeys = new Set<string>();
 
     for (const item of items) {
         const itemCollectionIds = new Set<string>();
@@ -335,6 +337,8 @@ function buildCommandSuggestions({
         domainCounts.set(domain, (domainCounts.get(domain) ?? 0) + 1);
         addedMonthKeys.add(itemMonthKey(item, "added"));
         createdMonthKeys.add(itemMonthKey(item, "created"));
+        addedYearKeys.add(itemYearKey(item, "added"));
+        createdYearKeys.add(itemYearKey(item, "created"));
     }
 
     const hasAnyRefinements =
@@ -424,7 +428,13 @@ function buildCommandSuggestions({
                       if (groupBy === "month-added") {
                           return itemMonthKey(item, "added");
                       }
-                      return itemMonthKey(item, "created");
+                      if (groupBy === "month-created") {
+                          return itemMonthKey(item, "created");
+                      }
+                      if (groupBy === "year-added") {
+                          return itemYearKey(item, "added");
+                      }
+                      return itemYearKey(item, "created");
                   })
               ).size;
 
@@ -481,12 +491,16 @@ function buildCommandSuggestions({
     let groupingCandidates: GroupByMode[] = [
         "source",
         "domain",
+        "year-added",
+        "year-created",
         "month-added",
         "month-created",
     ];
     if (sourceFilters.length > 0) {
         groupingCandidates = [
             "domain",
+            "year-added",
+            "year-created",
             "month-added",
             "month-created",
             "source",
@@ -494,6 +508,8 @@ function buildCommandSuggestions({
     } else if (domainFilters.length > 0) {
         groupingCandidates = [
             "source",
+            "year-added",
+            "year-created",
             "month-added",
             "month-created",
             "domain",
@@ -515,7 +531,13 @@ function buildCommandSuggestions({
             if (mode === "month-added") {
                 return addedMonthKeys.size > 1;
             }
-            return createdMonthKeys.size > 1;
+            if (mode === "month-created") {
+                return createdMonthKeys.size > 1;
+            }
+            if (mode === "year-added") {
+                return addedYearKeys.size > 1;
+            }
+            return createdYearKeys.size > 1;
         }) ?? null;
 
     const buildGroupingSuggestion = (): CommandSuggestion | null => {
@@ -808,6 +830,8 @@ type GroupByMode =
     | "none"
     | "source"
     | "domain"
+    | "year-added"
+    | "year-created"
     | "month-added"
     | "month-created";
 
@@ -818,7 +842,8 @@ type SortMode =
     | "created-oldest"
     | "count-desc"
     | "source"
-    | "domain";
+    | "domain"
+    | "title";
 
 type CollectionMembershipFilter =
     | "all"
@@ -903,12 +928,15 @@ const PALETTE_SORT_OPTIONS = [
     { label: "Count: Most items first", value: "count-desc" },
     { label: "Source", value: "source" },
     { label: "Domain", value: "domain" },
+    { label: "Title", value: "title" },
 ] satisfies readonly { label: string; value: SortMode }[];
 
 const PALETTE_GROUP_OPTIONS = [
     { label: "No grouping", value: "none" },
     { label: "Source", value: "source" },
     { label: "Domain", value: "domain" },
+    { label: "Year Added", value: "year-added" },
+    { label: "Year Created", value: "year-created" },
     { label: "Month Added", value: "month-added" },
     { label: "Month Created", value: "month-created" },
 ] satisfies readonly { label: string; value: GroupByMode }[];
@@ -1042,6 +1070,14 @@ function itemMonthKey(
     return `${y}-${m}`;
 }
 
+function itemYearKey(
+    item: LibraryItemWithCollections,
+    mode: "added" | "created" = "added"
+): string {
+    const date = itemDate(item, mode);
+    return date.getFullYear().toString();
+}
+
 function itemPrimaryText(item: LibraryItemWithCollections): string {
     if (item.kind === "note") {
         return item.noteContentText?.trim() || "Untitled note";
@@ -1122,6 +1158,9 @@ function compareItems(
             ) || NAME_COLLATOR.compare(itemPrimaryText(a), itemPrimaryText(b))
         );
     }
+    if (sortMode === "title") {
+        return NAME_COLLATOR.compare(itemPrimaryText(a), itemPrimaryText(b));
+    }
     return (
         NAME_COLLATOR.compare(itemDomain(a.url), itemDomain(b.url)) ||
         NAME_COLLATOR.compare(itemPrimaryText(a), itemPrimaryText(b))
@@ -1134,7 +1173,12 @@ function compareSectionKeys(
     groupBy: GroupByMode,
     sortMode: SortMode
 ): number {
-    if (groupBy === "month-added" || groupBy === "month-created") {
+    if (
+        groupBy === "month-added" ||
+        groupBy === "month-created" ||
+        groupBy === "year-added" ||
+        groupBy === "year-created"
+    ) {
         const isOldest =
             sortMode === "added-oldest" || sortMode === "created-oldest";
         return isOldest ? a.localeCompare(b) : b.localeCompare(a);
@@ -1468,6 +1512,9 @@ function sortModeLabel(mode: SortMode): string {
     if (mode === "domain") {
         return "Domain";
     }
+    if (mode === "title") {
+        return "Title";
+    }
     return sortModeLabel(DEFAULT_SORT_MODE);
 }
 
@@ -1483,6 +1530,12 @@ function groupByLabel(mode: GroupByMode): string {
     }
     if (mode === "month-created") {
         return "Month Created";
+    }
+    if (mode === "year-added") {
+        return "Year Added";
+    }
+    if (mode === "year-created") {
+        return "Year Created";
     }
     return "None";
 }
@@ -2981,6 +3034,10 @@ function buildBrowserSections(
             key = itemMonthKey(item, "added");
         } else if (groupBy === "month-created") {
             key = itemMonthKey(item, "created");
+        } else if (groupBy === "year-added") {
+            key = itemYearKey(item, "added");
+        } else if (groupBy === "year-created") {
+            key = itemYearKey(item, "created");
         }
 
         const bucket = buckets.get(key) ?? [];

@@ -32,7 +32,7 @@ import { useHotkeys } from "react-hotkeys-hook";
 export function ApplicationSidebar({ children }: React.PropsWithChildren) {
     return (
         <Sidebar>
-            <SidebarHeader className="gap-3">
+            <SidebarHeader className="gap-3 pb-4">
                 <div className="flex items-center justify-between gap-1">
                     <UserMenu>
                         <SidebarItem
