@@ -9,7 +9,6 @@ import { useIsoLayoutEffect } from "@base-ui/utils/useIsoLayoutEffect";
 import { useMergedRefs } from "@base-ui/utils/useMergedRefs";
 import { useStableCallback } from "@base-ui/utils/useStableCallback";
 import { useTimeout } from "@base-ui/utils/useTimeout";
-import { useValueAsRef } from "@base-ui/utils/useValueAsRef";
 import justifiedLayout from "justified-layout";
 import * as React from "react";
 
@@ -17,7 +16,6 @@ import * as React from "react";
 const NODE_COLOR = {
     BLACK: 1,
     RED: 0,
-    SENTINEL: 2,
 } as const;
 
 const NODE_OPERATION = {
@@ -38,7 +36,7 @@ interface TreeNode {
     color: NodeColor;
     high: number;
     left: TreeNode;
-    list: ListNode;
+    list: ListNode | null;
     low: number;
     max: number;
     parent: TreeNode;
@@ -80,6 +78,10 @@ function removeInterval(
     index: number
 ): NodeOperation | undefined {
     let node: ListNode | null = treeNode.list;
+    if (node === null) {
+        return;
+    }
+
     if (node.index === index) {
         if (node.next === null) {
             return NODE_OPERATION.REMOVE;
@@ -102,10 +104,10 @@ function removeInterval(
 }
 
 const SENTINEL_NODE: TreeNode = {
-    color: NODE_COLOR.SENTINEL,
+    color: NODE_COLOR.BLACK,
     high: 0,
     left: undefined as unknown as TreeNode,
-    list: undefined as unknown as ListNode,
+    list: null,
     low: 0,
     max: 0,
     parent: undefined as unknown as TreeNode,
@@ -204,7 +206,7 @@ function fixRemove(tree: Tree, node: TreeNode) {
     let x = node;
     let w: TreeNode;
 
-    while (x !== SENTINEL_NODE && x.color === NODE_COLOR.BLACK) {
+    while (x !== tree.root && x.color === NODE_COLOR.BLACK) {
         if (x === x.parent.left) {
             w = x.parent.right;
 
@@ -342,7 +344,7 @@ function createIntervalTree(): IntervalTree {
         size: 0,
     };
 
-    const indexMap: Record<number, TreeNode> = {};
+    const indexMap = new Map<number, TreeNode>();
 
     return {
         insert(low, high, index) {
@@ -368,7 +370,7 @@ function createIntervalTree(): IntervalTree {
                 y.high = Math.max(y.high, high);
                 updateMax(y);
                 updateMaxUp(y);
-                indexMap[index] = y;
+                indexMap.set(index, y);
                 tree.size++;
                 return;
             }
@@ -396,22 +398,26 @@ function createIntervalTree(): IntervalTree {
             }
 
             fixInsert(tree, z);
-            indexMap[index] = z;
+            indexMap.set(index, z);
             tree.size++;
         },
 
         remove(index) {
-            const z = indexMap[index];
+            const z = indexMap.get(index);
             if (z === undefined) {
                 return;
             }
-            delete indexMap[index];
+            indexMap.delete(index);
 
             const intervalResult = removeInterval(z, index);
             if (intervalResult === undefined) {
                 return;
             }
             if (intervalResult === NODE_OPERATION.PRESERVE) {
+                if (z.list === null) {
+                    return;
+                }
+
                 z.high = z.list.high;
                 updateMax(z);
                 updateMaxUp(z);
@@ -446,9 +452,13 @@ function createIntervalTree(): IntervalTree {
                 y.left = z.left;
                 y.left.parent = y;
                 y.color = z.color;
+                updateMax(y);
+                updateMaxUp(y);
             }
 
-            updateMax(x);
+            if (x !== SENTINEL_NODE) {
+                updateMax(x);
+            }
             updateMaxUp(x);
 
             if (originalYColor === NODE_COLOR.BLACK) {
@@ -636,6 +646,7 @@ const JUSTIFIED_TARGET_ROW_HEIGHT_TOLERANCE = 0.25;
 const JUSTIFIED_CONTAINER_PADDING = 0;
 const JUSTIFIED_BOX_SPACING = 0;
 const CONTAIN_INTRINSIC_SIZE_PREFIX = "auto ";
+const EMPTY_DEPS: React.DependencyList = [];
 
 function getContainIntrinsicHeight(height: number) {
     return `${CONTAIN_INTRINSIC_SIZE_PREFIX}${Math.max(1, Math.ceil(height))}px`;
@@ -887,6 +898,10 @@ function usePositioner(
                 });
             },
             set: (index: number, height = 0) => {
+                if (items[index]) {
+                    return;
+                }
+
                 let columnIndex = 0;
 
                 const preferredColumn = index % computedColumnCount;
@@ -964,6 +979,9 @@ function usePositioner(
 
                     const nextHeight = updates[++i];
                     if (typeof nextHeight !== "number") {
+                        continue;
+                    }
+                    if (nextHeight === item.height) {
                         continue;
                     }
 
@@ -1478,18 +1496,17 @@ function useThrottle<State>(
 // #endregion
 
 // #region Component Definitions
-const ROOT_NAME = "MasonryRoot";
+const ROOT_NAME = "Masonry";
 const VIEWPORT_NAME = "MasonryViewport";
 const ITEM_NAME = "MasonryItem";
 
 const MASONRY_ERROR = {
-    [ROOT_NAME]: `\`${ROOT_NAME}\` components must be within \`${ROOT_NAME}\``,
     [VIEWPORT_NAME]: `\`${VIEWPORT_NAME}\` components must be within \`${ROOT_NAME}\``,
     [ITEM_NAME]: `\`${ITEM_NAME}\` must be within \`${VIEWPORT_NAME}\``,
 } as const;
 
 type RootElement = React.ComponentRef<typeof Masonry>;
-type ItemElement = React.ComponentRef<typeof MasonryItem>;
+type ItemElement = React.ComponentRef<"div">;
 type MasonryChildProps = React.ComponentProps<"div"> & {
     "data-aspect-ratio"?: number;
     "data-index"?: number;
@@ -1499,6 +1516,18 @@ type MasonryChildElement = React.ReactElement<MasonryChildProps>;
 interface MasonryChildCache {
     children: MasonryChildElement[];
     source: React.ReactNode;
+}
+
+interface MasonryAspectRatioCache {
+    aspectRatios: number[] | undefined;
+    layout: "masonry" | "justified";
+    source: React.ReactNode;
+}
+
+interface MergedItemRefCache {
+    childRef: React.Ref<ItemElement> | undefined;
+    mergedRef: React.RefCallback<ItemElement>;
+    registerRef: React.RefCallback<ItemElement>;
 }
 
 function isMasonryChildElement(
@@ -1520,13 +1549,8 @@ interface MasonryContextValue {
     windowHeight: number;
 }
 
-interface ItemRegisterCallbackCache {
-    callbacks: React.RefCallback<ItemElement>[];
-    positioner: Positioner;
-    resizeObserver: ResizeObserver;
-}
-
 interface ItemRegistrationCache {
+    callbacks: React.RefCallback<ItemElement>[];
     nodes: (ItemElement | undefined)[];
     positioner: Positioner;
     resizeObserver: ResizeObserver;
@@ -1542,7 +1566,7 @@ function useMasonryContext(name: keyof typeof MASONRY_ERROR) {
     return context;
 }
 
-interface MasonryProps extends React.ComponentProps<"div"> {
+export interface MasonryProps extends React.ComponentProps<"div"> {
     boxSpacing?: number | { horizontal: number; vertical: number };
     columnCount?: number;
     columnWidth?: number;
@@ -1591,6 +1615,19 @@ function getJustifiedAspectRatios(
     return aspectRatios;
 }
 
+function getCachedJustifiedAspectRatios(
+    cache: MasonryAspectRatioCache,
+    children: React.ReactNode,
+    layout: "masonry" | "justified"
+) {
+    if (cache.source !== children || cache.layout !== layout) {
+        cache.source = children;
+        cache.layout = layout;
+        cache.aspectRatios = getJustifiedAspectRatios(children, layout);
+    }
+    return cache.aspectRatios;
+}
+
 function getCachedMasonryChildren(
     cache: MasonryChildCache,
     children: React.ReactNode
@@ -1603,6 +1640,60 @@ function getCachedMasonryChildren(
         );
     }
     return cache.children;
+}
+
+function mergeItemRefs(
+    childRef: React.Ref<ItemElement> | undefined,
+    registerRef: React.RefCallback<ItemElement>
+) {
+    if (!childRef) {
+        return registerRef;
+    }
+
+    let cleanupRef: (() => void) | undefined;
+
+    return (node: ItemElement | null) => {
+        registerRef(node);
+
+        if (cleanupRef) {
+            cleanupRef();
+            cleanupRef = undefined;
+        }
+
+        if (typeof childRef === "function") {
+            const cleanup = childRef(node);
+            if (typeof cleanup === "function") {
+                cleanupRef = cleanup;
+            }
+            return;
+        }
+
+        childRef.current = node;
+    };
+}
+
+function getMergedItemRef(
+    cache: (MergedItemRefCache | undefined)[],
+    index: number,
+    childRef: React.Ref<ItemElement> | undefined,
+    registerRef: React.RefCallback<ItemElement>
+) {
+    const cachedRef = cache[index];
+    if (
+        cachedRef &&
+        cachedRef.childRef === childRef &&
+        cachedRef.registerRef === registerRef
+    ) {
+        return cachedRef.mergedRef;
+    }
+
+    const mergedRef = mergeItemRefs(childRef, registerRef);
+    cache[index] = {
+        childRef,
+        mergedRef,
+        registerRef,
+    };
+    return mergedRef;
 }
 
 function Masonry({
@@ -1623,14 +1714,23 @@ function Masonry({
     showWidows,
     targetRowHeight,
     targetRowHeightTolerance,
-    deps = [],
+    deps = EMPTY_DEPS,
     children,
     style,
     ref,
     ...props
 }: MasonryProps) {
     const { rowGap, columnGap } = parseGapValue(gap);
-    const aspectRatios = getJustifiedAspectRatios(children, layout);
+    const aspectRatioCacheRef = React.useRef<MasonryAspectRatioCache>({
+        aspectRatios: undefined,
+        layout: "masonry",
+        source: undefined,
+    });
+    const aspectRatios = getCachedJustifiedAspectRatios(
+        aspectRatioCacheRef.current,
+        children,
+        layout
+    );
     const containerRef = React.useRef<RootElement | null>(null);
     const composedRef = useMergedRefs(ref, containerRef);
     const windowSize = useWindowSize({
@@ -1685,6 +1785,7 @@ function Masonry({
         itemRegistrationCacheRef.current.resizeObserver !== resizeObserver
     ) {
         itemRegistrationCacheRef.current = {
+            callbacks: [],
             nodes: [],
             positioner,
             resizeObserver,
@@ -1723,20 +1824,6 @@ function Masonry({
         }
     );
 
-    const itemRegisterCallbacksRef =
-        React.useRef<ItemRegisterCallbackCache | null>(null);
-    if (
-        itemRegisterCallbacksRef.current === null ||
-        itemRegisterCallbacksRef.current.positioner !== positioner ||
-        itemRegisterCallbacksRef.current.resizeObserver !== resizeObserver
-    ) {
-        itemRegisterCallbacksRef.current = {
-            callbacks: [],
-            positioner,
-            resizeObserver,
-        };
-    }
-
     useIsoLayoutEffect(() => {
         const container = containerRef.current;
         if (!container) {
@@ -1756,11 +1843,11 @@ function Masonry({
                 width,
             });
         }
-    }, [containerPosition.offset, containerPosition.width]);
+    }, [containerPosition.offset, containerPosition.width, windowSize.width]);
 
     const onItemRegister = useStableCallback((index: number) => {
         const itemRegisterCallbacks =
-            itemRegisterCallbacksRef.current?.callbacks;
+            itemRegistrationCacheRef.current?.callbacks;
         if (!itemRegisterCallbacks) {
             return (node: ItemElement | null) => {
                 registerItemNode(index, node);
@@ -1817,12 +1904,15 @@ function MasonryViewport({
     ...props
 }: React.ComponentProps<"div">) {
     const context = useMasonryContext(VIEWPORT_NAME);
-    const [layoutVersion, setLayoutVersion] = React.useState(0);
+    const [, setMeasurementTick] = React.useState(0);
     const layoutAnimationFrame = useAnimationFrame();
     const childCacheRef = React.useRef<MasonryChildCache>({
         children: [],
         source: undefined,
     });
+    const mergedItemRefsRef = React.useRef<(MergedItemRefCache | undefined)[]>(
+        []
+    );
     const validChildren = getCachedMasonryChildren(
         childCacheRef.current,
         children
@@ -1868,66 +1958,52 @@ function MasonryViewport({
 
     const positionedChildren = (() => {
         const result: React.ReactElement[] = [];
-        const currentMeasuredCount = positioner.size();
-        const currentShortestColumnSize = positioner.shortestColumn();
-        const currentOverscanPixels = windowHeight * overscan;
-        const currentRangeStart = Math.max(
-            0,
-            scrollTop - currentOverscanPixels / 2
-        );
-        const currentRangeEnd = scrollTop + currentOverscanPixels;
+        const rangeStart = Math.max(0, scrollTop - overscanPixels / 2);
 
-        positioner.range(
-            currentRangeStart,
-            currentRangeEnd,
-            (index, left, top) => {
-                const child = validChildren[index];
-                if (!child) {
-                    return;
-                }
-                const pos = positioner.get(index);
-                result.push(
-                    React.cloneElement(child, {
-                        "data-index": index,
-                        key: child.key ?? index,
-                        ref: onItemRegister(index),
-                        style: {
-                            ...visibleItemStyle,
-                            containIntrinsicHeight: getContainIntrinsicHeight(
-                                pos?.height ?? itemHeight
-                            ),
-                            height:
-                                layout === "justified"
-                                    ? pos?.height
-                                    : undefined,
-                            left,
-                            top,
-                            width: pos?.width ?? columnWidth,
-                            ...child.props.style,
-                        },
-                    })
-                );
+        positioner.range(rangeStart, rangeEnd, (index, left, top) => {
+            const child = validChildren[index];
+            if (!child) {
+                return;
             }
-        );
+            const pos = positioner.get(index);
+            result.push(
+                React.cloneElement(child, {
+                    "data-index": index,
+                    key: child.key ?? index,
+                    ref: getMergedItemRef(
+                        mergedItemRefsRef.current,
+                        index,
+                        child.props.ref,
+                        onItemRegister(index)
+                    ),
+                    style: {
+                        ...visibleItemStyle,
+                        ...child.props.style,
+                        containIntrinsicHeight: getContainIntrinsicHeight(
+                            pos?.height ?? itemHeight
+                        ),
+                        height:
+                            layout === "justified" ? pos?.height : undefined,
+                        left,
+                        top,
+                        width: pos?.width ?? columnWidth,
+                    },
+                })
+            );
+        });
 
         if (isLayoutOutdated) {
             const batchSize = Math.min(
-                itemCount - currentMeasuredCount,
+                itemCount - measuredCount,
                 Math.ceil(
-                    ((scrollTop +
-                        currentOverscanPixels -
-                        currentShortestColumnSize) /
-                        itemHeight) *
+                    ((rangeEnd - shortestColumnSize) / itemHeight) *
                         positioner.columnCount
                 )
             );
 
             if (batchSize > 0) {
-                const end = Math.min(
-                    itemCount,
-                    currentMeasuredCount + batchSize
-                );
-                for (let index = currentMeasuredCount; index < end; index++) {
+                const end = Math.min(itemCount, measuredCount + batchSize);
+                for (let index = measuredCount; index < end; index++) {
                     const child = validChildren[index];
                     if (!child) {
                         continue;
@@ -1936,7 +2012,12 @@ function MasonryViewport({
                         React.cloneElement(child, {
                             "data-index": index,
                             key: child.key ?? index,
-                            ref: onItemRegister(index),
+                            ref: getMergedItemRef(
+                                mergedItemRefsRef.current,
+                                index,
+                                child.props.ref,
+                                onItemRegister(index)
+                            ),
                             style: { ...child.props.style, ...hiddenItemStyle },
                         })
                     );
@@ -1952,15 +2033,13 @@ function MasonryViewport({
             return;
         }
         layoutAnimationFrame.request(() => {
-            setLayoutVersion((v) => v + 1);
+            setMeasurementTick((tick) => tick + 1);
         });
         return layoutAnimationFrame.cancel;
-    }, [isLayoutOutdated, layoutAnimationFrame]);
-
-    const estimateHeight = useValueAsRef(positioner.estimateHeight);
+    });
 
     const estimatedHeight = (() => {
-        const measuredHeight = estimateHeight.current(
+        const measuredHeight = positioner.estimateHeight(
             measuredCount,
             itemHeight
         );
@@ -1978,7 +2057,6 @@ function MasonryViewport({
         // biome-ignore lint/a11y/useSemanticElements: List role
         <div
             aria-busy={false}
-            data-version={layoutVersion}
             role="list"
             style={{
                 height: estimatedHeight,
