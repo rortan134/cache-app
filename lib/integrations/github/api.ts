@@ -9,7 +9,7 @@ const GITHUB_API_VERSION = "2022-11-28";
 const GITHUB_PAGE_SIZE = 100;
 const MAX_GITHUB_STARRED_PAGES = 20;
 
-export interface GitHubImportableRepository {
+interface GitHubImportableRepository {
     readonly caption: string | null;
     readonly externalId: string;
     readonly postedAt: Date | null;
@@ -17,7 +17,7 @@ export interface GitHubImportableRepository {
     readonly url: string;
 }
 
-export interface GitHubAuthenticatedUser {
+interface GitHubAuthenticatedUser {
     readonly avatarUrl: string | null;
     readonly id: string;
     readonly login: string | null;

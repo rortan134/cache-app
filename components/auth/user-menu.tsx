@@ -67,6 +67,12 @@ interface DeviceSession {
     user: AccountUser;
 }
 
+const FOOTER_LINKS = [
+    { href: "/legal/privacy-policy", label: "Privacy" },
+    { href: "/legal/terms-of-service", label: "Terms" },
+    { href: "/security", label: "Security" },
+] as const;
+
 export const UserMenu: typeof Menu = Menu;
 
 export function UserMenuTrigger(
@@ -77,16 +83,7 @@ export function UserMenuTrigger(
             <WithUserSessionOnly loadingRender={<UserMenuTriggerSkeleton />}>
                 {(user) => (
                     <span className="flex min-w-0 items-center gap-2">
-                        <Avatar className="size-5.5 rounded-md">
-                            <AvatarImage
-                                alt={user.name ?? user.email}
-                                loading="lazy"
-                                src={user.image ?? undefined}
-                            />
-                            <AvatarFallback className="rounded-md">
-                                {getInitials(user.name, user.email)}
-                            </AvatarFallback>
-                        </Avatar>
+                        <AccountAvatar user={user} />
                         <span className="min-w-0 max-w-full truncate text-left font-medium text-sm">
                             {user.name ?? <T>Account</T>}
                         </span>
@@ -235,27 +232,16 @@ export function UserMenuFooter() {
             </div>
             <MenuSeparator className="mt-1.5" />
             <div className="flex flex-wrap -space-x-0.5 p-1 opacity-50">
-                <Button
-                    render={<Link href="/legal/privacy-policy" />}
-                    size="xs"
-                    variant="ghost"
-                >
-                    <T>Privacy</T>
-                </Button>
-                <Button
-                    render={<Link href="/legal/terms-of-service" />}
-                    size="xs"
-                    variant="ghost"
-                >
-                    <T>Terms</T>
-                </Button>
-                <Button
-                    render={<Link href="/security" />}
-                    size="xs"
-                    variant="ghost"
-                >
-                    <T>Security</T>
-                </Button>
+                {FOOTER_LINKS.map(({ href, label }) => (
+                    <Button
+                        key={href}
+                        render={<Link href={href} />}
+                        size="xs"
+                        variant="ghost"
+                    >
+                        <T>{label}</T>
+                    </Button>
+                ))}
             </div>
         </>
     );
@@ -268,6 +254,24 @@ function UserMenuTriggerSkeleton() {
             <Skeleton className="size-5.5 rounded-md" />
             <Skeleton className="h-4 w-16" />
         </span>
+    );
+}
+
+/* @internal */
+function AccountAvatar({ user }: { user: AccountUser }) {
+    const label = user.name ?? user.email;
+
+    return (
+        <Avatar className="size-5.5 rounded-md">
+            <AvatarImage
+                alt={label}
+                loading="lazy"
+                src={user.image ?? undefined}
+            />
+            <AvatarFallback className="rounded-md text-xs">
+                {getInitials(user.name, user.email)}
+            </AvatarFallback>
+        </Avatar>
     );
 }
 
@@ -373,6 +377,20 @@ function useUserMenuAccounts() {
 function UserMenuAccountSwitcherSubMenu(
     props: React.ComponentProps<typeof MenuSubTrigger>
 ) {
+    return (
+        <MenuSub>
+            <MenuSubTrigger {...props} />
+            <MenuSubPopup align="end">
+                <MenuGroup>
+                    <UserMenuAccountSwitcherContent />
+                </MenuGroup>
+            </MenuSubPopup>
+        </MenuSub>
+    );
+}
+
+/* @internal */
+function UserMenuAccountSwitcherContent() {
     const {
         accountMenuError,
         accountOptions,
@@ -388,104 +406,77 @@ function UserMenuAccountSwitcherSubMenu(
         return null;
     }
 
-    return (
-        <MenuSub>
-            <MenuSubTrigger {...props} />
-            <MenuSubPopup align="end">
-                <MenuGroup>
-                    {isLoadingDeviceSessions ? (
-                        <MenuItem disabled>
-                            <LoaderCircle className="size-4 animate-spin text-muted-foreground" />
-                            <T>Loading accounts</T>
-                        </MenuItem>
-                    ) : null}
-                    {accountMenuError ? (
-                        <MenuItem disabled>
-                            <AccountMenuErrorMessage error={accountMenuError} />
-                        </MenuItem>
-                    ) : null}
-                    {isLoadingDeviceSessions ? null : (
-                        <>
-                            <MenuRadioGroup
-                                disabled={Boolean(pendingSessionToken)}
-                                onValueChange={handleAccountChange}
-                                value={activeSession.session.token}
-                            >
-                                {accountOptions.map((deviceSession) => {
-                                    const accountLabel =
-                                        deviceSession.user.name ??
-                                        deviceSession.user.email;
-                                    const isPendingSession =
-                                        pendingSessionToken ===
-                                        deviceSession.session.token;
+    if (isLoadingDeviceSessions) {
+        return (
+            <MenuItem disabled>
+                <LoaderCircle className="size-4 animate-spin text-muted-foreground" />
+                <T>Loading accounts</T>
+            </MenuItem>
+        );
+    }
 
-                                    return (
-                                        <MenuRadioItem
-                                            closeOnClick={false}
-                                            key={deviceSession.user.id}
-                                            label={accountLabel}
-                                            value={deviceSession.session.token}
-                                        >
-                                            <span className="flex min-w-0 items-center gap-2">
-                                                <Avatar className="size-5.5 rounded-md">
-                                                    <AvatarImage
-                                                        alt={accountLabel}
-                                                        loading="lazy"
-                                                        src={
-                                                            deviceSession.user
-                                                                .image ??
-                                                            undefined
-                                                        }
-                                                    />
-                                                    <AvatarFallback className="rounded-md text-xs">
-                                                        {getInitials(
-                                                            deviceSession.user
-                                                                .name,
-                                                            deviceSession.user
-                                                                .email
-                                                        )}
-                                                    </AvatarFallback>
-                                                </Avatar>
-                                                <span className="min-w-0 flex-1">
-                                                    <span className="block truncate font-medium">
-                                                        {deviceSession.user
-                                                            .name ?? (
-                                                            <T>Cache account</T>
-                                                        )}
-                                                    </span>
-                                                    <span className="block truncate text-muted-foreground text-xs">
-                                                        {
-                                                            deviceSession.user
-                                                                .email
-                                                        }
-                                                    </span>
-                                                </span>
-                                                {isPendingSession ? (
-                                                    <LoaderCircle className="ml-auto size-4 animate-spin text-muted-foreground" />
-                                                ) : null}
-                                            </span>
-                                        </MenuRadioItem>
-                                    );
-                                })}
-                            </MenuRadioGroup>
-                            <MenuSeparator />
-                            <MenuItem
-                                closeOnClick={false}
-                                disabled={isAddingAccount}
-                                onClick={handleAddAccount}
-                            >
-                                {isAddingAccount ? (
-                                    <LoaderCircle className="size-4 animate-spin text-muted-foreground" />
-                                ) : (
-                                    <PlusIcon className="size-4 text-muted-foreground" />
-                                )}
-                                <T>Add another account...</T>
-                            </MenuItem>
-                        </>
-                    )}
-                </MenuGroup>
-            </MenuSubPopup>
-        </MenuSub>
+    if (accountMenuError) {
+        return (
+            <MenuItem disabled>
+                <AccountMenuErrorMessage error={accountMenuError} />
+            </MenuItem>
+        );
+    }
+
+    return (
+        <>
+            <MenuRadioGroup
+                disabled={Boolean(pendingSessionToken)}
+                onValueChange={handleAccountChange}
+                value={activeSession.session.token}
+            >
+                {accountOptions.map((deviceSession) => {
+                    const accountLabel =
+                        deviceSession.user.name ?? deviceSession.user.email;
+                    const isPendingSession =
+                        pendingSessionToken === deviceSession.session.token;
+
+                    return (
+                        <MenuRadioItem
+                            closeOnClick={false}
+                            key={deviceSession.user.id}
+                            label={accountLabel}
+                            value={deviceSession.session.token}
+                        >
+                            <span className="flex min-w-0 items-center gap-2">
+                                <AccountAvatar user={deviceSession.user} />
+                                <span className="min-w-0 flex-1">
+                                    <span className="block truncate font-medium">
+                                        {deviceSession.user.name ?? (
+                                            <T>Cache account</T>
+                                        )}
+                                    </span>
+                                    <span className="block truncate text-muted-foreground text-xs">
+                                        {deviceSession.user.email}
+                                    </span>
+                                </span>
+                                {isPendingSession ? (
+                                    <LoaderCircle className="ml-auto size-4 animate-spin text-muted-foreground" />
+                                ) : null}
+                            </span>
+                        </MenuRadioItem>
+                    );
+                })}
+            </MenuRadioGroup>
+            <MenuSeparator />
+            <MenuItem
+                closeOnClick={false}
+                disabled={isAddingAccount}
+                onClick={handleAddAccount}
+            >
+                {isAddingAccount ? (
+                    <LoaderCircle className="size-4 animate-spin text-muted-foreground" />
+                ) : (
+                    <PlusIcon className="size-4 text-muted-foreground" />
+                )}
+                <T>Add another account...</T>
+            </MenuItem>
+        </>
     );
 }
 

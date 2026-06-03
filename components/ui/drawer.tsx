@@ -325,7 +325,7 @@ export function DrawerPanel({
     return content;
 }
 
-export function DrawerBar({
+function DrawerBar({
     className,
     position: positionProp,
     render,
@@ -359,12 +359,13 @@ export function DrawerBar({
     });
 }
 
-export const DrawerContent: typeof DrawerPrimitive.Content =
-    DrawerPrimitive.Content;
-
 function wrapRender(
     render: useRender.ComponentProps<"div">["render"],
     allowSelection: boolean
 ) {
-    return allowSelection ? <DrawerContent render={render} /> : render;
+    return allowSelection ? (
+        <DrawerPrimitive.Content render={render} />
+    ) : (
+        render
+    );
 }
