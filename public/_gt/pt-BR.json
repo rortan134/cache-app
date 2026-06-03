@@ -81,7 +81,6 @@
   "3b205a1c17c06fbd": "Favoritos",
   "3befbe3dae383b10": "Fazer upgrade",
   "3c61319be1bc2db7": "*As plataformas de terceiros às quais você se conecta por meio do Serviço operam de forma independente do Cache. O Cache não controla as políticas dessas plataformas nem a forma como elas são aplicadas, e não se responsabiliza pelas decisões que essas plataformas tomam em relação às suas contas ou ao seu acesso aos serviços delas — incluindo, sem limitação, alterações na disponibilidade — estejam ou não relacionadas ao seu uso do Cache. Cabe a você cumprir os termos, políticas e diretrizes da comunidade de cada plataforma. O Cache não se responsabiliza por qualquer inconveniente, perda ou outro resultado decorrente da sua relação com essas plataformas ou do seu uso do Serviço em conexão com elas. Mais detalhes podem ser encontrados",
-  "3d26c791d3bcb69a": "Segurança",
   "408574e37e8d91ee": "em breve",
   "44205dc5e0c99d88": [
     {
@@ -282,14 +281,8 @@
       "t": "p"
     }
   ],
-  "7a6c957300c408f9": "Privacidade",
   "7b4f31f7267a32c7": "Use o Cache como o passo que faltava entre salvar favoritos e fazer anotações — feito para pensar. Estruturado, pesquisável, confiável.",
   "7d288c9b77b0a60e": "Jurídico e políticas",
-  "817e49763f46cca2": {
-    "c": "Manifesto",
-    "i": 1,
-    "t": "p"
-  },
   "86489a55ce454582": "O Cache é para…",
   "87254fc32f854b77": "Não foi possível trocar de conta.",
   "8b045bc1a6270fb5": "Coleções",
@@ -327,6 +320,11 @@
   ],
   "8ebdbcb486fb7060": "Assinatura",
   "8eeee33f47318d9a": "Threads, vídeos, inspiração. Organize ideias em coleções e compartilhe.",
+  "933fa7740fe8c681": {
+    "i": 1,
+    "k": "_gt_value_1",
+    "v": "v"
+  },
   "94c20ff6b75d8acb": "Como coletamos, usamos e protegemos informações pessoais.",
   "97f68bd29d3d4247": {
     "c": [
@@ -515,7 +513,6 @@
       "t": "p"
     }
   ],
-  "dce930d99de233a7": "Termos",
   "ddc161e16a7e8f5a": [
     {
       "i": 1,

@@ -81,7 +81,6 @@
   "3b205a1c17c06fbd": "Favoris",
   "3befbe3dae383b10": "Passer à la version supérieure",
   "3c61319be1bc2db7": "*Les plateformes tierces auxquelles vous vous connectez via le Service sont exploitées indépendamment de Cache. Cache ne contrôle ni leurs politiques ni la manière dont elles les appliquent, et n’est pas responsable des décisions que ces plateformes prennent concernant vos Comptes ou votre accès à leurs services — y compris, sans s’y limiter, les changements de disponibilité — qu’elles soient ou non liés à votre utilisation de Cache. Il vous incombe de respecter les conditions, politiques et règles de la communauté de chaque plateforme. Cache n’est pas responsable des désagréments, pertes ou autres conséquences découlant de votre relation avec ces plateformes ou de votre utilisation du Service en lien avec celles-ci. Des informations complémentaires sont disponibles",
-  "3d26c791d3bcb69a": "Sécurité",
   "408574e37e8d91ee": "bientôt",
   "44205dc5e0c99d88": [
     {
@@ -282,14 +281,8 @@
       "t": "p"
     }
   ],
-  "7a6c957300c408f9": "Confidentialité",
   "7b4f31f7267a32c7": "Utilisez Cache comme l’étape manquante entre les signets et la prise de notes, pensée pour la réflexion. Structuré, facile à retrouver, fiable.",
   "7d288c9b77b0a60e": "Mentions légales et politiques",
-  "817e49763f46cca2": {
-    "c": "Manifeste",
-    "i": 1,
-    "t": "p"
-  },
   "86489a55ce454582": "Cache, c’est pour…",
   "87254fc32f854b77": "Impossible de changer de compte.",
   "8b045bc1a6270fb5": "Collections",
@@ -327,6 +320,11 @@
   ],
   "8ebdbcb486fb7060": "Abonnement",
   "8eeee33f47318d9a": "Threads, vidéos, inspiration. Regroupez vos idées en collections et partagez-les.",
+  "933fa7740fe8c681": {
+    "i": 1,
+    "k": "_gt_value_1",
+    "v": "v"
+  },
   "94c20ff6b75d8acb": "Comment nous collectons, utilisons et protégeons les informations personnelles.",
   "97f68bd29d3d4247": {
     "c": [
@@ -515,7 +513,6 @@
       "t": "p"
     }
   ],
-  "dce930d99de233a7": "Conditions d’utilisation",
   "ddc161e16a7e8f5a": [
     {
       "i": 1,

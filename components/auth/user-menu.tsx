@@ -35,7 +35,7 @@ import { cn } from "@/lib/common/cn";
 import { createLogger } from "@/lib/common/logs/console/logger";
 import { getInitials } from "@/lib/common/strings";
 import { useStableCallback } from "@base-ui/utils/useStableCallback";
-import { LocaleSelector, T } from "gt-next";
+import { LocaleSelector, T, Var } from "gt-next";
 import {
     ChevronDown,
     Globe,
@@ -239,7 +239,9 @@ export function UserMenuFooter() {
                         size="xs"
                         variant="ghost"
                     >
-                        <T>{label}</T>
+                        <T>
+                            <Var>{label}</Var>
+                        </T>
                     </Button>
                 ))}
             </div>
