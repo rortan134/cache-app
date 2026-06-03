@@ -516,6 +516,30 @@ function headersToRecord(headers: Headers): Record<string, string> {
     return record;
 }
 
+function readWithSignal(
+    reader: ReadableStreamDefaultReader<Uint8Array>,
+    signal: AbortSignal
+) {
+    if (signal.aborted) {
+        throw new DOMException("Aborted", "AbortError");
+    }
+
+    return new Promise<Awaited<ReturnType<typeof reader.read>>>(
+        (resolve, reject) => {
+            const onAbort = () => {
+                reject(new DOMException("Aborted", "AbortError"));
+            };
+            signal.addEventListener("abort", onAbort, { once: true });
+            reader
+                .read()
+                .then(resolve, reject)
+                .finally(() => {
+                    signal.removeEventListener("abort", onAbort);
+                });
+        }
+    );
+}
+
 async function readTextBodyWithLimit(
     response: Response,
     maxBodyBytes: number
@@ -529,6 +553,12 @@ async function readTextBodyWithLimit(
     }
 
     const { signal, clearTimeout } = abortAfterAny(FETCH_TIMEOUT_MS);
+
+    if (signal.aborted) {
+        clearTimeout();
+        return null;
+    }
+
     const reader = response.body.getReader();
     const decoder = new TextDecoder();
     let body = "";
@@ -536,7 +566,11 @@ async function readTextBodyWithLimit(
 
     try {
         while (true) {
-            const { done, value } = await readStreamChunk(reader, signal);
+            const { done, value } = await readWithSignal(reader, signal);
+            if (signal.aborted) {
+                await reader.cancel("Preview metadata read timed out.");
+                return null;
+            }
             if (done) {
                 break;
             }
@@ -564,30 +598,6 @@ async function readTextBodyWithLimit(
         clearTimeout();
         reader.releaseLock();
     }
-}
-
-function readStreamChunk(
-    reader: ReadableStreamDefaultReader<Uint8Array>,
-    signal: AbortSignal
-): Promise<
-    Awaited<ReturnType<ReadableStreamDefaultReader<Uint8Array>["read"]>>
-> {
-    if (signal.aborted) {
-        return Promise.reject(new DOMException("Aborted", "AbortError"));
-    }
-
-    return new Promise((resolve, reject) => {
-        const handleAbort = () => {
-            reject(new DOMException("Aborted", "AbortError"));
-        };
-        signal.addEventListener("abort", handleAbort, { once: true });
-        reader
-            .read()
-            .then(resolve, reject)
-            .finally(() => {
-                signal.removeEventListener("abort", handleAbort);
-            });
-    });
 }
 
 function getFirstHttpUrl(urls: readonly string[]): string | null {
@@ -686,10 +696,9 @@ function createContentRangeHeader(
 }
 
 function isSupportedVideoContentType(contentType: string): boolean {
-    const mimeType = contentType.split(";")[0]?.trim().toLowerCase();
+    const mimeType = getMimeType(contentType);
     return (
-        mimeType?.startsWith("video/") ||
-        mimeType === "application/octet-stream"
+        mimeType.startsWith("video/") || mimeType === "application/octet-stream"
     );
 }
 

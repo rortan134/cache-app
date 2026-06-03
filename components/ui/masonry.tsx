@@ -1207,7 +1207,9 @@ function useWindowSize(options: UseWindowSizeOptions) {
         }
 
         rootWindow.addEventListener("resize", onResize, { passive: true });
-        rootWindow.addEventListener("orientationchange", onResize);
+        rootWindow.addEventListener("orientationchange", onResize, {
+            passive: true,
+        });
         rootWindow.visualViewport?.addEventListener("resize", onResize);
 
         return () => {
@@ -1908,11 +1910,7 @@ function MasonryViewport({
             }
         );
 
-        const layoutOutdated =
-            currentShortestColumnSize < currentRangeEnd &&
-            currentMeasuredCount < itemCount;
-
-        if (layoutOutdated) {
+        if (isLayoutOutdated) {
             const batchSize = Math.min(
                 itemCount - currentMeasuredCount,
                 Math.ceil(

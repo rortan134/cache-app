@@ -3229,13 +3229,14 @@ function MediaPreview({
 
     const [hasImageFailed, setHasImageFailed] = React.useState(false);
     const [hasVideoFailed, setHasVideoFailed] = React.useState(false);
-    const [isVideoLoading, setIsVideoLoading] = React.useState(false);
+    const [hasVideoStarted, setHasVideoStarted] = React.useState(false);
 
     const videoRef = React.useRef<HTMLVideoElement | null>(null);
 
     const canRenderImage = !!src;
     const canRenderVideo = !!videoSrc;
     const shouldLoadVideo = hasHoverIntent && canRenderVideo && !hasVideoFailed;
+    const isVideoLoading = shouldLoadVideo && !hasVideoStarted;
 
     React.useEffect(() => {
         const video = videoRef.current;
@@ -3253,16 +3254,8 @@ function MediaPreview({
         }
     }, [isHovered, canRenderVideo, hasVideoFailed]);
 
-    React.useEffect(() => {
-        if (shouldLoadVideo) {
-            setIsVideoLoading(true);
-        } else {
-            setIsVideoLoading(false);
-        }
-    }, [shouldLoadVideo]);
-
     const handleCanPlay = useStableCallback(() => {
-        setIsVideoLoading(false);
+        setHasVideoStarted(true);
         const video = videoRef.current;
         if (video && isHovered && !hasVideoFailed) {
             video.play().catch((error: unknown) => {
@@ -3285,7 +3278,7 @@ function MediaPreview({
     });
 
     const handleVideoError = useStableCallback(() => {
-        setIsVideoLoading(false);
+        setHasVideoStarted(true);
         const video = videoRef.current;
         const mediaError = video?.error;
         log.debug("Video source failed to load", {
@@ -3321,7 +3314,7 @@ function MediaPreview({
                     height={400}
                     loading="eager"
                     onError={handleImageError}
-                    src={src ?? undefined}
+                    src={src}
                     width={300}
                 />
             ) : (
@@ -3346,7 +3339,7 @@ function MediaPreview({
                         playsInline
                         preload="metadata"
                         ref={videoRef}
-                        src={videoSrc ?? undefined}
+                        src={videoSrc}
                     />
                     {isVideoLoading ? (
                         <div
