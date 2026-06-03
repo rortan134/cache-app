@@ -145,15 +145,15 @@ export function UserMenuHeader() {
 export function UserMenuContent() {
     return (
         <>
+            <FeedbackWidget
+                context="user-menu"
+                render={<MenuItem closeOnClick={false} />}
+            >
+                Give feedback
+                <Globe className="ml-auto inline-block size-3.5 shrink-0 text-muted-foreground" />
+            </FeedbackWidget>
+            <MenuSeparator />
             <MenuGroup>
-                <FeedbackWidget
-                    context="user-menu"
-                    render={<MenuItem closeOnClick={false} />}
-                >
-                    Give feedback
-                    <Globe className="ml-auto inline-block size-3.5 shrink-0 text-muted-foreground" />
-                </FeedbackWidget>
-                <MenuSeparator />
                 <div className="flex items-center justify-between pr-2 pl-2.5">
                     <span className="font-regular text-foreground text-sm">
                         <T>Theme</T>

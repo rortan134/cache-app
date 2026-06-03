@@ -90,13 +90,14 @@ import {
     PeekDrawerContent,
     PeekDrawerTrigger,
 } from "@/components/ui/peek";
+import { useSidebar } from "@/components/ui/sidebar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Spinner } from "@/components/ui/spinner";
 import { Textarea } from "@/components/ui/textarea";
 import { Ticker } from "@/components/ui/ticker";
 import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
 import { useIsExtensionInstalled } from "@/hooks/use-extension-installed";
-import { useSidebar } from "@/components/ui/sidebar";
+import { useLastVisited } from "@/hooks/use-last-visited";
 import type { CollectionCreateFromItemsResult } from "@/lib/collections/actions";
 import { downloadMedia } from "@/lib/collections/actions";
 import {
@@ -180,6 +181,7 @@ import { useIsoLayoutEffect } from "@base-ui/utils/useIsoLayoutEffect";
 import { useStableCallback } from "@base-ui/utils/useStableCallback";
 import { useTimeout } from "@base-ui/utils/useTimeout";
 
+import { T } from "gt-next";
 import {
     ArrowDownWideNarrow,
     Check,
@@ -3852,6 +3854,8 @@ function MediaCard({ item }: LibraryGridCardProps) {
     const noteExcerpt = getNoteExcerpt(item.noteContentText);
     const displayTitle = getItemTitle(item);
 
+    const { markVisited, isLastVisited } = useLastVisited();
+
     const handlePrimaryClick = (event: React.MouseEvent<HTMLAnchorElement>) => {
         event.preventDefault();
         if (isNote) {
@@ -3859,6 +3863,7 @@ function MediaCard({ item }: LibraryGridCardProps) {
             return;
         }
         onOpenInNewTab?.(item);
+        markVisited(item.id);
     };
 
     const handleDownload = () => {
@@ -3921,10 +3926,17 @@ function MediaCard({ item }: LibraryGridCardProps) {
                             </div>
                         </div>
                     ) : (
-                        <MediaPreview
-                            src={previewImageUrl}
-                            videoSrc={previewVideoUrl}
-                        />
+                        <>
+                            <MediaPreview
+                                src={previewImageUrl}
+                                videoSrc={previewVideoUrl}
+                            />
+                            {isLastVisited(item.id) && (
+                                <span className="absolute top-2 right-2 z-10 rounded-full bg-black/45 px-1.5 py-px font-medium text-[10px] text-white leading-normal backdrop-blur-[2px]">
+                                    <T>Last visited</T>
+                                </span>
+                            )}
+                        </>
                     )}
                 </a>
                 <div
