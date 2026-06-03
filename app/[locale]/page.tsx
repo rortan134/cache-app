@@ -25,6 +25,7 @@ import OrganizeSectionImage from "@/public/organize-section.webp";
 import SmartCollectionsBackgroundImage from "@/public/smart-collections-background.webp";
 import { LocaleSelector, T } from "gt-next";
 import {
+    Bookmark,
     CircleCheck,
     CloudDownload,
     Component,
@@ -307,7 +308,7 @@ export default async function Home() {
                                         </span>
                                     </li>
                                     <li className="flex items-center gap-2">
-                                        <Workflow className="inline-block size-4 shrink-0" />
+                                        <Bookmark className="inline-block size-4 shrink-0" />
                                         <span>
                                             Keep important links top of mind
                                             instead of buried in a backlog of

@@ -1120,13 +1120,6 @@ function areDepsEqual(a: React.DependencyList, b: React.DependencyList) {
     return true;
 }
 
-interface DebouncedWindowSizeOptions {
-    containerRef: React.RefObject<RootElement | null>;
-    defaultHeight?: number;
-    defaultWidth?: number;
-    delayMs?: number;
-}
-
 function readDocumentSize(
     defaultWidth: number,
     defaultHeight: number,
@@ -1167,7 +1160,14 @@ function readScrollY(element?: Element | null) {
     );
 }
 
-function useDebouncedWindowSize(options: DebouncedWindowSizeOptions) {
+interface UseWindowSizeOptions {
+    containerRef: React.RefObject<RootElement | null>;
+    defaultHeight?: number;
+    defaultWidth?: number;
+    delayMs?: number;
+}
+
+function useWindowSize(options: UseWindowSizeOptions) {
     const {
         containerRef,
         defaultWidth = 0,
@@ -1628,18 +1628,15 @@ function Masonry({
     ...props
 }: MasonryProps) {
     const { rowGap, columnGap } = parseGapValue(gap);
+    const aspectRatios = getJustifiedAspectRatios(children, layout);
     const containerRef = React.useRef<RootElement | null>(null);
     const composedRef = useMergedRefs(ref, containerRef);
-
-    const aspectRatios = getJustifiedAspectRatios(children, layout);
-
-    const size = useDebouncedWindowSize({
+    const windowSize = useWindowSize({
         containerRef,
         defaultHeight,
         defaultWidth,
         delayMs: DEBOUNCE_DELAY,
     });
-
     const [containerPosition, setContainerPosition] = React.useState<{
         offset: number;
         width: number | null;
@@ -1648,27 +1645,12 @@ function Masonry({
         width: containerRef.current?.offsetWidth ?? null,
     }));
 
-    useIsoLayoutEffect(() => {
-        const container = containerRef.current;
-        if (!container) {
-            return;
-        }
+    const { scrollTop, isScrolling } = useScroller({
+        fps: scrollFps,
+        offset: containerPosition.offset,
+    });
 
-        const offset =
-            container.getBoundingClientRect().top + readScrollY(container);
-        const width = container.offsetWidth;
-
-        if (
-            offset !== containerPosition.offset ||
-            width !== containerPosition.width
-        ) {
-            setContainerPosition({
-                offset,
-                width,
-            });
-        }
-    }, [containerPosition.offset, containerPosition.width]);
-
+    const positionerWidth = containerPosition.width ?? windowSize.width;
     const positioner = usePositioner(
         {
             aspectRatios,
@@ -1685,18 +1667,16 @@ function Masonry({
             showWidows,
             targetRowHeight,
             targetRowHeightTolerance,
-            width: containerPosition.width ?? size.width,
+            width: positionerWidth,
         },
         deps
     );
     const resizeObserver = useResizeObserver(positioner);
-    const { scrollTop, isScrolling } = useScroller({
-        fps: scrollFps,
-        offset: containerPosition.offset,
-    });
+
     const itemRegistrationCacheRef = React.useRef<ItemRegistrationCache | null>(
         null
     );
+
     if (
         itemRegistrationCacheRef.current === null ||
         itemRegistrationCacheRef.current.positioner !== positioner ||
@@ -1755,7 +1735,28 @@ function Masonry({
         };
     }
 
-    function onItemRegister(index: number) {
+    useIsoLayoutEffect(() => {
+        const container = containerRef.current;
+        if (!container) {
+            return;
+        }
+
+        const offset =
+            container.getBoundingClientRect().top + readScrollY(container);
+        const width = container.offsetWidth;
+
+        if (
+            offset !== containerPosition.offset ||
+            width !== containerPosition.width
+        ) {
+            setContainerPosition({
+                offset,
+                width,
+            });
+        }
+    }, [containerPosition.offset, containerPosition.width]);
+
+    const onItemRegister = useStableCallback((index: number) => {
         const itemRegisterCallbacks =
             itemRegisterCallbacksRef.current?.callbacks;
         if (!itemRegisterCallbacks) {
@@ -1763,6 +1764,7 @@ function Masonry({
                 registerItemNode(index, node);
             };
         }
+
         const existingCallback = itemRegisterCallbacks[index];
         if (existingCallback) {
             return existingCallback;
@@ -1773,7 +1775,7 @@ function Masonry({
         };
         itemRegisterCallbacks[index] = nextCallback;
         return nextCallback;
-    }
+    });
 
     return (
         <MasonryContext
@@ -1787,7 +1789,7 @@ function Masonry({
                 positioner,
                 resizeObserver,
                 scrollTop,
-                windowHeight: size.height,
+                windowHeight: windowSize.height,
             }}
         >
             <div
