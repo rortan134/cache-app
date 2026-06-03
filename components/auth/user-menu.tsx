@@ -9,7 +9,7 @@ import {
     SubscriptionUpgradeButton,
     UnsubscribedOnly,
 } from "@/components/billing/subscription";
-import { FeedbackWidget } from "@/components/feedback/feedback-widget";
+import { FeedbackWidget } from "@/components/support/feedback-widget";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { CmdKbd, Kbd } from "@/components/ui/kbd";
@@ -92,7 +92,7 @@ export function UserMenuTrigger(
             </WithUserSessionOnly>
             <ChevronDown
                 aria-hidden
-                className="pointer-events-none inline-block size-3.5 shrink-0 hover:opacity-0 group-hover:opacity-80 group-data-popup-open:opacity-30"
+                className="pointer-events-none inline-block size-3.5 shrink-0 opacity-0 group-hover:opacity-80 group-data-popup-open:opacity-30"
                 focusable="false"
             />
         </MenuTrigger>

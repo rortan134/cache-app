@@ -1,6 +1,6 @@
 "use client";
 
-import { FeedbackWidget } from "@/components/feedback/feedback-widget";
+import { FeedbackWidget } from "@/components/support/feedback-widget";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {

@@ -81,7 +81,7 @@ import {
 import { SidebarItem } from "@/components/ui/sidebar";
 import { Textarea } from "@/components/ui/textarea";
 import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
-import { useSmartCollectionsPreference } from "@/hooks/use-smart-collections-preference";
+import { useSmartCollectionsPreference } from "@/hooks/queries/use-smart-collections-preference";
 import {
     createCollection,
     deleteCollection,
@@ -102,6 +102,7 @@ import {
     type LibraryCollectionTag,
     type LibraryItemWithCollections,
 } from "@/lib/collections/utils";
+import { removeValue, toggleValue } from "@/lib/common/arrays";
 import { cn } from "@/lib/common/cn";
 import { getHexColorFromName } from "@/lib/common/colors";
 import { ITEM_KIND_NOTE } from "@/lib/common/constants";
@@ -716,14 +717,9 @@ export function Collections() {
     );
 }
 
-/**
- * Central controller for all collection-related UI state and side effects.
- */
 function useCollectionsController() {
-    const {
-        disabled: isSmartCollectionsDisabled,
-        mutate: mutateSmartCollectionsPreference,
-    } = useSmartCollectionsPreference();
+    const { mutate: mutateSmartCollectionsPreference } =
+        useSmartCollectionsPreference();
 
     const {
         collectionPreviewThumbnailUrlsById,
@@ -743,7 +739,6 @@ function useCollectionsController() {
 
     const { hasAccess } = useSubscriptionAccess();
 
-    // Create dialog state
     const [isCreateOpen, setIsCreateOpen] = React.useState(false);
     const [createName, setCreateName] = React.useState("");
     const [createDescription, setCreateDescription] = React.useState("");
@@ -751,26 +746,21 @@ function useCollectionsController() {
     const [createError, setCreateError] = React.useState<string | null>(null);
     const [isCreatePending, startCreate] = React.useTransition();
 
-    // Rename dialog state
     const [pendingRename, setPendingRename] =
         React.useState<LibraryCollectionSummary | null>(null);
     const [renameDraft, setRenameDraft] = React.useState("");
     const [renameError, setRenameError] = React.useState<string | null>(null);
     const [isRenamePending, startRename] = React.useTransition();
 
-    // Delete dialog state
     const [pendingDelete, setPendingDelete] =
         React.useState<LibraryCollectionSummary | null>(null);
     const [isDeletePending, startDelete] = React.useTransition();
 
-    // Share state
     const [pendingShareIds, setPendingShareIds] = React.useState<string[]>([]);
     const [, startShare] = React.useTransition();
 
-    // Duplicate transition
     const [, startDuplicate] = React.useTransition();
 
-    // Feedback
     const [feedback, setFeedback] = React.useState<CollectionFeedback | null>(
         null
     );
@@ -865,7 +855,7 @@ function useCollectionsController() {
                     ? current
                     : [...current, collectionId];
             }
-            return current.filter((id) => id !== collectionId);
+            return removeValue(current, collectionId);
         });
     };
 
@@ -1223,7 +1213,7 @@ function useCollectionsController() {
                 )
             );
             setFavoriteCollectionIds((current) =>
-                current.filter((id) => id !== result.collection.id)
+                removeValue(current, result.collection.id)
             );
             setPendingDelete(null);
             showSuccess(`${result.collection.name} deleted.`);
@@ -1350,9 +1340,7 @@ function useCollectionsController() {
     const handleFavoriteToggle = (collection: LibraryCollectionSummary) => {
         const isFavorite = favoriteCollectionIdSet.has(collection.id);
         setFavoriteCollectionIds((current) =>
-            isFavorite
-                ? current.filter((id) => id !== collection.id)
-                : [...current, collection.id]
+            toggleValue(current, collection.id)
         );
         showSuccess(
             isFavorite
@@ -1412,10 +1400,10 @@ function useCollectionsController() {
     };
 
     const handleCreateOpenChange = (open: boolean) => {
-        if (!open && (isCreatePending || createSubmissionPendingRef.current)) {
-            return;
-        }
-        if (!(open || isCreatePending)) {
+        if (!open) {
+            if (isCreatePending || createSubmissionPendingRef.current) {
+                return;
+            }
             resetCreate();
         }
         setIsCreateOpen(open);
@@ -1509,7 +1497,6 @@ function useCollectionsController() {
         hasAnySelected,
         isCollectionsListOpen,
         isFavoritesListOpen,
-        isSmartCollectionsDisabled,
         onClearCollectionFilters,
         onCopyLinks: handleCopyLinks,
         onCopyShareLink: handleCopyShareLink,
@@ -2418,7 +2405,7 @@ function CollectionsListCreateButton({
 
 function CollectionsListCalloutPopover() {
     const controller = useCollections();
-    const isDisabled = controller.isSmartCollectionsDisabled;
+    const { disabled } = useSmartCollectionsPreference();
 
     const handleDisableSmartCollections = useStableCallback(() => {
         controller.onDisableSmartCollections().catch((error) => {
@@ -2426,7 +2413,7 @@ function CollectionsListCalloutPopover() {
         });
     });
 
-    if (isDisabled) {
+    if (disabled) {
         return null;
     }
 

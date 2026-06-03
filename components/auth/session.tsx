@@ -25,10 +25,11 @@ type Session = typeof auth.$Infer.Session;
  * the Google script to initialize more than once.
  */
 export function GoogleOneTapTrigger() {
-    const { data: session } = useSession();
+    const { data: session, isPending } = useSession();
+    const sessionId = session?.session?.id;
 
     React.useEffect(() => {
-        if (session || !HAS_GOOGLE_ONE_TAP_CLIENT_ID) {
+        if (isPending || sessionId || !HAS_GOOGLE_ONE_TAP_CLIENT_ID) {
             return;
         }
 
@@ -41,7 +42,7 @@ export function GoogleOneTapTrigger() {
         initOneTap().catch((error) => {
             log.error("Google One Tap init failed", error);
         });
-    }, [session]);
+    }, [isPending, sessionId]);
 
     return null;
 }
@@ -157,7 +158,7 @@ export function SessionHint({ serverSession }: SessionHintProps) {
     return (
         <div className="flex items-center gap-2">
             <Info className="size-4 opacity-50" />
-            <p className="font-medium text-xs leading-tight tracking-[-3%] opacity-50">
+            <div className="font-medium text-xs leading-tight tracking-[-3%] opacity-50">
                 You are signed in as{" "}
                 {session.user.email ?? <Skeleton>Placeholder</Skeleton>}
                 <Button
@@ -166,7 +167,7 @@ export function SessionHint({ serverSession }: SessionHintProps) {
                     size="xs"
                     variant="link"
                 />
-            </p>
+            </div>
         </div>
     );
 }
