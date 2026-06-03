@@ -1845,7 +1845,7 @@ function Masonry({
         }
     }, [containerPosition.offset, containerPosition.width, windowSize.width]);
 
-    const onItemRegister = useStableCallback((index: number) => {
+    const onItemRegister = (index: number) => {
         const itemRegisterCallbacks =
             itemRegistrationCacheRef.current?.callbacks;
         if (!itemRegisterCallbacks) {
@@ -1864,7 +1864,7 @@ function Masonry({
         };
         itemRegisterCallbacks[index] = nextCallback;
         return nextCallback;
-    });
+    };
 
     return (
         <MasonryContext
