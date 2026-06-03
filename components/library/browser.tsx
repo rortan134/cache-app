@@ -4609,6 +4609,8 @@ export function Browser({
         containerWidth !== DEFAULT_CONTAINER_WIDTH ||
         sourceFilters.length > 0;
 
+    const hasMeaningfulResultsView = hasActiveFilters || groupBy !== "none";
+
     const shouldShowEmptyLibraryPeek =
         items.length === 0 && filteredItems.length === 0 && !hasActiveFilters;
 
@@ -4650,8 +4652,7 @@ export function Browser({
     const visibleResultItems = sections.flatMap((section) => section.items);
 
     const canCreateCollectionFromResults =
-        (searchTerms.length > 0 || hasNonDefaultView) &&
-        visibleResultItems.length > 0;
+        hasMeaningfulResultsView && visibleResultItems.length > 0;
 
     const resultCollectionItemIds = visibleResultItems.map((item) => item.id);
 
