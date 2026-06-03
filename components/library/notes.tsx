@@ -992,10 +992,17 @@ function NoteEditor() {
  */
 function NoteMetrics() {
     const { textMetrics } = useNoteContext();
-    const shouldShowReadTime = textMetrics.readMinuteCount > 2;
+    const shouldShowReadTime = textMetrics.readMinuteCount >= 2;
 
     return (
         <div className="mt-3 flex items-center justify-end gap-4 border-border/60 border-t pt-3 text-muted-foreground text-xs">
+            {shouldShowReadTime ? (
+                <T>
+                    <span>
+                        <Var>{textMetrics.readMinuteCount}</Var> minute read
+                    </span>
+                </T>
+            ) : null}
             <T>
                 <span>
                     <Var>{textMetrics.wordCount}</Var> words
@@ -1006,13 +1013,6 @@ function NoteMetrics() {
                     <Var>{textMetrics.paragraphCount}</Var> paragraphs
                 </span>
             </T>
-            {shouldShowReadTime ? (
-                <T>
-                    <span>
-                        <Var>{textMetrics.readMinuteCount}</Var> minute read
-                    </span>
-                </T>
-            ) : null}
             <T>
                 <span>
                     <Var>{textMetrics.characterCount}</Var> characters
