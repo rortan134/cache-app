@@ -96,6 +96,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Ticker } from "@/components/ui/ticker";
 import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
 import { useIsExtensionInstalled } from "@/hooks/use-extension-installed";
+import { useSidebar } from "@/components/ui/sidebar";
 import type { CollectionCreateFromItemsResult } from "@/lib/collections/actions";
 import { downloadMedia } from "@/lib/collections/actions";
 import {
@@ -4270,6 +4271,8 @@ export function Browser({
     const [containerWidth, setContainerWidth] = React.useState<ContainerWidth>(
         DEFAULT_CONTAINER_WIDTH
     );
+    const { open: sidebarOpen } = useSidebar();
+    const userHasSetWidthRef = React.useRef(false);
     const [paletteSection, setPaletteSection] =
         React.useState<PaletteSection>("search");
     const [commandAttachments, setCommandAttachments] = React.useState<
@@ -4342,6 +4345,13 @@ export function Browser({
         });
     });
 
+    const handleSetContainerWidth = useStableCallback(
+        (width: ContainerWidth) => {
+            userHasSetWidthRef.current = true;
+            setContainerWidth(width);
+        }
+    );
+
     const clearLibraryPalette = useStableCallback(() => {
         setQuery("");
         setSearchTerms([]);
@@ -4353,7 +4363,8 @@ export function Browser({
         setGroupBy("none");
         setSortMode(DEFAULT_SORT_MODE);
         setColumnCountMode(DEFAULT_COLUMN_COUNT_MODE);
-        setContainerWidth(DEFAULT_CONTAINER_WIDTH);
+        userHasSetWidthRef.current = false;
+        setContainerWidth(sidebarOpen ? DEFAULT_CONTAINER_WIDTH : "full");
         setPaletteSection("search");
         setIsCommandOpen(false);
     });
@@ -4430,7 +4441,7 @@ export function Browser({
                 setColumnCountMode(patch.columnCountMode);
             }
             if (patch.containerWidth) {
-                setContainerWidth(patch.containerWidth);
+                handleSetContainerWidth(patch.containerWidth);
             }
             if (patch.selectedCollectionIds) {
                 onClearCollectionFilters();
@@ -4547,7 +4558,7 @@ export function Browser({
         selectedCollectionIds,
         setCollectionMembershipFilter,
         setColumnCountMode,
-        setContainerWidth,
+        setContainerWidth: handleSetContainerWidth,
         setDomainFilters,
         setGroupBy,
         setIsCommandOpen,
@@ -4823,7 +4834,7 @@ export function Browser({
         selectedCollectionIds,
         setCollectionMembershipFilter,
         setColumnCountMode,
-        setContainerWidth,
+        setContainerWidth: handleSetContainerWidth,
         setDomainFilters,
         setGroupBy,
         setSearchTerms,
@@ -5190,6 +5201,13 @@ export function Browser({
             openFavoriteItemRef.current = null;
         };
     }, [handleOpenFavoriteItem, openFavoriteItemRef]);
+
+    React.useEffect(() => {
+        if (userHasSetWidthRef.current) {
+            return;
+        }
+        setContainerWidth(sidebarOpen ? DEFAULT_CONTAINER_WIDTH : "full");
+    }, [sidebarOpen]);
 
     const containerRef = React.useRef<HTMLDivElement>(null);
 

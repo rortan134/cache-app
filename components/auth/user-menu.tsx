@@ -145,7 +145,6 @@ export function UserMenuHeader() {
 export function UserMenuContent() {
     return (
         <>
-            <MenuSeparator />
             <MenuGroup>
                 <FeedbackWidget
                     context="user-menu"
