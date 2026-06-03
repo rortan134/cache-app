@@ -12,15 +12,6 @@ export function Footer() {
                             <div className="flex flex-row flex-wrap gap-6 [&:has(a:hover,a:focus-visible)_a:focus-visible]:opacity-100 [&:has(a:hover,a:focus-visible)_a:hover]:opacity-100 [&:has(a:hover,a:focus-visible)_a]:opacity-25 [&_a:focus-visible]:opacity-100 [&_a:hover]:opacity-100 [&_a]:opacity-50 [&_a]:transition-opacity [&_a]:duration-300">
                                 <Link
                                     className="underline"
-                                    href="/manifesto"
-                                    target="_blank"
-                                >
-                                    <T>
-                                        <p>Manifesto</p>
-                                    </T>
-                                </Link>
-                                <Link
-                                    className="underline"
                                     href="/legal/terms-of-service"
                                     target="_blank"
                                 >

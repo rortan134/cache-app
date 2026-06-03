@@ -18,7 +18,6 @@ const PUBLIC_STATIC_ROUTES = [
     { path: "/", priority: 1 },
     { path: "/versus", priority: 0.85 },
     { path: "/changelog", priority: 0.7 },
-    { path: "/manifesto", priority: 0.8 },
     { path: "/security", priority: 0.7 },
     { path: "/legal", priority: 0.7 },
     { path: "/legal/terms-of-service", priority: 0.7 },
