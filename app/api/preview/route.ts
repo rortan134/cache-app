@@ -1,18 +1,21 @@
-import { isAbortError } from "@/lib/common/abort";
+import { abortAfterAny, isAbortError } from "@/lib/common/abort";
 import { FALLBACK_URL } from "@/lib/common/constants";
 import { createLogger } from "@/lib/common/logs/console/logger";
 import { parseHttpUrl } from "@/lib/common/net";
-import { getRedisClient } from "@/lib/common/redis";
 import { parsePublicHttpUrl } from "@/lib/common/server-net";
 import { fetchWithTimeout } from "@/lib/common/timeout";
 import { toValidUrl } from "@/lib/common/url";
 import { resolveCobaltPreview } from "@/lib/integrations/cobalt/service";
 import { isCobaltHost } from "@/lib/integrations/cobalt/utils";
+import {
+    tiktokOembedThumbnailUrl,
+    tiktokOembedUrl,
+} from "@/lib/integrations/tiktok/oembed";
+import { getPreviewFromContent } from "link-preview-js";
 import { cacheLife, cacheTag } from "next/cache";
 import { createHash } from "node:crypto";
 import { Duplex } from "node:stream";
 import { createZstdCompress } from "node:zlib";
-import { PreviewError, createCache, preview, withCache } from "openlink";
 
 const log = createLogger("api:library:preview");
 
@@ -24,33 +27,23 @@ const VERCEL_CACHE_TAG_HEADER = "Vercel-Cache-Tag";
 const VERCEL_CDN_CACHE_CONTROL_HEADER_NAME = "Vercel-CDN-Cache-Control";
 const NO_STORE_HEADER = "private, no-store";
 const FETCH_TIMEOUT_MS = 10_000;
-const MAX_REDIRECTS = 2;
+const MAX_REDIRECTS = 1;
 const MAX_TARGET_URL_LENGTH = 4096;
+const MAX_PREVIEW_METADATA_BODY_BYTES = 2 * 1024 * 1024;
 const MAX_IMAGE_CONTENT_LENGTH_BYTES = 10 * 1024 * 1024;
 const MAX_VIDEO_CONTENT_LENGTH_BYTES = 200 * 1024 * 1024;
-const PREVIEW_METADATA_CACHE_TTL_SECONDS = 86_400;
-const PREVIEW_METADATA_CACHE_TTL_MS = PREVIEW_METADATA_CACHE_TTL_SECONDS * 1000;
-const COBALT_RETRY_ATTEMPTS = 2;
+const COBALT_RETRY_ATTEMPTS = 1;
 const COBALT_RETRY_DELAY_MS = 500;
 const USER_AGENT =
     "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)";
-const HTTP_RANGE_HEADER_PATTERN =
-    /^bytes=(?:\d+-\d*|\d*-\d+)(?:,(?:\d+-\d*|\d*-\d+))*$/;
+const HTTP_SINGLE_RANGE_HEADER_PATTERN = /^bytes=(\d*)-(\d*)$/;
+const XHTML_CONTENT_TYPE_PATTERN = /^application\/xhtml\+xml/i;
 
-const redis = getRedisClient();
-
-const cache = redis
-    ? createCache({
-          delete: async (key) => {
-              await redis.del(key);
-          },
-          get: (key) => redis.get(key),
-          set: async (key, value) => {
-              await redis.setex(key, PREVIEW_METADATA_CACHE_TTL_SECONDS, value);
-          },
-      })
-    : undefined;
-const getPagePreview = cache ? withCache(cache, preview) : preview;
+interface VideoRangeRequest {
+    endByte: number | null;
+    header: string;
+    startByte: number | null;
+}
 
 function acceptsZstd(request: Request): boolean {
     const acceptEncoding = request.headers.get("accept-encoding");
@@ -65,30 +58,31 @@ function createZstdTransform() {
 }
 
 export async function GET(request: Request): Promise<Response> {
-    const requestUrl = new URL(request.url);
     const targetUrl = await extractTargetUrl(request.url);
     if (!targetUrl) {
         return textResponse("Invalid URL", 400);
     }
 
-    const type = parsePreviewType(requestUrl.searchParams.get("type"));
-    if (!type) {
+    const contentType = parsePreviewType(
+        new URL(request.url).searchParams.get("type")
+    );
+    if (!contentType) {
         return textResponse("Unsupported preview type", 400);
     }
 
-    const useZstd = acceptsZstd(request);
+    const shouldUseZstd = acceptsZstd(request);
 
-    if (type === "video") {
-        return handleVideoPreview(targetUrl, request);
+    if (contentType === "video") {
+        return resolveVideoPreview(targetUrl, request);
     }
 
     try {
-        const previewResult = await resolvePreviewImage(targetUrl);
-        if (!previewResult?.imageUrl) {
+        const preview = await resolveImagePreview(targetUrl);
+        if (!preview?.imageUrl) {
             return textResponse("Preview not found", 404);
         }
 
-        const { imageUrl, pageUrl } = previewResult;
+        const { imageUrl, pageUrl } = preview;
 
         const imageResponse = await fetchWithRedirects(
             imageUrl,
@@ -122,7 +116,7 @@ export async function GET(request: Request): Promise<Response> {
         }
 
         const body =
-            useZstd && imageResponse.body
+            shouldUseZstd && imageResponse.body
                 ? imageResponse.body.pipeThrough(createZstdTransform())
                 : imageResponse.body;
 
@@ -131,7 +125,7 @@ export async function GET(request: Request): Promise<Response> {
                 "cache-control": CACHE_CONTROL_HEADER,
                 "content-type": imageContentType,
                 ...createPreviewCacheHeaders(targetUrl, "image"),
-                ...(useZstd ? { "content-encoding": "zstd" } : {}),
+                ...(shouldUseZstd ? { "content-encoding": "zstd" } : {}),
             },
             status: 200,
         });
@@ -140,53 +134,107 @@ export async function GET(request: Request): Promise<Response> {
             return new Response(null, { status: 499 });
         }
 
-        if (error instanceof PreviewError) {
-            log.warn("Preview failed", {
-                code: error.code,
-                message: error.message,
-                targetUrl,
-            });
-
-            if (error.code === "INVALID_URL") {
-                return textResponse("Invalid URL", 400);
-            }
-        } else {
-            log.warn("Failed to resolve preview", {
-                error: error instanceof Error ? error.message : String(error),
-                targetUrl,
-            });
-        }
+        log.warn("Failed to resolve preview", {
+            error: error instanceof Error ? error.message : String(error),
+            targetUrl,
+        });
 
         return textResponse("Preview not found", 404);
     }
 }
 
-async function resolvePreviewImage(targetUrl: string) {
+async function resolveImagePreview(targetUrl: string) {
     "use cache";
-    cacheLife("days");
     cacheTag(`preview:${hashTargetUrl(targetUrl)}`);
 
-    const page = await getPagePreview(targetUrl, {
-        cacheTtl: PREVIEW_METADATA_CACHE_TTL_MS,
-        fetch: safeFetch,
+    const oembedUrl = tiktokOembedUrl(targetUrl);
+    if (oembedUrl) {
+        cacheLife("hours");
+        return resolveTikTokImagePreview(targetUrl, oembedUrl);
+    }
+
+    cacheLife("days");
+
+    const pageResponse = await fetchWithRedirects(targetUrl, {
         headers: {
-            Accept: "text/html,application/xhtml+xml",
+            Accept: "text/html,application/xhtml+xml,image/*",
             "User-Agent": USER_AGENT,
         },
     });
 
-    const imageUrl = parseHttpUrl(page.image ?? page.favicon ?? "")?.href;
+    if (!pageResponse.ok) {
+        log.debug("Preview page request failed", {
+            status: pageResponse.status,
+            targetUrl,
+        });
+        return null;
+    }
+
+    const pageContentType = pageResponse.headers.get("content-type") ?? "";
+    if (pageContentType.startsWith("image/")) {
+        return { imageUrl: targetUrl, pageUrl: targetUrl };
+    }
+
+    const previewHeaders = headersToRecord(pageResponse.headers);
+    const previewContentType = normalizePreviewContentType(pageContentType);
+    if (previewContentType) {
+        previewHeaders["content-type"] = previewContentType;
+    }
+
+    const previewBody = shouldReadPreviewResponseBody(previewContentType)
+        ? await readTextBodyWithLimit(
+              pageResponse,
+              MAX_PREVIEW_METADATA_BODY_BYTES
+          )
+        : "";
+    if (previewBody == null) {
+        return null;
+    }
+
+    const page = await getPreviewFromContent({
+        data: previewBody,
+        headers: previewHeaders,
+        url: pageResponse.url || targetUrl,
+    });
+
+    const imageUrl = getFirstHttpUrl("images" in page ? page.images : []);
     if (!imageUrl) {
         return null;
     }
 
     return {
         imageUrl,
-        pageUrl: parseHttpUrl(page.url ?? "")?.href,
+        pageUrl: parseHttpUrl(page.url)?.href,
     };
 }
 
-async function handleVideoPreview(
+async function resolveTikTokImagePreview(targetUrl: string, oembedUrl: string) {
+    const response = await fetchWithRedirects(oembedUrl, {
+        headers: {
+            Accept: "application/json",
+            "User-Agent": USER_AGENT,
+        },
+    });
+    if (!response.ok) {
+        log.debug("TikTok oEmbed preview request failed", {
+            status: response.status,
+            targetUrl,
+        });
+        return null;
+    }
+
+    const thumbnailUrl = tiktokOembedThumbnailUrl(await response.json());
+    if (!thumbnailUrl) {
+        return null;
+    }
+
+    return {
+        imageUrl: thumbnailUrl,
+        pageUrl: targetUrl,
+    };
+}
+
+async function resolveVideoPreview(
     targetUrl: string,
     request: Request
 ): Promise<Response> {
@@ -196,7 +244,7 @@ async function handleVideoPreview(
             return new Response(null, { status: 499 });
         }
 
-        const videoResult = await resolvePreviewVideo(targetUrl);
+        const videoResult = await resolveVideo(targetUrl, signal);
         if (!videoResult?.videoUrl) {
             log.debug("Video preview resolved to null", {
                 errorCode: videoResult?.errorCode,
@@ -241,20 +289,63 @@ async function handleVideoPreview(
     }
 }
 
+async function resolveVideo(targetUrl: string, signal?: AbortSignal) {
+    const isSupported = isCobaltHost(targetUrl);
+    if (!isSupported) {
+        log.debug("Host not supported for video preview", { targetUrl });
+        return { videoUrl: null };
+    }
+
+    let lastErrorCode: string | null = null;
+    for (let attempt = 1; attempt <= COBALT_RETRY_ATTEMPTS; attempt++) {
+        const result = await resolveCobaltPreview(targetUrl, signal);
+        if (result.status === "SUCCESS" && result.videoPreviewUrl) {
+            return { videoUrl: result.videoPreviewUrl };
+        }
+
+        lastErrorCode = result.status === "ERROR" ? result.errorCode : null;
+
+        const shouldRetry =
+            lastErrorCode != null &&
+            (lastErrorCode.includes("fetch") ||
+                lastErrorCode.includes("unreachable"));
+
+        if (!shouldRetry || attempt === COBALT_RETRY_ATTEMPTS) {
+            break;
+        }
+
+        log.debug("Retrying Cobalt preview after fetch failure", {
+            attempt,
+            errorCode: lastErrorCode,
+            targetUrl,
+        });
+
+        await delay(COBALT_RETRY_DELAY_MS);
+    }
+
+    log.debug("Cobalt preview did not return video", {
+        errorCode: lastErrorCode,
+        status: "ERROR",
+        targetUrl,
+    });
+
+    return { errorCode: lastErrorCode ?? undefined, videoUrl: null };
+}
+
 async function proxyVideoResponse(
     videoUrl: string,
     targetUrl: string,
     request: Request
 ): Promise<Response> {
     try {
-        const rangeHeader = parseRangeHeader(request.headers.get("range"));
-        const useZstd = acceptsZstd(request);
+        const rangeRequest = parseRangeHeader(request.headers.get("range"));
+
         const tunnelResponse = await fetchWithRedirects(
             videoUrl,
             {
                 headers: {
                     Accept: "video/*",
-                    ...(rangeHeader ? { Range: rangeHeader } : {}),
+                    ...(rangeRequest ? { Range: rangeRequest.header } : {}),
                     "User-Agent": USER_AGENT,
                 },
             },
@@ -285,7 +376,9 @@ async function proxyVideoResponse(
         }
 
         const contentLength = tunnelResponse.headers.get("content-length");
-        const contentRange = tunnelResponse.headers.get("content-range");
+        const contentRange =
+            tunnelResponse.headers.get("content-range") ??
+            createContentRangeHeader(rangeRequest, contentLength);
         headers.set("content-type", contentType);
         if (contentLength) {
             headers.set("content-length", contentLength);
@@ -297,19 +390,7 @@ async function proxyVideoResponse(
         headers.set("cache-control", CACHE_CONTROL_HEADER);
         setPreviewCacheHeaders(headers, targetUrl, "video");
 
-        const responseBody =
-            useZstd && !rangeHeader && tunnelResponse.body
-                ? tunnelResponse.body.pipeThrough(createZstdTransform())
-                : tunnelResponse.body;
-
-        if (useZstd && !rangeHeader) {
-            headers.delete("content-length");
-            headers.delete("content-range");
-            headers.delete("accept-ranges");
-            headers.set("content-encoding", "zstd");
-        }
-
-        return new Response(responseBody, {
+        return new Response(tunnelResponse.body, {
             headers,
             status: tunnelResponse.status,
         });
@@ -327,88 +408,12 @@ async function proxyVideoResponse(
     }
 }
 
-async function resolvePreviewVideo(
-    targetUrl: string
-): Promise<{ errorCode?: string; videoUrl: string | null }> {
-    "use cache";
-    cacheLife("minutes");
-    cacheTag(`preview:video:${hashTargetUrl(targetUrl)}`);
-
-    const isSupported = isCobaltHost(targetUrl);
-    if (!isSupported) {
-        log.debug("Host not supported for video preview", { targetUrl });
-        return { videoUrl: null };
-    }
-
-    let lastErrorCode: string | null = null;
-    for (let attempt = 1; attempt <= COBALT_RETRY_ATTEMPTS; attempt++) {
-        const result = await resolveCobaltPreview(targetUrl);
-        if (result.status === "SUCCESS" && result.videoPreviewUrl) {
-            return { videoUrl: result.videoPreviewUrl };
-        }
-
-        lastErrorCode = result.status === "ERROR" ? result.errorCode : null;
-        const shouldRetry =
-            lastErrorCode != null &&
-            (lastErrorCode.includes("fetch") ||
-                lastErrorCode.includes("unreachable"));
-
-        if (!shouldRetry || attempt === COBALT_RETRY_ATTEMPTS) {
-            break;
-        }
-
-        log.debug("Retrying Cobalt preview after fetch failure", {
-            attempt,
-            errorCode: lastErrorCode,
-            targetUrl,
-        });
-        await delay(COBALT_RETRY_DELAY_MS);
-    }
-
-    log.debug("Cobalt preview did not return video", {
-        errorCode: lastErrorCode,
-        status: "ERROR",
-        targetUrl,
-    });
-    return { errorCode: lastErrorCode ?? undefined, videoUrl: null };
-}
-
-function delay(ms: number): Promise<void> {
-    return new Promise((resolve) => {
-        setTimeout(resolve, ms);
-    });
-}
-
-const safeFetch: typeof fetch = Object.assign(
-    (
-        input: URL | RequestInfo,
-        init?: RequestInit | undefined
-    ): Promise<Response> => {
-        let rawUrl: string;
-        if (typeof input === "string") {
-            rawUrl = input;
-        } else if (input instanceof URL) {
-            rawUrl = input.href;
-        } else {
-            rawUrl = input.url;
-        }
-
-        return fetchWithRedirects(rawUrl, init);
-    },
-    {
-        preconnect: () => {
-            // No-op
-        },
-    }
-);
-
 async function fetchWithRedirects(
     initialUrl: string,
     init: RequestInit | undefined,
     signal?: AbortSignal
 ): Promise<Response> {
     let requestUrl = initialUrl;
-    // Build once instead of re-spreading inside the hot redirect loop.
     const redirectInit = init
         ? { ...init, redirect: "manual" as const }
         : { redirect: "manual" as const };
@@ -487,6 +492,12 @@ function parsePreviewType(type: string | null): "image" | "video" | null {
     return null;
 }
 
+function delay(ms: number): Promise<void> {
+    return new Promise((resolve) => {
+        setTimeout(resolve, ms);
+    });
+}
+
 function textResponse(body: string, status: number): Response {
     return new Response(body, {
         headers: {
@@ -497,11 +508,181 @@ function textResponse(body: string, status: number): Response {
     });
 }
 
-function parseRangeHeader(rangeHeader: string | null): string | null {
+function headersToRecord(headers: Headers): Record<string, string> {
+    const record: Record<string, string> = {};
+    headers.forEach((value, key) => {
+        record[key] = value;
+    });
+    return record;
+}
+
+async function readTextBodyWithLimit(
+    response: Response,
+    maxBodyBytes: number
+): Promise<string | null> {
+    if (isContentLengthOverLimit(response.headers, maxBodyBytes)) {
+        return null;
+    }
+
+    if (!response.body) {
+        return "";
+    }
+
+    const { signal, clearTimeout } = abortAfterAny(FETCH_TIMEOUT_MS);
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let body = "";
+    let bodyBytes = 0;
+
+    try {
+        while (true) {
+            const { done, value } = await readStreamChunk(reader, signal);
+            if (done) {
+                break;
+            }
+            if (!value) {
+                continue;
+            }
+
+            bodyBytes += value.byteLength;
+            if (bodyBytes > maxBodyBytes) {
+                await reader.cancel("Preview metadata exceeded size limit.");
+                return null;
+            }
+
+            body += decoder.decode(value, { stream: true });
+        }
+
+        return body + decoder.decode();
+    } catch (error) {
+        if (isAbortError(error)) {
+            await reader.cancel("Preview metadata read timed out.");
+            return null;
+        }
+        throw error;
+    } finally {
+        clearTimeout();
+        reader.releaseLock();
+    }
+}
+
+function readStreamChunk(
+    reader: ReadableStreamDefaultReader<Uint8Array>,
+    signal: AbortSignal
+): Promise<
+    Awaited<ReturnType<ReadableStreamDefaultReader<Uint8Array>["read"]>>
+> {
+    if (signal.aborted) {
+        return Promise.reject(new DOMException("Aborted", "AbortError"));
+    }
+
+    return new Promise((resolve, reject) => {
+        const handleAbort = () => {
+            reject(new DOMException("Aborted", "AbortError"));
+        };
+        signal.addEventListener("abort", handleAbort, { once: true });
+        reader
+            .read()
+            .then(resolve, reject)
+            .finally(() => {
+                signal.removeEventListener("abort", handleAbort);
+            });
+    });
+}
+
+function getFirstHttpUrl(urls: readonly string[]): string | null {
+    for (const url of urls) {
+        const httpUrl = parseHttpUrl(url)?.href;
+        if (httpUrl) {
+            return httpUrl;
+        }
+    }
+    return null;
+}
+
+function normalizePreviewContentType(contentType: string): string {
+    if (getMimeType(contentType) === "application/xhtml+xml") {
+        return contentType.replace(XHTML_CONTENT_TYPE_PATTERN, "text/html");
+    }
+    return contentType;
+}
+
+function shouldReadPreviewResponseBody(contentType: string): boolean {
+    const mimeType = getMimeType(contentType);
+    return !mimeType || mimeType.startsWith("text/");
+}
+
+function getMimeType(contentType: string): string {
+    return contentType.split(";")[0]?.trim().toLowerCase() ?? "";
+}
+
+function parseRangeHeader(
+    rangeHeader: string | null
+): VideoRangeRequest | null {
     if (!rangeHeader) {
         return null;
     }
-    return HTTP_RANGE_HEADER_PATTERN.test(rangeHeader) ? rangeHeader : null;
+
+    const match = HTTP_SINGLE_RANGE_HEADER_PATTERN.exec(rangeHeader);
+    if (!match) {
+        return null;
+    }
+
+    const startByte = parseRangeByte(match[1]);
+    const endByte = parseRangeByte(match[2]);
+    if (startByte === null && endByte === null) {
+        return null;
+    }
+    if (startByte !== null && endByte !== null && endByte < startByte) {
+        return null;
+    }
+
+    return {
+        endByte,
+        header: rangeHeader,
+        startByte,
+    };
+}
+
+function parseRangeByte(value: string | undefined): number | null {
+    if (!value) {
+        return null;
+    }
+
+    const parsed = Number(value);
+    if (!(Number.isInteger(parsed) && parsed >= 0)) {
+        return null;
+    }
+
+    return parsed;
+}
+
+function createContentRangeHeader(
+    rangeRequest: VideoRangeRequest | null,
+    contentLength: string | null
+): string | null {
+    if (!(rangeRequest && contentLength && rangeRequest.startByte !== null)) {
+        return null;
+    }
+
+    const responseBodyByteLength = Number(contentLength);
+    if (
+        !(
+            Number.isInteger(responseBodyByteLength) &&
+            responseBodyByteLength > 0
+        )
+    ) {
+        return null;
+    }
+
+    const endByte =
+        rangeRequest.endByte ??
+        rangeRequest.startByte + responseBodyByteLength - 1;
+    if (endByte < rangeRequest.startByte) {
+        return null;
+    }
+
+    return `bytes ${rangeRequest.startByte}-${endByte}/*`;
 }
 
 function isSupportedVideoContentType(contentType: string): boolean {
@@ -520,7 +701,6 @@ function isContentLengthOverLimit(
     if (!contentLength) {
         return false;
     }
-
     const contentLengthBytes = Number(contentLength);
     return (
         Number.isFinite(contentLengthBytes) &&

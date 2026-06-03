@@ -91,6 +91,7 @@ import {
     PeekDrawerTrigger,
 } from "@/components/ui/peek";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Spinner } from "@/components/ui/spinner";
 import { Textarea } from "@/components/ui/textarea";
 import { Ticker } from "@/components/ui/ticker";
 import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
@@ -199,6 +200,7 @@ import {
     FolderOpen,
     Funnel,
     Globe,
+    GlobeOff,
     Layers3,
     LinkIcon,
     ListChevronsUpDown,
@@ -2267,7 +2269,6 @@ function CategoryThumbnail({ urls }: { urls: string[] }) {
     }
 
     return (
-        // biome-ignore lint/a11y/noNoninteractiveElementInteractions: image load failures drive the visual fallback state
         <img
             alt=""
             className="absolute top-10 left-3 z-10 h-auto w-full rounded-sm object-cover transition-transform group-data-highlighted:-translate-y-1"
@@ -3216,26 +3217,25 @@ function useLibraryItemActions(args: {
 }
 
 function MediaPreview({
-    isHovered = false,
     src,
     videoSrc,
 }: {
-    isHovered?: boolean;
     src: string | null;
     videoSrc?: string | null;
 }) {
-    const [hasImageFailed, setHasImageFailed] = React.useState(false);
-    const [hasVideoFailed, setHasVideoFailed] = React.useState(false);
+    const [isHovered, setIsHovered] = React.useState(false);
     const [hasHoverIntent, setHasHoverIntent] = React.useState(false);
     const [isSoundEnabled, setIsSoundEnabled] = React.useState(true);
+
+    const [hasImageFailed, setHasImageFailed] = React.useState(false);
+    const [hasVideoFailed, setHasVideoFailed] = React.useState(false);
+    const [isVideoLoading, setIsVideoLoading] = React.useState(false);
+
     const videoRef = React.useRef<HTMLVideoElement | null>(null);
 
-    const imageSrc = src ?? undefined;
-    const canRenderImage = !!imageSrc;
-    const canRenderVideo = !!videoSrc && !hasVideoFailed;
-    const shouldLoadVideo = hasHoverIntent || hasImageFailed;
-    const isVideoVisible = isHovered || (hasImageFailed && canRenderVideo);
-    const hasBothFailed = hasImageFailed && !canRenderVideo;
+    const canRenderImage = !!src;
+    const canRenderVideo = !!videoSrc;
+    const shouldLoadVideo = hasHoverIntent && canRenderVideo && !hasVideoFailed;
 
     React.useEffect(() => {
         const video = videoRef.current;
@@ -3243,23 +3243,28 @@ function MediaPreview({
             return;
         }
 
-        if (isHovered) {
-            if (hasHoverIntent) {
-                video.play().catch((error: unknown) => {
-                    log.debug("Failed to resume hover preview", { error });
-                });
-            } else {
-                setHasHoverIntent(true);
-            }
+        if (isHovered && !hasVideoFailed) {
+            video.play().catch((error: unknown) => {
+                log.debug("Failed to resume hover preview", { error });
+            });
         } else {
             video.pause();
             video.currentTime = 0;
         }
-    }, [isHovered, canRenderVideo, hasHoverIntent]);
+    }, [isHovered, canRenderVideo, hasVideoFailed]);
+
+    React.useEffect(() => {
+        if (shouldLoadVideo) {
+            setIsVideoLoading(true);
+        } else {
+            setIsVideoLoading(false);
+        }
+    }, [shouldLoadVideo]);
 
     const handleCanPlay = useStableCallback(() => {
+        setIsVideoLoading(false);
         const video = videoRef.current;
-        if (video && isHovered) {
+        if (video && isHovered && !hasVideoFailed) {
             video.play().catch((error: unknown) => {
                 log.debug("Failed to play hover preview", { error });
             });
@@ -3270,7 +3275,17 @@ function MediaPreview({
         setHasImageFailed(true);
     });
 
+    const handleMouseEnter = useStableCallback(() => {
+        setIsHovered(true);
+        setHasHoverIntent(true);
+    });
+
+    const handleMouseLeave = useStableCallback(() => {
+        setIsHovered(false);
+    });
+
     const handleVideoError = useStableCallback(() => {
+        setIsVideoLoading(false);
         const video = videoRef.current;
         const mediaError = video?.error;
         log.debug("Video source failed to load", {
@@ -3292,33 +3307,37 @@ function MediaPreview({
     const SoundIcon = isSoundEnabled ? Volume2Icon : VolumeXIcon;
 
     return (
-        <div className="relative size-full">
-            {canRenderImage ? (
-                // biome-ignore lint/a11y/noNoninteractiveElementInteractions: image load failures drive the visual fallback state
+        <div
+            className="relative size-full"
+            onMouseEnter={handleMouseEnter}
+            onMouseLeave={handleMouseLeave}
+        >
+            {canRenderImage && !hasImageFailed ? (
                 <img
                     alt=""
-                    className={cn(
-                        "size-full object-cover transition-opacity duration-100",
-                        { "opacity-0": canRenderVideo && isVideoVisible }
-                    )}
+                    className="size-full object-cover transition-opacity duration-100"
                     draggable="false"
                     fetchPriority="auto"
                     height={400}
                     loading="eager"
                     onError={handleImageError}
-                    src={imageSrc}
+                    src={src ?? undefined}
                     width={300}
                 />
-            ) : null}
-            {canRenderVideo ? (
+            ) : (
+                <div className="-z-1 flex min-h-32 flex-col items-center justify-center gap-2 bg-muted opacity-50">
+                    <GlobeOff className="size-6 text-muted-foreground/50" />
+                    <span className="text-muted-foreground text-xs">
+                        No preview
+                    </span>
+                </div>
+            )}
+            {shouldLoadVideo ? (
                 <>
                     <video
                         className={cn(
                             "pointer-events-none absolute inset-0 size-full object-cover transition-opacity duration-150",
-                            {
-                                "opacity-0": !isVideoVisible,
-                                "opacity-100": isVideoVisible,
-                            }
+                            { "z-1": isHovered }
                         )}
                         loop
                         muted={!isSoundEnabled}
@@ -3327,40 +3346,41 @@ function MediaPreview({
                         playsInline
                         preload="metadata"
                         ref={videoRef}
-                        src={
-                            shouldLoadVideo
-                                ? (videoSrc ?? undefined)
-                                : undefined
-                        }
+                        src={videoSrc ?? undefined}
                     />
-                    <Button
-                        aria-label={
-                            isSoundEnabled
-                                ? "Mute video preview"
-                                : "Enable video preview sound"
-                        }
-                        aria-pressed={isSoundEnabled}
-                        className={cn(
-                            "pointer-events-auto absolute top-2 left-2 z-10 rounded-full border-white/15 bg-black/45 text-white opacity-0 shadow-sm backdrop-blur-sm transition-opacity hover:bg-black/60 focus-visible:opacity-100 focus-visible:ring-white/70",
-                            {
-                                "opacity-100": isHovered,
+                    {isVideoLoading ? (
+                        <div
+                            className={cn(
+                                "pointer-events-none absolute top-2 left-2 z-10 rounded-full border-white/15 bg-black/45 text-white opacity-0 shadow-sm backdrop-blur-sm transition-opacity",
+                                { "opacity-100": isHovered }
+                            )}
+                        >
+                            <Spinner className="m-1.5 size-4" />
+                        </div>
+                    ) : (
+                        <Button
+                            aria-label={
+                                isSoundEnabled
+                                    ? "Mute video preview"
+                                    : "Enable video preview sound"
                             }
-                        )}
-                        onClick={handleSoundToggle}
-                        size="icon-sm"
-                        variant="ghost"
-                    >
-                        <SoundIcon className="size-4" />
-                    </Button>
+                            aria-pressed={isSoundEnabled}
+                            className={cn(
+                                "pointer-events-auto absolute top-2 left-2 z-10 rounded-full border-white/15 bg-black/45 text-white opacity-0 shadow-sm backdrop-blur-sm transition-opacity hover:bg-black/60 focus-visible:opacity-100 focus-visible:ring-white/70",
+                                { "opacity-100": isHovered }
+                            )}
+                            onClick={handleSoundToggle}
+                            size="icon-sm"
+                            variant="ghost"
+                        >
+                            <SoundIcon
+                                aria-hidden="true"
+                                className="size-4"
+                                focusable="false"
+                            />
+                        </Button>
+                    )}
                 </>
-            ) : null}
-            {hasBothFailed ? (
-                <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-muted/50">
-                    <Globe className="size-8 text-muted-foreground/50" />
-                    <span className="text-muted-foreground text-xs">
-                        No preview
-                    </span>
-                </div>
             ) : null}
         </div>
     );
@@ -3591,11 +3611,11 @@ function CollectionComboboxPicker({
                                 key={collection.id}
                                 value={collection.id}
                             >
-                                <div className="flex max-w-64 items-center justify-between gap-3">
+                                <div className="flex max-w-56 items-center justify-between gap-3">
                                     <span className="min-w-0 max-w-full flex-1 truncate text-foreground text-sm">
                                         {collection.name}
                                     </span>
-                                    <div className="relative flex w-fit items-center justify-end">
+                                    <div className="relative flex w-fit items-center justify-end pl-4">
                                         <span className="shrink-0 text-nowrap text-muted-foreground text-xs tabular-nums group-data-highlighted/item:opacity-0">
                                             {collection.itemCount}
                                         </span>
@@ -3830,7 +3850,6 @@ function MediaCard({ item }: LibraryGridCardProps) {
     const [isDownloading, startDownloadTransition] = React.useTransition();
     const [isCollectionPickerOpen, setIsCollectionPickerOpen] =
         React.useState(false);
-    const [isCardHovered, setIsCardHovered] = React.useState(false);
     const href = normalizeURL(item.url);
     const previewImageUrl = itemPreviewImageUrl(item);
     const previewVideoUrl = itemPreviewVideoUrl(item);
@@ -3894,8 +3913,6 @@ function MediaCard({ item }: LibraryGridCardProps) {
                     className="flex flex-col focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
                     href={href}
                     onClick={handlePrimaryClick}
-                    onMouseEnter={() => setIsCardHovered(true)}
-                    onMouseLeave={() => setIsCardHovered(false)}
                     rel="noopener noreferrer"
                     target={isNote ? undefined : "_blank"}
                 >
@@ -3911,7 +3928,6 @@ function MediaCard({ item }: LibraryGridCardProps) {
                         </div>
                     ) : (
                         <MediaPreview
-                            isHovered={isCardHovered}
                             src={previewImageUrl}
                             videoSrc={previewVideoUrl}
                         />
@@ -5186,9 +5202,12 @@ export function Browser({
 
     let placeholder = "Search, filter, group, sort, and more";
     if (paletteSection === "search") {
-        placeholder = "Search, filter, group, sort, and more";
-        if (isCommandFocused) {
+        if (hasActiveFilters) {
+            placeholder = "Ask Cache anything";
+        } else if (isCommandFocused) {
             placeholder = "What are you looking for?";
+        } else {
+            placeholder = "Search, filter, group, sort, and more";
         }
     } else if (paletteSection === "filter") {
         placeholder = "Filter the library";
@@ -5201,7 +5220,7 @@ export function Browser({
     } else if (paletteSection === "width") {
         placeholder = "Set the container width";
     } else if (paletteSection === "ai-response") {
-        placeholder = "Ask Cache";
+        placeholder = "Ask Cache anything";
     }
 
     return (

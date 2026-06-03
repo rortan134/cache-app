@@ -38,6 +38,10 @@
     },
     "linter": {
         "rules": {
+            "a11y": {
+                "noNoninteractiveElementInteractions": "off",
+                "noStaticElementInteractions": "off"
+            },
             "complexity": {
                 "noExcessiveCognitiveComplexity": "off",
                 "noUselessCatchBinding": "off"

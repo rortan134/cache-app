@@ -1808,7 +1808,6 @@ function CollectionsListItemPreviewImage({
     }
 
     return (
-        // biome-ignore lint/a11y/noNoninteractiveElementInteractions: Fallback
         <img
             {...props}
             alt={alt}
@@ -2525,8 +2524,6 @@ function CollectionItem({
 
     return (
         <CollectionsListItemContext value={{ collection, isHovered }}>
-            {/* biome-ignore lint/a11y/noNoninteractiveElementInteractions: Hover tracking scopes collection-level keyboard shortcuts. */}
-            {/* biome-ignore lint/a11y/noStaticElementInteractions: Same as above. */}
             <div
                 {...props}
                 className={cn(

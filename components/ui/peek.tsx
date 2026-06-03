@@ -250,7 +250,6 @@ export function PeekDrawerContent() {
                             </div>
                         )}
                         {shouldRenderPreview && (
-                            // biome-ignore lint/a11y/noNoninteractiveElementInteractions: iframe load and error events are required to track preview readiness.
                             <iframe
                                 className="size-full border-0 bg-background"
                                 key={iframeRemountKey}

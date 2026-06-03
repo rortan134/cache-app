@@ -1,3 +1,4 @@
+import { isAbortError } from "@/lib/common/abort";
 import { createLogger } from "@/lib/common/logs/console/logger";
 
 const log = createLogger("integrations:cobalt");
@@ -251,7 +252,8 @@ async function readCobaltJsonResponse(
 }
 
 export async function resolveCobaltPreview(
-    url: string
+    url: string,
+    signal?: AbortSignal
 ): Promise<ResolveCobaltPreviewResult> {
     const normalizedUrl = url.trim();
     if (normalizedUrl.length === 0) {
@@ -271,6 +273,7 @@ export async function resolveCobaltPreview(
                 "Content-Type": "application/json",
             },
             method: "POST",
+            ...(signal ? { signal } : {}),
         });
 
         const data = await readCobaltJsonResponse(response);
@@ -299,6 +302,10 @@ export async function resolveCobaltPreview(
 
         return resolveCobaltPreviewFromResponse(data ?? {});
     } catch (error) {
+        if (isAbortError(error)) {
+            throw error;
+        }
+
         return {
             errorCode: "unexpected",
             message:

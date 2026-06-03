@@ -7,6 +7,7 @@ import { GTProvider, getLocale } from "gt-next/server";
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import Script from "next/script";
+import { INTEGRATIONS } from "@/lib/integrations/support";
 import * as React from "react";
 import "./globals.css";
 
@@ -18,12 +19,14 @@ export async function generateMetadata(props: {
 
     return {
         applicationName: APP_NAME,
+        authors: [{ name: APP_NAME }],
+        category: "technology",
+        classification: "AI Development Tools",
+        creator: APP_NAME,
         formatDetection: {
             address: false,
-            date: false,
             email: false,
             telephone: false,
-            url: false,
         },
         keywords: ["bookmarks", "bookmark manager"],
         metadataBase: new URL(BASE_URL),
@@ -33,9 +36,28 @@ export async function generateMetadata(props: {
             type: "website",
             url: BASE_URL,
         },
+        other: {
+            "llm:content-type": "",
+            "llm:integrations": INTEGRATIONS.map((int) => int.label).join(", "),
+            "llm:languages": "en",
+            "llm:pricing": "free tier available, pro 8€/month",
+            "llm:region": "global",
+            "llm:use-cases": "",
+        },
+        publisher: APP_NAME,
+        referrer: "origin-when-cross-origin",
         robots: {
             follow: true,
+            googleBot: {
+                follow: true,
+                index: true,
+                "max-image-preview": "large",
+                "max-snippet": -1,
+                "max-video-preview": -1,
+                noimageindex: false,
+            },
             index: true,
+            nocache: false,
         },
         title: {
             default: SITE_DEFAULT_TITLE,

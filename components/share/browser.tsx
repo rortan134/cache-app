@@ -31,7 +31,6 @@ function PreviewMedia({
     }
 
     return (
-        // biome-ignore lint/a11y/noNoninteractiveElementInteractions: image load failures drive the visual fallback state
         <img
             alt={alt}
             className="size-full object-cover"
