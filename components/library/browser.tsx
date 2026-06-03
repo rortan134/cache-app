@@ -4786,6 +4786,7 @@ export function Browser({
             event.defaultPrevented ||
             isTextEntry ||
             isPaletteEventTarget ||
+            event.key.toLowerCase() === "s" ||
             !isPrintablePaletteKey(event)
         ) {
             return;
