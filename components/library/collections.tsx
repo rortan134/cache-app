@@ -166,6 +166,7 @@ import { storage } from "stan-js/storage";
 const log = createLogger("library:collections");
 
 const CSV_CONTENT_TYPE = "text/csv";
+const CSV_RECORD_SEPARATOR = "\r\n";
 const CSV_HEADERS = [
     "Collection",
     "Caption",
@@ -225,11 +226,10 @@ interface CollectionsListItemContextValue {
     isHovered: boolean;
 }
 
-interface CollectionShareState
-    extends Pick<
-        LibraryCollectionTag,
-        "id" | "shareId" | "sharedAt" | "updatedAt"
-    > {}
+type CollectionShareState = Pick<
+    LibraryCollectionTag,
+    "id" | "shareId" | "sharedAt" | "updatedAt"
+>;
 
 interface SyncCreatedCollectionInput {
     assignedItemIds: string[];
@@ -573,7 +573,7 @@ function buildCsv(
 
     return [CSV_HEADERS, ...rows]
         .map((row) => row.map(escapeCsv).join(","))
-        .join("\n");
+        .join(CSV_RECORD_SEPARATOR);
 }
 
 function getCreatedAssignedItemIds(
@@ -946,13 +946,13 @@ function useCollectionsController() {
         });
     };
 
-    const requestCreate = (itemId?: string) => {
+    const requestCreate = useStableCallback((itemId?: string) => {
         setCreateItemId(itemId ?? null);
         setCreateName("");
         setCreateDescription("");
         setCreateError(null);
         setIsCreateOpen(true);
-    };
+    });
 
     const handleCreateShortcutPress = useStableCallback(() => {
         if (createSubmissionPendingRef.current) {
@@ -1427,7 +1427,6 @@ function useCollectionsController() {
                 async () => {
                     const result = await disableSmartCollections();
                     if (result.status !== "DISABLED") {
-                        showError(result.message);
                         throw new Error(result.message);
                     }
                     return { disabled: true };
@@ -1729,10 +1728,6 @@ function getComboboxCollectionsSortingGroups(
     return groups;
 }
 
-function getComboboxOptionLabel(value: ComboboxValue): string {
-    return value.label;
-}
-
 function getComboboxOptionValue(value: ComboboxValue): string {
     return `${value.sortField}:${value.view}:${value.sortQuery}`;
 }
@@ -1781,13 +1776,15 @@ function CollectionsListPreviewImageFallback() {
 
 function CollectionsListItemPreviewImage({
     alt,
+    className,
     src,
     ...props
 }: React.ComponentProps<"img">) {
-    const [hasFailed, setHasFailed] = React.useState(false);
+    const [erroredSrc, setErroredSrc] = React.useState<string | null>(null);
+    const hasFailed = src !== undefined && erroredSrc === src;
 
-    const handleError = useStableCallback(() => {
-        setHasFailed(true);
+    const handleError = useStableCallback((): void => {
+        setErroredSrc((src as string | undefined) ?? null);
     });
 
     if (!src || hasFailed) {
@@ -1798,7 +1795,7 @@ function CollectionsListItemPreviewImage({
         <img
             {...props}
             alt={alt}
-            className="size-full object-cover"
+            className={cn("size-full object-cover", className)}
             height={192}
             loading="lazy"
             onError={handleError}
@@ -1817,17 +1814,15 @@ function CollectionsList({
     ...props
 }: React.ComponentProps<typeof Collapsible>) {
     const controller = useCollections();
-    const requestCreateRef = React.useContext(RequestCreateRefContext);
+    const requestCreateRef = React.use(RequestCreateRefContext);
 
     React.useEffect(() => {
-        if (requestCreateRef) {
-            requestCreateRef.current = (itemId?: string) =>
-                controller.requestCreate(itemId);
+        if (!requestCreateRef) {
+            return;
         }
+        requestCreateRef.current = controller.requestCreate;
         return () => {
-            if (requestCreateRef) {
-                requestCreateRef.current = null;
-            }
+            requestCreateRef.current = null;
         };
     }, [controller.requestCreate, requestCreateRef]);
 
@@ -2066,8 +2061,6 @@ function FavoriteItemCarouselSlide({
                 ) : (
                     <CollectionsListItemPreviewImage
                         alt={previewLabel}
-                        className="size-full object-cover"
-                        key={previewImageUrl ?? "missing-preview"}
                         src={previewImageUrl ?? undefined}
                     />
                 )}
@@ -2298,7 +2291,6 @@ function CollectionsListSortingCombobox({
             inputValue={inputValue}
             isItemEqualToValue={isComboboxValueEqual}
             items={getComboboxCollectionsSortingGroups(inputValue, value)}
-            itemToStringLabel={getComboboxOptionLabel}
             itemToStringValue={getComboboxOptionValue}
             onInputValueChange={onInputValueChange}
             onOpenChange={onOpenChange}
@@ -2408,9 +2400,7 @@ function CollectionsListCalloutPopover() {
     const { disabled } = useSmartCollectionsPreference();
 
     const handleDisableSmartCollections = useStableCallback(() => {
-        controller.onDisableSmartCollections().catch((error) => {
-            log.error("Failed to disable smart collections", { error });
-        });
+        controller.onDisableSmartCollections();
     });
 
     if (disabled) {
@@ -2582,7 +2572,6 @@ function CollectionItemTrigger({
             >
                 <CollectionsListItemPreviewImage
                     alt={`${collection.name} preview`}
-                    key={activeThumbnail ?? "missing-preview"}
                     src={activeThumbnail}
                 />
             </PreviewCardPopup>
@@ -2721,7 +2710,7 @@ function CollectionItemShareSubMenu() {
             <MenuSubPopup>
                 {isShared ? (
                     <MenuItem
-                        disabled={!collection.shareId || isSharePending}
+                        disabled={isSharePending}
                         onClick={onCopyShareLink}
                     >
                         <LinkIcon
@@ -2897,9 +2886,7 @@ function CollectionItemMetadata({
     const onRename = useStableCallback(() => controller.onRename(collection));
     const onDelete = useStableCallback(() => controller.onDelete(collection));
     const onAddFavorite = useStableCallback(() => {
-        if (!isFavorite) {
-            controller.onFavoriteToggle(collection);
-        }
+        controller.onFavoriteToggle(collection);
     });
     const onFavoriteToggle = useStableCallback(() => {
         controller.onFavoriteToggle(collection);
@@ -3009,17 +2996,17 @@ function CollectionItemMetadata({
                         </MenuItem>
                     </MenuGroup>
                     <MenuItem disabled>
-                        <span className="space-y-1 text-nowrap text-[10px] text-muted-foreground leading-none">
-                            <span className="block pb-1">
+                        <div className="space-y-1 text-nowrap text-[10px] text-muted-foreground leading-none">
+                            <div>
                                 Last updated{" "}
                                 {dayjs(collection.updatedAt).fromNow()}
-                            </span>
-                            <span className="block pt-1">
+                            </div>
+                            <div>
                                 {dayjs(collection.updatedAt).format(
                                     "MMM DD, YYYY, h:mm A"
                                 )}
-                            </span>
-                        </span>
+                            </div>
+                        </div>
                     </MenuItem>
                 </MenuPopup>
             </Menu>
@@ -3141,6 +3128,7 @@ function CollectionsCreateDialog() {
     const errorId = React.useId();
     const descriptionInputId = React.useId();
     const { disabled } = useSmartCollectionsPreference();
+    const isNameValid = normalizeWhitespace(nameDraft).length > 0;
 
     return (
         <Dialog onOpenChange={onOpenChange} open={isOpen}>
@@ -3294,7 +3282,7 @@ function CollectionsCreateDialog() {
                             </ComboboxPopup>
                         </Combobox>
                         <Button
-                            disabled={!nameDraft}
+                            disabled={!isNameValid}
                             loading={isPending}
                             size="sm"
                             type="submit"
