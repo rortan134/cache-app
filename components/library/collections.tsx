@@ -80,8 +80,8 @@ import {
 } from "@/components/ui/preview-card";
 import { SidebarItem } from "@/components/ui/sidebar";
 import { Textarea } from "@/components/ui/textarea";
-import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
 import { useSmartCollectionsPreference } from "@/hooks/queries/use-smart-collections-preference";
+import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
 import {
     createCollection,
     deleteCollection,

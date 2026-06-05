@@ -31,6 +31,7 @@ import {
     Toolbar,
     type AutocompleteRootChangeEventDetails,
 } from "@base-ui/react";
+import { useStableCallback } from "@base-ui/utils/useStableCallback";
 import { Calligraph } from "calligraph";
 import { CircleFadingPlus, Grid2x2, Grid2x2X, SquarePen } from "lucide-react";
 import * as React from "react";
@@ -283,12 +284,16 @@ export function ComposerActionNewCollection() {
     const { canCreateCollectionFromResults, onCreateResultsDialogOpen } =
         useComposerActionsContext();
 
+    const handleCreateCollection = useStableCallback(() =>
+        onCreateResultsDialogOpen(true)
+    );
+
     if (!canCreateCollectionFromResults) {
         return null;
     }
 
     return (
-        <ActionButton onClick={() => onCreateResultsDialogOpen(true)}>
+        <ActionButton onClick={handleCreateCollection}>
             <CircleFadingPlus className="inline-block size-3.5 shrink-0" />
             &nbsp;Collection with results
         </ActionButton>

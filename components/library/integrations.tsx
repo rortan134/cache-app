@@ -498,6 +498,8 @@ function IntegrationsListFeedback() {
 function IntegrationsListPrivacyNotice() {
     const [isOpen, setIsOpen] = React.useState(true);
 
+    const handleDismiss = useStableCallback(() => setIsOpen(false));
+
     return (
         <Collapsible
             className="mx-2.5 pb-1"
@@ -511,7 +513,7 @@ function IntegrationsListPrivacyNotice() {
                     change your mind.{" "}
                     <Button
                         className="h-fit! px-0 leading-tight sm:text-[11px]"
-                        onClick={() => setIsOpen(false)}
+                        onClick={handleDismiss}
                         size="xs"
                         variant="link"
                     >
@@ -562,8 +564,7 @@ function IntegrationsListItemAction({
         isConnected,
     });
 
-    const hasActions = actions.length > 0;
-    if (!hasActions) {
+    if (actions.length === 0) {
         return null;
     }
 
