@@ -692,9 +692,10 @@ function NoteRoot({
     open,
     saving,
 }: NoteProps) {
-    const [draft, setDraft] = useState<NoteDraft>(() =>
+    const [initialDraft, setInitialDraft] = useState<NoteDraft>(() =>
         noteDraftFromItem(note)
     );
+    const [draft, setDraft] = useState<NoteDraft>(initialDraft);
     const [editorKey, setEditorKey] = useState(0);
     const [isClosing, setIsClosing] = useState(false);
     const [isExpanded, setIsExpanded] = useState(false);
@@ -711,6 +712,7 @@ function NoteRoot({
         const nextDraft = noteDraftFromItem(note);
         initialDraftRef.current = nextDraft;
         latestDraftRef.current = nextDraft;
+        setInitialDraft(nextDraft);
         setDraft(nextDraft);
         setEditorKey((key) => key + 1);
     }, [note, open]);
@@ -732,6 +734,7 @@ function NoteRoot({
         const nextDraft = noteDraftFromItem(note);
         initialDraftRef.current = nextDraft;
         latestDraftRef.current = nextDraft;
+        setInitialDraft(nextDraft);
         setDraft(nextDraft);
         await onOpenChange(false);
     };
@@ -789,7 +792,7 @@ function NoteRoot({
             value={{
                 contentHtml: draft.contentHtml,
                 editorKey,
-                initialDraft: initialDraftRef.current,
+                initialDraft,
                 isBusy,
                 isExpanded,
                 onDraftChange: handleDraftChange,
