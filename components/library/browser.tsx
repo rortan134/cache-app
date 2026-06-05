@@ -3776,6 +3776,10 @@ function CardMenu({
     const isFavorite = favoriteItemIdSet.has(item.id);
     const isDeletePending = pendingDeleteItemId === item.id;
     const canPreview = !isNote && toValidUrl(href) !== FALLBACK_URL;
+    const peekUrl =
+        previewImageUrl && item.source === LibraryItemSource.google_photos
+            ? previewImageUrl
+            : item.url;
 
     return (
         <>
@@ -3838,9 +3842,9 @@ function CardMenu({
             {canPreview ? (
                 <PeekDrawer
                     description={itemDomain(item.url)}
-                    key={item.url}
+                    key={peekUrl}
                     title={getItemTitle(item)}
-                    url={item.url}
+                    url={peekUrl}
                 >
                     <PeekDrawerTrigger
                         nativeButton={false}

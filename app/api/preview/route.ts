@@ -35,7 +35,7 @@ const MAX_VIDEO_CONTENT_LENGTH_BYTES = 200 * 1024 * 1024;
 const COBALT_RETRY_ATTEMPTS = 1;
 const COBALT_RETRY_DELAY_MS = 500;
 const USER_AGENT =
-    "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)";
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
 const HTTP_SINGLE_RANGE_HEADER_PATTERN = /^bytes=(\d*)-(\d*)$/;
 const XHTML_CONTENT_TYPE_PATTERN = /^application\/xhtml\+xml/i;
 
