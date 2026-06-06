@@ -365,4 +365,15 @@ export const auth = betterAuth({
         },
     },
     trustedOrigins: TRUSTED_ORIGINS,
+    user: {
+        /**
+         * Hard-delete the user row, sessions, and cascading library data
+         * when the user explicitly confirms account deletion. OAuth-only
+         * sign-in means we rely on `session.freshAge` and the in-product
+         * confirmation dialog for authorization instead of a password.
+         */
+        deleteUser: {
+            enabled: true,
+        },
+    },
 });

@@ -96,7 +96,7 @@ function SidebarNavigationItem({
     );
 
     return (
-        <Link className="contents" href={href} prefetch tabIndex={0} {...props}>
+        <Link className="contents" href={href} prefetch {...props}>
             <ActivePathname
                 href={href}
                 render={

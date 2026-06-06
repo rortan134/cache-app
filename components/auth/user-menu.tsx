@@ -1,5 +1,6 @@
 "use client";
 
+import { DeleteAccountDialogTrigger } from "@/components/auth/delete-account-dialog-trigger";
 import { LogoutDialogTrigger } from "@/components/auth/logout-dialog-trigger";
 import { WithUserSessionOnly } from "@/components/auth/session";
 import {
@@ -39,6 +40,7 @@ import { LocaleSelector, T, Var } from "gt-next";
 import {
     ArrowUpRight,
     ChevronDown,
+    Ellipsis,
     Globe,
     LoaderCircle,
     LogOut,
@@ -261,7 +263,7 @@ export function UserMenuFooter() {
                 <LocaleSelector />
             </div>
             <MenuSeparator className="mt-1.5" />
-            <div className="flex flex-wrap -space-x-0.5 p-1 opacity-50">
+            <div className="flex flex-wrap items-center -space-x-0.5 p-1 opacity-50">
                 {FOOTER_LINKS.map(({ href, label }) => (
                     <Button
                         key={href}
@@ -274,8 +276,47 @@ export function UserMenuFooter() {
                         </T>
                     </Button>
                 ))}
+                <UserMenuAccountActionsSubMenu className="ml-auto">
+                    <Ellipsis
+                        aria-hidden
+                        className="inline-block size-3.5 shrink-0"
+                        focusable="false"
+                    />
+                </UserMenuAccountActionsSubMenu>
             </div>
         </>
+    );
+}
+
+/* @internal */
+function UserMenuAccountActionsSubMenu(
+    props: React.ComponentProps<typeof MenuSubTrigger>
+) {
+    return (
+        <MenuSub>
+            <MenuSubTrigger
+                aria-label="Account actions"
+                render={
+                    <Button size="xs" title="Account actions" variant="ghost" />
+                }
+                {...props}
+            />
+            <MenuSubPopup align="end">
+                <MenuGroup>
+                    <DeleteAccountDialogTrigger
+                        nativeButton={false}
+                        render={
+                            <MenuItem
+                                closeOnClick={false}
+                                variant="destructive"
+                            />
+                        }
+                    >
+                        <T context="Delete account menu item">Delete account</T>
+                    </DeleteAccountDialogTrigger>
+                </MenuGroup>
+            </MenuSubPopup>
+        </MenuSub>
     );
 }
 
