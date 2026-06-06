@@ -8,10 +8,6 @@ import {
     UserMenuPopup,
     UserMenuTrigger,
 } from "@/components/auth/user-menu";
-import {
-    SubscriptionUpgradeButton,
-    UnsubscribedOnly,
-} from "@/components/billing/subscription";
 import { ActivePathname } from "@/components/ui/active-pathname";
 import { CmdKbd, Kbd } from "@/components/ui/kbd";
 import {
@@ -46,16 +42,6 @@ export function ApplicationSidebar({ children }: React.PropsWithChildren) {
                             <UserMenuFooter />
                         </UserMenuPopup>
                     </UserMenu>
-                    <UnsubscribedOnly>
-                        <SubscriptionUpgradeButton
-                            className="rounded-full"
-                            data-sidebar-collapsible=""
-                            size="xs"
-                            variant="outline"
-                        >
-                            <T>Upgrade</T>
-                        </SubscriptionUpgradeButton>
-                    </UnsubscribedOnly>
                     <SidebarTrigger />
                 </div>
                 <SidebarGroup>

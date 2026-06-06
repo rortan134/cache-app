@@ -37,6 +37,7 @@ import { getInitials } from "@/lib/common/strings";
 import { useStableCallback } from "@base-ui/utils/useStableCallback";
 import { LocaleSelector, T, Var } from "gt-next";
 import {
+    ArrowUpRight,
     ChevronDown,
     Globe,
     LoaderCircle,
@@ -192,6 +193,7 @@ export function UserMenuContent() {
                         render={<MenuItem closeOnClick={false} />}
                     >
                         <T>Billing</T>
+                        <ArrowUpRight className="ml-auto inline-block size-3.5 shrink-0 text-muted-foreground" />
                     </SubscriptionBillingPortalButton>
                 </SubscribedOnly>
                 <UnsubscribedOnly>
@@ -200,17 +202,23 @@ export function UserMenuContent() {
                         render={<MenuItem closeOnClick={false} />}
                     >
                         <T>Upgrade to Pro</T>
+                        <ArrowUpRight className="ml-auto inline-block size-3.5 shrink-0 text-muted-foreground" />
                     </SubscriptionUpgradeButton>
                 </UnsubscribedOnly>
                 <MenuItem
                     className="justify-between"
-                    render={<Link href="/changelog" />}
+                    render={<Link href="/changelog" target="_blank" />}
                 >
                     <T>Changelog</T>
                 </MenuItem>
                 <MenuItem
                     className="justify-between"
-                    render={<Link href="mailto:gsmt.dev@gmail.com" />}
+                    render={
+                        <Link
+                            href="mailto:gsmt.dev@gmail.com"
+                            target="_blank"
+                        />
+                    }
                 >
                     <T>Support</T>
                 </MenuItem>
