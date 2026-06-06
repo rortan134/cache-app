@@ -53,7 +53,7 @@ const NOTE_SCRIPT_STYLE_BLOCKS =
 const NOTE_COMMENTS = /<!--[\s\S]*?-->/g;
 const NOTE_HEADING_TAG = /^h[1-6]$/;
 
-function escapeNoteHtml(value: string): string {
+export function escapeNoteHtmlText(value: string): string {
     return value
         .replaceAll("&", "&amp;")
         .replaceAll("<", "&lt;")
@@ -113,7 +113,7 @@ function wrapNoteInlineFormat(
 }
 
 function renderNoteTextNode(node: SerializedTextNode): string {
-    let html = escapeNoteHtml(node.text).replaceAll("\n", "<br>");
+    let html = escapeNoteHtmlText(node.text).replaceAll("\n", "<br>");
 
     if (html.length === 0) {
         return "";

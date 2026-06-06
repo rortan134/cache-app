@@ -202,10 +202,16 @@ model LibraryItem {
   /// Non-note item caption or label. Notes store authored content only in the
   /// note fields so rendered text does not diverge from editor state.
   caption          String?
+  /// Sanitized HTML projection of the note payload. Paired with
+  /// `noteContentText` by a DB CHECK constraint; all writes must go through
+  /// `normalizeNotePayload` in `lib/integrations/notes/service.ts`.
   noteContentHtml  String?
   /// Editor-native document state when available. `noteContentHtml` and
-  /// `noteContentText` are denormalized render/search projections of the current
-  /// note payload.
+  /// `noteContentText` are denormalized render/search projections of the
+  /// current note payload. `noteContentText` is derived from `noteContentHtml`
+  /// by `extractNoteText(sanitizeNoteHtml(...))`; the functional dependency is
+  /// not representable as a CHECK constraint, so the single write path is the
+  /// source of truth and the DB only enforces the structural pair invariant.
   noteContentState Json?
   noteContentText  String?
   /// Integration-specific metadata used for synthesis, display, and debugging.

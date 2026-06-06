@@ -1,4 +1,4 @@
-import { runOAuthImport } from "@/lib/integrations/oauth-import";
+import { runOAuthImport } from "@/lib/integrations/oauth-import/route";
 import { importPinterestBoards } from "@/lib/integrations/pinterest/service";
 import type { IntegrationApiError } from "@/lib/integrations/error";
 

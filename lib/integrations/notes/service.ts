@@ -7,6 +7,7 @@ import {
 import { DEFAULT_BROWSER_PROFILE_ID } from "@/lib/integrations/browser-profiles";
 import { IntegrationUserError } from "@/lib/integrations/error";
 import {
+    escapeNoteHtmlText,
     extractNoteText,
     isNoteSerializedEditorState,
     sanitizeNoteHtml,
@@ -57,6 +58,18 @@ export function getNoteItemForUser(
             userId,
         },
     });
+}
+
+export function createNoteFromPlainText(
+    userId: string,
+    plainText: string
+): Promise<LibraryItemWithCollections> {
+    return createNote(
+        userId,
+        normalizeNotePayload({
+            contentHtml: `<p>${escapeNoteHtmlText(plainText)}</p>`,
+        })
+    );
 }
 
 export async function createNote(

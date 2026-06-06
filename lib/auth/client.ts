@@ -24,11 +24,7 @@ export const authClient = createAuthClient({
         multiSessionClient(),
         stripeClient({ subscription: true }),
         ...(GOOGLE_ONE_TAP_CLIENT_ID
-            ? [
-                  oneTapClient({
-                      clientId: GOOGLE_ONE_TAP_CLIENT_ID,
-                  }),
-              ]
+            ? [oneTapClient({ clientId: GOOGLE_ONE_TAP_CLIENT_ID })]
             : []),
     ],
 });

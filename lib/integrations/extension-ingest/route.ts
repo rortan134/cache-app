@@ -1,15 +1,14 @@
 import "server-only";
 
-import { parseDate } from "@/lib/common/dates";
-import { upsertLibraryItemImports } from "@/lib/integrations/upsert";
-import type {
-    ITEM_KIND_BOOKMARK,
-    ITEM_KIND_FOLDER,
-} from "@/lib/common/constants";
-import { prisma } from "@/prisma";
-import type { Prisma } from "@/prisma/client/client";
-import type { LibraryItemSource } from "@/prisma/client/enums";
-import * as z from "zod";
+import { createLogger } from "@/lib/common/logs/console/logger";
+import { resolveExtensionIngestUserId } from "@/lib/integrations/extension-ingest/service";
+import type * as z from "zod";
+
+const log = createLogger("integrations:extension-ingest");
+
+// ---------------------------------------------------------------------------
+// CORS
+// ---------------------------------------------------------------------------
 
 const INGEST_CORS_HEADERS = {
     "Access-Control-Allow-Headers": "authorization, content-type",
@@ -30,19 +29,6 @@ const TRUSTED_CACHE_WEB_ORIGIN_PATTERNS = [
 ];
 
 const CHROME_EXTENSION_ORIGIN_PATTERN = /^chrome-extension:\/\/[a-p]{32}$/;
-
-export const extensionSavedItemBaseSchema = z.object({
-    browserProfileId: z.string().optional(),
-    caption: z.string().optional(),
-    kind: z.enum(["bookmark", "folder"]).optional(),
-    parentExternalId: z.string().optional(),
-    postedAt: z.string().optional(),
-    scrapedAt: z.string().optional(),
-    sourceDeviceId: z.string().optional(),
-    sourceDeviceName: z.string().optional(),
-    sourceMetadata: z.record(z.string(), z.json()).nullable().optional(),
-    url: z.string(),
-});
 
 function isTrustedCacheWebOrigin(origin: string): boolean {
     return TRUSTED_CACHE_WEB_ORIGIN_PATTERNS.some((pattern) =>
@@ -85,6 +71,11 @@ function corsHeadersForOrigin(
     };
 }
 
+/**
+ * CORS headers for the extension ingest POST endpoints. The extension
+ * posts saved items with an `Authorization: Bearer` header, so these are
+ * not credentialed.
+ */
 export function extensionIngestCorsHeaders(request: Request): HeadersInit {
     return corsHeadersForOrigin(
         INGEST_CORS_HEADERS,
@@ -106,6 +97,10 @@ export function extensionTokenCorsHeaders(request: Request): HeadersInit {
     );
 }
 
+// ---------------------------------------------------------------------------
+// Bearer auth
+// ---------------------------------------------------------------------------
+
 function parseBearerToken(request: Request): string | null {
     const raw = request.headers.get("authorization");
     if (!raw?.startsWith("Bearer ")) {
@@ -116,26 +111,13 @@ function parseBearerToken(request: Request): string | null {
 }
 
 /**
- * Resolves the Cache user id for an extension ingest Bearer token.
- */
-async function resolveExtensionIngestUserId(
-    bearerToken: string
-): Promise<string | null> {
-    const byToken = await prisma.user.findFirst({
-        select: { id: true },
-        where: { extensionIngestToken: bearerToken },
-    });
-    if (byToken) {
-        return byToken.id;
-    }
-
-    return resolveFallbackExtensionIngestUserId(bearerToken);
-}
-
-/**
  * Authenticates an extension ingest request by Bearer token.
  *
- * @returns The CORS headers and resolved user id, or a 401 Response if authentication fails.
+ * The CORS headers are computed once and attached to every response,
+ * including the failure paths, so the browser can read the error body.
+ *
+ * @returns The CORS headers and resolved user id, or a 401 Response if
+ *   authentication fails.
  */
 export async function authenticateExtensionIngest(
     request: Request
@@ -160,6 +142,10 @@ export async function authenticateExtensionIngest(
     return { cors, userId };
 }
 
+// ---------------------------------------------------------------------------
+// Generic import route adapter
+// ---------------------------------------------------------------------------
+
 interface ExtensionIngestImportResult {
     smartCollectionItemIds: string[];
 }
@@ -178,6 +164,21 @@ interface ExtensionIngestImportConfig<
     }) => Record<string, unknown>;
 }
 
+/**
+ * Route adapter for the per-provider extension ingest endpoints.
+ *
+ * Pipeline:
+ * 1. Authenticate via `Authorization: Bearer <token>` (returns CORS-aware
+ *    401 on failure).
+ * 2. Parse the request body and validate it against the provider-specific
+ *    schema.
+ * 3. Call the provider-specific import service.
+ * 4. Schedule the request-scoped auto-tagging side-effect.
+ * 5. Return a CORS-aware JSON response.
+ *
+ * The provider-specific `importFn` is a pure service (e.g. `importTiktokSaved`)
+ * and has no knowledge of HTTP.
+ */
 export async function runExtensionIngestImport<
     TBody,
     TImportResult extends ExtensionIngestImportResult,
@@ -227,6 +228,10 @@ export async function runExtensionIngestImport<
             { headers: cors }
         );
     } catch (error) {
+        log.error("Extension ingest import failed", {
+            error,
+            userId,
+        });
         return Response.json(
             {
                 error:
@@ -237,101 +242,4 @@ export async function runExtensionIngestImport<
             { headers: cors, status: 500 }
         );
     }
-}
-
-async function resolveFallbackExtensionIngestUserId(
-    bearerToken: string
-): Promise<string | null> {
-    const envToken = process.env.INSTAGRAM_SAVED_INGEST_TOKEN?.trim();
-    if (!envToken || bearerToken !== envToken) {
-        return null;
-    }
-
-    const fallbackUserId = process.env.EXTENSION_FALLBACK_USER_ID;
-    if (!fallbackUserId) {
-        return null;
-    }
-
-    const user = await prisma.user.findUnique({
-        select: { id: true },
-        where: { id: fallbackUserId },
-    });
-    return user?.id ?? null;
-}
-
-export interface IngestItemInput {
-    browserProfileId?: string;
-    caption?: string;
-    externalId?: string;
-    kind?: typeof ITEM_KIND_BOOKMARK | typeof ITEM_KIND_FOLDER;
-    parentExternalId?: string;
-    postedAt?: string;
-    scrapedAt?: string;
-    sourceDeviceId?: string;
-    sourceDeviceName?: string;
-    sourceMetadata?: Prisma.InputJsonObject | null;
-    url: string;
-}
-
-/**
- * Upserts library rows for one ingest payload (chunk or complete).
- */
-export async function upsertLibraryItemsFromIngest(
-    userId: string,
-    source: LibraryItemSource,
-    items: IngestItemInput[]
-): Promise<{
-    smartCollectionItemIds: string[];
-    upsertedCount: number;
-}> {
-    const result = await upsertLibraryItemImports({
-        items: items.map((item) => ({
-            browserProfileId: item.browserProfileId,
-            caption: item.caption,
-            externalId: item.externalId,
-            kind: item.kind,
-            parentExternalId: item.parentExternalId,
-            postedAt: parseDate(item.postedAt),
-            scrapedAt: parseDate(item.scrapedAt),
-            sourceDeviceId: item.sourceDeviceId,
-            sourceDeviceName: item.sourceDeviceName,
-            sourceMetadata: item.sourceMetadata,
-            url: item.url,
-        })),
-        source,
-        userId,
-    });
-
-    return {
-        smartCollectionItemIds: result.smartCollectionItemIds,
-        upsertedCount: result.upsertedCount,
-    };
-}
-
-export async function importExtensionSavedItems<
-    TItem extends IngestItemInput,
->(args: {
-    externalId: (item: TItem) => string | undefined;
-    items: TItem[];
-    source: LibraryItemSource;
-    userId: string;
-}): Promise<{
-    received: number;
-    smartCollectionItemIds: string[];
-    upserted: number;
-}> {
-    const result = await upsertLibraryItemsFromIngest(
-        args.userId,
-        args.source,
-        args.items.map((item) => ({
-            ...item,
-            externalId: args.externalId(item),
-        }))
-    );
-
-    return {
-        received: args.items.length,
-        smartCollectionItemIds: result.smartCollectionItemIds,
-        upserted: result.upsertedCount,
-    };
 }

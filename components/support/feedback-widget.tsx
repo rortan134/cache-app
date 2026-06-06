@@ -58,6 +58,20 @@ export function FeedbackWidget({
         setIsOpen((isOpenValue) => !isOpenValue);
     });
 
+    const handleFormKeyDown = useStableCallback(
+        (event: React.KeyboardEvent) => {
+            if (
+                event.key.length === 1 &&
+                event.key !== " " &&
+                !event.ctrlKey &&
+                !event.metaKey &&
+                !event.altKey
+            ) {
+                event.stopPropagation();
+            }
+        }
+    );
+
     useHotkeys("F", handleToggleFeedbackWidget, {
         description: "Toggle feedback widget",
     });
@@ -70,6 +84,7 @@ export function FeedbackWidget({
                     <form
                         action={formAction}
                         className="space-y-4"
+                        onKeyDown={handleFormKeyDown}
                         ref={formRef}
                     >
                         <input name="context" type="hidden" value={context} />

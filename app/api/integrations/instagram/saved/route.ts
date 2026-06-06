@@ -1,7 +1,7 @@
 import {
     extensionIngestCorsHeaders,
     runExtensionIngestImport,
-} from "@/lib/integrations/extension-ingest";
+} from "@/lib/integrations/extension-ingest/route";
 import {
     importInstagramSaved,
     instagramSavedBodySchema,

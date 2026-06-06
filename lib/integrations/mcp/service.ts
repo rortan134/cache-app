@@ -1,14 +1,11 @@
 import "server-only";
 
-import {
-    FALLBACK_URL,
-    ITEM_KIND_BOOKMARK,
-    ITEM_KIND_NOTE,
-} from "@/lib/common/constants";
+import { ITEM_KIND_BOOKMARK } from "@/lib/common/constants";
 import { deleteLibraryItem } from "@/lib/collections/service";
 import { parseStandaloneUrl } from "@/lib/common/url";
 import { IntegrationApiError } from "@/lib/integrations/error";
 import { DEFAULT_BROWSER_PROFILE_ID } from "@/lib/integrations/browser-profiles";
+import { createNoteFromPlainText } from "@/lib/integrations/notes/service";
 import { prisma } from "@/prisma";
 import { LibraryItemSource } from "@/prisma/client/enums";
 import {
@@ -25,13 +22,6 @@ interface AddLibraryItemArgs {
     userId: string;
 }
 
-function escapeHtmlText(value: string): string {
-    return value
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;");
-}
-
 /**
  * Adds a new bookmark or note to the user's library.
  *
@@ -41,22 +31,7 @@ export async function addLibraryItem(
     args: AddLibraryItemArgs
 ): Promise<LibraryItemWithCollections> {
     if (args.noteContentText) {
-        const item = await prisma.libraryItem.create({
-            data: {
-                browserProfileId: DEFAULT_BROWSER_PROFILE_ID,
-                caption: null,
-                externalId: `mcp_${nanoid()}`,
-                kind: ITEM_KIND_NOTE,
-                noteContentHtml: `<p>${escapeHtmlText(args.noteContentText)}</p>`,
-                noteContentText: args.noteContentText,
-                source: LibraryItemSource.cache_note,
-                url: FALLBACK_URL,
-                userId: args.userId,
-            },
-            include: LIBRARY_ITEM_COLLECTIONS_INCLUDE,
-        });
-
-        return toLibraryItemWithCollections(item);
+        return createNoteFromPlainText(args.userId, args.noteContentText);
     }
 
     const validatedUrl = parseStandaloneUrl(args.url);

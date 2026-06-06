@@ -3,7 +3,7 @@ import {
     getOrCreateExtensionIngestToken,
     rotateExtensionIngestToken,
 } from "@/lib/auth/service";
-import { extensionTokenCorsHeaders } from "@/lib/integrations/extension-ingest";
+import { extensionTokenCorsHeaders } from "@/lib/integrations/extension-ingest/route";
 
 export function OPTIONS(request: Request) {
     return new Response(null, {

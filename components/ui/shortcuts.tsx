@@ -71,7 +71,7 @@ export function KeyboardShortcutsDialogTrigger(
         <Drawer onOpenChange={setOpen} open={open} position="right">
             <DrawerTrigger {...props} />
             <DrawerViewport>
-                <DrawerPopup showBar>
+                <DrawerPopup>
                     <DrawerHeader>
                         <DrawerTitle>Keyboard shortcuts</DrawerTitle>
                     </DrawerHeader>

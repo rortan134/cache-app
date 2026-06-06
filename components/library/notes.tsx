@@ -703,19 +703,29 @@ function NoteRoot({
     const initialDraftRef = useRef<NoteDraft>(draft);
     const latestDraftRef = useRef<NoteDraft>(draft);
 
-    useEffect(() => {
+    // React to prop changes during render instead of a `useEffect` to avoid
+    // committing once for the prop change and again for the state sync.
+    const [prevOpen, setPrevOpen] = useState(open);
+    const [prevNote, setPrevNote] = useState(note);
+
+    if (open !== prevOpen) {
+        setPrevOpen(open);
         if (!open) {
             setIsExpanded(false);
-            return;
         }
+    }
 
-        const nextDraft = noteDraftFromItem(note);
-        initialDraftRef.current = nextDraft;
-        latestDraftRef.current = nextDraft;
-        setInitialDraft(nextDraft);
-        setDraft(nextDraft);
-        setEditorKey((key) => key + 1);
-    }, [note, open]);
+    if (note !== prevNote) {
+        setPrevNote(note);
+        if (open) {
+            const nextDraft = noteDraftFromItem(note);
+            initialDraftRef.current = nextDraft;
+            latestDraftRef.current = nextDraft;
+            setInitialDraft(nextDraft);
+            setDraft(nextDraft);
+            setEditorKey((key) => key + 1);
+        }
+    }
 
     const handleDraftChange = (nextDraft: NoteDraft) => {
         const normalizedDraft = normalizeDraft(nextDraft);

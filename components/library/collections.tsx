@@ -2248,9 +2248,9 @@ function CollectionsListFilterClearButton({
     return (
         <Button
             {...props}
-            aria-label="Clear selected collections"
             onClick={handleOnClick}
             size="icon-xs"
+            title="Clear selected collections"
             variant="ghost"
         >
             <X
@@ -2312,7 +2312,7 @@ function CollectionsListSortingCombobox({
                         />
                     )
                 }
-                title="Sort and organize collections"
+                title={`Sort and organize collections (${getSystemControlKey()}F)`}
             >
                 <ListFilter
                     aria-hidden
@@ -2721,7 +2721,11 @@ function CollectionItemShareSubMenu() {
                         Copy public link
                     </MenuItem>
                 ) : (
-                    <MenuItem disabled={isSharePending} onClick={onEnableShare}>
+                    <MenuItem
+                        closeOnClick={false}
+                        disabled={isSharePending}
+                        onClick={onEnableShare}
+                    >
                         <UserRoundPlus
                             aria-hidden
                             className="size-4 text-muted-foreground"
@@ -2730,16 +2734,20 @@ function CollectionItemShareSubMenu() {
                         Create public link
                     </MenuItem>
                 )}
-                <MenuItem disabled={!isShared || isSharePending}>
+                <MenuItem
+                    closeOnClick={false}
+                    disabled={!isShared || isSharePending}
+                >
                     <LockKeyhole
                         aria-hidden
                         className="size-4 text-muted-foreground"
                         focusable="false"
                     />
-                    {isShared ? "Anyone with the link" : "Only you"}
+                    {isShared ? "Anyone with the link" : "Just me"}
                 </MenuItem>
                 {isShared ? (
                     <MenuItem
+                        closeOnClick={false}
                         disabled={isSharePending}
                         onClick={onDisableShare}
                         variant="destructive"
@@ -2953,9 +2961,7 @@ function CollectionItemMetadata({
                                 )}
                                 focusable="false"
                             />
-                            {isFavorite
-                                ? "Remove from Favorites"
-                                : "Add to Favorites"}
+                            {isFavorite ? "Unfavorite" : "Favorite"}
                             {isFavorite ? null : (
                                 <MenuShortcut>Alt+F</MenuShortcut>
                             )}
@@ -2986,17 +2992,10 @@ function CollectionItemMetadata({
                     </MenuGroup>
                     <MenuSeparator />
                     <MenuGroup>
-                        <MenuItem onClick={onDelete} variant="destructive">
-                            <Trash2Icon
-                                aria-hidden
-                                className="size-4"
-                                focusable="false"
-                            />
-                            Delete
-                        </MenuItem>
+                        <MenuItem onClick={onDelete}>Delete</MenuItem>
                     </MenuGroup>
                     <MenuItem disabled>
-                        <div className="space-y-1 text-nowrap text-[10px] text-muted-foreground leading-none">
+                        <div className="text-nowrap text-[10px] text-muted-foreground leading-none">
                             <div>
                                 Last updated{" "}
                                 {dayjs(collection.updatedAt).fromNow()}

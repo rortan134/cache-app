@@ -8,7 +8,7 @@ import {
 import {
     authenticateExtensionIngest,
     extensionIngestCorsHeaders,
-} from "@/lib/integrations/extension-ingest";
+} from "@/lib/integrations/extension-ingest/route";
 import { autoTagLibraryItemsByIds } from "@/lib/intelligence";
 import { after } from "next/server";
 

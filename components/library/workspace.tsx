@@ -249,31 +249,15 @@ export function WorkspaceProvider({
         collectionTextMatchQuery
     );
 
-    React.useEffect(
-        function syncItemsFromInitialItems() {
-            setItems(initialItems);
-        },
-        [initialItems]
+    // Drop selections whose target collection was deleted, in render rather
+    // than a `useEffect` so we never cascade a second commit just to clean up
+    // stale ids. Callers see the pruned set; the source state still tracks
+    // user intent so toggling remains stable across re-orderings.
+    const validCollectionIds = new Set(
+        collections.map((collection) => collection.id)
     );
-
-    React.useEffect(
-        function syncCollectionsFromInitialCollections() {
-            setCollections(initialCollections);
-        },
-        [initialCollections]
-    );
-
-    React.useEffect(
-        function pruneSelectedCollections() {
-            const collectionIds = new Set(
-                collections.map((collection) => collection.id)
-            );
-            setSelectedCollectionIds((current) => {
-                const next = current.filter((id) => collectionIds.has(id));
-                return next.length === current.length ? current : next;
-            });
-        },
-        [collections]
+    const validSelectedCollectionIds = selectedCollectionIds.filter((id) =>
+        validCollectionIds.has(id)
     );
 
     const { collectionPreviewThumbnailUrlsById, itemsByCollectionId } =
@@ -535,7 +519,7 @@ export function WorkspaceProvider({
             onUpdateItemCollections: handleUpdateItemCollections,
             onUpdateItemsCollections: handleUpdateItemsCollections,
             requestCreate,
-            selectedCollectionIds,
+            selectedCollectionIds: validSelectedCollectionIds,
             setCollections,
             setItems,
         }),
@@ -555,8 +539,8 @@ export function WorkspaceProvider({
             items,
             itemsByCollectionId,
             requestCreate,
-            selectedCollectionIds,
             toggleCollectionSelection,
+            validSelectedCollectionIds,
         ]
     );
 

@@ -3,7 +3,7 @@ import "server-only";
 import {
     extensionSavedItemBaseSchema,
     importExtensionSavedItems,
-} from "@/lib/integrations/extension-ingest";
+} from "@/lib/integrations/extension-ingest/service";
 import { LibraryItemSource } from "@/prisma/client/enums";
 import * as z from "zod";
 
