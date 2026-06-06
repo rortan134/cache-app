@@ -2248,6 +2248,7 @@ function CollectionsListFilterClearButton({
     return (
         <Button
             {...props}
+            aria-label="Clear selected collections"
             onClick={handleOnClick}
             size="icon-xs"
             title="Clear selected collections"

@@ -249,10 +249,28 @@ export function WorkspaceProvider({
         collectionTextMatchQuery
     );
 
-    // Drop selections whose target collection was deleted, in render rather
-    // than a `useEffect` so we never cascade a second commit just to clean up
-    // stale ids. Callers see the pruned set; the source state still tracks
-    // user intent so toggling remains stable across re-orderings.
+    // Re-sync from server props after `router.refresh()` so cascading
+    // changes from actions (e.g. free-tier deletes) reach the workspace.
+    // The optimistic setters above cover the items/collections we mutated;
+    // these effects are the safety net for the rest.
+    React.useEffect(
+        function syncItemsFromInitialItems() {
+            setItems(initialItems);
+        },
+        [initialItems]
+    );
+
+    React.useEffect(
+        function syncCollectionsFromInitialCollections() {
+            setCollections(initialCollections);
+        },
+        [initialCollections]
+    );
+
+    // Filter ghost ids (collections deleted upstream) in render so we avoid a
+    // second commit just to clean up the source state. Callers receive the
+    // pruned set; the source state may briefly retain ids the user did not
+    // explicitly remove, but no consumer reads it directly.
     const validCollectionIds = new Set(
         collections.map((collection) => collection.id)
     );

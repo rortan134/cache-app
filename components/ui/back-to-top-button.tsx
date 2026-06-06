@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/common/cn";
 import { getOwnerDocument, getOwnerWindow } from "@/lib/common/dom";
 import { useStableCallback } from "@base-ui/utils/useStableCallback";
-import { ArrowUpIcon } from "lucide-react";
 import * as React from "react";
 
 const SCROLL_THRESHOLD = 500;
@@ -12,7 +11,7 @@ const SCROLL_THRESHOLD = 500;
 export function BackToTopButton({
     className,
     ...props
-}: React.ComponentPropsWithoutRef<"div">) {
+}: React.ComponentProps<typeof Button>) {
     const [isVisible, setIsVisible] = React.useState(false);
     const containerRef = React.useRef<HTMLDivElement>(null);
 
@@ -47,16 +46,14 @@ export function BackToTopButton({
                 className
             )}
             ref={containerRef}
-            {...props}
         >
             <Button
+                {...props}
                 aria-label="Back to top"
                 onClick={scrollToTop}
-                size="icon-sm"
+                size="sm"
                 variant="secondary"
-            >
-                <ArrowUpIcon className="size-4" />
-            </Button>
+            />
         </div>
     );
 }

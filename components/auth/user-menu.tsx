@@ -12,7 +12,7 @@ import {
 import { FeedbackWidget } from "@/components/support/feedback-widget";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { CmdKbd, Kbd } from "@/components/ui/kbd";
+import { AltKbd, CmdKbd, Kbd } from "@/components/ui/kbd";
 import {
     Menu,
     MenuGroup,
@@ -46,6 +46,7 @@ import {
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import * as React from "react";
+import { useHotkeys } from "react-hotkeys-hook";
 import useSWR from "swr";
 
 const log = createLogger("auth-user-menu");
@@ -73,7 +74,22 @@ const FOOTER_LINKS = [
     { href: "/security", label: "Security" },
 ] as const;
 
-export const UserMenu: typeof Menu = Menu;
+const USER_MENU_SHORTCUT = "cmd+alt+g";
+
+export function UserMenu(props: React.ComponentProps<typeof Menu>) {
+    const [open, setOpen] = React.useState(false);
+
+    const toggle = useStableCallback(() => {
+        setOpen((prev) => !prev);
+    });
+
+    useHotkeys(USER_MENU_SHORTCUT, toggle, {
+        description: "Open account menu",
+        preventDefault: true,
+    });
+
+    return <Menu {...props} onOpenChange={setOpen} open={open} />;
+}
 
 export function UserMenuTrigger(
     props: React.ComponentProps<typeof MenuTrigger>
@@ -95,6 +111,13 @@ export function UserMenuTrigger(
                 className="pointer-events-none inline-block size-3.5 shrink-0 opacity-0 group-hover:opacity-80 group-data-popup-open:opacity-30"
                 focusable="false"
             />
+            <Kbd
+                className="ml-auto bg-transparent opacity-0 group-hover:opacity-50"
+                data-sidebar-label=""
+            >
+                <CmdKbd />
+                <AltKbd />G
+            </Kbd>
         </MenuTrigger>
     );
 }

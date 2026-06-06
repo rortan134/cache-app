@@ -184,6 +184,7 @@ import { useTimeout } from "@base-ui/utils/useTimeout";
 import { T } from "gt-next";
 import {
     ArrowDownWideNarrow,
+    ArrowUpIcon,
     Check,
     ChevronDown,
     ChevronRight,
@@ -212,7 +213,6 @@ import {
     SearchX,
     Star,
     Tags,
-    Trash2Icon,
     Volume2Icon,
     VolumeXIcon,
     XIcon,
@@ -3880,20 +3880,16 @@ function CardMenu({
             <ItemSeparator />
             {kind === "context" ? (
                 <ContextMenuItem
-                    className="text-destructive data-highlighted:bg-destructive/10 data-highlighted:text-destructive"
                     disabled={isDeletePending}
                     onClick={() => onDelete?.(item)}
                 >
-                    <Trash2Icon className="size-4.5" />
                     {isDeletePending ? "Deleting..." : "Delete"}
                 </ContextMenuItem>
             ) : (
                 <MenuItem
                     disabled={isDeletePending}
                     onClick={() => onDelete?.(item)}
-                    variant="destructive"
                 >
-                    <Trash2Icon className="size-4.5" />
                     {isDeletePending ? "Deleting..." : "Delete"}
                 </MenuItem>
             )}
@@ -5457,7 +5453,10 @@ export function Browser({
                 isSavingPastedUrl={isSavingPastedUrl}
                 onNoteDrawerClose={() => setActiveNote(null)}
             />
-            <BackToTopButton />
+            <BackToTopButton>
+                <ArrowUpIcon aria-hidden className="size-4" />
+                <T>Back to top</T>
+            </BackToTopButton>
             <Dialog
                 onOpenChange={handleDeleteDialogOpenChange}
                 open={pendingDeleteItem !== null}

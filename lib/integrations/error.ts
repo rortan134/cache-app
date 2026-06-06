@@ -23,11 +23,7 @@ export type IntegrationConnectionErrorCode = "not_connected" | "token_missing";
 export const IntegrationConnectionError = NamedError.create(
     "IntegrationConnectionError",
     IntegrationErrorData.extend({
-        accountId: z.string().optional(),
-        capability: z.string().optional(),
         code: z.enum(["not_connected", "token_missing"]).optional(),
-        resource: z.string().optional(),
-        retryAfter: z.number().optional(),
     })
 );
 export type IntegrationConnectionError = InstanceType<

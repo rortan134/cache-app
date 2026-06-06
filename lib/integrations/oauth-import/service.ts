@@ -54,7 +54,6 @@ export async function runOAuthImportService<
     });
     if (!accessToken) {
         throw new IntegrationConnectionError({
-            accountId,
             code: "token_missing",
             integrationId: args.providerId,
             message: "Provider access token is unavailable.",
