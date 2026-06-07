@@ -77,8 +77,6 @@ const FOOTER_LINKS = [
     { href: "/security", label: "Security" },
 ] as const;
 
-const USER_MENU_SHORTCUT = "cmd+option+g";
-
 export function UserMenu(props: React.ComponentProps<typeof Menu>) {
     const [open, setOpen] = React.useState(false);
 
@@ -86,7 +84,7 @@ export function UserMenu(props: React.ComponentProps<typeof Menu>) {
         setOpen((prev) => !prev);
     });
 
-    useHotkeys(USER_MENU_SHORTCUT, toggle, {
+    useHotkeys("mod+alt+g", toggle, {
         description: "Open account menu",
         preventDefault: true,
     });

@@ -81,8 +81,9 @@ export function useLastVisited(): {
         emitChange();
     });
 
-    const isLastVisited = useStableCallback(
-        (itemId: string): boolean => lastVisitedItemId === itemId
+    const isLastVisited = React.useCallback(
+        (itemId: string): boolean => lastVisitedItemId === itemId,
+        [lastVisitedItemId]
     );
 
     return { isLastVisited, markVisited };

@@ -2996,7 +2996,7 @@ function CollectionItemMetadata({
                         <MenuItem onClick={onDelete}>Delete</MenuItem>
                     </MenuGroup>
                     <MenuItem disabled>
-                        <div className="text-nowrap text-[10px] text-muted-foreground leading-none">
+                        <div className="space-y-1 text-[10px] text-muted-foreground leading-none *:text-nowrap">
                             <div>
                                 Last updated{" "}
                                 {dayjs(collection.updatedAt).fromNow()}
