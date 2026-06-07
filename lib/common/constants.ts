@@ -20,6 +20,7 @@ export const SITE_DOMAIN = "www.cachd.app";
 
 export const CACHE_EXTENSION_DOWNLOAD_URL = `https://${SITE_DOMAIN}`;
 export const CACHE_EXTENSION_READY_EVENT = "CACHE_EXTENSION_READY";
+export const CACHE_SITE_OPEN_AND_SYNC_EVENT = "CACHE_SITE_OPEN_AND_SYNC";
 
 export const APPLE_DOMAIN_ASSOCIATION = "";
 

@@ -1,4 +1,5 @@
 import { authClient } from "@/lib/auth/client";
+import { CACHE_SITE_OPEN_AND_SYNC_EVENT } from "@/lib/common/constants";
 import { getErrorMessage } from "@/lib/common/error";
 import { asRecord } from "@/lib/common/objects";
 import { openExternal } from "@/lib/common/url";
@@ -42,11 +43,33 @@ async function readJsonOrNull(response: Response): Promise<unknown> {
 
 /**
  * Executes the behavior for opening an integration (either the app itself or its install page).
+ *
+ * When `behavior.autoSync` is set and the extension is installed, this delegates
+ * to the extension via a window `postMessage`. The Cache-site content script
+ * forwards the request to the service worker, which opens the URL in a new tab,
+ * starts a sync for that source once the page is ready, and best-effort opens
+ * the extension popup. Falling back to `openExternal` covers the cases where
+ * either the extension is not installed or the behavior just navigates.
  */
 export function executeOpenBehavior(
     behavior: ExtensionOpenBehavior,
     extensionInstalled: boolean
 ) {
+    if (
+        extensionInstalled &&
+        behavior.autoSync &&
+        typeof window !== "undefined"
+    ) {
+        window.postMessage(
+            {
+                openURL: behavior.openURL,
+                type: CACHE_SITE_OPEN_AND_SYNC_EVENT,
+            },
+            window.location.origin
+        );
+        return;
+    }
+
     const targetUrl =
         extensionInstalled || !behavior.installURL
             ? behavior.openURL

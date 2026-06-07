@@ -17,6 +17,13 @@ const TIKTOK_STORAGE_VERSION = 1;
 const YOUTUBE_STORAGE_VERSION = 1;
 const CHROME_SYNC_BATCH_SIZE = 200;
 const DEFAULT_BROWSER_PROFILE_ID = "default";
+
+/** Stale auto-sync markers are dropped after this window. Caps the chance of
+ *  a stray sync firing when an unrelated tab reuses an old id. */
+const AUTO_SYNC_MARKER_TTL_MS = 60_000;
+/** Buffer for the target SPA (Instagram, TikTok, YouTube) to render its
+ *  scrollable view before we start scraping. */
+const AUTO_SYNC_TAB_READY_DELAY_MS = 2000;
 const INSTAGRAM_KEYS = {
     bookmarkCount: "bookmarkCount",
     bookmarks: "instagramSavedBookmarks",
@@ -60,6 +67,99 @@ function withQueueLock(operation) {
     const promise = queueMutationPromise.then(operation);
     queueMutationPromise = promise.catch(() => {});
     return promise;
+}
+
+// Auto-sync markers are stored as an array in chrome.storage.local. Two open
+// requests can race (e.g. user clicks Instagram then TikTok quickly), and the
+// marker is consumed in a separate turn from when it is written, so we use the
+// same serialization pattern.
+let autoSyncMarkerMutationPromise = Promise.resolve();
+
+function withAutoSyncMarkerLock(operation) {
+    const promise = autoSyncMarkerMutationPromise.then(operation);
+    autoSyncMarkerMutationPromise = promise.catch(() => {});
+    return promise;
+}
+
+function pruneAutoSyncMarkers(markers, now) {
+    return markers.filter(
+        (marker) =>
+            typeof marker?.tabId === "number" &&
+            typeof marker?.createdAt === "number" &&
+            now - marker.createdAt < AUTO_SYNC_MARKER_TTL_MS
+    );
+}
+
+async function addPendingAutoSync(tabId) {
+    await withAutoSyncMarkerLock(async () => {
+        const stored = await chrome.storage.local.get([
+            STORAGE_KEYS.autoSyncMarkers,
+        ]);
+        const existing = Array.isArray(stored[STORAGE_KEYS.autoSyncMarkers])
+            ? stored[STORAGE_KEYS.autoSyncMarkers]
+            : [];
+        const now = Date.now();
+        const next = pruneAutoSyncMarkers(existing, now)
+            .filter((marker) => marker.tabId !== tabId)
+            .concat({ createdAt: now, tabId });
+        await chrome.storage.local.set({
+            [STORAGE_KEYS.autoSyncMarkers]: next,
+        });
+    });
+}
+
+async function consumePendingAutoSync(tabId) {
+    return withAutoSyncMarkerLock(async () => {
+        const stored = await chrome.storage.local.get([
+            STORAGE_KEYS.autoSyncMarkers,
+        ]);
+        const existing = Array.isArray(stored[STORAGE_KEYS.autoSyncMarkers])
+            ? stored[STORAGE_KEYS.autoSyncMarkers]
+            : [];
+        const now = Date.now();
+        const fresh = pruneAutoSyncMarkers(existing, now);
+        const matchIndex = fresh.findIndex(
+            (marker) => marker.tabId === tabId
+        );
+        if (matchIndex === -1) {
+            if (fresh.length !== existing.length) {
+                await chrome.storage.local.set({
+                    [STORAGE_KEYS.autoSyncMarkers]: fresh,
+                });
+            }
+            return null;
+        }
+        const [match] = fresh.splice(matchIndex, 1);
+        await chrome.storage.local.set({
+            [STORAGE_KEYS.autoSyncMarkers]: fresh,
+        });
+        return match;
+    });
+}
+
+async function tryOpenExtensionPopup() {
+    // Available in Chrome 127+ for unpacked and store-installed extensions;
+    // earlier versions and contexts without user activation will throw.
+    if (typeof chrome.action?.openPopup !== "function") {
+        return;
+    }
+    try {
+        await chrome.action.openPopup();
+    } catch (err) {
+        console.debug("[Cache App] openPopup unavailable:", err);
+    }
+}
+
+async function startOpenAndSync(openURL) {
+    const trimmed = typeof openURL === "string" ? openURL.trim() : "";
+    if (!trimmed) {
+        return;
+    }
+    const tab = await chrome.tabs.create({ active: true, url: trimmed });
+    if (typeof tab?.id === "number") {
+        await addPendingAutoSync(tab.id);
+    }
+    await tryOpenExtensionPopup();
 }
 
 let chromeFlushInFlight = null;
@@ -948,7 +1048,7 @@ chrome.runtime.onStartup?.addListener(() => {
     void flushChromeBookmarkQueue();
 });
 
-chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
+chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     if (msg?.type === MESSAGE_TYPES.CACHE_SITE_BRIDGE) {
         (async () => {
             const endpoint =
@@ -964,6 +1064,52 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
             await flushChromeBookmarkQueue();
         })();
         return true;
+    }
+
+    if (msg?.type === MESSAGE_TYPES.CACHE_SITE_OPEN_AND_SYNC) {
+        (async () => {
+            try {
+                await startOpenAndSync(msg.openURL);
+                sendResponse?.({ ok: true });
+            } catch (error) {
+                console.warn(
+                    "[Cache App] open-and-sync orchestration failed:",
+                    error
+                );
+                sendResponse?.({
+                    error:
+                        error instanceof Error
+                            ? error.message
+                            : String(error),
+                    ok: false,
+                });
+            }
+        })();
+        return true;
+    }
+
+    if (msg?.type === MESSAGE_TYPES.CONTENT_SCRIPT_READY) {
+        const tabId = sender?.tab?.id;
+        if (typeof tabId !== "number") {
+            return false;
+        }
+        (async () => {
+            const match = await consumePendingAutoSync(tabId);
+            if (!match) {
+                return;
+            }
+            setTimeout(() => {
+                chrome.tabs
+                    .sendMessage(tabId, { type: MESSAGE_TYPES.START_SYNC })
+                    .catch((err) => {
+                        console.debug(
+                            "[Cache App] auto-sync START_SYNC dispatch failed:",
+                            err
+                        );
+                    });
+            }, AUTO_SYNC_TAB_READY_DELAY_MS);
+        })();
+        return false;
     }
 
     if (

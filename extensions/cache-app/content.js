@@ -1549,3 +1549,13 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
 
     return true;
 });
+
+// Tell the service worker the content script is live so it can dispatch a
+// pending auto-sync (triggered by clicking "Open" on an integration in the
+// Cache web app). The worker matches us by `sender.tab.id` against a marker
+// it wrote when it created the tab.
+void chrome.runtime
+    .sendMessage({ type: MESSAGE_TYPES.CONTENT_SCRIPT_READY })
+    .catch(() => {
+        /* service worker may be restarting */
+    });

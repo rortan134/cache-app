@@ -27,9 +27,12 @@ import {
 } from "@/lib/common/strings";
 import { prisma } from "@/prisma";
 import type { Prisma } from "@/prisma/client/client";
-import type {
-    CollectionPriority,
-    LibraryItemSource,
+import {
+    AutomationStatus,
+    AutomationTemplateKey,
+    AutomationRunStatus,
+    type CollectionPriority,
+    type LibraryItemSource,
 } from "@/prisma/client/enums";
 import { LibraryCollectionError } from "./error";
 
@@ -954,25 +957,78 @@ export async function listCollections(
 }
 
 /**
- * Reads whether the user has disabled smart collections.
+ * Reads whether smart collections is effectively disabled for the user.
+ *
+ * The feature is on only when both the user has not opted out and the
+ * smart_collections automation is active. The seeder leaves seeded automations
+ * paused, so new users must explicitly enable the automation before the
+ * callout in `CollectionsListCalloutPopover` should appear. Treating the
+ * preference flag alone as the source of truth would show "Smart Collections
+ * is active" while the scheduled run is still paused.
  */
 export async function getUserSmartCollectionsPreference(args: {
     userId: string;
 }): Promise<boolean> {
-    const user = await prisma.user.findUnique({
-        select: { smartCollectionsDisabled: true },
-        where: { id: args.userId },
-    });
+    const [user, automation] = await Promise.all([
+        prisma.user.findUnique({
+            select: { smartCollectionsDisabled: true },
+            where: { id: args.userId },
+        }),
+        prisma.automation.findFirst({
+            select: { status: true },
+            where: {
+                templateKey: AutomationTemplateKey.smart_collections,
+                userId: args.userId,
+            },
+        }),
+    ]);
 
-    return user?.smartCollectionsDisabled ?? false;
+    if (user?.smartCollectionsDisabled) {
+        return true;
+    }
+    return automation?.status !== AutomationStatus.active;
 }
 
+/**
+ * Disables smart collections for a user by flipping the opt-out flag and
+ * pausing the scheduled automation in a single transaction. Mirrors the data
+ * shape written by `pauseAutomation` so pending runs are dropped instead of
+ * being picked up and immediately skipped by the run worker.
+ */
 export async function disableSmartCollectionsForUser(
     userId: string
 ): Promise<void> {
-    await prisma.user.update({
-        data: { smartCollectionsDisabled: true },
-        where: { id: userId },
+    await prisma.$transaction(async (tx) => {
+        await tx.user.update({
+            data: { smartCollectionsDisabled: true },
+            where: { id: userId },
+        });
+
+        const automation = await tx.automation.findFirst({
+            select: { id: true },
+            where: {
+                templateKey: AutomationTemplateKey.smart_collections,
+                userId,
+            },
+        });
+
+        if (!automation) {
+            return;
+        }
+
+        await tx.automation.update({
+            data: {
+                nextRunAtUtc: null,
+                status: AutomationStatus.paused,
+            },
+            where: { id: automation.id },
+        });
+        await tx.automationRun.deleteMany({
+            where: {
+                automationId: automation.id,
+                status: AutomationRunStatus.pending,
+            },
+        });
     });
 }
 

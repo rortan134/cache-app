@@ -63,6 +63,13 @@ export interface SupportedIntegrationAction {
 }
 
 export interface ExtensionOpenBehavior {
+    /**
+     * When true and the extension is installed, opening triggers the extension
+     * to navigate to `openURL` in a new tab and automatically start a sync
+     * for that source once the page is ready. Without this, opens just
+     * navigate the user to the URL.
+     */
+    autoSync?: boolean;
     installURL: string;
     kind: "extension-entry";
     openURL: string;
@@ -225,6 +232,7 @@ export const INTEGRATIONS = [
         ],
         behaviors: {
             open: {
+                autoSync: true,
                 installURL: CACHE_EXTENSION_DOWNLOAD_URL,
                 kind: "extension-entry",
                 openURL: "https://www.youtube.com/playlist?list=WL",
@@ -255,6 +263,7 @@ export const INTEGRATIONS = [
         ],
         behaviors: {
             open: {
+                autoSync: true,
                 installURL: CACHE_EXTENSION_DOWNLOAD_URL,
                 kind: "extension-entry",
                 openURL: "https://www.instagram.com/explore/saved/",
@@ -285,6 +294,7 @@ export const INTEGRATIONS = [
         ],
         behaviors: {
             open: {
+                autoSync: true,
                 installURL: CACHE_EXTENSION_DOWNLOAD_URL,
                 kind: "extension-entry",
                 openURL: "https://www.tiktok.com/profile",

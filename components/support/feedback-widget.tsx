@@ -66,7 +66,7 @@ export function FeedbackWidget({
     return (
         <Popover onOpenChange={setIsOpen} open={isOpen}>
             <PopoverTrigger {...props} openOnHover={openOnHover} />
-            <PopoverPopup className="*:p-2">
+            <PopoverPopup className="*:p-2" positionMethod="fixed">
                 <div className="space-y-3">
                     <form
                         action={formAction}

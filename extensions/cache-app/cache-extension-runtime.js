@@ -11,7 +11,9 @@
         CACHE_EXTENSION_READY: "CACHE_EXTENSION_READY",
         CACHE_SITE_BRIDGE: "CACHE_SITE_BRIDGE",
         CACHE_SITE_BRIDGE_REQUEST: "CACHE_SITE_BRIDGE_REQUEST",
+        CACHE_SITE_OPEN_AND_SYNC: "CACHE_SITE_OPEN_AND_SYNC",
         CACHE_SITE_TOKEN: "CACHE_SITE_TOKEN",
+        CONTENT_SCRIPT_READY: "CONTENT_SCRIPT_READY",
         GET_SYNC_META: "GET_SYNC_META",
         SEARCH_CHROME_BOOKMARKS: "SEARCH_CHROME_BOOKMARKS",
         START_SYNC: "START_SYNC",
@@ -23,6 +25,7 @@
     });
 
     const STORAGE_KEYS = Object.freeze({
+        autoSyncMarkers: "pendingAutoSyncMarkers",
         chromeLastSyncAt: "chromeLastSyncAt",
         chromePendingEvents: "chromePendingEvents",
         chromeSyncEnabled: "chromeSyncEnabled",

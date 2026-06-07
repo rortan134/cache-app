@@ -171,6 +171,7 @@ export function UserMenuContent() {
         <>
             <FeedbackWidget
                 context="user-menu"
+                nativeButton={false}
                 render={<MenuItem closeOnClick={false} />}
             >
                 Give feedback

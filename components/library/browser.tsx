@@ -75,7 +75,6 @@ import {
 import { GradientWaveText } from "@/components/ui/gradient-wave-text";
 import { ChevronDownFilledIcon } from "@/components/ui/icons";
 import { Input } from "@/components/ui/input";
-
 import { CmdKbd, Kbd } from "@/components/ui/kbd";
 import { Masonry, MasonryItem } from "@/components/ui/masonry";
 import {
@@ -180,7 +179,6 @@ import type {
 import { useIsoLayoutEffect } from "@base-ui/utils/useIsoLayoutEffect";
 import { useStableCallback } from "@base-ui/utils/useStableCallback";
 import { useTimeout } from "@base-ui/utils/useTimeout";
-
 import { T } from "gt-next";
 import {
     ArrowDownWideNarrow,
@@ -192,7 +190,6 @@ import {
     ChevronsUp,
     ChevronUp,
     CircleDashed,
-    CircleDot,
     CircleFadingPlus,
     Component,
     DownloadIcon,
@@ -211,6 +208,7 @@ import {
     RotateCcw,
     SearchIcon,
     SearchX,
+    Squircle,
     Star,
     Tags,
     Volume2Icon,
@@ -1877,7 +1875,7 @@ function BrowserEmpty() {
                     collections so you can find it when you need it.
                 </p>
             </div>
-            <Masonry columnCount={5} gap={4}>
+            <Masonry columnCount={5} gap={16}>
                 {EMPTY_LIBRARY_PEEK_PLACEHOLDERS.map(
                     ({ aspect, id }, index) => {
                         const opacity = Math.max(0.06, 1 - index * 0.095);
@@ -2252,7 +2250,7 @@ function BrowserMasonry({ children }: BrowserMansonryProps) {
     }
 
     return (
-        <Masonry columnCount={columnCount} gap={6}>
+        <Masonry columnCount={columnCount} gap={16}>
             {items.map(children)}
         </Masonry>
     );
@@ -3381,7 +3379,7 @@ function MediaPreview({
                     width={300}
                 />
             ) : (
-                <div className="-z-1 flex min-h-32 flex-col items-center justify-center gap-2 bg-muted opacity-50">
+                <div className="-z-1 flex min-h-32 flex-col items-center justify-center gap-2 bg-muted opacity-90">
                     <GlobeOff className="size-6 text-muted-foreground/50" />
                     <span className="text-muted-foreground text-xs">
                         No preview
@@ -3456,11 +3454,8 @@ type LibraryGridCardContextValue = Pick<
     | "pendingDeleteItemId"
 >;
 
-type CollectionComboboxPickerAppearance = "overlay" | "inline";
-
 interface CollectionComboboxPickerProps
     extends React.ComponentProps<typeof ComboboxTrigger> {
-    appearance?: CollectionComboboxPickerAppearance;
     collections: LibraryCollectionSummary[];
     items: LibraryItemWithCollections[];
     onOpenChange?: (open: boolean) => void;
@@ -3567,7 +3562,6 @@ async function downloadLibraryItemMedia(
 }
 
 function CollectionComboboxPicker({
-    appearance = "overlay",
     collections,
     items,
     onUpdateItemsCollections,
@@ -3626,21 +3620,16 @@ function CollectionComboboxPicker({
                                 ? `Edit collections (${selectedCount} selected)`
                                 : "Add to collections"
                         }
-                        className={cn(
-                            "z-1 rounded-full transition-transform ease-in-out active:scale-95",
-                            appearance === "overlay"
-                                ? "mix-blend-difference invert hover:brightness-125"
-                                : "border-border/70 text-muted-foreground hover:text-foreground"
-                        )}
+                        className="z-1 rounded-full transition-transform ease-in-out active:scale-95"
                         size="icon-sm"
-                        variant={appearance === "overlay" ? "ghost" : "outline"}
+                        variant="ghost"
                     />
                 }
                 {...props}
             >
                 {children ??
                     (selectedCount > 0 ? (
-                        <CircleDot
+                        <Squircle
                             aria-hidden="true"
                             aria-label="Collections"
                             className="size-4.5"
@@ -3913,7 +3902,6 @@ function MediaCard({ item }: LibraryGridCardProps) {
     const addedLabel = itemDateLabel(item.scrapedAt ?? item.createdAt);
     const noteExcerpt = getNoteExcerpt(item.noteContentText);
     const displayTitle = getItemTitle(item);
-
     const { markVisited, isLastVisited } = useLastVisited();
 
     const handlePrimaryClick = (event: React.MouseEvent<HTMLAnchorElement>) => {
@@ -3955,7 +3943,6 @@ function MediaCard({ item }: LibraryGridCardProps) {
         ) {
             return;
         }
-
         event.preventDefault();
         setIsCollectionPickerOpen(true);
     };
@@ -3965,18 +3952,18 @@ function MediaCard({ item }: LibraryGridCardProps) {
             <ContextMenuTrigger
                 onKeyDown={handleCardKeyDown}
                 render={
-                    <div className="group relative flex shrink-0 flex-col overflow-hidden rounded-xl ring-1 ring-border/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60" />
+                    <div className="group relative flex shrink-0 flex-col focus-visible:outline-none" />
                 }
             >
                 <a
-                    className="flex flex-col focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
+                    className="flex flex-col overflow-clip rounded-xl focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
                     href={href}
                     onClick={handlePrimaryClick}
                     rel="noopener noreferrer"
                     target={isNote ? undefined : "_blank"}
                 >
                     {isNote ? (
-                        <div className="relative flex h-auto min-h-56 w-full flex-col justify-between overflow-hidden bg-linear-to-br from-amber-50 via-background to-stone-100 p-3">
+                        <div className="relative flex h-auto min-h-56 w-full flex-col justify-between bg-linear-to-br from-amber-50 via-background to-stone-100 p-3">
                             <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(251,191,36,0.18),transparent_45%)]" />
                             <div className="relative flex flex-1 flex-col gap-2 pt-1.5">
                                 <p className="whitespace-pre-wrap text-foreground text-xs leading-relaxed opacity-90">
@@ -3992,22 +3979,14 @@ function MediaCard({ item }: LibraryGridCardProps) {
                                 videoSrc={previewVideoUrl}
                             />
                             {isLastVisited(item.id) && (
-                                <span className="absolute top-2 right-2 z-10 rounded-full bg-black/45 px-1.5 py-px font-medium text-[10px] text-white leading-normal backdrop-blur-[2px]">
+                                <span className="absolute top-2 right-2 z-10 rounded-full bg-black/45 px-1.5 py-px font-medium text-white text-xs leading-normal backdrop-blur-[2px]">
                                     <T>Last visited</T>
                                 </span>
                             )}
                         </>
                     )}
                 </a>
-                <div
-                    className={cn(
-                        "overflow-fade-top absolute inset-x-0 bottom-0 flex items-center gap-0.5 overflow-hidden bg-black/35 px-1.5 pt-2 pb-0.5 backdrop-blur-[2px]",
-                        {
-                            "bg-black/4 opacity-80 mix-blend-difference":
-                                isNote,
-                        }
-                    )}
-                >
+                <div className="flex items-center p-0.5 pt-1.5 pr-3">
                     <CardCollectionPicker
                         item={item}
                         onOpenChange={setIsCollectionPickerOpen}
@@ -4017,7 +3996,7 @@ function MediaCard({ item }: LibraryGridCardProps) {
                         <MenuTrigger
                             render={
                                 <button
-                                    className="min-w-0 flex-1 cursor-pointer truncate rounded-sm py-px text-left font-medium text-white text-xs leading-none mix-blend-difference outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+                                    className="min-w-0 flex-1 cursor-pointer truncate rounded-sm text-left font-normal text-[11px] text-foreground leading-none outline-none focus-visible:ring-2 focus-visible:ring-ring"
                                     title={displayTitle}
                                     type="button"
                                 />
@@ -4150,7 +4129,7 @@ function LockedResults({
             <BlockPaywallBanner length={totalItemCount} />
             <div className="pointer-events-none absolute inset-0 z-10 rounded-[2rem] bg-linear-to-b from-background/10 via-background/45 to-background/75" />
             <div className="select-none opacity-70 blur-[1.5px] saturate-75">
-                <Masonry columnCount={columnCount} gap={4}>
+                <Masonry columnCount={columnCount} gap={16}>
                     {LOCKED_LIBRARY_PREVIEW_PLACEHOLDERS.map((placeholder) => (
                         <MasonryItem key={placeholder.id}>
                             <LockedPreviewCard placeholder={placeholder} />

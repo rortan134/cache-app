@@ -111,6 +111,44 @@
         return true;
     });
 
+    /**
+     * The Cache web app dispatches this message when the user clicks the
+     * "Open" action for an extension-backed integration (Instagram, TikTok,
+     * YouTube). The service worker then opens the target URL in a new tab,
+     * starts a sync once the page is ready, and best-effort opens the popup.
+     * @param {MessageEvent} event
+     */
+    function onOpenAndSyncMessage(event) {
+        if (event.source !== window) {
+            return;
+        }
+        if (event.origin !== origin) {
+            return;
+        }
+        const data = event.data;
+        if (!data || typeof data !== "object") {
+            return;
+        }
+        if (data.type !== MESSAGE_TYPES.CACHE_SITE_OPEN_AND_SYNC) {
+            return;
+        }
+        const openURL =
+            typeof data.openURL === "string" ? data.openURL.trim() : "";
+        if (!openURL) {
+            return;
+        }
+        void chrome.runtime
+            .sendMessage({
+                openURL,
+                type: MESSAGE_TYPES.CACHE_SITE_OPEN_AND_SYNC,
+            })
+            .catch((err) => {
+                console.warn("[Cache App] open-and-sync forward failed:", err);
+            });
+    }
+
+    window.addEventListener("message", onOpenAndSyncMessage);
+
     announceExtensionReady();
 
     // Passive auto-link on normal page load.

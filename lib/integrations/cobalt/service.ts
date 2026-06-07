@@ -102,6 +102,30 @@ export type CobaltErrorCode =
     | "error.content.not_found"
     | string;
 
+export type CobaltErrorCategory =
+    | "rate_limited"
+    | "fetch_failed"
+    | "not_found"
+    | "other";
+
+export function classifyCobaltError(
+    code: CobaltErrorCode | null | undefined
+): CobaltErrorCategory {
+    if (!code) {
+        return "other";
+    }
+    if (code.includes("rate")) {
+        return "rate_limited";
+    }
+    if (code.includes("not_found")) {
+        return "not_found";
+    }
+    if (code.includes("fetch") || code.includes("unreachable")) {
+        return "fetch_failed";
+    }
+    return "other";
+}
+
 type ResolveCobaltPreviewResult =
     | {
           mediaType: CobaltPreviewMediaType;
