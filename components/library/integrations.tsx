@@ -525,6 +525,7 @@ function IntegrationsListPrivacyNotice() {
                         render={
                             <Link
                                 href="/legal/privacy-policy"
+                                prefetch={false}
                                 target="_blank"
                             />
                         }
