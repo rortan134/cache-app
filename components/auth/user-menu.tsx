@@ -77,7 +77,7 @@ const FOOTER_LINKS = [
     { href: "/security", label: "Security" },
 ] as const;
 
-const USER_MENU_SHORTCUT = "cmd+alt+g";
+const USER_MENU_SHORTCUT = "cmd+option+g";
 
 export function UserMenu(props: React.ComponentProps<typeof Menu>) {
     const [open, setOpen] = React.useState(false);
@@ -195,7 +195,7 @@ export function UserMenuContent() {
                         render={<MenuItem closeOnClick={false} />}
                     >
                         <T>Billing</T>
-                        <ArrowUpRight className="ml-auto inline-block size-3.5 shrink-0 text-muted-foreground" />
+                        <ArrowUpRight className="ml-auto! inline-block size-4 shrink-0 text-muted-foreground" />
                     </SubscriptionBillingPortalButton>
                 </SubscribedOnly>
                 <UnsubscribedOnly>
@@ -204,7 +204,7 @@ export function UserMenuContent() {
                         render={<MenuItem closeOnClick={false} />}
                     >
                         <T>Upgrade to Pro</T>
-                        <ArrowUpRight className="ml-auto inline-block size-3.5 shrink-0 text-muted-foreground" />
+                        <ArrowUpRight className="ml-auto! inline-block size-4 shrink-0 text-muted-foreground" />
                     </SubscriptionUpgradeButton>
                 </UnsubscribedOnly>
                 <MenuItem
@@ -307,11 +307,11 @@ function UserMenuAccountActionsSubMenu(
     return (
         <MenuSub>
             <MenuSubTrigger
+                {...props}
                 aria-label="Account actions"
                 render={
                     <Button size="xs" title="Account actions" variant="ghost" />
                 }
-                {...props}
             />
             <MenuSubPopup align="end">
                 <MenuGroup>
@@ -415,6 +415,7 @@ function useUserMenuAccounts() {
             }
         }
     );
+
     const handleAddAccount = useStableCallback(async () => {
         setAddAccountError(null);
         setIsAddingAccount(true);
@@ -437,11 +438,13 @@ function useUserMenuAccounts() {
             setIsAddingAccount(false);
         }
     });
+
     const accountMenuError = getAccountMenuError(
         addAccountError,
         deviceSessionsError,
         switchAccountError
     );
+
     const accountOptions = activeSession
         ? getAccountOptions(deviceSessions, activeSession)
         : [];
@@ -604,12 +607,10 @@ function getAccountOptions(
 
 async function listDeviceSessions(): Promise<DeviceSession[]> {
     const result = await authClient.multiSession.listDeviceSessions();
-
     if (result.error) {
         log.error("Failed to load device sessions", result.error);
         throw new Error("Failed to load device sessions.");
     }
-
     return result.data ?? [];
 }
 
