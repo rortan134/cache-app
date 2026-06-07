@@ -134,10 +134,10 @@ export function UserMenuPopup({
 }: React.ComponentProps<typeof MenuPopup>) {
     return (
         <MenuPopup
+            {...props}
             align={align}
             className={cn("min-w-[248px]", className)}
             side={side}
-            {...props}
         >
             <div className="flex flex-col gap-1">{children}</div>
         </MenuPopup>
@@ -209,7 +209,13 @@ export function UserMenuContent() {
                 </UnsubscribedOnly>
                 <MenuItem
                     className="justify-between"
-                    render={<Link href="/changelog" target="_blank" />}
+                    render={
+                        <Link
+                            href="/changelog"
+                            prefetch={false}
+                            target="_blank"
+                        />
+                    }
                 >
                     <T>Changelog</T>
                 </MenuItem>
@@ -267,7 +273,13 @@ export function UserMenuFooter() {
                 {FOOTER_LINKS.map(({ href, label }) => (
                     <Button
                         key={href}
-                        render={<Link href={href} />}
+                        render={
+                            <Link
+                                href={href}
+                                prefetch={false}
+                                target="_blank"
+                            />
+                        }
                         size="xs"
                         variant="ghost"
                     >
@@ -609,14 +621,11 @@ function getAccountMenuError(
     if (addAccountError) {
         return "add";
     }
-
     if (deviceSessionsError) {
         return "load";
     }
-
     if (switchAccountError) {
         return "switch";
     }
-
     return null;
 }
