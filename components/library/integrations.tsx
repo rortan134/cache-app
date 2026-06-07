@@ -460,7 +460,7 @@ function IntegrationsListTrigger({
                 <div className="mt-4 flex max-w-64 flex-col gap-2">
                     <PopoverTitle>Places to return to</PopoverTitle>
                     <PopoverDescription className="text-foreground text-xs">
-                        Give every bookmark more meaning.
+                        Get more out of your bookmarks.
                     </PopoverDescription>
                 </div>
             </PopoverPopup>

@@ -18,6 +18,7 @@ import {
     DrawerViewport,
 } from "@/components/ui/drawer";
 import { AltKbd, CmdKbd, Kbd, KbdGroup, ShiftKbd } from "@/components/ui/kbd";
+import { stopPropagationForPrintableKeys } from "@/lib/common/dom";
 import { SearchIcon } from "lucide-react";
 import * as React from "react";
 import { useHotkeys, useHotkeysContext } from "react-hotkeys-hook";
@@ -71,17 +72,21 @@ export function KeyboardShortcutsDialogTrigger(
         <Drawer onOpenChange={setOpen} open={open} position="right">
             <DrawerTrigger {...props} />
             <DrawerViewport>
-                <DrawerPopup>
+                <DrawerPopup showCloseButton>
                     <DrawerHeader>
                         <DrawerTitle>Keyboard shortcuts</DrawerTitle>
                     </DrawerHeader>
-                    <DrawerPanel scrollable={false}>
+                    <DrawerPanel
+                        className="px-5"
+                        onKeyDown={stopPropagationForPrintableKeys}
+                        scrollable={false}
+                    >
                         <Command inline items={shortcutItems} open>
                             <CommandInput
                                 placeholder="Search shortcuts..."
                                 startAddon={<SearchIcon className="size-4" />}
                             />
-                            <CommandList>
+                            <CommandList className="px-0">
                                 <CommandEmpty>No shortcuts found.</CommandEmpty>
                                 <CommandCollection>
                                     {(item: ShortcutItem) => (

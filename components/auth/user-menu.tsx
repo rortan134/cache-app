@@ -44,7 +44,7 @@ import {
     Globe,
     LoaderCircle,
     LogOut,
-    PlusIcon,
+    UserRoundPlus,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -558,7 +558,7 @@ function UserMenuAccountSwitcherContent() {
                 {isAddingAccount ? (
                     <LoaderCircle className="size-4 animate-spin text-muted-foreground" />
                 ) : (
-                    <PlusIcon className="size-4 text-muted-foreground" />
+                    <UserRoundPlus className="size-4 text-muted-foreground" />
                 )}
                 <T>Add another account...</T>
             </MenuItem>

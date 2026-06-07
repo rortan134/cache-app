@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Popover, PopoverPopup, PopoverTrigger } from "@/components/ui/popover";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/common/cn";
+import { stopPropagationForPrintableKeys } from "@/lib/common/dom";
 import { createFeedback } from "@/lib/feedback/actions";
 import type { FeedbackActionState } from "@/lib/feedback/schema";
 import { useStableCallback } from "@base-ui/utils/useStableCallback";
@@ -58,20 +59,6 @@ export function FeedbackWidget({
         setIsOpen((isOpenValue) => !isOpenValue);
     });
 
-    const handleFormKeyDown = useStableCallback(
-        (event: React.KeyboardEvent) => {
-            if (
-                event.key.length === 1 &&
-                event.key !== " " &&
-                !event.ctrlKey &&
-                !event.metaKey &&
-                !event.altKey
-            ) {
-                event.stopPropagation();
-            }
-        }
-    );
-
     useHotkeys("F", handleToggleFeedbackWidget, {
         description: "Toggle feedback widget",
     });
@@ -84,7 +71,7 @@ export function FeedbackWidget({
                     <form
                         action={formAction}
                         className="space-y-4"
-                        onKeyDown={handleFormKeyDown}
+                        onKeyDown={stopPropagationForPrintableKeys}
                         ref={formRef}
                     >
                         <input name="context" type="hidden" value={context} />
