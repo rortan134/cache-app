@@ -43,6 +43,8 @@ const COBALT_CACHE_TTL_SECONDS = 60 * 60;
 const COBALT_CACHE_KEY_PREFIX = "cobalt-preview:";
 const USER_AGENT =
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
+const GOOGLEBOT_USER_AGENT =
+    "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)";
 const HTTP_SINGLE_RANGE_HEADER_PATTERN = /^bytes=(\d*)-(\d*)$/;
 const XHTML_CONTENT_TYPE_PATTERN = /^application\/xhtml\+xml/i;
 const ABORTED_RESPONSE = new Response(null, { status: 499 });
@@ -61,6 +63,21 @@ interface ResolvedImagePreview {
 function acceptsZstd(request: Request): boolean {
     const acceptEncoding = request.headers.get("accept-encoding");
     return acceptEncoding?.toLowerCase().includes("zstd") ?? false;
+}
+
+function getUserAgent(url: string): string {
+    try {
+        const hostname = new URL(url).hostname.toLowerCase();
+        if (
+            hostname === "instagram.com" ||
+            hostname.endsWith(".instagram.com")
+        ) {
+            return GOOGLEBOT_USER_AGENT;
+        }
+    } catch {
+        // fall through
+    }
+    return USER_AGENT;
 }
 
 function createZstdTransform() {
@@ -103,7 +120,7 @@ export async function GET(request: Request): Promise<Response> {
                 headers: {
                     Accept: "image/*",
                     Referer: preview.pageUrl ?? targetUrl.href,
-                    "User-Agent": USER_AGENT,
+                    "User-Agent": getUserAgent(targetUrl.href),
                 },
             },
             request.signal
@@ -169,7 +186,7 @@ async function resolveImagePreview(
     const pageResponse = await fetchWithRedirects(parseHttpUrl(targetUrl), {
         headers: {
             Accept: "text/html,application/xhtml+xml,image/*",
-            "User-Agent": USER_AGENT,
+            "User-Agent": getUserAgent(targetUrl),
         },
     });
     if (!pageResponse.ok) {

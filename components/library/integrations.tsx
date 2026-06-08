@@ -37,6 +37,7 @@ import {
     type ExtensionOpenBehavior,
     type IntegrationActionRole,
     type IntegrationDirection,
+    type IntegrationIcon,
     type IntegrationId,
     type OAuthLinkConnectBehavior,
     type SocialSignInConnectBehavior,
@@ -86,17 +87,25 @@ interface UseIntegrationActionResult {
     status: IntegrationActionStatus | null;
 }
 
-type IntegrationsListItemProps = React.ComponentProps<typeof SidebarItem>;
-
 interface IntegrationsListStatusProps extends React.ComponentProps<"p"> {
     tone?: IntegrationActionStatusTone;
 }
 
-interface IntegrationsListItemActionProps {
-    className?: string;
+interface IntegrationsListItemProps
+    extends React.ComponentProps<typeof SidebarItem> {
+    description: string;
     direction?: IntegrationDirection;
-    id: IntegrationId;
+    Icon: IntegrationIcon;
+    integrationId: IntegrationId;
     isConnected: boolean;
+    label: string;
+}
+
+interface IntegrationsListItemActionsProps {
+    actions: IntegrationActionViewModel[];
+    className?: string;
+    id: IntegrationId;
+    status: IntegrationActionStatus | null;
 }
 
 export const { useStore: useIntegrationsListStore } = createStore({
@@ -115,33 +124,15 @@ export function Integrations({ connectedIntegrations }: IntegrationsProps) {
             <IntegrationsListPanel>
                 <DisclosureList maxVisible={6}>
                     {INTEGRATIONS.map(({ description, Icon, id, label }) => (
-                        <IntegrationsListItem className="group" key={id}>
-                            <Avatar
-                                aria-label={label}
-                                className="size-6 rounded-md"
-                            >
-                                <AvatarFallback className="rounded-md">
-                                    <Icon
-                                        aria-hidden
-                                        className="size-3.5 shrink-0"
-                                        focusable="false"
-                                    />
-                                </AvatarFallback>
-                            </Avatar>
-                            <span className="min-w-0 flex-1 font-medium text-sm leading-snug">
-                                {label}
-                            </span>
-                            <span className="grid items-center text-muted-foreground leading-snug">
-                                <span className="text-right text-[11px] [grid-area:1/1] group-hover:opacity-0">
-                                    {description}
-                                </span>
-                                <IntegrationsListItemAction
-                                    className="opacity-0 [grid-area:1/1] group-hover:opacity-100"
-                                    id={id}
-                                    isConnected={connectedIntegrations.has(id)}
-                                />
-                            </span>
-                        </IntegrationsListItem>
+                        <IntegrationsListItem
+                            className="group"
+                            description={description}
+                            Icon={Icon}
+                            integrationId={id}
+                            isConnected={connectedIntegrations.has(id)}
+                            key={id}
+                            label={label}
+                        />
                     ))}
                 </DisclosureList>
                 <IntegrationsListFeedback />
@@ -543,28 +534,70 @@ function IntegrationsListPrivacyNotice() {
 
 function IntegrationsListItem({
     className,
+    description,
+    direction = "source",
+    Icon,
+    integrationId,
+    isConnected,
+    label,
     ...props
 }: IntegrationsListItemProps) {
-    return (
-        <SidebarItem
-            className={cn("gap-2.5 py-0.5 opacity-100", className)}
-            {...props}
-        />
-    );
-}
-
-function IntegrationsListItemAction({
-    direction = "source",
-    id,
-    isConnected,
-    className,
-}: IntegrationsListItemActionProps) {
     const { actions, status } = useIntegrationAction({
         direction,
-        id,
+        id: integrationId,
         isConnected,
     });
 
+    const primaryAction = actions[0];
+
+    const handleKeyDown = useStableCallback((event: React.KeyboardEvent) => {
+        if (event.key === "Enter") {
+            event.preventDefault();
+            primaryAction?.onClick();
+        }
+    });
+
+    return (
+        <SidebarItem
+            className={cn("gap-2.5 py-0.5 opacity-100", className)}
+            onClick={primaryAction?.onClick}
+            onKeyDown={handleKeyDown}
+            tabIndex={actions.length > 0 ? 0 : undefined}
+            {...props}
+        >
+            <Avatar aria-label={label} className="size-6 rounded-md">
+                <AvatarFallback className="rounded-md">
+                    <Icon
+                        aria-hidden
+                        className="size-3.5 shrink-0"
+                        focusable="false"
+                    />
+                </AvatarFallback>
+            </Avatar>
+            <span className="min-w-0 flex-1 font-medium text-sm leading-snug">
+                {label}
+            </span>
+            <span className="grid items-center text-muted-foreground leading-snug">
+                <span className="text-right text-[11px] [grid-area:1/1] group-hover:opacity-0">
+                    {description}
+                </span>
+                <IntegrationsListItemActions
+                    actions={actions}
+                    className="opacity-0 [grid-area:1/1] group-hover:opacity-100"
+                    id={integrationId}
+                    status={status}
+                />
+            </span>
+        </SidebarItem>
+    );
+}
+
+function IntegrationsListItemActions({
+    actions,
+    status,
+    className,
+    id,
+}: IntegrationsListItemActionsProps) {
     if (actions.length === 0) {
         return null;
     }
@@ -582,9 +615,12 @@ function IntegrationsListItemAction({
             {actions.map((action) => (
                 <Button
                     className="rounded-full text-xs!"
-                    key={`${id}-${direction}-${action.role}`}
+                    key={`${id}-source-${action.role}`}
                     loading={action.isLoading}
-                    onClick={action.onClick}
+                    onClick={(event: React.MouseEvent) => {
+                        event.stopPropagation();
+                        action.onClick();
+                    }}
                     size="sm"
                     variant="ghost"
                 >
