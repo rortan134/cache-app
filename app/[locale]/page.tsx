@@ -156,7 +156,7 @@ export default async function Home() {
                         <LocaleSelector />
                     </SidebarFooter>
                 </Sidebar>
-                <div className="flex w-full max-w-[1024px] flex-col gap-12 p-8 2xl:mx-auto">
+                <div className="flex w-full max-w-[1024px] flex-col gap-12 p-8 pb-0 2xl:mx-auto">
                     <div className="relative aspect-video h-auto w-full overflow-hidden rounded-2xl border border-border/70 bg-muted">
                         <IridescenceBackground />
                         <Image

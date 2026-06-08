@@ -6,7 +6,7 @@ export function Footer() {
     return (
         <footer>
             <div className="relative mx-auto mt-auto grid h-auto w-full max-w-[1024px] grid-cols-12 gap-x-[min(2.25vw,32px)] pt-[120px] lg:top-0">
-                <div className="relative z-20 col-span-full mx-auto grid w-full grid-cols-12 flex-col gap-6 gap-x-[min(2.25vw,32px)] pb-4! md:pb-6! lg:mb-20 lg:py-8 lg:pb-8!">
+                <div className="relative z-20 col-span-full mx-auto grid w-full grid-cols-12 flex-col gap-6 gap-x-[min(2.25vw,32px)]">
                     <div className="col-span-full flex flex-col gap-4">
                         <div className="col-span-full flex h-full flex-row flex-wrap gap-6 text-[#0A0B0D] text-[0.8rem] leading-[1.22] tracking-[-3%]">
                             <div className="flex flex-row flex-wrap gap-6 [&:has(a:hover,a:focus-visible)_a:focus-visible]:opacity-100 [&:has(a:hover,a:focus-visible)_a:hover]:opacity-100 [&:has(a:hover,a:focus-visible)_a]:opacity-25 [&_a:focus-visible]:opacity-100 [&_a:hover]:opacity-100 [&_a]:opacity-50 [&_a]:transition-opacity [&_a]:duration-300">
@@ -81,7 +81,7 @@ export function Footer() {
                                 Additional detail may be found
                             </T>
                         </span>
-                        <div className="inset-x-0 -my-8 h-[200px] w-full overflow-clip">
+                        <div className="relative inset-x-0 h-[100px] w-full overflow-clip sm:h-[130px] md:h-[200px]">
                             <svg
                                 aria-hidden
                                 aria-label="Branding"
