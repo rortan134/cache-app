@@ -75,13 +75,14 @@
   "20529ca475e73f99": "Tema",
   "228f947f7df3af4d": "Añadir otra cuenta...",
   "26fe9d3e34588477": "Cerrar sesión",
+  "27d7979205fe23f9": "¿Eliminar tu cuenta?",
   "2e477bab4317c062": "No se pudo añadir otra cuenta.",
   "2e9224bc11574ab5": "Exportar a Markdown",
   "314d8db9f59adb60": "Una forma más inteligente de gestionar todo lo que guardas online. Desde 8 $ al mes.",
   "3b205a1c17c06fbd": "Favoritos",
-  "3befbe3dae383b10": "Actualizar",
   "3c61319be1bc2db7": "*Las plataformas de terceros a las que te conectas a través del Servicio operan de forma independiente a Cache. Cache no controla sus políticas ni cómo las aplican, y no es responsable de las decisiones que esas plataformas tomen sobre tus cuentas o tu acceso a sus servicios —incluidos, entre otros, los cambios en la disponibilidad—, estén o no relacionadas con tu uso de Cache. Eres responsable de cumplir con los términos, políticas y directrices de la comunidad de cada plataforma. Cache no es responsable de ningún inconveniente, pérdida u otra consecuencia derivada de tu relación con esas plataformas o de tu uso del Servicio en conexión con ellas. Puedes encontrar más información",
   "408574e37e8d91ee": "próximamente",
+  "43c4658708e52e85": "Eliminar cuenta",
   "44205dc5e0c99d88": [
     {
       "c": "Ya estás prestando atención.",
@@ -137,6 +138,7 @@
     },
     "."
   ],
+  "54733851c614db5d": "Esto cancela cualquier Suscripción activa y elimina permanentemente tu Biblioteca, tus Colecciones y los datos de tu cuenta. Esta acción no se puede deshacer.",
   "574ce438c4568c94": [
     {
       "c": {
@@ -193,6 +195,7 @@
     "t": "p"
   },
   "6f1b661d2c2cb538": "Desconocido",
+  "71a0bd88bed41d7c": "Volver arriba",
   "731e805e4730862c": {
     "c": "Seguridad",
     "i": 1,
@@ -339,6 +342,7 @@
     "i": 1,
     "t": "span"
   },
+  "99e4c3ba36537129": "Cancelar",
   "9e172217c3e3d8ae": "Actualizar a Pro",
   "9fb0204c42a8c2df": [
     {
@@ -388,6 +392,7 @@
     }
   ],
   "a586e0692358c532": "Actualiza para obtener acceso completo a Cache y a todas las integraciones",
+  "a7b00994918dc087": "Eliminar cuenta",
   "af34d21966b17dd8": {
     "c": [
       {

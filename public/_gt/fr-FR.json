@@ -75,13 +75,14 @@
   "20529ca475e73f99": "Thème",
   "228f947f7df3af4d": "Ajouter un autre compte...",
   "26fe9d3e34588477": "Se déconnecter",
+  "27d7979205fe23f9": "Supprimer votre compte ?",
   "2e477bab4317c062": "Impossible d’ajouter un autre compte.",
   "2e9224bc11574ab5": "Exporter en Markdown",
   "314d8db9f59adb60": "Une façon plus intelligente de gérer tout ce que vous enregistrez en ligne. À partir de 8 $/mois.",
   "3b205a1c17c06fbd": "Favoris",
-  "3befbe3dae383b10": "Passer à la version supérieure",
   "3c61319be1bc2db7": "*Les plateformes tierces auxquelles vous vous connectez via le Service sont exploitées indépendamment de Cache. Cache ne contrôle ni leurs politiques ni la manière dont elles les appliquent, et n’est pas responsable des décisions que ces plateformes prennent concernant vos Comptes ou votre accès à leurs services — y compris, sans s’y limiter, les changements de disponibilité — qu’elles soient ou non liés à votre utilisation de Cache. Il vous incombe de respecter les conditions, politiques et règles de la communauté de chaque plateforme. Cache n’est pas responsable des désagréments, pertes ou autres conséquences découlant de votre relation avec ces plateformes ou de votre utilisation du Service en lien avec celles-ci. Des informations complémentaires sont disponibles",
   "408574e37e8d91ee": "bientôt",
+  "43c4658708e52e85": "Supprimer le compte",
   "44205dc5e0c99d88": [
     {
       "c": "Vous y consacrez déjà votre attention.",
@@ -137,6 +138,7 @@
     },
     "."
   ],
+  "54733851c614db5d": "Cette action annule tout Abonnement actif et supprime définitivement votre Bibliothèque, vos Collections et les données de votre compte. Elle est irréversible.",
   "574ce438c4568c94": [
     {
       "c": {
@@ -193,6 +195,7 @@
     "t": "p"
   },
   "6f1b661d2c2cb538": "Inconnu",
+  "71a0bd88bed41d7c": "Retour en haut",
   "731e805e4730862c": {
     "c": "Sécurité",
     "i": 1,
@@ -339,6 +342,7 @@
     "i": 1,
     "t": "span"
   },
+  "99e4c3ba36537129": "Annuler",
   "9e172217c3e3d8ae": "Passer à Pro",
   "9fb0204c42a8c2df": [
     {
@@ -388,6 +392,7 @@
     }
   ],
   "a586e0692358c532": "Passez à la version supérieure pour profiter d’un accès complet à Cache et à toutes les Integrations",
+  "a7b00994918dc087": "Supprimer le compte",
   "af34d21966b17dd8": {
     "c": [
       {

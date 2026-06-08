@@ -75,13 +75,14 @@
   "20529ca475e73f99": "Tema",
   "228f947f7df3af4d": "Adicionar outra conta...",
   "26fe9d3e34588477": "Sair",
+  "27d7979205fe23f9": "Excluir sua conta?",
   "2e477bab4317c062": "Não foi possível adicionar outra conta.",
   "2e9224bc11574ab5": "Exportar para Markdown",
   "314d8db9f59adb60": "Uma forma mais inteligente de lidar com tudo o que você salva online. A partir de US$ 8/mês.",
   "3b205a1c17c06fbd": "Favoritos",
-  "3befbe3dae383b10": "Fazer upgrade",
   "3c61319be1bc2db7": "*As plataformas de terceiros às quais você se conecta por meio do Serviço operam de forma independente do Cache. O Cache não controla as políticas dessas plataformas nem a forma como elas são aplicadas, e não se responsabiliza pelas decisões que essas plataformas tomam em relação às suas contas ou ao seu acesso aos serviços delas — incluindo, sem limitação, alterações na disponibilidade — estejam ou não relacionadas ao seu uso do Cache. Cabe a você cumprir os termos, políticas e diretrizes da comunidade de cada plataforma. O Cache não se responsabiliza por qualquer inconveniente, perda ou outro resultado decorrente da sua relação com essas plataformas ou do seu uso do Serviço em conexão com elas. Mais detalhes podem ser encontrados",
   "408574e37e8d91ee": "em breve",
+  "43c4658708e52e85": "Excluir conta",
   "44205dc5e0c99d88": [
     {
       "c": "Você já está prestando atenção.",
@@ -137,6 +138,7 @@
     },
     "."
   ],
+  "54733851c614db5d": "Isso cancela sua assinatura ativa e exclui permanentemente sua Biblioteca, suas Coleções e os dados da sua conta. Essa ação não pode ser desfeita.",
   "574ce438c4568c94": [
     {
       "c": {
@@ -193,6 +195,7 @@
     "t": "p"
   },
   "6f1b661d2c2cb538": "Desconhecido",
+  "71a0bd88bed41d7c": "Voltar ao topo",
   "731e805e4730862c": {
     "c": "Segurança",
     "i": 1,
@@ -339,6 +342,7 @@
     "i": 1,
     "t": "span"
   },
+  "99e4c3ba36537129": "Cancelar",
   "9e172217c3e3d8ae": "Fazer upgrade para Pro",
   "9fb0204c42a8c2df": [
     {
@@ -388,6 +392,7 @@
     }
   ],
   "a586e0692358c532": "Faça upgrade para ter acesso completo ao Cache e a todas as integrações",
+  "a7b00994918dc087": "Excluir conta",
   "af34d21966b17dd8": {
     "c": [
       {
