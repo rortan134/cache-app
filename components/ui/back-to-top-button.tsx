@@ -25,6 +25,8 @@ export function BackToTopButton({
 
     React.useEffect(() => {
         const ownerWindow = getOwnerWindow(containerRef.current);
+        // Initial render
+        handleScroll();
         ownerWindow.addEventListener("scroll", handleScroll, { passive: true });
         return () => ownerWindow.removeEventListener("scroll", handleScroll);
     }, [handleScroll]);

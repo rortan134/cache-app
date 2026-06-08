@@ -2299,14 +2299,14 @@ interface BrowserMansonryProps {
 
 function BrowserMasonry({ children }: BrowserMansonryProps) {
     const { collapsed, items } = useBrowserGroupContext();
-    const { columnCount } = useBrowserResultsContext();
+    const { columnCount, containerWidth } = useBrowserResultsContext();
 
     if (collapsed || items.length === 0) {
         return null;
     }
 
     return (
-        <Masonry columnCount={columnCount} gap={16}>
+        <Masonry columnCount={columnCount} deps={[containerWidth]} gap={16}>
             {items.map(children)}
         </Masonry>
     );
