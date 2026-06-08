@@ -51,7 +51,7 @@ import {
     ShareArrowSolidIcon,
 } from "@/components/ui/icons";
 import { Input } from "@/components/ui/input";
-import { CmdKbd, Kbd, ShiftKbd } from "@/components/ui/kbd";
+import { AltKbd, CmdKbd, Kbd, ShiftKbd } from "@/components/ui/kbd";
 import {
     Menu,
     MenuCheckboxItem,
@@ -2965,7 +2965,9 @@ function CollectionItemMetadata({
                             />
                             {isFavorite ? "Unfavorite" : "Favorite"}
                             {isFavorite ? null : (
-                                <MenuShortcut>Alt+F</MenuShortcut>
+                                <MenuShortcut>
+                                    <AltKbd />F
+                                </MenuShortcut>
                             )}
                         </MenuItem>
                         <MenuItem onClick={onRename}>

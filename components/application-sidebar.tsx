@@ -50,6 +50,7 @@ export function ApplicationSidebar({ children }: React.PropsWithChildren) {
                         href="/library"
                         icon={Compass}
                         shortcutKeys="mod+h"
+                        title="Go to Library"
                     >
                         <T>Library</T>
                     </SidebarNavigationItem>
@@ -58,6 +59,7 @@ export function ApplicationSidebar({ children }: React.PropsWithChildren) {
                         href="/automations"
                         icon={Workflow}
                         shortcutKeys="mod+z"
+                        title="Go to Automations"
                     >
                         <T>Automations</T>
                     </SidebarNavigationItem>
