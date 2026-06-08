@@ -28,6 +28,7 @@ export const ASK_CACHE_GROUP_BY_VALUES = [
     "none",
     "source",
     "domain",
+    "collection",
     "month-added",
     "year-added",
     "month-created",

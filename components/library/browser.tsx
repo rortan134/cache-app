@@ -412,29 +412,7 @@ function buildCommandSuggestions({
     const topCollection =
         topCollectionId === null ? null : collectionById.get(topCollectionId);
 
-    const currentGroupCount =
-        groupBy === "none"
-            ? 0
-            : new Set(
-                  items.map((item) => {
-                      if (groupBy === "source") {
-                          return item.source;
-                      }
-                      if (groupBy === "domain") {
-                          return itemDomain(item.url);
-                      }
-                      if (groupBy === "month-added") {
-                          return itemMonthKey(item, "added");
-                      }
-                      if (groupBy === "month-created") {
-                          return itemMonthKey(item, "created");
-                      }
-                      if (groupBy === "year-added") {
-                          return itemYearKey(item, "added");
-                      }
-                      return itemYearKey(item, "created");
-                  })
-              ).size;
+    const currentGroupCount = getGroupCount(items, groupBy);
 
     const buildCollectionSuggestion = (): CommandSuggestion | null => {
         if (!topCollection) {
@@ -489,6 +467,7 @@ function buildCommandSuggestions({
     let groupingCandidates: GroupByMode[] = [
         "source",
         "domain",
+        "collection",
         "year-added",
         "year-created",
         "month-added",
@@ -497,6 +476,7 @@ function buildCommandSuggestions({
     if (sourceFilters.length > 0) {
         groupingCandidates = [
             "domain",
+            "collection",
             "year-added",
             "year-created",
             "month-added",
@@ -506,6 +486,7 @@ function buildCommandSuggestions({
     } else if (domainFilters.length > 0) {
         groupingCandidates = [
             "source",
+            "collection",
             "year-added",
             "year-created",
             "month-added",
@@ -525,6 +506,9 @@ function buildCommandSuggestions({
             }
             if (mode === "domain") {
                 return domainCounts.size > 1;
+            }
+            if (mode === "collection") {
+                return collectionCounts.size > 0;
             }
             if (mode === "month-added") {
                 return addedMonthKeys.size > 1;
@@ -828,6 +812,7 @@ type GroupByMode =
     | "none"
     | "source"
     | "domain"
+    | "collection"
     | "year-added"
     | "year-created"
     | "month-added"
@@ -933,6 +918,7 @@ const PALETTE_GROUP_OPTIONS = [
     { label: "No grouping", value: "none" },
     { label: "Source", value: "source" },
     { label: "Domain", value: "domain" },
+    { label: "Collection", value: "collection" },
     { label: "Year Added", value: "year-added" },
     { label: "Year Created", value: "year-created" },
     { label: "Month Added", value: "month-added" },
@@ -1076,6 +1062,57 @@ function itemYearKey(
     return date.getFullYear().toString();
 }
 
+function getItemGroupKey(
+    item: LibraryItemWithCollections,
+    groupBy: GroupByMode
+): string {
+    if (groupBy === "source") {
+        return item.source;
+    }
+    if (groupBy === "domain") {
+        return itemDomain(item.url);
+    }
+    if (groupBy === "month-added") {
+        return itemMonthKey(item, "added");
+    }
+    if (groupBy === "month-created") {
+        return itemMonthKey(item, "created");
+    }
+    if (groupBy === "year-added") {
+        return itemYearKey(item, "added");
+    }
+    if (groupBy === "year-created") {
+        return itemYearKey(item, "created");
+    }
+    return UNSPECIFIC_DOMAIN_FILTER;
+}
+
+function getGroupCount(
+    items: LibraryItemWithCollections[],
+    groupBy: GroupByMode
+): number {
+    if (groupBy === "none") {
+        return 0;
+    }
+
+    if (groupBy === "collection") {
+        const collectionKeys = new Set<string>();
+        let hasUncategorized = false;
+        for (const item of items) {
+            if (item.collections.length === 0) {
+                hasUncategorized = true;
+            } else {
+                for (const c of item.collections) {
+                    collectionKeys.add(c.id);
+                }
+            }
+        }
+        return collectionKeys.size + (hasUncategorized ? 1 : 0);
+    }
+
+    return new Set(items.map((item) => getItemGroupKey(item, groupBy))).size;
+}
+
 function itemPrimaryText(item: LibraryItemWithCollections): string {
     if (item.kind === "note") {
         return item.noteContentText?.trim() || "Untitled note";
@@ -1100,7 +1137,17 @@ function buildResultsCollectionName(searchTerms: string[]): string {
     return normalizedTerms.join(" + ").slice(0, COLLECTION_NAME_MAX_LENGTH);
 }
 
-function formatGroupHeading(mode: GroupByMode, key: string): string {
+function formatGroupHeading(
+    mode: GroupByMode,
+    key: string,
+    collectionNames?: Map<string, string>
+): string {
+    if (mode === "collection") {
+        if (key === "__uncategorized__") {
+            return "Uncategorized";
+        }
+        return collectionNames?.get(key) ?? key;
+    }
     if (mode === "source") {
         return SOURCE_LABEL_BY_VALUE[key] ?? "Other";
     }
@@ -1169,7 +1216,8 @@ function compareSectionKeys(
     a: string,
     b: string,
     groupBy: GroupByMode,
-    sortMode: SortMode
+    sortMode: SortMode,
+    collectionNames?: Map<string, string>
 ): number {
     if (
         groupBy === "month-added" ||
@@ -1186,6 +1234,11 @@ function compareSectionKeys(
             formatGroupHeading(groupBy, a),
             formatGroupHeading(groupBy, b)
         );
+    }
+    if (groupBy === "collection") {
+        const aName = collectionNames?.get(a) ?? a;
+        const bName = collectionNames?.get(b) ?? b;
+        return NAME_COLLATOR.compare(aName, bName);
     }
     return NAME_COLLATOR.compare(a, b);
 }
@@ -1522,6 +1575,9 @@ function groupByLabel(mode: GroupByMode): string {
     }
     if (mode === "domain") {
         return "Domain";
+    }
+    if (mode === "collection") {
+        return "Collection";
     }
     if (mode === "month-added") {
         return "Month Added";
@@ -3012,7 +3068,8 @@ function sortCommandItems(
 function buildBrowserSections(
     sortedItems: LibraryItemWithCollections[],
     groupBy: GroupByMode,
-    sortMode: SortMode
+    sortMode: SortMode,
+    collections?: LibraryCollectionSummary[]
 ): BrowserGroup[] {
     if (groupBy === "none") {
         return [
@@ -3024,23 +3081,28 @@ function buildBrowserSections(
         ];
     }
 
+    const collectionNames = new Map(
+        collections?.map((c) => [c.id, c.name]) ?? []
+    );
+
     const buckets = new Map<string, LibraryItemWithCollections[]>();
     for (const item of sortedItems) {
-        let key = UNSPECIFIC_DOMAIN_FILTER;
-        if (groupBy === "source") {
-            key = item.source;
-        } else if (groupBy === "domain") {
-            key = itemDomain(item.url);
-        } else if (groupBy === "month-added") {
-            key = itemMonthKey(item, "added");
-        } else if (groupBy === "month-created") {
-            key = itemMonthKey(item, "created");
-        } else if (groupBy === "year-added") {
-            key = itemYearKey(item, "added");
-        } else if (groupBy === "year-created") {
-            key = itemYearKey(item, "created");
+        if (groupBy === "collection") {
+            if (item.collections.length === 0) {
+                const bucket = buckets.get("__uncategorized__") ?? [];
+                bucket.push(item);
+                buckets.set("__uncategorized__", bucket);
+            } else {
+                for (const collection of item.collections) {
+                    const bucket = buckets.get(collection.id) ?? [];
+                    bucket.push(item);
+                    buckets.set(collection.id, bucket);
+                }
+            }
+            continue;
         }
 
+        const key = getItemGroupKey(item, groupBy);
         const bucket = buckets.get(key) ?? [];
         bucket.push(item);
         buckets.set(key, bucket);
@@ -3051,16 +3113,16 @@ function buildBrowserSections(
             if (sortMode === "count-desc") {
                 return (
                     bItems.length - aItems.length ||
-                    compareSectionKeys(a, b, groupBy, sortMode)
+                    compareSectionKeys(a, b, groupBy, sortMode, collectionNames)
                 );
             }
 
-            return compareSectionKeys(a, b, groupBy, sortMode);
+            return compareSectionKeys(a, b, groupBy, sortMode, collectionNames);
         })
         .map(([key, sectionItems]) => ({
             items: sectionItems,
             key,
-            title: formatGroupHeading(groupBy, key),
+            title: formatGroupHeading(groupBy, key, collectionNames),
         }));
 }
 
@@ -3379,11 +3441,8 @@ function MediaPreview({
                     width={300}
                 />
             ) : (
-                <div className="-z-1 flex min-h-32 flex-col items-center justify-center gap-2 bg-muted opacity-90">
+                <div className="-z-1 flex min-h-32 flex-col items-center justify-center gap-2 bg-muted">
                     <GlobeOff className="size-6 text-muted-foreground/50" />
-                    <span className="text-muted-foreground text-xs">
-                        No preview
-                    </span>
                 </div>
             )}
             {shouldLoadVideo ? (
@@ -3986,7 +4045,7 @@ function MediaCard({ item }: LibraryGridCardProps) {
                         </>
                     )}
                 </a>
-                <div className="flex items-center p-0.5 pt-1.5 pr-3">
+                <div className="flex items-center p-0.5 pt-1 pr-3">
                     <CardCollectionPicker
                         item={item}
                         onOpenChange={setIsCollectionPickerOpen}
@@ -4113,30 +4172,6 @@ function LockedPreviewCard({
                     </div>
                 </div>
             )}
-        </div>
-    );
-}
-
-function LockedResults({
-    columnCount,
-    totalItemCount,
-}: {
-    columnCount?: number;
-    totalItemCount: number;
-}) {
-    return (
-        <div className="relative isolate flex flex-col gap-8">
-            <BlockPaywallBanner length={totalItemCount} />
-            <div className="pointer-events-none absolute inset-0 z-10 rounded-[2rem] bg-linear-to-b from-background/10 via-background/45 to-background/75" />
-            <div className="select-none opacity-70 blur-[1.5px] saturate-75">
-                <Masonry columnCount={columnCount} gap={16}>
-                    {LOCKED_LIBRARY_PREVIEW_PLACEHOLDERS.map((placeholder) => (
-                        <MasonryItem key={placeholder.id}>
-                            <LockedPreviewCard placeholder={placeholder} />
-                        </MasonryItem>
-                    ))}
-                </Masonry>
-            </div>
         </div>
     );
 }
@@ -4631,7 +4666,12 @@ export function Browser({
 
     const sortedItems = sortCommandItems(filteredItems, sortMode);
 
-    const sections = buildBrowserSections(sortedItems, groupBy, sortMode);
+    const sections = buildBrowserSections(
+        sortedItems,
+        groupBy,
+        sortMode,
+        collections
+    );
 
     const hasActiveFilters = browserHasActiveFilters({
         collectionMembershipFilter,
@@ -5421,10 +5461,23 @@ export function Browser({
                 </BrowserList>
             </BrowserResults>
             {shouldShowLockedPreview ? (
-                <LockedResults
-                    columnCount={resolvedColumnCount}
-                    totalItemCount={totalItemCount}
-                />
+                <div className="relative isolate flex flex-col gap-8">
+                    <BlockPaywallBanner length={totalItemCount} />
+                    <div className="pointer-events-none absolute inset-0 z-10 rounded-[2rem] bg-linear-to-b from-background/10 via-background/45 to-background/75" />
+                    <div className="select-none opacity-70 blur-[1.5px] saturate-75">
+                        <Masonry columnCount={resolvedColumnCount} gap={16}>
+                            {LOCKED_LIBRARY_PREVIEW_PLACEHOLDERS.map(
+                                (placeholder) => (
+                                    <MasonryItem key={placeholder.id}>
+                                        <LockedPreviewCard
+                                            placeholder={placeholder}
+                                        />
+                                    </MasonryItem>
+                                )
+                            )}
+                        </Masonry>
+                    </div>
+                </div>
             ) : null}
             <NoteDrawer
                 activeNote={activeNote}

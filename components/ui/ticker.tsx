@@ -77,7 +77,7 @@ export function Ticker({
     return (
         <span
             className={cn(
-                "group relative inline-flex size-full select-none overflow-clip [--gap:1rem]",
+                "group relative inline-flex size-full select-none overflow-clip p-px [--gap:1rem]",
                 {
                     "flex-col": isVertical,
                     "flex-row": isHorizontal,

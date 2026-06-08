@@ -2894,9 +2894,6 @@ function CollectionItemMetadata({
 
     const onRename = useStableCallback(() => controller.onRename(collection));
     const onDelete = useStableCallback(() => controller.onDelete(collection));
-    const onAddFavorite = useStableCallback(() => {
-        controller.onFavoriteToggle(collection);
-    });
     const onFavoriteToggle = useStableCallback(() => {
         controller.onFavoriteToggle(collection);
     });
@@ -2921,8 +2918,8 @@ function CollectionItemMetadata({
     );
     useCollectionItemHotkey(
         "alt+f",
-        onAddFavorite,
-        "Add hovered collection to Favorites",
+        onFavoriteToggle,
+        "Toggle hovered collection to Favorites",
         !isFavorite
     );
 

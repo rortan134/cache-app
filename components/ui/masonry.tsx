@@ -637,11 +637,12 @@ function onDeepMemo<T extends unknown[], U>(
 // #region Masonry layout definitions
 const COLUMN_WIDTH = 200;
 const GAP = 0;
+const MAX_COLUMN_COUNT = 9;
 const ITEM_HEIGHT = 300;
 const OVERSCAN = 2;
 const SCROLL_FPS = 12;
 const DEBOUNCE_DELAY = 300;
-const JUSTIFIED_TARGET_ROW_HEIGHT = 320;
+const JUSTIFIED_TARGET_ROW_HEIGHT = 360;
 const JUSTIFIED_TARGET_ROW_HEIGHT_TOLERANCE = 0.25;
 const JUSTIFIED_CONTAINER_PADDING = 0;
 const JUSTIFIED_BOX_SPACING = 0;
@@ -1513,11 +1514,6 @@ type MasonryChildProps = React.ComponentProps<"div"> & {
 };
 type MasonryChildElement = React.ReactElement<MasonryChildProps>;
 
-interface MasonryChildCache {
-    children: MasonryChildElement[];
-    source: React.ReactNode;
-}
-
 interface MasonryAspectRatioCache {
     aspectRatios: number[] | undefined;
     layout: "masonry" | "justified";
@@ -1628,20 +1624,6 @@ function getCachedJustifiedAspectRatios(
     return cache.aspectRatios;
 }
 
-function getCachedMasonryChildren(
-    cache: MasonryChildCache,
-    children: React.ReactNode
-) {
-    // Scroll renders reuse the same child tree; avoid rebuilding it for every viewport tick.
-    if (cache.source !== children) {
-        cache.source = children;
-        cache.children = React.Children.toArray(children).filter(
-            isMasonryChildElement
-        );
-    }
-    return cache.children;
-}
-
 function mergeItemRefs(
     childRef: React.Ref<ItemElement> | undefined,
     registerRef: React.RefCallback<ItemElement>
@@ -1701,7 +1683,7 @@ function Masonry({
     columnWidth = COLUMN_WIDTH,
     columnCount,
     containerPadding,
-    maxColumnCount,
+    maxColumnCount = MAX_COLUMN_COUNT,
     fullWidthBreakoutRowCadence,
     gap = GAP,
     itemHeight = ITEM_HEIGHT,
@@ -1903,21 +1885,6 @@ function MasonryViewport({
     style,
     ...props
 }: React.ComponentProps<"div">) {
-    const context = useMasonryContext(VIEWPORT_NAME);
-    const [, setMeasurementTick] = React.useState(0);
-    const layoutAnimationFrame = useAnimationFrame();
-    const childCacheRef = React.useRef<MasonryChildCache>({
-        children: [],
-        source: undefined,
-    });
-    const mergedItemRefsRef = React.useRef<(MergedItemRefCache | undefined)[]>(
-        []
-    );
-    const validChildren = getCachedMasonryChildren(
-        childCacheRef.current,
-        children
-    );
-
     const {
         columnWidth,
         isScrolling,
@@ -1928,9 +1895,22 @@ function MasonryViewport({
         positioner,
         scrollTop,
         windowHeight,
-    } = context;
+    } = useMasonryContext(VIEWPORT_NAME);
+    const [, setMeasurementTick] = React.useState(0);
+    const animationFrame = useAnimationFrame();
 
-    const itemCount = validChildren.length;
+    const mergedItemRefsRef = React.useRef<(MergedItemRefCache | undefined)[]>(
+        []
+    );
+
+    const childrenArray = React.useMemo(
+        () =>
+            React.Children.toArray(
+                children
+            ) as React.ReactElement<MasonryChildProps>[],
+        [children]
+    );
+    const itemCount = childrenArray.length;
     const shortestColumnSize = positioner.shortestColumn();
     const measuredCount = positioner.size();
     const overscanPixels = windowHeight * overscan;
@@ -1938,34 +1918,34 @@ function MasonryViewport({
     const isLayoutOutdated =
         shortestColumnSize < rangeEnd && measuredCount < itemCount;
 
-    const visibleItemStyle: React.CSSProperties = {
-        contentVisibility: "auto",
-        position: "absolute",
-        transform: isScrolling ? "translateZ(0)" : undefined,
-        visibility: "visible",
-        width: columnWidth,
-        willChange: isScrolling ? "transform" : undefined,
-        writingMode: "horizontal-tb",
-    };
+    const positionedChildren = React.useMemo(() => {
+        const visibleItemStyle: React.CSSProperties = {
+            contentVisibility: "auto",
+            position: "absolute",
+            transform: isScrolling ? "translateZ(0)" : undefined,
+            visibility: "visible",
+            width: columnWidth,
+            willChange: isScrolling ? "transform" : undefined,
+            writingMode: "horizontal-tb",
+        };
 
-    const hiddenItemStyle: React.CSSProperties = {
-        position: "absolute",
-        visibility: "hidden",
-        width: columnWidth,
-        writingMode: "horizontal-tb",
-        zIndex: -1000,
-    };
+        const hiddenItemStyle: React.CSSProperties = {
+            position: "absolute",
+            visibility: "hidden",
+            width: columnWidth,
+            writingMode: "horizontal-tb",
+            zIndex: -1000,
+        };
 
-    const positionedChildren = (() => {
         const result: React.ReactElement[] = [];
         const rangeStart = Math.max(0, scrollTop - overscanPixels / 2);
 
         positioner.range(rangeStart, rangeEnd, (index, left, top) => {
-            const child = validChildren[index];
+            const child = childrenArray[index];
             if (!child) {
                 return;
             }
-            const pos = positioner.get(index);
+            const position = positioner.get(index);
             result.push(
                 React.cloneElement(child, {
                     "data-index": index,
@@ -1980,13 +1960,15 @@ function MasonryViewport({
                         ...visibleItemStyle,
                         ...child.props.style,
                         containIntrinsicHeight: getContainIntrinsicHeight(
-                            pos?.height ?? itemHeight
+                            position?.height ?? itemHeight
                         ),
                         height:
-                            layout === "justified" ? pos?.height : undefined,
+                            layout === "justified"
+                                ? position?.height
+                                : undefined,
                         left,
                         top,
-                        width: pos?.width ?? columnWidth,
+                        width: position?.width ?? columnWidth,
                     },
                 })
             );
@@ -2004,7 +1986,7 @@ function MasonryViewport({
             if (batchSize > 0) {
                 const end = Math.min(itemCount, measuredCount + batchSize);
                 for (let index = measuredCount; index < end; index++) {
-                    const child = validChildren[index];
+                    const child = childrenArray[index];
                     if (!child) {
                         continue;
                     }
@@ -2026,23 +2008,25 @@ function MasonryViewport({
         }
 
         return result;
-    })();
+    }, [
+        childrenArray,
+        columnWidth,
+        isLayoutOutdated,
+        isScrolling,
+        itemCount,
+        itemHeight,
+        layout,
+        measuredCount,
+        onItemRegister,
+        overscanPixels,
+        positioner,
+        rangeEnd,
+        scrollTop,
+        shortestColumnSize,
+    ]);
 
-    React.useEffect(() => {
-        if (!isLayoutOutdated) {
-            return;
-        }
-        layoutAnimationFrame.request(() => {
-            setMeasurementTick((tick) => tick + 1);
-        });
-        return layoutAnimationFrame.cancel;
-    });
-
-    const estimatedHeight = (() => {
-        const measuredHeight = positioner.estimateHeight(
-            measuredCount,
-            itemHeight
-        );
+    const measuredHeight = positioner.estimateHeight(measuredCount, itemHeight);
+    const estimatedHeight = React.useMemo(() => {
         if (measuredCount === itemCount) {
             return measuredHeight;
         }
@@ -2051,24 +2035,39 @@ function MasonryViewport({
             (remainingItems / positioner.columnCount) * itemHeight
         );
         return Math.ceil(measuredHeight + estimatedRemainingHeight);
-    })();
+    }, [
+        itemCount,
+        itemHeight,
+        measuredCount,
+        measuredHeight,
+        positioner.columnCount,
+    ]);
+
+    useIsoLayoutEffect(function remeasurement() {
+        if (!isLayoutOutdated) {
+            return;
+        }
+        animationFrame.request(() => {
+            setMeasurementTick((tick) => tick + 1);
+        });
+        return animationFrame.cancel;
+    });
 
     return (
         // biome-ignore lint/a11y/useSemanticElements: List role
         <div
+            {...props}
             aria-busy={false}
             role="list"
             style={{
                 height: estimatedHeight,
                 maxHeight: estimatedHeight,
                 maxWidth: "100%",
-                pointerEvents: isScrolling ? ("none" as const) : undefined,
-                position: "relative" as const,
+                position: "relative",
                 width: "100%",
                 willChange: isScrolling ? "contents" : undefined,
                 ...style,
             }}
-            {...props}
         >
             {positionedChildren}
         </div>
