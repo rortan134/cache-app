@@ -25,8 +25,7 @@ export function Alert({
     className,
     variant,
     ...props
-}: React.ComponentProps<"div"> &
-    VariantProps<typeof alertVariants>): React.ReactElement {
+}: React.ComponentProps<"div"> & VariantProps<typeof alertVariants>) {
     return (
         <aside
             className={cn(alertVariants({ variant }), className)}
@@ -40,7 +39,7 @@ export function Alert({
 export function AlertTitle({
     className,
     ...props
-}: React.ComponentProps<"div">): React.ReactElement {
+}: React.ComponentProps<"div">) {
     return (
         <div
             className={cn(
@@ -56,7 +55,7 @@ export function AlertTitle({
 export function AlertDescription({
     className,
     ...props
-}: React.ComponentProps<"div">): React.ReactElement {
+}: React.ComponentProps<"div">) {
     return (
         <div
             className={cn(
@@ -72,7 +71,7 @@ export function AlertDescription({
 export function AlertAction({
     className,
     ...props
-}: React.ComponentProps<"div">): React.ReactElement {
+}: React.ComponentProps<"div">) {
     return (
         <div
             className={cn(

@@ -26,7 +26,7 @@ interface SidebarContextValue {
 
 const SidebarContext = React.createContext<SidebarContextValue | null>(null);
 
-function SidebarProvider({
+export function SidebarProvider({
     defaultOpen = true,
     open: openProp,
     onOpenChange,
@@ -96,7 +96,7 @@ function SidebarProvider({
     return <SidebarContext value={value}>{children}</SidebarContext>;
 }
 
-function useSidebar() {
+export function useSidebar() {
     const context = React.use(SidebarContext);
     if (!context) {
         throw new Error("useSidebar must be used within a SidebarProvider.");
@@ -104,7 +104,7 @@ function useSidebar() {
     return context;
 }
 
-function Sidebar({
+export function Sidebar({
     className,
     side = "left",
     ...props
@@ -126,7 +126,10 @@ function Sidebar({
     );
 }
 
-function SidebarRail({ className, ...props }: React.ComponentProps<"button">) {
+export function SidebarRail({
+    className,
+    ...props
+}: React.ComponentProps<"button">) {
     const { toggleSidebar, open } = useSidebar();
 
     return (
@@ -150,7 +153,10 @@ function SidebarRail({ className, ...props }: React.ComponentProps<"button">) {
     );
 }
 
-function SidebarHeader({ className, ...props }: React.ComponentProps<"div">) {
+export function SidebarHeader({
+    className,
+    ...props
+}: React.ComponentProps<"div">) {
     return (
         <div
             className={cn(
@@ -164,7 +170,7 @@ function SidebarHeader({ className, ...props }: React.ComponentProps<"div">) {
     );
 }
 
-function SidebarTrigger({
+export function SidebarTrigger({
     className,
     onClick,
     ...props
@@ -210,7 +216,10 @@ function SidebarTrigger({
     );
 }
 
-function SidebarFooter({ className, ...props }: React.ComponentProps<"div">) {
+export function SidebarFooter({
+    className,
+    ...props
+}: React.ComponentProps<"div">) {
     return (
         <div
             className={cn(
@@ -226,7 +235,7 @@ function SidebarFooter({ className, ...props }: React.ComponentProps<"div">) {
 
 export type SidebarItemProps = useRender.ComponentProps<"div">;
 
-function SidebarItem({ className, render, ...props }: SidebarItemProps) {
+export function SidebarItem({ className, render, ...props }: SidebarItemProps) {
     const defaultProps = {
         className: cn(
             "group relative flex h-8 max-h-8 min-h-8 flex-1 cursor-default select-none items-center gap-1.5 truncate rounded-lg px-2.5 text-left font-medium text-[13px] text-foreground leading-[normal] opacity-70 before:absolute before:inset-0 before:-z-10 before:rounded-lg before:bg-muted before:opacity-0 before:transition-transform before:will-change-transform hover:opacity-100 hover:before:opacity-100 focus-visible:opacity-100 active:before:scale-x-[0.99] active:before:scale-y-[0.97] active:before:opacity-80! data-[active=true]:before:opacity-100",
@@ -243,7 +252,10 @@ function SidebarItem({ className, render, ...props }: SidebarItemProps) {
     });
 }
 
-function SidebarGroup({ className, ...props }: React.ComponentProps<"ul">) {
+export function SidebarGroup({
+    className,
+    ...props
+}: React.ComponentProps<"ul">) {
     return (
         <ul
             className={cn(
@@ -277,15 +289,3 @@ function isTextEntryTarget(
             ))
     );
 }
-
-export {
-    Sidebar,
-    SidebarFooter,
-    SidebarGroup,
-    SidebarHeader,
-    SidebarItem,
-    SidebarProvider,
-    SidebarRail,
-    SidebarTrigger,
-    useSidebar,
-};

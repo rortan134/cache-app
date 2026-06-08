@@ -1668,7 +1668,7 @@ function getMergedItemRef(
     return mergedRef;
 }
 
-function Masonry({
+export function Masonry({
     boxSpacing,
     columnWidth = COLUMN_WIDTH,
     columnCount,
@@ -2068,10 +2068,8 @@ function MasonryViewport({
     );
 }
 
-function MasonryItem(props: React.ComponentProps<"div">) {
+export function MasonryItem(props: React.ComponentProps<"div">) {
     // biome-ignore lint/a11y/useSemanticElements: List role
     return <section data-slot="masonry-item" role="listitem" {...props} />;
 }
 // #endregion
-
-export { Masonry, MasonryItem };
