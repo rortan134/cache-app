@@ -3442,6 +3442,7 @@ function MediaPreview({
                     loading="eager"
                     onError={handleImageError}
                     src={src}
+                    style={{ cursor: "pointer" }}
                     width={300}
                 />
             ) : (

@@ -140,6 +140,7 @@ import {
     EllipsisIcon,
     ExternalLinkIcon,
     FileSpreadsheetIcon,
+    GlobeOff,
     Info,
     Lightbulb,
     LinkIcon,
@@ -1769,7 +1770,7 @@ function CollectionsComboboxOptionRow({
 function CollectionsListPreviewImageFallback() {
     return (
         <div className="flex size-full items-center justify-center bg-muted/40 text-[11px] text-muted-foreground">
-            No preview available
+            <GlobeOff className="size-4 text-muted-foreground/50" />
         </div>
     );
 }
@@ -2045,7 +2046,10 @@ function FavoriteItemCarouselSlide({
     );
 
     return (
-        <div className="group relative inline-block aspect-3/4 h-14 overflow-hidden rounded-md bg-muted ring-1 ring-border/50 focus-within:ring-2 focus-within:ring-ring/60">
+        <div
+            className="group relative inline-block aspect-3/4 h-14 overflow-hidden rounded-md bg-muted ring-1 ring-border/50 focus-within:ring-2 focus-within:ring-ring/60"
+            title={previewLabel}
+        >
             <button
                 aria-label={previewLabel}
                 className="size-full focus-visible:outline-none"

@@ -1814,7 +1814,12 @@ function Masonry({
                 width,
             });
         }
-    }, [containerPosition.offset, containerPosition.width, windowSize.width]);
+    }, [
+        containerPosition.offset,
+        containerPosition.width,
+        windowSize.width,
+        deps,
+    ]);
 
     const onItemRegister = (index: number) => {
         const itemRegisterCallbacks =
