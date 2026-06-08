@@ -221,9 +221,8 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import type { ReactNode } from "react";
 import * as React from "react";
+import { createPortal } from "react-dom";
 import { useHotkeys } from "react-hotkeys-hook";
-import { Controlled } from "react-medium-image-zoom";
-import "react-medium-image-zoom/dist/styles.css";
 import { Streamdown } from "streamdown";
 import useSWR from "swr";
 
@@ -3961,6 +3960,61 @@ function CardMenu({
     );
 }
 
+function ImageZoomOverlay({
+    onClose,
+    src,
+}: {
+    onClose: () => void;
+    src: string;
+}) {
+    const ownerDocument = getOwnerDocument();
+
+    React.useEffect(() => {
+        const handleKeyDown = (event: KeyboardEvent) => {
+            if (event.key === "Escape") {
+                onClose();
+            }
+        };
+        ownerDocument.addEventListener("keydown", handleKeyDown);
+        return () =>
+            ownerDocument.removeEventListener("keydown", handleKeyDown);
+    }, [onClose, ownerDocument]);
+
+    return createPortal(
+        <div
+            aria-modal="true"
+            className="fade-in fixed inset-0 z-50 flex animate-in items-center justify-center bg-background/80 backdrop-blur-sm duration-200"
+            onClick={(event) => {
+                if (event.target === event.currentTarget) {
+                    onClose();
+                }
+            }}
+            onKeyDown={(event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                    onClose();
+                }
+            }}
+            role="dialog"
+        >
+            <button
+                className="absolute top-4 right-4 z-10 rounded-full bg-muted/80 p-2 text-muted-foreground hover:bg-muted"
+                onClick={onClose}
+                type="button"
+            >
+                <XIcon className="size-5" />
+            </button>
+            <img
+                alt=""
+                className="h-full w-auto object-contain"
+                height={400}
+                src={src}
+                width={300}
+            />
+        </div>,
+        ownerDocument.body
+    );
+}
+
 function MediaCard({ item }: LibraryGridCardProps) {
     const { onOpenInNewTab, onOpenNote } = useLibraryGridCardContext();
     const isNote = item.kind === ITEM_KIND_NOTE;
@@ -3976,12 +4030,6 @@ function MediaCard({ item }: LibraryGridCardProps) {
     const noteExcerpt = getNoteExcerpt(item.noteContentText);
     const displayTitle = getItemTitle(item);
     const { markVisited, isLastVisited } = useLastVisited();
-
-    const handleZoomChange = (zoomed: boolean) => {
-        if (!zoomed) {
-            setIsZoomed(false);
-        }
-    };
 
     const handleZoomIn = () => {
         setIsZoomed(true);
@@ -4031,109 +4079,101 @@ function MediaCard({ item }: LibraryGridCardProps) {
     };
 
     return (
-        <ContextMenu>
-            <ContextMenuTrigger
-                onKeyDown={handleCardKeyDown}
-                render={
-                    <div className="group relative flex shrink-0 flex-col focus-visible:outline-none" />
-                }
-            >
-                <a
-                    className="flex flex-col overflow-clip rounded-xl focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
-                    href={href}
-                    onClick={handlePrimaryClick}
-                    rel="noopener noreferrer"
-                    target={isNote ? undefined : "_blank"}
+        <>
+            <ContextMenu>
+                <ContextMenuTrigger
+                    onKeyDown={handleCardKeyDown}
+                    render={
+                        <div className="group relative flex shrink-0 flex-col focus-visible:outline-none" />
+                    }
                 >
-                    {isNote ? (
-                        <div className="relative flex h-auto min-h-56 w-full flex-col justify-between bg-linear-to-br from-amber-50 via-background to-stone-100 p-3">
-                            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(251,191,36,0.18),transparent_45%)]" />
-                            <div className="relative flex flex-1 flex-col gap-2 pt-1.5">
-                                <p className="whitespace-pre-wrap text-foreground text-xs leading-relaxed opacity-90">
-                                    {noteExcerpt ||
-                                        "Tap to start writing in this note"}
-                                </p>
-                            </div>
-                        </div>
-                    ) : (
-                        <>
-                            <MediaPreview
-                                src={previewImageUrl}
-                                videoSrc={previewVideoUrl}
-                            />
-                            {previewImageUrl ? (
-                                <div className="pointer-events-none absolute inset-0">
-                                    <Controlled
-                                        isZoomed={isZoomed}
-                                        onZoomChange={handleZoomChange}
-                                        zoomImg={{ src: previewImageUrl }}
-                                    >
-                                        <img
-                                            alt=""
-                                            className="size-full opacity-0"
-                                            height={400}
-                                            src={previewImageUrl}
-                                            width={300}
-                                        />
-                                    </Controlled>
+                    <a
+                        className="flex flex-col overflow-clip rounded-xl focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
+                        href={href}
+                        onClick={handlePrimaryClick}
+                        rel="noopener noreferrer"
+                        target={isNote ? undefined : "_blank"}
+                    >
+                        {isNote ? (
+                            <div className="relative flex h-auto min-h-56 w-full flex-col justify-between bg-linear-to-br from-amber-50 via-background to-stone-100 p-3">
+                                <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(251,191,36,0.18),transparent_45%)]" />
+                                <div className="relative flex flex-1 flex-col gap-2 pt-1.5">
+                                    <p className="whitespace-pre-wrap text-foreground text-xs leading-relaxed opacity-90">
+                                        {noteExcerpt ||
+                                            "Tap to start writing in this note"}
+                                    </p>
                                 </div>
-                            ) : null}
-                            {isLastVisited(item.id) && (
-                                <span className="absolute top-2 right-2 z-10 rounded-full bg-black/45 px-1.5 py-px font-medium text-white text-xs leading-normal backdrop-blur-[2px]">
-                                    <T>Last visited</T>
-                                </span>
-                            )}
-                        </>
-                    )}
-                </a>
-                <div className="flex items-center p-0.5 pt-1 pr-3">
-                    <CardCollectionPicker
-                        item={item}
-                        onOpenChange={setIsCollectionPickerOpen}
-                        open={isCollectionPickerOpen}
-                    />
-                    <Menu>
-                        <MenuTrigger
-                            render={
-                                <button
-                                    className="min-w-0 flex-1 cursor-pointer truncate rounded-sm text-left font-normal text-[11px] text-foreground leading-none outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                                    title={displayTitle}
-                                    type="button"
+                            </div>
+                        ) : (
+                            <>
+                                <MediaPreview
+                                    src={previewImageUrl}
+                                    videoSrc={previewVideoUrl}
                                 />
-                            }
-                        >
-                            <Ticker>{displayTitle}</Ticker>
-                        </MenuTrigger>
-                        <MenuPopup>
-                            <CardMenu
-                                addedLabel={addedLabel}
-                                createdLabel={createdLabel}
-                                href={href}
-                                isDownloading={isDownloading}
-                                item={item}
-                                kind="menu"
-                                onDownload={handleDownload}
-                                onZoomIn={handleZoomIn}
-                                previewImageUrl={previewImageUrl}
-                            />
-                        </MenuPopup>
-                    </Menu>
-                </div>
-            </ContextMenuTrigger>
-            <ContextMenuPopup>
-                <CardMenu
-                    addedLabel={addedLabel}
-                    createdLabel={createdLabel}
-                    href={href}
-                    isDownloading={isDownloading}
-                    item={item}
-                    kind="context"
-                    onDownload={handleDownload}
-                    onZoomIn={handleZoomIn}
-                    previewImageUrl={previewImageUrl}
+
+                                {isLastVisited(item.id) && (
+                                    <span className="absolute top-2 right-2 z-10 rounded-full bg-black/45 px-1.5 py-px font-medium text-white text-xs leading-normal backdrop-blur-[2px]">
+                                        <T>Last visited</T>
+                                    </span>
+                                )}
+                            </>
+                        )}
+                    </a>
+                    <div className="flex items-center p-0.5 pt-1 pr-3">
+                        <CardCollectionPicker
+                            item={item}
+                            onOpenChange={setIsCollectionPickerOpen}
+                            open={isCollectionPickerOpen}
+                        />
+                        <Menu>
+                            <MenuTrigger
+                                render={
+                                    <button
+                                        className="min-w-0 flex-1 cursor-pointer truncate rounded-sm text-left font-normal text-[11px] text-foreground leading-none outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                                        title={displayTitle}
+                                        type="button"
+                                    />
+                                }
+                            >
+                                <Ticker>{displayTitle}</Ticker>
+                            </MenuTrigger>
+                            <MenuPopup>
+                                <CardMenu
+                                    addedLabel={addedLabel}
+                                    createdLabel={createdLabel}
+                                    href={href}
+                                    isDownloading={isDownloading}
+                                    item={item}
+                                    kind="menu"
+                                    onDownload={handleDownload}
+                                    onZoomIn={handleZoomIn}
+                                    previewImageUrl={previewImageUrl}
+                                />
+                            </MenuPopup>
+                        </Menu>
+                    </div>
+                </ContextMenuTrigger>
+                <ContextMenuPopup>
+                    <CardMenu
+                        addedLabel={addedLabel}
+                        createdLabel={createdLabel}
+                        href={href}
+                        isDownloading={isDownloading}
+                        item={item}
+                        kind="context"
+                        onDownload={handleDownload}
+                        onZoomIn={handleZoomIn}
+                        previewImageUrl={previewImageUrl}
+                    />
+                </ContextMenuPopup>
+            </ContextMenu>
+            {isZoomed && previewImageUrl ? (
+                <ImageZoomOverlay
+                    onClose={() => setIsZoomed(false)}
+                    src={previewImageUrl}
                 />
-            </ContextMenuPopup>
-        </ContextMenu>
+            ) : null}
+        </>
     );
 }
 
