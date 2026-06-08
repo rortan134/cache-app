@@ -44,12 +44,9 @@ async function readJsonOrNull(response: Response): Promise<unknown> {
 /**
  * Executes the behavior for opening an integration (either the app itself or its install page).
  *
- * When `behavior.autoSync` is set and the extension is installed, this delegates
- * to the extension via a window `postMessage`. The Cache-site content script
- * forwards the request to the service worker, which opens the URL in a new tab,
- * starts a sync for that source once the page is ready, and best-effort opens
- * the extension popup. Falling back to `openExternal` covers the cases where
- * either the extension is not installed or the behavior just navigates.
+ * When `behavior.autoSync` is set and the extension is installed, a `postMessage`
+ * is sent so the extension can start syncing that source. The URL is always opened
+ * via `openExternal` so the user gets immediate visible feedback.
  */
 export function executeOpenBehavior(
     behavior: ExtensionOpenBehavior,
@@ -67,7 +64,6 @@ export function executeOpenBehavior(
             },
             window.location.origin
         );
-        return;
     }
 
     const targetUrl =
