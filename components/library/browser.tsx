@@ -214,6 +214,7 @@ import {
     Volume2Icon,
     VolumeXIcon,
     XIcon,
+    ZoomIn,
 } from "lucide-react";
 import dynamic from "next/dynamic";
 import Image from "next/image";
@@ -221,6 +222,8 @@ import { useRouter } from "next/navigation";
 import type { ReactNode } from "react";
 import * as React from "react";
 import { useHotkeys } from "react-hotkeys-hook";
+import { Controlled } from "react-medium-image-zoom";
+import "react-medium-image-zoom/dist/styles.css";
 import { Streamdown } from "streamdown";
 import useSWR from "swr";
 
@@ -1834,6 +1837,7 @@ interface BrowserResultsContextValue {
     collapsedSectionKeys: Set<string>;
     collections: LibraryCollectionSummary[];
     columnCount?: number;
+    containerWidth: ContainerWidth;
     enableSectionCollapse: boolean;
     favoriteItemIdSet: ReadonlySet<string>;
     onCollapseAllSections?: () => void;
@@ -3542,6 +3546,7 @@ interface LibraryGridCardMenuProps {
     item: LibraryItemWithCollections;
     kind: "context" | "menu";
     onDownload: () => void;
+    onZoomIn: () => void;
     previewImageUrl: string | null;
 }
 
@@ -3808,6 +3813,7 @@ function CardMenu({
     item,
     kind,
     onDownload,
+    onZoomIn,
     previewImageUrl,
 }: LibraryGridCardMenuProps) {
     const {
@@ -3907,6 +3913,12 @@ function CardMenu({
                     <PeekDrawerContent />
                 </PeekDrawer>
             ) : null}
+            {previewImageUrl ? (
+                <Item onClick={onZoomIn}>
+                    <ZoomIn className="size-4.5 text-muted-foreground" />
+                    Zoom in
+                </Item>
+            ) : null}
             {isNote ? null : (
                 <>
                     <Item onClick={() => onOpenInNewTab?.(item)}>
@@ -3954,6 +3966,7 @@ function MediaCard({ item }: LibraryGridCardProps) {
     const [isDownloading, startDownloadTransition] = React.useTransition();
     const [isCollectionPickerOpen, setIsCollectionPickerOpen] =
         React.useState(false);
+    const [isZoomed, setIsZoomed] = React.useState(false);
     const href = normalizeURL(item.url);
     const previewImageUrl = itemPreviewImageUrl(item);
     const previewVideoUrl = itemPreviewVideoUrl(item);
@@ -3962,6 +3975,16 @@ function MediaCard({ item }: LibraryGridCardProps) {
     const noteExcerpt = getNoteExcerpt(item.noteContentText);
     const displayTitle = getItemTitle(item);
     const { markVisited, isLastVisited } = useLastVisited();
+
+    const handleZoomChange = (zoomed: boolean) => {
+        if (!zoomed) {
+            setIsZoomed(false);
+        }
+    };
+
+    const handleZoomIn = () => {
+        setIsZoomed(true);
+    };
 
     const handlePrimaryClick = (event: React.MouseEvent<HTMLAnchorElement>) => {
         event.preventDefault();
@@ -4033,10 +4056,23 @@ function MediaCard({ item }: LibraryGridCardProps) {
                         </div>
                     ) : (
                         <>
-                            <MediaPreview
-                                src={previewImageUrl}
-                                videoSrc={previewVideoUrl}
-                            />
+                            {previewImageUrl ? (
+                                <Controlled
+                                    isZoomed={isZoomed}
+                                    onZoomChange={handleZoomChange}
+                                    zoomImg={{ src: previewImageUrl }}
+                                >
+                                    <MediaPreview
+                                        src={previewImageUrl}
+                                        videoSrc={previewVideoUrl}
+                                    />
+                                </Controlled>
+                            ) : (
+                                <MediaPreview
+                                    src={previewImageUrl}
+                                    videoSrc={previewVideoUrl}
+                                />
+                            )}
                             {isLastVisited(item.id) && (
                                 <span className="absolute top-2 right-2 z-10 rounded-full bg-black/45 px-1.5 py-px font-medium text-white text-xs leading-normal backdrop-blur-[2px]">
                                     <T>Last visited</T>
@@ -4072,6 +4108,7 @@ function MediaCard({ item }: LibraryGridCardProps) {
                                 item={item}
                                 kind="menu"
                                 onDownload={handleDownload}
+                                onZoomIn={handleZoomIn}
                                 previewImageUrl={previewImageUrl}
                             />
                         </MenuPopup>
@@ -4087,6 +4124,7 @@ function MediaCard({ item }: LibraryGridCardProps) {
                     item={item}
                     kind="context"
                     onDownload={handleDownload}
+                    onZoomIn={handleZoomIn}
                     previewImageUrl={previewImageUrl}
                 />
             </ContextMenuPopup>
@@ -5401,6 +5439,7 @@ export function Browser({
                 collapsedSectionKeys={collapsedSectionKeySet}
                 collections={collections}
                 columnCount={resolvedColumnCount}
+                containerWidth={containerWidth}
                 enableSectionCollapse={enableSectionCollapse}
                 favoriteItemIdSet={favoriteItemIdSet}
                 onCollapseAllSections={collapseAllSections}
