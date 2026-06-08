@@ -41,7 +41,7 @@ const ASK_CACHE_MODELS = [
     ...ASK_CACHE_MODELS_FALLBACK,
 ] as const;
 const ASK_CACHE_OUTPUT_TOKEN_LIMIT = 900;
-const ASK_CACHE_MAX_STEPS = 5;
+const ASK_CACHE_MAX_STEPS = 10;
 const ASK_CACHE_TIMEOUT_MS = 45_000;
 const ASK_CACHE_LIBRARY_SEARCH_LIMIT_MAX = 12;
 const ASK_CACHE_LIBRARY_TEXT_PREVIEW_LENGTH_MAX = 800;
@@ -197,7 +197,7 @@ async function runAskCacheAgentModel(args: {
             }),
             update_composer: tool({
                 description:
-                    "Apply a validated composer patch. Use this to change search terms, collection/source/domain filters, collection membership, grouping, sorting, columns, or reset state. Do not represent broad conceptual matches with only generic search terms; use high-confidence concrete filters.",
+                    "Apply a validated composer patch. Use this to change search terms, collection/source/domain filters, collection membership, grouping, sorting, columns, or reset state. Batch multiple changes into one call — the patch accepts all fields at once. Do not represent broad conceptual matches with only generic search terms; use high-confidence concrete filters.",
                 execute: (toolInput) => {
                     if (operations.length >= ASK_CACHE_OPERATION_LIMIT) {
                         return {
@@ -397,6 +397,7 @@ function buildAskCacheInstructions(input: AskCacheRequest): string {
         "Example: for 'I'm looking for software products', do not set searchTerms to ['software']; instead identify recognizable software companies, apps, SaaS tools, developer tools, AI products, or product domains from availableDomains and search_library results, then filter by those concrete signals.",
         "If the available composer filters cannot represent the conceptual match well, say so briefly and apply only high-confidence filters rather than pretending a generic keyword search is sufficient.",
         "Prefer concise markdown. Mention applied composer changes in one short sentence when you call update_composer.",
+        "Batch multiple composer changes into one update_composer call. The patch accepts searchTerms, sourceFilters, domainFilters, selectedCollectionIds, groupBy, sortMode, and columnCountMode all at once.",
         "Do not mutate saved items, collections, notes, or external services.",
         "",
         "Runtime context:",
@@ -476,7 +477,7 @@ function buildAskCacheUserMessage(input: AskCacheRequest): string {
         "User request:",
         input.prompt,
         "",
-        "If this is a library navigation command, call update_composer with the exact state changes and then briefly explain what changed.",
+        "If this is a library navigation command, call update_composer once with all state changes batched together, then briefly explain what changed.",
         "If this is a normal question, answer directly and call tools only when they are useful.",
         "Do not ask follow-up questions. If details are missing, proceed with a reasonable assumption or explain the limitation as a final answer.",
     ].join("\n");

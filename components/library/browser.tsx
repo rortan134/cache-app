@@ -4057,23 +4057,27 @@ function MediaCard({ item }: LibraryGridCardProps) {
                         </div>
                     ) : (
                         <>
+                            <MediaPreview
+                                src={previewImageUrl}
+                                videoSrc={previewVideoUrl}
+                            />
                             {previewImageUrl ? (
-                                <Controlled
-                                    isZoomed={isZoomed}
-                                    onZoomChange={handleZoomChange}
-                                    zoomImg={{ src: previewImageUrl }}
-                                >
-                                    <MediaPreview
-                                        src={previewImageUrl}
-                                        videoSrc={previewVideoUrl}
-                                    />
-                                </Controlled>
-                            ) : (
-                                <MediaPreview
-                                    src={previewImageUrl}
-                                    videoSrc={previewVideoUrl}
-                                />
-                            )}
+                                <div className="pointer-events-none absolute inset-0">
+                                    <Controlled
+                                        isZoomed={isZoomed}
+                                        onZoomChange={handleZoomChange}
+                                        zoomImg={{ src: previewImageUrl }}
+                                    >
+                                        <img
+                                            alt=""
+                                            className="size-full opacity-0"
+                                            height={400}
+                                            src={previewImageUrl}
+                                            width={300}
+                                        />
+                                    </Controlled>
+                                </div>
+                            ) : null}
                             {isLastVisited(item.id) && (
                                 <span className="absolute top-2 right-2 z-10 rounded-full bg-black/45 px-1.5 py-px font-medium text-white text-xs leading-normal backdrop-blur-[2px]">
                                     <T>Last visited</T>
