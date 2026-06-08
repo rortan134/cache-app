@@ -641,7 +641,6 @@ const MAX_COLUMN_COUNT = 9;
 const ITEM_HEIGHT = 300;
 const OVERSCAN = 2;
 const SCROLL_FPS = 12;
-const DEBOUNCE_DELAY = 300;
 const JUSTIFIED_TARGET_ROW_HEIGHT = 360;
 const JUSTIFIED_TARGET_ROW_HEIGHT_TOLERANCE = 0.25;
 const JUSTIFIED_CONTAINER_PADDING = 0;
@@ -1183,26 +1182,34 @@ interface UseWindowSizeOptions {
     containerRef: React.RefObject<RootElement | null>;
     defaultHeight?: number;
     defaultWidth?: number;
-    delayMs?: number;
 }
 
 function useWindowSize(options: UseWindowSizeOptions) {
-    const {
-        containerRef,
-        defaultWidth = 0,
-        defaultHeight = 0,
-        delayMs = DEBOUNCE_DELAY,
-    } = options;
+    const { containerRef, defaultWidth = 0, defaultHeight = 0 } = options;
 
     const [size, setSize] = React.useState(() =>
         readDocumentSize(defaultWidth, defaultHeight)
     );
-    const resizeTimeout = useTimeout();
-    const setDebouncedSize = useStableCallback(
-        (value: { height: number; width: number }) => {
-            resizeTimeout.start(delayMs, () => setSize(value));
+    const rafRef = React.useRef<number | null>(null);
+
+    const onResize = useStableCallback(() => {
+        if (rafRef.current !== null) {
+            AnimationFrame.cancel(rafRef.current);
         }
-    );
+        rafRef.current = AnimationFrame.request(() => {
+            rafRef.current = null;
+            const container = containerRef.current;
+            if (container) {
+                setSize({
+                    height: ownerDocument(container).documentElement
+                        .clientHeight,
+                    width: container.offsetWidth,
+                });
+            } else {
+                setSize(readDocumentSize(defaultWidth, defaultHeight));
+            }
+        });
+    });
 
     React.useEffect(() => {
         const rootElement = containerRef.current;
@@ -1210,19 +1217,6 @@ function useWindowSize(options: UseWindowSizeOptions) {
             rootElement === null ? globalThis.window : ownerWindow(rootElement);
         if (typeof rootWindow === "undefined") {
             return;
-        }
-
-        function onResize() {
-            const container = containerRef.current;
-            if (container) {
-                setDebouncedSize({
-                    height: ownerDocument(container).documentElement
-                        .clientHeight,
-                    width: container.offsetWidth,
-                });
-            } else {
-                setDebouncedSize(readDocumentSize(defaultWidth, defaultHeight));
-            }
         }
 
         rootWindow.addEventListener("resize", onResize, { passive: true });
@@ -1235,15 +1229,11 @@ function useWindowSize(options: UseWindowSizeOptions) {
             rootWindow.removeEventListener("resize", onResize);
             rootWindow.removeEventListener("orientationchange", onResize);
             rootWindow.visualViewport?.removeEventListener("resize", onResize);
-            resizeTimeout.clear();
+            if (rafRef.current !== null) {
+                AnimationFrame.cancel(rafRef.current);
+            }
         };
-    }, [
-        containerRef,
-        defaultHeight,
-        defaultWidth,
-        resizeTimeout,
-        setDebouncedSize,
-    ]);
+    }, [containerRef, onResize]);
 
     return size;
 }
@@ -1719,7 +1709,6 @@ function Masonry({
         containerRef,
         defaultHeight,
         defaultWidth,
-        delayMs: DEBOUNCE_DELAY,
     });
     const [containerPosition, setContainerPosition] = React.useState<{
         offset: number;
