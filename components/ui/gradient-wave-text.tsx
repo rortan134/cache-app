@@ -146,8 +146,7 @@ export function GradientWaveText({
         cyclesDoneRef.current = 0;
         finishedRef.current = false;
         startedRef.current = false;
-        startAtRef.current =
-            performance.now() + Math.max(0, (delay ?? 0) * 1000);
+        startAtRef.current = now() + Math.max(0, (delay ?? 0) * 1000);
         node.style.setProperty("--gi", String(GRADIENT_PROGRESS_INITIAL));
     }, [isInView, delay]);
 
@@ -158,26 +157,26 @@ export function GradientWaveText({
         }
 
         const cycles = repeat ? 0 : 1;
-        let last = performance.now();
+        let last = now();
 
         const tick = () => {
-            const now = performance.now();
+            const now_ = now();
             if (finishedRef.current) {
                 return;
             }
 
             if (!startedRef.current) {
-                if (now >= startAtRef.current) {
+                if (now_ >= startAtRef.current) {
                     startedRef.current = true;
-                    last = now;
+                    last = now_;
                 } else {
                     animationFrame.request(tick);
                     return;
                 }
             }
 
-            const dt = Math.min(MAX_FRAME_DELTA_MS, now - last);
-            last = now;
+            const dt = Math.min(MAX_FRAME_DELTA_MS, now_ - last);
+            last = now_;
 
             if (!paused) {
                 const increment = (dt * speed) / FRAME_DURATION_MS;
@@ -257,4 +256,8 @@ export function GradientWaveText({
             <span style={spanStyle}>{children}</span>
         </div>
     );
+}
+
+function now(): number {
+    return globalThis?.performance?.now() ?? Date.now();
 }
