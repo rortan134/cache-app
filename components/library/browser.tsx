@@ -3841,24 +3841,18 @@ function CardMenu({
     return (
         <>
             <div className="relative mx-auto flex max-w-56 items-center gap-2 py-2 pl-2.5 opacity-50">
-                <span
-                    className={cn("block truncate text-xs", {
-                        "underline decoration-muted-foreground/20 underline-offset-2":
-                            !isNote,
-                    })}
-                >
-                    {isNote ? (
-                        "Note"
-                    ) : (
-                        <a
-                            href={item.url}
-                            rel="noopener noreferrer"
-                            target="_blank"
-                        >
-                            {item.url}
-                        </a>
-                    )}
-                </span>
+                {isNote ? (
+                    <span className="block truncate text-xs">Note</span>
+                ) : (
+                    <a
+                        className="block cursor-alias truncate text-xs underline decoration-muted-foreground/20 underline-offset-2"
+                        href={item.url}
+                        rel="noopener noreferrer"
+                        target="_blank"
+                    >
+                        {item.url}
+                    </a>
+                )}
             </div>
             <div className="px-2.5 pb-2 text-[11px] text-muted-foreground">
                 <div className="flex items-center justify-between gap-3 py-0.5">

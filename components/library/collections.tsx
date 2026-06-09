@@ -188,10 +188,10 @@ const SHARE_ERROR_MESSAGE = "We couldn't create a public link right now.";
 const DISABLE_SHARING_ERROR_MESSAGE =
     "We couldn't stop sharing this collection right now.";
 const UPDATE_PRIORITY_ERROR_MESSAGE =
-    "We couldn't update this collection priority right now.";
+    "We couldn't update this collection's priority right now.";
 const COPY_LINKS_ERROR_MESSAGE = "We couldn't copy these links right now.";
 const COPY_TITLE_ERROR_MESSAGE =
-    "We couldn't copy this collection title right now.";
+    "We couldn't copy this collection's title right now.";
 const COPY_SHARE_LINK_ERROR_MESSAGE =
     "We couldn't copy this public link right now.";
 const EXPORT_CSV_ERROR_MESSAGE =
@@ -357,13 +357,9 @@ const SORT_OPTION_BY_VALUE = new Map(
 );
 
 const VIEW_OPTIONS = [
-    { icon: ArchiveIcon, label: "Show all", value: "show-all" as const },
-    {
-        icon: ArchiveX,
-        label: "Exclude archives",
-        value: "exclude-archives" as const,
-    },
-];
+    { icon: ArchiveIcon, label: "Show all", value: "show-all" },
+    { icon: ArchiveX, label: "Exclude archives", value: "exclude-archives" },
+] as const;
 
 const TEMPLATES = [
     {
@@ -2086,7 +2082,7 @@ function FavoriteItemCarouselSlide({
             <PreviewCardPopup
                 className="pointer-events-none p-0"
                 positionMethod="fixed"
-                side="right"
+                side="top"
             >
                 {isNote ? (
                     <div className="flex size-full flex-col justify-between overflow-hidden bg-linear-to-br from-amber-50 via-background to-stone-100 p-3">
