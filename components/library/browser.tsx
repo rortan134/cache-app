@@ -2587,26 +2587,38 @@ function buildSearchPaletteGroups({
 function buildAskCachePaletteGroups({
     askCacheResponse,
     backItem,
+    draft,
+    onAskCacheSubmit,
 }: {
     askCacheResponse: AskCacheResponseState | null;
     backItem: CommandPaletteItem;
+    draft: string;
+    onAskCacheSubmit: (prompt: string) => void | Promise<void>;
 }): CommandPaletteGroup[] {
+    const items: CommandPaletteItem[] = [
+        {
+            label: "Ask Cache response",
+            onSelect: () => undefined,
+            render: () => <AskCacheResponsePanel response={askCacheResponse} />,
+            value: "ask cache response",
+        },
+    ];
+
+    if (draft) {
+        items.unshift({
+            label: `Ask Cache "${draft}"`,
+            onSelect: () => onAskCacheSubmit(draft),
+            value: `ask cache ${draft}`,
+        });
+    }
+
     return [
         {
             items: [backItem],
             label: "Navigation",
         },
         {
-            items: [
-                {
-                    label: "Ask Cache response",
-                    onSelect: () => undefined,
-                    render: () => (
-                        <AskCacheResponsePanel response={askCacheResponse} />
-                    ),
-                    value: "ask cache response",
-                },
-            ],
+            items,
             label: "Ask Cache",
         },
     ];
@@ -2809,6 +2821,8 @@ function buildPaletteGroups({
         return buildAskCachePaletteGroups({
             askCacheResponse,
             backItem,
+            draft,
+            onAskCacheSubmit,
         });
     }
 

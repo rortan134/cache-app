@@ -17,6 +17,7 @@ import { AltKbd, CmdKbd, Kbd } from "@/components/ui/kbd";
 import {
     Menu,
     MenuGroup,
+    MenuGroupLabel,
     MenuItem,
     MenuPopup,
     MenuRadioGroup,
@@ -469,6 +470,9 @@ function UserMenuAccountSwitcherSubMenu(
             <MenuSubTrigger {...props} />
             <MenuSubPopup align="end">
                 <MenuGroup>
+                    <MenuGroupLabel>
+                        <T>Your accounts</T>
+                    </MenuGroupLabel>
                     <UserMenuAccountSwitcherContent />
                 </MenuGroup>
             </MenuSubPopup>

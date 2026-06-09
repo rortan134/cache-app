@@ -689,12 +689,7 @@ export function Collections() {
                     <div className="p-1.5 pt-1 pl-2.5">
                         <CollectionsListCalloutPopover />
                     </div>
-                    <CollectionsListEmpty>
-                        <T>
-                            No collections found. Create your first collection
-                            to start grouping saved items.
-                        </T>
-                    </CollectionsListEmpty>
+                    <CollectionsListEmpty />
                     <CollectionsListContent>
                         {(collection) => (
                             <CollectionItemRow
@@ -2176,10 +2171,10 @@ function CollectionsListToolbarButton({
  */
 function CollectionsListEmpty({
     className,
-    children,
     ...props
 }: React.ComponentProps<"p">) {
-    const { collectionCount, collectionSummaries } = useCollections();
+    const { collectionCount, collectionSummaries, requestCreate } =
+        useCollections();
 
     if (collectionSummaries.length > 0) {
         return null;
@@ -2194,9 +2189,21 @@ function CollectionsListEmpty({
                 )}
                 {...props}
             >
-                {collectionCount > 0
-                    ? "No collections match this view."
-                    : children}
+                {collectionCount > 0 ? (
+                    "No collections match this view."
+                ) : (
+                    <T>
+                        No collections found.{" "}
+                        <button
+                            className="inline cursor-pointer underline hover:no-underline"
+                            onClick={() => requestCreate()}
+                            type="button"
+                        >
+                            Create your first collection
+                        </button>{" "}
+                        to start grouping saved items.
+                    </T>
+                )}
             </p>
         </div>
     );
