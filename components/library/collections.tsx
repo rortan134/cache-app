@@ -2024,11 +2024,15 @@ function FavoriteItemCarouselSlide({
     const noteExcerpt = getNoteExcerpt(item.noteContentText);
     const previewLabel =
         (item.caption ?? "").trim() || (isNote ? "Note" : "Saved item");
+    const [isOpen, setIsOpen] = React.useState(false);
 
     const handleClick = useStableCallback(
-        (event: React.MouseEvent<HTMLButtonElement>) => {
+        (
+            event: BaseUIEvent<React.MouseEvent<HTMLAnchorElement, MouseEvent>>
+        ) => {
             event.preventDefault();
             onOpenFavoriteItem(item);
+            setIsOpen(false);
         }
     );
 
@@ -2046,38 +2050,59 @@ function FavoriteItemCarouselSlide({
     );
 
     return (
-        <div
-            className="group relative inline-block aspect-3/4 h-14 overflow-hidden rounded-md bg-muted ring-1 ring-border/50 focus-within:ring-2 focus-within:ring-ring/60"
-            title={previewLabel}
-        >
-            <button
-                aria-label={previewLabel}
-                className="size-full focus-visible:outline-none"
-                onClick={handleClick}
-                type="button"
+        <PreviewCard onOpenChange={setIsOpen} open={isOpen}>
+            <div
+                className="group relative inline-block aspect-3/4 h-14 overflow-hidden rounded-md bg-muted ring-1 ring-border/50 focus-within:ring-2 focus-within:ring-ring/60"
+                title={previewLabel}
+            >
+                <PreviewCardTrigger
+                    aria-label={previewLabel}
+                    className="size-full focus-visible:outline-none"
+                    closeDelay={0}
+                    onClick={handleClick}
+                >
+                    {isNote ? (
+                        <div className="flex size-full flex-col justify-between overflow-hidden bg-linear-to-br from-amber-50 via-background to-stone-100 p-1.5">
+                            <p className="line-clamp-4 whitespace-pre-wrap text-left text-[9px] text-foreground leading-snug opacity-90">
+                                {noteExcerpt || "Open note"}
+                            </p>
+                        </div>
+                    ) : (
+                        <CollectionsListItemPreviewImage
+                            alt={previewLabel}
+                            src={previewImageUrl ?? undefined}
+                        />
+                    )}
+                </PreviewCardTrigger>
+                <button
+                    aria-label="Remove from favorites"
+                    className="absolute top-0 left-0 z-10 flex size-4 items-center justify-center rounded-br-md bg-black/40 opacity-0 transition-opacity hover:bg-black/60 focus-visible:opacity-100 group-hover:opacity-100"
+                    onClick={handleRemoveFavorite}
+                    type="button"
+                >
+                    <Trash2Icon className="size-2.5 text-white" />
+                </button>
+            </div>
+            <PreviewCardPopup
+                className="pointer-events-none p-0"
+                positionMethod="fixed"
+                side="right"
             >
                 {isNote ? (
-                    <div className="flex size-full flex-col justify-between overflow-hidden bg-linear-to-br from-amber-50 via-background to-stone-100 p-1.5">
-                        <p className="line-clamp-4 whitespace-pre-wrap text-left text-[9px] text-foreground leading-snug opacity-90">
-                            {noteExcerpt || "Open note"}
+                    <div className="flex size-full flex-col justify-between overflow-hidden bg-linear-to-br from-amber-50 via-background to-stone-100 p-3">
+                        <p className="line-clamp-6 whitespace-pre-wrap text-left text-foreground text-xs leading-snug">
+                            {noteExcerpt || "Empty note"}
                         </p>
                     </div>
                 ) : (
                     <CollectionsListItemPreviewImage
                         alt={previewLabel}
+                        className="aspect-3/2"
                         src={previewImageUrl ?? undefined}
                     />
                 )}
-            </button>
-            <button
-                aria-label="Remove from favorites"
-                className="absolute top-0 left-0 z-10 flex size-4 items-center justify-center rounded-br-md bg-black/40 opacity-0 transition-opacity hover:bg-black/60 focus-visible:opacity-100 group-hover:opacity-100"
-                onClick={handleRemoveFavorite}
-                type="button"
-            >
-                <Trash2Icon className="size-2.5 text-white" />
-            </button>
-        </div>
+            </PreviewCardPopup>
+        </PreviewCard>
     );
 }
 
@@ -2999,7 +3024,7 @@ function CollectionItemMetadata({
                         <MenuItem onClick={onDelete}>Delete</MenuItem>
                     </MenuGroup>
                     <MenuItem disabled>
-                        <div className="space-y-1 text-[10px] text-muted-foreground leading-none *:text-nowrap">
+                        <div className="-mt-1 space-y-1 text-[10px] text-muted-foreground leading-none *:text-nowrap">
                             <div>
                                 Last updated{" "}
                                 {dayjs(collection.updatedAt).fromNow()}

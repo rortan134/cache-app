@@ -640,7 +640,7 @@ function IntegrationsListItemPreviewTrigger({
                     </div>
                 ) : null}
                 <div className="p-3">
-                    <p className="text-pretty text-xs leading-relaxed">
+                    <p className="text-pretty text-xs leading-tight">
                         {integration.hint}
                     </p>
                 </div>

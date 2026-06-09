@@ -7,6 +7,7 @@ import type {
 import { OnboardingMenu } from "@/components/library/onboarding";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Collapsible, CollapsiblePanel } from "@/components/ui/collapsible";
 import {
     Command,
     CommandCollection,
@@ -45,7 +46,7 @@ interface PaletteStackEntry {
 }
 
 interface CommandSuggestion {
-    icon: React.ReactNode;
+    icon?: React.ReactNode;
     label: string;
     onSelect: () => void;
 }
@@ -329,26 +330,46 @@ export function ComposerSuggestions({
     className,
     ...props
 }: ComposerSuggestionsProps) {
+    const [showSuggestions, setShowSuggestions] = React.useState(true);
+
+    const handleDismiss = useStableCallback(() => setShowSuggestions(false));
+
     if (suggestions.length === 0) {
         return null;
     }
 
+    const items = [
+        ...suggestions,
+        {
+            label: "Dismiss",
+            onSelect: handleDismiss,
+        } satisfies CommandSuggestion,
+    ];
+
     return (
-        <div className={cn("relative -mt-1 px-3", className)} {...props}>
-            <ScrollArea className="max-w-full whitespace-nowrap" scrollFade>
-                <div className="flex w-max flex-nowrap items-center gap-1.5">
-                    {suggestions.map((suggestion, index) => (
-                        <React.Fragment key={suggestion.label}>
-                            {children(suggestion, index)}
-                            <span className="mr-0.5 -ml-0.5 font-medium text-muted-foreground text-xs last:hidden">
-                                ·
-                            </span>
-                        </React.Fragment>
-                    ))}
-                </div>
-                <ScrollBar className="hidden" orientation="horizontal" />
-            </ScrollArea>
-        </div>
+        <Collapsible
+            className="relative -mt-1"
+            onOpenChange={setShowSuggestions}
+            open={showSuggestions}
+        >
+            <CollapsiblePanel
+                render={<div className={cn("px-3", className)} {...props} />}
+            >
+                <ScrollArea className="max-w-full whitespace-nowrap" scrollFade>
+                    <div className="flex w-max flex-nowrap items-center gap-1.5">
+                        {items.map((suggestion, index) => (
+                            <React.Fragment key={suggestion.label}>
+                                {children(suggestion, index)}
+                                <span className="mr-0.5 -ml-0.5 font-medium text-muted-foreground text-xs last:hidden">
+                                    ·
+                                </span>
+                            </React.Fragment>
+                        ))}
+                    </div>
+                    <ScrollBar className="hidden" orientation="horizontal" />
+                </ScrollArea>
+            </CollapsiblePanel>
+        </Collapsible>
     );
 }
 

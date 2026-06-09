@@ -20,6 +20,7 @@ import { cacheLife, cacheTag } from "next/cache";
 import { createHash } from "node:crypto";
 import { Duplex } from "node:stream";
 import { createZstdCompress } from "node:zlib";
+import * as z from "zod";
 
 const log = createLogger("api:library:preview");
 
@@ -41,6 +42,8 @@ const MAX_IMAGE_CONTENT_LENGTH_BYTES = 10 * 1024 * 1024;
 const MAX_VIDEO_CONTENT_LENGTH_BYTES = 200 * 1024 * 1024;
 const COBALT_CACHE_TTL_SECONDS = 60 * 60;
 const COBALT_CACHE_KEY_PREFIX = "cobalt-preview:";
+const PREVIEW_IMAGE_CACHE_TTL_SECONDS = 7 * 24 * 60 * 60;
+const PREVIEW_IMAGE_CACHE_KEY_PREFIX = "preview:image:";
 const USER_AGENT =
     "facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)";
 const GOOGLEBOT_USER_AGENT =
@@ -59,6 +62,11 @@ interface ResolvedImagePreview {
     imageUrl: string;
     pageUrl: string;
 }
+
+const resolvedImagePreviewSchema = z.object({
+    imageUrl: z.string(),
+    pageUrl: z.string(),
+});
 
 function acceptsZstd(request: Request): boolean {
     const acceptEncoding = request.headers.get("accept-encoding");
@@ -175,10 +183,20 @@ async function resolveImagePreview(
     "use cache";
     cacheTag(buildPreviewCacheTag(targetUrl, "image"));
 
+    const cached = await readCachedImagePreview(targetUrl);
+    if (cached) {
+        cacheLife("days");
+        return cached;
+    }
+
     const oembedUrl = tiktokOembedUrl(targetUrl);
     if (oembedUrl) {
         cacheLife("hours");
-        return resolveTikTokImagePreview(targetUrl, oembedUrl);
+        const result = await resolveTikTokImagePreview(targetUrl, oembedUrl);
+        if (result) {
+            await writeCachedImagePreview(targetUrl, result);
+        }
+        return result;
     }
 
     cacheLife("days");
@@ -199,7 +217,9 @@ async function resolveImagePreview(
 
     const pageContentType = pageResponse.headers.get("content-type") ?? "";
     if (pageContentType.startsWith("image/")) {
-        return { imageUrl: targetUrl, pageUrl: targetUrl };
+        const result = { imageUrl: targetUrl, pageUrl: targetUrl };
+        await writeCachedImagePreview(targetUrl, result);
+        return result;
     }
 
     const previewHeaders = headersToRecord(pageResponse.headers);
@@ -229,10 +249,12 @@ async function resolveImagePreview(
         return null;
     }
 
-    return {
+    const result = {
         imageUrl,
         pageUrl: parseHttpUrl(page.url)?.href ?? targetUrl,
     };
+    await writeCachedImagePreview(targetUrl, result);
+    return result;
 }
 
 async function resolveTikTokImagePreview(
@@ -314,14 +336,18 @@ async function resolveVideo(targetUrl: URL, signal?: AbortSignal) {
     }
 
     const targetHref = targetUrl.href;
-    const cachedVideoUrl = await readCachedCobaltVideoUrl(targetHref);
+    const cachedVideoUrl = await readFromRedis(cobaltCacheKey(targetHref));
     if (cachedVideoUrl) {
         return { videoUrl: cachedVideoUrl };
     }
 
     const result = await resolveCobaltPreview(targetHref, signal);
     if (result.status === "SUCCESS" && result.videoPreviewUrl) {
-        await writeCachedCobaltVideoUrl(targetHref, result.videoPreviewUrl);
+        await writeToRedis(
+            cobaltCacheKey(targetHref),
+            result.videoPreviewUrl,
+            COBALT_CACHE_TTL_SECONDS
+        );
         return { videoUrl: result.videoPreviewUrl };
     }
 
@@ -335,50 +361,72 @@ async function resolveVideo(targetUrl: URL, signal?: AbortSignal) {
     return { errorCode, videoUrl: null };
 }
 
-async function readCachedCobaltVideoUrl(
-    targetHref: string
-): Promise<string | null> {
+async function readFromRedis(key: string): Promise<string | null> {
     const redis = getRedisClient();
     if (!redis) {
         return null;
     }
     try {
-        const cached = await redis.get(cobaltCacheKey(targetHref));
-        return cached ?? null;
+        return await redis.get(key);
     } catch (error) {
-        log.debug("Redis read failed for cobalt cache", {
+        log.debug("Redis read failed", {
             error: error instanceof Error ? error.message : String(error),
-            targetHref,
+            key,
         });
         return null;
     }
 }
 
-async function writeCachedCobaltVideoUrl(
-    targetHref: string,
-    videoUrl: string
+async function writeToRedis(
+    key: string,
+    value: string,
+    ttlSeconds: number
 ): Promise<void> {
     const redis = getRedisClient();
     if (!redis) {
         return;
     }
     try {
-        await redis.set(
-            cobaltCacheKey(targetHref),
-            videoUrl,
-            "EX",
-            COBALT_CACHE_TTL_SECONDS
-        );
+        await redis.set(key, value, "EX", ttlSeconds);
     } catch (error) {
-        log.debug("Redis write failed for cobalt cache", {
+        log.debug("Redis write failed", {
             error: error instanceof Error ? error.message : String(error),
-            targetHref,
+            key,
         });
     }
 }
 
 function cobaltCacheKey(targetHref: string): string {
     return `${COBALT_CACHE_KEY_PREFIX}${hashTargetUrl(targetHref)}`;
+}
+
+function previewImageCacheKey(targetHref: string): string {
+    return `${PREVIEW_IMAGE_CACHE_KEY_PREFIX}${hashTargetUrl(targetHref)}`;
+}
+
+async function readCachedImagePreview(
+    targetHref: string
+): Promise<ResolvedImagePreview | null> {
+    const cached = await readFromRedis(previewImageCacheKey(targetHref));
+    if (!cached) {
+        return null;
+    }
+    const parsed = resolvedImagePreviewSchema.safeParse(JSON.parse(cached));
+    if (!parsed.success) {
+        return null;
+    }
+    return parsed.data;
+}
+
+async function writeCachedImagePreview(
+    targetHref: string,
+    preview: ResolvedImagePreview
+): Promise<void> {
+    await writeToRedis(
+        previewImageCacheKey(targetHref),
+        JSON.stringify(preview),
+        PREVIEW_IMAGE_CACHE_TTL_SECONDS
+    );
 }
 
 async function proxyVideoResponse(
