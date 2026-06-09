@@ -1953,7 +1953,6 @@ function BrowserEmpty() {
                                 />
                                 <div className="flex min-h-14 flex-col gap-1.5 p-3">
                                     <Skeleton className="h-2.5 w-[92%]" />
-                                    <Skeleton className="h-2.5 w-[72%]" />
                                 </div>
                             </MasonryItem>
                         );
