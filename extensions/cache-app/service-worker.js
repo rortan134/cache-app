@@ -138,15 +138,23 @@ async function consumePendingAutoSync(tabId) {
 }
 
 async function tryOpenExtensionPopup() {
-    // Available in Chrome 127+ for unpacked and store-installed extensions;
-    // earlier versions and contexts without user activation will throw.
-    if (typeof chrome.action?.openPopup !== "function") {
-        return;
-    }
     try {
-        await chrome.action.openPopup();
+        const existingWindows = await chrome.windows.getAll();
+        const alreadyOpen = existingWindows.some(
+            (w) => w.type === "popup"
+        );
+        if (alreadyOpen) {
+            return;
+        }
+        await chrome.windows.create({
+            focused: true,
+            height: 600,
+            type: "popup",
+            url: chrome.runtime.getURL("popup.html"),
+            width: 400,
+        });
     } catch (err) {
-        console.debug("[Cache App] openPopup unavailable:", err);
+        console.debug("[Cache App] popup window unavailable:", err);
     }
 }
 

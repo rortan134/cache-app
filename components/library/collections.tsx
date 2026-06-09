@@ -1984,7 +1984,7 @@ function CollectionsListGroupTrigger({
                 positionMethod="fixed"
                 tooltipStyle
             >
-                <p className="whitespace-nowrap font-medium leading-tight">
+                <p className="whitespace-normal font-medium leading-tight">
                     {labels.length > 0
                         ? new Intl.ListFormat(locale, {
                               style: "long",

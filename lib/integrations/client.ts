@@ -64,6 +64,7 @@ export function executeOpenBehavior(
             },
             window.location.origin
         );
+        return;
     }
 
     const targetUrl =

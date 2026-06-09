@@ -18,6 +18,11 @@ import {
     PopoverTitle,
     PopoverTrigger,
 } from "@/components/ui/popover";
+import {
+    PreviewCard,
+    PreviewCardPopup,
+    PreviewCardTrigger,
+} from "@/components/ui/preview-card";
 import { SidebarItem } from "@/components/ui/sidebar";
 import { useIsExtensionInstalled } from "@/hooks/use-extension-installed";
 import { cn } from "@/lib/common/cn";
@@ -99,6 +104,12 @@ interface IntegrationsListItemProps
     integrationId: IntegrationId;
     isConnected: boolean;
     label: string;
+}
+
+interface IntegrationsListItemPreviewTriggerProps {
+    integrationId: IntegrationId;
+    onClick?: () => void;
+    render: React.ReactElement;
 }
 
 interface IntegrationsListItemActionsProps extends React.ComponentProps<"div"> {
@@ -549,45 +560,92 @@ function IntegrationsListItem({
 
     const primaryAction = actions[0];
 
-    const handleKeyDown = useStableCallback((event: React.KeyboardEvent) => {
-        if (event.key === "Enter") {
-            event.preventDefault();
-            primaryAction?.onClick();
-        }
+    const handleClick = useStableCallback(() => {
+        primaryAction?.onClick();
     });
 
     return (
-        <SidebarItem
-            {...props}
-            className={cn("gap-2.5 py-0.5 opacity-100", className)}
-            onClick={primaryAction?.onClick}
-            onKeyDown={handleKeyDown}
-            tabIndex={actions.length > 0 ? 0 : undefined}
-        >
-            <Avatar aria-label={label} className="size-6 rounded-md">
-                <AvatarFallback className="rounded-md">
-                    <Icon
-                        aria-hidden
-                        className="size-3.5 shrink-0"
-                        focusable="false"
-                    />
-                </AvatarFallback>
-            </Avatar>
-            <span className="min-w-0 flex-1 font-medium text-sm leading-snug">
-                {label}
-            </span>
-            <span className="grid items-center text-muted-foreground leading-snug">
-                <span className="text-right text-[11px] [grid-area:1/1] group-hover:opacity-0">
-                    {description}
-                </span>
-                <IntegrationsListItemActions
-                    actions={actions}
-                    className="opacity-0 [grid-area:1/1] group-hover:opacity-100"
-                    integrationId={integrationId}
-                    status={status}
-                />
-            </span>
-        </SidebarItem>
+        <IntegrationsListItemPreviewTrigger
+            integrationId={integrationId}
+            onClick={handleClick}
+            render={
+                <SidebarItem
+                    {...props}
+                    className={cn("gap-2.5 py-0.5 opacity-100", className)}
+                    tabIndex={actions.length > 0 ? 0 : undefined}
+                >
+                    <Avatar aria-label={label} className="size-6 rounded-md">
+                        <AvatarFallback className="rounded-md">
+                            <Icon
+                                aria-hidden
+                                className="size-3.5 shrink-0"
+                                focusable="false"
+                            />
+                        </AvatarFallback>
+                    </Avatar>
+                    <span className="min-w-0 flex-1 font-medium text-sm leading-snug">
+                        {label}
+                    </span>
+                    <span className="grid items-center text-muted-foreground leading-snug">
+                        <span className="text-right text-[11px] [grid-area:1/1] group-hover:opacity-0">
+                            {description}
+                        </span>
+                        <IntegrationsListItemActions
+                            actions={actions}
+                            className="opacity-0 [grid-area:1/1] group-hover:opacity-100"
+                            integrationId={integrationId}
+                            status={status}
+                        />
+                    </span>
+                </SidebarItem>
+            }
+        />
+    );
+}
+
+function IntegrationsListItemPreviewTrigger({
+    integrationId,
+    onClick: onClickProp,
+    render,
+}: IntegrationsListItemPreviewTriggerProps) {
+    const integration = getIntegration(integrationId);
+    const [isHovered, setIsHovered] = React.useState(false);
+    const onClick = useStableCallback(onClickProp);
+
+    const handleClick = useStableCallback(() => {
+        setIsHovered(false);
+        onClick?.();
+    });
+
+    return (
+        <PreviewCard onOpenChange={setIsHovered} open={isHovered}>
+            <PreviewCardTrigger
+                closeDelay={0}
+                onClick={handleClick}
+                render={render}
+            />
+            <PreviewCardPopup
+                className="p-0"
+                positionMethod="fixed"
+                side="right"
+            >
+                {integration.hintImage ? (
+                    <div className="relative aspect-3/2 overflow-hidden">
+                        <Image
+                            alt=""
+                            className="object-cover"
+                            fill
+                            src={integration.hintImage}
+                        />
+                    </div>
+                ) : null}
+                <div className="p-3">
+                    <p className="text-pretty text-xs leading-relaxed">
+                        {integration.hint}
+                    </p>
+                </div>
+            </PreviewCardPopup>
+        </PreviewCard>
     );
 }
 

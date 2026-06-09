@@ -118,6 +118,8 @@ export interface SupportedIntegration {
     category: IntegrationCategory;
     description: string;
     destination?: IntegrationDestinationDefinition;
+    hint: string;
+    hintImage?: string;
     Icon: IntegrationIcon;
     id: IntegrationId;
     label: string;
@@ -179,6 +181,7 @@ export const INTEGRATIONS = [
         },
         category: "social",
         description: "Posts you save to Bookmarks",
+        hint: "Import your X Bookmarks into Cache.",
         Icon: XSocialIcon,
         id: "x",
         label: "X",
@@ -209,6 +212,7 @@ export const INTEGRATIONS = [
         },
         category: "social",
         description: "Bookmarks you save in your browser",
+        hint: 'Open the Cache extension popup and mark "Sync" under Browser bookmarks.',
         Icon: ChromeIcon,
         id: "chrome",
         label: "Chrome",
@@ -240,6 +244,7 @@ export const INTEGRATIONS = [
         },
         category: "media",
         description: "Videos you save to playlists",
+        hint: 'Go to your Watch Later playlist, open the Cache extension popup, and press "Import page" to import the videos.',
         Icon: YouTubeIcon,
         id: "youtube",
         label: "YouTube",
@@ -271,6 +276,7 @@ export const INTEGRATIONS = [
         },
         category: "social",
         description: "Posts you save to Favorites",
+        hint: 'Go to your saved posts, open the Cache extension popup, and press "Import page" to import them.',
         Icon: InstagramIcon,
         id: "instagram",
         label: "Instagram",
@@ -302,6 +308,7 @@ export const INTEGRATIONS = [
         },
         category: "social",
         description: "Videos you save to Favorites",
+        hint: 'Go to your favorites, open the Cache extension popup, and press "Import page" to import them.',
         Icon: TikTokIcon,
         id: "tiktok",
         label: "TikTok",
@@ -343,6 +350,7 @@ export const INTEGRATIONS = [
         },
         category: "media",
         description: "Photos and albums you star",
+        hint: "Import your starred photos and albums from Google Photos.",
         Icon: PhotosIcon,
         id: "google-photos",
         label: "Google Photos",
@@ -388,6 +396,7 @@ export const INTEGRATIONS = [
         },
         category: "social",
         description: "Pins you save to boards",
+        hint: "Import pins from your Pinterest boards.",
         Icon: PinterestIcon,
         id: "pinterest",
         label: "Pinterest",
@@ -438,6 +447,7 @@ export const INTEGRATIONS = [
         },
         category: "developer",
         description: "Repositories you star",
+        hint: "Import repositories you've starred on GitHub.",
         Icon: GithubIcon,
         id: "github",
         label: "GitHub",
@@ -468,6 +478,7 @@ export const INTEGRATIONS = [
         },
         category: "developer",
         description: "Agent access to your library",
+        hint: "Give AI agents access to your library via the Model Context Protocol.",
         Icon: Bot,
         id: "mcp",
         label: "MCP",
