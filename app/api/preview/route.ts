@@ -34,7 +34,7 @@ const VERCEL_CDN_CACHE_CONTROL_HEADER_NAME = "Vercel-CDN-Cache-Control";
 const NO_STORE_HEADER = "private, no-store";
 const PLAIN_TEXT_CONTENT_TYPE = `${MIME_TYPES.text}; charset=utf-8`;
 const FETCH_TIMEOUT_MS = 10_000;
-const MAX_REDIRECTS = 1;
+const MAX_REDIRECTS = 3;
 const MAX_TARGET_URL_LENGTH = 4096;
 const MAX_PREVIEW_METADATA_BODY_BYTES = 2 * 1024 * 1024;
 const MAX_IMAGE_CONTENT_LENGTH_BYTES = 10 * 1024 * 1024;
@@ -42,7 +42,7 @@ const MAX_VIDEO_CONTENT_LENGTH_BYTES = 200 * 1024 * 1024;
 const COBALT_CACHE_TTL_SECONDS = 60 * 60;
 const COBALT_CACHE_KEY_PREFIX = "cobalt-preview:";
 const USER_AGENT =
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
+    "facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)";
 const GOOGLEBOT_USER_AGENT =
     "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)";
 const HTTP_SINGLE_RANGE_HEADER_PATTERN = /^bytes=(\d*)-(\d*)$/;
@@ -644,7 +644,8 @@ async function readTextBodyWithLimit(
             bodyBytes += value.byteLength;
             if (bodyBytes > maxBodyBytes) {
                 await reader.cancel("Preview metadata exceeded size limit.");
-                return null;
+                body += decoder.decode();
+                return body;
             }
 
             body += decoder.decode(value, { stream: true });
