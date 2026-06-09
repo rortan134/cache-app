@@ -101,10 +101,9 @@ interface IntegrationsListItemProps
     label: string;
 }
 
-interface IntegrationsListItemActionsProps {
+interface IntegrationsListItemActionsProps extends React.ComponentProps<"div"> {
     actions: IntegrationActionViewModel[];
-    className?: string;
-    id: IntegrationId;
+    integrationId: IntegrationId;
     status: IntegrationActionStatus | null;
 }
 
@@ -559,11 +558,11 @@ function IntegrationsListItem({
 
     return (
         <SidebarItem
+            {...props}
             className={cn("gap-2.5 py-0.5 opacity-100", className)}
             onClick={primaryAction?.onClick}
             onKeyDown={handleKeyDown}
             tabIndex={actions.length > 0 ? 0 : undefined}
-            {...props}
         >
             <Avatar aria-label={label} className="size-6 rounded-md">
                 <AvatarFallback className="rounded-md">
@@ -584,7 +583,7 @@ function IntegrationsListItem({
                 <IntegrationsListItemActions
                     actions={actions}
                     className="opacity-0 [grid-area:1/1] group-hover:opacity-100"
-                    id={integrationId}
+                    integrationId={integrationId}
                     status={status}
                 />
             </span>
@@ -596,7 +595,8 @@ function IntegrationsListItemActions({
     actions,
     status,
     className,
-    id,
+    integrationId,
+    ...props
 }: IntegrationsListItemActionsProps) {
     if (actions.length === 0) {
         return null;
@@ -604,6 +604,7 @@ function IntegrationsListItemActions({
 
     return (
         <div
+            {...props}
             className={cn(
                 "-mr-2.5 flex min-w-0 shrink-0 items-center justify-end gap-1",
                 className
@@ -615,7 +616,7 @@ function IntegrationsListItemActions({
             {actions.map((action) => (
                 <Button
                     className="rounded-full text-xs!"
-                    key={`${id}-source-${action.role}`}
+                    key={`${integrationId}-source-${action.role}`}
                     loading={action.isLoading}
                     onClick={(event: React.MouseEvent) => {
                         event.stopPropagation();
@@ -644,6 +645,7 @@ function IntegrationsListStatus({
 
     return (
         <p
+            {...props}
             aria-atomic="true"
             aria-live={isError ? "assertive" : "polite"}
             className={cn(
@@ -652,7 +654,6 @@ function IntegrationsListStatus({
                 className
             )}
             role={isError ? "alert" : "status"}
-            {...props}
         />
     );
 }
