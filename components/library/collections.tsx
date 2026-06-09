@@ -2072,7 +2072,7 @@ function FavoriteItemCarouselSlide({
                 </PreviewCardTrigger>
                 <button
                     aria-label="Remove from favorites"
-                    className="absolute top-0 left-0 z-10 flex size-4 items-center justify-center rounded-br-md bg-black/40 opacity-0 transition-opacity hover:bg-black/60 focus-visible:opacity-100 group-hover:opacity-100"
+                    className="absolute top-0 left-0 z-10 flex size-4 items-center justify-center rounded-br-md bg-black/40 opacity-0 hover:bg-black/60 focus-visible:opacity-100 group-hover:opacity-100"
                     onClick={handleRemoveFavorite}
                     type="button"
                 >

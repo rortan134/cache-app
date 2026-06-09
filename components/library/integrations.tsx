@@ -465,7 +465,9 @@ function IntegrationsListTrigger({
                 <div className="mt-4 flex max-w-64 flex-col gap-2">
                     <PopoverTitle>Places to return to</PopoverTitle>
                     <PopoverDescription className="text-foreground text-xs">
-                        Get more out of your bookmarks.
+                        Get more out of your bookmarks with Cache's first-class
+                        integrations with browsers, social apps, and video
+                        platforms.
                     </PopoverDescription>
                 </div>
             </PopoverPopup>
