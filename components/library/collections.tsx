@@ -142,13 +142,13 @@ import {
     FileSpreadsheetIcon,
     GlobeOff,
     Info,
+    LibraryBig,
     Lightbulb,
     LinkIcon,
     ListFilter,
     LockKeyhole,
     PencilIcon,
     PlusIcon,
-    Shapes,
     SignalHigh,
     SignalMedium,
     Sparkle,
@@ -3268,7 +3268,7 @@ function CollectionsCreateDialog() {
                                     />
                                 }
                             >
-                                <Shapes className="mr-0.5! size-4" />
+                                <LibraryBig className="mr-0.5! size-4" />
                                 Explore Templates
                             </ComboboxTrigger>
                             <ComboboxPopup align="start" className="max-w-80">
