@@ -52,6 +52,7 @@ import {
 } from "@/components/ui/icons";
 import { Input } from "@/components/ui/input";
 import { AltKbd, CmdKbd, Kbd, ShiftKbd } from "@/components/ui/kbd";
+import { MediaPlaceholder } from "@/components/ui/media-placeholder";
 import {
     Menu,
     MenuCheckboxItem,
@@ -140,7 +141,6 @@ import {
     EllipsisIcon,
     ExternalLinkIcon,
     FileSpreadsheetIcon,
-    GlobeOff,
     Info,
     LibraryBig,
     Lightbulb,
@@ -1758,14 +1758,6 @@ function CollectionsComboboxOptionRow({
     );
 }
 
-function CollectionsListPreviewImageFallback() {
-    return (
-        <div className="flex size-full items-center justify-center bg-muted/40 text-[11px] text-muted-foreground">
-            <GlobeOff className="size-4 text-muted-foreground/50" />
-        </div>
-    );
-}
-
 function CollectionsListItemPreviewImage({
     alt,
     className,
@@ -1780,7 +1772,7 @@ function CollectionsListItemPreviewImage({
     });
 
     if (!src || hasFailed) {
-        return <CollectionsListPreviewImageFallback />;
+        return <MediaPlaceholder />;
     }
 
     return (

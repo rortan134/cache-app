@@ -77,6 +77,7 @@ import { ChevronDownFilledIcon } from "@/components/ui/icons";
 import { Input } from "@/components/ui/input";
 import { CmdKbd, Kbd } from "@/components/ui/kbd";
 import { Masonry, MasonryItem } from "@/components/ui/masonry";
+import { MediaPlaceholder } from "@/components/ui/media-placeholder";
 import {
     Menu,
     MenuItem,
@@ -201,7 +202,6 @@ import {
     FolderOpen,
     Funnel,
     Globe,
-    GlobeOff,
     Layers3,
     LinkIcon,
     ListChevronsUpDown,
@@ -3458,9 +3458,7 @@ function MediaPreview({
                     width={300}
                 />
             ) : (
-                <div className="-z-1 flex min-h-32 flex-col items-center justify-center gap-2 bg-muted">
-                    <GlobeOff className="size-6 text-muted-foreground/50" />
-                </div>
+                <MediaPlaceholder className="-z-1 min-h-32" />
             )}
             {shouldLoadVideo ? (
                 <>
@@ -4095,7 +4093,7 @@ function MediaCard({ item }: LibraryGridCardProps) {
                     }
                 >
                     <a
-                        className="flex flex-col overflow-clip rounded-xl focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
+                        className="squircle flex flex-col overflow-clip rounded-xl focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
                         href={href}
                         onClick={handlePrimaryClick}
                         rel="noopener noreferrer"
@@ -4232,7 +4230,7 @@ function LockedPreviewCard({
     placeholder: LockedLibraryPreviewPlaceholder;
 }) {
     return (
-        <div className="relative flex flex-col overflow-hidden rounded-xl ring-1 ring-border/30">
+        <div className="squircle relative flex flex-col overflow-hidden rounded-xl ring-1 ring-border/30">
             {placeholder.kind === "note" ? (
                 <div className="relative min-h-56 bg-linear-to-br from-amber-50 via-background to-stone-100 p-4">
                     <div className="absolute inset-0 bg-background/30 backdrop-blur-sm" />

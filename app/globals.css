@@ -278,9 +278,21 @@
     animation: marquee-vertical var(--duration, 5s) linear infinite;
 }
 
-@utility content-auto {
-    contain-intrinsic-size: auto;
-    content-visibility: auto;
+@utility texture-screen {
+    &::before {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        content: "";
+        background-color: var(--input);
+        -webkit-mask-image: url(/texture-screen-light.webp);
+        mask-image: url(/texture-screen-light.webp);
+        mask-mode: luminance;
+        mask-repeat: no-repeat;
+        -webkit-mask-position: 36% 9%;
+        mask-position: 36% 9%;
+        mask-size: 200% auto;
+    }
 }
 
 @utility squircle {
@@ -293,6 +305,11 @@
     --radius-8: 10px;
     --radius-10: 12.5px;
     --radius-16: 15px;
+}
+
+@utility content-auto {
+    contain-intrinsic-size: auto;
+    content-visibility: auto;
 }
 
 @utility draggable-ui {
