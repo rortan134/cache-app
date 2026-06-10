@@ -52,6 +52,7 @@ import {
 } from "@/components/ui/icons";
 import { Input } from "@/components/ui/input";
 import { AltKbd, CmdKbd, Kbd, ShiftKbd } from "@/components/ui/kbd";
+import { MediaPlaceholder } from "@/components/ui/media-placeholder";
 import {
     Menu,
     MenuCheckboxItem,
@@ -78,7 +79,6 @@ import {
     PreviewCardPopup,
     PreviewCardTrigger,
 } from "@/components/ui/preview-card";
-import { MediaPlaceholder } from "@/components/ui/media-placeholder";
 import { SidebarItem } from "@/components/ui/sidebar";
 import { Textarea } from "@/components/ui/textarea";
 import { useSmartCollectionsPreference } from "@/hooks/queries/use-smart-collections-preference";
@@ -1951,7 +1951,8 @@ function CollectionsListGroupTrigger({
                 }
             >
                 <span className="min-w-0 text-xs">
-                    {children}&nbsp;({count})
+                    {children}&nbsp;
+                    <span className="tabular-nums opacity-80">({count})</span>
                 </span>
                 <ChevronDownFilledIcon
                     aria-hidden

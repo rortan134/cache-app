@@ -26,7 +26,6 @@ import {
     type NoteSerializedEditorState,
 } from "@/lib/integrations/notes/utils";
 import AppIconSmall from "@/public/cache-icon-small.png";
-import { useAnimationFrame } from "@base-ui/utils/useAnimationFrame";
 import { useStableCallback } from "@base-ui/utils/useStableCallback";
 import { $generateNodesFromDOM } from "@lexical/html";
 import { AutoFocusPlugin as LexicalAutoFocusPlugin } from "@lexical/react/LexicalAutoFocusPlugin";
@@ -99,6 +98,7 @@ export interface NoteDraft {
 
 interface NoteProps {
     children: ReactNode;
+    contentEditableRef?: React.RefObject<HTMLDivElement | null>;
     note: LibraryItemWithCollections | null;
     onOpenChange: (open: boolean) => void | Promise<void>;
     onSave: (draft: NoteDraft) => Promise<boolean> | boolean;
@@ -108,6 +108,7 @@ interface NoteProps {
 }
 
 interface NoteContextValue {
+    contentEditableRef?: React.RefObject<HTMLDivElement | null>;
     contentHtml: string;
     editorKey: number;
     initialDraft: NoteDraft;
@@ -570,36 +571,18 @@ function FormattingToolbarPlugin() {
 }
 
 /**
- * Focus the Lexical editor root element when the editor mounts.
- *
- * Schedules focus for the next animation frame so the contenteditable
- * element is already mounted before Lexical receives focus.
- */
-function AutoFocusPlugin() {
-    const [editor] = useLexicalComposerContext();
-    const focusFrame = useAnimationFrame();
-
-    useEffect(() => {
-        focusFrame.request(() => {
-            editor.focus();
-        });
-        return focusFrame.cancel;
-    }, [editor, focusFrame]);
-
-    return <LexicalAutoFocusPlugin />;
-}
-
-/**
  * Lexical plugin bundle that wires the editor to the note system.
  *
  * Handles paste interception (detects standalone URLs and routes them
  * to `onUrlPaste`), change serialization, and history.
  */
 function ContentPlugin({
+    contentEditableRef,
     onDraftChange,
     onUrlPaste,
     shouldCreateBookmarkFromUrlPaste,
 }: {
+    contentEditableRef?: React.RefObject<HTMLDivElement | null>;
     onDraftChange: (draft: NoteDraft) => void;
     onUrlPaste: (url: string) => Promise<void> | void;
     shouldCreateBookmarkFromUrlPaste: () => boolean;
@@ -654,6 +637,7 @@ function ContentPlugin({
                                 "prose-mark:rounded-sm prose-mark:bg-amber-200/90 prose-mark:px-0.5",
                                 "prose-strong:font-semibold prose-em:italic prose-u:underline prose-s:line-through"
                             )}
+                            ref={contentEditableRef}
                         />
                     }
                     ErrorBoundary={LexicalErrorBoundary}
@@ -664,7 +648,7 @@ function ContentPlugin({
                     }
                 />
                 <HistoryPlugin />
-                <AutoFocusPlugin />
+                <LexicalAutoFocusPlugin defaultSelection="rootEnd" />
                 <OnChangePlugin
                     ignoreSelectionChange
                     onChange={(editorState) => {
@@ -685,6 +669,7 @@ function ContentPlugin({
  */
 function NoteRoot({
     children,
+    contentEditableRef,
     note,
     onOpenChange,
     onSave,
@@ -800,6 +785,7 @@ function NoteRoot({
     return (
         <NoteContext
             value={{
+                contentEditableRef,
                 contentHtml: draft.contentHtml,
                 editorKey,
                 initialDraft,
@@ -968,18 +954,19 @@ function NoteHeader() {
  */
 function NoteEditor() {
     const {
+        contentEditableRef,
         editorKey,
         initialDraft,
         onDraftChange,
         onUrlPaste,
         shouldCreateBookmarkFromUrlPaste,
     } = useNoteContext();
-    const initialEditorState = getInitialEditorState(initialDraft);
+    const editorState = getInitialEditorState(initialDraft);
 
     return (
         <LexicalComposer
             initialConfig={{
-                editorState: initialEditorState,
+                editorState,
                 namespace: NOTE_EDITOR_NAMESPACE,
                 nodes: NOTE_EDITOR_NODES,
                 onError(error: Error) {
@@ -990,6 +977,7 @@ function NoteEditor() {
             key={editorKey}
         >
             <ContentPlugin
+                contentEditableRef={contentEditableRef}
                 onDraftChange={onDraftChange}
                 onUrlPaste={onUrlPaste}
                 shouldCreateBookmarkFromUrlPaste={

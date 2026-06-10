@@ -42,7 +42,7 @@ export function KeyboardShortcutsDialogTrigger(
     const { hotkeys } = useHotkeysContext();
 
     useHotkeys(
-        "mod+/",
+        "mod+/, ?",
         () => {
             setOpen(true);
         },

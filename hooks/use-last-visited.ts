@@ -3,22 +3,32 @@
 import * as React from "react";
 import { useStableCallback } from "@base-ui/utils/useStableCallback";
 
-const STORAGE_KEY = "cache:lastVisitedItemId";
+const HISTORY_LIMIT = 10;
+
+const STORAGE_KEY = "cache:lastVisitedItemIds";
 
 let listeners: Array<() => void> = [];
-let cachedSnapshot: string | null | undefined;
+let cachedSnapshot: string[] | null | undefined;
 
-function readLastVisitedItemId(): string | null {
+function readLastVisitedItemIds(): string[] {
     try {
-        return localStorage.getItem(STORAGE_KEY);
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw === null) {
+            return [];
+        }
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) {
+            return parsed;
+        }
+        return [raw];
     } catch {
-        return null;
+        return [];
     }
 }
 
-function writeLastVisitedItemId(itemId: string): void {
+function writeLastVisitedItemIds(ids: string[]): void {
     try {
-        localStorage.setItem(STORAGE_KEY, itemId);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(ids));
     } catch {
         // storage unavailable
     }
@@ -30,19 +40,18 @@ function emitChange() {
     }
 }
 
-function getSnapshot(): string | null {
-    // `undefined` distinguishes "not yet read" from a real `null` (the
-    // stored value is genuinely missing), so the first read hits storage
-    // exactly once per change.
+function getSnapshot(): string[] {
+    // `undefined` distinguishes "not yet read" from a real `[]` (no
+    // stored items), so the first read hits storage exactly once per
+    // change.
     if (cachedSnapshot === undefined) {
-        cachedSnapshot = readLastVisitedItemId();
+        cachedSnapshot = readLastVisitedItemIds();
     }
-    return cachedSnapshot;
+    return cachedSnapshot ?? [];
 }
 
-function getServerSnapshot(): string | null {
-    // localStorage is unavailable during SSR
-    return null;
+function getServerSnapshot(): string[] {
+    return [];
 }
 
 function subscribe(listener: () => void): () => void {
@@ -67,24 +76,29 @@ function subscribe(listener: () => void): () => void {
 
 export function useLastVisited(): {
     isLastVisited: (itemId: string) => boolean;
+    lastVisitedItemIds: string[];
     markVisited: (itemId: string) => void;
 } {
-    const lastVisitedItemId = React.useSyncExternalStore(
+    const lastVisitedItemIds = React.useSyncExternalStore(
         subscribe,
         getSnapshot,
         getServerSnapshot
     );
 
     const markVisited = useStableCallback((itemId: string) => {
-        writeLastVisitedItemId(itemId);
-        cachedSnapshot = itemId;
+        const next = [
+            itemId,
+            ...lastVisitedItemIds.filter((id) => id !== itemId),
+        ].slice(0, HISTORY_LIMIT);
+        cachedSnapshot = next;
+        writeLastVisitedItemIds(next);
         emitChange();
     });
 
     const isLastVisited = React.useCallback(
-        (itemId: string): boolean => lastVisitedItemId === itemId,
-        [lastVisitedItemId]
+        (itemId: string): boolean => lastVisitedItemIds.includes(itemId),
+        [lastVisitedItemIds]
     );
 
-    return { isLastVisited, markVisited };
+    return { isLastVisited, lastVisitedItemIds, markVisited };
 }

@@ -258,6 +258,8 @@ interface BuildCommandSuggestionsInput {
     groupBy: GroupByMode;
     isExtensionInstalled: boolean;
     items: LibraryItemWithCollections[];
+    lastVisitedFilterEnabled: boolean;
+    lastVisitedItemIds: string[];
     onClearCollectionFilters: () => void;
     onCreateCollection: () => void;
     onToggleCollectionSelection: (id: string) => void;
@@ -271,6 +273,7 @@ interface BuildCommandSuggestionsInput {
     setIsCommandOpen: (
         value: boolean | ((previous: boolean) => boolean)
     ) => void;
+    setLastVisitedFilterEnabled: (value: boolean) => void;
     setQuery: (value: string) => void;
     setSearchTerms: (value: string[] | ((value: string[]) => string[])) => void;
     setSortMode: (value: SortMode) => void;
@@ -288,24 +291,27 @@ function buildCommandSuggestions({
     collectionMembershipFilter,
     collections,
     items,
+    lastVisitedItemIds,
+    lastVisitedFilterEnabled,
     onClearCollectionFilters,
     onCreateCollection,
+    onToggleCollectionSelection,
     searchTerms,
     selectedCollectionIds,
+    setCollectionMembershipFilter,
+    setDomainFilters,
+    setGroupBy,
+    setIsCommandOpen,
+    setLastVisitedFilterEnabled,
+    setQuery,
+    setSearchTerms,
+    setSortMode,
+    setSourceFilters,
     sourceFilters,
     domainFilters,
     groupBy,
     isExtensionInstalled,
     sortMode,
-    setCollectionMembershipFilter,
-    setDomainFilters,
-    setGroupBy,
-    setSearchTerms,
-    setSortMode,
-    setSourceFilters,
-    setQuery,
-    setIsCommandOpen,
-    onToggleCollectionSelection,
 }: BuildCommandSuggestionsInput): CommandSuggestion[] {
     const suggestions: CommandSuggestion[] = [];
     const suggestionLabels = new Set<string>();
@@ -348,7 +354,8 @@ function buildCommandSuggestions({
         domainFilters.length > 0 ||
         collectionMembershipFilter !== DEFAULT_COLLECTION_MEMBERSHIP_FILTER ||
         groupBy !== "none" ||
-        sortMode !== DEFAULT_SORT_MODE;
+        sortMode !== DEFAULT_SORT_MODE ||
+        lastVisitedFilterEnabled;
 
     const commitSelection = (fn: () => void) => () => {
         fn();
@@ -567,6 +574,15 @@ function buildCommandSuggestions({
         addDefaultSuggestion(buildCollectionSuggestion());
         addDefaultSuggestion(buildSourceSuggestion());
         addDefaultSuggestion(buildGroupingSuggestion());
+        if (lastVisitedItemIds.length > 0 && !lastVisitedFilterEnabled) {
+            addDefaultSuggestion({
+                icon: <ArrowUpIcon className={SUGGESTION_ICON_CLASS} />,
+                label: "Pick up where you left off",
+                onSelect: commitSelection(() =>
+                    setLastVisitedFilterEnabled(true)
+                ),
+            });
+        }
         addDefaultSuggestion(buildDomainSuggestion());
     } else if (selectedCollectionIds.length > 0) {
         addSuggestion(buildSourceSuggestion());
@@ -1281,6 +1297,7 @@ interface BuildPaletteStackEntriesInput {
     containerWidth: ContainerWidth;
     domainFilters: string[];
     groupBy: GroupByMode;
+    lastVisitedFilterEnabled: boolean;
     onRemoveCollectionFilter: (id: string) => void;
     onRemoveCommandAttachment: (id: string) => void;
     searchTerms: string[];
@@ -1292,6 +1309,7 @@ interface BuildPaletteStackEntriesInput {
         value: string[] | ((value: string[]) => string[])
     ) => void;
     setGroupBy: (value: GroupByMode) => void;
+    setLastVisitedFilterEnabled: (value: boolean) => void;
     setSearchTerms: (value: string[] | ((value: string[]) => string[])) => void;
     setSortMode: (value: SortMode) => void;
     setSourceFilters: (
@@ -1311,6 +1329,7 @@ function buildPaletteStackEntries({
     containerWidth,
     domainFilters,
     groupBy,
+    lastVisitedFilterEnabled,
     onRemoveCollectionFilter,
     onRemoveCommandAttachment,
     searchTerms,
@@ -1320,6 +1339,7 @@ function buildPaletteStackEntries({
     setContainerWidth,
     setDomainFilters,
     setGroupBy,
+    setLastVisitedFilterEnabled,
     setSearchTerms,
     setSortMode,
     setSourceFilters,
@@ -1436,6 +1456,21 @@ function buildPaletteStackEntries({
                 />
             ),
             key: "group",
+            onRemove,
+        });
+    }
+
+    if (lastVisitedFilterEnabled) {
+        const onRemove = () => setLastVisitedFilterEnabled(false);
+        entries.push({
+            chip: (
+                <PaletteChip
+                    key="last-visited"
+                    label="Last visited"
+                    onRemove={onRemove}
+                />
+            ),
+            key: "last-visited",
             onRemove,
         });
     }
@@ -3019,6 +3054,7 @@ function filterCommandItems(
     input: {
         collectionMembershipFilter: CollectionMembershipFilter;
         domainFilters: string[];
+        lastVisitedItemIds: string[];
         searchTerms: string[];
         selectedCollectionIds: string[];
         sourceFilters: LibraryItemSource[];
@@ -3028,6 +3064,12 @@ function filterCommandItems(
     const normalizedSearchTerms = input.searchTerms.map((term) =>
         term.trim().toLowerCase()
     );
+
+    if (input.lastVisitedItemIds.length > 0) {
+        list = list.filter((item) =>
+            input.lastVisitedItemIds.includes(item.id)
+        );
+    }
 
     if (input.selectedCollectionIds.length > 0) {
         list = list.filter((item) =>
@@ -3193,6 +3235,7 @@ async function createLibraryBookmarkFromPastedUrl({
 function browserHasActiveFilters(input: {
     collectionMembershipFilter: CollectionMembershipFilter;
     domainFilters: string[];
+    lastVisitedItemIds: string[];
     searchTerms: string[];
     selectedCollectionIds: string[];
     sourceFilters: LibraryItemSource[];
@@ -3203,7 +3246,8 @@ function browserHasActiveFilters(input: {
         input.sourceFilters.length > 0 ||
         input.domainFilters.length > 0 ||
         input.collectionMembershipFilter !==
-            DEFAULT_COLLECTION_MEMBERSHIP_FILTER
+            DEFAULT_COLLECTION_MEMBERSHIP_FILTER ||
+        input.lastVisitedItemIds.length > 0
     );
 }
 
@@ -4093,7 +4137,7 @@ function MediaCard({ item }: LibraryGridCardProps) {
                     }
                 >
                     <a
-                        className="squircle flex flex-col overflow-clip rounded-xl focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
+                        className="flex flex-col overflow-clip rounded-xl focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
                         href={href}
                         onClick={handlePrimaryClick}
                         rel="noopener noreferrer"
@@ -4230,7 +4274,7 @@ function LockedPreviewCard({
     placeholder: LockedLibraryPreviewPlaceholder;
 }) {
     return (
-        <div className="squircle relative flex flex-col overflow-hidden rounded-xl ring-1 ring-border/30">
+        <div className="relative flex flex-col overflow-hidden rounded-xl ring-1 ring-border/30">
             {placeholder.kind === "note" ? (
                 <div className="relative min-h-56 bg-linear-to-br from-amber-50 via-background to-stone-100 p-4">
                     <div className="absolute inset-0 bg-background/30 backdrop-blur-sm" />
@@ -4290,9 +4334,11 @@ const NoteDrawer = dynamic(
 
             function NoteDrawerShell({
                 container,
+                contentEditableRef,
                 isNoteDrawerOpen,
             }: {
                 container: React.RefObject<HTMLDivElement | null>;
+                contentEditableRef: React.RefObject<HTMLDivElement | null>;
                 isNoteDrawerOpen: boolean;
             }) {
                 const { onOpenChange } = Note.useContext();
@@ -4311,6 +4357,7 @@ const NoteDrawer = dynamic(
                         >
                             <DrawerPopup
                                 className="max-w-2xl"
+                                initialFocus={contentEditableRef}
                                 variant="straight"
                             >
                                 <DrawerHeader
@@ -4343,9 +4390,13 @@ const NoteDrawer = dynamic(
             }: NoteDrawerProps) {
                 const isNoteDrawerOpen = activeNote !== null;
                 const note = activeNote === NOTE_DRAWER_NEW ? null : activeNote;
+                const contentEditableRef = React.useRef<HTMLDivElement | null>(
+                    null
+                );
 
                 return (
                     <Note.Root
+                        contentEditableRef={contentEditableRef}
                         note={note}
                         onOpenChange={(open) => {
                             if (!open) {
@@ -4359,6 +4410,7 @@ const NoteDrawer = dynamic(
                     >
                         <NoteDrawerShell
                             container={container}
+                            contentEditableRef={contentEditableRef}
                             isNoteDrawerOpen={isNoteDrawerOpen}
                         />
                     </Note.Root>
@@ -4445,6 +4497,9 @@ export function Browser({
     const [containerWidth, setContainerWidth] = React.useState<ContainerWidth>(
         DEFAULT_CONTAINER_WIDTH
     );
+    const { lastVisitedItemIds } = useLastVisited();
+    const [lastVisitedFilterEnabled, setLastVisitedFilterEnabled] =
+        React.useState(false);
     const { open: sidebarOpen } = useSidebar();
     const userHasSetWidthRef = React.useRef(false);
     const [paletteSection, setPaletteSection] =
@@ -4537,6 +4592,7 @@ export function Browser({
         setGroupBy("none");
         setSortMode(DEFAULT_SORT_MODE);
         setColumnCountMode(DEFAULT_COLUMN_COUNT_MODE);
+        setLastVisitedFilterEnabled(false);
         userHasSetWidthRef.current = false;
         setContainerWidth(sidebarOpen ? DEFAULT_CONTAINER_WIDTH : "full");
         setPaletteSection("search");
@@ -4578,6 +4634,9 @@ export function Browser({
                 filteredItemCount: filterCommandItems(items, {
                     collectionMembershipFilter,
                     domainFilters,
+                    lastVisitedItemIds: lastVisitedFilterEnabled
+                        ? lastVisitedItemIds
+                        : [],
                     searchTerms,
                     selectedCollectionIds,
                     sourceFilters,
@@ -4747,6 +4806,7 @@ export function Browser({
     const filteredItems = filterCommandItems(items, {
         collectionMembershipFilter,
         domainFilters,
+        lastVisitedItemIds: lastVisitedFilterEnabled ? lastVisitedItemIds : [],
         searchTerms,
         selectedCollectionIds,
         sourceFilters,
@@ -4764,6 +4824,7 @@ export function Browser({
     const hasActiveFilters = browserHasActiveFilters({
         collectionMembershipFilter,
         domainFilters,
+        lastVisitedItemIds: lastVisitedFilterEnabled ? lastVisitedItemIds : [],
         searchTerms,
         selectedCollectionIds,
         sourceFilters,
@@ -4837,6 +4898,8 @@ export function Browser({
         groupBy,
         isExtensionInstalled,
         items: filteredItems,
+        lastVisitedFilterEnabled,
+        lastVisitedItemIds,
         onClearCollectionFilters,
         onCreateCollection: requestCreate,
         onToggleCollectionSelection: onRemoveCollectionFilter,
@@ -4846,6 +4909,7 @@ export function Browser({
         setDomainFilters,
         setGroupBy,
         setIsCommandOpen,
+        setLastVisitedFilterEnabled,
         setQuery,
         setSearchTerms,
         setSortMode,
@@ -5009,6 +5073,7 @@ export function Browser({
         containerWidth,
         domainFilters,
         groupBy,
+        lastVisitedFilterEnabled,
         onRemoveCollectionFilter,
         onRemoveCommandAttachment: removeCommandAttachment,
         searchTerms,
@@ -5018,6 +5083,7 @@ export function Browser({
         setContainerWidth: handleSetContainerWidth,
         setDomainFilters,
         setGroupBy,
+        setLastVisitedFilterEnabled,
         setSearchTerms,
         setSortMode,
         setSourceFilters,
