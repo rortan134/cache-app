@@ -95,10 +95,8 @@ export function useLastVisited(): {
         emitChange();
     });
 
-    const isLastVisited = React.useCallback(
-        (itemId: string): boolean => lastVisitedItemIds.includes(itemId),
-        [lastVisitedItemIds]
-    );
+    const isLastVisited = (itemId: string): boolean =>
+        itemId === lastVisitedItemIds[0];
 
     return { isLastVisited, lastVisitedItemIds, markVisited };
 }

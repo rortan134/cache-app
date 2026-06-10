@@ -9,8 +9,8 @@ export function MediaPlaceholder({
 }: React.ComponentProps<"div">) {
     const id = React.useId();
     const hash = djb2Hash(id);
-    const x = 10 + (hash % 66);
-    const y = 5 + ((hash >> 8) % 46);
+    const x = 5 + (hash % 66);
+    const y = (hash >> 8) % 46;
 
     return (
         <div
@@ -24,7 +24,7 @@ export function MediaPlaceholder({
                 { "--texture-position": `${x}% ${y}%` } as React.CSSProperties
             }
         >
-            <GlobeOff className="size-6 text-muted-foreground/50" />
+            <GlobeOff className="z-1 size-6 text-muted-foreground/50" />
         </div>
     );
 }

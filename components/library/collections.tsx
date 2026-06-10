@@ -2975,11 +2975,11 @@ function CollectionItemMetadata({
                     <MenuGroup>
                         <MenuGroupLabel className="flex items-center gap-1.5">
                             Collection
-                            <Badge size="sm" variant="outline">
+                            <Badge size="sm" variant="secondary">
                                 {collection.shareId ? (
-                                    <Globe />
+                                    <Globe className="size-3.5" />
                                 ) : (
-                                    <LockKeyhole />
+                                    <LockKeyhole className="size-3.5" />
                                 )}
                             </Badge>
                         </MenuGroupLabel>

@@ -260,7 +260,6 @@ interface BuildCommandSuggestionsInput {
     isExtensionInstalled: boolean;
     items: LibraryItemWithCollections[];
     lastVisitedFilterEnabled: boolean;
-    lastVisitedItemIds: string[];
     onClearCollectionFilters: () => void;
     onCreateCollection: () => void;
     onToggleCollectionSelection: (id: string) => void;
@@ -274,7 +273,6 @@ interface BuildCommandSuggestionsInput {
     setIsCommandOpen: (
         value: boolean | ((previous: boolean) => boolean)
     ) => void;
-    setLastVisitedFilterEnabled: (value: boolean) => void;
     setQuery: (value: string) => void;
     setSearchTerms: (value: string[] | ((value: string[]) => string[])) => void;
     setSortMode: (value: SortMode) => void;
@@ -292,7 +290,6 @@ function buildCommandSuggestions({
     collectionMembershipFilter,
     collections,
     items,
-    lastVisitedItemIds,
     lastVisitedFilterEnabled,
     onClearCollectionFilters,
     onCreateCollection,
@@ -303,7 +300,6 @@ function buildCommandSuggestions({
     setDomainFilters,
     setGroupBy,
     setIsCommandOpen,
-    setLastVisitedFilterEnabled,
     setQuery,
     setSearchTerms,
     setSortMode,
@@ -575,15 +571,6 @@ function buildCommandSuggestions({
         addDefaultSuggestion(buildCollectionSuggestion());
         addDefaultSuggestion(buildSourceSuggestion());
         addDefaultSuggestion(buildGroupingSuggestion());
-        if (lastVisitedItemIds.length > 0 && !lastVisitedFilterEnabled) {
-            addDefaultSuggestion({
-                icon: <ArrowUpIcon className={SUGGESTION_ICON_CLASS} />,
-                label: "Pick up where you left off",
-                onSelect: commitSelection(() =>
-                    setLastVisitedFilterEnabled(true)
-                ),
-            });
-        }
         addDefaultSuggestion(buildDomainSuggestion());
     } else if (selectedCollectionIds.length > 0) {
         addSuggestion(buildSourceSuggestion());
@@ -2440,6 +2427,8 @@ function buildSearchPaletteGroups({
     clearLibraryPalette,
     draft,
     hasAnyRefinements,
+    lastVisitedFilterEnabled,
+    lastVisitedItemIds,
     navigationItems,
     onAskCacheSubmit,
     onClearCollectionFilters,
@@ -2447,6 +2436,7 @@ function buildSearchPaletteGroups({
     selectedCollectionIds,
     searchTerms,
     setIsCommandOpen,
+    setLastVisitedFilterEnabled,
     setQuery,
     setSearchTerms,
 }: {
@@ -2455,6 +2445,8 @@ function buildSearchPaletteGroups({
     clearLibraryPalette: () => void;
     draft: string;
     hasAnyRefinements: boolean;
+    lastVisitedFilterEnabled: boolean;
+    lastVisitedItemIds: string[];
     navigationItems: CommandPaletteItem[];
     onAskCacheSubmit: (prompt: string) => void | Promise<void>;
     onClearCollectionFilters: () => void;
@@ -2462,6 +2454,7 @@ function buildSearchPaletteGroups({
     selectedCollectionIds: string[];
     searchTerms: string[];
     setIsCommandOpen: (value: boolean) => void;
+    setLastVisitedFilterEnabled: (value: boolean) => void;
     setQuery: (value: string) => void;
     setSearchTerms: (value: string[] | ((value: string[]) => string[])) => void;
 }): CommandPaletteGroup[] {
@@ -2597,6 +2590,32 @@ function buildSearchPaletteGroups({
         }
     }
 
+    if (lastVisitedItemIds.length > 0 && !lastVisitedFilterEnabled) {
+        groups.push({
+            items: [
+                {
+                    label: "Pick up where you left off",
+                    onSelect: applyCollectionFilter(() =>
+                        setLastVisitedFilterEnabled(true)
+                    ),
+                    render: () => (
+                        <div className="flex items-center gap-2.5">
+                            <ArrowUpIcon className="size-3.5 shrink-0 text-muted-foreground" />
+                            <span className="truncate">
+                                Pick up where you left off
+                            </span>
+                            <span className="text-muted-foreground/60 text-xs tabular-nums">
+                                {lastVisitedItemIds.length}
+                            </span>
+                        </div>
+                    ),
+                    value: "filter last visited",
+                },
+            ],
+            label: "Recent",
+        });
+    }
+
     groups.push({
         items: navigationItems,
         label: "Customize display",
@@ -2674,6 +2693,8 @@ interface BuildPaletteGroupsInput {
         value: string;
     }[];
     groupBy: GroupByMode;
+    lastVisitedFilterEnabled: boolean;
+    lastVisitedItemIds: string[];
     onAskCacheSubmit: (prompt: string) => void | Promise<void>;
     onClearCollectionFilters: () => void;
     onToggleCollectionSelection: (id: string) => void;
@@ -2696,6 +2717,7 @@ interface BuildPaletteGroupsInput {
     setIsCommandOpen: (
         value: boolean | ((previous: boolean) => boolean)
     ) => void;
+    setLastVisitedFilterEnabled: (value: boolean) => void;
     setQuery: (value: string) => void;
     setSearchTerms: (value: string[] | ((value: string[]) => string[])) => void;
     setSortMode: (value: SortMode) => void;
@@ -2744,6 +2766,8 @@ function buildPaletteGroups({
     domainFilters,
     domainOptions,
     groupBy,
+    lastVisitedFilterEnabled,
+    lastVisitedItemIds,
     onClearCollectionFilters,
     onAskCacheSubmit,
     onToggleCollectionSelection,
@@ -2759,6 +2783,7 @@ function buildPaletteGroups({
     setIsCommandOpen,
     setDomainFilters,
     setGroupBy,
+    setLastVisitedFilterEnabled,
     setQuery,
     setSearchTerms,
     setSortMode,
@@ -2841,6 +2866,8 @@ function buildPaletteGroups({
             collections,
             draft,
             hasAnyRefinements,
+            lastVisitedFilterEnabled,
+            lastVisitedItemIds,
             navigationItems,
             onAskCacheSubmit,
             onClearCollectionFilters,
@@ -2848,6 +2875,7 @@ function buildPaletteGroups({
             searchTerms,
             selectedCollectionIds,
             setIsCommandOpen,
+            setLastVisitedFilterEnabled,
             setQuery,
             setSearchTerms,
         });
@@ -4790,6 +4818,8 @@ export function Browser({
         domainFilters,
         domainOptions,
         groupBy,
+        lastVisitedFilterEnabled,
+        lastVisitedItemIds,
         onAskCacheSubmit: handleAskCacheSubmit,
         onClearCollectionFilters,
         onToggleCollectionSelection: onRemoveCollectionFilter,
@@ -4805,6 +4835,7 @@ export function Browser({
         setDomainFilters,
         setGroupBy,
         setIsCommandOpen,
+        setLastVisitedFilterEnabled,
         setQuery,
         setSearchTerms,
         setSortMode,
@@ -4909,7 +4940,6 @@ export function Browser({
         isExtensionInstalled,
         items: filteredItems,
         lastVisitedFilterEnabled,
-        lastVisitedItemIds,
         onClearCollectionFilters,
         onCreateCollection: requestCreate,
         onToggleCollectionSelection: onRemoveCollectionFilter,
@@ -4919,7 +4949,6 @@ export function Browser({
         setDomainFilters,
         setGroupBy,
         setIsCommandOpen,
-        setLastVisitedFilterEnabled,
         setQuery,
         setSearchTerms,
         setSortMode,
