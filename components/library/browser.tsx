@@ -147,6 +147,7 @@ import {
     createChromeBookmarkFromUrl,
     type CreateChromeBookmarkFromUrlResult,
 } from "@/lib/integrations/chrome/actions";
+import { getSourceIcon } from "@/lib/integrations/support";
 import {
     createNote,
     updateNote,
@@ -3508,7 +3509,7 @@ function MediaPreview({
                 <>
                     <video
                         className={cn(
-                            "pointer-events-none absolute inset-0 size-full object-cover transition-opacity duration-150",
+                            "squircle pointer-events-none absolute inset-0 size-full overflow-clip rounded-xl object-cover transition-opacity duration-150",
                             { "z-1": isHovered }
                         )}
                         loop
@@ -3527,7 +3528,11 @@ function MediaPreview({
                                 { "opacity-100": isHovered }
                             )}
                         >
-                            <Spinner className="m-1.5 size-4" />
+                            <Spinner
+                                aria-hidden
+                                className="m-1.5 size-4"
+                                focusable="false"
+                            />
                         </div>
                     ) : (
                         <Button
@@ -3887,6 +3892,7 @@ function CardMenu({
     const isNote = item.kind === ITEM_KIND_NOTE;
     const isFavorite = favoriteItemIdSet.has(item.id);
     const isDeletePending = pendingDeleteItemId === item.id;
+    const SourceIcon = getSourceIcon(item.source);
     const canPreview = !isNote && toValidUrl(href) !== FALLBACK_URL;
     const peekUrl =
         previewImageUrl && item.source === LibraryItemSource.google_photos
@@ -3899,14 +3905,19 @@ function CardMenu({
                 {isNote ? (
                     <span className="block truncate text-xs">Note</span>
                 ) : (
-                    <a
-                        className="block cursor-alias truncate text-xs underline decoration-muted-foreground/20 underline-offset-2"
-                        href={item.url}
-                        rel="noopener noreferrer"
-                        target="_blank"
-                    >
-                        {item.url}
-                    </a>
+                    <>
+                        {SourceIcon ? (
+                            <SourceIcon className="size-3 shrink-0 text-muted-foreground" />
+                        ) : null}
+                        <a
+                            className="block cursor-alias truncate text-xs underline decoration-muted-foreground/20 underline-offset-2"
+                            href={item.url}
+                            rel="noopener noreferrer"
+                            target="_blank"
+                        >
+                            {item.url}
+                        </a>
+                    </>
                 )}
             </div>
             <div className="px-2.5 pb-2 text-[11px] text-muted-foreground">
@@ -4137,7 +4148,7 @@ function MediaCard({ item }: LibraryGridCardProps) {
                     }
                 >
                     <a
-                        className="flex flex-col overflow-clip rounded-xl focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
+                        className="squircle flex flex-col overflow-clip rounded-xl focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
                         href={href}
                         onClick={handlePrimaryClick}
                         rel="noopener noreferrer"
@@ -4159,7 +4170,6 @@ function MediaCard({ item }: LibraryGridCardProps) {
                                     src={previewImageUrl}
                                     videoSrc={previewVideoUrl}
                                 />
-
                                 {isLastVisited(item.id) && (
                                     <span className="absolute top-2 right-2 z-10 rounded-full bg-black/45 px-1.5 py-px font-medium text-white text-xs leading-normal backdrop-blur-[2px]">
                                         <T>Last visited</T>

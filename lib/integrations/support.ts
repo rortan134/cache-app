@@ -505,6 +505,15 @@ const SOURCE_TO_LABEL = new Map<LibraryItemSource, string>(
 // Internal sources that don't belong to a specific external integration
 SOURCE_TO_LABEL.set(LibraryItemSource.cache_note, "Notes");
 
+const SOURCE_TO_ICON = new Map<LibraryItemSource, IntegrationIcon>(
+    INTEGRATIONS.flatMap((integration) =>
+        (integration.source?.libraryItemSources ?? []).map((source) => [
+            source,
+            integration.Icon,
+        ])
+    )
+);
+
 const INTEGRATION_ACCOUNT_PROVIDER_IDS = Array.from(
     new Set(
         INTEGRATIONS.flatMap((integration) =>
@@ -705,4 +714,10 @@ export function recordHasIntegrationId<K extends string>(
 
 export function getSourceLabel(source: LibraryItemSource): string {
     return SOURCE_TO_LABEL.get(source) ?? "Other";
+}
+
+export function getSourceIcon(
+    source: LibraryItemSource
+): IntegrationIcon | undefined {
+    return SOURCE_TO_ICON.get(source);
 }

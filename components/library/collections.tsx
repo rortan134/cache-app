@@ -141,6 +141,7 @@ import {
     EllipsisIcon,
     ExternalLinkIcon,
     FileSpreadsheetIcon,
+    Globe,
     Info,
     LibraryBig,
     Lightbulb,
@@ -2870,7 +2871,8 @@ function CollectionItemExportSubMenu() {
     );
 }
 
-function CollectionItemSubscribeSubMenu() {
+// WIP
+function _CollectionItemSubscribeSubMenu() {
     return (
         <MenuSub>
             <MenuSubTrigger disabled>
@@ -2974,7 +2976,16 @@ function CollectionItemMetadata({
                 </MenuTrigger>
                 <MenuPopup align="start" side="right">
                     <MenuGroup>
-                        <MenuGroupLabel>Collection</MenuGroupLabel>
+                        <MenuGroupLabel className="flex items-center gap-1.5">
+                            Collection
+                            <Badge size="sm" variant="outline">
+                                {collection.shareId ? (
+                                    <Globe />
+                                ) : (
+                                    <LockKeyhole />
+                                )}
+                            </Badge>
+                        </MenuGroupLabel>
                         <MenuItem onClick={onFavoriteToggle}>
                             <Star
                                 aria-hidden
@@ -3013,7 +3024,6 @@ function CollectionItemMetadata({
                     <MenuGroup>
                         <CollectionItemShareSubMenu />
                         <CollectionItemExportSubMenu />
-                        <CollectionItemSubscribeSubMenu />
                     </MenuGroup>
                     <MenuSeparator />
                     <MenuGroup>
