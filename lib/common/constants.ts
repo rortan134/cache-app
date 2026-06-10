@@ -18,7 +18,7 @@ export const SITE_DEFAULT_TITLE = `Bookmark manager | ${APP_NAME}`;
 
 export const SITE_DOMAIN = "www.cachd.app";
 
-export const CACHE_EXTENSION_DOWNLOAD_URL = `https://${SITE_DOMAIN}`;
+export const CACHE_EXTENSION_DOWNLOAD_URL = "chromewebstore.google.com/detail/";
 export const CACHE_EXTENSION_READY_EVENT = "CACHE_EXTENSION_READY";
 export const CACHE_SITE_OPEN_AND_SYNC_EVENT = "CACHE_SITE_OPEN_AND_SYNC";
 
