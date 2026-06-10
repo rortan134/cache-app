@@ -29,19 +29,6 @@ interface ShortcutItem {
     label: string;
 }
 
-function ShortcutKeyPart({ part }: { part: string }) {
-    switch (part.toLowerCase()) {
-        case "mod":
-            return <CmdKbd />;
-        case "alt":
-            return <AltKbd />;
-        case "shift":
-            return <ShiftKbd />;
-        default:
-            return part;
-    }
-}
-
 /**
  * Button that opens a read-only drawer listing all library keyboard shortcuts.
  *
@@ -121,6 +108,19 @@ export function KeyboardShortcutsDialogTrigger(
             </DrawerViewport>
         </Drawer>
     );
+}
+
+function ShortcutKeyPart({ part }: { part: string }) {
+    switch (part.toLowerCase()) {
+        case "mod":
+            return <CmdKbd />;
+        case "alt":
+            return <AltKbd />;
+        case "shift":
+            return <ShiftKbd />;
+        default:
+            return part;
+    }
 }
 
 // Re-exporting with "use client"

@@ -9,7 +9,7 @@ import { cn } from "@/lib/common/cn";
 import * as React from "react";
 
 interface DisclosureListProps extends React.ComponentProps<"div"> {
-    maxVisible: number;
+    maxVisible?: number;
 }
 
 /**
@@ -32,18 +32,14 @@ export function DisclosureList({
     const visible = childrenArray.slice(0, maxVisible);
     const hidden = childrenArray.slice(maxVisible);
 
-    if (hidden.length === 0) {
-        return (
-            <div className={cn("flex flex-col gap-1", className)} {...props}>
-                {visible}
-            </div>
-        );
-    }
-
     return (
-        <div className={cn("flex flex-col gap-1", className)} {...props}>
+        <div
+            className={cn("flex flex-col gap-1", className)}
+            data-slot="disclosure-list"
+            {...props}
+        >
             {visible}
-            <DisclosureListHidden items={hidden} />
+            {hidden.length > 0 && <DisclosureListHidden items={hidden} />}
         </div>
     );
 }

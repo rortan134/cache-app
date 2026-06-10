@@ -10,6 +10,7 @@ export function Spinner({
         <Loader2Icon
             aria-label="Loading"
             className={cn("animate-spin", className)}
+            data-slot="spinner"
             role="status"
             {...props}
         />

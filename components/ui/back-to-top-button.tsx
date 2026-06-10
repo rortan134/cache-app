@@ -47,6 +47,7 @@ export function BackToTopButton({
                     : "pointer-events-none translate-y-2 opacity-0",
                 className
             )}
+            data-slot="back-to-top-button"
             ref={containerRef}
         >
             <Button

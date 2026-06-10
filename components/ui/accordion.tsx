@@ -4,8 +4,17 @@ import { cn } from "@/lib/common/cn";
 import { Accordion as AccordionPrimitive } from "@base-ui/react/accordion";
 import { ChevronDownIcon } from "lucide-react";
 
-export function Accordion(props: AccordionPrimitive.Root.Props) {
-    return <AccordionPrimitive.Root data-slot="accordion" {...props} />;
+export function Accordion({
+    className,
+    ...props
+}: AccordionPrimitive.Root.Props) {
+    return (
+        <AccordionPrimitive.Root
+            className={cn("flex flex-col", className)}
+            data-slot="accordion"
+            {...props}
+        />
+    );
 }
 
 export function AccordionItem({
@@ -53,11 +62,14 @@ export function AccordionPanel({
 }: AccordionPrimitive.Panel.Props) {
     return (
         <AccordionPrimitive.Panel
-            className="h-(--accordion-panel-height) overflow-hidden text-muted-foreground text-sm transition-[height] duration-200 ease-in-out data-ending-style:h-0 data-starting-style:h-0"
+            className={cn(
+                "h-(--accordion-panel-height) overflow-hidden text-muted-foreground text-sm transition-[height] duration-200 ease-in-out data-ending-style:h-0 data-starting-style:h-0",
+                className
+            )}
             data-slot="accordion-panel"
             {...props}
         >
-            <div className={cn("pt-0 pb-4", className)}>{children}</div>
+            <div className="pt-0 pb-4">{children}</div>
         </AccordionPrimitive.Panel>
     );
 }

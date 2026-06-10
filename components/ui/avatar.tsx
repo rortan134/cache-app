@@ -56,6 +56,7 @@ export function AvatarGroup({
                 "relative flex items-center justify-center -space-x-3",
                 className
             )}
+            data-slot="avatar-group"
             {...props}
         />
     );

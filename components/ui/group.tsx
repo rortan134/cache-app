@@ -27,24 +27,26 @@ const groupVariants = cva(
 export function Group({
     className,
     orientation,
+    render,
     ...props
-}: React.ComponentProps<"div"> & {
+}: useRender.ComponentProps<"div"> & {
     orientation?: VariantProps<typeof groupVariants>["orientation"];
 }) {
-    return (
-        // biome-ignore lint/a11y/useSemanticElements: Ignore
-        <div
-            className={cn(
-                groupVariants({ orientation }),
-                "first:[&>*:first-child]:rounded-s-full last:[&>*:last-child]:rounded-e-full",
-                className
-            )}
-            data-orientation={orientation}
-            data-slot="group"
-            role="group"
-            {...props}
-        />
-    );
+    const defaultProps = {
+        className: cn(
+            groupVariants({ orientation }),
+            "first:[&>*:first-child]:rounded-s-full last:[&>*:last-child]:rounded-e-full",
+            className
+        ),
+        "data-orientation": orientation,
+        "data-slot": "group",
+        role: "group",
+    };
+    return useRender({
+        defaultTagName: "div",
+        props: mergeProps<"div">(defaultProps, props),
+        render,
+    });
 }
 
 export function GroupText({
