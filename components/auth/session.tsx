@@ -163,7 +163,11 @@ export function SessionHint({ serverSession }: SessionHintProps) {
                 {session.user.email ?? <Skeleton>Placeholder</Skeleton>}
                 <Button
                     loading={isPending}
-                    render={<Link href="/logout">Log out</Link>}
+                    render={
+                        <Link href="/logout" prefetch={false}>
+                            Log out
+                        </Link>
+                    }
                     size="xs"
                     variant="link"
                 />

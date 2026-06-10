@@ -1,11 +1,5 @@
 "use client";
 
-import {
-    deleteAccountAction,
-    type DeleteAccountActionState,
-} from "@/lib/account/actions";
-import { authClient } from "@/lib/auth/client";
-import { createLogger } from "@/lib/common/logs/console/logger";
 import { Button } from "@/components/ui/button";
 import {
     Dialog,
@@ -17,6 +11,12 @@ import {
     DialogTitle,
     DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+    deleteAccountAction,
+    type DeleteAccountActionState,
+} from "@/lib/account/actions";
+import { authClient } from "@/lib/auth/client";
+import { createLogger } from "@/lib/common/logs/console/logger";
 import { useStableCallback } from "@base-ui/utils/useStableCallback";
 import { T } from "gt-next";
 import { useRouter } from "next/navigation";
@@ -58,7 +58,6 @@ export function DeleteAccountDialogTrigger(
             }
 
             router.push(result.redirect ?? "/logout");
-            router.refresh();
         });
     });
 
