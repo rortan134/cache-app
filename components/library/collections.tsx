@@ -55,7 +55,6 @@ import { AltKbd, CmdKbd, Kbd, ShiftKbd } from "@/components/ui/kbd";
 import { MediaPlaceholder } from "@/components/ui/media-placeholder";
 import {
     Menu,
-    MenuCheckboxItem,
     MenuGroup,
     MenuGroupLabel,
     MenuItem,
@@ -131,7 +130,6 @@ import {
     ArchiveIcon,
     ArchiveX,
     ArrowUpRight,
-    BellIcon,
     ChevronRight,
     Clock,
     Component,
@@ -250,11 +248,11 @@ interface SortingOption {
     value: Exclude<CollectionSortField, "text-match">;
 }
 
-interface CollectionNotificationOption {
-    defaultChecked: boolean;
-    label: string;
-    value: string;
-}
+// interface CollectionNotificationOption {
+//     defaultChecked: boolean;
+//     label: string;
+//     value: string;
+// }
 
 interface ComboboxValue {
     icon: CollectionOptionIcon;
@@ -284,23 +282,23 @@ const DEFAULT_PRIORITY: PriorityOption = {
     value: "none",
 };
 
-const COLLECTION_NOTIFICATION_OPTIONS: CollectionNotificationOption[] = [
-    {
-        defaultChecked: true,
-        label: "New items added",
-        value: "new-items",
-    },
-    {
-        defaultChecked: true,
-        label: "Weekly digest",
-        value: "weekly-digest",
-    },
-    {
-        defaultChecked: false,
-        label: "Shared link activity",
-        value: "shared-link-activity",
-    },
-];
+// const COLLECTION_NOTIFICATION_OPTIONS: CollectionNotificationOption[] = [
+//     {
+//         defaultChecked: true,
+//         label: "New items added",
+//         value: "new-items",
+//     },
+//     {
+//         defaultChecked: true,
+//         label: "Weekly digest",
+//         value: "weekly-digest",
+//     },
+//     {
+//         defaultChecked: false,
+//         label: "Shared link activity",
+//         value: "shared-link-activity",
+//     },
+// ];
 
 const PRIORITIES = [
     DEFAULT_PRIORITY,
@@ -2871,34 +2869,33 @@ function CollectionItemExportSubMenu() {
     );
 }
 
-// WIP
-function _CollectionItemSubscribeSubMenu() {
-    return (
-        <MenuSub>
-            <MenuSubTrigger disabled>
-                <BellIcon
-                    aria-hidden
-                    className="inline-block size-4 text-muted-foreground"
-                    focusable="false"
-                />
-                Subscribe
-            </MenuSubTrigger>
-            <MenuSubPopup>
-                <MenuGroup>
-                    <MenuGroupLabel>Inbox notifications</MenuGroupLabel>
-                    {COLLECTION_NOTIFICATION_OPTIONS.map((option) => (
-                        <MenuCheckboxItem
-                            defaultChecked={option.defaultChecked}
-                            key={option.value}
-                        >
-                            {option.label}
-                        </MenuCheckboxItem>
-                    ))}
-                </MenuGroup>
-            </MenuSubPopup>
-        </MenuSub>
-    );
-}
+// function CollectionItemSubscribeSubMenu() {
+//     return (
+//         <MenuSub>
+//             <MenuSubTrigger disabled>
+//                 <BellIcon
+//                     aria-hidden
+//                     className="inline-block size-4 text-muted-foreground"
+//                     focusable="false"
+//                 />
+//                 Subscribe
+//             </MenuSubTrigger>
+//             <MenuSubPopup>
+//                 <MenuGroup>
+//                     <MenuGroupLabel>Inbox notifications</MenuGroupLabel>
+//                     {COLLECTION_NOTIFICATION_OPTIONS.map((option) => (
+//                         <MenuCheckboxItem
+//                             defaultChecked={option.defaultChecked}
+//                             key={option.value}
+//                         >
+//                             {option.label}
+//                         </MenuCheckboxItem>
+//                     ))}
+//                 </MenuGroup>
+//             </MenuSubPopup>
+//         </MenuSub>
+//     );
+// }
 
 interface CollectionItemMetadataProps {
     metadataDisplay: CollectionItemMetadataDisplay;
