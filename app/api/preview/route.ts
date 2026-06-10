@@ -411,7 +411,13 @@ async function readCachedImagePreview(
     if (!cached) {
         return null;
     }
-    const parsed = resolvedImagePreviewSchema.safeParse(JSON.parse(cached));
+    let parsedJson: unknown;
+    try {
+        parsedJson = JSON.parse(cached);
+    } catch {
+        return null;
+    }
+    const parsed = resolvedImagePreviewSchema.safeParse(parsedJson);
     if (!parsed.success) {
         return null;
     }
