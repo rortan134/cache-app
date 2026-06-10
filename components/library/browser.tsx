@@ -147,12 +147,12 @@ import {
     createChromeBookmarkFromUrl,
     type CreateChromeBookmarkFromUrlResult,
 } from "@/lib/integrations/chrome/actions";
-import { getSourceIcon } from "@/lib/integrations/support";
 import {
     createNote,
     updateNote,
     type NoteMutationResult,
 } from "@/lib/integrations/notes/actions";
+import { getSourceIcon } from "@/lib/integrations/support";
 import { askCache, getSectionDescription } from "@/lib/intelligence/actions";
 import type {
     AskCacheComposerPatch,
@@ -1957,26 +1957,21 @@ function BrowserEmpty() {
                     collections so you can find it when you need it.
                 </p>
             </div>
-            <Masonry columnCount={5} gap={16}>
+            <Masonry columnCount={4} gap={16}>
                 {EMPTY_LIBRARY_PEEK_PLACEHOLDERS.map(
                     ({ aspect, id }, index) => {
                         const opacity = Math.max(0.06, 1 - index * 0.095);
 
                         return (
                             <MasonryItem
-                                className="group flex flex-col overflow-hidden rounded-lg bg-card/40"
+                                className="flex flex-col bg-card/40"
                                 key={id}
                                 style={{ opacity }}
                             >
                                 <Skeleton
-                                    className={cn(
-                                        "w-full rounded-none",
-                                        aspect
-                                    )}
+                                    className={cn("w-full rounded-xl", aspect)}
                                 />
-                                <div className="flex min-h-14 flex-col gap-1.5 p-3">
-                                    <Skeleton className="h-2.5 w-[92%]" />
-                                </div>
+                                <Skeleton className="h-2.5 w-[92%]" />
                             </MasonryItem>
                         );
                     }
