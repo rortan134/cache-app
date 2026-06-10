@@ -9,8 +9,8 @@ export function MediaPlaceholder({
 }: React.ComponentProps<"div">) {
     const id = React.useId();
     const hash = djb2Hash(id);
-    const x = hash % 71;
-    const y = (hash >> 8) % 31;
+    const x = 10 + (hash % 66);
+    const y = 5 + ((hash >> 8) % 46);
 
     return (
         <div
