@@ -8,13 +8,19 @@ Thank you for your interest in contributing to Cache! We welcome contributions i
 
 ## Table of Contents
 
-- [How to Contribute](#how-to-contribute)
-- [Reporting Issues](#reporting-issues)
-- [Pull Request Process](#pull-request-process)
-- [Commit Message Guidelines](#commit-message-guidelines)
-- [Local Development Setup](#local-development-setup)
-- [Coding Standards](#coding-standards)
-- [License](#license)
+- [Contributing to Cache](#contributing-to-cache)
+  - [Table of Contents](#table-of-contents)
+  - [How to Contribute](#how-to-contribute)
+  - [Reporting Issues](#reporting-issues)
+  - [Pull Request Process](#pull-request-process)
+  - [Commit Message Guidelines](#commit-message-guidelines)
+  - [Local Development Setup](#local-development-setup)
+    - [Prerequisites](#prerequisites)
+    - [Setup](#setup)
+    - [Useful Commands](#useful-commands)
+  - [Coding Standards](#coding-standards)
+    - [Before Submitting](#before-submitting)
+  - [License](#license)
 
 ---
 
@@ -93,16 +99,16 @@ We follow [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/)
 
 **Types:**
 
-| Type       | Usage                                  |
-| ---------- | -------------------------------------- |
-| `feat`     | A new feature                          |
-| `fix`      | A bug fix                              |
-| `docs`     | Documentation changes                  |
-| `style`    | Code style (formatting, etc.)          |
+| Type       | Usage                                   |
+| ---------- | --------------------------------------- |
+| `feat`     | A new feature                           |
+| `fix`      | A bug fix                               |
+| `docs`     | Documentation changes                   |
+| `style`    | Code style (formatting, etc.)           |
 | `refactor` | Code change that neither fixes nor adds |
-| `test`     | Adding or updating tests               |
-| `chore`    | Build process, tooling, dependencies   |
-| `perf`     | Performance improvement                |
+| `test`     | Adding or updating tests                |
+| `chore`    | Build process, tooling, dependencies    |
+| `perf`     | Performance improvement                 |
 
 **Examples:**
 
@@ -126,7 +132,7 @@ chore(deps): upgrade Prisma to v7
 ### Setup
 
 ```bash
-git clone https://github.com/rortan134/cache.git
+git clone https://github.com/rortan134/cache-app.git
 cd cache
 bun install
 
@@ -141,16 +147,16 @@ Open [http://localhost:3000](http://localhost:3000).
 
 ### Useful Commands
 
-| Command              | Description                  |
-| -------------------- | ---------------------------- |
-| `bun run dev`        | Start dev server             |
-| `bun run build`      | Production build             |
-| `bun run lint`       | Run Ultracite linter         |
-| `bun run lint:fix`   | Auto-fix lint issues         |
-| `bun run test`       | Run test suite               |
-| `bun run type-check` | TypeScript type check        |
-| `bun run db-deploy`  | Deploy database migrations   |
-| `bun run db-migrate` | Create a new migration       |
+| Command              | Description                |
+| -------------------- | -------------------------- |
+| `bun run dev`        | Start dev server           |
+| `bun run build`      | Production build           |
+| `bun run lint`       | Run Ultracite linter       |
+| `bun run lint:fix`   | Auto-fix lint issues       |
+| `bun run test`       | Run test suite             |
+| `bun run type-check` | TypeScript type check      |
+| `bun run db-deploy`  | Deploy database migrations |
+| `bun run db-migrate` | Create a new migration     |
 
 ---
 

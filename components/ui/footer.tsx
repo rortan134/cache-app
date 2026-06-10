@@ -56,7 +56,7 @@ export function Footer() {
                                 </Link>
                                 <Link
                                     className="underline"
-                                    href="https://github.com/rortan134/cache"
+                                    href="https://github.com/rortan134/cache-app"
                                     rel="noreferrer noopener"
                                     target="_blank"
                                 >

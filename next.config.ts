@@ -91,7 +91,7 @@ const nextConfig: NextConfig = {
                 source: "/x",
             },
             {
-                destination: "https://github.com/rortan134/cache",
+                destination: "https://github.com/rortan134/cache-app",
                 permanent: false,
                 source: "/github",
             },
