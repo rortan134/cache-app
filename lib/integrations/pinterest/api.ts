@@ -31,25 +31,25 @@ const PinterestApiErrorSchema = z.object({
 });
 
 const PinterestPaginatedResponseSchema = z.object({
-    bookmark: z.string().optional(),
+    bookmark: z.string().nullish(),
     items: z.array(z.unknown()).optional(),
 });
 
 const PinterestBoardSchema = z.object({
-    created_at: z.string().optional(),
+    created_at: z.string().nullish(),
     id: z.string(),
-    name: z.string().optional(),
-    updated_at: z.string().optional(),
+    name: z.string().nullish(),
+    updated_at: z.string().nullish(),
 });
 
 const PinterestPinSchema = z.object({
-    created_at: z.string().optional(),
-    description: z.string().optional(),
+    created_at: z.string().nullish(),
+    description: z.string().nullish(),
     id: z.string(),
-    link: z.string().optional(),
-    original_link: z.string().optional(),
-    title: z.string().optional(),
-    updated_at: z.string().optional(),
+    link: z.string().nullish(),
+    original_link: z.string().nullish(),
+    title: z.string().nullish(),
+    updated_at: z.string().nullish(),
 });
 
 function parsePinterestApiError(
