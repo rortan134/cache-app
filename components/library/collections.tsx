@@ -52,7 +52,6 @@ import {
 } from "@/components/ui/icons";
 import { Input } from "@/components/ui/input";
 import { AltKbd, CmdKbd, Kbd, ShiftKbd } from "@/components/ui/kbd";
-import { MediaPlaceholder } from "@/components/ui/media-placeholder";
 import {
     Menu,
     MenuCheckboxItem,
@@ -79,6 +78,7 @@ import {
     PreviewCardPopup,
     PreviewCardTrigger,
 } from "@/components/ui/preview-card";
+import { MediaPlaceholder } from "@/components/ui/media-placeholder";
 import { SidebarItem } from "@/components/ui/sidebar";
 import { Textarea } from "@/components/ui/textarea";
 import { useSmartCollectionsPreference } from "@/hooks/queries/use-smart-collections-preference";

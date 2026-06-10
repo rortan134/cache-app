@@ -289,8 +289,8 @@
         mask-image: url(/texture-screen-light.webp);
         mask-mode: luminance;
         mask-repeat: no-repeat;
-        -webkit-mask-position: 36% 9%;
-        mask-position: 36% 9%;
+        -webkit-mask-position: var(--texture-position, 36% 9%);
+        mask-position: var(--texture-position, 36% 9%);
         mask-size: 200% auto;
     }
 }

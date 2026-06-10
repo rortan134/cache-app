@@ -1,11 +1,17 @@
 import { cn } from "@/lib/common/cn";
+import { djb2Hash } from "@/lib/common/colors";
 import { GlobeOff } from "lucide-react";
-import type * as React from "react";
+import * as React from "react";
 
 export function MediaPlaceholder({
     className,
     ...props
 }: React.ComponentProps<"div">) {
+    const id = React.useId();
+    const hash = djb2Hash(id);
+    const x = hash % 71;
+    const y = (hash >> 8) % 31;
+
     return (
         <div
             {...props}
@@ -14,6 +20,9 @@ export function MediaPlaceholder({
                 className
             )}
             data-slot="media-placeholder"
+            style={
+                { "--texture-position": `${x}% ${y}%` } as React.CSSProperties
+            }
         >
             <GlobeOff className="size-6 text-muted-foreground/50" />
         </div>

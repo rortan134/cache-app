@@ -54,6 +54,14 @@ export function Footer() {
                                 >
                                     <p>X/Twitter</p>
                                 </Link>
+                                <Link
+                                    className="underline"
+                                    href="https://github.com/rortan134/cache"
+                                    rel="noreferrer noopener"
+                                    target="_blank"
+                                >
+                                    <p>Github</p>
+                                </Link>
                             </div>
                             <p className="opacity-50">
                                 &copy; Cache. All rights reserved.

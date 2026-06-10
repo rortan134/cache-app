@@ -137,7 +137,7 @@ const GRADIENT_ANGLE = "90deg";
  * @returns A non-negative hash value.
  * @internal
  */
-function djb2Hash(value: string): number {
+export function djb2Hash(value: string): number {
     let hash = DJB2_HASH_INIT;
     const len = value.length;
     for (let i = 0; i < len; i++) {
