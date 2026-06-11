@@ -38,6 +38,11 @@ import { BackToTopButton } from "@/components/ui/back-to-top-button";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
+    Collapsible,
+    CollapsiblePanel,
+    CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import {
     Combobox,
     ComboboxCollection,
     ComboboxEmpty,
@@ -3925,45 +3930,37 @@ function CardMenu({
 
     return (
         <>
-            <div className="relative mx-auto flex max-w-56 items-center gap-2 py-2 pl-2.5 opacity-50">
-                {isNote ? (
-                    <span className="block truncate text-xs">Note</span>
-                ) : (
-                    <>
-                        {SourceIcon ? (
-                            <SourceIcon className="size-3 shrink-0 text-muted-foreground" />
-                        ) : null}
-                        <a
-                            className="block cursor-alias truncate text-xs underline decoration-muted-foreground/20 underline-offset-2"
-                            href={item.url}
-                            rel="noopener noreferrer"
-                            target="_blank"
-                        >
-                            {item.url}
-                        </a>
-                    </>
-                )}
-            </div>
-            <div className="px-2.5 pb-2 text-[11px] text-muted-foreground">
-                <div className="flex items-center justify-between gap-3 py-0.5">
-                    <span>Created</span>
-                    <span className="text-foreground tabular-nums">
-                        {createdLabel}
+            <Collapsible>
+                <CollapsibleTrigger
+                    className="max-w-56"
+                    render={<Button variant="ghost" />}
+                >
+                    <span className="block truncate text-xs">
+                        {isNote ? "Note" : item.url}
                     </span>
-                </div>
-                <div className="flex items-center justify-between gap-3 py-0.5">
-                    <span>Added</span>
-                    <span className="text-foreground tabular-nums">
-                        {addedLabel}
-                    </span>
-                </div>
-                {previewImageUrl ? (
+                    <ChevronDown className="ml-auto inline-block size-4" />
+                </CollapsibleTrigger>
+                <CollapsiblePanel className="px-2.5 text-[11px] text-muted-foreground">
                     <div className="flex items-center justify-between gap-3 py-0.5">
-                        <span>Palette</span>
-                        <PreviewColorPalette src={previewImageUrl} />
+                        <span>Created</span>
+                        <span className="text-foreground tabular-nums">
+                            {createdLabel}
+                        </span>
                     </div>
-                ) : null}
-            </div>
+                    <div className="flex items-center justify-between gap-3 py-0.5">
+                        <span>Added</span>
+                        <span className="text-foreground tabular-nums">
+                            {addedLabel}
+                        </span>
+                    </div>
+                    {previewImageUrl ? (
+                        <div className="flex items-center justify-between gap-3 py-0.5 pb-4">
+                            <span>Palette</span>
+                            <PreviewColorPalette src={previewImageUrl} />
+                        </div>
+                    ) : null}
+                </CollapsiblePanel>
+            </Collapsible>
             <ItemSeparator />
             <Item onClick={() => onItemFavoriteToggle(item)}>
                 <Star
@@ -4005,7 +4002,10 @@ function CardMenu({
             ) : null}
             {isNote ? null : (
                 <>
-                    <Item onClick={() => onOpenInNewTab?.(item)}>
+                    <Item
+                        className="cursor-alias"
+                        onClick={() => onOpenInNewTab?.(item)}
+                    >
                         {SourceIcon ? (
                             <SourceIcon className="size-4.5 text-muted-foreground" />
                         ) : (
