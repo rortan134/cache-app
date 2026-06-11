@@ -47,6 +47,10 @@
 
 <a href="https://www.cachd.app" target="_blank" rel="noopener noreferrer"><img src="https://img.shields.io/badge/cachd.app-000000?logo=vercel&logoColor=white" alt="cachd.app"></a>
 
+### Self-hosting (Work-in-progress)
+
+You can self-host Cache for greater control over your data and design.
+
 ### Prerequisites
 
 - [Bun](https://bun.sh/) v1.3.14+
@@ -111,6 +115,8 @@ Open [http://localhost:3000](http://localhost:3000).
 ## Contributing
 
 We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
+
+Open an [issue](https://github.com/rortan134/cache-app/issues?q=sort%3Aupdated-desc+is%3Aissue+state%3Aopen+) if you believe you've encountered a bug.
 
 This project follows the [Contributor Covenant](CODE_OF_CONDUCT.md) code of conduct.
 

@@ -111,7 +111,7 @@ async function fetchOAuthUser<T>(
 
 const PinterestUserAccountSchema = z.object({
     id: z.string().optional(),
-    profile_image: z.string().optional(),
+    profile_image: z.string().nullable().optional(),
     username: z.string().optional(),
 });
 
@@ -127,7 +127,7 @@ function mapPinterestUser(data: PinterestUserAccount): OAuthUserProfile | null {
         email: `pinterest.${idString}.integration@placeholder.cache`,
         emailVerified: false,
         id: idString,
-        image: data.profile_image,
+        image: data.profile_image ?? undefined,
         name: data.username ?? idString,
     };
 }
@@ -202,7 +202,7 @@ function buildXOAuthConfig(): GenericOAuthConfig | null {
         getUserInfo: (tokens) =>
             fetchOAuthUser(
                 tokens,
-                "https://api.x.com/2/users/me?user.fields=profile_image_url",
+                "https://api.twitter.com/2/users/me?user.fields=profile_image_url",
                 XUserAccountSchema,
                 mapXUser,
                 { Accept: "application/json" }
@@ -210,7 +210,7 @@ function buildXOAuthConfig(): GenericOAuthConfig | null {
         pkce: true,
         providerId: "x",
         scopes: ["bookmark.read", "offline.access", "tweet.read", "users.read"],
-        tokenUrl: "https://api.x.com/2/oauth2/token",
+        tokenUrl: "https://api.twitter.com/2/oauth2/token",
     };
 }
 

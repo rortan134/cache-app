@@ -1,4 +1,27 @@
 {
+    "name": "cache",
+    "type": "module",
+    "private": true,
+    "version": "1.2.0",
+    "packageManager": "bun@1.3.14",
+    "engines": {
+        "node": "24.x"
+    },
+    "scripts": {
+        "clean": "find . -name node_modules -o -name .next -o -name .swc -o -name tsconfig.buildinfo -type d -prune | xargs rm -rf",
+        "dev": "bun run --bun next dev",
+        "build": "bunx gt translate && bun run --bun next build",
+        "start": "bun run --bun next start",
+        "db-deploy": "prisma migrate deploy",
+        "postinstall": "prisma generate",
+        "db-migrate": "prisma migrate dev",
+        "lint": "ultracite check",
+        "lint:fix": "ultracite fix",
+        "test": "bun test",
+        "analyze": "next experimental-analyze",
+        "type-check": "tsc --noEmit --emitDeclarationOnly false",
+        "prepare": "husky"
+    },
     "dependencies": {
         "@ai-sdk/google": "3.0.80",
         "@arcjet/ip": "1.5.0",
@@ -18,7 +41,7 @@
         "@lexical/selection": "0.45.0",
         "@modelcontextprotocol/sdk": "1.29.0",
         "@opentelemetry/api": "1.9.1",
-        "@opentelemetry/api-logs": "0.218.0",
+        "@opentelemetry/api-logs": "0.219.0",
         "@orpc/client": "1.14.5",
         "@orpc/otel": "1.14.5",
         "@orpc/react": "1.14.5",
@@ -30,7 +53,7 @@
         "@vercel/analytics": "2.0.1",
         "@vercel/otel": "2.1.2",
         "@workflow/ai": "6.0.0",
-        "ai": "6.0.200",
+        "ai": "6.0.201",
         "better-auth": "1.6.16",
         "better-auth-localization": "3.0.0",
         "browser-fs-access": "0.38.0",
@@ -83,34 +106,11 @@
         "@types/react": "19.2.17",
         "@types/react-dom": "19.2.3",
         "babel-plugin-react-compiler": "1.0.0",
-        "gt": "2.14.49",
+        "gt": "2.14.50",
         "husky": "9.1.7",
         "prisma": "7.8.0",
         "tailwindcss": "4.3.0",
         "typescript": "6.0.3",
         "ultracite": "7.8.3"
-    },
-    "name": "cache",
-    "scripts": {
-        "clean": "find . -name node_modules -o -name .next -o -name .swc -o -name tsconfig.buildinfo -type d -prune | xargs rm -rf",
-        "dev": "NEXT_TELEMETRY_DISABLED=1 bun run --bun next dev",
-        "build": "NEXT_TELEMETRY_DISABLED=1 bunx gt translate && NEXT_TELEMETRY_DISABLED=1 bun run --bun next build",
-        "start": "NEXT_TELEMETRY_DISABLED=1 bun run --bun next start",
-        "db-deploy": "prisma migrate deploy",
-        "postinstall": "prisma generate",
-        "db-migrate": "prisma migrate dev",
-        "lint": "ultracite check",
-        "lint:fix": "ultracite fix",
-        "test": "bun test",
-        "analyze": "next experimental-analyze",
-        "type-check": "tsc --noEmit --emitDeclarationOnly false",
-        "prepare": "husky"
-    },
-    "type": "module",
-    "private": true,
-    "version": "1.2.0",
-    "packageManager": "bun@1.3.14",
-    "engines": {
-        "node": "24.x"
     }
 }
