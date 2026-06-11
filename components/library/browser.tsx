@@ -185,6 +185,7 @@ import { T } from "gt-next";
 import {
     ArrowDownWideNarrow,
     ArrowUpIcon,
+    ArrowUpRight,
     Check,
     ChevronDown,
     ChevronRight,
@@ -4005,8 +4006,13 @@ function CardMenu({
             {isNote ? null : (
                 <>
                     <Item onClick={() => onOpenInNewTab?.(item)}>
-                        <ExternalLinkIcon className="size-4.5 text-muted-foreground" />
+                        {SourceIcon ? (
+                            <SourceIcon className="size-4.5 text-muted-foreground" />
+                        ) : (
+                            <ExternalLinkIcon className="size-4.5 text-muted-foreground" />
+                        )}
                         Open in new tab
+                        <ArrowUpRight className="ml-auto size-4 text-muted-foreground" />
                     </Item>
                     <Item onClick={() => onCopyLink?.(item)}>
                         <LinkIcon className="size-4.5 text-muted-foreground" />
