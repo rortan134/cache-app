@@ -23,7 +23,7 @@
         "prepare": "husky"
     },
     "dependencies": {
-        "@ai-sdk/google": "3.0.80",
+        "@ai-sdk/google": "3.0.81",
         "@arcjet/ip": "1.5.0",
         "@arcjet/next": "1.5.0",
         "@arcjet/redact": "1.5.0",

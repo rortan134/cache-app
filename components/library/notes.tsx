@@ -698,6 +698,14 @@ function NoteRoot({
         if (!open) {
             setIsExpanded(false);
         }
+        if (open) {
+            const nextDraft = noteDraftFromItem(note);
+            initialDraftRef.current = nextDraft;
+            latestDraftRef.current = nextDraft;
+            setInitialDraft(nextDraft);
+            setDraft(nextDraft);
+            setEditorKey((key) => key + 1);
+        }
     }
 
     if (note !== prevNote) {
