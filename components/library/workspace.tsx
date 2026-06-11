@@ -43,9 +43,15 @@ const COLLECTION_PREVIEW_THUMBNAIL_LIMIT = 5;
 export type CollectionSortField =
     | "count"
     | "created"
+    | "name"
     | "priority"
     | "text-match"
     | "updated";
+
+export type CollectionView =
+    | "show-all"
+    | "exclude-archives"
+    | "show-shared-only";
 
 type SortableCollectionSummary = Pick<
     LibraryCollectionSummary,
@@ -55,7 +61,7 @@ type SortableCollectionSummary = Pick<
 export const { useStore: useCollectionsSortStore } = createStore({
     collectionSortField: storage<CollectionSortField>("priority"),
     collectionTextMatchQuery: storage(""),
-    shouldExcludeArchives: storage(false),
+    collectionView: storage<CollectionView>("show-all"),
 });
 
 function compareNames<T extends Pick<SortableCollectionSummary, "name">>(
@@ -90,6 +96,13 @@ function compareItemCount<
     return b.itemCount - a.itemCount;
 }
 
+function compareByName(
+    a: SortableCollectionSummary,
+    b: SortableCollectionSummary
+) {
+    return NAME_COLLATOR.compare(a.name, b.name);
+}
+
 function textMatchScore(
     collection: Pick<SortableCollectionSummary, "name">,
     query: string
@@ -118,15 +131,18 @@ function compareTextMatch(query: string) {
         compareNames(a, b);
 }
 
-const SUMMARY_SORTERS = {
-    count: compareItemCount,
-    created: compareCreatedAt,
-    priority: comparePriorities,
-    updated: compareUpdatedAt,
-} satisfies Record<
+type SummarySorter = Record<
     Exclude<CollectionSortField, "text-match">,
     (a: SortableCollectionSummary, b: SortableCollectionSummary) => number
 >;
+
+const SUMMARY_SORTERS = {
+    count: compareItemCount,
+    created: compareCreatedAt,
+    name: compareByName,
+    priority: comparePriorities,
+    updated: compareUpdatedAt,
+} satisfies SummarySorter;
 
 function sortList<T>(list: readonly T[], compare: (a: T, b: T) => number): T[] {
     return [...list].sort(compare);
@@ -233,15 +249,22 @@ export function WorkspaceProvider({
         new Map<string, number>()
     );
 
-    const {
-        collectionSortField,
-        collectionTextMatchQuery,
-        shouldExcludeArchives,
-    } = useCollectionsSortStore();
+    const { collectionSortField, collectionTextMatchQuery, collectionView } =
+        useCollectionsSortStore();
 
-    const visibleCollections = shouldExcludeArchives
-        ? collections.filter((collection) => collection.priority !== "archive")
-        : collections;
+    const visibleCollections = (() => {
+        if (collectionView === "exclude-archives") {
+            return collections.filter(
+                (collection) => collection.priority !== "archive"
+            );
+        }
+        if (collectionView === "show-shared-only") {
+            return collections.filter(
+                (collection) => collection.shareId != null
+            );
+        }
+        return collections;
+    })();
 
     const collectionSummaries = sortCollectionSummaries(
         visibleCollections,

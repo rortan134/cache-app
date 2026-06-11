@@ -9,6 +9,7 @@ import {
     useCollectionsSortStore,
     useWorkspaceContext,
     type CollectionSortField,
+    type CollectionView,
 } from "@/components/library/workspace";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -129,6 +130,7 @@ import { T, useLocale } from "gt-next";
 import {
     ArchiveIcon,
     ArchiveX,
+    ArrowUpDown,
     ArrowUpRight,
     ChevronRight,
     Clock,
@@ -259,7 +261,7 @@ interface ComboboxValue {
     label: string;
     sortField: CollectionSortField;
     sortQuery: string;
-    view: "show-all" | "exclude-archives";
+    view: CollectionView;
 }
 
 interface ComboboxGroupData {
@@ -345,6 +347,11 @@ const SORT_OPTIONS = [
         value: "updated",
     },
     {
+        icon: ArrowUpDown,
+        label: "Name",
+        value: "name",
+    },
+    {
         icon: Component,
         label: "Count",
         value: "count",
@@ -358,6 +365,7 @@ const SORT_OPTION_BY_VALUE = new Map(
 const VIEW_OPTIONS = [
     { icon: ArchiveIcon, label: "Show all", value: "show-all" },
     { icon: ArchiveX, label: "Exclude archives", value: "exclude-archives" },
+    { icon: Globe, label: "Show shared only", value: "show-shared-only" },
 ] as const;
 
 const TEMPLATES = [
@@ -770,8 +778,8 @@ function useCollectionsController() {
         collectionTextMatchQuery,
         setCollectionSortField,
         setCollectionTextMatchQuery,
-        setShouldExcludeArchives,
-        shouldExcludeArchives,
+        setCollectionView,
+        collectionView,
     } = useCollectionsSortStore();
 
     const { copyToClipboard } = useCopyToClipboard();
@@ -804,7 +812,7 @@ function useCollectionsController() {
         label: currentSortOption?.label ?? "Priority",
         sortField: collectionSortField,
         sortQuery: collectionTextMatchQuery,
-        view: shouldExcludeArchives ? "exclude-archives" : "show-all",
+        view: collectionView,
     };
 
     const showError = (message: string) =>
@@ -1448,9 +1456,8 @@ function useCollectionsController() {
             setSortInputValue("");
         }
 
-        const nextShouldExclude = nextValue.view === "exclude-archives";
-        if (nextShouldExclude !== shouldExcludeArchives) {
-            setShouldExcludeArchives(nextShouldExclude);
+        if (nextValue.view !== collectionView) {
+            setCollectionView(nextValue.view);
         }
 
         setIsSortOpen(false);
