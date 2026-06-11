@@ -695,16 +695,19 @@ function NoteRoot({
 
     if (open !== prevOpen) {
         setPrevOpen(open);
-        if (!open) {
-            setIsExpanded(false);
-        }
         if (open) {
+            // Reset the draft when the drawer opens so a new note after
+            // closing a previous one shows a clean slate. The note
+            // reference itself may be null in both states (closed and
+            // new-note), so the note-change check below would miss it.
             const nextDraft = noteDraftFromItem(note);
             initialDraftRef.current = nextDraft;
             latestDraftRef.current = nextDraft;
             setInitialDraft(nextDraft);
             setDraft(nextDraft);
             setEditorKey((key) => key + 1);
+        } else {
+            setIsExpanded(false);
         }
     }
 
