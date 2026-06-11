@@ -104,7 +104,6 @@ Open [http://localhost:3000](http://localhost:3000).
 | **Linting**        | [Ultracite](https://ultracite.dev/) 7 (Biome)                                                                              |
 | **React Compiler** | [babel-plugin-react-compiler](https://react.dev/learn/react-compiler) (auto-memoization)                                   |
 | **Date Handling**  | [Day.js](https://day.js.org/) 1.11, [chrono-node](https://github.com/wanasit/chrono) 2.9                                   |
-| **Testing**        | [Bun test](https://bun.sh/docs/cli/test)                                                                                   |
 | **Deployment**     | [Vercel](https://vercel.com/), [Unkey](https://unkey.com/)                                                                 |
 
 ---
