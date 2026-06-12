@@ -2435,10 +2435,6 @@ function CollectionsListCalloutPopover() {
         controller.onDisableSmartCollections();
     });
 
-    if (disabled) {
-        return null;
-    }
-
     return (
         <Popover>
             <span
@@ -2447,20 +2443,25 @@ function CollectionsListCalloutPopover() {
                 className="sr-only"
                 role="status"
             >
-                Smart Collections is active
+                Smart Collections is {disabled ? "off" : "active"}
             </span>
             <PopoverTrigger
-                className="group not-sr-only flex items-center text-nowrap font-medium text-[11px] opacity-70 data-popup-open:opacity-100"
+                className={cn(
+                    "group not-sr-only flex items-center text-nowrap font-medium text-[11px]",
+                    disabled
+                        ? "opacity-50"
+                        : "opacity-70 data-popup-open:opacity-100"
+                )}
                 openOnHover
             >
                 <GradientWaveText
                     ariaLabel="Smart Collections"
                     className="w-fit underline decoration-muted-foreground/20 decoration-dotted underline-offset-2"
-                    speed={2.2}
+                    speed={disabled ? 0 : 2.2}
                 >
                     Smart Collections
                 </GradientWaveText>
-                &nbsp;is active{" "}
+                &nbsp;is {disabled ? "off" : "active"}{" "}
                 <ChevronDownFilledIcon
                     aria-hidden
                     className="mb-px size-4 rotate-90 group-data-popup-open:opacity-10!"
@@ -2477,28 +2478,49 @@ function CollectionsListCalloutPopover() {
                     src={SmartCollectionsBackgroundImg}
                 />
                 <div className="mt-4 flex max-w-64 flex-col gap-2">
-                    <PopoverTitle>Let Cache do the organizing</PopoverTitle>
+                    <PopoverTitle>
+                        {disabled
+                            ? "Smart Collections is off"
+                            : "Let Cache do the organizing"}
+                    </PopoverTitle>
                     <PopoverDescription className="text-foreground text-xs leading-snug">
-                        As you add new entries, Cache AI proactively groups your
-                        related saves into contextual collections. Cache also
-                        learns your preferences over time.{" "}
-                        <Button
-                            className="h-fit! px-0 leading-snug sm:text-xs"
-                            render={<Link href="/automations" />}
-                            size="xs"
-                            variant="link"
-                        >
-                            Automations
-                            <ArrowUpRight className="inline-block size-3 shrink-0 text-muted-foreground" />
-                        </Button>
+                        {disabled ? (
+                            <>
+                                Smart Collections uses AI to automatically group
+                                your saves into contextual collections.
+                            </>
+                        ) : (
+                            <>
+                                As you add new entries, Cache AI proactively
+                                groups your related saves into contextual
+                                collections. Cache also learns your preferences
+                                over time.{" "}
+                                <Button
+                                    className="h-fit! px-0 leading-snug sm:text-xs"
+                                    render={<Link href="/automations" />}
+                                    size="xs"
+                                    variant="link"
+                                >
+                                    Automations
+                                    <ArrowUpRight className="inline-block size-3 shrink-0 text-muted-foreground" />
+                                </Button>
+                            </>
+                        )}
                     </PopoverDescription>
                     <Button
                         className="w-fit px-0 text-muted-foreground text-xs"
-                        onClick={handleDisableSmartCollections}
+                        onClick={
+                            disabled ? undefined : handleDisableSmartCollections
+                        }
+                        render={
+                            disabled ? <Link href="/automations" /> : undefined
+                        }
                         size="xs"
                         variant="link"
                     >
-                        Turn off Smart Collections
+                        {disabled
+                            ? "Learn more about Smart Collections"
+                            : "Turn off Smart Collections"}
                     </Button>
                 </div>
             </PopoverPopup>

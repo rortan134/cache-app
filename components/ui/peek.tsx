@@ -3,7 +3,6 @@
 import { Button } from "@/components/ui/button";
 import {
     Drawer,
-    DrawerClose,
     DrawerDescription,
     DrawerFooter,
     DrawerHeader,
@@ -14,7 +13,6 @@ import {
     DrawerViewport,
 } from "@/components/ui/drawer";
 import { Spinner } from "@/components/ui/spinner";
-import { cn } from "@/lib/common/cn";
 import { parseDisplayUrl } from "@/lib/common/url";
 import { useStableCallback } from "@base-ui/utils/useStableCallback";
 import { useTimeout } from "@base-ui/utils/useTimeout";
@@ -120,9 +118,9 @@ function usePeekStatus(open: boolean, url: string, timeoutMs: number) {
 function PeekDrawerLinkButton({ href, ...props }: PeekDrawerLinkButtonProps) {
     return (
         <Button
+            {...props}
             // biome-ignore lint/a11y/useAnchorContent: Ignore
             render={<a href={href} rel="noopener noreferrer" target="_blank" />}
-            {...props}
         />
     );
 }
@@ -142,14 +140,7 @@ export function PeekDrawer({
     const [open, setOpen] = React.useState(false);
 
     return (
-        <PeekDrawerContext
-            value={{
-                description,
-                open,
-                title,
-                url,
-            }}
-        >
+        <PeekDrawerContext value={{ description, open, title, url }}>
             <Drawer onOpenChange={setOpen}>{children}</Drawer>
         </PeekDrawerContext>
     );
@@ -262,13 +253,8 @@ export function PeekDrawerContent() {
                         )}
                     </div>
                 </DrawerPanel>
-                <DrawerFooter
-                    className={cn(
-                        "items-stretch gap-2 border-border/70 border-t sm:items-center",
-                        canOpenInNewTab && "sm:justify-between"
-                    )}
-                >
-                    {canOpenInNewTab && (
+                {canOpenInNewTab && (
+                    <DrawerFooter>
                         <PeekDrawerLinkButton
                             className="justify-start sm:justify-center"
                             href={url}
@@ -278,13 +264,8 @@ export function PeekDrawerContent() {
                             <GlobeIcon className="size-4" />
                             Open in new tab
                         </PeekDrawerLinkButton>
-                    )}
-                    <DrawerClose
-                        render={<Button size="sm" variant="outline" />}
-                    >
-                        Close
-                    </DrawerClose>
-                </DrawerFooter>
+                    </DrawerFooter>
+                )}
             </DrawerPopup>
         </DrawerViewport>
     );
