@@ -2,8 +2,6 @@
 
 import { cn } from "@/lib/common/cn";
 import { ownerWindow } from "@base-ui/utils/owner";
-import { useIsoLayoutEffect } from "@base-ui/utils/useIsoLayoutEffect";
-import { useStableCallback } from "@base-ui/utils/useStableCallback";
 import * as React from "react";
 
 const DEFAULT_DURATION_SECONDS = 9;
@@ -12,6 +10,12 @@ const MAX_SPEED_PX_PER_SECOND = 48;
 interface TickerTrackStyle extends React.CSSProperties {
     "--animation-distance": string;
     "--duration": string;
+    "--gap": string;
+}
+
+interface TickerProps extends React.ComponentProps<"span"> {
+    direction?: "left" | "right";
+    repeatInstances?: number;
 }
 
 export function Ticker({
@@ -21,102 +25,68 @@ export function Ticker({
     children,
     ...props
 }: TickerProps) {
-    const isHorizontal = direction === "left" || direction === "right";
-    const isVertical = direction === "up" || direction === "down";
     const repeatCount = Math.max(1, Math.ceil(repeatInstances));
+
     const [trackSizePx, setTrackSizePx] = React.useState(0);
     const trackRef = React.useRef<HTMLSpanElement | null>(null);
 
-    const measureTrackSize = useStableCallback(() => {
+    React.useEffect(() => {
         const track = trackRef.current;
         if (!track) {
             return;
         }
 
-        const trackRect = track.getBoundingClientRect();
-        const nextTrackSizePx = isHorizontal
-            ? trackRect.width
-            : trackRect.height;
+        const nextTrackSizePx = track.offsetWidth;
 
-        setTrackSizePx((currentTrackSizePx) =>
-            currentTrackSizePx === nextTrackSizePx
-                ? currentTrackSizePx
-                : nextTrackSizePx
+        setTrackSizePx((current) =>
+            current === nextTrackSizePx ? current : nextTrackSizePx
         );
-    });
-
-    useIsoLayoutEffect(() => {
-        const track = trackRef.current;
-        if (!track) {
-            return;
-        }
-
-        measureTrackSize();
 
         const targetWindow = ownerWindow(track);
         if (!targetWindow.ResizeObserver) {
             return;
         }
 
-        const observer = new targetWindow.ResizeObserver(() => {
-            measureTrackSize();
+        const observer = new targetWindow.ResizeObserver((entries) => {
+            const entry = entries[0];
+            if (!entry) {
+                return;
+            }
+            const nextSize = entry.contentRect.width;
+            setTrackSizePx((current) =>
+                current === nextSize ? current : nextSize
+            );
         });
+
         observer.observe(track);
 
         return () => observer.disconnect();
-    }, [isHorizontal, measureTrackSize]);
+    }, []);
 
-    const animationDistance = `${-100 / repeatCount}%`;
-    const travelDistancePx = trackSizePx / repeatCount;
-    const durationSeconds = getTickerDurationSeconds(travelDistancePx);
     const trackStyle: TickerTrackStyle = {
-        "--animation-distance": animationDistance,
-        "--duration": `${durationSeconds}s`,
+        "--animation-distance": `${-100 / repeatCount}%`,
+        "--duration": `${getTickerDurationSeconds(trackSizePx / repeatCount)}s`,
+        "--gap": "1rem",
     };
 
     return (
         <span
+            {...props}
             className={cn(
-                "group relative inline-flex size-full select-none overflow-clip p-px [--gap:1rem]",
-                {
-                    "flex-col": isVertical,
-                    "flex-row": isHorizontal,
-                    "overflow-fade-x pl-1.5": isHorizontal,
-                    "overflow-fade-y": isVertical,
-                },
+                "group-hover:running paused flex shrink-0 animate-marquee select-none gap-(--gap)",
+                { "direction-reverse": direction === "right" },
                 className
             )}
-            {...props}
+            ref={trackRef}
+            style={trackStyle}
         >
-            <span
-                className={cn("group-hover:running paused flex shrink-0", {
-                    "animate-marquee flex-row gap-(--gap)": isHorizontal,
-                    "animate-marquee-vertical flex-col gap-(--gap)": isVertical,
-                    "direction-[reverse]":
-                        direction === "up" || direction === "right",
-                })}
-                ref={trackRef}
-                style={trackStyle}
-            >
-                {Array.from({ length: repeatCount }, (_, index) => (
-                    <span
-                        className={cn("flex shrink-0 gap-(--gap)", {
-                            "flex-col": isVertical,
-                            "flex-row": isHorizontal,
-                        })}
-                        key={index}
-                    >
-                        {children}
-                    </span>
-                ))}
-            </span>
+            {Array.from({ length: repeatCount }, (_, index) => (
+                <span className="shrink-0 p-px" key={index}>
+                    {children}
+                </span>
+            ))}
         </span>
     );
-}
-
-interface TickerProps extends React.ComponentProps<"span"> {
-    direction?: "up" | "down" | "left" | "right";
-    repeatInstances?: number;
 }
 
 function getTickerDurationSeconds(travelDistancePx: number) {

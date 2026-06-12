@@ -219,20 +219,22 @@
         transform: translateX(0);
     }
     100% {
-        transform: translateX(var(--animation-distance, -50%));
-    }
-}
-
-@keyframes marquee-vertical {
-    0% {
-        transform: translateY(0);
-    }
-    100% {
-        transform: translateY(var(--animation-distance, -50%));
+        transform: translateX(
+            calc(var(--animation-distance, -50%) - var(--gap))
+        );
     }
 }
 
 /* ── Custom utilities ── */
+@utility animate-marquee {
+    animation: marquee var(--duration, 5s) linear infinite;
+}
+
+@utility overflow-fade-top {
+    mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0) 0%, #000 50%);
+    @apply overflow-clip;
+}
+
 @utility overflow-fade-bottom {
     mask-image: linear-gradient(
         to top,
@@ -240,42 +242,7 @@
         rgba(0, 0, 0, 0.5) 65%,
         #000 140%
     );
-    @apply overflow-hidden;
-}
-
-@utility overflow-fade-y {
-    mask-image: linear-gradient(
-        to bottom,
-        transparent,
-        #000 10%,
-        #000 90%,
-        transparent
-    );
-    @apply overflow-hidden;
-}
-
-@utility overflow-fade-x {
-    mask-image: linear-gradient(
-        to right,
-        transparent,
-        #000 5%,
-        #000 90%,
-        transparent
-    );
-    @apply overflow-hidden;
-}
-
-@utility overflow-fade-top {
-    mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0) 0%, #000 50%);
-    @apply overflow-hidden;
-}
-
-@utility animate-marquee {
-    animation: marquee var(--duration, 5s) linear infinite;
-}
-
-@utility animate-marquee-vertical {
-    animation: marquee-vertical var(--duration, 5s) linear infinite;
+    @apply overflow-clip;
 }
 
 @utility texture-screen {
