@@ -3,8 +3,8 @@
 import { cn } from "@/lib/common/cn";
 import * as React from "react";
 
-const DEFAULT_DURATION_SECONDS = 9;
-const MAX_SPEED_PX_PER_SECOND = 48;
+const DEFAULT_DURATION_SECONDS = 5;
+const MAX_SPEED_PX_PER_SECOND = 92;
 
 interface TickerTrackStyle extends React.CSSProperties {
     "--animation-distance": string;
@@ -25,16 +25,28 @@ export function Ticker({
     ...props
 }: TickerProps) {
     const [trackSizePx, setTrackSizePx] = React.useState(0);
+    const [childrenSizePx, setChildrenSizePx] = React.useState(0);
 
-    const track = React.useCallback((el: HTMLSpanElement | null) => {
+    const track = (el: HTMLSpanElement | null) => {
         if (el) {
             setTrackSizePx((prev) =>
                 prev === el.offsetWidth ? prev : el.offsetWidth
             );
         }
-    }, []);
+    };
 
-    const repeatCount = Math.max(1, Math.ceil(repeatInstances));
+    const child = (el: HTMLSpanElement | null) => {
+        if (el) {
+            setChildrenSizePx((prev) =>
+                prev === el.offsetWidth ? prev : el.offsetWidth
+            );
+        }
+    };
+
+    const repeatCount =
+        childrenSizePx <= trackSizePx
+            ? 1
+            : Math.max(1, Math.ceil(repeatInstances));
 
     const trackStyle: TickerTrackStyle = {
         "--animation-distance": `${-100 / repeatCount}%`,
@@ -46,15 +58,22 @@ export function Ticker({
         <span
             {...props}
             className={cn(
-                "group-hover:running paused flex shrink-0 animate-marquee select-none gap-(--gap)",
-                { "direction-reverse": direction === "right" },
+                "paused flex shrink-0 animate-marquee select-none gap-(--gap)",
+                {
+                    "direction-reverse": direction === "right",
+                    "group-hover:running": repeatCount > 1,
+                },
                 className
             )}
             ref={track}
             style={trackStyle}
         >
             {Array.from({ length: repeatCount }, (_, index) => (
-                <span className="shrink-0 p-px" key={index}>
+                <span
+                    className="shrink-0 p-px"
+                    key={index}
+                    ref={index === 0 ? child : undefined}
+                >
                     {children}
                 </span>
             ))}

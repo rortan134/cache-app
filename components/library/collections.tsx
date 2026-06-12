@@ -107,8 +107,8 @@ import { removeValue, toggleValue } from "@/lib/common/arrays";
 import { cn } from "@/lib/common/cn";
 import { getHexColorFromName } from "@/lib/common/colors";
 import { ITEM_KIND_NOTE } from "@/lib/common/constants";
-import { getSystemControlKey } from "@/lib/common/keyboard";
 import { saveFile } from "@/lib/common/file";
+import { getSystemControlKey } from "@/lib/common/keyboard";
 import { createLogger } from "@/lib/common/logs/console/logger";
 import {
     escapeCsv,
@@ -1969,7 +1969,7 @@ function CollectionsListGroupTrigger({
             >
                 <span className="min-w-0 text-xs">
                     {children}&nbsp;
-                    <span className="tabular-nums opacity-80">({count})</span>
+                    <span className="opacity-80">({count})</span>
                 </span>
                 <ChevronDownFilledIcon
                     aria-hidden

@@ -3925,7 +3925,9 @@ function CardMenu({
             <Collapsible>
                 <CollapsibleTrigger
                     className="max-w-56"
-                    render={<Button variant="ghost" />}
+                    render={
+                        <Button className="justify-between" variant="ghost" />
+                    }
                 >
                     <span className="block truncate text-xs">
                         {itemPrimaryText(item)}
@@ -4203,7 +4205,7 @@ function MediaCard({ item }: LibraryGridCardProps) {
                             </>
                         )}
                     </a>
-                    <div className="flex items-center p-0.5 pt-1 pr-3">
+                    <div className="flex items-center py-1 pr-3">
                         <CardCollectionPicker
                             item={item}
                             onOpenChange={setIsCollectionPickerOpen}
