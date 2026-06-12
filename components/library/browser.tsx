@@ -2227,7 +2227,7 @@ function BrowserGroupOverview({
         <div
             {...props}
             className={cn(
-                "flex w-full flex-1 flex-col py-1 pr-3 pl-4",
+                "flex w-full flex-1 flex-col pt-1 pr-3 pb-3 pl-4",
                 className
             )}
         >
@@ -2299,19 +2299,17 @@ function BrowserGroupOverviewContent() {
                     : "Description is unavailable right now."}
             </Streamdown>
             &nbsp;
-            <div className="inline-flex items-center justify-end">
-                <Button
-                    aria-controls={contentId}
-                    aria-expanded={isExpanded}
-                    onClick={handleToggleExpanded}
-                    size="xs"
-                    variant="link"
-                >
-                    {isExpanded ? "Collapse" : "Expand"}
-                    &nbsp;
-                    <ListChevronsUpDown className="mb-px inline-block size-3.5 shrink-0" />
-                </Button>
-            </div>
+            <Button
+                aria-controls={contentId}
+                aria-expanded={isExpanded}
+                onClick={handleToggleExpanded}
+                size="xs"
+                variant="link"
+            >
+                {isExpanded ? "Detailed" : "Brief"}
+                &nbsp;
+                <ListChevronsUpDown className="mb-px inline-block size-3.5 shrink-0" />
+            </Button>
         </div>
     );
 }
