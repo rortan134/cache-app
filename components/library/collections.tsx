@@ -3089,25 +3089,6 @@ function CollectionItemMetadata({
     );
 }
 
-function DialogFieldError({
-    children,
-    id,
-}: {
-    children: React.ReactNode;
-    id: string;
-}) {
-    return (
-        <p
-            aria-atomic="true"
-            className="pt-2 text-destructive text-xs"
-            id={id}
-            role="alert"
-        >
-            {children}
-        </p>
-    );
-}
-
 function CollectionsRenameDialog() {
     const {
         errorMessage,
@@ -3429,5 +3410,24 @@ function CollectionsDeleteDialog() {
                 </form>
             </DialogPopup>
         </Dialog>
+    );
+}
+
+function DialogFieldError({
+    children,
+    id,
+}: {
+    children: React.ReactNode;
+    id: string;
+}) {
+    return (
+        <p
+            aria-atomic="true"
+            className="pt-2 text-destructive text-xs"
+            id={id}
+            role="alert"
+        >
+            {children}
+        </p>
     );
 }

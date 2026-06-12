@@ -52,6 +52,8 @@ const HTTP_SINGLE_RANGE_HEADER_PATTERN = /^bytes=(\d*)-(\d*)$/;
 const XHTML_CONTENT_TYPE_PATTERN = /^application\/xhtml\+xml/i;
 const ABORTED_RESPONSE = new Response(null, { status: 499 });
 
+const INSTAGRAM_HOSTS = new Set(["instagram.com", ".instagram.com"]);
+
 interface VideoRangeRequest {
     endByte: number | null;
     header: string;
@@ -76,10 +78,7 @@ function acceptsZstd(request: Request): boolean {
 function getUserAgent(url: string): string {
     try {
         const hostname = new URL(url).hostname.toLowerCase();
-        if (
-            hostname === "instagram.com" ||
-            hostname.endsWith(".instagram.com")
-        ) {
+        if (INSTAGRAM_HOSTS.has(hostname)) {
             return GOOGLEBOT_USER_AGENT;
         }
     } catch {
@@ -671,11 +670,6 @@ async function readTextBodyWithLimit(
 
     const { signal, clearTimeout } = abortAfterAny(FETCH_TIMEOUT_MS);
 
-    if (signal.aborted) {
-        clearTimeout();
-        return null;
-    }
-
     const reader = response.body.getReader();
     const decoder = new TextDecoder();
     let body = "";
@@ -684,21 +678,14 @@ async function readTextBodyWithLimit(
     try {
         while (true) {
             const { done, value } = await readWithSignal(reader, signal);
-            if (signal.aborted) {
-                await reader.cancel("Preview metadata read timed out.");
-                return null;
-            }
             if (done) {
                 break;
-            }
-            if (!value) {
-                continue;
             }
 
             bodyBytes += value.byteLength;
             if (bodyBytes > maxBodyBytes) {
                 await reader.cancel("Preview metadata exceeded size limit.");
-                body += decoder.decode();
+                body += decoder.decode(value);
                 return body;
             }
 
