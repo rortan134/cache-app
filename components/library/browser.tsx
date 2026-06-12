@@ -3428,28 +3428,28 @@ function MediaPreview({
     src: string | null;
     videoSrc?: string | null;
 }) {
+    const videoRef = React.useRef<HTMLVideoElement | null>(null);
+
     const [isHovered, setIsHovered] = React.useState(false);
-    const [hasHoverIntent, setHasHoverIntent] = React.useState(false);
     const [isSoundEnabled, setIsSoundEnabled] = React.useState(true);
 
     const [hasImageFailed, setHasImageFailed] = React.useState(false);
     const [hasVideoFailed, setHasVideoFailed] = React.useState(false);
     const [hasVideoStarted, setHasVideoStarted] = React.useState(false);
 
-    const videoRef = React.useRef<HTMLVideoElement | null>(null);
-
     const canRenderImage = !!src;
     const canRenderVideo = !!videoSrc;
-    const shouldLoadVideo = hasHoverIntent && canRenderVideo && !hasVideoFailed;
-    const isVideoLoading = shouldLoadVideo && !hasVideoStarted;
+
+    const shouldLoadVideo = isHovered && canRenderVideo && !hasVideoFailed;
+    const isVideoLoading = !hasVideoStarted && shouldLoadVideo;
 
     React.useEffect(() => {
         const video = videoRef.current;
-        if (!(video && canRenderVideo)) {
+        if (!(video && shouldLoadVideo)) {
             return;
         }
 
-        if (isHovered && !hasVideoFailed) {
+        if (isHovered) {
             video.play().catch((error: unknown) => {
                 log.debug("Failed to resume hover preview", { error });
             });
@@ -3457,7 +3457,7 @@ function MediaPreview({
             video.pause();
             video.currentTime = 0;
         }
-    }, [isHovered, canRenderVideo, hasVideoFailed]);
+    }, [isHovered, shouldLoadVideo]);
 
     const handleCanPlay = useStableCallback(() => {
         setHasVideoStarted(true);
@@ -3475,7 +3475,7 @@ function MediaPreview({
 
     const handleMouseEnter = useStableCallback(() => {
         setIsHovered(true);
-        setHasHoverIntent(true);
+        setHasVideoFailed(false);
     });
 
     const handleMouseLeave = useStableCallback(() => {
@@ -3483,12 +3483,10 @@ function MediaPreview({
     });
 
     const handleVideoError = useStableCallback(() => {
-        setHasVideoStarted(true);
         const video = videoRef.current;
         const mediaError = video?.error;
         log.debug("Video source failed to load", {
-            mediaErrorCode: mediaError?.code,
-            mediaErrorMessage: mediaError?.message,
+            mediaError,
             networkState: video?.networkState,
             readyState: video?.readyState,
             videoSrc,
@@ -3499,7 +3497,7 @@ function MediaPreview({
     const handleSoundToggle = useStableCallback((event: React.MouseEvent) => {
         event.preventDefault();
         event.stopPropagation();
-        setIsSoundEnabled((wasSoundEnabled) => !wasSoundEnabled);
+        setIsSoundEnabled((prev) => !prev);
     });
 
     const SoundIcon = isSoundEnabled ? Volume2Icon : VolumeXIcon;
