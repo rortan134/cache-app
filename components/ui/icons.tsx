@@ -6,7 +6,7 @@ export const GithubIcon = ({
     ...props
 }: SVGProps<SVGSVGElement>) => (
     <svg
-        aria-hidden="true"
+        aria-hidden
         className={cn("size-6 shrink-0", className)}
         focusable="false"
         role="img"
@@ -25,7 +25,7 @@ export const TikTokIcon = ({
     ...props
 }: SVGProps<SVGSVGElement>) => (
     <svg
-        aria-hidden="true"
+        aria-hidden
         className={cn("size-6 shrink-0", className)}
         focusable="false"
         role="img"
@@ -57,7 +57,7 @@ export const InstagramIcon = ({
     ...props
 }: SVGProps<SVGSVGElement>) => (
     <svg
-        aria-hidden="true"
+        aria-hidden
         className={cn("size-6 shrink-0", className)}
         focusable="false"
         role="img"
@@ -77,7 +77,7 @@ export const PinterestIcon = ({
     ...props
 }: SVGProps<SVGSVGElement>) => (
     <svg
-        aria-hidden="true"
+        aria-hidden
         className={cn("size-6 shrink-0", className)}
         focusable="false"
         role="img"
@@ -96,7 +96,7 @@ export const PhotosIcon = ({
     ...props
 }: SVGProps<SVGSVGElement>) => (
     <svg
-        aria-hidden="true"
+        aria-hidden
         className={cn("size-6 shrink-0", className)}
         focusable="false"
         preserveAspectRatio="xMidYMid"
@@ -128,7 +128,7 @@ export const XSocialIcon = ({
     ...props
 }: SVGProps<SVGSVGElement>) => (
     <svg
-        aria-hidden="true"
+        aria-hidden
         className={cn("size-6 shrink-0", className)}
         fill="none"
         focusable="false"
@@ -148,7 +148,7 @@ export const YouTubeIcon = ({
     ...props
 }: SVGProps<SVGSVGElement>) => (
     <svg
-        aria-hidden="true"
+        aria-hidden
         className={cn("size-6 shrink-0", className)}
         focusable="false"
         role="img"
@@ -168,7 +168,7 @@ export const ChromeIcon = ({
     ...props
 }: SVGProps<SVGSVGElement>) => (
     <svg
-        aria-hidden="true"
+        aria-hidden
         className={cn("size-6 shrink-0", className)}
         focusable="false"
         role="img"
@@ -204,7 +204,7 @@ export const GoogleIcon = ({
     ...props
 }: SVGProps<SVGSVGElement>) => (
     <svg
-        aria-hidden="true"
+        aria-hidden
         className={cn("size-5 shrink-0", className)}
         focusable="false"
         role="img"
@@ -232,7 +232,7 @@ export const GoogleIcon = ({
 
 export const AppleIcon = ({ className, ...props }: SVGProps<SVGSVGElement>) => (
     <svg
-        aria-hidden="true"
+        aria-hidden
         className={cn("size-5 shrink-0", className)}
         focusable="false"
         role="img"
@@ -249,7 +249,7 @@ export const NotionIcon = ({
     ...props
 }: SVGProps<SVGSVGElement>) => (
     <svg
-        aria-hidden="true"
+        aria-hidden
         className={cn("inline-block size-4 shrink-0", className)}
         focusable="false"
         height="268"
@@ -272,7 +272,7 @@ export const GoogleDocsIcon = ({
     ...props
 }: SVGProps<SVGSVGElement>) => (
     <svg
-        aria-hidden="true"
+        aria-hidden
         className={cn("inline-block size-4 shrink-0", className)}
         focusable="false"
         role="img"

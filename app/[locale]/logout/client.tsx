@@ -36,7 +36,7 @@ export function LogoutPageClient() {
     return (
         <div className="flex h-screen w-full flex-col items-center justify-center bg-muted">
             <div className="flex flex-col items-center gap-4">
-                <div aria-hidden="true">
+                <div aria-hidden>
                     <Spinner className="size-8" />
                 </div>
                 <p className="text-muted-foreground text-sm">

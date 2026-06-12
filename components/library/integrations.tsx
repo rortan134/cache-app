@@ -680,7 +680,7 @@ function IntegrationsListItemActions({
             {actions.map((action) => (
                 <Button
                     className="rounded-full text-xs!"
-                    key={`${integrationId}-source-${action.role}`}
+                    key={`${integrationId}-${action.role}`}
                     loading={action.isLoading}
                     onClick={(event: React.MouseEvent) => {
                         event.stopPropagation();

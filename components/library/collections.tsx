@@ -183,7 +183,7 @@ const CREATE_ERROR_MESSAGE = "We couldn't create this collection right now.";
 const DELETE_ERROR_MESSAGE = "We couldn't delete this collection right now.";
 const DUPLICATE_ERROR_MESSAGE =
     "We couldn't make a copy of this collection right now.";
-const EMPTY_LINKS_MESSAGE = "There are no links in this collection yet.";
+const EMPTY_LINKS_ERROR_MESSAGE = "There are no links in this collection yet.";
 const RENAME_ERROR_MESSAGE = "We couldn't rename this collection right now.";
 const SHARE_ERROR_MESSAGE = "We couldn't create a public link right now.";
 const DISABLE_SHARING_ERROR_MESSAGE =
@@ -212,8 +212,8 @@ interface CollectionFeedback {
 }
 
 interface CollectionItemStyle extends React.CSSProperties {
+    "--accent-color": string;
     "--collection-background": string;
-    "--focus-ring-color": string;
     "--text-muted-color": string;
 }
 
@@ -324,7 +324,7 @@ const PRIORITIES = [
         label: "Archive",
         value: "archive",
     },
-] satisfies PriorityOption[];
+] as const satisfies PriorityOption[];
 
 const PRIORITY_BY_VALUE = new Map(
     PRIORITIES.map((option) => [option.value, option])
@@ -356,7 +356,7 @@ const SORT_OPTIONS = [
         label: "Count",
         value: "count",
     },
-] satisfies SortingOption[];
+] as const satisfies SortingOption[];
 
 const SORT_OPTION_BY_VALUE = new Map(
     SORT_OPTIONS.map((option) => [option.value, option])
@@ -650,14 +650,14 @@ export function Collections() {
                     </CollectionsListToolbarGroup>
                 </CollectionsListToolbar>
                 <CollectionsListPanel>
-                    <ListFavoritesCarouselContent>
+                    <CollectionsListFavoritesCarouselContent>
                         {(item) => (
-                            <FavoriteItemCarouselSlide
+                            <CollectionsListFavoritesCarouselSlide
                                 item={item}
                                 key={item.id}
                             />
                         )}
-                    </ListFavoritesCarouselContent>
+                    </CollectionsListFavoritesCarouselContent>
                     <CollectionsListFavoritesContent>
                         {(collection) => (
                             <CollectionItemRow
@@ -682,7 +682,7 @@ export function Collections() {
                             <CmdKbd />C
                         </Kbd>
                         <CollectionsListToolbarButton
-                            render={<CollectionsListFilterClearButton />}
+                            render={<CollectionsListClearFilterButton />}
                         />
                         <CollectionsListToolbarButton
                             render={<CollectionsListSortingCombobox />}
@@ -1033,7 +1033,7 @@ function useCollectionsController() {
         const urls = getItemUrls(items);
 
         if (urls.length === 0) {
-            showError(EMPTY_LINKS_MESSAGE);
+            showError(EMPTY_LINKS_ERROR_MESSAGE);
             return;
         }
 
@@ -1140,7 +1140,7 @@ function useCollectionsController() {
         const urls = getItemUrls(items);
 
         if (urls.length === 0) {
-            showError(EMPTY_LINKS_MESSAGE);
+            showError(EMPTY_LINKS_ERROR_MESSAGE);
             return;
         }
 
@@ -1161,7 +1161,7 @@ function useCollectionsController() {
         const items = getCollectionItems(collection.id);
 
         if (items.length === 0) {
-            showError(EMPTY_LINKS_MESSAGE);
+            showError(EMPTY_LINKS_ERROR_MESSAGE);
             return;
         }
 
@@ -1438,6 +1438,10 @@ function useCollectionsController() {
         }
     };
 
+    const handleDismissFeedback = useStableCallback(() => {
+        setFeedback(null);
+    });
+
     const handleComboboxValueChange = (nextValue: ComboboxValue | null) => {
         if (!nextValue) {
             return;
@@ -1501,7 +1505,7 @@ function useCollectionsController() {
         onDelete: requestDelete,
         onDisableShare: handleDisableShare,
         onDisableSmartCollections: handleDisableSmartCollections,
-        onDismissFeedback: () => setFeedback(null),
+        onDismissFeedback: handleDismissFeedback,
         onDuplicate: handleDuplicate,
         onEnableShare: handleEnableShare,
         onExportCsv: handleExportCsv,
@@ -1661,10 +1665,10 @@ function getCollectionItemStyle(
     const base = `color-mix(in srgb, ${color} ${isSelected ? 20 : 10}%, transparent)`;
 
     return {
+        "--accent-color": `color-mix(in srgb, ${color}, black 50%)`,
         "--collection-background": isSelected
             ? `color-mix(in srgb, ${base}, white 3%)`
             : `color-mix(in srgb, ${base}, black 3%)`,
-        "--focus-ring-color": `color-mix(in srgb, ${color}, black 50%)`,
         "--text-muted-color": `color-mix(in srgb, ${color} 16%, black 18%)`,
     };
 }
@@ -1912,7 +1916,14 @@ interface CollectionsListContentProps {
     ) => React.ReactNode;
 }
 
-interface FavoriteItemsCarouselContentProps {
+interface CollectionsListFavoritesContentProps {
+    children: (
+        item: LibraryCollectionSummary,
+        index: number
+    ) => React.ReactNode;
+}
+
+interface CollectionsListFavoritesCarouselContentProps {
     children: (
         item: LibraryItemWithCollections,
         index: number
@@ -1987,9 +1998,9 @@ function CollectionsListGroupTrigger({
     );
 }
 
-function ListFavoritesCarouselContent({
+function CollectionsListFavoritesCarouselContent({
     children,
-}: FavoriteItemsCarouselContentProps) {
+}: CollectionsListFavoritesCarouselContentProps) {
     const { favoriteItems } = useCollections();
 
     if (!favoriteItems.length) {
@@ -2003,7 +2014,7 @@ function ListFavoritesCarouselContent({
     );
 }
 
-function FavoriteItemCarouselSlide({
+function CollectionsListFavoritesCarouselSlide({
     item,
 }: {
     item: LibraryItemWithCollections;
@@ -2098,7 +2109,7 @@ function FavoriteItemCarouselSlide({
 
 function CollectionsListFavoritesContent({
     children,
-}: CollectionsListContentProps) {
+}: CollectionsListFavoritesContentProps) {
     const { favoriteCollectionSummaries } = useCollections();
 
     if (!favoriteCollectionSummaries.length) {
@@ -2258,7 +2269,7 @@ function CollectionsListStatus({
  * Returns `null` when no filters are active so the layout doesn't reserve
  * space for an invisible control.
  */
-function CollectionsListFilterClearButton({
+function CollectionsListClearFilterButton({
     onClick: onClickProp,
     ...props
 }: React.ComponentProps<typeof Button>) {
@@ -2501,7 +2512,11 @@ function CollectionsListCalloutPopover() {
                                     variant="link"
                                 >
                                     Automations
-                                    <ArrowUpRight className="inline-block size-3 shrink-0 text-muted-foreground" />
+                                    <ArrowUpRight
+                                        aria-hidden
+                                        className="inline-block size-3 shrink-0 text-muted-foreground"
+                                        focusable="false"
+                                    />
                                 </Button>
                             </>
                         )}
@@ -2613,7 +2628,7 @@ function CollectionItemTrigger({
                 onClick={handleClick}
                 render={
                     <SidebarItem
-                        className="w-full min-w-0 flex-1 justify-start pr-8 pl-10.5 text-left hover:bg-transparent focus-visible:ring-(--focus-ring-color)"
+                        className="w-full min-w-0 flex-1 justify-start pr-8 pl-10.5 text-left hover:bg-transparent focus-visible:ring-(--accent-color)"
                         render={<Button variant="ghost" />}
                     />
                 }
@@ -2698,7 +2713,7 @@ function CollectionItemPriorityCombobox() {
                 render={
                     <Button
                         aria-label={`Change priority for ${collection.name}`}
-                        className="absolute top-1/2 left-2.5 z-10 -translate-y-1/2 border-none bg-(--collection-background) text-(--focus-ring-color)"
+                        className="absolute top-1/2 left-2.5 z-10 -translate-y-1/2 border-none bg-(--collection-background) text-(--accent-color)"
                         size="icon-xs"
                         title="Organize collections by relevance level"
                         variant="ghost"
@@ -2757,7 +2772,11 @@ function CollectionItemShareSubMenu() {
     return (
         <MenuSub>
             <MenuSubTrigger>
-                <ShareArrowSolidIcon className="inline-block size-4 text-muted-foreground" />
+                <ShareArrowSolidIcon
+                    aria-hidden
+                    className="inline-block size-4 text-muted-foreground"
+                    focusable="false"
+                />
                 Share
             </MenuSubTrigger>
             <MenuSubPopup>
@@ -2968,6 +2987,8 @@ function CollectionItemMetadata({
         "Copy hovered collection",
         hasItems
     );
+    const updatedAt = dayjs(collection.updatedAt);
+
     useCollectionItemHotkey(
         "alt+f",
         onFavoriteToggle,
@@ -2979,7 +3000,7 @@ function CollectionItemMetadata({
         <div className="absolute top-1/2 right-0 flex size-8 -translate-y-1/2 items-center justify-center">
             <span className="pointer-events-none text-nowrap text-(--text-muted-color) text-xs tabular-nums focus-visible:opacity-0 group-focus-within:opacity-0 group-hover:opacity-0">
                 {metadataDisplay === "updated-at"
-                    ? dayjs(collection.updatedAt).fromNow(true)
+                    ? updatedAt.fromNow(true)
                     : COMPACT_NUMBER_FORMATTER.format(collection.itemCount)}
             </span>
             <Menu>
@@ -3056,14 +3077,9 @@ function CollectionItemMetadata({
                     </MenuGroup>
                     <MenuItem disabled>
                         <div className="-mt-1 space-y-1 text-[10px] text-muted-foreground leading-none *:text-nowrap">
+                            <div>Last updated {updatedAt.fromNow()}</div>
                             <div>
-                                Last updated{" "}
-                                {dayjs(collection.updatedAt).fromNow()}
-                            </div>
-                            <div>
-                                {dayjs(collection.updatedAt).format(
-                                    "MMM DD, YYYY, h:mm A"
-                                )}
+                                {updatedAt.format("MMM DD, YYYY, h:mm A")}
                             </div>
                         </div>
                     </MenuItem>
@@ -3210,7 +3226,11 @@ function CollectionsCreateDialog() {
                                 />
                                 Cache
                             </Badge>
-                            <ChevronRight className="inline-block size-3.5 shrink-0" />
+                            <ChevronRight
+                                aria-hidden
+                                className="inline-block size-3.5 shrink-0"
+                                focusable="false"
+                            />
                             <DialogTitle className="font-medium text-sm">
                                 New collection
                             </DialogTitle>
@@ -3272,7 +3292,7 @@ function CollectionsCreateDialog() {
                             </DialogFieldError>
                         ) : null}
                         <Alert>
-                            <Lightbulb />
+                            <Lightbulb aria-hidden focusable="false" />
                             <AlertDescription>
                                 Collections keep your best saves and content in
                                 one place. Use them for ongoing goals, or just
@@ -3296,7 +3316,11 @@ function CollectionsCreateDialog() {
                                     />
                                 }
                             >
-                                <LibraryBig className="mr-0.5! size-4" />
+                                <LibraryBig
+                                    aria-hidden
+                                    className="mr-0.5! size-4"
+                                    focusable="false"
+                                />
                                 Explore Templates
                             </ComboboxTrigger>
                             <ComboboxPopup align="start" className="max-w-80">
@@ -3325,12 +3349,20 @@ function CollectionsCreateDialog() {
                                 </ComboboxList>
                                 {disabled ? null : (
                                     <div className="flex gap-2 px-3 py-2">
-                                        <Info className="inline-block size-3.5 shrink-0" />
+                                        <Info
+                                            aria-hidden
+                                            className="inline-block size-3.5 shrink-0"
+                                            focusable="false"
+                                        />
                                         <p className="text-[11px] text-muted-foreground leading-tight">
                                             Cache's{" "}
                                             <strong className="font-medium">
                                                 Smart Collections&nbsp;
-                                                <Sparkle className="mb-px inline-block size-3" />
+                                                <Sparkle
+                                                    aria-hidden
+                                                    className="mb-px inline-block size-3"
+                                                    focusable="false"
+                                                />
                                             </strong>{" "}
                                             can automatically assign collections
                                             to entries that match these

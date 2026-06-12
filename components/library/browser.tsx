@@ -3578,7 +3578,7 @@ function MediaPreview({
                             variant="ghost"
                         >
                             <SoundIcon
-                                aria-hidden="true"
+                                aria-hidden
                                 className="size-4"
                                 focusable="false"
                             />
@@ -3781,13 +3781,13 @@ function CollectionComboboxPicker({
                 {children ??
                     (selectedCount > 0 ? (
                         <Squircle
-                            aria-hidden="true"
+                            aria-hidden
                             aria-label="Collections"
                             className="size-4.5"
                         />
                     ) : (
                         <CircleDashed
-                            aria-hidden="true"
+                            aria-hidden
                             aria-label="Collections"
                             className="size-4.5"
                         />

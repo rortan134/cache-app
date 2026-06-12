@@ -91,7 +91,7 @@ export function Footer() {
                         </span>
                         <div className="relative inset-x-0 h-[100px] w-full overflow-clip sm:h-[130px] md:h-[200px]">
                             <svg
-                                aria-hidden="true"
+                                aria-hidden
                                 className="overflow-fade-bottom mx-auto flex h-auto w-full justify-center"
                                 fill="none"
                                 height="200"

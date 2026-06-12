@@ -136,7 +136,7 @@ function SubmitButton({ ref }: { ref?: React.Ref<HTMLButtonElement> }) {
             type="submit"
         >
             <Send
-                aria-hidden="true"
+                aria-hidden
                 className="inline-block size-4 shrink-0"
                 focusable="false"
             />
