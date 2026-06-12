@@ -225,7 +225,7 @@ import {
 } from "lucide-react";
 import dynamic from "next/dynamic";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
+
 import type { ReactNode } from "react";
 import * as React from "react";
 import { createPortal } from "react-dom";
@@ -2206,8 +2206,8 @@ function BrowserGroupEmpty({ className, ...props }: React.ComponentProps<"p">) {
 
     return (
         <p
-            className={cn("text-muted-foreground text-sm", className)}
             {...props}
+            className={cn("text-muted-foreground text-sm", className)}
         />
     );
 }
@@ -3952,7 +3952,7 @@ function CardMenu({
                         </span>
                     </div>
                     {previewImageUrl ? (
-                        <div className="flex items-center justify-between gap-3 py-0.5 pb-4">
+                        <div className="flex items-center justify-between gap-3 py-0.5 pb-3">
                             <span>Palette</span>
                             <PreviewColorPalette src={previewImageUrl} />
                         </div>
@@ -4493,7 +4493,6 @@ export function Browser({
     lockedItemCount,
     totalItemCount,
 }: LibraryProps) {
-    const router = useRouter();
     const { hasAccess } = useSubscriptionAccess();
     const isExtensionInstalled = useIsExtensionInstalled();
     const paletteFocusOutTimeout = useTimeout();
@@ -4587,9 +4586,6 @@ export function Browser({
     } = useLibraryItemActions({
         onDeleteSuccess: (result) => {
             onDeleteItemSuccess(result);
-            if (!hasAccess) {
-                router.refresh();
-            }
         },
         setVisibleItems: onItemsChange,
     });
@@ -5375,9 +5371,6 @@ export function Browser({
                         );
                     });
                     setActiveNote(result.item);
-                    if (!hasAccess) {
-                        router.refresh();
-                    }
                     resolve(true);
                 });
             })
@@ -5410,9 +5403,6 @@ export function Browser({
                         );
                     });
 
-                    if (!hasAccess) {
-                        router.refresh();
-                    }
                     resolve();
                 });
             })

@@ -2457,7 +2457,6 @@ function CollectionsListCalloutPopover() {
                 <GradientWaveText
                     ariaLabel="Smart Collections"
                     className="w-fit underline decoration-muted-foreground/20 decoration-dotted underline-offset-2"
-                    speed={disabled ? 0 : 2.2}
                 >
                     Smart Collections
                 </GradientWaveText>
