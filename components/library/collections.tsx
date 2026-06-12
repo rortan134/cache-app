@@ -107,7 +107,7 @@ import { removeValue, toggleValue } from "@/lib/common/arrays";
 import { cn } from "@/lib/common/cn";
 import { getHexColorFromName } from "@/lib/common/colors";
 import { ITEM_KIND_NOTE } from "@/lib/common/constants";
-import { getSystemControlKey } from "@/lib/common/environment";
+import { getSystemControlKey } from "@/lib/common/keyboard";
 import { saveFile } from "@/lib/common/file";
 import { createLogger } from "@/lib/common/logs/console/logger";
 import {

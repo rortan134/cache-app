@@ -6,7 +6,7 @@ import {
     getSystemAltKey,
     getSystemControlKey,
     getSystemShiftKey,
-} from "@/lib/common/environment";
+} from "@/lib/common/keyboard";
 import type * as React from "react";
 
 export function Kbd({ className, ...props }: React.ComponentProps<"kbd">) {
