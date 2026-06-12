@@ -1,9 +1,9 @@
 "use client";
 
-import * as React from "react";
 import { useStableCallback } from "@base-ui/utils/useStableCallback";
+import * as React from "react";
 
-const HISTORY_LIMIT = 10;
+const HISTORY_LIMIT = 15;
 
 const STORAGE_KEY = "cache:lastVisitedItemIds";
 

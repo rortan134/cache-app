@@ -1,7 +1,6 @@
 "use client";
 
 import { cn } from "@/lib/common/cn";
-import { ownerWindow } from "@base-ui/utils/owner";
 import * as React from "react";
 
 const DEFAULT_DURATION_SECONDS = 9;
@@ -25,43 +24,17 @@ export function Ticker({
     children,
     ...props
 }: TickerProps) {
-    const repeatCount = Math.max(1, Math.ceil(repeatInstances));
-
     const [trackSizePx, setTrackSizePx] = React.useState(0);
-    const trackRef = React.useRef<HTMLSpanElement | null>(null);
 
-    React.useEffect(() => {
-        const track = trackRef.current;
-        if (!track) {
-            return;
-        }
-
-        const nextTrackSizePx = track.offsetWidth;
-
-        setTrackSizePx((current) =>
-            current === nextTrackSizePx ? current : nextTrackSizePx
-        );
-
-        const targetWindow = ownerWindow(track);
-        if (!targetWindow.ResizeObserver) {
-            return;
-        }
-
-        const observer = new targetWindow.ResizeObserver((entries) => {
-            const entry = entries[0];
-            if (!entry) {
-                return;
-            }
-            const nextSize = entry.contentRect.width;
-            setTrackSizePx((current) =>
-                current === nextSize ? current : nextSize
+    const track = React.useCallback((el: HTMLSpanElement | null) => {
+        if (el) {
+            setTrackSizePx((prev) =>
+                prev === el.offsetWidth ? prev : el.offsetWidth
             );
-        });
-
-        observer.observe(track);
-
-        return () => observer.disconnect();
+        }
     }, []);
+
+    const repeatCount = Math.max(1, Math.ceil(repeatInstances));
 
     const trackStyle: TickerTrackStyle = {
         "--animation-distance": `${-100 / repeatCount}%`,
@@ -77,7 +50,7 @@ export function Ticker({
                 { "direction-reverse": direction === "right" },
                 className
             )}
-            ref={trackRef}
+            ref={track}
             style={trackStyle}
         >
             {Array.from({ length: repeatCount }, (_, index) => (
@@ -93,9 +66,7 @@ function getTickerDurationSeconds(travelDistancePx: number) {
     if (travelDistancePx <= 0 || !Number.isFinite(travelDistancePx)) {
         return DEFAULT_DURATION_SECONDS;
     }
-
     const cappedDurationSeconds = travelDistancePx / MAX_SPEED_PX_PER_SECOND;
-
     return Math.max(
         DEFAULT_DURATION_SECONDS,
         Math.ceil(cappedDurationSeconds * 100) / 100
