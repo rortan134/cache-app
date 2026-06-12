@@ -1,8 +1,9 @@
 import { FALLBACK_URL } from "@/lib/common/constants";
 import { sanitizeUrl } from "@braintree/sanitize-url";
 
-const URL_ONLY_WHITESPACE = /\s/;
+const URL_WHITESPACE_RE = /\s/;
 const URL_ONLY_PROTOCOLS = new Set(["http:", "https:"]);
+const PROTOCOL_PREFIX_RE = /^[a-zA-Z]+:\/\//;
 
 export const parseValidUrl = (url: string): URL | null => {
     try {
@@ -24,61 +25,52 @@ export function getSafeOrigin() {
     if (typeof window === "undefined") {
         return null;
     }
-
     const origin = window.location.origin;
     return origin === "null" ? null : origin;
 }
 
-const protocolsRegex = /^[a-zA-Z]+:\/\//;
-
-export const toValidUrl = (link: string) => {
+const toUrl = (link: string): URL | null => {
     const trimmed = link.trim();
     if (!trimmed) {
-        return FALLBACK_URL;
+        return null;
     }
 
-    // Transform relative links to absolute urls
     if (trimmed.startsWith("/")) {
         const origin = getSafeOrigin();
         if (typeof origin !== "string") {
-            return FALLBACK_URL;
+            return null;
         }
-        return parseValidUrl(`${origin}${trimmed}`)?.href ?? FALLBACK_URL;
+        return parseValidUrl(`${origin}${trimmed}`);
     }
 
     if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
-        const normalized = normalizeURL(trimmed);
-        return parseValidUrl(normalized)?.href ?? FALLBACK_URL;
+        return parseValidUrl(normalizeURL(trimmed));
     }
 
     if (trimmed.includes("://")) {
-        const replaced = trimmed.replace(protocolsRegex, "");
-        const normalized = normalizeURL(replaced);
-        return parseValidUrl(normalized)?.href ?? FALLBACK_URL;
+        const replaced = trimmed.replace(PROTOCOL_PREFIX_RE, "");
+        return parseValidUrl(normalizeURL(replaced));
     }
 
-    const normalized = normalizeURL(`https://${trimmed}`);
-    return parseValidUrl(normalized)?.href ?? FALLBACK_URL;
+    return parseValidUrl(normalizeURL(`https://${trimmed}`));
 };
+
+export const toValidUrl = (link: string): string =>
+    toUrl(link)?.href ?? FALLBACK_URL;
 
 export const parseStandaloneUrl = (input: string): URL | null => {
     const trimmedInput = input.trim();
 
-    if (trimmedInput.length === 0 || URL_ONLY_WHITESPACE.test(trimmedInput)) {
+    if (trimmedInput.length === 0 || URL_WHITESPACE_RE.test(trimmedInput)) {
         return null;
     }
 
-    const normalizedUrl = toValidUrl(trimmedInput);
-    if (normalizedUrl === FALLBACK_URL) {
+    const url = toUrl(trimmedInput);
+    if (!(url && URL_ONLY_PROTOCOLS.has(url.protocol))) {
         return null;
     }
 
-    const parsedUrl = parseValidUrl(normalizedUrl);
-    if (!(parsedUrl && URL_ONLY_PROTOCOLS.has(parsedUrl.protocol))) {
-        return null;
-    }
-
-    return parsedUrl;
+    return url;
 };
 
 export const isLocalUrl = (link: string | null) => {
@@ -102,7 +94,7 @@ export const parseUrlSearchParams = (url: string) => {
         const params = new URL(url).searchParams;
         const paramsObj: Record<string, string> = {};
         for (const [key, value] of params.entries()) {
-            if (value && value !== "") {
+            if (value) {
                 paramsObj[key] = value;
             }
         }
