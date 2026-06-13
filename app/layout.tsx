@@ -1,7 +1,6 @@
 import "@/lib/dayjs/locales";
 
 import { APP_NAME, BASE_URL, SITE_DEFAULT_TITLE } from "@/lib/common/constants";
-import { getOwnerDocument } from "@/lib/common/dom";
 import { INTEGRATIONS } from "@/lib/integrations/support";
 import { Analytics } from "@vercel/analytics/next";
 import { GTProvider, getLocale } from "gt-next/server";
@@ -134,7 +133,7 @@ function NextChatSDKBootstrap({ baseUrl }: { baseUrl: string }) {
                         if (baseUrl === undefined) {
                             return;
                         }
-                        const htmlElement = getOwnerDocument().documentElement;
+                        const htmlElement = document.documentElement;
                         const managedHtmlAttributes = new Set([
                             "class",
                             "style",

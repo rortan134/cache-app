@@ -3911,7 +3911,10 @@ function CardMenu({
                 <CollapsibleTrigger
                     className="max-w-56"
                     render={
-                        <Button className="justify-between" variant="ghost" />
+                        <Button
+                            className="max-w-full justify-between rounded-xl"
+                            variant="ghost"
+                        />
                     }
                 >
                     <span className="block truncate text-xs">
