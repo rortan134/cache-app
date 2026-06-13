@@ -1,3 +1,5 @@
+"use client";
+
 import { cn } from "@/lib/common/cn";
 import { djb2Hash } from "@/lib/common/colors";
 import { GlobeOff } from "lucide-react";

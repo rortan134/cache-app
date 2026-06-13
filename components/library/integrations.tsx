@@ -448,7 +448,7 @@ function IntegrationsListTrigger({
             </PopoverTrigger>
             <PopoverPopup
                 align="start"
-                positionerClassname={cn(
+                positionerClassName={cn(
                     isIntegrationsListOpen && "pointer-events-none! hidden!"
                 )}
                 positionMethod="fixed"

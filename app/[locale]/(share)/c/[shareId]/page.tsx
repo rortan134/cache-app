@@ -29,7 +29,6 @@ function getSharedItemTitle(item: {
     if (item.kind === ITEM_KIND_NOTE) {
         return getNoteExcerpt(item.noteContentText, 80) || "Untitled note";
     }
-
     const caption = item.caption?.trim();
     return caption && caption.length > 0 ? caption : normalizeURL(item.url);
 }
@@ -46,7 +45,6 @@ function getSharedItemPreviewImageUrl(
     if (item.kind === ITEM_KIND_NOTE || !href) {
         return null;
     }
-
     return `/api/preview?url=${encodeURIComponent(href)}`;
 }
 

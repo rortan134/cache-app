@@ -1979,7 +1979,7 @@ function CollectionsListGroupTrigger({
             </PopoverTrigger>
             <PopoverPopup
                 align="start"
-                positionerClassname={cn(
+                positionerClassName={cn(
                     isOpen && "pointer-events-none! hidden!"
                 )}
                 positionMethod="fixed"
