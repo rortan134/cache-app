@@ -74,6 +74,7 @@
   },
   "20529ca475e73f99": "Tema",
   "228f947f7df3af4d": "Añadir otra cuenta...",
+  "251aca485fefb2c6": "Empieza a escribir o pega un enlace para añadirlo...",
   "26fe9d3e34588477": "Cerrar sesión",
   "27d7979205fe23f9": "¿Eliminar tu cuenta?",
   "2e477bab4317c062": "No se pudo añadir otra cuenta.",
@@ -82,6 +83,15 @@
   "3b205a1c17c06fbd": "Favoritos",
   "3c61319be1bc2db7": "*Las plataformas de terceros a las que te conectas a través del Servicio operan de forma independiente a Cache. Cache no controla sus políticas ni cómo las aplican, y no es responsable de las decisiones que esas plataformas tomen sobre tus cuentas o tu acceso a sus servicios —incluidos, entre otros, los cambios en la disponibilidad—, estén o no relacionadas con tu uso de Cache. Eres responsable de cumplir con los términos, políticas y directrices de la comunidad de cada plataforma. Cache no es responsable de ningún inconveniente, pérdida u otra consecuencia derivada de tu relación con esas plataformas o de tu uso del Servicio en conexión con ellas. Puedes encontrar más información",
   "408574e37e8d91ee": "próximamente",
+  "42ce2058dce397b4": [
+    "No se ha encontrado ninguna colección. ",
+    {
+      "c": "Crea tu primera colección",
+      "i": 1,
+      "t": "button"
+    },
+    " para empezar a agrupar los elementos guardados."
+  ],
   "43c4658708e52e85": "Eliminar cuenta",
   "44205dc5e0c99d88": [
     {
@@ -406,6 +416,7 @@
     "t": "span"
   },
   "b0218088cb0cf61f": "Atajos de teclado",
+  "b04df1727faed146": "Tus cuentas",
   "b14d974a53e3f53e": [
     {
       "c": "Tu atención es finita.",
@@ -430,7 +441,6 @@
   ],
   "b33e2234ec4ab823": "Plan gratuito",
   "b5d5276005980a36": "Creadores y desarrolladores",
-  "b6d15ad93f1787c2": "Empieza a escribir o pega una URL...",
   "ba1e49f7141fca57": [
     {
       "c": "Nunca ha habido tanto contenido.",
@@ -532,7 +542,6 @@
       "v": "v"
     }
   ],
-  "e144e2404ea58e71": "No se han encontrado colecciones. Crea tu primera colección para empezar a agrupar elementos guardados.",
   "e1897047828fc955": "Docs, incidencias, código, tutoriales. Encuentra ese enlace al instante.",
   "e42f8301efa106ae": "Bookmark Intelligence™",
   "e6fee0a475a0476d": [

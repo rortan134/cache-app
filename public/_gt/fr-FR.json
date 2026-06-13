@@ -74,6 +74,7 @@
   },
   "20529ca475e73f99": "Thème",
   "228f947f7df3af4d": "Ajouter un autre compte...",
+  "251aca485fefb2c6": "Commencez à taper ou collez un lien pour l’ajouter…",
   "26fe9d3e34588477": "Se déconnecter",
   "27d7979205fe23f9": "Supprimer votre compte ?",
   "2e477bab4317c062": "Impossible d’ajouter un autre compte.",
@@ -82,6 +83,15 @@
   "3b205a1c17c06fbd": "Favoris",
   "3c61319be1bc2db7": "*Les plateformes tierces auxquelles vous vous connectez via le Service sont exploitées indépendamment de Cache. Cache ne contrôle ni leurs politiques ni la manière dont elles les appliquent, et n’est pas responsable des décisions que ces plateformes prennent concernant vos Comptes ou votre accès à leurs services — y compris, sans s’y limiter, les changements de disponibilité — qu’elles soient ou non liés à votre utilisation de Cache. Il vous incombe de respecter les conditions, politiques et règles de la communauté de chaque plateforme. Cache n’est pas responsable des désagréments, pertes ou autres conséquences découlant de votre relation avec ces plateformes ou de votre utilisation du Service en lien avec celles-ci. Des informations complémentaires sont disponibles",
   "408574e37e8d91ee": "bientôt",
+  "42ce2058dce397b4": [
+    "Aucune collection trouvée. ",
+    {
+      "c": "Créez votre première collection",
+      "i": 1,
+      "t": "button"
+    },
+    " pour commencer à regrouper vos éléments enregistrés."
+  ],
   "43c4658708e52e85": "Supprimer le compte",
   "44205dc5e0c99d88": [
     {
@@ -406,6 +416,7 @@
     "t": "span"
   },
   "b0218088cb0cf61f": "Raccourcis clavier",
+  "b04df1727faed146": "Vos comptes",
   "b14d974a53e3f53e": [
     {
       "c": "Votre attention n’est pas infinie.",
@@ -430,7 +441,6 @@
   ],
   "b33e2234ec4ab823": "Forfait gratuit",
   "b5d5276005980a36": "Créateurs et développeurs",
-  "b6d15ad93f1787c2": "Commencez à saisir ou collez une URL...",
   "ba1e49f7141fca57": [
     {
       "c": "Il n’y a jamais eu autant de contenu.",
@@ -532,7 +542,6 @@
       "v": "v"
     }
   ],
-  "e144e2404ea58e71": "Aucune collection trouvée. Créez votre première collection pour commencer à regrouper les éléments enregistrés.",
   "e1897047828fc955": "Docs, issues, code, tutoriels. Retrouvez ce lien en un instant.",
   "e42f8301efa106ae": "Bookmark Intelligence™",
   "e6fee0a475a0476d": [

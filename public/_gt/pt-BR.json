@@ -74,6 +74,7 @@
   },
   "20529ca475e73f99": "Tema",
   "228f947f7df3af4d": "Adicionar outra conta...",
+  "251aca485fefb2c6": "Comece a digitar ou cole um link para adicionar...",
   "26fe9d3e34588477": "Sair",
   "27d7979205fe23f9": "Excluir sua conta?",
   "2e477bab4317c062": "Não foi possível adicionar outra conta.",
@@ -82,6 +83,15 @@
   "3b205a1c17c06fbd": "Favoritos",
   "3c61319be1bc2db7": "*As plataformas de terceiros às quais você se conecta por meio do Serviço operam de forma independente do Cache. O Cache não controla as políticas dessas plataformas nem a forma como elas são aplicadas, e não se responsabiliza pelas decisões que essas plataformas tomam em relação às suas contas ou ao seu acesso aos serviços delas — incluindo, sem limitação, alterações na disponibilidade — estejam ou não relacionadas ao seu uso do Cache. Cabe a você cumprir os termos, políticas e diretrizes da comunidade de cada plataforma. O Cache não se responsabiliza por qualquer inconveniente, perda ou outro resultado decorrente da sua relação com essas plataformas ou do seu uso do Serviço em conexão com elas. Mais detalhes podem ser encontrados",
   "408574e37e8d91ee": "em breve",
+  "42ce2058dce397b4": [
+    "Nenhuma coleção encontrada. ",
+    {
+      "c": "Crie sua primeira coleção",
+      "i": 1,
+      "t": "button"
+    },
+    " para começar a organizar os itens salvos."
+  ],
   "43c4658708e52e85": "Excluir conta",
   "44205dc5e0c99d88": [
     {
@@ -406,6 +416,7 @@
     "t": "span"
   },
   "b0218088cb0cf61f": "Atalhos de teclado",
+  "b04df1727faed146": "Suas contas",
   "b14d974a53e3f53e": [
     {
       "c": "Sua atenção é finita.",
@@ -430,7 +441,6 @@
   ],
   "b33e2234ec4ab823": "Plano gratuito",
   "b5d5276005980a36": "Criadores e desenvolvedores",
-  "b6d15ad93f1787c2": "Comece a digitar ou cole uma URL...",
   "ba1e49f7141fca57": [
     {
       "c": "Nunca houve tanto conteúdo.",
@@ -532,7 +542,6 @@
       "v": "v"
     }
   ],
-  "e144e2404ea58e71": "Nenhuma coleção encontrada. Crie sua primeira coleção para começar a agrupar itens salvos.",
   "e1897047828fc955": "Docs, issues, código, tutoriais. Encontre aquele link na hora.",
   "e42f8301efa106ae": "Bookmark Intelligence™",
   "e6fee0a475a0476d": [
