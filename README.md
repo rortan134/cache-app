@@ -97,7 +97,7 @@ Open [http://localhost:3000](http://localhost:3000).
 | **Database**       | PostgreSQL via [Prisma](https://www.prisma.io/) 7, Redis                                                                   |
 | **Auth**           | [Better Auth](https://better-auth.com/) 1.6 (Google, GitHub, X, Pinterest OAuth)                                           |
 | **Validation**     | [Zod](https://zod.dev/) 4, [@t3-oss/env-nextjs](https://env.t3.gg/)                                                        |
-| **AI/LLM**         | [Vercel AI SDK](https://sdk.vercel.ai/) 6, [Google Gemini](https://ai.google.dev/), [@workflow/ai](https://workflow.ai/) 5 |
+| **AI/LLM**         | [Vercel AI SDK](https://sdk.vercel.ai/) 6, [Google Gemini](https://ai.google.dev/), [@workflow/ai](https://workflow.ai/) 6 |
 | **Web Search**     | [Tavily](https://tavily.com/)                                                                                              |
 | **RPC / API**      | [oRPC](https://orpc.unnoq.com/) 1.14 (server, client, React)                                                               |
 | **Data Fetching**  | [SWR](https://swr.vercel.app/) 2.4, [nuqs](https://nuqs.vercel.app/) 2.8                                                   |
