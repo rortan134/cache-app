@@ -54,7 +54,7 @@ export function ContextMenuItem({
     return (
         <ContextMenuPrimitive.Item
             className={cn(
-                "flex cursor-default select-none items-center gap-2 rounded-xl px-2.5 py-2 text-sm outline-none transition-colors data-disabled:pointer-events-none data-highlighted:bg-accent data-highlighted:text-accent-foreground data-disabled:opacity-50",
+                "flex cursor-default select-none items-center gap-2 rounded-xl px-2.5 py-2 text-sm outline-none transition-colors data-disabled:pointer-events-none data-highlighted:bg-accent data-highlighted:text-accent-foreground data-disabled:opacity-64",
                 className
             )}
             data-slot="context-menu-item"
@@ -69,7 +69,7 @@ export function ContextMenuSeparator({
 }: ContextMenuPrimitive.Separator.Props) {
     return (
         <ContextMenuPrimitive.Separator
-            className={cn("my-1 h-px bg-border/70", className)}
+            className={cn("my-1 h-px bg-border/50", className)}
             data-slot="context-menu-separator"
             {...props}
         />

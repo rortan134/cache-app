@@ -45,7 +45,7 @@ export function CommandInput({
             {startAddon && (
                 <div
                     aria-hidden
-                    className="pointer-events-none absolute inset-y-0 start-px z-10 flex shrink-0 items-center ps-[calc(--spacing(5)-1px)] has-[+[data-size=sm]]:ps-[calc(--spacing(2.5)-1px)] [&_svg:not([class*='size-'])]:size-4.5 sm:[&_svg:not([class*='size-'])]:size-4 [&_svg]:-mx-0.5"
+                    className="pointer-events-none absolute inset-s-px inset-y-0 z-10 flex shrink-0 items-center ps-[calc(--spacing(5)-1px)] has-[+[data-size=sm]]:ps-[calc(--spacing(2.5)-1px)] [&_svg:not([class*='size-'])]:size-4.5 sm:[&_svg:not([class*='size-'])]:size-4 [&_svg]:-mx-0.5"
                     data-slot="command-start-addon"
                 >
                     {startAddon}

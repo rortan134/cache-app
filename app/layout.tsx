@@ -88,7 +88,7 @@ export default async function RootLayout(props: {
 
     return (
         <html
-            className={`${inter.variable} h-full antialiased [scrollbar-gutter:stable]`}
+            className={`${inter.variable} scrollbar-gutter-stable h-full antialiased`}
             dir="ltr"
             lang={locale}
             suppressHydrationWarning

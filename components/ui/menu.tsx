@@ -51,7 +51,7 @@ export function MenuPopup({
                     data-slot="menu-popup"
                     {...props}
                 >
-                    <div className="max-h-(--available-height) w-full overflow-y-auto p-1.5">
+                    <div className="max-h-(--available-height) w-full overflow-y-auto p-1">
                         {children}
                     </div>
                 </MenuPrimitive.Popup>
@@ -82,7 +82,7 @@ export function MenuGroupLabel({
                 className
             )}
             data-inset={inset}
-            data-slot="menu-label"
+            data-slot="menu-group-label"
             {...props}
         />
     );
@@ -114,7 +114,7 @@ export function MenuItem({
     return (
         <MenuPrimitive.Item
             className={cn(
-                "flex cursor-default select-none items-center gap-2 rounded-xl px-2.5 py-2 text-sm outline-none hover:transition-colors data-disabled:pointer-events-none data-highlighted:bg-accent data-disabled:opacity-50",
+                "flex cursor-default select-none items-center gap-2 rounded-xl px-2.5 py-2 text-sm outline-none hover:transition-colors data-disabled:pointer-events-none data-highlighted:bg-accent data-disabled:opacity-64",
                 variant === "default" &&
                     "data-highlighted:text-accent-foreground",
                 variant === "destructive" &&
@@ -135,7 +135,7 @@ export function MenuRadioItem({
     return (
         <MenuPrimitive.RadioItem
             className={cn(
-                "grid min-h-8 cursor-default select-none grid-cols-[1fr_1rem] items-center gap-5 rounded-xl px-2.5 py-1.5 text-sm outline-none hover:transition-colors data-disabled:pointer-events-none data-highlighted:bg-accent data-highlighted:text-accent-foreground data-disabled:opacity-50",
+                "grid min-h-8 cursor-default select-none grid-cols-[1fr_1rem] items-center gap-5 rounded-xl px-2.5 py-1.5 text-sm outline-none hover:transition-colors data-disabled:pointer-events-none data-highlighted:bg-accent data-highlighted:text-accent-foreground data-disabled:opacity-64",
                 className
             )}
             data-slot="menu-radio-item"
@@ -155,7 +155,7 @@ export function MenuSeparator({
 }: MenuPrimitive.Separator.Props) {
     return (
         <MenuPrimitive.Separator
-            className={cn("my-0.5 h-px bg-border/50", className)}
+            className={cn("my-1 h-px bg-border/50", className)}
             data-slot="menu-separator"
             {...props}
         />
@@ -174,7 +174,7 @@ export function MenuSubTrigger({
     return (
         <MenuPrimitive.SubmenuTrigger
             className={cn(
-                "flex min-h-8 cursor-default select-none items-center gap-2 rounded-lg px-2.5 py-2 text-sm outline-none hover:transition-colors data-disabled:pointer-events-none data-highlighted:bg-accent data-highlighted:text-accent-foreground data-disabled:opacity-50",
+                "flex min-h-8 cursor-default select-none items-center gap-2 rounded-lg px-2.5 py-2 text-sm outline-none hover:transition-colors data-disabled:pointer-events-none data-highlighted:bg-accent data-highlighted:text-accent-foreground data-disabled:opacity-64",
                 className
             )}
             data-slot="menu-sub-trigger"
