@@ -1,6 +1,6 @@
-# Cache App (Chrome extension)
+# Cache Chrome extension
 
-Manifest V3 extension that reads **Instagram Saved**, **TikTok Favorites**, and **YouTube Watch Later** while you are logged in. You can also save **any** open tab as a regular Chrome bookmark, which the extension then syncs to Cache. Metadata is stored in **`chrome.storage.local`**. Content scripts only run on the supported social sites and on the Cache origin.
+Cache App Web Clipper. Can save any open tab as a Cache bookmark, with first-class support for many social apps. Metadata is stored in **`chrome.storage.local`**. Content scripts only run on the supported social sites and on the Cache origin.
 
 ## Load unpacked
 
@@ -35,13 +35,7 @@ The **content script** `cache-site-bootstrap.js` runs only on those origins. It 
 - `service-worker.js` is the orchestration boundary. It owns local persistence, Chrome bookmark event ingestion, source-specific merge policies, and all backend POSTs.
 - `popup.js` is UI-only. It should read sync metadata, request user-triggered work, and reflect link state, but it should not grow business logic that belongs in the worker.
 
-## Cleanup notes
-
-- Shared message names and storage keys now come from `cache-extension-runtime.js`, which removes repeated string literals across the popup, worker, and content/bootstrap scripts.
-- In `service-worker.js`, source-specific persistence is centralized in a single `BOOKMARK_SOURCE_CONFIG` map. Storage versioning, merge behavior, endpoint selection, and backend sync strategy now live together instead of being split across conditionals.
-- The popup and Cache-site bridge now resolve hosts and endpoints from shared config instead of mixing config-driven logic with hardcoded `cachd.app` assumptions.
-
-## Server sync guardrails
+## Server sync
 
 The service worker skips server POSTs when there is no ingest token or no Cache session cookie for the POST URL’s origin (same idea as the popup).
 

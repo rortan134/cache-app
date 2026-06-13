@@ -3,9 +3,9 @@
 <p align="center">
   <a href="https://www.cachd.app" target="_blank" rel="noopener noreferrer">
     <picture>
-      <source media="(prefers-color-scheme: dark)" srcset="public/cache-logo-dark.svg">
-      <source media="(prefers-color-scheme: light)" srcset="public/cache-logo-light.svg">
-      <img src="public/cache-logo-light.svg" alt="Cache Logo" width="320"/>
+      <source media="(prefers-color-scheme: dark)" srcset="public/cache-app-icon.svg">
+      <source media="(prefers-color-scheme: light)" srcset="public/cache-app-icon.svg">
+      <img src="public/cache-app-icon.svg" alt="Cache Logo" width="320"/>
     </picture>
   </a>
 </p>
@@ -34,12 +34,12 @@
 ## Features
 
 - **Unified Library** — First-class support for bookmarks from Instagram Saved, TikTok Favorites, YouTube Watch Later, X/Twitter Bookmarks, GitHub Stars, Chrome bookmarks, Pinterest, Google Photos, and more, all in one place.
-- **Plain English Search** — Natural-language search across all your saved content.
-- **One-Step Collections** — Organize results into collections with AI-assisted relevance ranking.
+- **Collections** — Organize results into collections with AI-assisted relevance ranking.
+- **AI-assisted search** — Ask the Cache agent with natural-language and search across all your saved content.
 - **AI-Powered Synthesis** — Automations generate daily, weekly, and monthly digests. Smart collections surface what matters.
-- **Rich Notes** — First-party WYSIWYG notes (Lexical editor) alongside bookmarks.
-- **Browser Extension** — Manifest V3 Chrome extension that scrapes saved content from social platforms.
-- **Export & Integrate** — Pipe results into Notion and other tools.
+- **Rich Notes** — First-party WYSIWYG notes alongside bookmarks.
+- **Browser Extension** — Manifest V3 Chrome extension that syncs saved content from social platforms.
+- **Export & Integrate** — Pipe results into other tools you already use.
 
 ---
 
