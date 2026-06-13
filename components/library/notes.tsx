@@ -688,6 +688,15 @@ function NoteRoot({
     const initialDraftRef = useRef<NoteDraft>(draft);
     const latestDraftRef = useRef<NoteDraft>(draft);
 
+    const resetDraft = () => {
+        const nextDraft = noteDraftFromItem(note);
+        initialDraftRef.current = nextDraft;
+        latestDraftRef.current = nextDraft;
+        setInitialDraft(nextDraft);
+        setDraft(nextDraft);
+        setEditorKey((key) => key + 1);
+    };
+
     // React to prop changes during render instead of a `useEffect` to avoid
     // committing once for the prop change and again for the state sync.
     const [prevOpen, setPrevOpen] = useState(open);
@@ -696,16 +705,7 @@ function NoteRoot({
     if (open !== prevOpen) {
         setPrevOpen(open);
         if (open) {
-            // Reset the draft when the drawer opens so a new note after
-            // closing a previous one shows a clean slate. The note
-            // reference itself may be null in both states (closed and
-            // new-note), so the note-change check below would miss it.
-            const nextDraft = noteDraftFromItem(note);
-            initialDraftRef.current = nextDraft;
-            latestDraftRef.current = nextDraft;
-            setInitialDraft(nextDraft);
-            setDraft(nextDraft);
-            setEditorKey((key) => key + 1);
+            resetDraft();
         } else {
             setIsExpanded(false);
         }
@@ -714,12 +714,7 @@ function NoteRoot({
     if (note !== prevNote) {
         setPrevNote(note);
         if (open) {
-            const nextDraft = noteDraftFromItem(note);
-            initialDraftRef.current = nextDraft;
-            latestDraftRef.current = nextDraft;
-            setInitialDraft(nextDraft);
-            setDraft(nextDraft);
-            setEditorKey((key) => key + 1);
+            resetDraft();
         }
     }
 
@@ -736,12 +731,7 @@ function NoteRoot({
 
     const handleUrlPaste = async (url: string) => {
         await onUrlPaste(url);
-
-        const nextDraft = noteDraftFromItem(note);
-        initialDraftRef.current = nextDraft;
-        latestDraftRef.current = nextDraft;
-        setInitialDraft(nextDraft);
-        setDraft(nextDraft);
+        resetDraft();
         await onOpenChange(false);
     };
 

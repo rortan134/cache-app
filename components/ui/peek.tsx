@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import {
     Drawer,
     DrawerDescription,
-    DrawerFooter,
     DrawerHeader,
     DrawerPanel,
     DrawerPopup,
@@ -70,18 +69,10 @@ function usePeekStatus(open: boolean, url: string, timeoutMs: number) {
     const blockedTimeout = useTimeout();
 
     const markAsBlocked = useStableCallback(() => {
-        setStatus((current) => {
-            if (current !== "loading") {
-                return current;
-            }
-            return "blocked";
-        });
+        setStatus((current) => (current === "loading" ? "blocked" : current));
     });
 
     const markAsLoaded = useStableCallback(() => {
-        if (url === PEEK_BLOCKED_URL) {
-            return;
-        }
         setStatus("loaded");
     });
 
@@ -174,17 +165,26 @@ export function PeekDrawerContent() {
     return (
         <DrawerViewport>
             <DrawerPopup
-                className="h-[min(88vh,58rem)] w-full sm:mx-auto sm:h-[min(82vh,56rem)] sm:max-w-[min(96vw,78rem)]"
+                className="h-[min(88vh,58rem)] sm:mx-auto sm:max-w-[min(96vw,78rem)]"
+                position="bottom"
                 showBar
                 showCloseButton
-                variant="inset"
             >
                 <DrawerHeader className="border-border/70 border-b pb-4">
                     <DrawerTitle className="truncate text-lg sm:text-xl">
                         {title}
                     </DrawerTitle>
-                    <DrawerDescription className="line-clamp-2 text-sm">
+                    <DrawerDescription>
                         {description ?? parseDisplayUrl(url)}
+                        <span className="ml-2 text-muted-foreground">·</span>
+                        <PeekDrawerLinkButton
+                            href={url}
+                            size="sm"
+                            variant="link"
+                        >
+                            <GlobeIcon className="size-4" />
+                            Open in new tab
+                        </PeekDrawerLinkButton>
                     </DrawerDescription>
                 </DrawerHeader>
                 <DrawerPanel
@@ -253,19 +253,6 @@ export function PeekDrawerContent() {
                         )}
                     </div>
                 </DrawerPanel>
-                {canOpenInNewTab && (
-                    <DrawerFooter>
-                        <PeekDrawerLinkButton
-                            className="justify-start sm:justify-center"
-                            href={url}
-                            size="sm"
-                            variant="link"
-                        >
-                            <GlobeIcon className="size-4" />
-                            Open in new tab
-                        </PeekDrawerLinkButton>
-                    </DrawerFooter>
-                )}
             </DrawerPopup>
         </DrawerViewport>
     );

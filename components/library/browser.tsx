@@ -2492,43 +2492,35 @@ function buildSearchPaletteGroups({
 
     if (showCollectionsGroup) {
         if (isDefaultState) {
+            const collectionItems = collections
+                .map((collection) => ({
+                    collection,
+                    thumbnails:
+                        collectionPreviewThumbnailUrlsById.get(collection.id) ??
+                        [],
+                }))
+                .filter(({ thumbnails }) => thumbnails.length > 1)
+                .slice(0, 4);
+
             groups.push({
-                items: collections
-                    .filter((collection) => {
-                        const thumbnails =
-                            collectionPreviewThumbnailUrlsById.get(
-                                collection.id
-                            ) ?? [];
-                        return thumbnails.length > 1;
-                    })
-                    .slice(0, 4)
-                    .map((collection) => {
-                        const thumbnails =
-                            collectionPreviewThumbnailUrlsById.get(
-                                collection.id
-                            ) ?? [];
-                        const isActive = selectedCollectionIds.includes(
-                            collection.id
-                        );
-                        return {
-                            active: isActive,
-                            label: collection.name,
-                            onSelect: applyCollectionFilter(() =>
-                                onToggleCollectionSelection(collection.id)
-                            ),
-                            render: () => (
-                                <div className="flex aspect-4/3 size-full flex-1 flex-col">
-                                    {thumbnails.length > 0 && (
-                                        <CategoryThumbnail urls={thumbnails} />
-                                    )}
-                                    <span className="z-30 truncate p-1 font-medium">
-                                        {collection.name}
-                                    </span>
-                                </div>
-                            ),
-                            value: `filter collection ${collection.id}`,
-                        };
-                    }),
+                items: collectionItems.map(({ collection, thumbnails }) => ({
+                    active: selectedCollectionIds.includes(collection.id),
+                    label: collection.name,
+                    onSelect: applyCollectionFilter(() =>
+                        onToggleCollectionSelection(collection.id)
+                    ),
+                    render: () => (
+                        <div className="flex aspect-4/3 size-full flex-1 flex-col">
+                            {thumbnails.length > 0 && (
+                                <CategoryThumbnail urls={thumbnails} />
+                            )}
+                            <span className="z-30 truncate p-1 font-medium">
+                                {collection.name}
+                            </span>
+                        </div>
+                    ),
+                    value: `filter collection ${collection.id}`,
+                })),
                 label: "Collections",
                 layout: "horizontal",
             });
