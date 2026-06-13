@@ -217,7 +217,7 @@ export function ComposerActions({
     return (
         <ComposerActionsContext value={value}>
             <Toolbar.Group
-                className={cn("flex items-center gap-2 px-3 py-2", className)}
+                className={cn("flex items-center gap-2.5 px-3 py-2", className)}
             >
                 {children}
             </Toolbar.Group>

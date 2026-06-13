@@ -467,7 +467,8 @@ function IntegrationsListTrigger({
                     <PopoverDescription className="text-foreground text-xs">
                         Get more out of your bookmarks with Cache's first-class
                         integrations with browsers, social apps, and video
-                        platforms.
+                        platforms. Use integrations to import from another
+                        source into your Cache.
                     </PopoverDescription>
                 </div>
             </PopoverPopup>

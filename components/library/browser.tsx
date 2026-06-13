@@ -1921,9 +1921,9 @@ function BrowserEmpty() {
                     <span className="ml-3 opacity-50">Ready to start?</span>
                 </h3>
                 <p className="text-muted-foreground text-xs leading-tight">
-                    Everything you bookmark, unified and searchable. Cache is
-                    purpose-built to organize what matters to you into
-                    collections so you can find it when you need it.
+                    Everything you bookmark, unified and searchable. Cache is a
+                    purpose-built bookmark manager designed to find what matters
+                    to you.
                 </p>
             </div>
             <Masonry columnCount={4} gap={16}>
@@ -4181,9 +4181,22 @@ function MediaCard({ item }: LibraryGridCardProps) {
                                     src={previewImageUrl}
                                     videoSrc={previewVideoUrl}
                                 />
-                                {isLastVisited(item.id) && (
-                                    <span className="absolute top-2 right-2 z-10 rounded-full bg-black/45 px-1.5 py-px font-medium text-white text-xs leading-normal backdrop-blur-xs">
+                                {isLastVisited(item.id) ? (
+                                    <span className="absolute top-2 right-2 z-10 inline-flex items-center gap-1 rounded-full bg-black/45 px-1.5 py-px font-medium text-white text-xs leading-normal backdrop-blur-xs">
                                         <T>Last visited</T>
+                                        <ArrowUpRight
+                                            aria-hidden
+                                            className="hidden size-4 group-hover:inline-block"
+                                            focusable="false"
+                                        />
+                                    </span>
+                                ) : (
+                                    <span className="absolute top-2 right-2 z-10 rounded-full bg-black/45 px-1.5 py-px font-medium text-white text-xs leading-normal opacity-0 backdrop-blur-xs group-hover:opacity-100">
+                                        <ArrowUpRight
+                                            aria-hidden
+                                            className="size-4"
+                                            focusable="false"
+                                        />
                                     </span>
                                 )}
                             </>
