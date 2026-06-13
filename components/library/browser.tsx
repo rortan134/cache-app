@@ -80,7 +80,7 @@ import {
 import { GradientWaveText } from "@/components/ui/gradient-wave-text";
 import { ChevronDownFilledIcon } from "@/components/ui/icons";
 import { Input } from "@/components/ui/input";
-import { CmdKbd, Kbd } from "@/components/ui/kbd";
+import { AltKbd, CmdKbd, Kbd } from "@/components/ui/kbd";
 import { Masonry, MasonryItem } from "@/components/ui/masonry";
 import { MediaPlaceholder } from "@/components/ui/media-placeholder";
 import {
@@ -1573,60 +1573,23 @@ function isPrintablePaletteKey(event: KeyboardEvent): boolean {
 }
 
 function sortModeLabel(mode: SortMode): string {
-    if (mode === "added-newest") {
-        return "Added: Newest first";
-    }
-    if (mode === "added-oldest") {
-        return "Added: Oldest first";
-    }
-    if (mode === "created-newest") {
-        return "Created: Newest first";
-    }
-    if (mode === "created-oldest") {
-        return "Created: Oldest first";
-    }
-    if (mode === "count-desc") {
-        return "Count: Most items first";
-    }
-    if (mode === "source") {
-        return "Source";
-    }
-    if (mode === "domain") {
-        return "Domain";
-    }
-    if (mode === "title") {
-        return "Title";
-    }
-    return sortModeLabel(DEFAULT_SORT_MODE);
+    return (
+        PALETTE_SORT_OPTIONS.find((opt) => opt.value === mode)?.label ??
+        sortModeLabel(DEFAULT_SORT_MODE)
+    );
 }
 
 function groupByLabel(mode: GroupByMode): string {
-    if (mode === "source") {
-        return "Source";
-    }
-    if (mode === "domain") {
-        return "Domain";
-    }
-    if (mode === "collection") {
-        return "Collection";
-    }
-    if (mode === "month-added") {
-        return "Month Added";
-    }
-    if (mode === "month-created") {
-        return "Month Created";
-    }
-    if (mode === "year-added") {
-        return "Year Added";
-    }
-    if (mode === "year-created") {
-        return "Year Created";
-    }
-    return "None";
+    return (
+        PALETTE_GROUP_OPTIONS.find((opt) => opt.value === mode)?.label ?? "None"
+    );
 }
 
 function columnCountLabel(mode: ColumnCountMode): string {
-    return mode === "auto" ? "Adjust automatically" : `${mode} columns`;
+    return (
+        PALETTE_COLUMN_OPTIONS.find((opt) => opt.value === mode)?.label ??
+        "Adjust automatically"
+    );
 }
 
 function collectionMembershipFilterLabel(
@@ -3622,6 +3585,7 @@ interface LibraryGridCardMenuProps {
     createdLabel: string;
     href: string;
     isDownloading: boolean;
+    isOpen: boolean;
     item: LibraryItemWithCollections;
     kind: "context" | "menu";
     onDownload: () => void;
@@ -3781,7 +3745,7 @@ function CollectionComboboxPicker({
                         <CircleDashed
                             aria-hidden
                             aria-label="Collections"
-                            className="size-4.5"
+                            className="size-4"
                         />
                     ))}
             </ComboboxTrigger>
@@ -3889,6 +3853,7 @@ function CardMenu({
     createdLabel,
     href,
     isDownloading,
+    isOpen,
     item,
     kind,
     onDownload,
@@ -3917,6 +3882,36 @@ function CardMenu({
         previewImageUrl && item.source === LibraryItemSource.google_photos
             ? previewImageUrl
             : item.url;
+
+    useHotkeys(
+        "option+f",
+        (event: KeyboardEvent) => {
+            event.preventDefault();
+            onItemFavoriteToggle(item);
+        },
+        {
+            enabled: isOpen && !isDeletePending,
+            enableOnContentEditable: false,
+            enableOnFormTags: false,
+        },
+        [isOpen, isDeletePending, item, onItemFavoriteToggle]
+    );
+
+    useHotkeys(
+        "mod+backspace",
+        (event: KeyboardEvent) => {
+            event.preventDefault();
+            if (!isDeletePending && onDelete) {
+                onDelete(item);
+            }
+        },
+        {
+            enabled: isOpen && !isDeletePending,
+            enableOnContentEditable: false,
+            enableOnFormTags: false,
+        },
+        [isOpen, isDeletePending, item, onDelete]
+    );
 
     return (
         <>
@@ -3962,6 +3957,9 @@ function CardMenu({
                     )}
                 />
                 {isFavorite ? "Remove from Favorites" : "Add to Favorites"}
+                <Kbd className="ml-auto">
+                    <AltKbd />F
+                </Kbd>
             </Item>
             {isNote ? (
                 <Item onClick={() => onOpenNote?.(item)}>
@@ -4022,21 +4020,12 @@ function CardMenu({
                 Find similar
             </Item>
             <ItemSeparator />
-            {kind === "context" ? (
-                <ContextMenuItem
-                    disabled={isDeletePending}
-                    onClick={() => onDelete?.(item)}
-                >
-                    {isDeletePending ? "Deleting..." : "Delete"}
-                </ContextMenuItem>
-            ) : (
-                <MenuItem
-                    disabled={isDeletePending}
-                    onClick={() => onDelete?.(item)}
-                >
-                    {isDeletePending ? "Deleting..." : "Delete"}
-                </MenuItem>
-            )}
+            <Item disabled={isDeletePending} onClick={() => onDelete?.(item)}>
+                {isDeletePending ? "Deleting..." : "Delete"}
+                <Kbd className="ml-auto">
+                    <CmdKbd />⌫
+                </Kbd>
+            </Item>
         </>
     );
 }
@@ -4102,6 +4091,8 @@ function MediaCard({ item }: LibraryGridCardProps) {
     const [isDownloading, startDownloadTransition] = React.useTransition();
     const [isCollectionPickerOpen, setIsCollectionPickerOpen] =
         React.useState(false);
+    const [isCardMenuOpen, setIsCardMenuOpen] = React.useState(false);
+    const [isContextMenuOpen, setIsContextMenuOpen] = React.useState(false);
     const [isZoomed, setIsZoomed] = React.useState(false);
     const href = normalizeURL(item.url);
     const previewImageUrl = itemPreviewImageUrl(item);
@@ -4161,7 +4152,7 @@ function MediaCard({ item }: LibraryGridCardProps) {
 
     return (
         <>
-            <ContextMenu>
+            <ContextMenu onOpenChange={setIsContextMenuOpen}>
                 <ContextMenuTrigger
                     onKeyDown={handleCardKeyDown}
                     render={
@@ -4183,7 +4174,7 @@ function MediaCard({ item }: LibraryGridCardProps) {
                             <div className="relative flex h-auto min-h-56 w-full flex-col justify-between bg-linear-to-br from-amber-50 via-background to-stone-100 p-3">
                                 <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(251,191,36,0.18),transparent_45%)]" />
                                 <div className="relative flex flex-1 flex-col gap-2 pt-1.5">
-                                    <p className="whitespace-pre-wrap text-foreground text-xs leading-relaxed opacity-90">
+                                    <p className="whitespace-pre-wrap text-[11px] text-foreground leading-relaxed opacity-90">
                                         {noteExcerpt ||
                                             "Tap to start writing in this note"}
                                     </p>
@@ -4209,7 +4200,10 @@ function MediaCard({ item }: LibraryGridCardProps) {
                             onOpenChange={setIsCollectionPickerOpen}
                             open={isCollectionPickerOpen}
                         />
-                        <Menu>
+                        <Menu
+                            onOpenChange={setIsCardMenuOpen}
+                            open={isCardMenuOpen}
+                        >
                             <MenuTrigger
                                 render={
                                     <button
@@ -4227,6 +4221,7 @@ function MediaCard({ item }: LibraryGridCardProps) {
                                     createdLabel={createdLabel}
                                     href={href}
                                     isDownloading={isDownloading}
+                                    isOpen={isCardMenuOpen}
                                     item={item}
                                     kind="menu"
                                     onDownload={handleDownload}
@@ -4243,6 +4238,7 @@ function MediaCard({ item }: LibraryGridCardProps) {
                         createdLabel={createdLabel}
                         href={href}
                         isDownloading={isDownloading}
+                        isOpen={isContextMenuOpen}
                         item={item}
                         kind="context"
                         onDownload={handleDownload}
