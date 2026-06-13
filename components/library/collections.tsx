@@ -2431,7 +2431,7 @@ function CollectionsListCreateButton({
         >
             <PlusIcon
                 aria-hidden
-                className="inline-block size-3.5 shrink-0"
+                className="inline-block size-4 shrink-0"
                 focusable="false"
             />
         </Button>
@@ -3026,9 +3026,9 @@ function CollectionItemMetadata({
                             Collection
                             <Badge size="sm" variant="secondary">
                                 {collection.shareId ? (
-                                    <Globe className="size-3.5" />
+                                    <Globe className="size-3" />
                                 ) : (
-                                    <LockKeyhole className="size-3.5" />
+                                    <LockKeyhole className="size-3" />
                                 )}
                             </Badge>
                         </MenuGroupLabel>

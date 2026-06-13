@@ -3876,7 +3876,7 @@ function CardMenu({
             : item.url;
 
     useHotkeys(
-        "option+f",
+        "alt+f",
         (event: KeyboardEvent) => {
             event.preventDefault();
             onItemFavoriteToggle(item);
@@ -3989,7 +3989,7 @@ function CardMenu({
                         onClick={() => onOpenInNewTab?.(item)}
                     >
                         {SourceIcon ? (
-                            <SourceIcon className="size-4.5 text-muted-foreground" />
+                            <SourceIcon className="size-4 text-muted-foreground" />
                         ) : (
                             <ExternalLinkIcon className="size-4.5 text-muted-foreground" />
                         )}

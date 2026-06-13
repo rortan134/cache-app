@@ -69,9 +69,7 @@ import {
     ExternalLinkIcon,
     FileTextIcon,
     ItalicIcon,
-    Maximize2,
     MessageCircleIcon,
-    Minimize2,
     StrikethroughIcon,
     UnderlineIcon,
     XIcon,
@@ -113,7 +111,6 @@ interface NoteContextValue {
     editorKey: number;
     initialDraft: NoteDraft;
     isBusy: boolean;
-    isExpanded: boolean;
     onDraftChange: (draft: NoteDraft) => void;
     onOpenChange: (open: boolean) => Promise<void>;
     onUrlPaste: (url: string) => Promise<void>;
@@ -121,7 +118,6 @@ interface NoteContextValue {
     shouldCreateBookmarkFromUrlPaste: () => boolean;
     textMetrics: NoteTextMetrics;
     title: string;
-    toggleExpanded: () => void;
 }
 
 interface FormatState {
@@ -683,7 +679,6 @@ function NoteRoot({
     const [draft, setDraft] = useState<NoteDraft>(initialDraft);
     const [editorKey, setEditorKey] = useState(0);
     const [isClosing, setIsClosing] = useState(false);
-    const [isExpanded, setIsExpanded] = useState(false);
 
     const initialDraftRef = useRef<NoteDraft>(draft);
     const latestDraftRef = useRef<NoteDraft>(draft);
@@ -706,8 +701,6 @@ function NoteRoot({
         setPrevOpen(open);
         if (open) {
             resetDraft();
-        } else {
-            setIsExpanded(false);
         }
     }
 
@@ -775,8 +768,6 @@ function NoteRoot({
         }
     };
 
-    const toggleExpanded = () => setIsExpanded((prev) => !prev);
-
     const deferredContentHtml = useDeferredValue(draft.contentHtml);
     const textMetrics = getNoteTextMetrics(deferredContentHtml);
     const query = textMetrics.plainText;
@@ -791,7 +782,6 @@ function NoteRoot({
                 editorKey,
                 initialDraft,
                 isBusy,
-                isExpanded,
                 onDraftChange: handleDraftChange,
                 onOpenChange: handleOpenChange,
                 onUrlPaste: handleUrlPaste,
@@ -799,7 +789,6 @@ function NoteRoot({
                 shouldCreateBookmarkFromUrlPaste,
                 textMetrics,
                 title,
-                toggleExpanded,
             }}
         >
             {children}
@@ -822,15 +811,8 @@ function NoteTitle() {
  * controls (expand / close).
  */
 function NoteHeader() {
-    const {
-        contentHtml,
-        isBusy,
-        isExpanded,
-        onOpenChange,
-        query,
-        title,
-        toggleExpanded,
-    } = useNoteContext();
+    const { contentHtml, isBusy, onOpenChange, query, title } =
+        useNoteContext();
 
     const hasQuery = query.length > 0;
 
@@ -909,25 +891,6 @@ function NoteHeader() {
                     </MenuPopup>
                 </Menu>
                 <Group aria-label="Panel actions">
-                    <Button
-                        aria-label={
-                            isExpanded
-                                ? "Restore note width"
-                                : "Expand note width"
-                        }
-                        aria-pressed={isExpanded}
-                        className="ml-0.5 rounded-full"
-                        disabled={isBusy}
-                        onClick={toggleExpanded}
-                        size="icon-sm"
-                        variant="secondary"
-                    >
-                        {isExpanded ? (
-                            <Minimize2 className="inline-block size-3.5" />
-                        ) : (
-                            <Maximize2 className="inline-block size-3.5" />
-                        )}
-                    </Button>
                     <Button
                         aria-label="Close note"
                         className="mr-0.5 rounded-full"
