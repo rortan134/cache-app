@@ -3483,9 +3483,10 @@ function MediaPreview({
                 <>
                     <video
                         className={cn(
-                            "squircle pointer-events-none absolute inset-0 size-full rounded-xl object-cover duration-150",
+                            "squircle pointer-events-none absolute inset-0 size-full rounded-xl object-contain duration-150",
                             { "z-1": isHovered }
                         )}
+                        crossOrigin="use-credentials"
                         loop
                         muted={!isSoundEnabled}
                         onCanPlay={handleCanPlay}
@@ -3498,7 +3499,7 @@ function MediaPreview({
                     {isVideoLoading ? (
                         <div
                             className={cn(
-                                "pointer-events-none absolute top-2 left-2 z-10 rounded-full border-white/15 bg-black/45 text-white opacity-0 shadow-sm backdrop-blur-xs transition-opacity",
+                                "pointer-events-none absolute top-2 left-2 z-10 rounded-full border-white/15 bg-black/45 text-white opacity-0 shadow-sm transition-opacity",
                                 { "opacity-100": isHovered }
                             )}
                         >
@@ -3517,7 +3518,7 @@ function MediaPreview({
                             }
                             aria-pressed={isSoundEnabled}
                             className={cn(
-                                "pointer-events-auto absolute top-2 left-2 z-10 rounded-full border-white/15 bg-black/45 text-white opacity-0 shadow-sm backdrop-blur-xs transition-opacity hover:bg-black/60 focus-visible:opacity-100 focus-visible:ring-white/70",
+                                "pointer-events-auto absolute top-2 left-2 z-10 rounded-full border-white/15 bg-black/45 text-white opacity-0 shadow-sm transition-opacity hover:bg-black/60 focus-visible:opacity-100 focus-visible:ring-white/70",
                                 { "opacity-100": isHovered }
                             )}
                             onClick={handleSoundToggle}
@@ -4182,7 +4183,7 @@ function MediaCard({ item }: LibraryGridCardProps) {
                                     videoSrc={previewVideoUrl}
                                 />
                                 {isLastVisited(item.id) ? (
-                                    <span className="absolute top-2 right-2 z-10 inline-flex items-center gap-1 rounded-full bg-black/45 px-1.5 py-px font-medium text-white text-xs leading-normal backdrop-blur-xs">
+                                    <span className="absolute top-2 right-2 z-10 inline-flex items-center gap-1 rounded-full bg-black/45 px-1.5 py-px font-medium text-white text-xs leading-normal">
                                         <T>Last visited</T>
                                         <ArrowUpRight
                                             aria-hidden
@@ -4191,7 +4192,7 @@ function MediaCard({ item }: LibraryGridCardProps) {
                                         />
                                     </span>
                                 ) : (
-                                    <span className="absolute top-2 right-2 z-10 rounded-full bg-black/45 px-1.5 py-px font-medium text-white text-xs leading-normal opacity-0 backdrop-blur-xs group-hover:opacity-100">
+                                    <span className="absolute top-2 right-2 z-10 rounded-full bg-black/45 px-1.5 py-px font-medium text-white text-xs leading-normal opacity-0 group-hover:opacity-100">
                                         <ArrowUpRight
                                             aria-hidden
                                             className="size-4"
