@@ -34,6 +34,8 @@ const VERCEL_CACHE_TAG_HEADER = "Vercel-Cache-Tag";
 const VERCEL_CDN_CACHE_CONTROL_HEADER_NAME = "Vercel-CDN-Cache-Control";
 const NO_STORE_HEADER = "private, no-store";
 const PLAIN_TEXT_CONTENT_TYPE = `${MIME_TYPES.text}; charset=utf-8`;
+const SIGNED_URL_EXPIRY_PARAM = "x-expires";
+const SIGNED_URL_GRACE_SECONDS = 300;
 const FETCH_TIMEOUT_MS = 10_000;
 const MAX_REDIRECTS = 3;
 const MAX_TARGET_URL_LENGTH = 4096;
@@ -418,6 +420,9 @@ async function readCachedImagePreview(
     }
     const parsed = resolvedImagePreviewSchema.safeParse(parsedJson);
     if (!parsed.success) {
+        return null;
+    }
+    if (isSignedUrlExpired(parsed.data.imageUrl)) {
         return null;
     }
     return parsed.data;
@@ -825,6 +830,24 @@ function toSafeUpstreamStatus(status: number): number {
         return status;
     }
     return 502;
+}
+
+function isSignedUrlExpired(imageUrl: string): boolean {
+    try {
+        const expirySeconds = new URL(imageUrl).searchParams.get(
+            SIGNED_URL_EXPIRY_PARAM
+        );
+        if (!expirySeconds) {
+            return false;
+        }
+        const expiryMs = Number.parseInt(expirySeconds, 10) * 1000;
+        if (!Number.isFinite(expiryMs)) {
+            return false;
+        }
+        return Date.now() >= expiryMs - SIGNED_URL_GRACE_SECONDS * 1000;
+    } catch {
+        return false;
+    }
 }
 
 function hashTargetUrl(targetHref: string): string {

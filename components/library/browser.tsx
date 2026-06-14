@@ -1783,7 +1783,7 @@ function PaletteAttachmentChip({
                 <AttachmentPreviewCardPopup className="max-w-80">
                     <div className="space-y-3">
                         {mediaCategory === "image" && attachment.url ? (
-                            <div className="flex max-h-80 w-72 items-center justify-center overflow-hidden rounded-md border">
+                            <div className="flex max-h-80 w-72 items-center justify-center overflow-clip rounded-md border">
                                 <img
                                     alt=""
                                     className="max-h-full max-w-full object-contain"
@@ -3483,7 +3483,7 @@ function MediaPreview({
                 <>
                     <video
                         className={cn(
-                            "squircle pointer-events-none absolute inset-0 size-full overflow-clip rounded-xl object-cover transition-opacity duration-150",
+                            "squircle pointer-events-none absolute inset-0 size-full rounded-xl object-cover duration-150",
                             { "z-1": isHovered }
                         )}
                         loop
@@ -4313,7 +4313,7 @@ function LockedPreviewCard({
     placeholder: LockedLibraryPreviewPlaceholder;
 }) {
     return (
-        <div className="relative flex flex-col overflow-hidden rounded-xl ring-1 ring-border/30">
+        <div className="relative flex flex-col overflow-clip rounded-xl ring-1 ring-border/30">
             {placeholder.kind === "note" ? (
                 <div className="relative min-h-56 bg-linear-to-br from-amber-50 via-background to-stone-100 p-4">
                     <div className="absolute inset-0 bg-background/30 backdrop-blur-sm" />
@@ -4329,7 +4329,7 @@ function LockedPreviewCard({
             ) : (
                 <div
                     className={cn(
-                        "relative overflow-hidden bg-linear-to-br from-muted/75 via-card to-muted/45",
+                        "relative overflow-clip bg-linear-to-br from-muted/75 via-card to-muted/45",
                         placeholder.aspect
                     )}
                 >
