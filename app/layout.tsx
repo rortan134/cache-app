@@ -2,12 +2,10 @@ import "@/lib/dayjs/locales";
 
 import { APP_NAME, BASE_URL, SITE_DEFAULT_TITLE } from "@/lib/common/constants";
 import { INTEGRATIONS } from "@/lib/integrations/support";
-import { COBALT_API_BASE } from "@/lib/integrations/cobalt/service";
 import { Analytics } from "@vercel/analytics/next";
 import { GTProvider, getLocale } from "gt-next/server";
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
-import { preconnect } from "react-dom";
 import * as React from "react";
 import "./globals.css";
 
@@ -87,8 +85,6 @@ export default async function RootLayout(props: {
 }) {
     const { locale: localeParam } = await props.params;
     const locale = localeParam ?? (await getLocale());
-
-    preconnect(COBALT_API_BASE);
 
     return (
         <html
