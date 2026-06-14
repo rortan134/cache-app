@@ -15,20 +15,20 @@ function sleep(ms: number, signal?: AbortSignal) {
             return;
         }
         if (signal?.aborted) {
-            reject(new Error("aborted"));
+            reject(new DOMException("The operation was aborted", "AbortError"));
             return;
         }
         const timer = setTimeout(resolve, ms);
         const onAbort = () => {
             clearTimeout(timer);
-            reject(new Error("aborted"));
+            reject(new DOMException("The operation was aborted", "AbortError"));
         };
         signal?.addEventListener("abort", onAbort, { once: true });
     });
 }
 
 export function withRetry<T>(
-    fn: (attempt: number) => Promise<T>,
+    operation: (attempt: number) => Promise<T>,
     {
         attempts = 3,
         delayMs = 0,
@@ -43,7 +43,7 @@ export function withRetry<T>(
         async (attemptNum) => {
             const attemptIndex = attemptNum - 1;
             try {
-                return await fn(attemptIndex);
+                return await operation(attemptIndex);
             } catch (err) {
                 const willRetry =
                     attemptIndex + 1 <= retries &&

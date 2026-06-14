@@ -5,6 +5,7 @@ import {
     toLibraryCollectionTag,
 } from "@/lib/collections/utils";
 import { isActiveSubscriptionStatus } from "@/lib/billing/subscription-status";
+import { getUserActiveSubscriptionStatus } from "@/lib/billing/service";
 import {
     FREE_LIBRARY_PREVIEW_ITEMS,
     PRISMA_UNIQUE_CONSTRAINT_ERROR,
@@ -112,25 +113,6 @@ function isPrismaUniqueConstraintError(error: unknown): boolean {
     );
 }
 
-async function userHasActiveSubscriptionInTransaction(
-    tx: CollectionShareTransaction,
-    userId: string
-): Promise<boolean> {
-    const subscription = await tx.subscription.findFirst({
-        orderBy: {
-            periodEnd: SORT_DESC,
-        },
-        select: {
-            status: true,
-        },
-        where: {
-            referenceId: userId,
-        },
-    });
-
-    return isActiveSubscriptionStatus(subscription?.status);
-}
-
 async function getFreePreviewItemIdsInTransaction(
     tx: CollectionShareTransaction,
     userId: string
@@ -153,7 +135,12 @@ async function hasPublicShareAccess(args: {
     tx: CollectionShareTransaction;
     userId: string;
 }): Promise<boolean> {
-    if (await userHasActiveSubscriptionInTransaction(args.tx, args.userId)) {
+    const subscription = await getUserActiveSubscriptionStatus(
+        args.userId,
+        args.tx
+    );
+
+    if (isActiveSubscriptionStatus(subscription?.status)) {
         return true;
     }
 

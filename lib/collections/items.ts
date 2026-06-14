@@ -13,7 +13,7 @@ import {
     getValidationErrorMessage,
     handleActionError,
 } from "@/lib/common/procedure";
-import { requireActionUserId } from "@/lib/auth/service";
+import { isUnauthenticated, requireActionUserId } from "@/lib/auth/service";
 import * as z from "zod";
 import {
     BATCH_UPDATE_MAX_ITEMS,
@@ -108,7 +108,7 @@ export async function deleteLibraryItem(
     const auth = await requireActionUserId(
         "Sign in again to manage saved items."
     );
-    if ("status" in auth) {
+    if (isUnauthenticated(auth)) {
         return auth;
     }
 
@@ -156,7 +156,7 @@ export async function updateLibraryItemsCollections(input: {
     const auth = await requireActionUserId(
         "Sign in again to manage collections."
     );
-    if ("status" in auth) {
+    if (isUnauthenticated(auth)) {
         return auth;
     }
 
@@ -201,7 +201,7 @@ export async function toggleLibraryItemFavorite(
     const auth = await requireActionUserId(
         "Sign in again to manage saved items."
     );
-    if ("status" in auth) {
+    if (isUnauthenticated(auth)) {
         return auth;
     }
 
@@ -245,7 +245,7 @@ export async function updateLibraryItemCollections(input: {
     const auth = await requireActionUserId(
         "Sign in again to manage collections."
     );
-    if ("status" in auth) {
+    if (isUnauthenticated(auth)) {
         return auth;
     }
 

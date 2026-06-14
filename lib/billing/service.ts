@@ -4,6 +4,7 @@ import { withStripe } from "@/lib/billing/client";
 import type { PriceType } from "@/lib/billing/prices";
 import { createLogger } from "@/lib/common/logs/console/logger";
 import { prisma } from "@/prisma";
+import type { Prisma } from "@/prisma/client/client";
 import {
     ACTIVE_SUBSCRIPTION_STATUSES,
     isActiveSubscriptionStatus,
@@ -11,8 +12,12 @@ import {
 
 const log = createLogger("billing:service");
 
-export async function getUserActiveSubscriptionStatus(userId: string) {
-    const subscription = await prisma.subscription.findFirst({
+export async function getUserActiveSubscriptionStatus(
+    userId: string,
+    tx?: Prisma.TransactionClient
+) {
+    const client = tx ?? prisma;
+    const subscription = await client.subscription.findFirst({
         orderBy: {
             periodEnd: "desc",
         },

@@ -9,7 +9,7 @@ import {
     getValidationErrorMessage,
     handleActionError,
 } from "@/lib/common/procedure";
-import { requireActionUserId } from "@/lib/auth/service";
+import { isUnauthenticated, requireActionUserId } from "@/lib/auth/service";
 import * as z from "zod";
 import { CollectionShareError } from "./error";
 import {
@@ -63,7 +63,7 @@ export async function shareCollectionPublicly(input: {
     const auth = await requireActionUserId(
         "Sign in again to share collections."
     );
-    if ("status" in auth) {
+    if (isUnauthenticated(auth)) {
         return auth;
     }
 
@@ -109,7 +109,7 @@ export async function disableCollectionSharing(input: {
     const auth = await requireActionUserId(
         "Sign in again to manage shared collections."
     );
-    if ("status" in auth) {
+    if (isUnauthenticated(auth)) {
         return auth;
     }
 

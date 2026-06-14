@@ -1,6 +1,6 @@
 "use server";
 
-import { requireActionUserId } from "@/lib/auth/service";
+import { isUnauthenticated, requireActionUserId } from "@/lib/auth/service";
 import { getValidationErrorMessage } from "@/lib/common/procedure";
 import { FeedbackError } from "@/lib/feedback/error";
 import {
@@ -14,7 +14,7 @@ export async function createFeedback(
     formData: FormData
 ): Promise<FeedbackActionState> {
     const auth = await requireActionUserId("Sign in again to submit feedback.");
-    if ("status" in auth) {
+    if (isUnauthenticated(auth)) {
         return { message: auth.message, status: "error" };
     }
 

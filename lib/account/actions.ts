@@ -1,6 +1,6 @@
 "use server";
 
-import { requireActionUserId } from "@/lib/auth/service";
+import { isUnauthenticated, requireActionUserId } from "@/lib/auth/service";
 import { AccountError } from "@/lib/account/error";
 import * as service from "@/lib/account/service";
 
@@ -14,7 +14,7 @@ export async function deleteAccountAction(): Promise<DeleteAccountActionState> {
     const auth = await requireActionUserId(
         "Sign in again to delete your account."
     );
-    if ("status" in auth) {
+    if (isUnauthenticated(auth)) {
         return {
             message: auth.message,
             redirect: null,

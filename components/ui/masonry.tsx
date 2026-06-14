@@ -531,16 +531,16 @@ function onDeepMemo<T extends unknown[], U>(
         throw new Error("At least one constructor is required");
     }
 
-    function createCache(obj: CacheConstructor): Cache {
+    function createCache(impl: CacheConstructor): Cache {
         let cache: Cache;
-        if (typeof obj === "function") {
+        if (typeof impl === "function") {
             try {
-                cache = new (obj as new () => Cache)();
+                cache = new (impl as new () => Cache)();
             } catch (_err) {
                 cache = new Map<CacheKey, unknown>();
             }
         } else {
-            cache = obj as unknown as Cache;
+            cache = impl as unknown as Cache;
         }
         return {
             get(k: CacheKey): unknown | undefined {

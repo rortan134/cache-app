@@ -33,7 +33,7 @@ export async function generateMetadata({
             "Saved items from your connected accounts and extension imports appear below by source."
         ),
         keywords: [
-            "my library",
+            "library",
             "saved content",
             "bookmark library",
             "collections",
@@ -41,7 +41,7 @@ export async function generateMetadata({
         ],
         locale,
         path: "/library",
-        title: gtPublicString(locale, "library.metadata.title", "My library"),
+        title: gtPublicString(locale, "library.metadata.title", "Library"),
     });
 }
 

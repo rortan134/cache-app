@@ -16,7 +16,7 @@ import {
     getValidationErrorMessage,
     handleActionError,
 } from "@/lib/common/procedure";
-import { requireActionUserId } from "@/lib/auth/service";
+import { isUnauthenticated, requireActionUserId } from "@/lib/auth/service";
 import type { CollectionPriority } from "@/prisma/client/enums";
 import * as z from "zod";
 import { LibraryCollectionError } from "./error";
@@ -118,7 +118,7 @@ export async function createCollection(input: {
     const auth = await requireActionUserId(
         "Sign in again to create collections."
     );
-    if ("status" in auth) {
+    if (isUnauthenticated(auth)) {
         return auth;
     }
 
@@ -179,7 +179,7 @@ export async function createCollectionFromItems(input: {
     const auth = await requireActionUserId(
         "Sign in again to create collections."
     );
-    if ("status" in auth) {
+    if (isUnauthenticated(auth)) {
         return auth;
     }
 
@@ -223,7 +223,7 @@ export async function deleteCollection(input: {
     const auth = await requireActionUserId(
         "Sign in again to manage collections."
     );
-    if ("status" in auth) {
+    if (isUnauthenticated(auth)) {
         return auth;
     }
 
@@ -265,7 +265,7 @@ export async function duplicateCollection(input: {
     const auth = await requireActionUserId(
         "Sign in again to manage collections."
     );
-    if ("status" in auth) {
+    if (isUnauthenticated(auth)) {
         return auth;
     }
 
@@ -309,7 +309,7 @@ export async function renameCollection(input: {
     const auth = await requireActionUserId(
         "Sign in again to manage collections."
     );
-    if ("status" in auth) {
+    if (isUnauthenticated(auth)) {
         return auth;
     }
 
@@ -353,7 +353,7 @@ export async function updateCollectionPriority(input: {
     const auth = await requireActionUserId(
         "Sign in again to manage collections."
     );
-    if ("status" in auth) {
+    if (isUnauthenticated(auth)) {
         return auth;
     }
 
@@ -387,7 +387,7 @@ export async function disableSmartCollections(): Promise<
     const auth = await requireActionUserId(
         "Sign in again to manage smart collections."
     );
-    if ("status" in auth) {
+    if (isUnauthenticated(auth)) {
         return auth;
     }
 
@@ -413,7 +413,7 @@ export async function getSmartCollectionsPreference(): Promise<
     const auth = await requireActionUserId(
         "Sign in again to manage smart collections."
     );
-    if ("status" in auth) {
+    if (isUnauthenticated(auth)) {
         return auth;
     }
 
@@ -459,7 +459,7 @@ export async function downloadMedia(url: string): Promise<MediaDownloadResult> {
     }
 
     const auth = await requireActionUserId("Sign in again to download media.");
-    if ("status" in auth) {
+    if (isUnauthenticated(auth)) {
         return auth;
     }
 

@@ -165,12 +165,14 @@ async function fetchX(
 }
 
 function parseAuthenticatedUser(payload: unknown): XAuthenticatedUser | null {
-    const outer = z.object({ data: XUserSchema.optional() }).safeParse(payload);
-    if (!outer.success) {
+    const result = z
+        .object({ data: XUserSchema.optional() })
+        .safeParse(payload);
+    if (!result.success) {
         return null;
     }
 
-    const data = outer.data.data;
+    const data = result.data.data;
     if (!data) {
         return null;
     }

@@ -186,12 +186,12 @@ export async function listGitHubStarredRepositories(
             })
         );
         const rows = Array.isArray(payload) ? payload : [];
-        const parsed = rows.flatMap((row) => {
+        const repositoriesPage = rows.flatMap((row) => {
             const repository = parseRepository(row);
             return repository ? [repository] : [];
         });
 
-        repositories.push(...parsed);
+        repositories.push(...repositoriesPage);
         if (rows.length < GITHUB_PAGE_SIZE) {
             break;
         }

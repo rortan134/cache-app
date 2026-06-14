@@ -1,6 +1,6 @@
 "use server";
 
-import { requireActionUserId } from "@/lib/auth/service";
+import { isUnauthenticated, requireActionUserId } from "@/lib/auth/service";
 import { createLogger } from "@/lib/common/logs/console/logger";
 import { getValidationErrorMessage } from "@/lib/common/procedure";
 import { request as getArcjetRequest } from "@arcjet/next";
@@ -53,7 +53,7 @@ export async function getSectionDescription(
     const auth = await requireActionUserId(
         "Sign in again to generate an overview."
     );
-    if ("status" in auth) {
+    if (isUnauthenticated(auth)) {
         return auth;
     }
 
@@ -113,7 +113,7 @@ export async function askCache(
     }
 
     const auth = await requireActionUserId("Sign in again to ask Cache.");
-    if ("status" in auth) {
+    if (isUnauthenticated(auth)) {
         return auth;
     }
 

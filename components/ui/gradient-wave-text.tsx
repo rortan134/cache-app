@@ -115,17 +115,17 @@ export function GradientWaveText({
         const resolvedColors = customColors?.length
             ? customColors
             : DEFAULT_COLORS;
-        const arr: string[] = [];
+        const colorStops: string[] = [];
         const baseColor = "var(--gradient-wave-base, rgb(29,29,31))";
-        arr.push(`${baseColor} calc((var(--gi) + 0) * 1%)`);
+        colorStops.push(`${baseColor} calc((var(--gi) + 0) * 1%)`);
         for (let i = 0; i < bandCount && i < resolvedColors.length * 2; i++) {
             const color = resolvedColors[i % resolvedColors.length];
             const offset = (i + 2) * bandGap;
-            arr.push(`${color} calc((var(--gi) + ${offset}) * 1%)`);
+            colorStops.push(`${color} calc((var(--gi) + ${offset}) * 1%)`);
         }
         const endOffset = (bandCount + 2) * bandGap;
-        arr.push(`${baseColor} calc((var(--gi) + ${endOffset}) * 1%)`);
-        return arr.join(", ");
+        colorStops.push(`${baseColor} calc((var(--gi) + ${endOffset}) * 1%)`);
+        return colorStops.join(", ");
     })();
 
     const gradient = radial

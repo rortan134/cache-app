@@ -4,7 +4,7 @@ import {
     getValidationErrorMessage,
     handleActionError,
 } from "@/lib/common/procedure";
-import { requireActionUserId } from "@/lib/auth/service";
+import { isUnauthenticated, requireActionUserId } from "@/lib/auth/service";
 import { createLogger } from "@/lib/common/logs/console/logger";
 import * as z from "zod";
 import { AutomationError } from "./error";
@@ -65,7 +65,7 @@ export async function listAutomations() {
     const auth = await requireActionUserId(
         "Sign in again to view automations."
     );
-    if ("status" in auth) {
+    if (isUnauthenticated(auth)) {
         return auth;
     }
 
@@ -92,7 +92,7 @@ export async function listAutomationRuns(input: {
     const auth = await requireActionUserId(
         "Sign in again to view run history."
     );
-    if ("status" in auth) {
+    if (isUnauthenticated(auth)) {
         return auth;
     }
 
@@ -130,7 +130,7 @@ export async function createAutomation(
     const auth = await requireActionUserId(
         "Sign in again to create automations."
     );
-    if ("status" in auth) {
+    if (isUnauthenticated(auth)) {
         return auth;
     }
 
@@ -173,7 +173,7 @@ export async function updateAutomation(input: {
     const auth = await requireActionUserId(
         "Sign in again to update automations."
     );
-    if ("status" in auth) {
+    if (isUnauthenticated(auth)) {
         return auth;
     }
 
@@ -211,7 +211,7 @@ export async function resumeAutomation(
     const auth = await requireActionUserId(
         "Sign in again to resume automations."
     );
-    if ("status" in auth) {
+    if (isUnauthenticated(auth)) {
         return auth;
     }
 
@@ -253,7 +253,7 @@ export async function deleteAutomation(input: { automationId: string }) {
     const auth = await requireActionUserId(
         "Sign in again to delete automations."
     );
-    if ("status" in auth) {
+    if (isUnauthenticated(auth)) {
         return auth;
     }
 
@@ -293,7 +293,7 @@ async function updateStatusAction(
     }
 
     const auth = await requireActionUserId(copy.unauthorizedMessage);
-    if ("status" in auth) {
+    if (isUnauthenticated(auth)) {
         return auth;
     }
 

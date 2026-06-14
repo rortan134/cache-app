@@ -6,6 +6,36 @@ import { nanoid } from "nanoid";
 
 const EXTENSION_INGEST_TOKEN_LENGTH = 48;
 
+// ---------------------------------------------------------------------------
+// Typed discriminated union for action auth results
+// ---------------------------------------------------------------------------
+
+export interface UnauthorizedActionResult {
+    message: string;
+    status: "UNAUTHORIZED";
+}
+
+export interface AuthorizedActionResult {
+    userId: string;
+}
+
+export type ActionAuthResult =
+    | UnauthorizedActionResult
+    | AuthorizedActionResult;
+
+/**
+ * Returns true when `result` is an `UnauthorizedActionResult`, narrowing
+ * the discriminated union so the caller can access `.message` / return early.
+ *
+ * Replaces bare `"status" in auth` checks — if a property name is misspelled
+ * here, the compiler catches it.
+ */
+export function isUnauthenticated(
+    result: ActionAuthResult
+): result is UnauthorizedActionResult {
+    return "status" in result;
+}
+
 /**
  * Resolves the current session user id for Server Actions.
  *
@@ -15,15 +45,7 @@ const EXTENSION_INGEST_TOKEN_LENGTH = 48;
  */
 export async function requireActionUserId(
     unauthorizedMessage = "Sign in to continue."
-): Promise<
-    | {
-          status: "UNAUTHORIZED";
-          message: string;
-      }
-    | {
-          userId: string;
-      }
-> {
+): Promise<ActionAuthResult> {
     const userId = await getSessionUserId();
     if (!userId) {
         return {

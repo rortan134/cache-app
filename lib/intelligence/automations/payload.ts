@@ -1,5 +1,8 @@
 import "server-only";
 
+import { isAbortError, abortAfter } from "@/lib/common/abort";
+import { HttpError } from "@/lib/common/http-error";
+import { withRetry } from "@/lib/common/retry";
 import { parsePublicHttpUrl } from "@/lib/common/server-net";
 import { fetchWithTimeout } from "@/lib/common/timeout";
 import { prisma } from "@/prisma";
@@ -9,7 +12,10 @@ import {
     AUTOMATION_ITEM_PAGE_LIMIT_MAX,
     AUTOMATION_TEXT_PREVIEW_LENGTH_MAX,
     AUTOMATION_WEB_FETCH_BODY_LENGTH_MAX,
+    AUTOMATION_WEB_FETCH_RETRY_ATTEMPTS,
+    AUTOMATION_WEB_FETCH_RETRY_BASE_DELAY_MS,
     AUTOMATION_WEB_FETCH_TIMEOUT_MS,
+    AUTOMATION_WEB_FETCH_TOTAL_TIMEOUT_MS,
 } from "./constants";
 export {
     AutomationPayloadItemsInputSchema,
@@ -18,6 +24,56 @@ export {
 } from "./tool-inputs";
 
 const AUTOMATION_WEB_FETCH_REDIRECT_LIMIT = 5;
+const AUTOMATION_WEB_FETCH_CAPTCHA_SCAN_BYTES = 4096;
+
+const AUTOMATION_WEB_FETCH_HEADERS: Record<string, string> = {
+    Accept: "text/html,application/xhtml+xml,text/plain,application/json;q=0.9,*/*;q=0.8",
+    "User-Agent": "CacheAutomationBot/1.0 (+https://www.cachd.app)",
+};
+
+function isRetryableStatus(status: number): boolean {
+    return status >= 500 || status === 429 || status === 408;
+}
+
+function parseRetryAfterMs(response: Response): number | null {
+    const header = response.headers.get("retry-after");
+    if (!header) {
+        return null;
+    }
+
+    const seconds = Number(header);
+    if (!Number.isNaN(seconds)) {
+        return seconds * 1000;
+    }
+
+    try {
+        const date = new Date(header);
+        if (!Number.isNaN(date.getTime())) {
+            return Math.max(0, date.getTime() - Date.now());
+        }
+    } catch {
+        return null;
+    }
+
+    return null;
+}
+
+function hasCaptchaChallenge(text: string): boolean {
+    const scanText = text
+        .slice(0, AUTOMATION_WEB_FETCH_CAPTCHA_SCAN_BYTES)
+        .toLowerCase();
+    return (
+        scanText.includes("g-recaptcha") ||
+        scanText.includes("h-captcha") ||
+        scanText.includes("cf-challenge") ||
+        scanText.includes("_cf_chl_opt") ||
+        scanText.includes("turnstile") ||
+        scanText.includes("just a moment") ||
+        scanText.includes("checking your browser") ||
+        scanText.includes("please verify you are human") ||
+        scanText.includes("challenge-platform")
+    );
+}
 
 interface AutomationRunPayloadScope {
     collectionIdSnapshot: string | null;
@@ -125,11 +181,12 @@ export async function listAutomationPayloadItems(args: {
         },
     });
 
-    const page = items.slice(0, limit);
-    const nextCursor = items.length > limit ? (page.at(-1)?.id ?? null) : null;
+    const visibleItems = items.slice(0, limit);
+    const nextCursor =
+        items.length > limit ? (visibleItems.at(-1)?.id ?? null) : null;
 
     return {
-        items: page.map((item) => ({
+        items: visibleItems.map((item) => ({
             caption: item.caption,
             collectionNames: item.collections.map(
                 (collection) => collection.name
@@ -151,63 +208,133 @@ export async function listAutomationPayloadItems(args: {
 export async function automationWebFetch(args: { url: string }) {
     "use step";
 
-    let currentUrl = args.url;
-    for (
-        let redirectCount = 0;
-        redirectCount <= AUTOMATION_WEB_FETCH_REDIRECT_LIMIT;
-        redirectCount += 1
-    ) {
-        const publicUrl = await parsePublicHttpUrl(currentUrl);
-        if (!publicUrl) {
+    const totalTimeout = abortAfter(AUTOMATION_WEB_FETCH_TOTAL_TIMEOUT_MS);
+
+    try {
+        let currentUrl = args.url;
+        for (
+            let redirectCount = 0;
+            redirectCount <= AUTOMATION_WEB_FETCH_REDIRECT_LIMIT;
+            redirectCount += 1
+        ) {
+            const publicUrl = await parsePublicHttpUrl(currentUrl);
+            if (!publicUrl) {
+                return {
+                    error: "URL is blocked because it points to a local or private host.",
+                    ok: false,
+                };
+            }
+
+            let response: Response;
+            try {
+                response = await withRetry(
+                    async () => {
+                        const res = await fetchWithTimeout(
+                            publicUrl.href,
+                            {
+                                headers: AUTOMATION_WEB_FETCH_HEADERS,
+                                redirect: "manual",
+                            },
+                            AUTOMATION_WEB_FETCH_TIMEOUT_MS,
+                            totalTimeout.signal
+                        );
+
+                        if (isRetryableStatus(res.status)) {
+                            await res.body?.cancel().catch(() => undefined);
+                            throw new HttpError(
+                                res.status,
+                                parseRetryAfterMs(res) ?? undefined
+                            );
+                        }
+
+                        return res;
+                    },
+                    {
+                        attempts: AUTOMATION_WEB_FETCH_RETRY_ATTEMPTS,
+                        delayMs: (attempt, error) => {
+                            if (
+                                error instanceof HttpError &&
+                                error.retryAfter !== null
+                            ) {
+                                return error.retryAfter;
+                            }
+                            return (
+                                AUTOMATION_WEB_FETCH_RETRY_BASE_DELAY_MS *
+                                2 ** attempt
+                            );
+                        },
+                        shouldRetry: (error) => {
+                            if (error instanceof HttpError) {
+                                return error.isRetryable();
+                            }
+                            if (error instanceof Error) {
+                                return (
+                                    error.message.includes("aborted") ||
+                                    error.message.includes("fetch failed")
+                                );
+                            }
+                            return true;
+                        },
+                        signal: totalTimeout.signal,
+                    }
+                );
+            } catch (error) {
+                if (isAbortError(error)) {
+                    return {
+                        error: "URL fetch timed out.",
+                        ok: false,
+                    };
+                }
+                const message =
+                    error instanceof Error ? error.message : "Unknown error";
+                return {
+                    error: `Failed to fetch URL: ${message}`,
+                    ok: false,
+                };
+            }
+
+            if (isRedirectResponse(response.status)) {
+                const location = response.headers.get("location");
+                await response.body?.cancel().catch(() => undefined);
+                if (!location) {
+                    return {
+                        error: "URL redirected without a Location header.",
+                        ok: false,
+                        status: response.status,
+                        url: publicUrl.href,
+                    };
+                }
+                currentUrl = new URL(location, publicUrl).href;
+                continue;
+            }
+
+            const text = await response.text();
+
+            if (hasCaptchaChallenge(text)) {
+                return {
+                    error: "URL triggered a browser challenge or CAPTCHA and could not be fetched.",
+                    ok: false,
+                    status: response.status,
+                    url: response.url || publicUrl.href,
+                };
+            }
+
             return {
-                error: "URL is blocked because it points to a local or private host.",
-                ok: false,
+                body: text.slice(0, AUTOMATION_WEB_FETCH_BODY_LENGTH_MAX),
+                ok: response.ok,
+                status: response.status,
+                truncated: text.length > AUTOMATION_WEB_FETCH_BODY_LENGTH_MAX,
+                url: response.url || publicUrl.href,
             };
         }
 
-        const response = await fetchWithTimeout(
-            publicUrl.href,
-            {
-                headers: {
-                    Accept: "text/html,application/xhtml+xml,text/plain,application/json;q=0.9,*/*;q=0.8",
-                    "User-Agent":
-                        "CacheAutomationBot/1.0 (+https://www.cachd.app)",
-                },
-                redirect: "manual",
-            },
-            AUTOMATION_WEB_FETCH_TIMEOUT_MS
-        );
-
-        if (isRedirectResponse(response.status)) {
-            const location = response.headers.get("location");
-            await response.body?.cancel().catch(() => undefined);
-            if (!location) {
-                return {
-                    error: "URL redirected without a Location header.",
-                    ok: false,
-                    status: response.status,
-                    url: publicUrl.href,
-                };
-            }
-            currentUrl = new URL(location, publicUrl).href;
-            continue;
-        }
-
-        const text = await response.text();
-
         return {
-            body: text.slice(0, AUTOMATION_WEB_FETCH_BODY_LENGTH_MAX),
-            ok: response.ok,
-            status: response.status,
-            truncated: text.length > AUTOMATION_WEB_FETCH_BODY_LENGTH_MAX,
-            url: response.url || publicUrl.href,
+            error: "URL redirected too many times.",
+            ok: false,
         };
+    } finally {
+        totalTimeout.clearTimeout();
     }
-
-    return {
-        error: "URL redirected too many times.",
-        ok: false,
-    };
 }
 
 function isRedirectResponse(status: number): boolean {

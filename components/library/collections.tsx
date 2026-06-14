@@ -1774,11 +1774,11 @@ function CollectionsListItemPreviewImage({
     src,
     ...props
 }: React.ComponentProps<"img">) {
-    const [erroredSrc, setErroredSrc] = React.useState<string | null>(null);
-    const hasFailed = src !== undefined && erroredSrc === src;
+    const [failedSrc, setFailedSrc] = React.useState<string | null>(null);
+    const hasFailed = src !== undefined && failedSrc === src;
 
     const handleError = useStableCallback((): void => {
-        setErroredSrc((src as string | undefined) ?? null);
+        setFailedSrc((src as string | undefined) ?? null);
     });
 
     if (!src || hasFailed) {

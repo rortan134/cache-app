@@ -193,13 +193,13 @@ async function executeGeneration<T>(
             userId,
         });
 
-        const raw = await generate({ prompt });
-        const normalized = normalize(raw);
+        const generatedContent = await generate({ prompt });
+        const normalized = normalize(generatedContent);
 
         if (!normalized) {
             log.warn(`${warnLogLabel} normalization rejected model output`, {
                 itemCount: items.length,
-                raw,
+                raw: generatedContent,
                 sectionTitle,
                 userId,
             });
