@@ -1922,7 +1922,8 @@ function BrowserEmpty() {
                 <p className="text-muted-foreground text-xs leading-tight">
                     Everything you bookmark, unified and searchable. Cache is a
                     purpose-built bookmark manager designed to find what matters
-                    to you.
+                    to you. Images, Videos, Links and Files you add will appear
+                    here.
                 </p>
             </div>
             <Masonry columnCount={4} gap={16}>
@@ -2028,7 +2029,10 @@ function BrowserHeader() {
         group.isMainResults && Boolean(onCreateCollectionFromResults);
     const canExportSectionResults = Boolean(onExportSectionResults);
     const shouldShowSectionMenu =
-        hasItems && (canCreateCollectionFromResults || canExportSectionResults);
+        hasItems &&
+        (canCreateCollectionFromResults ||
+            canExportSectionResults ||
+            enableSectionCollapse);
 
     return (
         <ContextMenu>
@@ -2084,6 +2088,54 @@ function BrowserHeader() {
                                 }
                             />
                             <MenuPopup align="end">
+                                {enableSectionCollapse ? (
+                                    <>
+                                        <MenuItem
+                                            disabled={!group.collapsed}
+                                            onClick={group.onToggle}
+                                        >
+                                            <ChevronDown className="size-4.5 text-muted-foreground" />
+                                            Expand
+                                        </MenuItem>
+                                        <MenuItem
+                                            disabled={group.collapsed}
+                                            onClick={group.onToggle}
+                                        >
+                                            <ChevronUp className="size-4.5 text-muted-foreground" />
+                                            Collapse
+                                        </MenuItem>
+                                        {(onExpandAllSections ||
+                                            onCollapseAllSections) && (
+                                            <>
+                                                <MenuSeparator />
+                                                {onExpandAllSections && (
+                                                    <MenuItem
+                                                        onClick={
+                                                            onExpandAllSections
+                                                        }
+                                                    >
+                                                        <ChevronsDown className="size-4.5 text-muted-foreground" />
+                                                        Expand all
+                                                    </MenuItem>
+                                                )}
+                                                {onCollapseAllSections && (
+                                                    <MenuItem
+                                                        onClick={
+                                                            onCollapseAllSections
+                                                        }
+                                                    >
+                                                        <ChevronsUp className="size-4.5 text-muted-foreground" />
+                                                        Collapse all
+                                                    </MenuItem>
+                                                )}
+                                            </>
+                                        )}
+                                        {(canCreateCollectionFromResults ||
+                                            canExportSectionResults) && (
+                                            <MenuSeparator />
+                                        )}
+                                    </>
+                                ) : null}
                                 {canCreateCollectionFromResults ? (
                                     <MenuItem
                                         onClick={onCreateCollectionFromResults}
@@ -5051,6 +5103,28 @@ export function Browser({
             event.preventDefault();
             focusPaletteInput();
             return;
+        }
+
+        if (
+            isCommandOpen &&
+            !event.shiftKey &&
+            !event.altKey &&
+            (event.metaKey || event.ctrlKey)
+        ) {
+            const digit = event.key;
+            const index = Number.parseInt(digit, 10) - 1;
+            if (
+                index >= 0 &&
+                index < suggestions.length &&
+                index < SUGGESTION_LIMIT
+            ) {
+                const suggestion = suggestions[index];
+                if (suggestion) {
+                    event.preventDefault();
+                    suggestion.onSelect();
+                    return;
+                }
+            }
         }
 
         if (

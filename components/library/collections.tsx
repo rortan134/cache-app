@@ -2051,7 +2051,7 @@ function CollectionsListFavoritesCarouselSlide({
     return (
         <PreviewCard onOpenChange={setIsOpen} open={isOpen}>
             <div
-                className="group relative inline-block aspect-3/4 h-14 overflow-hidden rounded-md bg-muted ring-1 ring-border/50 focus-within:ring-2 focus-within:ring-ring/60"
+                className="group relative inline-block aspect-3/4 h-14 overflow-hidden rounded-md bg-muted focus-within:ring-2 focus-within:ring-ring/60"
                 title={previewLabel}
             >
                 <PreviewCardTrigger
