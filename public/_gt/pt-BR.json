@@ -159,18 +159,6 @@
   "5f7836df60f0e71e": "Estas páginas podem ser atualizadas periodicamente. A versão disponível neste site é a que está em vigor no momento da sua visita.",
   "600433e7972a7e75": "Faturamento",
   "606daf45fd88b674": "Escritores e pensadores",
-  "627bafce1f587e82": [
-    {
-      "c": "Mantenha tudo organizado. Identifique o que está desatualizado e fique com o que é útil",
-      "i": 1,
-      "t": "h2"
-    },
-    {
-      "c": "Monte uma base de conhecimento com o conteúdo que você já considerou importante. Importe uma vez e passe da bagunça à organização em minutos.",
-      "i": 2,
-      "t": "p"
-    }
-  ],
   "634fd36cce8909a0": "Instale a extensão",
   "69a327815dc1270a": "Política de Cookies",
   "69cac161cf484cd9": "Não foi possível abrir o checkout agora.",
@@ -403,6 +391,18 @@
   ],
   "a586e0692358c532": "Faça upgrade para ter acesso completo ao Cache e a todas as integrações",
   "a7b00994918dc087": "Excluir conta",
+  "acc1f7b6b65cace7": [
+    {
+      "c": "Identifique o que ficou obsoleto, guarde o que ainda vale a pena",
+      "i": 1,
+      "t": "h2"
+    },
+    {
+      "c": "Crie uma base de conhecimento com o conteúdo que você já considerou importante. Importe uma vez e transforme a bagunça em organização em minutos.",
+      "i": 2,
+      "t": "p"
+    }
+  ],
   "af34d21966b17dd8": {
     "c": [
       {

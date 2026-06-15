@@ -159,18 +159,6 @@
   "5f7836df60f0e71e": "Ces pages peuvent être mises à jour régulièrement. La version affichée sur ce site est celle en vigueur au moment de votre visite.",
   "600433e7972a7e75": "Facturation",
   "606daf45fd88b674": "Écrivains et penseurs",
-  "627bafce1f587e82": [
-    {
-      "c": "Restez organisé. Repérez ce qui ne sert plus, gardez l’essentiel",
-      "i": 1,
-      "t": "h2"
-    },
-    {
-      "c": "Créez une base de connaissances à partir du contenu que vous jugez déjà important. Importez une seule fois et passez du chaos à l’ordre en quelques minutes.",
-      "i": 2,
-      "t": "p"
-    }
-  ],
   "634fd36cce8909a0": "Installer l’extension",
   "69a327815dc1270a": "Politique relative aux cookies",
   "69cac161cf484cd9": "Nous ne pouvons pas ouvrir le paiement pour le moment.",
@@ -403,6 +391,18 @@
   ],
   "a586e0692358c532": "Passez à la version supérieure pour profiter d’un accès complet à Cache et à toutes les Integrations",
   "a7b00994918dc087": "Supprimer le compte",
+  "acc1f7b6b65cace7": [
+    {
+      "c": "Repérez ce qui n’est plus pertinent, gardez l’essentiel",
+      "i": 1,
+      "t": "h2"
+    },
+    {
+      "c": "Constituez une base de connaissances à partir du contenu que vous avez déjà jugé important. Importez-le une seule fois et passez du désordre à l’organisation en quelques minutes.",
+      "i": 2,
+      "t": "p"
+    }
+  ],
   "af34d21966b17dd8": {
     "c": [
       {

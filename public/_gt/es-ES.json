@@ -159,18 +159,6 @@
   "5f7836df60f0e71e": "Estas páginas pueden actualizarse periódicamente. La versión de este sitio es la que está en vigor en el momento de tu visita.",
   "600433e7972a7e75": "Facturación",
   "606daf45fd88b674": "Escritores y pensadores",
-  "627bafce1f587e82": [
-    {
-      "c": "Mantén todo organizado. Detecta lo obsoleto y conserva lo útil",
-      "i": 1,
-      "t": "h2"
-    },
-    {
-      "c": "Crea una base de conocimiento con el contenido que ya has considerado importante. Importa una vez y pasa del caos al orden en cuestión de minutos.",
-      "i": 2,
-      "t": "p"
-    }
-  ],
   "634fd36cce8909a0": "Instala la extensión",
   "69a327815dc1270a": "Política de cookies",
   "69cac161cf484cd9": "No hemos podido abrir el proceso de pago en este momento.",
@@ -403,6 +391,18 @@
   ],
   "a586e0692358c532": "Actualiza para obtener acceso completo a Cache y a todas las integraciones",
   "a7b00994918dc087": "Eliminar cuenta",
+  "acc1f7b6b65cace7": [
+    {
+      "c": "Detecta lo desfasado, quédate con lo útil",
+      "i": 1,
+      "t": "h2"
+    },
+    {
+      "c": "Crea una base de conocimiento con el contenido que ya consideras importante. Importa una vez y pasa del caos al orden en cuestión de minutos.",
+      "i": 2,
+      "t": "p"
+    }
+  ],
   "af34d21966b17dd8": {
     "c": [
       {
