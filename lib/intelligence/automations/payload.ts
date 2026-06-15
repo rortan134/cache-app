@@ -229,7 +229,7 @@ export async function automationWebFetch(args: { url: string }) {
             try {
                 response = await withRetry(
                     async () => {
-                        const res = await fetchWithTimeout(
+                        const response = await fetchWithTimeout(
                             publicUrl.href,
                             {
                                 headers: AUTOMATION_WEB_FETCH_HEADERS,
@@ -239,15 +239,17 @@ export async function automationWebFetch(args: { url: string }) {
                             totalTimeout.signal
                         );
 
-                        if (isRetryableStatus(res.status)) {
-                            await res.body?.cancel().catch(() => undefined);
+                        if (isRetryableStatus(response.status)) {
+                            await response.body
+                                ?.cancel()
+                                .catch(() => undefined);
                             throw new HttpError(
-                                res.status,
-                                parseRetryAfterMs(res) ?? undefined
+                                response.status,
+                                parseRetryAfterMs(response) ?? undefined
                             );
                         }
 
-                        return res;
+                        return response;
                     },
                     {
                         attempts: AUTOMATION_WEB_FETCH_RETRY_ATTEMPTS,

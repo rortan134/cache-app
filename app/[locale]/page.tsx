@@ -336,9 +336,9 @@ export default async function Home() {
                                     Search and explore from a single, fast feed
                                 </h2>
                                 <p className="text-pretty font-medium font-regular text-[#0A0B0D] text-[16px] leading-[1.2] tracking-[-3%] opacity-50">
-                                    Streamline the way you consume and re-engage
-                                    with your saved content through a modern and
-                                    powerful interface, right in your browser.
+                                    Streamline the way you re-engage with your
+                                    saved content through a modern and powerful
+                                    interface, right in your browser.
                                 </p>
                             </T>
                             <ul className="mt-2 flex flex-col space-y-2 text-xs">

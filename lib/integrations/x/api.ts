@@ -172,16 +172,16 @@ function parseAuthenticatedUser(payload: unknown): XAuthenticatedUser | null {
         return null;
     }
 
-    const data = result.data.data;
-    if (!data) {
+    const user = result.data.data;
+    if (!user) {
         return null;
     }
 
     return {
-        id: data.id,
-        name: data.name ?? null,
-        profileImageUrl: data.profile_image_url ?? null,
-        username: data.username ?? null,
+        id: user.id,
+        name: user.name ?? null,
+        profileImageUrl: user.profile_image_url ?? null,
+        username: user.username ?? null,
     };
 }
 

@@ -33,7 +33,7 @@ export function SignInButton({ hasServerSession }: SignInButtonProps) {
                     }
                     size="xl"
                 />
-                <span className="mx-auto -mt-4 hidden text-center text-muted-foreground text-xs italic opacity-80 md:block">
+                <span className="mx-auto -mt-5 hidden text-center text-muted-foreground text-xs italic opacity-80 md:block">
                     Press <Kbd>P</Kbd>
                 </span>
             </>

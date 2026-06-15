@@ -11,13 +11,13 @@ const log = createLogger("logout-page-client");
 
 export function LogoutPageClient() {
     const router = useRouter();
-    const mounted = useRef(false);
+    const isMountedRef = useRef(false);
 
     useEffect(() => {
-        if (mounted.current) {
+        if (isMountedRef.current) {
             return;
         }
-        mounted.current = true;
+        isMountedRef.current = true;
 
         const performLogout = async () => {
             try {

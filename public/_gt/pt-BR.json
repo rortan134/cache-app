@@ -1,18 +1,6 @@
 {
   "019869a6c0157892": "Termos de Serviço",
   "03560a0d75adf329": "Produtividade",
-  "056f630707f07061": [
-    {
-      "c": "Pesquise e explore em um feed rápido e único",
-      "i": 1,
-      "t": "h2"
-    },
-    {
-      "c": "Simplifique a forma como você consome e revisita seu conteúdo salvo com uma interface moderna e poderosa, direto no navegador.",
-      "i": 2,
-      "t": "p"
-    }
-  ],
   "062b5e45e86d2cc4": {
     "c": [
       {
@@ -186,6 +174,18 @@
   "634fd36cce8909a0": "Instale a extensão",
   "69a327815dc1270a": "Política de Cookies",
   "69cac161cf484cd9": "Não foi possível abrir o checkout agora.",
+  "6ad8bb8e726daacf": [
+    {
+      "c": "Pesquise e explore em um feed único e rápido",
+      "i": 1,
+      "t": "h2"
+    },
+    {
+      "c": "Simplifique a forma como você revisita seu conteúdo salvo com uma interface moderna e poderosa, direto no navegador.",
+      "i": 2,
+      "t": "p"
+    }
+  ],
   "6b75fd08ca7c6ae3": [
     {
       "i": 1,

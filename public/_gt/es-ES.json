@@ -1,18 +1,6 @@
 {
   "019869a6c0157892": "Términos del servicio",
   "03560a0d75adf329": "Productividad",
-  "056f630707f07061": [
-    {
-      "c": "Busca y explora desde un único feed ágil",
-      "i": 1,
-      "t": "h2"
-    },
-    {
-      "c": "Agiliza tu forma de consumir y retomar tu contenido guardado con una interfaz moderna y potente, directamente en tu navegador.",
-      "i": 2,
-      "t": "p"
-    }
-  ],
   "062b5e45e86d2cc4": {
     "c": [
       {
@@ -186,6 +174,18 @@
   "634fd36cce8909a0": "Instala la extensión",
   "69a327815dc1270a": "Política de cookies",
   "69cac161cf484cd9": "No hemos podido abrir el proceso de pago en este momento.",
+  "6ad8bb8e726daacf": [
+    {
+      "c": "Busca y explora desde un único feed ágil",
+      "i": 1,
+      "t": "h2"
+    },
+    {
+      "c": "Simplifica la forma en que vuelves a descubrir tu contenido guardado con una interfaz moderna y potente, directamente en tu navegador.",
+      "i": 2,
+      "t": "p"
+    }
+  ],
   "6b75fd08ca7c6ae3": [
     {
       "i": 1,

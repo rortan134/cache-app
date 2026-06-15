@@ -4,22 +4,22 @@
     "entries": [
         {
             "fileId": "879f3a5f954ee8b75bf1e91f4ea9916b41c933e5beba7eb6362647a637c9c66d",
-            "versionId": "b3a24cc7669d615b3214b33bc7f63c3105292e33a7491505d8e8c8b26993664b",
+            "versionId": "de56a45fd2a82473c0f9b691fa6788db5e4b034d03f7f4bb208821518f56766d",
             "translations": {
                 "es-ES": {
-                    "updatedAt": "2026-06-13T01:47:00.158Z",
+                    "updatedAt": "2026-06-15T04:48:36.334Z",
                     "fileName": "/Users/gilbert/Documents/proyectos/Cache/public/_gt/es-ES.json",
-                    "postProcessHash": "06b55f461bd83f9cb3c4810ac1545e790da764b36ccf14bde00a1ad6830cfc7b"
+                    "postProcessHash": "947f3ce81a39a4f57b9d2b17825f3b4e48d0c4ac6bfaf636a4671e3e16920954"
                 },
                 "pt-BR": {
-                    "updatedAt": "2026-06-13T01:47:00.164Z",
+                    "updatedAt": "2026-06-15T04:48:36.342Z",
                     "fileName": "/Users/gilbert/Documents/proyectos/Cache/public/_gt/pt-BR.json",
-                    "postProcessHash": "83b9ba23497f89ce553d7258dc03f2450d114b8ea3c55acb5c6434237713fb9c"
+                    "postProcessHash": "1c73bae92c4f880fcb20503689440147e872fe07cf0c14cba0d739d2bde9c58d"
                 },
                 "fr-FR": {
-                    "updatedAt": "2026-06-13T01:47:00.168Z",
+                    "updatedAt": "2026-06-15T04:48:36.344Z",
                     "fileName": "/Users/gilbert/Documents/proyectos/Cache/public/_gt/fr-FR.json",
-                    "postProcessHash": "374ef4674e7b652e7973d79f1421f5ee34420eeed479e2ff9b3cd4d6e9661f52"
+                    "postProcessHash": "f80432f5839fdc79304769b180e2ffeff129129832c9fda869e31af4976429f3"
                 }
             },
             "fileName": "__INTERNAL_GT_TEMPLATE_NAME__",

@@ -26,17 +26,17 @@ export function TruncateAfter({
 
     const displayed = childrenArray.slice(0, maxVisible);
     const remaining = childrenArray.slice(maxVisible);
-    const numTruncated = clamp(remaining.length, 0, 99);
+    const truncatedCount = clamp(remaining.length, 0, 99);
 
     return (
         <div className={cn("flex items-center gap-1", className)} {...props}>
             {displayed}
-            {numTruncated > 0 && (
+            {truncatedCount > 0 && (
                 <Popover>
                     <PopoverTrigger render={badgeRender}>
                         +
                         <Calligraph className="-mx-0.5">
-                            {numTruncated}
+                            {truncatedCount}
                         </Calligraph>{" "}
                         more
                     </PopoverTrigger>
