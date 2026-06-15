@@ -88,6 +88,9 @@ import {
     MenuItem,
     MenuPopup,
     MenuSeparator,
+    MenuSub,
+    MenuSubPopup,
+    MenuSubTrigger,
     MenuTrigger,
 } from "@/components/ui/menu";
 import {
@@ -209,6 +212,7 @@ import {
     FolderOpen,
     Funnel,
     Globe,
+    History,
     Layers3,
     LinkIcon,
     ListChevronsUpDown,
@@ -3639,6 +3643,18 @@ interface LibraryGridCardMenuProps {
     previewImageUrl: string | null;
 }
 
+function formatWaybackDate(daysOffset: number): string {
+    const date = new Date();
+    date.setDate(date.getDate() + daysOffset);
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, "0");
+    const d = String(date.getDate()).padStart(2, "0");
+    const h = String(date.getHours()).padStart(2, "0");
+    const min = String(date.getMinutes()).padStart(2, "0");
+    const s = String(date.getSeconds()).padStart(2, "0");
+    return `${y}${m}${d}${h}${min}${s}`;
+}
+
 function itemDateLabel(dateValue: Date | string | null | undefined): string {
     const date = parseDate(dateValue);
     if (!date) {
@@ -4068,6 +4084,56 @@ function CardMenu({
                 <SearchIcon className="size-4.5 text-muted-foreground" />
                 Find similar
             </Item>
+            {isNote ? null : (
+                <MenuSub>
+                    <MenuSubTrigger>
+                        <History className="size-4.5 text-muted-foreground" />
+                        View previous versions
+                    </MenuSubTrigger>
+                    <MenuSubPopup>
+                        <MenuItem
+                            onClick={() =>
+                                openExternal(
+                                    `https://web.archive.org/web/${formatWaybackDate(-30)}/${item.url}`
+                                )
+                            }
+                        >
+                            <History className="size-4 text-muted-foreground" />
+                            1 month ago
+                        </MenuItem>
+                        <MenuItem
+                            onClick={() =>
+                                openExternal(
+                                    `https://web.archive.org/web/${formatWaybackDate(-90)}/${item.url}`
+                                )
+                            }
+                        >
+                            <History className="size-4 text-muted-foreground" />
+                            3 months ago
+                        </MenuItem>
+                        <MenuItem
+                            onClick={() =>
+                                openExternal(
+                                    `https://web.archive.org/web/${formatWaybackDate(-365)}/${item.url}`
+                                )
+                            }
+                        >
+                            <History className="size-4 text-muted-foreground" />
+                            1 year ago
+                        </MenuItem>
+                        <MenuItem
+                            onClick={() =>
+                                openExternal(
+                                    `https://web.archive.org/web/*/${item.url}`
+                                )
+                            }
+                        >
+                            <History className="size-4 text-muted-foreground" />
+                            View all snapshots
+                        </MenuItem>
+                    </MenuSubPopup>
+                </MenuSub>
+            )}
             <ItemSeparator />
             <Item disabled={isDeletePending} onClick={() => onDelete?.(item)}>
                 {isDeletePending ? "Deleting..." : "Delete"}
