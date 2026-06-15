@@ -2,13 +2,13 @@
 
 ## Project overview
 
-[Cache](https://www.cachd.app) is a modern well-crafted purpose-built personal knowledge web application tool that unifies user bookmarks across all mainstream platforms into a single, searchable, actionable library. You can search in plain English, organize results into collections in one step, synthesize what you've gathered, and pipe it into the tools you already think in, like Notion. It starts where the algorithmic feed ends—at the moment you hit "save"—treating that decision as a signal worth honoring, and building everything around the one thing most bookmarking tools have historically failed at: making saved content useful when it matters.
+[Cache](https://www.cachd.app) is a modern well-crafted purpose-built personal bookmark knowledge web application tool that unifies user bookmarks across all mainstream platforms into a single, searchable, actionable library. Read [README.md](README.md) for more.
 
 ## On development
 
 Cache has a zero technical debt policy. Do it right the first time. A problem solved in design costs less than one solved in implementation, which costs less than one solved in production. The cost of fixing problems grows exponentially over time.
 
-Minimize any low-value prose. Offer nuanced, factual, and accurate solutions with brilliant critical reasoning. Suggest solutions or alternatives I didn’t think about and anticipate my needs.
+Minimize low-value prose. Offer nuanced, factual, and accurate solutions with brilliant critical reasoning. Suggest solutions or alternatives I didn’t think about and anticipate my needs.
 
 When the user request is suggesting an approach that is not ideal or wouldn't work, you must reject it and offer alternatives or different perspectives on the problem at hand. Reframe problems and perspectives whenever adequate in order to reach the most optimal answer. Break them down into smaller, logical steps from first principles.
 
