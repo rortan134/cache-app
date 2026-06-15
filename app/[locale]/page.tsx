@@ -3,10 +3,11 @@ import { buildPageMetadata } from "@/app/metadata";
 import { GoogleOneTapTrigger, SessionHint } from "@/components/auth/session";
 import { SignInButton } from "@/components/auth/sign-in-buttons";
 import { BrandLogo } from "@/components/ui/brand-logo";
+import { Button } from "@/components/ui/button";
 import { Carousel } from "@/components/ui/carousel";
 import { Footer } from "@/components/ui/footer";
 import { GradientWaveText } from "@/components/ui/gradient-wave-text";
-import { ChromeIcon, TikTokIcon } from "@/components/ui/icons";
+import { ChromeIcon, GithubIcon, TikTokIcon } from "@/components/ui/icons";
 import { IridescenceBackground } from "@/components/ui/iridescence-background";
 import { PageShell } from "@/components/ui/page-shell";
 import { Sidebar, SidebarFooter, SidebarHeader } from "@/components/ui/sidebar";
@@ -124,6 +125,19 @@ export default async function Home() {
                             </T>
                         </div>
                         <SignInButton hasServerSession={!!session} />
+                        <Button
+                            render={
+                                <a
+                                    href="https://github.com/rortan134/cache-app"
+                                    rel="noopener"
+                                    target="_blank"
+                                >
+                                    <GithubIcon className="size-5" />
+                                    Star on GitHub
+                                </a>
+                            }
+                            size="xl"
+                        />
                         <SessionHint serverSession={session} />
                     </SidebarHeader>
                     <SidebarFooter>
@@ -375,8 +389,7 @@ export default async function Home() {
                         <div className="flex max-w-[340px] flex-col gap-3 py-5 md:gap-4">
                             <T>
                                 <h2 className="font-medium text-[#0A0B0D] text-[28px] leading-[1.1] tracking-[-1.28px] lg:text-[32px]">
-                                    Stay organized. Spot the stale, keep the
-                                    useful
+                                    Spot the stale, keep the useful
                                 </h2>
                                 <p className="text-pretty font-medium font-regular text-[#0A0B0D] text-[16px] leading-[1.2] tracking-[-3%] opacity-50">
                                     Build a knowledge base with the content
