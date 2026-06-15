@@ -18,6 +18,7 @@
   <a href="https://github.com/rortan134/cache-app/releases"><img src="https://img.shields.io/github/v/release/rortan134/cache-app" alt="Release"></a>
   <a href="./CODE_OF_CONDUCT.md"><img src="https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg" alt="Code of Conduct"></a>
   <a href="./CONTRIBUTING.md"><img src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg" alt="PRs Welcome"></a>
+  <a href="https://twitter.com/gsmmtt" target="_blank" rel="noopener noreferrer"><img src="https://img.shields.io/twitter/follow/gsmmtt" alt="Twitter Follow"></a>
 </p>
 
 <p align="center">
@@ -37,8 +38,9 @@
 - **AI-assisted search** — Ask the Cache agent with natural-language and search across all your saved content.
 - **AI-Powered Synthesis** — Automations generate daily, weekly, and monthly digests. Smart collections surface what matters.
 - **Rich Notes** — First-party WYSIWYG notes alongside bookmarks.
-- **Browser Extension** — Manifest V3 Chrome extension that syncs saved content from social platforms.
+- **Browser Extension** — Chrome extension web clipper that syncs saved content from social platforms.
 - **Export & Integrate** — Pipe results into other tools you already use.
+- **Simple and low maintenance** — The Cache app is optimized for simplicity and ease-of-use
 
 ---
 

@@ -7,6 +7,7 @@ Thank you for helping us keep Cache secure. We take the security of our applicat
 | Version | Supported          |
 | ------- | ------------------ |
 | 1.x     | :white_check_mark: |
+| 0.x.0   | :white_check_mark: |
 
 ## Reporting a Vulnerability
 
@@ -37,7 +38,7 @@ Cache is a web application at `cachd.app` and includes:
 ## Out of Scope
 
 - Third-party services we integrate with (Instagram, TikTok, YouTube, etc.)
-- Infrastructure vulnerabilities in our hosting provider (Vercel)
+- Infrastructure vulnerabilities in our hosting providers
 - Social engineering attacks
 
 ## Disclosure Policy

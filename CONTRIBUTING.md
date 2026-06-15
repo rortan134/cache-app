@@ -18,8 +18,6 @@ Thank you for your interest in contributing to Cache! We welcome contributions i
     - [Prerequisites](#prerequisites)
     - [Setup](#setup)
     - [Useful Commands](#useful-commands)
-  - [Coding Standards](#coding-standards)
-    - [Before Submitting](#before-submitting)
   - [License](#license)
 
 ---
@@ -66,8 +64,6 @@ If you find a bug or have a feature request, open an issue on GitHub. Please inc
 - Expected vs. actual behaviour.
 - Screenshots or logs if relevant.
 - Environment details (browser, OS, etc.).
-
-**Labels** help us triage: `bug`, `feature`, `enhancement`, `documentation`, `question`.
 
 ---
 
@@ -157,32 +153,6 @@ Open [http://localhost:3000](http://localhost:3000).
 | `bun run type-check` | TypeScript type check      |
 | `bun run db-deploy`  | Deploy database migrations |
 | `bun run db-migrate` | Create a new migration     |
-
----
-
-## Coding Standards
-
-This project follows strict standards. Please read [`AGENTS.md`](AGENTS.md) for the full engineering philosophy. Key principles:
-
-- **Zero technical debt** — Do it right the first time.
-- **TypeScript strict mode** — No `any`, no `!` (non-null assertion), no `as Type` casts.
-- **Simplicity** — Small functions with single responsibilities. Inline values used only once. Minimize variable scope.
-- **Composition over inheritance** — Prefer dependency injection.
-- **Procedure module pattern** — Services in `lib/{module}/service.ts`, actions in `lib/{module}/actions.ts`.
-- **React 19 with auto-memoization** — Do not add manual `useMemo` or `useCallback` (React Compiler handles it).
-- **File conventions** — Components follow a strict vertical ordering (imports, constants, types, helpers, component, prop interfaces, namespace).
-- **Naming conventions** — Booleans use `is`, `has`, `should`, `can` prefixes. Refs end with `Ref` suffix.
-- **Error handling** — Use `NamedError.create(...)` for domain errors. Never silently swallow exceptions.
-
-### Before Submitting
-
-Run the full check suite:
-
-```bash
-bun run type-check
-bun run lint
-bun run test
-```
 
 ---
 
