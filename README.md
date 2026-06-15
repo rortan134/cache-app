@@ -3,9 +3,9 @@
 <p align="center">
   <a href="https://www.cachd.app" target="_blank" rel="noopener noreferrer">
     <picture>
-      <source media="(prefers-color-scheme: dark)" srcset="public/cache-app-icon.svg">
-      <source media="(prefers-color-scheme: light)" srcset="public/cache-app-icon.svg">
-      <img src="public/cache-app-icon.svg" alt="Cache Logo" width="320"/>
+      <source media="(prefers-color-scheme: dark)" srcset="public/cache-app-icon.png">
+      <source media="(prefers-color-scheme: light)" srcset="public/cache-app-icon.png">
+      <img src="public/cache-app-icon.png" alt="Cache Logo" width="320"/>
     </picture>
   </a>
 </p>
