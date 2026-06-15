@@ -1,5 +1,3 @@
-# [Cache App](https://www.cachd.app)
-
 <p align="center">
   <a href="https://www.cachd.app" target="_blank" rel="noopener noreferrer">
     <img src="app/opengraph-image.png" alt="Cache App Preview" width="800"/>
