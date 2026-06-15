@@ -78,7 +78,9 @@ const FOOTER_LINKS = [
     { href: "/security", label: "Security" },
 ] as const;
 
-export function UserMenu(props: React.ComponentProps<typeof Menu>) {
+export function UserMenu(
+    props: Omit<React.ComponentProps<typeof Menu>, "open" | "onOpenChange">
+) {
     const [isOpen, setIsOpen] = React.useState(false);
 
     const toggle = useStableCallback(() => {
@@ -223,7 +225,8 @@ export function UserMenuContent() {
                     className="justify-between"
                     render={
                         <Link
-                            href="mailto:gsmt.dev@gmail.com"
+                            href="https://docs.cachd.app/docs/privacy"
+                            rel="noopener"
                             target="_blank"
                         />
                     }
@@ -602,7 +605,7 @@ function getAccountOptions(
             session: {
                 token: activeSession.session.token,
             },
-            user: activeSession.user,
+            user: { ...activeSession.user },
         },
         ...deviceSessions,
     ];

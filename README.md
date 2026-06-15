@@ -94,27 +94,27 @@ Open [http://localhost:3000](http://localhost:3000).
 
 | Category           | Technology                                                                                                                 |
 | ------------------ | -------------------------------------------------------------------------------------------------------------------------- |
-| **Framework**      | [Next.js](https://nextjs.org/) 16 (App Router)                                                                             |
-| **Runtime**        | [Bun](https://bun.sh/) 1.3, [Node.js](https://nodejs.org/) 24.x                                                            |
-| **UI**             | [React](https://react.dev/) 19, [Base UI](https://base-ui.com/) 1.5, [Tailwind CSS](https://tailwindcss.com/) 4            |
-| **Icons**          | [lucide-react](https://lucide.dev/) 1.17                                                                                   |
-| **Rich Text**      | [Lexical](https://lexical.dev/) 0.45, [Streamdown](https://github.com/vercel/streamdown) 2.5                               |
-| **Database**       | PostgreSQL via [Prisma](https://www.prisma.io/) 7, Redis                                                                   |
-| **Auth**           | [Better Auth](https://better-auth.com/) 1.6 (Google, GitHub, X, Pinterest OAuth)                                           |
-| **Validation**     | [Zod](https://zod.dev/) 4, [@t3-oss/env-nextjs](https://env.t3.gg/)                                                        |
-| **AI/LLM**         | [Vercel AI SDK](https://sdk.vercel.ai/) 6, [Google Gemini](https://ai.google.dev/), [@workflow/ai](https://workflow.ai/) 6 |
+| **Framework**      | [Next.js](https://nextjs.org/) (App Router)                                                                                |
+| **Runtime**        | [Bun](https://bun.sh/), [Node.js](https://nodejs.org/)                                                                     |
+| **UI**             | [React](https://react.dev/), [Base UI](https://base-ui.com/), [Tailwind CSS](https://tailwindcss.com/)                     |
+| **Icons**          | [lucide-react](https://lucide.dev/)                                                                                        |
+| **Rich Text**      | [Lexical](https://lexical.dev/), [Streamdown](https://github.com/vercel/streamdown)                                        |
+| **Database**       | PostgreSQL via [Prisma](https://www.prisma.io/), Redis                                                                     |
+| **Auth**           | [Better Auth](https://better-auth.com/) (Google, GitHub, X, Pinterest OAuth)                                               |
+| **Validation**     | [Zod](https://zod.dev/), [@t3-oss/env-nextjs](https://env.t3.gg/)                                                          |
+| **AI/LLM**         | [Vercel AI SDK](https://sdk.vercel.ai/), [Google Gemini](https://ai.google.dev/), [@workflow/ai](https://workflow.ai/)     |
 | **Web Search**     | [Tavily](https://tavily.com/)                                                                                              |
-| **RPC / API**      | [oRPC](https://orpc.unnoq.com/) 1.14 (server, client, React)                                                               |
-| **Data Fetching**  | [SWR](https://swr.vercel.app/) 2.4, [nuqs](https://nuqs.vercel.app/) 2.8                                                   |
+| **RPC / API**      | [oRPC](https://orpc.unnoq.com/) (server, client, React)                                                                    |
+| **Data Fetching**  | [SWR](https://swr.vercel.app/), [nuqs](https://nuqs.vercel.app/)                                                           |
 | **i18n**           | gt-next (en-US, fr-FR, es-ES, pt-BR)                                                                                       |
-| **Payments**       | [Stripe](https://stripe.com/) 22                                                                                           |
-| **Workflows**      | [workflow](https://workflow.ai/) 4.3, [Vercel Cron Jobs](https://vercel.com/docs/cron-jobs)                                |
-| **MCP**            | [MCP SDK](https://modelcontextprotocol.io/) 1.29                                                                           |
-| **Security**       | [Arcjet](https://arcjet.com/) 1.4 (WAF, rate limiting, PII redaction, prompt injection detection)                          |
+| **Payments**       | [Stripe](https://stripe.com/)                                                                                              |
+| **Workflows**      | [workflow](https://workflow.ai/), [Vercel Cron Jobs](https://vercel.com/docs/cron-jobs)                                    |
+| **MCP**            | [MCP SDK](https://modelcontextprotocol.io/)                                                                                |
+| **Security**       | [Arcjet](https://arcjet.com/) (WAF, rate limiting, PII redaction, prompt injection detection)                              |
 | **Observability**  | [OpenTelemetry](https://opentelemetry.io/), [Vercel Analytics](https://vercel.com/docs/analytics)                          |
-| **Linting**        | [Ultracite](https://ultracite.dev/) 7 (Biome)                                                                              |
+| **Linting**        | [Ultracite](https://ultracite.dev/) (Biome)                                                                                |
 | **React Compiler** | [babel-plugin-react-compiler](https://react.dev/learn/react-compiler) (auto-memoization)                                   |
-| **Date Handling**  | [Day.js](https://day.js.org/) 1.11, [chrono-node](https://github.com/wanasit/chrono) 2.9                                   |
+| **Date Handling**  | [Day.js](https://day.js.org/), [chrono-node](https://github.com/wanasit/chrono)                                             |
 | **Deployment**     | [Vercel](https://vercel.com/), [Unkey](https://unkey.com/)                                                                 |
 
 ---

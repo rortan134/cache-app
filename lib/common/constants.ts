@@ -37,6 +37,11 @@ export const BASE_URL =
 
 export const FALLBACK_URL = "about:blank";
 
+export const LINKS = {
+    GITHUB: "https://github.com/rortan134/cache-app",
+    TWITTER: "https://x.com/gsmmtt",
+} as const;
+
 export const SORT_ASC = "asc" as const;
 export const SORT_DESC = "desc" as const;
 

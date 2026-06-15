@@ -1,4 +1,5 @@
 import { GDPRIcon } from "@/components/ui/icons";
+import { LINKS } from "@/lib/common/constants";
 import { T } from "gt-next";
 import Link from "next/link";
 
@@ -21,20 +22,11 @@ export function Footer() {
                                 </Link>
                                 <Link
                                     className="underline"
-                                    href="/legal/privacy-policy"
+                                    href="/privacy"
                                     target="_blank"
                                 >
                                     <T>
-                                        <p>Privacy Policy</p>
-                                    </T>
-                                </Link>
-                                <Link
-                                    className="underline"
-                                    href="/legal/cookie-policy"
-                                    target="_blank"
-                                >
-                                    <T>
-                                        <p>Cookie Policy</p>
+                                        <p>Privacy</p>
                                     </T>
                                 </Link>
                                 <Link
@@ -48,7 +40,7 @@ export function Footer() {
                                 </Link>
                                 <Link
                                     className="underline"
-                                    href="https://x.com/gsmmtt"
+                                    href={LINKS.TWITTER}
                                     rel="noreferrer noopener"
                                     target="_blank"
                                 >
@@ -56,7 +48,7 @@ export function Footer() {
                                 </Link>
                                 <Link
                                     className="underline"
-                                    href="https://github.com/rortan134/cache-app"
+                                    href={LINKS.GITHUB}
                                     rel="noreferrer noopener"
                                     target="_blank"
                                 >
