@@ -2001,7 +2001,7 @@ function CollectionsListFavoritesCarouselContent({
     }
 
     return (
-        <Carousel className="mb-1 ml-2.5 [&>*:not(:last-child)]:me-1.5">
+        <Carousel className="mb-1 *:first:pl-2.5 [&>*:not(:last-child)]:me-1.5">
             {favoriteItems.map(children)}
         </Carousel>
     );
