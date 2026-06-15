@@ -1,5 +1,4 @@
 import { GDPRIcon } from "@/components/ui/icons";
-import { LINKS } from "@/lib/common/constants";
 import { T } from "gt-next";
 import Link from "next/link";
 
@@ -22,7 +21,7 @@ export function Footer() {
                                 </Link>
                                 <Link
                                     className="underline"
-                                    href="/privacy"
+                                    href="/legal/privacy-policy"
                                     target="_blank"
                                 >
                                     <T>
@@ -40,7 +39,7 @@ export function Footer() {
                                 </Link>
                                 <Link
                                     className="underline"
-                                    href={LINKS.TWITTER}
+                                    href="/x"
                                     rel="noreferrer noopener"
                                     target="_blank"
                                 >
@@ -48,7 +47,7 @@ export function Footer() {
                                 </Link>
                                 <Link
                                     className="underline"
-                                    href={LINKS.GITHUB}
+                                    href="/github"
                                     rel="noreferrer noopener"
                                     target="_blank"
                                 >

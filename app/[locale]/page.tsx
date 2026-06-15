@@ -3,11 +3,10 @@ import { buildPageMetadata } from "@/app/metadata";
 import { GoogleOneTapTrigger, SessionHint } from "@/components/auth/session";
 import { SignInButton } from "@/components/auth/sign-in-buttons";
 import { BrandLogo } from "@/components/ui/brand-logo";
-import { Button } from "@/components/ui/button";
 import { Carousel } from "@/components/ui/carousel";
 import { Footer } from "@/components/ui/footer";
 import { GradientWaveText } from "@/components/ui/gradient-wave-text";
-import { ChromeIcon, GithubIcon, TikTokIcon } from "@/components/ui/icons";
+import { ChromeIcon, TikTokIcon } from "@/components/ui/icons";
 import { IridescenceBackground } from "@/components/ui/iridescence-background";
 import { PageShell } from "@/components/ui/page-shell";
 import { Sidebar, SidebarFooter, SidebarHeader } from "@/components/ui/sidebar";
@@ -126,20 +125,6 @@ export default async function Home() {
                             </T>
                         </div>
                         <SignInButton hasServerSession={!!session} />
-                        <Button
-                            render={
-                                <a
-                                    href="https://github.com/rortan134/cache-app"
-                                    rel="noopener"
-                                    target="_blank"
-                                >
-                                    <GithubIcon className="size-4.5" />
-                                    Star on GitHub
-                                </a>
-                            }
-                            size="xl"
-                            variant="ghost"
-                        />
                         <SessionHint serverSession={session} />
                     </SidebarHeader>
                     <SidebarFooter>

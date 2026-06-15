@@ -96,14 +96,14 @@ const nextConfig: NextConfig = {
                 source: "/github",
             },
             {
-                destination: "/legal/cookie-policy",
+                destination: "/legal/privacy-policy",
                 permanent: true,
-                source: "/cookie-policy",
+                source: "/privacy-policy",
             },
             {
                 destination: "/legal/privacy-policy",
                 permanent: true,
-                source: "/privacy-policy",
+                source: "/privacy",
             },
             {
                 destination: "/legal/terms-of-service",
@@ -114,6 +114,16 @@ const nextConfig: NextConfig = {
                 destination: "/",
                 permanent: true,
                 source: "/manifesto",
+            },
+            {
+                destination: "https://docs.cachd.app/docs/changelog",
+                permanent: false,
+                source: "/changelog",
+            },
+            {
+                destination: "https://docs.cachd.app/docs/security",
+                permanent: false,
+                source: "/security",
             },
         ];
     },
