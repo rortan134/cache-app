@@ -405,11 +405,6 @@ const TEMPLATES = [
         value: "watch_later",
     },
     {
-        description: "Recipes and meal ideas you want to try later.",
-        name: "Recipes",
-        value: "recipes",
-    },
-    {
         description:
             "Background research, references, and findings for ongoing work.",
         name: "Research Notes",
@@ -424,8 +419,8 @@ const TEMPLATES = [
     {
         description:
             "Products, gear, and purchase links you're comparing or planning to buy.",
-        name: "Things to Buy",
-        value: "things_to_buy",
+        name: "Shopping List",
+        value: "shopping_list",
     },
     {
         description:
@@ -465,9 +460,15 @@ const TEMPLATES = [
     },
     {
         description:
-            "Personal admin items like purchases, reminders, and household tasks.",
-        name: "Life Admin",
-        value: "life_admin",
+            "Personal finance, investment research, budgeting tools, and financial planning resources.",
+        name: "Finance & Investing",
+        value: "finance_investing",
+    },
+    {
+        description:
+            "Online courses, educational platforms, learning paths, and skill-building resources to grow your knowledge.",
+        name: "Courses & Learning",
+        value: "courses_learning",
     },
 ] as const satisfies readonly CollectionTemplateOption[];
 
@@ -3270,7 +3271,8 @@ function CollectionsCreateDialog() {
                             <AlertDescription>
                                 Collections keep your best saves and content in
                                 one place. Use them for ongoing goals, or just
-                                to keep things tidy.
+                                to keep things tidy. Cache will auto-assign
+                                matching entries to it.
                             </AlertDescription>
                         </Alert>
                     </DialogPanel>
