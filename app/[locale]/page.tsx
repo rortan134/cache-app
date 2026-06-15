@@ -133,11 +133,12 @@ export default async function Home() {
                                     rel="noopener"
                                     target="_blank"
                                 >
-                                    <GithubIcon className="size-5" />
+                                    <GithubIcon className="size-4.5" />
                                     Star on GitHub
                                 </a>
                             }
                             size="xl"
+                            variant="ghost"
                         />
                         <SessionHint serverSession={session} />
                     </SidebarHeader>
