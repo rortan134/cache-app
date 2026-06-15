@@ -2,7 +2,6 @@ import "@/lib/dayjs/locales";
 
 import { APP_NAME, BASE_URL, SITE_DEFAULT_TITLE } from "@/lib/common/constants";
 import { INTEGRATIONS } from "@/lib/integrations/support";
-import { Analytics } from "@vercel/analytics/next";
 import { GTProvider, getLocale } from "gt-next/server";
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
@@ -108,7 +107,6 @@ export default async function RootLayout(props: {
                 <React.Suspense>
                     <GTProvider>{props.children}</GTProvider>
                 </React.Suspense>
-                <Analytics />
             </body>
         </html>
     );
