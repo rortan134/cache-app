@@ -264,7 +264,7 @@ function buildGitHubOAuthConfig(): GenericOAuthConfig | null {
                 }
             ),
         providerId: "github",
-        scopes: ["read:user"],
+        scopes: ["read:user", "public_repo"],
         tokenUrl: "https://github.com/login/oauth/access_token",
     };
 }

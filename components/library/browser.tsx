@@ -901,7 +901,6 @@ const SOURCE_LABEL_BY_VALUE: Partial<Record<string, string>> = {
     [LibraryItemSource.youtube_watch_later]: "YouTube",
 };
 
-/** Stable placeholders for empty-library masonry sneak peek (opacity fades by order). */
 const EMPTY_LIBRARY_PEEK_PLACEHOLDERS = [
     { aspect: "aspect-[3/4]", id: "library-empty-peek-0" },
     { aspect: "aspect-[4/5]", id: "library-empty-peek-1" },
@@ -1938,9 +1937,12 @@ function BrowserEmpty() {
                                 style={{ opacity }}
                             >
                                 <Skeleton
-                                    className={cn("w-full rounded-xl", aspect)}
+                                    className={cn(
+                                        "squircle w-full rounded-xl",
+                                        aspect
+                                    )}
                                 />
-                                <Skeleton className="h-2.5 w-[92%]" />
+                                <Skeleton className="mt-2 h-2.5 w-[92%]" />
                             </MasonryItem>
                         );
                     }
