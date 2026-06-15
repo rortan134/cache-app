@@ -2,11 +2,7 @@
 
 <p align="center">
   <a href="https://www.cachd.app" target="_blank" rel="noopener noreferrer">
-    <picture>
-      <source media="(prefers-color-scheme: dark)" srcset="public/cache-app-icon.png">
-      <source media="(prefers-color-scheme: light)" srcset="public/cache-app-icon.png">
-      <img src="public/cache-app-icon.png" alt="Cache Logo" width="320"/>
-    </picture>
+    <img src="app/opengraph-image.png" alt="Cache App Preview" width="800"/>
   </a>
 </p>
 
@@ -14,6 +10,7 @@
 
 <p align="center">
   <a href="https://www.cachd.app" target="_blank" rel="noopener noreferrer"><img src="https://img.shields.io/badge/cachd.app-000000?logo=vercel&logoColor=white" alt="cachd.app"></a>
+  <a href="https://docs.cachd.app" target="_blank" rel="noopener noreferrer"><img src="https://img.shields.io/badge/Docs-33c482.svg" alt="Documentation"></a>
   <a href="./LICENSE"><img src="https://img.shields.io/badge/License-Apache%202.0-blue.svg" alt="License"></a>
   <a href="https://github.com/rortan134/cache-app/releases"><img src="https://img.shields.io/github/v/release/rortan134/cache-app" alt="Release"></a>
   <a href="./CODE_OF_CONDUCT.md"><img src="https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg" alt="Code of Conduct"></a>
@@ -92,30 +89,30 @@ Open [http://localhost:3000](http://localhost:3000).
 
 ## Tech Stack
 
-| Category           | Technology                                                                                                                 |
-| ------------------ | -------------------------------------------------------------------------------------------------------------------------- |
-| **Framework**      | [Next.js](https://nextjs.org/) (App Router)                                                                                |
-| **Runtime**        | [Bun](https://bun.sh/), [Node.js](https://nodejs.org/)                                                                     |
-| **UI**             | [React](https://react.dev/), [Base UI](https://base-ui.com/), [Tailwind CSS](https://tailwindcss.com/)                     |
-| **Icons**          | [lucide-react](https://lucide.dev/)                                                                                        |
-| **Rich Text**      | [Lexical](https://lexical.dev/), [Streamdown](https://github.com/vercel/streamdown)                                        |
-| **Database**       | PostgreSQL via [Prisma](https://www.prisma.io/), Redis                                                                     |
-| **Auth**           | [Better Auth](https://better-auth.com/) (Google, GitHub, X, Pinterest OAuth)                                               |
-| **Validation**     | [Zod](https://zod.dev/), [@t3-oss/env-nextjs](https://env.t3.gg/)                                                          |
-| **AI/LLM**         | [Vercel AI SDK](https://sdk.vercel.ai/), [Google Gemini](https://ai.google.dev/), [@workflow/ai](https://workflow.ai/)     |
-| **Web Search**     | [Tavily](https://tavily.com/)                                                                                              |
-| **RPC / API**      | [oRPC](https://orpc.unnoq.com/) (server, client, React)                                                                    |
-| **Data Fetching**  | [SWR](https://swr.vercel.app/), [nuqs](https://nuqs.vercel.app/)                                                           |
-| **i18n**           | gt-next (en-US, fr-FR, es-ES, pt-BR)                                                                                       |
-| **Payments**       | [Stripe](https://stripe.com/)                                                                                              |
-| **Workflows**      | [workflow](https://workflow.ai/), [Vercel Cron Jobs](https://vercel.com/docs/cron-jobs)                                    |
-| **MCP**            | [MCP SDK](https://modelcontextprotocol.io/)                                                                                |
-| **Security**       | [Arcjet](https://arcjet.com/) (WAF, rate limiting, PII redaction, prompt injection detection)                              |
-| **Observability**  | [OpenTelemetry](https://opentelemetry.io/), [Vercel Analytics](https://vercel.com/docs/analytics)                          |
-| **Linting**        | [Ultracite](https://ultracite.dev/) (Biome)                                                                                |
-| **React Compiler** | [babel-plugin-react-compiler](https://react.dev/learn/react-compiler) (auto-memoization)                                   |
-| **Date Handling**  | [Day.js](https://day.js.org/), [chrono-node](https://github.com/wanasit/chrono)                                             |
-| **Deployment**     | [Vercel](https://vercel.com/), [Unkey](https://unkey.com/)                                                                 |
+| Category           | Technology                                                                                                             |
+| ------------------ | ---------------------------------------------------------------------------------------------------------------------- |
+| **Framework**      | [Next.js](https://nextjs.org/) (App Router)                                                                            |
+| **Runtime**        | [Bun](https://bun.sh/), [Node.js](https://nodejs.org/)                                                                 |
+| **UI**             | [React](https://react.dev/), [Base UI](https://base-ui.com/), [Tailwind CSS](https://tailwindcss.com/)                 |
+| **Icons**          | [lucide-react](https://lucide.dev/)                                                                                    |
+| **Rich Text**      | [Lexical](https://lexical.dev/), [Streamdown](https://github.com/vercel/streamdown)                                    |
+| **Database**       | PostgreSQL via [Prisma](https://www.prisma.io/), Redis                                                                 |
+| **Auth**           | [Better Auth](https://better-auth.com/) (Google, GitHub, X, Pinterest OAuth)                                           |
+| **Validation**     | [Zod](https://zod.dev/), [@t3-oss/env-nextjs](https://env.t3.gg/)                                                      |
+| **AI/LLM**         | [Vercel AI SDK](https://sdk.vercel.ai/), [Google Gemini](https://ai.google.dev/), [@workflow/ai](https://workflow.ai/) |
+| **Web Search**     | [Tavily](https://tavily.com/)                                                                                          |
+| **RPC / API**      | [oRPC](https://orpc.unnoq.com/) (server, client, React)                                                                |
+| **Data Fetching**  | [SWR](https://swr.vercel.app/), [nuqs](https://nuqs.vercel.app/)                                                       |
+| **i18n**           | gt-next (en-US, fr-FR, es-ES, pt-BR)                                                                                   |
+| **Payments**       | [Stripe](https://stripe.com/)                                                                                          |
+| **Workflows**      | [workflow](https://workflow.ai/), [Vercel Cron Jobs](https://vercel.com/docs/cron-jobs)                                |
+| **MCP**            | [MCP SDK](https://modelcontextprotocol.io/)                                                                            |
+| **Security**       | [Arcjet](https://arcjet.com/) (WAF, rate limiting, PII redaction, prompt injection detection)                          |
+| **Observability**  | [OpenTelemetry](https://opentelemetry.io/), [Vercel Analytics](https://vercel.com/docs/analytics)                      |
+| **Linting**        | [Ultracite](https://ultracite.dev/) (Biome)                                                                            |
+| **React Compiler** | [babel-plugin-react-compiler](https://react.dev/learn/react-compiler) (auto-memoization)                               |
+| **Date Handling**  | [Day.js](https://day.js.org/), [chrono-node](https://github.com/wanasit/chrono)                                        |
+| **Deployment**     | [Vercel](https://vercel.com/), [Unkey](https://unkey.com/)                                                             |
 
 ---
 

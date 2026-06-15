@@ -110,6 +110,11 @@ const nextConfig: NextConfig = {
                 permanent: true,
                 source: "/terms-of-service",
             },
+            {
+                destination: "/",
+                permanent: true,
+                source: "/manifesto",
+            },
         ];
     },
     async rewrites() {
