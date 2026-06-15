@@ -67,7 +67,7 @@ function PublicShareGridCard({
     );
 
     return (
-        <article className="squircle relative flex flex-col overflow-clip ring-1 ring-border/50">
+        <article className="squircle relative flex flex-col overflow-clip rounded-xl ring-1 ring-border/50">
             {item.href ? (
                 <a
                     className="flex flex-col focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
