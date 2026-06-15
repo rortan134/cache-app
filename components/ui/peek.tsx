@@ -26,7 +26,7 @@ type PeekDrawerStatus = "blocked" | "loaded" | "loading";
 
 interface PeekDrawerContextValue {
     description?: string;
-    open: boolean;
+    isOpen: boolean;
     title: string;
     url: string;
 }
@@ -128,11 +128,11 @@ export function PeekDrawer({
     url,
     children,
 }: PeekDrawerProps) {
-    const [open, setOpen] = React.useState(false);
+    const [isOpen, setIsOpen] = React.useState(false);
 
     return (
-        <PeekDrawerContext value={{ description, open, title, url }}>
-            <Drawer onOpenChange={setOpen}>{children}</Drawer>
+        <PeekDrawerContext value={{ description, isOpen, title, url }}>
+            <Drawer onOpenChange={setIsOpen}>{children}</Drawer>
         </PeekDrawerContext>
     );
 }
@@ -152,15 +152,15 @@ export const PeekDrawerTrigger = DrawerTrigger;
  * start from a fresh state instead of showing stale cached content.
  */
 export function PeekDrawerContent() {
-    const { description, open, title, url } = usePeekDrawerContext();
+    const { description, isOpen, title, url } = usePeekDrawerContext();
     const { markAsBlocked, markAsLoaded, status } = usePeekStatus(
-        open,
+        isOpen,
         url,
         DEFAULT_PEEK_TIMEOUT_MS
     );
     const canOpenInNewTab = url !== PEEK_BLOCKED_URL;
     const shouldRenderPreview = canOpenInNewTab && status !== "blocked";
-    const iframeRemountKey = `${open ? "open" : "closed"}-${url}`;
+    const iframeRemountKey = `${isOpen ? "open" : "closed"}-${url}`;
 
     return (
         <DrawerViewport>
