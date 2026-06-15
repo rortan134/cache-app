@@ -1644,9 +1644,7 @@ function useCollectionItemPreviewIndex(
  *
  * Falls back to `DEFAULT_PRIORITY` so callers never have to handle `undefined`.
  */
-export function getPriorityOption(
-    priority: CollectionPriority
-): PriorityOption {
+function getPriorityOption(priority: CollectionPriority): PriorityOption {
     return PRIORITY_BY_VALUE.get(priority) ?? DEFAULT_PRIORITY;
 }
 

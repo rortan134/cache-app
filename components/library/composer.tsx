@@ -225,7 +225,7 @@ export function ComposerActions({
     );
 }
 
-export interface ComposerActionsProps {
+interface ComposerActionsProps {
     canClear: boolean;
     canCreateCollectionFromResults: boolean;
     children: React.ReactNode;
