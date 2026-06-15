@@ -1828,11 +1828,6 @@ function CollectionsList({
     );
 }
 
-/**
- * Button that toggles the collections list panel.
- *
- * Shows a tooltip with all collection labels on hover when collapsed.
- */
 function CollectionsListTrigger({
     children,
     ...props

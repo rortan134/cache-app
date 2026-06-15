@@ -12,8 +12,8 @@ export const PreviewCard: typeof PreviewCardPrimitive.Root =
 export function PreviewCardTrigger(props: PreviewCardPrimitive.Trigger.Props) {
     return (
         <PreviewCardPrimitive.Trigger
-            data-slot="preview-card-trigger"
             {...props}
+            data-slot="preview-card-trigger"
         />
     );
 }

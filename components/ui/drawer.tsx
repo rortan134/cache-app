@@ -43,10 +43,10 @@ export function Drawer({
     return (
         <DrawerContext value={{ position }}>
             <DrawerPrimitive.Root
+                {...props}
                 swipeDirection={
                     swipeDirection ?? SWIPE_DIRECTION_BY_POSITION[position]
                 }
-                {...props}
             />
         </DrawerContext>
     );

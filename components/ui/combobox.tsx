@@ -137,7 +137,7 @@ export function ComboboxInput({
 
 export function ComboboxTrigger(props: ComboboxPrimitive.Trigger.Props) {
     return (
-        <ComboboxPrimitive.Trigger data-slot="combobox-trigger" {...props} />
+        <ComboboxPrimitive.Trigger {...props} data-slot="combobox-trigger" />
     );
 }
 
@@ -349,8 +349,8 @@ export function ComboboxStatus({
 export function ComboboxCollection(props: ComboboxPrimitive.Collection.Props) {
     return (
         <ComboboxPrimitive.Collection
-            data-slot="combobox-collection"
             {...props}
+            data-slot="combobox-collection"
         />
     );
 }

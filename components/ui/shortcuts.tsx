@@ -38,13 +38,13 @@ interface ShortcutItem {
 export function KeyboardShortcutsDialogTrigger(
     props: React.ComponentProps<typeof DrawerTrigger>
 ) {
-    const [open, setOpen] = React.useState(false);
+    const [isOpen, setIsOpen] = React.useState(false);
     const { hotkeys } = useHotkeysContext();
 
     useHotkeys(
         "mod+/, ?",
         () => {
-            setOpen(true);
+            setIsOpen(true);
         },
         { description: "Open keyboard shortcuts panel" }
     );
@@ -56,7 +56,7 @@ export function KeyboardShortcutsDialogTrigger(
     }));
 
     return (
-        <Drawer onOpenChange={setOpen} open={open} position="right">
+        <Drawer onOpenChange={setIsOpen} open={isOpen} position="right">
             <DrawerTrigger {...props} />
             <DrawerViewport>
                 <DrawerPopup showCloseButton>

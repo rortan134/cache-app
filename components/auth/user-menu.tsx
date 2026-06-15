@@ -79,10 +79,10 @@ const FOOTER_LINKS = [
 ] as const;
 
 export function UserMenu(props: React.ComponentProps<typeof Menu>) {
-    const [open, setOpen] = React.useState(false);
+    const [isOpen, setIsOpen] = React.useState(false);
 
     const toggle = useStableCallback(() => {
-        setOpen((prev) => !prev);
+        setIsOpen((prev) => !prev);
     });
 
     useHotkeys("mod+alt+g", toggle, {
@@ -90,7 +90,7 @@ export function UserMenu(props: React.ComponentProps<typeof Menu>) {
         preventDefault: true,
     });
 
-    return <Menu {...props} onOpenChange={setOpen} open={open} />;
+    return <Menu {...props} onOpenChange={setIsOpen} open={isOpen} />;
 }
 
 export function UserMenuTrigger(

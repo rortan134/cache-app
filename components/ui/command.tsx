@@ -232,7 +232,7 @@ export function CommandStatus({
 
 export function CommandCollection(props: Autocomplete.Collection.Props) {
     return (
-        <Autocomplete.Collection data-slot="command-collection" {...props} />
+        <Autocomplete.Collection {...props} data-slot="command-collection" />
     );
 }
 

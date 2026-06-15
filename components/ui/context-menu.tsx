@@ -9,8 +9,8 @@ export const ContextMenu: typeof ContextMenuPrimitive.Root =
 export function ContextMenuTrigger(props: ContextMenuPrimitive.Trigger.Props) {
     return (
         <ContextMenuPrimitive.Trigger
-            data-slot="context-menu-trigger"
             {...props}
+            data-slot="context-menu-trigger"
         />
     );
 }

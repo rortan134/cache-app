@@ -806,10 +806,6 @@ function NoteTitle() {
     return title;
 }
 
-/**
- * Header bar with the note title, "Open in..." export menu, and panel
- * controls (expand / close).
- */
 function NoteHeader() {
     const { contentHtml, isBusy, onOpenChange, query, title } =
         useNoteContext();
@@ -952,9 +948,6 @@ function NoteEditor() {
     );
 }
 
-/**
- * Footer metrics bar showing note size and longer-note read time.
- */
 function NoteMetrics() {
     const { textMetrics } = useNoteContext();
     const shouldShowReadTime = textMetrics.readMinuteCount >= 2;
@@ -1025,9 +1018,6 @@ function BrandIcon({
     );
 }
 
-/**
- * OpenAI logo icon.
- */
 function OpenAIIcon(props: SVGProps<SVGSVGElement>) {
     return (
         <BrandIcon
@@ -1041,9 +1031,6 @@ function OpenAIIcon(props: SVGProps<SVGSVGElement>) {
     );
 }
 
-/**
- * Anthropic Claude logo icon.
- */
 function ClaudeIcon(props: SVGProps<SVGSVGElement>) {
     return (
         <BrandIcon
@@ -1061,9 +1048,6 @@ function ClaudeIcon(props: SVGProps<SVGSVGElement>) {
     );
 }
 
-/**
- * Cursor IDE logo icon.
- */
 function CursorIcon(props: SVGProps<SVGSVGElement>) {
     return (
         <BrandIcon title="Cursor" viewBox="0 0 466.73 532.09" {...props}>
@@ -1075,9 +1059,6 @@ function CursorIcon(props: SVGProps<SVGSVGElement>) {
     );
 }
 
-/**
- * Scira AI logo icon.
- */
 function SciraIcon(props: SVGProps<SVGSVGElement>) {
     return (
         <BrandIcon
@@ -1137,9 +1118,6 @@ function SciraIcon(props: SVGProps<SVGSVGElement>) {
     );
 }
 
-/**
- * Vercel v0 logo icon.
- */
 function V0Icon(props: SVGProps<SVGSVGElement>) {
     return (
         <BrandIcon

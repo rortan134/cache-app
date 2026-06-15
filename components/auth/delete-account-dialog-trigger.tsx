@@ -36,7 +36,7 @@ export function DeleteAccountDialogTrigger(
     props: React.ComponentProps<typeof DialogTrigger>
 ) {
     const router = useRouter();
-    const [open, setOpen] = React.useState(false);
+    const [isOpen, setIsOpen] = React.useState(false);
     const [isPending, startTransition] = React.useTransition();
     const [errorMessage, setErrorMessage] = React.useState<null | string>(null);
 
@@ -62,14 +62,14 @@ export function DeleteAccountDialogTrigger(
     });
 
     const handleOpenChange = useStableCallback((nextOpen: boolean) => {
-        setOpen(nextOpen);
+        setIsOpen(nextOpen);
         if (!nextOpen) {
             setErrorMessage(null);
         }
     });
 
     return (
-        <Dialog onOpenChange={handleOpenChange} open={open}>
+        <Dialog onOpenChange={handleOpenChange} open={isOpen}>
             <DialogTrigger {...props} />
             <DialogPopup>
                 <DialogHeader>

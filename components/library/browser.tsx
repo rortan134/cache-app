@@ -799,7 +799,6 @@ function buildSectionDescriptionContextItem(
     };
 }
 
-/** Base UI combobox close reason when an item is activated (inline mode still emits this). */
 const COMBOBOX_ITEM_PRESS_REASON = "item-press";
 const COMBOBOX_ESCAPE_KEY_REASON = "escape-key";
 const ALL_DOMAIN_FILTER = "__all_domains__";

@@ -29,7 +29,7 @@ export function TruncateAfter({
     const truncatedCount = clamp(remaining.length, 0, 99);
 
     return (
-        <div className={cn("flex items-center gap-1", className)} {...props}>
+        <div {...props} className={cn("flex items-center gap-1", className)}>
             {displayed}
             {truncatedCount > 0 && (
                 <Popover>

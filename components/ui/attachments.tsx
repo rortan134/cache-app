@@ -173,13 +173,13 @@ export function Attachments({
     return (
         <AttachmentsContext value={{ variant }}>
             <div
+                {...props}
                 className={cn(
                     "flex items-start",
                     variant === "list" ? "flex-col gap-2" : "flex-wrap gap-2",
                     variant === "grid" && "ml-auto w-fit",
                     className
                 )}
-                {...props}
             />
         </AttachmentsContext>
     );
@@ -202,6 +202,7 @@ export function Attachment({
     return (
         <AttachmentContext value={{ data, mediaCategory, onRemove, variant }}>
             <div
+                {...props}
                 className={cn(
                     "group relative",
                     variant === "grid" && "size-24 overflow-hidden rounded-lg",
@@ -217,7 +218,6 @@ export function Attachment({
                     ],
                     className
                 )}
-                {...props}
             />
         </AttachmentContext>
     );
@@ -236,6 +236,7 @@ export function AttachmentPreview({
 
     return (
         <div
+            {...props}
             className={cn(
                 "flex shrink-0 items-center justify-center overflow-hidden",
                 variant === "grid" && "size-full bg-muted",
@@ -243,7 +244,6 @@ export function AttachmentPreview({
                 variant === "list" && "size-12 rounded bg-muted",
                 className
             )}
-            {...props}
         >
             {renderAttachmentPreviewContent(
                 data,
@@ -272,7 +272,7 @@ export function AttachmentInfo({
     }
 
     return (
-        <div className={cn("min-w-0 flex-1", className)} {...props}>
+        <div {...props} className={cn("min-w-0 flex-1", className)}>
             <span className="block truncate">{label}</span>
             {showMediaType && data.mediaType ? (
                 <span className="block truncate text-muted-foreground text-xs">
