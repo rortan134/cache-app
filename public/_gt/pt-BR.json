@@ -137,22 +137,6 @@
     "."
   ],
   "54733851c614db5d": "Isso cancela sua assinatura ativa e exclui permanentemente sua Biblioteca, suas Coleções e os dados da sua conta. Essa ação não pode ser desfeita.",
-  "574ce438c4568c94": [
-    {
-      "c": {
-        "c": "Reúna seus favoritos em um só lugar.",
-        "i": 2,
-        "t": "GradientWaveText"
-      },
-      "i": 1,
-      "t": "h1"
-    },
-    {
-      "c": "Conheça o Cache — o gerenciador de favoritos para quem vive na correria. Colete, organize e reencontre tudo o que você salvou em diferentes plataformas.",
-      "i": 3,
-      "t": "p"
-    }
-  ],
   "5930189d0848c328": "Criadores e curadores",
   "59470116de88a745": "Artigos, ensaios, newsletters. Uma biblioteca viva em vez de um cemitério de ler‑mais‑tarde.",
   "5a0a4ee1bf2a58dc": "Não foi possível carregar as contas salvas.",
@@ -505,6 +489,22 @@
     "i": 1,
     "t": "span"
   },
+  "d7ead7b0b783bc58": [
+    {
+      "c": {
+        "c": "Reúna seus favoritos em um só lugar.",
+        "i": 2,
+        "t": "GradientWaveText"
+      },
+      "i": 1,
+      "t": "h1"
+    },
+    {
+      "c": "Conheça o Cache — o gerenciador de favoritos com IA para quem vive na correria. Colete, organize e reencontre tudo o que você salvou em diferentes plataformas.",
+      "i": 3,
+      "t": "p"
+    }
+  ],
   "daf8daec701f0863": "Conta",
   "db72ad3b2501e7a9": "Carregando contas",
   "dc43f2f8b9531cf9": [

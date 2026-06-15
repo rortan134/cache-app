@@ -137,22 +137,6 @@
     "."
   ],
   "54733851c614db5d": "Cette action annule tout Abonnement actif et supprime définitivement votre Bibliothèque, vos Collections et les données de votre compte. Elle est irréversible.",
-  "574ce438c4568c94": [
-    {
-      "c": {
-        "c": "Unifiez vos signets.",
-        "i": 2,
-        "t": "GradientWaveText"
-      },
-      "i": 1,
-      "t": "h1"
-    },
-    {
-      "c": "Découvrez Cache — le gestionnaire de signets pensé pour les personnes très occupées. Collectez, organisez et redécouvrez tout ce que vous avez enregistré sur toutes les plateformes.",
-      "i": 3,
-      "t": "p"
-    }
-  ],
   "5930189d0848c328": "Créateurs et curateurs",
   "59470116de88a745": "Articles, essais, newsletters. Une bibliothèque vivante plutôt qu’un cimetière à‑lire‑plus‑tard.",
   "5a0a4ee1bf2a58dc": "Impossible de charger les comptes enregistrés.",
@@ -505,6 +489,22 @@
     "i": 1,
     "t": "span"
   },
+  "d7ead7b0b783bc58": [
+    {
+      "c": {
+        "c": "Rassemblez tous vos signets.",
+        "i": 2,
+        "t": "GradientWaveText"
+      },
+      "i": 1,
+      "t": "h1"
+    },
+    {
+      "c": "Découvrez Cache — le gestionnaire de signets boosté par l’IA, conçu pour les personnes pressées. Collectez, organisez et retrouvez tout ce que vous avez enregistré sur vos différentes plateformes.",
+      "i": 3,
+      "t": "p"
+    }
+  ],
   "daf8daec701f0863": "Compte",
   "db72ad3b2501e7a9": "Chargement des comptes",
   "dc43f2f8b9531cf9": [

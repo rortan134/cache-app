@@ -118,9 +118,10 @@ export default async function Home() {
                                     </GradientWaveText>
                                 </h1>
                                 <p className="font-medium text-[#0A0B0D] text-[1rem] leading-[1.22] tracking-[-3%] opacity-50 lg:max-w-[320px]">
-                                    Meet Cache — The bookmark manager for busy
-                                    people. Collect, organize, and rediscover
-                                    everything you've saved across platforms.
+                                    Meet Cache — The AI bookmark manager for
+                                    busy people. Collect, organize, and
+                                    rediscover everything you've saved across
+                                    platforms.
                                 </p>
                             </T>
                         </div>

@@ -137,22 +137,6 @@
     "."
   ],
   "54733851c614db5d": "Esto cancela cualquier Suscripción activa y elimina permanentemente tu Biblioteca, tus Colecciones y los datos de tu cuenta. Esta acción no se puede deshacer.",
-  "574ce438c4568c94": [
-    {
-      "c": {
-        "c": "Unifica tus marcadores.",
-        "i": 2,
-        "t": "GradientWaveText"
-      },
-      "i": 1,
-      "t": "h1"
-    },
-    {
-      "c": "Descubre Cache, el gestor de marcadores para quienes siempre van con prisa. Recopila, organiza y redescubre todo lo que has guardado en distintas plataformas.",
-      "i": 3,
-      "t": "p"
-    }
-  ],
   "5930189d0848c328": "Creadores y curadores",
   "59470116de88a745": "Artículos, ensayos, newsletters. Una biblioteca viva en vez de un cementerio de cosas para leer‑más‑tarde.",
   "5a0a4ee1bf2a58dc": "No se pudieron cargar las cuentas guardadas.",
@@ -505,6 +489,22 @@
     "i": 1,
     "t": "span"
   },
+  "d7ead7b0b783bc58": [
+    {
+      "c": {
+        "c": "Reúne todos tus marcadores.",
+        "i": 2,
+        "t": "GradientWaveText"
+      },
+      "i": 1,
+      "t": "h1"
+    },
+    {
+      "c": "Descubre Cache, el gestor de marcadores con IA para quienes siempre van con prisa. Reúne, organiza y vuelve a encontrar todo lo que has guardado en distintas plataformas.",
+      "i": 3,
+      "t": "p"
+    }
+  ],
   "daf8daec701f0863": "Cuenta",
   "db72ad3b2501e7a9": "Cargando cuentas",
   "dc43f2f8b9531cf9": [
