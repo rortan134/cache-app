@@ -132,14 +132,5 @@ export function openExternal(url: string) {
     if (typeof window === "undefined") {
         return;
     }
-
-    try {
-        if (typeof window.openai !== "undefined") {
-            window.openai.openExternal({ href: url });
-            return;
-        }
-    } catch {
-        // Fall back to a regular browser tab when the desktop bridge is unavailable.
-    }
     window.open(url, "_blank", "noopener,noreferrer");
 }
