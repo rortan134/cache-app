@@ -1,4 +1,5 @@
 import { buildPageMetadata } from "@/app/metadata";
+import { PageShell } from "@/components/ui/page-shell";
 import { gtPublicString } from "@/lib/i18n/gt-public-json";
 import type { Metadata } from "next";
 import { LogoutPageClient } from "./client";
@@ -30,5 +31,9 @@ export async function generateMetadata({
 }
 
 export default function LogoutPage() {
-    return <LogoutPageClient />;
+    return (
+        <PageShell>
+            <LogoutPageClient />
+        </PageShell>
+    );
 }

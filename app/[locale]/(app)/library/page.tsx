@@ -4,8 +4,6 @@ import { Browser } from "@/components/library/browser";
 import { Collections } from "@/components/library/collections";
 import { Integrations } from "@/components/library/integrations";
 import { WorkspaceProvider } from "@/components/library/workspace";
-import { PageShell } from "@/components/ui/page-shell";
-import { SidebarProvider } from "@/components/ui/sidebar";
 import { getServerSession } from "@/lib/auth/session";
 import { userHasActiveSubscription } from "@/lib/billing/service";
 import { getLibraryItems, listCollections } from "@/lib/collections/service";
@@ -32,13 +30,6 @@ export async function generateMetadata({
             "library.metadata.description",
             "Saved items from your connected accounts and extension imports appear below by source."
         ),
-        keywords: [
-            "library",
-            "saved content",
-            "bookmark library",
-            "collections",
-            "Cache App",
-        ],
         locale,
         path: "/library",
         title: gtPublicString(locale, "library.metadata.title", "Library"),
@@ -80,29 +71,19 @@ export default async function LibraryPage() {
     );
 
     return (
-        <PageShell>
-            <div className="flex flex-1 flex-col gap-8 lg:flex-row lg:justify-between">
-                <SidebarProvider>
-                    <WorkspaceProvider
-                        initialCollections={collections}
-                        initialItems={items}
-                    >
-                        <ApplicationSidebar>
-                            <Integrations
-                                connectedIntegrations={connectedIntegrations}
-                            />
-                            <Collections />
-                        </ApplicationSidebar>
-                        <Browser
-                            connectedIntegrationCount={
-                                connectedIntegrations.size
-                            }
-                            lockedItemCount={lockedItemCount}
-                            totalItemCount={totalItemCount}
-                        />
-                    </WorkspaceProvider>
-                </SidebarProvider>
-            </div>
-        </PageShell>
+        <WorkspaceProvider
+            initialCollections={collections}
+            initialItems={items}
+        >
+            <ApplicationSidebar>
+                <Integrations connectedIntegrations={connectedIntegrations} />
+                <Collections />
+            </ApplicationSidebar>
+            <Browser
+                connectedIntegrationCount={connectedIntegrations.size}
+                lockedItemCount={lockedItemCount}
+                totalItemCount={totalItemCount}
+            />
+        </WorkspaceProvider>
     );
 }

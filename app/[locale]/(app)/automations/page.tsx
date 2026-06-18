@@ -2,8 +2,6 @@ import { buildPageMetadata } from "@/app/metadata";
 import { ApplicationSidebar } from "@/components/application-sidebar";
 import { AutomationComposerDialog } from "@/components/automations/automation-composer-dialog";
 import { AutomationsList } from "@/components/automations/automations";
-import { PageShell } from "@/components/ui/page-shell";
-import { SidebarProvider } from "@/components/ui/sidebar";
 import { getServerSession } from "@/lib/auth/session";
 import { listCollections } from "@/lib/collections/service";
 import { gtPublicString } from "@/lib/i18n/gt-public-json";
@@ -29,7 +27,6 @@ export async function generateMetadata({
             "automations.metadata.description",
             "Manage lightweight automations that organize and summarize your saved content."
         ),
-        keywords: ["automation", "smart collections", "digest"],
         locale,
         path: "/automations",
         title: gtPublicString(
@@ -74,34 +71,26 @@ export default async function AutomationsPage() {
     );
 
     return (
-        <PageShell>
-            <div className="flex flex-1 flex-col gap-8 lg:flex-row lg:justify-between">
-                <SidebarProvider>
-                    <ApplicationSidebar />
-                    <div className="flex w-full max-w-[1040px] flex-col gap-8 px-6 py-8 sm:px-8 2xl:mx-auto">
-                        <header className="flex items-center justify-between gap-4 border-border border-b pb-6">
-                            <div className="flex items-center gap-2">
-                                <Bot
-                                    aria-hidden
-                                    className="size-5"
-                                    focusable="false"
-                                />
-                                <h1 className="font-semibold text-foreground text-xl">
-                                    Automations
-                                </h1>
-                            </div>
-                            <AutomationComposerDialog
-                                collections={automationCollectionOptions}
-                            />
-                        </header>
-                        <AutomationsList
-                            automations={automations}
-                            collections={automationCollectionOptions}
-                            runsByAutomationId={runsByAutomationId}
-                        />
+        <>
+            <ApplicationSidebar />
+            <div className="flex w-full max-w-[1040px] flex-col gap-8 px-6 py-8 sm:px-8 2xl:mx-auto">
+                <header className="flex items-center justify-between gap-4 border-border border-b pb-6">
+                    <div className="flex items-center gap-2">
+                        <Bot aria-hidden className="size-5" focusable="false" />
+                        <h1 className="font-semibold text-foreground text-xl">
+                            Automations
+                        </h1>
                     </div>
-                </SidebarProvider>
+                    <AutomationComposerDialog
+                        collections={automationCollectionOptions}
+                    />
+                </header>
+                <AutomationsList
+                    automations={automations}
+                    collections={automationCollectionOptions}
+                    runsByAutomationId={runsByAutomationId}
+                />
             </div>
-        </PageShell>
+        </>
     );
 }
