@@ -6,7 +6,14 @@ import { BrandLogo } from "@/components/ui/brand-logo";
 import { Carousel } from "@/components/ui/carousel";
 import { Footer } from "@/components/ui/footer";
 import { GradientWaveText } from "@/components/ui/gradient-wave-text";
-import { ChromeIcon, TikTokIcon } from "@/components/ui/icons";
+import {
+    ChromeIcon,
+    ClaudeIcon,
+    CursorIcon,
+    ModelContextProtocolIcon,
+    OpenAIIcon,
+    TikTokIcon,
+} from "@/components/ui/icons";
 import { IridescenceBackground } from "@/components/ui/iridescence-background";
 import { PageShell } from "@/components/ui/page-shell";
 import { Sidebar, SidebarFooter, SidebarHeader } from "@/components/ui/sidebar";
@@ -577,6 +584,20 @@ export default async function Home() {
                                 </p>
                             </div>
                         </Carousel>
+                    </section>
+                    <section className="flex w-full flex-col gap-8">
+                        <div className="flex items-center gap-3">
+                            <p className="font-medium text-base text-foreground">
+                                <span className="font-normal opacity-50">
+                                    You don't have to use Cache.
+                                </span>{" "}
+                                Let your agent use it with{" "}
+                                <ModelContextProtocolIcon /> MCP
+                            </p>
+                            <OpenAIIcon className="size-5" />
+                            <ClaudeIcon className="size-5" />
+                            <CursorIcon className="size-5" />
+                        </div>
                     </section>
                     <Footer />
                 </div>

@@ -18,27 +18,15 @@
     "k": "_gt_value_1",
     "v": "v"
   },
+  "0746a2614f312b1c": {
+    "c": "Confidentialité",
+    "i": 1,
+    "t": "p"
+  },
   "090dd58a9e726297": "Lecteurs curieux",
   "0d5988f4c0fbf2ad": "Compte Cache",
   "0e0f0cb623f12ffc": "Cookies et technologies similaires utilisés sur nos sites et dans nos produits.",
   "11503a3d12f43fdd": "Les documents officiels qui encadrent votre relation avec nous et expliquent comment nous traitons les données. Choisissez un thème ci-dessous pour lire le texte complet.",
-  "11ccc132c8c38c40": [
-    {
-      "c": "Vous l’enregistrez pour plus tard. Mais ce plus tard n’arrive jamais.",
-      "i": 1,
-      "t": "p"
-    },
-    {
-      "c": "Le signet finit dans un cimetière de bonnes intentions, dispersé sur cinq plateformes, deux navigateurs, trois appareils. L’idée s’évapore. La boucle recommence.",
-      "i": 2,
-      "t": "p"
-    },
-    {
-      "c": "Vous recommencez à faire défiler, à la recherche de ce que vous aviez déjà trouvé.",
-      "i": 3,
-      "t": "p"
-    }
-  ],
   "11d641c2c7d32f5c": "Nous ne pouvons pas ouvrir la facturation pour le moment.",
   "15833184c459d240": {
     "c": "Conditions d’utilisation",
@@ -81,51 +69,7 @@
     " pour commencer à regrouper vos éléments enregistrés."
   ],
   "43c4658708e52e85": "Supprimer le compte",
-  "44205dc5e0c99d88": [
-    {
-      "c": "Vous y consacrez déjà votre attention.",
-      "i": 1,
-      "t": "p"
-    },
-    {
-      "c": "Cache veille à ce qu’elle porte ses fruits.",
-      "i": 2,
-      "t": "p"
-    }
-  ],
   "446fc0e1621b7ae8": "Assistance",
-  "4570406e2d38d956": {
-    "c": "Politique de confidentialité",
-    "i": 1,
-    "t": "p"
-  },
-  "4715956ecfecd1e2": [
-    {
-      "c": "Chaque fois que vous cliquez sur Enregistrer, vous faites le pari que ce moment d’attention valait quelque chose.",
-      "i": 1,
-      "t": "p"
-    },
-    {
-      "c": "Cache recueille tous ces paris. Il sort vos éléments enregistrés des silos — les tweets, les vidéos, les liens — et les rassemble dans un endroit où vous pouvez vraiment les retrouver et en tirer quelque chose.",
-      "i": 2,
-      "t": "p"
-    },
-    {
-      "c": "Le défilement devient une bibliothèque.",
-      "i": 3,
-      "t": "p"
-    },
-    {
-      "c": "La boucle de consommation devient une trace de ce qui a retenu votre attention, de ce qui vous a fait réfléchir, de ce que vous vouliez conserver.",
-      "i": 4,
-      "t": "p"
-    },
-    {
-      "c": "Le sens n’est pas dans le fil. Il est dans ce que vous choisissez de garder.",
-      "i": 5,
-      "t": "p"
-    }
-  ],
   "48de21dffb27aea4": "Journal des modifications",
   "4d587a9524c95dd7": [
     "Accédez à tous les signets ",
@@ -171,11 +115,6 @@
       "v": "v"
     }
   ],
-  "6c231374bfad8483": {
-    "c": "Politique relative aux cookies",
-    "i": 1,
-    "t": "p"
-  },
   "6f1b661d2c2cb538": "Inconnu",
   "71a0bd88bed41d7c": "Retour en haut",
   "731e805e4730862c": {
@@ -401,52 +340,8 @@
   },
   "b0218088cb0cf61f": "Raccourcis clavier",
   "b04df1727faed146": "Vos comptes",
-  "b14d974a53e3f53e": [
-    {
-      "c": "Votre attention n’est pas infinie.",
-      "i": 1,
-      "t": "p"
-    },
-    {
-      "c": "Vous la dépensez, que vous le vouliez ou non. Chaque scroll est un prélèvement. La plupart d’entre nous font comme si elle était gratuite, illimitée, renouvelable, sans conséquence.",
-      "i": 2,
-      "t": "p"
-    },
-    {
-      "c": "La question n’est pas de savoir si vous allez la dépenser. C’est de savoir si vous en retirerez quelque chose.",
-      "i": 3,
-      "t": "p"
-    },
-    {
-      "c": "Cache n’est pas un remède. C’est une mémoire.",
-      "i": 4,
-      "t": "p"
-    }
-  ],
   "b33e2234ec4ab823": "Forfait gratuit",
   "b5d5276005980a36": "Créateurs et développeurs",
-  "ba1e49f7141fca57": [
-    {
-      "c": "Il n’y a jamais eu autant de contenu.",
-      "i": 1,
-      "t": "p"
-    },
-    {
-      "c": "Et rarement aussi peu de sens.",
-      "i": 2,
-      "t": "p"
-    },
-    {
-      "c": "Le flux est infini, mais rien ne s’accumule. Chaque idée forte est aussitôt ensevelie par la suivante. Chaque idée arrive sans contexte, sans lien avec la dernière chose qui vous a marqué. Du volume sans rétention, ce n’est que du bruit.",
-      "i": 3,
-      "t": "p"
-    },
-    {
-      "c": "Ce qui vous manque, ce n’est pas l’information. C’est un endroit où la faire atterrir.",
-      "i": 4,
-      "t": "p"
-    }
-  ],
   "c1172428bea235ca": "Règles régissant l’utilisation du service, la gestion de votre compte et l’utilisation autorisée.",
   "c26fd6852bfece9e": "Continuer avec Google",
   "c884609397b72df2": "annuel",
@@ -507,28 +402,6 @@
   ],
   "daf8daec701f0863": "Compte",
   "db72ad3b2501e7a9": "Chargement des comptes",
-  "dc43f2f8b9531cf9": [
-    {
-      "c": "Alors soyons honnêtes sur ce qui se passe vraiment.",
-      "i": 1,
-      "t": "p"
-    },
-    {
-      "c": "Si vous scrollez, c’est parce que le monde est intéressant. Parce que quelqu’un, quelque part, vient de dire exactement ce que vous essayez de formuler depuis des années. Parce qu’il y a une recette, un fil, une vidéo de deux minutes qui va vraiment changer votre manière de voir les choses.",
-      "i": 2,
-      "t": "p"
-    },
-    {
-      "c": "Le problème, ce n’est pas que vous consommez.",
-      "i": 3,
-      "t": "p"
-    },
-    {
-      "c": "Le problème, c’est que vous consommez dans l’oubli.",
-      "i": 4,
-      "t": "p"
-    }
-  ],
   "ddc161e16a7e8f5a": [
     {
       "i": 1,
@@ -556,43 +429,5 @@
       "t": "p"
     }
   ],
-  "e768c8a859e016d2": [
-    {
-      "c": "Puisque vous allez scroller de toute façon, autant en tirer quelque chose.",
-      "i": 1,
-      "t": "h2"
-    },
-    {
-      "c": "Personne ne quitte les flux.",
-      "i": 2,
-      "t": "p"
-    },
-    {
-      "c": "On a essayé. On a supprimé les applis, réglé les minuteurs, ressenti la culpabilité.",
-      "i": 3,
-      "t": "p"
-    },
-    {
-      "c": "Et puis on y est revenus.",
-      "i": 4,
-      "t": "p"
-    }
-  ],
-  "f137946f63b397fd": "Ouvrir dans...",
-  "f96c9823ce4c4167": [
-    {
-      "c": {
-        "c": "Manifeste.",
-        "i": 2,
-        "t": "GradientWaveText"
-      },
-      "i": 1,
-      "t": "h1"
-    },
-    {
-      "c": "Pourquoi nous avons créé Cache.",
-      "i": 3,
-      "t": "p"
-    }
-  ]
+  "f137946f63b397fd": "Ouvrir dans..."
 }

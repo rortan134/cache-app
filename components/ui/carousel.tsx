@@ -1,13 +1,11 @@
 "use client";
 
 import { cn } from "@/lib/common/cn";
-import "@blossom-carousel/core/style.css";
-// @ts-expect-error @blossom-carousel/react does not ship type definitions
 import { BlossomCarousel } from "@blossom-carousel/react";
+import "@blossom-carousel/react/style.css";
 import * as React from "react";
 
-interface CarouselProps extends React.ComponentProps<"div"> {
-    children: React.ReactNode[];
+interface CarouselProps extends React.ComponentProps<typeof BlossomCarousel> {
     slideClassName?: string;
 }
 
@@ -21,6 +19,7 @@ export function Carousel({
 
     return (
         <BlossomCarousel
+            {...props}
             aria-roledescription="carousel"
             as="section"
             className={cn(
@@ -28,7 +27,6 @@ export function Carousel({
                 className
             )}
             role="region"
-            {...props}
         >
             {slides.map((child, index) => (
                 // biome-ignore lint/a11y/useSemanticElements: Group role

@@ -18,27 +18,15 @@
     "k": "_gt_value_1",
     "v": "v"
   },
+  "0746a2614f312b1c": {
+    "c": "Privacidad",
+    "i": 1,
+    "t": "p"
+  },
   "090dd58a9e726297": "Lectores curiosos",
   "0d5988f4c0fbf2ad": "Cuenta de Cache",
   "0e0f0cb623f12ffc": "Cookies y tecnologías similares que usamos en nuestros sitios y productos.",
   "11503a3d12f43fdd": "Documentos oficiales que rigen tu relación con nosotros y explican cómo tratamos los datos. Elige un tema a continuación para leer el texto completo.",
-  "11ccc132c8c38c40": [
-    {
-      "c": "Lo guardas para más tarde. Ese más tarde nunca llega.",
-      "i": 1,
-      "t": "p"
-    },
-    {
-      "c": "El marcador desaparece en un cementerio de buenas intenciones, repartido entre cinco plataformas, dos navegadores y tres dispositivos. La idea se evapora. El bucle se reinicia.",
-      "i": 2,
-      "t": "p"
-    },
-    {
-      "c": "Vuelves a hacer scroll, buscando eso que ya habías encontrado.",
-      "i": 3,
-      "t": "p"
-    }
-  ],
   "11d641c2c7d32f5c": "No hemos podido abrir la facturación en este momento.",
   "15833184c459d240": {
     "c": "Términos del servicio",
@@ -81,51 +69,7 @@
     " para empezar a agrupar los elementos guardados."
   ],
   "43c4658708e52e85": "Eliminar cuenta",
-  "44205dc5e0c99d88": [
-    {
-      "c": "Ya estás prestando atención.",
-      "i": 1,
-      "t": "p"
-    },
-    {
-      "c": "Cache se asegura de que sume.",
-      "i": 2,
-      "t": "p"
-    }
-  ],
   "446fc0e1621b7ae8": "Soporte",
-  "4570406e2d38d956": {
-    "c": "Política de privacidad",
-    "i": 1,
-    "t": "p"
-  },
-  "4715956ecfecd1e2": [
-    {
-      "c": "Cada vez que guardas algo, haces una pequeña apuesta a que ese momento de atención valía la pena.",
-      "i": 1,
-      "t": "p"
-    },
-    {
-      "c": "Cache reúne todas esas apuestas. Saca todo lo que guardas de los silos —los tuits, los vídeos, los enlaces— y lo lleva a un lugar al que de verdad puedes volver y del que sacar algo valioso.",
-      "i": 2,
-      "t": "p"
-    },
-    {
-      "c": "El scroll se convierte en una biblioteca.",
-      "i": 3,
-      "t": "p"
-    },
-    {
-      "c": "El bucle de consumo se convierte en un registro de lo que te llamó la atención, de lo que te hizo pensar, de lo que quisiste conservar.",
-      "i": 4,
-      "t": "p"
-    },
-    {
-      "c": "El sentido no está en el feed. Está en lo que eliges guardar.",
-      "i": 5,
-      "t": "p"
-    }
-  ],
   "48de21dffb27aea4": "Registro de cambios",
   "4d587a9524c95dd7": [
     "Accede a todos los marcadores de ",
@@ -171,11 +115,6 @@
       "v": "v"
     }
   ],
-  "6c231374bfad8483": {
-    "c": "Política de cookies",
-    "i": 1,
-    "t": "p"
-  },
   "6f1b661d2c2cb538": "Desconocido",
   "71a0bd88bed41d7c": "Volver arriba",
   "731e805e4730862c": {
@@ -401,52 +340,8 @@
   },
   "b0218088cb0cf61f": "Atajos de teclado",
   "b04df1727faed146": "Tus cuentas",
-  "b14d974a53e3f53e": [
-    {
-      "c": "Tu atención es finita.",
-      "i": 1,
-      "t": "p"
-    },
-    {
-      "c": "La gastas, quieras o no. Cada scroll es una retirada. La mayoría la tratamos como si fuera gratis, ilimitada, renovable, sin consecuencias.",
-      "i": 2,
-      "t": "p"
-    },
-    {
-      "c": "La pregunta no es si la vas a gastar. La pregunta es si te quedará algo a cambio.",
-      "i": 3,
-      "t": "p"
-    },
-    {
-      "c": "Cache no es una cura. Es memoria.",
-      "i": 4,
-      "t": "p"
-    }
-  ],
   "b33e2234ec4ab823": "Plan gratuito",
   "b5d5276005980a36": "Creadores y desarrolladores",
-  "ba1e49f7141fca57": [
-    {
-      "c": "Nunca ha habido tanto contenido.",
-      "i": 1,
-      "t": "p"
-    },
-    {
-      "c": "Y rara vez ha habido tan poco significado.",
-      "i": 2,
-      "t": "p"
-    },
-    {
-      "c": "El feed es infinito, pero no se acumula. Cada idea valiosa queda enterrada al instante por la siguiente. Cada idea llega sin contexto, sin conexión con lo último que te hizo sentir algo. Volumen sin retención no es más que ruido.",
-      "i": 3,
-      "t": "p"
-    },
-    {
-      "c": "No te falta información. Te falta un lugar donde pueda asentarse.",
-      "i": 4,
-      "t": "p"
-    }
-  ],
   "c1172428bea235ca": "Normas que regulan el uso del servicio, la gestión de tu cuenta y el uso aceptable.",
   "c26fd6852bfece9e": "Continuar con Google",
   "c884609397b72df2": "anual",
@@ -507,28 +402,6 @@
   ],
   "daf8daec701f0863": "Cuenta",
   "db72ad3b2501e7a9": "Cargando cuentas",
-  "dc43f2f8b9531cf9": [
-    {
-      "c": "Así que seamos sinceros sobre lo que está pasando de verdad.",
-      "i": 1,
-      "t": "p"
-    },
-    {
-      "c": "Haces scroll porque el mundo es interesante. Porque ahí fuera alguien acaba de decir eso que llevas años intentando expresar. Porque hay una receta, un hilo, un vídeo de dos minutos que de verdad va a cambiar tu forma de pensar sobre algo.",
-      "i": 2,
-      "t": "p"
-    },
-    {
-      "c": "El problema no es que consumas.",
-      "i": 3,
-      "t": "p"
-    },
-    {
-      "c": "El problema es que consumes con amnesia.",
-      "i": 4,
-      "t": "p"
-    }
-  ],
   "ddc161e16a7e8f5a": [
     {
       "i": 1,
@@ -556,43 +429,5 @@
       "t": "p"
     }
   ],
-  "e768c8a859e016d2": [
-    {
-      "c": "Si de todos modos vas a hacer scroll, asegúrate de sacar algo de ello.",
-      "i": 1,
-      "t": "h2"
-    },
-    {
-      "c": "Nadie deja los feeds.",
-      "i": 2,
-      "t": "p"
-    },
-    {
-      "c": "Lo hemos intentado. Borramos las apps, pusimos temporizadores y sentimos culpa.",
-      "i": 3,
-      "t": "p"
-    },
-    {
-      "c": "Pero volvimos.",
-      "i": 4,
-      "t": "p"
-    }
-  ],
-  "f137946f63b397fd": "Abrir en...",
-  "f96c9823ce4c4167": [
-    {
-      "c": {
-        "c": "Manifiesto.",
-        "i": 2,
-        "t": "GradientWaveText"
-      },
-      "i": 1,
-      "t": "h1"
-    },
-    {
-      "c": "Por qué creamos Cache.",
-      "i": 3,
-      "t": "p"
-    }
-  ]
+  "f137946f63b397fd": "Abrir en..."
 }

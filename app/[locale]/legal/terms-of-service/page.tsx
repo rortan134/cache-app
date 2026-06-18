@@ -32,7 +32,7 @@ export default function TermsOfServicePage() {
         <article className="flex flex-col gap-8 text-[0.95rem] text-stone-800 leading-relaxed">
             <header className="flex flex-col gap-3">
                 <h1 className="font-semibold text-2xl text-stone-950 tracking-tight">
-                    CachdApp, Inc. Terms of Service
+                    Cache App Terms of Service
                 </h1>
                 <p>
                     <strong>Last Updated:</strong> March 31, 2026
@@ -44,7 +44,7 @@ export default function TermsOfServicePage() {
                     Cover Page applies to your use of the Product.
                 </p>
                 <p>
-                    This Agreement is between CachdApp, Inc. and the company or
+                    This Agreement is between Cachd.App, Inc. and the company or
                     person accessing or using the Product. This Agreement
                     consists of: (1) the Order Form below and (2) the Framework
                     Terms defined below.
@@ -56,6 +56,18 @@ export default function TermsOfServicePage() {
                     accessing, or using the Product, Customer accepts this
                     Agreement and agrees to be bound by its terms and
                     conditions.
+                </p>
+                <p>
+                    <strong>Your Privacy:</strong> Please see our{" "}
+                    <a
+                        className="text-stone-950 underline underline-offset-4"
+                        href="/legal/privacy-policy"
+                    >
+                        Privacy Policy
+                    </a>{" "}
+                    for information about how we collect, use, and share your
+                    personal data. By using the Product, you consent to the
+                    practices described in the Privacy Policy.
                 </p>
             </header>
 
@@ -148,26 +160,21 @@ export default function TermsOfServicePage() {
                         use of the word &quot;Customer&quot; in the Agreement
                         will mean that company.
                     </p>
-
                     <p>
-                        <strong>Provider:</strong> CachdApp, Inc.
+                        <strong>Provider:</strong> Cachd.App, Inc.
                     </p>
-
                     <p>
                         <strong>Effective Date:</strong> The date Customer first
                         accepts this Agreement.
                     </p>
-
                     <p>
                         <strong>Governing Law:</strong> The laws of the State of
                         Delaware
                     </p>
-
                     <p>
                         <strong>Chosen Courts:</strong> The state or federal
                         courts located in Delaware
                     </p>
-
                     <div className="flex flex-col gap-2">
                         <p>
                             <strong>Covered Claims:</strong>
@@ -191,13 +198,11 @@ export default function TermsOfServicePage() {
                             Section 2.1 (Restrictions on Customer).
                         </p>
                     </div>
-
                     <p>
                         <strong>General Cap Amount:</strong> The fees paid or
                         payable by Customer to Provider in the 12-month period
                         immediately before the claim
                     </p>
-
                     <div className="flex flex-col gap-2">
                         <p>
                             <strong>Notice Address:</strong>
@@ -228,6 +233,138 @@ export default function TermsOfServicePage() {
                         https://www.cachd.app/dpa
                     </a>
                 </p>
+            </section>
+
+            <section className="flex flex-col gap-4">
+                <h2 className="font-semibold text-stone-950 text-xl tracking-tight">
+                    Copyright Infringement and DMCA Policy
+                </h2>
+                <p>
+                    We respect the intellectual property rights of others. If
+                    you believe that any content available on or through the
+                    Product infringes your copyright, you may notify our
+                    Designated Copyright Agent in accordance with the Digital
+                    Millennium Copyright Act (DMCA).
+                </p>
+                <p>
+                    To be effective, your notification must include the
+                    following in writing:
+                </p>
+                <ul className="list-disc space-y-2 pl-5">
+                    <li>
+                        A physical or electronic signature of a person
+                        authorized to act on behalf of the owner of an exclusive
+                        right that is allegedly infringed.
+                    </li>
+                    <li>
+                        Identification of the copyrighted work claimed to have
+                        been infringed, or, if multiple copyrighted works are
+                        covered by a single notification, a representative list
+                        of such works.
+                    </li>
+                    <li>
+                        Identification of the material that is claimed to be
+                        infringing and information reasonably sufficient to
+                        permit us to locate the material.
+                    </li>
+                    <li>
+                        Information reasonably sufficient to permit us to
+                        contact you, such as an address, telephone number, and
+                        email address.
+                    </li>
+                    <li>
+                        A statement that you have a good faith belief that use
+                        of the material in the manner complained of is not
+                        authorized by the copyright owner, its agent, or the
+                        law.
+                    </li>
+                    <li>
+                        A statement that the information in the notification is
+                        accurate, and under penalty of perjury, that you are
+                        authorized to act on behalf of the owner of an exclusive
+                        right that is allegedly infringed.
+                    </li>
+                </ul>
+                <p>
+                    <strong>Designated Copyright Agent:</strong>
+                </p>
+                <p>Email: notices@cachd.app</p>
+                <p>
+                    Upon receipt of a valid notice, we will remove or disable
+                    access to the allegedly infringing material and take
+                    reasonable steps to notify the user who posted it.
+                </p>
+                <p>
+                    <strong>Counter-Notice:</strong> If you believe that
+                    material you posted was removed or disabled as a result of a
+                    mistake or misidentification, you may send a written
+                    counter-notice to our Designated Copyright Agent containing
+                    your physical or electronic signature, identification of the
+                    material removed and its location before removal, a
+                    statement under penalty of perjury that you have a good
+                    faith belief the material was removed or disabled as a
+                    result of mistake or misidentification, and your name,
+                    address, telephone number, and a statement that you consent
+                    to the jurisdiction of the federal court in the District of
+                    Delaware and will accept service of process from the party
+                    who filed the original notice.
+                </p>
+                <p>
+                    <strong>Repeat Infringers:</strong> We may, in appropriate
+                    circumstances and at our sole discretion, terminate the
+                    accounts of users who are repeat infringers of intellectual
+                    property rights.
+                </p>
+            </section>
+
+            <section className="flex flex-col gap-4">
+                <h2 className="font-semibold text-stone-950 text-xl tracking-tight">
+                    AI-Assisted Features
+                </h2>
+                <p>
+                    The Product may offer optional AI-assisted features, such as
+                    automated categorization, smart collection suggestions, or
+                    AI-generated descriptions. These features are powered by
+                    third-party AI service providers. When you use an
+                    AI-assisted feature, relevant library content, URLs,
+                    metadata, or other input you provide may be transmitted to
+                    our AI service providers to generate the requested output on
+                    our behalf.
+                </p>
+                <p>
+                    Per our agreements with these providers, data submitted
+                    through the Product for AI-assisted features is not used by
+                    them to train or improve their generalized models. We do not
+                    use your content to train our own generalized AI or machine
+                    learning models.
+                </p>
+            </section>
+
+            <section className="flex flex-col gap-4">
+                <h2 className="font-semibold text-stone-950 text-xl tracking-tight">
+                    Notice for California Users
+                </h2>
+                <p>
+                    Under California Civil Code Section 1789.3, users of the
+                    Service from California are entitled to the following
+                    consumer rights notice: The Complaint Assistance Unit of the
+                    Division of Consumer Services of the California Department
+                    of Consumer Affairs may be contacted in writing at 1625
+                    North Market Blvd., Suite N 112, Sacramento, CA 95834, or by
+                    telephone at (800) 952-5210. You may contact us at
+                    notices@cachd.app.
+                </p>
+            </section>
+
+            <section className="flex flex-col gap-4">
+                <h2 className="font-semibold text-stone-950 text-xl tracking-tight">
+                    Contact Information
+                </h2>
+                <p>
+                    If you have any questions about these Terms of Service,
+                    please contact us at:
+                </p>
+                <p>Email: notices@cachd.app</p>
             </section>
         </article>
     );

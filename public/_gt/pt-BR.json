@@ -18,27 +18,15 @@
     "k": "_gt_value_1",
     "v": "v"
   },
+  "0746a2614f312b1c": {
+    "c": "Privacidade",
+    "i": 1,
+    "t": "p"
+  },
   "090dd58a9e726297": "Leitores curiosos",
   "0d5988f4c0fbf2ad": "Conta Cache",
   "0e0f0cb623f12ffc": "Cookies e tecnologias semelhantes usados em nossos sites e produtos.",
   "11503a3d12f43fdd": "Documentos oficiais que regem sua relação com a gente e explicam como lidamos com os dados. Escolha um tema abaixo para ler o texto completo.",
-  "11ccc132c8c38c40": [
-    {
-      "c": "Você salva para depois. Só que esse depois nunca chega.",
-      "i": 1,
-      "t": "p"
-    },
-    {
-      "c": "O bookmark desaparece num cemitério de boas intenções, espalhado por cinco plataformas, dois navegadores e três dispositivos. O insight evapora. O ciclo recomeça.",
-      "i": 2,
-      "t": "p"
-    },
-    {
-      "c": "Você rola a tela de novo, procurando aquilo que já tinha encontrado.",
-      "i": 3,
-      "t": "p"
-    }
-  ],
   "11d641c2c7d32f5c": "Não foi possível abrir o faturamento agora.",
   "15833184c459d240": {
     "c": "Termos de Serviço",
@@ -81,51 +69,7 @@
     " para começar a organizar os itens salvos."
   ],
   "43c4658708e52e85": "Excluir conta",
-  "44205dc5e0c99d88": [
-    {
-      "c": "Você já está prestando atenção.",
-      "i": 1,
-      "t": "p"
-    },
-    {
-      "c": "Cache faz com que ela renda.",
-      "i": 2,
-      "t": "p"
-    }
-  ],
   "446fc0e1621b7ae8": "Suporte",
-  "4570406e2d38d956": {
-    "c": "Política de Privacidade",
-    "i": 1,
-    "t": "p"
-  },
-  "4715956ecfecd1e2": [
-    {
-      "c": "Toda vez que você salva algo, faz uma pequena aposta de que esse momento de atenção valeu alguma coisa.",
-      "i": 1,
-      "t": "p"
-    },
-    {
-      "c": "O Cache reúne essas apostas. Ele tira o que você salvou dos silos — os tweets, os vídeos, os links — e coloca tudo em um lugar ao qual você pode realmente voltar e do qual pode, de fato, tirar proveito.",
-      "i": 2,
-      "t": "p"
-    },
-    {
-      "c": "O scroll vira uma biblioteca.",
-      "i": 3,
-      "t": "p"
-    },
-    {
-      "c": "O ciclo de consumo vira um registro do que chamou sua atenção, do que fez você pensar, do que você quis guardar.",
-      "i": 4,
-      "t": "p"
-    },
-    {
-      "c": "O significado não está no feed. Está no que você escolhe guardar.",
-      "i": 5,
-      "t": "p"
-    }
-  ],
   "48de21dffb27aea4": "Registro de alterações",
   "4d587a9524c95dd7": [
     "Acesse todos os favoritos ",
@@ -171,11 +115,6 @@
       "v": "v"
     }
   ],
-  "6c231374bfad8483": {
-    "c": "Política de Cookies",
-    "i": 1,
-    "t": "p"
-  },
   "6f1b661d2c2cb538": "Desconhecido",
   "71a0bd88bed41d7c": "Voltar ao topo",
   "731e805e4730862c": {
@@ -401,52 +340,8 @@
   },
   "b0218088cb0cf61f": "Atalhos de teclado",
   "b04df1727faed146": "Suas contas",
-  "b14d974a53e3f53e": [
-    {
-      "c": "Sua atenção é finita.",
-      "i": 1,
-      "t": "p"
-    },
-    {
-      "c": "Você a gasta, querendo ou não. Cada scroll é um saque. A maioria de nós age como se ela fosse grátis, ilimitada, renovável, sem consequência.",
-      "i": 2,
-      "t": "p"
-    },
-    {
-      "c": "A pergunta não é se você vai gastá-la. É se vai ter algo para mostrar por isso.",
-      "i": 3,
-      "t": "p"
-    },
-    {
-      "c": "Cache não é uma cura. É uma memória.",
-      "i": 4,
-      "t": "p"
-    }
-  ],
   "b33e2234ec4ab823": "Plano gratuito",
   "b5d5276005980a36": "Criadores e desenvolvedores",
-  "ba1e49f7141fca57": [
-    {
-      "c": "Nunca houve tanto conteúdo.",
-      "i": 1,
-      "t": "p"
-    },
-    {
-      "c": "Raramente houve tão pouco sentido.",
-      "i": 2,
-      "t": "p"
-    },
-    {
-      "c": "O feed é infinito, mas não se acumula. Cada insight é imediatamente soterrado pelo próximo. Cada ideia chega sem contexto, sem conexão com a última coisa que mexeu com você. Volume sem retenção é só ruído.",
-      "i": 3,
-      "t": "p"
-    },
-    {
-      "c": "Não é informação que está faltando. O que falta é um lugar onde ela possa pousar.",
-      "i": 4,
-      "t": "p"
-    }
-  ],
   "c1172428bea235ca": "Regras que regem o uso do serviço, o gerenciamento da sua conta e o uso aceitável.",
   "c26fd6852bfece9e": "Continuar com Google",
   "c884609397b72df2": "anual",
@@ -507,28 +402,6 @@
   ],
   "daf8daec701f0863": "Conta",
   "db72ad3b2501e7a9": "Carregando contas",
-  "dc43f2f8b9531cf9": [
-    {
-      "c": "Então vamos ser honestos sobre o que está realmente acontecendo.",
-      "i": 1,
-      "t": "p"
-    },
-    {
-      "c": "Você rola porque o mundo é interessante. Porque alguém por aí acabou de dizer aquilo que você vem tentando colocar em palavras há anos. Porque tem uma receita, um fio, um vídeo de dois minutos que realmente vai mudar a forma como você pensa sobre alguma coisa.",
-      "i": 2,
-      "t": "p"
-    },
-    {
-      "c": "O problema não é consumir.",
-      "i": 3,
-      "t": "p"
-    },
-    {
-      "c": "O problema é consumir com amnésia.",
-      "i": 4,
-      "t": "p"
-    }
-  ],
   "ddc161e16a7e8f5a": [
     {
       "i": 1,
@@ -556,43 +429,5 @@
       "t": "p"
     }
   ],
-  "e768c8a859e016d2": [
-    {
-      "c": "Se você vai ficar rolando mesmo, pelo menos tire algo disso.",
-      "i": 1,
-      "t": "h2"
-    },
-    {
-      "c": "Ninguém larga os feeds.",
-      "i": 2,
-      "t": "p"
-    },
-    {
-      "c": "A gente tentou. Apagou os apps, colocou timers, sentiu culpa.",
-      "i": 3,
-      "t": "p"
-    },
-    {
-      "c": "E depois voltou.",
-      "i": 4,
-      "t": "p"
-    }
-  ],
-  "f137946f63b397fd": "Abrir em...",
-  "f96c9823ce4c4167": [
-    {
-      "c": {
-        "c": "Manifesto.",
-        "i": 2,
-        "t": "GradientWaveText"
-      },
-      "i": 1,
-      "t": "h1"
-    },
-    {
-      "c": "Por que criamos o Cache.",
-      "i": 3,
-      "t": "p"
-    }
-  ]
+  "f137946f63b397fd": "Abrir em..."
 }

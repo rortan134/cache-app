@@ -386,7 +386,24 @@ export default function PrivacyPolicyPage() {
                         . We may need to verify your identity before acting on
                         your request.
                     </li>
+                    <li>
+                        If you are in the EEA, UK, or other jurisdiction with a
+                        supervisory authority, you may lodge a complaint with
+                        your local data protection authority about our handling
+                        of your personal data.
+                    </li>
                 </ul>
+                <p>
+                    Certain requests may be limited where fulfilling them would
+                    impair the rights of others, prevent us from providing a
+                    service you requested, or conflict with our legal
+                    obligations and enforcement of our legal rights.
+                </p>
+                <p>
+                    Some browsers support Do Not Track signals. We currently do
+                    not change our data collection practices in response to Do
+                    Not Track or similar browser signals.
+                </p>
             </section>
 
             <section className="flex flex-col gap-4">
@@ -490,7 +507,21 @@ export default function PrivacyPolicyPage() {
 
             <section className="flex flex-col gap-4">
                 <h2 className="font-semibold text-stone-950 text-xl tracking-tight">
-                    10. Legal Bases for Processing
+                    10. Links to Other Sites and Services
+                </h2>
+                <p>
+                    Our Service may contain links to websites, browser
+                    extensions, and online services operated by third parties.
+                    We do not control those third-party services and are not
+                    responsible for their privacy practices. We encourage you to
+                    review the privacy policies of any third-party service you
+                    use in connection with Cache.
+                </p>
+            </section>
+
+            <section className="flex flex-col gap-4">
+                <h2 className="font-semibold text-stone-950 text-xl tracking-tight">
+                    11. Legal Bases for Processing
                 </h2>
                 <p>
                     If you are in a jurisdiction that requires a legal basis for
@@ -525,7 +556,7 @@ export default function PrivacyPolicyPage() {
 
             <section className="flex flex-col gap-4">
                 <h2 className="font-semibold text-stone-950 text-xl tracking-tight">
-                    11. Additional Google User Data Disclosures
+                    12. Additional Google User Data Disclosures
                 </h2>
                 <p>
                     If you sign in with Google or connect Google Photos, the

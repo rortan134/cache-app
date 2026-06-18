@@ -17,6 +17,11 @@ import {
 } from "@/components/library/composer";
 import type { NoteDraft } from "@/components/library/notes";
 import {
+    PeekDrawer,
+    PeekDrawerContent,
+    PeekDrawerTrigger,
+} from "@/components/library/peek";
+import {
     NAME_COLLATOR,
     OpenFavoriteItemRefContext,
     useWorkspaceContext,
@@ -93,11 +98,6 @@ import {
     MenuSubTrigger,
     MenuTrigger,
 } from "@/components/ui/menu";
-import {
-    PeekDrawer,
-    PeekDrawerContent,
-    PeekDrawerTrigger,
-} from "@/components/ui/peek";
 import { useSidebar } from "@/components/ui/sidebar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Spinner } from "@/components/ui/spinner";
@@ -4088,7 +4088,7 @@ function CardMenu({
                 <MenuSub>
                     <MenuSubTrigger>
                         <History className="size-4.5 text-muted-foreground" />
-                        View previous versions
+                        Previous versions
                     </MenuSubTrigger>
                     <MenuSubPopup>
                         <MenuItem

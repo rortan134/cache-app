@@ -222,6 +222,10 @@ Database: PostgreSQL via Prisma ORM v7
 Auth: [better-auth](https://better-auth.com/llms.txt) with better-auth/stripe (Stripe subscriptions)
 Tooling: TypeScript v6 (strict typing), Biome via Ultracite (run via `bun lint` or `bun lint:fix` for writing)
 
+### Documentation lookups with Context7
+
+When you need up-to-date API docs, usage examples, or migration guides for any library or framework (especially those in the tech stack above), use the Context7 tools (`context7_resolve-library-id` then `context7_query-docs`). They fetch current documentation and code examples instead of relying on potentially stale training data. Call these whenever a question involves a specific library version, a new API, or a pattern you're uncertain about.
+
 ### Procedure module pattern (Service + Server Actions)
 
 We organize and co-locate Next.js Server Actions as thin adapters in `lib/{module}/actions.ts` files that handle input/output validation, auth/session and privilege checks, error normalization, caching/revalidation and rate limiting. These actions call pure service functions which contain all business logic and database/external-API calls. Services never depend on the framework; they operate on validated data and return domain objects/typed results, and can be used independently either for either other modules, as side effects, or pure server components.

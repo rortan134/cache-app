@@ -2742,6 +2742,18 @@ function CollectionItemPriorityCombobox() {
                         )}
                     </ComboboxCollection>
                 </ComboboxList>
+                <div className="flex gap-2 px-3 py-2">
+                    <Info
+                        aria-hidden
+                        className="inline-block size-3.5 shrink-0"
+                        focusable="false"
+                    />
+                    <p className="text-[11px] text-muted-foreground leading-tight">
+                        Set a priority to organize your collections by how
+                        important it is to you. Cache uses this rating to help
+                        sort and highlight your most relevant collections
+                    </p>
+                </div>
             </ComboboxPopup>
         </Combobox>
     );
@@ -3070,7 +3082,7 @@ function CollectionItemMetadata({
                         <MenuItem onClick={onDelete}>Delete</MenuItem>
                     </MenuGroup>
                     <MenuItem disabled>
-                        <div className="-mt-1 space-y-1 text-[10px] text-muted-foreground leading-none *:text-nowrap">
+                        <div className="-mt-0.5 space-y-1 text-[10px] text-muted-foreground leading-none *:text-nowrap">
                             <div>Last updated {updatedAt.fromNow()}</div>
                             <div>
                                 {updatedAt.format("MMM DD, YYYY, h:mm A")}
@@ -3271,8 +3283,10 @@ function CollectionsCreateDialog() {
                             <AlertDescription>
                                 Collections keep your best saves and content in
                                 one place. Use them for ongoing goals, or just
-                                to keep things tidy. Cache will auto-assign
-                                matching entries to it.
+                                to keep things tidy.{" "}
+                                {disabled
+                                    ? null
+                                    : " Cache will auto-assign matching entries to it."}
                             </AlertDescription>
                         </Alert>
                     </DialogPanel>
