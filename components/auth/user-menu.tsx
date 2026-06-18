@@ -269,7 +269,7 @@ export function UserMenuFooter() {
         <>
             <MenuSeparator />
             <div className="flex w-full items-center px-1.5 pt-1 font-medium opacity-80 *:w-full *:text-sm">
-                <LocaleSelector />
+                <LocaleSelector id="language-selector" name="language" />
             </div>
             <MenuSeparator className="mt-1.5" />
             <div className="flex flex-wrap items-center -space-x-0.5 p-1 opacity-50">

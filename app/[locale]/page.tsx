@@ -161,7 +161,10 @@ export default async function Home() {
                                 </p>
                             </div>
                         </div>
-                        <LocaleSelector />
+                        <LocaleSelector
+                            id="language-selector"
+                            name="language"
+                        />
                     </SidebarFooter>
                 </Sidebar>
                 <div className="flex w-full max-w-[1024px] flex-col gap-12 p-8 pb-0 2xl:mx-auto">
