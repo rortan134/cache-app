@@ -20,7 +20,7 @@ import {
     PeekDrawer,
     PeekDrawerContent,
     PeekDrawerTrigger,
-} from "@/components/library/peek";
+} from "@/components/ui/peek";
 import {
     NAME_COLLATOR,
     OpenFavoriteItemRefContext,
