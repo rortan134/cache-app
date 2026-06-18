@@ -16,20 +16,15 @@ import {
     tiktokOembedUrl,
 } from "@/lib/integrations/tiktok/oembed";
 import { getPreviewFromContent } from "link-preview-js";
-import { cacheLife, cacheTag } from "next/cache";
 import { createHash } from "node:crypto";
-import { Duplex } from "node:stream";
-import { createZstdCompress } from "node:zlib";
 import * as z from "zod";
 
 const log = createLogger("api:library:preview");
 
-type PreviewType = "image" | "video";
-
 const CACHE_CONTROL_HEADER =
-    "public, max-age=86400, s-maxage=604800, stale-while-revalidate=604800";
+    "public, max-age=60, s-maxage=300, stale-while-revalidate=60";
 const VERCEL_CDN_CACHE_CONTROL_HEADER =
-    "public, max-age=604800, stale-while-revalidate=604800";
+    "public, max-age=300, stale-while-revalidate=60";
 const VERCEL_CACHE_TAG_HEADER = "Vercel-Cache-Tag";
 const VERCEL_CDN_CACHE_CONTROL_HEADER_NAME = "Vercel-CDN-Cache-Control";
 const NO_STORE_HEADER = "private, no-store";
@@ -42,9 +37,9 @@ const MAX_TARGET_URL_LENGTH = 4096;
 const MAX_PREVIEW_METADATA_BODY_BYTES = 2 * 1024 * 1024;
 const MAX_IMAGE_CONTENT_LENGTH_BYTES = 10 * 1024 * 1024;
 const MAX_VIDEO_CONTENT_LENGTH_BYTES = 200 * 1024 * 1024;
-const COBALT_CACHE_TTL_SECONDS = 60 * 60;
+const COBALT_CACHE_TTL_SECONDS = 5 * 60;
 const COBALT_CACHE_KEY_PREFIX = "cobalt-preview:";
-const PREVIEW_IMAGE_CACHE_TTL_SECONDS = 7 * 24 * 60 * 60;
+const PREVIEW_IMAGE_CACHE_TTL_SECONDS = 5 * 60;
 const PREVIEW_IMAGE_CACHE_KEY_PREFIX = "preview:image:";
 const USER_AGENT =
     "facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)";
@@ -53,8 +48,11 @@ const GOOGLEBOT_USER_AGENT =
 const HTTP_SINGLE_RANGE_HEADER_PATTERN = /^bytes=(\d*)-(\d*)$/;
 const XHTML_CONTENT_TYPE_PATTERN = /^application\/xhtml\+xml/i;
 const ABORTED_RESPONSE = new Response(null, { status: 499 });
-
 const INSTAGRAM_HOSTS = new Set(["instagram.com", ".instagram.com"]);
+
+type PreviewType = "image" | "video";
+
+type PreviewDelivery = "proxy" | "redirect";
 
 interface VideoRangeRequest {
     endByte: number | null;
@@ -62,20 +60,15 @@ interface VideoRangeRequest {
     startByte: number | null;
 }
 
-interface ResolvedImagePreview {
+interface ResolvedImage {
     imageUrl: string;
     pageUrl: string;
 }
 
-const resolvedImagePreviewSchema = z.object({
+const ResolvedImageSchema = z.object({
     imageUrl: z.string(),
     pageUrl: z.string(),
 });
-
-function acceptsZstd(request: Request): boolean {
-    const acceptEncoding = request.headers.get("accept-encoding");
-    return acceptEncoding?.toLowerCase().includes("zstd") ?? false;
-}
 
 function getUserAgent(url: string): string {
     try {
@@ -89,13 +82,6 @@ function getUserAgent(url: string): string {
     return USER_AGENT;
 }
 
-function createZstdTransform() {
-    return Duplex.toWeb(createZstdCompress()) as unknown as {
-        readable: ReadableStream<Uint8Array>;
-        writable: WritableStream<Uint8Array>;
-    };
-}
-
 export async function GET(request: Request): Promise<Response> {
     const requestUrl = new URL(request.url);
 
@@ -106,13 +92,17 @@ export async function GET(request: Request): Promise<Response> {
         return textResponse("Invalid URL", 400);
     }
 
+    const delivery = parsePreviewDelivery(
+        requestUrl.searchParams.get("delivery")
+    );
+    if (!delivery) {
+        return textResponse("Unsupported preview delivery", 400);
+    }
+
     const contentType = parsePreviewType(requestUrl.searchParams.get("type"));
     if (!contentType) {
         return textResponse("Unsupported preview type", 400);
     }
-
-    const shouldUseZstd = acceptsZstd(request);
-
     if (contentType === "video") {
         return resolveVideoPreview(targetUrl, request);
     }
@@ -122,52 +112,10 @@ export async function GET(request: Request): Promise<Response> {
         if (!preview?.imageUrl) {
             return textResponse("Preview not found", 404);
         }
-
-        const imageResponse = await fetchWithRedirects(
-            await parsePublicHttpUrl(preview.imageUrl),
-            {
-                headers: {
-                    Accept: "image/*",
-                    Referer: preview.pageUrl ?? targetUrl.href,
-                    "User-Agent": getUserAgent(targetUrl.href),
-                },
-            },
-            request.signal
-        );
-
-        if (!imageResponse.ok) {
-            return textResponse("Preview not found", 404);
+        if (delivery === "redirect") {
+            return redirectToPreview(preview.imageUrl, targetUrl.href, "image");
         }
-
-        const imageContentType =
-            imageResponse.headers.get("content-type") ?? "";
-        if (!imageContentType.startsWith("image/")) {
-            return textResponse("Unsupported preview", 415);
-        }
-
-        if (
-            isContentLengthOverLimit(
-                imageResponse.headers,
-                MAX_IMAGE_CONTENT_LENGTH_BYTES
-            )
-        ) {
-            return textResponse("Preview too large", 413);
-        }
-
-        const body =
-            shouldUseZstd && imageResponse.body
-                ? imageResponse.body.pipeThrough(createZstdTransform())
-                : imageResponse.body;
-
-        return new Response(body, {
-            headers: {
-                "cache-control": CACHE_CONTROL_HEADER,
-                "content-type": imageContentType,
-                ...buildPreviewCacheHeaders(targetUrl.href, "image"),
-                ...(shouldUseZstd ? { "content-encoding": "zstd" } : {}),
-            },
-            status: 200,
-        });
+        return proxyImageResponse(preview, targetUrl, request);
     } catch (error) {
         return handlePreviewError(
             error,
@@ -180,27 +128,20 @@ export async function GET(request: Request): Promise<Response> {
 
 async function resolveImagePreview(
     targetUrl: string
-): Promise<ResolvedImagePreview | null> {
-    "use cache";
-    cacheTag(buildPreviewCacheTag(targetUrl, "image"));
-
+): Promise<ResolvedImage | null> {
     const cached = await readCachedImagePreview(targetUrl);
     if (cached) {
-        cacheLife("days");
         return cached;
     }
 
     const oembedUrl = tiktokOembedUrl(targetUrl);
     if (oembedUrl) {
-        cacheLife("hours");
         const result = await resolveTikTokImagePreview(targetUrl, oembedUrl);
         if (result) {
             await writeCachedImagePreview(targetUrl, result);
         }
         return result;
     }
-
-    cacheLife("days");
 
     const pageResponse = await fetchWithRedirects(parseHttpUrl(targetUrl), {
         headers: {
@@ -261,7 +202,7 @@ async function resolveImagePreview(
 async function resolveTikTokImagePreview(
     targetUrl: string,
     oembedUrl: string
-): Promise<ResolvedImagePreview | null> {
+): Promise<ResolvedImage | null> {
     const response = await fetchWithRedirects(parseHttpUrl(oembedUrl), {
         headers: {
             Accept: MIME_TYPES.json,
@@ -287,16 +228,62 @@ async function resolveTikTokImagePreview(
     };
 }
 
+async function proxyImageResponse(
+    preview: ResolvedImage,
+    targetUrl: URL,
+    request: Request
+): Promise<Response> {
+    const imageResponse = await fetchWithRedirects(
+        await parsePublicHttpUrl(preview.imageUrl),
+        {
+            headers: {
+                Accept: "image/*",
+                Referer: preview.pageUrl,
+                "User-Agent": getUserAgent(targetUrl.href),
+            },
+        },
+        request.signal
+    );
+
+    if (!imageResponse.ok) {
+        return textResponse("Preview not found", 404);
+    }
+
+    const imageContentType = imageResponse.headers.get("content-type") ?? "";
+    if (!imageContentType.startsWith("image/")) {
+        return textResponse("Unsupported preview", 415);
+    }
+
+    if (
+        isContentLengthOverLimit(
+            imageResponse.headers,
+            MAX_IMAGE_CONTENT_LENGTH_BYTES
+        )
+    ) {
+        return textResponse("Preview too large", 413);
+    }
+
+    return new Response(imageResponse.body, {
+        headers: {
+            "cache-control": CACHE_CONTROL_HEADER,
+            "content-type": imageContentType,
+            ...buildPreviewCacheHeaders(targetUrl.href, "image"),
+        },
+        status: 200,
+    });
+}
+
 async function resolveVideoPreview(
     targetUrl: URL,
     request: Request
 ): Promise<Response> {
-    if (request.signal?.aborted) {
+    const { signal } = request;
+    if (signal.aborted) {
         return ABORTED_RESPONSE;
     }
 
     try {
-        const videoResult = await resolveVideo(targetUrl, request.signal);
+        const videoResult = await resolveVideo(targetUrl, signal);
         if (!videoResult?.videoUrl) {
             const errorCategory = classifyCobaltError(videoResult?.errorCode);
             switch (errorCategory) {
@@ -407,7 +394,7 @@ function previewImageCacheKey(targetHref: string): string {
 
 async function readCachedImagePreview(
     targetHref: string
-): Promise<ResolvedImagePreview | null> {
+): Promise<ResolvedImage | null> {
     const cached = await readFromRedis(previewImageCacheKey(targetHref));
     if (!cached) {
         return null;
@@ -418,7 +405,7 @@ async function readCachedImagePreview(
     } catch {
         return null;
     }
-    const parsed = resolvedImagePreviewSchema.safeParse(parsedJson);
+    const parsed = ResolvedImageSchema.safeParse(parsedJson);
     if (!parsed.success) {
         return null;
     }
@@ -430,7 +417,7 @@ async function readCachedImagePreview(
 
 async function writeCachedImagePreview(
     targetHref: string,
-    preview: ResolvedImagePreview
+    preview: ResolvedImage
 ): Promise<void> {
     await writeToRedis(
         previewImageCacheKey(targetHref),
@@ -603,6 +590,16 @@ function parsePreviewType(type: string | null): PreviewType | null {
     return null;
 }
 
+function parsePreviewDelivery(delivery: string | null): PreviewDelivery | null {
+    if (delivery === null || delivery === "proxy") {
+        return "proxy";
+    }
+    if (delivery === "redirect") {
+        return "redirect";
+    }
+    return null;
+}
+
 function handlePreviewError(
     error: unknown,
     operation: string,
@@ -626,6 +623,27 @@ function textResponse(body: string, status: number): Response {
             "content-type": PLAIN_TEXT_CONTENT_TYPE,
         },
         status,
+    });
+}
+
+async function redirectToPreview(
+    previewUrl: string,
+    targetHref: string,
+    type: PreviewType
+): Promise<Response> {
+    const publicPreviewUrl = await parsePublicHttpUrl(previewUrl);
+    if (!publicPreviewUrl) {
+        return textResponse("Preview not found", 404);
+    }
+
+    const headers = new Headers();
+    headers.set("cache-control", CACHE_CONTROL_HEADER);
+    headers.set("location", publicPreviewUrl.href);
+    setPreviewCacheHeaders(headers, targetHref, type);
+
+    return new Response(null, {
+        headers,
+        status: 307,
     });
 }
 

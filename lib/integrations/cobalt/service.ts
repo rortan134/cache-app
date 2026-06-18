@@ -3,7 +3,7 @@ import { createLogger } from "@/lib/common/logs/console/logger";
 
 const log = createLogger("integrations:cobalt");
 
-export const COBALT_API_BASE = "https://cache-cobalt-cache.unkey.app";
+export const COBALT_API_BASE = "https://preview.cachd.app";
 
 interface CobaltResponse {
     error?: {
