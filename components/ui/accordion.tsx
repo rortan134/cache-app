@@ -10,9 +10,9 @@ export function Accordion({
 }: AccordionPrimitive.Root.Props) {
     return (
         <AccordionPrimitive.Root
+            {...props}
             className={cn("flex flex-col", className)}
             data-slot="accordion"
-            {...props}
         />
     );
 }
@@ -23,9 +23,9 @@ export function AccordionItem({
 }: AccordionPrimitive.Item.Props) {
     return (
         <AccordionPrimitive.Item
+            {...props}
             className={cn("border-b last:border-b-0", className)}
             data-slot="accordion-item"
-            {...props}
         />
     );
 }
@@ -38,12 +38,12 @@ export function AccordionTrigger({
     return (
         <AccordionPrimitive.Header className="flex">
             <AccordionPrimitive.Trigger
+                {...props}
                 className={cn(
                     "flex flex-1 cursor-pointer items-start justify-between gap-4 rounded-md py-4 text-left font-medium text-sm outline-none transition-all focus-visible:ring-[3px] focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-64 data-panel-open:*:data-[slot=accordion-indicator]:rotate-180",
                     className
                 )}
                 data-slot="accordion-trigger"
-                {...props}
             >
                 {children}
                 <ChevronDownIcon
