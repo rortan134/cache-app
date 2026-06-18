@@ -19,6 +19,7 @@ import {
     MenuSeparator,
     MenuTrigger,
 } from "@/components/ui/menu";
+import { useAutosave, type SaveStatus } from "@/hooks/use-autosave";
 import type { LibraryItemWithCollections } from "@/lib/collections/utils";
 import { cn } from "@/lib/common/cn";
 import { getOwnerDocument } from "@/lib/common/dom";
@@ -87,7 +88,6 @@ import {
 import Image from "next/image";
 import {
     createContext,
-    startTransition,
     use,
     useDeferredValue,
     useEffect,
@@ -106,12 +106,18 @@ export interface NoteDraft {
 interface NoteProps {
     children: ReactNode;
     contentEditableRef?: React.RefObject<HTMLDivElement | null>;
+    isSaving: boolean;
     note: LibraryItemWithCollections | null;
     onOpenChange: (open: boolean) => void | Promise<void>;
-    onSave: (draft: NoteDraft) => Promise<boolean> | boolean;
+    onSave: (
+        draft: NoteDraft,
+        noteId: string | null
+    ) =>
+        | LibraryItemWithCollections
+        | null
+        | Promise<LibraryItemWithCollections | null>;
     onUrlPaste: (url: string) => Promise<void> | void;
     open: boolean;
-    saving: boolean;
 }
 
 interface NoteContextValue {
@@ -120,10 +126,12 @@ interface NoteContextValue {
     editorKey: number;
     initialDraft: NoteDraft;
     isBusy: boolean;
+    isDirty: boolean;
     onDraftChange: (draft: NoteDraft) => void;
     onOpenChange: (open: boolean) => Promise<void>;
     onUrlPaste: (url: string) => Promise<void>;
     query: string;
+    saveStatus: SaveStatus;
     shouldCreateBookmarkFromUrlPaste: () => boolean;
     textMetrics: NoteTextMetrics;
     title: string;
@@ -429,13 +437,13 @@ function isDraftEmpty(draft: NoteDraft): boolean {
 function shouldCloseWithoutSaving(
     currentDraft: NoteDraft,
     initialDraft: NoteDraft,
-    note: LibraryItemWithCollections | null
+    hasPersistedNote: boolean
 ): boolean {
     if (!haveDraftsChanged(currentDraft, initialDraft)) {
         return true;
     }
 
-    return !note && isDraftEmpty(currentDraft);
+    return !hasPersistedNote && isDraftEmpty(currentDraft);
 }
 
 function getSelectionBlockType(selection: RangeSelection): NoteBlockType {
@@ -695,7 +703,7 @@ function NoteRoot({
     onSave,
     onUrlPaste,
     open,
-    saving,
+    isSaving,
 }: NoteProps) {
     const [initialDraft, setInitialDraft] = useState<NoteDraft>(() =>
         noteDraftFromItem(note)
@@ -707,11 +715,43 @@ function NoteRoot({
     const initialDraftRef = useRef<NoteDraft>(draft);
     const latestDraftRef = useRef<NoteDraft>(draft);
 
+    const noteId = note?.id ?? null;
+    const savedNoteIdRef = useRef<string | null>(noteId);
+
     const resetDraft = () => {
         const nextDraft = noteDraftFromItem(note);
+        savedNoteIdRef.current = noteId;
         initialDraftRef.current = nextDraft;
         latestDraftRef.current = nextDraft;
         setInitialDraft(nextDraft);
+        setDraft(nextDraft);
+        setEditorKey((key) => key + 1);
+    };
+
+    const syncDraftFromNote = () => {
+        const nextDraft = noteDraftFromItem(note);
+        const shouldPreserveLocalDraft =
+            noteId !== null &&
+            noteId === savedNoteIdRef.current &&
+            haveDraftsChanged(
+                latestDraftRef.current,
+                initialDraftRef.current
+            ) &&
+            haveDraftsChanged(nextDraft, latestDraftRef.current);
+
+        savedNoteIdRef.current = noteId;
+        initialDraftRef.current = nextDraft;
+        setInitialDraft(nextDraft);
+
+        if (shouldPreserveLocalDraft) {
+            return;
+        }
+
+        if (!haveDraftsChanged(nextDraft, latestDraftRef.current)) {
+            return;
+        }
+
+        latestDraftRef.current = nextDraft;
         setDraft(nextDraft);
         setEditorKey((key) => key + 1);
     };
@@ -730,8 +770,8 @@ function NoteRoot({
 
     if (note !== prevNote) {
         setPrevNote(note);
-        if (open) {
-            resetDraft();
+        if (open && open === prevOpen) {
+            syncDraftFromNote();
         }
     }
 
@@ -741,9 +781,7 @@ function NoteRoot({
             return;
         }
         latestDraftRef.current = normalizedDraft;
-        startTransition(() => {
-            setDraft(normalizedDraft);
-        });
+        setDraft(normalizedDraft);
     };
 
     const handleUrlPaste = async (url: string) => {
@@ -753,7 +791,65 @@ function NoteRoot({
     };
 
     const shouldCreateBookmarkFromUrlPaste = () =>
-        !note && isDraftEmpty(latestDraftRef.current);
+        !savedNoteIdRef.current && isDraftEmpty(latestDraftRef.current);
+
+    const saveLatestDraft = useStableCallback(async () => {
+        const draftToSave = latestDraftRef.current;
+        if (
+            shouldCloseWithoutSaving(
+                draftToSave,
+                initialDraftRef.current,
+                savedNoteIdRef.current !== null
+            )
+        ) {
+            return true;
+        }
+
+        const savedNote = await onSave(draftToSave, savedNoteIdRef.current);
+        if (!savedNote) {
+            return false;
+        }
+
+        savedNoteIdRef.current = savedNote.id;
+        initialDraftRef.current = draftToSave;
+        setInitialDraft(draftToSave);
+
+        return draftToSave.contentHtml;
+    });
+
+    const { isDirty, saveImmediately, saveStatus } = useAutosave({
+        content: draft.contentHtml,
+        enabled: open,
+        onSave: saveLatestDraft,
+        savedContent: initialDraft.contentHtml,
+    });
+
+    const handleSaveShortcut = useStableCallback((event: KeyboardEvent) => {
+        if (
+            event.defaultPrevented ||
+            !(event.metaKey || event.ctrlKey) ||
+            event.key.toLowerCase() !== "s"
+        ) {
+            return;
+        }
+
+        event.preventDefault();
+        saveImmediately().catch((error: unknown) => {
+            log.error("Unexpected note shortcut save failure", error);
+        });
+    });
+
+    useEffect(() => {
+        if (!open) {
+            return;
+        }
+
+        const ownerDocument = getOwnerDocument(contentEditableRef?.current);
+        ownerDocument.addEventListener("keydown", handleSaveShortcut);
+        return () => {
+            ownerDocument.removeEventListener("keydown", handleSaveShortcut);
+        };
+    }, [contentEditableRef, handleSaveShortcut, open]);
 
     const handleOpenChange = async (nextOpen: boolean) => {
         if (nextOpen) {
@@ -761,7 +857,7 @@ function NoteRoot({
             return;
         }
 
-        if (saving || isClosing) {
+        if (isClosing || (isSaving && saveStatus !== "saving")) {
             return;
         }
 
@@ -769,7 +865,7 @@ function NoteRoot({
         const shouldSkipSave = shouldCloseWithoutSaving(
             currentDraft,
             initialDraftRef.current,
-            note
+            savedNoteIdRef.current !== null
         );
 
         if (shouldSkipSave) {
@@ -779,7 +875,7 @@ function NoteRoot({
 
         setIsClosing(true);
         try {
-            const didSave = await onSave(currentDraft);
+            const didSave = await saveImmediately();
             if (didSave) {
                 onOpenChange(false);
             }
@@ -792,7 +888,7 @@ function NoteRoot({
     const textMetrics = getNoteTextMetrics(deferredContentHtml);
     const query = textMetrics.plainText;
     const title = note ? "Edit note" : "New entry";
-    const isBusy = saving || isClosing;
+    const isBusy = isSaving || isClosing;
 
     return (
         <NoteContext
@@ -802,10 +898,12 @@ function NoteRoot({
                 editorKey,
                 initialDraft,
                 isBusy,
+                isDirty,
                 onDraftChange: handleDraftChange,
                 onOpenChange: handleOpenChange,
                 onUrlPaste: handleUrlPaste,
                 query,
+                saveStatus,
                 shouldCreateBookmarkFromUrlPaste,
                 textMetrics,
                 title,
@@ -826,10 +924,58 @@ function NoteTitle() {
     return title;
 }
 
-function NoteHeader() {
-    const { contentHtml, isBusy, onOpenChange, query, title } =
-        useNoteContext();
+function NoteSaveStatus() {
+    const { isDirty, saveStatus } = useNoteContext();
 
+    if (saveStatus === "saving") {
+        return (
+            <span
+                aria-live="polite"
+                className="hidden text-right text-muted-foreground text-xs sm:block"
+            >
+                <T>Saving...</T>
+            </span>
+        );
+    }
+
+    if (saveStatus === "error") {
+        return (
+            <span
+                aria-live="polite"
+                className="hidden text-right text-destructive text-xs sm:block"
+            >
+                <T>Not saved</T>
+            </span>
+        );
+    }
+
+    if (saveStatus === "saved") {
+        return (
+            <span
+                aria-live="polite"
+                className="hidden text-right text-muted-foreground text-xs sm:block"
+            >
+                <T>Saved</T>
+            </span>
+        );
+    }
+
+    if (!isDirty) {
+        return null;
+    }
+
+    return (
+        <span
+            aria-live="polite"
+            className="hidden text-right text-muted-foreground text-xs sm:block"
+        >
+            <T>Unsaved</T>
+        </span>
+    );
+}
+
+function NoteHeader() {
+    const { contentHtml, onOpenChange, query, title } = useNoteContext();
     const hasQuery = query.length > 0;
 
     const handleExportMarkdown = () => {
@@ -847,6 +993,7 @@ function NoteHeader() {
                 <span className="font-medium text-sm">{title}</span>
             </div>
             <div className="flex items-center justify-end gap-2">
+                <NoteSaveStatus />
                 <Menu>
                     <MenuTrigger
                         render={
@@ -901,8 +1048,7 @@ function NoteHeader() {
                 <Group aria-label="Panel actions">
                     <Button
                         aria-label="Close note"
-                        className="mr-0.5 rounded-full"
-                        loading={isBusy}
+                        className="rounded-full"
                         onClick={async () => {
                             await onOpenChange(false);
                         }}

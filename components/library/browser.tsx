@@ -3219,21 +3219,21 @@ function buildBrowserSections(
 }
 
 async function saveLibraryNoteDraft({
-    activeNote,
+    activeNoteId,
     draft,
 }: {
-    activeNote: LibraryItemWithCollections | null;
+    activeNoteId: string | null;
     draft: {
         contentHtml: string;
         contentState: unknown | null;
     };
 }): Promise<NoteMutationResult> {
     try {
-        return activeNote
+        return activeNoteId
             ? await updateNote({
                   contentHtml: draft.contentHtml,
                   contentState: draft.contentState ?? undefined,
-                  itemId: activeNote.id,
+                  itemId: activeNoteId,
               })
             : await createNote({
                   contentHtml: draft.contentHtml,
@@ -3241,7 +3241,7 @@ async function saveLibraryNoteDraft({
               });
     } catch {
         return {
-            message: activeNote
+            message: activeNoteId
                 ? "We couldn't save this note right now."
                 : "We couldn't create this note right now.",
             status: "ERROR",
@@ -4471,7 +4471,10 @@ interface NoteDrawerProps {
     activeNote: LibraryItemWithCollections | typeof NOTE_DRAWER_NEW | null;
     container: React.RefObject<HTMLDivElement | null>;
     handlePasteUrlIntoLibrary: (url: string) => Promise<void>;
-    handleSaveNote: (draft: NoteDraft) => Promise<boolean>;
+    handleSaveNote: (
+        draft: NoteDraft,
+        noteId: string | null
+    ) => Promise<LibraryItemWithCollections | null>;
     isSavingNote: boolean;
     isSavingPastedUrl: boolean;
     onNoteDrawerClose: () => void;
@@ -4556,6 +4559,7 @@ const NoteDrawer = dynamic(
                 return (
                     <Note.Root
                         contentEditableRef={contentEditableRef}
+                        isSaving={isSavingNote || isSavingPastedUrl}
                         note={note}
                         onOpenChange={(open) => {
                             if (!open) {
@@ -4565,7 +4569,6 @@ const NoteDrawer = dynamic(
                         onSave={handleSaveNote}
                         onUrlPaste={handlePasteUrlIntoLibrary}
                         open={isNoteDrawerOpen}
-                        saving={isSavingNote || isSavingPastedUrl}
                     >
                         <NoteDrawerShell
                             container={container}
@@ -5499,17 +5502,24 @@ export function Browser({
     );
 
     const handleSaveNote = useStableCallback(
-        async (draft: { contentHtml: string; contentState: unknown | null }) =>
-            await new Promise<boolean>((resolve) => {
+        async (
+            draft: { contentHtml: string; contentState: unknown | null },
+            noteId: string | null
+        ) =>
+            await new Promise<LibraryItemWithCollections | null>((resolve) => {
                 startSavingNoteTransition(async () => {
+                    const activeNoteId =
+                        noteId ??
+                        (activeNote === NOTE_DRAWER_NEW
+                            ? null
+                            : (activeNote?.id ?? null));
                     const result = await saveLibraryNoteDraft({
-                        activeNote:
-                            activeNote === NOTE_DRAWER_NEW ? null : activeNote,
+                        activeNoteId,
                         draft,
                     });
 
                     if (result.status !== "SUCCESS") {
-                        resolve(false);
+                        resolve(null);
                         return;
                     }
 
@@ -5527,7 +5537,7 @@ export function Browser({
                         );
                     });
                     setActiveNote(result.item);
-                    resolve(true);
+                    resolve(result.item);
                 });
             })
     );

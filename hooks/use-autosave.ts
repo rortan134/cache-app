@@ -2,27 +2,29 @@ import { createLogger } from "@/lib/common/logs/console/logger";
 import { useStableCallback } from "@base-ui/utils/useStableCallback";
 import { useTimeout } from "@base-ui/utils/useTimeout";
 import { useValueAsRef } from "@base-ui/utils/useValueAsRef";
+import { usePreventWindowUnload } from "@/hooks/use-prevent-unload";
 import { useEffect, useRef, useState } from "react";
 
 const log = createLogger("use-autosave");
+const MIN_SAVING_DISPLAY_MS = 600;
+const SAVE_STATUS_IDLE_DELAY_MS = 2000;
 
-type SaveStatus = "idle" | "saving" | "saved" | "error";
+export type SaveStatus = "idle" | "saving" | "saved" | "error";
+type SaveResult = boolean | string | undefined;
 
 interface UseAutosaveOptions {
     content: string;
     delay?: number;
     enabled?: boolean;
-    onSave: () => Promise<void>;
+    onSave: () => Promise<SaveResult> | SaveResult;
     savedContent: string;
 }
 
 interface UseAutosaveReturn {
     isDirty: boolean;
-    saveImmediately: () => Promise<void>;
+    saveImmediately: () => Promise<boolean>;
     saveStatus: SaveStatus;
 }
-
-const MIN_SAVING_DISPLAY_MS = 600;
 
 /**
  * Shared autosave hook that debounces content changes and persists them automatically.
@@ -44,48 +46,135 @@ export function useAutosave({
     const enabledRef = useValueAsRef(enabled);
     const savedContentRef = useValueAsRef(savedContent);
 
-    const isSavingRef = useRef(false);
-    const savingStartRef = useRef(0);
+    const activeSaveRef = useRef<Promise<boolean> | null>(null);
+    const isMountedRef = useRef(false);
+    const latestContentChangeMsRef = useRef(Date.now());
+    const previousContentRef = useRef(content);
+    const savingStartMsRef = useRef(0);
 
     const isDirty = content !== savedContent;
 
-    const save = useStableCallback(async () => {
-        if (
-            !enabledRef.current ||
-            isSavingRef.current ||
-            contentRef.current === savedContentRef.current
-        ) {
-            return;
-        }
-        isSavingRef.current = true;
-        savingStartRef.current = Date.now();
-        setSaveStatus("saving");
-        let nextStatus: SaveStatus = "saved";
-        try {
-            await onSave();
-        } catch (error) {
-            log.error("Save failed", error);
-            nextStatus = "error";
-        } finally {
-            const elapsed = Date.now() - savingStartRef.current;
-            const remaining = Math.max(0, MIN_SAVING_DISPLAY_MS - elapsed);
-            idleTimeout.start(remaining, () => {
+    if (content !== previousContentRef.current) {
+        previousContentRef.current = content;
+        latestContentChangeMsRef.current = Date.now();
+    }
+
+    const isDirtyRef = useValueAsRef(isDirty);
+
+    const shouldPreventUnload = useStableCallback(
+        () => activeSaveRef.current !== null || isDirtyRef.current
+    );
+
+    usePreventWindowUnload(shouldPreventUnload);
+
+    const scheduleSettledStatus = useStableCallback(
+        (nextStatus: SaveStatus) => {
+            if (!isMountedRef.current) {
+                return;
+            }
+
+            const elapsedMs = Date.now() - savingStartMsRef.current;
+            const remainingMs = Math.max(0, MIN_SAVING_DISPLAY_MS - elapsedMs);
+
+            idleTimeout.start(remainingMs, () => {
                 setSaveStatus(nextStatus);
-                isSavingRef.current = false;
-                if (
-                    nextStatus !== "error" &&
-                    contentRef.current !== savedContentRef.current
-                ) {
-                    save();
-                } else {
-                    idleTimeout.start(2000, () => setSaveStatus("idle"));
-                }
+                idleTimeout.start(SAVE_STATUS_IDLE_DELAY_MS, () => {
+                    setSaveStatus("idle");
+                });
             });
         }
-    });
+    );
 
     useEffect(() => {
-        if (!(enabled && isDirty) || isSavingRef.current) {
+        isMountedRef.current = true;
+        return () => {
+            isMountedRef.current = false;
+        };
+    }, []);
+
+    const save = useStableCallback(
+        (shouldFlushQueued = false): Promise<boolean> => {
+            if (!enabledRef.current) {
+                return Promise.resolve(true);
+            }
+
+            const contentToSave = contentRef.current;
+            if (
+                !shouldFlushQueued &&
+                contentToSave === savedContentRef.current
+            ) {
+                return Promise.resolve(true);
+            }
+
+            if (activeSaveRef.current) {
+                if (!shouldFlushQueued) {
+                    return activeSaveRef.current;
+                }
+
+                return activeSaveRef.current.then((didSave) => {
+                    if (!didSave) {
+                        return false;
+                    }
+
+                    return save(true);
+                });
+            }
+
+            if (isMountedRef.current) {
+                idleTimeout.clear();
+                savingStartMsRef.current = Date.now();
+                setSaveStatus("saving");
+            }
+
+            const savePromise = (async () => {
+                let didSave = false;
+                try {
+                    const result = await onSave();
+                    didSave = result !== false;
+                    if (didSave) {
+                        savedContentRef.current =
+                            typeof result === "string" ? result : contentToSave;
+                    }
+                } catch (error) {
+                    log.error("Save failed", error);
+                }
+
+                activeSaveRef.current = null;
+                scheduleSettledStatus(didSave ? "saved" : "error");
+
+                if (
+                    didSave &&
+                    enabledRef.current &&
+                    contentRef.current !== savedContentRef.current
+                ) {
+                    if (shouldFlushQueued) {
+                        return save(true);
+                    }
+
+                    const elapsedSinceChangeMs =
+                        Date.now() - latestContentChangeMsRef.current;
+                    const remainingCooldownMs = Math.max(
+                        0,
+                        delay - elapsedSinceChangeMs
+                    );
+
+                    debounceTimeout.start(remainingCooldownMs, () => {
+                        save().catch((error: unknown) => {
+                            log.error("Queued autosave failed", error);
+                        });
+                    });
+                }
+
+                return didSave;
+            })();
+
+            activeSaveRef.current = savePromise;
+            return savePromise;
+        }
+    );
+
+    useEffect(() => {
+        if (!(enabled && isDirty) || activeSaveRef.current) {
             return;
         }
         debounceTimeout.start(delay, save);
@@ -96,20 +185,19 @@ export function useAutosave({
         () => () => {
             if (
                 enabledRef.current &&
-                contentRef.current !== savedContentRef.current &&
-                !isSavingRef.current
+                contentRef.current !== savedContentRef.current
             ) {
-                onSave().catch((error) => {
+                save(true).catch((error: unknown) => {
                     log.error("Unmount autosave failed", error);
                 });
             }
         },
-        [contentRef, enabledRef, onSave, savedContentRef]
+        [contentRef, enabledRef, save, savedContentRef]
     );
 
     const saveImmediately = useStableCallback(async () => {
         debounceTimeout.clear();
-        await save();
+        return await save(true);
     });
 
     return { isDirty, saveImmediately, saveStatus };
