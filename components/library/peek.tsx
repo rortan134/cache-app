@@ -10,6 +10,7 @@ import {
     DrawerTitle,
     DrawerTrigger,
     DrawerViewport,
+    DrawerVirtualKeyboardProvider,
 } from "@/components/ui/drawer";
 import { Spinner } from "@/components/ui/spinner";
 import { parseDisplayUrl } from "@/lib/common/url";
@@ -132,7 +133,11 @@ export function PeekDrawer({
 
     return (
         <PeekDrawerContext value={{ description, isOpen, title, url }}>
-            <Drawer onOpenChange={setIsOpen}>{children}</Drawer>
+            <Drawer onOpenChange={setIsOpen}>
+                <DrawerVirtualKeyboardProvider>
+                    {children}
+                </DrawerVirtualKeyboardProvider>
+            </Drawer>
         </PeekDrawerContext>
     );
 }
@@ -165,7 +170,7 @@ export function PeekDrawerContent() {
     return (
         <DrawerViewport>
             <DrawerPopup
-                className="h-[min(88vh,58rem)] sm:mx-auto sm:max-w-[min(96vw,78rem)]"
+                className="h-[min(calc(88vh-var(--drawer-keyboard-inset,0px)),58rem)] sm:mx-auto sm:max-w-[min(96vw,78rem)]"
                 position="bottom"
                 showBar
                 showCloseButton

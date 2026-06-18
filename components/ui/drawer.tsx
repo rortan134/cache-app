@@ -33,6 +33,9 @@ const DrawerContext: React.Context<DrawerContextValue> =
 export const DrawerCreateHandle: typeof DrawerPrimitive.createHandle =
     DrawerPrimitive.createHandle;
 
+export const DrawerVirtualKeyboardProvider: typeof DrawerPrimitive.VirtualKeyboardProvider =
+    DrawerPrimitive.VirtualKeyboardProvider;
+
 export function Drawer({
     swipeDirection,
     position = "bottom",
