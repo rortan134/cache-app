@@ -1,11 +1,10 @@
-import { PageShell } from "@/components/ui/page-shell";
-import { getPublicCollectionShareById } from "@/lib/collections/sharing/service";
-
 import {
     PublicShareGrid,
     type PublicShareGridItem,
 } from "@/components/share/browser";
 import { BrandLogo } from "@/components/ui/brand-logo";
+import { PageShell } from "@/components/ui/page-shell";
+import { getPublicCollectionShareById } from "@/lib/collections/sharing/service";
 import { FALLBACK_URL, ITEM_KIND_NOTE } from "@/lib/common/constants";
 import { getNoteExcerpt } from "@/lib/common/strings";
 import { normalizeURL } from "@/lib/common/url";

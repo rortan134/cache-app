@@ -47,6 +47,7 @@
     "i": 1,
     "t": "p"
   },
+  "1e850b13fa5eae43": "Guardado",
   "20529ca475e73f99": "Tema",
   "228f947f7df3af4d": "Añadir otra cuenta...",
   "251aca485fefb2c6": "Empieza a escribir o pega un enlace para añadirlo...",
@@ -312,6 +313,7 @@
   ],
   "a586e0692358c532": "Actualiza para obtener acceso completo a Cache y a todas las integraciones",
   "a7b00994918dc087": "Eliminar cuenta",
+  "ab4abf4e5a6f6057": "No se ha guardado",
   "acc1f7b6b65cace7": [
     {
       "c": "Detecta lo desfasado, quédate con lo útil",
@@ -340,6 +342,23 @@
   "b04df1727faed146": "Tus cuentas",
   "b33e2234ec4ab823": "Plan gratuito",
   "b5d5276005980a36": "Creadores y desarrolladores",
+  "ba29e2c72c0b8519": {
+    "c": [
+      {
+        "c": "No hace falta que uses Cache.",
+        "i": 2,
+        "t": "span"
+      },
+      " Deja que tu agente lo use con ",
+      {
+        "i": 3,
+        "t": "ModelContextProtocolIcon"
+      },
+      " MCP:"
+    ],
+    "i": 1,
+    "t": "p"
+  },
   "c1172428bea235ca": "Normas que regulan el uso del servicio, la gestión de tu cuenta y el uso aceptable.",
   "c26fd6852bfece9e": "Continuar con Google",
   "c884609397b72df2": "anual",
@@ -413,6 +432,7 @@
       "v": "v"
     }
   ],
+  "e09a36ef3ffd9115": "Sin guardar",
   "e1897047828fc955": "Docs, incidencias, código, tutoriales. Encuentra ese enlace al instante.",
   "e42f8301efa106ae": "Bookmark Intelligence™",
   "e6fee0a475a0476d": [
@@ -427,5 +447,6 @@
       "t": "p"
     }
   ],
+  "ece5e10bd5b5769d": "Guardando...",
   "f137946f63b397fd": "Abrir en..."
 }

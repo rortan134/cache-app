@@ -47,6 +47,7 @@
     "i": 1,
     "t": "p"
   },
+  "1e850b13fa5eae43": "Enregistré",
   "20529ca475e73f99": "Thème",
   "228f947f7df3af4d": "Ajouter un autre compte...",
   "251aca485fefb2c6": "Commencez à taper ou collez un lien pour l’ajouter…",
@@ -312,6 +313,7 @@
   ],
   "a586e0692358c532": "Passez à la version supérieure pour profiter d’un accès complet à Cache et à toutes les Integrations",
   "a7b00994918dc087": "Supprimer le compte",
+  "ab4abf4e5a6f6057": "Pas enregistré",
   "acc1f7b6b65cace7": [
     {
       "c": "Repérez ce qui n’est plus pertinent, gardez l’essentiel",
@@ -340,6 +342,23 @@
   "b04df1727faed146": "Vos comptes",
   "b33e2234ec4ab823": "Forfait gratuit",
   "b5d5276005980a36": "Créateurs et développeurs",
+  "ba29e2c72c0b8519": {
+    "c": [
+      {
+        "c": "Vous n’avez pas besoin d’utiliser Cache vous-même.",
+        "i": 2,
+        "t": "span"
+      },
+      " Laissez votre agent s’en servir avec ",
+      {
+        "i": 3,
+        "t": "ModelContextProtocolIcon"
+      },
+      " MCP&nbsp;:"
+    ],
+    "i": 1,
+    "t": "p"
+  },
   "c1172428bea235ca": "Règles régissant l’utilisation du service, la gestion de votre compte et l’utilisation autorisée.",
   "c26fd6852bfece9e": "Continuer avec Google",
   "c884609397b72df2": "annuel",
@@ -413,6 +432,7 @@
       "v": "v"
     }
   ],
+  "e09a36ef3ffd9115": "Retiré",
   "e1897047828fc955": "Docs, issues, code, tutoriels. Retrouvez ce lien en un instant.",
   "e42f8301efa106ae": "Bookmark Intelligence™",
   "e6fee0a475a0476d": [
@@ -427,5 +447,6 @@
       "t": "p"
     }
   ],
+  "ece5e10bd5b5769d": "Enregistrement...",
   "f137946f63b397fd": "Ouvrir dans..."
 }
