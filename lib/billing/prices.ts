@@ -53,12 +53,33 @@ export async function getPlanPrices(): Promise<{
     yearly: PlanPrice;
 }> {
     const prices = getPlanPriceIds();
+
     const [monthly, yearly] = await Promise.all([
         getPlanPriceById(prices.monthly),
         getPlanPriceById(prices.yearly),
     ]);
 
     return { monthly, yearly };
+}
+
+export async function getProducts() {
+    const products = await withStripe(
+        async (stripe) =>
+            await stripe.products.list({
+                active: true,
+                expand: ["data.default_price"],
+            })
+    );
+
+    return products.data.map((product) => ({
+        defaultPriceId:
+            typeof product.default_price === "string"
+                ? product.default_price
+                : product.default_price?.id,
+        description: product.description,
+        id: product.id,
+        name: product.name,
+    }));
 }
 
 const STRIPE_FEE_PERCENT = 0.044;

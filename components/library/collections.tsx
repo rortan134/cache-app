@@ -337,6 +337,16 @@ const SORT_OPTIONS = [
         value: "priority",
     },
     {
+        icon: Component,
+        label: "Count",
+        value: "count",
+    },
+    {
+        icon: ArrowUpDown,
+        label: "Name",
+        value: "name",
+    },
+    {
         icon: Sparkle,
         label: "Created",
         value: "created",
@@ -345,16 +355,6 @@ const SORT_OPTIONS = [
         icon: Clock,
         label: "Updated",
         value: "updated",
-    },
-    {
-        icon: ArrowUpDown,
-        label: "Name",
-        value: "name",
-    },
-    {
-        icon: Component,
-        label: "Count",
-        value: "count",
     },
 ] as const satisfies SortingOption[];
 
@@ -694,7 +694,7 @@ export function Collections() {
                     </CollectionsListToolbarGroup>
                 </CollectionsListToolbar>
                 <CollectionsListPanel>
-                    <div className="p-1.5 pt-1 pl-2.5">
+                    <div className="p-1.5 pt-0.5 pl-2.5">
                         <CollectionsListCalloutPopover />
                     </div>
                     <CollectionsListEmpty />
@@ -2716,7 +2716,7 @@ function CollectionItemPriorityCombobox() {
             >
                 <SelectedPriorityIcon className="size-4" />
             </ComboboxTrigger>
-            <ComboboxPopup className="max-w-80" positionMethod="fixed">
+            <ComboboxPopup className="max-w-64" positionMethod="fixed">
                 <ComboboxInput
                     endAddon={<Kbd>P</Kbd>}
                     placeholder={
@@ -2742,16 +2742,15 @@ function CollectionItemPriorityCombobox() {
                         )}
                     </ComboboxCollection>
                 </ComboboxList>
-                <div className="flex gap-2 px-3 py-2">
+                <div className="flex gap-1.5 pt-1.5 pr-2 pb-2.5 pl-3">
                     <Info
                         aria-hidden
                         className="inline-block size-3.5 shrink-0"
                         focusable="false"
                     />
                     <p className="text-[11px] text-muted-foreground leading-tight">
-                        Set a priority to organize your collections by how
-                        important it is to you. Cache uses this rating to help
-                        sort and highlight your most relevant collections
+                        Set a priority to highlight your collections based on
+                        their relevance to you
                     </p>
                 </div>
             </ComboboxPopup>
@@ -3338,7 +3337,7 @@ function CollectionsCreateDialog() {
                                     </ComboboxCollection>
                                 </ComboboxList>
                                 {disabled ? null : (
-                                    <div className="flex gap-2 px-3 py-2">
+                                    <div className="flex gap-2 px-3 pt-1.5 pb-2.5">
                                         <Info
                                             aria-hidden
                                             className="inline-block size-3.5 shrink-0"
