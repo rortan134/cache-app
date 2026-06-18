@@ -65,7 +65,7 @@ function usePeekDrawerContext(): PeekDrawerContextValue {
  * Enforces a timeout so users aren't left waiting indefinitely for sites
  * that refuse to embed.
  */
-function usePeekStatus(open: boolean, url: string, timeoutMs: number) {
+function usePeekStatus(isOpen: boolean, url: string, timeoutMs: number) {
     const [status, setStatus] = React.useState<PeekDrawerStatus>("loading");
     const blockedTimeout = useTimeout();
 
@@ -78,7 +78,7 @@ function usePeekStatus(open: boolean, url: string, timeoutMs: number) {
     });
 
     React.useEffect(() => {
-        if (!open) {
+        if (!isOpen) {
             blockedTimeout.clear();
             setStatus("loading");
             return;
@@ -94,7 +94,7 @@ function usePeekStatus(open: boolean, url: string, timeoutMs: number) {
         blockedTimeout.start(timeoutMs, markAsBlocked);
 
         return blockedTimeout.clear;
-    }, [blockedTimeout, markAsBlocked, open, timeoutMs, url]);
+    }, [blockedTimeout, isOpen, markAsBlocked, timeoutMs, url]);
 
     return {
         markAsBlocked,
@@ -103,10 +103,6 @@ function usePeekStatus(open: boolean, url: string, timeoutMs: number) {
     };
 }
 
-/**
- * Button that renders as an external anchor so users can open the target
- * in a new tab with the correct `rel` and `target` attributes.
- */
 function PeekDrawerLinkButton({ href, ...props }: PeekDrawerLinkButtonProps) {
     return (
         <Button
@@ -117,12 +113,6 @@ function PeekDrawerLinkButton({ href, ...props }: PeekDrawerLinkButtonProps) {
     );
 }
 
-/**
- * Root wrapper for the peek drawer.
- *
- * Lets Base UI own the drawer state while mirroring whether the preview is
- * open so iframe status can reset at the right time.
- */
 export function PeekDrawer({
     description,
     title = DEFAULT_PEEK_TITLE,
@@ -142,20 +132,8 @@ export function PeekDrawer({
     );
 }
 
-/**
- * Button that opens the peek drawer.
- *
- * Delegates directly to `DrawerTrigger`. Render inside `<PeekDrawer>`.
- */
 export const PeekDrawerTrigger = DrawerTrigger;
 
-/**
- * Popup content that renders the iframe, loading spinner, error state,
- * and footer actions.
- *
- * Remounts the iframe whenever `open` or `url` changes so previews always
- * start from a fresh state instead of showing stale cached content.
- */
 export function PeekDrawerContent() {
     const { description, isOpen, title, url } = usePeekDrawerContext();
     const { markAsBlocked, markAsLoaded, status } = usePeekStatus(
@@ -163,8 +141,8 @@ export function PeekDrawerContent() {
         url,
         DEFAULT_PEEK_TIMEOUT_MS
     );
-    const canOpenInNewTab = url !== PEEK_BLOCKED_URL;
-    const shouldRenderPreview = canOpenInNewTab && status !== "blocked";
+    const canOpenUrlExternally = url !== PEEK_BLOCKED_URL;
+    const shouldRenderPreview = canOpenUrlExternally && status !== "blocked";
     const iframeRemountKey = `${isOpen ? "open" : "closed"}-${url}`;
 
     return (
@@ -201,49 +179,12 @@ export function PeekDrawerContent() {
                         aria-busy={status === "loading"}
                         className="relative flex size-full min-h-0"
                     >
-                        {status === "loading" && (
-                            <div
-                                aria-live="polite"
-                                className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 bg-background/92 text-center backdrop-blur-xs"
-                                role="status"
-                            >
-                                <Spinner className="size-5 text-muted-foreground" />
-                                <div className="space-y-1">
-                                    <p className="font-medium text-foreground text-sm">
-                                        Loading preview...
-                                    </p>
-                                    <p className="max-w-sm text-balance text-muted-foreground text-sm">
-                                        We&apos;re trying to open the page...
-                                    </p>
-                                </div>
-                            </div>
-                        )}
+                        {status === "loading" && <PeekDrawerLoadingState />}
                         {status === "blocked" && (
-                            <div
-                                aria-live="polite"
-                                className="flex size-full flex-col items-center justify-center gap-4 bg-muted/20 px-6 text-center"
-                                role="alert"
-                            >
-                                <div className="flex size-12 items-center justify-center rounded-full bg-destructive/10 text-destructive">
-                                    <AlertCircleIcon className="size-5" />
-                                </div>
-                                <div className="space-y-2">
-                                    <p className="font-medium text-base text-foreground">
-                                        Preview unavailable
-                                    </p>
-                                    <p className="max-w-md text-balance text-muted-foreground text-sm">
-                                        This site can't be previewed here. It
-                                        may block embedding inside other sites
-                                        or be taking too long to load.
-                                    </p>
-                                </div>
-                                {canOpenInNewTab && (
-                                    <PeekDrawerLinkButton href={url} size="sm">
-                                        <ExternalLinkIcon className="size-4" />
-                                        Open in new tab
-                                    </PeekDrawerLinkButton>
-                                )}
-                            </div>
+                            <PeekDrawerBlockedState
+                                canOpenUrlExternally={canOpenUrlExternally}
+                                url={url}
+                            />
                         )}
                         {shouldRenderPreview && (
                             <iframe
@@ -260,5 +201,60 @@ export function PeekDrawerContent() {
                 </DrawerPanel>
             </DrawerPopup>
         </DrawerViewport>
+    );
+}
+
+function PeekDrawerLoadingState() {
+    return (
+        <div
+            aria-live="polite"
+            className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 bg-background/92 text-center backdrop-blur-xs"
+            role="status"
+        >
+            <Spinner className="size-5 text-muted-foreground" />
+            <div className="space-y-1">
+                <p className="font-medium text-foreground text-sm">
+                    Loading preview...
+                </p>
+                <p className="max-w-sm text-balance text-muted-foreground text-sm">
+                    We&apos;re trying to open the page...
+                </p>
+            </div>
+        </div>
+    );
+}
+
+function PeekDrawerBlockedState({
+    canOpenUrlExternally,
+    url,
+}: {
+    canOpenUrlExternally: boolean;
+    url: string;
+}) {
+    return (
+        <div
+            aria-live="polite"
+            className="flex size-full flex-col items-center justify-center gap-4 bg-muted/20 px-6 text-center"
+            role="alert"
+        >
+            <div className="flex size-12 items-center justify-center rounded-full bg-destructive/10 text-destructive">
+                <AlertCircleIcon className="size-5" />
+            </div>
+            <div className="space-y-2">
+                <p className="font-medium text-base text-foreground">
+                    Preview unavailable
+                </p>
+                <p className="max-w-md text-balance text-muted-foreground text-sm">
+                    This site can't be previewed here. It may block embedding
+                    inside other sites or be taking too long to load.
+                </p>
+            </div>
+            {canOpenUrlExternally && (
+                <PeekDrawerLinkButton href={url} size="sm">
+                    <ExternalLinkIcon className="size-4" />
+                    Open in new tab
+                </PeekDrawerLinkButton>
+            )}
+        </div>
     );
 }
