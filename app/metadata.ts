@@ -25,6 +25,7 @@ const DEFAULT_OG_IMAGE = "/opengraph-image.png";
 export function buildPageMetadata({
     description,
     keywords,
+    locale,
     ogImage = DEFAULT_OG_IMAGE,
     ogType = "website",
     path,
@@ -36,7 +37,15 @@ export function buildPageMetadata({
         keywords,
         openGraph: {
             description,
-            images: [{ url: ogImage }],
+            images: [
+                {
+                    alt: "The word 'Cache' in bold abstract lettering on a warm off-white background",
+                    height: 630,
+                    url: ogImage,
+                    width: 1200,
+                },
+            ],
+            locale,
             title,
             type: ogType,
         },
@@ -44,7 +53,14 @@ export function buildPageMetadata({
         twitter: {
             card: "summary_large_image",
             description,
-            images: [{ url: ogImage }],
+            images: [
+                {
+                    alt: "The word 'Cache' in bold abstract lettering on a warm off-white background",
+                    height: 630,
+                    url: ogImage,
+                    width: 1200,
+                },
+            ],
             title,
         },
     };

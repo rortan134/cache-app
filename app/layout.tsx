@@ -48,13 +48,8 @@ export async function generateMetadata(props: {
             googleBot: {
                 follow: true,
                 index: true,
-                "max-image-preview": "large",
-                "max-snippet": -1,
-                "max-video-preview": -1,
-                noimageindex: false,
             },
             index: true,
-            nocache: false,
         },
         title: {
             default: SITE_DEFAULT_TITLE,
@@ -100,7 +95,9 @@ export default async function RootLayout(props: {
                 />
             </head>
             <body className="flex flex-col antialiased">
-                <h1 className="sr-only">{APP_NAME}</h1>
+                <span aria-atomic="true" aria-live="polite" className="sr-only">
+                    {APP_NAME}
+                </span>
                 <a className="skip-to-content" href="#main-content">
                     Skip to main content
                 </a>
