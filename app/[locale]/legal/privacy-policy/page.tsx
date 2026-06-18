@@ -50,23 +50,15 @@ function LinkText({
 export default function PrivacyPolicyPage() {
     return (
         <article className="flex flex-col gap-8 text-[0.95rem] text-stone-800 leading-relaxed">
-            <header className="flex flex-col gap-5 text-pretty border-stone-200 border-b pb-8">
-                <div className="flex flex-col gap-2">
-                    <p className="font-medium text-[0.72rem] text-stone-500 uppercase tracking-[0.22em]">
-                        Privacy at a glance
-                    </p>
-                    <h1 className="font-semibold text-3xl text-stone-950 tracking-tight sm:text-[2.4rem] sm:leading-tight">
-                        Your saved content should stay useful without becoming
-                        someone else&apos;s feed.
-                    </h1>
-                </div>
-
+            <header className="flex flex-col gap-6 text-pretty border-stone-200 border-b pb-8">
+                <h1 className="font-semibold text-3xl text-stone-950 tracking-tight sm:text-[2.4rem] sm:leading-tight">
+                    At a glance
+                </h1>
                 <p className="max-w-2xl text-base text-stone-600 leading-relaxed">
-                    This plain-English summary explains the main privacy choices
-                    behind {APP_NAME}. The full Privacy Policy below governs.
+                    This summary explains the main privacy choices behind Cache.
+                    The full Privacy Policy below governs.
                 </p>
-
-                <div className="grid gap-4 border-stone-200 border-t pt-5 text-[0.9rem] text-stone-700 leading-relaxed sm:grid-cols-2">
+                <div className="grid gap-5 border-stone-200 border-t pt-5 text-[0.9rem] text-stone-700 leading-relaxed sm:grid-cols-2">
                     <p>
                         You choose what enters Cache: bookmarks, notes,
                         collections, and connected-source records you ask us to
@@ -86,14 +78,12 @@ export default function PrivacyPolicyPage() {
                         ads, or train generalized AI models on data you submit.
                     </p>
                 </div>
-
                 <p className="text-[0.88rem] text-stone-500 leading-relaxed">
                     Effective April 21, 2026. Third-party services you connect
                     to Cache govern their own privacy practices unless their
                     data is processed inside Cache.
                 </p>
             </header>
-
             <section className="flex flex-col gap-3">
                 <h2 className="font-semibold text-2xl text-stone-950 tracking-tight">
                     Privacy Policy
