@@ -4617,6 +4617,7 @@ export function Browser({
 }: LibraryProps) {
     const { hasAccess } = useSubscriptionAccess();
     const isExtensionInstalled = useIsExtensionInstalled();
+    const paletteCaretTimeout = useTimeout();
     const paletteFocusOutTimeout = useTimeout();
 
     const {
@@ -5084,6 +5085,16 @@ export function Browser({
         });
     });
 
+    const placePaletteCaretAtEnd = useStableCallback((value: string) => {
+        const end = value.length;
+        const placeCaret = () => {
+            inputRef.current?.setSelectionRange(end, end);
+        };
+
+        queueMicrotask(placeCaret);
+        paletteCaretTimeout.start(0, placeCaret);
+    });
+
     const handleCommandOpenChange = useStableCallback(
         (
             nextOpen: boolean,
@@ -5203,8 +5214,9 @@ export function Browser({
         }
 
         event.preventDefault();
-        setQuery((current) => `${current}${event.key}`);
+        setQuery(event.key);
         focusPaletteInput();
+        placePaletteCaretAtEnd(event.key);
     });
 
     useHotkeys(
