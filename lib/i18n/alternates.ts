@@ -20,11 +20,13 @@ export function buildLocaleAlternates(
         ])
     );
 
+    const canonical = getLocalizedUrl(defaultLocale, path);
+
     return {
-        canonical: getLocalizedUrl(defaultLocale, path),
+        canonical,
         languages: {
             ...languages,
-            "x-default": getLocalizedUrl(defaultLocale, path),
+            "x-default": path === "/" ? BASE_URL : canonical,
         },
     };
 }
