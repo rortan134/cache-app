@@ -67,6 +67,7 @@ import {
     mergeRegister,
     type LexicalEditor,
     type PasteCommandType,
+    type RangeSelection,
     type TextFormatType,
 } from "lexical";
 import {
@@ -365,12 +366,6 @@ function areFormatStatesEqual(left: FormatState, right: FormatState): boolean {
     );
 }
 
-/**
- * Derive word, character, and paragraph counts from note HTML.
- *
- * Falls back to one implicit paragraph when text exists but block tags
- * are missing, which happens with plain-text pastes.
- */
 function getNoteTextMetrics(contentHtml: string): NoteTextMetrics {
     const plainText = extractNoteText(contentHtml);
     const matchedBlocks = contentHtml.match(NOTE_NON_EMPTY_BLOCK_TAG_REGEX);
@@ -392,12 +387,6 @@ function getNoteTextMetrics(contentHtml: string): NoteTextMetrics {
     };
 }
 
-/**
- * Produce the correct Lexical `editorState` initializer from a draft.
- *
- * Uses the JSON snapshot when available for instant hydration; otherwise
- * parses HTML into nodes so legacy notes still render correctly.
- */
 function getInitialEditorState(
     initialDraft: NoteDraft
 ): InitialConfigType["editorState"] {
@@ -426,12 +415,6 @@ function getInitialEditorState(
     };
 }
 
-/**
- * Compare two drafts for semantic differences.
- *
- * Normalizes HTML before comparing so inconsequential whitespace changes
- * don't trigger a save prompt.
- */
 function haveDraftsChanged(left: NoteDraft, right: NoteDraft): boolean {
     return (
         normalizeNoteHtml(left.contentHtml) !==
@@ -439,13 +422,54 @@ function haveDraftsChanged(left: NoteDraft, right: NoteDraft): boolean {
     );
 }
 
-/**
- * Check whether a draft contains any visible text.
- *
- * HTML with only empty tags or whitespace is considered empty.
- */
 function isDraftEmpty(draft: NoteDraft): boolean {
     return extractNoteText(draft.contentHtml).length === 0;
+}
+
+function shouldCloseWithoutSaving(
+    currentDraft: NoteDraft,
+    initialDraft: NoteDraft,
+    note: LibraryItemWithCollections | null
+): boolean {
+    if (!haveDraftsChanged(currentDraft, initialDraft)) {
+        return true;
+    }
+
+    return !note && isDraftEmpty(currentDraft);
+}
+
+function getSelectionBlockType(selection: RangeSelection): NoteBlockType {
+    const anchorNode = selection.anchor.getNode();
+    const topLevelNode = $isRootNode(anchorNode)
+        ? anchorNode
+        : anchorNode.getTopLevelElement();
+
+    if (!(topLevelNode && $isHeadingNode(topLevelNode))) {
+        return "paragraph";
+    }
+
+    const headingTag = topLevelNode.getTag();
+    switch (headingTag) {
+        case "h1":
+        case "h2":
+        case "h3":
+            return headingTag;
+        default:
+            return "paragraph";
+    }
+}
+
+function downloadMarkdownFile(contentHtml: string) {
+    const markdown = convertNoteHtmlToMarkdown(contentHtml);
+    const blob = new Blob([markdown], { type: "text/markdown" });
+    const url = URL.createObjectURL(blob);
+    const ownerDocument = getOwnerDocument();
+    const link = ownerDocument.createElement("a");
+
+    link.href = url;
+    link.download = "note.md";
+    link.click();
+    URL.revokeObjectURL(url);
 }
 
 /**
@@ -472,22 +496,8 @@ function FormattingToolbarPlugin() {
                     return;
                 }
 
-                const anchorNode = selection.anchor.getNode();
-                const topLevelNode = $isRootNode(anchorNode)
-                    ? anchorNode
-                    : anchorNode.getTopLevelElement();
-                const blockType =
-                    topLevelNode && $isHeadingNode(topLevelNode)
-                        ? topLevelNode.getTag()
-                        : "paragraph";
-
                 const nextFormats: FormatState = {
-                    blockType:
-                        blockType === "h1" ||
-                        blockType === "h2" ||
-                        blockType === "h3"
-                            ? blockType
-                            : "paragraph",
+                    blockType: getSelectionBlockType(selection),
                     bold: selection.hasFormat("bold"),
                     italic: selection.hasFormat("italic"),
                     strikeThrough: selection.hasFormat("strikethrough"),
@@ -756,17 +766,13 @@ function NoteRoot({
         }
 
         const currentDraft = latestDraftRef.current;
-        const hasChanged = haveDraftsChanged(
+        const shouldSkipSave = shouldCloseWithoutSaving(
             currentDraft,
-            initialDraftRef.current
+            initialDraftRef.current,
+            note
         );
 
-        if (!hasChanged) {
-            onOpenChange(false);
-            return;
-        }
-
-        if (!note && isDraftEmpty(currentDraft)) {
+        if (shouldSkipSave) {
             onOpenChange(false);
             return;
         }
@@ -827,15 +833,7 @@ function NoteHeader() {
     const hasQuery = query.length > 0;
 
     const handleExportMarkdown = () => {
-        const markdown = convertNoteHtmlToMarkdown(contentHtml);
-        const blob = new Blob([markdown], { type: "text/markdown" });
-        const url = URL.createObjectURL(blob);
-        const ownerDocument = getOwnerDocument();
-        const link = ownerDocument.createElement("a");
-        link.href = url;
-        link.download = "note.md";
-        link.click();
-        URL.revokeObjectURL(url);
+        downloadMarkdownFile(contentHtml);
     };
 
     return (

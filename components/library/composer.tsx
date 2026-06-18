@@ -107,42 +107,9 @@ export function ComposerInput({
                     render={
                         <CommandInput
                             endAddon={
-                                <>
-                                    {stackEntries.length === 0 ? (
-                                        <>
-                                            <Kbd className="border-none text-muted-foreground opacity-50 group-data-popup-open/input:opacity-0">
-                                                <CmdKbd />G
-                                            </Kbd>
-                                            <span className="absolute right-3 flex items-center gap-0.5 text-nowrap opacity-0 group-data-popup-open/input:opacity-100">
-                                                <Kbd className="border-none text-muted-foreground opacity-50">
-                                                    Tab
-                                                </Kbd>
-                                                <span className="text-muted-foreground text-xs opacity-50">
-                                                    Ask Cache
-                                                </span>
-                                            </span>
-                                        </>
-                                    ) : null}
-                                    <TruncateAfter
-                                        badgeRender={
-                                            <Badge
-                                                className="inline-flex h-7! cursor-pointer rounded-full text-xs tabular-nums"
-                                                render={
-                                                    <button type="button" />
-                                                }
-                                                variant="secondary"
-                                            />
-                                        }
-                                        className="justify-end"
-                                        maxVisible={1}
-                                    >
-                                        {stackEntries.map((entry) => (
-                                            <React.Fragment key={entry.key}>
-                                                {entry.chip}
-                                            </React.Fragment>
-                                        ))}
-                                    </TruncateAfter>
-                                </>
+                                <ComposerInputEndAddon
+                                    stackEntries={stackEntries}
+                                />
                             }
                             onKeyDown={onKeyDown}
                             placeholder={placeholder}
@@ -505,6 +472,53 @@ function getCommandItemRank({
     }
 
     return null;
+}
+
+function ComposerInputEndAddon({
+    stackEntries,
+}: {
+    stackEntries: PaletteStackEntry[];
+}) {
+    return (
+        <>
+            {stackEntries.length === 0 ? <ComposerInputShortcuts /> : null}
+            <TruncateAfter
+                badgeRender={
+                    <Badge
+                        className="inline-flex h-7! cursor-pointer rounded-full text-xs tabular-nums"
+                        render={<button type="button" />}
+                        variant="secondary"
+                    />
+                }
+                className="justify-end"
+                maxVisible={1}
+            >
+                {stackEntries.map((entry) => (
+                    <React.Fragment key={entry.key}>
+                        {entry.chip}
+                    </React.Fragment>
+                ))}
+            </TruncateAfter>
+        </>
+    );
+}
+
+function ComposerInputShortcuts() {
+    return (
+        <>
+            <Kbd className="border-none text-muted-foreground opacity-50 group-data-popup-open/input:opacity-0">
+                <CmdKbd />G
+            </Kbd>
+            <span className="absolute right-3 flex items-center gap-0.5 text-nowrap opacity-0 group-data-popup-open/input:opacity-100">
+                <Kbd className="border-none text-muted-foreground opacity-50">
+                    Tab
+                </Kbd>
+                <span className="text-muted-foreground text-xs opacity-50">
+                    Ask Cache
+                </span>
+            </span>
+        </>
+    );
 }
 
 function CommandPaletteItemComponent({

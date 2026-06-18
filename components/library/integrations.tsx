@@ -118,6 +118,10 @@ interface IntegrationsListItemActionsProps extends React.ComponentProps<"div"> {
     status: IntegrationActionStatus | null;
 }
 
+interface IntegrationsListItemActionButtonProps {
+    action: IntegrationActionViewModel;
+}
+
 export const { useStore: useIntegrationsListStore } = createStore({
     isIntegrationsListOpen: storage(false),
 });
@@ -175,9 +179,10 @@ function resolveActionLabel(args: {
 
     switch (role) {
         case "open":
-            return !isExtensionInstalled && openBehavior?.installURL
-                ? "Get Extension"
-                : "Open";
+            if (!isExtensionInstalled && openBehavior?.installURL) {
+                return "Get Extension";
+            }
+            return "Open";
         case "connect":
             if (!connectBehavior) {
                 return "Open";
@@ -286,11 +291,14 @@ async function executeIntegrationAction(args: {
                 });
             }
 
-            const successMessage =
-                integration.behaviors.sync.kind === "route"
-                    ? await executeRouteSyncBehavior(integration.behaviors.sync)
-                    : await executeGooglePhotosPickerFlow();
+            if (integration.behaviors.sync.kind === "route") {
+                const successMessage = await executeRouteSyncBehavior(
+                    integration.behaviors.sync
+                );
+                return { refresh: true, successMessage };
+            }
 
+            const successMessage = await executeGooglePhotosPickerFlow();
             return { refresh: true, successMessage };
         }
         default:
@@ -358,25 +366,26 @@ function useIntegrationAction({
         }
     );
 
-    const actions = integration.actions
-        .filter((action) => action.for === direction)
-        .filter((action) => isActionVisible(action, isConnected))
-        .map(
-            (action) =>
-                ({
-                    isLoading: pendingRole === action.role,
-                    label: resolveActionLabel({
-                        connectBehavior: integration.behaviors.connect,
-                        isConnected,
-                        isExtensionInstalled,
-                        label: action.label,
-                        openBehavior: integration.behaviors.open,
-                        role: action.role,
-                    }),
-                    onClick: () => handleAction(action.role),
-                    role: action.role,
-                }) satisfies IntegrationActionViewModel
-        );
+    const actions: IntegrationActionViewModel[] = [];
+
+    for (const action of integration.actions) {
+        if (action.for !== direction || !isActionVisible(action, isConnected)) {
+            continue;
+        }
+        actions.push({
+            isLoading: pendingRole === action.role,
+            label: resolveActionLabel({
+                connectBehavior: integration.behaviors.connect,
+                isConnected,
+                isExtensionInstalled,
+                label: action.label,
+                openBehavior: integration.behaviors.open,
+                role: action.role,
+            }),
+            onClick: () => handleAction(action.role),
+            role: action.role,
+        } satisfies IntegrationActionViewModel);
+    }
 
     return { actions, status };
 }
@@ -679,19 +688,10 @@ function IntegrationsListItemActions({
                 {status?.message}
             </IntegrationsListStatus>
             {actions.map((action) => (
-                <Button
-                    className="rounded-full text-xs!"
+                <IntegrationsListItemActionButton
+                    action={action}
                     key={`${integrationId}-${action.role}`}
-                    loading={action.isLoading}
-                    onClick={(event: React.MouseEvent) => {
-                        event.stopPropagation();
-                        action.onClick();
-                    }}
-                    size="sm"
-                    variant="ghost"
-                >
-                    {action.label}
-                </Button>
+                />
             ))}
         </div>
     );
@@ -720,5 +720,26 @@ function IntegrationsListStatus({
             )}
             role={isError ? "alert" : "status"}
         />
+    );
+}
+
+function IntegrationsListItemActionButton({
+    action,
+}: IntegrationsListItemActionButtonProps) {
+    const handleClick = useStableCallback((event: React.MouseEvent) => {
+        event.stopPropagation();
+        action.onClick();
+    });
+
+    return (
+        <Button
+            className="rounded-full text-xs!"
+            loading={action.isLoading}
+            onClick={handleClick}
+            size="sm"
+            variant="ghost"
+        >
+            {action.label}
+        </Button>
     );
 }
