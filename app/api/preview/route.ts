@@ -1,3 +1,8 @@
+import { createHash } from "node:crypto";
+
+import { getPreviewFromContent } from "link-preview-js";
+import * as z from "zod";
+
 import { abortAfterAny, isAbortError } from "@/lib/common/abort";
 import { MIME_TYPES } from "@/lib/common/constants";
 import { createLogger } from "@/lib/common/logs/console/logger";
@@ -15,9 +20,6 @@ import {
     tiktokOembedThumbnailUrl,
     tiktokOembedUrl,
 } from "@/lib/integrations/tiktok/oembed";
-import { getPreviewFromContent } from "link-preview-js";
-import { createHash } from "node:crypto";
-import * as z from "zod";
 
 const log = createLogger("api:library:preview");
 
@@ -70,18 +72,6 @@ const ResolvedImageSchema = z.object({
     pageUrl: z.string(),
 });
 
-function getUserAgent(url: string): string {
-    try {
-        const hostname = new URL(url).hostname.toLowerCase();
-        if (INSTAGRAM_HOSTS.has(hostname)) {
-            return GOOGLEBOT_USER_AGENT;
-        }
-    } catch {
-        // fall through
-    }
-    return USER_AGENT;
-}
-
 export async function GET(request: Request): Promise<Response> {
     const requestUrl = new URL(request.url);
 
@@ -121,9 +111,42 @@ export async function GET(request: Request): Promise<Response> {
             error,
             "resolve preview",
             "Preview not found",
-            { targetUrl: targetUrl.href }
+            {
+                targetUrl: targetUrl.href,
+            }
         );
     }
+}
+
+async function extractTargetUrl(rawValue: string | null): Promise<URL | null> {
+    if (!rawValue || rawValue.length > MAX_TARGET_URL_LENGTH) {
+        return null;
+    }
+    const standaloneUrl = parseStandaloneUrl(rawValue);
+    if (!standaloneUrl) {
+        return null;
+    }
+    return await parsePublicHttpUrl(standaloneUrl.href);
+}
+
+function parsePreviewType(type: string | null): PreviewType | null {
+    if (type === null || type === "image") {
+        return "image";
+    }
+    if (type === "video") {
+        return "video";
+    }
+    return null;
+}
+
+function parsePreviewDelivery(delivery: string | null): PreviewDelivery | null {
+    if (delivery === null || delivery === "proxy") {
+        return "proxy";
+    }
+    if (delivery === "redirect") {
+        return "redirect";
+    }
+    return null;
 }
 
 async function resolveImagePreview(
@@ -273,6 +296,27 @@ async function proxyImageResponse(
     });
 }
 
+async function redirectToPreview(
+    previewUrl: string,
+    targetHref: string,
+    type: PreviewType
+): Promise<Response> {
+    const publicPreviewUrl = await parsePublicHttpUrl(previewUrl);
+    if (!publicPreviewUrl) {
+        return textResponse("Preview not found", 404);
+    }
+
+    const headers = new Headers();
+    headers.set("cache-control", CACHE_CONTROL_HEADER);
+    headers.set("location", publicPreviewUrl.href);
+    setPreviewCacheHeaders(headers, targetHref, type);
+
+    return new Response(null, {
+        headers,
+        status: 307,
+    });
+}
+
 async function resolveVideoPreview(
     targetUrl: URL,
     request: Request
@@ -347,83 +391,6 @@ async function resolveVideo(targetUrl: URL, signal?: AbortSignal) {
     });
 
     return { errorCode, videoUrl: null };
-}
-
-async function readFromRedis(key: string): Promise<string | null> {
-    const redis = getRedisClient();
-    if (!redis) {
-        return null;
-    }
-    try {
-        return await redis.get(key);
-    } catch (error) {
-        log.debug("Redis read failed", {
-            error: error instanceof Error ? error.message : String(error),
-            key,
-        });
-        return null;
-    }
-}
-
-async function writeToRedis(
-    key: string,
-    value: string,
-    ttlSeconds: number
-): Promise<void> {
-    const redis = getRedisClient();
-    if (!redis) {
-        return;
-    }
-    try {
-        await redis.set(key, value, "EX", ttlSeconds);
-    } catch (error) {
-        log.debug("Redis write failed", {
-            error: error instanceof Error ? error.message : String(error),
-            key,
-        });
-    }
-}
-
-function cobaltCacheKey(targetHref: string): string {
-    return `${COBALT_CACHE_KEY_PREFIX}${hashTargetUrl(targetHref)}`;
-}
-
-function previewImageCacheKey(targetHref: string): string {
-    return `${PREVIEW_IMAGE_CACHE_KEY_PREFIX}${hashTargetUrl(targetHref)}`;
-}
-
-async function readCachedImagePreview(
-    targetHref: string
-): Promise<ResolvedImage | null> {
-    const cached = await readFromRedis(previewImageCacheKey(targetHref));
-    if (!cached) {
-        return null;
-    }
-    let parsedJson: unknown;
-    try {
-        parsedJson = JSON.parse(cached);
-    } catch {
-        return null;
-    }
-    const parsed = ResolvedImageSchema.safeParse(parsedJson);
-    if (!parsed.success) {
-        return null;
-    }
-    if (isSignedUrlExpired(parsed.data.imageUrl)) {
-        return null;
-    }
-    return parsed.data;
-}
-
-async function writeCachedImagePreview(
-    targetHref: string,
-    preview: ResolvedImage
-): Promise<void> {
-    await writeToRedis(
-        previewImageCacheKey(targetHref),
-        JSON.stringify(preview),
-        PREVIEW_IMAGE_CACHE_TTL_SECONDS
-    );
 }
 
 async function proxyVideoResponse(
@@ -565,86 +532,16 @@ function resolveRedirectUrl(location: string, baseUrl: URL): URL | null {
     return resolved;
 }
 
-async function extractTargetUrl(rawValue: string | null): Promise<URL | null> {
-    if (!rawValue || rawValue.length > MAX_TARGET_URL_LENGTH) {
-        return null;
+function getUserAgent(url: string): string {
+    try {
+        const hostname = new URL(url).hostname.toLowerCase();
+        if (INSTAGRAM_HOSTS.has(hostname)) {
+            return GOOGLEBOT_USER_AGENT;
+        }
+    } catch {
+        // fall through
     }
-    const standaloneUrl = parseStandaloneUrl(rawValue);
-    if (!standaloneUrl) {
-        return null;
-    }
-    return await parsePublicHttpUrl(standaloneUrl.href);
-}
-
-function isRedirectStatus(status: number): boolean {
-    return status >= 300 && status < 400;
-}
-
-function parsePreviewType(type: string | null): PreviewType | null {
-    if (type === null || type === "image") {
-        return "image";
-    }
-    if (type === "video") {
-        return "video";
-    }
-    return null;
-}
-
-function parsePreviewDelivery(delivery: string | null): PreviewDelivery | null {
-    if (delivery === null || delivery === "proxy") {
-        return "proxy";
-    }
-    if (delivery === "redirect") {
-        return "redirect";
-    }
-    return null;
-}
-
-function handlePreviewError(
-    error: unknown,
-    operation: string,
-    fallbackMessage: string,
-    context: Record<string, unknown>
-): Response {
-    if (isAbortError(error)) {
-        return ABORTED_RESPONSE;
-    }
-    log.warn(`Failed to ${operation}`, {
-        error: error instanceof Error ? error.message : String(error),
-        ...context,
-    });
-    return textResponse(fallbackMessage, 404);
-}
-
-function textResponse(body: string, status: number): Response {
-    return new Response(body, {
-        headers: {
-            "cache-control": NO_STORE_HEADER,
-            "content-type": PLAIN_TEXT_CONTENT_TYPE,
-        },
-        status,
-    });
-}
-
-async function redirectToPreview(
-    previewUrl: string,
-    targetHref: string,
-    type: PreviewType
-): Promise<Response> {
-    const publicPreviewUrl = await parsePublicHttpUrl(previewUrl);
-    if (!publicPreviewUrl) {
-        return textResponse("Preview not found", 404);
-    }
-
-    const headers = new Headers();
-    headers.set("cache-control", CACHE_CONTROL_HEADER);
-    headers.set("location", publicPreviewUrl.href);
-    setPreviewCacheHeaders(headers, targetHref, type);
-
-    return new Response(null, {
-        headers,
-        status: 307,
-    });
+    return USER_AGENT;
 }
 
 function headersToRecord(headers: Headers): Record<string, string> {
@@ -728,14 +625,107 @@ async function readTextBodyWithLimit(
     }
 }
 
-function getFirstHttpUrl(urls: readonly string[]): string | null {
-    for (const url of urls) {
-        const httpUrl = parseHttpUrl(url)?.href;
-        if (httpUrl) {
-            return httpUrl;
-        }
+function isRedirectStatus(status: number): boolean {
+    return status >= 300 && status < 400;
+}
+
+async function readFromRedis(key: string): Promise<string | null> {
+    const redis = getRedisClient();
+    if (!redis) {
+        return null;
     }
-    return null;
+    try {
+        return await redis.get(key);
+    } catch (error) {
+        log.debug("Redis read failed", {
+            error: error instanceof Error ? error.message : String(error),
+            key,
+        });
+        return null;
+    }
+}
+
+async function writeToRedis(
+    key: string,
+    value: string,
+    ttlSeconds: number
+): Promise<void> {
+    const redis = getRedisClient();
+    if (!redis) {
+        return;
+    }
+    try {
+        await redis.set(key, value, "EX", ttlSeconds);
+    } catch (error) {
+        log.debug("Redis write failed", {
+            error: error instanceof Error ? error.message : String(error),
+            key,
+        });
+    }
+}
+
+function hashTargetUrl(targetHref: string): string {
+    return createHash("sha256").update(targetHref).digest("hex").slice(0, 16);
+}
+
+function cobaltCacheKey(targetHref: string): string {
+    return `${COBALT_CACHE_KEY_PREFIX}${hashTargetUrl(targetHref)}`;
+}
+
+function previewImageCacheKey(targetHref: string): string {
+    return `${PREVIEW_IMAGE_CACHE_KEY_PREFIX}${hashTargetUrl(targetHref)}`;
+}
+
+async function readCachedImagePreview(
+    targetHref: string
+): Promise<ResolvedImage | null> {
+    const cached = await readFromRedis(previewImageCacheKey(targetHref));
+    if (!cached) {
+        return null;
+    }
+    let parsedJson: unknown;
+    try {
+        parsedJson = JSON.parse(cached);
+    } catch {
+        return null;
+    }
+    const parsed = ResolvedImageSchema.safeParse(parsedJson);
+    if (!parsed.success) {
+        return null;
+    }
+    if (isSignedUrlExpired(parsed.data.imageUrl)) {
+        return null;
+    }
+    return parsed.data;
+}
+
+async function writeCachedImagePreview(
+    targetHref: string,
+    preview: ResolvedImage
+): Promise<void> {
+    await writeToRedis(
+        previewImageCacheKey(targetHref),
+        JSON.stringify(preview),
+        PREVIEW_IMAGE_CACHE_TTL_SECONDS
+    );
+}
+
+function isSignedUrlExpired(imageUrl: string): boolean {
+    try {
+        const expirySeconds = new URL(imageUrl).searchParams.get(
+            SIGNED_URL_EXPIRY_PARAM
+        );
+        if (!expirySeconds) {
+            return false;
+        }
+        const expiryMs = Number.parseInt(expirySeconds, 10) * 1000;
+        if (!Number.isFinite(expiryMs)) {
+            return false;
+        }
+        return Date.now() >= expiryMs - SIGNED_URL_GRACE_SECONDS * 1000;
+    } catch {
+        return false;
+    }
 }
 
 function normalizePreviewContentType(contentType: string): string {
@@ -752,6 +742,16 @@ function shouldReadPreviewResponseBody(contentType: string): boolean {
 
 function getMimeType(contentType: string): string {
     return contentType.split(";")[0]?.trim().toLowerCase() ?? "";
+}
+
+function getFirstHttpUrl(urls: readonly string[]): string | null {
+    for (const url of urls) {
+        const httpUrl = parseHttpUrl(url)?.href;
+        if (httpUrl) {
+            return httpUrl;
+        }
+    }
+    return null;
 }
 
 function parseRangeHeader(
@@ -850,28 +850,6 @@ function toSafeUpstreamStatus(status: number): number {
     return 502;
 }
 
-function isSignedUrlExpired(imageUrl: string): boolean {
-    try {
-        const expirySeconds = new URL(imageUrl).searchParams.get(
-            SIGNED_URL_EXPIRY_PARAM
-        );
-        if (!expirySeconds) {
-            return false;
-        }
-        const expiryMs = Number.parseInt(expirySeconds, 10) * 1000;
-        if (!Number.isFinite(expiryMs)) {
-            return false;
-        }
-        return Date.now() >= expiryMs - SIGNED_URL_GRACE_SECONDS * 1000;
-    } catch {
-        return false;
-    }
-}
-
-function hashTargetUrl(targetHref: string): string {
-    return createHash("sha256").update(targetHref).digest("hex").slice(0, 16);
-}
-
 function buildPreviewCacheTag(targetHref: string, type: PreviewType): string {
     return `preview:${type}:${hashTargetUrl(targetHref)}`;
 }
@@ -893,4 +871,30 @@ function setPreviewCacheHeaders(
     )) {
         headers.set(key, value);
     }
+}
+
+function handlePreviewError(
+    error: unknown,
+    operation: string,
+    fallbackMessage: string,
+    context: Record<string, unknown>
+): Response {
+    if (isAbortError(error)) {
+        return ABORTED_RESPONSE;
+    }
+    log.warn(`Failed to ${operation}`, {
+        error: error instanceof Error ? error.message : String(error),
+        ...context,
+    });
+    return textResponse(fallbackMessage, 404);
+}
+
+function textResponse(body: string, status: number): Response {
+    return new Response(body, {
+        headers: {
+            "cache-control": NO_STORE_HEADER,
+            "content-type": PLAIN_TEXT_CONTENT_TYPE,
+        },
+        status,
+    });
 }
