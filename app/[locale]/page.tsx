@@ -586,13 +586,13 @@ export default async function Home() {
                         </Carousel>
                     </section>
                     <section className="flex w-full flex-col gap-8">
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-4">
                             <p className="font-medium text-base text-foreground">
                                 <span className="font-normal opacity-50">
                                     You don't have to use Cache.
                                 </span>{" "}
                                 Let your agent use it with{" "}
-                                <ModelContextProtocolIcon /> MCP
+                                <ModelContextProtocolIcon /> MCP:
                             </p>
                             <OpenAIIcon className="size-5" />
                             <ClaudeIcon className="size-5" />
