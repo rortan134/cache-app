@@ -118,7 +118,7 @@ export default async function Home() {
                         <BrandLogo href="/library" src={LogoIconImage} />
                         <div className="flex flex-col gap-3">
                             <T context="'Cache' is the product's name">
-                                <h1 className="font-medium text-[3rem] leading-[98%] md:text-[4rem] md:tracking-[-0.21875rem]">
+                                <h1 className="break-normal font-medium text-[3rem] leading-[98%] md:text-[4rem] md:tracking-[-0.21875rem]">
                                     <GradientWaveText ariaLabel="Unify your bookmarks">
                                         Unify your bookmarks.
                                     </GradientWaveText>
@@ -590,13 +590,15 @@ export default async function Home() {
                     </section>
                     <section className="flex w-full flex-col gap-8">
                         <div className="flex items-center gap-4">
-                            <p className="font-medium text-base text-foreground">
-                                <span className="font-normal opacity-50">
-                                    You don't have to use Cache.
-                                </span>{" "}
-                                Let your agent use it with{" "}
-                                <ModelContextProtocolIcon /> MCP:
-                            </p>
+                            <T>
+                                <p className="font-medium text-base text-foreground">
+                                    <span className="font-normal opacity-50">
+                                        You don't have to use Cache.
+                                    </span>{" "}
+                                    Let your agent use it with{" "}
+                                    <ModelContextProtocolIcon /> MCP:
+                                </p>
+                            </T>
                             <OpenAIIcon className="size-5" />
                             <ClaudeIcon className="size-5" />
                             <CursorIcon className="size-5" />
