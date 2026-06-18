@@ -54,7 +54,7 @@
         "mcp-handler": "1.1.0",
         "mime-types": "3.0.2",
         "motion": "12.40.0",
-        "nanoid": "5.1.11",
+        "nanoid": "5.1.12",
         "next": "16.2.9",
         "node-vibrant": "4.0.4",
         "nuqs": "2.8.9",
@@ -2086,7 +2086,7 @@
 
     "named-placeholders": ["named-placeholders@1.1.6", "", { "dependencies": { "lru.min": "^1.1.0" } }, "sha512-Tz09sEL2EEuv5fFowm419c1+a/jSMiBjI9gHxVLrVdbUkkNUUfjsVYs9pVZu5oCon/kmRh9TfLEObFtkVxmY0w=="],
 
-    "nanoid": ["nanoid@5.1.11", "", { "bin": { "nanoid": "bin/nanoid.js" } }, "sha512-v+KEsUv2ps74PaSKv0gHTxTCgMXOIfBEbaqa6w6ISIGC7ZsvHN4N9oJ8d4cmf0n5oTzQz2SLmThbQWhjd/8eKg=="],
+    "nanoid": ["nanoid@5.1.12", "", { "bin": { "nanoid": "bin/nanoid.js" } }, "sha512-qnKlkaoiOqC//7LzQEgBJzzX7f+4Sqz/oCAesl0TOxogBkitVlIp5Ozq9sTE6tWWpIA58qreYF7GoPjuDjoXdw=="],
 
     "nanostores": ["nanostores@1.2.0", "", {}, "sha512-F0wCzbsH80G7XXo0Jd9/AVQC7ouWY6idUCTnMwW5t/Rv9W8qmO6endavDwg7TNp5GbugwSukFMVZqzPSrSMndg=="],
 
