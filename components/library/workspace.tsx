@@ -96,13 +96,6 @@ function compareItemCount<
     return b.itemCount - a.itemCount;
 }
 
-function compareByName(
-    a: SortableCollectionSummary,
-    b: SortableCollectionSummary
-) {
-    return NAME_COLLATOR.compare(a.name, b.name);
-}
-
 function textMatchScore(
     collection: Pick<SortableCollectionSummary, "name">,
     query: string
@@ -139,7 +132,7 @@ type SummarySorter = Record<
 const SUMMARY_SORTERS = {
     count: compareItemCount,
     created: compareCreatedAt,
-    name: compareByName,
+    name: compareNames,
     priority: comparePriorities,
     updated: compareUpdatedAt,
 } satisfies SummarySorter;
@@ -233,11 +226,13 @@ export function WorkspaceProvider({
     initialItems,
     children,
 }: React.PropsWithChildren<WorkspaceProviderProps>) {
+    const { collectionSortField, collectionTextMatchQuery, collectionView } =
+        useCollectionsSortStore();
+
     const [items, setItems] =
         React.useState<LibraryItemWithCollections[]>(initialItems);
     const [collections, setCollections] =
         React.useState<LibraryCollectionSummary[]>(initialCollections);
-
     const [selectedCollectionIds, setSelectedCollectionIds] = React.useState<
         string[]
     >([]);
@@ -248,23 +243,22 @@ export function WorkspaceProvider({
     const itemFavoriteToggleVersionByItemIdRef = React.useRef(
         new Map<string, number>()
     );
+    const openFavoriteItemRef = React.useRef<
+        ((item: LibraryItemWithCollections) => void) | null
+    >(null);
+    const requestCreateRef = React.useRef<((itemId?: string) => void) | null>(
+        null
+    );
 
-    const { collectionSortField, collectionTextMatchQuery, collectionView } =
-        useCollectionsSortStore();
-
-    const visibleCollections = (() => {
+    const visibleCollections = collections.filter((collection) => {
         if (collectionView === "exclude-archives") {
-            return collections.filter(
-                (collection) => collection.priority !== "archive"
-            );
+            return collection.priority !== "archive";
         }
         if (collectionView === "show-shared-only") {
-            return collections.filter(
-                (collection) => collection.shareId != null
-            );
+            return collection.shareId !== null;
         }
-        return collections;
-    })();
+        return true;
+    });
 
     const collectionSummaries = sortCollectionSummaries(
         visibleCollections,
@@ -272,28 +266,6 @@ export function WorkspaceProvider({
         collectionTextMatchQuery
     );
 
-    // Re-sync from server props after `router.refresh()` so cascading
-    // changes from actions (e.g. free-tier deletes) reach the workspace.
-    // The optimistic setters above cover the items/collections we mutated;
-    // these effects are the safety net for the rest.
-    React.useEffect(
-        function syncItemsFromInitialItems() {
-            setItems(initialItems);
-        },
-        [initialItems]
-    );
-
-    React.useEffect(
-        function syncCollectionsFromInitialCollections() {
-            setCollections(initialCollections);
-        },
-        [initialCollections]
-    );
-
-    // Filter ghost ids (collections deleted upstream) in render so we avoid a
-    // second commit just to clean up the source state. Callers receive the
-    // pruned set; the source state may briefly retain ids the user did not
-    // explicitly remove, but no consumer reads it directly.
     const validCollectionIds = new Set(
         collections.map((collection) => collection.id)
     );
@@ -490,9 +462,6 @@ export function WorkspaceProvider({
         }
     );
 
-    const openFavoriteItemRef = React.useRef<
-        ((item: LibraryItemWithCollections) => void) | null
-    >(null);
     const handleOpenFavoriteItem = useStableCallback(
         (item: LibraryItemWithCollections) => {
             openFavoriteItemRef.current?.(item);
@@ -535,14 +504,25 @@ export function WorkspaceProvider({
         }
     );
 
-    const requestCreateRef = React.useRef<((itemId?: string) => void) | null>(
-        null
-    );
     const requestCreate = useStableCallback((itemId?: string) => {
         requestCreateRef.current?.(itemId);
     });
 
-    const value = React.useMemo(
+    React.useEffect(
+        function syncItemsFromInitialItems() {
+            setItems(initialItems);
+        },
+        [initialItems]
+    );
+
+    React.useEffect(
+        function syncCollectionsFromInitialCollections() {
+            setCollections(initialCollections);
+        },
+        [initialCollections]
+    );
+
+    const value: WorkspaceContextValue = React.useMemo(
         () => ({
             collectionPreviewThumbnailUrlsById,
             collectionSummaries,
@@ -624,12 +604,7 @@ function replaceItemCollections(
     collections: LibraryCollectionTag[]
 ): LibraryItemWithCollections[] {
     return items.map((item) =>
-        item.id === itemId
-            ? {
-                  ...item,
-                  collections: [...collections],
-              }
-            : item
+        item.id === itemId ? { ...item, collections } : item
     );
 }
 
@@ -675,10 +650,7 @@ function replaceMultipleItemCollections(
     return items.map((item) => {
         const nextCollections = collectionsByItemId.get(item.id);
         return nextCollections
-            ? {
-                  ...item,
-                  collections: [...nextCollections],
-              }
+            ? { ...item, collections: nextCollections }
             : item;
     });
 }
