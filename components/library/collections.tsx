@@ -2716,7 +2716,7 @@ function CollectionItemPriorityCombobox() {
             >
                 <SelectedPriorityIcon className="size-4" />
             </ComboboxTrigger>
-            <ComboboxPopup positionMethod="fixed">
+            <ComboboxPopup className="max-w-80" positionMethod="fixed">
                 <ComboboxInput
                     endAddon={<Kbd>P</Kbd>}
                     placeholder={

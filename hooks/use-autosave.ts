@@ -1,7 +1,10 @@
+import { createLogger } from "@/lib/common/logs/console/logger";
 import { useStableCallback } from "@base-ui/utils/useStableCallback";
 import { useTimeout } from "@base-ui/utils/useTimeout";
 import { useValueAsRef } from "@base-ui/utils/useValueAsRef";
 import { useEffect, useRef, useState } from "react";
+
+const log = createLogger("use-autosave");
 
 type SaveStatus = "idle" | "saving" | "saved" | "error";
 
@@ -60,7 +63,8 @@ export function useAutosave({
         let nextStatus: SaveStatus = "saved";
         try {
             await onSave();
-        } catch {
+        } catch (error) {
+            log.error("Save failed", error);
             nextStatus = "error";
         } finally {
             const elapsed = Date.now() - savingStartRef.current;
@@ -95,8 +99,8 @@ export function useAutosave({
                 contentRef.current !== savedContentRef.current &&
                 !isSavingRef.current
             ) {
-                onSave().catch(() => {
-                    // No-op
+                onSave().catch((error) => {
+                    log.error("Unmount autosave failed", error);
                 });
             }
         },
