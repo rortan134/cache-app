@@ -25,17 +25,17 @@ const DEFAULT_PEEK_TIMEOUT_MS = 8000;
 
 type PeekDrawerStatus = "blocked" | "loaded" | "loading";
 
-interface PeekDrawerContextValue {
-    description?: string;
-    isOpen: boolean;
-    title: string;
-    url: string;
-}
-
 interface PeekDrawerProps {
     children: React.ReactNode;
     description?: string;
     title?: string;
+    url: string;
+}
+
+interface PeekDrawerContextValue {
+    description?: string;
+    isOpen: boolean;
+    title: string;
     url: string;
 }
 
@@ -48,6 +48,99 @@ const PeekDrawerContext = React.createContext<PeekDrawerContextValue | null>(
     null
 );
 
+export function PeekDrawer({
+    description,
+    title = DEFAULT_PEEK_TITLE,
+    url,
+    children,
+}: PeekDrawerProps) {
+    const [isOpen, setIsOpen] = React.useState(false);
+
+    return (
+        <PeekDrawerContext value={{ description, isOpen, title, url }}>
+            <Drawer onOpenChange={setIsOpen}>
+                <DrawerVirtualKeyboardProvider>
+                    {children}
+                </DrawerVirtualKeyboardProvider>
+            </Drawer>
+        </PeekDrawerContext>
+    );
+}
+
+export const PeekDrawerTrigger = DrawerTrigger;
+
+export function PeekDrawerContent() {
+    const { description, isOpen, title, url } = usePeekDrawerContext();
+    const { markAsBlocked, markAsLoaded, status } = usePeekStatus(
+        isOpen,
+        url,
+        DEFAULT_PEEK_TIMEOUT_MS
+    );
+    const canOpenUrlExternally = url !== PEEK_BLOCKED_URL;
+    const shouldRenderPreview =
+        isOpen && canOpenUrlExternally && status !== "blocked";
+
+    return (
+        <DrawerViewport>
+            <DrawerPopup
+                className="h-[min(calc(88vh-var(--drawer-keyboard-inset,0px)),58rem)] sm:mx-auto sm:max-w-[min(96vw,78rem)]"
+                position="bottom"
+                showBar
+                showCloseButton
+            >
+                <DrawerHeader className="border-border/70 border-b pb-4">
+                    <DrawerTitle className="truncate text-lg sm:text-xl">
+                        {title}
+                    </DrawerTitle>
+                    <DrawerDescription>
+                        {description ?? parseDisplayUrl(url)}
+                        <span className="ml-2 text-muted-foreground">·</span>
+                        <PeekDrawerLinkButton
+                            href={url}
+                            size="sm"
+                            variant="link"
+                        >
+                            <GlobeIcon className="size-4" />
+                            Open in new tab
+                        </PeekDrawerLinkButton>
+                    </DrawerDescription>
+                </DrawerHeader>
+                <DrawerPanel
+                    allowSelection={false}
+                    className="p-0"
+                    scrollable={false}
+                >
+                    <div
+                        aria-busy={status === "loading"}
+                        className="relative flex size-full min-h-0"
+                    >
+                        {status === "loading" ? (
+                            <PeekDrawerLoadingState />
+                        ) : null}
+                        {status === "blocked" ? (
+                            <PeekDrawerBlockedState
+                                canOpenUrlExternally={canOpenUrlExternally}
+                                url={url}
+                            />
+                        ) : null}
+                        {shouldRenderPreview ? (
+                            <iframe
+                                className="size-full border-0 bg-background"
+                                key={`${isOpen ? "open" : "closed"}-${url}`}
+                                onError={markAsBlocked}
+                                onLoad={markAsLoaded}
+                                referrerPolicy="strict-origin-when-cross-origin"
+                                src={url}
+                                title={`Preview of ${title}`}
+                            />
+                        ) : null}
+                    </div>
+                </DrawerPanel>
+            </DrawerPopup>
+        </DrawerViewport>
+    );
+}
+
 function usePeekDrawerContext(): PeekDrawerContextValue {
     const context = React.use(PeekDrawerContext);
     if (!context) {
@@ -59,9 +152,6 @@ function usePeekDrawerContext(): PeekDrawerContextValue {
 }
 
 /**
- * Track whether the iframe preview has loaded, is still loading, or is
- * blocked (X-Frame-Options / CSP / timeout).
- *
  * Enforces a timeout so users aren't left waiting indefinitely for sites
  * that refuse to embed.
  */
@@ -113,97 +203,6 @@ function PeekDrawerLinkButton({ href, ...props }: PeekDrawerLinkButtonProps) {
     );
 }
 
-export function PeekDrawer({
-    description,
-    title = DEFAULT_PEEK_TITLE,
-    url,
-    children,
-}: PeekDrawerProps) {
-    const [isOpen, setIsOpen] = React.useState(false);
-
-    return (
-        <PeekDrawerContext value={{ description, isOpen, title, url }}>
-            <Drawer onOpenChange={setIsOpen}>
-                <DrawerVirtualKeyboardProvider>
-                    {children}
-                </DrawerVirtualKeyboardProvider>
-            </Drawer>
-        </PeekDrawerContext>
-    );
-}
-
-export const PeekDrawerTrigger = DrawerTrigger;
-
-export function PeekDrawerContent() {
-    const { description, isOpen, title, url } = usePeekDrawerContext();
-    const { markAsBlocked, markAsLoaded, status } = usePeekStatus(
-        isOpen,
-        url,
-        DEFAULT_PEEK_TIMEOUT_MS
-    );
-    const canOpenUrlExternally = url !== PEEK_BLOCKED_URL;
-    const shouldRenderPreview = canOpenUrlExternally && status !== "blocked";
-    const iframeRemountKey = `${isOpen ? "open" : "closed"}-${url}`;
-
-    return (
-        <DrawerViewport>
-            <DrawerPopup
-                className="h-[min(calc(88vh-var(--drawer-keyboard-inset,0px)),58rem)] sm:mx-auto sm:max-w-[min(96vw,78rem)]"
-                position="bottom"
-                showBar
-                showCloseButton
-            >
-                <DrawerHeader className="border-border/70 border-b pb-4">
-                    <DrawerTitle className="truncate text-lg sm:text-xl">
-                        {title}
-                    </DrawerTitle>
-                    <DrawerDescription>
-                        {description ?? parseDisplayUrl(url)}
-                        <span className="ml-2 text-muted-foreground">·</span>
-                        <PeekDrawerLinkButton
-                            href={url}
-                            size="sm"
-                            variant="link"
-                        >
-                            <GlobeIcon className="size-4" />
-                            Open in new tab
-                        </PeekDrawerLinkButton>
-                    </DrawerDescription>
-                </DrawerHeader>
-                <DrawerPanel
-                    allowSelection={false}
-                    className="p-0"
-                    scrollable={false}
-                >
-                    <div
-                        aria-busy={status === "loading"}
-                        className="relative flex size-full min-h-0"
-                    >
-                        {status === "loading" && <PeekDrawerLoadingState />}
-                        {status === "blocked" && (
-                            <PeekDrawerBlockedState
-                                canOpenUrlExternally={canOpenUrlExternally}
-                                url={url}
-                            />
-                        )}
-                        {shouldRenderPreview && (
-                            <iframe
-                                className="size-full border-0 bg-background"
-                                key={iframeRemountKey}
-                                onError={markAsBlocked}
-                                onLoad={markAsLoaded}
-                                referrerPolicy="strict-origin-when-cross-origin"
-                                src={url}
-                                title={`Preview of ${title}`}
-                            />
-                        )}
-                    </div>
-                </DrawerPanel>
-            </DrawerPopup>
-        </DrawerViewport>
-    );
-}
-
 function PeekDrawerLoadingState() {
     return (
         <div
@@ -249,12 +248,12 @@ function PeekDrawerBlockedState({
                     inside other sites or be taking too long to load.
                 </p>
             </div>
-            {canOpenUrlExternally && (
+            {canOpenUrlExternally ? (
                 <PeekDrawerLinkButton href={url} size="sm">
                     <ExternalLinkIcon className="size-4" />
                     Open in new tab
                 </PeekDrawerLinkButton>
-            )}
+            ) : null}
         </div>
     );
 }

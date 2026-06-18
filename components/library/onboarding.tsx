@@ -74,15 +74,11 @@ const ONBOARDING_TASK_META = [
 
 const ONBOARDING_TASK_COUNT = ONBOARDING_TASK_META.length;
 
-const { useStore: useLibraryOnboardingStore } = createStore({
-    completedOnboardingTaskIds: storage<OnboardingTaskId[]>([]),
-});
-
 type OnboardingTaskId = (typeof ONBOARDING_TASK_META)[number]["id"];
 
 interface OnboardingTask {
-    completed: boolean;
     id: OnboardingTaskId;
+    isCompleted: boolean;
     label: string;
     onSelect: () => void | Promise<void>;
 }
@@ -99,6 +95,99 @@ type CollectionShareState = Pick<
     "id" | "shareId" | "sharedAt" | "updatedAt"
 >;
 
+const { useStore: useLibraryOnboardingStore } = createStore({
+    completedOnboardingTaskIds: storage<OnboardingTaskId[]>([]),
+});
+
+function getCompletedTaskIdSet({
+    clientCompletedTaskIds,
+    collections,
+    connectedIntegrationCount,
+    items,
+}: CompletedTaskInput): Set<OnboardingTaskId> {
+    const completed = new Set<OnboardingTaskId>();
+
+    if (connectedIntegrationCount > 0) {
+        completed.add("integration");
+    }
+    if (collections.length > 0) {
+        completed.add("collection");
+    }
+    if (items.some((item) => item.kind === ITEM_KIND_NOTE)) {
+        completed.add("note");
+    }
+    if (clientCompletedTaskIds.includes("command")) {
+        completed.add("command");
+    }
+    if (collections.some(isSharedCollection)) {
+        completed.add("share");
+    }
+
+    return completed;
+}
+
+function isSharedCollection(collection: LibraryCollectionSummary): boolean {
+    return Boolean(collection.shareId && collection.sharedAt);
+}
+
+function getShareCandidate(
+    collections: LibraryCollectionSummary[]
+): LibraryCollectionSummary | null {
+    return (
+        collections.find((collection) => !isSharedCollection(collection)) ??
+        collections[0] ??
+        null
+    );
+}
+
+function replaceCollectionShareState<T extends LibraryCollectionTag>(
+    collections: T[],
+    next: CollectionShareState
+): T[] {
+    let isCollectionUpdated = false;
+
+    const nextCollections = collections.map((collection) => {
+        if (collection.id !== next.id) {
+            return collection;
+        }
+
+        isCollectionUpdated = true;
+
+        return {
+            ...collection,
+            sharedAt: next.sharedAt,
+            shareId: next.shareId,
+            updatedAt: next.updatedAt,
+        };
+    });
+
+    return isCollectionUpdated ? nextCollections : collections;
+}
+
+function replaceItemCollectionShareState(
+    items: LibraryItemWithCollections[],
+    next: CollectionShareState
+): LibraryItemWithCollections[] {
+    let isItemUpdated = false;
+
+    const nextItems = items.map((item) => {
+        const nextCollections = replaceCollectionShareState(
+            item.collections,
+            next
+        );
+
+        if (nextCollections === item.collections) {
+            return item;
+        }
+
+        isItemUpdated = true;
+
+        return { ...item, collections: nextCollections };
+    });
+
+    return isItemUpdated ? nextItems : items;
+}
+
 export function OnboardingMenu({
     connectedIntegrationCount,
     onCreateCollection,
@@ -107,19 +196,13 @@ export function OnboardingMenu({
 }: OnboardingMenuProps) {
     const { collections, items, setCollections, setItems } =
         useWorkspaceContext();
-
     const { setOpen: setSidebarOpen } = useSidebar();
+
     const { setIsIntegrationsListOpen } = useIntegrationsListStore();
     const { completedOnboardingTaskIds, setCompletedOnboardingTaskIds } =
         useLibraryOnboardingStore();
-    const { copyToClipboard } = useCopyToClipboard();
 
-    const [pendingShareCollection, setPendingShareCollection] =
-        React.useState<LibraryCollectionSummary | null>(null);
-    const [shareErrorMessage, setShareErrorMessage] = React.useState<
-        string | null
-    >(null);
-    const [isSharePending, startShareTransition] = React.useTransition();
+    const { copyToClipboard } = useCopyToClipboard();
 
     const completedTaskIdSet = getCompletedTaskIdSet({
         clientCompletedTaskIds: completedOnboardingTaskIds,
@@ -129,8 +212,15 @@ export function OnboardingMenu({
     });
 
     const completedTaskCount = completedTaskIdSet.size;
-    const hasCompletedOnboarding = completedTaskCount === ONBOARDING_TASK_COUNT;
+    const isOnboardingCompleted = completedTaskCount === ONBOARDING_TASK_COUNT;
     const progressValue = (completedTaskCount / ONBOARDING_TASK_COUNT) * 100;
+
+    const [pendingShareCollection, setPendingShareCollection] =
+        React.useState<LibraryCollectionSummary | null>(null);
+    const [shareErrorMessage, setShareErrorMessage] = React.useState<
+        string | null
+    >(null);
+    const [isSharePending, startShareTransition] = React.useTransition();
 
     const markClientTaskCompleted = useStableCallback(
         (taskId: OnboardingTaskId) => {
@@ -231,17 +321,17 @@ export function OnboardingMenu({
             share: handleRequestShare,
         };
 
-    const tasks: OnboardingTask[] = hasCompletedOnboarding
+    const tasks: OnboardingTask[] = isOnboardingCompleted
         ? []
         : ONBOARDING_TASK_META.map((meta) => ({
               ...meta,
-              completed: completedTaskIdSet.has(meta.id),
+              isCompleted: completedTaskIdSet.has(meta.id),
               onSelect: taskHandlerMap[meta.id],
           }));
 
     return (
         <>
-            {hasCompletedOnboarding ? null : (
+            {isOnboardingCompleted ? null : (
                 <Menu>
                     <Toolbar.Button
                         render={
@@ -350,95 +440,6 @@ interface OnboardingMenuProps {
     onOpenCommand: () => void;
 }
 
-function getCompletedTaskIdSet({
-    clientCompletedTaskIds,
-    collections,
-    connectedIntegrationCount,
-    items,
-}: CompletedTaskInput): Set<OnboardingTaskId> {
-    const completed = new Set<OnboardingTaskId>();
-
-    if (connectedIntegrationCount > 0) {
-        completed.add("integration");
-    }
-    if (collections.length > 0) {
-        completed.add("collection");
-    }
-    if (items.some((item) => item.kind === ITEM_KIND_NOTE)) {
-        completed.add("note");
-    }
-    if (clientCompletedTaskIds.includes("command")) {
-        completed.add("command");
-    }
-    if (collections.some(isSharedCollection)) {
-        completed.add("share");
-    }
-
-    return completed;
-}
-
-function isSharedCollection(collection: LibraryCollectionSummary): boolean {
-    return Boolean(collection.shareId && collection.sharedAt);
-}
-
-function getShareCandidate(
-    collections: LibraryCollectionSummary[]
-): LibraryCollectionSummary | null {
-    return (
-        collections.find((collection) => !isSharedCollection(collection)) ??
-        collections[0] ??
-        null
-    );
-}
-
-function replaceCollectionShareState<T extends LibraryCollectionTag>(
-    collections: T[],
-    next: CollectionShareState
-): T[] {
-    let hasUpdatedCollection = false;
-
-    const nextCollections = collections.map((collection) => {
-        if (collection.id !== next.id) {
-            return collection;
-        }
-
-        hasUpdatedCollection = true;
-
-        return {
-            ...collection,
-            sharedAt: next.sharedAt,
-            shareId: next.shareId,
-            updatedAt: next.updatedAt,
-        };
-    });
-
-    return hasUpdatedCollection ? nextCollections : collections;
-}
-
-function replaceItemCollectionShareState(
-    items: LibraryItemWithCollections[],
-    next: CollectionShareState
-): LibraryItemWithCollections[] {
-    let hasUpdatedItem = false;
-
-    const nextItems = items.map((item) => {
-        const nextCollections = replaceCollectionShareState(
-            item.collections,
-            next
-        );
-
-        if (nextCollections === item.collections) {
-            return item;
-        }
-
-        hasUpdatedItem = true;
-
-        return { ...item, collections: nextCollections };
-    });
-
-    return hasUpdatedItem ? nextItems : items;
-}
-
 async function shareCollectionPubliclySafely(
     input: Parameters<typeof shareCollectionPublicly>[0]
 ): Promise<Awaited<ReturnType<typeof shareCollectionPublicly>>> {
@@ -484,15 +485,15 @@ function OnboardingShareError({
 function OnboardingMenuItem({ task }: { task: OnboardingTask }) {
     return (
         <MenuItem onClick={task.onSelect}>
-            <OnboardingTaskStateIcon completed={task.completed} />
+            <OnboardingTaskStateIcon isCompleted={task.isCompleted} />
             <span className="mr-2 min-w-0 flex-1 truncate">{task.label}</span>
             <ChevronRight className="ml-auto inline-block size-3.5 shrink-0 opacity-50" />
         </MenuItem>
     );
 }
 
-function OnboardingTaskStateIcon({ completed }: { completed: boolean }) {
-    if (completed) {
+function OnboardingTaskStateIcon({ isCompleted }: { isCompleted: boolean }) {
+    if (isCompleted) {
         return (
             <span className="inline-flex size-4 shrink-0 items-center justify-center rounded-full bg-emerald-500/12 text-emerald-600">
                 <Check className="size-3" />

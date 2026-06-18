@@ -18,6 +18,7 @@ import {
     SidebarRail,
     SidebarTrigger,
 } from "@/components/ui/sidebar";
+import { useStableCallback } from "@base-ui/utils/useStableCallback";
 import { T } from "gt-next";
 import { Compass, type LucideIcon, Workflow } from "lucide-react";
 import Link from "next/link";
@@ -86,16 +87,14 @@ function SidebarNavigationItem({
 }: SidebarNavigationItemProps) {
     const router = useRouter();
 
-    useHotkeys(
-        shortcutKeys,
-        () => {
-            router.push(href);
-        },
-        {
-            description: `Navigate to ${props["aria-label"]}`,
-            preventDefault: true,
-        }
-    );
+    const handleNavigate = useStableCallback(() => {
+        router.push(href);
+    });
+
+    useHotkeys(shortcutKeys, handleNavigate, {
+        description: `Navigate to ${props["aria-label"]}`,
+        preventDefault: true,
+    });
 
     return (
         <Link className="contents" href={href} prefetch {...props}>
