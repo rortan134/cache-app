@@ -39,13 +39,13 @@ import * as React from "react";
 
 const COMMAND_MATCH_WORD_SEPARATOR_PATTERN = /[\s:./_-]+/;
 
-interface PaletteStackEntry {
+export interface PaletteStackEntry {
     chip: React.ReactNode;
     key: string;
     onRemove: () => void;
 }
 
-interface CommandSuggestion {
+export interface CommandSuggestion {
     icon?: React.ReactNode;
     label: string;
     onSelect: () => void;
@@ -77,6 +77,39 @@ function useComposerActionsContext(): ComposerActionsContextValue {
         );
     }
     return context;
+}
+
+export function Composer({
+    children,
+    className,
+    ...props
+}: React.ComponentProps<typeof Toolbar.Root>) {
+    const childrenArray = React.Children.toArray(children);
+    const toolbarChildren: React.ReactNode[] = [];
+    let suggestionsChild: React.ReactNode = null;
+
+    for (const child of childrenArray) {
+        if (React.isValidElement(child) && child.type === ComposerSuggestions) {
+            suggestionsChild = child;
+        } else {
+            toolbarChildren.push(child);
+        }
+    }
+
+    return (
+        <>
+            <Toolbar.Root
+                className={cn(
+                    "max-w-xl rounded-t-4xl rounded-b-2xl bg-muted/80",
+                    className
+                )}
+                {...props}
+            >
+                {toolbarChildren}
+            </Toolbar.Root>
+            {suggestionsChild}
+        </>
+    );
 }
 
 export function ComposerInput({
@@ -157,23 +190,51 @@ export function ComposerInput({
     );
 }
 
-interface ComposerInputProps {
-    containerRef: React.RefObject<HTMLDivElement | null>;
-    groups: CommandPaletteGroup[];
-    isOpen: boolean;
-    onKeyDown: (event: React.KeyboardEvent<HTMLInputElement>) => void;
-    onOpenChange: (
-        nextOpen: boolean,
-        eventDetails: AutocompleteRootChangeEventDetails
-    ) => void;
-    onValueChange: (
-        next: string,
-        eventDetails: AutocompleteRootChangeEventDetails
-    ) => void;
-    placeholder: string;
-    query: string;
-    ref: React.RefObject<HTMLInputElement | null>;
-    stackEntries: PaletteStackEntry[];
+export function ComposerSuggestions({
+    children,
+    suggestions,
+    className,
+    ...props
+}: ComposerSuggestionsProps) {
+    const [open, setOpen] = React.useState(true);
+
+    const handleDismiss = useStableCallback(() => setOpen(false));
+
+    if (suggestions.length === 0) {
+        return null;
+    }
+
+    const dismissSuggestion: CommandSuggestion = {
+        label: "Dismiss",
+        onSelect: handleDismiss,
+    };
+
+    return (
+        <Collapsible
+            className="relative -mt-1"
+            onOpenChange={setOpen}
+            open={open}
+        >
+            <CollapsiblePanel
+                render={<div className={cn("px-3", className)} {...props} />}
+            >
+                <ScrollArea className="max-w-full whitespace-nowrap" scrollFade>
+                    <div className="flex w-max flex-nowrap items-center gap-1.5">
+                        {suggestions.map((suggestion, index) => (
+                            <React.Fragment key={suggestion.label}>
+                                {children(suggestion, index)}
+                                <span className="mr-0.5 -ml-0.5 font-medium text-muted-foreground text-xs">
+                                    ·
+                                </span>
+                            </React.Fragment>
+                        ))}
+                        {children(dismissSuggestion, suggestions.length)}
+                    </div>
+                    <ScrollBar className="hidden" orientation="horizontal" />
+                </ScrollArea>
+            </CollapsiblePanel>
+        </Collapsible>
+    );
 }
 
 export function ComposerActions({
@@ -190,22 +251,6 @@ export function ComposerActions({
             </Toolbar.Group>
         </ComposerActionsContext>
     );
-}
-
-interface ComposerActionsProps {
-    canClear: boolean;
-    canCreateCollectionFromResults: boolean;
-    children: React.ReactNode;
-    className?: string;
-    connectedIntegrationCount: number;
-    groupBy: string;
-    onClearPalette: () => void;
-    onCreateCollection: () => void;
-    onCreateNote: () => void;
-    onCreateResultsDialogOpen: (open: boolean) => void;
-    onOpenCommandFromOnboarding: () => void;
-    resultsSummary: string;
-    sectionsLength: number;
 }
 
 export function ComposerActionNew() {
@@ -291,93 +336,45 @@ export function ComposerActionOnboarding() {
     );
 }
 
-export function ComposerSuggestions({
-    children,
-    suggestions,
-    className,
-    ...props
-}: ComposerSuggestionsProps) {
-    const [showSuggestions, setShowSuggestions] = React.useState(true);
+interface ComposerInputProps {
+    containerRef: React.RefObject<HTMLDivElement | null>;
+    groups: CommandPaletteGroup[];
+    isOpen: boolean;
+    onKeyDown: (event: React.KeyboardEvent<HTMLInputElement>) => void;
+    onOpenChange: (
+        nextOpen: boolean,
+        eventDetails: AutocompleteRootChangeEventDetails
+    ) => void;
+    onValueChange: (
+        next: string,
+        eventDetails: AutocompleteRootChangeEventDetails
+    ) => void;
+    placeholder: string;
+    query: string;
+    ref: React.RefObject<HTMLInputElement | null>;
+    stackEntries: PaletteStackEntry[];
+}
 
-    const handleDismiss = useStableCallback(() => setShowSuggestions(false));
-
-    if (suggestions.length === 0) {
-        return null;
-    }
-
-    const items = [
-        ...suggestions,
-        {
-            label: "Dismiss",
-            onSelect: handleDismiss,
-        } satisfies CommandSuggestion,
-    ];
-
-    return (
-        <Collapsible
-            className="relative -mt-1"
-            onOpenChange={setShowSuggestions}
-            open={showSuggestions}
-        >
-            <CollapsiblePanel
-                render={<div className={cn("px-3", className)} {...props} />}
-            >
-                <ScrollArea className="max-w-full whitespace-nowrap" scrollFade>
-                    <div className="flex w-max flex-nowrap items-center gap-1.5">
-                        {items.map((suggestion, index) => (
-                            <React.Fragment key={suggestion.label}>
-                                {children(suggestion, index)}
-                                <span className="mr-0.5 -ml-0.5 font-medium text-muted-foreground text-xs last:hidden">
-                                    ·
-                                </span>
-                            </React.Fragment>
-                        ))}
-                    </div>
-                    <ScrollBar className="hidden" orientation="horizontal" />
-                </ScrollArea>
-            </CollapsiblePanel>
-        </Collapsible>
-    );
+interface ComposerActionsProps {
+    canClear: boolean;
+    canCreateCollectionFromResults: boolean;
+    children: React.ReactNode;
+    className?: string;
+    connectedIntegrationCount: number;
+    groupBy: string;
+    onClearPalette: () => void;
+    onCreateCollection: () => void;
+    onCreateNote: () => void;
+    onCreateResultsDialogOpen: (open: boolean) => void;
+    onOpenCommandFromOnboarding: () => void;
+    resultsSummary: string;
+    sectionsLength: number;
 }
 
 interface ComposerSuggestionsProps
     extends Omit<React.ComponentProps<"div">, "children"> {
     children: (suggestion: CommandSuggestion, index: number) => React.ReactNode;
     suggestions: CommandSuggestion[];
-}
-
-export function Composer({
-    children,
-    className,
-    ...props
-}: React.ComponentProps<typeof Toolbar.Root>) {
-    const childrenArray = React.Children.toArray(children);
-
-    const toolbarChildren: React.ReactNode[] = [];
-    let suggestionsChild: React.ReactNode = null;
-
-    for (const child of childrenArray) {
-        if (React.isValidElement(child) && child.type === ComposerSuggestions) {
-            suggestionsChild = child;
-        } else {
-            toolbarChildren.push(child);
-        }
-    }
-
-    return (
-        <>
-            <Toolbar.Root
-                className={cn(
-                    "max-w-xl rounded-t-4xl rounded-b-2xl bg-muted/80",
-                    className
-                )}
-                {...props}
-            >
-                {toolbarChildren}
-            </Toolbar.Root>
-            {suggestionsChild}
-        </>
-    );
 }
 
 function useGetVisibleGroups({
@@ -394,21 +391,27 @@ function useGetVisibleGroups({
         return groups;
     }
 
+    const lowerQuery = normalizedQuery.toLowerCase();
     const visibleGroups: CommandPaletteGroup[] = [];
 
     for (const group of groups) {
         const rankedItems: RankedCommandPaletteItem[] = [];
 
-        for (const [index, item] of group.items.entries()) {
-            const rank = getCommandItemRank({
+        let index = 0;
+        for (const item of group.items) {
+            const score = getCommandItemScore(
                 filter,
-                index,
                 item,
-                query: normalizedQuery,
-            });
-            if (rank !== null) {
-                rankedItems.push({ item, rank });
+                normalizedQuery,
+                lowerQuery
+            );
+            if (score !== null) {
+                rankedItems.push({
+                    item,
+                    rank: { index, score },
+                });
             }
+            index++;
         }
 
         if (rankedItems.length === 0) {
@@ -421,54 +424,56 @@ function useGetVisibleGroups({
                 first.rank.index - second.rank.index
         );
 
+        const mappedItems: CommandPaletteItem[] = [];
+        for (const ranked of rankedItems) {
+            mappedItems.push(ranked.item);
+        }
+
         visibleGroups.push({
             ...group,
-            items: rankedItems.map(({ item }) => item),
+            items: mappedItems,
         });
     }
 
     return visibleGroups;
 }
 
-function getCommandItemRank({
-    filter,
-    index,
-    item,
-    query,
-}: {
-    filter: ReturnType<typeof useCommandFilter>;
-    index: number;
-    item: CommandPaletteItem;
-    query: string;
-}): CommandItemRank | null {
+function getCommandItemScore(
+    filter: ReturnType<typeof useCommandFilter>,
+    item: CommandPaletteItem,
+    query: string,
+    lowerQuery: string
+): number | null {
     const label = item.label;
     const value = item.value;
     const description = item.description ?? "";
 
-    if (label.trim().toLocaleLowerCase() === query.toLocaleLowerCase()) {
-        return { index, score: 0 };
+    if (label.trim().toLowerCase() === lowerQuery) {
+        return 0;
     }
     if (filter.startsWith(label, query)) {
-        return { index, score: 1 };
+        return 1;
     }
-    if (
-        label
-            .split(COMMAND_MATCH_WORD_SEPARATOR_PATTERN)
-            .some((word) => filter.startsWith(word, query))
-    ) {
-        return { index, score: 2 };
+
+    const words = label.split(COMMAND_MATCH_WORD_SEPARATOR_PATTERN);
+    const wordsLength = words.length;
+    for (let i = 0; i < wordsLength; i++) {
+        if (filter.startsWith(words[i], query)) {
+            return 2;
+        }
     }
+
     if (filter.contains(label, query)) {
-        return { index, score: 3 };
+        return 3;
     }
     if (filter.startsWith(value, query)) {
-        return { index, score: 4 };
+        return 4;
     }
     if (filter.contains(value, query)) {
-        return { index, score: 5 };
+        return 5;
     }
     if (description !== "" && filter.contains(description, query)) {
-        return { index, score: 6 };
+        return 6;
     }
 
     return null;

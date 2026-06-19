@@ -14,6 +14,8 @@ import {
     ComposerActions,
     ComposerInput,
     ComposerSuggestions,
+    type CommandSuggestion,
+    type PaletteStackEntry,
 } from "@/components/library/composer";
 import type { NoteDraft } from "@/components/library/notes";
 import {
@@ -250,12 +252,6 @@ const CSV_HEADERS = [
     "Saved At",
     "Posted At",
 ] as const;
-
-interface CommandSuggestion {
-    icon: ReactNode;
-    label: string;
-    onSelect: () => void;
-}
 
 const SUGGESTION_LIMIT = 3;
 const SUGGESTION_ICON_CLASS = "size-3.5 shrink-0";
@@ -1271,12 +1267,6 @@ function appendUniqueSearchTerm(values: string[], next: string): string[] {
 
 function isMultiWordQuery(query: string): boolean {
     return MULTI_WORD_QUERY_PATTERN.test(query.trim());
-}
-
-interface PaletteStackEntry {
-    chip: ReactNode;
-    key: string;
-    onRemove: () => void;
 }
 
 /**
