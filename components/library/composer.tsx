@@ -424,14 +424,9 @@ function useGetVisibleGroups({
                 first.rank.index - second.rank.index
         );
 
-        const mappedItems: CommandPaletteItem[] = [];
-        for (const ranked of rankedItems) {
-            mappedItems.push(ranked.item);
-        }
-
         visibleGroups.push({
             ...group,
-            items: mappedItems,
+            items: rankedItems.map(({ item }) => item),
         });
     }
 
@@ -454,15 +449,11 @@ function getCommandItemScore(
     if (filter.startsWith(label, query)) {
         return 1;
     }
-
-    const words = label.split(COMMAND_MATCH_WORD_SEPARATOR_PATTERN);
-    const wordsLength = words.length;
-    for (let i = 0; i < wordsLength; i++) {
-        if (filter.startsWith(words[i], query)) {
+    for (const word of label.split(COMMAND_MATCH_WORD_SEPARATOR_PATTERN)) {
+        if (filter.startsWith(word, query)) {
             return 2;
         }
     }
-
     if (filter.contains(label, query)) {
         return 3;
     }

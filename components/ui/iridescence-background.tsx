@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { canUseDOM, getOwnerWindow } from "@/lib/common/dom";
 
 const UNICORN_PROJECT_ID = "XbMh8JZ8sBt8du5zfTgn";
 const UNICORN_SCRIPT_ID = "unicorn-studio-sdk";
@@ -32,10 +33,37 @@ declare global {
     }
 }
 
+function isLowPowerDevice(): boolean {
+    if (!canUseDOM) {
+        return true;
+    }
+    const ownerWindow = getOwnerWindow();
+    if (ownerWindow.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+        return true;
+    }
+    if (ownerWindow.matchMedia("(prefers-reduced-data: reduce)").matches) {
+        return true;
+    }
+    if (ownerWindow.matchMedia("(hover: none) and (pointer: coarse)").matches) {
+        return true;
+    }
+    if (
+        "hardwareConcurrency" in navigator &&
+        navigator.hardwareConcurrency <= 4
+    ) {
+        return true;
+    }
+    return false;
+}
+
 export function IridescenceBackground() {
     const containerRef = React.useRef<HTMLDivElement>(null);
 
     React.useEffect(() => {
+        if (isLowPowerDevice()) {
+            return;
+        }
+
         installUnicornWatermarkStyle();
 
         const container = containerRef.current;
