@@ -28,10 +28,10 @@ export function Alert({
 }: React.ComponentProps<"div"> & VariantProps<typeof alertVariants>) {
     return (
         <aside
+            {...props}
             className={cn(alertVariants({ variant }), className)}
             data-slot="alert"
             role="alert"
-            {...props}
         />
     );
 }
@@ -42,12 +42,12 @@ export function AlertTitle({
 }: React.ComponentProps<"div">) {
     return (
         <div
+            {...props}
             className={cn(
                 "font-medium text-foreground [svg~&]:col-start-2",
                 className
             )}
             data-slot="alert-title"
-            {...props}
         />
     );
 }
@@ -58,12 +58,12 @@ export function AlertDescription({
 }: React.ComponentProps<"div">) {
     return (
         <div
+            {...props}
             className={cn(
                 "flex flex-col gap-2.5 text-muted-foreground [svg~&]:col-start-2",
                 className
             )}
             data-slot="alert-description"
-            {...props}
         />
     );
 }
@@ -74,12 +74,12 @@ export function AlertAction({
 }: React.ComponentProps<"div">) {
     return (
         <div
+            {...props}
             className={cn(
                 "flex gap-1 max-sm:col-start-2 max-sm:mt-2 sm:row-start-1 sm:row-end-3 sm:self-center sm:[[data-slot=alert-description]~&]:col-start-2 sm:[[data-slot=alert-title]~&]:col-start-2 sm:[svg~&]:col-start-2 sm:[svg~[data-slot=alert-description]~&]:col-start-3 sm:[svg~[data-slot=alert-title]~&]:col-start-3",
                 className
             )}
             data-slot="alert-action"
-            {...props}
         />
     );
 }

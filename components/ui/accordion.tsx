@@ -62,12 +62,12 @@ export function AccordionPanel({
 }: AccordionPrimitive.Panel.Props) {
     return (
         <AccordionPrimitive.Panel
+            {...props}
             className={cn(
                 "h-(--accordion-panel-height) overflow-hidden text-muted-foreground text-sm transition-[height] duration-200 ease-in-out data-ending-style:h-0 data-starting-style:h-0",
                 className
             )}
             data-slot="accordion-panel"
-            {...props}
         >
             <div className="pt-0 pb-4">{children}</div>
         </AccordionPrimitive.Panel>

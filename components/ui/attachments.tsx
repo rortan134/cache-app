@@ -306,6 +306,7 @@ export function AttachmentRemove({
 
     return (
         <Button
+            {...props}
             aria-label={label}
             className={cn(
                 variant === "grid" && [
@@ -328,7 +329,6 @@ export function AttachmentRemove({
             )}
             onClick={handleClick}
             variant="ghost"
-            {...props}
         >
             {children ?? <XIcon />}
             <span className="sr-only">{label}</span>

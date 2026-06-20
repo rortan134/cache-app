@@ -40,6 +40,7 @@ export function ComboboxChipsInput({
 }) {
     return (
         <ComboboxPrimitive.Input
+            {...props}
             className={cn(
                 "min-w-12 flex-1 text-base outline-none sm:text-sm [[data-slot=combobox-chip]+&]:ps-0.5",
                 size === "sm" ? "ps-1.5" : "ps-2",
@@ -48,7 +49,6 @@ export function ComboboxChipsInput({
             data-size={typeof size === "string" ? size : undefined}
             data-slot="combobox-chips-input"
             size={typeof size === "number" ? size : undefined}
-            {...props}
         />
     );
 }
@@ -122,11 +122,11 @@ export function ComboboxInput({
             )}
             {showClear && (
                 <ComboboxClear
+                    {...clearProps}
                     className={cn(
                         "absolute top-1/2 inline-flex size-8 shrink-0 -translate-y-1/2 cursor-pointer items-center justify-center rounded-md border border-transparent opacity-80 outline-none transition-opacity pointer-coarse:after:absolute pointer-coarse:after:min-h-11 pointer-coarse:after:min-w-11 hover:opacity-100 has-[+[data-slot=combobox-clear]]:hidden sm:size-7 [&_svg:not([class*='size-'])]:size-4.5 sm:[&_svg:not([class*='size-'])]:size-4 [&_svg]:pointer-events-none [&_svg]:shrink-0",
                         size === "sm" ? "inset-e-0" : "inset-e-0.5"
                     )}
-                    {...clearProps}
                 >
                     <XIcon />
                 </ComboboxClear>
@@ -183,9 +183,9 @@ export function ComboboxPopup({
                     )}
                 >
                     <ComboboxPrimitive.Popup
+                        {...props}
                         className="flex max-h-[min(var(--available-height),23rem)] flex-1 flex-col text-foreground"
                         data-slot="combobox-popup"
-                        {...props}
                     >
                         {children}
                     </ComboboxPrimitive.Popup>
@@ -205,13 +205,13 @@ export function ComboboxItem({
 }) {
     return (
         <ComboboxPrimitive.Item
+            {...props}
             className={cn(
                 "grid min-h-8 in-data-[side=none]:min-w-[calc(var(--anchor-width)+1.25rem)] cursor-default grid-cols-[1rem_1fr] items-center gap-2 rounded-sm py-1 ps-2 pe-4 text-base outline-none data-disabled:pointer-events-none data-highlighted:bg-accent data-highlighted:text-accent-foreground data-disabled:opacity-64 sm:min-h-7 sm:text-sm [&_svg:not([class*='size-'])]:size-4.5 sm:[&_svg:not([class*='size-'])]:size-4 [&_svg]:pointer-events-none [&_svg]:shrink-0",
                 { "grid-cols-[1fr_1rem]": showIndicatorLast },
                 className
             )}
             data-slot="combobox-item"
-            {...props}
         >
             {showIndicatorLast && <div className="col-start-1">{children}</div>}
             <ComboboxPrimitive.ItemIndicator
@@ -232,9 +232,9 @@ export function ComboboxSeparator({
 }: ComboboxPrimitive.Separator.Props) {
     return (
         <ComboboxPrimitive.Separator
+            {...props}
             className={cn("mx-2 my-1 h-px bg-border last:hidden", className)}
             data-slot="combobox-separator"
-            {...props}
         />
     );
 }
@@ -245,9 +245,9 @@ export function ComboboxGroup({
 }: ComboboxPrimitive.Group.Props) {
     return (
         <ComboboxPrimitive.Group
+            {...props}
             className={cn("[[role=group]+&]:mt-1.5", className)}
             data-slot="combobox-group"
-            {...props}
         />
     );
 }
@@ -258,12 +258,12 @@ export function ComboboxGroupLabel({
 }: ComboboxPrimitive.GroupLabel.Props) {
     return (
         <ComboboxPrimitive.GroupLabel
+            {...props}
             className={cn(
                 "px-2 py-1.5 font-medium text-muted-foreground text-xs",
                 className
             )}
             data-slot="combobox-group-label"
-            {...props}
         />
     );
 }

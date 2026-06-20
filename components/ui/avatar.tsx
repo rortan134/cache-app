@@ -7,12 +7,12 @@ import type * as React from "react";
 export function Avatar({ className, ...props }: AvatarPrimitive.Root.Props) {
     return (
         <AvatarPrimitive.Root
+            {...props}
             className={cn(
                 "inline-flex size-8 shrink-0 select-none items-center justify-center overflow-hidden rounded-full bg-background align-middle font-medium text-xs",
                 className
             )}
             data-slot="avatar"
-            {...props}
         />
     );
 }
@@ -23,9 +23,9 @@ export function AvatarImage({
 }: AvatarPrimitive.Image.Props) {
     return (
         <AvatarPrimitive.Image
+            {...props}
             className={cn("size-full object-cover", className)}
             data-slot="avatar-image"
-            {...props}
         />
     );
 }
@@ -36,12 +36,12 @@ export function AvatarFallback({
 }: AvatarPrimitive.Fallback.Props) {
     return (
         <AvatarPrimitive.Fallback
+            {...props}
             className={cn(
                 "flex size-full items-center justify-center rounded-full bg-muted",
                 className
             )}
             data-slot="avatar-fallback"
-            {...props}
         />
     );
 }
