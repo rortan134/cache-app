@@ -13,6 +13,7 @@ import {
     DrawerVirtualKeyboardProvider,
 } from "@/components/ui/drawer";
 import { Spinner } from "@/components/ui/spinner";
+import { isAbortError } from "@/lib/common/abort";
 import { parseDisplayUrl } from "@/lib/common/url";
 import { useStableCallback } from "@base-ui/utils/useStableCallback";
 import { useTimeout } from "@base-ui/utils/useTimeout";
@@ -22,8 +23,16 @@ import * as React from "react";
 const PEEK_BLOCKED_URL = "about:blank";
 const DEFAULT_PEEK_TITLE = "Preview";
 const DEFAULT_PEEK_TIMEOUT_MS = 8000;
+const OEMBED_IFRAME_SANDBOX =
+    "allow-scripts allow-popups allow-popups-to-escape-sandbox allow-presentation";
 
-type PeekDrawerStatus = "blocked" | "loaded" | "loading";
+type PeekDrawerStatus = "blocked" | "loaded" | "loading" | "oembed";
+
+interface PeekDrawerOembed {
+    html: string;
+    provider: string;
+    title: string | null;
+}
 
 interface PeekDrawerProps {
     children: React.ReactNode;
@@ -72,14 +81,17 @@ export const PeekDrawerTrigger = DrawerTrigger;
 
 function PeekDrawerContent() {
     const { description, isOpen, title, url } = usePeekDrawerContext();
-    const { markAsBlocked, markAsLoaded, status } = usePeekStatus(
+    const { markAsBlocked, markAsLoaded, oembed, status } = usePeekStatus(
         isOpen,
         url,
         DEFAULT_PEEK_TIMEOUT_MS
     );
     const canOpenUrlExternally = url !== PEEK_BLOCKED_URL;
     const shouldRenderPreview =
-        isOpen && canOpenUrlExternally && status !== "blocked";
+        isOpen &&
+        canOpenUrlExternally &&
+        status !== "blocked" &&
+        status !== "oembed";
 
     return (
         <DrawerViewport>
@@ -124,6 +136,9 @@ function PeekDrawerContent() {
                                 url={url}
                             />
                         ) : null}
+                        {status === "oembed" && oembed ? (
+                            <PeekDrawerOembedPreview oembed={oembed} />
+                        ) : null}
                         {shouldRenderPreview ? (
                             <iframe
                                 className="size-full border-0 bg-background"
@@ -158,6 +173,7 @@ function usePeekDrawerContext(): PeekDrawerContextValue {
  */
 function usePeekStatus(isOpen: boolean, url: string, timeoutMs: number) {
     const [status, setStatus] = React.useState<PeekDrawerStatus>("loading");
+    const [oembed, setOembed] = React.useState<PeekDrawerOembed | null>(null);
     const blockedTimeout = useTimeout();
 
     const markAsBlocked = useStableCallback(() => {
@@ -169,28 +185,97 @@ function usePeekStatus(isOpen: boolean, url: string, timeoutMs: number) {
     });
 
     React.useEffect(() => {
+        const controller = new AbortController();
+
         if (!isOpen) {
             blockedTimeout.clear();
+            setOembed(null);
             setStatus("loading");
-            return;
+            return () => {
+                controller.abort();
+            };
         }
 
         if (url === PEEK_BLOCKED_URL) {
             blockedTimeout.clear();
+            setOembed(null);
             setStatus("blocked");
-            return;
+            return () => {
+                controller.abort();
+            };
         }
 
+        const oembedPromise = resolvePeekOembed(url, controller.signal);
+        oembedPromise
+            .then((nextOembed) => {
+                if (!nextOembed || controller.signal.aborted) {
+                    return;
+                }
+                blockedTimeout.clear();
+                setOembed(nextOembed);
+                setStatus("oembed");
+            })
+            .catch((error: unknown) => {
+                if (isAbortError(error)) {
+                    return;
+                }
+                if (!controller.signal.aborted) {
+                    setOembed(null);
+                }
+            });
+
+        setOembed(null);
         setStatus("loading");
         blockedTimeout.start(timeoutMs, markAsBlocked);
 
-        return blockedTimeout.clear;
+        return () => {
+            controller.abort();
+            blockedTimeout.clear();
+        };
     }, [blockedTimeout, isOpen, markAsBlocked, timeoutMs, url]);
 
     return {
         markAsBlocked,
         markAsLoaded,
+        oembed,
         status,
+    };
+}
+
+async function resolvePeekOembed(
+    url: string,
+    signal: AbortSignal
+): Promise<PeekDrawerOembed | null> {
+    const response = await fetch(`/api/oembed?url=${encodeURIComponent(url)}`, {
+        headers: {
+            Accept: "application/json",
+        },
+        signal,
+    });
+    if (!response.ok) {
+        return null;
+    }
+    const data: unknown = await response.json();
+    return parsePeekOembed(data);
+}
+
+function parsePeekOembed(data: unknown): PeekDrawerOembed | null {
+    if (!data || typeof data !== "object") {
+        return null;
+    }
+    if (!("html" in data) || typeof data.html !== "string") {
+        return null;
+    }
+    if (!("provider" in data) || typeof data.provider !== "string") {
+        return null;
+    }
+    const title =
+        "title" in data && typeof data.title === "string" ? data.title : null;
+
+    return {
+        html: data.html,
+        provider: data.provider,
+        title,
     };
 }
 
@@ -222,6 +307,56 @@ function PeekDrawerLoadingState() {
             </div>
         </div>
     );
+}
+
+function PeekDrawerOembedPreview({ oembed }: { oembed: PeekDrawerOembed }) {
+    return (
+        <iframe
+            className="size-full border-0 bg-background"
+            referrerPolicy="strict-origin-when-cross-origin"
+            sandbox={OEMBED_IFRAME_SANDBOX}
+            srcDoc={buildOembedSrcDoc(oembed.html)}
+            title={oembed.title ?? `${oembed.provider} preview`}
+        />
+    );
+}
+
+function buildOembedSrcDoc(html: string): string {
+    return `<!doctype html>
+<html>
+<head>
+<base target="_blank">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+html,
+body {
+    align-items: center;
+    background: transparent;
+    box-sizing: border-box;
+    display: flex;
+    justify-content: center;
+    margin: 0;
+    min-height: 100%;
+    padding: 12px;
+}
+*,
+*::before,
+*::after {
+    box-sizing: inherit;
+}
+iframe {
+    border: 0;
+    max-height: calc(100vh - 24px);
+    max-width: 100%;
+}
+blockquote {
+    max-width: 100%;
+}
+</style>
+</head>
+<body>${html}</body>
+</html>`;
 }
 
 function PeekDrawerBlockedState({
