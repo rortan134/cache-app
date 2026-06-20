@@ -23,10 +23,35 @@ import * as React from "react";
 const PEEK_BLOCKED_URL = "about:blank";
 const DEFAULT_PEEK_TITLE = "Preview";
 const DEFAULT_PEEK_TIMEOUT_MS = 8000;
+const OEMBED_DIRECT_IFRAME_SANDBOX =
+    "allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox allow-presentation";
 const OEMBED_IFRAME_SANDBOX =
     "allow-scripts allow-popups allow-popups-to-escape-sandbox allow-presentation";
+const OEMBED_IFRAME_ALLOW =
+    "accelerometer; autoplay; clipboard-write; encrypted-media; fullscreen; gyroscope; picture-in-picture; web-share";
+const YOUTUBE_IFRAME_HOSTS = new Set([
+    "youtube.com",
+    "www.youtube.com",
+    "youtube-nocookie.com",
+    "www.youtube-nocookie.com",
+]);
+const VIMEO_IFRAME_HOST = "player.vimeo.com";
+const SPOTIFY_IFRAME_HOST = "open.spotify.com";
+const SOUNDCLOUD_IFRAME_HOST = "w.soundcloud.com";
+const CODEPEN_IFRAME_HOST = "codepen.io";
+const CODESANDBOX_IFRAME_HOST = "codesandbox.io";
+const FIGMA_IFRAME_HOST = "www.figma.com";
 
 type PeekDrawerStatus = "blocked" | "loaded" | "loading" | "oembed";
+
+type PeekOembedResult =
+    | {
+          oembed: PeekDrawerOembed;
+          status: "found";
+      }
+    | {
+          status: "failed" | "unsupported";
+      };
 
 interface PeekDrawerOembed {
     html: string;
@@ -207,12 +232,26 @@ function usePeekStatus(isOpen: boolean, url: string, timeoutMs: number) {
 
         const oembedPromise = resolvePeekOembed(url, controller.signal);
         oembedPromise
-            .then((nextOembed) => {
-                if (!nextOembed || controller.signal.aborted) {
+            .then((result) => {
+                if (controller.signal.aborted) {
+                    return;
+                }
+                if (result.status === "failed") {
+                    blockedTimeout.clear();
+                    setOembed(null);
+                    setStatus("blocked");
+                    return;
+                }
+                if (result.status === "unsupported") {
                     return;
                 }
                 blockedTimeout.clear();
-                setOembed(nextOembed);
+                if (result.status !== "found") {
+                    setOembed(null);
+                    setStatus("blocked");
+                    return;
+                }
+                setOembed(result.oembed);
                 setStatus("oembed");
             })
             .catch((error: unknown) => {
@@ -245,18 +284,22 @@ function usePeekStatus(isOpen: boolean, url: string, timeoutMs: number) {
 async function resolvePeekOembed(
     url: string,
     signal: AbortSignal
-): Promise<PeekDrawerOembed | null> {
+): Promise<PeekOembedResult> {
     const response = await fetch(`/api/oembed?url=${encodeURIComponent(url)}`, {
         headers: {
             Accept: "application/json",
         },
         signal,
     });
+    if (response.status === 404) {
+        return { status: "unsupported" };
+    }
     if (!response.ok) {
-        return null;
+        return { status: "failed" };
     }
     const data: unknown = await response.json();
-    return parsePeekOembed(data);
+    const oembed = parsePeekOembed(data);
+    return oembed ? { oembed, status: "found" } : { status: "failed" };
 }
 
 function parsePeekOembed(data: unknown): PeekDrawerOembed | null {
@@ -310,6 +353,21 @@ function PeekDrawerLoadingState() {
 }
 
 function PeekDrawerOembedPreview({ oembed }: { oembed: PeekDrawerOembed }) {
+    const iframeSrc = getOembedIframeSrc(oembed);
+    if (iframeSrc) {
+        return (
+            <iframe
+                allow={OEMBED_IFRAME_ALLOW}
+                allowFullScreen
+                className="size-full border-0 bg-background"
+                referrerPolicy="strict-origin-when-cross-origin"
+                sandbox={OEMBED_DIRECT_IFRAME_SANDBOX}
+                src={iframeSrc}
+                title={oembed.title ?? `${oembed.provider} preview`}
+            />
+        );
+    }
+
     return (
         <iframe
             className="size-full border-0 bg-background"
@@ -319,6 +377,58 @@ function PeekDrawerOembedPreview({ oembed }: { oembed: PeekDrawerOembed }) {
             title={oembed.title ?? `${oembed.provider} preview`}
         />
     );
+}
+
+function getOembedIframeSrc(oembed: PeekDrawerOembed): string | null {
+    const document = new DOMParser().parseFromString(oembed.html, "text/html");
+    const iframe = document.querySelector("iframe");
+    const rawSrc = iframe?.getAttribute("src");
+    if (!rawSrc) {
+        return null;
+    }
+    try {
+        const url = new URL(rawSrc);
+        return isAllowedOembedIframeUrl(url, oembed.provider) ? url.href : null;
+    } catch {
+        return null;
+    }
+}
+
+function isAllowedOembedIframeUrl(url: URL, provider: string): boolean {
+    if (url.protocol !== "https:") {
+        return false;
+    }
+    const hostname = url.hostname.toLowerCase();
+    if (provider === "youtube") {
+        return (
+            YOUTUBE_IFRAME_HOSTS.has(hostname) &&
+            url.pathname.startsWith("/embed/")
+        );
+    }
+    if (provider === "vimeo") {
+        return (
+            hostname === VIMEO_IFRAME_HOST && url.pathname.startsWith("/video/")
+        );
+    }
+    if (provider === "spotify") {
+        return (
+            hostname === SPOTIFY_IFRAME_HOST &&
+            url.pathname.startsWith("/embed/")
+        );
+    }
+    if (provider === "soundcloud") {
+        return hostname === SOUNDCLOUD_IFRAME_HOST;
+    }
+    if (provider === "codepen") {
+        return hostname === CODEPEN_IFRAME_HOST;
+    }
+    if (provider === "codesandbox") {
+        return hostname === CODESANDBOX_IFRAME_HOST;
+    }
+    if (provider === "figma") {
+        return hostname === FIGMA_IFRAME_HOST && url.pathname === "/embed";
+    }
+    return false;
 }
 
 function buildOembedSrcDoc(html: string): string {
@@ -338,7 +448,9 @@ body {
     justify-content: center;
     margin: 0;
     min-height: 100%;
-    padding: 12px;
+    height: 100%;
+    width: 100%;
+    padding: 0;
 }
 *,
 *::before,
@@ -352,6 +464,7 @@ iframe {
 }
 blockquote {
     max-width: 100%;
+    height: 100%;
 }
 </style>
 </head>

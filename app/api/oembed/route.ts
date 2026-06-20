@@ -64,7 +64,7 @@ export async function GET(request: Request): Promise<Response> {
             if (request.signal.aborted) {
                 return textResponse("Request aborted", 499);
             }
-            return textResponse("oEmbed not found", 404);
+            return textResponse("oEmbed not available", 424);
         }
 
         const parsed = OembedResponseSchema.safeParse({
@@ -94,7 +94,7 @@ export async function GET(request: Request): Promise<Response> {
             error,
             targetUrl: targetUrl.href,
         });
-        return textResponse("oEmbed not found", 404);
+        return textResponse("oEmbed not available", 424);
     }
 }
 
