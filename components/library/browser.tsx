@@ -95,7 +95,7 @@ import {
     MenuSubTrigger,
     MenuTrigger,
 } from "@/components/ui/menu";
-import { PeekDrawer, PeekDrawerTrigger } from "@/components/ui/peek";
+import { PeekDrawer, PeekDrawerTrigger } from "@/components/library/peek";
 import { useSidebar } from "@/components/ui/sidebar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Spinner } from "@/components/ui/spinner";
