@@ -61,6 +61,7 @@ export function PeekDrawer({
             <Drawer onOpenChange={setIsOpen}>
                 <DrawerVirtualKeyboardProvider>
                     {children}
+                    <PeekDrawerContent />
                 </DrawerVirtualKeyboardProvider>
             </Drawer>
         </PeekDrawerContext>
@@ -69,7 +70,7 @@ export function PeekDrawer({
 
 export const PeekDrawerTrigger = DrawerTrigger;
 
-export function PeekDrawerContent() {
+function PeekDrawerContent() {
     const { description, isOpen, title, url } = usePeekDrawerContext();
     const { markAsBlocked, markAsLoaded, status } = usePeekStatus(
         isOpen,
