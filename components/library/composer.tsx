@@ -510,7 +510,7 @@ function ComposerInputShortcuts() {
                     Tab
                 </Kbd>
                 <span className="text-muted-foreground text-xs opacity-50">
-                    Ask Cache
+                    Ask AI
                 </span>
             </span>
         </>
