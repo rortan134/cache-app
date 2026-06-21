@@ -3,7 +3,9 @@
 import { Button, type ButtonProps } from "@/components/ui/button";
 import { GoogleIcon } from "@/components/ui/icons";
 import { authClient } from "@/lib/auth/client";
+import { AuthErrorMessage } from "@/components/auth/auth-error-message";
 import { cn } from "@/lib/common/cn";
+import { getErrorMessage } from "@/lib/common/error";
 import { useStableCallback } from "@base-ui/utils/useStableCallback";
 import * as React from "react";
 
@@ -58,39 +60,5 @@ export function GoogleSignInButton({
             </Button>
             <AuthErrorMessage>{errorMessage}</AuthErrorMessage>
         </div>
-    );
-}
-
-function getErrorMessage(error: unknown, defaultErrorMessage: string): string {
-    if (error instanceof Error) {
-        return error.message;
-    }
-    if (error === null || error === undefined) {
-        return defaultErrorMessage;
-    }
-    if (typeof error === "string") {
-        return error.trim() || defaultErrorMessage;
-    }
-    if (typeof error === "object") {
-        const message = Reflect.get(error, "message");
-        if (typeof message === "string") {
-            return message.trim() || defaultErrorMessage;
-        }
-    }
-    return defaultErrorMessage;
-}
-
-function AuthErrorMessage(props: React.ComponentProps<"p">) {
-    if (!props.children) {
-        return null;
-    }
-
-    return (
-        <p
-            aria-live="polite"
-            className="text-destructive text-sm underline decoration-dotted underline-offset-4"
-            role="status"
-            {...props}
-        />
     );
 }
