@@ -608,7 +608,7 @@ export default async function Home() {
                         </Carousel>
                     </section>
                     <section className="flex w-full flex-col gap-8">
-                        <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-5">
                             <T>
                                 <p className="font-medium text-base text-foreground">
                                     <span className="font-normal opacity-50">

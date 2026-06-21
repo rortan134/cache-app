@@ -73,3 +73,33 @@ export async function deleteLibraryItemMcp(
     await deleteLibraryItem({ itemId: args.itemId, userId: args.userId });
     return { success: true };
 }
+
+export interface McpLibraryItem {
+    caption: string | null;
+    collections: string[];
+    createdAt: string;
+    id: string;
+    isFavorite: boolean;
+    kind: "bookmark" | "note";
+    noteContentText: string | null;
+    source: string;
+    updatedAt: string;
+    url: string;
+}
+
+export function toMcpLibraryItem(
+    item: LibraryItemWithCollections
+): McpLibraryItem {
+    return {
+        caption: item.caption,
+        collections: item.collections.map((c) => c.name),
+        createdAt: item.createdAt.toISOString(),
+        id: item.id,
+        isFavorite: item.favoritedAt !== null,
+        kind: item.kind as "bookmark" | "note",
+        noteContentText: item.noteContentText,
+        source: item.source,
+        updatedAt: item.updatedAt.toISOString(),
+        url: item.url,
+    };
+}

@@ -5,7 +5,7 @@ import type {
     ServerNotification,
     ServerRequest,
 } from "@modelcontextprotocol/sdk/types.js";
-import * as z from "zod/v3";
+import * as z from "zod";
 import {
     getLibraryItem,
     listCollections,
@@ -15,6 +15,7 @@ import { verifyMcpAuthToken } from "@/lib/integrations/mcp/auth";
 import {
     addLibraryItem,
     deleteLibraryItemMcp,
+    toMcpLibraryItem,
 } from "@/lib/integrations/mcp/service";
 
 type McpExtra = RequestHandlerExtra<ServerRequest, ServerNotification>;
@@ -217,7 +218,9 @@ const baseHandler = createMcpHandler((server) => {
                     userId,
                 });
 
-                return textResult(safeJsonStringify(items));
+                return textResult(
+                    safeJsonStringify(items.map(toMcpLibraryItem))
+                );
             } catch (error) {
                 return errorResult(error, "Could not list library items.");
             }
@@ -253,7 +256,7 @@ const baseHandler = createMcpHandler((server) => {
                     };
                 }
 
-                return textResult(safeJsonStringify(item));
+                return textResult(safeJsonStringify(toMcpLibraryItem(item)));
             } catch (error) {
                 return errorResult(
                     error,
@@ -287,7 +290,7 @@ const baseHandler = createMcpHandler((server) => {
                 });
 
                 return textResult(
-                    `Item added successfully.\n\n${safeJsonStringify(item)}`
+                    `Item added successfully.\n\n${safeJsonStringify(toMcpLibraryItem(item))}`
                 );
             } catch (error) {
                 return errorResult(error, "Could not add the library item.");

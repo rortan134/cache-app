@@ -39,14 +39,6 @@ export function Footer() {
                                 </Link>
                                 <Link
                                     className="underline"
-                                    href="/x"
-                                    rel="noreferrer noopener"
-                                    target="_blank"
-                                >
-                                    <p>X/Twitter</p>
-                                </Link>
-                                <Link
-                                    className="underline"
                                     href="/github"
                                     rel="noreferrer noopener"
                                     target="_blank"
