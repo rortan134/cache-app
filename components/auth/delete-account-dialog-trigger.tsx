@@ -24,14 +24,6 @@ import * as React from "react";
 
 const log = createLogger("auth-delete-account");
 
-/**
- * Confirmation dialog that hard-deletes the current account.
- *
- * Placed in the user-menu footer as a destructive menu item. The dialog
- * surfaces the irreversible outcome and centralizes the auth/billing work
- * behind a single server action so the user either keeps their account or
- * fully leaves — no half-deleted state.
- */
 export function DeleteAccountDialogTrigger(
     props: React.ComponentProps<typeof DialogTrigger>
 ) {
