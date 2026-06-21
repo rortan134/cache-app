@@ -23,13 +23,14 @@ import * as React from "react";
 import { createStore } from "stan-js";
 import { storage } from "stan-js/storage";
 
-const PEEK_BLOCKED_URL = "about:blank";
-const DEFAULT_PEEK_TITLE = "Preview";
-const DEFAULT_PEEK_TIMEOUT_MS = 8000;
-const PEEK_DRAWER_ACTIVE_INDEX_STORAGE_KEY = "cache:peek-drawer:active-index";
-const PEEK_DRAWER_ITEMS_STORAGE_KEY = "cache:peek-drawer:items";
-const PEEK_DRAWER_OPEN_STORAGE_KEY = "cache:peek-drawer:open";
-const PEEK_DRAWER_QUEUE_LIMIT = 12;
+const QUICK_LOOK_BLOCKED_URL = "about:blank";
+const DEFAULT_QUICK_LOOK_TITLE = "Preview";
+const DEFAULT_QUICK_LOOK_TIMEOUT_MS = 8000;
+const QUICK_LOOK_DRAWER_ACTIVE_INDEX_STORAGE_KEY =
+    "cache:quick-look:active-index";
+const QUICK_LOOK_DRAWER_ITEMS_STORAGE_KEY = "cache:quick-look:items";
+const QUICK_LOOK_DRAWER_OPEN_STORAGE_KEY = "cache:quick-look:open";
+const QUICK_LOOK_DRAWER_QUEUE_LIMIT = 12;
 
 const OEMBED_DIRECT_IFRAME_SANDBOX =
     "allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox allow-presentation";
@@ -45,116 +46,115 @@ const YOUTUBE_IFRAME_HOSTS = new Set([
     "www.youtube-nocookie.com",
 ]);
 
-type PeekDrawerStatus = "blocked" | "loaded" | "loading" | "oembed";
+type QuickLookDrawerStatus = "blocked" | "loaded" | "loading" | "oembed";
 
-type PeekOembedResult =
+type QuickLookOembedResult =
     | {
-          oembed: PeekDrawerOembed;
+          oembed: QuickLookDrawerOembed;
           status: "found";
       }
     | {
           status: "failed" | "unsupported";
       };
 
-interface PeekDrawerOembed {
+interface QuickLookDrawerOembed {
     html: string;
     provider: string;
     title: string | null;
 }
 
-interface PeekDrawerProps {
+interface QuickLookDrawerProps {
     children: React.ReactNode;
     description?: string;
     title?: string;
     url: string;
 }
 
-interface PeekDrawerEntry {
+interface QuickLookDrawerEntry {
     description?: string;
     title: string;
     url: string;
 }
 
-interface PeekDrawerQueueState {
+interface QuickLookDrawerQueueState {
     activeIndex: number;
-    items: PeekDrawerEntry[];
+    items: QuickLookDrawerEntry[];
 }
 
-interface PeekDrawerContextValue {
-    entry: PeekDrawerEntry;
+interface QuickLookDrawerContextValue {
+    entry: QuickLookDrawerEntry;
     triggerId: string;
 }
 
-interface PeekDrawerLinkButtonProps
+interface QuickLookDrawerLinkButtonProps
     extends Omit<React.ComponentProps<typeof Button>, "render"> {
     href: string;
 }
 
-type PeekDrawerTriggerProps = React.ComponentProps<typeof DrawerTrigger>;
-type PeekDrawerTriggerClickEvent = Parameters<
-    NonNullable<PeekDrawerTriggerProps["onClick"]>
+type QuickLookDrawerTriggerProps = React.ComponentProps<typeof DrawerTrigger>;
+type QuickLookDrawerTriggerClickEvent = Parameters<
+    NonNullable<QuickLookDrawerTriggerProps["onClick"]>
 >[0];
 
-interface PeekDrawerStore {
+interface QuickLookDrawerStore {
     activeIndex: number;
     isOpen: boolean;
-    items: PeekDrawerEntry[];
+    items: QuickLookDrawerEntry[];
     triggerId: string | null;
 }
 
-const PeekDrawerContext = React.createContext<PeekDrawerContextValue | null>(
-    null
-);
+const QuickLookDrawerContext =
+    React.createContext<QuickLookDrawerContextValue | null>(null);
 
-const PEEK_DRAWER_HANDLE = DrawerCreateHandle<PeekDrawerEntry>();
+const QUICK_LOOK_DRAWER_HANDLE = DrawerCreateHandle<QuickLookDrawerEntry>();
 
 const {
-    actions: peekDrawerStoreActions,
-    batchUpdates: batchPeekDrawerStoreUpdates,
-    getState: getPeekDrawerState,
-    useStore: usePeekDrawerStore,
-} = createStore<PeekDrawerStore>({
+    actions: quickLookDrawerStoreActions,
+    batchUpdates: batchQuickLookDrawerStoreUpdates,
+    getState: getQuickLookDrawerState,
+    useStore: useQuickLookDrawerStore,
+} = createStore<QuickLookDrawerStore>({
     activeIndex: storage(0, {
-        storageKey: PEEK_DRAWER_ACTIVE_INDEX_STORAGE_KEY,
+        storageKey: QUICK_LOOK_DRAWER_ACTIVE_INDEX_STORAGE_KEY,
     }),
     isOpen: storage(false, {
-        storageKey: PEEK_DRAWER_OPEN_STORAGE_KEY,
+        storageKey: QUICK_LOOK_DRAWER_OPEN_STORAGE_KEY,
     }),
-    items: storage<PeekDrawerEntry[]>([], {
-        storageKey: PEEK_DRAWER_ITEMS_STORAGE_KEY,
+    items: storage<QuickLookDrawerEntry[]>([], {
+        storageKey: QUICK_LOOK_DRAWER_ITEMS_STORAGE_KEY,
     }),
     triggerId: null,
 });
 
-export function PeekDrawer({
+export function QuickLookDrawer({
     description,
-    title = DEFAULT_PEEK_TITLE,
+    title = DEFAULT_QUICK_LOOK_TITLE,
     url,
     children,
-}: PeekDrawerProps) {
+}: QuickLookDrawerProps) {
     return (
-        <PeekDrawerContext
+        <QuickLookDrawerContext
             value={{
                 entry: { description, title, url },
-                triggerId: `peek-drawer-${React.useId()}`,
+                triggerId: `quick-look-drawer-${React.useId()}`,
             }}
         >
             {children}
-        </PeekDrawerContext>
+        </QuickLookDrawerContext>
     );
 }
 
-export function PeekDrawerTrigger({
+export function QuickLookDrawerTrigger({
     onClick,
     ...props
-}: PeekDrawerTriggerProps) {
-    const { entry, triggerId } = usePeekDrawerContext();
+}: QuickLookDrawerTriggerProps) {
+    const { entry, triggerId } = useQuickLookDrawerContext();
 
     const handleClick = useStableCallback(
-        (event: PeekDrawerTriggerClickEvent) => {
+        (event: QuickLookDrawerTriggerClickEvent) => {
             onClick?.(event);
             if (!event.defaultPrevented) {
-                openPeekDrawer(entry, triggerId);
+                openQuickLookDrawer(entry, triggerId);
                 event.preventDefault();
             }
         }
@@ -163,7 +163,7 @@ export function PeekDrawerTrigger({
     return (
         <DrawerTrigger
             {...props}
-            handle={PEEK_DRAWER_HANDLE}
+            handle={QUICK_LOOK_DRAWER_HANDLE}
             id={triggerId}
             onClick={handleClick}
             payload={entry}
@@ -171,7 +171,7 @@ export function PeekDrawerTrigger({
     );
 }
 
-export function PeekDrawerSurface() {
+export function QuickLookDrawerSurface() {
     const {
         activeIndex,
         isOpen,
@@ -180,7 +180,7 @@ export function PeekDrawerSurface() {
         setIsOpen,
         setTriggerId,
         triggerId,
-    } = usePeekDrawerStore();
+    } = useQuickLookDrawerStore();
 
     const safeActiveIndex =
         items.length === 0
@@ -199,7 +199,7 @@ export function PeekDrawerSurface() {
         if (isOpen && items.length === 0) {
             setIsOpen(false);
             setTriggerId(null);
-            PEEK_DRAWER_HANDLE.close();
+            QUICK_LOOK_DRAWER_HANDLE.close();
         }
         if (items.length > 0 && safeActiveIndex !== activeIndex) {
             setActiveIndex(safeActiveIndex);
@@ -216,7 +216,7 @@ export function PeekDrawerSurface() {
 
     return (
         <Drawer
-            handle={PEEK_DRAWER_HANDLE}
+            handle={QUICK_LOOK_DRAWER_HANDLE}
             onOpenChange={handleOpenChange}
             open={isOpen}
             position="bottom"
@@ -224,11 +224,11 @@ export function PeekDrawerSurface() {
         >
             <DrawerVirtualKeyboardProvider>
                 {activeEntry ? (
-                    <PeekDrawerContent
+                    <QuickLookDrawerContent
                         activeEntry={activeEntry}
                         activeIndex={safeActiveIndex}
                         items={items}
-                        onSelectQueueIndex={selectPeekQueueIndex}
+                        onSelectQueueIndex={selectQuickLookQueueIndex}
                     />
                 ) : null}
             </DrawerVirtualKeyboardProvider>
@@ -236,35 +236,35 @@ export function PeekDrawerSurface() {
     );
 }
 
-function usePeekDrawerContext(): PeekDrawerContextValue {
-    const context = React.use(PeekDrawerContext);
+function useQuickLookDrawerContext(): QuickLookDrawerContextValue {
+    const context = React.use(QuickLookDrawerContext);
     if (!context) {
         throw new Error(
-            "PeekDrawer components must be used inside <PeekDrawer>."
+            "QuickLookDrawer components must be used inside <QuickLookDrawer>."
         );
     }
     return context;
 }
 
-function openPeekDrawer(entry: PeekDrawerEntry, triggerId: string) {
-    const { activeIndex, isOpen, items } = getPeekDrawerState();
+function openQuickLookDrawer(entry: QuickLookDrawerEntry, triggerId: string) {
+    const { activeIndex, isOpen, items } = getQuickLookDrawerState();
     const queue = isOpen
-        ? addPeekQueueEntry({ activeIndex, items }, entry)
+        ? addQuickLookQueueEntry({ activeIndex, items }, entry)
         : { activeIndex: 0, items: [entry] };
 
-    batchPeekDrawerStoreUpdates(() => {
-        peekDrawerStoreActions.setItems(queue.items);
-        peekDrawerStoreActions.setActiveIndex(queue.activeIndex);
-        peekDrawerStoreActions.setTriggerId(triggerId);
-        peekDrawerStoreActions.setIsOpen(true);
+    batchQuickLookDrawerStoreUpdates(() => {
+        quickLookDrawerStoreActions.setItems(queue.items);
+        quickLookDrawerStoreActions.setActiveIndex(queue.activeIndex);
+        quickLookDrawerStoreActions.setTriggerId(triggerId);
+        quickLookDrawerStoreActions.setIsOpen(true);
     });
-    PEEK_DRAWER_HANDLE.open(triggerId);
+    QUICK_LOOK_DRAWER_HANDLE.open(triggerId);
 }
 
-function addPeekQueueEntry(
-    { items }: PeekDrawerQueueState,
-    entry: PeekDrawerEntry
-): PeekDrawerQueueState {
+function addQuickLookQueueEntry(
+    { items }: QuickLookDrawerQueueState,
+    entry: QuickLookDrawerEntry
+): QuickLookDrawerQueueState {
     const idx = items.findIndex((item) => item.url === entry.url);
     if (idx >= 0) {
         return {
@@ -272,23 +272,26 @@ function addPeekQueueEntry(
             items: items.map((item, i) => (i === idx ? entry : item)),
         };
     }
-    const nextItems = [...items, entry].slice(-PEEK_DRAWER_QUEUE_LIMIT);
+    const nextItems = [...items, entry].slice(-QUICK_LOOK_DRAWER_QUEUE_LIMIT);
     return {
         activeIndex: nextItems.length - 1,
         items: nextItems,
     };
 }
 
-function selectPeekQueueIndex(index: number) {
-    const { items } = getPeekDrawerState();
+function selectQuickLookQueueIndex(index: number) {
+    const { items } = getQuickLookDrawerState();
     if (index >= 0 && index < items.length) {
-        peekDrawerStoreActions.setActiveIndex(index);
+        quickLookDrawerStoreActions.setActiveIndex(index);
     }
 }
 
-function usePeekStatus(isOpen: boolean, url: string, timeoutMs: number) {
-    const [status, setStatus] = React.useState<PeekDrawerStatus>("loading");
-    const [oembed, setOembed] = React.useState<PeekDrawerOembed | null>(null);
+function useQuickLookStatus(isOpen: boolean, url: string, timeoutMs: number) {
+    const [status, setStatus] =
+        React.useState<QuickLookDrawerStatus>("loading");
+    const [oembed, setOembed] = React.useState<QuickLookDrawerOembed | null>(
+        null
+    );
     const blockedTimeout = useTimeout();
 
     const markAsBlocked = useStableCallback(() => {
@@ -300,10 +303,10 @@ function usePeekStatus(isOpen: boolean, url: string, timeoutMs: number) {
     });
 
     React.useEffect(() => {
-        if (!isOpen || url === PEEK_BLOCKED_URL) {
+        if (!isOpen || url === QUICK_LOOK_BLOCKED_URL) {
             blockedTimeout.clear();
             setOembed(null);
-            setStatus(url === PEEK_BLOCKED_URL ? "blocked" : "loading");
+            setStatus(url === QUICK_LOOK_BLOCKED_URL ? "blocked" : "loading");
             return;
         }
 
@@ -312,7 +315,7 @@ function usePeekStatus(isOpen: boolean, url: string, timeoutMs: number) {
         setOembed(null);
         blockedTimeout.start(timeoutMs, markAsBlocked);
 
-        resolvePeekOembed(url, controller.signal)
+        resolveQuickLookOembed(url, controller.signal)
             .then((res) => {
                 if (controller.signal.aborted) {
                     return;
@@ -342,10 +345,10 @@ function usePeekStatus(isOpen: boolean, url: string, timeoutMs: number) {
     return { markAsBlocked, markAsLoaded, oembed, status };
 }
 
-async function resolvePeekOembed(
+async function resolveQuickLookOembed(
     url: string,
     signal: AbortSignal
-): Promise<PeekOembedResult> {
+): Promise<QuickLookOembedResult> {
     const response = await fetch(`/api/oembed?url=${encodeURIComponent(url)}`, {
         headers: { Accept: "application/json" },
         signal,
@@ -357,11 +360,11 @@ async function resolvePeekOembed(
         return { status: "failed" };
     }
     const data: unknown = await response.json();
-    const oembed = parsePeekOembed(data);
+    const oembed = parseQuickLookOembed(data);
     return oembed ? { oembed, status: "found" } : { status: "failed" };
 }
 
-function parsePeekOembed(data: unknown): PeekDrawerOembed | null {
+function parseQuickLookOembed(data: unknown): QuickLookDrawerOembed | null {
     if (
         data &&
         typeof data === "object" &&
@@ -409,7 +412,7 @@ function isAllowedOembedIframeUrl(url: URL, provider: string): boolean {
     }
 }
 
-function getOembedIframeSrc(oembed: PeekDrawerOembed): string | null {
+function getOembedIframeSrc(oembed: QuickLookDrawerOembed): string | null {
     const doc = new DOMParser().parseFromString(oembed.html, "text/html");
     const src = doc.querySelector("iframe")?.getAttribute("src");
     if (!src) {
@@ -464,24 +467,24 @@ blockquote {
 </html>`;
 }
 
-function PeekDrawerContent({
+function QuickLookDrawerContent({
     activeEntry,
     activeIndex,
     items,
     onSelectQueueIndex,
 }: {
-    activeEntry: PeekDrawerEntry;
+    activeEntry: QuickLookDrawerEntry;
     activeIndex: number;
-    items: PeekDrawerEntry[];
+    items: QuickLookDrawerEntry[];
     onSelectQueueIndex: (index: number) => void;
 }) {
     const { description, title, url } = activeEntry;
-    const { markAsBlocked, markAsLoaded, oembed, status } = usePeekStatus(
+    const { markAsBlocked, markAsLoaded, oembed, status } = useQuickLookStatus(
         true,
         url,
-        DEFAULT_PEEK_TIMEOUT_MS
+        DEFAULT_QUICK_LOOK_TIMEOUT_MS
     );
-    const canOpenUrlExternally = url !== PEEK_BLOCKED_URL;
+    const canOpenUrlExternally = url !== QUICK_LOOK_BLOCKED_URL;
     const shouldRenderPreview =
         canOpenUrlExternally && status !== "blocked" && status !== "oembed";
 
@@ -499,14 +502,14 @@ function PeekDrawerContent({
                     <DrawerDescription>
                         {description ?? parseDisplayUrl(url)}
                         <span className="ml-2 text-muted-foreground">·</span>
-                        <PeekDrawerLinkButton
+                        <QuickLookDrawerLinkButton
                             href={url}
                             size="sm"
                             variant="link"
                         >
                             <GlobeIcon className="size-4" />
                             Open in new tab
-                        </PeekDrawerLinkButton>
+                        </QuickLookDrawerLinkButton>
                     </DrawerDescription>
                 </DrawerHeader>
                 <DrawerPanel
@@ -519,16 +522,16 @@ function PeekDrawerContent({
                         className="relative flex size-full min-h-0"
                     >
                         {status === "loading" ? (
-                            <PeekDrawerLoadingState />
+                            <QuickLookDrawerLoadingState />
                         ) : null}
                         {status === "blocked" ? (
-                            <PeekDrawerBlockedState
+                            <QuickLookDrawerBlockedState
                                 canOpenUrlExternally={canOpenUrlExternally}
                                 url={url}
                             />
                         ) : null}
                         {status === "oembed" && oembed ? (
-                            <PeekDrawerOembedPreview oembed={oembed} />
+                            <QuickLookDrawerOembedPreview oembed={oembed} />
                         ) : null}
                         {shouldRenderPreview ? (
                             <iframe
@@ -544,7 +547,7 @@ function PeekDrawerContent({
                     </div>
                 </DrawerPanel>
                 {items.length > 1 ? (
-                    <PeekDrawerQueueFooter
+                    <QuickLookDrawerQueueFooter
                         activeIndex={activeIndex}
                         items={items}
                         onSelect={onSelectQueueIndex}
@@ -555,13 +558,13 @@ function PeekDrawerContent({
     );
 }
 
-function PeekDrawerQueueFooter({
+function QuickLookDrawerQueueFooter({
     activeIndex,
     items,
     onSelect,
 }: {
     activeIndex: number;
-    items: PeekDrawerEntry[];
+    items: QuickLookDrawerEntry[];
     onSelect: (index: number) => void;
 }) {
     return (
@@ -570,14 +573,14 @@ function PeekDrawerQueueFooter({
             className="flex-col items-stretch gap-2 px-4 sm:flex-col sm:justify-start"
         >
             <div className="flex items-center justify-between gap-3 text-muted-foreground text-xs">
-                <span className="font-medium uppercase">Peek stack</span>
+                <span className="font-medium uppercase">Quick look stack</span>
                 <span className="tabular-nums">
                     {activeIndex + 1}/{items.length}
                 </span>
             </div>
             <ul className="flex gap-2 overflow-x-auto pb-1">
                 {items.map((item, index) => (
-                    <PeekDrawerQueueItem
+                    <QuickLookDrawerQueueItem
                         index={index}
                         isActive={index === activeIndex}
                         item={item}
@@ -590,7 +593,7 @@ function PeekDrawerQueueFooter({
     );
 }
 
-function PeekDrawerQueueItem({
+function QuickLookDrawerQueueItem({
     index,
     isActive,
     item,
@@ -598,7 +601,7 @@ function PeekDrawerQueueItem({
 }: {
     index: number;
     isActive: boolean;
-    item: PeekDrawerEntry;
+    item: QuickLookDrawerEntry;
     onSelect: (index: number) => void;
 }) {
     const handleClick = useStableCallback(() => {
@@ -627,7 +630,7 @@ function PeekDrawerQueueItem({
     );
 }
 
-function PeekDrawerLoadingState() {
+function QuickLookDrawerLoadingState() {
     return (
         <div
             aria-live="polite"
@@ -647,7 +650,11 @@ function PeekDrawerLoadingState() {
     );
 }
 
-function PeekDrawerOembedPreview({ oembed }: { oembed: PeekDrawerOembed }) {
+function QuickLookDrawerOembedPreview({
+    oembed,
+}: {
+    oembed: QuickLookDrawerOembed;
+}) {
     const iframeSrc = getOembedIframeSrc(oembed);
 
     return (
@@ -666,7 +673,7 @@ function PeekDrawerOembedPreview({ oembed }: { oembed: PeekDrawerOembed }) {
     );
 }
 
-function PeekDrawerBlockedState({
+function QuickLookDrawerBlockedState({
     canOpenUrlExternally,
     url,
 }: {
@@ -692,16 +699,19 @@ function PeekDrawerBlockedState({
                 </p>
             </div>
             {canOpenUrlExternally ? (
-                <PeekDrawerLinkButton href={url} size="sm">
+                <QuickLookDrawerLinkButton href={url} size="sm">
                     <ExternalLinkIcon className="size-4" />
                     Open in new tab
-                </PeekDrawerLinkButton>
+                </QuickLookDrawerLinkButton>
             ) : null}
         </div>
     );
 }
 
-function PeekDrawerLinkButton({ href, ...props }: PeekDrawerLinkButtonProps) {
+function QuickLookDrawerLinkButton({
+    href,
+    ...props
+}: QuickLookDrawerLinkButtonProps) {
     return (
         <Button
             {...props}

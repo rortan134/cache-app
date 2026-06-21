@@ -19,10 +19,10 @@ import {
 } from "@/components/library/composer";
 import type { NoteDraft } from "@/components/library/notes";
 import {
-    PeekDrawer,
-    PeekDrawerSurface,
-    PeekDrawerTrigger,
-} from "@/components/library/peek";
+    QuickLookDrawer,
+    QuickLookDrawerSurface,
+    QuickLookDrawerTrigger,
+} from "@/components/library/quick-look";
 import {
     NAME_COLLATOR,
     OpenFavoriteItemRefContext,
@@ -3930,10 +3930,6 @@ function CardMenu({
     const isDeletePending = pendingDeleteItemId === item.id;
     const SourceIcon = getSourceIcon(item.source);
     const canPreview = !isNote && toValidUrl(href) !== FALLBACK_URL;
-    const peekUrl =
-        previewImageUrl && item.source === LibraryItemSource.google_photos
-            ? previewImageUrl
-            : item.url;
 
     useHotkeys(
         "alt+f",
@@ -4025,20 +4021,20 @@ function CardMenu({
                 </Item>
             ) : null}
             {canPreview ? (
-                <PeekDrawer
+                <QuickLookDrawer
                     description={itemDomain(item.url)}
-                    key={peekUrl}
+                    key={item.url}
                     title={getItemTitle(item)}
-                    url={peekUrl}
+                    url={item.url}
                 >
-                    <PeekDrawerTrigger
+                    <QuickLookDrawerTrigger
                         nativeButton={false}
                         render={<Item closeOnClick={false} />}
                     >
                         <EyeIcon className="size-4.5 text-muted-foreground" />
                         Quick Look
-                    </PeekDrawerTrigger>
-                </PeekDrawer>
+                    </QuickLookDrawerTrigger>
+                </QuickLookDrawer>
             ) : null}
             {previewImageUrl ? (
                 <Item onClick={onZoomIn}>
@@ -5828,7 +5824,7 @@ export function Browser({
                 isSavingPastedUrl={isSavingPastedUrl}
                 onNoteDrawerClose={() => setActiveNote(null)}
             />
-            <PeekDrawerSurface />
+            <QuickLookDrawerSurface />
             <BackToTopButton>
                 <ArrowUpIcon aria-hidden className="size-4" />
                 <T>Back to top</T>
