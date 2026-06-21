@@ -12,6 +12,7 @@ import {
     DialogTrigger,
 } from "@/components/ui/dialog";
 import { useStableCallback } from "@base-ui/utils/useStableCallback";
+import { T } from "gt-next";
 import { useRouter } from "next/navigation";
 import type * as React from "react";
 import { useHotkeys } from "react-hotkeys-hook";
@@ -34,20 +35,25 @@ export function LogoutDialogTrigger(
             <DialogTrigger {...props} />
             <DialogPopup>
                 <DialogHeader>
-                    <DialogTitle>Log out?</DialogTitle>
+                    <DialogTitle>
+                        <T context="Logout dialog title">Log out?</T>
+                    </DialogTitle>
                     <DialogDescription>
-                        You will need to sign in again to access your library.
+                        <T context="Logout dialog description">
+                            You will need to sign in again to access your
+                            library.
+                        </T>
                     </DialogDescription>
                 </DialogHeader>
                 <DialogFooter>
                     <DialogClose render={<Button variant="ghost" />}>
-                        Cancel
+                        <T context="Cancel button">Cancel</T>
                     </DialogClose>
                     <DialogClose
                         onClick={handleLogout}
                         render={<Button variant="destructive" />}
                     >
-                        Log out
+                        <T context="Logout confirm button">Log out</T>
                     </DialogClose>
                 </DialogFooter>
             </DialogPopup>

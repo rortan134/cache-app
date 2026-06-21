@@ -407,8 +407,8 @@ function SubscriptionBadge({
 }
 
 /**
- * Announces checkout and billing portal failures without reserving layout space
- * during the happy path.
+ * Accessible error announcement for billing operations. Avoids layout shift by
+ * returning null on the happy path, while exposing proper ARIA alerts if errors occur.
  */
 /* @internal */
 function SubscriptionErrorMessage(props: React.ComponentProps<"p">) {

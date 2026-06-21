@@ -29,9 +29,9 @@
 ## Features
 
 - **Unified Library** — First-class support for bookmarks from Instagram Saved, TikTok Favorites, YouTube Watch Later, X/Twitter Bookmarks, GitHub Stars, Chrome bookmarks, Pinterest, Google Photos, and more, all in one place.
-- **Collections** — Organize results into collections with AI-assisted relevance ranking.
-- **AI-assisted search** — Ask the Cache agent with natural-language and search across all your saved content.
-- **AI-Powered Synthesis** — Automations generate daily, weekly, and monthly digests. Smart collections surface what matters. Cache learns your preferences over time.
+- **Smart Collections** — Organize entries into collections with AI-assisted relevance ranking.
+- **AI-assisted search** — Ask the Cache AI agent and search across all your saved content.
+- **AI-Powered Synthesis** — Create Automations to generate daily, weekly, and monthly digests, and much more. Cache even learns your preferences over time.
 - **Rich Notes** — First-party WYSIWYG notes alongside bookmarks.
 - **Browser Extension** — Chrome extension web clipper that syncs saved content from social platforms.
 - **Export & Integrate** — Pipe results into other tools you already use.

@@ -41,14 +41,9 @@ export function SignInButton({ hasServerSession }: SignInButtonProps) {
     }
 
     return (
-        <>
-            <GoogleSignInButton>
-                <T context="Sign in/up CTA button">Continue with Google</T>
-            </GoogleSignInButton>
-            {/* <AppleSignInButton>
-                <T context="Sign in/up CTA button">Continue with Apple</T>
-            </AppleSignInButton> */}
-        </>
+        <GoogleSignInButton>
+            <T context="Sign in/up CTA button">Continue with Google</T>
+        </GoogleSignInButton>
     );
 }
 

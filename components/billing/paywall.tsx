@@ -24,6 +24,10 @@ export function InlinePaywallBanner() {
     );
 }
 
+interface BlockPaywallBannerProps {
+    length: number;
+}
+
 export function BlockPaywallBanner({ length }: BlockPaywallBannerProps) {
     return (
         <aside className="sticky top-20 z-20 -mx-2 sm:-mx-4">
@@ -57,8 +61,4 @@ export function BlockPaywallBanner({ length }: BlockPaywallBannerProps) {
             </div>
         </aside>
     );
-}
-
-interface BlockPaywallBannerProps {
-    length: number;
 }

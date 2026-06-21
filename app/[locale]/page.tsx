@@ -187,7 +187,7 @@ export default async function Home() {
                         <p className="mx-auto text-center text-xs">
                             <T>
                                 A smarter way to handle everything you save
-                                online. Starting from $8/mo.
+                                online. Starting from $8/month.
                             </T>
                         </p>
                     </div>
