@@ -367,6 +367,7 @@ function AccountAvatar({ user }: { user: AccountUser }) {
 function useUserMenuAccounts() {
     const { data: activeSession, refetch } = useSession();
     const router = useRouter();
+    const [, startTransition] = React.useTransition();
     const [pendingSessionToken, setPendingSessionToken] = React.useState<
         null | string
     >(null);
@@ -384,19 +385,19 @@ function useUserMenuAccounts() {
         listDeviceSessions
     );
 
-    const handleAccountChange = useStableCallback(
-        async (sessionToken: unknown) => {
-            if (
-                !activeSession ||
-                typeof sessionToken !== "string" ||
-                sessionToken === activeSession.session.token
-            ) {
-                return;
-            }
+    const handleAccountChange = useStableCallback((sessionToken: unknown) => {
+        if (
+            !activeSession ||
+            typeof sessionToken !== "string" ||
+            sessionToken === activeSession.session.token
+        ) {
+            return;
+        }
 
-            setPendingSessionToken(sessionToken);
-            setSwitchAccountError(null);
+        setPendingSessionToken(sessionToken);
+        setSwitchAccountError(null);
 
+        startTransition(async () => {
             try {
                 const result = await authClient.multiSession.setActive({
                     sessionToken,
@@ -416,8 +417,8 @@ function useUserMenuAccounts() {
             } finally {
                 setPendingSessionToken(null);
             }
-        }
-    );
+        });
+    });
 
     const handleAddAccount = useStableCallback(async () => {
         setAddAccountError(null);

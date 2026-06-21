@@ -1,6 +1,10 @@
+import { cn } from "@/lib/common/cn";
 import type * as React from "react";
 
-export function AuthErrorMessage(props: React.ComponentProps<"p">) {
+export function AuthErrorMessage({
+    className,
+    ...props
+}: React.ComponentProps<"p">) {
     if (!props.children) {
         return null;
     }
@@ -8,9 +12,12 @@ export function AuthErrorMessage(props: React.ComponentProps<"p">) {
     return (
         <p
             {...props}
-            aria-live="polite"
-            className="text-destructive text-sm underline decoration-dotted underline-offset-4"
-            role="status"
+            aria-live="assertive"
+            className={cn(
+                "text-destructive text-sm underline decoration-dotted underline-offset-4",
+                className
+            )}
+            role="alert"
         />
     );
 }

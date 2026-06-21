@@ -1,5 +1,6 @@
 "use client";
 
+import { AuthErrorMessage } from "@/components/auth/auth-error-message";
 import { Button } from "@/components/ui/button";
 import {
     Dialog,
@@ -96,13 +97,9 @@ export function DeleteAccountDialogTrigger(
                     </Button>
                 </DialogFooter>
                 {errorMessage ? (
-                    <p
-                        aria-live="assertive"
-                        className="px-6 pb-6 text-destructive text-xs"
-                        role="alert"
-                    >
+                    <AuthErrorMessage className="px-6 pb-6 text-xs">
                         {errorMessage}
-                    </p>
+                    </AuthErrorMessage>
                 ) : null}
             </DialogPopup>
         </Dialog>
