@@ -254,11 +254,8 @@ const EXPORT_CONTENT_PROVIDERS: readonly ExportContentProvider[] = [
         title: "Open in Claude",
     },
     {
-        createUrl: (query) => {
-            const url = new URL("https://cursor.com/link/prompt");
-            url.searchParams.set("text", query);
-            return url.toString();
-        },
+        createUrl: (query) =>
+            `https://cursor.com/link/prompt?${new URLSearchParams({ text: query })}`,
         icon: CursorIcon,
         title: "Open in Cursor",
     },
@@ -634,11 +631,9 @@ function ContentPlugin({
 
         event.preventDefault();
         const pasteResult = onUrlPaste(parsedUrl.href);
-        if (pasteResult) {
-            pasteResult.catch((error: unknown) => {
-                log.error("Unexpected note URL paste failure", error);
-            });
-        }
+        pasteResult?.catch((error: unknown) => {
+            log.error("Unexpected note URL paste failure", error);
+        });
         return true;
     });
 
@@ -718,12 +713,16 @@ function NoteRoot({
     const noteId = note?.id ?? null;
     const savedNoteIdRef = useRef<string | null>(noteId);
 
-    const resetDraft = () => {
-        const nextDraft = noteDraftFromItem(note);
+    const updateInitialDraft = (nextDraft: NoteDraft) => {
         savedNoteIdRef.current = noteId;
         initialDraftRef.current = nextDraft;
-        latestDraftRef.current = nextDraft;
         setInitialDraft(nextDraft);
+    };
+
+    const resetDraft = () => {
+        const nextDraft = noteDraftFromItem(note);
+        updateInitialDraft(nextDraft);
+        latestDraftRef.current = nextDraft;
         setDraft(nextDraft);
         setEditorKey((key) => key + 1);
     };
@@ -739,9 +738,7 @@ function NoteRoot({
             ) &&
             haveDraftsChanged(nextDraft, latestDraftRef.current);
 
-        savedNoteIdRef.current = noteId;
-        initialDraftRef.current = nextDraft;
-        setInitialDraft(nextDraft);
+        updateInitialDraft(nextDraft);
 
         if (shouldPreserveLocalDraft) {
             return;
