@@ -14,13 +14,9 @@ import * as React from "react";
 import useSWR from "swr";
 
 /**
- * Derives the current user's paid access from the live auth session and active
- * subscription record.
- *
- * Session failures are thrown so route error boundaries handle auth outages
- * consistently. Subscription polling is intentionally short-lived client state:
- * checkout and billing portal redirects can update Stripe state outside this
- * tab, so the UI refreshes without requiring a full reload.
+ * Returns user subscription status and access checks, unifying auth session
+ * and active Stripe records. This prevents desync bugs where the local session
+ * claims active status but Stripe has canceled or suspended the account.
  */
 function useSubscriptionAccess() {
     const {
@@ -31,8 +27,8 @@ function useSubscriptionAccess() {
     } = useSession();
     const sessionUserId = session?.user?.id;
 
-    // We explicitly let the error boundary catch such errors
     if (sessionError) {
+        // Delegate authentication-critical errors to the nearest React error boundary
         throw sessionError;
     }
 
@@ -54,7 +50,6 @@ function useSubscriptionAccess() {
 
     const refreshAccess = useStableCallback(async () => {
         await refreshSession();
-
         if (sessionUserId) {
             await refreshSubscription();
         }
@@ -72,11 +67,9 @@ function useSubscriptionAccess() {
 type AccessData = ReturnType<typeof useSubscriptionAccess>;
 
 /**
- * Provides the current subscription, including `undefined` for a resolved free
- * user, to a render function.
- *
- * Prefer this over calling `useSubscriptionAccess` at leaf sites that only need
- * the subscription object; it keeps loading treatment consistent.
+ * Renders UI dependent on subscription data once resolved. Prevents rendering
+ * intermediate states (such as flashing "Free Plan" before active Stripe data returns)
+ * by deferring child execution until the subscription status is fully loaded.
  */
 function WithSubscriptionOnly({
     children,
@@ -97,10 +90,8 @@ interface WithSubscriptionProps {
 }
 
 /**
- * Renders children only for users with an active subscription record.
- *
- * This is a UI gate for affordances, not an entitlement check. Server actions
- * that unlock paid behavior must verify subscription state on the server.
+ * Restricts rendering to users with active subscriptions. Use this to hide
+ * premium features or promotional copy from non-paying users.
  */
 function SubscribedOnly({
     children,
@@ -116,10 +107,9 @@ function SubscribedOnly({
 }
 
 /**
- * Renders children for signed-in users without active paid access.
- *
- * While billing is loading, this withholds upgrade prompts by default so users
- * do not see free-plan messaging while their subscription status is unresolved.
+ * Restricts rendering to unsubscribed users. Defers rendering during initial load
+ * to prevent flashing upgrade prompts or free-tier UI while the subscription status
+ * is still being verified.
  */
 function UnsubscribedOnly({
     children,
@@ -135,11 +125,9 @@ function UnsubscribedOnly({
 }
 
 /**
- * Compact account-menu badge for the resolved subscription state.
- *
- * The badge handles the Stripe states users most commonly need to understand:
- * free, cancelling at period end, trialing, active, and fallback statuses. Keep
- * this label conservative because it appears in dense navigation surfaces.
+ * Renders the compact account-menu status badge. Consolidates Stripe subscription
+ * states (free, cancelling, trialing, active) into concise labels to ensure they
+ * fit without breaking layout in dense, localized navigation headers.
  */
 function SubscriptionStatusBadge() {
     return (
@@ -218,8 +206,8 @@ function SubscriptionStatusBadge() {
 }
 
 /**
- * Starts a checkout upgrade flow for the Pro plan and returns the user to the
- * localized library route afterwards.
+ * Triggers Stripe Checkout redirection for the premium Pro plan. Resolves the
+ * post-checkout success or cancel redirection via localized application routes.
  */
 function SubscriptionUpgradeButton({
     variant = "ghost",
@@ -251,7 +239,8 @@ function SubscriptionUpgradeButton({
 }
 
 /**
- * Opens Stripe's hosted billing portal for the current customer.
+ * Directs the customer to the Stripe billing portal to update payments, view
+ * historical invoices, or manage subscription cycles.
  */
 function SubscriptionBillingPortalButton({
     variant = "ghost",
@@ -281,10 +270,8 @@ function SubscriptionBillingPortalButton({
 }
 
 /**
- * Builds the post-Stripe return URL from the active locale.
- *
- * The empty server-side origin keeps this hook render-safe during SSR; callers
- * execute the redirect action only from client events where `window` exists.
+ * Resolves the localized callback URL for Stripe redirections. Defers origin
+ * check to client-side interaction to prevent hydration mismatches during SSR.
  */
 /* @internal */
 function useLibraryReturnUrl() {
@@ -314,12 +301,9 @@ function subscriptionRedirectUrl(data: unknown): string | undefined {
 }
 
 /**
- * Wraps a hosted billing request with pending state, redirect handling, and a
- * user-facing fallback error.
- *
- * The request shape is deliberately narrow so checkout and portal buttons share
- * identical failure behavior without depending on a specific better-auth method
- * type.
+ * Unified action wrapper for Stripe redirects. Standardizes loading states, URL
+ * assignment, and accessibility-compliant failure notifications for checkout
+ * and portal actions.
  */
 /* @internal */
 function useSubscriptionRedirectAction(
