@@ -15,7 +15,6 @@ import {
     DrawerVirtualKeyboardProvider,
 } from "@/components/ui/drawer";
 import { Spinner } from "@/components/ui/spinner";
-import { isAbortError } from "@/lib/common/abort";
 import { parseDisplayUrl } from "@/lib/common/url";
 import { useStableCallback } from "@base-ui/utils/useStableCallback";
 import { useTimeout } from "@base-ui/utils/useTimeout";
@@ -31,24 +30,20 @@ const PEEK_DRAWER_ACTIVE_INDEX_STORAGE_KEY = "cache:peek-drawer:active-index";
 const PEEK_DRAWER_ITEMS_STORAGE_KEY = "cache:peek-drawer:items";
 const PEEK_DRAWER_OPEN_STORAGE_KEY = "cache:peek-drawer:open";
 const PEEK_DRAWER_QUEUE_LIMIT = 12;
+
 const OEMBED_DIRECT_IFRAME_SANDBOX =
     "allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox allow-presentation";
 const OEMBED_IFRAME_SANDBOX =
     "allow-scripts allow-popups allow-popups-to-escape-sandbox allow-presentation";
 const OEMBED_IFRAME_ALLOW =
     "accelerometer; autoplay; clipboard-write; encrypted-media; fullscreen; gyroscope; picture-in-picture; web-share";
+
 const YOUTUBE_IFRAME_HOSTS = new Set([
     "youtube.com",
     "www.youtube.com",
     "youtube-nocookie.com",
     "www.youtube-nocookie.com",
 ]);
-const VIMEO_IFRAME_HOST = "player.vimeo.com";
-const SPOTIFY_IFRAME_HOST = "open.spotify.com";
-const SOUNDCLOUD_IFRAME_HOST = "w.soundcloud.com";
-const CODEPEN_IFRAME_HOST = "codepen.io";
-const CODESANDBOX_IFRAME_HOST = "codesandbox.io";
-const FIGMA_IFRAME_HOST = "www.figma.com";
 
 type PeekDrawerStatus = "blocked" | "loaded" | "loading" | "oembed";
 
@@ -100,16 +95,16 @@ type PeekDrawerTriggerClickEvent = Parameters<
     NonNullable<PeekDrawerTriggerProps["onClick"]>
 >[0];
 
-const PeekDrawerContext = React.createContext<PeekDrawerContextValue | null>(
-    null
-);
-
 interface PeekDrawerStore {
     activeIndex: number;
     isOpen: boolean;
     items: PeekDrawerEntry[];
     triggerId: string | null;
 }
+
+const PeekDrawerContext = React.createContext<PeekDrawerContextValue | null>(
+    null
+);
 
 const PEEK_DRAWER_HANDLE = DrawerCreateHandle<PeekDrawerEntry>();
 
@@ -158,11 +153,10 @@ export function PeekDrawerTrigger({
     const handleClick = useStableCallback(
         (event: PeekDrawerTriggerClickEvent) => {
             onClick?.(event);
-            if (event.defaultPrevented) {
-                return;
+            if (!event.defaultPrevented) {
+                openPeekDrawer(entry, triggerId);
+                event.preventDefault();
             }
-            openPeekDrawer(entry, triggerId);
-            event.preventDefault();
         }
     );
 
@@ -187,7 +181,11 @@ export function PeekDrawerSurface() {
         setTriggerId,
         triggerId,
     } = usePeekDrawerStore();
-    const safeActiveIndex = getPeekActiveIndex(items, activeIndex);
+
+    const safeActiveIndex =
+        items.length === 0
+            ? 0
+            : Math.min(Math.max(activeIndex, 0), items.length - 1);
     const activeEntry = items[safeActiveIndex] ?? null;
 
     const handleOpenChange = useStableCallback((nextIsOpen: boolean) => {
@@ -236,6 +234,234 @@ export function PeekDrawerSurface() {
             </DrawerVirtualKeyboardProvider>
         </Drawer>
     );
+}
+
+function usePeekDrawerContext(): PeekDrawerContextValue {
+    const context = React.use(PeekDrawerContext);
+    if (!context) {
+        throw new Error(
+            "PeekDrawer components must be used inside <PeekDrawer>."
+        );
+    }
+    return context;
+}
+
+function openPeekDrawer(entry: PeekDrawerEntry, triggerId: string) {
+    const { activeIndex, isOpen, items } = getPeekDrawerState();
+    const queue = isOpen
+        ? addPeekQueueEntry({ activeIndex, items }, entry)
+        : { activeIndex: 0, items: [entry] };
+
+    batchPeekDrawerStoreUpdates(() => {
+        peekDrawerStoreActions.setItems(queue.items);
+        peekDrawerStoreActions.setActiveIndex(queue.activeIndex);
+        peekDrawerStoreActions.setTriggerId(triggerId);
+        peekDrawerStoreActions.setIsOpen(true);
+    });
+    PEEK_DRAWER_HANDLE.open(triggerId);
+}
+
+function addPeekQueueEntry(
+    { items }: PeekDrawerQueueState,
+    entry: PeekDrawerEntry
+): PeekDrawerQueueState {
+    const idx = items.findIndex((item) => item.url === entry.url);
+    if (idx >= 0) {
+        return {
+            activeIndex: idx,
+            items: items.map((item, i) => (i === idx ? entry : item)),
+        };
+    }
+    const nextItems = [...items, entry].slice(-PEEK_DRAWER_QUEUE_LIMIT);
+    return {
+        activeIndex: nextItems.length - 1,
+        items: nextItems,
+    };
+}
+
+function selectPeekQueueIndex(index: number) {
+    const { items } = getPeekDrawerState();
+    if (index >= 0 && index < items.length) {
+        peekDrawerStoreActions.setActiveIndex(index);
+    }
+}
+
+function usePeekStatus(isOpen: boolean, url: string, timeoutMs: number) {
+    const [status, setStatus] = React.useState<PeekDrawerStatus>("loading");
+    const [oembed, setOembed] = React.useState<PeekDrawerOembed | null>(null);
+    const blockedTimeout = useTimeout();
+
+    const markAsBlocked = useStableCallback(() => {
+        setStatus((curr) => (curr === "loading" ? "blocked" : curr));
+    });
+
+    const markAsLoaded = useStableCallback(() => {
+        setStatus("loaded");
+    });
+
+    React.useEffect(() => {
+        if (!isOpen || url === PEEK_BLOCKED_URL) {
+            blockedTimeout.clear();
+            setOembed(null);
+            setStatus(url === PEEK_BLOCKED_URL ? "blocked" : "loading");
+            return;
+        }
+
+        const controller = new AbortController();
+        setStatus("loading");
+        setOembed(null);
+        blockedTimeout.start(timeoutMs, markAsBlocked);
+
+        resolvePeekOembed(url, controller.signal)
+            .then((res) => {
+                if (controller.signal.aborted) {
+                    return;
+                }
+
+                if (res.status === "failed") {
+                    blockedTimeout.clear();
+                    setStatus("blocked");
+                } else if (res.status === "found" && res.oembed) {
+                    blockedTimeout.clear();
+                    setOembed(res.oembed);
+                    setStatus("oembed");
+                }
+            })
+            .catch(() => {
+                if (!controller.signal.aborted) {
+                    setOembed(null);
+                }
+            });
+
+        return () => {
+            controller.abort();
+            blockedTimeout.clear();
+        };
+    }, [blockedTimeout, isOpen, markAsBlocked, timeoutMs, url]);
+
+    return { markAsBlocked, markAsLoaded, oembed, status };
+}
+
+async function resolvePeekOembed(
+    url: string,
+    signal: AbortSignal
+): Promise<PeekOembedResult> {
+    const response = await fetch(`/api/oembed?url=${encodeURIComponent(url)}`, {
+        headers: { Accept: "application/json" },
+        signal,
+    });
+    if (response.status === 404) {
+        return { status: "unsupported" };
+    }
+    if (!response.ok) {
+        return { status: "failed" };
+    }
+    const data: unknown = await response.json();
+    const oembed = parsePeekOembed(data);
+    return oembed ? { oembed, status: "found" } : { status: "failed" };
+}
+
+function parsePeekOembed(data: unknown): PeekDrawerOembed | null {
+    if (
+        data &&
+        typeof data === "object" &&
+        "html" in data &&
+        typeof data.html === "string" &&
+        "provider" in data &&
+        typeof data.provider === "string"
+    ) {
+        return {
+            html: data.html,
+            provider: data.provider,
+            title:
+                "title" in data && typeof data.title === "string"
+                    ? data.title
+                    : null,
+        };
+    }
+    return null;
+}
+
+function isAllowedOembedIframeUrl(url: URL, provider: string): boolean {
+    if (url.protocol !== "https:") {
+        return false;
+    }
+    const hostname = url.hostname.toLowerCase();
+    const isPath = (p: string) => url.pathname.startsWith(p);
+
+    switch (provider) {
+        case "youtube":
+            return YOUTUBE_IFRAME_HOSTS.has(hostname) && isPath("/embed/");
+        case "vimeo":
+            return hostname === "player.vimeo.com" && isPath("/video/");
+        case "spotify":
+            return hostname === "open.spotify.com" && isPath("/embed/");
+        case "soundcloud":
+            return hostname === "w.soundcloud.com";
+        case "codepen":
+            return hostname === "codepen.io";
+        case "codesandbox":
+            return hostname === "codesandbox.io";
+        case "figma":
+            return hostname === "www.figma.com" && url.pathname === "/embed";
+        default:
+            return false;
+    }
+}
+
+function getOembedIframeSrc(oembed: PeekDrawerOembed): string | null {
+    const doc = new DOMParser().parseFromString(oembed.html, "text/html");
+    const src = doc.querySelector("iframe")?.getAttribute("src");
+    if (!src) {
+        return null;
+    }
+    try {
+        const url = new URL(src);
+        return isAllowedOembedIframeUrl(url, oembed.provider) ? url.href : null;
+    } catch {
+        return null;
+    }
+}
+
+function buildOembedSrcDoc(html: string): string {
+    return `<!doctype html>
+<html>
+<head>
+<base target="_blank">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+html,
+body {
+    align-items: center;
+    background: transparent;
+    box-sizing: border-box;
+    display: flex;
+    justify-content: center;
+    margin: 0;
+    min-height: 100%;
+    height: 100%;
+    width: 100%;
+    padding: 0;
+}
+*,
+*::before,
+*::after {
+    box-sizing: inherit;
+}
+iframe {
+    border: 0;
+    max-height: calc(100vh - 24px);
+    max-width: 100%;
+}
+blockquote {
+    max-width: 100%;
+    height: 100%;
+}
+</style>
+</head>
+<body>${html}</body>
+</html>`;
 }
 
 function PeekDrawerContent({
@@ -329,75 +555,6 @@ function PeekDrawerContent({
     );
 }
 
-function usePeekDrawerContext(): PeekDrawerContextValue {
-    const context = React.use(PeekDrawerContext);
-    if (!context) {
-        throw new Error(
-            "PeekDrawer components must be used inside <PeekDrawer>."
-        );
-    }
-    return context;
-}
-
-function openPeekDrawer(entry: PeekDrawerEntry, triggerId: string) {
-    const { activeIndex, isOpen, items } = getPeekDrawerState();
-    const queue = isOpen
-        ? addPeekQueueEntry({ activeIndex, items }, entry)
-        : createPeekQueue(entry);
-
-    batchPeekDrawerStoreUpdates(() => {
-        peekDrawerStoreActions.setItems(queue.items);
-        peekDrawerStoreActions.setActiveIndex(queue.activeIndex);
-        peekDrawerStoreActions.setTriggerId(triggerId);
-        peekDrawerStoreActions.setIsOpen(true);
-    });
-    PEEK_DRAWER_HANDLE.open(triggerId);
-}
-
-function createPeekQueue(entry: PeekDrawerEntry): PeekDrawerQueueState {
-    return {
-        activeIndex: 0,
-        items: [entry],
-    };
-}
-
-function selectPeekQueueIndex(index: number) {
-    const { items } = getPeekDrawerState();
-    if (index < 0 || index >= items.length) {
-        return;
-    }
-    peekDrawerStoreActions.setActiveIndex(index);
-}
-
-function addPeekQueueEntry(
-    queue: PeekDrawerQueueState,
-    entry: PeekDrawerEntry
-): PeekDrawerQueueState {
-    const existingIndex = queue.items.findIndex(
-        (item) => item.url === entry.url
-    );
-    if (existingIndex >= 0) {
-        return {
-            activeIndex: existingIndex,
-            items: queue.items.map((item, index) =>
-                index === existingIndex ? entry : item
-            ),
-        };
-    }
-    const items = [...queue.items, entry].slice(-PEEK_DRAWER_QUEUE_LIMIT);
-    return {
-        activeIndex: items.length - 1,
-        items,
-    };
-}
-
-function getPeekActiveIndex(items: PeekDrawerEntry[], activeIndex: number) {
-    if (items.length === 0) {
-        return 0;
-    }
-    return Math.min(Math.max(activeIndex, 0), items.length - 1);
-}
-
 function PeekDrawerQueueFooter({
     activeIndex,
     items,
@@ -470,146 +627,6 @@ function PeekDrawerQueueItem({
     );
 }
 
-/**
- * Enforces a timeout so users aren't left waiting indefinitely for sites
- * that refuse to embed.
- */
-function usePeekStatus(isOpen: boolean, url: string, timeoutMs: number) {
-    const [status, setStatus] = React.useState<PeekDrawerStatus>("loading");
-    const [oembed, setOembed] = React.useState<PeekDrawerOembed | null>(null);
-    const blockedTimeout = useTimeout();
-
-    const markAsBlocked = useStableCallback(() => {
-        setStatus((current) => (current === "loading" ? "blocked" : current));
-    });
-
-    const markAsLoaded = useStableCallback(() => {
-        setStatus("loaded");
-    });
-
-    React.useEffect(() => {
-        const controller = new AbortController();
-
-        if (!isOpen) {
-            blockedTimeout.clear();
-            setOembed(null);
-            setStatus("loading");
-            return () => {
-                controller.abort();
-            };
-        }
-
-        if (url === PEEK_BLOCKED_URL) {
-            blockedTimeout.clear();
-            setOembed(null);
-            setStatus("blocked");
-            return () => {
-                controller.abort();
-            };
-        }
-
-        const oembedPromise = resolvePeekOembed(url, controller.signal);
-        oembedPromise
-            .then((result) => {
-                if (controller.signal.aborted) {
-                    return;
-                }
-                if (result.status === "failed") {
-                    blockedTimeout.clear();
-                    setOembed(null);
-                    setStatus("blocked");
-                    return;
-                }
-                if (result.status === "unsupported") {
-                    return;
-                }
-                blockedTimeout.clear();
-                if (result.status !== "found") {
-                    setOembed(null);
-                    setStatus("blocked");
-                    return;
-                }
-                setOembed(result.oembed);
-                setStatus("oembed");
-            })
-            .catch((error: unknown) => {
-                if (isAbortError(error)) {
-                    return;
-                }
-                if (!controller.signal.aborted) {
-                    setOembed(null);
-                }
-            });
-
-        setOembed(null);
-        setStatus("loading");
-        blockedTimeout.start(timeoutMs, markAsBlocked);
-
-        return () => {
-            controller.abort();
-            blockedTimeout.clear();
-        };
-    }, [blockedTimeout, isOpen, markAsBlocked, timeoutMs, url]);
-
-    return {
-        markAsBlocked,
-        markAsLoaded,
-        oembed,
-        status,
-    };
-}
-
-async function resolvePeekOembed(
-    url: string,
-    signal: AbortSignal
-): Promise<PeekOembedResult> {
-    const response = await fetch(`/api/oembed?url=${encodeURIComponent(url)}`, {
-        headers: {
-            Accept: "application/json",
-        },
-        signal,
-    });
-    if (response.status === 404) {
-        return { status: "unsupported" };
-    }
-    if (!response.ok) {
-        return { status: "failed" };
-    }
-    const data: unknown = await response.json();
-    const oembed = parsePeekOembed(data);
-    return oembed ? { oembed, status: "found" } : { status: "failed" };
-}
-
-function parsePeekOembed(data: unknown): PeekDrawerOembed | null {
-    if (!data || typeof data !== "object") {
-        return null;
-    }
-    if (!("html" in data) || typeof data.html !== "string") {
-        return null;
-    }
-    if (!("provider" in data) || typeof data.provider !== "string") {
-        return null;
-    }
-    const title =
-        "title" in data && typeof data.title === "string" ? data.title : null;
-
-    return {
-        html: data.html,
-        provider: data.provider,
-        title,
-    };
-}
-
-function PeekDrawerLinkButton({ href, ...props }: PeekDrawerLinkButtonProps) {
-    return (
-        <Button
-            {...props}
-            // biome-ignore lint/a11y/useAnchorContent: Ignore
-            render={<a href={href} rel="noopener noreferrer" target="_blank" />}
-        />
-    );
-}
-
 function PeekDrawerLoadingState() {
     return (
         <div
@@ -632,122 +649,20 @@ function PeekDrawerLoadingState() {
 
 function PeekDrawerOembedPreview({ oembed }: { oembed: PeekDrawerOembed }) {
     const iframeSrc = getOembedIframeSrc(oembed);
-    if (iframeSrc) {
-        return (
-            <iframe
-                allow={OEMBED_IFRAME_ALLOW}
-                allowFullScreen
-                className="size-full border-0 bg-background"
-                referrerPolicy="strict-origin-when-cross-origin"
-                sandbox={OEMBED_DIRECT_IFRAME_SANDBOX}
-                src={iframeSrc}
-                title={oembed.title ?? `${oembed.provider} preview`}
-            />
-        );
-    }
-
     return (
         <iframe
+            allow={iframeSrc ? OEMBED_IFRAME_ALLOW : undefined}
+            allowFullScreen={!!iframeSrc}
             className="size-full border-0 bg-background"
             referrerPolicy="strict-origin-when-cross-origin"
-            sandbox={OEMBED_IFRAME_SANDBOX}
-            srcDoc={buildOembedSrcDoc(oembed.html)}
+            sandbox={
+                iframeSrc ? OEMBED_DIRECT_IFRAME_SANDBOX : OEMBED_IFRAME_SANDBOX
+            }
+            src={iframeSrc ?? undefined}
+            srcDoc={iframeSrc ? undefined : buildOembedSrcDoc(oembed.html)}
             title={oembed.title ?? `${oembed.provider} preview`}
         />
     );
-}
-
-function getOembedIframeSrc(oembed: PeekDrawerOembed): string | null {
-    const document = new DOMParser().parseFromString(oembed.html, "text/html");
-    const iframe = document.querySelector("iframe");
-    const rawSrc = iframe?.getAttribute("src");
-    if (!rawSrc) {
-        return null;
-    }
-    try {
-        const url = new URL(rawSrc);
-        return isAllowedOembedIframeUrl(url, oembed.provider) ? url.href : null;
-    } catch {
-        return null;
-    }
-}
-
-function isAllowedOembedIframeUrl(url: URL, provider: string): boolean {
-    if (url.protocol !== "https:") {
-        return false;
-    }
-    const hostname = url.hostname.toLowerCase();
-    if (provider === "youtube") {
-        return (
-            YOUTUBE_IFRAME_HOSTS.has(hostname) &&
-            url.pathname.startsWith("/embed/")
-        );
-    }
-    if (provider === "vimeo") {
-        return (
-            hostname === VIMEO_IFRAME_HOST && url.pathname.startsWith("/video/")
-        );
-    }
-    if (provider === "spotify") {
-        return (
-            hostname === SPOTIFY_IFRAME_HOST &&
-            url.pathname.startsWith("/embed/")
-        );
-    }
-    if (provider === "soundcloud") {
-        return hostname === SOUNDCLOUD_IFRAME_HOST;
-    }
-    if (provider === "codepen") {
-        return hostname === CODEPEN_IFRAME_HOST;
-    }
-    if (provider === "codesandbox") {
-        return hostname === CODESANDBOX_IFRAME_HOST;
-    }
-    if (provider === "figma") {
-        return hostname === FIGMA_IFRAME_HOST && url.pathname === "/embed";
-    }
-    return false;
-}
-
-function buildOembedSrcDoc(html: string): string {
-    return `<!doctype html>
-<html>
-<head>
-<base target="_blank">
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<style>
-html,
-body {
-    align-items: center;
-    background: transparent;
-    box-sizing: border-box;
-    display: flex;
-    justify-content: center;
-    margin: 0;
-    min-height: 100%;
-    height: 100%;
-    width: 100%;
-    padding: 0;
-}
-*,
-*::before,
-*::after {
-    box-sizing: inherit;
-}
-iframe {
-    border: 0;
-    max-height: calc(100vh - 24px);
-    max-width: 100%;
-}
-blockquote {
-    max-width: 100%;
-    height: 100%;
-}
-</style>
-</head>
-<body>${html}</body>
-</html>`;
 }
 
 function PeekDrawerBlockedState({
@@ -782,5 +697,15 @@ function PeekDrawerBlockedState({
                 </PeekDrawerLinkButton>
             ) : null}
         </div>
+    );
+}
+
+function PeekDrawerLinkButton({ href, ...props }: PeekDrawerLinkButtonProps) {
+    return (
+        <Button
+            {...props}
+            // biome-ignore lint/a11y/useAnchorContent: Ignore
+            render={<a href={href} rel="noopener noreferrer" target="_blank" />}
+        />
     );
 }
