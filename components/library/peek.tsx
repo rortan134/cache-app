@@ -3,7 +3,9 @@
 import { Button } from "@/components/ui/button";
 import {
     Drawer,
+    DrawerCreateHandle,
     DrawerDescription,
+    DrawerFooter,
     DrawerHeader,
     DrawerPanel,
     DrawerPopup,
@@ -19,10 +21,16 @@ import { useStableCallback } from "@base-ui/utils/useStableCallback";
 import { useTimeout } from "@base-ui/utils/useTimeout";
 import { AlertCircleIcon, ExternalLinkIcon, GlobeIcon } from "lucide-react";
 import * as React from "react";
+import { createStore } from "stan-js";
+import { storage } from "stan-js/storage";
 
 const PEEK_BLOCKED_URL = "about:blank";
 const DEFAULT_PEEK_TITLE = "Preview";
 const DEFAULT_PEEK_TIMEOUT_MS = 8000;
+const PEEK_DRAWER_ACTIVE_INDEX_STORAGE_KEY = "cache:peek-drawer:active-index";
+const PEEK_DRAWER_ITEMS_STORAGE_KEY = "cache:peek-drawer:items";
+const PEEK_DRAWER_OPEN_STORAGE_KEY = "cache:peek-drawer:open";
+const PEEK_DRAWER_QUEUE_LIMIT = 12;
 const OEMBED_DIRECT_IFRAME_SANDBOX =
     "allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox allow-presentation";
 const OEMBED_IFRAME_SANDBOX =
@@ -66,11 +74,20 @@ interface PeekDrawerProps {
     url: string;
 }
 
-interface PeekDrawerContextValue {
+interface PeekDrawerEntry {
     description?: string;
-    isOpen: boolean;
     title: string;
     url: string;
+}
+
+interface PeekDrawerQueueState {
+    activeIndex: number;
+    items: PeekDrawerEntry[];
+}
+
+interface PeekDrawerContextValue {
+    entry: PeekDrawerEntry;
+    triggerId: string;
 }
 
 interface PeekDrawerLinkButtonProps
@@ -78,9 +95,41 @@ interface PeekDrawerLinkButtonProps
     href: string;
 }
 
+type PeekDrawerTriggerProps = React.ComponentProps<typeof DrawerTrigger>;
+type PeekDrawerTriggerClickEvent = Parameters<
+    NonNullable<PeekDrawerTriggerProps["onClick"]>
+>[0];
+
 const PeekDrawerContext = React.createContext<PeekDrawerContextValue | null>(
     null
 );
+
+interface PeekDrawerStore {
+    activeIndex: number;
+    isOpen: boolean;
+    items: PeekDrawerEntry[];
+    triggerId: string | null;
+}
+
+const PEEK_DRAWER_HANDLE = DrawerCreateHandle<PeekDrawerEntry>();
+
+const {
+    actions: peekDrawerStoreActions,
+    batchUpdates: batchPeekDrawerStoreUpdates,
+    getState: getPeekDrawerState,
+    useStore: usePeekDrawerStore,
+} = createStore<PeekDrawerStore>({
+    activeIndex: storage(0, {
+        storageKey: PEEK_DRAWER_ACTIVE_INDEX_STORAGE_KEY,
+    }),
+    isOpen: storage(false, {
+        storageKey: PEEK_DRAWER_OPEN_STORAGE_KEY,
+    }),
+    items: storage<PeekDrawerEntry[]>([], {
+        storageKey: PEEK_DRAWER_ITEMS_STORAGE_KEY,
+    }),
+    triggerId: null,
+});
 
 export function PeekDrawer({
     description,
@@ -88,41 +137,132 @@ export function PeekDrawer({
     url,
     children,
 }: PeekDrawerProps) {
-    const [isOpen, setIsOpen] = React.useState(false);
-
     return (
-        <PeekDrawerContext value={{ description, isOpen, title, url }}>
-            <Drawer onOpenChange={setIsOpen}>
-                <DrawerVirtualKeyboardProvider>
-                    {children}
-                    <PeekDrawerContent />
-                </DrawerVirtualKeyboardProvider>
-            </Drawer>
+        <PeekDrawerContext
+            value={{
+                entry: { description, title, url },
+                triggerId: `peek-drawer-${React.useId()}`,
+            }}
+        >
+            {children}
         </PeekDrawerContext>
     );
 }
 
-export const PeekDrawerTrigger = DrawerTrigger;
+export function PeekDrawerTrigger({
+    onClick,
+    ...props
+}: PeekDrawerTriggerProps) {
+    const { entry, triggerId } = usePeekDrawerContext();
 
-function PeekDrawerContent() {
-    const { description, isOpen, title, url } = usePeekDrawerContext();
-    const { markAsBlocked, markAsLoaded, oembed, status } = usePeekStatus(
+    const handleClick = useStableCallback(
+        (event: PeekDrawerTriggerClickEvent) => {
+            onClick?.(event);
+            if (event.defaultPrevented) {
+                return;
+            }
+            openPeekDrawer(entry, triggerId);
+            event.preventDefault();
+        }
+    );
+
+    return (
+        <DrawerTrigger
+            {...props}
+            handle={PEEK_DRAWER_HANDLE}
+            id={triggerId}
+            onClick={handleClick}
+            payload={entry}
+        />
+    );
+}
+
+export function PeekDrawerSurface() {
+    const {
+        activeIndex,
         isOpen,
+        items,
+        setActiveIndex,
+        setIsOpen,
+        setTriggerId,
+        triggerId,
+    } = usePeekDrawerStore();
+    const safeActiveIndex = getPeekActiveIndex(items, activeIndex);
+    const activeEntry = items[safeActiveIndex] ?? null;
+
+    const handleOpenChange = useStableCallback((nextIsOpen: boolean) => {
+        setIsOpen(nextIsOpen);
+        if (!nextIsOpen) {
+            setTriggerId(null);
+        }
+    });
+
+    React.useEffect(() => {
+        if (isOpen && items.length === 0) {
+            setIsOpen(false);
+            setTriggerId(null);
+            PEEK_DRAWER_HANDLE.close();
+        }
+        if (items.length > 0 && safeActiveIndex !== activeIndex) {
+            setActiveIndex(safeActiveIndex);
+        }
+    }, [
+        activeIndex,
+        isOpen,
+        items.length,
+        safeActiveIndex,
+        setActiveIndex,
+        setIsOpen,
+        setTriggerId,
+    ]);
+
+    return (
+        <Drawer
+            handle={PEEK_DRAWER_HANDLE}
+            onOpenChange={handleOpenChange}
+            open={isOpen}
+            position="bottom"
+            triggerId={triggerId}
+        >
+            <DrawerVirtualKeyboardProvider>
+                {activeEntry ? (
+                    <PeekDrawerContent
+                        activeEntry={activeEntry}
+                        activeIndex={safeActiveIndex}
+                        items={items}
+                        onSelectQueueIndex={selectPeekQueueIndex}
+                    />
+                ) : null}
+            </DrawerVirtualKeyboardProvider>
+        </Drawer>
+    );
+}
+
+function PeekDrawerContent({
+    activeEntry,
+    activeIndex,
+    items,
+    onSelectQueueIndex,
+}: {
+    activeEntry: PeekDrawerEntry;
+    activeIndex: number;
+    items: PeekDrawerEntry[];
+    onSelectQueueIndex: (index: number) => void;
+}) {
+    const { description, title, url } = activeEntry;
+    const { markAsBlocked, markAsLoaded, oembed, status } = usePeekStatus(
+        true,
         url,
         DEFAULT_PEEK_TIMEOUT_MS
     );
     const canOpenUrlExternally = url !== PEEK_BLOCKED_URL;
     const shouldRenderPreview =
-        isOpen &&
-        canOpenUrlExternally &&
-        status !== "blocked" &&
-        status !== "oembed";
+        canOpenUrlExternally && status !== "blocked" && status !== "oembed";
 
     return (
-        <DrawerViewport>
+        <DrawerViewport backdrop={false}>
             <DrawerPopup
                 className="h-[min(calc(88vh-var(--drawer-keyboard-inset,0px)),58rem)] sm:mx-auto sm:max-w-[min(96vw,78rem)]"
-                position="bottom"
                 showBar
                 showCloseButton
             >
@@ -167,7 +307,7 @@ function PeekDrawerContent() {
                         {shouldRenderPreview ? (
                             <iframe
                                 className="size-full border-0 bg-background"
-                                key={`${isOpen ? "open" : "closed"}-${url}`}
+                                key={url}
                                 onError={markAsBlocked}
                                 onLoad={markAsLoaded}
                                 referrerPolicy="strict-origin-when-cross-origin"
@@ -177,6 +317,13 @@ function PeekDrawerContent() {
                         ) : null}
                     </div>
                 </DrawerPanel>
+                {items.length > 1 ? (
+                    <PeekDrawerQueueFooter
+                        activeIndex={activeIndex}
+                        items={items}
+                        onSelect={onSelectQueueIndex}
+                    />
+                ) : null}
             </DrawerPopup>
         </DrawerViewport>
     );
@@ -190,6 +337,137 @@ function usePeekDrawerContext(): PeekDrawerContextValue {
         );
     }
     return context;
+}
+
+function openPeekDrawer(entry: PeekDrawerEntry, triggerId: string) {
+    const { activeIndex, isOpen, items } = getPeekDrawerState();
+    const queue = isOpen
+        ? addPeekQueueEntry({ activeIndex, items }, entry)
+        : createPeekQueue(entry);
+
+    batchPeekDrawerStoreUpdates(() => {
+        peekDrawerStoreActions.setItems(queue.items);
+        peekDrawerStoreActions.setActiveIndex(queue.activeIndex);
+        peekDrawerStoreActions.setTriggerId(triggerId);
+        peekDrawerStoreActions.setIsOpen(true);
+    });
+    PEEK_DRAWER_HANDLE.open(triggerId);
+}
+
+function createPeekQueue(entry: PeekDrawerEntry): PeekDrawerQueueState {
+    return {
+        activeIndex: 0,
+        items: [entry],
+    };
+}
+
+function selectPeekQueueIndex(index: number) {
+    const { items } = getPeekDrawerState();
+    if (index < 0 || index >= items.length) {
+        return;
+    }
+    peekDrawerStoreActions.setActiveIndex(index);
+}
+
+function addPeekQueueEntry(
+    queue: PeekDrawerQueueState,
+    entry: PeekDrawerEntry
+): PeekDrawerQueueState {
+    const existingIndex = queue.items.findIndex(
+        (item) => item.url === entry.url
+    );
+    if (existingIndex >= 0) {
+        return {
+            activeIndex: existingIndex,
+            items: queue.items.map((item, index) =>
+                index === existingIndex ? entry : item
+            ),
+        };
+    }
+    const items = [...queue.items, entry].slice(-PEEK_DRAWER_QUEUE_LIMIT);
+    return {
+        activeIndex: items.length - 1,
+        items,
+    };
+}
+
+function getPeekActiveIndex(items: PeekDrawerEntry[], activeIndex: number) {
+    if (items.length === 0) {
+        return 0;
+    }
+    return Math.min(Math.max(activeIndex, 0), items.length - 1);
+}
+
+function PeekDrawerQueueFooter({
+    activeIndex,
+    items,
+    onSelect,
+}: {
+    activeIndex: number;
+    items: PeekDrawerEntry[];
+    onSelect: (index: number) => void;
+}) {
+    return (
+        <DrawerFooter
+            allowSelection={false}
+            className="flex-col items-stretch gap-2 px-4 sm:flex-col sm:justify-start"
+        >
+            <div className="flex items-center justify-between gap-3 text-muted-foreground text-xs">
+                <span className="font-medium uppercase">Peek stack</span>
+                <span className="tabular-nums">
+                    {activeIndex + 1}/{items.length}
+                </span>
+            </div>
+            <ul className="flex gap-2 overflow-x-auto pb-1">
+                {items.map((item, index) => (
+                    <PeekDrawerQueueItem
+                        index={index}
+                        isActive={index === activeIndex}
+                        item={item}
+                        key={item.url}
+                        onSelect={onSelect}
+                    />
+                ))}
+            </ul>
+        </DrawerFooter>
+    );
+}
+
+function PeekDrawerQueueItem({
+    index,
+    isActive,
+    item,
+    onSelect,
+}: {
+    index: number;
+    isActive: boolean;
+    item: PeekDrawerEntry;
+    onSelect: (index: number) => void;
+}) {
+    const handleClick = useStableCallback(() => {
+        onSelect(index);
+    });
+
+    return (
+        <li>
+            <Button
+                aria-current={isActive ? "page" : undefined}
+                className="h-auto min-w-44 max-w-64 justify-start px-3 py-2 text-left"
+                onClick={handleClick}
+                size="sm"
+                variant={isActive ? "secondary" : "ghost"}
+            >
+                <span className="flex min-w-0 flex-col items-start gap-0.5">
+                    <span className="max-w-full truncate font-medium">
+                        {item.title}
+                    </span>
+                    <span className="max-w-full truncate text-muted-foreground text-xs">
+                        {item.description ?? parseDisplayUrl(item.url)}
+                    </span>
+                </span>
+            </Button>
+        </li>
+    );
 }
 
 /**

@@ -2604,13 +2604,17 @@ function CollectionItemTrigger({
     const activeThumbnail = thumbnails[activePreviewIndex];
     const onClick = useStableCallback(onClickProp);
 
+    const selectAndClose = useStableCallback(() => {
+        controller.onSelectCollection(collection.id);
+        setIsOpen(false);
+    });
+
     const handleClick = useStableCallback(
         (
             event: BaseUIEvent<React.MouseEvent<HTMLAnchorElement, MouseEvent>>
         ) => {
             onClick?.(event);
-            controller.onSelectCollection(collection.id);
-            setIsOpen(false);
+            selectAndClose();
         }
     );
 
@@ -2628,14 +2632,27 @@ function CollectionItemTrigger({
                 }
             />
             <PreviewCardPopup
-                className="pointer-events-none aspect-3/2 p-0"
+                className="p-0"
                 positionMethod="fixed"
                 side="right"
             >
-                <CollectionsListItemPreviewImage
-                    alt={`${collection.name} preview`}
-                    src={activeThumbnail}
-                />
+                <div className="pointer-events-none aspect-3/2">
+                    <CollectionsListItemPreviewImage
+                        alt={`${collection.name} preview`}
+                        src={activeThumbnail}
+                    />
+                </div>
+                <Button
+                    className="my-1 justify-between"
+                    onClick={selectAndClose}
+                    variant="ghost"
+                >
+                    <span>
+                        Created{" "}
+                        {dayjs(collection.createdAt).format("MMM DD, YYYY")}
+                    </span>
+                    <span>Updated {dayjs(collection.updatedAt).fromNow()}</span>
+                </Button>
             </PreviewCardPopup>
         </PreviewCard>
     );

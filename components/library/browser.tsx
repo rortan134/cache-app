@@ -95,7 +95,11 @@ import {
     MenuSubTrigger,
     MenuTrigger,
 } from "@/components/ui/menu";
-import { PeekDrawer, PeekDrawerTrigger } from "@/components/library/peek";
+import {
+    PeekDrawer,
+    PeekDrawerSurface,
+    PeekDrawerTrigger,
+} from "@/components/library/peek";
 import { useSidebar } from "@/components/ui/sidebar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Spinner } from "@/components/ui/spinner";
@@ -5822,6 +5826,7 @@ export function Browser({
                 isSavingPastedUrl={isSavingPastedUrl}
                 onNoteDrawerClose={() => setActiveNote(null)}
             />
+            <PeekDrawerSurface />
             <BackToTopButton>
                 <ArrowUpIcon aria-hidden className="size-4" />
                 <T>Back to top</T>

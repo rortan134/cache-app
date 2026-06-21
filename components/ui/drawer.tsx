@@ -36,11 +36,11 @@ export const DrawerCreateHandle: typeof DrawerPrimitive.createHandle =
 export const DrawerVirtualKeyboardProvider: typeof DrawerPrimitive.VirtualKeyboardProvider =
     DrawerPrimitive.VirtualKeyboardProvider;
 
-export function Drawer({
+export function Drawer<Payload = unknown>({
     swipeDirection,
     position = "bottom",
     ...props
-}: DrawerPrimitive.Root.Props & {
+}: DrawerPrimitive.Root.Props<Payload> & {
     position?: DrawerPosition;
 }) {
     return (
@@ -57,7 +57,9 @@ export function Drawer({
 
 const DrawerPortal: typeof DrawerPrimitive.Portal = DrawerPrimitive.Portal;
 
-export function DrawerTrigger(props: DrawerPrimitive.Trigger.Props) {
+export function DrawerTrigger<Payload = unknown>(
+    props: DrawerPrimitive.Trigger.Props<Payload>
+) {
     return <DrawerPrimitive.Trigger data-slot="drawer-trigger" {...props} />;
 }
 
