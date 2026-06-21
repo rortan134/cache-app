@@ -81,13 +81,13 @@ function comparePriorities<
 function compareCreatedAt<
     T extends Pick<SortableCollectionSummary, "createdAt">,
 >(a: T, b: T) {
-    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    return b.createdAt.getTime() - a.createdAt.getTime();
 }
 
 function compareUpdatedAt<
     T extends Pick<SortableCollectionSummary, "updatedAt">,
 >(a: T, b: T) {
-    return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+    return b.updatedAt.getTime() - a.updatedAt.getTime();
 }
 
 function compareItemCount<
@@ -98,30 +98,30 @@ function compareItemCount<
 
 function textMatchScore(
     collection: Pick<SortableCollectionSummary, "name">,
-    query: string
+    normalizedQuery: string
 ) {
-    const name = collection.name.trim().toLowerCase();
-    const q = query.trim().toLowerCase();
-
-    if (q.length === 0) {
+    if (normalizedQuery.length === 0) {
         return 0;
     }
-    if (name === q) {
+
+    const name = collection.name.trim().toLowerCase();
+    if (name === normalizedQuery) {
         return 3;
     }
-    if (name.startsWith(q)) {
+    if (name.startsWith(normalizedQuery)) {
         return 2;
     }
-    if (name.includes(q)) {
+    if (name.includes(normalizedQuery)) {
         return 1;
     }
     return 0;
 }
 
 function compareTextMatch(query: string) {
+    const normalizedQuery = query.trim().toLowerCase();
     return (a: SortableCollectionSummary, b: SortableCollectionSummary) =>
-        textMatchScore(b, query) - textMatchScore(a, query) ||
-        compareNames(a, b);
+        textMatchScore(b, normalizedQuery) -
+            textMatchScore(a, normalizedQuery) || compareNames(a, b);
 }
 
 type SummarySorter = Record<
@@ -251,13 +251,14 @@ export function WorkspaceProvider({
     );
 
     const visibleCollections = collections.filter((collection) => {
-        if (collectionView === "exclude-archives") {
-            return collection.priority !== "archive";
+        switch (collectionView) {
+            case "exclude-archives":
+                return collection.priority !== "archive";
+            case "show-shared-only":
+                return collection.shareId !== null;
+            default:
+                return true;
         }
-        if (collectionView === "show-shared-only") {
-            return collection.shareId !== null;
-        }
-        return true;
     });
 
     const collectionSummaries = sortCollectionSummaries(
@@ -277,12 +278,16 @@ export function WorkspaceProvider({
         buildCollectionItemIndexes(items);
 
     const favoriteItems = items
-        .filter((item) => item.favoritedAt !== null)
-        .toSorted((left, right) => {
-            const leftTime = left.favoritedAt?.getTime() ?? 0;
-            const rightTime = right.favoritedAt?.getTime() ?? 0;
-            return rightTime - leftTime;
-        });
+        .filter(
+            (
+                item
+            ): item is LibraryItemWithCollections & { favoritedAt: Date } =>
+                item.favoritedAt !== null
+        )
+        .toSorted(
+            (left, right) =>
+                right.favoritedAt.getTime() - left.favoritedAt.getTime()
+        );
 
     const favoriteItemIdSet = new Set(favoriteItems.map((item) => item.id));
 
