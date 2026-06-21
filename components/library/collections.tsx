@@ -946,29 +946,41 @@ function useCollectionsController() {
         preventDefault: true,
     });
 
-    useHotkeys("e", (event) => {
-        const target = hoveredCollectionRef.current;
-        if (target) {
-            event.preventDefault();
-            requestRename(target);
-        }
-    });
+    useHotkeys(
+        "e",
+        (event) => {
+            const target = hoveredCollectionRef.current;
+            if (target) {
+                event.preventDefault();
+                requestRename(target);
+            }
+        },
+        { description: "Rename hovered collection" }
+    );
 
-    useHotkeys(["delete", "backspace"], (event) => {
-        const target = hoveredCollectionRef.current;
-        if (target) {
-            event.preventDefault();
-            requestDelete(target);
-        }
-    });
+    useHotkeys(
+        ["delete", "backspace"],
+        (event) => {
+            const target = hoveredCollectionRef.current;
+            if (target) {
+                event.preventDefault();
+                requestDelete(target);
+            }
+        },
+        { description: "Delete hovered collection" }
+    );
 
-    useHotkeys("c", (event) => {
-        const target = hoveredCollectionRef.current;
-        if (target && target.itemCount > 0) {
-            event.preventDefault();
-            handleCopyLinks(target);
-        }
-    });
+    useHotkeys(
+        "c",
+        (event) => {
+            const target = hoveredCollectionRef.current;
+            if (target && target.itemCount > 0) {
+                event.preventDefault();
+                handleCopyLinks(target);
+            }
+        },
+        { description: "Copy links from hovered collection" }
+    );
 
     useHotkeys(
         "alt+f",
@@ -982,6 +994,7 @@ function useCollectionsController() {
                 }
             }
         },
+        { description: "Favorite hovered collection" },
         [favoriteCollectionIdSet]
     );
 
@@ -1994,8 +2007,7 @@ function CollectionsListEmpty({
                             type="button"
                         >
                             Create your first collection
-                        </button>{" "}
-                        to start grouping saved items.
+                        </button>
                     </T>
                 )}
             </p>
@@ -2455,7 +2467,7 @@ function CollectionItemPreviewPopupContent({
 
     return (
         <>
-            <div className="pointer-events-none aspect-3/2">
+            <div className="aspect-3/2 h-auto w-full">
                 <CollectionsListItemPreviewImage
                     alt={`${collection.name} preview`}
                     src={activeThumbnail}
@@ -2464,6 +2476,7 @@ function CollectionItemPreviewPopupContent({
             <Button
                 className="my-1 justify-between"
                 onClick={selectAndClose}
+                size="sm"
                 variant="ghost"
             >
                 <span>

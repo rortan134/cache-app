@@ -3,6 +3,7 @@ import { buildPageMetadata } from "@/app/metadata";
 import { GoogleOneTapTrigger, SessionHint } from "@/components/auth/session";
 import { SignInButton } from "@/components/auth/sign-in-buttons";
 import { BrandLogo } from "@/components/ui/brand-logo";
+import { Button } from "@/components/ui/button";
 import { Carousel } from "@/components/ui/carousel";
 import { Footer } from "@/components/ui/footer";
 import { GradientWaveText } from "@/components/ui/gradient-wave-text";
@@ -10,6 +11,7 @@ import {
     ChromeIcon,
     ClaudeIcon,
     CursorIcon,
+    GithubIcon,
     ModelContextProtocolIcon,
     OpenAIIcon,
     TikTokIcon,
@@ -44,6 +46,7 @@ import {
 } from "lucide-react";
 import type { Metadata } from "next";
 import Image from "next/image";
+import Link from "next/link";
 import type React from "react";
 
 export async function generateMetadata({
@@ -190,6 +193,22 @@ export default async function Home() {
                                 online. Starting from $8/month.
                             </T>
                         </p>
+                        <Button
+                            className="mt-0.5 opacity-50"
+                            render={
+                                <Link
+                                    aria-label="GitHub Repository"
+                                    href="/github"
+                                    rel="noopener"
+                                    target="_blank"
+                                />
+                            }
+                            size="xs"
+                            variant="link"
+                        >
+                            <GithubIcon className="size-3.5" />
+                            &nbsp;Star us on GitHub
+                        </Button>
                     </div>
                     <section className="grid w-full grid-cols-1 gap-2 md:grid-cols-2 md:gap-[40px]">
                         <div className="flex max-w-[340px] flex-col gap-3 py-5 md:gap-4">

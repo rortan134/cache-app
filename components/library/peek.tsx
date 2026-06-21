@@ -488,7 +488,7 @@ function PeekDrawerContent({
     return (
         <DrawerViewport backdrop={false}>
             <DrawerPopup
-                className="h-[min(calc(88vh-var(--drawer-keyboard-inset,0px)),58rem)] sm:mx-auto sm:max-w-[min(96vw,78rem)]"
+                className="h-[min(calc(88vh-var(--drawer-keyboard-inset,0px)),58rem)] sm:max-w-[min(96vw,78rem)]"
                 showBar
                 showCloseButton
             >
@@ -511,7 +511,7 @@ function PeekDrawerContent({
                 </DrawerHeader>
                 <DrawerPanel
                     allowSelection={false}
-                    className="p-0"
+                    className="flex min-h-full flex-col p-0"
                     scrollable={false}
                 >
                     <div
@@ -649,6 +649,7 @@ function PeekDrawerLoadingState() {
 
 function PeekDrawerOembedPreview({ oembed }: { oembed: PeekDrawerOembed }) {
     const iframeSrc = getOembedIframeSrc(oembed);
+
     return (
         <iframe
             allow={iframeSrc ? OEMBED_IFRAME_ALLOW : undefined}

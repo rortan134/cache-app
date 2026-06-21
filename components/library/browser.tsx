@@ -19,6 +19,11 @@ import {
 } from "@/components/library/composer";
 import type { NoteDraft } from "@/components/library/notes";
 import {
+    PeekDrawer,
+    PeekDrawerSurface,
+    PeekDrawerTrigger,
+} from "@/components/library/peek";
+import {
     NAME_COLLATOR,
     OpenFavoriteItemRefContext,
     useWorkspaceContext,
@@ -95,11 +100,6 @@ import {
     MenuSubTrigger,
     MenuTrigger,
 } from "@/components/ui/menu";
-import {
-    PeekDrawer,
-    PeekDrawerSurface,
-    PeekDrawerTrigger,
-} from "@/components/library/peek";
 import { useSidebar } from "@/components/ui/sidebar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Spinner } from "@/components/ui/spinner";
@@ -1936,7 +1936,7 @@ function BrowserEmpty() {
                                         aspect
                                     )}
                                 />
-                                <Skeleton className="mt-2 h-2.5 w-[92%]" />
+                                <Skeleton className="mt-2 h-3 w-[92%]" />
                             </MasonryItem>
                         );
                     }
@@ -3942,6 +3942,7 @@ function CardMenu({
             onItemFavoriteToggle(item);
         },
         {
+            description: "Toggle favorite on selected item",
             enabled: isOpen && !isDeletePending,
             enableOnContentEditable: false,
             enableOnFormTags: false,
@@ -3958,6 +3959,7 @@ function CardMenu({
             }
         },
         {
+            description: "Delete selected item",
             enabled: isOpen && !isDeletePending,
             enableOnContentEditable: false,
             enableOnFormTags: false,
@@ -4425,7 +4427,7 @@ function LockedPreviewCard({
         <div className="relative flex flex-col overflow-clip rounded-xl ring-1 ring-border/30">
             {placeholder.kind === "note" ? (
                 <div className="relative min-h-56 bg-linear-to-br from-amber-50 via-background to-stone-100 p-4">
-                    <div className="absolute inset-0 bg-background/30 backdrop-blur-sm" />
+                    <div className="absolute inset-0 bg-background/30" />
                     <div className="relative flex h-full flex-col gap-3">
                         <div className="space-y-2">
                             <Skeleton className="h-3 w-[86%]" />
@@ -4443,7 +4445,7 @@ function LockedPreviewCard({
                     )}
                 >
                     <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.45),transparent_38%)]" />
-                    <div className="absolute inset-0 bg-background/25 backdrop-blur-sm" />
+                    <div className="absolute inset-0 bg-background/25" />
                     <div className="relative flex h-full flex-col justify-between p-4">
                         <div className="space-y-2">
                             <Skeleton className="h-3 w-[88%]" />

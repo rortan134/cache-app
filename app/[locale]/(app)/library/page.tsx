@@ -53,10 +53,7 @@ export default async function LibraryPage() {
         collections,
         linkedAccounts,
     ] = await Promise.all([
-        getLibraryItems({
-            hasAccess,
-            userId,
-        }),
+        getLibraryItems({ hasAccess, userId }),
         listCollections({ userId }),
         listLinkedIntegrationAccounts({ userId }),
     ]);

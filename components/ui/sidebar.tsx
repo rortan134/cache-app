@@ -3,6 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/common/cn";
 import { getOwnerDocument, getOwnerWindow } from "@/lib/common/dom";
+import { getSystemControlKey } from "@/lib/common/keyboard";
 import { mergeProps } from "@base-ui/react/merge-props";
 import { useRender } from "@base-ui/react/use-render";
 import { useStableCallback } from "@base-ui/utils/useStableCallback";
@@ -148,7 +149,11 @@ export function SidebarRail({
             data-slot="sidebar-rail"
             onClick={toggleSidebar}
             tabIndex={-1}
-            title={open ? "Close sidebar" : "Open sidebar"}
+            title={
+                open
+                    ? `Close sidebar (${getSystemControlKey()}B)`
+                    : `Open sidebar (${getSystemControlKey()}B)`
+            }
         />
     );
 }

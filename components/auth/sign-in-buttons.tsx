@@ -19,7 +19,9 @@ export function SignInButton({ hasServerSession }: SignInButtonProps) {
         }
     });
 
-    useHotkeys("p", handleLibraryShortcut);
+    useHotkeys("p", handleLibraryShortcut, {
+        description: "Go to library",
+    });
 
     if (hasServerSession) {
         return (

@@ -34,9 +34,9 @@ export function DisclosureList({
 
     return (
         <div
+            {...props}
             className={cn("flex flex-col gap-1", className)}
             data-slot="disclosure-list"
-            {...props}
         >
             {visible}
             {hidden.length > 0 && <DisclosureListHidden items={hidden} />}
@@ -53,7 +53,14 @@ function DisclosureListHidden({ items }: DisclosureListHiddenProps) {
 
     return (
         <Collapsible onOpenChange={setIsOpen} open={isOpen}>
-            <CollapsibleTrigger className="flex w-full items-center px-2.5 py-1.5 text-muted-foreground text-xs hover:text-foreground">
+            <CollapsibleTrigger
+                className="flex w-full items-center px-2.5 py-1.5 text-muted-foreground text-xs hover:text-foreground"
+                title={
+                    isOpen
+                        ? "Show fewer items"
+                        : `Show ${items.length} more items`
+                }
+            >
                 {isOpen ? "Show less" : `Show ${items.length} more`}
             </CollapsibleTrigger>
             <CollapsiblePanel>{items}</CollapsiblePanel>

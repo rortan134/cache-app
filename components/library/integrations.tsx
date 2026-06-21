@@ -455,14 +455,7 @@ function IntegrationsListTrigger({
                     <CmdKbd />I
                 </Kbd>
             </PopoverTrigger>
-            <PopoverPopup
-                align="start"
-                positionerClassName={cn(
-                    isIntegrationsListOpen && "pointer-events-none! hidden!"
-                )}
-                positionMethod="fixed"
-                side="right"
-            >
+            <PopoverPopup align="start" positionMethod="fixed" side="right">
                 <Image
                     alt=""
                     aria-hidden
@@ -474,10 +467,10 @@ function IntegrationsListTrigger({
                 <div className="mt-4 flex max-w-64 flex-col gap-2">
                     <PopoverTitle>Places to return to</PopoverTitle>
                     <PopoverDescription className="text-foreground text-xs">
-                        Get more out of your bookmarks with Cache's first-class
-                        integrations with browsers, social apps, and video
-                        platforms. Use integrations to import from another
-                        source into your Cache.
+                        Get more out of your bookmarks with Cache’s first-class
+                        integrations for browsers, social apps, and video
+                        platforms. Use integrations to import from other sources
+                        into your Cache.
                     </PopoverDescription>
                 </div>
             </PopoverPopup>
