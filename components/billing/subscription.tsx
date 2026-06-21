@@ -412,9 +412,9 @@ function SubscriptionBadge({
 }: React.ComponentProps<typeof Badge> & { hideIcon?: boolean }) {
     return (
         <Badge
+            {...props}
             className={cn("h-7! w-full", className)}
             variant={variant}
-            {...props}
         >
             {hideIcon ? null : <CrownFilledIcon />}
             {children}
@@ -434,11 +434,11 @@ function SubscriptionErrorMessage(props: React.ComponentProps<"p">) {
 
     return (
         <p
+            {...props}
             aria-atomic="true"
             aria-live="assertive"
             className="px-2 text-destructive text-xs"
             role="alert"
-            {...props}
         />
     );
 }

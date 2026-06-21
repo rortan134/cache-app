@@ -44,12 +44,12 @@ export function MenuPopup({
                 sideOffset={sideOffset}
             >
                 <MenuPrimitive.Popup
+                    {...props}
                     className={cn(
                         "relative not-[class*='w-']:min-w-52 origin-(--transform-origin) overflow-hidden rounded-2xl border bg-popover not-dark:bg-clip-padding text-popover-foreground shadow-lg/8 outline-none transition-[scale,opacity] before:pointer-events-none before:absolute before:inset-0 before:rounded-[calc(var(--radius-2xl)-1px)] before:shadow-[0_1px_--theme(--color-black/4%)] data-starting-style:scale-98 data-starting-style:opacity-0 dark:before:shadow-[0_-1px_--theme(--color-white/6%)]",
                         className
                     )}
                     data-slot="menu-popup"
-                    {...props}
                 >
                     <div className="max-h-(--available-height) w-full overflow-y-auto p-1">
                         {children}
@@ -61,11 +61,11 @@ export function MenuPopup({
 }
 
 export function MenuGroup(props: MenuPrimitive.Group.Props) {
-    return <MenuPrimitive.Group data-slot="menu-group" {...props} />;
+    return <MenuPrimitive.Group {...props} data-slot="menu-group" />;
 }
 
 export function MenuRadioGroup(props: MenuPrimitive.RadioGroup.Props) {
-    return <MenuPrimitive.RadioGroup data-slot="menu-radio-group" {...props} />;
+    return <MenuPrimitive.RadioGroup {...props} data-slot="menu-radio-group" />;
 }
 
 export function MenuGroupLabel({
@@ -77,13 +77,13 @@ export function MenuGroupLabel({
 }) {
     return (
         <MenuPrimitive.GroupLabel
+            {...props}
             className={cn(
                 "px-2 py-1.5 font-medium text-muted-foreground text-xs data-inset:ps-9 sm:data-inset:ps-8",
                 className
             )}
             data-inset={inset}
             data-slot="menu-group-label"
-            {...props}
         />
     );
 }
@@ -94,12 +94,12 @@ export function MenuShortcut({
 }: React.ComponentProps<"kbd">) {
     return (
         <kbd
+            {...props}
             className={cn(
                 "ms-auto font-medium font-sans text-muted-foreground/72 text-xs tracking-widest",
                 className
             )}
             data-slot="menu-shortcut"
-            {...props}
         />
     );
 }
@@ -113,6 +113,7 @@ export function MenuItem({
 }) {
     return (
         <MenuPrimitive.Item
+            {...props}
             className={cn(
                 "flex cursor-default select-none items-center gap-2 rounded-xl px-2.5 py-2 text-sm outline-none hover:transition-colors data-disabled:pointer-events-none data-highlighted:bg-accent data-disabled:opacity-64",
                 variant === "default" &&
@@ -122,7 +123,6 @@ export function MenuItem({
                 className
             )}
             data-slot="menu-item"
-            {...props}
         />
     );
 }
@@ -134,12 +134,12 @@ export function MenuRadioItem({
 }: MenuPrimitive.RadioItem.Props) {
     return (
         <MenuPrimitive.RadioItem
+            {...props}
             className={cn(
                 "grid min-h-8 cursor-default select-none grid-cols-[1fr_1rem] items-center gap-5 rounded-xl px-2.5 py-1.5 text-sm outline-none hover:transition-colors data-disabled:pointer-events-none data-highlighted:bg-accent data-highlighted:text-accent-foreground data-disabled:opacity-64",
                 className
             )}
             data-slot="menu-radio-item"
-            {...props}
         >
             <span className="col-start-1 truncate">{children}</span>
             <MenuPrimitive.RadioItemIndicator className="col-start-2 -me-0.5">
@@ -155,15 +155,15 @@ export function MenuSeparator({
 }: MenuPrimitive.Separator.Props) {
     return (
         <MenuPrimitive.Separator
+            {...props}
             className={cn("my-1 h-px bg-border/50", className)}
             data-slot="menu-separator"
-            {...props}
         />
     );
 }
 
 export function MenuSub(props: MenuPrimitive.SubmenuRoot.Props) {
-    return <MenuPrimitive.SubmenuRoot data-slot="menu-sub" {...props} />;
+    return <MenuPrimitive.SubmenuRoot {...props} data-slot="menu-sub" />;
 }
 
 export function MenuSubTrigger({
@@ -173,12 +173,12 @@ export function MenuSubTrigger({
 }: MenuPrimitive.SubmenuTrigger.Props) {
     return (
         <MenuPrimitive.SubmenuTrigger
+            {...props}
             className={cn(
                 "flex min-h-8 cursor-default select-none items-center gap-2 rounded-lg px-2.5 py-2 text-sm outline-none hover:transition-colors data-disabled:pointer-events-none data-highlighted:bg-accent data-highlighted:text-accent-foreground data-disabled:opacity-64",
                 className
             )}
             data-slot="menu-sub-trigger"
-            {...props}
         >
             {children}
             <ChevronRightIcon className="ms-auto -me-0.5 size-4 opacity-80" />
@@ -201,13 +201,13 @@ export function MenuSubPopup({
 
     return (
         <MenuPopup
+            {...props}
             align={align}
             alignOffset={alignOffset ?? defaultAlignOffset}
             className={className}
             data-slot="menu-sub-content"
             side="inline-end"
             sideOffset={sideOffset}
-            {...props}
         />
     );
 }
@@ -223,6 +223,7 @@ export function MenuCheckboxItem({
 }) {
     return (
         <MenuPrimitive.CheckboxItem
+            {...props}
             checked={checked}
             className={cn(
                 "grid min-h-8 in-data-[side=none]:min-w-[calc(var(--anchor-width)+1.25rem)] cursor-default items-center gap-2 rounded-sm py-1 ps-2 text-base text-foreground outline-none data-disabled:pointer-events-none data-highlighted:bg-accent data-highlighted:text-accent-foreground data-disabled:opacity-64 sm:min-h-7 sm:text-sm [&_svg:not([class*='size-'])]:size-4.5 sm:[&_svg:not([class*='size-'])]:size-4 [&_svg]:pointer-events-none [&_svg]:shrink-0",
@@ -232,7 +233,6 @@ export function MenuCheckboxItem({
                 className
             )}
             data-slot="menu-checkbox-item"
-            {...props}
         >
             {variant === "switch" ? (
                 <MenuSwitchIndicator>{children}</MenuSwitchIndicator>

@@ -37,6 +37,7 @@ export function Textarea({
                 ref={ref}
                 render={(defaultProps: React.ComponentProps<"textarea">) => (
                     <textarea
+                        {...mergeProps(defaultProps, props)}
                         className={cn(
                             "field-sizing-content min-h-17.5 w-full resize-none rounded-[inherit] px-[calc(--spacing(3)-1px)] py-[calc(--spacing(1.5)-1px)] outline-none max-sm:min-h-20.5",
                             size === "sm" &&
@@ -45,7 +46,6 @@ export function Textarea({
                                 "min-h-18.5 py-[calc(--spacing(2)-1px)] max-sm:min-h-21.5"
                         )}
                         data-slot="textarea"
-                        {...mergeProps(defaultProps, props)}
                     />
                 )}
                 spellCheck="true"

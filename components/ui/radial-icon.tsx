@@ -18,13 +18,13 @@ export function RadialIcon({
 
     return (
         <svg
+            {...props}
             aria-label="Context usage"
             height="20"
             role="img"
             style={{ color: "currentcolor" }}
             viewBox={`0 0 ${ICON_VIEWBOX} ${ICON_VIEWBOX}`}
             width="20"
-            {...props}
         >
             <circle
                 cx={ICON_CENTER}

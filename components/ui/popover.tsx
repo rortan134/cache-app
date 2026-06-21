@@ -50,6 +50,7 @@ export function PopoverPopup({
                 sideOffset={sideOffset}
             >
                 <PopoverPrimitive.Popup
+                    {...props}
                     className={cn(
                         "relative flex h-(--popup-height,auto) w-(--popup-width,auto) origin-(--transform-origin) overflow-clip rounded-xl border bg-popover not-dark:bg-clip-padding text-popover-foreground shadow-lg/5 outline-none transition-[width,height,scale,opacity] before:pointer-events-none before:absolute before:inset-0 before:rounded-[calc(var(--radius-xl)-1px)] before:shadow-[0_1px_--theme(--color-black/4%)] has-data-[slot=calendar]:rounded-xl has-data-[slot=calendar]:before:rounded-[calc(var(--radius-xl)-1px)] data-starting-style:scale-98 data-starting-style:opacity-0 dark:before:shadow-[0_-1px_--theme(--color-white/6%)]",
                         tooltipStyle &&
@@ -57,7 +58,6 @@ export function PopoverPopup({
                         className
                     )}
                     data-slot="popover-popup"
-                    {...props}
                 >
                     <PopoverPrimitive.Viewport
                         className={cn(
@@ -77,7 +77,7 @@ export function PopoverPopup({
 }
 
 export function PopoverClose(props: PopoverPrimitive.Close.Props) {
-    return <PopoverPrimitive.Close data-slot="popover-close" {...props} />;
+    return <PopoverPrimitive.Close {...props} data-slot="popover-close" />;
 }
 
 export function PopoverTitle({
@@ -86,9 +86,9 @@ export function PopoverTitle({
 }: PopoverPrimitive.Title.Props) {
     return (
         <PopoverPrimitive.Title
+            {...props}
             className={cn("font-medium text-sm", className)}
             data-slot="popover-title"
-            {...props}
         />
     );
 }
@@ -99,9 +99,9 @@ export function PopoverDescription({
 }: PopoverPrimitive.Description.Props) {
     return (
         <PopoverPrimitive.Description
+            {...props}
             className={cn("text-muted-foreground text-sm", className)}
             data-slot="popover-description"
-            {...props}
         />
     );
 }

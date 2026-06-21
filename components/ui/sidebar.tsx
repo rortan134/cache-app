@@ -113,6 +113,7 @@ export function Sidebar({
 
     return (
         <aside
+            {...props}
             className={cn(
                 "peer group/sidebar relative inset-y-0 flex min-h-full w-full shrink-0 flex-col gap-8 overscroll-contain px-8 py-7 transition-[left,right,width,padding] duration-100 ease-in-out data-[side=right]:right-0 data-[side=left]:left-0 lg:w-[400px] lg:max-w-[400px] lg:justify-between lg:data-[state=collapsed]:w-16 lg:data-[state=collapsed]:px-3 lg:data-[state=collapsed]:[&_[data-sidebar-collapsible]]:hidden lg:data-[state=collapsed]:[&_[data-sidebar-label]]:sr-only lg:data-[state=collapsed]:[&_[data-sidebar=item]]:justify-center lg:data-[state=collapsed]:[&_[data-sidebar=item]]:px-0",
                 className
@@ -121,7 +122,6 @@ export function Sidebar({
             data-side={side}
             data-slot="sidebar"
             data-state={state}
-            {...props}
         />
     );
 }
@@ -134,6 +134,7 @@ export function SidebarRail({
 
     return (
         <button
+            {...props}
             className={cn(
                 "absolute inset-y-0 z-20 hidden w-4 transition-all ease-linear after:absolute after:inset-s-1/2 after:inset-y-0 after:w-[2px] hover:after:bg-muted! group-data-[side=left]/sidebar:right-0 group-data-[side=right]/sidebar:left-0 sm:flex ltr:-translate-x-1/2 rtl:-translate-x-1/2",
                 "in-data-[side=left]:cursor-w-resize! in-data-[side=right]:cursor-e-resize!",
@@ -148,7 +149,6 @@ export function SidebarRail({
             onClick={toggleSidebar}
             tabIndex={-1}
             title={open ? "Close sidebar" : "Open sidebar"}
-            {...props}
         />
     );
 }
@@ -159,13 +159,13 @@ export function SidebarHeader({
 }: React.ComponentProps<"div">) {
     return (
         <div
+            {...props}
             className={cn(
                 "no-scrollbar -mx-1 flex max-h-full min-h-0 w-full flex-col gap-6 overflow-auto p-1 sm:max-h-[calc(100vh-(var(--spacing)*8))] lg:sticky lg:top-8",
                 className
             )}
             data-sidebar="header"
             data-slot="sidebar-header"
-            {...props}
         />
     );
 }
@@ -179,6 +179,7 @@ export function SidebarTrigger({
 
     return (
         <Button
+            {...props}
             className={cn(
                 "hidden h-8 min-h-8 min-w-8 opacity-50 hover:opacity-100 lg:inline-flex",
                 open ? "cursor-w-resize" : "cursor-e-resize",
@@ -186,7 +187,6 @@ export function SidebarTrigger({
             )}
             data-sidebar="trigger"
             data-slot="sidebar-trigger"
-            {...props}
             onClick={(event) => {
                 onClick?.(event);
                 if (event.defaultPrevented) {
@@ -222,13 +222,13 @@ export function SidebarFooter({
 }: React.ComponentProps<"div">) {
     return (
         <div
+            {...props}
             className={cn(
                 "flex w-full flex-col gap-6 lg:sticky lg:bottom-8",
                 className
             )}
             data-sidebar="footer"
             data-slot="sidebar-footer"
-            {...props}
         />
     );
 }
@@ -258,13 +258,13 @@ export function SidebarGroup({
 }: React.ComponentProps<"ul">) {
     return (
         <ul
+            {...props}
             className={cn(
                 "relative flex w-full min-w-0 flex-col gap-px",
                 className
             )}
             data-sidebar="group"
             data-slot="sidebar-group"
-            {...props}
         />
     );
 }
