@@ -740,21 +740,13 @@ function useCollectionsController() {
     const { hasAccess } = useSubscriptionAccess();
 
     const [isCreateOpen, setIsCreateOpen] = React.useState(false);
-    const [createName, setCreateName] = React.useState("");
-    const [createDescription, setCreateDescription] = React.useState("");
     const [createItemId, setCreateItemId] = React.useState<string | null>(null);
-    const [createError, setCreateError] = React.useState<string | null>(null);
-    const [isCreatePending, startCreate] = React.useTransition();
 
     const [pendingRename, setPendingRename] =
         React.useState<LibraryCollectionSummary | null>(null);
-    const [renameDraft, setRenameDraft] = React.useState("");
-    const [renameError, setRenameError] = React.useState<string | null>(null);
-    const [isRenamePending, startRename] = React.useTransition();
 
     const [pendingDelete, setPendingDelete] =
         React.useState<LibraryCollectionSummary | null>(null);
-    const [isDeletePending, startDelete] = React.useTransition();
 
     const [pendingShareIds, setPendingShareIds] = React.useState<string[]>([]);
     const [, startShare] = React.useTransition();
@@ -787,11 +779,11 @@ function useCollectionsController() {
 
     const [isSortOpen, setIsSortOpen] = React.useState(false);
     const [sortInputValue, setSortInputValue] = React.useState("");
-    const createSubmissionPendingRef = React.useRef(false);
     const pendingPriorityUpdateIdsRef = React.useRef(new Set<string>());
     const pendingShareIdSetRef = React.useRef(new Set<string>());
-    const renameSubmissionPendingRef = React.useRef(false);
-    const renameSubmissionVersionRef = React.useRef(0);
+    const hoveredCollectionRef = React.useRef<LibraryCollectionSummary | null>(
+        null
+    );
 
     const hasAnySelected = selectedCollectionIds.length > 0;
     const collectionLabels = collectionSummaries.map(
@@ -859,19 +851,6 @@ function useCollectionsController() {
         });
     };
 
-    const resetCreate = () => {
-        setCreateName("");
-        setCreateDescription("");
-        setCreateError(null);
-        setCreateItemId(null);
-    };
-
-    const resetRename = () => {
-        setPendingRename(null);
-        setRenameDraft("");
-        setRenameError(null);
-    };
-
     const syncItemTags = (
         updater: (tags: LibraryCollectionTag[]) => LibraryCollectionTag[]
     ) => {
@@ -918,46 +897,12 @@ function useCollectionsController() {
         );
     };
 
-    const startCreateCollection = (
-        input: Parameters<typeof createCollection>[0],
-        onSuccess?: () => void
-    ) => {
-        if (createSubmissionPendingRef.current) {
-            return;
-        }
-        createSubmissionPendingRef.current = true;
-        startCreate(async () => {
-            try {
-                const result = await createCollectionSafely(input);
-                if (result.status !== "CREATED") {
-                    setCreateError(result.message);
-                    return;
-                }
-                syncCreated({
-                    assignedItemIds: getCreatedAssignedItemIds(result),
-                    collection: result.collection,
-                });
-                onSuccess?.();
-                resetCreate();
-                setIsCreateOpen(false);
-            } finally {
-                createSubmissionPendingRef.current = false;
-            }
-        });
-    };
-
     const requestCreate = useStableCallback((itemId?: string) => {
         setCreateItemId(itemId ?? null);
-        setCreateName("");
-        setCreateDescription("");
-        setCreateError(null);
         setIsCreateOpen(true);
     });
 
     const handleCreateShortcutPress = useStableCallback(() => {
-        if (createSubmissionPendingRef.current) {
-            return;
-        }
         if (isCreateOpen) {
             setIsCreateOpen(false);
             return;
@@ -1001,6 +946,45 @@ function useCollectionsController() {
         preventDefault: true,
     });
 
+    useHotkeys("e", (event) => {
+        const target = hoveredCollectionRef.current;
+        if (target) {
+            event.preventDefault();
+            requestRename(target);
+        }
+    });
+
+    useHotkeys(["delete", "backspace"], (event) => {
+        const target = hoveredCollectionRef.current;
+        if (target) {
+            event.preventDefault();
+            requestDelete(target);
+        }
+    });
+
+    useHotkeys("c", (event) => {
+        const target = hoveredCollectionRef.current;
+        if (target && target.itemCount > 0) {
+            event.preventDefault();
+            handleCopyLinks(target);
+        }
+    });
+
+    useHotkeys(
+        "alt+f",
+        (event) => {
+            const target = hoveredCollectionRef.current;
+            if (target) {
+                const isFavorite = favoriteCollectionIdSet.has(target.id);
+                if (!isFavorite) {
+                    event.preventDefault();
+                    handleFavoriteToggle(target);
+                }
+            }
+        },
+        [favoriteCollectionIdSet]
+    );
+
     const requestDelete = (collection: LibraryCollectionSummary) => {
         setFeedback(null);
         setPendingDelete(collection);
@@ -1008,8 +992,6 @@ function useCollectionsController() {
 
     const requestRename = (collection: LibraryCollectionSummary) => {
         setFeedback(null);
-        setRenameDraft(collection.name);
-        setRenameError(null);
         setPendingRename(collection);
     };
 
@@ -1186,40 +1168,6 @@ function useCollectionsController() {
         });
     };
 
-    const handleConfirmDelete = () => {
-        const target = pendingDelete;
-        if (!target) {
-            return;
-        }
-
-        startDelete(async () => {
-            const result = await deleteCollectionSafely({
-                collectionId: target.id,
-            });
-
-            if (result.status !== "DELETED") {
-                showError(result.message);
-                return;
-            }
-
-            setCollections((current) =>
-                current.filter(
-                    (collection) => collection.id !== result.collection.id
-                )
-            );
-            syncItemTags((tags) =>
-                tags.filter(
-                    (collection) => collection.id !== result.collection.id
-                )
-            );
-            setFavoriteCollectionIds((current) =>
-                removeValue(current, result.collection.id)
-            );
-            setPendingDelete(null);
-            showSuccess(`${result.collection.name} deleted.`);
-        });
-    };
-
     const handleUpdatePriority = async (
         collectionId: string,
         priority: CollectionPriority
@@ -1256,64 +1204,6 @@ function useCollectionsController() {
         }
     };
 
-    const handleRenameSubmit = () => {
-        if (isRenamePending || renameSubmissionPendingRef.current) {
-            return;
-        }
-
-        const target = pendingRename;
-        if (!target) {
-            return;
-        }
-
-        const previousName = target.name;
-        const nextName = normalizeWhitespace(renameDraft);
-
-        if (nextName.length === 0) {
-            setRenameError("Enter a collection name.");
-            return;
-        }
-
-        if (nextName === previousName) {
-            resetRename();
-            return;
-        }
-
-        syncName(target.id, nextName);
-        const submissionVersion = renameSubmissionVersionRef.current + 1;
-        renameSubmissionVersionRef.current = submissionVersion;
-        renameSubmissionPendingRef.current = true;
-
-        startRename(async () => {
-            try {
-                const result = await renameCollectionSafely({
-                    collectionId: target.id,
-                    name: nextName,
-                });
-                const isCurrentSubmission =
-                    renameSubmissionVersionRef.current === submissionVersion;
-
-                if (!isCurrentSubmission) {
-                    return;
-                }
-
-                if (result.status === "UPDATED") {
-                    syncName(result.collection.id, result.collection.name);
-                    resetRename();
-                    showSuccess(`${result.collection.name} renamed.`);
-                    return;
-                }
-
-                syncName(target.id, previousName);
-                setRenameError(result.message);
-            } finally {
-                if (renameSubmissionVersionRef.current === submissionVersion) {
-                    renameSubmissionPendingRef.current = false;
-                }
-            }
-        });
-    };
-
     const handleDuplicate = (collection: LibraryCollectionSummary) => {
         setFeedback(null);
 
@@ -1347,78 +1237,6 @@ function useCollectionsController() {
                 ? `${collection.name} removed from Favorites.`
                 : `${collection.name} added to Favorites.`
         );
-    };
-
-    const handleCreateSubmit = () => {
-        const name = normalizeWhitespace(createName);
-        if (name.length === 0) {
-            setCreateError("Enter a collection name.");
-            return;
-        }
-
-        startCreateCollection({
-            assignToItemId: createItemId ?? undefined,
-            description: normalizeWhitespace(createDescription) || undefined,
-            name,
-        });
-    };
-
-    const handleCreateFromTemplate = (value: TemplateValue | null) => {
-        if (createSubmissionPendingRef.current) {
-            return;
-        }
-        if (!value) {
-            return;
-        }
-        const template = TEMPLATE_BY_VALUE.get(value);
-        if (!template) {
-            return;
-        }
-        setCreateError(null);
-        startCreateCollection(
-            {
-                assignToItemId: createItemId ?? undefined,
-                description: template.description,
-                name: template.name,
-            },
-            () => showSuccess(`${template.name} created from template.`)
-        );
-    };
-
-    const handleCreateNameChange = (draft: string) => {
-        setCreateName(draft);
-        if (createError) {
-            setCreateError(null);
-        }
-    };
-
-    const handleRenameDraftChange = (draft: string) => {
-        setRenameDraft(draft);
-        if (renameError) {
-            setRenameError(null);
-        }
-    };
-
-    const handleCreateOpenChange = (open: boolean) => {
-        if (!open) {
-            if (isCreatePending || createSubmissionPendingRef.current) {
-                return;
-            }
-            resetCreate();
-        }
-        setIsCreateOpen(open);
-    };
-
-    const handleDeleteOpenChange = (open: boolean) => {
-        if (!(open || isDeletePending)) {
-            setPendingDelete(null);
-        }
-    };
-
-    const handleRenameOpenChange = (open: boolean) => {
-        if (!(open || isRenamePending || renameSubmissionPendingRef.current)) {
-            resetRename();
-        }
     };
 
     const handleDisableSmartCollections = async () => {
@@ -1473,31 +1291,16 @@ function useCollectionsController() {
         collectionLabels,
         collectionPreviewThumbnailUrlsById,
         collectionSummaries,
-        createDialog: {
-            descriptionDraft: createDescription,
-            errorMessage: createError,
-            isOpen: isCreateOpen,
-            isPending: isCreatePending,
-            nameDraft: createName,
-            onCreateFromTemplate: handleCreateFromTemplate,
-            onDescriptionDraftChange: setCreateDescription,
-            onNameDraftChange: handleCreateNameChange,
-            onOpenChange: handleCreateOpenChange,
-            onSubmit: handleCreateSubmit,
-        },
-        deleteDialog: {
-            collection: pendingDelete,
-            isPending: isDeletePending,
-            onConfirm: handleConfirmDelete,
-            onOpenChange: handleDeleteOpenChange,
-        },
+        createItemId,
         favoriteCollectionIdSet,
         favoriteCollectionSummaries,
         favoriteItemIdSet,
         favoriteItems,
         feedback,
         hasAnySelected,
+        hoveredCollectionRef,
         isCollectionsListOpen,
+        isCreateOpen,
         isFavoritesListOpen,
         onClearCollectionFilters,
         onCopyLinks: handleCopyLinks,
@@ -1517,20 +1320,20 @@ function useCollectionsController() {
         onSelectCollection,
         onToggleItemFavorite,
         onUpdatePriority: handleUpdatePriority,
+        pendingDelete,
+        pendingRename,
         pendingShareIds,
-        renameDialog: {
-            errorMessage: renameError,
-            isOpen: pendingRename !== null,
-            isPending: isRenamePending,
-            nameDraft: renameDraft,
-            onNameDraftChange: handleRenameDraftChange,
-            onOpenChange: handleRenameOpenChange,
-            onSubmit: handleRenameSubmit,
-        },
         requestCreate,
         selectedCollectionIds,
+        setCollections,
+        setFavoriteCollectionIds,
         setIsCollectionsListOpen,
+        setIsCreateOpen,
         setIsFavoritesListOpen,
+        setPendingDelete,
+        setPendingRename,
+        showError,
+        showSuccess,
         sort: {
             inputValue: sortInputValue,
             isOpen: isSortOpen,
@@ -1539,6 +1342,9 @@ function useCollectionsController() {
             onValueChange: handleComboboxValueChange,
             value: comboboxValue,
         },
+        syncCreated,
+        syncItemTags,
+        syncName,
     };
 }
 
@@ -1547,33 +1353,6 @@ function CollectionsListProvider({ children }: React.PropsWithChildren) {
 
     return (
         <CollectionsContext value={controller}>{children}</CollectionsContext>
-    );
-}
-
-/**
- * Register a keyboard shortcut scoped to the hovered collection item.
- *
- * Shortcuts only fire when the item is hovered so users don't trigger
- * actions on off-screen rows.
- */
-function useCollectionItemHotkey(
-    keys: Parameters<typeof useHotkeys>[0],
-    onTrigger: () => void,
-    description: string,
-    enabled = true
-) {
-    const { isHovered } = useCollectionsListItemContext();
-    const handleTrigger = useStableCallback(onTrigger);
-
-    useHotkeys(
-        keys,
-        handleTrigger,
-        {
-            description,
-            enabled: isHovered && enabled,
-            preventDefault: true,
-        },
-        [enabled, handleTrigger, isHovered]
     );
 }
 
@@ -1932,6 +1711,20 @@ interface CollectionsListGroupTriggerProps
     placeholder: string;
 }
 
+const listFormatters = new Map<string, Intl.ListFormat>();
+
+function getListFormatter(locale: string): Intl.ListFormat {
+    let formatter = listFormatters.get(locale);
+    if (!formatter) {
+        formatter = new Intl.ListFormat(locale, {
+            style: "long",
+            type: "conjunction",
+        });
+        listFormatters.set(locale, formatter);
+    }
+    return formatter;
+}
+
 function CollectionsListGroupTrigger({
     children,
     count,
@@ -1981,10 +1774,7 @@ function CollectionsListGroupTrigger({
             >
                 <p className="whitespace-normal font-medium leading-tight">
                     {labels.length > 0
-                        ? new Intl.ListFormat(locale, {
-                              style: "long",
-                              type: "conjunction",
-                          }).format(labels)
+                        ? getListFormatter(locale).format(labels)
                         : placeholder}
                 </p>
             </PopoverPopup>
@@ -2556,6 +2346,7 @@ function CollectionItem({
     style: styleProp,
     ...props
 }: CollectionsListItemProps) {
+    const { hoveredCollectionRef } = useCollections();
     const [isHovered, setIsHovered] = React.useState(false);
     const onMouseEnter = useStableCallback(onMouseEnterProp);
     const onMouseLeave = useStableCallback(onMouseLeaveProp);
@@ -2571,10 +2362,14 @@ function CollectionItem({
                 )}
                 onMouseEnter={(event) => {
                     setIsHovered(true);
+                    hoveredCollectionRef.current = collection;
                     onMouseEnter?.(event);
                 }}
                 onMouseLeave={(event) => {
                     setIsHovered(false);
+                    if (hoveredCollectionRef.current?.id === collection.id) {
+                        hoveredCollectionRef.current = null;
+                    }
                     onMouseLeave?.(event);
                 }}
                 style={{ ...style, ...styleProp }}
@@ -2597,11 +2392,6 @@ function CollectionItemTrigger({
     const [isOpen, setIsOpen] = React.useState(false);
     const thumbnails =
         controller.collectionPreviewThumbnailUrlsById.get(collection.id) ?? [];
-    const activePreviewIndex = useCollectionItemPreviewIndex(
-        isOpen,
-        thumbnails.length
-    );
-    const activeThumbnail = thumbnails[activePreviewIndex];
     const onClick = useStableCallback(onClickProp);
 
     const selectAndClose = useStableCallback(() => {
@@ -2636,25 +2426,52 @@ function CollectionItemTrigger({
                 positionMethod="fixed"
                 side="right"
             >
-                <div className="pointer-events-none aspect-3/2">
-                    <CollectionsListItemPreviewImage
-                        alt={`${collection.name} preview`}
-                        src={activeThumbnail}
+                {isOpen ? (
+                    <CollectionItemPreviewPopupContent
+                        collection={collection}
+                        selectAndClose={selectAndClose}
+                        thumbnails={thumbnails}
                     />
-                </div>
-                <Button
-                    className="my-1 justify-between"
-                    onClick={selectAndClose}
-                    variant="ghost"
-                >
-                    <span>
-                        Created{" "}
-                        {dayjs(collection.createdAt).format("MMM DD, YYYY")}
-                    </span>
-                    <span>Updated {dayjs(collection.updatedAt).fromNow()}</span>
-                </Button>
+                ) : null}
             </PreviewCardPopup>
         </PreviewCard>
+    );
+}
+
+function CollectionItemPreviewPopupContent({
+    collection,
+    selectAndClose,
+    thumbnails,
+}: {
+    collection: LibraryCollectionSummary;
+    selectAndClose: () => void;
+    thumbnails: string[];
+}) {
+    const activePreviewIndex = useCollectionItemPreviewIndex(
+        true,
+        thumbnails.length
+    );
+    const activeThumbnail = thumbnails[activePreviewIndex];
+
+    return (
+        <>
+            <div className="pointer-events-none aspect-3/2">
+                <CollectionsListItemPreviewImage
+                    alt={`${collection.name} preview`}
+                    src={activeThumbnail}
+                />
+            </div>
+            <Button
+                className="my-1 justify-between"
+                onClick={selectAndClose}
+                variant="ghost"
+            >
+                <span>
+                    Created {dayjs(collection.createdAt).format("MMM DD, YYYY")}
+                </span>
+                <span>Updated {dayjs(collection.updatedAt).fromNow()}</span>
+            </Button>
+        </>
     );
 }
 
@@ -2691,17 +2508,23 @@ function CollectionItemValue() {
  */
 function CollectionItemPriorityCombobox() {
     const controller = useCollections();
-    const { collection } = useCollectionsListItemContext();
+    const { collection, isHovered } = useCollectionsListItemContext();
     const [isOpen, setIsOpen] = React.useState(false);
     const SelectedPriorityIcon = getPriorityOption(collection.priority).icon;
 
-    useCollectionItemHotkey(
+    const handleTrigger = useStableCallback(() => {
+        setIsOpen(true);
+    });
+
+    useHotkeys(
         "p",
-        () => {
-            setIsOpen(true);
+        handleTrigger,
+        {
+            description: "Set priority for hovered collection",
+            enabled: isHovered && !isOpen,
+            preventDefault: true,
         },
-        "Set priority for hovered collection",
-        !isOpen
+        [handleTrigger, isHovered, isOpen]
     );
 
     return (
@@ -2983,7 +2806,6 @@ function CollectionItemMetadata({
     const controller = useCollections();
     const { collection } = useCollectionsListItemContext();
     const isFavorite = controller.favoriteCollectionIdSet.has(collection.id);
-    const hasItems = collection.itemCount > 0;
 
     const onRename = useStableCallback(() => controller.onRename(collection));
     const onDelete = useStableCallback(() => controller.onDelete(collection));
@@ -2993,30 +2815,8 @@ function CollectionItemMetadata({
     const onMakeCopy = useStableCallback(() =>
         controller.onDuplicate(collection)
     );
-    const onCopyLinks = useStableCallback(() =>
-        controller.onCopyLinks(collection)
-    );
 
-    useCollectionItemHotkey("e", onRename, "Rename hovered collection");
-    useCollectionItemHotkey(
-        ["delete", "backspace"],
-        onDelete,
-        "Delete hovered collection"
-    );
-    useCollectionItemHotkey(
-        "c",
-        onCopyLinks,
-        "Copy hovered collection",
-        hasItems
-    );
     const updatedAt = dayjs(collection.updatedAt);
-
-    useCollectionItemHotkey(
-        "alt+f",
-        onFavoriteToggle,
-        "Toggle hovered collection to Favorites",
-        !isFavorite
-    );
 
     return (
         <div className="absolute top-1/2 right-0 flex size-8 -translate-y-1/2 items-center justify-center">
@@ -3112,26 +2912,98 @@ function CollectionItemMetadata({
 }
 
 function CollectionsRenameDialog() {
-    const {
-        errorMessage,
-        isOpen,
-        isPending,
-        nameDraft,
-        onNameDraftChange,
-        onOpenChange,
-        onSubmit,
-    } = useCollections().renameDialog;
+    const controller = useCollections();
+    const { pendingRename, syncName, setPendingRename, showSuccess } =
+        controller;
+    const isOpen = pendingRename !== null;
+
+    const [nameDraft, setNameDraft] = React.useState("");
+    const [errorMessage, setErrorMessage] = React.useState<string | null>(null);
+    const [isPending, startRename] = React.useTransition();
+    const renameSubmissionPendingRef = React.useRef(false);
+
+    React.useEffect(() => {
+        if (pendingRename) {
+            setNameDraft(pendingRename.name);
+            setErrorMessage(null);
+        } else {
+            setNameDraft("");
+            setErrorMessage(null);
+        }
+    }, [pendingRename]);
+
+    const handleNameDraftChange = (draft: string) => {
+        setNameDraft(draft);
+        if (errorMessage) {
+            setErrorMessage(null);
+        }
+    };
+
+    const handleOpenChange = (open: boolean) => {
+        if (!(open || isPending || renameSubmissionPendingRef.current)) {
+            setPendingRename(null);
+        }
+    };
+
+    const handleSubmit = () => {
+        if (isPending || renameSubmissionPendingRef.current) {
+            return;
+        }
+
+        const target = pendingRename;
+        if (!target) {
+            return;
+        }
+
+        const previousName = target.name;
+        const nextName = normalizeWhitespace(nameDraft);
+
+        if (nextName.length === 0) {
+            setErrorMessage("Enter a collection name.");
+            return;
+        }
+
+        if (nextName === previousName) {
+            setPendingRename(null);
+            return;
+        }
+
+        syncName(target.id, nextName);
+        renameSubmissionPendingRef.current = true;
+
+        startRename(async () => {
+            try {
+                const result = await renameCollectionSafely({
+                    collectionId: target.id,
+                    name: nextName,
+                });
+
+                if (result.status === "UPDATED") {
+                    syncName(result.collection.id, result.collection.name);
+                    setPendingRename(null);
+                    showSuccess(`${result.collection.name} renamed.`);
+                    return;
+                }
+
+                syncName(target.id, previousName);
+                setErrorMessage(result.message);
+            } finally {
+                renameSubmissionPendingRef.current = false;
+            }
+        });
+    };
+
     const inputId = React.useId();
     const errorId = React.useId();
 
     return (
-        <Dialog onOpenChange={onOpenChange} open={isOpen}>
+        <Dialog onOpenChange={handleOpenChange} open={isOpen}>
             <DialogPopup>
                 <form
                     className="contents"
                     onSubmit={(event) => {
                         event.preventDefault();
-                        onSubmit();
+                        handleSubmit();
                     }}
                 >
                     <DialogHeader>
@@ -3158,7 +3030,9 @@ function CollectionsRenameDialog() {
                                 id={inputId}
                                 maxLength={NAME_MAX_LENGTH}
                                 onChange={(event) =>
-                                    onNameDraftChange(event.currentTarget.value)
+                                    handleNameDraftChange(
+                                        event.currentTarget.value
+                                    )
                                 }
                                 placeholder="Collection name"
                                 required
@@ -3190,32 +3064,135 @@ function CollectionsRenameDialog() {
 }
 
 function CollectionsCreateDialog() {
+    const controller = useCollections();
     const {
-        descriptionDraft,
-        errorMessage,
-        isOpen,
-        isPending,
-        nameDraft,
-        onCreateFromTemplate,
-        onDescriptionDraftChange,
-        onNameDraftChange,
-        onOpenChange,
-        onSubmit,
-    } = useCollections().createDialog;
+        isCreateOpen,
+        createItemId,
+        syncCreated,
+        setIsCreateOpen,
+        showSuccess,
+    } = controller;
+
+    const [nameDraft, setNameDraft] = React.useState("");
+    const [descriptionDraft, setDescriptionDraft] = React.useState("");
+    const [errorMessage, setErrorMessage] = React.useState<string | null>(null);
+    const [isPending, startCreate] = React.useTransition();
+    const createSubmissionPendingRef = React.useRef(false);
+
+    const isNameValid = normalizeWhitespace(nameDraft).length > 0;
+
+    React.useEffect(() => {
+        if (!isCreateOpen) {
+            setNameDraft("");
+            setDescriptionDraft("");
+            setErrorMessage(null);
+        }
+    }, [isCreateOpen]);
+
+    const handleNameDraftChange = (draft: string) => {
+        setNameDraft(draft);
+        if (errorMessage) {
+            setErrorMessage(null);
+        }
+    };
+
+    const handleOpenChange = (open: boolean) => {
+        if (!open) {
+            if (isPending || createSubmissionPendingRef.current) {
+                return;
+            }
+            setNameDraft("");
+            setDescriptionDraft("");
+            setErrorMessage(null);
+        }
+        setIsCreateOpen(open);
+    };
+
+    const handleSubmit = () => {
+        const name = normalizeWhitespace(nameDraft);
+        if (name.length === 0) {
+            setErrorMessage("Enter a collection name.");
+            return;
+        }
+
+        if (createSubmissionPendingRef.current) {
+            return;
+        }
+        createSubmissionPendingRef.current = true;
+
+        startCreate(async () => {
+            try {
+                const result = await createCollectionSafely({
+                    assignToItemId: createItemId ?? undefined,
+                    description:
+                        normalizeWhitespace(descriptionDraft) || undefined,
+                    name,
+                });
+                if (result.status !== "CREATED") {
+                    setErrorMessage(result.message);
+                    return;
+                }
+                syncCreated({
+                    assignedItemIds: getCreatedAssignedItemIds(result),
+                    collection: result.collection,
+                });
+                setIsCreateOpen(false);
+            } finally {
+                createSubmissionPendingRef.current = false;
+            }
+        });
+    };
+
+    const handleCreateFromTemplate = (value: TemplateValue | null) => {
+        if (createSubmissionPendingRef.current) {
+            return;
+        }
+        if (!value) {
+            return;
+        }
+        const template = TEMPLATE_BY_VALUE.get(value);
+        if (!template) {
+            return;
+        }
+        setErrorMessage(null);
+        createSubmissionPendingRef.current = true;
+
+        startCreate(async () => {
+            try {
+                const result = await createCollectionSafely({
+                    assignToItemId: createItemId ?? undefined,
+                    description: template.description,
+                    name: template.name,
+                });
+                if (result.status !== "CREATED") {
+                    setErrorMessage(result.message);
+                    return;
+                }
+                syncCreated({
+                    assignedItemIds: getCreatedAssignedItemIds(result),
+                    collection: result.collection,
+                });
+                showSuccess(`${template.name} created from template.`);
+                setIsCreateOpen(false);
+            } finally {
+                createSubmissionPendingRef.current = false;
+            }
+        });
+    };
+
     const nameInputId = React.useId();
     const errorId = React.useId();
     const descriptionInputId = React.useId();
     const { disabled } = useSmartCollectionsPreference();
-    const isNameValid = normalizeWhitespace(nameDraft).length > 0;
 
     return (
-        <Dialog onOpenChange={onOpenChange} open={isOpen}>
+        <Dialog onOpenChange={handleOpenChange} open={isCreateOpen}>
             <DialogPopup>
                 <form
                     className="contents"
                     onSubmit={(event) => {
                         event.preventDefault();
-                        onSubmit();
+                        handleSubmit();
                     }}
                 >
                     <DialogHeader>
@@ -3257,7 +3234,9 @@ function CollectionsCreateDialog() {
                                 id={nameInputId}
                                 maxLength={NAME_MAX_LENGTH}
                                 onChange={(event) =>
-                                    onNameDraftChange(event.currentTarget.value)
+                                    handleNameDraftChange(
+                                        event.currentTarget.value
+                                    )
                                 }
                                 placeholder="Collection name"
                                 required
@@ -3279,7 +3258,7 @@ function CollectionsCreateDialog() {
                                 id={descriptionInputId}
                                 maxLength={1024}
                                 onChange={(event) =>
-                                    onDescriptionDraftChange(
+                                    setDescriptionDraft(
                                         event.currentTarget.value
                                     )
                                 }
@@ -3310,7 +3289,7 @@ function CollectionsCreateDialog() {
                         <Combobox
                             autoHighlight
                             items={TEMPLATES}
-                            onValueChange={onCreateFromTemplate}
+                            onValueChange={handleCreateFromTemplate}
                         >
                             <ComboboxTrigger
                                 disabled={isPending}
@@ -3394,25 +3373,74 @@ function CollectionsCreateDialog() {
 }
 
 function CollectionsDeleteDialog() {
-    const { collection, isPending, onConfirm, onOpenChange } =
-        useCollections().deleteDialog;
+    const controller = useCollections();
+    const {
+        pendingDelete,
+        setPendingDelete,
+        setCollections,
+        syncItemTags,
+        setFavoriteCollectionIds,
+        showSuccess,
+        showError,
+    } = controller;
+    const [isPending, startDelete] = React.useTransition();
+
+    const handleConfirm = () => {
+        const target = pendingDelete;
+        if (!target) {
+            return;
+        }
+
+        startDelete(async () => {
+            const result = await deleteCollectionSafely({
+                collectionId: target.id,
+            });
+
+            if (result.status !== "DELETED") {
+                showError(result.message);
+                return;
+            }
+
+            setCollections((current) =>
+                current.filter(
+                    (collection) => collection.id !== result.collection.id
+                )
+            );
+            syncItemTags((tags) =>
+                tags.filter(
+                    (collection) => collection.id !== result.collection.id
+                )
+            );
+            setFavoriteCollectionIds((current) =>
+                removeValue(current, result.collection.id)
+            );
+            setPendingDelete(null);
+            showSuccess(`${result.collection.name} deleted.`);
+        });
+    };
+
+    const handleOpenChange = (open: boolean) => {
+        if (!(open || isPending)) {
+            setPendingDelete(null);
+        }
+    };
 
     return (
-        <Dialog onOpenChange={onOpenChange} open={collection !== null}>
+        <Dialog onOpenChange={handleOpenChange} open={pendingDelete !== null}>
             <DialogPopup>
                 <form
                     className="contents"
                     onSubmit={(event) => {
                         event.preventDefault();
-                        onConfirm();
+                        handleConfirm();
                     }}
                 >
                     <DialogHeader>
                         <DialogTitle>Delete collection?</DialogTitle>
                         <DialogDescription>
-                            Remove {collection?.name || "this collection"} from
-                            Cache. Saved items will remain in your library, but
-                            they won't belong to this collection anymore.
+                            Remove {pendingDelete?.name || "this collection"}{" "}
+                            from Cache. Saved items will remain in your library,
+                            but they won't belong to this collection anymore.
                         </DialogDescription>
                     </DialogHeader>
                     <DialogPanel />
