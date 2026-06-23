@@ -123,7 +123,7 @@ interface IntegrationsListItemActionButtonProps {
 }
 
 export const { useStore: useIntegrationsListStore } = createStore({
-    isIntegrationsListOpen: storage(false),
+    isIntegrationsListOpen: storage(true),
 });
 
 export function Integrations({ connectedIntegrations }: IntegrationsProps) {

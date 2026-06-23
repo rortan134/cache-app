@@ -18,6 +18,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { parseDisplayUrl } from "@/lib/common/url";
 import { useStableCallback } from "@base-ui/utils/useStableCallback";
 import { useTimeout } from "@base-ui/utils/useTimeout";
+import { T } from "gt-next";
 import { AlertCircleIcon, ExternalLinkIcon, GlobeIcon } from "lucide-react";
 import * as React from "react";
 import { createStore } from "stan-js";
@@ -132,13 +133,11 @@ export function QuickLookDrawer({
     url,
     children,
 }: QuickLookDrawerProps) {
+    const entry = { description, title, url };
+    const triggerId = `quick-look-drawer-${React.useId()}`;
+
     return (
-        <QuickLookDrawerContext
-            value={{
-                entry: { description, title, url },
-                triggerId: `quick-look-drawer-${React.useId()}`,
-            }}
-        >
+        <QuickLookDrawerContext value={{ entry, triggerId }}>
             {children}
         </QuickLookDrawerContext>
     );
@@ -219,7 +218,6 @@ export function QuickLookDrawerSurface() {
             handle={QUICK_LOOK_DRAWER_HANDLE}
             onOpenChange={handleOpenChange}
             open={isOpen}
-            position="bottom"
             triggerId={triggerId}
         >
             <DrawerVirtualKeyboardProvider>
@@ -491,7 +489,7 @@ function QuickLookDrawerContent({
     return (
         <DrawerViewport backdrop={false}>
             <DrawerPopup
-                className="h-[min(calc(88vh-var(--drawer-keyboard-inset,0px)),58rem)] sm:max-w-[min(96vw,78rem)]"
+                className="sm:max-w-[min(96vw,78rem)]"
                 showBar
                 showCloseButton
             >
@@ -508,7 +506,7 @@ function QuickLookDrawerContent({
                             variant="link"
                         >
                             <GlobeIcon className="size-4" />
-                            Open in new tab
+                            <T>Open in new tab</T>
                         </QuickLookDrawerLinkButton>
                     </DrawerDescription>
                 </DrawerHeader>
@@ -573,7 +571,7 @@ function QuickLookDrawerQueueFooter({
             className="flex-col items-stretch gap-2 px-4 sm:flex-col sm:justify-start"
         >
             <div className="flex items-center justify-between gap-3 text-muted-foreground text-xs">
-                <span className="font-medium uppercase">Quick look stack</span>
+                <span className="font-medium uppercase">Quick look</span>
                 <span className="tabular-nums">
                     {activeIndex + 1}/{items.length}
                 </span>
