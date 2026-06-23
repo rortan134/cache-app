@@ -32,6 +32,7 @@
     "i": 1,
     "t": "p"
   },
+  "1ad7b60584ddc5de": "Você precisará entrar novamente para acessar sua Biblioteca.",
   "1d1c7a1398fc122d": "mensal",
   "1d829f40405b2c18": "Biblioteca",
   "1df7f7e3e7bcec8f": {
@@ -53,21 +54,12 @@
   "251aca485fefb2c6": "Comece a digitar ou cole um link para adicionar...",
   "26fe9d3e34588477": "Sair",
   "27d7979205fe23f9": "Excluir sua conta?",
+  "2d905536ddbff96d": "Sair",
   "2e477bab4317c062": "Não foi possível adicionar outra conta.",
   "2e9224bc11574ab5": "Exportar para Markdown",
-  "314d8db9f59adb60": "Uma forma mais inteligente de lidar com tudo o que você salva online. A partir de US$ 8/mês.",
   "3b205a1c17c06fbd": "Favoritos",
   "3c61319be1bc2db7": "*As plataformas de terceiros às quais você se conecta por meio do Serviço operam de forma independente do Cache. O Cache não controla as políticas dessas plataformas nem a forma como elas são aplicadas, e não se responsabiliza pelas decisões que essas plataformas tomam em relação às suas contas ou ao seu acesso aos serviços delas — incluindo, sem limitação, alterações na disponibilidade — estejam ou não relacionadas ao seu uso do Cache. Cabe a você cumprir os termos, políticas e diretrizes da comunidade de cada plataforma. O Cache não se responsabiliza por qualquer inconveniente, perda ou outro resultado decorrente da sua relação com essas plataformas ou do seu uso do Serviço em conexão com elas. Mais detalhes podem ser encontrados",
   "408574e37e8d91ee": "em breve",
-  "42ce2058dce397b4": [
-    "Nenhuma coleção encontrada. ",
-    {
-      "c": "Crie sua primeira coleção",
-      "i": 1,
-      "t": "button"
-    },
-    " para começar a organizar os itens salvos."
-  ],
   "43c4658708e52e85": "Excluir conta",
   "446fc0e1621b7ae8": "Suporte",
   "48de21dffb27aea4": "Registro de alterações",
@@ -207,9 +199,18 @@
   ],
   "7b4f31f7267a32c7": "Use o Cache como o passo que faltava entre salvar favoritos e fazer anotações — feito para pensar. Estruturado, pesquisável, confiável.",
   "7d288c9b77b0a60e": "Jurídico e políticas",
+  "8117fa5c3cdb78c5": "Uma maneira mais inteligente de organizar tudo o que você salva online. A partir de US$ 8/mês.",
   "86489a55ce454582": "O Cache é para…",
   "87254fc32f854b77": "Não foi possível trocar de conta.",
   "8b045bc1a6270fb5": "Coleções",
+  "8ba04de3dfa3fb62": [
+    "Nenhuma coleção encontrada. ",
+    {
+      "c": "Crie sua primeira coleção",
+      "i": 1,
+      "t": "button"
+    }
+  ],
   "8c6e42c48134ab7e": [
     {
       "c": [
@@ -312,6 +313,7 @@
     }
   ],
   "a586e0692358c532": "Faça upgrade para ter acesso completo ao Cache e a todas as integrações",
+  "a7820e6a001d950c": "Sair?",
   "a7b00994918dc087": "Excluir conta",
   "ab4abf4e5a6f6057": "Não salvo",
   "acc1f7b6b65cace7": [
@@ -361,6 +363,7 @@
   },
   "c1172428bea235ca": "Regras que regem o uso do serviço, o gerenciamento da sua conta e o uso aceitável.",
   "c26fd6852bfece9e": "Continuar com Google",
+  "c4244c4a6f71e511": "Abrir em uma nova guia",
   "c884609397b72df2": "anual",
   "cca6a310f45ce736": [
     {

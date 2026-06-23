@@ -32,6 +32,7 @@
     "i": 1,
     "t": "p"
   },
+  "1ad7b60584ddc5de": "Vous devrez vous reconnecter pour accéder à votre Bibliothèque.",
   "1d1c7a1398fc122d": "mensuel",
   "1d829f40405b2c18": "Bibliothèque",
   "1df7f7e3e7bcec8f": {
@@ -53,21 +54,12 @@
   "251aca485fefb2c6": "Commencez à taper ou collez un lien pour l’ajouter…",
   "26fe9d3e34588477": "Se déconnecter",
   "27d7979205fe23f9": "Supprimer votre compte ?",
+  "2d905536ddbff96d": "Se déconnecter",
   "2e477bab4317c062": "Impossible d’ajouter un autre compte.",
   "2e9224bc11574ab5": "Exporter en Markdown",
-  "314d8db9f59adb60": "Une façon plus intelligente de gérer tout ce que vous enregistrez en ligne. À partir de 8 $/mois.",
   "3b205a1c17c06fbd": "Favoris",
   "3c61319be1bc2db7": "*Les plateformes tierces auxquelles vous vous connectez via le Service sont exploitées indépendamment de Cache. Cache ne contrôle ni leurs politiques ni la manière dont elles les appliquent, et n’est pas responsable des décisions que ces plateformes prennent concernant vos Comptes ou votre accès à leurs services — y compris, sans s’y limiter, les changements de disponibilité — qu’elles soient ou non liés à votre utilisation de Cache. Il vous incombe de respecter les conditions, politiques et règles de la communauté de chaque plateforme. Cache n’est pas responsable des désagréments, pertes ou autres conséquences découlant de votre relation avec ces plateformes ou de votre utilisation du Service en lien avec celles-ci. Des informations complémentaires sont disponibles",
   "408574e37e8d91ee": "bientôt",
-  "42ce2058dce397b4": [
-    "Aucune collection trouvée. ",
-    {
-      "c": "Créez votre première collection",
-      "i": 1,
-      "t": "button"
-    },
-    " pour commencer à regrouper vos éléments enregistrés."
-  ],
   "43c4658708e52e85": "Supprimer le compte",
   "446fc0e1621b7ae8": "Assistance",
   "48de21dffb27aea4": "Journal des modifications",
@@ -207,9 +199,18 @@
   ],
   "7b4f31f7267a32c7": "Utilisez Cache comme l’étape manquante entre les signets et la prise de notes, pensée pour la réflexion. Structuré, facile à retrouver, fiable.",
   "7d288c9b77b0a60e": "Mentions légales et politiques",
+  "8117fa5c3cdb78c5": "Une façon plus intelligente de gérer tout ce que vous sauvegardez en ligne. À partir de 8 $/mois.",
   "86489a55ce454582": "Cache, c’est pour…",
   "87254fc32f854b77": "Impossible de changer de compte.",
   "8b045bc1a6270fb5": "Collections",
+  "8ba04de3dfa3fb62": [
+    "Aucune collection trouvée. ",
+    {
+      "c": "Créez votre première collection",
+      "i": 1,
+      "t": "button"
+    }
+  ],
   "8c6e42c48134ab7e": [
     {
       "c": [
@@ -312,6 +313,7 @@
     }
   ],
   "a586e0692358c532": "Passez à la version supérieure pour profiter d’un accès complet à Cache et à toutes les Integrations",
+  "a7820e6a001d950c": "Se déconnecter ?",
   "a7b00994918dc087": "Supprimer le compte",
   "ab4abf4e5a6f6057": "Pas enregistré",
   "acc1f7b6b65cace7": [
@@ -361,6 +363,7 @@
   },
   "c1172428bea235ca": "Règles régissant l’utilisation du service, la gestion de votre compte et l’utilisation autorisée.",
   "c26fd6852bfece9e": "Continuer avec Google",
+  "c4244c4a6f71e511": "Ouvrir dans un nouvel onglet",
   "c884609397b72df2": "annuel",
   "cca6a310f45ce736": [
     {
