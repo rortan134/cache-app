@@ -13,7 +13,7 @@ export function PageShell({
                 "relative isolate z-0 mx-auto flex size-full min-h-screen flex-col leading-snug tracking-tight outline-none [-webkit-user-drag:none] focus-visible:outline-none",
                 className
             )}
-            id="main"
+            id="main-content"
             tabIndex={-1}
         />
     );

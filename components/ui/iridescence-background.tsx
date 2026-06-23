@@ -141,7 +141,7 @@ function installUnicornWatermarkStyle() {
     const style = document.createElement("style");
     style.id = UNICORN_STYLE_ID;
     style.textContent = `
-        [data-us-project="${UNICORN_PROJECT_ID}"] ${UNICORN_WATERMARK_SELECTOR} {
+        [data-us-project="${UNICORN_PROJECT_ID}"] :is(${UNICORN_WATERMARK_SELECTOR}) {
             display: none !important;
             opacity: 0 !important;
             pointer-events: none !important;
