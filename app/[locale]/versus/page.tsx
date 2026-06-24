@@ -59,7 +59,6 @@ export default function VersusIndexPage() {
             <script type="application/ld+json">
                 {JSON.stringify(itemListJsonLd)}
             </script>
-
             <section className="border-white/8 border-b px-6 pt-10 pb-16 md:px-10 md:pt-14 md:pb-24">
                 <div className="mx-auto grid w-full max-w-6xl gap-12 lg:grid-cols-[minmax(0,1.05fr)_minmax(340px,0.95fr)] lg:items-center">
                     <div className="max-w-2xl">
@@ -100,7 +99,6 @@ export default function VersusIndexPage() {
                             />
                         </div>
                     </div>
-
                     <div className="rounded-[2rem] border border-white/10 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.12),transparent_55%),linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.02))] p-5 shadow-[0_40px_120px_rgba(0,0,0,0.35)]">
                         <div className="rounded-[1.5rem] border border-white/10 bg-black/30 p-5">
                             <div className="flex items-center justify-between">
@@ -139,7 +137,6 @@ export default function VersusIndexPage() {
                     </div>
                 </div>
             </section>
-
             <section className="bg-[#F7F3EE] px-6 py-18 text-[#111111] md:px-10 md:py-24">
                 <div className="mx-auto w-full max-w-6xl">
                     <div className="grid gap-5 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:items-end">
@@ -159,7 +156,6 @@ export default function VersusIndexPage() {
                             boards, or full PKM systems.
                         </p>
                     </div>
-
                     <div className="mt-12 grid gap-4 lg:grid-cols-2">
                         {versusCategories.map((category) => (
                             <div
@@ -204,7 +200,6 @@ export default function VersusIndexPage() {
                     </div>
                 </div>
             </section>
-
             <section className="bg-white px-6 py-18 text-[#111111] md:px-10 md:py-24">
                 <div className="mx-auto w-full max-w-6xl">
                     <div className="max-w-2xl">
@@ -215,7 +210,6 @@ export default function VersusIndexPage() {
                             Browse every Cache comparison page
                         </h2>
                     </div>
-
                     <div className="mt-12 grid gap-10 lg:grid-cols-3">
                         {versusCategories.map((category) => (
                             <div key={category.id}>
@@ -253,7 +247,6 @@ export default function VersusIndexPage() {
                     </div>
                 </div>
             </section>
-
             <section className="bg-[#F7F3EE] px-6 py-18 text-[#111111] md:px-10 md:py-24">
                 <div className="mx-auto flex w-full max-w-4xl flex-col items-center rounded-[2.5rem] border border-black/8 bg-white px-8 py-12 text-center shadow-[0_24px_60px_rgba(17,17,17,0.06)] md:px-12">
                     <p className="font-medium text-[0.72rem] text-black/42 uppercase tracking-[0.22em]">
@@ -278,7 +271,6 @@ export default function VersusIndexPage() {
                     </div>
                 </div>
             </section>
-
             <div className="bg-white px-6 pb-8 text-[#111111] md:px-10">
                 <div className="mx-auto w-full max-w-6xl">
                     <Footer />
@@ -316,7 +308,7 @@ function StatCard({ label, value }: { label: string; value: string }) {
             <p className="text-[0.72rem] text-white/45 uppercase tracking-[0.18em]">
                 {label}
             </p>
-            <p className="mt-3 font-medium text-2xl tracking-[-0.05em]">
+            <p className="mt-3 font-medium text-2xl tracking-tighter">
                 {value}
             </p>
         </div>
