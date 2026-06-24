@@ -13,6 +13,11 @@ import {
 import { FeedbackWidget } from "@/components/support/feedback-widget";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import {
+    Collapsible,
+    CollapsiblePanel,
+    CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import { AltKbd, CmdKbd, Kbd } from "@/components/ui/kbd";
 import {
     Menu,
@@ -41,6 +46,7 @@ import { LocaleSelector, T, Var } from "gt-next";
 import {
     ArrowUpRight,
     ChevronDown,
+    ChevronRight,
     Ellipsis,
     Globe,
     LoaderCircle,
@@ -209,44 +215,54 @@ export function UserMenuContent() {
                         <ArrowUpRight className="ml-auto! inline-block size-4 shrink-0 text-muted-foreground" />
                     </SubscriptionUpgradeButton>
                 </UnsubscribedOnly>
-                <MenuItem
-                    className="justify-between"
-                    render={
-                        <Link
-                            href="/changelog"
-                            prefetch={false}
-                            target="_blank"
-                        />
-                    }
-                >
-                    <T>Changelog</T>
-                </MenuItem>
-                <MenuItem
-                    className="justify-between"
-                    render={
-                        <Link
-                            href="https://docs.cachd.app/docs/privacy"
-                            rel="noopener"
-                            target="_blank"
-                        />
-                    }
-                >
-                    <T>Support</T>
-                </MenuItem>
-                <KeyboardShortcutsDialogTrigger
-                    nativeButton={false}
-                    render={
+                <Collapsible>
+                    <CollapsibleTrigger
+                        render={<MenuItem closeOnClick={false} />}
+                    >
+                        <T>Resources</T>
+                        <ChevronRight className="ml-auto! inline-block size-4 shrink-0 text-muted-foreground transition-transform group-data-panel-open:rotate-90 group-data-panel-open:opacity-30" />
+                    </CollapsibleTrigger>
+                    <CollapsiblePanel>
                         <MenuItem
-                            className="justify-between"
-                            closeOnClick={false}
+                            className="justify-between pl-6"
+                            render={
+                                <Link
+                                    href="/changelog"
+                                    prefetch={false}
+                                    target="_blank"
+                                />
+                            }
                         >
-                            <T>Keyboard shortcuts</T>
-                            <Kbd className="ml-auto inline-flex items-center gap-1 bg-transparent px-0">
-                                <CmdKbd />/
-                            </Kbd>
+                            <T>Changelog</T>
                         </MenuItem>
-                    }
-                />
+                        <MenuItem
+                            className="justify-between pl-6"
+                            render={
+                                <Link
+                                    href="https://docs.cachd.app/docs/privacy"
+                                    rel="noopener"
+                                    target="_blank"
+                                />
+                            }
+                        >
+                            <T>Support</T>
+                        </MenuItem>
+                        <KeyboardShortcutsDialogTrigger
+                            nativeButton={false}
+                            render={
+                                <MenuItem
+                                    className="justify-between pl-6"
+                                    closeOnClick={false}
+                                >
+                                    <T>Keyboard shortcuts</T>
+                                    <Kbd className="ml-auto inline-flex items-center gap-1 bg-transparent px-0">
+                                        <CmdKbd />/
+                                    </Kbd>
+                                </MenuItem>
+                            }
+                        />
+                    </CollapsiblePanel>
+                </Collapsible>
                 <LogoutDialogTrigger
                     nativeButton={false}
                     render={
@@ -271,7 +287,7 @@ export function UserMenuFooter() {
             <div className="flex w-full items-center px-1.5 pt-1 font-medium opacity-80 *:w-full *:text-sm">
                 <LocaleSelector id="language-selector" name="language" />
             </div>
-            <MenuSeparator className="mt-1.5" />
+            <MenuSeparator className="mt-2" />
             <div className="flex flex-wrap items-center -space-x-0.5 p-1 opacity-50">
                 {FOOTER_LINKS.map(({ href, label }) => (
                     <Button
