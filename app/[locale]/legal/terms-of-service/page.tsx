@@ -226,11 +226,9 @@ export default function TermsOfServicePage() {
                     <strong>DPA:</strong>{" "}
                     <a
                         className="text-stone-950 underline underline-offset-4"
-                        href="https://www.cachd.app/dpa"
-                        rel="noreferrer"
-                        target="_blank"
+                        href="/legal/dpa"
                     >
-                        https://www.cachd.app/dpa
+                        /legal/dpa
                     </a>
                 </p>
             </section>

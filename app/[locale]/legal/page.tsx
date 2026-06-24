@@ -2,7 +2,7 @@ import { buildPageMetadata } from "@/app/metadata";
 import { APP_NAME } from "@/lib/common/constants";
 import { gtPublicString } from "@/lib/i18n/gt-public-json";
 import { T, Var } from "gt-next";
-import { ArrowRight, Scale, Shield } from "lucide-react";
+import { ArrowRight, Scale, Shield, FileText } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import type { ReactNode } from "react";
@@ -61,6 +61,14 @@ export default async function LegalIndexPage({
             href: `${base}/privacy-policy`,
             icon: Shield,
             title: <T>Privacy Policy</T>,
+        },
+        {
+            description: (
+                <T>How we process and safeguard customer personal data.</T>
+            ),
+            href: `${base}/dpa`,
+            icon: FileText,
+            title: <T>Data Processing Agreement</T>,
         },
     ];
 
