@@ -206,18 +206,19 @@ function SubscriptionStatusBadge() {
 }
 
 /**
- * Triggers Stripe Checkout redirection for the premium Pro plan. Resolves the
- * post-checkout success or cancel redirection via localized application routes.
+ * Triggers Stripe Checkout redirection for the premium Pro plan.
  */
 function SubscriptionUpgradeButton({
+    annual = false,
     variant = "ghost",
     ...props
-}: React.ComponentProps<typeof Button>) {
+}: React.ComponentProps<typeof Button> & { annual?: boolean }) {
     const returnUrl = useLibraryReturnUrl();
 
     const { errorMessage, execute, isPending } = useSubscriptionRedirectAction(
         () =>
             authClient.subscription.upgrade({
+                annual,
                 cancelUrl: returnUrl,
                 plan: "pro",
                 successUrl: returnUrl,

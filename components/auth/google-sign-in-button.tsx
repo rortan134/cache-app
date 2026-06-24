@@ -12,11 +12,12 @@ import * as React from "react";
 const GOOGLE_SIGN_IN_ERROR_MESSAGE = "Could not start Google sign-in.";
 
 export function GoogleSignInButton({
+    callbackURL = "/library",
     className,
     children,
     size = "xl",
     ...props
-}: ButtonProps) {
+}: ButtonProps & { callbackURL?: string }) {
     const [isPending, startTransition] = React.useTransition();
     const [errorMessage, setErrorMessage] = React.useState<string | null>(null);
 
@@ -25,7 +26,7 @@ export function GoogleSignInButton({
         startTransition(async () => {
             try {
                 const result = await authClient.signIn.social({
-                    callbackURL: "/library",
+                    callbackURL,
                     errorCallbackURL: "/",
                     provider: "google",
                 });

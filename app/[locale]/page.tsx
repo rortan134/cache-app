@@ -16,6 +16,7 @@ import {
     OpenAIIcon,
     TikTokIcon,
 } from "@/components/ui/icons";
+import { IridescenceBackground } from "@/components/ui/iridescence-background";
 import { PageShell } from "@/components/ui/page-shell";
 import { Sidebar, SidebarFooter, SidebarHeader } from "@/components/ui/sidebar";
 import { getServerSession } from "@/lib/auth/session";
@@ -171,7 +172,7 @@ export default async function Home() {
                 </Sidebar>
                 <div className="flex w-full max-w-[1024px] flex-col gap-12 p-8 pb-0 2xl:mx-auto">
                     <div className="relative aspect-video h-auto w-full overflow-hidden rounded-2xl border border-border/70 bg-muted">
-                        {/* <IridescenceBackground /> */}
+                        <IridescenceBackground />
                         <Image
                             alt=""
                             className="absolute top-12 left-8 z-10 w-full rounded-xl"

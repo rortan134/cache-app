@@ -49,13 +49,23 @@ export function BlockPaywallBanner({ length }: BlockPaywallBannerProps) {
                                 — cancel anytime.
                             </p>
                         </T>
-                        <SubscriptionUpgradeButton
-                            className="mx-auto w-fit rounded-full"
-                            size="xl"
-                        >
-                            <T>Get Pro</T>
-                            <ArrowUpRight className="ml-auto inline-block size-4 shrink-0 text-muted-foreground" />
-                        </SubscriptionUpgradeButton>
+                        <div className="flex flex-col items-center gap-2">
+                            <SubscriptionUpgradeButton
+                                className="mx-auto w-fit rounded-full"
+                                size="xl"
+                            >
+                                <T>Get Pro Monthly</T>
+                                <ArrowUpRight className="ml-auto inline-block size-4 shrink-0 text-muted-foreground" />
+                            </SubscriptionUpgradeButton>
+                            <SubscriptionUpgradeButton
+                                annual
+                                className="mx-auto w-fit text-muted-foreground text-sm underline underline-offset-2 hover:text-foreground"
+                                size="sm"
+                                variant="link"
+                            >
+                                <T>or save with yearly billing</T>
+                            </SubscriptionUpgradeButton>
+                        </div>
                     </div>
                 </div>
             </div>

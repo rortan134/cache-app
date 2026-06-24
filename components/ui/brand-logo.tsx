@@ -14,17 +14,13 @@ import Image from "next/image";
 import Link from "next/link";
 import type * as React from "react";
 
-interface LogoContextMenuProps extends React.ComponentProps<typeof Link> {
-    href: string;
+interface BrandLogoProps
+    extends Omit<React.ComponentProps<typeof Link>, "href"> {
+    href?: string;
     src: StaticImageData;
 }
 
-export function BrandLogo({
-    href,
-    src,
-    className,
-    ...props
-}: LogoContextMenuProps) {
+export function BrandLogo({ href, src, className, ...props }: BrandLogoProps) {
     const handleSaveLogo = async () => {
         try {
             await saveFile(
@@ -47,19 +43,25 @@ export function BrandLogo({
         }
     };
 
+    const logoClassName = cn(
+        "w-fit focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60",
+        className
+    );
+
     return (
         <ContextMenu>
             <ContextMenuTrigger
                 render={
-                    <Link
-                        className={cn(
-                            "group w-fit rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60",
-                            className
-                        )}
-                        draggable={false}
-                        href={href}
-                        {...props}
-                    />
+                    href ? (
+                        <Link
+                            className={logoClassName}
+                            draggable={false}
+                            href={href}
+                            {...props}
+                        />
+                    ) : (
+                        <div className={logoClassName} tabIndex={-1} />
+                    )
                 }
             >
                 <Image
