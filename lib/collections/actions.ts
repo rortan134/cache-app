@@ -1,5 +1,6 @@
 "use server";
 
+import { isUnauthenticated, requireActionUserId } from "@/lib/auth/session";
 import {
     STATUS_MAP_NOT_FOUND,
     collectionNameSchema,
@@ -10,13 +11,12 @@ import {
     type LibraryCollectionSummary,
     type LibraryCollectionTag,
 } from "@/lib/collections/utils";
-import { DESCRIPTION_MAX_LENGTH } from "@/lib/common/constants";
-import { createLogger } from "@/lib/common/logs/console/logger";
 import {
     getValidationErrorMessage,
     handleActionError,
-} from "@/lib/common/procedure";
-import { isUnauthenticated, requireActionUserId } from "@/lib/auth/service";
+} from "@/lib/common/action";
+import { DESCRIPTION_MAX_LENGTH } from "@/lib/common/constants";
+import { createLogger } from "@/lib/common/logs/console/logger";
 import type { CollectionPriority } from "@/prisma/client/enums";
 import * as z from "zod";
 import { LibraryCollectionError } from "./error";

@@ -1,6 +1,6 @@
 import "server-only";
 
-import { requireRouteUserId } from "@/lib/auth/route";
+import { requireRouteUserId } from "@/lib/auth/session";
 import { createLogger } from "@/lib/common/logs/console/logger";
 import {
     IntegrationApiError,

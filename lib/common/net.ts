@@ -9,11 +9,11 @@ const LOCALHOST_ALIASES = new Set(["localhost", "0.0.0.0", "::1", "[::1]"]);
 const PUBLIC_UNICAST_IP_RANGE = "unicast";
 const TRAILING_DOTS_PATTERN = /\.+$/;
 
-export interface ResolvedHostnameAddress {
+interface ResolvedHostnameAddress {
     address: string;
 }
 
-export type ResolveHostnameAddresses = (
+type ResolveHostnameAddresses = (
     hostname: string
 ) => Promise<readonly ResolvedHostnameAddress[]>;
 

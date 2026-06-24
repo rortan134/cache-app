@@ -1,15 +1,18 @@
 import "server-only";
 
-import { parseDate } from "@/lib/common/dates";
 import type {
     ITEM_KIND_BOOKMARK,
     ITEM_KIND_FOLDER,
 } from "@/lib/common/constants";
+import { parseDate } from "@/lib/common/dates";
 import { upsertLibraryItemImports } from "@/lib/integrations/upsert";
 import { prisma } from "@/prisma";
 import type { Prisma } from "@/prisma/client/client";
 import type { LibraryItemSource } from "@/prisma/client/enums";
+import { nanoid } from "nanoid";
 import * as z from "zod";
+
+const EXTENSION_INGEST_TOKEN_LENGTH = 48;
 
 /**
  * Base Zod schema for an item posted by a browser extension ingest payload
@@ -157,4 +160,64 @@ async function resolveFallbackExtensionIngestUserId(
         where: { id: fallbackUserId },
     });
     return user?.id ?? null;
+}
+
+/**
+ * Returns the user's existing extension ingest token, generating and
+ * persisting a new one when none exists.
+ */
+export async function getOrCreateExtensionIngestToken(args: {
+    userId: string;
+}): Promise<string> {
+    const existing = await prisma.user.findUnique({
+        select: { extensionIngestToken: true },
+        where: { id: args.userId },
+    });
+
+    if (existing?.extensionIngestToken) {
+        return existing.extensionIngestToken;
+    }
+
+    const token = createExtensionIngestToken();
+    const { count } = await prisma.user.updateMany({
+        data: { extensionIngestToken: token },
+        where: {
+            extensionIngestToken: null,
+            id: args.userId,
+        },
+    });
+
+    if (count > 0) {
+        return token;
+    }
+
+    const user = await prisma.user.findUniqueOrThrow({
+        select: { extensionIngestToken: true },
+        where: { id: args.userId },
+    });
+
+    if (!user.extensionIngestToken) {
+        throw new Error("Failed to persist extension ingest token");
+    }
+
+    return user.extensionIngestToken;
+}
+
+/**
+ * Generates a fresh extension ingest token and overwrites the existing one.
+ */
+export async function rotateExtensionIngestToken(args: {
+    userId: string;
+}): Promise<string> {
+    const token = createExtensionIngestToken();
+    await prisma.user.update({
+        data: { extensionIngestToken: token },
+        where: { id: args.userId },
+    });
+
+    return token;
+}
+
+function createExtensionIngestToken(): string {
+    return nanoid(EXTENSION_INGEST_TOKEN_LENGTH);
 }

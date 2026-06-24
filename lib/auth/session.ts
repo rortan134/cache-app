@@ -19,20 +19,18 @@ export const getSessionUserId = cache(async (): Promise<string | null> => {
     return session?.user?.id ?? null;
 });
 
-/* @internal */
-type WithSessionCallback<T> = (client: Session) => Promise<T> | T;
+type WithSessionCallback<T> = (session: Session) => Promise<T> | T;
 
 /**
- * Executes a callback with the current session, normalizing errors to SessionError.
+ * Executes a callback with the current session, normalizing failures to a named error.
  */
 export async function withSession<T>(
     callback: WithSessionCallback<T>
 ): Promise<T> {
     try {
-        const session = await getServerSession();
-        return await callback(session);
+        return await callback(await getServerSession());
     } catch (error) {
-        log.error("Session operation failed:", error);
+        log.error("Session operation failed", error);
 
         if (error instanceof SessionError) {
             throw error;
@@ -44,4 +42,60 @@ export async function withSession<T>(
             operation: "auth::withSession",
         });
     }
+}
+
+interface UnauthorizedActionResult {
+    message: string;
+    status: "UNAUTHORIZED";
+}
+
+interface AuthorizedActionResult {
+    userId: string;
+}
+
+type ActionAuthResult = UnauthorizedActionResult | AuthorizedActionResult;
+
+/**
+ * Narrows the serializable auth result used by Server Actions.
+ */
+export function isUnauthenticated(
+    result: ActionAuthResult
+): result is UnauthorizedActionResult {
+    return "status" in result;
+}
+
+/**
+ * Resolves the current session user id for Server Actions.
+ */
+export async function requireActionUserId(
+    unauthorizedMessage = "Sign in to continue."
+): Promise<ActionAuthResult> {
+    const userId = await getSessionUserId();
+
+    if (!userId) {
+        return {
+            message: unauthorizedMessage,
+            status: "UNAUTHORIZED",
+        };
+    }
+
+    return { userId };
+}
+
+/**
+ * Resolves the current session user id for API route handlers.
+ */
+export async function requireRouteUserId(args?: {
+    headers?: HeadersInit;
+}): Promise<{ userId: string } | Response> {
+    const userId = await getSessionUserId();
+
+    if (!userId) {
+        return Response.json(
+            { error: "Unauthorized" },
+            { headers: args?.headers, status: 401 }
+        );
+    }
+
+    return { userId };
 }

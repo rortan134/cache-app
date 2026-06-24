@@ -1,6 +1,6 @@
 "use server";
 
-import { isUnauthenticated, requireActionUserId } from "@/lib/auth/service";
+import { isUnauthenticated, requireActionUserId } from "@/lib/auth/session";
 import { AccountError } from "@/lib/account/error";
 import * as service from "@/lib/account/service";
 

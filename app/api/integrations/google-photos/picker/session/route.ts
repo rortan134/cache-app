@@ -1,4 +1,4 @@
-import { requireRouteUserId } from "@/lib/auth/route";
+import { requireRouteUserId } from "@/lib/auth/session";
 import { resolveProviderAccountAccessToken } from "@/lib/integrations/account";
 import { IntegrationApiError } from "@/lib/integrations/error";
 import {

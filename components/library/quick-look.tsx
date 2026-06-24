@@ -713,7 +713,6 @@ function QuickLookDrawerLinkButton({
     return (
         <Button
             {...props}
-            // biome-ignore lint/a11y/useAnchorContent: Ignore
             render={<a href={href} rel="noopener noreferrer" target="_blank" />}
         />
     );

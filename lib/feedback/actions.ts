@@ -1,7 +1,7 @@
 "use server";
 
-import { isUnauthenticated, requireActionUserId } from "@/lib/auth/service";
-import { getValidationErrorMessage } from "@/lib/common/procedure";
+import { isUnauthenticated, requireActionUserId } from "@/lib/auth/session";
+import { getValidationErrorMessage } from "@/lib/common/action";
 import { FeedbackError } from "@/lib/feedback/error";
 import {
     FeedbackInputSchema,

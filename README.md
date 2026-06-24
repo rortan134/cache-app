@@ -99,7 +99,6 @@ Open [http://localhost:3000](http://localhost:3000).
 | **Validation**     | [Zod](https://zod.dev/), [@t3-oss/env-nextjs](https://env.t3.gg/)                                                      |
 | **AI/LLM**         | [Vercel AI SDK](https://sdk.vercel.ai/), [Google Gemini](https://ai.google.dev/), [@workflow/ai](https://workflow.ai/) |
 | **Web Search**     | [Tavily](https://tavily.com/)                                                                                          |
-| **RPC / API**      | [oRPC](https://orpc.unnoq.com/) (server, client, React)                                                                |
 | **Data Fetching**  | [SWR](https://swr.vercel.app/), [nuqs](https://nuqs.vercel.app/)                                                       |
 | **i18n**           | gt-next (en-US, fr-FR, es-ES, pt-BR)                                                                                   |
 | **Payments**       | [Stripe](https://stripe.com/)                                                                                          |

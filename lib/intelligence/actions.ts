@@ -1,8 +1,8 @@
 "use server";
 
-import { isUnauthenticated, requireActionUserId } from "@/lib/auth/service";
+import { isUnauthenticated, requireActionUserId } from "@/lib/auth/session";
+import { getValidationErrorMessage } from "@/lib/common/action";
 import { createLogger } from "@/lib/common/logs/console/logger";
-import { getValidationErrorMessage } from "@/lib/common/procedure";
 import { request as getArcjetRequest } from "@arcjet/next";
 import {
     AskCacheRequestSchema,

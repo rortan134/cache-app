@@ -1,15 +1,15 @@
 "use server";
 
+import { isUnauthenticated, requireActionUserId } from "@/lib/auth/session";
 import type {
     ActionError,
     LibraryCollectionTag,
 } from "@/lib/collections/utils";
-import { createLogger } from "@/lib/common/logs/console/logger";
 import {
     getValidationErrorMessage,
     handleActionError,
-} from "@/lib/common/procedure";
-import { isUnauthenticated, requireActionUserId } from "@/lib/auth/service";
+} from "@/lib/common/action";
+import { createLogger } from "@/lib/common/logs/console/logger";
 import * as z from "zod";
 import { CollectionShareError } from "./error";
 import {
