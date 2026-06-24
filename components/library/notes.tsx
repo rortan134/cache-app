@@ -24,7 +24,8 @@ import type { LibraryItemWithCollections } from "@/lib/collections/utils";
 import { cn } from "@/lib/common/cn";
 import { getOwnerDocument } from "@/lib/common/dom";
 import { createLogger } from "@/lib/common/logs/console/logger";
-import { parseStandaloneUrl } from "@/lib/common/url";
+import { openExternal, parseStandaloneUrl } from "@/lib/common/url";
+import { sendNoteToNotion } from "@/lib/integrations/notion/actions";
 import {
     NOTE_EMPTY_HTML,
     convertNoteHtmlToMarkdown,
@@ -93,6 +94,7 @@ import {
     useEffect,
     useRef,
     useState,
+    useTransition,
     type ComponentType,
     type ReactNode,
     type SVGProps,
@@ -288,11 +290,6 @@ const EXPORT_CONTENT_PROVIDERS: readonly ExportContentProvider[] = [
         icon: GoogleDocsIcon,
         title: "Open in Google Docs",
     },
-    {
-        createUrl: (_query) => "https://notion.new",
-        icon: NotionIcon,
-        title: "Open in Notion",
-    },
 ];
 
 const NoteContext = createContext<NoteContextValue | null>(null);
@@ -429,6 +426,15 @@ function haveDraftsChanged(left: NoteDraft, right: NoteDraft): boolean {
 
 function isDraftEmpty(draft: NoteDraft): boolean {
     return extractNoteText(draft.contentHtml).length === 0;
+}
+
+function getNotionNoteTitle(plainText: string): string {
+    const firstLine = plainText
+        .split("\n")
+        .map((line) => line.trim())
+        .find((line) => line.length > 0);
+
+    return firstLine ?? "Cache note";
 }
 
 function shouldCloseWithoutSaving(
@@ -974,10 +980,43 @@ function NoteSaveStatus() {
 function NoteHeader() {
     const { contentHtml, onOpenChange, query, title } = useNoteContext();
     const hasQuery = query.length > 0;
+    const [notionStatus, setNotionStatus] = useState<{
+        message: string;
+        tone: "error" | "success";
+    } | null>(null);
+    const [isSendingToNotion, startSendToNotion] = useTransition();
 
     const handleExportMarkdown = () => {
         downloadMarkdownFile(contentHtml);
     };
+
+    const handleSendToNotion = useStableCallback(() => {
+        if (!(hasQuery && !isSendingToNotion)) {
+            return;
+        }
+
+        setNotionStatus(null);
+        startSendToNotion(async () => {
+            const result = await sendNoteToNotion({
+                contentHtml,
+                title: getNotionNoteTitle(query),
+            });
+
+            if (result.status === "SUCCESS") {
+                setNotionStatus({
+                    message: "Sent to Notion.",
+                    tone: "success",
+                });
+                openExternal(result.pageUrl);
+                return;
+            }
+
+            setNotionStatus({
+                message: result.message,
+                tone: "error",
+            });
+        });
+    });
 
     return (
         <>
@@ -1029,6 +1068,40 @@ function NoteHeader() {
                                 </MenuItem>
                             );
                         })}
+                        <MenuItem
+                            disabled={!hasQuery || isSendingToNotion}
+                            onClick={handleSendToNotion}
+                        >
+                            <NotionIcon className="size-4 text-muted-foreground" />
+                            <span className="flex-1">
+                                {isSendingToNotion
+                                    ? "Sending to Notion..."
+                                    : "Send to Notion"}
+                            </span>
+                            <ExternalLinkIcon className="size-4 text-muted-foreground" />
+                        </MenuItem>
+                        {notionStatus ? (
+                            <p
+                                aria-live={
+                                    notionStatus.tone === "error"
+                                        ? "assertive"
+                                        : "polite"
+                                }
+                                className={cn(
+                                    "px-2 py-1 text-xs leading-tight",
+                                    notionStatus.tone === "error"
+                                        ? "text-destructive"
+                                        : "text-muted-foreground"
+                                )}
+                                role={
+                                    notionStatus.tone === "error"
+                                        ? "alert"
+                                        : "status"
+                                }
+                            >
+                                {notionStatus.message}
+                            </p>
+                        ) : null}
                         <MenuSeparator />
                         <MenuItem
                             disabled={!hasQuery}

@@ -118,6 +118,7 @@ import {
 } from "@/lib/common/strings";
 import { normalizeURL, openExternal } from "@/lib/common/url";
 import { dayjs } from "@/lib/dayjs";
+import { sendCollectionToNotion } from "@/lib/integrations/notion/actions";
 import { getSourceLabel } from "@/lib/integrations/support";
 import type { CollectionPriority } from "@/prisma/client/enums";
 import AppIconSmall from "@/public/cache-icon-small.png";
@@ -752,6 +753,7 @@ function useCollectionsController() {
     const [, startShare] = React.useTransition();
 
     const [, startDuplicate] = React.useTransition();
+    const [, startSendToNotion] = React.useTransition();
 
     const [feedback, setFeedback] = React.useState<CollectionFeedback | null>(
         null
@@ -780,10 +782,13 @@ function useCollectionsController() {
     const [isSortOpen, setIsSortOpen] = React.useState(false);
     const [sortInputValue, setSortInputValue] = React.useState("");
     const pendingPriorityUpdateIdsRef = React.useRef(new Set<string>());
+    const pendingNotionCollectionIdSetRef = React.useRef(new Set<string>());
     const pendingShareIdSetRef = React.useRef(new Set<string>());
     const hoveredCollectionRef = React.useRef<LibraryCollectionSummary | null>(
         null
     );
+    const [pendingNotionCollectionIds, setPendingNotionCollectionIds] =
+        React.useState<string[]>([]);
 
     const hasAnySelected = selectedCollectionIds.length > 0;
     const collectionLabels = collectionSummaries.map(
@@ -842,6 +847,26 @@ function useCollectionsController() {
         }
 
         setPendingShareIds((current) => {
+            if (isPending) {
+                return current.includes(collectionId)
+                    ? current
+                    : [...current, collectionId];
+            }
+            return removeValue(current, collectionId);
+        });
+    };
+
+    const setCollectionNotionPending = (
+        collectionId: string,
+        isPending: boolean
+    ) => {
+        if (isPending) {
+            pendingNotionCollectionIdSetRef.current.add(collectionId);
+        } else {
+            pendingNotionCollectionIdSetRef.current.delete(collectionId);
+        }
+
+        setPendingNotionCollectionIds((current) => {
             if (isPending) {
                 return current.includes(collectionId)
                     ? current
@@ -1181,6 +1206,36 @@ function useCollectionsController() {
         });
     };
 
+    const handleSendToNotion = (collection: LibraryCollectionSummary) => {
+        if (pendingNotionCollectionIdSetRef.current.has(collection.id)) {
+            return;
+        }
+
+        if (!ensureAccess(collection, "send to Notion")) {
+            return;
+        }
+
+        setFeedback(null);
+        setCollectionNotionPending(collection.id, true);
+
+        startSendToNotion(async () => {
+            try {
+                const result = await sendCollectionToNotion({
+                    collectionId: collection.id,
+                });
+
+                if (result.status === "SUCCESS") {
+                    showSuccess(`${collection.name} sent to Notion.`);
+                    openExternal(result.pageUrl);
+                } else {
+                    showError(result.message);
+                }
+            } finally {
+                setCollectionNotionPending(collection.id, false);
+            }
+        });
+    };
+
     const handleUpdatePriority = async (
         collectionId: string,
         priority: CollectionPriority
@@ -1331,9 +1386,11 @@ function useCollectionsController() {
         onOpenLinks: handleOpenLinks,
         onRename: requestRename,
         onSelectCollection,
+        onSendToNotion: handleSendToNotion,
         onToggleItemFavorite,
         onUpdatePriority: handleUpdatePriority,
         pendingDelete,
+        pendingNotionCollectionIds,
         pendingRename,
         pendingShareIds,
         requestCreate,
@@ -1676,9 +1733,10 @@ function CollectionsListFavoritesTrigger({
     children,
     ...props
 }: React.ComponentProps<typeof CollapsibleTrigger>) {
+    const locale = useLocale();
     const { favoriteCollectionSummaries, favoriteItems, isFavoritesListOpen } =
         useCollections();
-    const labels = favoriteCollectionSummaries.map(
+    const collectionLabels = favoriteCollectionSummaries.map(
         (collection) => collection.name
     );
 
@@ -1686,8 +1744,13 @@ function CollectionsListFavoritesTrigger({
         <CollectionsListGroupTrigger
             {...props}
             count={favoriteCollectionSummaries.length + favoriteItems.length}
+            description={formatFavoritesGroupSummary(
+                locale,
+                collectionLabels,
+                favoriteItems.length
+            )}
             isOpen={isFavoritesListOpen}
-            labels={labels}
+            labels={collectionLabels}
             placeholder="No favorites yet"
         >
             {children}
@@ -1719,6 +1782,7 @@ interface CollectionsListFavoritesCarouselContentProps {
 interface CollectionsListGroupTriggerProps
     extends React.ComponentProps<typeof CollapsibleTrigger> {
     count: number;
+    description?: string;
     isOpen: boolean;
     labels: string[];
     placeholder: string;
@@ -1738,9 +1802,32 @@ function getListFormatter(locale: string): Intl.ListFormat {
     return formatter;
 }
 
+function formatFavoritesGroupSummary(
+    locale: string,
+    collectionLabels: string[],
+    individualItemCount: number
+): string {
+    if (collectionLabels.length === 0 && individualItemCount === 0) {
+        return "";
+    }
+    if (collectionLabels.length === 0) {
+        return individualItemCount === 1
+            ? "1 item"
+            : `${individualItemCount} items`;
+    }
+    const formatter = getListFormatter(locale);
+    if (individualItemCount === 0) {
+        return formatter.format(collectionLabels);
+    }
+    const moreLabel =
+        individualItemCount === 1 ? "1 more" : `${individualItemCount} more`;
+    return formatter.format([...collectionLabels, moreLabel]);
+}
+
 function CollectionsListGroupTrigger({
     children,
     count,
+    description,
     isOpen,
     labels,
     placeholder,
@@ -1748,6 +1835,11 @@ function CollectionsListGroupTrigger({
     ...props
 }: CollectionsListGroupTriggerProps) {
     const locale = useLocale();
+    const summary =
+        description ??
+        (labels.length > 0
+            ? getListFormatter(locale).format(labels)
+            : placeholder);
 
     return (
         <Popover>
@@ -1786,9 +1878,7 @@ function CollectionsListGroupTrigger({
                 tooltipStyle
             >
                 <p className="whitespace-normal font-medium leading-tight">
-                    {labels.length > 0
-                        ? getListFormatter(locale).format(labels)
-                        : placeholder}
+                    {summary}
                 </p>
             </PopoverPopup>
         </Popover>
@@ -2717,6 +2807,12 @@ function CollectionItemExportSubMenu() {
     const onOpenLinks = useStableCallback(() =>
         controller.onOpenLinks(collection)
     );
+    const onSendToNotion = useStableCallback(() =>
+        controller.onSendToNotion(collection)
+    );
+    const isSendingToNotion = controller.pendingNotionCollectionIds.includes(
+        collection.id
+    );
 
     return (
         <MenuSub>
@@ -2761,13 +2857,18 @@ function CollectionItemExportSubMenu() {
                     />
                     Export to CSV
                 </MenuItem>
-                <MenuItem disabled={!hasItems}>
+                <MenuItem
+                    disabled={!hasItems || isSendingToNotion}
+                    onClick={onSendToNotion}
+                >
                     <NotionIcon
                         aria-hidden
                         className="size-4"
                         focusable="false"
                     />
-                    Send to Notion
+                    {isSendingToNotion
+                        ? "Sending to Notion..."
+                        : "Send to Notion"}
                 </MenuItem>
             </MenuSubPopup>
         </MenuSub>

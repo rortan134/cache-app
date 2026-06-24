@@ -270,6 +270,59 @@ function buildGitHubOAuthConfig(): GenericOAuthConfig | null {
 }
 
 // ---------------------------------------------------------------------------
+// Notion OAuth
+// ---------------------------------------------------------------------------
+
+const NotionUserSchema = z.object({
+    avatar_url: z.string().nullable().optional(),
+    id: z.string().optional(),
+    name: z.string().nullable().optional(),
+});
+
+type NotionUser = z.infer<typeof NotionUserSchema>;
+
+function mapNotionUser(data: NotionUser): OAuthUserProfile | null {
+    if (!data.id) {
+        return null;
+    }
+
+    return {
+        email: `notion.${data.id}.integration@placeholder.cache`,
+        emailVerified: false,
+        id: data.id,
+        image: data.avatar_url ?? undefined,
+        name: data.name ?? "Notion",
+    };
+}
+
+function buildNotionOAuthConfig(): GenericOAuthConfig | null {
+    const creds = getOAuthCredentials("NOTION");
+    if (!creds) {
+        return null;
+    }
+
+    return {
+        authentication: "basic",
+        authorizationUrl:
+            "https://api.notion.com/v1/oauth/authorize?owner=user",
+        ...creds,
+        disableSignUp: true,
+        getUserInfo: (tokens) =>
+            fetchOAuthUser(
+                tokens,
+                "https://api.notion.com/v1/users/me",
+                NotionUserSchema,
+                mapNotionUser,
+                {
+                    "Notion-Version": "2026-03-11",
+                }
+            ),
+        providerId: "notion",
+        tokenUrl: "https://api.notion.com/v1/oauth/token",
+    };
+}
+
+// ---------------------------------------------------------------------------
 // Auth configuration
 // ---------------------------------------------------------------------------
 
@@ -277,6 +330,7 @@ const genericOAuthConfig = [
     buildPinterestOAuthConfig(),
     buildXOAuthConfig(),
     buildGitHubOAuthConfig(),
+    buildNotionOAuthConfig(),
 ].filter((config): config is GenericOAuthConfig => config !== null);
 
 const trustedProviders = [

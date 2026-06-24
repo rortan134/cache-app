@@ -58,14 +58,17 @@ export default async function LibraryPage() {
         listLinkedIntegrationAccounts({ userId }),
     ]);
 
-    const connectedIntegrations: Set<IntegrationId> = new Set(
-        listConnectedIntegrationIds("source", {
-            libraryItemSources: itemSources.map((item) => item.source),
-            linkedProviderIds: linkedAccounts.map(
-                (account) => account.providerId
-            ),
-        })
-    );
+    const integrationConnectionContext = {
+        libraryItemSources: itemSources.map((item) => item.source),
+        linkedProviderIds: linkedAccounts.map((account) => account.providerId),
+    };
+    const connectedIntegrations: Set<IntegrationId> = new Set([
+        ...listConnectedIntegrationIds("source", integrationConnectionContext),
+        ...listConnectedIntegrationIds(
+            "destination",
+            integrationConnectionContext
+        ),
+    ]);
 
     return (
         <WorkspaceProvider

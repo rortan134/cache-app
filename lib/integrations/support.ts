@@ -2,6 +2,7 @@ import {
     ChromeIcon,
     GithubIcon,
     InstagramIcon,
+    NotionIcon,
     PhotosIcon,
     PinterestIcon,
     TikTokIcon,
@@ -26,6 +27,7 @@ export type IntegrationId =
     | "google-photos"
     | "instagram"
     | "mcp"
+    | "notion"
     | "pinterest"
     | "tiktok"
     | "x"
@@ -461,6 +463,36 @@ export const INTEGRATIONS = [
             libraryItemSources: [LibraryItemSource.github_starred_repositories],
             syncable: true,
         },
+    },
+    {
+        actions: [
+            {
+                for: "destination",
+                role: "connect",
+            },
+        ],
+        behaviors: {
+            connect: {
+                callbackURL: LIBRARY_CALLBACK_URL,
+                errorCallbackURL: LIBRARY_CALLBACK_URL,
+                kind: "oauth-link",
+                providerId: "notion",
+            },
+        },
+        category: "developer",
+        description: "Pages you export from Cache",
+        destination: {
+            connectedWhen: [
+                {
+                    kind: "linked-provider",
+                    providerId: "notion",
+                },
+            ],
+        },
+        hint: "Connect Notion to send Cache notes and collections into your workspace.",
+        Icon: NotionIcon,
+        id: "notion",
+        label: "Notion",
     },
     {
         actions: [

@@ -141,6 +141,11 @@ export function Integrations({ connectedIntegrations }: IntegrationsProps) {
                         <IntegrationsListItem
                             className="group"
                             description={description}
+                            direction={
+                                getIntegration(id).source
+                                    ? "source"
+                                    : "destination"
+                            }
                             Icon={Icon}
                             integrationId={id}
                             isConnected={connectedIntegrations.has(id)}
