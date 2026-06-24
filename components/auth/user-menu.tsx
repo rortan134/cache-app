@@ -388,6 +388,7 @@ function useUserMenuAccounts() {
     const handleAccountChange = useStableCallback((sessionToken: unknown) => {
         if (
             !activeSession ||
+            pendingSessionToken !== null ||
             typeof sessionToken !== "string" ||
             sessionToken === activeSession.session.token
         ) {
@@ -421,6 +422,9 @@ function useUserMenuAccounts() {
     });
 
     const handleAddAccount = useStableCallback(async () => {
+        if (isAddingAccount) {
+            return;
+        }
         setAddAccountError(null);
         setIsAddingAccount(true);
 

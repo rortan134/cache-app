@@ -18,5 +18,5 @@ ALTER TABLE "library_item"
 ADD CONSTRAINT "library_item_note_content_pair_check"
 CHECK (
     ("noteContentHtml" IS NULL AND "noteContentText" IS NULL)
-    OR ("noteContentHtml" IS NOT NULL AND "noteContentText" IS NOT NULL")
+    OR ("noteContentHtml" IS NOT NULL AND "noteContentText" IS NOT NULL)
 );

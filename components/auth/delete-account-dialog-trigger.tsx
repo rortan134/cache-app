@@ -34,6 +34,9 @@ export function DeleteAccountDialogTrigger(
     const [errorMessage, setErrorMessage] = React.useState<null | string>(null);
 
     const handleConfirm = useStableCallback(() => {
+        if (isPending) {
+            return;
+        }
         setErrorMessage(null);
         startTransition(async () => {
             const result: DeleteAccountActionState =
