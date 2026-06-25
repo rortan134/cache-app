@@ -162,7 +162,8 @@ const securityHeaders = [
 
 export default withWorkflow(
     withGTConfig(nextConfig, {
-        experimentalLocaleResolution: true,
+        getLocalePath: "./get-locale.ts",
+        getRegionPath: "./get-region.ts",
         loadTranslationsPath: "./load-translations.ts",
     })
 );

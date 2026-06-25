@@ -402,7 +402,7 @@ export const auth = betterAuth({
     secret: requiredEnv("BETTER_AUTH_SECRET"),
     session: {
         cookieCache: {
-            enabled: false,
+            enabled: true,
             maxAge: SESSION_COOKIE_CACHE_MAX_AGE_SECONDS,
         },
         expiresIn: SESSION_EXPIRES_IN_SECONDS,
