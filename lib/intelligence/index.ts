@@ -43,7 +43,7 @@ const log = createLogger("library:smart-collections");
 const serviceLog = createLogger("intelligence:service");
 
 const SMART_COLLECTIONS_MODEL_DEFAULT = "gemini-3.5-flash";
-const SMART_COLLECTIONS_MODELS_FALLBACK = ["gemini-3.1-pro-preview"] as const;
+const SMART_COLLECTIONS_MODELS_FALLBACK = ["gemini-3.1-flash-lite"] as const;
 const SMART_COLLECTIONS_APPLY_COLLECTION_COUNT_MAX = 4;
 const SMART_COLLECTIONS_NEW_COLLECTION_COUNT_MAX = 2;
 const SMART_COLLECTIONS_DOWNLOAD_BYTES_MAX = 100 * 1024 * 1024;
