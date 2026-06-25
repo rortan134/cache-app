@@ -9,12 +9,18 @@ export const serverEnv = createEnv({
     server: {
         AI_GATEWAY_API_KEY: z.string().optional(),
         ARCJET_KEY: z.string().startsWith("ajkey_"),
-        AUTOMATION_AGENT_MODEL: z.string().optional(),
+
         BETTER_AUTH_SECRET: z.string(), // Secret key for Better Auth JWT signing
         BETTER_AUTH_URL: z.url(), // Base URL for Better Auth service
         CRON_SECRET: z.string().optional(),
 
         DATABASE_URL: z.string().startsWith("postgres://"),
+
+        EMAIL_FROM: z.string(), // Default email sender address
+        EMAIL_SERVER_HOST: z.string(), // SMTP server host
+        EMAIL_SERVER_PASSWORD: z.string(), // SMTP server password
+        EMAIL_SERVER_PORT: z.string(), // SMTP server port
+        EMAIL_SERVER_USER: z.string(), // SMTP server username
 
         GEMINI_API_KEY: z.string(),
         GITHUB_CLIENT_ID: z.string().optional(),
@@ -22,6 +28,7 @@ export const serverEnv = createEnv({
         GOOGLE_CLIENT_ID: z.string(),
         GOOGLE_CLIENT_SECRET: z.string().startsWith("G"),
 
+        // Internationalization
         GT_API_KEY: z.string(),
         GT_PROJECT_ID: z.string(),
 

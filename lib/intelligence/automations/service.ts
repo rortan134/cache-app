@@ -1,6 +1,5 @@
 import "server-only";
 
-import { serverEnv } from "@/env/server";
 import { userHasActiveSubscription } from "@/lib/billing/service";
 import { prisma } from "@/prisma";
 import type { Prisma } from "@/prisma/client/client";
@@ -13,6 +12,7 @@ import {
 } from "@/prisma/client/enums";
 import { randomUUID } from "node:crypto";
 import {
+    AUTOMATION_AGENT_MODEL_DEFAULT,
     AUTOMATION_DUE_BATCH_LIMIT,
     AUTOMATION_LEASE_DURATION_MS,
     AUTOMATION_RUNNING_TIMEOUT_MS,
@@ -567,7 +567,7 @@ export async function markAutomationRunRunning(args: {
     return {
         automationId: updated.automationId,
         collectionId: updated.collectionIdSnapshot,
-        modelId: serverEnv.AUTOMATION_AGENT_MODEL ?? null,
+        modelId: AUTOMATION_AGENT_MODEL_DEFAULT,
         payloadScope: updated.payloadScopeSnapshot,
         prompt: updated.promptSnapshot,
         runId: updated.id,
