@@ -1,17 +1,4 @@
-import { readFile } from "node:fs/promises";
-import path from "node:path";
-
 export default async function loadTranslations(locale: string) {
-    const filePath = path.join(
-        /* turbopackIgnore: true */ process.cwd(),
-        "public",
-        "_gt",
-        `${locale}.json`
-    );
-    try {
-        const raw = await readFile(filePath, "utf8");
-        return JSON.parse(raw) as Record<string, unknown>;
-    } catch {
-        return {};
-    }
+    const translations = await import(`./public/_gt/${locale}.json`);
+    return translations.default as Record<string, unknown>;
 }
