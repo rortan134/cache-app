@@ -46,7 +46,6 @@ import {
 } from "lucide-react";
 import type { Metadata } from "next";
 import Image from "next/image";
-import Link from "next/link";
 import type React from "react";
 
 export async function generateMetadata({
@@ -196,10 +195,10 @@ export default async function Home() {
                         <Button
                             className="mt-0.5 opacity-50"
                             render={
-                                <Link
+                                <a
                                     aria-label="GitHub Repository"
                                     href="/github"
-                                    rel="noopener"
+                                    rel="noopener noreferrer"
                                     target="_blank"
                                 />
                             }
