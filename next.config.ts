@@ -135,6 +135,7 @@ const nextConfig: NextConfig = {
             },
         ];
     },
+    serverExternalPackages: ["bun"],
 };
 
 const securityHeaders = [
