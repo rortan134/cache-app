@@ -62,6 +62,7 @@
   "408574e37e8d91ee": "em breve",
   "43c4658708e52e85": "Excluir conta",
   "446fc0e1621b7ae8": "Suporte",
+  "4593e3bd9f747b95": "Obter Pro mensal",
   "48de21dffb27aea4": "Registro de alterações",
   "4d587a9524c95dd7": [
     "Acesse todos os favoritos ",
@@ -80,6 +81,7 @@
   "600433e7972a7e75": "Faturamento",
   "606daf45fd88b674": "Escritores e pensadores",
   "634fd36cce8909a0": "Instale a extensão",
+  "64b08e57a2f2e7b7": "Como processamos e protegemos os dados pessoais dos clientes.",
   "69cac161cf484cd9": "Não foi possível abrir o checkout agora.",
   "6ad8bb8e726daacf": [
     {
@@ -200,8 +202,14 @@
   "7b4f31f7267a32c7": "Use o Cache como o passo que faltava entre salvar favoritos e fazer anotações — feito para pensar. Estruturado, pesquisável, confiável.",
   "7d288c9b77b0a60e": "Jurídico e políticas",
   "8117fa5c3cdb78c5": "Uma maneira mais inteligente de organizar tudo o que você salva online. A partir de US$ 8/mês.",
+  "841cad15ee2276fc": "Recursos",
   "86489a55ce454582": "O Cache é para…",
   "87254fc32f854b77": "Não foi possível trocar de conta.",
+  "87b2d18453bcefde": {
+    "c": "Documentos",
+    "i": 1,
+    "t": "p"
+  },
   "8b045bc1a6270fb5": "Coleções",
   "8ba04de3dfa3fb62": [
     "Nenhuma coleção encontrada. ",
@@ -391,7 +399,9 @@
       "v": "v"
     }
   ],
+  "cf702c635fa32efc": "Acordo de Processamento de Dados",
   "d353ed81b71684aa": "Integrações",
+  "d6db6a63bfbd1a36": "ou economize com faturamento anual",
   "d70e4938efa65780": {
     "c": [
       {

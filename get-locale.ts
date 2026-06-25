@@ -1,5 +1,10 @@
-import { locale } from "next/root-params";
-
 export default async function getLocale(): Promise<string> {
-    return await locale();
+    try {
+        // Dynamic import avoids compile-time static export checks on routes
+        // (like sitemap.ts) that do not have a [locale] root parameter.
+        const { locale } = await import("next/root-params");
+        return await locale();
+    } catch {
+        return "en-US";
+    }
 }

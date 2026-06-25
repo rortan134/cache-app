@@ -1,25 +1,25 @@
 {
     "version": 2,
-    "branchId": "",
+    "branchId": "brc_r65gipp4xcm7ywxe84y6d5bg",
     "entries": [
         {
             "fileId": "879f3a5f954ee8b75bf1e91f4ea9916b41c933e5beba7eb6362647a637c9c66d",
-            "versionId": "d00003e279f4cafe34e71035a0b8db8edbf62f5cf2b7585735daf261c6b41351",
+            "versionId": "2e703b7950d7df21d72bcb0e3d58ffc1e486c63f0aaf348d2bd3f33b05560725",
             "translations": {
                 "es-ES": {
-                    "updatedAt": "2026-06-23T11:02:42.038Z",
+                    "updatedAt": "2026-06-25T08:30:38.734Z",
                     "fileName": "/Users/gilbert/Documents/proyectos/Cache/public/_gt/es-ES.json",
-                    "postProcessHash": "effd98cad292e7318f15df0525b233133ddf67d3cbd8f3f168db2a7cdc3220f2"
-                },
-                "fr-FR": {
-                    "updatedAt": "2026-06-23T11:02:42.047Z",
-                    "fileName": "/Users/gilbert/Documents/proyectos/Cache/public/_gt/fr-FR.json",
-                    "postProcessHash": "9d4c47311e47e44bef2d8f4c636409905fa4efd3722ba3404a626a510d2c890b"
+                    "postProcessHash": "e58be4ba831ee76062f6f4da57d9d625109dfbc592760e52694cdfc24092bc93"
                 },
                 "pt-BR": {
-                    "updatedAt": "2026-06-23T11:02:42.049Z",
+                    "updatedAt": "2026-06-25T08:30:38.739Z",
                     "fileName": "/Users/gilbert/Documents/proyectos/Cache/public/_gt/pt-BR.json",
-                    "postProcessHash": "c32dcc297e9efc4d1d9b8bbd155fbd429037da4d342bcbbb2cce00f9a4215eec"
+                    "postProcessHash": "69ecdaebe55c9b68cb0d5aef889858e0dfa7e3e530d4918db2770a13df452de3"
+                },
+                "fr-FR": {
+                    "updatedAt": "2026-06-25T08:30:38.740Z",
+                    "fileName": "/Users/gilbert/Documents/proyectos/Cache/public/_gt/fr-FR.json",
+                    "postProcessHash": "72432f90b84d2067db1bc5bbda6a0ab162cab74b1f73b835ab8e70503392ce54"
                 }
             },
             "fileName": "__INTERNAL_GT_TEMPLATE_NAME__",

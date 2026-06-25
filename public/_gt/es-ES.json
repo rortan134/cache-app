@@ -62,6 +62,7 @@
   "408574e37e8d91ee": "próximamente",
   "43c4658708e52e85": "Eliminar cuenta",
   "446fc0e1621b7ae8": "Soporte",
+  "4593e3bd9f747b95": "Consigue Pro mensual",
   "48de21dffb27aea4": "Registro de cambios",
   "4d587a9524c95dd7": [
     "Accede a todos los marcadores de ",
@@ -80,6 +81,7 @@
   "600433e7972a7e75": "Facturación",
   "606daf45fd88b674": "Escritores y pensadores",
   "634fd36cce8909a0": "Instala la extensión",
+  "64b08e57a2f2e7b7": "Cómo tratamos y protegemos los datos personales de nuestros clientes.",
   "69cac161cf484cd9": "No hemos podido abrir el proceso de pago en este momento.",
   "6ad8bb8e726daacf": [
     {
@@ -200,8 +202,14 @@
   "7b4f31f7267a32c7": "Usa Cache como ese paso que faltaba entre guardar marcadores y tomar notas: hecho para pensar. Estructurado, fácil de buscar y fiable.",
   "7d288c9b77b0a60e": "Aviso legal y políticas",
   "8117fa5c3cdb78c5": "Una forma más inteligente de gestionar todo lo que guardas en Internet. Desde 8 $/mes.",
+  "841cad15ee2276fc": "Recursos",
   "86489a55ce454582": "Cache está pensado para…",
   "87254fc32f854b77": "No se pudo cambiar de cuenta.",
+  "87b2d18453bcefde": {
+    "c": "Documentación",
+    "i": 1,
+    "t": "p"
+  },
   "8b045bc1a6270fb5": "Colecciones",
   "8ba04de3dfa3fb62": [
     "No se ha encontrado ninguna colección. ",
@@ -391,7 +399,9 @@
       "v": "v"
     }
   ],
+  "cf702c635fa32efc": "Acuerdo de tratamiento de datos",
   "d353ed81b71684aa": "Integraciones",
+  "d6db6a63bfbd1a36": "o ahorra con la facturación anual",
   "d70e4938efa65780": {
     "c": [
       {

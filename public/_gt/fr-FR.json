@@ -62,6 +62,7 @@
   "408574e37e8d91ee": "bientôt",
   "43c4658708e52e85": "Supprimer le compte",
   "446fc0e1621b7ae8": "Assistance",
+  "4593e3bd9f747b95": "Passer à Pro (mensuel)",
   "48de21dffb27aea4": "Journal des modifications",
   "4d587a9524c95dd7": [
     "Accédez à tous les signets ",
@@ -80,6 +81,7 @@
   "600433e7972a7e75": "Facturation",
   "606daf45fd88b674": "Écrivains et penseurs",
   "634fd36cce8909a0": "Installer l’extension",
+  "64b08e57a2f2e7b7": "Comment nous traitons et protégeons les données personnelles de nos clients.",
   "69cac161cf484cd9": "Nous ne pouvons pas ouvrir le paiement pour le moment.",
   "6ad8bb8e726daacf": [
     {
@@ -200,8 +202,14 @@
   "7b4f31f7267a32c7": "Utilisez Cache comme l’étape manquante entre les signets et la prise de notes, pensée pour la réflexion. Structuré, facile à retrouver, fiable.",
   "7d288c9b77b0a60e": "Mentions légales et politiques",
   "8117fa5c3cdb78c5": "Une façon plus intelligente de gérer tout ce que vous sauvegardez en ligne. À partir de 8 $/mois.",
+  "841cad15ee2276fc": "Ressources",
   "86489a55ce454582": "Cache, c’est pour…",
   "87254fc32f854b77": "Impossible de changer de compte.",
+  "87b2d18453bcefde": {
+    "c": "Documentation",
+    "i": 1,
+    "t": "p"
+  },
   "8b045bc1a6270fb5": "Collections",
   "8ba04de3dfa3fb62": [
     "Aucune collection trouvée. ",
@@ -391,7 +399,9 @@
       "v": "v"
     }
   ],
+  "cf702c635fa32efc": "Accord sur le traitement des données",
   "d353ed81b71684aa": "Integrations",
+  "d6db6a63bfbd1a36": "ou économisez avec la facturation annuelle",
   "d70e4938efa65780": {
     "c": [
       {
