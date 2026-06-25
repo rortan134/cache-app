@@ -108,7 +108,7 @@ export default async function LocaleLayout(props: {
                     Skip to main content
                 </a>
                 <React.Suspense>
-                    <GTProvider locale={locale}>
+                    <GTProvider>
                         <NuqsAdapter>
                             <ShortcutsProvider>
                                 {props.children}

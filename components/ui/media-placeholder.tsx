@@ -15,7 +15,7 @@ export function MediaPlaceholder({
         <div
             {...props}
             className={cn(
-                "texture-screen relative flex size-full flex-col items-center justify-center gap-2",
+                "texture-screen relative flex size-full flex-col items-center justify-center gap-2 bg-muted/80",
                 className
             )}
             data-slot="media-placeholder"
