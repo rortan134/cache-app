@@ -27,5 +27,7 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-    matcher: ["/((?!api|mcp|static|.*\\..*|_next).*)"],
+    // Matches all paths except those starting with /api, /mcp, /static, /_next,
+    // or any file with an extension (e.g. /file.js).
+    matcher: ["/((?!api/|mcp/|static/|_next/|[^/]+\\.[^/]+$).*)"],
 };
