@@ -21,7 +21,6 @@ const nextConfig: NextConfig = {
             "streamdown",
             "zod",
         ],
-        turbopackFileSystemCacheForDev: true,
     },
     async headers() {
         return [
@@ -135,7 +134,6 @@ const nextConfig: NextConfig = {
             },
         ];
     },
-    serverExternalPackages: ["bun"],
 };
 
 const securityHeaders = [
