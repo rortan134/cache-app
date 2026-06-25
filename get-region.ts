@@ -1,3 +1,3 @@
-export default function getRegion(): Promise<string | undefined> {
+export default function getRegion() {
     return Promise.resolve(undefined);
 }

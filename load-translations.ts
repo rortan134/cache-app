@@ -1,9 +1,7 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 
-export default async function loadTranslations(
-    locale: string
-): Promise<Record<string, unknown>> {
+export default async function loadTranslations(locale: string) {
     const filePath = path.join(
         /* turbopackIgnore: true */ process.cwd(),
         "public",

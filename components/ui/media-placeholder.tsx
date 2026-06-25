@@ -1,8 +1,5 @@
-"use client";
-
 import { cn } from "@/lib/common/cn";
 import { djb2Hash } from "@/lib/common/colors";
-import { GlobeOff } from "lucide-react";
 import * as React from "react";
 
 export function MediaPlaceholder({
@@ -25,8 +22,6 @@ export function MediaPlaceholder({
             style={
                 { "--texture-position": `${x}% ${y}%` } as React.CSSProperties
             }
-        >
-            <GlobeOff className="z-1 size-6 text-muted-foreground/50" />
-        </div>
+        />
     );
 }

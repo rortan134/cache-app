@@ -1,6 +1,5 @@
-import { headers } from "next/headers";
+import { locale } from "next/root-params";
 
-export default async function getLocale(): Promise<string> {
-    const headersList = await headers();
-    return headersList.get("x-generaltranslation-locale") ?? "en-US";
+export default async function getLocale() {
+    return await locale();
 }
