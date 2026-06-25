@@ -34,7 +34,7 @@ import {
     type AskCacheRequest,
 } from "./ask-cache";
 
-const ASK_CACHE_MODEL_DEFAULT = "gemini-3.5-flash";
+const ASK_CACHE_MODEL_DEFAULT = "gemini-3.1-flash-lite";
 const ASK_CACHE_MODELS_FALLBACK = ["gemini-3.1-flash-lite"] as const;
 const ASK_CACHE_MODELS = [
     ASK_CACHE_MODEL_DEFAULT,

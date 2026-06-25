@@ -42,7 +42,7 @@ import * as z from "zod";
 const log = createLogger("library:smart-collections");
 const serviceLog = createLogger("intelligence:service");
 
-const SMART_COLLECTIONS_MODEL_DEFAULT = "gemini-3.5-flash";
+const SMART_COLLECTIONS_MODEL_DEFAULT = "gemini-3.1-flash-lite";
 const SMART_COLLECTIONS_MODELS_FALLBACK = ["gemini-3.1-flash-lite"] as const;
 const SMART_COLLECTIONS_APPLY_COLLECTION_COUNT_MAX = 4;
 const SMART_COLLECTIONS_NEW_COLLECTION_COUNT_MAX = 2;
