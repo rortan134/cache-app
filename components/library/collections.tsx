@@ -251,12 +251,6 @@ interface SortingOption {
     value: Exclude<CollectionSortField, "text-match">;
 }
 
-// interface CollectionNotificationOption {
-//     defaultChecked: boolean;
-//     label: string;
-//     value: string;
-// }
-
 interface ComboboxValue {
     icon: CollectionOptionIcon;
     label: string;
@@ -284,24 +278,6 @@ const DEFAULT_PRIORITY: PriorityOption = {
     label: "No priority",
     value: "none",
 };
-
-// const COLLECTION_NOTIFICATION_OPTIONS: CollectionNotificationOption[] = [
-//     {
-//         defaultChecked: true,
-//         label: "New items added",
-//         value: "new-items",
-//     },
-//     {
-//         defaultChecked: true,
-//         label: "Weekly digest",
-//         value: "weekly-digest",
-//     },
-//     {
-//         defaultChecked: false,
-//         label: "Shared link activity",
-//         value: "shared-link-activity",
-//     },
-// ];
 
 const PRIORITIES = [
     DEFAULT_PRIORITY,
@@ -750,10 +726,11 @@ function useCollectionsController() {
         React.useState<LibraryCollectionSummary | null>(null);
 
     const [pendingShareIds, setPendingShareIds] = React.useState<string[]>([]);
-    const [, startShare] = React.useTransition();
+    const [pendingNotionCollectionIds, setPendingNotionCollectionIds] =
+        React.useState<string[]>([]);
 
-    const [, startDuplicate] = React.useTransition();
-    const [, startSendToNotion] = React.useTransition();
+    const [isSortOpen, setIsSortOpen] = React.useState(false);
+    const [sortInputValue, setSortInputValue] = React.useState("");
 
     const [feedback, setFeedback] = React.useState<CollectionFeedback | null>(
         null
@@ -778,17 +755,12 @@ function useCollectionsController() {
     } = useCollectionsSortStore();
 
     const { copyToClipboard } = useCopyToClipboard();
+    const [, startTransition] = React.useTransition();
 
-    const [isSortOpen, setIsSortOpen] = React.useState(false);
-    const [sortInputValue, setSortInputValue] = React.useState("");
-    const pendingPriorityUpdateIdsRef = React.useRef(new Set<string>());
-    const pendingNotionCollectionIdSetRef = React.useRef(new Set<string>());
-    const pendingShareIdSetRef = React.useRef(new Set<string>());
+    const pendingActionIdsRef = React.useRef(new Set<string>());
     const hoveredCollectionRef = React.useRef<LibraryCollectionSummary | null>(
         null
     );
-    const [pendingNotionCollectionIds, setPendingNotionCollectionIds] =
-        React.useState<string[]>([]);
 
     const hasAnySelected = selectedCollectionIds.length > 0;
     const collectionLabels = collectionSummaries.map(
@@ -840,12 +812,6 @@ function useCollectionsController() {
         collectionId: string,
         isPending: boolean
     ) => {
-        if (isPending) {
-            pendingShareIdSetRef.current.add(collectionId);
-        } else {
-            pendingShareIdSetRef.current.delete(collectionId);
-        }
-
         setPendingShareIds((current) => {
             if (isPending) {
                 return current.includes(collectionId)
@@ -860,12 +826,6 @@ function useCollectionsController() {
         collectionId: string,
         isPending: boolean
     ) => {
-        if (isPending) {
-            pendingNotionCollectionIdSetRef.current.add(collectionId);
-        } else {
-            pendingNotionCollectionIdSetRef.current.delete(collectionId);
-        }
-
         setPendingNotionCollectionIds((current) => {
             if (isPending) {
                 return current.includes(collectionId)
@@ -1090,7 +1050,8 @@ function useCollectionsController() {
     };
 
     const handleEnableShare = (collection: LibraryCollectionSummary) => {
-        if (pendingShareIdSetRef.current.has(collection.id)) {
+        const key = `share-${collection.id}`;
+        if (pendingActionIdsRef.current.has(key)) {
             return;
         }
 
@@ -1099,9 +1060,10 @@ function useCollectionsController() {
         }
 
         setFeedback(null);
+        pendingActionIdsRef.current.add(key);
         setCollectionSharePending(collection.id, true);
 
-        startShare(async () => {
+        startTransition(async () => {
             try {
                 const result = await shareCollectionPubliclySafely({
                     collectionId: collection.id,
@@ -1119,20 +1081,23 @@ function useCollectionsController() {
                     showError(result.message);
                 }
             } finally {
+                pendingActionIdsRef.current.delete(key);
                 setCollectionSharePending(collection.id, false);
             }
         });
     };
 
     const handleDisableShare = (collection: LibraryCollectionSummary) => {
-        if (pendingShareIdSetRef.current.has(collection.id)) {
+        const key = `share-${collection.id}`;
+        if (pendingActionIdsRef.current.has(key)) {
             return;
         }
 
         setFeedback(null);
+        pendingActionIdsRef.current.add(key);
         setCollectionSharePending(collection.id, true);
 
-        startShare(async () => {
+        startTransition(async () => {
             try {
                 const result = await disableCollectionSharingSafely({
                     collectionId: collection.id,
@@ -1147,6 +1112,7 @@ function useCollectionsController() {
                     showError(result.message);
                 }
             } finally {
+                pendingActionIdsRef.current.delete(key);
                 setCollectionSharePending(collection.id, false);
             }
         });
@@ -1207,7 +1173,8 @@ function useCollectionsController() {
     };
 
     const handleSendToNotion = (collection: LibraryCollectionSummary) => {
-        if (pendingNotionCollectionIdSetRef.current.has(collection.id)) {
+        const key = `notion-${collection.id}`;
+        if (pendingActionIdsRef.current.has(key)) {
             return;
         }
 
@@ -1216,9 +1183,10 @@ function useCollectionsController() {
         }
 
         setFeedback(null);
+        pendingActionIdsRef.current.add(key);
         setCollectionNotionPending(collection.id, true);
 
-        startSendToNotion(async () => {
+        startTransition(async () => {
             try {
                 const result = await sendCollectionToNotion({
                     collectionId: collection.id,
@@ -1231,6 +1199,7 @@ function useCollectionsController() {
                     showError(result.message);
                 }
             } finally {
+                pendingActionIdsRef.current.delete(key);
                 setCollectionNotionPending(collection.id, false);
             }
         });
@@ -1240,7 +1209,8 @@ function useCollectionsController() {
         collectionId: string,
         priority: CollectionPriority
     ) => {
-        if (pendingPriorityUpdateIdsRef.current.has(collectionId)) {
+        const key = `priority-${collectionId}`;
+        if (pendingActionIdsRef.current.has(key)) {
             return;
         }
 
@@ -1252,7 +1222,7 @@ function useCollectionsController() {
             return;
         }
 
-        pendingPriorityUpdateIdsRef.current.add(collectionId);
+        pendingActionIdsRef.current.add(key);
         syncPriority(collectionId, priority);
 
         try {
@@ -1268,14 +1238,14 @@ function useCollectionsController() {
                 showError(result.message);
             }
         } finally {
-            pendingPriorityUpdateIdsRef.current.delete(collectionId);
+            pendingActionIdsRef.current.delete(key);
         }
     };
 
     const handleDuplicate = (collection: LibraryCollectionSummary) => {
         setFeedback(null);
 
-        startDuplicate(async () => {
+        startTransition(async () => {
             const result = await duplicateCollectionSafely({
                 collectionId: collection.id,
             });
@@ -2874,34 +2844,6 @@ function CollectionItemExportSubMenu() {
         </MenuSub>
     );
 }
-
-// function CollectionItemSubscribeSubMenu() {
-//     return (
-//         <MenuSub>
-//             <MenuSubTrigger disabled>
-//                 <BellIcon
-//                     aria-hidden
-//                     className="inline-block size-4 text-muted-foreground"
-//                     focusable="false"
-//                 />
-//                 Subscribe
-//             </MenuSubTrigger>
-//             <MenuSubPopup>
-//                 <MenuGroup>
-//                     <MenuGroupLabel>Inbox notifications</MenuGroupLabel>
-//                     {COLLECTION_NOTIFICATION_OPTIONS.map((option) => (
-//                         <MenuCheckboxItem
-//                             defaultChecked={option.defaultChecked}
-//                             key={option.value}
-//                         >
-//                             {option.label}
-//                         </MenuCheckboxItem>
-//                     ))}
-//                 </MenuGroup>
-//             </MenuSubPopup>
-//         </MenuSub>
-//     );
-// }
 
 interface CollectionItemMetadataProps {
     metadataDisplay: CollectionItemMetadataDisplay;
