@@ -1,9 +1,9 @@
 "use client";
 
+import { cn } from "@/lib/common/cn";
 import { Input, type InputSize } from "@/components/ui/input";
 import { Kbd } from "@/components/ui/kbd";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { cn } from "@/lib/common/cn";
 import { Autocomplete } from "@base-ui/react/autocomplete";
 import type * as React from "react";
 

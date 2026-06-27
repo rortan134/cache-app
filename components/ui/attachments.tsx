@@ -1,12 +1,12 @@
 "use client";
 
+import { cn } from "@/lib/common/cn";
 import { Button } from "@/components/ui/button";
 import {
     PreviewCard,
     PreviewCardPopup,
     PreviewCardTrigger,
 } from "@/components/ui/preview-card";
-import { cn } from "@/lib/common/cn";
 import type { FileUIPart, SourceDocumentUIPart } from "ai";
 import {
     FileTextIcon,

@@ -1,11 +1,11 @@
 "use client";
 
+import { cn } from "@/lib/common/cn";
 import {
     Collapsible,
     CollapsiblePanel,
     CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { cn } from "@/lib/common/cn";
 import * as React from "react";
 
 interface DisclosureListProps extends React.ComponentProps<"div"> {
