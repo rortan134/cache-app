@@ -99,11 +99,11 @@ export function Composer({
     return (
         <>
             <Toolbar.Root
+                {...props}
                 className={cn(
-                    "max-w-xl rounded-t-4xl rounded-b-2xl bg-muted/80",
+                    "w-full max-w-2xl rounded-t-4xl rounded-b-2xl bg-muted/80",
                     className
                 )}
-                {...props}
             >
                 {toolbarChildren}
             </Toolbar.Root>
@@ -151,10 +151,10 @@ export function ComposerInput({
                         />
                     }
                 />
-                <CommandPopup className="max-w-xl">
+                <CommandPopup className="max-w-2xl">
                     <CommandEmpty>No matching commands found.</CommandEmpty>
                     <CommandStatus />
-                    <CommandList className="max-w-xl">
+                    <CommandList className="max-w-2xl">
                         {filteredGroups.map((group) => (
                             <CommandGroup items={group.items} key={group.label}>
                                 <CommandGroupLabel>

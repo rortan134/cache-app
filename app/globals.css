@@ -219,9 +219,7 @@
         transform: translateX(0);
     }
     100% {
-        transform: translateX(
-            calc(var(--animation-distance, -50%) - var(--gap))
-        );
+        transform: translateX(var(--animation-distance, -50%));
     }
 }
 

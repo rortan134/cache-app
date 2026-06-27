@@ -5,27 +5,24 @@ import * as React from "react";
 
 const DEFAULT_DURATION_SECONDS = 5;
 const MAX_SPEED_PX_PER_SECOND = 92;
+const REPEAT_COUNT = 2;
 
 interface TickerTrackStyle extends React.CSSProperties {
     "--animation-distance": string;
     "--duration": string;
-    "--gap": string;
 }
 
 interface TickerProps extends React.ComponentProps<"span"> {
     direction?: "left" | "right";
-    repeatInstances?: number;
 }
 
 export function Ticker({
     direction = "left",
-    repeatInstances = 2,
     className,
     children,
     ...props
 }: TickerProps) {
     const [trackSizePx, setTrackSizePx] = React.useState(0);
-    const [childrenSizePx, setChildrenSizePx] = React.useState(0);
 
     const track = (el: HTMLSpanElement | null) => {
         if (el) {
@@ -35,45 +32,26 @@ export function Ticker({
         }
     };
 
-    const child = (el: HTMLSpanElement | null) => {
-        if (el) {
-            setChildrenSizePx((prev) =>
-                prev === el.offsetWidth ? prev : el.offsetWidth
-            );
-        }
-    };
-
-    const repeatCount =
-        childrenSizePx <= trackSizePx
-            ? 1
-            : Math.max(1, Math.ceil(repeatInstances));
-
     const trackStyle: TickerTrackStyle = {
-        "--animation-distance": `${-100 / repeatCount}%`,
-        "--duration": `${getTickerDurationSeconds(trackSizePx / repeatCount)}s`,
-        "--gap": "1rem",
+        "--animation-distance": `${-100 / REPEAT_COUNT}%`,
+        "--duration": `${getTickerDurationSeconds(trackSizePx / REPEAT_COUNT)}s`,
     };
 
     return (
         <span
             {...props}
             className={cn(
-                "paused flex shrink-0 animate-marquee select-none gap-(--gap)",
+                "paused flex shrink-0 animate-marquee select-none",
                 {
                     "direction-reverse": direction === "right",
-                    "group-hover:running": repeatCount > 1,
                 },
                 className
             )}
             ref={track}
             style={trackStyle}
         >
-            {Array.from({ length: repeatCount }, (_, index) => (
-                <span
-                    className="shrink-0 p-px"
-                    key={index}
-                    ref={index === 0 ? child : undefined}
-                >
+            {Array.from({ length: REPEAT_COUNT }, (_, index) => (
+                <span className="shrink-0 p-px pr-4" key={index}>
                     {children}
                 </span>
             ))}

@@ -2274,7 +2274,7 @@ function BrowserGroupOverviewContent() {
             )}
             id={contentId}
         >
-            <Streamdown className="min-w-0 flex-1 whitespace-pre-line pt-1">
+            <Streamdown className="min-w-0 flex-1 whitespace-pre-line pt-1.5">
                 {summary && summary.length > 0
                     ? summary
                     : "Description is unavailable right now."}

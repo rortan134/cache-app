@@ -355,7 +355,7 @@ export function OnboardingMenu({
                             />
                         }
                     />
-                    <MenuPopup align="end" className="min-w-72">
+                    <MenuPopup className="min-w-72">
                         <MenuGroup>
                             <MenuGroupLabel>
                                 Complete this checklist
