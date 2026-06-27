@@ -61,11 +61,6 @@ export const ASK_CACHE_COLLECTION_MEMBERSHIP_FILTER_VALUES = [
     "not-in-collections",
 ] as const;
 
-export const ASK_CACHE_CONTAINER_WIDTH_VALUES = [
-    "comfortable",
-    "full",
-] as const;
-
 const AskCacheTextSchema = z
     .string()
     .trim()
@@ -79,7 +74,6 @@ export const AskCacheComposerStateSchema = z.strictObject({
         ASK_CACHE_COLLECTION_MEMBERSHIP_FILTER_VALUES
     ),
     columnCountMode: z.enum(ASK_CACHE_COLUMN_COUNT_VALUES),
-    containerWidth: z.enum(ASK_CACHE_CONTAINER_WIDTH_VALUES),
     domainFilters: z
         .array(z.string().trim().min(1).max(ASK_CACHE_DOMAIN_FILTER_MAX_LENGTH))
         .max(20),
@@ -98,7 +92,6 @@ export const AskCacheComposerPatchSchema = z
             .enum(ASK_CACHE_COLLECTION_MEMBERSHIP_FILTER_VALUES)
             .optional(),
         columnCountMode: z.enum(ASK_CACHE_COLUMN_COUNT_VALUES).optional(),
-        containerWidth: z.enum(ASK_CACHE_CONTAINER_WIDTH_VALUES).optional(),
         domainFilters: z
             .array(
                 z.string().trim().min(1).max(ASK_CACHE_DOMAIN_FILTER_MAX_LENGTH)

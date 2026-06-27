@@ -100,7 +100,6 @@ import {
     MenuSubTrigger,
     MenuTrigger,
 } from "@/components/ui/menu";
-import { useSidebar } from "@/components/ui/sidebar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Spinner } from "@/components/ui/spinner";
 import { Textarea } from "@/components/ui/textarea";
@@ -845,20 +844,17 @@ type CollectionMembershipFilter =
     | "not-in-collections";
 type ColumnCountMode = "auto" | "2" | "3" | "4" | "5" | "6";
 
-type ContainerWidth = "comfortable" | "full";
-
 type PaletteSection =
     | "search"
     | "filter"
     | "group"
     | "sort"
     | "columns"
-    | "width"
     | "ai-response";
 
 const DEFAULT_SORT_MODE: SortMode = "added-newest";
 const DEFAULT_COLUMN_COUNT_MODE: ColumnCountMode = "auto";
-const DEFAULT_CONTAINER_WIDTH: ContainerWidth = "comfortable";
+
 const DEFAULT_COLLECTION_MEMBERSHIP_FILTER: CollectionMembershipFilter = "all";
 const NOTE_DRAWER_NEW = Symbol("note-drawer-new");
 
@@ -1280,7 +1276,6 @@ interface BuildPaletteStackEntriesInput {
     collections: LibraryCollectionSummary[];
     columnCountMode: ColumnCountMode;
     commandAttachments: LibraryCommandAttachment[];
-    containerWidth: ContainerWidth;
     domainFilters: string[];
     groupBy: GroupByMode;
     lastVisitedFilterEnabled: boolean;
@@ -1290,7 +1285,6 @@ interface BuildPaletteStackEntriesInput {
     selectedCollectionIds: string[];
     setCollectionMembershipFilter: (value: CollectionMembershipFilter) => void;
     setColumnCountMode: (value: ColumnCountMode) => void;
-    setContainerWidth: (value: ContainerWidth) => void;
     setDomainFilters: (
         value: string[] | ((value: string[]) => string[])
     ) => void;
@@ -1312,7 +1306,6 @@ function buildPaletteStackEntries({
     collections,
     columnCountMode,
     commandAttachments,
-    containerWidth,
     domainFilters,
     groupBy,
     lastVisitedFilterEnabled,
@@ -1322,7 +1315,6 @@ function buildPaletteStackEntries({
     selectedCollectionIds,
     setCollectionMembershipFilter,
     setColumnCountMode,
-    setContainerWidth,
     setDomainFilters,
     setGroupBy,
     setLastVisitedFilterEnabled,
@@ -1487,21 +1479,6 @@ function buildPaletteStackEntries({
                 />
             ),
             key: "columns",
-            onRemove,
-        });
-    }
-
-    if (containerWidth !== DEFAULT_CONTAINER_WIDTH) {
-        const onRemove = () => setContainerWidth(DEFAULT_CONTAINER_WIDTH);
-        entries.push({
-            chip: (
-                <PaletteChip
-                    key="width"
-                    label={`Width: ${containerWidth === "full" ? "Full width" : "Comfortable"}`}
-                    onRemove={onRemove}
-                />
-            ),
-            key: "width",
             onRemove,
         });
     }
@@ -1820,7 +1797,6 @@ interface BrowserResultsContextValue {
     collapsedSectionKeys: Set<string>;
     collections: LibraryCollectionSummary[];
     columnCount?: number;
-    containerWidth: ContainerWidth;
     enableSectionCollapse: boolean;
     favoriteItemIdSet: ReadonlySet<string>;
     onCollapseAllSections?: () => void;
@@ -2705,7 +2681,6 @@ interface BuildPaletteGroupsInput {
     collectionPreviewThumbnailUrlsById: Map<string, string[]>;
     collections: LibraryCollectionSummary[];
     columnCountMode: ColumnCountMode;
-    containerWidth: ContainerWidth;
     domainFilters: string[];
     domainOptions: {
         label: string;
@@ -2728,7 +2703,6 @@ interface BuildPaletteGroupsInput {
     selectedCollectionIds: string[];
     setCollectionMembershipFilter: (value: CollectionMembershipFilter) => void;
     setColumnCountMode: (value: ColumnCountMode) => void;
-    setContainerWidth: (value: ContainerWidth) => void;
     setDomainFilters: (
         value: string[] | ((value: string[]) => string[])
     ) => void;
@@ -2781,7 +2755,6 @@ function buildPaletteGroups({
     collectionMembershipFilter,
     collectionPreviewThumbnailUrlsById,
     collections,
-    containerWidth,
     domainFilters,
     domainOptions,
     groupBy,
@@ -2798,7 +2771,6 @@ function buildPaletteGroups({
     selectedCollectionIds,
     setCollectionMembershipFilter,
     setColumnCountMode,
-    setContainerWidth,
     setIsCommandOpen,
     setDomainFilters,
     setGroupBy,
@@ -2848,15 +2820,6 @@ function buildPaletteGroups({
             label: "Columns…",
             onSelect: (event) => openPaletteSection("columns", event),
             value: "navigate columns",
-        },
-        {
-            description:
-                containerWidth === "comfortable"
-                    ? "Constrain to a comfortable reading width"
-                    : "Expand to the full viewport width",
-            label: "Width…",
-            onSelect: (event) => openPaletteSection("width", event),
-            value: "navigate width",
         },
     ];
 
@@ -3060,36 +3023,6 @@ function buildPaletteGroups({
                     value: `columns ${option.value}`,
                 })),
                 label: "Columns",
-            },
-        ];
-    }
-
-    if (paletteSection === "width") {
-        return [
-            { items: [backItem], label: "Navigation" },
-            {
-                items: [
-                    {
-                        active: containerWidth === "comfortable",
-                        description:
-                            "Constrain results to a comfortable reading width",
-                        label: "Comfortable",
-                        onSelect: applyAndReturn(() =>
-                            setContainerWidth("comfortable")
-                        ),
-                        value: "width comfortable",
-                    },
-                    {
-                        active: containerWidth === "full",
-                        description: "Expand results to the full viewport",
-                        label: "Full width",
-                        onSelect: applyAndReturn(() =>
-                            setContainerWidth("full")
-                        ),
-                        value: "width full",
-                    },
-                ],
-                label: "Width",
             },
         ];
     }
@@ -4673,14 +4606,9 @@ export function Browser({
     const [sortMode, setSortMode] = React.useState<SortMode>(DEFAULT_SORT_MODE);
     const [columnCountMode, setColumnCountMode] =
         React.useState<ColumnCountMode>(DEFAULT_COLUMN_COUNT_MODE);
-    const [containerWidth, setContainerWidth] = React.useState<ContainerWidth>(
-        DEFAULT_CONTAINER_WIDTH
-    );
     const { lastVisitedItemIds } = useLastVisited();
     const [lastVisitedFilterEnabled, setLastVisitedFilterEnabled] =
         React.useState(false);
-    const { open: sidebarOpen } = useSidebar();
-    const userHasSetWidthRef = React.useRef(false);
     const [paletteSection, setPaletteSection] =
         React.useState<PaletteSection>("search");
     const [commandAttachments, setCommandAttachments] = React.useState<
@@ -4750,13 +4678,6 @@ export function Browser({
         });
     });
 
-    const handleSetContainerWidth = useStableCallback(
-        (width: ContainerWidth) => {
-            userHasSetWidthRef.current = true;
-            setContainerWidth(width);
-        }
-    );
-
     const clearLibraryPalette = useStableCallback(() => {
         setQuery("");
         setSearchTerms([]);
@@ -4769,8 +4690,6 @@ export function Browser({
         setSortMode(DEFAULT_SORT_MODE);
         setColumnCountMode(DEFAULT_COLUMN_COUNT_MODE);
         setLastVisitedFilterEnabled(false);
-        userHasSetWidthRef.current = false;
-        setContainerWidth(sidebarOpen ? DEFAULT_CONTAINER_WIDTH : "full");
         setPaletteSection("search");
         setIsCommandOpen(false);
     });
@@ -4780,7 +4699,6 @@ export function Browser({
             composerState: {
                 collectionMembershipFilter,
                 columnCountMode,
-                containerWidth,
                 domainFilters,
                 groupBy,
                 searchTerms,
@@ -4848,9 +4766,6 @@ export function Browser({
             }
             if (patch.columnCountMode) {
                 setColumnCountMode(patch.columnCountMode);
-            }
-            if (patch.containerWidth) {
-                handleSetContainerWidth(patch.containerWidth);
             }
             if (patch.selectedCollectionIds) {
                 onClearCollectionFilters();
@@ -4952,7 +4867,6 @@ export function Browser({
         collectionPreviewThumbnailUrlsById,
         collections,
         columnCountMode,
-        containerWidth,
         domainFilters,
         domainOptions,
         groupBy,
@@ -4969,7 +4883,6 @@ export function Browser({
         selectedCollectionIds,
         setCollectionMembershipFilter,
         setColumnCountMode,
-        setContainerWidth: handleSetContainerWidth,
         setDomainFilters,
         setGroupBy,
         setIsCommandOpen,
@@ -5013,7 +4926,6 @@ export function Browser({
         groupBy !== "none" ||
         sortMode !== DEFAULT_SORT_MODE ||
         columnCountMode !== DEFAULT_COLUMN_COUNT_MODE ||
-        containerWidth !== DEFAULT_CONTAINER_WIDTH ||
         sourceFilters.length > 0;
 
     const hasMeaningfulResultsView = hasActiveFilters || groupBy !== "none";
@@ -5280,7 +5192,6 @@ export function Browser({
         collections,
         columnCountMode,
         commandAttachments,
-        containerWidth,
         domainFilters,
         groupBy,
         lastVisitedFilterEnabled,
@@ -5290,7 +5201,6 @@ export function Browser({
         selectedCollectionIds,
         setCollectionMembershipFilter,
         setColumnCountMode,
-        setContainerWidth: handleSetContainerWidth,
         setDomainFilters,
         setGroupBy,
         setLastVisitedFilterEnabled,
@@ -5660,13 +5570,6 @@ export function Browser({
         };
     }, [handleOpenFavoriteItem, openFavoriteItemRef]);
 
-    React.useEffect(() => {
-        if (userHasSetWidthRef.current) {
-            return;
-        }
-        setContainerWidth(sidebarOpen ? DEFAULT_CONTAINER_WIDTH : "full");
-    }, [sidebarOpen]);
-
     const containerRef = React.useRef<HTMLDivElement>(null);
 
     let placeholder = "Search, filter, group, sort, and more";
@@ -5686,18 +5589,13 @@ export function Browser({
         placeholder = "Sort results";
     } else if (paletteSection === "columns") {
         placeholder = "Set the number of columns";
-    } else if (paletteSection === "width") {
-        placeholder = "Set the container width";
     } else if (paletteSection === "ai-response") {
         placeholder = "Ask Cache anything";
     }
 
     return (
         <div
-            className={cn(
-                "relative z-0 flex w-full min-w-0 max-w-[1024px] flex-1 flex-col gap-4 p-8 2xl:mx-auto",
-                { "max-w-full": containerWidth !== "comfortable" }
-            )}
+            className="relative z-0 flex w-full min-w-0 flex-1 flex-col gap-4 p-8"
             ref={containerRef}
             style={
                 { "--library-section-sticky-top": "8px" } as React.CSSProperties
@@ -5766,7 +5664,6 @@ export function Browser({
                 collapsedSectionKeys={collapsedSectionKeySet}
                 collections={collections}
                 columnCount={resolvedColumnCount}
-                containerWidth={containerWidth}
                 enableSectionCollapse={enableSectionCollapse}
                 favoriteItemIdSet={favoriteItemIdSet}
                 onCollapseAllSections={collapseAllSections}
