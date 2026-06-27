@@ -2,11 +2,18 @@ import "server-only";
 
 import { serverEnv } from "@/env/server";
 import { tavilySearch } from "@tavily/ai-sdk";
+import type { ToolExecutionOptions } from "ai";
 import * as z from "zod";
 import type { AutomationWebSearchTimeRange } from "./tool-inputs";
 
 const TAVILY_TIMEOUT_MS = 15_000;
 const TAVILY_RESULT_COUNT_MAX = 5;
+const TAVILY_MANUAL_EXECUTION_OPTIONS = {
+    context: undefined,
+    messages: [],
+    toolCallId: "automation-web-search",
+} satisfies ToolExecutionOptions<undefined>;
+
 const TavilySearchPayloadSchema = z.object({
     answer: z.string().optional(),
     query: z.string().optional(),
@@ -60,10 +67,7 @@ export async function automationWebSearch(args: {
                     query: args.query,
                     timeRange: args.timeRange,
                 },
-                {
-                    messages: [],
-                    toolCallId: "automation-web-search",
-                }
+                TAVILY_MANUAL_EXECUTION_OPTIONS
             )
         );
         if (!parsedPayload.success) {

@@ -1,7 +1,7 @@
 import { createLogger } from "@/lib/common/logs/console/logger";
 import { DurableAgent } from "@workflow/ai/agent";
 import type { UIMessageChunk } from "ai";
-import { stepCountIs, tool, type LanguageModelUsage } from "ai";
+import { isStepCount, tool, type LanguageModelUsage } from "ai";
 import { getWritable } from "workflow";
 import {
     AUTOMATION_AGENT_MODEL_DEFAULT,
@@ -182,7 +182,7 @@ export async function executeReadOnlyAutomationRun(
                     role: "user",
                 },
             ],
-            stopWhen: stepCountIs(6),
+            stopWhen: isStepCount(6),
             writable: getWritable<UIMessageChunk>(),
         });
 

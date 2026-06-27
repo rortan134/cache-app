@@ -1,6 +1,5 @@
 import "server-only";
 
-import { serverEnv } from "@/env/server";
 import { LIBRARY_ITEM_COLLECTIONS_INCLUDE } from "@/lib/collections/utils";
 import { ITEM_KIND_FOLDER, SORT_DESC } from "@/lib/common/constants";
 import { createLogger } from "@/lib/common/logs/console/logger";
@@ -8,14 +7,14 @@ import { isRecord } from "@/lib/common/objects";
 import { parseDisplayUrl } from "@/lib/common/url";
 import { prisma } from "@/prisma";
 import type { Prisma } from "@/prisma/client/client";
-import { createGoogleGenerativeAI } from "@ai-sdk/google";
+import { google } from "@workflow/ai/google";
 import type { ArcjetNextRequest } from "@arcjet/next";
 import { DurableAgent } from "@workflow/ai/agent";
 import {
     APICallError,
     LoadAPIKeyError,
     RetryError,
-    stepCountIs,
+    isStepCount,
     tool,
     type LanguageModelUsage,
     type UIMessageChunk,
@@ -104,10 +103,6 @@ class EmptyAskCacheAgentResultError extends Error {
     }
 }
 
-const googleGenAi = createGoogleGenerativeAI({
-    apiKey: serverEnv.GEMINI_API_KEY,
-});
-
 export async function runAskCacheAgent({
     input,
     request,
@@ -182,7 +177,7 @@ async function runAskCacheAgentModel(args: {
     const agent = new DurableAgent({
         instructions: args.instructions,
         maxOutputTokens: ASK_CACHE_OUTPUT_TOKEN_LIMIT,
-        model: () => Promise.resolve(googleGenAi(args.model)),
+        model: google(args.model),
         temperature: 0.2,
         tools: {
             search_library: tool({
@@ -233,7 +228,7 @@ async function runAskCacheAgentModel(args: {
     const result = await agent.stream({
         maxSteps: ASK_CACHE_MAX_STEPS,
         messages: [{ content: args.userMessage, role: "user" }],
-        stopWhen: stepCountIs(ASK_CACHE_MAX_STEPS),
+        stopWhen: isStepCount(ASK_CACHE_MAX_STEPS),
         timeout: ASK_CACHE_TIMEOUT_MS,
         writable: new WritableStream<UIMessageChunk>(),
     });
