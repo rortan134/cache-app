@@ -9,11 +9,8 @@ import { Footer } from "@/components/ui/footer";
 import { GradientWaveText } from "@/components/ui/gradient-wave-text";
 import {
     ChromeIcon,
-    ClaudeIcon,
-    CursorIcon,
     GithubIcon,
     ModelContextProtocolIcon,
-    OpenAIIcon,
     TikTokIcon,
 } from "@/components/ui/icons";
 import { IridescenceBackground } from "@/components/ui/iridescence-background";
@@ -118,21 +115,18 @@ export default async function Home() {
                 <Sidebar>
                     <SidebarHeader>
                         <BrandLogo href="/library" src={LogoIconImage} />
-                        <div className="flex flex-col gap-3">
-                            <T context="'Cache' is the product's name">
-                                <h1 className="break-normal font-medium text-[3rem] leading-[98%] md:text-[4rem] md:tracking-[-0.21875rem]">
-                                    <GradientWaveText ariaLabel="Unify your bookmarks">
-                                        Unify your bookmarks.
-                                    </GradientWaveText>
-                                </h1>
-                                <p className="font-medium text-[#0A0B0D] text-[1rem] leading-[1.22] tracking-[-3%] opacity-50 lg:max-w-[320px]">
-                                    Meet Cache — The AI bookmark manager for
-                                    busy people. Collect, organize, and
-                                    rediscover everything you've saved across
-                                    platforms.
-                                </p>
-                            </T>
-                        </div>
+                        <T context="'Cache' is the product's name">
+                            <h1 className="break-normal font-medium text-[3rem] leading-[98%] md:text-[4rem] md:tracking-[-0.21875rem]">
+                                <GradientWaveText ariaLabel="Unify your bookmarks">
+                                    Bookmark Intelligence
+                                </GradientWaveText>
+                            </h1>
+                            <p className="font-medium text-[#0A0B0D] text-[1rem] leading-[1.22] tracking-[-3%] opacity-50 lg:max-w-[320px]">
+                                Meet Cache — The AI bookmark manager for busy
+                                people. Collect, organize, and rediscover
+                                everything you've saved across platforms.
+                            </p>
+                        </T>
                         <SignInButton hasServerSession={!!session} />
                         <SessionHint serverSession={session} />
                     </SidebarHeader>
@@ -182,11 +176,8 @@ export default async function Home() {
                             src={HeroImage}
                         />
                     </div>
-                    <div className="-mt-1 mb-3 flex flex-col gap-1">
-                        <h2 className="mx-auto text-center font-medium text-base">
-                            <T>Bookmark Intelligence™</T>
-                        </h2>
-                        <p className="mx-auto text-center text-xs">
+                    <div className="-mt-2 mb-3 flex flex-col gap-1">
+                        <p className="mx-auto text-center text-sm">
                             <T>
                                 A smarter way to handle everything you save
                                 online. Starting from $8/month.
@@ -323,6 +314,8 @@ export default async function Home() {
                                     Stop leaving it for "later"
                                 </h2>
                                 <p className="text-pretty font-medium font-regular text-[#0A0B0D] text-[16px] leading-[1.2] tracking-[-3%] opacity-50">
+                                    We save things with the best intentions,
+                                    only to let them fade into a forgotten list.
                                     Cache brings your best saved content back to
                                     you, so you actually use it.
                                 </p>
@@ -607,19 +600,18 @@ export default async function Home() {
                         </Carousel>
                     </section>
                     <section className="flex w-full flex-col gap-8">
-                        <div className="flex items-center gap-5">
+                        <div className="flex max-w-sm items-center gap-5">
                             <T>
                                 <p className="font-medium text-base text-foreground">
                                     <span className="font-normal opacity-50">
                                         You don't have to use Cache.
                                     </span>{" "}
-                                    Let your agent use it with{" "}
-                                    <ModelContextProtocolIcon /> MCP:
+                                    Let your AI agents use it with{" "}
+                                    <ModelContextProtocolIcon /> MCP and empower
+                                    them with the full spectrum of your
+                                    resources.
                                 </p>
                             </T>
-                            <OpenAIIcon className="size-5" />
-                            <ClaudeIcon className="size-5" />
-                            <CursorIcon className="size-5" />
                         </div>
                     </section>
                     <Footer />
