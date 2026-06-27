@@ -217,6 +217,7 @@ export function UserMenuContent() {
                 </UnsubscribedOnly>
                 <Collapsible>
                     <CollapsibleTrigger
+                        nativeButton={false}
                         render={<MenuItem closeOnClick={false} />}
                     >
                         <T>Resources</T>
