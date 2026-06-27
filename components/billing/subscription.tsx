@@ -42,6 +42,7 @@ function useSubscriptionAccess() {
         {
             keepPreviousData: true,
             refreshInterval: 60_000,
+            revalidateOnFocus: false,
         }
     );
 
