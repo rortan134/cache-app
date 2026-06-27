@@ -45,7 +45,8 @@ const serviceLog = createLogger("intelligence:service");
 const SMART_COLLECTIONS_MODEL_DEFAULT = "gemini-3.1-flash-lite";
 const SMART_COLLECTIONS_MODELS_FALLBACK = ["gemini-3.1-flash-lite"] as const;
 const SMART_COLLECTIONS_APPLY_COLLECTION_COUNT_MAX = 4;
-const SMART_COLLECTIONS_NEW_COLLECTION_COUNT_MAX = 2;
+const SMART_COLLECTIONS_NEW_COLLECTION_COUNT_MAX = 1;
+const SMART_COLLECTIONS_NEW_COLLECTION_WORD_COUNT_MAX = 3;
 const SMART_COLLECTIONS_DOWNLOAD_BYTES_MAX = 100 * 1024 * 1024;
 const SMART_COLLECTIONS_TEXT_LENGTH_MAX = 12_000;
 const SMART_COLLECTIONS_FILE_READY_ATTEMPT_COUNT_MAX = 20;
@@ -62,6 +63,10 @@ const SECTION_TEMPERATURE = 0.2;
 const PATTERN_HTML_TITLE = /<title[^>]*>([\s\S]*?)<\/title>/i;
 const PATTERN_HTML_DESCRIPTION =
     /<meta[^>]+name=["']description["'][^>]+content=["']([\s\S]*?)["'][^>]*>/i;
+const COLLECTION_NAME_TOKEN_PATTERN = /[\p{L}\p{N}]+/gu;
+const COLLECTION_NAME_LETTER_PATTERN = /\p{L}/u;
+const COLLECTION_NAME_PUNCTUATION_NOISE_PATTERN =
+    /[()[\]{}"'`.,:;!?@#]|https?:|www\./i;
 
 const SmartCollectionDecisionSchema = z.object({
     applyCollectionNames: z
@@ -346,9 +351,12 @@ function buildPrompt(
         "Return strict JSON only.",
         "Always return both arrays, even when they are empty.",
         "Use applyCollectionNames only for exact matches from AVAILABLE_COLLECTIONS.",
-        "Prefer existing collections over creating new ones.",
         `Choose at most ${SMART_COLLECTIONS_APPLY_COLLECTION_COUNT_MAX} existing collections and at most ${SMART_COLLECTIONS_NEW_COLLECTION_COUNT_MAX} new collections.`,
-        "Create a new collection only if it is clearly reusable for future items and not a near-duplicate of an existing collection.",
+        "Create a new collection only when the item has a broad, reusable topic that will likely group many future saved items.",
+        `New collection names must be concise taxonomy labels of at most ${SMART_COLLECTIONS_NEW_COLLECTION_WORD_COUNT_MAX} words, such as Design Systems or Personal Finance.`,
+        "Do not create collections for a single title, author, person, brand, source platform, website, format, product version, or passing mention.",
+        "Apply a collection only when the item is centrally about that collection, not because of a loose keyword, brand, person, location, format, or passing mention.",
+        "When uncertain, return empty arrays.",
         "Avoid vague names like Misc, Random, or Interesting.",
         "",
         `Item source: ${sourceLabel(item.source)}`,
@@ -794,6 +802,50 @@ function mergeCollections(
     );
 }
 
+function tokenizeCollectionName(name: string): string[] {
+    return [...name.toLocaleLowerCase().matchAll(COLLECTION_NAME_TOKEN_PATTERN)]
+        .map((match) => match[0])
+        .filter((token) => token.length > 0);
+}
+
+function shouldCreateSmartCollection(args: {
+    collectionsByNameKey: Map<string, SmartCollectionCatalogEntry>;
+    name: string;
+    nameKey: string;
+}): boolean {
+    if (args.collectionsByNameKey.has(args.nameKey)) {
+        return true;
+    }
+
+    if (COLLECTION_NAME_PUNCTUATION_NOISE_PATTERN.test(args.name)) {
+        return false;
+    }
+
+    const tokens = tokenizeCollectionName(args.name);
+    if (
+        tokens.length === 0 ||
+        tokens.length > SMART_COLLECTIONS_NEW_COLLECTION_WORD_COUNT_MAX
+    ) {
+        return false;
+    }
+
+    if (!tokens.some((token) => COLLECTION_NAME_LETTER_PATTERN.test(token))) {
+        return false;
+    }
+
+    for (const collection of args.collectionsByNameKey.values()) {
+        const existingTokens = new Set(tokenizeCollectionName(collection.name));
+        if (
+            tokens.every((token) => existingTokens.has(token)) ||
+            [...existingTokens].every((token) => tokens.includes(token))
+        ) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
 async function applyDecisionToItem(args: {
     collections: SmartCollectionCatalogEntry[];
     decision: SmartCollectionDecision;
@@ -814,6 +866,13 @@ async function applyDecisionToItem(args: {
                     )
                 )
                 .filter((normalized) => normalized.name.length > 0)
+                .filter((normalized) =>
+                    shouldCreateSmartCollection({
+                        collectionsByNameKey,
+                        name: normalized.name,
+                        nameKey: normalized.nameKey,
+                    })
+                )
                 .map((normalized) => [normalized.nameKey, normalized])
         ).values(),
     ];

@@ -1,8 +1,4 @@
 import { createLogger } from "@/lib/common/logs/console/logger";
-import { DurableAgent } from "@workflow/ai/agent";
-import type { UIMessageChunk } from "ai";
-import { isStepCount, tool, type LanguageModelUsage } from "ai";
-import { getWritable } from "workflow";
 import {
     AUTOMATION_AGENT_MODEL_DEFAULT,
     AUTOMATION_INSPECTED_ITEM_COUNT_MAX,
@@ -12,7 +8,6 @@ import {
     AutomationWebFetchInputSchema,
     AutomationWebSearchInputSchema,
     EmptyAutomationToolInputSchema,
-    type AutomationWebSearchTimeRange,
 } from "./tool-inputs";
 
 const AUTOMATION_OUTPUT_TOKEN_LIMIT = 1200;
@@ -37,10 +32,22 @@ type AutomationRunSources =
     | {
           sources: AutomationRunSource[];
       };
+interface AutomationAgentRunResult {
+    sources: { sources: AutomationRunSource[] };
+    summaryMarkdown: string;
+    usage?: Record<string, number>;
+}
 interface GenAiProtectionErrorData {
     data: {
         message: string;
         reason: "quota_exceeded" | "prompt_injection" | "forbidden";
+    };
+}
+interface StepUsage {
+    usage?: {
+        inputTokens?: number;
+        outputTokens?: number;
+        totalTokens?: number;
     };
 }
 
@@ -91,82 +98,8 @@ export async function executeSmartCollectionsAutomationRun(args: {
 export async function executeReadOnlyAutomationRun(
     prepared: PreparedAutomationRun
 ) {
-    const sources: AutomationRunSource[] = [];
     const instructions = buildAutomationInstructions(prepared);
     const userMessage = buildAutomationUserMessage(prepared);
-
-    const agent = new DurableAgent({
-        instructions,
-        maxOutputTokens: AUTOMATION_OUTPUT_TOKEN_LIMIT,
-        model: prepared.modelId ?? AUTOMATION_AGENT_MODEL_DEFAULT,
-        temperature: 0.2,
-        tools: {
-            getAutomationPayloadSummary: tool({
-                description:
-                    "Return the total size and scope of the saved-content payload available to this automation run.",
-                execute: async () =>
-                    getAutomationPayloadSummaryForWorkflow({
-                        runId: prepared.runId,
-                    }),
-                inputSchema: EmptyAutomationToolInputSchema,
-            }),
-            listAutomationPayloadItems: tool({
-                description:
-                    "Page through saved items available to this automation run. Use this before writing the final summary.",
-                execute: async (input) => {
-                    const result = await listAutomationPayloadItemsForWorkflow({
-                        cursor: input.cursor,
-                        limit: input.limit,
-                        runId: prepared.runId,
-                        search: input.search,
-                    });
-                    for (const item of result.items) {
-                        sources.push({
-                            id: item.id,
-                            title: item.caption ?? item.url,
-                            type: "library_item",
-                            url: item.url,
-                        });
-                    }
-                    return result;
-                },
-                inputSchema: AutomationPayloadItemsInputSchema,
-            }),
-            web_fetch: tool({
-                description:
-                    "Fetch a public http(s) URL with SSRF protections and a bounded response body.",
-                execute: async (input) => {
-                    const result = await automationWebFetchForWorkflow({
-                        url: input.url,
-                    });
-                    if (typeof result.url === "string") {
-                        sources.push({
-                            type: "web",
-                            url: result.url,
-                        });
-                    }
-                    return result;
-                },
-                inputSchema: AutomationWebFetchInputSchema,
-            }),
-            web_search: tool({
-                description:
-                    "Search the web for current public information using Tavily.",
-                execute: async (input) => {
-                    const result = await automationWebSearchForWorkflow(input);
-                    for (const webResult of result.results) {
-                        sources.push({
-                            title: webResult.title,
-                            type: "web",
-                            url: webResult.url,
-                        });
-                    }
-                    return result;
-                },
-                inputSchema: AutomationWebSearchInputSchema,
-            }),
-        },
-    });
 
     try {
         await protectAutomationAgentRun({
@@ -174,24 +107,19 @@ export async function executeReadOnlyAutomationRun(
             userId: prepared.userId,
         });
 
-        const result = await agent.stream({
-            maxSteps: 6,
-            messages: [
-                {
-                    content: userMessage,
-                    role: "user",
-                },
-            ],
-            stopWhen: isStepCount(6),
-            writable: getWritable<UIMessageChunk>(),
+        const result = await runAutomationAgentForWorkflow({
+            instructions,
+            modelId: prepared.modelId,
+            runId: prepared.runId,
+            userMessage,
         });
 
         await finishAutomationRunForWorkflow({
             runId: prepared.runId,
-            sources: uniqueSources(sources),
+            sources: result.sources,
             status: "succeeded",
-            summaryMarkdown: getFinalStepText(result.steps),
-            usage: normalizeStepUsage(result.steps),
+            summaryMarkdown: result.summaryMarkdown,
+            usage: result.usage,
         });
     } catch (error) {
         if (isGenAiProtectionErrorData(error)) {
@@ -241,36 +169,120 @@ async function protectAutomationAgentRun(args: {
     });
 }
 
-async function getAutomationPayloadSummaryForWorkflow(args: { runId: string }) {
-    "use step";
-    const { getAutomationPayloadSummary } = await import("./payload");
-    return await getAutomationPayloadSummary(args);
-}
-
-async function listAutomationPayloadItemsForWorkflow(args: {
-    cursor?: string;
-    limit?: number;
+async function runAutomationAgentForWorkflow(args: {
+    instructions: string;
+    modelId: string | null;
     runId: string;
-    search?: string;
-}) {
+    userMessage: string;
+}): Promise<AutomationAgentRunResult> {
     "use step";
-    const { listAutomationPayloadItems } = await import("./payload");
-    return await listAutomationPayloadItems(args);
-}
 
-async function automationWebFetchForWorkflow(args: { url: string }) {
-    "use step";
-    const { automationWebFetch } = await import("./payload");
-    return await automationWebFetch(args);
-}
+    const [{ DurableAgent }, { isStepCount, tool }] = await Promise.all([
+        import("@workflow/ai/agent"),
+        import("ai"),
+    ]);
+    const sources: AutomationRunSource[] = [];
+    const agent = new DurableAgent({
+        instructions: args.instructions,
+        maxOutputTokens: AUTOMATION_OUTPUT_TOKEN_LIMIT,
+        model: args.modelId ?? AUTOMATION_AGENT_MODEL_DEFAULT,
+        temperature: 0.2,
+        tools: {
+            getAutomationPayloadSummary: tool({
+                description:
+                    "Return the total size and scope of the saved-content payload available to this automation run.",
+                execute: async () => {
+                    const { getAutomationPayloadSummary } = await import(
+                        "./payload"
+                    );
+                    return await getAutomationPayloadSummary({
+                        runId: args.runId,
+                    });
+                },
+                inputSchema: EmptyAutomationToolInputSchema,
+            }),
+            listAutomationPayloadItems: tool({
+                description:
+                    "Page through saved items available to this automation run. Use this before writing the final summary.",
+                execute: async (input) => {
+                    const { listAutomationPayloadItems } = await import(
+                        "./payload"
+                    );
+                    const result = await listAutomationPayloadItems({
+                        cursor: input.cursor,
+                        limit: input.limit,
+                        runId: args.runId,
+                        search: input.search,
+                    });
+                    for (const item of result.items) {
+                        sources.push({
+                            id: item.id,
+                            title: item.caption ?? item.url,
+                            type: "library_item",
+                            url: item.url,
+                        });
+                    }
+                    return result;
+                },
+                inputSchema: AutomationPayloadItemsInputSchema,
+            }),
+            web_fetch: tool({
+                description:
+                    "Fetch a public http(s) URL with SSRF protections and a bounded response body.",
+                execute: async (input) => {
+                    const { automationWebFetch } = await import("./payload");
+                    const result = await automationWebFetch({
+                        url: input.url,
+                    });
+                    if (typeof result.url === "string") {
+                        sources.push({
+                            type: "web",
+                            url: result.url,
+                        });
+                    }
+                    return result;
+                },
+                inputSchema: AutomationWebFetchInputSchema,
+            }),
+            web_search: tool({
+                description:
+                    "Search the web for current public information using Tavily.",
+                execute: async (input) => {
+                    const { automationWebSearch } = await import(
+                        "./web-search"
+                    );
+                    const result = await automationWebSearch(input);
+                    for (const webResult of result.results) {
+                        sources.push({
+                            title: webResult.title,
+                            type: "web",
+                            url: webResult.url,
+                        });
+                    }
+                    return result;
+                },
+                inputSchema: AutomationWebSearchInputSchema,
+            }),
+        },
+    });
 
-async function automationWebSearchForWorkflow(args: {
-    query: string;
-    timeRange?: AutomationWebSearchTimeRange;
-}) {
-    "use step";
-    const { automationWebSearch } = await import("./web-search");
-    return await automationWebSearch(args);
+    const result = await agent.stream({
+        maxSteps: 6,
+        messages: [
+            {
+                content: args.userMessage,
+                role: "user",
+            },
+        ],
+        stopWhen: isStepCount(6),
+        writable: new WritableStream(),
+    });
+
+    return {
+        sources: uniqueSources(sources),
+        summaryMarkdown: getFinalStepText(result.steps),
+        usage: normalizeStepUsage(result.steps),
+    };
 }
 
 async function finishAutomationRunForWorkflow(args: {
@@ -358,7 +370,7 @@ function getFinalStepText(steps: Array<{ text?: string }>): string {
 }
 
 function normalizeStepUsage(
-    steps: Array<{ usage?: LanguageModelUsage }>
+    steps: StepUsage[]
 ): Record<string, number> | undefined {
     if (steps.length === 0) {
         return;
