@@ -43,7 +43,9 @@ import {
 } from "lucide-react";
 import type { Metadata } from "next";
 import Image from "next/image";
-import type React from "react";
+import type * as React from "react";
+
+export const instant = false;
 
 export async function generateMetadata({
     params,

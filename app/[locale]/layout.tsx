@@ -1,15 +1,14 @@
 import "@/lib/dayjs/locales";
 
+import { ShortcutsProvider } from "@/components/ui/shortcuts";
 import { APP_NAME, BASE_URL, SITE_DEFAULT_TITLE } from "@/lib/common/constants";
 import { INTEGRATIONS } from "@/lib/integrations/support";
 import { GTProvider, getLocale, getLocales } from "gt-next/server";
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
-import * as React from "react";
-import "../globals.css";
-
-import { ShortcutsProvider } from "@/components/ui/shortcuts";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
+import type * as React from "react";
+import "../globals.css";
 
 export function generateStaticParams() {
     return getLocales().map((locale) => ({ locale }));
@@ -112,15 +111,11 @@ export default async function LocaleLayout(props: {
                         Skip to content
                     </a>
                 </div>
-                <React.Suspense>
-                    <GTProvider>
-                        <NuqsAdapter>
-                            <ShortcutsProvider>
-                                {props.children}
-                            </ShortcutsProvider>
-                        </NuqsAdapter>
-                    </GTProvider>
-                </React.Suspense>
+                <GTProvider>
+                    <NuqsAdapter>
+                        <ShortcutsProvider>{props.children}</ShortcutsProvider>
+                    </NuqsAdapter>
+                </GTProvider>
             </body>
         </html>
     );

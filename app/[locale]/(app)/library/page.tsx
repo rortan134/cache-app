@@ -17,6 +17,8 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { connection } from "next/server";
 
+export const instant = false;
+
 export async function generateMetadata({
     params,
 }: {
