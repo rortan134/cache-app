@@ -1,6 +1,6 @@
 "use client";
 
-import { Masonry, MasonryItem } from "@/components/ui/masonry";
+import { Masonry } from "@/components/ui/masonry";
 import { MediaPlaceholder } from "@/components/ui/media-placeholder";
 import { Ticker } from "@/components/ui/ticker";
 import * as React from "react";
@@ -112,13 +112,13 @@ function PublicShareGrid({
     }
 
     return (
-        <Masonry gap={16}>
-            {items.map((item) => (
-                <MasonryItem key={item.id}>
-                    <PublicShareGridCard item={item} />
-                </MasonryItem>
-            ))}
-        </Masonry>
+        <Masonry
+            columnGutter={16}
+            itemKey={(data) => data.id}
+            items={items}
+            render={({ data }) => <PublicShareGridCard item={data} />}
+            rowGutter={16}
+        />
     );
 }
 

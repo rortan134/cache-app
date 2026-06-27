@@ -88,7 +88,7 @@ import { GradientWaveText } from "@/components/ui/gradient-wave-text";
 import { ChevronDownFilledIcon } from "@/components/ui/icons";
 import { Input } from "@/components/ui/input";
 import { AltKbd, CmdKbd, Kbd } from "@/components/ui/kbd";
-import { Masonry, MasonryItem } from "@/components/ui/masonry";
+import { Masonry } from "@/components/ui/masonry";
 import { MediaPlaceholder } from "@/components/ui/media-placeholder";
 import {
     Menu,
@@ -1919,29 +1919,31 @@ function BrowserEmpty() {
                     here.
                 </p>
             </div>
-            <Masonry columnCount={4} gap={16}>
-                {EMPTY_LIBRARY_PEEK_PLACEHOLDERS.map(
-                    ({ aspect, id }, index) => {
-                        const opacity = Math.max(0.06, 1 - index * 0.095);
+            <Masonry
+                columnCount={4}
+                columnGutter={16}
+                itemKey={(data) => data.id}
+                items={[...EMPTY_LIBRARY_PEEK_PLACEHOLDERS]}
+                render={({ data, index }) => {
+                    const opacity = Math.max(0.06, 1 - index * 0.095);
 
-                        return (
-                            <MasonryItem
-                                className="flex flex-col bg-card/40"
-                                key={id}
-                                style={{ opacity }}
-                            >
-                                <Skeleton
-                                    className={cn(
-                                        "squircle w-full rounded-xl",
-                                        aspect
-                                    )}
-                                />
-                                <Skeleton className="mt-2 h-3 w-[92%]" />
-                            </MasonryItem>
-                        );
-                    }
-                )}
-            </Masonry>
+                    return (
+                        <div
+                            className="flex flex-col bg-card/40"
+                            style={{ opacity }}
+                        >
+                            <Skeleton
+                                className={cn(
+                                    "squircle w-full rounded-xl",
+                                    data.aspect
+                                )}
+                            />
+                            <Skeleton className="mt-2 h-3 w-[92%]" />
+                        </div>
+                    );
+                }}
+                rowGutter={16}
+            />
         </>
     );
 }
@@ -2327,16 +2329,21 @@ interface BrowserMansonryProps {
 
 function BrowserMasonry({ children }: BrowserMansonryProps) {
     const { collapsed, items } = useBrowserGroupContext();
-    const { columnCount, containerWidth } = useBrowserResultsContext();
+    const { columnCount } = useBrowserResultsContext();
 
     if (collapsed || items.length === 0) {
         return null;
     }
 
     return (
-        <Masonry columnCount={columnCount} deps={[containerWidth]} gap={16}>
-            {items.map(children)}
-        </Masonry>
+        <Masonry
+            columnCount={columnCount}
+            columnGutter={16}
+            itemKey={(data) => data.id}
+            items={items}
+            render={({ data, index }) => children(data, index)}
+            rowGutter={16}
+        />
     );
 }
 
@@ -5775,21 +5782,13 @@ export function Browser({
                                     No items were found in this section.
                                 </BrowserGroupEmpty>
                                 <BrowserMasonry>
-                                    {(item) => (
-                                        <MasonryItem key={item.id}>
-                                            <MediaCard item={item} />
-                                        </MasonryItem>
-                                    )}
+                                    {(item) => <MediaCard item={item} />}
                                 </BrowserMasonry>
                             </BrowserGroup>
                         ) : (
                             <BrowserGroup>
                                 <BrowserMasonry>
-                                    {(item) => (
-                                        <MasonryItem key={item.id}>
-                                            <MediaCard item={item} />
-                                        </MasonryItem>
-                                    )}
+                                    {(item) => <MediaCard item={item} />}
                                 </BrowserMasonry>
                             </BrowserGroup>
                         )
@@ -5801,17 +5800,16 @@ export function Browser({
                     <BlockPaywallBanner length={totalItemCount} />
                     <div className="pointer-events-none absolute inset-0 z-10 rounded-[2rem] bg-linear-to-b from-background/10 via-background/45 to-background/75" />
                     <div className="select-none opacity-70 blur-[1.5px] saturate-75">
-                        <Masonry columnCount={resolvedColumnCount} gap={16}>
-                            {LOCKED_LIBRARY_PREVIEW_PLACEHOLDERS.map(
-                                (placeholder) => (
-                                    <MasonryItem key={placeholder.id}>
-                                        <LockedPreviewCard
-                                            placeholder={placeholder}
-                                        />
-                                    </MasonryItem>
-                                )
+                        <Masonry
+                            columnCount={resolvedColumnCount}
+                            columnGutter={16}
+                            itemKey={(data) => data.id}
+                            items={LOCKED_LIBRARY_PREVIEW_PLACEHOLDERS}
+                            render={({ data }) => (
+                                <LockedPreviewCard placeholder={data} />
                             )}
-                        </Masonry>
+                            rowGutter={16}
+                        />
                     </div>
                 </div>
             ) : null}

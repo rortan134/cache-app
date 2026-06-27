@@ -1,5 +1,6 @@
 import "server-only";
 
+import { serverEnv } from "@/env/server";
 import { LIBRARY_ITEM_COLLECTIONS_INCLUDE } from "@/lib/collections/utils";
 import { ITEM_KIND_FOLDER, SORT_DESC } from "@/lib/common/constants";
 import { createLogger } from "@/lib/common/logs/console/logger";
@@ -32,6 +33,8 @@ import {
     type AskCacheComposerPatch,
     type AskCacheRequest,
 } from "./ask-cache";
+
+process.env.GOOGLE_GENERATIVE_AI_API_KEY ??= serverEnv.GEMINI_API_KEY;
 
 const ASK_CACHE_MODEL_DEFAULT = "gemini-3.1-flash-lite";
 const ASK_CACHE_MODELS_FALLBACK = ["gemini-3.1-flash-lite"] as const;

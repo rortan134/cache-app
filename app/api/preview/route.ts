@@ -75,9 +75,7 @@ const ResolvedImageSchema = z.object({
 export async function GET(request: Request): Promise<Response> {
     const requestUrl = new URL(request.url);
 
-    const targetUrl = await extractTargetUrl(
-        requestUrl.searchParams.get("url")
-    );
+    const targetUrl = parseTargetUrlSync(requestUrl.searchParams.get("url"));
     if (!targetUrl) {
         return textResponse("Invalid URL", 400);
     }
@@ -93,19 +91,60 @@ export async function GET(request: Request): Promise<Response> {
     if (!contentType) {
         return textResponse("Unsupported preview type", 400);
     }
+
     if (contentType === "video") {
-        return resolveVideoPreview(targetUrl, request);
+        const cachedVideoUrl = await readFromRedis(
+            cobaltCacheKey(targetUrl.href)
+        );
+        if (cachedVideoUrl) {
+            if (delivery === "redirect") {
+                return redirectToPreview(
+                    cachedVideoUrl,
+                    targetUrl.href,
+                    "video"
+                );
+            }
+            return proxyVideoResponse(cachedVideoUrl, targetUrl, request);
+        }
+
+        const publicTargetUrl = await parsePublicHttpUrl(targetUrl.href);
+        if (!publicTargetUrl) {
+            return textResponse("Invalid URL", 400);
+        }
+
+        return resolveVideoPreview(publicTargetUrl, request);
     }
 
     try {
-        const preview = await resolveImagePreview(targetUrl.href);
+        const cached = await readCachedImagePreview(targetUrl.href);
+        if (cached) {
+            if (delivery === "redirect") {
+                return redirectToPreview(
+                    cached.imageUrl,
+                    targetUrl.href,
+                    "image"
+                );
+            }
+            return proxyImageResponse(cached, targetUrl, request);
+        }
+
+        const publicTargetUrl = await parsePublicHttpUrl(targetUrl.href);
+        if (!publicTargetUrl) {
+            return textResponse("Invalid URL", 400);
+        }
+
+        const preview = await resolveImagePreview(publicTargetUrl.href);
         if (!preview?.imageUrl) {
             return textResponse("Preview not found", 404);
         }
         if (delivery === "redirect") {
-            return redirectToPreview(preview.imageUrl, targetUrl.href, "image");
+            return redirectToPreview(
+                preview.imageUrl,
+                publicTargetUrl.href,
+                "image"
+            );
         }
-        return proxyImageResponse(preview, targetUrl, request);
+        return proxyImageResponse(preview, publicTargetUrl, request);
     } catch (error) {
         return handlePreviewError(
             error,
@@ -118,7 +157,7 @@ export async function GET(request: Request): Promise<Response> {
     }
 }
 
-async function extractTargetUrl(rawValue: string | null): Promise<URL | null> {
+function parseTargetUrlSync(rawValue: string | null): URL | null {
     if (!rawValue || rawValue.length > MAX_TARGET_URL_LENGTH) {
         return null;
     }
@@ -126,7 +165,7 @@ async function extractTargetUrl(rawValue: string | null): Promise<URL | null> {
     if (!standaloneUrl) {
         return null;
     }
-    return await parsePublicHttpUrl(standaloneUrl.href);
+    return parseHttpUrl(standaloneUrl.href);
 }
 
 function parsePreviewType(type: string | null): PreviewType | null {
@@ -296,12 +335,12 @@ async function proxyImageResponse(
     });
 }
 
-async function redirectToPreview(
+function redirectToPreview(
     previewUrl: string,
     targetHref: string,
     type: PreviewType
-): Promise<Response> {
-    const publicPreviewUrl = await parsePublicHttpUrl(previewUrl);
+): Response {
+    const publicPreviewUrl = parseHttpUrl(previewUrl);
     if (!publicPreviewUrl) {
         return textResponse("Preview not found", 404);
     }
@@ -346,6 +385,17 @@ async function resolveVideoPreview(
                 default:
                     return textResponse("Video preview not available", 404);
             }
+        }
+
+        const delivery = parsePreviewDelivery(
+            new URL(request.url).searchParams.get("delivery")
+        );
+        if (delivery === "redirect") {
+            return redirectToPreview(
+                videoResult.videoUrl,
+                targetUrl.href,
+                "video"
+            );
         }
 
         return proxyVideoResponse(videoResult.videoUrl, targetUrl, request);

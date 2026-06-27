@@ -15,11 +15,12 @@ import { createLogger } from "@/lib/common/logs/console/logger";
 import { prisma } from "@/prisma";
 import { Prisma } from "@/prisma/client/client";
 import { LibraryItemKind, type LibraryItemSource } from "@/prisma/client/enums";
-import { nanoid } from "nanoid";
+import { createId, verifyId } from "legid";
 import { CollectionShareError } from "./error";
 
 const log = createLogger("collection-sharing:service");
-const COLLECTION_SHARE_ID_LENGTH = 12;
+
+const COLLECTION_SHARE_ID_APPROXIMATE_LENGTH = 12;
 const COLLECTION_SHARE_ID_ATTEMPT_COUNT_MAX = 3;
 
 type CollectionShareTransaction = Prisma.TransactionClient;
@@ -220,10 +221,15 @@ export async function enablePublicCollectionShare(input: {
                         );
                     }
 
+                    const shareId = await createId({
+                        approximateLength:
+                            COLLECTION_SHARE_ID_APPROXIMATE_LENGTH,
+                    });
+
                     const sharedCollection = await tx.collection.update({
                         data: {
                             sharedAt: new Date(),
-                            shareId: nanoid(COLLECTION_SHARE_ID_LENGTH),
+                            shareId,
                         },
                         select: LIBRARY_COLLECTION_TAG_SELECT,
                         where: {
@@ -301,6 +307,11 @@ export async function getPublicCollectionShareById(
 ): Promise<PublicCollectionShare | null> {
     const normalizedShareId = shareId.trim();
     if (normalizedShareId.length === 0) {
+        return null;
+    }
+
+    const isValidShareId = await verifyId(normalizedShareId);
+    if (!isValidShareId) {
         return null;
     }
 
