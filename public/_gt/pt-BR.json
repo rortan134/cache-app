@@ -27,6 +27,18 @@
   "0d5988f4c0fbf2ad": "Conta Cache",
   "11503a3d12f43fdd": "Documentos oficiais que regem sua relação com a gente e explicam como lidamos com os dados. Escolha um tema abaixo para ler o texto completo.",
   "11d641c2c7d32f5c": "Não foi possível abrir o faturamento agora.",
+  "14fafab11c21ddaa": [
+    {
+      "c": "Pare de deixar para \"depois\"",
+      "i": 1,
+      "t": "h2"
+    },
+    {
+      "c": "Salvamos coisas com as melhores intenções, mas elas acabam se perdendo numa lista esquecida. O Cache traz de volta o melhor do que você salvou, para que você realmente aproveite isso.",
+      "i": 2,
+      "t": "p"
+    }
+  ],
   "15833184c459d240": {
     "c": "Termos de Serviço",
     "i": 1,
@@ -57,6 +69,23 @@
   "2d905536ddbff96d": "Sair",
   "2e477bab4317c062": "Não foi possível adicionar outra conta.",
   "2e9224bc11574ab5": "Exportar para Markdown",
+  "389691a1b58a941e": {
+    "c": [
+      {
+        "c": "Você não precisa usar o Cache.",
+        "i": 2,
+        "t": "span"
+      },
+      " Deixe seus agentes de IA usarem com ",
+      {
+        "i": 3,
+        "t": "ModelContextProtocolIcon"
+      },
+      " MCP e dê a eles acesso a toda a variedade dos seus recursos."
+    ],
+    "i": 1,
+    "t": "p"
+  },
   "3b205a1c17c06fbd": "Favoritos",
   "3c61319be1bc2db7": "*As plataformas de terceiros às quais você se conecta por meio do Serviço operam de forma independente do Cache. O Cache não controla as políticas dessas plataformas nem a forma como elas são aplicadas, e não se responsabiliza pelas decisões que essas plataformas tomam em relação às suas contas ou ao seu acesso aos serviços delas — incluindo, sem limitação, alterações na disponibilidade — estejam ou não relacionadas ao seu uso do Cache. Cabe a você cumprir os termos, políticas e diretrizes da comunidade de cada plataforma. O Cache não se responsabiliza por qualquer inconveniente, perda ou outro resultado decorrente da sua relação com essas plataformas ou do seu uso do Serviço em conexão com elas. Mais detalhes podem ser encontrados",
   "408574e37e8d91ee": "em breve",
@@ -187,18 +216,6 @@
       "t": "li"
     }
   ],
-  "783efa5acbf9fc63": [
-    {
-      "c": "Pare de deixar para \"depois\"",
-      "i": 1,
-      "t": "h2"
-    },
-    {
-      "c": "O Cache traz de volta o melhor do seu conteúdo salvo, para que você realmente aproveite o que guardou.",
-      "i": 2,
-      "t": "p"
-    }
-  ],
   "7b4f31f7267a32c7": "Use o Cache como o passo que faltava entre salvar favoritos e fazer anotações — feito para pensar. Estruturado, pesquisável, confiável.",
   "7d288c9b77b0a60e": "Jurídico e políticas",
   "8117fa5c3cdb78c5": "Uma maneira mais inteligente de organizar tudo o que você salva online. A partir de US$ 8/mês.",
@@ -253,6 +270,22 @@
   ],
   "8ebdbcb486fb7060": "Assinatura",
   "8eeee33f47318d9a": "Threads, vídeos, inspiração. Organize ideias em coleções e compartilhe.",
+  "91eaa44bec3ccfb9": [
+    {
+      "c": {
+        "c": "Inteligência para Favoritos",
+        "i": 2,
+        "t": "GradientWaveText"
+      },
+      "i": 1,
+      "t": "h1"
+    },
+    {
+      "c": "Conheça o Cache — o gerenciador de favoritos com IA para quem vive na correria. Colete, organize e reencontre tudo o que você salvou em várias plataformas.",
+      "i": 3,
+      "t": "p"
+    }
+  ],
   "933fa7740fe8c681": {
     "i": 1,
     "k": "_gt_value_1",
@@ -352,23 +385,6 @@
   "b04df1727faed146": "Suas contas",
   "b33e2234ec4ab823": "Plano gratuito",
   "b5d5276005980a36": "Criadores e desenvolvedores",
-  "ba29e2c72c0b8519": {
-    "c": [
-      {
-        "c": "Você não precisa usar Cache.",
-        "i": 2,
-        "t": "span"
-      },
-      " Deixe seu agente usar o Cache com ",
-      {
-        "i": 3,
-        "t": "ModelContextProtocolIcon"
-      },
-      " MCP:"
-    ],
-    "i": 1,
-    "t": "p"
-  },
   "c1172428bea235ca": "Regras que regem o uso do serviço, o gerenciamento da sua conta e o uso aceitável.",
   "c26fd6852bfece9e": "Continuar com Google",
   "c4244c4a6f71e511": "Abrir em uma nova guia",
@@ -414,22 +430,6 @@
     "i": 1,
     "t": "span"
   },
-  "d7ead7b0b783bc58": [
-    {
-      "c": {
-        "c": "Reúna seus favoritos em um só lugar.",
-        "i": 2,
-        "t": "GradientWaveText"
-      },
-      "i": 1,
-      "t": "h1"
-    },
-    {
-      "c": "Conheça o Cache — o gerenciador de favoritos com IA para quem vive na correria. Colete, organize e reencontre tudo o que você salvou em diferentes plataformas.",
-      "i": 3,
-      "t": "p"
-    }
-  ],
   "daf8daec701f0863": "Conta",
   "db72ad3b2501e7a9": "Carregando contas",
   "ddc161e16a7e8f5a": [
@@ -447,7 +447,6 @@
   ],
   "e09a36ef3ffd9115": "Removido",
   "e1897047828fc955": "Docs, issues, código, tutoriais. Encontre aquele link na hora.",
-  "e42f8301efa106ae": "Bookmark Intelligence™",
   "e6fee0a475a0476d": [
     {
       "c": "Traga tudo o que você já salvou",

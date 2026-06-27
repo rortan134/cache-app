@@ -104,9 +104,14 @@ export default async function LocaleLayout(props: {
                 <span aria-atomic="true" aria-live="polite" className="sr-only">
                     {APP_NAME}
                 </span>
-                <a className="skip-to-content" href="#main-content">
-                    Skip to main content
-                </a>
+                <div className="not-has-focus-visible:sr-only pointer-events-none fixed inset-x-0 top-0 z-50 mt-4 flex select-none justify-center">
+                    <a
+                        className="pointer-events-auto rounded-2xl bg-background px-4 py-2 text-base text-foreground outline-2 outline-offset-2 focus-visible:outline focus-visible:outline-black print:hidden"
+                        href="#main-content"
+                    >
+                        Skip to content
+                    </a>
+                </div>
                 <React.Suspense>
                     <GTProvider>
                         <NuqsAdapter>

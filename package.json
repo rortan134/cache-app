@@ -20,6 +20,7 @@
         "prepare": "husky"
     },
     "dependencies": {
+        "@ai-sdk/provider": "4.0.0",
         "@arcjet/ip": "1.5.0",
         "@arcjet/next": "1.5.0",
         "@arcjet/redact": "1.5.0",

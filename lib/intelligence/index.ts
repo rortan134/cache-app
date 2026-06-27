@@ -23,7 +23,12 @@ import { isHttpUrl } from "@/lib/common/url";
 import { resolveCobaltDownloadUrl } from "@/lib/integrations/cobalt/service";
 import { prisma } from "@/prisma";
 
-import { type LibraryItemKind, LibraryItemSource } from "@/prisma/client/enums";
+import {
+    AutomationStatus,
+    AutomationTemplateKey,
+    type LibraryItemKind,
+    LibraryItemSource,
+} from "@/prisma/client/enums";
 import {
     ApiError,
     createPartFromText,
@@ -976,7 +981,7 @@ export async function autoTagLibraryItemsByIds(args: {
         return;
     }
 
-    const [items, initialCollections, user] = await Promise.all([
+    const [items, initialCollections, automation] = await Promise.all([
         prisma.libraryItem.findMany({
             orderBy: {
                 createdAt: SORT_ASC,
@@ -1019,13 +1024,16 @@ export async function autoTagLibraryItemsByIds(args: {
                 userId: args.userId,
             },
         }),
-        prisma.user.findUnique({
-            select: { smartCollectionsDisabled: true },
-            where: { id: args.userId },
+        prisma.automation.findFirst({
+            select: { status: true },
+            where: {
+                templateKey: AutomationTemplateKey.smart_collections,
+                userId: args.userId,
+            },
         }),
     ]);
 
-    if (user?.smartCollectionsDisabled || items.length === 0) {
+    if (automation?.status !== AutomationStatus.active || items.length === 0) {
         return;
     }
 

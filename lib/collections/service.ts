@@ -974,53 +974,15 @@ export async function listCollections(
 }
 
 /**
- * Reads whether smart collections is effectively disabled for the user.
+ * Disables smart collections by pausing the seeded automation.
  *
- * The feature is on only when both the user has not opted out and the
- * smart_collections automation is active. The seeder leaves seeded automations
- * paused, so new users must explicitly enable the automation before the
- * callout in `CollectionsListCalloutPopover` should appear. Treating the
- * preference flag alone as the source of truth would show "Smart Collections
- * is active" while the scheduled run is still paused.
- */
-export async function getUserSmartCollectionsPreference(args: {
-    userId: string;
-}): Promise<boolean> {
-    const [user, automation] = await Promise.all([
-        prisma.user.findUnique({
-            select: { smartCollectionsDisabled: true },
-            where: { id: args.userId },
-        }),
-        prisma.automation.findFirst({
-            select: { status: true },
-            where: {
-                templateKey: AutomationTemplateKey.smart_collections,
-                userId: args.userId,
-            },
-        }),
-    ]);
-
-    if (user?.smartCollectionsDisabled) {
-        return true;
-    }
-    return automation?.status !== AutomationStatus.active;
-}
-
-/**
- * Disables smart collections for a user by flipping the opt-out flag and
- * pausing the scheduled automation in a single transaction. Mirrors the data
- * shape written by `pauseAutomation` so pending runs are dropped instead of
- * being picked up and immediately skipped by the run worker.
+ * The built-in automation is the durable preference source; pending runs are
+ * deleted to match `pauseAutomation` semantics.
  */
 export async function disableSmartCollectionsForUser(
     userId: string
 ): Promise<void> {
     await prisma.$transaction(async (tx) => {
-        await tx.user.update({
-            data: { smartCollectionsDisabled: true },
-            where: { id: userId },
-        });
-
         const automation = await tx.automation.findFirst({
             select: { id: true },
             where: {

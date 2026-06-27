@@ -406,35 +406,6 @@ export async function disableSmartCollections(): Promise<
     }
 }
 
-export async function getSmartCollectionsPreference(): Promise<
-    | { disabled: boolean; status: "OK" }
-    | { message: string; status: "ERROR" | "UNAUTHORIZED" }
-> {
-    const auth = await requireActionUserId(
-        "Sign in again to manage smart collections."
-    );
-    if (isUnauthenticated(auth)) {
-        return auth;
-    }
-
-    try {
-        const disabled = await service.getUserSmartCollectionsPreference({
-            userId: auth.userId,
-        });
-
-        return { disabled, status: "OK" };
-    } catch (error) {
-        return handleActionError({
-            codeToStatus: {},
-            error,
-            errorFactory: LibraryCollectionError,
-            fallbackMessage:
-                "We couldn't fetch your smart collections preference.",
-            log,
-        });
-    }
-}
-
 const MediaDownloadInputSchema = z.object({
     url: z.string().trim().min(1, "A valid URL is required to download media."),
 });

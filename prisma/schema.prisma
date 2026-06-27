@@ -99,9 +99,6 @@ model User {
   image                    String?
   createdAt                DateTime               @default(now())
   updatedAt                DateTime               @updatedAt
-  /// Opt-out flag for automatic collection suggestions. Keep the default
-  /// permissive so new users receive the assisted organization workflow.
-  smartCollectionsDisabled Boolean                @default(false)
   /// Stripe customer id is duplicated here for fast account-level lookups even
   /// though subscription state lives in the plugin-managed table.
   stripeCustomerId         String?

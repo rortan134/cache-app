@@ -283,20 +283,6 @@
     -webkit-app-region: drag;
 }
 
-/* ── Component classes ── */
-.skip-to-content {
-    position: absolute;
-    left: -9999px;
-    z-index: 999;
-    padding: 0.5rem 1rem;
-    color: var(--color-background);
-    background: var(--color-foreground);
-}
-
-.skip-to-content:focus {
-    left: 0;
-}
-
 @supports (font-synthesis-weight: none) {
     html,
     :host {

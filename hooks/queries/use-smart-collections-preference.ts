@@ -1,29 +1,32 @@
-import { getSmartCollectionsPreference } from "@/lib/collections/actions";
-import useSWR from "swr";
+import {
+    type EnabledAutomation,
+    useEnabledAutomations,
+} from "@/hooks/queries/use-enabled-automations";
 
-interface SmartCollectionsPreferenceData {
-    disabled: boolean;
+export function isSmartCollectionsAutomation(automation: EnabledAutomation) {
+    return automation.templateKey === "smart_collections";
 }
 
-async function fetchSmartCollectionsPreference(): Promise<SmartCollectionsPreferenceData> {
-    const result = await getSmartCollectionsPreference();
-
-    if (result.status !== "OK") {
-        throw new Error(result.message);
-    }
-
-    return { disabled: result.disabled };
+export function pauseSmartCollectionsAutomations(
+    automations: EnabledAutomation[]
+) {
+    return automations.map((automation) =>
+        isSmartCollectionsAutomation(automation)
+            ? { ...automation, status: "paused" as const }
+            : automation
+    );
 }
 
 export function useSmartCollectionsPreference() {
-    const { data, error, isLoading, mutate } = useSWR(
-        "smart-collections-preference",
-        fetchSmartCollectionsPreference,
-        { keepPreviousData: true }
+    const { automations, error, isLoading, mutate } = useEnabledAutomations();
+    const isSmartCollectionsEnabled = automations.some(
+        (automation) =>
+            isSmartCollectionsAutomation(automation) &&
+            automation.status === "active"
     );
 
     return {
-        disabled: data?.disabled ?? false,
+        disabled: !isSmartCollectionsEnabled,
         error,
         isLoading,
         mutate,

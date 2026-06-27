@@ -81,7 +81,10 @@ import {
 } from "@/components/ui/preview-card";
 import { SidebarItem } from "@/components/ui/sidebar";
 import { Textarea } from "@/components/ui/textarea";
-import { useSmartCollectionsPreference } from "@/hooks/queries/use-smart-collections-preference";
+import {
+    pauseSmartCollectionsAutomations,
+    useSmartCollectionsPreference,
+} from "@/hooks/queries/use-smart-collections-preference";
 import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
 import {
     createCollection,
@@ -1280,14 +1283,18 @@ function useCollectionsController() {
     const handleDisableSmartCollections = async () => {
         try {
             await mutateSmartCollectionsPreference(
-                async () => {
+                async (enabledAutomations = []) => {
                     const result = await disableSmartCollections();
                     if (result.status !== "DISABLED") {
                         throw new Error(result.message);
                     }
-                    return { disabled: true };
+                    return pauseSmartCollectionsAutomations(enabledAutomations);
                 },
-                { optimisticData: { disabled: true }, rollbackOnError: true }
+                {
+                    optimisticData: (enabledAutomations = []) =>
+                        pauseSmartCollectionsAutomations(enabledAutomations),
+                    rollbackOnError: true,
+                }
             );
         } catch (error) {
             log.error("Failed to disable smart collections", { error });
