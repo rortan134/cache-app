@@ -13,6 +13,8 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import * as React from "react";
 
+export const instant = false;
+
 interface CollectionSharePageProps {
     params: Promise<{
         shareId: string;
