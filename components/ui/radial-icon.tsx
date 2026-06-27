@@ -1,5 +1,5 @@
 import { clamp } from "@/lib/common/numbers";
-import type React from "react";
+import type * as React from "react";
 
 const ICON_VIEWBOX = 24;
 const ICON_CENTER = 12;
