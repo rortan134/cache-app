@@ -88,7 +88,7 @@ import { GradientWaveText } from "@/components/ui/gradient-wave-text";
 import { ChevronDownFilledIcon } from "@/components/ui/icons";
 import { Input } from "@/components/ui/input";
 import { AltKbd, CmdKbd, Kbd } from "@/components/ui/kbd";
-import { Masonry } from "@/components/ui/masonry";
+import { Masonry, type RenderComponentProps } from "@/components/ui/masonry";
 import { MediaPlaceholder } from "@/components/ui/media-placeholder";
 import {
     Menu,
@@ -1893,6 +1893,22 @@ function BrowserResults({
     );
 }
 
+const BrowserEmptyCell = ({
+    data,
+    index,
+}: RenderComponentProps<(typeof EMPTY_LIBRARY_PEEK_PLACEHOLDERS)[number]>) => {
+    const opacity = Math.max(0.06, 1 - index * 0.095);
+
+    return (
+        <div className="flex flex-col bg-card/40" style={{ opacity }}>
+            <Skeleton
+                className={cn("squircle w-full rounded-xl", data.aspect)}
+            />
+            <Skeleton className="mt-2 h-3 w-[92%]" />
+        </div>
+    );
+};
+
 function BrowserEmpty() {
     const { shouldShowEmptyLibraryPeek } = useBrowserResultsContext();
 
@@ -1924,24 +1940,7 @@ function BrowserEmpty() {
                 columnGutter={16}
                 itemKey={(data) => data.id}
                 items={[...EMPTY_LIBRARY_PEEK_PLACEHOLDERS]}
-                render={({ data, index }) => {
-                    const opacity = Math.max(0.06, 1 - index * 0.095);
-
-                    return (
-                        <div
-                            className="flex flex-col bg-card/40"
-                            style={{ opacity }}
-                        >
-                            <Skeleton
-                                className={cn(
-                                    "squircle w-full rounded-xl",
-                                    data.aspect
-                                )}
-                            />
-                            <Skeleton className="mt-2 h-3 w-[92%]" />
-                        </div>
-                    );
-                }}
+                render={BrowserEmptyCell}
                 rowGutter={16}
             />
         </>
@@ -2327,6 +2326,22 @@ interface BrowserMansonryProps {
     ) => React.ReactNode;
 }
 
+const BrowserMasonryContext = React.createContext<
+    | ((item: LibraryItemWithCollections, index: number) => React.ReactNode)
+    | null
+>(null);
+
+const BrowserMasonryCell = ({
+    data,
+    index,
+}: RenderComponentProps<LibraryItemWithCollections>) => {
+    const children = React.use(BrowserMasonryContext);
+    if (!children) {
+        return null;
+    }
+    return children(data, index);
+};
+
 function BrowserMasonry({ children }: BrowserMansonryProps) {
     const { collapsed, items } = useBrowserGroupContext();
     const { columnCount } = useBrowserResultsContext();
@@ -2336,14 +2351,16 @@ function BrowserMasonry({ children }: BrowserMansonryProps) {
     }
 
     return (
-        <Masonry
-            columnCount={columnCount}
-            columnGutter={16}
-            itemKey={(data) => data.id}
-            items={items}
-            render={({ data, index }) => children(data, index)}
-            rowGutter={16}
-        />
+        <BrowserMasonryContext.Provider value={children}>
+            <Masonry
+                columnCount={columnCount}
+                columnGutter={16}
+                itemKey={(data) => data.id}
+                items={items}
+                render={BrowserMasonryCell}
+                rowGutter={16}
+            />
+        </BrowserMasonryContext.Provider>
     );
 }
 
@@ -4607,6 +4624,12 @@ function buildSimilarBrowserFilterState(
     };
 }
 
+const BrowserLockedPreviewCell = ({
+    data,
+}: RenderComponentProps<LockedLibraryPreviewPlaceholder>) => (
+    <LockedPreviewCard placeholder={data} />
+);
+
 export function Browser({
     connectedIntegrationCount,
     lockedItemCount,
@@ -5805,9 +5828,7 @@ export function Browser({
                             columnGutter={16}
                             itemKey={(data) => data.id}
                             items={LOCKED_LIBRARY_PREVIEW_PLACEHOLDERS}
-                            render={({ data }) => (
-                                <LockedPreviewCard placeholder={data} />
-                            )}
+                            render={BrowserLockedPreviewCell}
                             rowGutter={16}
                         />
                     </div>
