@@ -125,6 +125,7 @@ import { sendCollectionToNotion } from "@/lib/integrations/notion/actions";
 import { getSourceLabel } from "@/lib/integrations/support";
 import type { CollectionPriority } from "@/prisma/client/enums";
 import AppIconSmall from "@/public/cache-icon-small.png";
+import EmptyCollectionStateImage from "@/public/empty-collection-state.png";
 import SmartCollectionsBackgroundImg from "@/public/smart-collections-background-wide.webp";
 import type { BaseUIEvent } from "@base-ui/react";
 import { Toolbar } from "@base-ui/react/toolbar";
@@ -2057,25 +2058,36 @@ function CollectionsListEmpty({
     return (
         <div className="flex flex-col items-center justify-center gap-4 rounded-2xl border border-border/30 border-dashed px-4 py-7 text-center">
             <p
+                {...props}
                 className={cn(
                     "font-medium text-muted-foreground text-xs italic leading-tight",
                     className
                 )}
-                {...props}
             >
                 {collectionCount > 0 ? (
                     "No collections match this view."
                 ) : (
-                    <T>
-                        No collections found.{" "}
-                        <button
-                            className="inline cursor-pointer underline hover:no-underline"
-                            onClick={() => requestCreate()}
-                            type="button"
-                        >
-                            Create your first collection
-                        </button>
-                    </T>
+                    <div className="flex flex-col items-center justify-center gap-3">
+                        <Image
+                            alt="empty cluster"
+                            className="squircle mx-auto size-10 rounded-lg"
+                            height={40}
+                            src={EmptyCollectionStateImage}
+                            width={40}
+                        />
+                        <span className="inline-flex items-center">
+                            <T>
+                                No collections found.&nbsp;{" "}
+                                <button
+                                    className="inline cursor-pointer underline hover:no-underline"
+                                    onClick={() => requestCreate()}
+                                    type="button"
+                                >
+                                    Create your first collection
+                                </button>
+                            </T>
+                        </span>
+                    </div>
                 )}
             </p>
         </div>

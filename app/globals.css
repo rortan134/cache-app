@@ -153,8 +153,10 @@
 
     body {
         position: relative;
+        display: flex;
+        flex-direction: column;
         overflow-wrap: anywhere;
-        @apply bg-background text-foreground;
+        @apply bg-background text-foreground overscroll-contain;
     }
 
     svg {
@@ -270,11 +272,6 @@
     --radius-8: 10px;
     --radius-10: 12.5px;
     --radius-16: 15px;
-}
-
-@utility content-auto {
-    contain-intrinsic-size: auto;
-    content-visibility: auto;
 }
 
 @utility draggable-ui {

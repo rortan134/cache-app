@@ -87,7 +87,10 @@ import { GradientWaveText } from "@/components/ui/gradient-wave-text";
 import { ChevronDownFilledIcon } from "@/components/ui/icons";
 import { Input } from "@/components/ui/input";
 import { AltKbd, CmdKbd, Kbd } from "@/components/ui/kbd";
-import { Masonry, type RenderComponentProps } from "@/components/ui/masonry";
+import {
+    Masonry,
+    type MasonryRenderComponentProps,
+} from "@/components/ui/masonry";
 import { MediaPlaceholder } from "@/components/ui/media-placeholder";
 import {
     Menu,
@@ -99,6 +102,7 @@ import {
     MenuSubTrigger,
     MenuTrigger,
 } from "@/components/ui/menu";
+import { useSidebar } from "@/components/ui/sidebar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Spinner } from "@/components/ui/spinner";
 import { Textarea } from "@/components/ui/textarea";
@@ -192,7 +196,6 @@ import { useTimeout } from "@base-ui/utils/useTimeout";
 import { T } from "gt-next";
 import {
     ArrowDownWideNarrow,
-    ArrowUpIcon,
     ArrowUpRight,
     Check,
     ChevronDown,
@@ -1871,7 +1874,9 @@ function BrowserResults({
 const BrowserEmptyCell = ({
     data,
     index,
-}: RenderComponentProps<(typeof EMPTY_LIBRARY_PEEK_PLACEHOLDERS)[number]>) => {
+}: MasonryRenderComponentProps<
+    (typeof EMPTY_LIBRARY_PEEK_PLACEHOLDERS)[number]
+>) => {
     const opacity = Math.max(0.06, 1 - index * 0.095);
 
     return (
@@ -2309,7 +2314,7 @@ const BrowserMasonryContext = React.createContext<
 const BrowserMasonryCell = ({
     data,
     index,
-}: RenderComponentProps<LibraryItemWithCollections>) => {
+}: MasonryRenderComponentProps<LibraryItemWithCollections>) => {
     const children = React.use(BrowserMasonryContext);
     if (!children) {
         return null;
@@ -2320,6 +2325,8 @@ const BrowserMasonryCell = ({
 function BrowserMasonry({ children }: BrowserMansonryProps) {
     const { collapsed, items } = useBrowserGroupContext();
     const { columnCount } = useBrowserResultsContext();
+    const { state: sidebarState } = useSidebar();
+    const sidebarStateDeferred = React.useDeferredValue(sidebarState);
 
     if (collapsed || items.length === 0) {
         return null;
@@ -2331,7 +2338,10 @@ function BrowserMasonry({ children }: BrowserMansonryProps) {
                 columnCount={columnCount}
                 columnGutter={16}
                 itemKey={(data) => data.id}
+                itemStyle={{ contain: "layout style" }}
                 items={items}
+                key={sidebarStateDeferred}
+                maxColumnCount={9}
                 render={BrowserMasonryCell}
                 rowGutter={16}
             />
@@ -2594,7 +2604,7 @@ function buildSearchPaletteGroups({
                     ),
                     render: () => (
                         <div className="flex items-center gap-2.5">
-                            <ArrowUpIcon className="size-3.5 shrink-0 text-muted-foreground" />
+                            <History className="size-3.5 shrink-0 text-muted-foreground" />
                             <span className="truncate">
                                 Pick up where you left off
                             </span>
@@ -4019,7 +4029,7 @@ function CardMenu({
                     <ItemSeparator />
                     <Item disabled={isDownloading} onClick={onDownload}>
                         <DownloadIcon className="size-4.5 text-muted-foreground" />
-                        {isDownloading ? "Downloading..." : "Download media"}
+                        {isDownloading ? "Downloading..." : "Download"}
                     </Item>
                 </>
             )}
@@ -4558,7 +4568,7 @@ function buildSimilarBrowserFilterState(
 
 const BrowserLockedPreviewCell = ({
     data,
-}: RenderComponentProps<LockedLibraryPreviewPlaceholder>) => (
+}: MasonryRenderComponentProps<LockedLibraryPreviewPlaceholder>) => (
     <LockedPreviewCard placeholder={data} />
 );
 

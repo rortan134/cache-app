@@ -1,6 +1,9 @@
 "use client";
 
-import { Masonry, type RenderComponentProps } from "@/components/ui/masonry";
+import {
+    Masonry,
+    type MasonryRenderComponentProps,
+} from "@/components/ui/masonry";
 import { MediaPlaceholder } from "@/components/ui/media-placeholder";
 import { Ticker } from "@/components/ui/ticker";
 import * as React from "react";
@@ -96,7 +99,7 @@ function PublicShareGridCard({
 
 const PublicShareGridCell = ({
     data,
-}: RenderComponentProps<PublicShareGridItem>) => (
+}: MasonryRenderComponentProps<PublicShareGridItem>) => (
     <PublicShareGridCard item={data} />
 );
 

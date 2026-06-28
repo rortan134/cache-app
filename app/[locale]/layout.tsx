@@ -99,7 +99,7 @@ export default async function LocaleLayout(props: {
                     name="p:domain_verify"
                 />
             </head>
-            <body className="flex flex-col antialiased">
+            <body>
                 <span aria-atomic="true" aria-live="polite" className="sr-only">
                     {APP_NAME}
                 </span>
