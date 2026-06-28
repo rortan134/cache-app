@@ -41,7 +41,6 @@ import {
     getMediaCategory,
 } from "@/components/ui/attachments";
 import { Avatar, AvatarFallback, AvatarGroup } from "@/components/ui/avatar";
-import { BackToTopButton } from "@/components/ui/back-to-top-button";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -5741,10 +5740,6 @@ export function Browser({
                 onNoteDrawerClose={() => setActiveNote(null)}
             />
             <QuickLookDrawerSurface />
-            <BackToTopButton>
-                <ArrowUpIcon aria-hidden className="size-4" />
-                <T>Back to top</T>
-            </BackToTopButton>
             <Dialog
                 onOpenChange={handleDeleteDialogOpenChange}
                 open={pendingDeleteItem !== null}
