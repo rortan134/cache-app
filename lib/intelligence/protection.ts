@@ -6,15 +6,15 @@ import { GEN_AI_QUOTAS } from "@/lib/billing/quotas";
 import { getUserPlanType } from "@/lib/billing/service";
 import { createLogger } from "@/lib/common/logs/console/logger";
 import { GenAiProtectionError } from "@/lib/intelligence/error";
-import type { ArcjetNextRequest } from "@arcjet/next";
+import type { ArcjetDecision, ArcjetNextRequest } from "@arcjet/next";
 import arcjet, {
     detectPromptInjection,
     shield,
     tokenBucket,
 } from "@arcjet/next";
-import type { ArcjetDecision } from "arcjet";
 
 const log = createLogger("intelligence:protection");
+
 const CHARACTERISTIC_USER_ID = "userId";
 const CHARS_PER_TOKEN_ESTIMATE = 4;
 

@@ -4,7 +4,11 @@ import { GoogleOneTapTrigger, SessionHint } from "@/components/auth/session";
 import { SignInButton } from "@/components/auth/sign-in-buttons";
 import { BrandLogo } from "@/components/ui/brand-logo";
 import { Button } from "@/components/ui/button";
-import { Carousel } from "@/components/ui/carousel";
+import {
+    Carousel,
+    CarouselControls,
+    CarouselPanel,
+} from "@/components/ui/carousel";
 import { Footer } from "@/components/ui/footer";
 import { GradientWaveText } from "@/components/ui/gradient-wave-text";
 import {
@@ -13,7 +17,6 @@ import {
     ModelContextProtocolIcon,
     TikTokIcon,
 } from "@/components/ui/icons";
-import { IridescenceBackground } from "@/components/ui/iridescence-background";
 import { PageShell } from "@/components/ui/page-shell";
 import { Sidebar, SidebarFooter, SidebarHeader } from "@/components/ui/sidebar";
 import { getServerSession } from "@/lib/auth/session";
@@ -118,12 +121,12 @@ export default async function Home() {
                     <SidebarHeader>
                         <BrandLogo href="/library" src={LogoIconImage} />
                         <T context="'Cache' is the product's name">
-                            <h1 className="break-normal font-medium text-[3rem] leading-[98%] md:text-[4rem] md:tracking-[-0.21875rem]">
+                            <h1 className="font-medium text-[3rem] leading-[98%] md:text-[4rem] md:tracking-[-0.21875rem]">
                                 <GradientWaveText ariaLabel="Unify your bookmarks">
                                     Bookmark Intelligence
                                 </GradientWaveText>
                             </h1>
-                            <p className="font-medium text-[#0A0B0D] text-[1rem] leading-[1.22] tracking-[-3%] opacity-50 lg:max-w-[320px]">
+                            <p className="font-medium text-base text-foreground leading-[1.22] tracking-[-3%] opacity-50 lg:max-w-[320px]">
                                 Meet Cache — The AI bookmark manager for busy
                                 people. Collect, organize, and rediscover
                                 everything you've saved across platforms.
@@ -144,12 +147,12 @@ export default async function Home() {
                                 width={80}
                             />
                             <div className="flex flex-col gap-1.5 pb-[2px]">
-                                <p className="font-medium font-regular text-[#0A0B0D] text-[18px] tracking-[-3%]">
+                                <p className="font-medium text-foreground text-lg tracking-[-3%]">
                                     <T context="Chrome web store browser extension">
                                         Install the extension
                                     </T>
                                 </p>
-                                <p className="flex shrink-0 flex-row items-center gap-1.5 truncate text-[#0A0B0D] text-[1rem] leading-[1.22] tracking-[-3%]">
+                                <p className="flex shrink-0 flex-row items-center gap-1.5 truncate text-base text-foreground leading-[1.22] tracking-[-3%]">
                                     <span>
                                         <ChromeIcon className="size-4" />
                                     </span>
@@ -166,11 +169,10 @@ export default async function Home() {
                     </SidebarFooter>
                 </Sidebar>
                 <div className="flex w-full max-w-[1024px] flex-col gap-12 p-8 pb-0 2xl:mx-auto">
-                    <div className="relative aspect-video h-auto w-full overflow-hidden rounded-2xl border border-border/70 bg-muted">
-                        <IridescenceBackground />
+                    <div className="relative aspect-video w-full overflow-hidden rounded-2xl border border-border/70 bg-muted">
                         <Image
                             alt=""
-                            className="absolute top-12 left-8 z-10 w-full rounded-xl"
+                            className="absolute top-11 left-9 z-10 w-full rounded-xl"
                             fetchPriority="high"
                             loading="eager"
                             placeholder="blur"
@@ -195,23 +197,23 @@ export default async function Home() {
                                     target="_blank"
                                 />
                             }
-                            size="xs"
+                            size="sm"
                             variant="link"
                         >
                             <GithubIcon className="size-3.5" />
-                            &nbsp;Star us on GitHub
+                            &nbsp;Star on GitHub
                         </Button>
                     </div>
                     <section className="grid w-full grid-cols-1 gap-2 md:grid-cols-2 md:gap-[40px]">
                         <div className="flex max-w-[340px] flex-col gap-3 py-5 md:gap-4">
                             <T context="Library">
-                                <h2 className="font-medium text-[#0A0B0D] text-[28px] leading-[1.1] tracking-[-1.28px] lg:text-[32px]">
+                                <h2 className="font-medium text-[28px] text-foreground leading-[1.1] tracking-[-1.28px] lg:text-[32px]">
                                     Curate a library of all the content you love
                                 </h2>
-                                <p className="text-pretty font-medium font-regular text-[#0A0B0D] text-[16px] leading-[1.2] tracking-[-3%] opacity-50">
-                                    Get inspired, find that one lesson, piece of
-                                    advice, recipe, or idea you've been looking
-                                    for in the span of a coffee break.
+                                <p className="text-pretty font-medium text-base text-foreground leading-[1.2] tracking-[-3%] opacity-50">
+                                    Get inspired, find that one lesson, advice,
+                                    recipe, or idea you've been looking for in
+                                    the span of a coffee break.
                                 </p>
                             </T>
                         </div>
@@ -232,15 +234,15 @@ export default async function Home() {
                     <section className="grid w-full grid-cols-1 gap-2 md:grid-cols-2 md:gap-[40px]">
                         <div className="flex max-w-[340px] flex-col gap-3 py-5 md:gap-4">
                             <T context="Integrations">
-                                <h2 className="font-medium text-[#0A0B0D] text-[28px] leading-[1.1] tracking-[-1.28px] lg:text-[32px]">
-                                    Bring in everything you’ve already saved
+                                <h2 className="font-medium text-[28px] text-foreground leading-[1.1] tracking-[-1.28px] lg:text-[32px]">
+                                    Bring in everything you've already saved
                                 </h2>
-                                <p className="text-pretty font-medium font-regular text-[#0A0B0D] text-[16px] leading-[1.2] tracking-[-3%] opacity-50">
+                                <p className="text-pretty font-medium text-base text-foreground leading-[1.2] tracking-[-3%] opacity-50">
                                     Bring together bookmarks from your browser,
-                                    social apps, and videos automatically. Ditch
-                                    the endless scrolling and tabbing through
-                                    multiple platforms to find what matters to
-                                    you.
+                                    socials, and videos automatically. Ditch the
+                                    endless scrolling and tabbing through
+                                    multiple platforms to find what matters most
+                                    to you.
                                 </p>
                             </T>
                         </div>
@@ -312,10 +314,10 @@ export default async function Home() {
                     <section className="grid w-full grid-cols-1 gap-2 md:grid-cols-2 md:gap-[40px]">
                         <div className="flex max-w-[340px] flex-col gap-3 py-5 md:gap-4">
                             <T context="Habits">
-                                <h2 className="font-medium text-[#0A0B0D] text-[28px] leading-[1.1] tracking-[-1.28px] lg:text-[32px]">
+                                <h2 className="font-medium text-[28px] text-foreground leading-[1.1] tracking-[-1.28px] lg:text-[32px]">
                                     Stop leaving it for "later"
                                 </h2>
-                                <p className="text-pretty font-medium font-regular text-[#0A0B0D] text-[16px] leading-[1.2] tracking-[-3%] opacity-50">
+                                <p className="text-pretty font-medium text-base text-foreground leading-[1.2] tracking-[-3%] opacity-50">
                                     We save things with the best intentions,
                                     only to let them fade into a forgotten list.
                                     Cache brings your best saved content back to
@@ -328,7 +330,7 @@ export default async function Home() {
                                         <Workflow className="inline-block size-4 shrink-0" />
                                         <span>
                                             Set up simple routines that show you
-                                            a daily digest of new saves
+                                            a daily digest of your recent saves
                                         </span>
                                     </li>
                                     <li className="flex items-center gap-2">
@@ -356,10 +358,10 @@ export default async function Home() {
                     <section className="grid w-full grid-cols-1 gap-2 md:grid-cols-2 md:gap-[40px]">
                         <div className="flex max-w-[340px] flex-col gap-3 py-5 md:gap-4">
                             <T context="Feed">
-                                <h2 className="font-medium text-[#0A0B0D] text-[28px] leading-[1.1] tracking-[-1.28px] lg:text-[32px]">
+                                <h2 className="font-medium text-[28px] text-foreground leading-[1.1] tracking-[-1.28px] lg:text-[32px]">
                                     Search and explore from a single, fast feed
                                 </h2>
-                                <p className="text-pretty font-medium font-regular text-[#0A0B0D] text-[16px] leading-[1.2] tracking-[-3%] opacity-50">
+                                <p className="text-pretty font-medium text-base text-foreground leading-[1.2] tracking-[-3%] opacity-50">
                                     Streamline the way you re-engage with your
                                     saved content through a modern and powerful
                                     interface, right in your browser.
@@ -374,7 +376,7 @@ export default async function Home() {
                                             efficient workflows.
                                         </span>
                                     </li>
-                                    <li className="flex items-center gap-2 text-xs">
+                                    <li className="flex items-center gap-2">
                                         <Search className="inline-block size-4 shrink-0" />
                                         <span>
                                             Find anything with full-text search
@@ -398,10 +400,10 @@ export default async function Home() {
                     <section className="grid w-full grid-cols-1 gap-2 md:grid-cols-2 md:gap-[40px]">
                         <div className="flex max-w-[340px] flex-col gap-3 py-5 md:gap-4">
                             <T>
-                                <h2 className="font-medium text-[#0A0B0D] text-[28px] leading-[1.1] tracking-[-1.28px] lg:text-[32px]">
+                                <h2 className="font-medium text-[28px] text-foreground leading-[1.1] tracking-[-1.28px] lg:text-[32px]">
                                     Spot the stale, keep the useful
                                 </h2>
-                                <p className="text-pretty font-medium font-regular text-[#0A0B0D] text-[16px] leading-[1.2] tracking-[-3%] opacity-50">
+                                <p className="text-pretty font-medium text-base text-foreground leading-[1.2] tracking-[-3%] opacity-50">
                                     Build a knowledge base with the content
                                     you've already deemed important. Import once
                                     and go from messy to organized in minutes.
@@ -419,20 +421,20 @@ export default async function Home() {
                                             from the inspiration
                                         </span>
                                     </li>
-                                    <li className="flex items-center gap-2 text-xs">
+                                    <li className="flex items-center gap-2">
                                         <CloudDownload className="inline-block size-4 shrink-0" />
                                         <span>
                                             Share or export collections from
                                             Cache anytime
                                         </span>
                                     </li>
-                                    <li className="flex items-center gap-2 text-xs">
+                                    <li className="flex items-center gap-2">
                                         <Unlink className="inline-block size-4 shrink-0" />
                                         <span>
                                             Remove duplicates and broken links
                                         </span>
                                     </li>
-                                    <li className="flex items-center gap-2 text-xs">
+                                    <li className="flex items-center gap-2">
                                         <Sparkles className="inline-block size-4 shrink-0" />
                                         <span>
                                             Gain AI-powered insights into your
@@ -531,74 +533,84 @@ export default async function Home() {
                         </div>
                     </section>
                     <section className="flex w-full flex-col gap-8">
-                        <div className="flex flex-col gap-3">
-                            <h2 className="font-medium text-[#0A0B0D] text-[28px] leading-[1.1] tracking-[-1.28px] lg:text-[32px]">
-                                <T context="target audience">Cache is for…</T>
-                            </h2>
-                        </div>
-                        <Carousel
-                            className="pb-10! [&>*:not(:last-child)]:me-4"
-                            slideClassName="!w-[300px] md:!w-[340px]"
-                        >
-                            <div className="flex h-96 flex-col justify-between rounded-2xl border border-border/70 bg-background p-6">
-                                <h3 className="font-medium text-[#0A0B0D] text-lg tracking-[-0.5px]">
-                                    <T>Curious readers</T>
-                                </h3>
-                                <p className="text-pretty font-medium text-[#0A0B0D] text-[15px] leading-[1.4] opacity-50">
-                                    <T>
-                                        Articles, essays, newsletters. A living
-                                        library instead of a read‑later
-                                        graveyard.
+                        <Carousel>
+                            <div className="flex items-center justify-between">
+                                <h2
+                                    className="font-medium text-[28px] text-foreground leading-[1.1] tracking-[-1.28px] lg:text-[32px]"
+                                    id="target-audience-carousel-heading"
+                                >
+                                    <T context="target audience">
+                                        Cache is for…
                                     </T>
-                                </p>
+                                </h2>
+                                <CarouselControls />
                             </div>
-                            <div className="flex h-96 flex-col justify-between rounded-2xl border border-border/70 bg-background p-6">
-                                <h3 className="font-medium text-[#0A0B0D] text-lg tracking-[-0.5px]">
-                                    <T>Writers and thinkers</T>
-                                </h3>
-                                <p className="text-pretty font-medium text-[#0A0B0D] text-[15px] leading-[1.4] opacity-50">
-                                    <T>
-                                        References, quotes, snippets. A
-                                        searchable research stack for raw
-                                        material.
-                                    </T>
-                                </p>
-                            </div>
-                            <div className="flex h-96 flex-col justify-between rounded-2xl border border-border/70 bg-background p-6">
-                                <h3 className="font-medium text-[#0A0B0D] text-lg tracking-[-0.5px]">
-                                    <T>Builders and developers</T>
-                                </h3>
-                                <p className="text-pretty font-medium text-[#0A0B0D] text-[15px] leading-[1.4] opacity-50">
-                                    <T>
-                                        Docs, issues, code, tutorials. Find that
-                                        one link instantly.
-                                    </T>
-                                </p>
-                            </div>
-                            <div className="flex h-96 flex-col justify-between rounded-2xl border border-border/70 bg-background p-6">
-                                <h3 className="font-medium text-[#0A0B0D] text-lg tracking-[-0.5px]">
-                                    <T>Creators and curators</T>
-                                </h3>
-                                <p className="text-pretty font-medium text-[#0A0B0D] text-[15px] leading-[1.4] opacity-50">
-                                    <T>
-                                        Threads, videos, inspiration. Group
-                                        ideas into collections and share them.
-                                    </T>
-                                </p>
-                            </div>
-                            <div className="flex h-96 flex-col justify-between rounded-2xl border border-border/70 bg-background p-6">
-                                <h3 className="font-medium text-[#0A0B0D] text-lg tracking-[-0.5px]">
-                                    <T>Productivity</T>
-                                </h3>
-                                <p className="text-pretty font-medium text-[#0A0B0D] text-[15px] leading-[1.4] opacity-50">
-                                    <T>
-                                        Use Cache as the missing step between
-                                        bookmarking and note-taking, made for
-                                        thought. Structured, searchable,
-                                        trusted.
-                                    </T>
-                                </p>
-                            </div>
+                            <CarouselPanel
+                                aria-labelledby="target-audience-carousel-heading"
+                                className="!pb-10 [&>*:not(:last-child)]:me-4"
+                                slideClassName="!w-[300px] md:!w-[340px]"
+                            >
+                                <div className="flex h-96 flex-col justify-between rounded-2xl border border-border/70 bg-background p-6">
+                                    <h3 className="font-medium text-foreground text-lg tracking-[-0.5px]">
+                                        <T>Curious readers</T>
+                                    </h3>
+                                    <p className="text-pretty font-medium text-[15px] text-foreground leading-[1.4] opacity-50">
+                                        <T>
+                                            Articles, essays, newsletters. A
+                                            living library instead of a
+                                            read‑later graveyard.
+                                        </T>
+                                    </p>
+                                </div>
+                                <div className="flex h-96 flex-col justify-between rounded-2xl border border-border/70 bg-background p-6">
+                                    <h3 className="font-medium text-foreground text-lg tracking-[-0.5px]">
+                                        <T>Writers and thinkers</T>
+                                    </h3>
+                                    <p className="text-pretty font-medium text-[15px] text-foreground leading-[1.4] opacity-50">
+                                        <T>
+                                            References, quotes, snippets. A
+                                            searchable research stack for raw
+                                            material.
+                                        </T>
+                                    </p>
+                                </div>
+                                <div className="flex h-96 flex-col justify-between rounded-2xl border border-border/70 bg-background p-6">
+                                    <h3 className="font-medium text-foreground text-lg tracking-[-0.5px]">
+                                        <T>Builders and developers</T>
+                                    </h3>
+                                    <p className="text-pretty font-medium text-[15px] text-foreground leading-[1.4] opacity-50">
+                                        <T>
+                                            Docs, issues, code, tutorials. Find
+                                            that one link instantly.
+                                        </T>
+                                    </p>
+                                </div>
+                                <div className="flex h-96 flex-col justify-between rounded-2xl border border-border/70 bg-background p-6">
+                                    <h3 className="font-medium text-foreground text-lg tracking-[-0.5px]">
+                                        <T>Creators and curators</T>
+                                    </h3>
+                                    <p className="text-pretty font-medium text-[15px] text-foreground leading-[1.4] opacity-50">
+                                        <T>
+                                            Threads, videos, inspiration. Group
+                                            ideas into collections and share
+                                            them.
+                                        </T>
+                                    </p>
+                                </div>
+                                <div className="flex h-96 flex-col justify-between rounded-2xl border border-border/70 bg-background p-6">
+                                    <h3 className="font-medium text-foreground text-lg tracking-[-0.5px]">
+                                        <T>Productivity</T>
+                                    </h3>
+                                    <p className="text-pretty font-medium text-[15px] text-foreground leading-[1.4] opacity-50">
+                                        <T>
+                                            The missing step between bookmarking
+                                            and note-taking. Structured,
+                                            searchable, always there when you
+                                            need it.
+                                        </T>
+                                    </p>
+                                </div>
+                            </CarouselPanel>
                         </Carousel>
                     </section>
                     <section className="flex w-full flex-col gap-8">

@@ -28,13 +28,13 @@
 
 ## Features
 
-- **Unified Library** — First-class support for bookmarks from Instagram Saved, TikTok Favorites, YouTube Watch Later, X/Twitter Bookmarks, GitHub Stars, Chrome bookmarks, Pinterest, Google Photos, and more, all in one place.
+- **Unified Library** — First-class support for bookmarks from Instagram Saved, TikTok Favorites, YouTube Watch Later, X/Twitter Bookmarks, GitHub Stars, Chrome bookmarks, Pinterest, Google Photos, and more, all in one place. Unlike other tools that cap saves, Cache has no limits.
 - **Smart Collections** — Organize entries into collections with AI-assisted relevance ranking.
 - **AI-assisted search** — Ask the Cache AI agent and search across all your saved content.
 - **AI-Powered Synthesis** — Create Automations to generate daily, weekly, and monthly digests, and much more. Cache even learns your preferences over time.
 - **Rich Notes** — First-party WYSIWYG notes alongside bookmarks.
 - **Browser Extension** — Chrome extension web clipper that syncs saved content from social platforms.
-- **Export & Integrate** — Pipe results into other tools you already use.
+- **Export & Integrate** — Pipe results into other tools you already use. Share collections with others.
 - **Simple and low maintenance** — The Cache app is optimized for simplicity and ease-of-use
 
 ---
@@ -110,6 +110,14 @@ Open [http://localhost:3000](http://localhost:3000).
 | **React Compiler** | [babel-plugin-react-compiler](https://react.dev/learn/react-compiler) (auto-memoization)                               |
 | **Date Handling**  | [Day.js](https://day.js.org/), [chrono-node](https://github.com/wanasit/chrono)                                        |
 | **Deployment**     | [Vercel](https://vercel.com/), [Unkey](https://unkey.com/)                                                             |
+
+---
+
+## Roadmap
+
+- **PDF Support** — Upload, store, and search within PDF documents alongside bookmarks.
+- **Comments** — Add and view threaded comments on entries.
+- *More coming soon*
 
 ---
 

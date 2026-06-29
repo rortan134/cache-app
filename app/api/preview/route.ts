@@ -42,7 +42,27 @@ const MAX_VIDEO_CONTENT_LENGTH_BYTES = 200 * 1024 * 1024;
 const COBALT_CACHE_TTL_SECONDS = 5 * 60;
 const COBALT_CACHE_KEY_PREFIX = "cobalt-preview:";
 const PREVIEW_IMAGE_CACHE_TTL_SECONDS = 5 * 60;
-const PREVIEW_IMAGE_CACHE_KEY_PREFIX = "preview:image:";
+const PREVIEW_IMAGE_CACHE_KEY_PREFIX = "preview-image:";
+
+// Upstream-controlled content-types we will proxy. Anything outside these lists
+// (notably image/svg+xml and application/octet-stream) is rejected: SVGs execute
+// in the browser and would let a hostile upstream use our Referer to hit abuse
+// endpoints or run script in our origin's context; octet-stream would let a
+// hostile upstream bypass content-type sniffing and ship executable payloads
+// under our cache tag.
+const SUPPORTED_PREVIEW_IMAGE_MIME_TYPES = new Set<string>([
+    MIME_TYPES.avif,
+    MIME_TYPES.bmp,
+    MIME_TYPES.gif,
+    MIME_TYPES.jpg,
+    MIME_TYPES.png,
+    MIME_TYPES.webp,
+]);
+const SUPPORTED_PREVIEW_VIDEO_MIME_TYPES = new Set<string>([
+    "video/mp4",
+    "video/quicktime",
+    "video/webm",
+]);
 const USER_AGENT =
     "facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)";
 const GOOGLEBOT_USER_AGENT =
@@ -220,7 +240,7 @@ async function resolveImagePreview(
     }
 
     const pageContentType = pageResponse.headers.get("content-type") ?? "";
-    if (pageContentType.startsWith("image/")) {
+    if (isSupportedPreviewImageContentType(pageContentType)) {
         const result = { imageUrl: targetUrl, pageUrl: targetUrl };
         await writeCachedImagePreview(targetUrl, result);
         return result;
@@ -312,7 +332,7 @@ async function proxyImageResponse(
     }
 
     const imageContentType = imageResponse.headers.get("content-type") ?? "";
-    if (!imageContentType.startsWith("image/")) {
+    if (!isSupportedPreviewImageContentType(imageContentType)) {
         return textResponse("Unsupported preview", 415);
     }
 
@@ -470,8 +490,7 @@ async function proxyVideoResponse(
             );
         }
 
-        const contentType =
-            tunnelResponse.headers.get("content-type") ?? "video/mp4";
+        const contentType = tunnelResponse.headers.get("content-type") ?? "";
         if (!isSupportedVideoContentType(contentType)) {
             return textResponse("Unsupported video preview", 415);
         }
@@ -875,7 +894,12 @@ function createContentRangeHeader(
 
 function isSupportedVideoContentType(contentType: string): boolean {
     const mimeType = getMimeType(contentType);
-    return mimeType.startsWith("video/") || mimeType === MIME_TYPES.binary;
+    return SUPPORTED_PREVIEW_VIDEO_MIME_TYPES.has(mimeType);
+}
+
+function isSupportedPreviewImageContentType(contentType: string): boolean {
+    const mimeType = getMimeType(contentType);
+    return SUPPORTED_PREVIEW_IMAGE_MIME_TYPES.has(mimeType);
 }
 
 function isContentLengthOverLimit(
