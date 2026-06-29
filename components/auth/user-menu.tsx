@@ -64,12 +64,7 @@ const log = createLogger("auth-user-menu");
 type Session = typeof auth.$Infer.Session;
 type AccountMenuError = "add" | "load" | "switch";
 
-interface AccountUser {
-    email: string;
-    id: string;
-    image?: null | string;
-    name: null | string;
-}
+type AccountUser = NonNullable<Session>["user"];
 
 interface DeviceSession {
     session: {
@@ -235,6 +230,7 @@ export function UserMenuContent() {
                             }
                         >
                             <T>Changelog</T>
+                            <ArrowUpRight className="ml-auto! inline-block size-4 shrink-0 text-muted-foreground" />
                         </MenuItem>
                         <MenuItem
                             className="justify-between pl-6"
@@ -247,6 +243,7 @@ export function UserMenuContent() {
                             }
                         >
                             <T>Support</T>
+                            <ArrowUpRight className="ml-auto! inline-block size-4 shrink-0 text-muted-foreground" />
                         </MenuItem>
                         <KeyboardShortcutsDialogTrigger
                             nativeButton={false}

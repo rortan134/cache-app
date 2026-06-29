@@ -3,6 +3,7 @@ import { getPlanPriceIds } from "@/lib/billing/prices";
 import { APP_NAME, BASE_URL } from "@/lib/common/constants";
 import { createLogger } from "@/lib/common/logs/console/logger";
 import { seedBuiltInAutomationsForUser } from "@/lib/intelligence/automations/service";
+import { NOTION_API_VERSION } from "@/lib/integrations/notion/api";
 import { prisma } from "@/prisma";
 import type { OAuth2Tokens } from "@better-auth/core/oauth2";
 import { stripe } from "@better-auth/stripe";
@@ -78,6 +79,7 @@ interface OAuthUserProfile {
  */
 async function fetchOAuthUser<T>(
     tokens: OAuth2Tokens,
+    providerId: string,
     url: string,
     schema: z.ZodType<T>,
     mapUser: (data: T) => OAuthUserProfile | null,
@@ -87,22 +89,38 @@ async function fetchOAuthUser<T>(
         return null;
     }
 
-    const response = await fetch(url, {
-        headers: {
-            Authorization: `Bearer ${tokens.accessToken}`,
-            ...extraHeaders,
-        },
-    });
-    if (!response.ok) {
+    try {
+        const response = await fetch(url, {
+            headers: {
+                Authorization: `Bearer ${tokens.accessToken}`,
+                ...extraHeaders,
+            },
+        });
+        if (!response.ok) {
+            log.warn(`OAuth user fetch failed for ${providerId}`, {
+                status: response.status,
+                statusText: response.statusText,
+                url,
+            });
+            return null;
+        }
+
+        const parseResult = schema.safeParse(await response.json());
+        if (!parseResult.success) {
+            log.warn(`OAuth user info parse failed for ${providerId}`, {
+                url,
+            });
+            return null;
+        }
+
+        return mapUser(parseResult.data);
+    } catch (error) {
+        log.error(`OAuth user fetch error for ${providerId}`, {
+            error: error instanceof Error ? error.message : String(error),
+            url,
+        });
         return null;
     }
-
-    const parseResult = schema.safeParse(await response.json());
-    if (!parseResult.success) {
-        return null;
-    }
-
-    return mapUser(parseResult.data);
 }
 
 // ---------------------------------------------------------------------------
@@ -146,6 +164,7 @@ function buildPinterestOAuthConfig(): GenericOAuthConfig | null {
         getUserInfo: (tokens) =>
             fetchOAuthUser(
                 tokens,
+                "pinterest",
                 "https://api.pinterest.com/v5/user_account",
                 PinterestUserAccountSchema,
                 mapPinterestUser
@@ -202,6 +221,7 @@ function buildXOAuthConfig(): GenericOAuthConfig | null {
         getUserInfo: (tokens) =>
             fetchOAuthUser(
                 tokens,
+                "x",
                 "https://api.twitter.com/2/users/me?user.fields=profile_image_url",
                 XUserAccountSchema,
                 mapXUser,
@@ -255,6 +275,7 @@ function buildGitHubOAuthConfig(): GenericOAuthConfig | null {
         getUserInfo: (tokens) =>
             fetchOAuthUser(
                 tokens,
+                "github",
                 "https://api.github.com/user",
                 GitHubUserAccountSchema,
                 mapGitHubUser,
@@ -303,6 +324,9 @@ function buildNotionOAuthConfig(): GenericOAuthConfig | null {
 
     return {
         authentication: "basic",
+        authorizationHeaders: {
+            "Notion-Version": NOTION_API_VERSION,
+        },
         authorizationUrl:
             "https://api.notion.com/v1/oauth/authorize?owner=user",
         ...creds,
@@ -310,11 +334,12 @@ function buildNotionOAuthConfig(): GenericOAuthConfig | null {
         getUserInfo: (tokens) =>
             fetchOAuthUser(
                 tokens,
+                "notion",
                 "https://api.notion.com/v1/users/me",
                 NotionUserSchema,
                 mapNotionUser,
                 {
-                    "Notion-Version": "2026-03-11",
+                    "Notion-Version": NOTION_API_VERSION,
                 }
             ),
         providerId: "notion",

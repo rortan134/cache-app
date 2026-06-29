@@ -48,9 +48,19 @@ export function DeleteAccountDialogTrigger(
             }
 
             try {
-                await authClient.signOut();
+                const signOutResult = await authClient.signOut();
+
+                if (signOutResult?.error) {
+                    log.error("signOut after account deletion failed", {
+                        code: signOutResult.error.code,
+                        status: signOutResult.error.status,
+                    });
+                }
             } catch (error) {
-                log.error("signOut after account deletion failed", error);
+                log.error(
+                    "signOut after account deletion failed (network)",
+                    error
+                );
             }
 
             router.push(result.redirect ?? "/logout");
