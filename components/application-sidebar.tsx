@@ -97,27 +97,40 @@ function SidebarNavigationItem({
     });
 
     return (
-        <Link className="contents" href={href} prefetch {...props}>
-            <ActivePathname
+        <li className="list-none">
+            <Link
+                {...props}
+                className="w-full max-w-full"
                 href={href}
-                render={
-                    <SidebarItem className="group" render={<li />}>
-                        <Icon
-                            aria-hidden
-                            className="inline-block size-4 shrink-0"
-                            focusable="false"
-                        />
-                        <span data-sidebar-label="">{children}</span>
-                        <Kbd
-                            className="ml-auto bg-transparent opacity-0 group-hover:opacity-50"
-                            data-sidebar-label=""
-                        >
-                            <CmdKbd />
-                            {shortcutKeys.split("+")[1]}
-                        </Kbd>
-                    </SidebarItem>
-                }
-            />
-        </Link>
+                prefetch
+                tabIndex={0}
+            >
+                <ActivePathname
+                    href={href}
+                    render={
+                        <SidebarItem className="group">
+                            <Icon
+                                aria-hidden
+                                className="inline-block size-4 shrink-0"
+                                focusable="false"
+                            />
+                            <div
+                                className="flex min-w-0 grow items-center"
+                                data-sidebar-label=""
+                            >
+                                <span className="truncate">{children}</span>
+                            </div>
+                            <Kbd
+                                className="ml-auto bg-transparent opacity-0 group-hover:opacity-50"
+                                data-sidebar-label=""
+                            >
+                                <CmdKbd />
+                                {shortcutKeys.split("+")[1]}
+                            </Kbd>
+                        </SidebarItem>
+                    }
+                />
+            </Link>
+        </li>
     );
 }

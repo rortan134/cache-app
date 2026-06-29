@@ -1,5 +1,9 @@
 "use client";
 
+import {
+    RssManageDialog,
+    rssManageStore,
+} from "@/components/library/rss/manage-dialog";
 import { FeedbackWidget } from "@/components/support/feedback-widget";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -11,13 +15,6 @@ import {
 import { DisclosureList } from "@/components/ui/disclosure-list";
 import { ChevronDownFilledIcon } from "@/components/ui/icons";
 import { CmdKbd, Kbd } from "@/components/ui/kbd";
-import {
-    Popover,
-    PopoverDescription,
-    PopoverPopup,
-    PopoverTitle,
-    PopoverTrigger,
-} from "@/components/ui/popover";
 import {
     PreviewCard,
     PreviewCardPopup,
@@ -36,10 +33,6 @@ import {
 } from "@/lib/integrations/client";
 import { IntegrationUserError } from "@/lib/integrations/error";
 import { executeGooglePhotosPickerFlow } from "@/lib/integrations/google-photos/client";
-import {
-    RssManageDialog,
-    rssManageStore,
-} from "@/components/library/rss/manage-dialog";
 import {
     INTEGRATIONS,
     getIntegration,
@@ -451,9 +444,8 @@ function IntegrationsListTrigger({
     const { isIntegrationsListOpen } = useIntegrationsListStore();
 
     return (
-        <Popover>
-            <PopoverTrigger
-                openOnHover
+        <PreviewCard>
+            <PreviewCardTrigger
                 render={
                     <CollapsibleTrigger
                         {...props}
@@ -481,8 +473,8 @@ function IntegrationsListTrigger({
                 <Kbd className="ml-auto bg-transparent opacity-0 group-hover:opacity-50 group-has-data-open/collapsible:hidden">
                     <CmdKbd />I
                 </Kbd>
-            </PopoverTrigger>
-            <PopoverPopup align="start" positionMethod="fixed" side="right">
+            </PreviewCardTrigger>
+            <PreviewCardPopup align="start" positionMethod="fixed" side="right">
                 <Image
                     alt=""
                     aria-hidden
@@ -492,16 +484,16 @@ function IntegrationsListTrigger({
                     src={IntegrationsPreviewImage}
                 />
                 <div className="mt-4 flex max-w-64 flex-col gap-2">
-                    <PopoverTitle>Places to return to</PopoverTitle>
-                    <PopoverDescription className="text-foreground text-xs">
+                    <h2 className="font-medium text-sm">Places to return to</h2>
+                    <p className="text-foreground text-xs">
                         Get more out of your bookmarks with Cache’s first-class
                         integrations for browsers, social apps, and video
                         platforms. Use integrations to import from other sources
                         into your Cache.
-                    </PopoverDescription>
+                    </p>
                 </div>
-            </PopoverPopup>
-        </Popover>
+            </PreviewCardPopup>
+        </PreviewCard>
     );
 }
 
