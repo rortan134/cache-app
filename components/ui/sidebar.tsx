@@ -2,7 +2,11 @@
 
 import { cn } from "@/lib/common/cn";
 import { Button } from "@/components/ui/button";
-import { getOwnerDocument, getOwnerWindow } from "@/lib/common/dom";
+import {
+    getOwnerDocument,
+    getOwnerWindow,
+    isTextEntryTarget,
+} from "@/lib/common/dom";
 import { getSystemControlKey } from "@/lib/common/keyboard";
 import { mergeProps } from "@base-ui/react/merge-props";
 import { useRender } from "@base-ui/react/use-render";
@@ -67,7 +71,7 @@ export function SidebarProvider({
             event.isComposing ||
             !ownerWindow.matchMedia(SIDEBAR_DESKTOP_MEDIA_QUERY).matches ||
             !isSidebarKeyboardShortcut(event) ||
-            isTextEntryTarget(event.target, ownerWindow)
+            isTextEntryTarget(event.target)
         ) {
             return;
         }
@@ -279,18 +283,5 @@ function isSidebarKeyboardShortcut(event: KeyboardEvent): boolean {
         event.key.toLowerCase() === SIDEBAR_KEYBOARD_SHORTCUT &&
         !event.altKey &&
         (event.metaKey || event.ctrlKey)
-    );
-}
-
-function isTextEntryTarget(
-    target: EventTarget | null,
-    ownerWindow: Window & typeof globalThis
-): boolean {
-    return (
-        target instanceof ownerWindow.HTMLElement &&
-        (target.isContentEditable ||
-            Boolean(
-                target.closest('input, textarea, select, [role="textbox"]')
-            ))
     );
 }
