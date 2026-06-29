@@ -33,9 +33,9 @@
 - **AI-assisted search** — Ask the Cache AI agent and search across all your saved content.
 - **AI-Powered Synthesis** — Create Automations to generate daily, weekly, and monthly digests, and much more. Cache even learns your preferences over time.
 - **Rich Notes** — First-party WYSIWYG notes alongside bookmarks.
-- **Browser Extension** — Chrome extension web clipper that syncs saved content from social platforms.
+- **Browser Extension** — Chrome extension web clipper that captures and syncs saved content from anywhere.
 - **Export & Integrate** — Pipe results into other tools you already use. Share collections with others.
-- **Simple and low maintenance** — The Cache app is optimized for simplicity and ease-of-use
+- **Simple and low maintenance** — The Cache app is optimized for simplicity and ease-of-use, always portable.
 
 ---
 
@@ -51,7 +51,7 @@ Cache exists because that signal is too valuable to waste. It treats the act of 
 
 ### Self-hosting (Work-in-progress)
 
-You can self-host Cache for greater control over your data and design.
+You can self-host Cache for total control over your data and design. Cache has zero telemetry by default.
 
 ### Prerequisites
 
@@ -87,36 +87,37 @@ Open [http://localhost:3000](http://localhost:3000).
 
 ## Tech Stack
 
-| Category           | Technology                                                                                                             |
-| ------------------ | ---------------------------------------------------------------------------------------------------------------------- |
-| **Framework**      | [Next.js](https://nextjs.org/) (App Router)                                                                            |
-| **Runtime**        | [Bun](https://bun.sh/), [Node.js](https://nodejs.org/)                                                                 |
-| **UI**             | [React](https://react.dev/), [Base UI](https://base-ui.com/), [Tailwind CSS](https://tailwindcss.com/)                 |
-| **Icons**          | [lucide-react](https://lucide.dev/)                                                                                    |
-| **Rich Text**      | [Lexical](https://lexical.dev/), [Streamdown](https://github.com/vercel/streamdown)                                    |
-| **Database**       | PostgreSQL via [Prisma](https://www.prisma.io/), Redis                                                                 |
-| **Auth**           | [Better Auth](https://better-auth.com/) (Google, GitHub, X, Pinterest OAuth)                                           |
-| **Validation**     | [Zod](https://zod.dev/), [@t3-oss/env-nextjs](https://env.t3.gg/)                                                      |
-| **AI/LLM**         | [Vercel AI SDK](https://sdk.vercel.ai/), [Google Gemini](https://ai.google.dev/), [@workflow/ai](https://workflow.ai/) |
-| **Web Search**     | [Tavily](https://tavily.com/)                                                                                          |
-| **Data Fetching**  | [SWR](https://swr.vercel.app/), [nuqs](https://nuqs.vercel.app/)                                                       |
-| **i18n**           | gt-next (en-US, fr-FR, es-ES, pt-BR)                                                                                   |
-| **Payments**       | [Stripe](https://stripe.com/)                                                                                          |
-| **Workflows**      | [workflow](https://workflow.ai/), [Vercel Cron Jobs](https://vercel.com/docs/cron-jobs)                                |
-| **MCP**            | [MCP SDK](https://modelcontextprotocol.io/)                                                                            |
-| **Security**       | [Arcjet](https://arcjet.com/) (WAF, rate limiting, PII redaction, prompt injection detection)                          |
-| **Observability**  | [OpenTelemetry](https://opentelemetry.io/), [Vercel Analytics](https://vercel.com/docs/analytics)                      |
-| **Linting**        | [Ultracite](https://ultracite.dev/) (Biome)                                                                            |
-| **React Compiler** | [babel-plugin-react-compiler](https://react.dev/learn/react-compiler) (auto-memoization)                               |
-| **Date Handling**  | [Day.js](https://day.js.org/), [chrono-node](https://github.com/wanasit/chrono)                                        |
-| **Deployment**     | [Vercel](https://vercel.com/), [Unkey](https://unkey.com/)                                                             |
+| Category                  | Technology                                                                                                             |
+| ------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| **Framework**             | [Next.js](https://nextjs.org/) (App Router)                                                                            |
+| **Runtime**               | [Bun](https://bun.sh/), [Node.js](https://nodejs.org/)                                                                 |
+| **UI**                    | [React](https://react.dev/), [Base UI](https://base-ui.com/), [Tailwind CSS](https://tailwindcss.com/)                 |
+| **Icons**                 | [lucide-react](https://lucide.dev/)                                                                                    |
+| **Rich Text**             | [Lexical](https://lexical.dev/), [Streamdown](https://github.com/vercel/streamdown)                                    |
+| **Database**              | PostgreSQL via [Prisma](https://www.prisma.io/), Redis                                                                 |
+| **Auth**                  | [Better Auth](https://better-auth.com/) (Google, GitHub, X, Pinterest OAuth)                                           |
+| **Validation**            | [Zod](https://zod.dev/), [@t3-oss/env-nextjs](https://env.t3.gg/)                                                      |
+| **AI/LLM**                | [Vercel AI SDK](https://sdk.vercel.ai/), [Google Gemini](https://ai.google.dev/), [@workflow/ai](https://workflow.ai/) |
+| **Agentic Web Search**    | [Tavily](https://tavily.com/)                                                                                          |
+| **Data Fetching**         | [SWR](https://swr.vercel.app/), [nuqs](https://nuqs.vercel.app/)                                                       |
+| **i18n**                  | gt-next (en-US, fr-FR, es-ES, pt-BR)                                                                                   |
+| **Payments**              | [Stripe](https://stripe.com/)                                                                                          |
+| **Workflows**             | [workflow](https://workflow.ai/), [Vercel Cron Jobs](https://vercel.com/docs/cron-jobs)                                |
+| **MCP**                   | [MCP SDK](https://modelcontextprotocol.io/)                                                                            |
+| **Security (Cloud only)** | [Arcjet](https://arcjet.com/) (WAF, rate limiting, PII redaction, prompt injection detection)                          |
+| **Linting**               | [Ultracite](https://ultracite.dev/) (Biome)                                                                            |
+| **React Compiler**        | [babel-plugin-react-compiler](https://react.dev/learn/react-compiler) (auto-memoization)                               |
+| **Date Handling**         | [Day.js](https://day.js.org/), [chrono-node](https://github.com/wanasit/chrono)                                        |
+| **Deployment**            | [Vercel](https://vercel.com/), [Unkey](https://unkey.com/)                                                             |
 
 ---
 
 ## Roadmap
 
-- **PDF Support** — Upload, store, and search within PDF documents alongside bookmarks.
 - **Comments** — Add and view threaded comments on entries.
+- **Inbox view** — Triage view for reviewing entries.
+- **PDF Support** — Upload, store, and search within PDF documents alongside bookmarks.
+- **Notes improvements** — Richer editing experience, advanced formatting.
 - *More coming soon*
 
 ---
