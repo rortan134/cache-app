@@ -42,7 +42,6 @@ export const GEN_AI_QUOTAS = QuotaSchema.parse({
 } as const satisfies Quota);
 
 export const Capabilities = {
-    CanReview: "canReview",
     CanUseAutomations: "canUseAutomations",
     CanUseGenAI: "canUseGenAI",
 } as const;
@@ -57,7 +56,6 @@ export function getSubscriptionPlanCapabilities(
     const hasAccess = isActiveSubscriptionStatus(subscription?.status);
 
     return {
-        [Capabilities.CanReview]: hasAccess,
         [Capabilities.CanUseAutomations]: hasAccess,
         [Capabilities.CanUseGenAI]: true,
     } satisfies PlanCapabilities;
