@@ -19,6 +19,7 @@ enum LibraryItemSource {
   instagram
   other
   pinterest
+  rss_feed
   tiktok
   x_bookmarks
   youtube_watch_later
@@ -114,6 +115,7 @@ model User {
   automationRuns           AutomationRun[]
 
   feedbackEntries Feedback[]
+  rssFeeds        RssFeed[]
 
   @@index([stripeCustomerId])
   @@map("user")
@@ -402,4 +404,25 @@ model Feedback {
   @@index([pagePath])
   @@index([userId])
   @@map("feedback")
+}
+
+/// A feed the user follows. Entries from this feed are imported as
+/// LibraryItem rows with source = rss_feed and externalId = the entry guid.
+model RssFeed {
+  id            String    @id @default(cuid())
+  userId        String
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  feedUrl       String
+  urlKey        String
+  title         String?
+  siteUrl       String?
+  description   String?
+  lastFetchedAt DateTime?
+  lastError     String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@unique([userId, urlKey])
+  @@index([userId])
+  @@map("rss_feed")
 }

@@ -9,7 +9,7 @@ import {
     XSocialIcon,
     YouTubeIcon,
 } from "@/components/ui/icons";
-import { Bot } from "lucide-react";
+import { Bot, Rss } from "lucide-react";
 import { CACHE_EXTENSION_DOWNLOAD_URL } from "@/lib/common/constants";
 import { LibraryItemSource } from "@/prisma/client/enums";
 import type { ComponentType, SVGProps } from "react";
@@ -29,6 +29,7 @@ export type IntegrationId =
     | "mcp"
     | "notion"
     | "pinterest"
+    | "rss"
     | "tiktok"
     | "x"
     | "youtube";
@@ -91,6 +92,10 @@ export interface SocialSignInConnectBehavior {
     provider: string;
 }
 
+export interface RssManageConnectBehavior {
+    kind: "rss-manage";
+}
+
 export interface RouteSyncBehavior {
     errorMessage: string;
     kind: "route";
@@ -112,7 +117,10 @@ export interface CopyPromptBehavior {
 export interface SupportedIntegration {
     actions: SupportedIntegrationAction[];
     behaviors: {
-        connect?: OAuthLinkConnectBehavior | SocialSignInConnectBehavior;
+        connect?:
+            | OAuthLinkConnectBehavior
+            | RssManageConnectBehavior
+            | SocialSignInConnectBehavior;
         copy?: CopyPromptBehavior;
         open?: ExtensionOpenBehavior;
         sync?: GooglePhotosPickerSyncBehavior | RouteSyncBehavior;
@@ -493,6 +501,57 @@ export const INTEGRATIONS = [
         Icon: NotionIcon,
         id: "notion",
         label: "Notion",
+    },
+    {
+        actions: [
+            {
+                for: "source",
+                label: "Add feed",
+                role: "connect",
+                visibleWhen: "disconnected",
+            },
+            {
+                for: "source",
+                label: "Manage",
+                role: "connect",
+                visibleWhen: "connected",
+            },
+            {
+                for: "source",
+                role: "sync",
+                visibleWhen: "connected",
+            },
+        ],
+        behaviors: {
+            connect: {
+                kind: "rss-manage",
+            },
+            sync: {
+                errorMessage: "Could not refresh RSS feeds.",
+                kind: "route",
+                method: "POST",
+                path: "/api/integrations/rss/check",
+                successKey: "importedCount",
+                successMessage: (payload) =>
+                    formatImportedCountMessage(payload, "entry", "entries"),
+            },
+        },
+        category: "developer",
+        description: "Feeds you follow",
+        hint: "Add RSS feeds to import new entries into your library automatically.",
+        Icon: Rss,
+        id: "rss",
+        label: "RSS",
+        source: {
+            connectedWhen: [
+                {
+                    kind: "library-item-source",
+                    source: LibraryItemSource.rss_feed,
+                },
+            ],
+            libraryItemSources: [LibraryItemSource.rss_feed],
+            syncable: true,
+        },
     },
     {
         actions: [

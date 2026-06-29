@@ -19,6 +19,7 @@ export const ASK_CACHE_SOURCE_FILTER_VALUES = [
     LibraryItemSource.instagram,
     LibraryItemSource.other,
     LibraryItemSource.pinterest,
+    LibraryItemSource.rss_feed,
     LibraryItemSource.tiktok,
     LibraryItemSource.x_bookmarks,
     LibraryItemSource.youtube_watch_later,

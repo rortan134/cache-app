@@ -37,6 +37,10 @@ import {
 import { IntegrationUserError } from "@/lib/integrations/error";
 import { executeGooglePhotosPickerFlow } from "@/lib/integrations/google-photos/client";
 import {
+    RssManageDialog,
+    rssManageStore,
+} from "@/components/library/rss/manage-dialog";
+import {
     INTEGRATIONS,
     getIntegration,
     type ExtensionOpenBehavior,
@@ -45,6 +49,7 @@ import {
     type IntegrationIcon,
     type IntegrationId,
     type OAuthLinkConnectBehavior,
+    type RssManageConnectBehavior,
     type SocialSignInConnectBehavior,
     type SupportedIntegration,
     type SupportedIntegrationAction,
@@ -156,13 +161,17 @@ export function Integrations({ connectedIntegrations }: IntegrationsProps) {
                 </DisclosureList>
                 <IntegrationsListFeedback />
                 <IntegrationsListPrivacyNotice />
+                <RssManageDialog />
             </IntegrationsListPanel>
         </IntegrationsList>
     );
 }
 
 function resolveActionLabel(args: {
-    connectBehavior?: OAuthLinkConnectBehavior | SocialSignInConnectBehavior;
+    connectBehavior?:
+        | OAuthLinkConnectBehavior
+        | RssManageConnectBehavior
+        | SocialSignInConnectBehavior;
     label?: string;
     isExtensionInstalled: boolean;
     isConnected: boolean;
@@ -269,6 +278,10 @@ async function executeIntegrationAction(args: {
                 });
             }
 
+            if (integration.behaviors.connect.kind === "rss-manage") {
+                return { refresh: false, successMessage: null };
+            }
+
             await executeConnectBehavior(integration.behaviors.connect);
 
             return { refresh: false, successMessage: null };
@@ -330,6 +343,15 @@ function useIntegrationAction({
         async (role: IntegrationActionRole) => {
             setStatus(null);
             setPendingRole(role);
+
+            if (
+                integration.behaviors.connect?.kind === "rss-manage" &&
+                role === "connect"
+            ) {
+                rssManageStore.actions.setIsOpen(true);
+                setPendingRole(null);
+                return;
+            }
 
             try {
                 const result = await executeIntegrationAction({
