@@ -6,6 +6,7 @@ import { ITEM_KIND_BOOKMARK } from "@/lib/common/constants";
 import { extractNamedErrorMessage } from "@/lib/common/error";
 import { createLogger } from "@/lib/common/logs/console/logger";
 import { parseStandaloneUrl } from "@/lib/common/url";
+import { getLinkPreview } from "link-preview-js";
 import { DEFAULT_BROWSER_PROFILE_ID } from "@/lib/integrations/browser-profiles";
 import {
     applyChromeBookmarkSyncEvents,
@@ -18,6 +19,7 @@ import * as z from "zod";
 
 const log = createLogger("integrations:standalone:actions");
 const PASTED_BOOKMARK_URL_MAX_LENGTH = 4096;
+const PASTED_BOOKMARK_PREVIEW_TIMEOUT_MS = 5000;
 const NOTE_PASTED_BOOKMARK_EXTERNAL_ID_PREFIX = "cache_pasted_url:";
 
 const CreateChromeBookmarkFromUrlInputSchema = z.object({
@@ -71,6 +73,11 @@ export async function createChromeBookmarkFromUrl(input: {
     const occurredAt = new Date().toISOString();
     const externalId = pastedChromeBookmarkExternalId(normalizedUrl.href);
 
+    const preview = await getLinkPreview(normalizedUrl.href, {
+        timeout: PASTED_BOOKMARK_PREVIEW_TIMEOUT_MS,
+    }).catch(() => null);
+    const title = preview && "title" in preview ? preview.title : null;
+
     try {
         const syncResult = await applyChromeBookmarkSyncEvents(userId, {
             browserProfileId: DEFAULT_BROWSER_PROFILE_ID,
@@ -80,6 +87,7 @@ export async function createChromeBookmarkFromUrl(input: {
                         dateAdded: Date.now(),
                         externalId,
                         kind: ITEM_KIND_BOOKMARK,
+                        title: title ?? undefined,
                         url: normalizedUrl.href,
                     },
                     occurredAt,
