@@ -128,12 +128,17 @@ import { removeValue, toggleValue } from "@/lib/common/arrays";
 import { cn } from "@/lib/common/cn";
 import { getColorGradientFromName } from "@/lib/common/colors";
 import {
+    ACTION_STATUS,
     CACHE_EXTENSION_DOWNLOAD_URL,
     FALLBACK_URL,
     ITEM_KIND_NOTE,
 } from "@/lib/common/constants";
 import { parseDate } from "@/lib/common/dates";
-import { getOwnerDocument, getOwnerWindow } from "@/lib/common/dom";
+import {
+    getOwnerDocument,
+    getOwnerWindow,
+    isTextEntryTarget,
+} from "@/lib/common/dom";
 import {
     revokeFileAttachmentObjectUrl,
     saveFile,
@@ -709,7 +714,7 @@ async function fetchSectionDescription([
 
     const result = await getSectionDescription(parsed.data);
 
-    if (result.status !== "SUCCESS") {
+    if (result.status !== ACTION_STATUS.SUCCESS) {
         throw new Error(result.message);
     }
 
@@ -1516,19 +1521,6 @@ function isSearchHotkey(event: KeyboardEvent): boolean {
     }
 
     return SEARCH_HOTKEYS.some((hotkey) => eventHotkeys.has(hotkey));
-}
-
-function isTextEntryTarget(
-    target: EventTarget | null,
-    ownerWindow: Window & typeof globalThis
-): boolean {
-    return (
-        target instanceof ownerWindow.HTMLElement &&
-        (target.isContentEditable ||
-            Boolean(
-                target.closest('input, textarea, select, [role="textbox"]')
-            ))
-    );
 }
 
 function isPrintablePaletteKey(event: KeyboardEvent): boolean {
@@ -3050,6 +3042,19 @@ function filterCommandItems(
         sourceFilters: LibraryItemSource[];
     }
 ): LibraryItemWithCollections[] {
+    const hasActiveFilters =
+        input.collectionMembershipFilter !==
+            DEFAULT_COLLECTION_MEMBERSHIP_FILTER ||
+        input.domainFilters.length > 0 ||
+        input.lastVisitedItemIds.length > 0 ||
+        input.searchTerms.length > 0 ||
+        input.selectedCollectionIds.length > 0 ||
+        input.sourceFilters.length > 0;
+
+    if (!hasActiveFilters) {
+        return items;
+    }
+
     let list = [...items];
     const normalizedSearchTerms = input.searchTerms.map((term) =>
         term.trim().toLowerCase()
@@ -3368,7 +3373,7 @@ function useLibraryItemActions(args: {
                 };
             }
 
-            if (result.status === "DELETED") {
+            if (result.status === ACTION_STATUS.DELETED) {
                 args.setVisibleItems((current) =>
                     current.filter((item) => item.id !== result.itemId)
                 );
@@ -3672,7 +3677,7 @@ async function downloadLibraryItemMedia(
     }
 
     const result = await downloadMedia(item.url);
-    if (result.status !== "SUCCESS") {
+    if (result.status !== ACTION_STATUS.SUCCESS) {
         return;
     }
 
@@ -4206,10 +4211,7 @@ function MediaCard({ item }: LibraryGridCardProps) {
             event.ctrlKey ||
             event.altKey ||
             isCollectionPickerOpen ||
-            isTextEntryTarget(
-                event.target,
-                getOwnerWindow(event.currentTarget)
-            ) ||
+            isTextEntryTarget(event.target) ||
             event.key.toLowerCase() !== "s"
         ) {
             return;
@@ -4651,10 +4653,6 @@ export function Browser({
     const createResultsDescriptionId = React.useId();
     /** Skips one combobox-driven close right after entering a drill-down section. */
     const suppressNextCommandCloseRef = React.useRef(false);
-    const collectionUpdateFeedbackVersionByItemIdRef = React.useRef(
-        new Map<string, number>()
-    );
-
     const {
         handleConfirmDelete,
         handleCopyLink,
@@ -4787,7 +4785,7 @@ export function Browser({
 
     const handleAskCacheResult = useStableCallback(
         (prompt: string, result: AskCacheResult) => {
-            if (result.status !== "SUCCESS") {
+            if (result.status !== ACTION_STATUS.SUCCESS) {
                 setAskCacheResponse({
                     message: result.message,
                     prompt,
@@ -5099,7 +5097,7 @@ export function Browser({
         const ownerWindow = commandPanelContainerRef.current
             ? getOwnerWindow(commandPanelContainerRef.current)
             : getOwnerWindow();
-        const isTextEntry = isTextEntryTarget(target, ownerWindow);
+        const isTextEntry = isTextEntryTarget(target);
         const isPaletteEventTarget =
             target instanceof ownerWindow.Node &&
             commandPanelContainerRef.current?.contains(target);
@@ -5313,7 +5311,7 @@ export function Browser({
                 };
             }
 
-            if (result.status !== "CREATED") {
+            if (result.status !== ACTION_STATUS.CREATED) {
                 setCreateResultsError(result.message);
                 return;
             }
@@ -5410,33 +5408,6 @@ export function Browser({
         }
     );
 
-    const handleUpdateItemCollectionsWithFeedback = useStableCallback(
-        async (
-            itemId: string,
-            collectionIds: string[]
-        ): Promise<LibraryItemCollectionsUpdateResult> => {
-            const requestVersion =
-                (collectionUpdateFeedbackVersionByItemIdRef.current.get(
-                    itemId
-                ) ?? 0) + 1;
-            collectionUpdateFeedbackVersionByItemIdRef.current.set(
-                itemId,
-                requestVersion
-            );
-            const result = await onUpdateItemCollections(itemId, collectionIds);
-
-            if (
-                collectionUpdateFeedbackVersionByItemIdRef.current.get(
-                    itemId
-                ) !== requestVersion
-            ) {
-                return result;
-            }
-
-            return result;
-        }
-    );
-
     const handleSaveNote = useStableCallback(
         async (
             draft: { contentHtml: string; contentState: unknown | null },
@@ -5454,7 +5425,7 @@ export function Browser({
                         draft,
                     });
 
-                    if (result.status !== "SUCCESS") {
+                    if (result.status !== ACTION_STATUS.SUCCESS) {
                         resolve(null);
                         return;
                     }
@@ -5486,7 +5457,7 @@ export function Browser({
                         url,
                     });
 
-                    if (result.status !== "SUCCESS") {
+                    if (result.status !== ACTION_STATUS.SUCCESS) {
                         resolve();
                         return;
                     }
@@ -5688,9 +5659,7 @@ export function Browser({
                 onOpenInNewTab={handleOpenInNewTab}
                 onOpenNote={handleOpenNote}
                 onToggleSection={toggleSection}
-                onUpdateItemCollections={
-                    handleUpdateItemCollectionsWithFeedback
-                }
+                onUpdateItemCollections={onUpdateItemCollections}
                 pendingDeleteItemId={pendingDeleteItem?.id ?? null}
                 shouldShowEmptyLibraryPeek={shouldShowEmptyLibraryPeek}
                 shouldShowNoFilteredResults={shouldShowNoFilteredResults}
@@ -5698,30 +5667,26 @@ export function Browser({
                 <BrowserEmpty />
                 <BrowserFiltersEmpty />
                 <BrowserList sections={sections}>
-                    {(section) =>
-                        enableSectionCollapse ? (
-                            <BrowserGroup>
-                                <BrowserHeader />
-                                {!section.title && (
-                                    <BrowserGroupOverview>
-                                        <BrowserGroupOverviewContent />
-                                    </BrowserGroupOverview>
-                                )}
-                                <BrowserGroupEmpty>
-                                    No items were found in this section.
-                                </BrowserGroupEmpty>
-                                <BrowserMasonry>
-                                    {(item) => <MediaCard item={item} />}
-                                </BrowserMasonry>
-                            </BrowserGroup>
-                        ) : (
-                            <BrowserGroup>
-                                <BrowserMasonry>
-                                    {(item) => <MediaCard item={item} />}
-                                </BrowserMasonry>
-                            </BrowserGroup>
-                        )
-                    }
+                    {(section) => (
+                        <BrowserGroup>
+                            {enableSectionCollapse ? (
+                                <>
+                                    <BrowserHeader />
+                                    {!section.title && (
+                                        <BrowserGroupOverview>
+                                            <BrowserGroupOverviewContent />
+                                        </BrowserGroupOverview>
+                                    )}
+                                    <BrowserGroupEmpty>
+                                        No items were found in this section.
+                                    </BrowserGroupEmpty>
+                                </>
+                            ) : null}
+                            <BrowserMasonry>
+                                {(item) => <MediaCard item={item} />}
+                            </BrowserMasonry>
+                        </BrowserGroup>
+                    )}
                 </BrowserList>
             </BrowserResults>
             {shouldShowLockedPreview ? (
@@ -5880,7 +5845,7 @@ export function Browser({
                                 collections={collections}
                                 items={visibleResultItems}
                                 onUpdateItemCollections={
-                                    handleUpdateItemCollectionsWithFeedback
+                                    onUpdateItemCollections
                                 }
                                 onUpdateItemsCollections={
                                     onUpdateItemsCollections
