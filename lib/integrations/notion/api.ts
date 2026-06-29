@@ -4,7 +4,8 @@ import { IntegrationApiError } from "@/lib/integrations/error";
 import * as z from "zod";
 
 const NOTION_API_BASE_URL = "https://api.notion.com/v1";
-const NOTION_API_VERSION = "2026-03-11";
+
+export const NOTION_API_VERSION = "2026-03-11";
 
 const NotionApiErrorSchema = z.object({
     code: z.string().optional(),

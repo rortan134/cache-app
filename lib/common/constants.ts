@@ -94,3 +94,13 @@ export const EXPORT_IMAGE_TYPES = {
     png: "png",
     svg: "svg",
 } as const;
+
+export const ACTION_STATUS = {
+    CREATED: "CREATED",
+    DELETED: "DELETED",
+    DISABLED: "DISABLED",
+    ERROR: "ERROR",
+    SHARED: "SHARED",
+    SUCCESS: "SUCCESS",
+    UPDATED: "UPDATED",
+} as const;

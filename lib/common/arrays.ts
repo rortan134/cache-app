@@ -15,3 +15,15 @@ export function toggleValue<T>(values: T[], next: T): T[] {
         ? values.filter((entry) => entry !== next)
         : [...values, next];
 }
+
+export function updateById<T extends { id: string }>(
+    items: T[],
+    id: string,
+    updater: (item: T) => T
+): T[] {
+    return items.map((item) => (item.id === id ? updater(item) : item));
+}
+
+export function addUnique<T>(values: T[], value: T): T[] {
+    return values.includes(value) ? values : [...values, value];
+}

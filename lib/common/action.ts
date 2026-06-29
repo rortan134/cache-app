@@ -1,6 +1,8 @@
 import { extractNamedErrorMessage } from "@/lib/common/error";
-import type { Logger } from "@/lib/common/logs/console/logger";
+import { createLogger, type Logger } from "@/lib/common/logs/console/logger";
 import type * as z from "zod";
+
+const log = createLogger("common:action");
 
 export function getValidationErrorMessage(
     parsed: z.ZodSafeParseError<unknown>,
@@ -52,5 +54,21 @@ export function handleActionError<Code extends string, Status extends string>({
     return {
         message: fallbackMessage,
         status: "ERROR",
+    };
+}
+
+export function tryAction<TInput, TOutput extends { status: string }>(
+    action: (input: TInput) => Promise<TOutput>,
+    errorMessage: string
+): (input: TInput) => Promise<TOutput | { message: string; status: "ERROR" }> {
+    return async (input) => {
+        try {
+            return await action(input);
+        } catch (error) {
+            log.error("Server action failed before returning a result", {
+                error,
+            });
+            return { message: errorMessage, status: "ERROR" as const };
+        }
     };
 }

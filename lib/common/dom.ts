@@ -21,6 +21,21 @@ export function getComputedStyle(element: Element, pseudoElement?: string) {
     return getOwnerWindow(element).getComputedStyle(element, pseudoElement);
 }
 
+export function isTextEntryTarget(target: EventTarget | null): boolean {
+    if (!(target instanceof Node)) {
+        return false;
+    }
+    const ownerWindow = getOwnerWindow(target);
+
+    return (
+        target instanceof ownerWindow.HTMLElement &&
+        (target.isContentEditable ||
+            Boolean(
+                target.closest('input, textarea, select, [role="textbox"]')
+            ))
+    );
+}
+
 /**
  * Stops React's synthetic keydown from bubbling past the caller for single
  * printable keys, isolating the input from a Base UI `Menu` ancestor's
