@@ -14,7 +14,7 @@ import {
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Carousel } from "@/components/ui/carousel";
+import { Carousel, CarouselPanel } from "@/components/ui/carousel";
 import {
     Collapsible,
     CollapsiblePanel,
@@ -106,10 +106,16 @@ import {
     type LibraryCollectionTag,
     type LibraryItemWithCollections,
 } from "@/lib/collections/utils";
-import { removeValue, toggleValue } from "@/lib/common/arrays";
+import { tryAction } from "@/lib/common/action";
+import {
+    addUnique,
+    removeValue,
+    toggleValue,
+    updateById,
+} from "@/lib/common/arrays";
 import { cn } from "@/lib/common/cn";
 import { getHexColorFromName } from "@/lib/common/colors";
-import { ITEM_KIND_NOTE } from "@/lib/common/constants";
+import { ACTION_STATUS, ITEM_KIND_NOTE } from "@/lib/common/constants";
 import { saveFile } from "@/lib/common/file";
 import { getSystemControlKey } from "@/lib/common/keyboard";
 import { createLogger } from "@/lib/common/logs/console/logger";
@@ -231,6 +237,7 @@ interface CollectionTemplateOption {
 interface CollectionsListItemContextValue {
     collection: LibraryCollectionSummary;
     isHovered: boolean;
+    isSelected: boolean;
 }
 
 type CollectionShareState = Pick<
@@ -271,6 +278,12 @@ interface ComboboxGroupData {
 const PREVIEW_SLIDE_INTERVAL_MS = 600;
 
 const NAME_MAX_LENGTH = 64;
+
+const PENDING_ACTION_PREFIX = {
+    NOTION: "notion-",
+    PRIORITY: "priority-",
+    SHARE: "share-",
+} as const;
 
 const COMPACT_NUMBER_FORMATTER = new Intl.NumberFormat("en-US", {
     compactDisplay: "short",
@@ -494,16 +507,6 @@ function useCollections(): CollectionsContextValue {
     return context;
 }
 
-function updateById<T extends LibraryCollectionTag>(
-    collections: T[],
-    id: string,
-    updater: (collection: T) => T
-): T[] {
-    return collections.map((collection) =>
-        collection.id === id ? updater(collection) : collection
-    );
-}
-
 function updateItemTags(
     items: LibraryItemWithCollections[],
     updater: (tags: LibraryCollectionTag[]) => LibraryCollectionTag[]
@@ -563,52 +566,39 @@ function buildCsv(
 }
 
 function getCreatedAssignedItemIds(
-    result: Extract<CollectionCreateResult, { status: "CREATED" }>
+    result: Extract<
+        CollectionCreateResult,
+        { status: typeof ACTION_STATUS.CREATED }
+    >
 ): string[] {
     return result.assignedItemId ? [result.assignedItemId] : [];
 }
 
-function safeAction<TInput, TOutput extends { status: string }>(
-    action: (input: TInput) => Promise<TOutput>,
-    errorMessage: string
-): (input: TInput) => Promise<TOutput | { message: string; status: "ERROR" }> {
-    return async (input) => {
-        try {
-            return await action(input);
-        } catch (error) {
-            log.error("Server action failed before returning a result", {
-                error,
-            });
-            return { message: errorMessage, status: "ERROR" as const };
-        }
-    };
-}
-
-const createCollectionSafely = safeAction(
+const createCollectionSafely = tryAction(
     createCollection,
     CREATE_ERROR_MESSAGE
 );
-const deleteCollectionSafely = safeAction(
+const deleteCollectionSafely = tryAction(
     deleteCollection,
     DELETE_ERROR_MESSAGE
 );
-const duplicateCollectionSafely = safeAction(
+const duplicateCollectionSafely = tryAction(
     duplicateCollection,
     DUPLICATE_ERROR_MESSAGE
 );
-const renameCollectionSafely = safeAction(
+const renameCollectionSafely = tryAction(
     renameCollection,
     RENAME_ERROR_MESSAGE
 );
-const updateCollectionPrioritySafely = safeAction(
+const updateCollectionPrioritySafely = tryAction(
     updateCollectionPriority,
     UPDATE_PRIORITY_ERROR_MESSAGE
 );
-const shareCollectionPubliclySafely = safeAction(
+const shareCollectionPubliclySafely = tryAction(
     shareCollectionPublicly,
     SHARE_ERROR_MESSAGE
 );
-const disableCollectionSharingSafely = safeAction(
+const disableCollectionSharingSafely = tryAction(
     disableCollectionSharing,
     DISABLE_SHARING_ERROR_MESSAGE
 );
@@ -631,7 +621,7 @@ export function Collections() {
                         </Kbd>
                     </CollectionsListToolbarGroup>
                 </CollectionsListToolbar>
-                <CollectionsListPanel>
+                <CollapsiblePanel>
                     <CollectionsListFavoritesCarouselContent>
                         {(item) => (
                             <CollectionsListFavoritesCarouselSlide
@@ -649,7 +639,7 @@ export function Collections() {
                             />
                         )}
                     </CollectionsListFavoritesContent>
-                </CollectionsListPanel>
+                </CollapsiblePanel>
             </CollectionsListFavorites>
             <CollectionsList
                 className="group/collapsible"
@@ -674,7 +664,7 @@ export function Collections() {
                         />
                     </CollectionsListToolbarGroup>
                 </CollectionsListToolbar>
-                <CollectionsListPanel>
+                <CollapsiblePanel>
                     <div className="p-1.5 pt-0.5 pl-2.5">
                         <CollectionsListCalloutPopover />
                     </div>
@@ -688,7 +678,7 @@ export function Collections() {
                             />
                         )}
                     </CollectionsListContent>
-                </CollectionsListPanel>
+                </CollapsiblePanel>
             </CollectionsList>
             <CollectionsListStatus />
             <CollectionsRenameDialog />
@@ -789,10 +779,12 @@ function useCollectionsController() {
         view: collectionView,
     };
 
-    const showError = (message: string) =>
-        setFeedback({ message, tone: "error" });
-    const showSuccess = (message: string) =>
-        setFeedback({ message, tone: "success" });
+    const showError = useStableCallback((message: string) =>
+        setFeedback({ message, tone: "error" })
+    );
+    const showSuccess = useStableCallback((message: string) =>
+        setFeedback({ message, tone: "success" })
+    );
 
     const getCollectionItems = (collectionId: string) =>
         itemsByCollectionId.get(collectionId) ?? [];
@@ -816,28 +808,22 @@ function useCollectionsController() {
         collectionId: string,
         isPending: boolean
     ) => {
-        setPendingShareIds((current) => {
-            if (isPending) {
-                return current.includes(collectionId)
-                    ? current
-                    : [...current, collectionId];
-            }
-            return removeValue(current, collectionId);
-        });
+        setPendingShareIds((current) =>
+            isPending
+                ? addUnique(current, collectionId)
+                : removeValue(current, collectionId)
+        );
     };
 
     const setCollectionNotionPending = (
         collectionId: string,
         isPending: boolean
     ) => {
-        setPendingNotionCollectionIds((current) => {
-            if (isPending) {
-                return current.includes(collectionId)
-                    ? current
-                    : [...current, collectionId];
-            }
-            return removeValue(current, collectionId);
-        });
+        setPendingNotionCollectionIds((current) =>
+            isPending
+                ? addUnique(current, collectionId)
+                : removeValue(current, collectionId)
+        );
     };
 
     const syncItemTags = (
@@ -883,6 +869,19 @@ function useCollectionsController() {
         }
         setItems((current) =>
             appendCollection(current, input.assignedItemIds, input.collection)
+        );
+    };
+
+    const syncDeleted = (collectionId: string) => {
+        if (hoveredCollectionRef.current?.id === collectionId) {
+            hoveredCollectionRef.current = null;
+        }
+        setCollections((current) =>
+            current.filter((collection) => collection.id !== collectionId)
+        );
+        syncItemTags((tags) => tags.filter((tag) => tag.id !== collectionId));
+        setFavoriteCollectionIds((current) =>
+            removeValue(current, collectionId)
         );
     };
 
@@ -1054,7 +1053,7 @@ function useCollectionsController() {
     };
 
     const handleEnableShare = (collection: LibraryCollectionSummary) => {
-        const key = `share-${collection.id}`;
+        const key = `${PENDING_ACTION_PREFIX.SHARE}${collection.id}`;
         if (pendingActionIdsRef.current.has(key)) {
             return;
         }
@@ -1073,7 +1072,7 @@ function useCollectionsController() {
                     collectionId: collection.id,
                 });
 
-                if (result.status === "SHARED") {
+                if (result.status === ACTION_STATUS.SHARED) {
                     syncShare(result.collection);
                     const linkCopied = await copyToClipboard(result.shareUrl);
                     showSuccess(
@@ -1092,7 +1091,7 @@ function useCollectionsController() {
     };
 
     const handleDisableShare = (collection: LibraryCollectionSummary) => {
-        const key = `share-${collection.id}`;
+        const key = `${PENDING_ACTION_PREFIX.SHARE}${collection.id}`;
         if (pendingActionIdsRef.current.has(key)) {
             return;
         }
@@ -1107,7 +1106,7 @@ function useCollectionsController() {
                     collectionId: collection.id,
                 });
 
-                if (result.status === "DISABLED") {
+                if (result.status === ACTION_STATUS.DISABLED) {
                     syncShare(result.collection);
                     showSuccess(
                         `${collection.name} is no longer publicly shared.`
@@ -1177,7 +1176,7 @@ function useCollectionsController() {
     };
 
     const handleSendToNotion = (collection: LibraryCollectionSummary) => {
-        const key = `notion-${collection.id}`;
+        const key = `${PENDING_ACTION_PREFIX.NOTION}${collection.id}`;
         if (pendingActionIdsRef.current.has(key)) {
             return;
         }
@@ -1196,7 +1195,7 @@ function useCollectionsController() {
                     collectionId: collection.id,
                 });
 
-                if (result.status === "SUCCESS") {
+                if (result.status === ACTION_STATUS.SUCCESS) {
                     showSuccess(`${collection.name} sent to Notion.`);
                     openExternal(result.pageUrl);
                 } else {
@@ -1213,7 +1212,7 @@ function useCollectionsController() {
         collectionId: string,
         priority: CollectionPriority
     ) => {
-        const key = `priority-${collectionId}`;
+        const key = `${PENDING_ACTION_PREFIX.PRIORITY}${collectionId}`;
         if (pendingActionIdsRef.current.has(key)) {
             return;
         }
@@ -1235,7 +1234,7 @@ function useCollectionsController() {
                 priority,
             });
 
-            if (result.status === "UPDATED") {
+            if (result.status === ACTION_STATUS.UPDATED) {
                 syncPriority(result.collection.id, result.collection.priority);
             } else {
                 syncPriority(collectionId, previous);
@@ -1254,7 +1253,7 @@ function useCollectionsController() {
                 collectionId: collection.id,
             });
 
-            if (result.status !== "CREATED") {
+            if (result.status !== ACTION_STATUS.CREATED) {
                 showError(result.message);
                 return;
             }
@@ -1286,7 +1285,7 @@ function useCollectionsController() {
             await mutateSmartCollectionsPreference(
                 async (enabledAutomations = []) => {
                     const result = await disableSmartCollections();
-                    if (result.status !== "DISABLED") {
+                    if (result.status !== ACTION_STATUS.DISABLED) {
                         throw new Error(result.message);
                     }
                     return pauseSmartCollectionsAutomations(enabledAutomations);
@@ -1373,7 +1372,6 @@ function useCollectionsController() {
         pendingShareIds,
         requestCreate,
         selectedCollectionIds,
-        setCollections,
         setFavoriteCollectionIds,
         setIsCollectionsListOpen,
         setIsCreateOpen,
@@ -1391,6 +1389,7 @@ function useCollectionsController() {
             value: comboboxValue,
         },
         syncCreated,
+        syncDeleted,
         syncItemTags,
         syncName,
     };
@@ -1413,19 +1412,10 @@ function CollectionItemRow({
     collection,
     metadataDisplay = "item-count",
 }: CollectionItemRowProps) {
-    const controller = useCollections();
-    const isSelected = controller.selectedCollectionIds.includes(collection.id);
-
     return (
-        <CollectionItem collection={collection} isSelected={isSelected}>
+        <CollectionItem collection={collection}>
             <CollectionItemPriorityCombobox />
-            <CollectionItemTrigger
-                {...(isSelected
-                    ? {
-                          "data-active": true,
-                      }
-                    : {})}
-            >
+            <CollectionItemTrigger>
                 <CollectionItemValue />
             </CollectionItemTrigger>
             <CollectionItemMetadata metadataDisplay={metadataDisplay} />
@@ -1676,12 +1666,6 @@ function CollectionsListTrigger({
     );
 }
 
-function CollectionsListPanel(
-    props: React.ComponentProps<typeof CollapsiblePanel>
-) {
-    return <CollapsiblePanel {...props} />;
-}
-
 function CollectionsListFavorites({
     className,
     ...props
@@ -1873,8 +1857,10 @@ function CollectionsListFavoritesCarouselContent({
     }
 
     return (
-        <Carousel className="mb-1 *:first:pl-2.5 [&>*:not(:last-child)]:me-1.5">
-            {favoriteItems.map(children)}
+        <Carousel>
+            <CarouselPanel className="mb-1 *:first:pl-2.5 [&>*:not(:last-child)]:me-1.5">
+                {favoriteItems.map(children)}
+            </CarouselPanel>
         </Carousel>
     );
 }
@@ -2419,7 +2405,6 @@ function CollectionsListCalloutPopover() {
 
 interface CollectionsListItemProps extends React.ComponentProps<"div"> {
     collection: LibraryCollectionSummary;
-    isSelected: boolean;
 }
 
 /**
@@ -2431,20 +2416,22 @@ interface CollectionsListItemProps extends React.ComponentProps<"div"> {
 function CollectionItem({
     className,
     collection,
-    isSelected,
     onMouseEnter: onMouseEnterProp,
     onMouseLeave: onMouseLeaveProp,
     style: styleProp,
     ...props
 }: CollectionsListItemProps) {
-    const { hoveredCollectionRef } = useCollections();
+    const { hoveredCollectionRef, selectedCollectionIds } = useCollections();
     const [isHovered, setIsHovered] = React.useState(false);
+    const isSelected = selectedCollectionIds.includes(collection.id);
     const onMouseEnter = useStableCallback(onMouseEnterProp);
     const onMouseLeave = useStableCallback(onMouseLeaveProp);
     const style = getCollectionItemStyle(collection.name, isSelected);
 
     return (
-        <CollectionsListItemContext value={{ collection, isHovered }}>
+        <CollectionsListItemContext
+            value={{ collection, isHovered, isSelected }}
+        >
             <div
                 {...props}
                 className={cn(
@@ -2479,7 +2466,7 @@ function CollectionItemTrigger({
     ...props
 }: React.ComponentProps<typeof PreviewCardTrigger>) {
     const controller = useCollections();
-    const { collection } = useCollectionsListItemContext();
+    const { collection, isSelected } = useCollectionsListItemContext();
     const [isOpen, setIsOpen] = React.useState(false);
     const thumbnails =
         controller.collectionPreviewThumbnailUrlsById.get(collection.id) ?? [];
@@ -2503,6 +2490,7 @@ function CollectionItemTrigger({
         <PreviewCard onOpenChange={setIsOpen} open={isOpen}>
             <PreviewCardTrigger
                 {...props}
+                {...(isSelected ? { "data-active": true } : {})}
                 closeDelay={0}
                 onClick={handleClick}
                 render={
@@ -3053,7 +3041,7 @@ function CollectionsRenameDialog() {
                     name: nextName,
                 });
 
-                if (result.status === "UPDATED") {
+                if (result.status === ACTION_STATUS.UPDATED) {
                     syncName(result.collection.id, result.collection.name);
                     setPendingRename(null);
                     showSuccess(`${result.collection.name} renamed.`);
@@ -3203,7 +3191,7 @@ function CollectionsCreateDialog() {
                         normalizeWhitespace(descriptionDraft) || undefined,
                     name,
                 });
-                if (result.status !== "CREATED") {
+                if (result.status !== ACTION_STATUS.CREATED) {
                     setErrorMessage(result.message);
                     return;
                 }
@@ -3239,7 +3227,7 @@ function CollectionsCreateDialog() {
                     description: template.description,
                     name: template.name,
                 });
-                if (result.status !== "CREATED") {
+                if (result.status !== ACTION_STATUS.CREATED) {
                     setErrorMessage(result.message);
                     return;
                 }
@@ -3452,9 +3440,7 @@ function CollectionsDeleteDialog() {
     const {
         pendingDelete,
         setPendingDelete,
-        setCollections,
-        syncItemTags,
-        setFavoriteCollectionIds,
+        syncDeleted,
         showSuccess,
         showError,
     } = controller;
@@ -3471,24 +3457,12 @@ function CollectionsDeleteDialog() {
                 collectionId: target.id,
             });
 
-            if (result.status !== "DELETED") {
+            if (result.status !== ACTION_STATUS.DELETED) {
                 showError(result.message);
                 return;
             }
 
-            setCollections((current) =>
-                current.filter(
-                    (collection) => collection.id !== result.collection.id
-                )
-            );
-            syncItemTags((tags) =>
-                tags.filter(
-                    (collection) => collection.id !== result.collection.id
-                )
-            );
-            setFavoriteCollectionIds((current) =>
-                removeValue(current, result.collection.id)
-            );
+            syncDeleted(result.collection.id);
             setPendingDelete(null);
             showSuccess(`${result.collection.name} deleted.`);
         });
