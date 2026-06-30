@@ -2,6 +2,9 @@ import type { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
 
 const encoder = new TextEncoder();
 
+const MCP_TOKEN_TTL_DAYS = 90;
+const MCP_TOKEN_TTL_MS = MCP_TOKEN_TTL_DAYS * 24 * 60 * 60 * 1000;
+
 function requireSecret(): string {
     const secret = process.env.BETTER_AUTH_SECRET;
     if (!secret) {
@@ -22,14 +25,47 @@ function importKey(): Promise<CryptoKey> {
     );
 }
 
+interface TokenPayload {
+    expiresAt: number;
+    issuedAt: number;
+    userId: string;
+}
+
+function encodePayload(
+    userId: string,
+    issuedAt: number,
+    expiresAt: number
+): string {
+    return `${userId}.${issuedAt}.${expiresAt}`;
+}
+
+function decodePayload(payload: string): TokenPayload | null {
+    const [userId, issuedAtRaw, expiresAtRaw] = payload.split(".");
+    if (!(userId && issuedAtRaw && expiresAtRaw)) {
+        return null;
+    }
+    const issuedAt = Number(issuedAtRaw);
+    const expiresAt = Number(expiresAtRaw);
+    if (!(Number.isFinite(issuedAt) && Number.isFinite(expiresAt))) {
+        return null;
+    }
+    return { expiresAt, issuedAt, userId };
+}
+
 /**
  * Generates a stateless HMAC token for MCP authentication.
  *
- * The token encodes the userId and a timestamp, signed with BETTER_AUTH_SECRET.
+ * The token encodes `userId`, `issuedAt`, and `expiresAt` (default TTL: 90 days)
+ * and signs the joined string with `BETTER_AUTH_SECRET`. Tokens are
+ * self-validating: `verifyMcpToken` only needs the secret + the token bytes,
+ * so there is no server-side state to revoke on rotation. To invalidate a
+ * compromised token today, rotate `BETTER_AUTH_SECRET`; keep the same secret
+ * across deploys until you want everyone to re-issue.
  */
 export async function generateMcpToken(userId: string): Promise<string> {
-    const timestamp = Date.now();
-    const payload = `${userId}.${timestamp}`;
+    const issuedAt = Date.now();
+    const expiresAt = issuedAt + MCP_TOKEN_TTL_MS;
+    const payload = encodePayload(userId, issuedAt, expiresAt);
     const key = await importKey();
     const signature = await crypto.subtle.sign(
         "HMAC",
@@ -42,7 +78,10 @@ export async function generateMcpToken(userId: string): Promise<string> {
 }
 
 /**
- * Verifies an MCP token and returns the userId if valid.
+ * Verifies an MCP token. Returns the authenticated `userId` if the signature
+ * is valid AND the token has not expired, otherwise `null`. The expiry check
+ * runs after signature verification so an attacker cannot probe expiry with a
+ * forged token.
  */
 export async function verifyMcpToken(token: string): Promise<string | null> {
     const parts = token.split(".");
@@ -55,10 +94,19 @@ export async function verifyMcpToken(token: string): Promise<string | null> {
         return null;
     }
 
+    let payload: string;
+    let signature: Uint8Array<ArrayBuffer>;
     try {
-        const payload = atob(payloadB64);
-        const signature = Uint8Array.from(atob(sigB64), (c) => c.charCodeAt(0));
+        payload = atob(payloadB64);
+        // TS6 narrows `Uint8Array<ArrayBufferLike>` away from `BufferSource`;
+        // copy into a fresh `ArrayBuffer` so `crypto.subtle.verify` accepts it.
+        const sigBytes = Uint8Array.from(atob(sigB64), (c) => c.charCodeAt(0));
+        signature = new Uint8Array(sigBytes);
+    } catch {
+        return null;
+    }
 
+    try {
         const key = await importKey();
         const valid = await crypto.subtle.verify(
             "HMAC",
@@ -69,12 +117,20 @@ export async function verifyMcpToken(token: string): Promise<string | null> {
         if (!valid) {
             return null;
         }
-
-        const [userId] = payload.split(".");
-        return userId ?? null;
     } catch {
         return null;
     }
+
+    const parsed = decodePayload(payload);
+    if (!parsed) {
+        return null;
+    }
+
+    if (parsed.expiresAt <= Date.now()) {
+        return null;
+    }
+
+    return parsed.userId;
 }
 
 /**
