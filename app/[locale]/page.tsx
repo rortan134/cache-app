@@ -201,7 +201,7 @@ export default async function Home() {
                             variant="link"
                         >
                             <GithubIcon className="size-3.5" />
-                            &nbsp;Star on GitHub
+                            &nbsp;Open Source – Star on GitHub
                         </Button>
                     </div>
                     <section className="grid w-full grid-cols-1 gap-2 md:grid-cols-2 md:gap-[40px]">
