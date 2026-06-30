@@ -547,7 +547,7 @@ export default async function Home() {
                             </div>
                             <CarouselPanel
                                 aria-labelledby="target-audience-carousel-heading"
-                                className="!pb-10 [&>*:not(:last-child)]:me-4"
+                                className="pb-10! [&>*:not(:last-child)]:me-4"
                                 slideClassName="!w-[300px] md:!w-[340px]"
                             >
                                 <div className="flex h-96 flex-col justify-between rounded-2xl border border-border/70 bg-background p-6">

@@ -6,7 +6,6 @@ import { INTEGRATIONS } from "@/lib/integrations/support";
 import { GTProvider, getLocale, getLocales } from "gt-next/server";
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
-import { NuqsAdapter } from "nuqs/adapters/next/app";
 import type * as React from "react";
 import "../globals.css";
 
@@ -112,9 +111,7 @@ export default async function LocaleLayout(props: {
                     </a>
                 </div>
                 <GTProvider>
-                    <NuqsAdapter>
-                        <ShortcutsProvider>{props.children}</ShortcutsProvider>
-                    </NuqsAdapter>
+                    <ShortcutsProvider>{props.children}</ShortcutsProvider>
                 </GTProvider>
             </body>
         </html>
