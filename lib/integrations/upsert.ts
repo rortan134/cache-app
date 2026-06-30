@@ -1,6 +1,6 @@
 import "server-only";
 
-import { chunk } from "@/lib/common/arrays";
+import { chunk, mapConcurrent } from "@/lib/common/arrays";
 import { ITEM_KIND_FOLDER } from "@/lib/common/constants";
 import {
     buildLibraryItemCreateData,
@@ -15,6 +15,7 @@ import type { LibraryItemSource } from "@/prisma/client/enums";
 
 const EXISTING_IMPORT_LOOKUP_BATCH_SIZE = 250;
 const IMPORT_UPSERT_BATCH_SIZE = 50;
+const IMPORT_UPSERT_CONCURRENCY = 4;
 
 type ExistingImportRow = Pick<
     LibraryItemImportRow,
@@ -116,8 +117,9 @@ export async function upsertLibraryItemImports(
         ((row: LibraryItemImportRow) => row.kind !== ITEM_KIND_FOLDER);
 
     for (const batch of chunk(rows, IMPORT_UPSERT_BATCH_SIZE)) {
-        const savedRows = await Promise.all(
-            batch.map((row) =>
+        const savedRows = await mapConcurrent(
+            batch,
+            (row) =>
                 prisma.libraryItem.upsert({
                     create: buildLibraryItemCreateData(row, args.userId),
                     select: {
@@ -132,8 +134,8 @@ export async function upsertLibraryItemImports(
                             userId: args.userId,
                         },
                     },
-                })
-            )
+                }),
+            IMPORT_UPSERT_CONCURRENCY
         );
 
         for (const [index, savedRow] of savedRows.entries()) {

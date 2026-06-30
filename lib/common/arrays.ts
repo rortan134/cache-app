@@ -27,3 +27,15 @@ export function updateById<T extends { id: string }>(
 export function addUnique<T>(values: T[], value: T): T[] {
     return values.includes(value) ? values : [...values, value];
 }
+
+export async function mapConcurrent<T, R>(
+    items: readonly T[],
+    fn: (item: T) => Promise<R>,
+    concurrency: number
+): Promise<R[]> {
+    const batches = chunk(items, concurrency);
+    const batchedResults = await Promise.all(
+        batches.map((batch) => Promise.all(batch.map((item) => fn(item))))
+    );
+    return batchedResults.flat();
+}
