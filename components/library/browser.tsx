@@ -4292,10 +4292,12 @@ function MediaCard({ item }: LibraryGridCardProps) {
                         >
                             <MenuTrigger
                                 render={
-                                    <button
-                                        className="min-w-0 flex-1 cursor-pointer truncate rounded-sm text-left font-normal text-[11px] text-foreground leading-none outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                                    <Button
+                                        className="min-w-0 flex-1 justify-start truncate rounded-sm text-left font-normal text-[11px] text-foreground leading-none"
+                                        size="sm"
                                         title={displayTitle}
                                         type="button"
+                                        variant="ghost"
                                     />
                                 }
                             >
