@@ -1,7 +1,7 @@
 "use client";
 
-import { cn } from "@/lib/common/cn";
 import { Popover, PopoverPopup, PopoverTrigger } from "@/components/ui/popover";
+import { cn } from "@/lib/common/cn";
 import { clamp } from "@/lib/common/numbers";
 import { Calligraph } from "calligraph";
 import * as React from "react";
@@ -11,8 +11,10 @@ interface TruncateAfterProps extends React.ComponentProps<"div"> {
     maxVisible: number;
 }
 
+const MAX_VISIBLE_DEFAULT = 5;
+
 export function TruncateAfter({
-    maxVisible = 5,
+    maxVisible = MAX_VISIBLE_DEFAULT,
     children,
     className,
     badgeRender,

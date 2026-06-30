@@ -244,7 +244,13 @@ export function CommandPanel({
     className,
     ...props
 }: React.ComponentProps<"div">) {
-    return <div className={cn("min-h-0 w-full", className)} {...props} />;
+    return (
+        <div
+            {...props}
+            className={cn("min-h-0 w-full", className)}
+            data-slot="command-panel"
+        />
+    );
 }
 
 export function CommandShortcut({
