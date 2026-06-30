@@ -200,7 +200,7 @@ export default async function Home() {
                             size="sm"
                             variant="link"
                         >
-                            <GithubIcon className="size-3.5" />
+                            <GithubIcon className="size-4" />
                             &nbsp;Open Source – Star on GitHub
                         </Button>
                     </div>
@@ -424,8 +424,8 @@ export default async function Home() {
                                     <li className="flex items-center gap-2">
                                         <CloudDownload className="inline-block size-4 shrink-0" />
                                         <span>
-                                            Share or export collections from
-                                            Cache anytime
+                                            Share or export your collections
+                                            from Cache anytime
                                         </span>
                                     </li>
                                     <li className="flex items-center gap-2">
