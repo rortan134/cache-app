@@ -213,7 +213,7 @@ Anchor design decisions on the user's primary task or focus, to make sure the us
 ### Tech stack
 
 Runtime & Package Manager: Node.js 24.x, Bun, read Bun API docs in `node_modules/bun-types/docs/**.mdx` if necessary.
-framework: Next.js 16 (App Router, This is NOT the Next.js you know, This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read any relevant guides in `node_modules/next/dist/docs` before writing related code. Heed deprecation notices.)
+framework: Next.js 16 (App Router)
 UI: React 19, Base-UI ([@base-ui/react](https://base-ui.com/llms.txt), @base-ui/utils), and lucide-react icons
 React Compiler: `babel-plugin-react-compiler` is enabled. It automatically memoizes components and values. Do not add manual `useMemo` or `useCallback`; they add noise without benefit and can interfere with compiler optimization
 Styling: Tailwind CSS 4
@@ -221,6 +221,14 @@ Validation: zod v4 schemas
 Database: PostgreSQL via Prisma ORM v7
 Auth: [better-auth](https://better-auth.com/llms.txt) with better-auth/stripe (Stripe subscriptions)
 Tooling: TypeScript v6 (strict typing), Biome via Ultracite (run via `bun lint` or `bun lint:fix` for writing)
+
+<!-- BEGIN:nextjs-agent-rules -->
+
+# This is NOT the Next.js you know
+
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` before writing any code. Heed deprecation notices.
+
+<!-- END:nextjs-agent-rules -->
 
 ### Documentation lookups with Context7
 
@@ -247,9 +255,3 @@ Use these in services and actions to propagate domain failures with structured m
 ### Data model
 
 The data model can be found at `prisma/schema.prisma`
-
-<!-- BEGIN:nextjs-agent-rules -->
-# This is NOT the Next.js you know
-
-This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` before writing any code. Heed deprecation notices.
-<!-- END:nextjs-agent-rules -->
