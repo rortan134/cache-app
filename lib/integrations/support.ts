@@ -556,7 +556,7 @@ export const INTEGRATIONS = [
     {
         actions: [
             {
-                for: "source",
+                for: "destination",
                 label: "Copy setup prompt",
                 role: "copy",
             },
