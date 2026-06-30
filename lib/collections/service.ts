@@ -904,7 +904,7 @@ interface ListLibraryItemsArgs {
 export async function listLibraryItems(
     args: ListLibraryItemsArgs
 ): Promise<{ items: LibraryItemWithCollections[]; total: number }> {
-    const limit = Math.min(args.limit ?? 20, 50);
+    const limit = Math.max(1, Math.min(args.limit ?? 20, 50));
     const skip = Math.max(args.offset ?? 0, 0);
     const where: Prisma.LibraryItemWhereInput = {
         kind: { not: ITEM_KIND_FOLDER },
@@ -926,7 +926,11 @@ export async function listLibraryItems(
     const [items, total] = await prisma.$transaction([
         prisma.libraryItem.findMany({
             include: LIBRARY_ITEM_COLLECTIONS_INCLUDE,
-            orderBy: [{ scrapedAt: SORT_DESC }, { updatedAt: SORT_DESC }],
+            orderBy: [
+                { scrapedAt: SORT_DESC },
+                { updatedAt: SORT_DESC },
+                { id: SORT_DESC },
+            ],
             skip,
             take: limit,
             where,
@@ -1066,7 +1070,11 @@ export async function getLibraryItems(args: {
         const [items, totalItemCount, itemSources] = await Promise.all([
             prisma.libraryItem.findMany({
                 include: LIBRARY_ITEM_COLLECTIONS_INCLUDE,
-                orderBy: [{ scrapedAt: SORT_DESC }, { updatedAt: SORT_DESC }],
+                orderBy: [
+                    { scrapedAt: SORT_DESC },
+                    { updatedAt: SORT_DESC },
+                    { id: SORT_DESC },
+                ],
                 take: limit,
                 where: itemWhere,
             }),
@@ -1089,7 +1097,11 @@ export async function getLibraryItems(args: {
     const [items, totalItemCount, itemSources] = await Promise.all([
         prisma.libraryItem.findMany({
             include: LIBRARY_ITEM_COLLECTIONS_INCLUDE,
-            orderBy: [{ scrapedAt: SORT_DESC }, { updatedAt: SORT_DESC }],
+            orderBy: [
+                { scrapedAt: SORT_DESC },
+                { updatedAt: SORT_DESC },
+                { id: SORT_DESC },
+            ],
             take: Math.min(limit, FREE_LIBRARY_PREVIEW_ITEMS),
             where: itemWhere,
         }),
