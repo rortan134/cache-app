@@ -637,12 +637,11 @@ function IntegrationsListItem({
 
 function IntegrationsListItemPreviewTrigger({
     integrationId,
-    onClick: onClickProp,
+    onClick,
     render,
 }: IntegrationsListItemPreviewTriggerProps) {
     const integration = getIntegration(integrationId);
     const [isHovered, setIsHovered] = React.useState(false);
-    const onClick = useStableCallback(onClickProp);
 
     const handleClick = useStableCallback(() => {
         setIsHovered(false);
