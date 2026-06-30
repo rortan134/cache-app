@@ -1,25 +1,20 @@
 import { createNextMiddleware } from "gt-next/middleware";
 import type { NextRequest } from "next/server";
-import { NextResponse } from "next/server";
 
 const gtMiddleware = createNextMiddleware();
 
 export function proxy(request: NextRequest) {
-    if (request.method === "OPTIONS") {
-        // Custom headers must be added to the *request*
-        // headers so server components see them via `headers()`. Setting them as
-        // response headers via `NextResponse.next({ headers })` corrupts Next.js
-        // 16's router state parsing during soft navigation.
-        const requestHeaders = new Headers(request.headers);
-        requestHeaders.set("Access-Control-Allow-Origin", "*");
-        requestHeaders.set(
-            "Access-Control-Allow-Methods",
-            "GET,POST,PUT,DELETE,OPTIONS"
-        );
-        requestHeaders.set("Access-Control-Allow-Headers", "*");
-
-        return NextResponse.next({
-            request: { headers: requestHeaders },
+    if (request.nextUrl.pathname === "/mcp" && request.method === "OPTIONS") {
+        return new Response(null, {
+            headers: {
+                "Access-Control-Allow-Headers":
+                    "authorization,content-type,accept,mcp-session-id",
+                "Access-Control-Allow-Methods": "POST, GET, OPTIONS",
+                "Access-Control-Allow-Origin": "*",
+                "Access-Control-Max-Age": "86400",
+                Vary: "Origin",
+            },
+            status: 204,
         });
     }
 
@@ -27,7 +22,8 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-    // Matches all paths except those starting with /api, /mcp, /static, /_next,
-    // or any file with an extension (e.g. /file.js).
-    matcher: ["/((?!api/|mcp/|static/|_next/|[^/]+\\.[^/]+$).*)"],
+    // Matches every app path. `/mcp` is handled above before the gt middleware
+    // runs, so we don't need a per-path exclusion here. Still skip the heavy
+    // paths (assets, api, _next) so the proxy doesn't slow them down.
+    matcher: ["/((?!api/|static/|_next/|_vercel/|[^/]+\\.[^/]+$).*)"],
 };

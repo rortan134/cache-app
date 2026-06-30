@@ -120,34 +120,34 @@ export const McpDeleteLibraryItemInputSchema = McpItemIdInputSchema;
 // `add_library_item` enforces two semantic rules:
 //
 //   1. `noteContentText` and `url` are mutually exclusive: callers must
-//      choose one. The service-layer rejection also exists as a backstop
-//      for direct callers, but advertising a permissive schema to MCP
-//      clients would let them call with `{ }` and surprise themselves.
+//      choose one.
 //   2. `url` must be http(s); `parseStandaloneUrl` (lib/common/url) also
 //      rejects non-http schemes, so the validator must match.
 //
-// The XOR is encoded with `superRefine` for direct schema consumers, but
-// the MCP SDK's `normalizeObjectSchema` converts field schemas individually
-// via `.shape`, which cannot express cross-field refinements in JSON Schema.
-// The route handler performs its own XOR check before calling the service,
-// so the protocol-level gap has no operational impact.
-export const McpAddLibraryItemInputSchema = z
+// The schema is a `zod.union` of two strict shapes so the XOR survives the
+// MCP SDK's per-field normalization (`normalizeObjectSchema` constructs
+// `z4mini.object(shape)` from individual fields, which cannot carry
+// cross-field `superRefine`). The route dispatches on which branch matched
+// instead of re-running the XOR.
+const McpAddLibraryNoteSchema = z
+    .object({
+        noteContentText: z
+            .string()
+            .trim()
+            .min(1)
+            .max(NOTE_TEXT_MAX_LENGTH)
+            .describe("Plain text for a note."),
+    })
+    .strict();
+
+const McpAddLibraryBookmarkSchema = z
     .object({
         caption: z
             .string()
             .trim()
             .max(CAPTION_MAX_LENGTH)
             .optional()
-            .describe(
-                "Optional caption or title for the saved bookmark. Ignored when saving a note."
-            ),
-        noteContentText: z
-            .string()
-            .trim()
-            .min(1)
-            .max(NOTE_TEXT_MAX_LENGTH)
-            .optional()
-            .describe("Plain text for a note. Mutually exclusive with `url`."),
+            .describe("Optional caption or title for the saved bookmark."),
         url: z
             .string()
             .trim()
@@ -157,21 +157,16 @@ export const McpAddLibraryItemInputSchema = z
                     value.startsWith("http://") || value.startsWith("https://"),
                 { message: "URL must use the http or https scheme." }
             )
-            .optional()
             .describe(
-                "Fully qualified http(s) URL to save as a bookmark. Save deduplicates by URL, so calling twice with the same URL is safe. Mutually exclusive with `noteContentText`."
+                "Fully qualified http(s) URL to save as a bookmark. Save dedupes by URL, so calling twice with the same URL is safe."
             ),
     })
-    .superRefine(({ noteContentText, url }, ctx) => {
-        const hasNote = typeof noteContentText === "string";
-        const hasUrl = typeof url === "string";
-        if (hasNote === hasUrl) {
-            ctx.addIssue({
-                code: z.ZodIssueCode.custom,
-                message: "Provide exactly one of `noteContentText` or `url`.",
-            });
-        }
-    });
+    .strict();
+
+export const McpAddLibraryItemInputSchema = z.union([
+    McpAddLibraryNoteSchema,
+    McpAddLibraryBookmarkSchema,
+]);
 
 export const McpDeleteLibraryItemOutputSchema = z.object({
     ok: z.literal(true),
