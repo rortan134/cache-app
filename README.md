@@ -18,8 +18,9 @@
 
 <p align="center">
   <a href="#features">Features</a> •
-  <a href="#quickstart">Quickstart</a> •
+  <a href="#why">Why</a> •
   <a href="#tech-stack">Tech Stack</a> •
+  <a href="#roadmap">Roadmap</a> •
   <a href="#contributing">Contributing</a> •
   <a href="#license">License</a>
 </p>
