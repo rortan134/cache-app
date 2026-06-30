@@ -23,6 +23,37 @@ describe("McpLibraryItemListInputSchema", () => {
         const result = McpLibraryItemListInputSchema.safeParse({});
         expect(result.success).toBe(true);
     });
+
+    test("applies default limit and offset when omitted", () => {
+        const result = McpLibraryItemListInputSchema.safeParse({});
+        expect(result.success).toBe(true);
+        if (result.success) {
+            expect(result.data.limit).toBe(20);
+            expect(result.data.offset).toBe(0);
+        }
+    });
+
+    test("accepts explicit pagination values", () => {
+        const result = McpLibraryItemListInputSchema.safeParse({
+            limit: 10,
+            offset: 30,
+        });
+        expect(result.success).toBe(true);
+    });
+
+    test("rejects negative offset", () => {
+        const result = McpLibraryItemListInputSchema.safeParse({
+            offset: -1,
+        });
+        expect(result.success).toBe(false);
+    });
+
+    test("rejects limit exceeding max", () => {
+        const result = McpLibraryItemListInputSchema.safeParse({
+            limit: 51,
+        });
+        expect(result.success).toBe(false);
+    });
 });
 
 describe("McpAddLibraryItemInputSchema", () => {

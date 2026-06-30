@@ -43,7 +43,7 @@ Cache exposes a Model Context Protocol (MCP) server so AI agents can read and wr
 
 | Tool | Description | Parameters |
 |------|-------------|------------|
-| \`list_library_items\` | Search and browse saved bookmarks/notes | \`collectionId?\`, \`limit?\` (1-50), \`search?\` |
+| \`list_library_items\` | Search, browse, and paginate saved bookmarks/notes | \`collectionId?\`, \`limit?\` (1-50, default 20), \`offset?\` (default 0), \`search?\` |
 | \`get_library_item\` | Read a specific item by ID | \`itemId\` (required) |
 | \`add_library_item\` | Save a new bookmark or note | \`url\` (required for bookmarks), \`caption?\`, \`noteContentText?\` |
 | \`delete_library_item\` | Remove an item | \`itemId\` (required) |

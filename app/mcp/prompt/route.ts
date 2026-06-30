@@ -33,7 +33,7 @@ Authentication: Bearer ${token}
 For full product context, fetch https://cachd.app/llms.txt
 
 Available capabilities:
-- list_library_items — Search and browse my saved bookmarks and notes (optional: collectionId, limit, search)
+- list_library_items — Search, browse, and paginate my saved bookmarks and notes (optional: collectionId, limit, offset, search)
 - get_library_item — Read a specific item by ID (itemId)
 - add_library_item — Save a new bookmark (url) or note (noteContentText) to my library
 - delete_library_item — Remove an item from my library (itemId)

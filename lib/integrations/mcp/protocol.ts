@@ -21,6 +21,7 @@ const URL_MAX_LENGTH = 2048;
 const CAPTION_MAX_LENGTH = 500;
 const NOTE_TEXT_MAX_LENGTH = 100_000;
 const LIBRARY_ITEM_LIST_LIMIT_MAX = 50;
+const LIBRARY_ITEM_LIST_LIMIT_DEFAULT = 20;
 
 export const McpCollectionItemSchema = z.object({
     id: z.string(),
@@ -54,7 +55,10 @@ export const McpCollectionWithCountItemSchema = z.object({
 });
 
 export const McpLibraryItemListOutputSchema = z.object({
+    hasMore: z.boolean(),
     items: z.array(McpLibraryItemSchema),
+    nextOffset: z.number().int().nonnegative().optional(),
+    offset: z.number().int().nonnegative(),
     total: z.number().int().nonnegative(),
 });
 
@@ -73,9 +77,17 @@ export const McpLibraryItemListInputSchema = z.object({
         .int()
         .min(1)
         .max(LIBRARY_ITEM_LIST_LIMIT_MAX)
-        .optional()
+        .default(LIBRARY_ITEM_LIST_LIMIT_DEFAULT)
         .describe(
-            `Maximum number of items to return. Defaults to the underlying service page size. Capped at ${LIBRARY_ITEM_LIST_LIMIT_MAX}.`
+            `Maximum number of items to return. Defaults to ${LIBRARY_ITEM_LIST_LIMIT_DEFAULT}. Capped at ${LIBRARY_ITEM_LIST_LIMIT_MAX}.`
+        ),
+    offset: z
+        .number()
+        .int()
+        .min(0)
+        .default(0)
+        .describe(
+            "Number of items to skip for pagination. Use alongside `limit` to page through results."
         ),
     search: z
         .string()
@@ -105,8 +117,7 @@ const McpItemIdInputSchema = z.object({
 export const McpGetLibraryItemInputSchema = McpItemIdInputSchema;
 export const McpDeleteLibraryItemInputSchema = McpItemIdInputSchema;
 
-// `add_library_item` enforces two semantic rules that can only be enforced
-// at the protocol boundary:
+// `add_library_item` enforces two semantic rules:
 //
 //   1. `noteContentText` and `url` are mutually exclusive: callers must
 //      choose one. The service-layer rejection also exists as a backstop
@@ -115,8 +126,11 @@ export const McpDeleteLibraryItemInputSchema = McpItemIdInputSchema;
 //   2. `url` must be http(s); `parseStandaloneUrl` (lib/common/url) also
 //      rejects non-http schemes, so the validator must match.
 //
-// The XOR is encoded with `superRefine` because zod's per-field checks
-// don't see the other optional fields' presence.
+// The XOR is encoded with `superRefine` for direct schema consumers, but
+// the MCP SDK's `normalizeObjectSchema` converts field schemas individually
+// via `.shape`, which cannot express cross-field refinements in JSON Schema.
+// The route handler performs its own XOR check before calling the service,
+// so the protocol-level gap has no operational impact.
 export const McpAddLibraryItemInputSchema = z
     .object({
         caption: z

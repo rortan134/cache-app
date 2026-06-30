@@ -1,12 +1,4 @@
-import { createMcpHandler, withMcpAuth } from "mcp-handler";
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import type { RequestHandlerExtra } from "@modelcontextprotocol/sdk/shared/protocol.js";
-import type {
-    CallToolResult,
-    ServerNotification,
-    ServerRequest,
-} from "@modelcontextprotocol/sdk/types.js";
-import { z } from "zod/v4";
+import { LibraryCollectionError } from "@/lib/collections/error";
 import {
     getLibraryItem,
     listCollections,
@@ -14,11 +6,6 @@ import {
 } from "@/lib/collections/service";
 import { createLogger } from "@/lib/common/logs/console/logger";
 import { verifyMcpAuthToken } from "@/lib/integrations/mcp/auth";
-import {
-    addLibraryItem,
-    deleteLibraryItemMcp,
-    toMcpLibraryItem,
-} from "@/lib/integrations/mcp/service";
 import {
     McpAddLibraryItemInputSchema,
     McpCollectionListOutputSchema,
@@ -29,30 +16,32 @@ import {
     McpLibraryItemListOutputSchema,
     McpLibraryItemSchema,
 } from "@/lib/integrations/mcp/protocol";
+import {
+    addLibraryItem,
+    deleteLibraryItemMcp,
+    toMcpLibraryItem,
+} from "@/lib/integrations/mcp/service";
+import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { RequestHandlerExtra } from "@modelcontextprotocol/sdk/shared/protocol.js";
+import type {
+    CallToolResult,
+    ServerNotification,
+    ServerRequest,
+} from "@modelcontextprotocol/sdk/types.js";
+import { createMcpHandler, withMcpAuth } from "mcp-handler";
+import { z } from "zod/v4";
 
 const log = createLogger("mcp.route");
 
 const MCP_REQUIRED_SCOPES = ["library:read", "library:write"] as const;
 
-// Tool registration in `@modelcontextprotocol/sdk@1.29` types its
-// `inputSchema`/`outputSchema` as `ZodRawShapeCompat = Record<string, AnySchema>`,
-// where `AnySchema = z3.ZodTypeAny | z4.$ZodType`. Under TypeScript 6 with
-// zod v4.4, bare zod v4 schemas do not structurally satisfy that union. The
-// SDK re-validates any schema at runtime via `normalizeObjectSchema`, so we
-// cast each schema field at the boundary. `mcpShape` erases the schema's
-// structural type to `Record<string, never>` — `never` is assignable to every
-// other type, so the constraint is satisfied without an `any` cast (and thus
-// without polluting the linter).
-
+// Upstream PR modelcontextprotocol/typescript-sdk#1990 fixes the AnySchema
+// type-identity leak; once it ships in a release, drop this comment.
 // `CallToolResult.structuredContent` is typed as `{[x: string]: unknown}` by
 // the SDK. Our richer `McpLibraryItem` interface narrows the shape too far to
 // structurally fit; the runtime payload conforms, so we cast at the boundary.
 function asStructured<T extends object>(value: T): Record<string, unknown> {
     return value as unknown as Record<string, unknown>;
-}
-
-function mcpShape(shape: object): Record<string, never> {
-    return shape as unknown as Record<string, never>;
 }
 
 // ---------------------------------------------------------------------------
@@ -119,15 +108,22 @@ async function handleListLibraryItems(
     }
 
     try {
-        const items = await listLibraryItems({
+        const { items, total } = await listLibraryItems({
             collectionId: args.collectionId,
             limit: args.limit,
+            offset: args.offset,
             search: args.search,
             userId,
         });
+        const mcpItems = items.map(toMcpLibraryItem);
+        const nextOffset = args.offset + args.limit;
+        const hasMore = total > nextOffset;
         const payload = {
-            items: items.map(toMcpLibraryItem),
-            total: items.length,
+            hasMore,
+            items: mcpItems,
+            nextOffset: hasMore ? nextOffset : undefined,
+            offset: args.offset,
+            total,
         };
         return {
             content: [{ text: JSON.stringify(payload), type: "text" }],
@@ -184,6 +180,14 @@ async function handleAddLibraryItem(
         return unauthorizedResult();
     }
 
+    const hasNote = typeof args.noteContentText === "string";
+    const hasUrl = typeof args.url === "string";
+    if (hasNote === hasUrl) {
+        return textErrorResult(
+            "Provide exactly one of `url` (for a bookmark) or `noteContentText` (for a note), not both or neither."
+        );
+    }
+
     try {
         const item = await addLibraryItem({
             caption: args.caption,
@@ -225,6 +229,12 @@ async function handleDeleteLibraryItem(
             structuredContent: asStructured(payload),
         };
     } catch (error) {
+        if (
+            error instanceof LibraryCollectionError &&
+            error.data.code === "not_found"
+        ) {
+            return textErrorResult("Library item not found.");
+        }
         return handleToolError(
             "delete_library_item",
             "Could not delete the library item.",
@@ -301,9 +311,9 @@ const baseHandler = createMcpHandler(
             {
                 annotations: LibAnn.ReadOnly,
                 description:
-                    "List library items for the authenticated user. Supports optional `search` (substring match across captions, URLs, and note text) and optional `collectionId` filter. Read-only; idempotent.",
-                inputSchema: mcpShape(McpLibraryItemListInputSchema.shape),
-                outputSchema: mcpShape(McpLibraryItemListOutputSchema.shape),
+                    "List library items for the authenticated user. Supports optional `search` (substring match across captions, URLs, and note text), optional `collectionId` filter, and paginated results via `limit`/`offset`. Returns `hasMore` and `nextOffset` for pagination. Read-only; idempotent.",
+                inputSchema: McpLibraryItemListInputSchema.shape,
+                outputSchema: McpLibraryItemListOutputSchema.shape,
                 title: "List Library Items",
             },
             handleListLibraryItems
@@ -315,12 +325,11 @@ const baseHandler = createMcpHandler(
                 annotations: LibAnn.ReadOnly,
                 description:
                     "Fetch a single library item by ID. Read-only; returns not-found text when the ID does not exist for the user.",
-                inputSchema: mcpShape(McpGetLibraryItemInputSchema.shape),
-                outputSchema: mcpShape(McpLibraryItemSchema.shape),
+                inputSchema: McpGetLibraryItemInputSchema.shape,
+                outputSchema: McpLibraryItemSchema.shape,
                 title: "Get Library Item",
             },
-            // biome-ignore lint/suspicious/noExplicitAny: SDK type variance — required-arg handlers
-            handleGetLibraryItem as any
+            handleGetLibraryItem
         );
 
         server.registerTool(
@@ -329,8 +338,8 @@ const baseHandler = createMcpHandler(
                 annotations: LibAnn.Mutating,
                 description:
                     "Save a new item to the user's library. Provide `url` to save a bookmark (dedupes by URL so re-saving is safe) or `noteContentText` to save a note. `caption` is optional for bookmarks. Never pass both `url` and `noteContentText` — the call will error.",
-                inputSchema: mcpShape(McpAddLibraryItemInputSchema.shape),
-                outputSchema: mcpShape(McpLibraryItemSchema.shape),
+                inputSchema: McpAddLibraryItemInputSchema.shape,
+                outputSchema: McpLibraryItemSchema.shape,
                 title: "Add Library Item",
             },
             handleAddLibraryItem
@@ -342,12 +351,11 @@ const baseHandler = createMcpHandler(
                 annotations: LibAnn.Destructive,
                 description:
                     "Delete a library item by ID. Destructive; not idempotent (a second call fails).",
-                inputSchema: mcpShape(McpDeleteLibraryItemInputSchema.shape),
-                outputSchema: mcpShape(McpDeleteLibraryItemOutputSchema.shape),
+                inputSchema: McpDeleteLibraryItemInputSchema.shape,
+                outputSchema: McpDeleteLibraryItemOutputSchema.shape,
                 title: "Delete Library Item",
             },
-            // biome-ignore lint/suspicious/noExplicitAny: SDK type variance — required-arg handlers
-            handleDeleteLibraryItem as any
+            handleDeleteLibraryItem
         );
 
         server.registerTool(
@@ -356,8 +364,8 @@ const baseHandler = createMcpHandler(
                 annotations: LibAnn.ReadOnly,
                 description:
                     "List the authenticated user's collections with item counts. Read-only; idempotent.",
-                inputSchema: mcpShape(EMPTY_INPUT_SCHEMA.shape),
-                outputSchema: mcpShape(McpCollectionListOutputSchema.shape),
+                inputSchema: EMPTY_INPUT_SCHEMA.shape,
+                outputSchema: McpCollectionListOutputSchema.shape,
                 title: "List Collections",
             },
             handleListCollections

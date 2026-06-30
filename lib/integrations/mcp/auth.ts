@@ -56,11 +56,12 @@ function decodePayload(payload: string): TokenPayload | null {
  * Generates a stateless HMAC token for MCP authentication.
  *
  * The token encodes `userId`, `issuedAt`, and `expiresAt` (default TTL: 90 days)
- * and signs the joined string with `BETTER_AUTH_SECRET`. Tokens are
- * self-validating: `verifyMcpToken` only needs the secret + the token bytes,
- * so there is no server-side state to revoke on rotation. To invalidate a
- * compromised token today, rotate `BETTER_AUTH_SECRET`; keep the same secret
- * across deploys until you want everyone to re-issue.
+ * and signs the joined
+ * string with `BETTER_AUTH_SECRET`. Tokens are self-validating:
+ * `verifyMcpToken` only needs the secret + the token bytes, so there is no
+ * server-side state to revoke on rotation. To invalidate a compromised token
+ * today, rotate `BETTER_AUTH_SECRET`; keep the same secret across deploys
+ * until you want everyone to re-issue.
  */
 export async function generateMcpToken(userId: string): Promise<string> {
     const issuedAt = Date.now();

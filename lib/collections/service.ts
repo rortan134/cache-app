@@ -896,14 +896,16 @@ export function updateLibraryItemsCollections({
 interface ListLibraryItemsArgs {
     collectionId?: string;
     limit?: number;
+    offset?: number;
     search?: string;
     userId: string;
 }
 
 export async function listLibraryItems(
     args: ListLibraryItemsArgs
-): Promise<LibraryItemWithCollections[]> {
+): Promise<{ items: LibraryItemWithCollections[]; total: number }> {
     const limit = Math.min(args.limit ?? 20, 50);
+    const skip = Math.max(args.offset ?? 0, 0);
     const where: Prisma.LibraryItemWhereInput = {
         kind: { not: ITEM_KIND_FOLDER },
         userId: args.userId,
@@ -921,14 +923,21 @@ export async function listLibraryItems(
         where.collections = { some: { id: args.collectionId } };
     }
 
-    const items = await prisma.libraryItem.findMany({
-        include: LIBRARY_ITEM_COLLECTIONS_INCLUDE,
-        orderBy: [{ scrapedAt: SORT_DESC }, { updatedAt: SORT_DESC }],
-        take: limit,
-        where,
-    });
+    const [items, total] = await prisma.$transaction([
+        prisma.libraryItem.findMany({
+            include: LIBRARY_ITEM_COLLECTIONS_INCLUDE,
+            orderBy: [{ scrapedAt: SORT_DESC }, { updatedAt: SORT_DESC }],
+            skip,
+            take: limit,
+            where,
+        }),
+        prisma.libraryItem.count({ where }),
+    ]);
 
-    return items.map(toLibraryItemWithCollections);
+    return {
+        items: items.map(toLibraryItemWithCollections),
+        total,
+    };
 }
 
 interface GetLibraryItemArgs {
