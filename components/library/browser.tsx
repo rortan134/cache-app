@@ -2320,6 +2320,7 @@ function BrowserMasonry({ children }: BrowserMansonryProps) {
     const { collapsed, items } = useBrowserGroupContext();
     const { columnCount } = useBrowserResultsContext();
     const { state: sidebarState } = useSidebar();
+    // ! this works, sometimes, to recalculate column count on sidebar toggle
     const sidebarStateDeferred = React.useDeferredValue(sidebarState);
 
     if (collapsed || items.length === 0) {
@@ -2334,7 +2335,7 @@ function BrowserMasonry({ children }: BrowserMansonryProps) {
                 itemKey={(data) => data.id}
                 itemStyle={{ contain: "layout style" }}
                 items={items}
-                key={sidebarStateDeferred}
+                key={`${sidebarStateDeferred}-${items.length}`}
                 maxColumnCount={9}
                 render={BrowserMasonryCell}
                 rowGutter={16}

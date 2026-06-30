@@ -21,6 +21,8 @@ const nextConfig: NextConfig = {
             "streamdown",
             "zod",
         ],
+        // use the Rust version, instead of the OG Babel one
+        turbopackRustReactCompiler: true,
     },
     async headers() {
         return [
