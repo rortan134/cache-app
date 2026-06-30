@@ -474,16 +474,20 @@ function IntegrationsListTrigger({
                     <CmdKbd />I
                 </Kbd>
             </PreviewCardTrigger>
-            <PreviewCardPopup align="start" positionMethod="fixed" side="right">
+            <PreviewCardPopup
+                align="start"
+                className="flex flex-col p-0"
+                positionMethod="fixed"
+                side="right"
+            >
                 <Image
                     alt=""
                     aria-hidden
-                    className="-mx-(--viewport-inline-padding) -mt-4 h-auto w-(--positioner-width) min-w-0 max-w-(--positioner-width) rounded-t-lg border-b"
                     priority
                     sizes="400px"
                     src={IntegrationsPreviewImage}
                 />
-                <div className="mt-4 flex max-w-64 flex-col gap-2">
+                <div className="m-3 flex max-w-64 flex-col gap-2">
                     <h2 className="font-medium text-sm">Places to return to</h2>
                     <p className="text-foreground text-xs">
                         Get more out of your bookmarks with Cache’s first-class
@@ -653,25 +657,19 @@ function IntegrationsListItemPreviewTrigger({
                 render={render}
             />
             <PreviewCardPopup
-                className="p-0"
+                className="flex flex-col p-0"
                 positionMethod="fixed"
                 side="right"
             >
                 {integration.hintImage ? (
-                    <div className="relative aspect-3/2 overflow-hidden">
-                        <Image
-                            alt=""
-                            className="object-cover"
-                            fill
-                            src={integration.hintImage}
-                        />
-                    </div>
+                    <Image
+                        alt=""
+                        className="aspect-3/2 h-auto w-full object-cover"
+                        fill
+                        src={integration.hintImage}
+                    />
                 ) : null}
-                <div className="p-3">
-                    <p className="text-pretty text-xs leading-tight">
-                        {integration.hint}
-                    </p>
-                </div>
+                <p className="p-3 text-xs leading-tight">{integration.hint}</p>
             </PreviewCardPopup>
         </PreviewCard>
     );

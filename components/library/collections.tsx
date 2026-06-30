@@ -2501,7 +2501,7 @@ function CollectionItemTrigger({
                 }
             />
             <PreviewCardPopup
-                className="p-0"
+                className="flex flex-col p-0"
                 positionMethod="fixed"
                 side="right"
             >
@@ -2534,22 +2534,19 @@ function CollectionItemPreviewPopupContent({
 
     return (
         <>
-            <div className="aspect-3/2 h-auto w-full">
-                <CollectionsListItemPreviewImage
-                    alt={`${collection.name} preview`}
-                    src={activeThumbnail}
-                />
-            </div>
+            <CollectionsListItemPreviewImage
+                alt={`${collection.name} preview`}
+                className="aspect-3/2 h-auto w-full"
+                src={activeThumbnail}
+            />
             <Button
-                className="my-1 justify-between"
+                className="m-1 mt-1.5 justify-between"
                 onClick={selectAndClose}
-                size="sm"
+                size="xs"
                 variant="ghost"
             >
-                <span>
-                    Created {dayjs(collection.createdAt).format("MMM DD, YYYY")}
-                </span>
-                <span>Updated {dayjs(collection.updatedAt).fromNow()}</span>
+                Created {dayjs(collection.createdAt).format("MMM DD, YYYY")},
+                Updated {dayjs(collection.updatedAt).fromNow()}
             </Button>
         </>
     );
