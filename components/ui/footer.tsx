@@ -56,7 +56,7 @@ export function Footer() {
                                 </a>
                             </div>
                             <p className="opacity-50">
-                                &copy; Cache. All rights reserved.
+                                &copy; Cache App. All rights reserved.
                             </p>
                             <GDPRIcon className="opacity-50" />
                         </div>

@@ -202,6 +202,7 @@ import { T } from "gt-next";
 import {
     ArrowDownWideNarrow,
     ArrowUpRight,
+    Astroid,
     Check,
     ChevronDown,
     ChevronRight,
@@ -2210,12 +2211,19 @@ function BrowserGroupOverview({
                 className
             )}
         >
-            <GradientWaveText
-                ariaLabel="Overview"
-                className="font-medium text-muted-foreground text-xs opacity-80"
-            >
-                Overview
-            </GradientWaveText>
+            <div className="flex items-center gap-2">
+                <Astroid
+                    aria-hidden
+                    className="size-4 text-muted-foreground opacity-80"
+                    focusable="false"
+                />
+                <GradientWaveText
+                    ariaLabel="Overview"
+                    className="font-medium text-muted-foreground text-xs opacity-80"
+                >
+                    Overview
+                </GradientWaveText>
+            </div>
             {children}
         </div>
     );
