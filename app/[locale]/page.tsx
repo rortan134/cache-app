@@ -184,7 +184,7 @@ export default async function Home() {
                         <p className="mx-auto text-center text-sm">
                             <T>
                                 A smarter way to handle everything you save
-                                online. Starting from $8/month.
+                                online. From just $8/month.
                             </T>
                         </p>
                         <Button
@@ -318,10 +318,10 @@ export default async function Home() {
                                     Stop leaving it for "later"
                                 </h2>
                                 <p className="text-pretty font-medium text-base text-foreground leading-[1.2] tracking-[-3%] opacity-50">
-                                    We save things with the best intentions,
+                                    We all save things with good intentions,
                                     only to let them fade into a forgotten list.
                                     Cache brings your best saved content back to
-                                    you, so you actually use it.
+                                    you when it's most useful.
                                 </p>
                             </T>
                             <ul className="mt-2 flex flex-col space-y-2 text-xs">
@@ -337,8 +337,7 @@ export default async function Home() {
                                         <Bookmark className="inline-block size-4 shrink-0" />
                                         <span>
                                             Keep important links top of mind
-                                            instead of buried in a backlog of
-                                            forgotten bookmarks
+                                            instead of buried in a backlog
                                         </span>
                                     </li>
                                 </T>
@@ -373,7 +372,7 @@ export default async function Home() {
                                         <Terminal className="inline-block size-4 shrink-0" />
                                         <span>
                                             Use command menu and shortcuts for
-                                            efficient workflows.
+                                            efficient workflows
                                         </span>
                                     </li>
                                     <li className="flex items-center gap-2">
@@ -405,8 +404,9 @@ export default async function Home() {
                                 </h2>
                                 <p className="text-pretty font-medium text-base text-foreground leading-[1.2] tracking-[-3%] opacity-50">
                                     Build a knowledge base with the content
-                                    you've already deemed important. Import once
-                                    and go from messy to organized in minutes.
+                                    you've already deemed important. Import
+                                    scattered saves once and go from messy to
+                                    organized in minutes.
                                 </p>
                             </T>
                             <ul className="mt-2 flex flex-col space-y-2 text-xs">

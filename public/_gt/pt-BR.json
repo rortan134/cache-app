@@ -23,22 +23,22 @@
     "i": 1,
     "t": "p"
   },
-  "090dd58a9e726297": "Leitores curiosos",
-  "0d5988f4c0fbf2ad": "Conta Cache",
-  "11503a3d12f43fdd": "Documentos oficiais que regem sua relação com a gente e explicam como lidamos com os dados. Escolha um tema abaixo para ler o texto completo.",
-  "11d641c2c7d32f5c": "Não foi possível abrir o faturamento agora.",
-  "14fafab11c21ddaa": [
+  "075adcaff4be7543": [
     {
-      "c": "Pare de deixar para \"depois\"",
+      "c": "Traga tudo o que você já salvou",
       "i": 1,
       "t": "h2"
     },
     {
-      "c": "Salvamos coisas com as melhores intenções, mas elas acabam se perdendo numa lista esquecida. O Cache traz de volta o melhor do que você salvou, para que você realmente aproveite isso.",
+      "c": "Reúna automaticamente os favoritos do seu navegador, redes sociais e vídeos. Chega de rolar sem parar e alternar entre várias plataformas para encontrar o que mais importa para você.",
       "i": 2,
       "t": "p"
     }
   ],
+  "090dd58a9e726297": "Leitores curiosos",
+  "0d5988f4c0fbf2ad": "Conta Cache",
+  "11503a3d12f43fdd": "Documentos oficiais que regem sua relação com a gente e explicam como lidamos com os dados. Escolha um tema abaixo para ler o texto completo.",
+  "11d641c2c7d32f5c": "Não foi possível abrir o faturamento agora.",
   "15833184c459d240": {
     "c": "Termos de Serviço",
     "i": 1,
@@ -47,6 +47,18 @@
   "1ad7b60584ddc5de": "Você precisará entrar novamente para acessar sua Biblioteca.",
   "1d1c7a1398fc122d": "mensal",
   "1d829f40405b2c18": "Biblioteca",
+  "1dd80c4ec03a228f": [
+    {
+      "c": "Pare de deixar para \"depois\"",
+      "i": 1,
+      "t": "h2"
+    },
+    {
+      "c": "Todos nós salvamos coisas com a melhor das intenções, mas acabamos deixando tudo se perder numa lista esquecida. O Cache traz de volta o melhor do que você salvou quando isso é mais útil.",
+      "i": 2,
+      "t": "p"
+    }
+  ],
   "1df7f7e3e7bcec8f": {
     "c": [
       "Continue explorando a biblioteca inteira, desbloqueie a navegação completa e os recursos Pro a partir de ",
@@ -69,6 +81,38 @@
   "2d905536ddbff96d": "Sair",
   "2e477bab4317c062": "Não foi possível adicionar outra conta.",
   "2e9224bc11574ab5": "Exportar para Markdown",
+  "33d5ec3254f4789d": [
+    {
+      "c": [
+        {
+          "i": 2,
+          "t": "Workflow"
+        },
+        {
+          "c": "Crie rotinas simples que mostram um resumo diário do que você salvou recentemente",
+          "i": 3,
+          "t": "span"
+        }
+      ],
+      "i": 1,
+      "t": "li"
+    },
+    {
+      "c": [
+        {
+          "i": 5,
+          "t": "Bookmark"
+        },
+        {
+          "c": "Mantenha links importantes no radar em vez de deixá-los enterrados no acúmulo de itens",
+          "i": 6,
+          "t": "span"
+        }
+      ],
+      "i": 4,
+      "t": "li"
+    }
+  ],
   "389691a1b58a941e": {
     "c": [
       {
@@ -89,6 +133,18 @@
   "3b205a1c17c06fbd": "Favoritos",
   "3c61319be1bc2db7": "*As plataformas de terceiros às quais você se conecta por meio do Serviço operam de forma independente do Cache. O Cache não controla as políticas dessas plataformas nem a forma como elas são aplicadas, e não se responsabiliza pelas decisões que essas plataformas tomam em relação às suas contas ou ao seu acesso aos serviços delas — incluindo, sem limitação, alterações na disponibilidade — estejam ou não relacionadas ao seu uso do Cache. Cabe a você cumprir os termos, políticas e diretrizes da comunidade de cada plataforma. O Cache não se responsabiliza por qualquer inconveniente, perda ou outro resultado decorrente da sua relação com essas plataformas ou do seu uso do Serviço em conexão com elas. Mais detalhes podem ser encontrados",
   "408574e37e8d91ee": "em breve",
+  "40d161f02a845459": [
+    {
+      "c": "Identifique o que perdeu valor, mantenha o que é útil",
+      "i": 1,
+      "t": "h2"
+    },
+    {
+      "c": "Monte uma base de conhecimento com o conteúdo que você já considerou importante. Importe seus itens salvos espalhados uma vez e vá da bagunça à organização em minutos.",
+      "i": 2,
+      "t": "p"
+    }
+  ],
   "43c4658708e52e85": "Excluir conta",
   "446fc0e1621b7ae8": "Suporte",
   "4593e3bd9f747b95": "Obter Pro mensal",
@@ -216,27 +272,7 @@
       "t": "li"
     }
   ],
-  "7b4f31f7267a32c7": "Use o Cache como o passo que faltava entre salvar favoritos e fazer anotações — feito para pensar. Estruturado, pesquisável, confiável.",
-  "7d288c9b77b0a60e": "Jurídico e políticas",
-  "8117fa5c3cdb78c5": "Uma maneira mais inteligente de organizar tudo o que você salva online. A partir de US$ 8/mês.",
-  "841cad15ee2276fc": "Recursos",
-  "86489a55ce454582": "O Cache é para…",
-  "87254fc32f854b77": "Não foi possível trocar de conta.",
-  "87b2d18453bcefde": {
-    "c": "Documentos",
-    "i": 1,
-    "t": "p"
-  },
-  "8b045bc1a6270fb5": "Coleções",
-  "8ba04de3dfa3fb62": [
-    "Nenhuma coleção encontrada. ",
-    {
-      "c": "Crie sua primeira coleção",
-      "i": 1,
-      "t": "button"
-    }
-  ],
-  "8c6e42c48134ab7e": [
+  "78ed60593843d6e7": [
     {
       "c": [
         {
@@ -244,7 +280,7 @@
           "t": "Terminal"
         },
         {
-          "c": "Use o menu de comandos e atalhos para fluxos de trabalho mais eficientes.",
+          "c": "Use o menu de comandos e atalhos para trabalhar com mais eficiência",
           "i": 3,
           "t": "span"
         }
@@ -268,6 +304,16 @@
       "t": "li"
     }
   ],
+  "7d288c9b77b0a60e": "Jurídico e políticas",
+  "841cad15ee2276fc": "Recursos",
+  "86489a55ce454582": "O Cache é para…",
+  "87254fc32f854b77": "Não foi possível trocar de conta.",
+  "87b2d18453bcefde": {
+    "c": "Documentos",
+    "i": 1,
+    "t": "p"
+  },
+  "8b045bc1a6270fb5": "Coleções",
   "8ebdbcb486fb7060": "Assinatura",
   "8eeee33f47318d9a": "Threads, vídeos, inspiração. Organize ideias em coleções e compartilhe.",
   "91eaa44bec3ccfb9": [
@@ -291,6 +337,7 @@
     "k": "_gt_value_1",
     "v": "v"
   },
+  "93f881a7033302b7": "A etapa que faltava entre salvar favoritos e fazer anotações. Estruturado, fácil de pesquisar, sempre à mão quando você precisar.",
   "94c20ff6b75d8acb": "Como coletamos, usamos e protegemos informações pessoais.",
   "97f68bd29d3d4247": {
     "c": [
@@ -306,69 +353,21 @@
   },
   "99e4c3ba36537129": "Cancelar",
   "9e172217c3e3d8ae": "Fazer upgrade para Pro",
-  "9fb0204c42a8c2df": [
-    {
-      "c": [
-        {
-          "i": 2,
-          "t": "Workflow"
-        },
-        {
-          "c": "Configure rotinas simples que mostram um resumo diário dos novos itens salvos",
-          "i": 3,
-          "t": "span"
-        }
-      ],
-      "i": 1,
-      "t": "li"
-    },
-    {
-      "c": [
-        {
-          "i": 5,
-          "t": "Workflow"
-        },
-        {
-          "c": "Mantenha links importantes sempre em mente, em vez de deixá-los soterrados em uma pilha de favoritos esquecidos",
-          "i": 6,
-          "t": "span"
-        }
-      ],
-      "i": 4,
-      "t": "li"
-    }
-  ],
   "a06f2446c9ee9132": "Referências, citações, trechos. Um acervo de pesquisa com busca para sua matéria-prima.",
   "a3bf9c945c7318bb": "Automations",
   "a4ecc2d52fb9c50b": "Política de Privacidade",
-  "a578e8ffdd1a8e9b": [
+  "a586e0692358c532": "Faça upgrade para ter acesso completo ao Cache e a todas as integrações",
+  "a5ae11bec19a2aaa": [
+    "Nenhuma coleção encontrada.  ",
     {
-      "c": "Monte uma biblioteca com todo o conteúdo que você adora",
+      "c": "Crie sua primeira coleção",
       "i": 1,
-      "t": "h2"
-    },
-    {
-      "c": "Inspire-se e encontre aquela lição, conselho, receita ou ideia que você estava procurando no tempo de um café.",
-      "i": 2,
-      "t": "p"
+      "t": "button"
     }
   ],
-  "a586e0692358c532": "Faça upgrade para ter acesso completo ao Cache e a todas as integrações",
   "a7820e6a001d950c": "Sair?",
   "a7b00994918dc087": "Excluir conta",
   "ab4abf4e5a6f6057": "Não salvo",
-  "acc1f7b6b65cace7": [
-    {
-      "c": "Identifique o que ficou obsoleto, guarde o que ainda vale a pena",
-      "i": 1,
-      "t": "h2"
-    },
-    {
-      "c": "Crie uma base de conhecimento com o conteúdo que você já considerou importante. Importe uma vez e transforme a bagunça em organização em minutos.",
-      "i": 2,
-      "t": "p"
-    }
-  ],
   "af34d21966b17dd8": {
     "c": [
       {
@@ -432,6 +431,18 @@
   },
   "daf8daec701f0863": "Conta",
   "db72ad3b2501e7a9": "Carregando contas",
+  "dd199c66ab0644de": [
+    {
+      "c": "Organize uma Biblioteca com todo o conteúdo que você adora",
+      "i": 1,
+      "t": "h2"
+    },
+    {
+      "c": "Inspire-se e encontre aquela lição, conselho, receita ou ideia que você estava procurando no tempo de um cafezinho.",
+      "i": 2,
+      "t": "p"
+    }
+  ],
   "ddc161e16a7e8f5a": [
     {
       "i": 1,
@@ -445,20 +456,9 @@
       "v": "v"
     }
   ],
+  "de379f2eceb78115": "Uma maneira mais inteligente de lidar com tudo o que você salva online. A partir de apenas US$ 8/mês.",
   "e09a36ef3ffd9115": "Removido",
   "e1897047828fc955": "Docs, issues, código, tutoriais. Encontre aquele link na hora.",
-  "e6fee0a475a0476d": [
-    {
-      "c": "Traga tudo o que você já salvou",
-      "i": 1,
-      "t": "h2"
-    },
-    {
-      "c": "Reúna automaticamente favoritos do seu navegador, apps sociais e vídeos. Chega de rolar sem parar e alternar entre várias plataformas para encontrar o que importa para você.",
-      "i": 2,
-      "t": "p"
-    }
-  ],
   "ece5e10bd5b5769d": "Salvando...",
   "f137946f63b397fd": "Abrir em..."
 }
