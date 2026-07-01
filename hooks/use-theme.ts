@@ -13,7 +13,7 @@ interface ThemeSnapshot {
 
 const STORAGE_KEY = "t3code:theme";
 const MEDIA_QUERY = "(prefers-color-scheme: dark)";
-const DARK_MODE_ENABLED = false;
+const DARK_MODE_ENABLED = true;
 const DEFAULT_THEME_SNAPSHOT: ThemeSnapshot = {
     systemDark: false,
     theme: "system",
