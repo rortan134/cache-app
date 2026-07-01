@@ -9,6 +9,10 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/common/cn";
 import {
+    DEFAULT_TIME_OF_DAY_MINUTES,
+    formatTimeOfDayMinutes,
+} from "@/lib/common/time";
+import {
     deleteAutomation,
     pauseAutomation,
     resumeAutomation,
@@ -22,6 +26,7 @@ import {
     Pause,
     Play,
     Trash2,
+    type LucideIcon,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import * as React from "react";
@@ -32,10 +37,108 @@ type AutomationRunListItem = Awaited<
     >
 >[number];
 
-const TEMPLATE_ICON = {
+const TEMPLATE_ICON: Record<string, LucideIcon> = {
     smart_collections: FolderSearch,
     weekly_digest: CalendarClock,
-} as const;
+};
+
+const DEFAULT_WEEK_DAY = 1;
+const DEFAULT_CADENCE = "weekly" as const;
+
+function getTemplateIcon(templateKey: AutomationListItem["templateKey"]) {
+    if (templateKey) {
+        const icon = TEMPLATE_ICON[templateKey];
+        if (icon) {
+            return icon;
+        }
+    }
+    return Bot;
+}
+
+function toComposerAutomation(
+    automation: AutomationListItem
+): AutomationComposerAutomation {
+    return {
+        cadence: automation.cadence ?? DEFAULT_CADENCE,
+        collectionId: automation.collectionId ?? undefined,
+        id: automation.id,
+        monthDay: automation.monthDay ?? undefined,
+        payloadScope: automation.payloadScope,
+        prompt: automation.prompt,
+        status: automation.status,
+        timeOfDayMinutes:
+            automation.timeOfDayMinutes ?? DEFAULT_TIME_OF_DAY_MINUTES,
+        timezone:
+            automation.timezone ??
+            Intl.DateTimeFormat().resolvedOptions().timeZone,
+        title: automation.title,
+        weekDay: automation.weekDay ?? DEFAULT_WEEK_DAY,
+    };
+}
+
+function isCompleteSchedule(
+    automation: AutomationListItem
+): automation is AutomationListItem & {
+    cadence: NonNullable<AutomationListItem["cadence"]>;
+    timeOfDayMinutes: number;
+    timezone: string;
+} {
+    return !!(
+        automation.cadence &&
+        automation.timezone &&
+        automation.timeOfDayMinutes !== null
+    );
+}
+
+function formatPayload(automation: AutomationListItem): string {
+    if (automation.payloadScope === "collection") {
+        if (automation.collectionName) {
+            return `Collection: ${automation.collectionName}`;
+        }
+        return "Collection missing";
+    }
+    return "All library";
+}
+
+function formatSchedule(automation: AutomationListItem): string {
+    if (!isCompleteSchedule(automation)) {
+        return "Unscheduled";
+    }
+    const cadence = automation.cadence;
+    const time = formatTimeOfDayMinutes(automation.timeOfDayMinutes);
+    if (cadence === "weekly") {
+        return `Weekly at ${time}`;
+    }
+    if (cadence === "monthly") {
+        return `Monthly at ${time}`;
+    }
+    return `Daily at ${time}`;
+}
+
+function formatDate(value: Date): string {
+    return new Intl.DateTimeFormat(undefined, {
+        dateStyle: "medium",
+        timeStyle: "short",
+    }).format(value);
+}
+
+function getAutomationRunMessage(run: AutomationRunListItem) {
+    if (run.summaryMarkdown) {
+        return (
+            <p className="line-clamp-3 text-foreground text-sm leading-6">
+                {run.summaryMarkdown}
+            </p>
+        );
+    }
+    if (run.errorMessage) {
+        return (
+            <p className="text-destructive text-sm leading-6">
+                {run.errorMessage}
+            </p>
+        );
+    }
+    return null;
+}
 
 export function AutomationsList({
     automations,
@@ -91,11 +194,8 @@ function AutomationCard({
     const router = useRouter();
     const [isPending, startTransition] = React.useTransition();
     const latestRun = runs[0] ?? automation.lastRun;
-
-    const Icon =
-        automation.templateKey && automation.templateKey in TEMPLATE_ICON
-            ? TEMPLATE_ICON[automation.templateKey]
-            : Bot;
+    const isActive = automation.status === "active";
+    const Icon = getTemplateIcon(automation.templateKey);
 
     const handlePause = useStableCallback(() => {
         startTransition(async () => {
@@ -156,53 +256,29 @@ function AutomationCard({
                         automation={toComposerAutomation(automation)}
                         collections={collections}
                     />
-                    {automation.status === "active" ? (
-                        <Button
+                    {isActive ? (
+                        <AutomationIconButton
                             aria-label={`Pause ${automation.title}`}
                             disabled={isPending}
+                            icon={Pause}
                             onClick={handlePause}
-                            size="icon-sm"
-                            type="button"
-                            variant="ghost"
-                        >
-                            <Pause
-                                aria-hidden
-                                className="size-4"
-                                focusable="false"
-                            />
-                        </Button>
+                        />
                     ) : (
-                        <Button
+                        <AutomationIconButton
                             aria-label={`Resume ${automation.title}`}
                             disabled={
                                 isPending || !isCompleteSchedule(automation)
                             }
+                            icon={Play}
                             onClick={handleResume}
-                            size="icon-sm"
-                            type="button"
-                            variant="ghost"
-                        >
-                            <Play
-                                aria-hidden
-                                className="size-4"
-                                focusable="false"
-                            />
-                        </Button>
+                        />
                     )}
-                    <Button
+                    <AutomationIconButton
                         aria-label={`Delete ${automation.title}`}
                         disabled={isPending}
+                        icon={Trash2}
                         onClick={handleDelete}
-                        size="icon-sm"
-                        type="button"
-                        variant="ghost"
-                    >
-                        <Trash2
-                            aria-hidden
-                            className="size-4"
-                            focusable="false"
-                        />
-                    </Button>
+                    />
                 </div>
             </div>
             <div className="grid gap-2 border-border border-t pt-3">
@@ -231,6 +307,17 @@ interface AutomationCardProps {
     runs: AutomationRunListItem[];
 }
 
+function AutomationIconButton({
+    icon: Icon,
+    ...buttonProps
+}: { icon: LucideIcon } & React.ComponentProps<typeof Button>) {
+    return (
+        <Button {...buttonProps} size="icon-sm" type="button" variant="ghost">
+            <Icon aria-hidden className="size-4" focusable="false" />
+        </Button>
+    );
+}
+
 function AutomationRunRow({ run }: { run: AutomationRunListItem }) {
     const runMessage = getAutomationRunMessage(run);
 
@@ -253,100 +340,18 @@ function AutomationRunRow({ run }: { run: AutomationRunListItem }) {
 }
 
 function AutomationStatusBadge({ status }: { status: "active" | "paused" }) {
+    const isActive = status === "active";
     return (
         <Badge
             className={cn(
                 "rounded-md px-2 text-[11px]",
-                status === "active"
+                isActive
                     ? "bg-success/8 text-success-foreground"
                     : "bg-muted text-muted-foreground"
             )}
-            variant={status === "active" ? "success" : "secondary"}
+            variant={isActive ? "success" : "secondary"}
         >
-            {status === "active" ? "Active" : "Paused"}
+            {isActive ? "Active" : "Paused"}
         </Badge>
     );
-}
-
-function toComposerAutomation(
-    automation: AutomationListItem
-): AutomationComposerAutomation {
-    return {
-        cadence: automation.cadence ?? "weekly",
-        collectionId: automation.collectionId ?? undefined,
-        id: automation.id,
-        monthDay: automation.monthDay ?? undefined,
-        payloadScope: automation.payloadScope,
-        prompt: automation.prompt,
-        status: automation.status,
-        timeOfDayMinutes: automation.timeOfDayMinutes ?? 9 * 60,
-        timezone:
-            automation.timezone ??
-            Intl.DateTimeFormat().resolvedOptions().timeZone,
-        title: automation.title,
-        weekDay: automation.weekDay ?? 1,
-    };
-}
-
-function isCompleteSchedule(
-    automation: AutomationListItem
-): automation is AutomationListItem & {
-    cadence: NonNullable<AutomationListItem["cadence"]>;
-    timeOfDayMinutes: number;
-    timezone: string;
-} {
-    return !!(
-        automation.cadence &&
-        automation.timezone &&
-        automation.timeOfDayMinutes !== null
-    );
-}
-
-function formatPayload(automation: AutomationListItem): string {
-    if (automation.payloadScope === "collection") {
-        return automation.collectionName
-            ? `Collection: ${automation.collectionName}`
-            : "Collection missing";
-    }
-    return "All library";
-}
-
-function formatSchedule(automation: AutomationListItem): string {
-    if (!isCompleteSchedule(automation)) {
-        return "Unscheduled";
-    }
-    const cadence = automation.cadence;
-    const time = `${String(Math.floor(automation.timeOfDayMinutes / 60)).padStart(2, "0")}:${String(automation.timeOfDayMinutes % 60).padStart(2, "0")}`;
-    if (cadence === "weekly") {
-        return `Weekly at ${time}`;
-    }
-    if (cadence === "monthly") {
-        return `Monthly at ${time}`;
-    }
-    return `Daily at ${time}`;
-}
-
-function formatDate(value: Date): string {
-    return new Intl.DateTimeFormat(undefined, {
-        dateStyle: "medium",
-        timeStyle: "short",
-    }).format(new Date(value));
-}
-
-function getAutomationRunMessage(run: AutomationRunListItem) {
-    if (run.summaryMarkdown) {
-        return (
-            <p className="line-clamp-3 text-foreground text-sm leading-6">
-                {run.summaryMarkdown}
-            </p>
-        );
-    }
-    if (run.errorMessage) {
-        return (
-            <p className="text-destructive text-sm leading-6">
-                {run.errorMessage}
-            </p>
-        );
-    }
-    return null;
 }
