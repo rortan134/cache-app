@@ -2,6 +2,7 @@ import { authClient } from "@/lib/auth/client";
 import { CACHE_SITE_OPEN_AND_SYNC_EVENT } from "@/lib/common/constants";
 import { getErrorMessage } from "@/lib/common/error";
 import { asRecord } from "@/lib/common/objects";
+import copy from "copy-to-clipboard";
 import { openExternal } from "@/lib/common/url";
 import {
     IntegrationApiError,
@@ -187,5 +188,5 @@ export async function executeCopyPromptBehavior(
         });
     }
 
-    await navigator.clipboard.writeText(prompt);
+    await copy(prompt);
 }

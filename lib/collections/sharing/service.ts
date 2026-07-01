@@ -12,6 +12,7 @@ import {
     SORT_DESC,
 } from "@/lib/common/constants";
 import { createLogger } from "@/lib/common/logs/console/logger";
+import { withRetry } from "@/lib/common/retry";
 import { prisma } from "@/prisma";
 import { Prisma } from "@/prisma/client/client";
 import { LibraryItemKind, type LibraryItemSource } from "@/prisma/client/enums";
@@ -189,84 +190,80 @@ export async function enablePublicCollectionShare(input: {
     collectionId: string;
     userId: string;
 }): Promise<SharedLibraryCollectionTag> {
-    for (
-        let attempt = 0;
-        attempt < COLLECTION_SHARE_ID_ATTEMPT_COUNT_MAX;
-        attempt += 1
-    ) {
-        try {
-            return await prisma.$transaction(
-                async (tx) => {
-                    const existingCollection = await requireCollectionTagOwned({
-                        collectionId: input.collectionId,
-                        operation: "enablePublicCollectionShare",
-                        tx,
-                        userId: input.userId,
-                    });
+    try {
+        return await withRetry(
+            () =>
+                prisma.$transaction(
+                    async (tx) => {
+                        const existingCollection =
+                            await requireCollectionTagOwned({
+                                collectionId: input.collectionId,
+                                operation: "enablePublicCollectionShare",
+                                tx,
+                                userId: input.userId,
+                            });
 
-                    await assertCollectionShareAccess({
-                        collectionId: existingCollection.id,
-                        operation: "enablePublicCollectionShare",
-                        tx,
-                        userId: input.userId,
-                    });
+                        await assertCollectionShareAccess({
+                            collectionId: existingCollection.id,
+                            operation: "enablePublicCollectionShare",
+                            tx,
+                            userId: input.userId,
+                        });
 
-                    if (
-                        existingCollection.shareId &&
-                        existingCollection.sharedAt
-                    ) {
+                        if (
+                            existingCollection.shareId &&
+                            existingCollection.sharedAt
+                        ) {
+                            return requireCollectionTagShared(
+                                toLibraryCollectionTag(existingCollection),
+                                "enablePublicCollectionShare"
+                            );
+                        }
+
+                        const shareId = await createId({
+                            approximateLength:
+                                COLLECTION_SHARE_ID_APPROXIMATE_LENGTH,
+                        });
+
+                        const sharedCollection = await tx.collection.update({
+                            data: {
+                                sharedAt: new Date(),
+                                shareId,
+                            },
+                            select: LIBRARY_COLLECTION_TAG_SELECT,
+                            where: {
+                                id: existingCollection.id,
+                            },
+                        });
+
+                        log.info("Enabled public collection share", {
+                            collectionId: sharedCollection.id,
+                            shareId: sharedCollection.shareId,
+                            userId: input.userId,
+                        });
+
                         return requireCollectionTagShared(
-                            toLibraryCollectionTag(existingCollection),
+                            toLibraryCollectionTag(sharedCollection),
                             "enablePublicCollectionShare"
                         );
+                    },
+                    {
+                        isolationLevel:
+                            Prisma.TransactionIsolationLevel.RepeatableRead,
                     }
-
-                    const shareId = await createId({
-                        approximateLength:
-                            COLLECTION_SHARE_ID_APPROXIMATE_LENGTH,
-                    });
-
-                    const sharedCollection = await tx.collection.update({
-                        data: {
-                            sharedAt: new Date(),
-                            shareId,
-                        },
-                        select: LIBRARY_COLLECTION_TAG_SELECT,
-                        where: {
-                            id: existingCollection.id,
-                        },
-                    });
-
-                    log.info("Enabled public collection share", {
-                        collectionId: sharedCollection.id,
-                        shareId: sharedCollection.shareId,
-                        userId: input.userId,
-                    });
-
-                    return requireCollectionTagShared(
-                        toLibraryCollectionTag(sharedCollection),
-                        "enablePublicCollectionShare"
-                    );
-                },
-                {
-                    isolationLevel:
-                        Prisma.TransactionIsolationLevel.RepeatableRead,
-                }
-            );
-        } catch (error) {
-            if (isPrismaUniqueConstraintError(error)) {
-                continue;
+                ),
+            {
+                attempts: COLLECTION_SHARE_ID_ATTEMPT_COUNT_MAX,
+                shouldRetry: isPrismaUniqueConstraintError,
             }
-
-            throw error;
-        }
+        );
+    } catch {
+        throw new CollectionShareError({
+            code: "share_generation_failed",
+            message: "We couldn't create a public link right now.",
+            operation: "enablePublicCollectionShare",
+        });
     }
-
-    throw new CollectionShareError({
-        code: "share_generation_failed",
-        message: "We couldn't create a public link right now.",
-        operation: "enablePublicCollectionShare",
-    });
 }
 
 export async function disablePublicCollectionShare(input: {
