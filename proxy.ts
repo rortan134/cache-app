@@ -25,5 +25,7 @@ export const config = {
     // Matches every app path. `/mcp` is handled above before the gt middleware
     // runs, so we don't need a per-path exclusion here. Still skip the heavy
     // paths (assets, api, _next) so the proxy doesn't slow them down.
-    matcher: ["/((?!api/|static/|_next/|_vercel/|[^/]+\\.[^/]+$).*)"],
+    matcher: [
+        "/((?!api/|static/|_next/|_vercel/|.well-known/workflow/|[^/]+\\.[^/]+$).*)",
+    ],
 };
