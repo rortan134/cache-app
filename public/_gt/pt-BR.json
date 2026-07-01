@@ -131,7 +131,6 @@
     "t": "p"
   },
   "3b205a1c17c06fbd": "Favoritos",
-  "3c61319be1bc2db7": "*As plataformas de terceiros às quais você se conecta por meio do Serviço operam de forma independente do Cache. O Cache não controla as políticas dessas plataformas nem a forma como elas são aplicadas, e não se responsabiliza pelas decisões que essas plataformas tomam em relação às suas contas ou ao seu acesso aos serviços delas — incluindo, sem limitação, alterações na disponibilidade — estejam ou não relacionadas ao seu uso do Cache. Cabe a você cumprir os termos, políticas e diretrizes da comunidade de cada plataforma. O Cache não se responsabiliza por qualquer inconveniente, perda ou outro resultado decorrente da sua relação com essas plataformas ou do seu uso do Serviço em conexão com elas. Mais detalhes podem ser encontrados",
   "408574e37e8d91ee": "em breve",
   "40d161f02a845459": [
     {
@@ -163,6 +162,75 @@
   "59470116de88a745": "Artigos, ensaios, newsletters. Uma biblioteca viva em vez de um cemitério de ler‑mais‑tarde.",
   "5a0a4ee1bf2a58dc": "Não foi possível carregar as contas salvas.",
   "5f7836df60f0e71e": "Estas páginas podem ser atualizadas periodicamente. A versão disponível neste site é a que está em vigor no momento da sua visita.",
+  "5fd9dbdb19f74c4f": [
+    {
+      "c": [
+        {
+          "i": 2,
+          "t": "Component"
+        },
+        {
+          "c": [
+            {
+              "c": "Coleções inteligentes",
+              "i": 4,
+              "t": "span"
+            },
+            " ajudam você a separar o que exige ação da inspiração"
+          ],
+          "i": 3,
+          "t": "span"
+        }
+      ],
+      "i": 1,
+      "t": "li"
+    },
+    {
+      "c": [
+        {
+          "i": 6,
+          "t": "CloudDownload"
+        },
+        {
+          "c": "Compartilhe ou exporte suas coleções do Cache quando quiser",
+          "i": 7,
+          "t": "span"
+        }
+      ],
+      "i": 5,
+      "t": "li"
+    },
+    {
+      "c": [
+        {
+          "i": 9,
+          "t": "Unlink"
+        },
+        {
+          "c": "Remover duplicatas e links quebrados",
+          "i": 10,
+          "t": "span"
+        }
+      ],
+      "i": 8,
+      "t": "li"
+    },
+    {
+      "c": [
+        {
+          "i": 12,
+          "t": "Sparkles"
+        },
+        {
+          "c": "Tenha insights com tecnologia de AI sobre seu conteúdo",
+          "i": 13,
+          "t": "span"
+        }
+      ],
+      "i": 11,
+      "t": "li"
+    }
+  ],
   "600433e7972a7e75": "Faturamento",
   "606daf45fd88b674": "Escritores e pensadores",
   "634fd36cce8909a0": "Instale a extensão",
@@ -203,75 +271,6 @@
   "7472afb4558f12e9": "Visitado pela última vez",
   "75d4d73501e837d5": "Obter Pro",
   "7721d8d00edabeda": "Saindo…",
-  "77d5c5ea3c0c9f0d": [
-    {
-      "c": [
-        {
-          "i": 2,
-          "t": "Component"
-        },
-        {
-          "c": [
-            {
-              "c": "Coleções inteligentes",
-              "i": 4,
-              "t": "span"
-            },
-            " ajudam você a separar o que pede ação do que serve de inspiração"
-          ],
-          "i": 3,
-          "t": "span"
-        }
-      ],
-      "i": 1,
-      "t": "li"
-    },
-    {
-      "c": [
-        {
-          "i": 6,
-          "t": "CloudDownload"
-        },
-        {
-          "c": "Compartilhe ou exporte coleções do Cache quando quiser",
-          "i": 7,
-          "t": "span"
-        }
-      ],
-      "i": 5,
-      "t": "li"
-    },
-    {
-      "c": [
-        {
-          "i": 9,
-          "t": "Unlink"
-        },
-        {
-          "c": "Remover duplicatas e links quebrados",
-          "i": 10,
-          "t": "span"
-        }
-      ],
-      "i": 8,
-      "t": "li"
-    },
-    {
-      "c": [
-        {
-          "i": 12,
-          "t": "Sparkles"
-        },
-        {
-          "c": "Tenha insights com tecnologia de AI sobre seu conteúdo",
-          "i": 13,
-          "t": "span"
-        }
-      ],
-      "i": 11,
-      "t": "li"
-    }
-  ],
   "78ed60593843d6e7": [
     {
       "c": [
@@ -384,6 +383,7 @@
   "b04df1727faed146": "Suas contas",
   "b33e2234ec4ab823": "Plano gratuito",
   "b5d5276005980a36": "Criadores e desenvolvedores",
+  "b80f68728546aeb4": "Agende tarefas que organizam sua biblioteca, pesquisam temas, fazem resumos e muito mais — tudo no piloto automático",
   "c1172428bea235ca": "Regras que regem o uso do serviço, o gerenciamento da sua conta e o uso aceitável.",
   "c26fd6852bfece9e": "Continuar com Google",
   "c4244c4a6f71e511": "Abrir em uma nova guia",
@@ -460,5 +460,6 @@
   "e09a36ef3ffd9115": "Removido",
   "e1897047828fc955": "Docs, issues, código, tutoriais. Encontre aquele link na hora.",
   "ece5e10bd5b5769d": "Salvando...",
-  "f137946f63b397fd": "Abrir em..."
+  "f137946f63b397fd": "Abrir em...",
+  "fe9fbbc696a13ffb": "As plataformas de terceiros que você conecta por meio do Serviço operam de forma independente da Cache. A Cache não controla as políticas dessas plataformas nem a forma como elas as aplicam, e não se responsabiliza por decisões que elas tomem em relação às suas contas ou ao seu acesso aos serviços delas — incluindo, sem limitação, mudanças na disponibilidade — estejam ou não relacionadas ao seu uso da Cache. Você é responsável por cumprir os termos, políticas e diretrizes da comunidade de cada plataforma. A Cache não se responsabiliza por qualquer inconveniente, perda ou outro resultado decorrente da sua relação com essas plataformas ou do seu uso do Serviço em conjunto com elas. Mais detalhes podem ser encontrados"
 }
