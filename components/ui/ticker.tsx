@@ -41,10 +41,8 @@ export function Ticker({
         <span
             {...props}
             className={cn(
-                "paused flex shrink-0 animate-marquee select-none",
-                {
-                    "direction-reverse": direction === "right",
-                },
+                "paused group-hover:running hover:running flex shrink-0 animate-marquee select-none",
+                { "direction-reverse": direction === "right" },
                 className
             )}
             ref={track}

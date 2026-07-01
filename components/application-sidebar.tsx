@@ -98,39 +98,41 @@ function SidebarNavigationItem({
 
     return (
         <li className="list-none">
-            <Link
-                {...props}
-                className="w-full max-w-full"
+            <ActivePathname
                 href={href}
-                prefetch
-                tabIndex={0}
-            >
-                <ActivePathname
-                    href={href}
-                    render={
-                        <SidebarItem className="group">
-                            <Icon
-                                aria-hidden
-                                className="inline-block size-4 shrink-0"
-                                focusable="false"
+                render={
+                    <SidebarItem
+                        className="group"
+                        render={
+                            <Link
+                                {...props}
+                                href={href}
+                                prefetch
+                                tabIndex={0}
                             />
-                            <div
-                                className="flex min-w-0 grow items-center"
-                                data-sidebar-label=""
-                            >
-                                <span className="truncate">{children}</span>
-                            </div>
-                            <Kbd
-                                className="ml-auto bg-transparent opacity-0 group-hover:opacity-50"
-                                data-sidebar-label=""
-                            >
-                                <CmdKbd />
-                                {shortcutKeys.split("+")[1]}
-                            </Kbd>
-                        </SidebarItem>
-                    }
-                />
-            </Link>
+                        }
+                    >
+                        <Icon
+                            aria-hidden
+                            className="inline-block size-4 shrink-0"
+                            focusable="false"
+                        />
+                        <div
+                            className="flex min-w-0 grow items-center"
+                            data-sidebar-label=""
+                        >
+                            <span className="truncate">{children}</span>
+                        </div>
+                        <Kbd
+                            className="ml-auto bg-transparent opacity-0 group-hover:opacity-50"
+                            data-sidebar-label=""
+                        >
+                            <CmdKbd />
+                            {shortcutKeys.split("+")[1]}
+                        </Kbd>
+                    </SidebarItem>
+                }
+            />
         </li>
     );
 }

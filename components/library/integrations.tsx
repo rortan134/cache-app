@@ -490,10 +490,8 @@ function IntegrationsListTrigger({
                 <div className="m-3 flex max-w-64 flex-col gap-2">
                     <h2 className="font-medium text-sm">Places to return to</h2>
                     <p className="text-foreground text-xs">
-                        Get more out of your bookmarks with Cache’s first-class
-                        integrations for browsers, social apps, and video
-                        platforms. Use integrations to import from other sources
-                        into your Cache.
+                        Try Cache’s first-class integrations. Easily import from
+                        other sources into your library.
                     </p>
                 </div>
             </PreviewCardPopup>

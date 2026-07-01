@@ -8,9 +8,9 @@ import { isRecord } from "@/lib/common/objects";
 import { parseDisplayUrl } from "@/lib/common/url";
 import { prisma } from "@/prisma";
 import type { Prisma } from "@/prisma/client/client";
-import { google } from "@workflow/ai/google";
 import type { ArcjetNextRequest } from "@arcjet/next";
 import { DurableAgent } from "@workflow/ai/agent";
+import { google } from "@workflow/ai/google";
 import {
     APICallError,
     LoadAPIKeyError,

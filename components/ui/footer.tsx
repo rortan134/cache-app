@@ -64,7 +64,7 @@ export function Footer() {
                     <div className="relative col-span-full flex flex-col items-start justify-between font-sans text-[#0A0B0D] text-xs leading-[1.22] tracking-[-3%] opacity-50">
                         <span className="opacity-90">
                             <T context="Disclaimer">
-                                *Third-party platforms you connect through the
+                                Third-party platforms you connect through the
                                 Service are operated independently of Cache.
                                 Cache does not control their policies or how
                                 they apply them, and is not responsible for

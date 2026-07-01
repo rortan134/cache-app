@@ -969,11 +969,18 @@ export async function listCollections(
 ): Promise<LibraryCollectionSummary[]> {
     const collections = await prisma.collection.findMany({
         include: {
+            // Folders persisted inside a collection (Chrome bookmark sync) are
+            // dropped from the user-facing summary so both `list_library_items`
+            // and `list_collections` agree on what counts. The `items` selection
+            // (used to derive `sources`) must mirror the same predicate.
             _count: {
-                select: { items: true },
+                select: {
+                    items: { where: { kind: { not: ITEM_KIND_FOLDER } } },
+                },
             },
             items: {
                 select: { source: true },
+                where: { kind: { not: ITEM_KIND_FOLDER } },
             },
         },
         orderBy: { name: SORT_ASC },

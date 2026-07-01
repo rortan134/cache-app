@@ -1,6 +1,6 @@
 import { buildPageMetadata } from "@/app/metadata";
 import { ApplicationSidebar } from "@/components/application-sidebar";
-import { Browser } from "@/components/library/browser";
+import { BrowserRoot } from "@/components/library/browser";
 import { Collections } from "@/components/library/collections";
 import { Integrations } from "@/components/library/integrations";
 import { WorkspaceProvider } from "@/components/library/workspace";
@@ -81,7 +81,7 @@ export default async function LibraryPage() {
                 <Integrations connectedIntegrations={connectedIntegrations} />
                 <Collections />
             </ApplicationSidebar>
-            <Browser
+            <BrowserRoot
                 connectedIntegrationCount={connectedIntegrations.size}
                 lockedItemCount={lockedItemCount}
                 totalItemCount={totalItemCount}

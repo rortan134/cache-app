@@ -209,9 +209,9 @@ import {
     ChevronsDown,
     ChevronsUp,
     ChevronUp,
-    CircleDashed,
     CircleFadingPlus,
     Component,
+    Diamond,
     DownloadIcon,
     Ellipsis,
     ExternalLinkIcon,
@@ -238,8 +238,6 @@ import {
 } from "lucide-react";
 import dynamic from "next/dynamic";
 import Image from "next/image";
-
-import type { ReactNode } from "react";
 import * as React from "react";
 import { createPortal } from "react-dom";
 import { useHotkeys } from "react-hotkeys-hook";
@@ -975,7 +973,7 @@ export interface CommandPaletteItem {
     onSelect: (
         event: BaseUIEvent<React.MouseEvent> | KeyboardEvent
     ) => void | Promise<void>;
-    render?: (item: CommandPaletteItem) => ReactNode;
+    render?: (item: CommandPaletteItem) => React.ReactNode;
     shortcut?: string;
     value: string;
 }
@@ -1855,10 +1853,10 @@ function useBrowserGroupContext(): BrowserGroupContextValue {
     return context;
 }
 
-function BrowserResults({
+function Browser({
     children,
     ...contextValue
-}: BrowserResultsContextValue & { children: ReactNode }) {
+}: React.PropsWithChildren<BrowserResultsContextValue>) {
     return (
         <BrowserResultsContext value={contextValue}>
             {children}
@@ -1947,7 +1945,7 @@ function BrowserList({
     children,
 }: {
     sections: BrowserGroup[];
-    children: (section: BrowserGroup) => ReactNode;
+    children: (section: BrowserGroup) => React.ReactNode;
 }) {
     return sections.map((section) => (
         <BrowserGroupProvider key={section.key} section={section}>
@@ -1959,10 +1957,7 @@ function BrowserList({
 function BrowserGroupProvider({
     children,
     section,
-}: {
-    children: ReactNode;
-    section: BrowserGroup;
-}) {
+}: React.PropsWithChildren<{ section: BrowserGroup }>) {
     const { collapsedSectionKeys, onToggleSection } =
         useBrowserResultsContext();
 
@@ -2211,15 +2206,15 @@ function BrowserGroupOverview({
                 className
             )}
         >
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5">
                 <Astroid
                     aria-hidden
-                    className="size-4 text-muted-foreground opacity-80"
+                    className="size-4 text-muted-foreground"
                     focusable="false"
                 />
                 <GradientWaveText
                     ariaLabel="Overview"
-                    className="font-medium text-muted-foreground text-xs opacity-80"
+                    className="font-medium text-muted-foreground text-xs"
                 >
                     Overview
                 </GradientWaveText>
@@ -2336,7 +2331,7 @@ function BrowserMasonry({ children }: BrowserMansonryProps) {
     }
 
     return (
-        <BrowserMasonryContext.Provider value={children}>
+        <BrowserMasonryContext value={children}>
             <Masonry
                 columnCount={columnCount}
                 columnGutter={16}
@@ -2348,11 +2343,11 @@ function BrowserMasonry({ children }: BrowserMansonryProps) {
                 render={BrowserMasonryCell}
                 rowGutter={16}
             />
-        </BrowserMasonryContext.Provider>
+        </BrowserMasonryContext>
     );
 }
 
-function BrowserCardProvider({ children }: { children: ReactNode }) {
+function BrowserCardProvider({ children }: React.PropsWithChildren) {
     const {
         collections,
         favoriteItemIdSet,
@@ -2386,7 +2381,7 @@ function BrowserCardProvider({ children }: { children: ReactNode }) {
     );
 }
 
-function BrowserGroup({ children }: { children: ReactNode }) {
+function BrowserGroup({ children }: React.PropsWithChildren) {
     return (
         <section className="flex w-full flex-col gap-3">
             <BrowserCardProvider>{children}</BrowserCardProvider>
@@ -3488,7 +3483,7 @@ function MediaPreview({
 
     return (
         <div
-            className="relative size-full"
+            className="relative size-full break-inside-avoid"
             onMouseEnter={handleMouseEnter}
             onMouseLeave={handleMouseLeave}
         >
@@ -3516,12 +3511,13 @@ function MediaPreview({
                             { "z-1": isHovered }
                         )}
                         crossOrigin="use-credentials"
+                        draggable="false"
                         loop
                         muted={!isSoundEnabled}
                         onCanPlay={handleCanPlay}
                         onError={handleVideoError}
                         playsInline
-                        preload="metadata"
+                        preload="none"
                         ref={videoRef}
                         src={videoSrc}
                     />
@@ -3754,6 +3750,7 @@ function CollectionComboboxPicker({
             value={selectedCollectionIds}
         >
             <ComboboxTrigger
+                {...props}
                 render={
                     <Button
                         aria-label={
@@ -3766,20 +3763,19 @@ function CollectionComboboxPicker({
                         variant="ghost"
                     />
                 }
-                {...props}
             >
                 {children ??
                     (selectedCount > 0 ? (
-                        <Squircle
+                        <Diamond
                             aria-hidden
                             aria-label="Collections"
                             className="size-4.5"
                         />
                     ) : (
-                        <CircleDashed
+                        <Squircle
                             aria-hidden
                             aria-label="Collections"
-                            className="size-4"
+                            className="size-4.5"
                         />
                     ))}
             </ComboboxTrigger>
@@ -4288,7 +4284,7 @@ function MediaCard({ item }: LibraryGridCardProps) {
                             </>
                         )}
                     </a>
-                    <div className="flex items-center py-1 pr-3">
+                    <div className="flex items-center py-1.5 pr-1">
                         <CardCollectionPicker
                             item={item}
                             onOpenChange={setIsCollectionPickerOpen}
@@ -4300,10 +4296,12 @@ function MediaCard({ item }: LibraryGridCardProps) {
                         >
                             <MenuTrigger
                                 render={
-                                    <button
-                                        className="min-w-0 flex-1 cursor-pointer truncate rounded-sm text-left font-normal text-[11px] text-foreground leading-none outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                                    <Button
+                                        className="w-full min-w-0 flex-1 justify-start overflow-clip whitespace-nowrap border-none text-left text-[11px]!"
+                                        size="xs"
                                         title={displayTitle}
                                         type="button"
+                                        variant="ghost"
                                     />
                                 }
                             >
@@ -4585,7 +4583,7 @@ const BrowserLockedPreviewCell = ({
     <LockedPreviewCard placeholder={data} />
 );
 
-export function Browser({
+export function BrowserRoot({
     connectedIntegrationCount,
     lockedItemCount,
     totalItemCount,
@@ -5650,7 +5648,7 @@ export function Browser({
                 </ComposerSuggestions>
             </Composer>
             {isPreviewOnly ? <InlinePaywallBanner /> : null}
-            <BrowserResults
+            <Browser
                 clearLibraryPalette={clearLibraryPalette}
                 collapsedSectionKeys={collapsedSectionKeySet}
                 collections={collections}
@@ -5699,7 +5697,7 @@ export function Browser({
                         </BrowserGroup>
                     )}
                 </BrowserList>
-            </BrowserResults>
+            </Browser>
             {shouldShowLockedPreview ? (
                 <div className="relative isolate flex flex-col gap-8">
                     <BlockPaywallBanner length={totalItemCount} />
