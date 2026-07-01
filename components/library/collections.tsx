@@ -2570,7 +2570,7 @@ function CollectionItemValue() {
                 {collection.name}
             </span>
             {collection.sources.length > 0 ? (
-                <span className="max-w-full flex-1 truncate text-[11px] text-muted-foreground opacity-0 group-hover:opacity-80">
+                <span className="max-w-full flex-1 truncate py-px text-[11px] text-muted-foreground opacity-0 group-hover:opacity-80">
                     {collection.sources.map(getSourceLabel).join(", ")}
                 </span>
             ) : null}
@@ -2908,9 +2908,15 @@ function CollectionItemMetadata({
                             Collection
                             <Badge size="sm" variant="secondary">
                                 {collection.shareId ? (
-                                    <Globe className="size-3" />
+                                    <>
+                                        <Globe className="size-2.5" />
+                                        Public
+                                    </>
                                 ) : (
-                                    <LockKeyhole className="size-3" />
+                                    <>
+                                        <LockKeyhole className="size-2.5" />
+                                        Private
+                                    </>
                                 )}
                             </Badge>
                         </MenuGroupLabel>
@@ -3338,10 +3344,18 @@ function CollectionsCreateDialog() {
                             <AlertDescription>
                                 Collections keep your best saves and content in
                                 one place. Use them for ongoing goals, or just
-                                to keep things tidy.{" "}
-                                {disabled
-                                    ? null
-                                    : " Cache will auto-assign matching entries to it."}
+                                to keep things tidy. Cache Smart Collections can
+                                auto-assign matching entries to it.{" "}
+                                {disabled ? (
+                                    <Button
+                                        className="inline-flex h-fit! w-fit px-0 leading-tight sm:text-[11px]"
+                                        render={<Link href="/automations" />}
+                                        size="xs"
+                                        variant="link"
+                                    >
+                                        Learn how
+                                    </Button>
+                                ) : null}
                             </AlertDescription>
                         </Alert>
                     </DialogPanel>
@@ -3392,29 +3406,26 @@ function CollectionsCreateDialog() {
                                         )}
                                     </ComboboxCollection>
                                 </ComboboxList>
-                                {disabled ? null : (
-                                    <div className="flex gap-2 px-3 pt-1.5 pb-2.5">
-                                        <Info
-                                            aria-hidden
-                                            className="inline-block size-3.5 shrink-0"
-                                            focusable="false"
-                                        />
-                                        <p className="text-[11px] text-muted-foreground leading-tight">
-                                            Cache's{" "}
-                                            <strong className="font-medium">
-                                                Smart Collections&nbsp;
-                                                <Sparkle
-                                                    aria-hidden
-                                                    className="mb-px inline-block size-3"
-                                                    focusable="false"
-                                                />
-                                            </strong>{" "}
-                                            can automatically assign collections
-                                            to entries that match these
-                                            templates.
-                                        </p>
-                                    </div>
-                                )}
+                                <div className="flex gap-2 px-3 pt-1.5 pb-2.5">
+                                    <Info
+                                        aria-hidden
+                                        className="inline-block size-3.5 shrink-0"
+                                        focusable="false"
+                                    />
+                                    <p className="text-[11px] text-muted-foreground leading-tight">
+                                        Cache's{" "}
+                                        <strong className="font-medium">
+                                            Smart Collections&nbsp;
+                                            <Sparkle
+                                                aria-hidden
+                                                className="mb-px inline-block size-3"
+                                                focusable="false"
+                                            />
+                                        </strong>{" "}
+                                        can automatically assign collections to
+                                        entries that match these templates.
+                                    </p>
+                                </div>
                             </ComboboxPopup>
                         </Combobox>
                         <Button
