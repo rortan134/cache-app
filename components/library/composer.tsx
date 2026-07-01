@@ -194,9 +194,13 @@ export function ComposerSuggestions({
     children,
     suggestions,
     className,
+    open: openProp,
+    onOpenChange: onOpenChangeProp,
     ...props
 }: ComposerSuggestionsProps) {
-    const [open, setOpen] = React.useState(true);
+    const [internalOpen, setInternalOpen] = React.useState(true);
+    const open = openProp ?? internalOpen;
+    const setOpen = onOpenChangeProp ?? setInternalOpen;
 
     const handleDismiss = useStableCallback(() => setOpen(false));
 
@@ -374,6 +378,8 @@ interface ComposerActionsProps {
 interface ComposerSuggestionsProps
     extends Omit<React.ComponentProps<"div">, "children"> {
     children: (suggestion: CommandSuggestion, index: number) => React.ReactNode;
+    onOpenChange?: (open: boolean) => void;
+    open?: boolean;
     suggestions: CommandSuggestion[];
 }
 

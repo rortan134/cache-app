@@ -2342,6 +2342,7 @@ function BrowserMasonry({ children }: BrowserMansonryProps) {
                 maxColumnCount={9}
                 render={BrowserMasonryCell}
                 rowGutter={16}
+                tabIndex={-1}
             />
         </BrowserMasonryContext>
     );
@@ -5023,6 +5024,14 @@ export function BrowserRoot({
         sourceFilters,
     });
 
+    const [isSuggestionsOpen, setIsSuggestionsOpen] = React.useState(true);
+
+    React.useEffect(() => {
+        if (suggestions.length > 0) {
+            setIsSuggestionsOpen(true);
+        }
+    }, [suggestions.length]);
+
     const focusPaletteInput = useStableCallback((select = false) => {
         setIsCommandOpen(true);
         queueMicrotask(() => {
@@ -5130,22 +5139,26 @@ export function BrowserRoot({
         }
 
         if (
-            isCommandOpen &&
-            !event.shiftKey &&
-            !event.altKey &&
+            !(event.shiftKey || event.altKey) &&
             (event.metaKey || event.ctrlKey)
         ) {
-            const digit = event.key;
-            const index = Number.parseInt(digit, 10) - 1;
+            const index = Number.parseInt(event.key, 10) - 1;
             if (
                 index >= 0 &&
-                index < suggestions.length &&
-                index < SUGGESTION_LIMIT
+                index <= suggestions.length &&
+                isSuggestionsOpen
             ) {
-                const suggestion = suggestions[index];
-                if (suggestion) {
+                if (index < suggestions.length) {
+                    const suggestion = suggestions[index];
+                    if (suggestion) {
+                        event.preventDefault();
+                        suggestion.onSelect();
+                        return;
+                    }
+                }
+                if (index === suggestions.length) {
                     event.preventDefault();
-                    suggestion.onSelect();
+                    setIsSuggestionsOpen(false);
                     return;
                 }
             }
@@ -5229,30 +5242,28 @@ export function BrowserRoot({
 
     const handlePaletteInputKeyDown = useStableCallback(
         (event: React.KeyboardEvent<HTMLInputElement>) => {
-            if (event.key === "Escape") {
-                event.preventDefault();
-                event.stopPropagation();
-                if (query.trim() !== "") {
-                    setQuery("");
-                    setIsCommandOpen(true);
-                    return;
-                }
-                if (paletteSection !== "search") {
-                    returnToSearchSection();
-                    return;
-                }
-                setIsCommandOpen(false);
-                event.currentTarget.blur();
-                return;
-            }
-
             if (
-                event.key === "Tab" &&
-                paletteSection === "search" &&
-                query.trim() !== ""
+                event.key === "Escape" ||
+                (event.key === "Tab" &&
+                    paletteSection === "search" &&
+                    query.trim() !== "")
             ) {
                 event.preventDefault();
                 event.stopPropagation();
+                if (event.key === "Escape") {
+                    if (query.trim() !== "") {
+                        setQuery("");
+                        setIsCommandOpen(true);
+                        return;
+                    }
+                    if (paletteSection !== "search") {
+                        returnToSearchSection();
+                        return;
+                    }
+                    setIsCommandOpen(false);
+                    event.currentTarget.blur();
+                    return;
+                }
                 handleAskCacheSubmit(query).catch((error) => {
                     log.error("Failed to handle Ask Cache shortcut", error);
                 });
@@ -5627,7 +5638,11 @@ export function BrowserRoot({
                     <ComposerActionNewCollection />
                     <ComposerActionOnboarding />
                 </ComposerActions>
-                <ComposerSuggestions suggestions={suggestions}>
+                <ComposerSuggestions
+                    onOpenChange={setIsSuggestionsOpen}
+                    open={isSuggestionsOpen}
+                    suggestions={suggestions}
+                >
                     {(suggestion, index) => (
                         <Button
                             className="rounded-full text-muted-foreground"
