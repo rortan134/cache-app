@@ -1,7 +1,7 @@
 import { buildPageMetadata } from "@/app/metadata";
 import { ApplicationSidebar } from "@/components/application-sidebar";
-import { AutomationComposerDialog } from "@/components/automations/automation-composer-dialog";
 import { AutomationsList } from "@/components/automations/automations";
+import { AutomationComposerDialog } from "@/components/automations/automation-composer-dialog";
 import { getServerSession } from "@/lib/auth/session";
 import { listCollections } from "@/lib/collections/service";
 import { gtPublicString } from "@/lib/i18n/gt-public-json";
@@ -9,7 +9,7 @@ import {
     listAutomationRuns,
     listAutomations,
 } from "@/lib/intelligence/automations/service";
-import { Bot } from "lucide-react";
+import { T } from "gt-next";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { connection } from "next/server";
@@ -54,7 +54,7 @@ export default async function AutomationsPage() {
         listCollections({ userId }),
     ]);
 
-    const automationCollectionOptions = collections.map((collection) => ({
+    const collectionOptions = collections.map((collection) => ({
         id: collection.id,
         name: collection.name,
     }));
@@ -76,20 +76,24 @@ export default async function AutomationsPage() {
         <>
             <ApplicationSidebar />
             <div className="flex w-full max-w-[1040px] flex-col gap-8 px-6 py-8 sm:px-8 2xl:mx-auto">
-                <header className="flex items-center justify-between gap-4 border-border border-b pb-6">
-                    <div className="flex items-center gap-2">
-                        <Bot aria-hidden className="size-5" focusable="false" />
+                <header className="flex items-end justify-between gap-4 border-border border-b pb-6">
+                    <div className="flex flex-col gap-2">
                         <h1 className="font-semibold text-foreground text-xl">
                             Automations
                         </h1>
+                        <p className="text-muted-foreground text-xs">
+                            <T>
+                                Schedule tasks that organize your library,
+                                research topics, summarize and much more — all
+                                on autopilot
+                            </T>
+                        </p>
                     </div>
-                    <AutomationComposerDialog
-                        collections={automationCollectionOptions}
-                    />
+                    <AutomationComposerDialog collections={collectionOptions} />
                 </header>
                 <AutomationsList
                     automations={automations}
-                    collections={automationCollectionOptions}
+                    collections={collectionOptions}
                     runsByAutomationId={runsByAutomationId}
                 />
             </div>
