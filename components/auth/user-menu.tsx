@@ -325,10 +325,8 @@ function UserMenuAccountActionsSubMenu(
         <MenuSub>
             <MenuSubTrigger
                 {...props}
-                aria-label="Account actions"
-                render={
-                    <Button size="xs" title="Account actions" variant="ghost" />
-                }
+                render={<Button size="xs" variant="ghost" />}
+                title="Account actions"
             />
             <MenuSubPopup align="end">
                 <MenuGroup>
@@ -337,6 +335,7 @@ function UserMenuAccountActionsSubMenu(
                         render={
                             <MenuItem
                                 closeOnClick={false}
+                                nativeButton={false}
                                 variant="destructive"
                             />
                         }
