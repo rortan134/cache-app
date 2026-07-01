@@ -61,6 +61,7 @@ function isAuthorizedCronRequest(request: Request): boolean {
 
     const expected = serverEnv.CRON_SECRET;
     if (!expected) {
+        log.warn("CRON_SECRET is not set.");
         return false;
     }
 

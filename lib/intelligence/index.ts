@@ -13,7 +13,11 @@ import {
     protectGenAiRequest,
 } from "@/lib/intelligence/protection";
 
-import { ITEM_KIND_BOOKMARK, SORT_ASC } from "@/lib/common/constants";
+import {
+    ITEM_KIND_BOOKMARK,
+    MIME_TYPES,
+    SORT_ASC,
+} from "@/lib/common/constants";
 import {
     decodeHtmlEntities,
     normalizeCollectionName,
@@ -38,6 +42,7 @@ import {
     type Part,
     Type,
 } from "@google/genai";
+import mime from "mime-types";
 import { randomUUID } from "node:crypto";
 import { open, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -118,6 +123,11 @@ interface DownloadedRemoteAsset {
     sourceUrl: string;
 }
 
+interface ResolvedDownloadAssetType {
+    extension: string;
+    mimeType: string;
+}
+
 interface SmartCollectionAttachment {
     cleanup?: () => Promise<void>;
     parts: Part[];
@@ -182,60 +192,29 @@ function delay(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-function normalizeMimeType(value: string | null | undefined): string | null {
-    const normalized = value?.split(";")[0]?.trim().toLowerCase();
-    return normalized && normalized.length > 0 ? normalized : null;
-}
-
-const EXTENSION_BY_MIME_TYPE: Record<string, string> = {
-    "application/json": ".json",
-    "application/pdf": ".pdf",
-    "application/xml": ".xml",
-    "image/avif": ".avif",
-    "image/gif": ".gif",
-    "image/jpeg": ".jpg",
-    "image/png": ".png",
-    "image/svg+xml": ".svg",
-    "image/webp": ".webp",
-    "text/csv": ".csv",
-    "text/html": ".html",
-    "text/plain": ".txt",
-    "video/mp4": ".mp4",
-    "video/quicktime": ".mov",
-    "video/webm": ".webm",
-};
-
-const MIME_TYPE_BY_EXTENSION: Record<string, string> = {
-    ".avif": "image/avif",
-    ".csv": "text/csv",
-    ".gif": "image/gif",
-    ".htm": "text/html",
-    ".html": "text/html",
-    ".jpeg": "image/jpeg",
-    ".jpg": "image/jpeg",
-    ".json": "application/json",
-    ".mov": "video/quicktime",
-    ".mp4": "video/mp4",
-    ".pdf": "application/pdf",
-    ".png": "image/png",
-    ".svg": "image/svg+xml",
-    ".txt": "text/plain",
-    ".webm": "video/webm",
-    ".webp": "image/webp",
-    ".xml": "application/xml",
-};
-
-function inferMimeTypeFromUrl(url: string): string | null {
-    try {
-        const extension = extname(new URL(url).pathname).toLowerCase();
-        return MIME_TYPE_BY_EXTENSION[extension] ?? null;
-    } catch {
-        return null;
+function inferDownloadAssetType(
+    contentTypeHeader: string | null,
+    url: string
+): ResolvedDownloadAssetType {
+    const headerExt = contentTypeHeader
+        ? mime.extension(contentTypeHeader)
+        : false;
+    if (headerExt) {
+        return {
+            extension: `.${headerExt}`,
+            mimeType: mime.lookup(headerExt) || MIME_TYPES.binary,
+        };
     }
-}
-
-function extensionForMimeType(mimeType: string): string {
-    return EXTENSION_BY_MIME_TYPE[mimeType] ?? ".bin";
+    try {
+        const pathExt = extname(new URL(url).pathname).toLowerCase();
+        const lookupType = pathExt ? mime.lookup(pathExt) : false;
+        if (lookupType) {
+            return { extension: pathExt, mimeType: lookupType };
+        }
+    } catch {
+        // URL parse failure — fall through
+    }
+    return { extension: ".bin", mimeType: MIME_TYPES.binary };
 }
 
 function extractHtmlContent(input: string): string {
@@ -263,9 +242,9 @@ function extractHtmlContent(input: string): string {
 
 function extractTextContent(input: string, mimeType: string): string {
     if (
-        mimeType === "text/html" ||
-        mimeType === "application/xhtml+xml" ||
-        mimeType === "application/xml"
+        mimeType === MIME_TYPES.html ||
+        mimeType === MIME_TYPES.xhtml ||
+        mimeType === MIME_TYPES.xml
     ) {
         return extractHtmlContent(input);
     }
@@ -276,10 +255,10 @@ function extractTextContent(input: string, mimeType: string): string {
 function isTextLikeMimeType(mimeType: string): boolean {
     return (
         mimeType.startsWith("text/") ||
-        mimeType === "application/json" ||
+        mimeType === MIME_TYPES.json ||
         mimeType === "application/ld+json" ||
-        mimeType === "application/xml" ||
-        mimeType === "application/xhtml+xml"
+        mimeType === MIME_TYPES.xml ||
+        mimeType === MIME_TYPES.xhtml
     );
 }
 
@@ -402,13 +381,13 @@ async function downloadRemoteAsset(
         }
 
         const resolvedUrl = response.url || url;
-        const mimeType =
-            normalizeMimeType(response.headers.get("content-type")) ??
-            inferMimeTypeFromUrl(resolvedUrl) ??
-            "application/octet-stream";
+        const { extension, mimeType } = inferDownloadAssetType(
+            response.headers.get("content-type"),
+            resolvedUrl
+        );
         filePath = join(
             /* turbopackIgnore: true */ tmpdir(),
-            `cache-smart-collections-${randomUUID()}${extensionForMimeType(mimeType)}`
+            `cache-smart-collections-${randomUUID()}${extension}`
         );
         const fileHandle = await open(
             /* turbopackIgnore: true */ filePath,
@@ -503,7 +482,7 @@ async function waitForGeminiFile(
             }
 
             return {
-                mimeType: currentFile.mimeType ?? "application/octet-stream",
+                mimeType: currentFile.mimeType ?? MIME_TYPES.binary,
                 name: currentFile.name ?? file.name,
                 uri: currentFile.uri,
             };
@@ -697,7 +676,7 @@ async function tryModelVariant(
                 },
                 maxOutputTokens: ESTIMATED_OUTPUT_TOKENS,
                 responseJsonSchema: smartCollectionDecisionJsonSchema,
-                responseMimeType: "application/json",
+                responseMimeType: MIME_TYPES.json,
                 systemInstruction:
                     "You organize a user's saved media into focused collections. Be conservative, prefer existing collections, and create new collections only when there is a strong reusable theme.",
                 temperature: MODEL_TEMPERATURE,
@@ -1138,7 +1117,7 @@ async function generateModelContent(
             const response = await ai.models.generateContent({
                 config: {
                     ...config,
-                    responseMimeType: "application/json",
+                    responseMimeType: MIME_TYPES.json,
                     temperature: SECTION_TEMPERATURE,
                 },
                 contents: prompt,

@@ -67,7 +67,7 @@ export const IMAGE_MIME_TYPES = {
     bmp: "image/bmp",
     gif: "image/gif",
     ico: "image/x-icon",
-    jfif: "image/jfif",
+    jfif: "image/pjpeg",
     jpg: "image/jpeg",
     png: "image/png",
     svg: "image/svg+xml",
@@ -79,6 +79,8 @@ export const STRING_MIME_TYPES = {
     html: "text/html",
     json: "application/json",
     text: "text/plain",
+    xhtml: "application/xhtml+xml",
+    xml: "application/xml",
 } as const;
 
 export const MIME_TYPES = {
