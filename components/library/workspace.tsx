@@ -513,62 +513,27 @@ export function WorkspaceProvider({
         requestCreateRef.current?.(itemId);
     });
 
-    React.useEffect(
-        function syncItemsFromInitialItems() {
-            setItems(initialItems);
-        },
-        [initialItems]
-    );
-
-    React.useEffect(
-        function syncCollectionsFromInitialCollections() {
-            setCollections(initialCollections);
-        },
-        [initialCollections]
-    );
-
-    const value: WorkspaceContextValue = React.useMemo(
-        () => ({
-            collectionPreviewThumbnailUrlsById,
-            collectionSummaries,
-            collections,
-            favoriteItemIdSet,
-            favoriteItems,
-            items,
-            itemsByCollectionId,
-            onClearCollectionFilters: clearCollectionFilters,
-            onCreateCollectionFromResults: handleCreateCollectionFromResults,
-            onDeleteItemSuccess: handleDeleteItemSuccess,
-            onOpenFavoriteItem: handleOpenFavoriteItem,
-            onSelectCollection: toggleCollectionSelection,
-            onToggleItemFavorite: handleToggleItemFavorite,
-            onUpdateItemCollections: handleUpdateItemCollections,
-            onUpdateItemsCollections: handleUpdateItemsCollections,
-            requestCreate,
-            selectedCollectionIds: validSelectedCollectionIds,
-            setCollections,
-            setItems,
-        }),
-        [
-            collectionPreviewThumbnailUrlsById,
-            collectionSummaries,
-            collections,
-            clearCollectionFilters,
-            favoriteItemIdSet,
-            favoriteItems,
-            handleCreateCollectionFromResults,
-            handleDeleteItemSuccess,
-            handleOpenFavoriteItem,
-            handleToggleItemFavorite,
-            handleUpdateItemCollections,
-            handleUpdateItemsCollections,
-            items,
-            itemsByCollectionId,
-            requestCreate,
-            toggleCollectionSelection,
-            validSelectedCollectionIds,
-        ]
-    );
+    const value: WorkspaceContextValue = {
+        collectionPreviewThumbnailUrlsById,
+        collectionSummaries,
+        collections,
+        favoriteItemIdSet,
+        favoriteItems,
+        items,
+        itemsByCollectionId,
+        onClearCollectionFilters: clearCollectionFilters,
+        onCreateCollectionFromResults: handleCreateCollectionFromResults,
+        onDeleteItemSuccess: handleDeleteItemSuccess,
+        onOpenFavoriteItem: handleOpenFavoriteItem,
+        onSelectCollection: toggleCollectionSelection,
+        onToggleItemFavorite: handleToggleItemFavorite,
+        onUpdateItemCollections: handleUpdateItemCollections,
+        onUpdateItemsCollections: handleUpdateItemsCollections,
+        requestCreate,
+        selectedCollectionIds: validSelectedCollectionIds,
+        setCollections,
+        setItems,
+    };
 
     return (
         <WorkspaceContext value={value}>
