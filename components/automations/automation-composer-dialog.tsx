@@ -4,6 +4,16 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
+    DEFAULT_TIME_OF_DAY_MINUTES,
+    formatTimeOfDayMinutes,
+    getTimeOfDayOption,
+    getTimeOfDayOptionByLabel,
+    getTimeOfDayOptions,
+    parseTimeOfDayMinutes,
+    roundTimeOfDayMinutes,
+    type TimeOfDayOption,
+} from "@/lib/common/time";
+import {
     Combobox,
     ComboboxCollection,
     ComboboxEmpty,
@@ -51,7 +61,6 @@ import * as React from "react";
 const ALL_LIBRARY_COLLECTION_ID = "all_library";
 const AUTOMATION_OPTION_TRIGGER_CLASS_NAME =
     "max-w-full min-w-0 justify-start gap-0 overflow-hidden";
-const DEFAULT_TIME_OF_DAY_MINUTES = 9 * 60;
 const DEFAULT_WEEK_DAY = 1;
 const DEFAULT_MONTH_DAY = 1;
 const DEFAULT_WEEK_DAY_OPTION: WeekDayOption = {
@@ -115,11 +124,6 @@ interface WeekDayOption {
 interface MonthDayOption {
     label: string;
     value: number;
-}
-
-interface TimeOfDayOption {
-    label: string;
-    value: string;
 }
 
 export interface AutomationCollectionOption {
@@ -211,8 +215,7 @@ export function AutomationComposerDialog({
 
                 const timezone =
                     automation?.timezone ??
-                    Intl.DateTimeFormat().resolvedOptions().timeZone ??
-                    "UTC";
+                    Intl.DateTimeFormat().resolvedOptions().timeZone;
 
                 const input = {
                     collectionId: isAllLibraryPayload
@@ -313,7 +316,7 @@ export function AutomationComposerDialog({
                             </Badge>
                             <ChevronRight className="inline-block size-3.5 shrink-0" />
                             <DialogTitle className="font-medium text-sm">
-                                Automation
+                                {isEditing ? "Edit" : "New"} automation
                             </DialogTitle>
                         </div>
                     </DialogHeader>
@@ -659,8 +662,16 @@ function AutomationTimeCombobox({
         setInputValue(value.label);
     }, [value.label]);
 
-    const handleComplete = useStableCallback((selectedLabel: string) => {
-        const exactOption = getTimeOfDayOptionByLabel(options, selectedLabel);
+    const handleSelectFromList = useStableCallback(
+        (nextTime: TimeOfDayOption) => {
+            onValueChange(nextTime.value);
+            setInputValue(nextTime.label);
+            setIsOpen(false);
+        }
+    );
+
+    const handleFreeformEnter = useStableCallback(() => {
+        const exactOption = getTimeOfDayOptionByLabel(options, inputValue);
         if (exactOption) {
             onValueChange(exactOption.value);
             setInputValue(exactOption.label);
@@ -668,13 +679,13 @@ function AutomationTimeCombobox({
             return;
         }
 
-        const parsedDate = parseDate(selectedLabel);
+        const parsedDate = parseDate(inputValue);
         if (!parsedDate) {
             setInputValue(value.label);
             return;
         }
 
-        const roundedValue = formatTimeValue(
+        const roundedValue = formatTimeOfDayMinutes(
             roundTimeOfDayMinutes(
                 parsedDate.getHours() * 60 + parsedDate.getMinutes()
             )
@@ -700,7 +711,7 @@ function AutomationTimeCombobox({
                 if (!nextTime) {
                     return;
                 }
-                handleComplete(nextTime.label);
+                handleSelectFromList(nextTime);
             }}
             open={isOpen}
             value={value}
@@ -734,7 +745,7 @@ function AutomationTimeCombobox({
                     aria-label="Search times"
                     onKeyDown={(event) => {
                         if (event.key === "Enter") {
-                            handleComplete(inputValue);
+                            handleFreeformEnter();
                         }
                     }}
                     placeholder="Select time..."
@@ -932,7 +943,7 @@ function getInitialFormState(
         errorMessage: null,
         monthDay: automation?.monthDay ?? DEFAULT_MONTH_DAY,
         prompt: automation?.prompt ?? "",
-        timeValue: formatTimeValue(
+        timeValue: formatTimeOfDayMinutes(
             automation?.timeOfDayMinutes ?? DEFAULT_TIME_OF_DAY_MINUTES
         ),
         title: automation?.title ?? "",
@@ -1001,90 +1012,10 @@ function getMonthDayOption(monthDay: number) {
     );
 }
 
-function getTimeOfDayOption(options: TimeOfDayOption[], timeValue: string) {
-    return (
-        options.find((option) => option.value === timeValue) ??
-        getFallbackTimeOfDayOption(timeValue)
-    );
-}
-
-function getTimeOfDayOptionByLabel(options: TimeOfDayOption[], label: string) {
-    const normalizedLabel = label.trim().toLowerCase();
-    return options.find(
-        (option) =>
-            option.label.toLowerCase() === normalizedLabel ||
-            option.value === normalizedLabel
-    );
-}
-
-function getTimeOfDayOptions(locale: string): TimeOfDayOption[] {
-    const shouldUse24HourClock = uses24HourClock(locale);
-    const options: TimeOfDayOption[] = [];
-    for (let hours = 0; hours < 24; hours += 1) {
-        for (let minutes = 0; minutes < 60; minutes += 15) {
-            const value = formatTimeValue(hours * 60 + minutes);
-            options.push({
-                label: formatTimeOfDayLabel({
-                    hours,
-                    minutes,
-                    shouldUse24HourClock,
-                }),
-                value,
-            });
-        }
-    }
-    return options;
-}
-
-function getFallbackTimeOfDayOption(timeValue: string): TimeOfDayOption {
-    return {
-        label: timeValue,
-        value: timeValue,
-    };
-}
-
-function formatTimeValue(timeOfDayMinutes: number): string {
-    const hours = Math.floor(timeOfDayMinutes / 60);
-    const minutes = timeOfDayMinutes % 60;
-    return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
-}
-
-function roundTimeOfDayMinutes(timeOfDayMinutes: number): number {
-    const minutesPerDay = 24 * 60;
-    return (Math.round(timeOfDayMinutes / 15) * 15) % minutesPerDay;
-}
-
-function formatTimeOfDayLabel(args: {
-    hours: number;
-    minutes: number;
-    shouldUse24HourClock: boolean;
-}): string {
-    if (args.shouldUse24HourClock) {
-        return `${String(args.hours).padStart(2, "0")}:${String(args.minutes).padStart(2, "0")}`;
-    }
-
-    const period = args.hours >= 12 ? "PM" : "AM";
-    const displayHours = args.hours % 12 || 12;
-    return `${displayHours}:${String(args.minutes).padStart(2, "0")} ${period}`;
-}
-
 function getMonthDayLabel(monthDay: number): string {
     const suffix =
         monthDay >= 11 && monthDay <= 13
             ? "th"
             : (["th", "st", "nd", "rd"][monthDay % 10] ?? "th");
     return `${monthDay}${suffix}`;
-}
-
-function parseTimeOfDayMinutes(timeValue: string): number {
-    const [hours = "0", minutes = "0"] = timeValue.split(":");
-    return Number(hours) * 60 + Number(minutes);
-}
-
-function uses24HourClock(locale?: string): boolean {
-    const hourCycle = new Intl.DateTimeFormat(locale, {
-        hour: "numeric",
-    }).resolvedOptions().hourCycle;
-
-    return hourCycle === "h23" || hourCycle === "h24";
 }
