@@ -129,7 +129,7 @@ Now the incantation is the only door in the room. You cannot forget it because t
 
 That distinction matters. In production, there are plenty of places where we do not need a theorem. We need a design that makes it difficult for an ordinary busy engineer to accidentally do the wrong thing while trying to do a dozen other perfectly reasonable things. The compiler is not merely checking logic here; it is preserving institutional memory and turning it into a hard-edged interface.
 
-When a new engineer joins and asks "how do I write a transaction?", the type system answers them. When a senior engineer leaves, the answer remains. The institutional knowledge survived not because someone documented it beautifully, though documentation is pleasant when available, but because someone encoded it in a form the compiler enforces. The compiler is a better custodian of operational lore than the average wiki and less prone to people forgetting to update it as the reality of the system changes.
+When a new engineer joins and asks "how do I write a transaction?", the type system answers them. When a senior engineer leaves, the answer remains. The institutional knowledge survived not because someone documented it beautifully, though documentation is pleasant when available, but because someone encoded it in a form the compiler enforces. The compiler is a better custodian of operational lore than the average wiki — provided the types themselves are maintained and not bypassed with casts or ignore directives, which can leave a codebase in a worse state than a neglected wiki page. It is a tool among many, not a replacement for thoughtful design reviews and clear written guidance.
 
 ## 3. Make Invalid States Unrepresentable
 
@@ -207,6 +207,8 @@ The pattern above—structuring types so that the correct operational procedure 
 
 They are full of processes that span multiple steps, multiple services, and multiple failure modes. Send a payment, wait for a partner to acknowledge it, update the ledger, notify the customer, handle cancellation, handle timeout, handle the case where the partner said yes but your worker died before recording the answer, handle the case where the partner said nothing because the network briefly entered a higher plane of existence and declined to tell you about it. If any step fails, you need to know where you were, what has already happened, and what still needs to happen. You need state. You need retries. You need timeouts. You need idempotence. You need all of these things to keep working across process crashes and deployments. Very quickly, what began as "just some business logic" amasses a remarkable amount of one-off repeats of common operational concerns.
 
+In practice, resist rebuilding these primitives ad-hoc. Use a durable execution framework, saga orchestration, or an event-sourced workflow engine (e.g., Temporal, Cadence) so that retries, state persistence, and failure handling are first-class rather than scattered across your service code.
+
 ## 5. Design for Your Domain, Not Your Transport
 
 As your production system grows, a common mistake is letting the invoking system leak into the domain model.
@@ -271,7 +273,9 @@ export async function POST(request: Request) {
     const result = await processPayment(input);
     return NextResponse.json(result);
   } catch (error) {
-    if (error instanceof InsufficientFunds) {
+    // Use serializable name checks instead of `instanceof` so error
+    // identity survives bundling, serialization, and worker boundaries.
+    if (error instanceof InsufficientFunds || error.name === "InsufficientFunds") {
       // 402 is meaningful here because this *is* an HTTP request.
       return NextResponse.json(
         { error: "InsufficientFunds", data: error.data },
@@ -279,7 +283,7 @@ export async function POST(request: Request) {
       );
     }
 
-    if (error instanceof DuplicateRequest) {
+    if (error instanceof DuplicateRequest || error.name === "DuplicateRequest") {
       return NextResponse.json(
         { error: "DuplicateRequest", data: error.data },
         { status: 409 }
@@ -300,13 +304,15 @@ export async function retryFailedPayments() {
     try {
       await processPayment(job.input);
     } catch (error) {
-      if (error instanceof InsufficientFunds) {
+      // Use serializable name checks instead of `instanceof` so error
+      // identity survives bundling, serialization, and worker boundaries.
+      if (error instanceof InsufficientFunds || error.name === "InsufficientFunds") {
         // Business decision: skip and notify the user out-of-band.
         await notifyUser(job.userId, "payment_failed", error.data);
         continue;
       }
 
-      if (error instanceof DuplicateRequest) {
+      if (error instanceof DuplicateRequest || error.name === "DuplicateRequest") {
         // Idempotency: safe to mark as done.
         await markComplete(job.id);
         continue;
@@ -325,7 +331,7 @@ This is the same principle as purity, expressed in domain language rather than o
 
 ## The Type Encoding Tradeoff
 
-Here is the part where I tell you not to do too much of the thing I just told you to do.
+We've been encouraging you to encode business rules into types. Here is the necessary counterweight: do not do too much of it.
 
 Encoding invariants into types is powerful. It is also expensive. Not at runtime, but in cognitive overhead, in the rigidity it introduces, and in the difficulty of changing things later when the requirements shift. And the requirements will shift. If you work at a company where they do not, I would like to know your secret, and also your stock ticker.
 
