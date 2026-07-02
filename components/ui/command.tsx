@@ -63,7 +63,7 @@ export function CommandInput({
                     className
                 )}
                 data-slot="command-input"
-                render={<Input nativeInput size={size} />}
+                render={<Input shouldUseNativeInput size={size} />}
                 {...props}
             />
             {endAddon && (
@@ -129,15 +129,18 @@ export function CommandPopup({
 
 export function CommandList({
     className,
-    scrollFade = false,
-    scrollbarGutter = false,
+    shouldScrollFade = false,
+    shouldUseScrollbarGutter = false,
     ...props
 }: Autocomplete.List.Props & {
-    scrollbarGutter?: boolean;
-    scrollFade?: boolean;
+    shouldUseScrollbarGutter?: boolean;
+    shouldScrollFade?: boolean;
 }) {
     return (
-        <ScrollArea scrollbarGutter={scrollbarGutter} scrollFade={scrollFade}>
+        <ScrollArea
+            shouldScrollFade={shouldScrollFade}
+            shouldUseScrollbarGutter={shouldUseScrollbarGutter}
+        >
             <Autocomplete.List
                 className={cn(
                     "not-empty:scroll-py-2 not-empty:p-2 in-data-has-overflow-y:pe-3",

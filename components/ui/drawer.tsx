@@ -88,10 +88,10 @@ export function DrawerViewport({
     position: positionProp,
     variant = "default",
     portalProps,
-    backdrop = true,
+    shouldShowBackdrop = true,
     ...props
 }: DrawerPrimitive.Viewport.Props & {
-    backdrop?: boolean;
+    shouldShowBackdrop?: boolean;
     position?: DrawerPosition;
     variant?: "default" | "straight" | "inset";
     portalProps?: DrawerPrimitive.Portal.Props;
@@ -101,7 +101,7 @@ export function DrawerViewport({
 
     return (
         <DrawerPortal {...portalProps}>
-            {backdrop && <DrawerBackdrop />}
+            {shouldShowBackdrop && <DrawerBackdrop />}
             <DrawerPrimitive.Viewport
                 className={cn(
                     "fixed inset-0 z-50 [--bleed:--spacing(12)] [--inset:--spacing(0)]",
@@ -128,16 +128,16 @@ export function DrawerViewport({
 export function DrawerPopup({
     className,
     children,
-    showCloseButton = false,
+    shouldShowCloseButton = false,
     position: positionProp,
     variant = "default",
-    showBar = false,
+    shouldShowBar = false,
     ...props
 }: DrawerPrimitive.Popup.Props & {
-    showCloseButton?: boolean;
+    shouldShowCloseButton?: boolean;
     position?: DrawerPosition;
     variant?: "default" | "straight" | "inset";
-    showBar?: boolean;
+    shouldShowBar?: boolean;
 }) {
     const { position: contextPosition } = React.use(DrawerContext);
     const position = positionProp ?? contextPosition;
@@ -195,7 +195,7 @@ export function DrawerPopup({
             {...props}
         >
             {children}
-            {showCloseButton && (
+            {shouldShowCloseButton && (
                 <DrawerPrimitive.Close
                     aria-label="Close"
                     className="absolute inset-e-2 top-2"
@@ -204,7 +204,7 @@ export function DrawerPopup({
                     <XIcon />
                 </DrawerPrimitive.Close>
             )}
-            {showBar && <DrawerBar />}
+            {shouldShowBar && <DrawerBar />}
         </DrawerPrimitive.Popup>
     );
 }
@@ -294,14 +294,14 @@ export function DrawerDescription({
 
 export function DrawerPanel({
     className,
-    scrollFade = true,
-    scrollable = true,
+    shouldScrollFade = true,
+    isScrollable = true,
     allowSelection = true,
     render,
     ...props
 }: useRender.ComponentProps<"div"> & {
-    scrollFade?: boolean;
-    scrollable?: boolean;
+    shouldScrollFade?: boolean;
+    isScrollable?: boolean;
     allowSelection?: boolean;
 }) {
     const defaultProps = {
@@ -319,9 +319,12 @@ export function DrawerPanel({
         render: wrapRender(render, allowSelection),
     });
 
-    if (scrollable) {
+    if (isScrollable) {
         return (
-            <ScrollArea className="touch-auto" scrollFade={scrollFade}>
+            <ScrollArea
+                className="touch-auto"
+                shouldScrollFade={shouldScrollFade}
+            >
                 {content}
             </ScrollArea>
         );

@@ -58,14 +58,14 @@ export function KeyboardShortcutsDialogTrigger(
         <Drawer onOpenChange={setIsOpen} open={isOpen} position="right">
             <DrawerTrigger {...props} />
             <DrawerViewport>
-                <DrawerPopup showCloseButton>
+                <DrawerPopup shouldShowCloseButton>
                     <DrawerHeader>
                         <DrawerTitle>Keyboard shortcuts</DrawerTitle>
                     </DrawerHeader>
                     <DrawerPanel
                         className="px-5"
+                        isScrollable={false}
                         onKeyDown={stopPropagationForPrintableKeys}
-                        scrollable={false}
                     >
                         <Command inline items={shortcutItems} open>
                             <CommandInput placeholder="Search..." />

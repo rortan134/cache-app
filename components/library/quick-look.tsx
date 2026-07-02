@@ -487,11 +487,11 @@ function QuickLookDrawerContent({
         canOpenUrlExternally && status !== "blocked" && status !== "oembed";
 
     return (
-        <DrawerViewport backdrop={false}>
+        <DrawerViewport shouldShowBackdrop={false}>
             <DrawerPopup
                 className="sm:max-w-[min(96vw,78rem)]"
-                showBar
-                showCloseButton
+                shouldShowBar
+                shouldShowCloseButton
             >
                 <DrawerHeader className="border-border/70 border-b pb-4">
                     <DrawerTitle className="truncate text-lg sm:text-xl">
@@ -513,7 +513,7 @@ function QuickLookDrawerContent({
                 <DrawerPanel
                     allowSelection={false}
                     className="flex min-h-full flex-col p-0"
-                    scrollable={false}
+                    isScrollable={false}
                 >
                     <div
                         aria-busy={status === "loading"}

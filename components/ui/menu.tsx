@@ -70,10 +70,10 @@ export function MenuRadioGroup(props: MenuPrimitive.RadioGroup.Props) {
 
 export function MenuGroupLabel({
     className,
-    inset,
+    hasInset,
     ...props
 }: MenuPrimitive.GroupLabel.Props & {
-    inset?: boolean;
+    hasInset?: boolean;
 }) {
     return (
         <MenuPrimitive.GroupLabel
@@ -82,7 +82,7 @@ export function MenuGroupLabel({
                 "px-2 py-1.5 font-medium text-muted-foreground text-xs data-inset:ps-9 sm:data-inset:ps-8",
                 className
             )}
-            data-inset={inset}
+            data-inset={hasInset}
             data-slot="menu-group-label"
         />
     );

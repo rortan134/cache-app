@@ -87,16 +87,12 @@ export function SidebarProvider({
     // We add a state so that we can do data-state="expanded" or "collapsed".
     // This makes it easier to style the sidebar with Tailwind classes.
     const state = open ? "expanded" : "collapsed";
-    const value = React.useMemo(
-        () =>
-            ({
-                open,
-                setOpen,
-                state,
-                toggleSidebar,
-            }) satisfies SidebarContextValue,
-        [open, setOpen, state, toggleSidebar]
-    );
+    const value = {
+        open,
+        setOpen,
+        state,
+        toggleSidebar,
+    } satisfies SidebarContextValue;
 
     return <SidebarContext value={value}>{children}</SidebarContext>;
 }

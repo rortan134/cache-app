@@ -20,9 +20,9 @@ export function DialogTrigger(props: DialogPrimitive.Trigger.Props) {
 export function DialogPopup({
     className,
     children,
-    showCloseButton = true,
+    shouldShowCloseButton = true,
     ...props
-}: DialogPrimitive.Popup.Props & { showCloseButton?: boolean }) {
+}: DialogPrimitive.Popup.Props & { shouldShowCloseButton?: boolean }) {
     return (
         <DialogPrimitive.Portal>
             <DialogBackdrop />
@@ -36,7 +36,7 @@ export function DialogPopup({
                     data-slot="dialog-popup"
                 >
                     {children}
-                    {showCloseButton && (
+                    {shouldShowCloseButton && (
                         <DialogPrimitive.Close
                             aria-label="Close"
                             className="absolute inset-e-2 top-2"
@@ -73,11 +73,11 @@ export function DialogHeader({
 
 export function DialogPanel({
     className,
-    scrollFade = true,
+    shouldScrollFade = true,
     render,
     ...props
 }: useRender.ComponentProps<"div"> & {
-    scrollFade?: boolean;
+    shouldScrollFade?: boolean;
 }) {
     const defaultProps = {
         className: cn(
@@ -88,7 +88,7 @@ export function DialogPanel({
     };
 
     return (
-        <ScrollArea scrollFade={scrollFade}>
+        <ScrollArea shouldScrollFade={shouldScrollFade}>
             {useRender({
                 defaultTagName: "div",
                 props: mergeProps<"div">(defaultProps, props),
@@ -154,7 +154,6 @@ export function DialogClose(props: DialogPrimitive.Close.Props) {
     return <DialogPrimitive.Close {...props} data-slot="dialog-close" />;
 }
 
-/* @internal */
 function DialogBackdrop({
     className,
     ...props
@@ -171,7 +170,6 @@ function DialogBackdrop({
     );
 }
 
-/* @internal */
 function DialogViewport({
     className,
     ...props

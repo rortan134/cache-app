@@ -46,14 +46,14 @@ export function Footer() {
                                         <p>Security</p>
                                     </T>
                                 </Link>
-                                <a
+                                <Link
                                     className="underline"
                                     href="/github"
                                     rel="noreferrer noopener"
                                     target="_blank"
                                 >
                                     <p>Github</p>
-                                </a>
+                                </Link>
                             </div>
                             <p className="opacity-50">
                                 &copy; Cache App. All rights reserved.

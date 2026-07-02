@@ -12,6 +12,9 @@ export function MediaPlaceholder({
     const hash = djb2Hash(id);
     const x = hash % 101; // x in [0, 100] percent
     const y = (hash >> 8) % 101; // y in [0, 100] percent
+    const cssVars: React.CSSProperties & Record<string, string> = {
+        "--texture-position": `${x}% ${y}%`,
+    };
 
     return (
         <div
@@ -21,9 +24,7 @@ export function MediaPlaceholder({
                 className
             )}
             data-slot="media-placeholder"
-            style={
-                { "--texture-position": `${x}% ${y}%` } as React.CSSProperties
-            }
+            style={cssVars}
         />
     );
 }

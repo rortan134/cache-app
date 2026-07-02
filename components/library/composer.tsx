@@ -222,7 +222,10 @@ export function ComposerSuggestions({
             <CollapsiblePanel
                 render={<div className={cn("px-3", className)} {...props} />}
             >
-                <ScrollArea className="max-w-full whitespace-nowrap" scrollFade>
+                <ScrollArea
+                    className="max-w-full whitespace-nowrap"
+                    shouldScrollFade
+                >
                     <div className="flex w-max flex-nowrap items-center gap-1.5">
                         {suggestions.map((suggestion, index) => (
                             <React.Fragment key={suggestion.label}>

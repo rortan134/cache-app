@@ -1908,7 +1908,7 @@ function CollectionsListGroupTrigger({
                     isOpen && "pointer-events-none! hidden!"
                 )}
                 positionMethod="fixed"
-                tooltipStyle
+                shouldUseTooltipStyle
             >
                 <p className="whitespace-normal font-medium leading-tight">
                     {summary}
@@ -3343,6 +3343,7 @@ function CollectionsCreateDialog() {
                                 autoFocus
                                 className="-mx-[calc(--spacing(3)-1px)] font-semibold text-xl"
                                 id={nameInputId}
+                                isUnstyled
                                 maxLength={NAME_MAX_LENGTH}
                                 onChange={(event) =>
                                     handleNameDraftChange(
@@ -3353,7 +3354,6 @@ function CollectionsCreateDialog() {
                                 required
                                 size="lg"
                                 type="text"
-                                unstyled
                                 value={nameDraft}
                             />
                         </div>
@@ -3367,6 +3367,7 @@ function CollectionsCreateDialog() {
                             <Textarea
                                 className="-mx-[calc(--spacing(3)-1px)] *:resize-none"
                                 id={descriptionInputId}
+                                isUnstyled
                                 maxLength={1024}
                                 onChange={(event) =>
                                     setDescriptionDraft(
@@ -3375,7 +3376,6 @@ function CollectionsCreateDialog() {
                                 }
                                 placeholder="Describe what belongs here..."
                                 size="lg"
-                                unstyled
                                 value={descriptionDraft}
                             />
                         </div>

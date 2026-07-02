@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { canUseDOM, getOwnerWindow } from "@/lib/common/dom";
+import { canUseDOM, getOwnerDocument, getOwnerWindow } from "@/lib/common/dom";
 
 const UNICORN_PROJECT_ID = "XbMh8JZ8sBt8du5zfTgn";
 const UNICORN_SCRIPT_ID = "unicorn-studio-sdk";
@@ -64,12 +64,13 @@ export function IridescenceBackground() {
             return;
         }
 
-        installUnicornWatermarkStyle();
-
         const container = containerRef.current;
         if (!container) {
             return;
         }
+
+        const ownerDocument = getOwnerDocument(container);
+        installUnicornWatermarkStyle(ownerDocument);
 
         removeUnicornWatermark(container);
 
@@ -87,7 +88,7 @@ export function IridescenceBackground() {
             };
         }
 
-        const existingScript = document.getElementById(UNICORN_SCRIPT_ID);
+        const existingScript = ownerDocument.getElementById(UNICORN_SCRIPT_ID);
         if (existingScript) {
             const handleLoad = () => {
                 initUnicornStudio();
@@ -102,7 +103,7 @@ export function IridescenceBackground() {
             };
         }
 
-        const script = document.createElement("script");
+        const script = ownerDocument.createElement("script");
         script.async = true;
         script.id = UNICORN_SCRIPT_ID;
         script.src = UNICORN_SDK_URL;
@@ -111,7 +112,7 @@ export function IridescenceBackground() {
             removeUnicornWatermark(container);
         };
         script.addEventListener("load", handleLoad);
-        document.head.appendChild(script);
+        ownerDocument.head.appendChild(script);
 
         return () => {
             observer.disconnect();
@@ -133,12 +134,12 @@ function initUnicornStudio() {
     window.UnicornStudio?.init();
 }
 
-function installUnicornWatermarkStyle() {
-    if (document.getElementById(UNICORN_STYLE_ID)) {
+function installUnicornWatermarkStyle(ownerDocument: Document) {
+    if (ownerDocument.getElementById(UNICORN_STYLE_ID)) {
         return;
     }
 
-    const style = document.createElement("style");
+    const style = ownerDocument.createElement("style");
     style.id = UNICORN_STYLE_ID;
     style.textContent = `
         [data-us-project="${UNICORN_PROJECT_ID}"] :is(${UNICORN_WATERMARK_SELECTOR}) {
@@ -149,7 +150,7 @@ function installUnicornWatermarkStyle() {
             visibility: hidden !important;
         }
     `;
-    document.head.appendChild(style);
+    ownerDocument.head.appendChild(style);
 }
 
 function removeUnicornWatermark(container: HTMLElement) {

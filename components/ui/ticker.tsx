@@ -24,7 +24,7 @@ export function Ticker({
 }: TickerProps) {
     const [trackSizePx, setTrackSizePx] = React.useState(0);
 
-    const track = (el: HTMLSpanElement | null) => {
+    const trackRef = (el: HTMLSpanElement | null) => {
         if (el) {
             setTrackSizePx((prev) =>
                 prev === el.offsetWidth ? prev : el.offsetWidth
@@ -45,7 +45,7 @@ export function Ticker({
                 { "direction-reverse": direction === "right" },
                 className
             )}
-            ref={track}
+            ref={trackRef}
             style={trackStyle}
         >
             {Array.from({ length: REPEAT_COUNT }, (_, index) => (

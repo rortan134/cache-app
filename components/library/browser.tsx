@@ -5593,13 +5593,15 @@ export function BrowserRoot({
         placeholder = "Ask Cache anything";
     }
 
+    const sectionStyle: React.CSSProperties & Record<string, string> = {
+        "--library-section-sticky-top": "8px",
+    };
+
     return (
         <div
             className="relative z-0 flex w-full min-w-0 flex-1 flex-col gap-4 p-8"
             ref={containerRef}
-            style={
-                { "--library-section-sticky-top": "8px" } as React.CSSProperties
-            }
+            style={sectionStyle}
         >
             <Composer>
                 <ComposerInput
@@ -5819,6 +5821,7 @@ export function BrowserRoot({
                                     autoFocus
                                     className="-mx-[calc(--spacing(3)-1px)] font-semibold text-xl"
                                     id={createResultsNameInputId}
+                                    isUnstyled
                                     maxLength={COLLECTION_NAME_MAX_LENGTH}
                                     onChange={(event) => {
                                         setCreateResultsNameDraft(
@@ -5832,7 +5835,6 @@ export function BrowserRoot({
                                     required
                                     size="lg"
                                     type="text"
-                                    unstyled
                                     value={createResultsNameDraft}
                                 />
                             </div>
@@ -5846,6 +5848,7 @@ export function BrowserRoot({
                                 <Textarea
                                     className="-mx-[calc(--spacing(3)-1px)] *:resize-none"
                                     id={createResultsDescriptionId}
+                                    isUnstyled
                                     maxLength={1024}
                                     onChange={(event) => {
                                         setCreateResultsDescriptionDraft(
@@ -5854,7 +5857,6 @@ export function BrowserRoot({
                                     }}
                                     placeholder="Describe what belongs here..."
                                     size="lg"
-                                    unstyled
                                     value={createResultsDescriptionDraft}
                                 />
                             </div>

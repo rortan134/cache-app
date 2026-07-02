@@ -332,6 +332,7 @@ export function AutomationComposerDialog({
                                 autoFocus
                                 className="-mx-[calc(--spacing(3)-1px)] font-semibold text-xl"
                                 id={titleId}
+                                isUnstyled
                                 onChange={(event) =>
                                     updateFormState({
                                         title: event.currentTarget.value,
@@ -341,7 +342,6 @@ export function AutomationComposerDialog({
                                 required
                                 size="lg"
                                 type="text"
-                                unstyled
                                 value={formState.title}
                             />
                         </div>
@@ -355,6 +355,7 @@ export function AutomationComposerDialog({
                             <Textarea
                                 className="-mx-[calc(--spacing(3)-1px)] *:resize-none"
                                 id={promptId}
+                                isUnstyled
                                 onChange={(event) =>
                                     updateFormState({
                                         prompt: event.currentTarget.value,
@@ -364,7 +365,6 @@ export function AutomationComposerDialog({
                                 required
                                 rows={6}
                                 size="lg"
-                                unstyled
                                 value={formState.prompt}
                             />
                         </div>
