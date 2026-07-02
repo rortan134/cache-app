@@ -196,7 +196,7 @@ const NOTE_WORD_SEPARATOR = /\s+/;
 const log = createLogger("library:notes");
 
 const NOTE_NON_EMPTY_BLOCK_TAG_REGEX =
-    /<(h[1-3]|p)>(?!(?:\s|<br\s*\/?>)*<\/\1>)[\s\S]*?<\/\1>/gi;
+    /<(h[1-3]|p)>(?!(?:\s|<br\s*\/?>)*<\/\1>)[\s\S]*?<\/\1>/i;
 
 const NOTE_BLOCK_OPTIONS = [
     { ariaLabel: "Paragraph", label: "Text", value: "paragraph" },

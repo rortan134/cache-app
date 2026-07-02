@@ -361,8 +361,8 @@ export default async function Home() {
                                     Search and explore from a single, fast feed
                                 </h2>
                                 <p className="text-pretty font-medium text-base text-foreground leading-[1.2] tracking-[-3%] opacity-50">
-                                    Streamline the way you re-engage with your
-                                    saved content through a modern and powerful
+                                    Streamline the way you revisit your saved
+                                    content through a modern and powerful
                                     interface, right in your browser.
                                 </p>
                             </T>
@@ -621,9 +621,9 @@ export default async function Home() {
                                         You don't have to use Cache.
                                     </span>{" "}
                                     Let your AI agents use it with{" "}
-                                    <ModelContextProtocolIcon /> MCP and empower
-                                    them with the full spectrum of your
-                                    resources.
+                                    <ModelContextProtocolIcon /> MCP (Model
+                                    Context Protocol) and empower them with the
+                                    full spectrum of your resources.
                                 </p>
                             </T>
                         </div>
