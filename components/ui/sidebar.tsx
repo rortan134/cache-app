@@ -185,6 +185,7 @@ export function SidebarTrigger({
     return (
         <Button
             {...props}
+            aria-label={open ? "Close sidebar" : "Open sidebar"}
             className={cn(
                 "hidden h-8 min-h-8 min-w-8 opacity-50 hover:opacity-100 lg:inline-flex",
                 open ? "cursor-w-resize" : "cursor-e-resize",
@@ -216,7 +217,6 @@ export function SidebarTrigger({
                     focusable="false"
                 />
             )}
-            <span className="sr-only">Toggle Sidebar</span>
         </Button>
     );
 }

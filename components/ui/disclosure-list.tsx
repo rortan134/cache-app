@@ -55,11 +55,7 @@ function DisclosureListHidden({ items }: DisclosureListHiddenProps) {
         <Collapsible onOpenChange={setIsOpen} open={isOpen}>
             <CollapsibleTrigger
                 className="flex w-full items-center px-2.5 py-1.5 text-muted-foreground text-xs hover:text-foreground"
-                title={
-                    isOpen
-                        ? "Show fewer items"
-                        : `Show ${items.length} more items`
-                }
+                title={isOpen ? "Show less" : `Show ${items.length} more`}
             >
                 {isOpen ? "Show less" : `Show ${items.length} more`}
             </CollapsibleTrigger>

@@ -375,7 +375,7 @@ export function PriorityNoneIcon({
 }: React.SVGProps<SVGSVGElement>) {
     return (
         <svg
-            aria-label="No Priority"
+            aria-label="No priority"
             className={cn("size-6 shrink-0", className)}
             focusable="false"
             height="16"
@@ -496,7 +496,7 @@ export function ShareArrowSolidIcon({
 }: React.SVGProps<SVGSVGElement>) {
     return (
         <svg
-            aria-label="Share Arrow"
+            aria-label="Share arrow"
             className={cn("inline-block size-5 shrink-0", className)}
             fill="currentColor"
             focusable="false"

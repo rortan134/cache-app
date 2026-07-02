@@ -87,7 +87,7 @@ export function CarouselControls() {
             <Button
                 className="rounded-full"
                 render={
-                    <BlossomPrev aria-label="Previous slides" for={id}>
+                    <BlossomPrev aria-label="Previous" for={id}>
                         <ChevronLeft
                             aria-hidden
                             className="size-5"
@@ -101,7 +101,7 @@ export function CarouselControls() {
             <Button
                 className="rounded-full"
                 render={
-                    <BlossomNext aria-label="Next slides" for={id}>
+                    <BlossomNext aria-label="Next" for={id}>
                         <ChevronRight
                             aria-hidden
                             className="size-5"

@@ -52,7 +52,7 @@ export function Footer() {
                                     rel="noreferrer noopener"
                                     target="_blank"
                                 >
-                                    <p>Github</p>
+                                    <p>GitHub</p>
                                 </Link>
                             </div>
                             <p className="opacity-50">

@@ -64,7 +64,7 @@ const ONBOARDING_TASK_META = [
     },
     {
         id: "command",
-        label: "Try out the Command",
+        label: "Try the Command",
     },
     {
         id: "share",

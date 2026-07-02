@@ -152,7 +152,7 @@ export function ComposerInput({
                     }
                 />
                 <CommandPopup className="max-w-2xl">
-                    <CommandEmpty>No matching commands found.</CommandEmpty>
+                    <CommandEmpty>No matching commands</CommandEmpty>
                     <CommandStatus />
                     <CommandList className="max-w-2xl">
                         {filteredGroups.map((group) => (

@@ -655,7 +655,7 @@ function buildCommandSuggestions({
         if (groupBy !== "none") {
             addSuggestion({
                 icon: <Layers3 className={SUGGESTION_ICON_CLASS} />,
-                label: "Clear grouping",
+                label: "Ungroup",
                 onSelect: commitSelection(() => setGroupBy("none")),
             });
         }
@@ -1934,7 +1934,7 @@ function BrowserFiltersEmpty() {
                 No saved items match the current search and filters.
             </p>
             <Button onClick={clearLibraryPalette} size="sm" variant="outline">
-                Reset browser
+                Reset filters
             </Button>
         </div>
     );

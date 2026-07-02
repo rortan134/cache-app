@@ -890,7 +890,7 @@ function NoteRoot({
     const deferredContentHtml = useDeferredValue(draft.contentHtml);
     const textMetrics = getNoteTextMetrics(deferredContentHtml);
     const query = textMetrics.plainText;
-    const title = note ? "Edit note" : "New entry";
+    const title = note ? "Edit note" : "New note";
     const isBusy = isSaving || isClosing;
 
     return (

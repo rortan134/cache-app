@@ -363,7 +363,7 @@ const VIEW_OPTIONS = [
 const TEMPLATES = [
     {
         description:
-            "Articles, essays, and references worth reading when you have time.",
+            "Articles, essays, and references to read when you have time.",
         name: "Reading List",
         value: "reading_list",
     },
@@ -386,8 +386,7 @@ const TEMPLATES = [
         value: "reference_shelf",
     },
     {
-        description:
-            "Apps, services, libraries, and useful tools worth keeping handy.",
+        description: "Apps, services, libraries, and tools to keep handy.",
         name: "Tools & Resources",
         value: "tools_resources",
     },
