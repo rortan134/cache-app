@@ -55,7 +55,6 @@ const LOG_LEVEL_ORDER = [
     LOG_LEVEL.WARN,
     LOG_LEVEL.ERROR,
 ];
-const NODE_ENV = process.env.NODE_ENV ?? "development";
 const ANSI_RESET = "\u001b[0m";
 const ANSI_COLOR_BY_LEVEL: Record<LogLevel, string> = {
     DEBUG: "\u001b[34m",
@@ -93,20 +92,19 @@ function getLogConfig() {
     }
 }
 
-const LOG_CONFIG_FOR_ENV = getLogConfig();
-
 function colorizeLogPart(value: string, color: string): string {
     return `${color}${value}${ANSI_RESET}`;
 }
 
 function stringifyLogValue(value: unknown): string {
     try {
+        const nodeEnv = getNodeEnv();
         return JSON.stringify(
             formatLogValue(value, {
-                includeErrorStack: NODE_ENV === "development",
+                includeErrorStack: nodeEnv === "development",
             }),
             null,
-            NODE_ENV === "development" ? 2 : 0
+            nodeEnv === "development" ? 2 : 0
         );
     } catch {
         return "[Circular or Non-Serializable Object]";
@@ -131,14 +129,12 @@ export class Logger {
         this.#module = module;
     }
 
-    #shouldLog(level: LogLevel): boolean {
-        if (!LOG_CONFIG_FOR_ENV.enabled) {
+    #shouldLog(level: LogLevel, config = getLogConfig()): boolean {
+        if (!config.enabled) {
             return false;
         }
 
-        const minLevelIndex = LOG_LEVEL_ORDER.indexOf(
-            LOG_CONFIG_FOR_ENV.minLevel
-        );
+        const minLevelIndex = LOG_LEVEL_ORDER.indexOf(config.minLevel);
         const currentLevelIndex = LOG_LEVEL_ORDER.indexOf(level);
 
         return currentLevelIndex >= minLevelIndex;
@@ -163,14 +159,15 @@ export class Logger {
      * Internal method to log a message with the specified level
      */
     #log(level: LogLevel, message: string, ...args: unknown[]) {
-        if (!this.#shouldLog(level)) {
+        const config = getLogConfig();
+        if (!this.#shouldLog(level, config)) {
             return;
         }
 
         const timestamp = new Date().toISOString();
         const formattedArgs = this.#formatArgs(args);
 
-        if (LOG_CONFIG_FOR_ENV.colorize) {
+        if (config.colorize) {
             const coloredPrefix = `${colorizeLogPart(`[${timestamp}]`, ANSI_GRAY)} ${colorizeLogPart(`[${level}]`, ANSI_COLOR_BY_LEVEL[level])} ${colorizeLogPart(`[${this.#module}]`, ANSI_CYAN)}`;
 
             if (level === LOG_LEVEL.ERROR) {

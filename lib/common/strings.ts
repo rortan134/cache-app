@@ -55,7 +55,7 @@ export function normalizeCollectionName(name: string): {
     const normalizedName = normalizeWhitespace(name);
     return {
         name: normalizedName,
-        nameKey: normalizedName.toLocaleLowerCase(),
+        nameKey: normalizedName.toLowerCase(),
     };
 }
 

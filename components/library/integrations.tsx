@@ -1,9 +1,6 @@
 "use client";
 
-import {
-    RssManageDialog,
-    rssManageStore,
-} from "@/components/library/rss/manage-dialog";
+import { RssManageDialog, rssManageStore } from "@/components/library/rss";
 import { FeedbackWidget } from "@/components/support/feedback-widget";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";

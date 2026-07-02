@@ -81,7 +81,12 @@ export const isLocalUrl = (link: string | null) => {
         return true;
     }
     if (typeof location !== "undefined") {
-        return link.includes(location.origin);
+        try {
+            const parsed = new URL(link);
+            return parsed.origin === location.origin;
+        } catch {
+            return false;
+        }
     }
     return false;
 };

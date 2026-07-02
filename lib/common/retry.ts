@@ -18,7 +18,10 @@ function sleep(ms: number, signal?: AbortSignal) {
             reject(new DOMException("The operation was aborted", "AbortError"));
             return;
         }
-        const timer = setTimeout(resolve, ms);
+        const timer = setTimeout(() => {
+            signal?.removeEventListener("abort", onAbort);
+            resolve();
+        }, ms);
         const onAbort = () => {
             clearTimeout(timer);
             reject(new DOMException("The operation was aborted", "AbortError"));

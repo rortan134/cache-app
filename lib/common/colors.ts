@@ -219,7 +219,7 @@ export function getColorGradientFromName(name: string): string {
     const rgb = [color.r, color.g, color.b] as const;
     const hue = rgbToHue(rgb[0], rgb[1], rgb[2]);
     const chromaBias = clamp(
-        (Math.max(...rgb) - Math.min(...rgb)) / RGB_MAX,
+        Math.max(...rgb) - Math.min(...rgb),
         GRADIENT_CHROMA_CLAMP_MIN,
         GRADIENT_CHROMA_CLAMP_MAX
     );
