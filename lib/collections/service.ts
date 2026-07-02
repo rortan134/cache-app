@@ -28,9 +28,9 @@ import {
 import { prisma } from "@/prisma";
 import { Prisma } from "@/prisma/client/client";
 import {
+    AutomationRunStatus,
     AutomationStatus,
     AutomationTemplateKey,
-    AutomationRunStatus,
     type CollectionPriority,
     type LibraryItemSource,
 } from "@/prisma/client/enums";
@@ -923,7 +923,7 @@ export async function listLibraryItems(
         where.collections = { some: { id: args.collectionId } };
     }
 
-    const [items, total] = await prisma.$transaction([
+    const [items, total] = await Promise.all([
         prisma.libraryItem.findMany({
             include: LIBRARY_ITEM_COLLECTIONS_INCLUDE,
             orderBy: [
@@ -999,9 +999,11 @@ export async function listCollections(
  * The built-in automation is the durable preference source; pending runs are
  * deleted to match `pauseAutomation` semantics.
  */
-export async function disableSmartCollectionsForUser(
-    userId: string
-): Promise<void> {
+export async function disableSmartCollections({
+    userId,
+}: {
+    userId: string;
+}): Promise<void> {
     await prisma.$transaction(async (tx) => {
         const automation = await tx.automation.findFirst({
             select: { id: true },
@@ -1031,29 +1033,7 @@ export async function disableSmartCollectionsForUser(
     });
 }
 
-export function countLibraryItems(args: { userId: string }): Promise<number> {
-    return prisma.libraryItem.count({
-        where: {
-            kind: { not: ITEM_KIND_FOLDER },
-            userId: args.userId,
-        },
-    });
-}
-
-export function listLibraryItemSources(args: {
-    userId: string;
-}): Promise<Array<{ source: LibraryItemSource }>> {
-    return prisma.libraryItem.findMany({
-        distinct: ["source"],
-        select: { source: true },
-        where: {
-            kind: { not: ITEM_KIND_FOLDER },
-            userId: args.userId,
-        },
-    });
-}
-
-export async function getLibraryItems(args: {
+export async function getLibrary(args: {
     hasAccess: boolean;
     limit?: number;
     userId: string;
@@ -1073,33 +1053,9 @@ export async function getLibraryItems(args: {
         LIBRARY_ITEMS_PAGE_LIMIT_MAX
     );
 
-    if (args.hasAccess) {
-        const [items, totalItemCount, itemSources] = await Promise.all([
-            prisma.libraryItem.findMany({
-                include: LIBRARY_ITEM_COLLECTIONS_INCLUDE,
-                orderBy: [
-                    { scrapedAt: SORT_DESC },
-                    { updatedAt: SORT_DESC },
-                    { id: SORT_DESC },
-                ],
-                take: limit,
-                where: itemWhere,
-            }),
-            prisma.libraryItem.count({ where: itemWhere }),
-            prisma.libraryItem.findMany({
-                distinct: ["source"],
-                select: { source: true },
-                where: itemWhere,
-            }),
-        ]);
-
-        return {
-            itemSources,
-            items: items.map(toLibraryItemWithCollections),
-            lockedItemCount: Math.max(totalItemCount - items.length, 0),
-            totalItemCount,
-        };
-    }
+    const effectiveLimit = args.hasAccess
+        ? limit
+        : Math.min(limit, FREE_LIBRARY_PREVIEW_ITEMS);
 
     const [items, totalItemCount, itemSources] = await Promise.all([
         prisma.libraryItem.findMany({
@@ -1109,7 +1065,7 @@ export async function getLibraryItems(args: {
                 { updatedAt: SORT_DESC },
                 { id: SORT_DESC },
             ],
-            take: Math.min(limit, FREE_LIBRARY_PREVIEW_ITEMS),
+            take: effectiveLimit,
             where: itemWhere,
         }),
         prisma.libraryItem.count({ where: itemWhere }),

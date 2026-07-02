@@ -2,6 +2,8 @@
 
 import { isUnauthenticated, requireActionUserId } from "@/lib/auth/session";
 import {
+    COLLECTION_VALIDATION_MESSAGES,
+    STATUS_MAP_DUPLICATE_OR_NOT_FOUND,
     STATUS_MAP_NOT_FOUND,
     collectionNameSchema,
     uniqueStrings,
@@ -15,7 +17,7 @@ import {
     getValidationErrorMessage,
     handleActionError,
 } from "@/lib/common/action";
-import { DESCRIPTION_MAX_LENGTH } from "@/lib/common/constants";
+import { ACTION_STATUS, DESCRIPTION_MAX_LENGTH } from "@/lib/common/constants";
 import { createLogger } from "@/lib/common/logs/console/logger";
 import type { CollectionPriority } from "@/prisma/client/enums";
 import * as z from "zod";
@@ -23,11 +25,6 @@ import { LibraryCollectionError } from "./error";
 import * as service from "./service";
 
 const log = createLogger("library:actions");
-
-const STATUS_MAP_DUPLICATE_OR_NOT_FOUND = {
-    duplicate_name: "DUPLICATE",
-    not_found: "NOT_FOUND",
-} as const;
 
 const CollectionCreateInputSchema = z.object({
     assignToItemId: z.string().trim().min(1).optional(),
@@ -42,15 +39,24 @@ const CollectionCreateFromItemsInputSchema = z.object({
 });
 
 const CollectionDeleteInputSchema = z.object({
-    collectionId: z.string().trim().min(1, "Select a collection to delete."),
+    collectionId: z
+        .string()
+        .trim()
+        .min(1, COLLECTION_VALIDATION_MESSAGES.deleteIdRequired),
 });
 
 const CollectionDuplicateInputSchema = z.object({
-    collectionId: z.string().trim().min(1, "Select a collection to copy."),
+    collectionId: z
+        .string()
+        .trim()
+        .min(1, COLLECTION_VALIDATION_MESSAGES.duplicateIdRequired),
 });
 
 const CollectionPriorityUpdateInputSchema = z.object({
-    collectionId: z.string().trim().min(1, "Select a collection to update."),
+    collectionId: z
+        .string()
+        .trim()
+        .min(1, COLLECTION_VALIDATION_MESSAGES.manageIdRequired),
     priority: z.enum([
         "none",
         "very_relevant",
@@ -61,7 +67,10 @@ const CollectionPriorityUpdateInputSchema = z.object({
 });
 
 const CollectionRenameInputSchema = z.object({
-    collectionId: z.string().trim().min(1, "Select a collection to rename."),
+    collectionId: z
+        .string()
+        .trim()
+        .min(1, COLLECTION_VALIDATION_MESSAGES.renameIdRequired),
     name: collectionNameSchema,
 });
 
@@ -69,7 +78,7 @@ export type CollectionCreateResult =
     | {
           assignedItemId: string | null;
           collection: LibraryCollectionSummary;
-          status: "CREATED";
+          status: typeof ACTION_STATUS.CREATED;
       }
     | ActionErrorWithDuplicate;
 
@@ -77,14 +86,14 @@ export type CollectionCreateFromItemsResult =
     | {
           assignedItemIds: string[];
           collection: LibraryCollectionSummary;
-          status: "CREATED";
+          status: typeof ACTION_STATUS.CREATED;
       }
     | ActionErrorWithDuplicate;
 
 export type CollectionDeleteResult =
     | {
           collection: Pick<LibraryCollectionSummary, "id" | "name">;
-          status: "DELETED";
+          status: typeof ACTION_STATUS.DELETED;
       }
     | ActionError;
 
@@ -92,21 +101,21 @@ export type CollectionDuplicateResult =
     | {
           assignedItemIds: string[];
           collection: LibraryCollectionSummary;
-          status: "CREATED";
+          status: typeof ACTION_STATUS.CREATED;
       }
     | ActionError;
 
 export type CollectionPriorityUpdateResult =
     | {
           collection: LibraryCollectionTag;
-          status: "UPDATED";
+          status: typeof ACTION_STATUS.UPDATED;
       }
     | ActionError;
 
 export type CollectionRenameResult =
     | {
           collection: LibraryCollectionTag;
-          status: "UPDATED";
+          status: typeof ACTION_STATUS.UPDATED;
       }
     | ActionErrorWithDuplicate;
 
@@ -127,9 +136,9 @@ export async function createCollection(input: {
         return {
             message: getValidationErrorMessage(
                 parsed,
-                "Enter a valid collection name."
+                COLLECTION_VALIDATION_MESSAGES.nameRequired
             ),
-            status: "INVALID",
+            status: ACTION_STATUS.INVALID,
         };
     }
 
@@ -143,7 +152,7 @@ export async function createCollection(input: {
 
         return {
             ...result,
-            status: "CREATED",
+            status: ACTION_STATUS.CREATED,
         };
     } catch (error) {
         return handleActionError({
@@ -170,9 +179,9 @@ export async function createCollectionFromItems(input: {
         return {
             message: getValidationErrorMessage(
                 parsed,
-                "Enter a valid collection name and at least one saved item."
+                COLLECTION_VALIDATION_MESSAGES.nameAndItemsRequired
             ),
-            status: "INVALID",
+            status: ACTION_STATUS.INVALID,
         };
     }
 
@@ -193,7 +202,7 @@ export async function createCollectionFromItems(input: {
 
         return {
             ...result,
-            status: "CREATED",
+            status: ACTION_STATUS.CREATED,
         };
     } catch (error) {
         return handleActionError({
@@ -214,9 +223,9 @@ export async function deleteCollection(input: {
         return {
             message: getValidationErrorMessage(
                 parsed,
-                "Select a collection to delete."
+                COLLECTION_VALIDATION_MESSAGES.deleteIdRequired
             ),
-            status: "INVALID",
+            status: ACTION_STATUS.INVALID,
         };
     }
 
@@ -235,7 +244,7 @@ export async function deleteCollection(input: {
 
         return {
             collection,
-            status: "DELETED",
+            status: ACTION_STATUS.DELETED,
         };
     } catch (error) {
         return handleActionError({
@@ -256,9 +265,9 @@ export async function duplicateCollection(input: {
         return {
             message: getValidationErrorMessage(
                 parsed,
-                "Select a collection to copy."
+                COLLECTION_VALIDATION_MESSAGES.duplicateIdRequired
             ),
-            status: "INVALID",
+            status: ACTION_STATUS.INVALID,
         };
     }
 
@@ -277,7 +286,7 @@ export async function duplicateCollection(input: {
 
         return {
             ...result,
-            status: "CREATED",
+            status: ACTION_STATUS.CREATED,
         };
     } catch (error) {
         return handleActionError({
@@ -300,9 +309,9 @@ export async function renameCollection(input: {
         return {
             message: getValidationErrorMessage(
                 parsed,
-                "Enter a valid collection name."
+                COLLECTION_VALIDATION_MESSAGES.nameRequired
             ),
-            status: "INVALID",
+            status: ACTION_STATUS.INVALID,
         };
     }
 
@@ -322,7 +331,7 @@ export async function renameCollection(input: {
 
         return {
             collection,
-            status: "UPDATED",
+            status: ACTION_STATUS.UPDATED,
         };
     } catch (error) {
         return handleActionError({
@@ -344,9 +353,9 @@ export async function updateCollectionPriority(input: {
         return {
             message: getValidationErrorMessage(
                 parsed,
-                "Pick a valid priority before saving."
+                COLLECTION_VALIDATION_MESSAGES.priorityRequired
             ),
-            status: "INVALID",
+            status: ACTION_STATUS.INVALID,
         };
     }
 
@@ -366,7 +375,7 @@ export async function updateCollectionPriority(input: {
 
         return {
             collection,
-            status: "UPDATED",
+            status: ACTION_STATUS.UPDATED,
         };
     } catch (error) {
         return handleActionError({
@@ -381,8 +390,13 @@ export async function updateCollectionPriority(input: {
 }
 
 export async function disableSmartCollections(): Promise<
-    | { status: "DISABLED" }
-    | { message: string; status: "ERROR" | "UNAUTHORIZED" }
+    | { status: typeof ACTION_STATUS.DISABLED }
+    | {
+          message: string;
+          status:
+              | typeof ACTION_STATUS.ERROR
+              | typeof ACTION_STATUS.UNAUTHORIZED;
+      }
 > {
     const auth = await requireActionUserId(
         "Sign in again to manage smart collections."
@@ -392,9 +406,9 @@ export async function disableSmartCollections(): Promise<
     }
 
     try {
-        await service.disableSmartCollectionsForUser(auth.userId);
+        await service.disableSmartCollections({ userId: auth.userId });
 
-        return { status: "DISABLED" };
+        return { status: ACTION_STATUS.DISABLED };
     } catch (error) {
         return handleActionError({
             codeToStatus: {},
@@ -407,13 +421,16 @@ export async function disableSmartCollections(): Promise<
 }
 
 const MediaDownloadInputSchema = z.object({
-    url: z.string().trim().min(1, "A valid URL is required to download media."),
+    url: z
+        .string()
+        .trim()
+        .min(1, COLLECTION_VALIDATION_MESSAGES.downloadUrlRequired),
 });
 
 export type MediaDownloadResult =
     | {
           downloadUrl: string;
-          status: "SUCCESS";
+          status: typeof ACTION_STATUS.SUCCESS;
       }
     | ActionErrorWithoutNotFound;
 
@@ -423,9 +440,9 @@ export async function downloadMedia(url: string): Promise<MediaDownloadResult> {
         return {
             message: getValidationErrorMessage(
                 parsed,
-                "A valid URL is required to download media."
+                COLLECTION_VALIDATION_MESSAGES.downloadUrlRequired
             ),
-            status: "INVALID",
+            status: ACTION_STATUS.INVALID,
         };
     }
 
@@ -438,7 +455,7 @@ export async function downloadMedia(url: string): Promise<MediaDownloadResult> {
         const downloadUrl = await service.downloadMedia(parsed.data.url);
         return {
             downloadUrl,
-            status: "SUCCESS",
+            status: ACTION_STATUS.SUCCESS,
         };
     } catch (error) {
         return handleActionError({

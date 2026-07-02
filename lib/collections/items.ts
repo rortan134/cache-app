@@ -2,6 +2,7 @@
 
 import { isUnauthenticated, requireActionUserId } from "@/lib/auth/session";
 import {
+    COLLECTION_VALIDATION_MESSAGES,
     STATUS_MAP_NOT_FOUND,
     uniqueStrings,
     type ActionError,
@@ -14,6 +15,7 @@ import {
     handleActionError,
 } from "@/lib/common/action";
 import {
+    ACTION_STATUS,
     BATCH_UPDATE_MAX_ITEMS,
     MAX_COLLECTIONS_PER_BATCH,
     MAX_COLLECTIONS_PER_ITEM,
@@ -49,18 +51,21 @@ const LibraryItemDeleteInputSchema = z.object({
     itemId: z
         .string()
         .trim()
-        .min(1, "Select a saved item before trying to delete it."),
+        .min(1, COLLECTION_VALIDATION_MESSAGES.itemDeleteIdRequired),
 });
 
 const LibraryItemFavoriteToggleInputSchema = z.object({
-    itemId: z.string().trim().min(1, "Select a saved item before favoriting."),
+    itemId: z
+        .string()
+        .trim()
+        .min(1, COLLECTION_VALIDATION_MESSAGES.itemFavoriteIdRequired),
 });
 
 export type LibraryItemDeleteResult =
     | {
           collectionSummaries: LibraryCollectionSummary[];
           itemId: string;
-          status: "DELETED";
+          status: typeof ACTION_STATUS.DELETED;
       }
     | ActionError;
 
@@ -69,7 +74,7 @@ export type LibraryItemCollectionsUpdateResult =
           collectionSummaries: LibraryCollectionSummary[];
           collections: LibraryCollectionTag[];
           itemId: string;
-          status: "UPDATED";
+          status: typeof ACTION_STATUS.UPDATED;
       }
     | ActionError;
 
@@ -80,14 +85,14 @@ export type LibraryItemsCollectionsUpdateResult =
               collections: LibraryCollectionTag[];
               itemId: string;
           }>;
-          status: "UPDATED";
+          status: typeof ACTION_STATUS.UPDATED;
       }
     | ActionError;
 
 export type LibraryItemFavoriteToggleResult =
     | {
           item: LibraryItemWithCollections;
-          status: "UPDATED";
+          status: typeof ACTION_STATUS.UPDATED;
       }
     | ActionError;
 
@@ -99,9 +104,9 @@ export async function deleteLibraryItem(
         return {
             message: getValidationErrorMessage(
                 parsed,
-                "Select a saved item before trying to delete it."
+                COLLECTION_VALIDATION_MESSAGES.itemDeleteIdRequired
             ),
-            status: "INVALID",
+            status: ACTION_STATUS.INVALID,
         };
     }
 
@@ -120,7 +125,7 @@ export async function deleteLibraryItem(
 
         return {
             ...result,
-            status: "DELETED",
+            status: ACTION_STATUS.DELETED,
         };
     } catch (error) {
         return handleActionError({
@@ -148,8 +153,9 @@ export async function updateLibraryItemsCollections(input: {
 
     if (!parsed.success) {
         return {
-            message: "Pick valid collections and saved items before saving.",
-            status: "INVALID",
+            message:
+                COLLECTION_VALIDATION_MESSAGES.itemCollectionsBatchedIdRequired,
+            status: ACTION_STATUS.INVALID,
         };
     }
 
@@ -171,7 +177,7 @@ export async function updateLibraryItemsCollections(input: {
 
         return {
             ...result,
-            status: "UPDATED",
+            status: ACTION_STATUS.UPDATED,
         };
     } catch (error) {
         return handleActionError({
@@ -192,9 +198,9 @@ export async function toggleLibraryItemFavorite(
         return {
             message: getValidationErrorMessage(
                 parsed,
-                "Select a saved item before favoriting."
+                COLLECTION_VALIDATION_MESSAGES.itemFavoriteIdRequired
             ),
-            status: "INVALID",
+            status: ACTION_STATUS.INVALID,
         };
     }
 
@@ -213,7 +219,7 @@ export async function toggleLibraryItemFavorite(
 
         return {
             item: result.item,
-            status: "UPDATED",
+            status: ACTION_STATUS.UPDATED,
         };
     } catch (error) {
         return handleActionError({
@@ -237,8 +243,8 @@ export async function updateLibraryItemCollections(input: {
 
     if (!parsed.success) {
         return {
-            message: "Pick valid collections before saving.",
-            status: "INVALID",
+            message: COLLECTION_VALIDATION_MESSAGES.itemCollectionsIdRequired,
+            status: ACTION_STATUS.INVALID,
         };
     }
 
@@ -258,7 +264,7 @@ export async function updateLibraryItemCollections(input: {
 
         return {
             ...result,
-            status: "UPDATED",
+            status: ACTION_STATUS.UPDATED,
         };
     } catch (error) {
         return handleActionError({

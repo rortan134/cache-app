@@ -1,14 +1,17 @@
 "use server";
 
 import { isUnauthenticated, requireActionUserId } from "@/lib/auth/session";
-import type {
-    ActionError,
-    LibraryCollectionTag,
+import {
+    COLLECTION_VALIDATION_MESSAGES,
+    STATUS_MAP_NOT_FOUND,
+    type ActionError,
+    type LibraryCollectionTag,
 } from "@/lib/collections/utils";
 import {
     getValidationErrorMessage,
     handleActionError,
 } from "@/lib/common/action";
+import { ACTION_STATUS } from "@/lib/common/constants";
 import { createLogger } from "@/lib/common/logs/console/logger";
 import * as z from "zod";
 import { CollectionShareError } from "./error";
@@ -22,19 +25,29 @@ import { buildPublicCollectionShareUrl } from "./url";
 const log = createLogger("collection-sharing:actions");
 
 const CollectionShareInputSchema = z.object({
-    collectionId: z.string().trim().min(1, "Select a collection to share."),
+    collectionId: z
+        .string()
+        .trim()
+        .min(1, COLLECTION_VALIDATION_MESSAGES.shareIdRequired),
+});
+
+const CollectionShareDisableInputSchema = z.object({
+    collectionId: z
+        .string()
+        .trim()
+        .min(1, COLLECTION_VALIDATION_MESSAGES.unshareIdRequired),
 });
 
 interface SubscriptionRequiredActionError {
     message: string;
-    status: "SUBSCRIPTION_REQUIRED";
+    status: typeof ACTION_STATUS.SUBSCRIPTION_REQUIRED;
 }
 
 export type CollectionPublicShareResult =
     | {
           collection: SharedLibraryCollectionTag;
           shareUrl: string;
-          status: "SHARED";
+          status: typeof ACTION_STATUS.SHARED;
       }
     | ActionError
     | SubscriptionRequiredActionError;
@@ -42,7 +55,7 @@ export type CollectionPublicShareResult =
 export type CollectionPublicShareDisableResult =
     | {
           collection: LibraryCollectionTag;
-          status: "DISABLED";
+          status: typeof ACTION_STATUS.DISABLED;
       }
     | ActionError;
 
@@ -54,9 +67,9 @@ export async function shareCollectionPublicly(input: {
         return {
             message: getValidationErrorMessage(
                 parsed,
-                "Select a collection to share."
+                COLLECTION_VALIDATION_MESSAGES.shareIdRequired
             ),
-            status: "INVALID",
+            status: ACTION_STATUS.INVALID,
         };
     }
 
@@ -76,13 +89,13 @@ export async function shareCollectionPublicly(input: {
         return {
             collection,
             shareUrl: buildPublicCollectionShareUrl(collection.shareId),
-            status: "SHARED",
+            status: ACTION_STATUS.SHARED,
         };
     } catch (error) {
         return handleActionError({
             codeToStatus: {
-                not_found: "NOT_FOUND",
-                subscription_required: "SUBSCRIPTION_REQUIRED",
+                not_found: ACTION_STATUS.NOT_FOUND,
+                subscription_required: ACTION_STATUS.SUBSCRIPTION_REQUIRED,
             },
             error,
             errorFactory: CollectionShareError,
@@ -95,14 +108,14 @@ export async function shareCollectionPublicly(input: {
 export async function disableCollectionSharing(input: {
     collectionId: string;
 }): Promise<CollectionPublicShareDisableResult> {
-    const parsed = CollectionShareInputSchema.safeParse(input);
+    const parsed = CollectionShareDisableInputSchema.safeParse(input);
     if (!parsed.success) {
         return {
             message: getValidationErrorMessage(
                 parsed,
-                "Select a collection to stop sharing."
+                COLLECTION_VALIDATION_MESSAGES.unshareIdRequired
             ),
-            status: "INVALID",
+            status: ACTION_STATUS.INVALID,
         };
     }
 
@@ -121,11 +134,11 @@ export async function disableCollectionSharing(input: {
 
         return {
             collection,
-            status: "DISABLED",
+            status: ACTION_STATUS.DISABLED,
         };
     } catch (error) {
         return handleActionError({
-            codeToStatus: { not_found: "NOT_FOUND" },
+            codeToStatus: STATUS_MAP_NOT_FOUND,
             error,
             errorFactory: CollectionShareError,
             fallbackMessage:

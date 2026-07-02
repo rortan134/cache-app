@@ -1,3 +1,4 @@
+import { ACTION_STATUS } from "@/lib/common/constants";
 import { extractNamedErrorMessage } from "@/lib/common/error";
 import { createLogger, type Logger } from "@/lib/common/logs/console/logger";
 import type * as z from "zod";
@@ -21,7 +22,9 @@ interface ErrorFactory<Code extends string> {
     isInstance(error: unknown): error is ErrorWithCode<Code>;
 }
 
-type ActionErrorStatus<Status extends string> = "ERROR" | Status;
+type ActionErrorStatus<Status extends string> =
+    | typeof ACTION_STATUS.ERROR
+    | Status;
 
 export function handleActionError<Code extends string, Status extends string>({
     codeToStatus,
@@ -53,14 +56,18 @@ export function handleActionError<Code extends string, Status extends string>({
     log.error(fallbackMessage, error);
     return {
         message: fallbackMessage,
-        status: "ERROR",
+        status: ACTION_STATUS.ERROR,
     };
 }
 
 export function tryAction<TInput, TOutput extends { status: string }>(
     action: (input: TInput) => Promise<TOutput>,
     errorMessage: string
-): (input: TInput) => Promise<TOutput | { message: string; status: "ERROR" }> {
+): (
+    input: TInput
+) => Promise<
+    TOutput | { message: string; status: typeof ACTION_STATUS.ERROR }
+> {
     return async (input) => {
         try {
             return await action(input);
@@ -68,7 +75,7 @@ export function tryAction<TInput, TOutput extends { status: string }>(
             log.error("Server action failed before returning a result", {
                 error,
             });
-            return { message: errorMessage, status: "ERROR" as const };
+            return { message: errorMessage, status: ACTION_STATUS.ERROR };
         }
     };
 }

@@ -46,9 +46,11 @@ Bookmarking is broken. When you hit "save" on a tweet, a video, or a post, you a
 
 Cache exists because that signal is too valuable to waste. It treats the act of saving as a first-class event and builds the entire experience around turning that intent into action. It does not replace your platforms; it respects the intent behind why you use them and gives it a destination.
 
+## Quickstart
+
 ### Cloud-hosted: [www.cachd.app](https://www.cachd.app)
 
-<a href="https://www.cachd.app" target="_blank" rel="noopener noreferrer"><img src="https://img.shields.io/badge/cachd.app-000000?logo=vercel&logoColor=white" alt="cachd.app"></a>
+<a href="https://www.cachd.app" target="_blank" rel="noopener noreferrer"><img src="https://img.shields.io/badge/Open-cachd.app-3B3B3B?labelColor=1A1A1A" alt="Open cachd.app"></a>
 
 ### Self-hosting (Work-in-progress)
 

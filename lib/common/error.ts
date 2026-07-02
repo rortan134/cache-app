@@ -69,9 +69,8 @@ export abstract class NamedError extends Error {
 }
 
 export function extractNamedErrorMessage(e: unknown): {
-    name?: string;
-    operation?: string;
     message: string;
+    operation?: string;
 } {
     if (e instanceof NamedError) {
         const data = isRecord(e.data) ? e.data : undefined;
@@ -79,16 +78,19 @@ export function extractNamedErrorMessage(e: unknown): {
             typeof data?.operation === "string" ? data.operation : undefined;
         const message =
             (typeof data?.message === "string" && data.message) || e.message;
-        return { message, name: e.name, operation };
+        return { message, operation };
     }
 
-    const errObj = e as Error & {
-        data?: { message?: string; operation?: string };
-    };
+    const data = isRecord(e) && isRecord(e.data) ? e.data : undefined;
+    const errorMessage = e instanceof Error ? e.message : undefined;
+
     return {
-        message: errObj?.data?.message ?? errObj?.message ?? "Unknown error",
-        name: undefined,
-        operation: errObj?.data?.operation,
+        message:
+            (typeof data?.message === "string" && data.message) ||
+            errorMessage ||
+            "Unknown error",
+        operation:
+            typeof data?.operation === "string" ? data.operation : undefined,
     };
 }
 

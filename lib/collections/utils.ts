@@ -1,4 +1,5 @@
 import {
+    ACTION_STATUS,
     FALLBACK_URL,
     ITEM_KIND_BOOKMARK,
     SORT_ASC,
@@ -63,17 +64,29 @@ export interface LibraryCollectionSummaryRecord
 
 export interface ActionError {
     message: string;
-    status: "ERROR" | "INVALID" | "NOT_FOUND" | "UNAUTHORIZED";
+    status:
+        | typeof ACTION_STATUS.ERROR
+        | typeof ACTION_STATUS.INVALID
+        | typeof ACTION_STATUS.NOT_FOUND
+        | typeof ACTION_STATUS.UNAUTHORIZED;
 }
 
 export interface ActionErrorWithDuplicate {
     message: string;
-    status: "DUPLICATE" | "ERROR" | "INVALID" | "NOT_FOUND" | "UNAUTHORIZED";
+    status:
+        | typeof ACTION_STATUS.DUPLICATE
+        | typeof ACTION_STATUS.ERROR
+        | typeof ACTION_STATUS.INVALID
+        | typeof ACTION_STATUS.NOT_FOUND
+        | typeof ACTION_STATUS.UNAUTHORIZED;
 }
 
 export interface ActionErrorWithoutNotFound {
     message: string;
-    status: "ERROR" | "INVALID" | "UNAUTHORIZED";
+    status:
+        | typeof ACTION_STATUS.ERROR
+        | typeof ACTION_STATUS.INVALID
+        | typeof ACTION_STATUS.UNAUTHORIZED;
 }
 
 // ---------------------------------------------------------------------------
@@ -81,6 +94,25 @@ export interface ActionErrorWithoutNotFound {
 // ---------------------------------------------------------------------------
 
 export const COLLECTION_NAME_LENGTH_MAX = 64;
+
+export const COLLECTION_VALIDATION_MESSAGES = {
+    deleteIdRequired: "Select a collection to delete.",
+    downloadUrlRequired: "A valid URL is required to download media.",
+    duplicateIdRequired: "Select a collection to copy.",
+    itemCollectionsBatchedIdRequired:
+        "Pick valid collections and saved items before saving.",
+    itemCollectionsIdRequired: "Pick valid collections before saving.",
+    itemDeleteIdRequired: "Select a saved item before trying to delete it.",
+    itemFavoriteIdRequired: "Select a saved item before favoriting.",
+    manageIdRequired: "Select a collection to update.",
+    nameAndItemsRequired:
+        "Enter a valid collection name and at least one saved item.",
+    nameRequired: "Enter a valid collection name.",
+    priorityRequired: "Pick a valid priority before saving.",
+    renameIdRequired: "Select a collection to rename.",
+    shareIdRequired: "Select a collection to share.",
+    unshareIdRequired: "Select a collection to stop sharing.",
+} as const;
 
 export const collectionNameSchema = z
     .string()
@@ -130,7 +162,12 @@ export const LIBRARY_ITEM_COLLECTIONS_SELECT = {
 // ---------------------------------------------------------------------------
 
 export const STATUS_MAP_NOT_FOUND = {
-    not_found: "NOT_FOUND",
+    not_found: ACTION_STATUS.NOT_FOUND,
+} as const;
+
+export const STATUS_MAP_DUPLICATE_OR_NOT_FOUND = {
+    duplicate_name: ACTION_STATUS.DUPLICATE,
+    not_found: ACTION_STATUS.NOT_FOUND,
 } as const;
 
 // ---------------------------------------------------------------------------

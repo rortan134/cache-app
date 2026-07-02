@@ -6,7 +6,7 @@ import { Integrations } from "@/components/library/integrations";
 import { WorkspaceProvider } from "@/components/library/workspace";
 import { getServerSession } from "@/lib/auth/session";
 import { userHasActiveSubscription } from "@/lib/billing/service";
-import { getLibraryItems, listCollections } from "@/lib/collections/service";
+import { getLibrary, listCollections } from "@/lib/collections/service";
 import { gtPublicString } from "@/lib/i18n/gt-public-json";
 import { listLinkedIntegrationAccounts } from "@/lib/integrations/account";
 import {
@@ -55,7 +55,7 @@ export default async function LibraryPage() {
         collections,
         linkedAccounts,
     ] = await Promise.all([
-        getLibraryItems({ hasAccess, userId }),
+        getLibrary({ hasAccess, userId }),
         listCollections({ userId }),
         listLinkedIntegrationAccounts({ userId }),
     ]);
