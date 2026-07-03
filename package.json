@@ -42,7 +42,6 @@
         "@t3-oss/env-nextjs": "0.13.11",
         "@tavily/ai-sdk": "0.5.0",
         "@workflow/ai": "4.1.2",
-        "@workflow/world-postgres": "^4.2.0",
         "ai": "7.0.14",
         "better-auth": "1.6.23",
         "better-auth-localization": "3.0.0",
