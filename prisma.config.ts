@@ -1,16 +1,12 @@
 import "dotenv/config";
 import { defineConfig, env } from "prisma/config";
 
-const databaseUrl = new URL(env("DATABASE_URL"));
-const sslMode = databaseUrl.searchParams.get("sslmode");
+const DATABASE_URL = new URL(env("DATABASE_URL"));
 
-if (
-    sslMode &&
-    new Set(["prefer", "require", "verify-ca"]).has(sslMode.toLowerCase())
-) {
-    databaseUrl.searchParams.set("sslmode", "verify-full");
+if (!DATABASE_URL) {
+    throw new Error("DATABASE_URL env is not set.");
 }
 
 export default defineConfig({
-    datasource: { url: databaseUrl.href },
+    datasource: { url: DATABASE_URL.href },
 });

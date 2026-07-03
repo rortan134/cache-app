@@ -1,34 +1,15 @@
 import { PrismaPg } from "@prisma/adapter-pg";
-import { PrismaClient } from "./client/client";
-
-const SSL_MODE_ALIASES_REQUIRING_HOSTNAME_VERIFICATION = new Set([
-    "prefer",
-    "require",
-    "verify-ca",
-]);
+import { PrismaClient, type Prisma } from "./client/client";
 
 const globalForPrisma = global as unknown as {
     baseClient: PrismaClient;
 };
 
-const databaseUrl = process.env.DATABASE_URL;
-const parsedDatabaseUrl =
-    typeof databaseUrl === "string" ? new URL(databaseUrl) : null;
-const sslMode = parsedDatabaseUrl?.searchParams.get("sslmode");
-
-if (
-    parsedDatabaseUrl &&
-    sslMode &&
-    SSL_MODE_ALIASES_REQUIRING_HOSTNAME_VERIFICATION.has(sslMode.toLowerCase())
-) {
-    parsedDatabaseUrl.searchParams.set("sslmode", "verify-full");
-}
-
 const adapter = new PrismaPg({
-    connectionString: parsedDatabaseUrl?.href ?? databaseUrl,
+    connectionString: process.env.DATABASE_URL,
 });
 
-const prismaOptions = {
+const prismaOptions: Prisma.PrismaClientOptions = {
     adapter,
 };
 
