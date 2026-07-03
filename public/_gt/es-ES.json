@@ -113,23 +113,6 @@
       "t": "li"
     }
   ],
-  "389691a1b58a941e": {
-    "c": [
-      {
-        "c": "No hace falta que uses Cache.",
-        "i": 2,
-        "t": "span"
-      },
-      " Deja que tus agentes de IA lo usen con ",
-      {
-        "i": 3,
-        "t": "ModelContextProtocolIcon"
-      },
-      " MCP y pon a su alcance todo el abanico de tus recursos."
-    ],
-    "i": 1,
-    "t": "p"
-  },
   "3b205a1c17c06fbd": "Favoritos",
   "408574e37e8d91ee": "próximamente",
   "40d161f02a845459": [
@@ -236,18 +219,6 @@
   "634fd36cce8909a0": "Instala la extensión",
   "64b08e57a2f2e7b7": "Cómo tratamos y protegemos los datos personales de nuestros clientes.",
   "69cac161cf484cd9": "No hemos podido abrir el proceso de pago en este momento.",
-  "6ad8bb8e726daacf": [
-    {
-      "c": "Busca y explora desde un único feed ágil",
-      "i": 1,
-      "t": "h2"
-    },
-    {
-      "c": "Simplifica la forma en que vuelves a descubrir tu contenido guardado con una interfaz moderna y potente, directamente en tu navegador.",
-      "i": 2,
-      "t": "p"
-    }
-  ],
   "6b75fd08ca7c6ae3": [
     {
       "i": 1,
@@ -301,6 +272,18 @@
       ],
       "i": 4,
       "t": "li"
+    }
+  ],
+  "7cb5fccc5f748ea2": [
+    {
+      "c": "Busca y explora desde un feed único y rápido",
+      "i": 1,
+      "t": "h2"
+    },
+    {
+      "c": "Redescubre tu contenido guardado de forma más ágil con una interfaz moderna y potente, directamente en tu navegador.",
+      "i": 2,
+      "t": "p"
     }
   ],
   "7d288c9b77b0a60e": "Aviso legal y políticas",
@@ -384,6 +367,23 @@
   "b33e2234ec4ab823": "Plan gratuito",
   "b5d5276005980a36": "Creadores y desarrolladores",
   "b80f68728546aeb4": "Programa tareas que organicen tu biblioteca, investiguen temas, resuman contenidos y mucho más, todo en piloto automático",
+  "b8d28058e59c24f4": {
+    "c": [
+      {
+        "c": "No tienes que usar Cache.",
+        "i": 2,
+        "t": "span"
+      },
+      " Deja que tus agentes de IA lo usen con ",
+      {
+        "i": 3,
+        "t": "ModelContextProtocolIcon"
+      },
+      " MCP (Model Context Protocol) y pon a su alcance todos tus recursos."
+    ],
+    "i": 1,
+    "t": "p"
+  },
   "c1172428bea235ca": "Normas que regulan el uso del servicio, la gestión de tu cuenta y el uso aceptable.",
   "c26fd6852bfece9e": "Continuar con Google",
   "c4244c4a6f71e511": "Abrir en una pestaña nueva",

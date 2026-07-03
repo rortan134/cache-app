@@ -113,23 +113,6 @@
       "t": "li"
     }
   ],
-  "389691a1b58a941e": {
-    "c": [
-      {
-        "c": "Você não precisa usar o Cache.",
-        "i": 2,
-        "t": "span"
-      },
-      " Deixe seus agentes de IA usarem com ",
-      {
-        "i": 3,
-        "t": "ModelContextProtocolIcon"
-      },
-      " MCP e dê a eles acesso a toda a variedade dos seus recursos."
-    ],
-    "i": 1,
-    "t": "p"
-  },
   "3b205a1c17c06fbd": "Favoritos",
   "408574e37e8d91ee": "em breve",
   "40d161f02a845459": [
@@ -236,18 +219,6 @@
   "634fd36cce8909a0": "Instale a extensão",
   "64b08e57a2f2e7b7": "Como processamos e protegemos os dados pessoais dos clientes.",
   "69cac161cf484cd9": "Não foi possível abrir o checkout agora.",
-  "6ad8bb8e726daacf": [
-    {
-      "c": "Pesquise e explore em um feed único e rápido",
-      "i": 1,
-      "t": "h2"
-    },
-    {
-      "c": "Simplifique a forma como você revisita seu conteúdo salvo com uma interface moderna e poderosa, direto no navegador.",
-      "i": 2,
-      "t": "p"
-    }
-  ],
   "6b75fd08ca7c6ae3": [
     {
       "i": 1,
@@ -301,6 +272,18 @@
       ],
       "i": 4,
       "t": "li"
+    }
+  ],
+  "7cb5fccc5f748ea2": [
+    {
+      "c": "Pesquise e explore em um feed único e rápido",
+      "i": 1,
+      "t": "h2"
+    },
+    {
+      "c": "Simplifique a forma de revisitar o que você salvou com uma interface moderna e poderosa, direto no navegador.",
+      "i": 2,
+      "t": "p"
     }
   ],
   "7d288c9b77b0a60e": "Jurídico e políticas",
@@ -384,6 +367,23 @@
   "b33e2234ec4ab823": "Plano gratuito",
   "b5d5276005980a36": "Criadores e desenvolvedores",
   "b80f68728546aeb4": "Agende tarefas que organizam sua biblioteca, pesquisam temas, fazem resumos e muito mais — tudo no piloto automático",
+  "b8d28058e59c24f4": {
+    "c": [
+      {
+        "c": "Você não precisa usar o Cache.",
+        "i": 2,
+        "t": "span"
+      },
+      " Deixe seus agentes de IA usarem o Cache com ",
+      {
+        "i": 3,
+        "t": "ModelContextProtocolIcon"
+      },
+      " MCP (Protocolo de Contexto de Modelo) e dê a eles acesso a toda a sua gama de recursos."
+    ],
+    "i": 1,
+    "t": "p"
+  },
   "c1172428bea235ca": "Regras que regem o uso do serviço, o gerenciamento da sua conta e o uso aceitável.",
   "c26fd6852bfece9e": "Continuar com Google",
   "c4244c4a6f71e511": "Abrir em uma nova guia",

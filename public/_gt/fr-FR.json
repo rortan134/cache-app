@@ -113,23 +113,6 @@
       "t": "li"
     }
   ],
-  "389691a1b58a941e": {
-    "c": [
-      {
-        "c": "Vous n’avez pas besoin d’utiliser Cache vous-même.",
-        "i": 2,
-        "t": "span"
-      },
-      " Laissez vos agents IA l’utiliser avec ",
-      {
-        "i": 3,
-        "t": "ModelContextProtocolIcon"
-      },
-      " MCP et donnez-leur accès à toute l’étendue de vos ressources."
-    ],
-    "i": 1,
-    "t": "p"
-  },
   "3b205a1c17c06fbd": "Favoris",
   "408574e37e8d91ee": "bientôt",
   "40d161f02a845459": [
@@ -236,18 +219,6 @@
   "634fd36cce8909a0": "Installer l’extension",
   "64b08e57a2f2e7b7": "Comment nous traitons et protégeons les données personnelles de nos clients.",
   "69cac161cf484cd9": "Nous ne pouvons pas ouvrir le paiement pour le moment.",
-  "6ad8bb8e726daacf": [
-    {
-      "c": "Recherchez et explorez depuis un flux unique et rapide",
-      "i": 1,
-      "t": "h2"
-    },
-    {
-      "c": "Retrouvez plus facilement vos contenus enregistrés grâce à une interface moderne et puissante, directement dans votre navigateur.",
-      "i": 2,
-      "t": "p"
-    }
-  ],
   "6b75fd08ca7c6ae3": [
     {
       "i": 1,
@@ -301,6 +272,18 @@
       ],
       "i": 4,
       "t": "li"
+    }
+  ],
+  "7cb5fccc5f748ea2": [
+    {
+      "c": "Recherchez et explorez depuis un flux unique et rapide",
+      "i": 1,
+      "t": "h2"
+    },
+    {
+      "c": "Retrouvez plus facilement vos contenus enregistrés grâce à une interface moderne et performante, directement dans votre navigateur.",
+      "i": 2,
+      "t": "p"
     }
   ],
   "7d288c9b77b0a60e": "Mentions légales et politiques",
@@ -384,6 +367,23 @@
   "b33e2234ec4ab823": "Forfait gratuit",
   "b5d5276005980a36": "Créateurs et développeurs",
   "b80f68728546aeb4": "Planifiez des tâches qui organisent votre bibliothèque, effectuent des recherches sur des sujets, résument du contenu et bien plus encore — le tout en mode autopilote",
+  "b8d28058e59c24f4": {
+    "c": [
+      {
+        "c": "Vous n’avez pas besoin d’utiliser Cache.",
+        "i": 2,
+        "t": "span"
+      },
+      " Laissez vos agents IA l’utiliser avec ",
+      {
+        "i": 3,
+        "t": "ModelContextProtocolIcon"
+      },
+      " MCP (Model Context Protocol) et donnez-leur accès à toute la richesse de vos ressources."
+    ],
+    "i": 1,
+    "t": "p"
+  },
   "c1172428bea235ca": "Règles régissant l’utilisation du service, la gestion de votre compte et l’utilisation autorisée.",
   "c26fd6852bfece9e": "Continuer avec Google",
   "c4244c4a6f71e511": "Ouvrir dans un nouvel onglet",
