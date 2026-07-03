@@ -12,7 +12,7 @@ interface BuildPageMetadataArgs {
     title: string;
 }
 
-const DEFAULT_OG_IMAGE = "/opengraph-image.png";
+const DEFAULT_OG_IMAGE = `${BASE_URL}/opengraph-image.png`;
 
 /**
  * Builds a standard Metadata object with alternates, Open Graph, and Twitter
