@@ -1,11 +1,6 @@
 import { createNextMiddleware } from "gt-next/middleware";
-import type { NextRequest } from "next/server";
 
-const gtMiddleware = createNextMiddleware();
-
-export function middleware(request: NextRequest) {
-    return gtMiddleware(request);
-}
+export default createNextMiddleware();
 
 export const config = {
     matcher: [
