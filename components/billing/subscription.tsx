@@ -9,7 +9,7 @@ import { isActiveSubscriptionStatus } from "@/lib/billing/subscription-status";
 import { getActiveSubscription } from "@/lib/billing/subscriptions";
 import { cn } from "@/lib/common/cn";
 import { useStableCallback } from "@base-ui/utils/useStableCallback";
-import { T, useLocale, Var } from "gt-next";
+import { T, Var } from "gt-next";
 import * as React from "react";
 import useSWR from "swr";
 
@@ -206,6 +206,12 @@ function SubscriptionStatusBadge() {
     );
 }
 
+function getReturnUrl() {
+    return typeof window === "undefined"
+        ? "/library"
+        : `${window.location.origin}/library`;
+}
+
 /**
  * Triggers Stripe Checkout redirection for the premium Pro plan.
  */
@@ -214,15 +220,13 @@ function SubscriptionUpgradeButton({
     variant = "ghost",
     ...props
 }: React.ComponentProps<typeof Button> & { annual?: boolean }) {
-    const returnUrl = useLibraryReturnUrl();
-
     const { errorMessage, execute, isPending } = useSubscriptionRedirectAction(
         () =>
             authClient.subscription.upgrade({
                 annual,
-                cancelUrl: returnUrl,
+                cancelUrl: getReturnUrl(),
                 plan: "pro",
-                successUrl: returnUrl,
+                successUrl: getReturnUrl(),
             }),
         <T>We couldn't open checkout right now.</T>
     );
@@ -248,12 +252,10 @@ function SubscriptionBillingPortalButton({
     variant = "ghost",
     ...props
 }: React.ComponentProps<typeof Button>) {
-    const returnUrl = useLibraryReturnUrl();
-
     const { errorMessage, execute, isPending } = useSubscriptionRedirectAction(
         () =>
             authClient.subscription.billingPortal({
-                returnUrl,
+                returnUrl: getReturnUrl(),
             }),
         <T>We couldn't open billing right now.</T>
     );
@@ -269,17 +271,6 @@ function SubscriptionBillingPortalButton({
             <SubscriptionErrorMessage>{errorMessage}</SubscriptionErrorMessage>
         </>
     );
-}
-
-/**
- * Resolves the localized callback URL for Stripe redirections. Defers origin
- * check to client-side interaction to prevent hydration mismatches during SSR.
- */
-/* @internal */
-function useLibraryReturnUrl() {
-    const locale = useLocale();
-    const origin = typeof window === "undefined" ? "" : window.location.origin;
-    return `${origin}/${locale}/library`;
 }
 
 /* @internal */

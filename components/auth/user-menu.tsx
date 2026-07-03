@@ -79,6 +79,8 @@ const FOOTER_LINKS = [
     { href: "/security", label: "Security" },
 ] as const;
 
+const DEVICE_SESSIONS_SWR_KEY = ["auth-user-menu:device-sessions"] as const;
+
 export function UserMenu(
     props: Omit<React.ComponentProps<typeof Menu>, "open" | "onOpenChange">
 ) {
@@ -394,7 +396,7 @@ function useUserMenuAccounts() {
         isLoading: isLoadingDeviceSessions,
         mutate: refreshDeviceSessions,
     } = useSWR(
-        activeSession ? ["auth-user-menu:device-sessions"] : null,
+        activeSession ? DEVICE_SESSIONS_SWR_KEY : null,
         listDeviceSessions
     );
 
@@ -623,7 +625,7 @@ function getAccountOptions(
             session: {
                 token: activeSession.session.token,
             },
-            user: { ...activeSession.user },
+            user: activeSession.user,
         },
         ...deviceSessions,
     ];
