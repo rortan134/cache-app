@@ -18,11 +18,16 @@ export async function sendEmail({
     to,
     subject,
     body,
-    from = serverEnv.EMAIL_FROM,
+    from: fromParam,
     cc,
     attachments,
     scheduledAt,
 }: SendEmailOptions) {
+    const from = fromParam ?? serverEnv.EMAIL_FROM;
+    if (!from) {
+        throw new Error("Missing sender email address");
+    }
+
     const { error } = await resend.emails.send({
         attachments,
         cc: cc && cc.length > 0 ? [...cc] : undefined,
