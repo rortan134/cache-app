@@ -724,7 +724,7 @@ async function writeToRedis(
         return;
     }
     try {
-        await redis.set(key, value, "EX", ttlSeconds);
+        await redis.set(key, value, { EX: ttlSeconds });
     } catch (error) {
         log.debug("Redis write failed", {
             error: error instanceof Error ? error.message : String(error),

@@ -1,6 +1,7 @@
 import { NamedError } from "@/lib/common/error";
 import { createLogger } from "@/lib/common/logs/console/logger";
-import { RedisClient } from "bun";
+import { createClient } from "redis";
+import type { RedisClientType } from "redis";
 import * as z from "zod";
 
 const log = createLogger("Redis");
@@ -15,16 +16,14 @@ const RedisConnectionError = NamedError.create(
 );
 export type RedisConnectionError = InstanceType<typeof RedisConnectionError>;
 
-// Global Redis client for singleton reuse
-// Bun's client manages connections, auto-pipelines, and reconnects automatically.
-let globalRedisClient: RedisClient | null = null;
+let globalRedisClient: RedisClientType | null = null;
 
 /**
  * Get a Redis client instance.
  * Returns null in browser environments or when Redis is not configured.
+ * The client auto-reconnects on disconnection.
  */
-export function getRedisClient(): RedisClient | null {
-    // SSR-safe: return null on the client side
+export function getRedisClient(): RedisClientType | null {
     if (typeof window !== "undefined") {
         return null;
     }
@@ -34,7 +33,6 @@ export function getRedisClient(): RedisClient | null {
     }
 
     try {
-        // Explicitly require REDIS_URL in production to avoid accidental localhost connections
         const url =
             process.env.REDIS_URL ||
             (process.env.NODE_ENV === "development"
@@ -46,19 +44,28 @@ export function getRedisClient(): RedisClient | null {
             return null;
         }
 
-        globalRedisClient = new RedisClient(url);
+        globalRedisClient = createClient({ url });
 
-        globalRedisClient.onconnect = () => {
+        globalRedisClient.on("error", (error) => {
+            log.error("Redis client error", { error });
+        });
+
+        globalRedisClient.on("connect", () => {
             log.info("Redis connection established");
-        };
+        });
 
-        globalRedisClient.onclose = (error) => {
-            if (error) {
-                log.error("Redis connection closed with error", { error });
-            } else {
-                log.warn("Redis connection closed");
-            }
-        };
+        globalRedisClient.on("end", () => {
+            log.warn("Redis connection closed");
+        });
+
+        globalRedisClient.on("reconnecting", () => {
+            log.debug("Redis reconnecting");
+        });
+
+        // Kick off connect eagerly so the client is ready by the first data request.
+        globalRedisClient.connect().catch((error) => {
+            log.error("Redis initial connect failed", { error });
+        });
 
         return globalRedisClient;
     } catch (error) {
@@ -68,18 +75,19 @@ export function getRedisClient(): RedisClient | null {
 }
 
 /**
- * Close the Redis connection.
+ * Close the Redis connection gracefully.
  * Important for proper cleanup in serverless environments.
  */
-export function closeRedisConnection(): void {
+export async function closeRedisConnection(): Promise<void> {
     if (!globalRedisClient) {
         return;
     }
 
     try {
-        globalRedisClient.close();
+        await globalRedisClient.quit();
     } catch (error) {
-        log.error("Error closing Redis connection", { error });
+        log.error("Error closing Redis connection gracefully", { error });
+        await globalRedisClient.destroy();
     } finally {
         globalRedisClient = null;
     }

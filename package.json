@@ -75,6 +75,7 @@
         "react-confetti-burst": "1.0.7",
         "react-dom": "19.2.7",
         "react-hotkeys-hook": "5.3.3",
+        "redis": "^6.1.0",
         "resend": "^6.17.0",
         "rss-parser": "^3.13.0",
         "server-only": "0.0.1",

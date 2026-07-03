@@ -66,7 +66,7 @@ export async function incrementMcpRateCounter(
         // `pexpire` is preferred so a partial-second drift doesn't cut the
         // window short; the worst case is we let a request through on the
         // 60.0001-second boundary, which is fine for a defense-in-depth cap.
-        await redis.pexpire(key, WINDOW_SECONDS * 1000);
+        await redis.pExpire(key, WINDOW_SECONDS * 1000);
     }
     const retryAfterSeconds = count > bucket.limit ? WINDOW_SECONDS : 0;
     return {
