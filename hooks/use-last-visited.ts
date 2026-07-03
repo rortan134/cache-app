@@ -86,10 +86,11 @@ export function useLastVisited(): {
     );
 
     const markVisited = useStableCallback((itemId: string) => {
-        const next = [
-            itemId,
-            ...lastVisitedItemIds.filter((id) => id !== itemId),
-        ].slice(0, HISTORY_LIMIT);
+        const current = cachedSnapshot ?? readLastVisitedItemIds();
+        const next = [itemId, ...current.filter((id) => id !== itemId)].slice(
+            0,
+            HISTORY_LIMIT
+        );
         cachedSnapshot = next;
         writeLastVisitedItemIds(next);
         emitChange();

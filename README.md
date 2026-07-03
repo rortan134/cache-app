@@ -33,7 +33,7 @@
 - **Smart Collections** — Organize entries into collections with AI-assisted relevance ranking.
 - **AI-Assisted Search** — Ask the Cache AI agent and search across all your saved content.
 - **AI-Powered Synthesis** — Create Automations to generate daily, weekly, and monthly digests, and much more. Cache even learns your preferences over time.
-- **Rich Notes** — First-party WYSIWYG notes alongside bookmarks.
+- **Note-taking** — First-party WYSIWYG notes alongside bookmarks.
 - **Browser Extension** — Chrome extension web clipper that captures and syncs saved content from anywhere.
 - **Export & Integrate** — Pipe results into other tools you already use. Share collections with others.
 - **Simple and Low Maintenance** — Cache is designed to be simple, low-maintenance, and always portable.

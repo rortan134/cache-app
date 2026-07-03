@@ -182,6 +182,16 @@ export function SidebarTrigger({
 }: React.ComponentProps<typeof Button>) {
     const { open, toggleSidebar } = useSidebar();
 
+    const handleClick = useStableCallback(
+        (event: React.MouseEvent<HTMLButtonElement>) => {
+            onClick?.(event);
+            if (event.defaultPrevented) {
+                return;
+            }
+            toggleSidebar();
+        }
+    );
+
     return (
         <Button
             {...props}
@@ -193,13 +203,7 @@ export function SidebarTrigger({
             )}
             data-sidebar="trigger"
             data-slot="sidebar-trigger"
-            onClick={(event) => {
-                onClick?.(event);
-                if (event.defaultPrevented) {
-                    return;
-                }
-                toggleSidebar();
-            }}
+            onClick={handleClick}
             size="icon-sm"
             title={open ? "Close sidebar" : "Open sidebar"}
             variant="ghost"
