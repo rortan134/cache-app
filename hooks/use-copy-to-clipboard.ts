@@ -38,7 +38,7 @@ export function useCopyToClipboard({
         }
 
         setIsCopied(true);
-        onCopy();
+        onCopy?.();
 
         if (timeoutMs !== 0) {
             timeoutManager.start(timeoutMs, () => {

@@ -13,7 +13,6 @@ interface ThemeSnapshot {
 
 const STORAGE_KEY = "t3code:theme";
 const MEDIA_QUERY = "(prefers-color-scheme: dark)";
-const DARK_MODE_ENABLED = true;
 const DEFAULT_THEME_SNAPSHOT: ThemeSnapshot = {
     systemDark: false,
     theme: "system",
@@ -44,9 +43,6 @@ function getStored(): Theme {
     }
     try {
         const raw = getOwnerWindow().localStorage.getItem(STORAGE_KEY);
-        if (raw === "dark" && !DARK_MODE_ENABLED) {
-            return "light";
-        }
         if (raw === "light" || raw === "dark" || raw === "system") {
             return raw;
         }
@@ -64,7 +60,6 @@ function ensureThemeColorMetaTag(): HTMLMetaElement {
     if (element) {
         return element;
     }
-
     element = ownerDocument.createElement("meta");
     element.name = THEME_COLOR_META_NAME;
     element.setAttribute("data-dynamic-theme-color", "true");
@@ -73,17 +68,19 @@ function ensureThemeColorMetaTag(): HTMLMetaElement {
 }
 
 function normalizeThemeColor(value: string | null | undefined): string | null {
-    const normalizedValue = value?.trim().toLowerCase();
+    const trimmed = value?.trim();
+    if (!trimmed) {
+        return null;
+    }
+    const normalized = trimmed.toLowerCase();
     if (
-        !normalizedValue ||
-        normalizedValue === "transparent" ||
-        normalizedValue === "rgba(0, 0, 0, 0)" ||
-        normalizedValue === "rgba(0 0 0 / 0)"
+        normalized === "transparent" ||
+        normalized === "rgba(0, 0, 0, 0)" ||
+        normalized === "rgba(0 0 0 / 0)"
     ) {
         return null;
     }
-
-    return value?.trim() ?? null;
+    return trimmed;
 }
 
 function resolveBrowserChromeSurface(): HTMLElement {
@@ -116,7 +113,6 @@ export function syncBrowserChromeTheme() {
     if (!backgroundColor) {
         return;
     }
-
     ownerDocument.documentElement.style.backgroundColor = backgroundColor;
     ownerDocument.body.style.backgroundColor = backgroundColor;
     ensureThemeColorMetaTag().setAttribute("content", backgroundColor);
@@ -132,23 +128,16 @@ function applyTheme(theme: Theme, suppressTransitions = false) {
     if (suppressTransitions) {
         documentElement.classList.add("no-transitions");
     }
-    const isDark =
-        DARK_MODE_ENABLED &&
-        (theme === "dark" || (theme === "system" && getSystemDark()));
+    const isDark = theme === "dark" || (theme === "system" && getSystemDark());
     documentElement.classList.toggle("dark", isDark);
     documentElement.style.colorScheme = isDark ? "dark" : "light";
     syncBrowserChromeTheme();
     if (suppressTransitions) {
-        // biome-ignore lint/suspicious/noUnusedExpressions: Force a reflow so the no-transitions class takes effect before removal
-        documentElement.offsetHeight;
+        documentElement.getBoundingClientRect();
         ownerWindow.requestAnimationFrame(() => {
             documentElement.classList.remove("no-transitions");
         });
     }
-}
-
-if (canUseDOM) {
-    applyTheme(getStored());
 }
 
 function getSnapshot(): ThemeSnapshot {
@@ -156,8 +145,7 @@ function getSnapshot(): ThemeSnapshot {
         return DEFAULT_THEME_SNAPSHOT;
     }
     const theme = getStored();
-    const systemDark =
-        DARK_MODE_ENABLED && theme === "system" ? getSystemDark() : false;
+    const systemDark = theme === "system" ? getSystemDark() : false;
 
     if (
         lastSnapshot &&
@@ -166,7 +154,6 @@ function getSnapshot(): ThemeSnapshot {
     ) {
         return lastSnapshot;
     }
-
     lastSnapshot = { systemDark, theme };
     return lastSnapshot;
 }
@@ -177,13 +164,10 @@ function getServerSnapshot() {
 
 function subscribe(listener: () => void): () => void {
     if (!canUseDOM) {
-        return () => {
-            // No-op during SSR
-        };
+        return () => undefined;
     }
     listeners.push(listener);
 
-    // Listen for system preference changes
     const ownerWindow = getOwnerWindow();
     const mq = ownerWindow.matchMedia(MEDIA_QUERY);
     const handleChange = () => {
@@ -194,7 +178,6 @@ function subscribe(listener: () => void): () => void {
     };
     mq.addEventListener("change", handleChange);
 
-    // Listen for storage changes from other tabs
     const handleStorage = (e: StorageEvent) => {
         if (e.key === STORAGE_KEY) {
             applyTheme(getStored(), true);
@@ -210,6 +193,10 @@ function subscribe(listener: () => void): () => void {
     };
 }
 
+if (canUseDOM) {
+    applyTheme(getStored());
+}
+
 export function useTheme() {
     const snapshot = useSyncExternalStore(
         subscribe,
@@ -217,7 +204,6 @@ export function useTheme() {
         getServerSnapshot
     );
     const theme = snapshot.theme;
-
     const colorScheme = snapshot.systemDark ? "dark" : "light";
     const resolvedTheme: "light" | "dark" =
         theme === "system" ? colorScheme : theme;
@@ -226,13 +212,11 @@ export function useTheme() {
         if (!hasThemeStorage()) {
             return;
         }
-        const theme = next === "dark" && !DARK_MODE_ENABLED ? "light" : next;
-        getOwnerWindow().localStorage.setItem(STORAGE_KEY, theme);
-        applyTheme(theme, true);
+        getOwnerWindow().localStorage.setItem(STORAGE_KEY, next);
+        applyTheme(next, true);
         emitChange();
     });
 
-    // Keep DOM in sync on mount/change
     useEffect(() => {
         applyTheme(theme);
     }, [theme]);

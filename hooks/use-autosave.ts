@@ -178,7 +178,7 @@ export function useAutosave({
             return;
         }
         debounceTimeout.start(delay, save);
-        return () => debounceTimeout.clear();
+        return debounceTimeout.clear;
     }, [enabled, isDirty, delay, save, debounceTimeout]);
 
     useEffect(

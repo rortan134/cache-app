@@ -1,5 +1,5 @@
 import { getOwnerWindow } from "@/lib/common/dom";
-import * as React from "react";
+import { useEffect } from "react";
 
 /**
  * Prevents the browser window from unloading when the given condition is met.
@@ -11,7 +11,7 @@ import * as React from "react";
 export const usePreventWindowUnload = (
     isEnabled: boolean | (() => boolean) = true
 ) => {
-    React.useEffect(() => {
+    useEffect(() => {
         const ownerWindow = getOwnerWindow();
 
         const handleBeforeUnload = (event: BeforeUnloadEvent) => {
