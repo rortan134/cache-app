@@ -1,6 +1,6 @@
 "use client";
 
-import { RssManageDialog, rssManageStore } from "@/components/library/rss";
+import { RssManageDialog, openRssManageDialog } from "@/components/library/rss";
 import { FeedbackWidget } from "@/components/support/feedback-widget";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -9,7 +9,7 @@ import {
     CollapsiblePanel,
     CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { DisclosureList } from "@/components/ui/disclosure-list";
+import { DisclosureListVertical } from "@/components/ui/disclosure-list";
 import { ChevronDownFilledIcon } from "@/components/ui/icons";
 import { CmdKbd, Kbd } from "@/components/ui/kbd";
 import {
@@ -131,7 +131,7 @@ export function Integrations({ connectedIntegrations }: IntegrationsProps) {
                 <T>Integrations</T>
             </IntegrationsListTrigger>
             <IntegrationsListPanel>
-                <DisclosureList maxVisible={6}>
+                <DisclosureListVertical maxVisible={6}>
                     {INTEGRATIONS.map(({ description, Icon, id, label }) => (
                         <IntegrationsListItem
                             className="group"
@@ -148,7 +148,7 @@ export function Integrations({ connectedIntegrations }: IntegrationsProps) {
                             label={label}
                         />
                     ))}
-                </DisclosureList>
+                </DisclosureListVertical>
                 <IntegrationsListFeedback />
                 <IntegrationsListPrivacyNotice />
                 <RssManageDialog />
@@ -338,7 +338,7 @@ function useIntegrationAction({
                 integration.behaviors.connect?.kind === "rss-manage" &&
                 role === "connect"
             ) {
-                rssManageStore.actions.setIsOpen(true);
+                openRssManageDialog();
                 setPendingRole(null);
                 return;
             }

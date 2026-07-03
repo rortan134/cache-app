@@ -19,6 +19,7 @@ import {
     type LibraryCollectionTag,
     type LibraryItemWithCollections,
 } from "@/lib/collections/utils";
+import { toggleValue, updateById } from "@/lib/common/arrays";
 import type { CollectionPriority } from "@/prisma/client/enums";
 import { useStableCallback } from "@base-ui/utils/useStableCallback";
 import * as React from "react";
@@ -296,11 +297,7 @@ export function WorkspaceProvider({
     });
 
     const toggleCollectionSelection = useStableCallback((id: string) => {
-        setSelectedCollectionIds((current) =>
-            current.includes(id)
-                ? current.filter((entryId) => entryId !== id)
-                : [...current, id]
-        );
+        setSelectedCollectionIds((current) => toggleValue(current, id));
     });
 
     const handleUpdateItemCollections = useStableCallback(
@@ -316,8 +313,15 @@ export function WorkspaceProvider({
                 requestVersion
             );
 
-            const previousCollections =
-                items.find((item) => item.id === itemId)?.collections ?? [];
+            const existingItem = items.find((item) => item.id === itemId);
+            if (!existingItem) {
+                return {
+                    message: "We couldn't update collections for this item.",
+                    status: "ERROR",
+                };
+            }
+
+            const previousCollections = existingItem.collections;
 
             const collectionIdSet = new Set(collectionIds);
             const optimisticCollections = sortCollections(
@@ -326,7 +330,10 @@ export function WorkspaceProvider({
                 )
             );
             setItems((current) =>
-                replaceItemCollections(current, itemId, optimisticCollections)
+                updateById(current, itemId, (item) => ({
+                    ...item,
+                    collections: optimisticCollections,
+                }))
             );
 
             let result: LibraryItemCollectionsUpdateResult;
@@ -358,11 +365,17 @@ export function WorkspaceProvider({
                     )
                 );
                 setItems((current) =>
-                    replaceItemCollections(current, itemId, result.collections)
+                    updateById(current, itemId, (item) => ({
+                        ...item,
+                        collections: result.collections,
+                    }))
                 );
             } else {
                 setItems((current) =>
-                    replaceItemCollections(current, itemId, previousCollections)
+                    updateById(current, itemId, (item) => ({
+                        ...item,
+                        collections: previousCollections,
+                    }))
                 );
             }
 
@@ -428,7 +441,10 @@ export function WorkspaceProvider({
                 : new Date();
 
             setItems((current) =>
-                replaceItemFavoritedAt(current, item.id, optimisticFavoritedAt)
+                updateById(current, item.id, (liveItem) => ({
+                    ...liveItem,
+                    favoritedAt: optimisticFavoritedAt,
+                }))
             );
 
             let result: LibraryItemFavoriteToggleResult;
@@ -451,15 +467,14 @@ export function WorkspaceProvider({
 
             if (result.status === "UPDATED") {
                 setItems((current) =>
-                    replaceItemWithFavoriteState(current, result.item)
+                    updateById(current, result.item.id, () => result.item)
                 );
             } else {
                 setItems((current) =>
-                    replaceItemFavoritedAt(
-                        current,
-                        item.id,
-                        previousFavoritedAt
-                    )
+                    updateById(current, item.id, (liveItem) => ({
+                        ...liveItem,
+                        favoritedAt: previousFavoritedAt,
+                    }))
                 );
             }
 
@@ -549,33 +564,6 @@ export function WorkspaceProvider({
 interface WorkspaceProviderProps {
     initialCollections: LibraryCollectionSummary[];
     initialItems: LibraryItemWithCollections[];
-}
-
-function replaceItemFavoritedAt(
-    items: LibraryItemWithCollections[],
-    itemId: string,
-    favoritedAt: Date | null
-): LibraryItemWithCollections[] {
-    return items.map((item) =>
-        item.id === itemId ? { ...item, favoritedAt } : item
-    );
-}
-
-function replaceItemWithFavoriteState(
-    items: LibraryItemWithCollections[],
-    item: LibraryItemWithCollections
-): LibraryItemWithCollections[] {
-    return items.map((entry) => (entry.id === item.id ? item : entry));
-}
-
-function replaceItemCollections(
-    items: LibraryItemWithCollections[],
-    itemId: string,
-    collections: LibraryCollectionTag[]
-): LibraryItemWithCollections[] {
-    return items.map((item) =>
-        item.id === itemId ? { ...item, collections } : item
-    );
 }
 
 export function appendCollection(

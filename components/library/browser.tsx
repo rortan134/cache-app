@@ -2269,13 +2269,15 @@ function BrowserGroupOverviewContent() {
     ) : (
         <div
             aria-busy={isLoading}
-            className={cn(
-                "fade-in-0 flex w-full animate-in items-start gap-2 text-xs leading-snug motion-reduce:animate-none",
-                isLoading && "opacity-60"
-            )}
+            className="fade-in-0 flex w-full animate-in items-start gap-2 text-xs leading-snug motion-reduce:animate-none"
             id={contentId}
         >
-            <Streamdown className="min-w-0 flex-1 whitespace-pre-line pt-1.5">
+            <Streamdown
+                className={cn("min-w-0 flex-1 whitespace-pre-line pt-1.5", {
+                    "shimmer shimmer-duration-1000 text-muted-foreground":
+                        isLoading,
+                })}
+            >
                 {summary && summary.length > 0
                     ? summary
                     : "Description is unavailable right now."}
@@ -2284,6 +2286,7 @@ function BrowserGroupOverviewContent() {
             <Button
                 aria-controls={contentId}
                 aria-expanded={isExpanded}
+                aria-pressed={isExpanded}
                 onClick={handleToggleExpanded}
                 size="xs"
                 variant="link"

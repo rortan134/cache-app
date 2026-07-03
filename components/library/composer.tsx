@@ -24,9 +24,9 @@ import {
     CommandStatus,
     useCommandFilter,
 } from "@/components/ui/command";
+import { DisclosureListHorizontal } from "@/components/ui/disclosure-list";
 import { CmdKbd, Kbd } from "@/components/ui/kbd";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
-import { TruncateAfter } from "@/components/ui/truncate-after";
 import { cn } from "@/lib/common/cn";
 import {
     Toolbar,
@@ -487,7 +487,7 @@ function ComposerInputEndAddon({
     return (
         <>
             {stackEntries.length === 0 ? <ComposerInputShortcuts /> : null}
-            <TruncateAfter
+            <DisclosureListHorizontal
                 badgeRender={
                     <Badge
                         className="inline-flex h-7! cursor-pointer rounded-full text-xs tabular-nums"
@@ -503,7 +503,7 @@ function ComposerInputEndAddon({
                         {entry.chip}
                     </React.Fragment>
                 ))}
-            </TruncateAfter>
+            </DisclosureListHorizontal>
         </>
     );
 }

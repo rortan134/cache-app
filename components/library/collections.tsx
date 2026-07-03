@@ -43,7 +43,7 @@ import {
     DialogPopup,
     DialogTitle,
 } from "@/components/ui/dialog";
-import { DisclosureList } from "@/components/ui/disclosure-list";
+import { DisclosureListVertical } from "@/components/ui/disclosure-list";
 import { GradientWaveText } from "@/components/ui/gradient-wave-text";
 import {
     ChevronDownFilledIcon,
@@ -2048,9 +2048,9 @@ function CollectionsListContent({ children }: CollectionsListContentProps) {
     }
 
     return (
-        <DisclosureList maxVisible={10}>
+        <DisclosureListVertical maxVisible={10}>
             {collectionSummaries.map(children)}
-        </DisclosureList>
+        </DisclosureListVertical>
     );
 }
 

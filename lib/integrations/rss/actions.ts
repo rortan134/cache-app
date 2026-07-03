@@ -5,7 +5,26 @@ import { getValidationErrorMessage } from "@/lib/common/action";
 import { createLogger } from "@/lib/common/logs/console/logger";
 import * as z from "zod";
 import { RssFeedError } from "./errors";
+import { sanitizeFeedError } from "./sanitize";
 import * as service from "./service";
+
+import type { Feed } from "./types";
+
+export interface FeedViewModel {
+    feedUrl: string;
+    id: string;
+    lastError: string | null;
+    title: string | null;
+}
+
+function toFeedViewModel(feed: Feed): FeedViewModel {
+    return {
+        feedUrl: feed.feedUrl,
+        id: feed.id,
+        lastError: sanitizeFeedError(feed.lastError),
+        title: feed.title,
+    };
+}
 
 const log = createLogger("integrations:rss:actions");
 
@@ -33,20 +52,7 @@ export type RemoveFeedResult =
     | { message: string; status: "ERROR" | "INVALID" | "UNAUTHORIZED" };
 
 export type ListFeedsResult =
-    | {
-          feeds: Array<{
-              createdAt: Date;
-              description: string | null;
-              feedUrl: string;
-              id: string;
-              lastError: string | null;
-              lastFetchedAt: Date | null;
-              siteUrl: string | null;
-              title: string | null;
-              updatedAt: Date;
-          }>;
-          status: "SUCCESS";
-      }
+    | { feeds: FeedViewModel[]; status: "SUCCESS" }
     | { message: string; status: "ERROR" | "UNAUTHORIZED" };
 
 export async function addFeed(input: {
@@ -136,7 +142,7 @@ export async function listFeeds(): Promise<ListFeedsResult> {
         const feeds = await service.listRssFeeds({
             userId: auth.userId,
         });
-        return { feeds, status: "SUCCESS" };
+        return { feeds: feeds.map(toFeedViewModel), status: "SUCCESS" };
     } catch (error) {
         log.error("List feeds failed", error);
         return {

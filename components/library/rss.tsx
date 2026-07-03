@@ -18,7 +18,7 @@ import {
     listFeeds,
     removeFeed,
     type AddFeedResult,
-    type ListFeedsResult,
+    type FeedViewModel,
 } from "@/lib/integrations/rss/actions";
 import { useStableCallback } from "@base-ui/utils/useStableCallback";
 import { Rss, Trash2 } from "lucide-react";
@@ -27,21 +27,116 @@ import { createStore } from "stan-js";
 
 const log = createLogger("library:rss:manage-dialog");
 
-export const rssManageStore = createStore({
-    isOpen: false,
-});
-export const { useStore: useRssManageStore } = rssManageStore;
+const { useStore: useRssManageStore, actions: rssManageStoreActions } =
+    createStore({
+        isOpen: false,
+    });
 
-interface Feed {
-    createdAt: Date;
-    description: string | null;
-    feedUrl: string;
-    id: string;
-    lastError: string | null;
-    lastFetchedAt: Date | null;
-    siteUrl: string | null;
-    title: string | null;
-    updatedAt: Date;
+export function openRssManageDialog() {
+    rssManageStoreActions.setIsOpen(true);
+}
+
+export function RssManageDialog() {
+    const { isOpen, setIsOpen } = useRssManageStore();
+    const [feeds, setFeeds] = React.useState<FeedViewModel[]>([]);
+    const [isLoadingFeeds, startLoadFeeds] = React.useTransition();
+    const [removingFeedIds, setRemovingFeedIds] = React.useState<Set<string>>(
+        new Set()
+    );
+
+    const loadFeeds = useStableCallback(() => {
+        startLoadFeeds(async () => {
+            try {
+                const result = await listFeeds();
+                if (result.status === "SUCCESS") {
+                    setFeeds(result.feeds);
+                } else {
+                    log.error("Failed to load feeds", result);
+                }
+            } catch (error) {
+                log.error("Failed to load feeds unexpectedly", error);
+            }
+        });
+    });
+
+    React.useEffect(() => {
+        if (isOpen) {
+            loadFeeds();
+        }
+    }, [isOpen, loadFeeds]);
+
+    const handleRemove = useStableCallback(async (feedId: string) => {
+        setRemovingFeedIds((prev) => new Set(prev).add(feedId));
+        try {
+            const result = await removeFeed({ feedId });
+            if (result.status === "SUCCESS") {
+                setFeeds((prev) => prev.filter((f) => f.id !== feedId));
+            } else {
+                log.error("Remove feed failed", result);
+            }
+        } catch (error) {
+            log.error("Remove feed failed unexpectedly", error);
+        } finally {
+            setRemovingFeedIds((prev) => {
+                const next = new Set(prev);
+                next.delete(feedId);
+                return next;
+            });
+        }
+    });
+
+    let feedContent: React.ReactNode;
+    if (isLoadingFeeds) {
+        feedContent = (
+            <p className="text-muted-foreground text-sm">Loading feeds...</p>
+        );
+    } else if (feeds.length === 0) {
+        feedContent = (
+            <p className="text-muted-foreground text-sm">
+                No feeds added yet. Paste a feed URL above to get started.
+            </p>
+        );
+    } else {
+        feedContent = (
+            <div className="flex flex-col gap-2">
+                {feeds.map((feed) => (
+                    <FeedRow
+                        feed={feed}
+                        isRemoving={removingFeedIds.has(feed.id)}
+                        key={feed.id}
+                        onRemove={() => handleRemove(feed.id)}
+                    />
+                ))}
+            </div>
+        );
+    }
+
+    const handleOpenChange = useStableCallback((open: boolean) => {
+        setIsOpen(open);
+    });
+
+    return (
+        <Dialog onOpenChange={handleOpenChange} open={isOpen}>
+            <DialogPopup>
+                <DialogHeader>
+                    <DialogTitle>Manage RSS feeds</DialogTitle>
+                    <DialogDescription>
+                        Add or remove RSS feeds to import entries into your
+                        library.
+                    </DialogDescription>
+                </DialogHeader>
+                <DialogPanel className="flex flex-col gap-4">
+                    <AddFeedForm onFeedAdded={loadFeeds} />
+                    {feedContent}
+                </DialogPanel>
+                <DialogFooter>
+                    <DialogClose render={<Button variant="ghost" />}>
+                        Done
+                    </DialogClose>
+                </DialogFooter>
+            </DialogPopup>
+        </Dialog>
+    );
 }
 
 function FeedRow({
@@ -49,7 +144,7 @@ function FeedRow({
     onRemove,
     isRemoving,
 }: {
-    feed: Feed;
+    feed: FeedViewModel;
     onRemove: () => void;
     isRemoving: boolean;
 }) {
@@ -135,98 +230,5 @@ function AddFeedForm({ onFeedAdded }: { onFeedAdded: () => void }) {
                 </p>
             ) : null}
         </form>
-    );
-}
-
-export function RssManageDialog() {
-    const { isOpen, setIsOpen } = useRssManageStore();
-    const [feeds, setFeeds] = React.useState<Feed[]>([]);
-    const [removingFeedIds, setRemovingFeedIds] = React.useState<Set<string>>(
-        new Set()
-    );
-    const [isInitialLoading, startInitialLoad] = React.useTransition();
-
-    const loadFeeds = useStableCallback(() => {
-        startInitialLoad(async () => {
-            const result: ListFeedsResult = await listFeeds();
-            if (result.status === "SUCCESS") {
-                setFeeds(result.feeds);
-            }
-        });
-    });
-
-    React.useEffect(() => {
-        if (isOpen) {
-            loadFeeds();
-        }
-    }, [isOpen, loadFeeds]);
-
-    const handleRemove = useStableCallback((feedId: string) => {
-        setRemovingFeedIds((prev) => new Set(prev).add(feedId));
-        startInitialLoad(async () => {
-            try {
-                const result = await removeFeed({ feedId });
-                if (result.status === "SUCCESS") {
-                    setFeeds((prev) => prev.filter((f) => f.id !== feedId));
-                } else {
-                    log.error("Remove feed failed", result);
-                }
-            } finally {
-                setRemovingFeedIds((prev) => {
-                    const next = new Set(prev);
-                    next.delete(feedId);
-                    return next;
-                });
-            }
-        });
-    });
-
-    const handleOpenChange = useStableCallback((open: boolean) => {
-        setIsOpen(open);
-    });
-
-    return (
-        <Dialog onOpenChange={handleOpenChange} open={isOpen}>
-            <DialogPopup>
-                <DialogHeader>
-                    <DialogTitle>Manage RSS feeds</DialogTitle>
-                    <DialogDescription>
-                        Add or remove RSS feeds to import entries into your
-                        library.
-                    </DialogDescription>
-                </DialogHeader>
-                <DialogPanel className="flex flex-col gap-4">
-                    <AddFeedForm onFeedAdded={loadFeeds} />
-                    {isInitialLoading ? (
-                        <p className="text-muted-foreground text-sm">
-                            Loading feeds...
-                        </p>
-                    ) : null}
-                    {!isInitialLoading && feeds.length === 0 ? (
-                        <p className="text-muted-foreground text-sm">
-                            No feeds added yet. Paste a feed URL above to get
-                            started.
-                        </p>
-                    ) : null}
-                    {!isInitialLoading && feeds.length > 0 ? (
-                        <div className="flex flex-col gap-2">
-                            {feeds.map((feed) => (
-                                <FeedRow
-                                    feed={feed}
-                                    isRemoving={removingFeedIds.has(feed.id)}
-                                    key={feed.id}
-                                    onRemove={() => handleRemove(feed.id)}
-                                />
-                            ))}
-                        </div>
-                    ) : null}
-                </DialogPanel>
-                <DialogFooter>
-                    <DialogClose render={<Button variant="ghost" />}>
-                        Done
-                    </DialogClose>
-                </DialogFooter>
-            </DialogPopup>
-        </Dialog>
     );
 }

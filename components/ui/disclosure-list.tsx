@@ -1,28 +1,28 @@
 "use client";
 
-import { cn } from "@/lib/common/cn";
 import {
     Collapsible,
     CollapsiblePanel,
     CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+import { Popover, PopoverPopup, PopoverTrigger } from "@/components/ui/popover";
+import { cn } from "@/lib/common/cn";
+import { clamp } from "@/lib/common/numbers";
+import { Calligraph } from "calligraph";
 import * as React from "react";
 
-interface DisclosureListProps extends React.ComponentProps<"div"> {
+interface DisclosureListVerticalProps extends React.ComponentProps<"div"> {
     maxVisible?: number;
 }
 
-/**
- * Wraps an array of children and occludes overflow behind a collapsible
- * "Show more" trigger. Use when a long vertical list would otherwise dominate
- * the viewport.
- */
-export function DisclosureList({
-    maxVisible = 15,
+const MAX_VISIBLE_VERTICAL_DEFAULT = 15;
+
+export function DisclosureListVertical({
+    maxVisible = MAX_VISIBLE_VERTICAL_DEFAULT,
     children,
     className,
     ...props
-}: DisclosureListProps) {
+}: DisclosureListVerticalProps) {
     const childrenArray = React.Children.toArray(children);
 
     if (childrenArray.length === 0) {
@@ -32,6 +32,8 @@ export function DisclosureList({
     const visible = childrenArray.slice(0, maxVisible);
     const hidden = childrenArray.slice(maxVisible);
 
+    const hiddenCount = clamp(hidden.length, 0, 99);
+
     return (
         <div
             {...props}
@@ -39,7 +41,7 @@ export function DisclosureList({
             data-slot="disclosure-list"
         >
             {visible}
-            {hidden.length > 0 && <DisclosureListHidden items={hidden} />}
+            {hiddenCount > 0 ? <DisclosureListHidden items={hidden} /> : null}
         </div>
     );
 }
@@ -61,5 +63,58 @@ function DisclosureListHidden({ items }: DisclosureListHiddenProps) {
             </CollapsibleTrigger>
             <CollapsiblePanel>{items}</CollapsiblePanel>
         </Collapsible>
+    );
+}
+
+interface DisclosureListHorizontalProps extends React.ComponentProps<"div"> {
+    badgeRender?: React.ReactElement;
+    maxVisible?: number;
+}
+
+const MAX_VISIBLE_HORIZONTAL_DEFAULT = 5;
+
+export function DisclosureListHorizontal({
+    maxVisible = MAX_VISIBLE_HORIZONTAL_DEFAULT,
+    children,
+    className,
+    badgeRender,
+    ...props
+}: DisclosureListHorizontalProps) {
+    const childrenArray = React.Children.toArray(children);
+
+    if (childrenArray.length === 0) {
+        return null;
+    }
+
+    const visible = childrenArray.slice(0, maxVisible);
+    const hidden = childrenArray.slice(maxVisible);
+
+    const hiddenCount = clamp(hidden.length, 0, 99);
+    const displayedHidden = hidden.slice(0, hiddenCount);
+
+    return (
+        <div
+            {...props}
+            className={cn("flex items-center gap-1", className)}
+            data-slot="disclosure-list"
+        >
+            {visible}
+            {hiddenCount > 0 ? (
+                <Popover>
+                    <PopoverTrigger render={badgeRender}>
+                        +
+                        <Calligraph className="-mx-0.5">
+                            {hiddenCount}
+                        </Calligraph>{" "}
+                        more
+                    </PopoverTrigger>
+                    <PopoverPopup>
+                        <div className="flex flex-col gap-2">
+                            {displayedHidden}
+                        </div>
+                    </PopoverPopup>
+                </Popover>
+            ) : null}
+        </div>
     );
 }
