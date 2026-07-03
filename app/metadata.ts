@@ -1,4 +1,5 @@
 import { buildLocaleAlternates } from "@/lib/i18n/alternates";
+import { BASE_URL } from "@/lib/common/constants";
 import type { Metadata } from "next";
 
 interface BuildPageMetadataArgs {
@@ -35,6 +36,7 @@ export function buildPageMetadata({
         alternates: buildLocaleAlternates(path),
         description,
         keywords,
+        metadataBase: new URL(BASE_URL),
         openGraph: {
             description,
             images: [

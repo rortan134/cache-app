@@ -49,8 +49,17 @@ export async function generateMetadata({
             `Cache alternative to ${entry.name}`,
             `${entry.name} comparison`,
         ],
+        metadataBase: new URL(BASE_URL),
         openGraph: {
             description,
+            images: [
+                {
+                    alt: "The word 'Cache' in bold abstract lettering on a warm off-white background",
+                    height: 630,
+                    url: `${BASE_URL}/opengraph-image.png`,
+                    width: 1200,
+                },
+            ],
             title,
             type: "article",
         },
@@ -58,6 +67,14 @@ export async function generateMetadata({
         twitter: {
             card: "summary_large_image",
             description,
+            images: [
+                {
+                    alt: "The word 'Cache' in bold abstract lettering on a warm off-white background",
+                    height: 630,
+                    url: `${BASE_URL}/opengraph-image.png`,
+                    width: 1200,
+                },
+            ],
             title,
         },
     };

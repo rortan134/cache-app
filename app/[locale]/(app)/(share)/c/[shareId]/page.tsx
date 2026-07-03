@@ -5,7 +5,7 @@ import {
 import { BrandLogo } from "@/components/ui/brand-logo";
 import { PageShell } from "@/components/ui/page-shell";
 import { getPublicCollectionShareById } from "@/lib/collections/sharing/service";
-import { FALLBACK_URL, ITEM_KIND_NOTE } from "@/lib/common/constants";
+import { BASE_URL, FALLBACK_URL, ITEM_KIND_NOTE } from "@/lib/common/constants";
 import { getNoteExcerpt } from "@/lib/common/strings";
 import { normalizeURL } from "@/lib/common/url";
 import LogoIconImage from "@/public/cache-app-icon.png";
@@ -62,6 +62,7 @@ export async function generateMetadata(
                 ? `A read-only collection shared by ${collection.ownerName} on Cache.`
                 : "A shared collection on Cache.")
         } Create your own.`,
+        metadataBase: new URL(BASE_URL),
         robots: {
             follow: false,
             index: false,

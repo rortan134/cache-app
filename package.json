@@ -71,6 +71,7 @@
         "openlink": "^0.3.0",
         "p-retry": "8.0.0",
         "pg": "^8.22.0",
+        "pg-cloudflare": "^1.4.0",
         "react": "19.2.7",
         "react-confetti-burst": "1.0.7",
         "react-dom": "19.2.7",
