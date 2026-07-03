@@ -3,7 +3,7 @@ import type { NextRequest } from "next/server";
 
 const gtMiddleware = createNextMiddleware();
 
-export function proxy(request: NextRequest) {
+export function middleware(request: NextRequest) {
     if (request.nextUrl.pathname === "/mcp" && request.method === "OPTIONS") {
         return new Response(null, {
             headers: {
