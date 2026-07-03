@@ -11,7 +11,7 @@ const connectionString = process.env.DATABASE_URL;
 const pool = new Pool({
     connectionString,
     idleTimeoutMillis: 300_000,
-    max: 10,
+    max: 3,
 });
 
 const adapter = new PrismaPg(pool);
