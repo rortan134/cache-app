@@ -111,7 +111,6 @@ Open [http://localhost:3000](http://localhost:3000).
 | **Linting**               | [Ultracite](https://ultracite.dev/) (Biome)                                                                            |
 | **React Compiler**        | [babel-plugin-react-compiler](https://react.dev/learn/react-compiler) (auto-memoization)                               |
 | **Date Handling**         | [Day.js](https://day.js.org/), [chrono-node](https://github.com/wanasit/chrono)                                        |
-| **Deployment**            | [Vercel](https://vercel.com/), [Unkey](https://unkey.com/)                                                             |
 
 ---
 
