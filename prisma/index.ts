@@ -1,5 +1,4 @@
 import { PrismaPg } from "@prisma/adapter-pg";
-import { Pool } from "pg";
 import { PrismaClient, type Prisma } from "./client/client";
 
 const globalForPrisma = global as unknown as {
@@ -8,13 +7,7 @@ const globalForPrisma = global as unknown as {
 
 const connectionString = process.env.DATABASE_URL;
 
-const pool = new Pool({
-    connectionString,
-    idleTimeoutMillis: 300_000,
-    max: 3,
-});
-
-const adapter = new PrismaPg(pool);
+const adapter = new PrismaPg({ connectionString });
 
 const prismaOptions: Prisma.PrismaClientOptions = {
     adapter,
