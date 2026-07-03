@@ -56,13 +56,12 @@
         "openlink": "^0.3.0",
         "p-retry": "8.0.0",
         "pg": "^8.22.0",
-        "pg-cloudflare": "^1.4.0",
         "react": "19.2.7",
         "react-confetti-burst": "1.0.7",
         "react-dom": "19.2.7",
         "react-hotkeys-hook": "5.3.3",
         "redis": "^6.1.0",
-        "resend": "^6.17.0",
+        "resend": "^6.17.1",
         "rss-parser": "^3.13.0",
         "server-only": "0.0.1",
         "shadcn": "4.13.0",
@@ -2338,7 +2337,7 @@
 
     "reselect": ["reselect@5.2.0", "", {}, "sha512-AgZ3UOZm3YndfrJ4OYjgrT7bmCm/1iqkjvEfH/oYjzh6PD2qw4QuT3jjnXIrpdt4MTpMXclMT3lXbmRY+XRakw=="],
 
-    "resend": ["resend@6.17.0", "", { "dependencies": { "postal-mime": "2.7.4", "standardwebhooks": "1.0.0" }, "peerDependencies": { "@react-email/render": "*" }, "optionalPeers": ["@react-email/render"] }, "sha512-hYNLU58nKg1Sx9kPF1E6fo447/9OMNbk3pOzuQGZMtoRU4FhtNTrW7SHFLPT8F8quTcIAa6Cs5Q5hEuWHJNTpA=="],
+    "resend": ["resend@6.17.1", "", { "dependencies": { "postal-mime": "2.7.4", "standardwebhooks": "1.0.0" }, "peerDependencies": { "@react-email/render": "*" }, "optionalPeers": ["@react-email/render"] }, "sha512-QhHHIRPPM9Tq2uilWmNF8C8kd6nLkUmiFgDQCt1v4eR4o+6p86qrK+Vn12jnAs0jR8Gf6ABdxI18/90LGQ7GVA=="],
 
     "resolve": ["resolve@1.22.12", "", { "dependencies": { "es-errors": "^1.3.0", "is-core-module": "^2.16.1", "path-parse": "^1.0.7", "supports-preserve-symlinks-flag": "^1.0.0" }, "bin": { "resolve": "bin/resolve" } }, "sha512-TyeJ1zif53BPfHootBGwPRYT1RUt6oGWsaQr8UyZW/eAm9bKoijtvruSDEmZHm92CwS9nj7/fWttqPCgzep8CA=="],
 

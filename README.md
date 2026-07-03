@@ -4,7 +4,7 @@
   </a>
 </p>
 
-<p align="center">Unify your bookmarks across every platform into a single, searchable, actionable library.</p>
+<p align="center">Unify your bookmarks across every platform into a single, searchable, actionable library</p>
 
 <p align="center">
   <a href="https://www.cachd.app" target="_blank" rel="noopener noreferrer"><img src="https://img.shields.io/badge/cachd.app-000000?logo=vercel&logoColor=white" alt="cachd.app"></a>

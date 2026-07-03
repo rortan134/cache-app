@@ -134,11 +134,6 @@ const nextConfig: NextConfig = {
             },
         ];
     },
-    serverExternalPackages: ["pg-cloudflare"],
-    typescript: {
-        // Temp
-        ignoreBuildErrors: true,
-    },
 };
 
 const securityHeaders = [
