@@ -6,9 +6,9 @@
     "packageManager": "bun@1.3.14",
     "scripts": {
         "clean": "find . -name node_modules -o -name .next -o -name .swc -o -name tsconfig.buildinfo -type d -prune | xargs rm -rf",
-        "dev": "bun run --bun next dev",
-        "build": "bunx gt translate && bun run --bun next build",
-        "start": "bun run --bun next start",
+        "dev": "bun run next dev",
+        "build": "bunx gt translate && bun run next build",
+        "start": "bun run next start",
         "db-deploy": "prisma migrate deploy",
         "postinstall": "prisma generate",
         "db-migrate": "prisma migrate dev",
