@@ -6,7 +6,7 @@
         "ultracite/biome/react"
     ],
     "files": {
-        "includes": ["!extensions", "!public", "!prisma"]
+        "includes": ["!extensions", "!public", "!prisma/client"]
     },
     "formatter": {
         "indentWidth": 4
