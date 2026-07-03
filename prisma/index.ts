@@ -26,7 +26,6 @@ if (
 
 const adapter = new PrismaPg({
     connectionString: parsedDatabaseUrl?.href ?? databaseUrl,
-    max: 5,
 });
 
 const prismaOptions = {
