@@ -16,11 +16,11 @@ export const serverEnv = createEnv({
 
         DATABASE_URL: z.string().startsWith("postgres://"),
 
-        EMAIL_FROM: z.string(), // Default email sender address
-        EMAIL_SERVER_HOST: z.string(), // SMTP server host
-        EMAIL_SERVER_PASSWORD: z.string(), // SMTP server password
-        EMAIL_SERVER_PORT: z.string(), // SMTP server port
-        EMAIL_SERVER_USER: z.string(), // SMTP server username
+        EMAIL_FROM: z.string().optional(), // Default email sender address
+        EMAIL_SERVER_HOST: z.string().optional(), // SMTP server host
+        EMAIL_SERVER_PASSWORD: z.string().optional(), // SMTP server password
+        EMAIL_SERVER_PORT: z.string().optional(), // SMTP server port
+        EMAIL_SERVER_USER: z.string().optional(), // SMTP server username
 
         GEMINI_API_KEY: z.string(),
         GITHUB_CLIENT_ID: z.string().optional(),
