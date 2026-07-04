@@ -20,8 +20,14 @@ let globalRedisClient: RedisClientType | null = null;
 
 /**
  * Get a Redis client instance.
- * Returns null in browser environments or when Redis is not configured.
- * The client auto-reconnects on disconnection.
+ * Returns null in browser environments, when Redis is not configured, or
+ * when the underlying socket has not connected yet (including during an
+ * automatic reconnection). Callers already handle null throughout the
+ * codebase via their existing degraded-path branches.
+ *
+ * The client auto-reconnects on disconnection. Once the socket is ready
+ * again the returned value flips from null back to the client — no
+ * instance is lost or re-created.
  */
 export function getRedisClient(): RedisClientType | null {
     if (typeof window !== "undefined") {
@@ -29,21 +35,28 @@ export function getRedisClient(): RedisClientType | null {
     }
 
     if (globalRedisClient) {
-        return globalRedisClient;
+        // The client auto-reconnects after disconnection, but commands sent before
+        // reconnection completes queue indefinitely (the offline queue is enabled by
+        // default). Rather than returning a client that will hang callers, return null
+        // so every caller's existing null-handling branch gracefully degrades.
+        //
+        // Once the underlying socket is ready again the client will be returned on
+        // the next call — no client is lost or re-created.
+        return globalRedisClient.isReady ? globalRedisClient : null;
+    }
+
+    const url =
+        process.env.REDIS_URL ||
+        (process.env.NODE_ENV === "development"
+            ? "redis://localhost:6379"
+            : undefined);
+
+    if (!url) {
+        log.warn("Redis disabled: no REDIS_URL configured");
+        return null;
     }
 
     try {
-        const url =
-            process.env.REDIS_URL ||
-            (process.env.NODE_ENV === "development"
-                ? "redis://localhost:6379"
-                : undefined);
-
-        if (!url) {
-            log.warn("Redis disabled: no REDIS_URL configured");
-            return null;
-        }
-
         globalRedisClient = createClient({ url });
 
         globalRedisClient.on("error", (error) => {
@@ -67,7 +80,7 @@ export function getRedisClient(): RedisClientType | null {
             log.error("Redis initial connect failed", { error });
         });
 
-        return globalRedisClient;
+        return globalRedisClient.isReady ? globalRedisClient : null;
     } catch (error) {
         log.error("Failed to initialize Redis client", { error });
         return null;
@@ -79,17 +92,23 @@ export function getRedisClient(): RedisClientType | null {
  * Important for proper cleanup in serverless environments.
  */
 export async function closeRedisConnection(): Promise<void> {
-    if (!globalRedisClient) {
+    const client = globalRedisClient;
+    globalRedisClient = null;
+    if (!client) {
         return;
     }
 
     try {
-        await globalRedisClient.quit();
+        await client.close();
     } catch (error) {
-        log.error("Error closing Redis connection gracefully", { error });
-        await globalRedisClient.destroy();
-    } finally {
-        globalRedisClient = null;
+        log.error("Error closing Redis connection", { error });
+        try {
+            client.destroy();
+        } catch (destroyError) {
+            log.debug("Redis destroy fallback failed during close", {
+                error: destroyError,
+            });
+        }
     }
 }
 
