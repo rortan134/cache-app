@@ -93,19 +93,17 @@ Open [http://localhost:3000](http://localhost:3000).
 | Category                  | Technology                                                                                                             |
 | ------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
 | **Framework**             | [Next.js](https://nextjs.org/) (App Router)                                                                            |
-| **Runtime**               | [Bun](https://bun.sh/), [Node.js](https://nodejs.org/)                                                                 |
 | **UI**                    | [React](https://react.dev/), [Base UI](https://base-ui.com/), [Tailwind CSS](https://tailwindcss.com/)                 |
-| **Icons**                 | [lucide-react](https://lucide.dev/)                                                                                    |
 | **Rich Text**             | [Lexical](https://lexical.dev/), [Streamdown](https://github.com/vercel/streamdown)                                    |
-| **Database**              | PostgreSQL via [Prisma](https://www.prisma.io/), Redis                                                                 |
-| **Auth**                  | [Better Auth](https://better-auth.com/) (Google, GitHub, X, Pinterest OAuth)                                           |
+| **Database**              | PostgreSQL, Redis                                                                                                      |
+| **Auth**                  | [Better Auth](https://better-auth.com/)                                                                                |
 | **Validation**            | [Zod](https://zod.dev/), [@t3-oss/env-nextjs](https://env.t3.gg/)                                                      |
 | **AI/LLM**                | [Vercel AI SDK](https://sdk.vercel.ai/), [Google Gemini](https://ai.google.dev/), [@workflow/ai](https://workflow.ai/) |
 | **Agentic Web Search**    | [Tavily](https://tavily.com/)                                                                                          |
 | **Data Fetching**         | [SWR](https://swr.vercel.app/), [nuqs](https://nuqs.vercel.app/)                                                       |
-| **i18n**                  | gt-next (en-US, fr-FR, es-ES, pt-BR)                                                                                   |
+| **i18n**                  | [gt-next](https://generaltranslation.com)                                                                              |
 | **Payments**              | [Stripe](https://stripe.com/)                                                                                          |
-| **Workflows**             | [workflow](https://workflow.ai/), [Vercel Cron Jobs](https://vercel.com/docs/cron-jobs)                                |
+| **Workflows**             | [workflow](https://workflow.ai/)                                                                                       |
 | **MCP**                   | [MCP SDK](https://modelcontextprotocol.io/)                                                                            |
 | **Security (Cloud only)** | [Arcjet](https://arcjet.com/) (WAF, rate limiting, PII redaction, prompt injection detection)                          |
 | **Linting**               | [Ultracite](https://ultracite.dev/) (Biome)                                                                            |
