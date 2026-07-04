@@ -13,12 +13,14 @@ import {
     type LibraryItemFavoriteToggleResult,
     type LibraryItemsCollectionsUpdateResult,
 } from "@/lib/collections/items";
+import { shareCollectionPublicly } from "@/lib/collections/sharing/actions";
 import {
     itemPreviewImageUrl,
     type LibraryCollectionSummary,
     type LibraryCollectionTag,
     type LibraryItemWithCollections,
 } from "@/lib/collections/utils";
+import { tryAction } from "@/lib/common/action";
 import { toggleValue, updateById } from "@/lib/common/arrays";
 import type { CollectionPriority } from "@/prisma/client/enums";
 import { useStableCallback } from "@base-ui/utils/useStableCallback";
@@ -635,6 +637,32 @@ export function mergeCollectionSummaries(
             (collection) => !existingIds.has(collection.id)
         ),
     ]);
+}
+
+const SHARE_COLLECTION_ERROR_MESSAGE =
+    "We couldn't create a public link right now.";
+
+export const shareCollectionPubliclySafely = tryAction(
+    shareCollectionPublicly,
+    SHARE_COLLECTION_ERROR_MESSAGE,
+    (input) => ({ collectionId: input.collectionId })
+);
+
+export type CollectionShareState = Pick<
+    LibraryCollectionTag,
+    "id" | "shareId" | "sharedAt" | "updatedAt"
+>;
+
+export function replaceCollectionShareState<T extends LibraryCollectionTag>(
+    collections: T[],
+    next: CollectionShareState
+): T[] {
+    return updateById(collections, next.id, (collection) => ({
+        ...collection,
+        sharedAt: next.sharedAt,
+        shareId: next.shareId,
+        updatedAt: next.updatedAt,
+    }));
 }
 
 function getPreviewOrderSeed(value: string): number {

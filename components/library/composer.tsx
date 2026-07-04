@@ -1,9 +1,5 @@
 "use client";
 
-import type {
-    CommandPaletteGroup,
-    CommandPaletteItem,
-} from "@/components/library/browser";
 import { OnboardingMenu } from "@/components/library/onboarding";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -31,6 +27,7 @@ import { cn } from "@/lib/common/cn";
 import {
     Toolbar,
     type AutocompleteRootChangeEventDetails,
+    type BaseUIEvent,
 } from "@base-ui/react";
 import { useStableCallback } from "@base-ui/utils/useStableCallback";
 import { Calligraph } from "calligraph";
@@ -43,6 +40,25 @@ export interface PaletteStackEntry {
     chip: React.ReactNode;
     key: string;
     onRemove: () => void;
+}
+
+export interface CommandPaletteItem {
+    active?: boolean;
+    description?: string;
+    disabled?: boolean;
+    label: string;
+    onSelect: (
+        event: BaseUIEvent<React.MouseEvent> | KeyboardEvent
+    ) => void | Promise<void>;
+    render?: (item: CommandPaletteItem) => React.ReactNode;
+    shortcut?: string;
+    value: string;
+}
+
+export interface CommandPaletteGroup {
+    items: CommandPaletteItem[];
+    label: string;
+    layout?: "horizontal" | "vertical";
 }
 
 export interface CommandSuggestion {

@@ -14,6 +14,8 @@ import {
     ComposerActions,
     ComposerInput,
     ComposerSuggestions,
+    type CommandPaletteGroup,
+    type CommandPaletteItem,
     type CommandSuggestion,
     type PaletteStackEntry,
 } from "@/components/library/composer";
@@ -481,35 +483,13 @@ function buildCommandSuggestions({
         };
     };
 
-    let groupingCandidates: GroupByMode[] = [
-        "source",
-        "domain",
-        "collection",
-        "year-added",
-        "year-created",
-        "month-added",
-        "month-created",
-    ];
+    let groupingCandidates: GroupByMode[];
     if (sourceFilters.length > 0) {
-        groupingCandidates = [
-            "domain",
-            "collection",
-            "year-added",
-            "year-created",
-            "month-added",
-            "month-created",
-            "source",
-        ];
+        groupingCandidates = buildGroupingCandidatesForPreferLast("source");
     } else if (domainFilters.length > 0) {
-        groupingCandidates = [
-            "source",
-            "collection",
-            "year-added",
-            "year-created",
-            "month-added",
-            "month-created",
-            "domain",
-        ];
+        groupingCandidates = buildGroupingCandidatesForPreferLast("domain");
+    } else {
+        groupingCandidates = ALL_GROUPING_MODES;
     }
 
     const nextGroupBy =
@@ -578,31 +558,51 @@ function buildCommandSuggestions({
         });
     }
 
+    const addPrimarySuggestions = (
+        builders: ReadonlyArray<() => CommandSuggestion | null>
+    ) => {
+        for (const build of builders) {
+            const suggestion = build();
+            if (suggestion !== null) {
+                addSuggestion(suggestion);
+            }
+        }
+    };
+
     if (!hasAnyRefinements) {
         addDefaultSuggestion(buildCollectionSuggestion());
         addDefaultSuggestion(buildSourceSuggestion());
         addDefaultSuggestion(buildGroupingSuggestion());
         addDefaultSuggestion(buildDomainSuggestion());
     } else if (selectedCollectionIds.length > 0) {
-        addSuggestion(buildSourceSuggestion());
-        addSuggestion(buildDomainSuggestion());
-        addSuggestion(buildGroupingSuggestion());
-        addSuggestion(buildCollectionSuggestion());
-    } else if (
-        sourceFilters.length > 0 ||
-        domainFilters.length > 0 ||
-        searchTerms.length > 0 ||
-        collectionMembershipFilter !== DEFAULT_COLLECTION_MEMBERSHIP_FILTER
-    ) {
-        addSuggestion(buildCollectionSuggestion());
-        addSuggestion(buildGroupingSuggestion());
-        addSuggestion(buildSourceSuggestion());
-        addSuggestion(buildDomainSuggestion());
+        addPrimarySuggestions([
+            buildSourceSuggestion,
+            buildDomainSuggestion,
+            buildGroupingSuggestion,
+            buildCollectionSuggestion,
+        ]);
     } else {
-        addSuggestion(buildCollectionSuggestion());
-        addSuggestion(buildSourceSuggestion());
-        addSuggestion(buildGroupingSuggestion());
-        addSuggestion(buildDomainSuggestion());
+        const hasContentRefinement =
+            sourceFilters.length > 0 ||
+            domainFilters.length > 0 ||
+            searchTerms.length > 0 ||
+            collectionMembershipFilter !== DEFAULT_COLLECTION_MEMBERSHIP_FILTER;
+
+        addPrimarySuggestions(
+            hasContentRefinement
+                ? [
+                      buildCollectionSuggestion,
+                      buildGroupingSuggestion,
+                      buildSourceSuggestion,
+                      buildDomainSuggestion,
+                  ]
+                : [
+                      buildCollectionSuggestion,
+                      buildSourceSuggestion,
+                      buildGroupingSuggestion,
+                      buildDomainSuggestion,
+                  ]
+        );
     }
 
     if (items.length === 0 || suggestions.length < SUGGESTION_LIMIT) {
@@ -834,6 +834,26 @@ type GroupByMode =
     | "month-added"
     | "month-created";
 
+const ALL_GROUPING_MODES: GroupByMode[] = [
+    "source",
+    "domain",
+    "collection",
+    "year-added",
+    "year-created",
+    "month-added",
+    "month-created",
+];
+
+function buildGroupingCandidatesForPreferLast(
+    mode: "source" | "domain"
+): GroupByMode[] {
+    const middle = ALL_GROUPING_MODES.filter(
+        (entry) => entry !== "source" && entry !== "domain"
+    );
+    const otherFirst = mode === "source" ? "domain" : "source";
+    return [otherFirst, ...middle, mode];
+}
+
 type SortMode =
     | "added-newest"
     | "added-oldest"
@@ -964,25 +984,6 @@ const PALETTE_SOURCE_FILTER_OPTIONS = PALETTE_SOURCE_OPTIONS.filter(
     (option): option is { label: string; value: LibraryItemSource } =>
         option.value !== "all"
 );
-
-export interface CommandPaletteItem {
-    active?: boolean;
-    description?: string;
-    disabled?: boolean;
-    label: string;
-    onSelect: (
-        event: BaseUIEvent<React.MouseEvent> | KeyboardEvent
-    ) => void | Promise<void>;
-    render?: (item: CommandPaletteItem) => React.ReactNode;
-    shortcut?: string;
-    value: string;
-}
-
-export interface CommandPaletteGroup {
-    items: CommandPaletteItem[];
-    label: string;
-    layout?: "horizontal" | "vertical";
-}
 
 interface BrowserGroup {
     items: LibraryItemWithCollections[];
@@ -1180,50 +1181,45 @@ function formatGroupHeading(
     return key;
 }
 
+function compareItemsByPrimaryText(
+    a: LibraryItemWithCollections,
+    b: LibraryItemWithCollections
+): number {
+    return NAME_COLLATOR.compare(itemPrimaryText(a), itemPrimaryText(b));
+}
+
 function compareItems(
     a: LibraryItemWithCollections,
     b: LibraryItemWithCollections,
     sortMode: SortMode
 ): number {
-    if (sortMode === "added-newest") {
-        return (
-            itemTimestamp(b, "added") - itemTimestamp(a, "added") ||
-            NAME_COLLATOR.compare(itemPrimaryText(a), itemPrimaryText(b))
-        );
+    if (sortMode === "title") {
+        return compareItemsByPrimaryText(a, b);
     }
-    if (sortMode === "added-oldest") {
-        return (
-            itemTimestamp(a, "added") - itemTimestamp(b, "added") ||
-            NAME_COLLATOR.compare(itemPrimaryText(a), itemPrimaryText(b))
-        );
-    }
-    if (sortMode === "created-newest") {
-        return (
-            itemTimestamp(b, "created") - itemTimestamp(a, "created") ||
-            NAME_COLLATOR.compare(itemPrimaryText(a), itemPrimaryText(b))
-        );
-    }
-    if (sortMode === "created-oldest") {
-        return (
-            itemTimestamp(a, "created") - itemTimestamp(b, "created") ||
-            NAME_COLLATOR.compare(itemPrimaryText(a), itemPrimaryText(b))
-        );
-    }
-    if (sortMode === "source") {
-        return (
-            NAME_COLLATOR.compare(
+
+    const primary = (() => {
+        if (sortMode === "added-newest") {
+            return itemTimestamp(b, "added") - itemTimestamp(a, "added");
+        }
+        if (sortMode === "added-oldest") {
+            return itemTimestamp(a, "added") - itemTimestamp(b, "added");
+        }
+        if (sortMode === "created-newest") {
+            return itemTimestamp(b, "created") - itemTimestamp(a, "created");
+        }
+        if (sortMode === "created-oldest") {
+            return itemTimestamp(a, "created") - itemTimestamp(b, "created");
+        }
+        if (sortMode === "source") {
+            return NAME_COLLATOR.compare(
                 sourceLabel(a.source),
                 sourceLabel(b.source)
-            ) || NAME_COLLATOR.compare(itemPrimaryText(a), itemPrimaryText(b))
-        );
-    }
-    if (sortMode === "title") {
-        return NAME_COLLATOR.compare(itemPrimaryText(a), itemPrimaryText(b));
-    }
-    return (
-        NAME_COLLATOR.compare(itemDomain(a.url), itemDomain(b.url)) ||
-        NAME_COLLATOR.compare(itemPrimaryText(a), itemPrimaryText(b))
-    );
+            );
+        }
+        return NAME_COLLATOR.compare(itemDomain(a.url), itemDomain(b.url));
+    })();
+
+    return primary || compareItemsByPrimaryText(a, b);
 }
 
 function compareSectionKeys(

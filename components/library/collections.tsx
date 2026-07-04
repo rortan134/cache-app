@@ -4,10 +4,13 @@ import { useSubscriptionAccess } from "@/components/billing/subscription";
 import {
     appendCollection,
     mergeCollectionSummaries,
+    replaceCollectionShareState,
     RequestCreateRefContext,
+    shareCollectionPubliclySafely,
     sortCollections,
     useCollectionsSortStore,
     useWorkspaceContext,
+    type CollectionShareState,
     type CollectionSortField,
     type CollectionView,
 } from "@/components/library/workspace";
@@ -95,10 +98,7 @@ import {
     updateCollectionPriority,
     type CollectionCreateResult,
 } from "@/lib/collections/actions";
-import {
-    disableCollectionSharing,
-    shareCollectionPublicly,
-} from "@/lib/collections/sharing/actions";
+import { disableCollectionSharing } from "@/lib/collections/sharing/actions";
 import { buildPublicCollectionShareUrl } from "@/lib/collections/sharing/url";
 import {
     itemPreviewImageUrl,
@@ -196,7 +196,6 @@ const DUPLICATE_ERROR_MESSAGE =
     "We couldn't make a copy of this collection right now.";
 const EMPTY_LINKS_ERROR_MESSAGE = "There are no links in this collection yet.";
 const RENAME_ERROR_MESSAGE = "We couldn't rename this collection right now.";
-const SHARE_ERROR_MESSAGE = "We couldn't create a public link right now.";
 const DISABLE_SHARING_ERROR_MESSAGE =
     "We couldn't stop sharing this collection right now.";
 const UPDATE_PRIORITY_ERROR_MESSAGE =
@@ -237,11 +236,6 @@ interface CollectionsListItemContextValue {
     isHovered: boolean;
     isSelected: boolean;
 }
-
-type CollectionShareState = Pick<
-    LibraryCollectionTag,
-    "id" | "shareId" | "sharedAt" | "updatedAt"
->;
 
 interface SyncCreatedCollectionInput {
     assignedItemIds: string[];
@@ -509,18 +503,6 @@ function updateItemTags(
     }));
 }
 
-function replaceCollectionShareState<T extends LibraryCollectionTag>(
-    collections: T[],
-    next: CollectionShareState
-): T[] {
-    return updateById(collections, next.id, (collection) => ({
-        ...collection,
-        sharedAt: next.sharedAt,
-        shareId: next.shareId,
-        updatedAt: next.updatedAt,
-    }));
-}
-
 function replaceName<T extends LibraryCollectionTag>(
     collections: T[],
     id: string,
@@ -585,10 +567,6 @@ const renameCollectionSafely = tryAction(
 const updateCollectionPrioritySafely = tryAction(
     updateCollectionPriority,
     UPDATE_PRIORITY_ERROR_MESSAGE
-);
-const shareCollectionPubliclySafely = tryAction(
-    shareCollectionPublicly,
-    SHARE_ERROR_MESSAGE
 );
 const disableCollectionSharingSafely = tryAction(
     disableCollectionSharing,

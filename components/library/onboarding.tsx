@@ -1,7 +1,12 @@
 "use client";
 
 import { useIntegrationsListStore } from "@/components/library/integrations";
-import { useWorkspaceContext } from "@/components/library/workspace";
+import {
+    replaceCollectionShareState,
+    shareCollectionPubliclySafely,
+    useWorkspaceContext,
+    type CollectionShareState,
+} from "@/components/library/workspace";
 import { Button } from "@/components/ui/button";
 import {
     Dialog,
@@ -24,16 +29,13 @@ import {
 import { RadialIcon } from "@/components/ui/radial-icon";
 import { useSidebar } from "@/components/ui/sidebar";
 import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
-import { shareCollectionPublicly } from "@/lib/collections/sharing/actions";
 import { buildPublicCollectionShareUrl } from "@/lib/collections/sharing/url";
 import type {
     LibraryCollectionSummary,
-    LibraryCollectionTag,
     LibraryItemWithCollections,
 } from "@/lib/collections/utils";
 import { cn } from "@/lib/common/cn";
 import { ITEM_KIND_NOTE } from "@/lib/common/constants";
-import { createLogger } from "@/lib/common/logs/console/logger";
 import { Toolbar } from "@base-ui/react";
 import { useStableCallback } from "@base-ui/utils/useStableCallback";
 import {
@@ -46,8 +48,6 @@ import {
 import * as React from "react";
 import { createStore } from "stan-js";
 import { storage } from "stan-js/storage";
-
-const log = createLogger("library:onboarding");
 
 const ONBOARDING_TASK_META = [
     {
@@ -89,11 +89,6 @@ interface CompletedTaskInput {
     connectedIntegrationCount: number;
     items: LibraryItemWithCollections[];
 }
-
-type CollectionShareState = Pick<
-    LibraryCollectionTag,
-    "id" | "shareId" | "sharedAt" | "updatedAt"
->;
 
 const { useStore: useLibraryOnboardingStore } = createStore({
     completedOnboardingTaskIds: storage<OnboardingTaskId[]>([]),
@@ -138,30 +133,6 @@ function getShareCandidate(
         collections[0] ??
         null
     );
-}
-
-function replaceCollectionShareState<T extends LibraryCollectionTag>(
-    collections: T[],
-    next: CollectionShareState
-): T[] {
-    let isCollectionUpdated = false;
-
-    const nextCollections = collections.map((collection) => {
-        if (collection.id !== next.id) {
-            return collection;
-        }
-
-        isCollectionUpdated = true;
-
-        return {
-            ...collection,
-            sharedAt: next.sharedAt,
-            shareId: next.shareId,
-            updatedAt: next.updatedAt,
-        };
-    });
-
-    return isCollectionUpdated ? nextCollections : collections;
 }
 
 function replaceItemCollectionShareState(
@@ -438,24 +409,6 @@ interface OnboardingMenuProps {
     onCreateCollection: () => void;
     onCreateNote: () => void;
     onOpenCommand: () => void;
-}
-
-async function shareCollectionPubliclySafely(
-    input: Parameters<typeof shareCollectionPublicly>[0]
-): Promise<Awaited<ReturnType<typeof shareCollectionPublicly>>> {
-    try {
-        return await shareCollectionPublicly(input);
-    } catch (error) {
-        log.error("Collection share action failed before returning a result", {
-            collectionId: input.collectionId,
-            error,
-        });
-
-        return {
-            message: "We couldn't create a public link right now.",
-            status: "ERROR",
-        };
-    }
 }
 
 type OnboardingShareErrorProps = React.ComponentProps<"p">;

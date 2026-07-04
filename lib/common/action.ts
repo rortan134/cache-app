@@ -62,7 +62,8 @@ export function handleActionError<Code extends string, Status extends string>({
 
 export function tryAction<TInput, TOutput extends { status: string }>(
     action: (input: TInput) => Promise<TOutput>,
-    errorMessage: string
+    errorMessage: string,
+    getLogMeta?: (input: TInput) => Record<string, unknown> | undefined
 ): (
     input: TInput
 ) => Promise<
@@ -73,6 +74,7 @@ export function tryAction<TInput, TOutput extends { status: string }>(
             return await action(input);
         } catch (error) {
             log.error("Server action failed before returning a result", {
+                ...(getLogMeta?.(input) ?? {}),
                 error,
             });
             return { message: errorMessage, status: ACTION_STATUS.ERROR };
