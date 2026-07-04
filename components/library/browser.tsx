@@ -1907,7 +1907,6 @@ function BrowserEmpty() {
             <Masonry
                 columnCount={4}
                 columnGutter={16}
-                itemKey={(data) => data.id}
                 items={[...EMPTY_LIBRARY_PEEK_PLACEHOLDERS]}
                 render={BrowserEmptyCell}
                 rowGutter={16}
@@ -1916,7 +1915,7 @@ function BrowserEmpty() {
     );
 }
 
-function BrowserFiltersEmpty() {
+function BrowserEmptyWithFilters() {
     const { shouldShowNoFilteredResults, clearLibraryPalette } =
         useBrowserResultsContext();
 
@@ -1974,7 +1973,7 @@ function BrowserGroupProvider({
     );
 }
 
-function BrowserHeader() {
+function BrowserGroupHeader() {
     const group = useBrowserGroupContext();
     const {
         enableSectionCollapse,
@@ -2183,7 +2182,7 @@ function BrowserGroupEmpty({ className, ...props }: React.ComponentProps<"p">) {
     );
 }
 
-function BrowserGroupOverview({
+function BrowserGroupAIOverview({
     className,
     children,
     ...props
@@ -2220,7 +2219,7 @@ function BrowserGroupOverview({
     );
 }
 
-function BrowserGroupOverviewContent() {
+function BrowserGroupAIOverviewContent() {
     const { collapsed, items, title } = useBrowserGroupContext();
 
     const contentId = React.useId();
@@ -2334,7 +2333,8 @@ function BrowserMasonry({ children }: BrowserMansonryProps) {
             <Masonry
                 columnCount={columnCount}
                 columnGutter={16}
-                itemKey={(data) => data.id}
+                itemAs="article"
+                itemHeightEstimate={350}
                 itemStyle={{ contain: "layout style" }}
                 items={items}
                 key={`${sidebarStateDeferred}-${items.length}`}
@@ -3838,7 +3838,7 @@ function CardCollectionPicker({
     );
 }
 
-function PreviewColor({ value }: { value: string }) {
+function PreviewColorBadge({ value }: { value: string }) {
     const { copyToClipboard, isCopied } = useCopyToClipboard();
 
     return (
@@ -3872,7 +3872,7 @@ function PreviewColorPalette({ src }: { src: string }) {
     return (
         <AvatarGroup className="justify-end -space-x-1">
             {data.map((value, i) => (
-                <PreviewColor key={i} value={value} />
+                <PreviewColorBadge key={i} value={value} />
             ))}
         </AvatarGroup>
     );
@@ -4244,7 +4244,8 @@ function MediaCard({ item }: LibraryGridCardProps) {
                         className="squircle flex flex-col overflow-clip rounded-xl focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
                         href={href}
                         onClick={handlePrimaryClick}
-                        rel="noopener noreferrer"
+                        rel="noreferrer"
+                        tabIndex={0}
                         target={isNote ? undefined : "_blank"}
                     >
                         {isNote ? (
@@ -4392,13 +4393,13 @@ const LOCKED_LIBRARY_PREVIEW_PLACEHOLDERS = [
 ] satisfies LockedLibraryPreviewPlaceholder[];
 
 function LockedPreviewCard({
-    placeholder,
+    data,
 }: {
-    placeholder: LockedLibraryPreviewPlaceholder;
+    data: LockedLibraryPreviewPlaceholder;
 }) {
     return (
         <div className="relative flex flex-col overflow-clip rounded-xl ring-1 ring-border/30">
-            {placeholder.kind === "note" ? (
+            {data.kind === "note" ? (
                 <div className="relative min-h-56 bg-linear-to-br from-amber-50 via-background to-stone-100 p-4">
                     <div className="absolute inset-0 bg-background/30" />
                     <div className="relative flex h-full flex-col gap-3">
@@ -4414,7 +4415,7 @@ function LockedPreviewCard({
                 <div
                     className={cn(
                         "relative overflow-clip bg-linear-to-br from-muted/75 via-card to-muted/45",
-                        placeholder.aspect
+                        data.aspect
                     )}
                 >
                     <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.45),transparent_38%)]" />
@@ -4433,7 +4434,6 @@ function LockedPreviewCard({
 
 interface NoteDrawerProps {
     activeNote: LibraryItemWithCollections | typeof NOTE_DRAWER_NEW | null;
-    container: React.RefObject<HTMLDivElement | null>;
     handlePasteUrlIntoLibrary: (url: string) => Promise<void>;
     handleSaveNote: (
         draft: NoteDraft,
@@ -4459,11 +4459,9 @@ const NoteDrawer = dynamic(
             const Note = mod.Note;
 
             function NoteDrawerShell({
-                container,
                 contentEditableRef,
                 isNoteDrawerOpen,
             }: {
-                container: React.RefObject<HTMLDivElement | null>;
                 contentEditableRef: React.RefObject<HTMLDivElement | null>;
                 isNoteDrawerOpen: boolean;
             }) {
@@ -4476,11 +4474,7 @@ const NoteDrawer = dynamic(
                         position="right"
                         swipeDirection="right"
                     >
-                        <DrawerViewport
-                            portalProps={{
-                                container,
-                            }}
-                        >
+                        <DrawerViewport>
                             <DrawerPopup
                                 className="max-w-2xl"
                                 initialFocus={contentEditableRef}
@@ -4507,7 +4501,6 @@ const NoteDrawer = dynamic(
 
             return function NoteDrawer({
                 activeNote,
-                container,
                 handlePasteUrlIntoLibrary,
                 handleSaveNote,
                 isSavingNote,
@@ -4535,7 +4528,6 @@ const NoteDrawer = dynamic(
                         open={isNoteDrawerOpen}
                     >
                         <NoteDrawerShell
-                            container={container}
                             contentEditableRef={contentEditableRef}
                             isNoteDrawerOpen={isNoteDrawerOpen}
                         />
@@ -4577,11 +4569,247 @@ function buildSimilarBrowserFilterState(
     };
 }
 
-const BrowserLockedPreviewCell = ({
-    data,
-}: MasonryRenderComponentProps<LockedLibraryPreviewPlaceholder>) => (
-    <LockedPreviewCard placeholder={data} />
-);
+interface BrowserDialogsProps {
+    collectionComboboxPicker: React.ComponentType<{
+        collections: LibraryCollectionSummary[];
+        children: React.ReactNode;
+        items: LibraryItemWithCollections[];
+        onUpdateItemCollections: (
+            itemId: string,
+            collectionIds: string[]
+        ) => Promise<LibraryItemCollectionsUpdateResult>;
+        onUpdateItemsCollections?: (input: {
+            itemIds: string[];
+            nextSharedCollectionIds: string[];
+            previousSharedCollectionIds: string[];
+        }) => Promise<LibraryItemsCollectionsUpdateResult>;
+        render: React.ReactElement;
+    }>;
+    collections: LibraryCollectionSummary[];
+    createResultsDescriptionDraft: string;
+    createResultsDescriptionId: string;
+    createResultsDialogOpen: boolean;
+    createResultsError: string | null;
+    createResultsNameDraft: string;
+    createResultsNameInputId: string;
+    deleteDialogOpen: boolean;
+    isCreatingResultsCollection: boolean;
+    isDeletePending: boolean;
+    onConfirmDelete: () => void;
+    onCreateCollectionFromResultsSubmit: () => void;
+    onCreateResultsDialogOpenChange: (open: boolean) => void;
+    onDeleteDialogOpenChange: (open: boolean) => void;
+    onUpdateCreateResultsDescriptionDraft: (description: string) => void;
+    onUpdateCreateResultsError: (error: string | null) => void;
+    onUpdateCreateResultsNameDraft: (name: string) => void;
+    onUpdateItemCollections: (
+        itemId: string,
+        collectionIds: string[]
+    ) => Promise<LibraryItemCollectionsUpdateResult>;
+    onUpdateItemsCollections: (input: {
+        itemIds: string[];
+        nextSharedCollectionIds: string[];
+        previousSharedCollectionIds: string[];
+    }) => Promise<LibraryItemsCollectionsUpdateResult>;
+    pendingDeleteItem: LibraryItemWithCollections | null;
+    resultItemCount: number;
+    visibleResultItems: LibraryItemWithCollections[];
+}
+
+function BrowserDialogs(props: BrowserDialogsProps) {
+    const {
+        deleteDialogOpen,
+        onDeleteDialogOpenChange,
+        pendingDeleteItem,
+        isDeletePending,
+        onConfirmDelete,
+
+        createResultsDialogOpen,
+        onCreateResultsDialogOpenChange,
+        resultItemCount,
+        createResultsNameInputId,
+        createResultsNameDraft,
+        onUpdateCreateResultsNameDraft,
+        onUpdateCreateResultsError,
+        createResultsError,
+        createResultsDescriptionId,
+        createResultsDescriptionDraft,
+        onUpdateCreateResultsDescriptionDraft,
+        onCreateCollectionFromResultsSubmit,
+        isCreatingResultsCollection,
+
+        collectionComboboxPicker: CollectionComboboxPicker,
+        collections,
+        visibleResultItems,
+        onUpdateItemCollections,
+        onUpdateItemsCollections,
+    } = props;
+
+    return (
+        <>
+            <Dialog
+                onOpenChange={onDeleteDialogOpenChange}
+                open={deleteDialogOpen}
+            >
+                <DialogPopup>
+                    <DialogHeader>
+                        <DialogTitle>Delete saved item?</DialogTitle>
+                        <DialogDescription>
+                            Remove{" "}
+                            {pendingDeleteItem?.noteContentText?.trim() ||
+                                pendingDeleteItem?.caption?.trim() ||
+                                pendingDeleteItem?.url ||
+                                "this saved item"}{" "}
+                            from Cache. This only deletes it from your library,
+                            not from the original platform.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter>
+                        <DialogClose
+                            disabled={isDeletePending}
+                            render={<Button variant="ghost" />}
+                        >
+                            Cancel
+                        </DialogClose>
+                        <Button
+                            loading={isDeletePending}
+                            onClick={onConfirmDelete}
+                            variant="destructive"
+                        >
+                            Delete
+                        </Button>
+                    </DialogFooter>
+                </DialogPopup>
+            </Dialog>
+            <Dialog
+                onOpenChange={onCreateResultsDialogOpenChange}
+                open={createResultsDialogOpen}
+            >
+                <DialogPopup>
+                    <form
+                        className="contents"
+                        onSubmit={(event) => {
+                            event.preventDefault();
+                            onCreateCollectionFromResultsSubmit();
+                        }}
+                    >
+                        <DialogHeader>
+                            <div className="flex items-center gap-1">
+                                <Badge size="lg" variant="outline">
+                                    <Image
+                                        alt=""
+                                        height={12}
+                                        src={AppIconSmall}
+                                        width={12}
+                                    />
+                                    Cache
+                                </Badge>
+                                <ChevronRight className="inline-block size-3.5 shrink-0" />
+                                <DialogTitle className="font-medium text-sm">
+                                    New collection with {resultItemCount}{" "}
+                                    current result
+                                    {resultItemCount === 1 ? "" : "s"}
+                                </DialogTitle>
+                            </div>
+                        </DialogHeader>
+                        <DialogPanel className="space-y-2">
+                            <div>
+                                <label
+                                    className="sr-only font-medium text-sm"
+                                    htmlFor={createResultsNameInputId}
+                                >
+                                    Name
+                                </label>
+                                <Input
+                                    autoFocus
+                                    className="-mx-[calc(--spacing(3)-1px)] font-semibold text-xl"
+                                    id={createResultsNameInputId}
+                                    isUnstyled
+                                    maxLength={COLLECTION_NAME_MAX_LENGTH}
+                                    onChange={(event) => {
+                                        onUpdateCreateResultsNameDraft(
+                                            event.currentTarget.value
+                                        );
+                                        if (createResultsError) {
+                                            onUpdateCreateResultsError(null);
+                                        }
+                                    }}
+                                    placeholder="Collection title"
+                                    required
+                                    size="lg"
+                                    type="text"
+                                    value={createResultsNameDraft}
+                                />
+                            </div>
+                            <div>
+                                <label
+                                    className="sr-only font-medium text-sm"
+                                    htmlFor={createResultsDescriptionId}
+                                >
+                                    Description (optional)
+                                </label>
+                                <Textarea
+                                    className="-mx-[calc(--spacing(3)-1px)] *:resize-none"
+                                    id={createResultsDescriptionId}
+                                    isUnstyled
+                                    maxLength={1024}
+                                    onChange={(event) => {
+                                        onUpdateCreateResultsDescriptionDraft(
+                                            event.currentTarget.value
+                                        );
+                                    }}
+                                    placeholder="Describe what belongs here..."
+                                    size="lg"
+                                    value={createResultsDescriptionDraft}
+                                />
+                            </div>
+                            {createResultsError ? (
+                                <p className="text-destructive text-sm">
+                                    {createResultsError}
+                                </p>
+                            ) : null}
+                        </DialogPanel>
+                        <DialogFooter>
+                            <CollectionComboboxPicker
+                                collections={collections}
+                                items={visibleResultItems}
+                                onUpdateItemCollections={
+                                    onUpdateItemCollections
+                                }
+                                onUpdateItemsCollections={
+                                    onUpdateItemsCollections
+                                }
+                                render={
+                                    <Button
+                                        className="mr-auto -ml-2"
+                                        size="xs"
+                                        variant="link"
+                                    />
+                                }
+                            >
+                                <Component className="mr-0.5! size-4" />
+                                Add to existing
+                            </CollectionComboboxPicker>
+                            <DialogClose
+                                disabled={isCreatingResultsCollection}
+                                render={<Button size="sm" variant="ghost" />}
+                            >
+                                Cancel
+                            </DialogClose>
+                            <Button
+                                loading={isCreatingResultsCollection}
+                                size="sm"
+                                type="submit"
+                            >
+                                Create collection
+                            </Button>
+                        </DialogFooter>
+                    </form>
+                </DialogPopup>
+            </Dialog>
+        </>
+    );
+}
 
 export function BrowserRoot({
     connectedIntegrationCount,
@@ -5569,8 +5797,6 @@ export function BrowserRoot({
         };
     }, [handleOpenFavoriteItem, openFavoriteItemRef]);
 
-    const containerRef = React.useRef<HTMLDivElement>(null);
-
     let placeholder = "Search, filter, group, sort, and more";
     if (paletteSection === "search") {
         if (hasActiveFilters) {
@@ -5599,7 +5825,6 @@ export function BrowserRoot({
     return (
         <div
             className="relative z-0 flex w-full min-w-0 flex-1 flex-col gap-4 p-8"
-            ref={containerRef}
             style={sectionStyle}
         >
             <Composer>
@@ -5690,17 +5915,17 @@ export function BrowserRoot({
                 shouldShowNoFilteredResults={shouldShowNoFilteredResults}
             >
                 <BrowserEmpty />
-                <BrowserFiltersEmpty />
+                <BrowserEmptyWithFilters />
                 <BrowserList sections={sections}>
                     {(section) => (
                         <BrowserGroup>
                             {enableSectionCollapse ? (
                                 <>
-                                    <BrowserHeader />
+                                    <BrowserGroupHeader />
                                     {!section.title && (
-                                        <BrowserGroupOverview>
-                                            <BrowserGroupOverviewContent />
-                                        </BrowserGroupOverview>
+                                        <BrowserGroupAIOverview>
+                                            <BrowserGroupAIOverviewContent />
+                                        </BrowserGroupAIOverview>
                                     )}
                                     <BrowserGroupEmpty>
                                         No items were found in this section.
@@ -5722,9 +5947,8 @@ export function BrowserRoot({
                         <Masonry
                             columnCount={resolvedColumnCount}
                             columnGutter={16}
-                            itemKey={(data) => data.id}
                             items={LOCKED_LIBRARY_PREVIEW_PLACEHOLDERS}
-                            render={BrowserLockedPreviewCell}
+                            render={LockedPreviewCard}
                             rowGutter={16}
                         />
                     </div>
@@ -5732,7 +5956,6 @@ export function BrowserRoot({
             ) : null}
             <NoteDrawer
                 activeNote={activeNote}
-                container={containerRef}
                 handlePasteUrlIntoLibrary={handlePasteUrlIntoLibrary}
                 handleSaveNote={handleSaveNote}
                 isSavingNote={isSavingNote}
@@ -5740,169 +5963,37 @@ export function BrowserRoot({
                 onNoteDrawerClose={() => setActiveNote(null)}
             />
             <QuickLookDrawerSurface />
-            <Dialog
-                onOpenChange={handleDeleteDialogOpenChange}
-                open={pendingDeleteItem !== null}
-            >
-                <DialogPopup>
-                    <DialogHeader>
-                        <DialogTitle>Delete saved item?</DialogTitle>
-                        <DialogDescription>
-                            Remove{" "}
-                            {pendingDeleteItem?.noteContentText?.trim() ||
-                                pendingDeleteItem?.caption?.trim() ||
-                                pendingDeleteItem?.url ||
-                                "this saved item"}{" "}
-                            from Cache. This only deletes it from your library,
-                            not from the original platform.
-                        </DialogDescription>
-                    </DialogHeader>
-                    <DialogFooter>
-                        <DialogClose
-                            disabled={isDeletePending}
-                            render={<Button variant="ghost" />}
-                        >
-                            Cancel
-                        </DialogClose>
-                        <Button
-                            loading={isDeletePending}
-                            onClick={handleConfirmDelete}
-                            variant="destructive"
-                        >
-                            Delete
-                        </Button>
-                    </DialogFooter>
-                </DialogPopup>
-            </Dialog>
-            <Dialog
-                onOpenChange={handleCreateResultsDialogOpenChange}
-                open={isCreateResultsDialogOpen}
-            >
-                <DialogPopup>
-                    <form
-                        className="contents"
-                        onSubmit={(event) => {
-                            event.preventDefault();
-                            handleCreateCollectionFromResultsSubmit();
-                        }}
-                    >
-                        <DialogHeader>
-                            <div className="flex items-center gap-1">
-                                <Badge size="lg" variant="outline">
-                                    <Image
-                                        alt=""
-                                        height={12}
-                                        src={AppIconSmall}
-                                        width={12}
-                                    />
-                                    Cache
-                                </Badge>
-                                <ChevronRight className="inline-block size-3.5 shrink-0" />
-                                <DialogTitle className="font-medium text-sm">
-                                    New collection with{" "}
-                                    {resultCollectionItemIds.length} current
-                                    result
-                                    {resultCollectionItemIds.length === 1
-                                        ? ""
-                                        : "s"}
-                                </DialogTitle>
-                            </div>
-                        </DialogHeader>
-                        <DialogPanel className="space-y-2">
-                            <div>
-                                <label
-                                    className="sr-only font-medium text-sm"
-                                    htmlFor={createResultsNameInputId}
-                                >
-                                    Name
-                                </label>
-                                <Input
-                                    autoFocus
-                                    className="-mx-[calc(--spacing(3)-1px)] font-semibold text-xl"
-                                    id={createResultsNameInputId}
-                                    isUnstyled
-                                    maxLength={COLLECTION_NAME_MAX_LENGTH}
-                                    onChange={(event) => {
-                                        setCreateResultsNameDraft(
-                                            event.currentTarget.value
-                                        );
-                                        if (createResultsError) {
-                                            setCreateResultsError(null);
-                                        }
-                                    }}
-                                    placeholder="Collection title"
-                                    required
-                                    size="lg"
-                                    type="text"
-                                    value={createResultsNameDraft}
-                                />
-                            </div>
-                            <div>
-                                <label
-                                    className="sr-only font-medium text-sm"
-                                    htmlFor={createResultsDescriptionId}
-                                >
-                                    Description (optional)
-                                </label>
-                                <Textarea
-                                    className="-mx-[calc(--spacing(3)-1px)] *:resize-none"
-                                    id={createResultsDescriptionId}
-                                    isUnstyled
-                                    maxLength={1024}
-                                    onChange={(event) => {
-                                        setCreateResultsDescriptionDraft(
-                                            event.currentTarget.value
-                                        );
-                                    }}
-                                    placeholder="Describe what belongs here..."
-                                    size="lg"
-                                    value={createResultsDescriptionDraft}
-                                />
-                            </div>
-                            {createResultsError ? (
-                                <p className="text-destructive text-sm">
-                                    {createResultsError}
-                                </p>
-                            ) : null}
-                        </DialogPanel>
-                        <DialogFooter>
-                            <CollectionComboboxPicker
-                                collections={collections}
-                                items={visibleResultItems}
-                                onUpdateItemCollections={
-                                    onUpdateItemCollections
-                                }
-                                onUpdateItemsCollections={
-                                    onUpdateItemsCollections
-                                }
-                                render={
-                                    <Button
-                                        className="mr-auto -ml-2"
-                                        size="xs"
-                                        variant="link"
-                                    />
-                                }
-                            >
-                                <Component className="mr-0.5! size-4" />
-                                Add to existing
-                            </CollectionComboboxPicker>
-                            <DialogClose
-                                disabled={isCreatingResultsCollection}
-                                render={<Button size="sm" variant="ghost" />}
-                            >
-                                Cancel
-                            </DialogClose>
-                            <Button
-                                loading={isCreatingResultsCollection}
-                                size="sm"
-                                type="submit"
-                            >
-                                Create collection
-                            </Button>
-                        </DialogFooter>
-                    </form>
-                </DialogPopup>
-            </Dialog>
+            <BrowserDialogs
+                collectionComboboxPicker={CollectionComboboxPicker}
+                collections={collections}
+                createResultsDescriptionDraft={createResultsDescriptionDraft}
+                createResultsDescriptionId={createResultsDescriptionId}
+                createResultsDialogOpen={isCreateResultsDialogOpen}
+                createResultsError={createResultsError}
+                createResultsNameDraft={createResultsNameDraft}
+                createResultsNameInputId={createResultsNameInputId}
+                deleteDialogOpen={pendingDeleteItem !== null}
+                isCreatingResultsCollection={isCreatingResultsCollection}
+                isDeletePending={isDeletePending}
+                onConfirmDelete={handleConfirmDelete}
+                onCreateCollectionFromResultsSubmit={
+                    handleCreateCollectionFromResultsSubmit
+                }
+                onCreateResultsDialogOpenChange={
+                    handleCreateResultsDialogOpenChange
+                }
+                onDeleteDialogOpenChange={handleDeleteDialogOpenChange}
+                onUpdateCreateResultsDescriptionDraft={
+                    setCreateResultsDescriptionDraft
+                }
+                onUpdateCreateResultsError={setCreateResultsError}
+                onUpdateCreateResultsNameDraft={setCreateResultsNameDraft}
+                onUpdateItemCollections={onUpdateItemCollections}
+                onUpdateItemsCollections={onUpdateItemsCollections}
+                pendingDeleteItem={pendingDeleteItem}
+                resultItemCount={resultCollectionItemIds.length}
+                visibleResultItems={visibleResultItems}
+            />
         </div>
     );
 }

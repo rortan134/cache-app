@@ -41,7 +41,7 @@ export function BackToTopButton({
     return (
         <div
             className={cn(
-                "fixed right-8 bottom-8 z-50 transition-opacity duration-300",
+                "fixed right-8 bottom-8 z-40 transition-opacity duration-300",
                 { "pointer-events-none opacity-0": !isVisible },
                 className
             )}

@@ -10,6 +10,7 @@ import {
     CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { DisclosureListVertical } from "@/components/ui/disclosure-list";
+import { HighlightIn } from "@/components/ui/highlight-in";
 import { ChevronDownFilledIcon } from "@/components/ui/icons";
 import { CmdKbd, Kbd } from "@/components/ui/kbd";
 import {
@@ -467,6 +468,9 @@ function IntegrationsListTrigger({
                     className="-ml-0.5"
                     focusable="false"
                 />
+                <HighlightIn className="absolute right-2 text-muted-foreground text-xs">
+                    {4} connected
+                </HighlightIn>
                 <Kbd className="ml-auto bg-transparent opacity-0 group-hover:opacity-50 group-has-data-open/collapsible:hidden">
                     <CmdKbd />I
                 </Kbd>
