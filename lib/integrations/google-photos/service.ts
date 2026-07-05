@@ -8,7 +8,7 @@ import { LibraryItemSource } from "@/prisma/client/enums";
 import type {
     GooglePhotosPickedMediaItem,
     GooglePhotosPickerSession,
-} from "./api";
+} from "./shared";
 import { pickerPollIntervalMs, withPickerAutoclose } from "./api";
 
 const log = createLogger("integrations:google-photos");

@@ -1,24 +1,31 @@
 import { isAbortError } from "@/lib/common/abort";
 import { createLogger } from "@/lib/common/logs/console/logger";
+import * as z from "zod";
 
 const log = createLogger("integrations:cobalt");
 
 export const COBALT_API_BASE = "https://preview.cachd.app";
 
-interface CobaltResponse {
-    error?: {
-        code?: string;
-        context?: unknown;
-    };
-    picker?: Array<{
-        thumb?: string;
-        type?: string;
-        url?: string;
-    }>;
-    status?: string;
-    text?: string;
-    url?: string;
-}
+const CobaltPickerItemSchema = z.object({
+    thumb: z.string().optional(),
+    type: z.string().optional(),
+    url: z.string().optional(),
+});
+
+const CobaltResponseSchema = z.object({
+    error: z
+        .object({
+            code: z.string().optional(),
+            context: z.unknown().optional(),
+        })
+        .optional(),
+    picker: z.array(CobaltPickerItemSchema).optional(),
+    status: z.string().optional(),
+    text: z.string().optional(),
+    url: z.string().optional(),
+});
+
+type CobaltResponse = z.infer<typeof CobaltResponseSchema>;
 
 type ResolveCobaltDownloadUrlResult =
     | {
@@ -54,23 +61,32 @@ export async function resolveCobaltDownloadUrl(
 
         if (!response.ok) {
             return {
-                message:
-                    "The media resolver is currently unavailable right now.",
+                message: "The media resolver is currently unavailable.",
                 status: "ERROR",
             };
         }
 
-        const data = (await response.json()) as CobaltResponse;
+        const parsed = CobaltResponseSchema.safeParse(await response.json());
+        if (!parsed.success) {
+            log.warn("Cobalt download response schema mismatch", {
+                error: parsed.error,
+            });
+            return {
+                message: "Invalid response from media resolver.",
+                status: "ERROR",
+            };
+        }
 
-        if (data.status === "error") {
+        if (parsed.data.status === "error") {
             return {
                 message:
-                    data.text || "Failed to resolve a media URL for this item.",
+                    parsed.data.text ||
+                    "Failed to resolve a media URL for this item.",
                 status: "ERROR",
             };
         }
 
-        if (!data.url) {
+        if (!parsed.data.url) {
             return {
                 message:
                     "Could not find a downloadable media URL for this item.",
@@ -79,7 +95,7 @@ export async function resolveCobaltDownloadUrl(
         }
 
         return {
-            downloadUrl: data.url,
+            downloadUrl: parsed.data.url,
             status: "SUCCESS",
         };
     } catch (error) {
@@ -269,7 +285,15 @@ async function readCobaltJsonResponse(
     response: Response
 ): Promise<CobaltResponse | null> {
     try {
-        return (await response.json()) as CobaltResponse;
+        const json = await response.json();
+        const parsed = CobaltResponseSchema.safeParse(json);
+        if (!parsed.success) {
+            log.warn("Cobalt preview response schema mismatch", {
+                error: parsed.error,
+            });
+            return null;
+        }
+        return parsed.data;
     } catch {
         return null;
     }

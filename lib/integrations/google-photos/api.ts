@@ -1,49 +1,39 @@
 import "server-only";
 
+import { readJsonOrNull } from "@/lib/common/net";
+import { createLogger } from "@/lib/common/logs/console/logger";
 import { IntegrationApiError } from "@/lib/integrations/error";
+import * as z from "zod";
+
+const log = createLogger("google-photos:api");
+import {
+    GooglePhotosMediaItemsPageSchema,
+    GooglePhotosPickerSessionSchema,
+    parseGooglePhotosDuration,
+} from "./shared";
+import type {
+    GooglePhotosPickedMediaItem,
+    GooglePhotosPickerSession,
+} from "./shared";
 
 const GOOGLE_PHOTOS_PICKER_API = "https://photospicker.googleapis.com/v1";
-const DURATION_SECONDS_PATTERN = /^(\d+)(\.\d+)?s$/;
 const TRAILING_SLASHES_PATTERN = /\/+$/;
 
-interface PickerApiErrorShape {
-    error?: {
-        code?: number;
-        message?: string;
-        status?: string;
-    };
-}
+const PickerApiErrorSchema = z.object({
+    error: z
+        .object({
+            code: z.number().optional(),
+            message: z.string().optional(),
+            status: z.string().optional(),
+        })
+        .optional(),
+});
 
-export interface GooglePhotosPickerSession {
-    readonly id: string;
-    readonly mediaItemsSet?: boolean;
-    readonly pickerUri?: string;
-    readonly pollingConfig?: {
-        readonly pollInterval?: string;
-        readonly timeoutIn?: string;
-    };
-}
-
-export interface GooglePhotosPickedMediaItem {
-    readonly createTime?: string;
-    readonly id: string;
-    readonly mediaFile?: {
-        readonly baseUrl?: string;
-        readonly filename?: string;
-        readonly mimeType?: string;
-    };
-}
-
-interface GooglePhotosMediaItemsPage {
-    readonly mediaItems: readonly GooglePhotosPickedMediaItem[];
-    readonly nextPageToken?: string;
-}
-
-async function pickerFetch<TResponse>(
+async function pickerFetch(
     accessToken: string,
     pathname: string,
     init: RequestInit = {}
-): Promise<TResponse> {
+): Promise<unknown> {
     const response = await fetch(`${GOOGLE_PHOTOS_PICKER_API}${pathname}`, {
         ...init,
         headers: {
@@ -54,10 +44,16 @@ async function pickerFetch<TResponse>(
     });
 
     if (!response.ok) {
-        const maybeJson = (await response
-            .json()
-            .catch(() => ({}))) as PickerApiErrorShape;
-        const apiMessage = maybeJson.error?.message ?? response.statusText;
+        const maybeJson = await readJsonOrNull(response);
+        const parsedError = PickerApiErrorSchema.safeParse(maybeJson);
+        if (!parsedError.success) {
+            log.debug("Picker API error body did not match expected schema", {
+                error: parsedError.error,
+                raw: maybeJson,
+            });
+        }
+        const apiMessage =
+            parsedError.data?.error?.message ?? response.statusText;
         throw new IntegrationApiError({
             integrationId: "google-photos",
             message: apiMessage,
@@ -66,37 +62,35 @@ async function pickerFetch<TResponse>(
         });
     }
 
-    return (await response.json()) as TResponse;
+    return await response.json();
 }
 
 export async function createPickerSession(
     accessToken: string
 ): Promise<GooglePhotosPickerSession> {
-    return await pickerFetch<GooglePhotosPickerSession>(
-        accessToken,
-        "/sessions",
-        {
-            body: "{}",
-            method: "POST",
-        }
-    );
+    const raw = await pickerFetch(accessToken, "/sessions", {
+        body: "{}",
+        method: "POST",
+    });
+    return GooglePhotosPickerSessionSchema.parse(raw);
 }
 
 export async function getPickerSession(
     accessToken: string,
     sessionId: string
 ): Promise<GooglePhotosPickerSession> {
-    return await pickerFetch<GooglePhotosPickerSession>(
+    const raw = await pickerFetch(
         accessToken,
         `/sessions/${encodeURIComponent(sessionId)}`
     );
+    return GooglePhotosPickerSessionSchema.parse(raw);
 }
 
 export async function deletePickerSession(
     accessToken: string,
     sessionId: string
 ): Promise<void> {
-    await pickerFetch<Record<string, never>>(
+    await pickerFetch(
         accessToken,
         `/sessions/${encodeURIComponent(sessionId)}`,
         { method: "DELETE" }
@@ -115,10 +109,11 @@ export async function listPickedMediaItems(
         if (nextPageToken) {
             params.set("pageToken", nextPageToken);
         }
-        const page = await pickerFetch<GooglePhotosMediaItemsPage>(
+        const raw = await pickerFetch(
             accessToken,
             `/mediaItems?${params.toString()}`
         );
+        const page = GooglePhotosMediaItemsPageSchema.parse(raw);
         items.push(...page.mediaItems);
         nextPageToken = page.nextPageToken;
     } while (nextPageToken);
@@ -131,20 +126,9 @@ export function withPickerAutoclose(pickerUri: string): string {
     return clean.endsWith("/autoclose") ? clean : `${clean}/autoclose`;
 }
 
-function parseDurationSeconds(value: string | undefined): number | null {
-    if (!value) {
-        return null;
-    }
-    const match = DURATION_SECONDS_PATTERN.exec(value);
-    if (!match) {
-        return null;
-    }
-    return Number(match[1]);
-}
-
 export function pickerPollIntervalMs(pollInterval: string | undefined): number {
-    const seconds = parseDurationSeconds(pollInterval);
-    if (!seconds || Number.isNaN(seconds)) {
+    const seconds = parseGooglePhotosDuration(pollInterval);
+    if (!seconds) {
         return 2000;
     }
     return Math.max(1000, Math.round(seconds * 1000));

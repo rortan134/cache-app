@@ -159,7 +159,7 @@ function formatImportedCountMessage(
     return `Imported ${importedCount} ${importedCount === 1 ? noun : (plural ?? `${noun}s`)}.`;
 }
 
-export const INTEGRATIONS = [
+export const INTEGRATIONS: readonly SupportedIntegration[] = [
     {
         actions: [
             {
@@ -574,7 +574,7 @@ export const INTEGRATIONS = [
         id: "mcp",
         label: "MCP",
     },
-] satisfies readonly SupportedIntegration[];
+] as const;
 
 const INTEGRATION_BY_ID = new Map<IntegrationId, SupportedIntegration>(
     INTEGRATIONS.map((item) => [item.id, item])

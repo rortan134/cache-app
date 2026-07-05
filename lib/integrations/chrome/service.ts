@@ -8,14 +8,27 @@ import { chunk } from "@/lib/common/arrays";
 import { ITEM_KIND_BOOKMARK, ITEM_KIND_FOLDER } from "@/lib/common/constants";
 import { createLogger } from "@/lib/common/logs/console/logger";
 import { DEFAULT_BROWSER_PROFILE_ID } from "@/lib/integrations/browser-profiles";
-import { parseDate } from "@/lib/common/dates";
 import { prisma } from "@/prisma";
-import type { LibraryItem, Prisma } from "@/prisma/client/client";
-import { type LibraryItemKind, LibraryItemSource } from "@/prisma/client/enums";
+import { LibraryItemSource } from "@/prisma/client/enums";
 import * as z from "zod";
 
+import type {
+    ChromeBatchLookupState,
+    ChromeBookmarkNode,
+    ChromeLibraryItemDelegate,
+} from "./lookup";
+import {
+    buildChromeBookmarkUpdateData,
+    buildChromeLookupState,
+    chromeDuplicateKey,
+    normalizeChromeBookmarkRecord,
+    promoteAliasToPrimary,
+    removeChromeLookupRow,
+    replaceChromeLookupRow,
+    upsertChromeLookupRow,
+} from "./lookup";
+
 const log = createLogger("library:chrome-bookmarks");
-const CHROME_FOLDER_URL_PREFIX = "cache://chrome-bookmarks/folder/";
 const CHROME_BOOKMARK_SYNC_BATCH_SIZE = 25;
 
 // ---------------------------------------------------------------------------
@@ -93,36 +106,6 @@ export type ChromeBookmarkSyncBody = z.infer<
     typeof chromeBookmarkSyncBodySchema
 >;
 
-// ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
-
-type ChromeItemKind = typeof ITEM_KIND_BOOKMARK | typeof ITEM_KIND_FOLDER;
-
-interface ChromeBookmarkRecord {
-    browserProfileId: string;
-    caption: string | null;
-    externalId: string;
-    kind: ChromeItemKind;
-    parentExternalId: string | null;
-    postedAt: Date | null;
-    scrapedAt: Date;
-    source: typeof LibraryItemSource.chrome_bookmarks;
-    sourceDeviceId: string | null;
-    sourceDeviceName: string | null;
-    sourceMetadata: Prisma.InputJsonObject;
-    url: string;
-}
-
-type ChromeLibraryRow = LibraryItem;
-
-interface ChromeBatchLookupState {
-    aliasToPrimaryId: Map<string, string>;
-    duplicateToPrimaryId: Map<string, string>;
-    rowsById: Map<string, ChromeLibraryRow>;
-    rowsByPrimaryExternalId: Map<string, ChromeLibraryRow>;
-}
-
 interface ChromeSyncResult {
     deduped: number;
     deleted: number;
@@ -141,174 +124,9 @@ interface ChromeSyncAccumulator {
     upserted: number;
 }
 
-type ChromeLibraryItemDelegate = Prisma.TransactionClient["libraryItem"];
-
 // ---------------------------------------------------------------------------
-// Internal helpers
+// Event handlers
 // ---------------------------------------------------------------------------
-
-function normalizeChromeCaption(value: string | null | undefined): string {
-    return (value ?? "")
-        .trim()
-        .toLocaleLowerCase()
-        .replace(/[^\p{L}\p{N}\s]/gu, " ")
-        .replace(/\s+/g, " ");
-}
-
-function chromeDuplicateKey(
-    kind: LibraryItemKind,
-    url: string,
-    caption: string | null
-): string | null {
-    if (kind !== ITEM_KIND_BOOKMARK) {
-        return null;
-    }
-    return `${url}\u0000${normalizeChromeCaption(caption)}`;
-}
-
-function chromeFolderUrl(browserProfileId: string, externalId: string): string {
-    return `${CHROME_FOLDER_URL_PREFIX}${encodeURIComponent(browserProfileId)}/${encodeURIComponent(externalId)}`;
-}
-
-function normalizeChromeBookmarkRecord(
-    browserProfileId: string,
-    bookmark: z.infer<typeof chromeBookmarkNodeSchema>,
-    occurredAt: string | undefined,
-    device: ChromeBookmarkSyncBody["device"]
-): ChromeBookmarkRecord {
-    const title = bookmark.title?.trim();
-    const metadata = {
-        chrome: {
-            dateAdded: bookmark.dateAdded ?? null,
-            dateGroupModified: bookmark.dateGroupModified ?? null,
-            index: bookmark.index ?? null,
-        },
-        device: device
-            ? {
-                  id: device.id,
-                  name: device.name ?? null,
-                  os: device.os ?? null,
-              }
-            : null,
-    };
-
-    return {
-        browserProfileId,
-        caption: title && title.length > 0 ? title : null,
-        externalId: bookmark.externalId,
-        kind:
-            bookmark.kind === ITEM_KIND_FOLDER
-                ? ITEM_KIND_FOLDER
-                : ITEM_KIND_BOOKMARK,
-        parentExternalId: bookmark.parentExternalId ?? null,
-        postedAt:
-            typeof bookmark.dateAdded === "number"
-                ? new Date(bookmark.dateAdded)
-                : null,
-        scrapedAt: parseDate(occurredAt) ?? new Date(),
-        source: LibraryItemSource.chrome_bookmarks,
-        sourceDeviceId: device?.id ?? null,
-        sourceDeviceName: device?.name ?? null,
-        sourceMetadata: metadata,
-        url:
-            bookmark.kind === ITEM_KIND_FOLDER
-                ? chromeFolderUrl(browserProfileId, bookmark.externalId)
-                : (bookmark.url ??
-                  chromeFolderUrl(browserProfileId, bookmark.externalId)),
-    };
-}
-
-function buildChromeBookmarkUpdateData(
-    record: ChromeBookmarkRecord
-): Prisma.LibraryItemUpdateInput {
-    return {
-        caption: record.caption,
-        kind: record.kind,
-        parentExternalId: record.parentExternalId,
-        postedAt: record.postedAt,
-        scrapedAt: record.scrapedAt,
-        sourceDeviceId: record.sourceDeviceId,
-        sourceDeviceName: record.sourceDeviceName,
-        sourceMetadata: record.sourceMetadata,
-        url: record.url,
-    };
-}
-
-function promoteAliasToPrimary(
-    delegate: ChromeLibraryItemDelegate,
-    row: ChromeLibraryRow,
-    externalId: string
-) {
-    const aliasIds = new Set(row.sourceAliasIds);
-    aliasIds.delete(externalId);
-    aliasIds.add(row.externalId);
-
-    return delegate.update({
-        data: {
-            externalId,
-            sourceAliasIds: [...aliasIds],
-        },
-        where: { id: row.id },
-    });
-}
-
-function removeChromeLookupRow(
-    state: ChromeBatchLookupState,
-    row: ChromeLibraryRow
-): void {
-    state.rowsById.delete(row.id);
-    state.rowsByPrimaryExternalId.delete(row.externalId);
-
-    for (const aliasId of row.sourceAliasIds) {
-        state.aliasToPrimaryId.delete(aliasId);
-    }
-
-    const duplicateKey = chromeDuplicateKey(row.kind, row.url, row.caption);
-    if (duplicateKey) {
-        state.duplicateToPrimaryId.delete(duplicateKey);
-    }
-}
-
-function upsertChromeLookupRow(
-    state: ChromeBatchLookupState,
-    row: ChromeLibraryRow
-): void {
-    state.rowsById.set(row.id, row);
-    state.rowsByPrimaryExternalId.set(row.externalId, row);
-
-    for (const aliasId of row.sourceAliasIds) {
-        state.aliasToPrimaryId.set(aliasId, row.id);
-    }
-
-    const duplicateKey = chromeDuplicateKey(row.kind, row.url, row.caption);
-    if (duplicateKey && !state.duplicateToPrimaryId.has(duplicateKey)) {
-        state.duplicateToPrimaryId.set(duplicateKey, row.id);
-    }
-}
-
-function buildChromeLookupState(rows: ChromeLibraryRow[]) {
-    const state: ChromeBatchLookupState = {
-        aliasToPrimaryId: new Map(),
-        duplicateToPrimaryId: new Map(),
-        rowsById: new Map(),
-        rowsByPrimaryExternalId: new Map(),
-    };
-
-    for (const row of rows) {
-        upsertChromeLookupRow(state, row);
-    }
-
-    return state;
-}
-
-function replaceChromeLookupRow(
-    state: ChromeBatchLookupState,
-    previous: ChromeLibraryRow,
-    next: ChromeLibraryRow
-): void {
-    removeChromeLookupRow(state, previous);
-    upsertChromeLookupRow(state, next);
-}
 
 async function handleChromeDeleteEvent(args: {
     delegate: ChromeLibraryItemDelegate;
@@ -357,7 +175,7 @@ async function handleChromeDeleteEvent(args: {
 }
 
 async function handleChromeBookmarkWriteEvent(args: {
-    bookmark: z.infer<typeof chromeBookmarkNodeSchema>;
+    bookmark: ChromeBookmarkNode;
     browserProfileId: string;
     delegate: ChromeLibraryItemDelegate;
     device: ChromeBookmarkSyncBody["device"];

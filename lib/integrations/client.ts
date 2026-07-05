@@ -4,6 +4,7 @@ import { getErrorMessage } from "@/lib/common/error";
 import { asRecord } from "@/lib/common/objects";
 import copy from "copy-to-clipboard";
 import { openExternal } from "@/lib/common/url";
+import { readJsonOrNull } from "@/lib/common/net";
 import {
     IntegrationApiError,
     IntegrationConnectionError,
@@ -32,14 +33,6 @@ function extractRedirectUrl(payload: unknown): string | null {
     }
 
     return redirectUrl;
-}
-
-async function readJsonOrNull(response: Response): Promise<unknown> {
-    try {
-        return await response.json();
-    } catch {
-        return null;
-    }
 }
 
 /**

@@ -3,12 +3,14 @@ import "server-only";
 import { ITEM_KIND_BOOKMARK } from "@/lib/common/constants";
 import { getErrorMessage } from "@/lib/common/error";
 import { createLogger } from "@/lib/common/logs/console/logger";
+import { mapConcurrent } from "@/lib/common/arrays";
 import { upsertLibraryItemImports } from "@/lib/integrations/upsert";
 import { prisma } from "@/prisma";
 import type { Prisma } from "@/prisma/client/client";
 import { LibraryItemSource } from "@/prisma/client/enums";
 import { RssFeedError } from "./errors";
 import { parseFeed } from "./parser";
+import type { ParsedFeed } from "./parser";
 
 const log = createLogger("integrations:rss");
 
@@ -100,119 +102,129 @@ export async function refreshFeedsForUser(args: {
     userId: string;
 }): Promise<RssFeedRefreshResult> {
     const feeds = await prisma.rssFeed.findMany({
-        where: {
-            OR: [
-                { lastFetchedAt: null },
-                {
-                    lastFetchedAt: {
-                        lt: new Date(
-                            args.now.getTime() - REFRESH_MIN_INTERVAL_MS
-                        ),
-                    },
-                },
-            ],
-            userId: args.userId,
-        },
+        where: { userId: args.userId },
     });
 
-    const refreshedFeedIds: string[] = [];
-    const skippedFeedIds: string[] = [];
-    const errors: Array<{ feedId: string; error: string }> = [];
-    let importedCount = 0;
+    const results = await mapConcurrent(
+        feeds,
+        async (
+            feed
+        ): Promise<
+            | { kind: "refreshed"; feedId: string; importedCount?: number }
+            | { kind: "error"; error: string; feedId: string }
+            | { kind: "skipped"; feedId: string }
+        > => {
+            if (
+                feed.lastFetchedAt &&
+                args.now.getTime() - feed.lastFetchedAt.getTime() <
+                    REFRESH_MIN_INTERVAL_MS
+            ) {
+                return { feedId: feed.id, kind: "skipped" };
+            }
 
-    for (const feed of feeds) {
-        if (
-            feed.lastFetchedAt &&
-            args.now.getTime() - feed.lastFetchedAt.getTime() <
-                REFRESH_MIN_INTERVAL_MS
-        ) {
-            skippedFeedIds.push(feed.id);
-            continue;
-        }
+            try {
+                const parsed = await parseFeed(feed.feedUrl);
 
-        try {
-            const parsed = await parseFeed(feed.feedUrl);
+                const items: Array<{
+                    caption: string | null;
+                    externalId: string;
+                    kind: "bookmark";
+                    postedAt: Date | null;
+                    scrapedAt: Date;
+                    sourceMetadata: Prisma.InputJsonObject;
+                    url: string;
+                }> = [];
 
-            const items: Array<{
-                caption: string | null;
-                externalId: string;
-                kind: "bookmark";
-                postedAt: Date | null;
-                scrapedAt: Date;
-                sourceMetadata: Prisma.InputJsonObject;
-                url: string;
-            }> = [];
+                for (const item of parsed.items) {
+                    const guid = item.guid ?? item.link;
+                    if (!guid) {
+                        continue;
+                    }
 
-            for (const item of parsed.items) {
-                const guid = item.guid ?? item.link;
-                if (!guid) {
-                    continue;
+                    items.push({
+                        caption: item.title ?? null,
+                        externalId: guid,
+                        kind: ITEM_KIND_BOOKMARK,
+                        postedAt: item.isoDate ? new Date(item.isoDate) : null,
+                        scrapedAt: args.now,
+                        sourceMetadata: {
+                            author: item.creator ?? null,
+                            categories: item.categories ?? [],
+                        } satisfies Prisma.InputJsonObject,
+                        url: item.link ?? "",
+                    });
                 }
 
-                items.push({
-                    caption: item.title ?? null,
-                    externalId: guid,
-                    kind: ITEM_KIND_BOOKMARK,
-                    postedAt: item.isoDate ? new Date(item.isoDate) : null,
-                    scrapedAt: args.now,
-                    sourceMetadata: {
-                        author: item.creator ?? null,
-                        categories: item.categories ?? [],
-                    } as Prisma.InputJsonObject,
-                    url: item.link ?? "",
-                });
-            }
+                if (items.length === 0) {
+                    await updateFeedAfterFetch({
+                        feed,
+                        now: args.now,
+                        parsed,
+                    });
+                    return { feedId: feed.id, kind: "refreshed" };
+                }
 
-            if (items.length === 0) {
-                refreshedFeedIds.push(feed.id);
+                const result = await upsertLibraryItemImports({
+                    items,
+                    source: LibraryItemSource.rss_feed,
+                    userId: args.userId,
+                });
+
+                await updateFeedAfterFetch({
+                    feed,
+                    now: args.now,
+                    parsed,
+                });
+
+                log.info("Feed refreshed", {
+                    feedId: feed.id,
+                    importedCount: result.upsertedCount,
+                });
+
+                return {
+                    feedId: feed.id,
+                    importedCount: result.upsertedCount,
+                    kind: "refreshed",
+                };
+            } catch (error) {
+                const message = getErrorMessage(error, "Failed to fetch feed.");
 
                 await prisma.rssFeed.update({
-                    data: {
-                        description: parsed.description ?? feed.description,
-                        lastError: null,
-                        lastFetchedAt: args.now,
-                        siteUrl: parsed.link ?? feed.siteUrl,
-                        title: parsed.title ?? feed.title,
-                    },
+                    data: { lastError: message },
                     where: { id: feed.id },
                 });
-                continue;
+
+                log.error("Feed refresh failed", {
+                    error,
+                    feedId: feed.id,
+                });
+
+                return {
+                    error: message,
+                    feedId: feed.id,
+                    kind: "error",
+                };
             }
+        },
+        3
+    );
 
-            const result = await upsertLibraryItemImports({
-                items,
-                source: LibraryItemSource.rss_feed,
-                userId: args.userId,
+    const refreshedFeedIds: string[] = [];
+    const errors: Array<{ feedId: string; error: string }> = [];
+    const skippedFeedIds: string[] = [];
+    let importedCount = 0;
+
+    for (const result of results) {
+        if (result.kind === "refreshed") {
+            refreshedFeedIds.push(result.feedId);
+            importedCount += result.importedCount ?? 0;
+        } else if (result.kind === "skipped") {
+            skippedFeedIds.push(result.feedId);
+        } else {
+            errors.push({
+                error: result.error,
+                feedId: result.feedId,
             });
-
-            importedCount += result.upsertedCount;
-            refreshedFeedIds.push(feed.id);
-
-            await prisma.rssFeed.update({
-                data: {
-                    description: parsed.description ?? feed.description,
-                    lastError: null,
-                    lastFetchedAt: args.now,
-                    siteUrl: parsed.link ?? feed.siteUrl,
-                    title: parsed.title ?? feed.title,
-                },
-                where: { id: feed.id },
-            });
-
-            log.info("Feed refreshed", {
-                feedId: feed.id,
-                importedCount: result.upsertedCount,
-            });
-        } catch (error) {
-            const message = getErrorMessage(error, "Failed to fetch feed.");
-            errors.push({ error: message, feedId: feed.id });
-
-            await prisma.rssFeed.update({
-                data: { lastError: message },
-                where: { id: feed.id },
-            });
-
-            log.error("Feed refresh failed", { error, feedId: feed.id });
         }
     }
 
@@ -222,4 +234,26 @@ export async function refreshFeedsForUser(args: {
         refreshedFeedIds,
         skippedFeedIds,
     };
+}
+
+async function updateFeedAfterFetch(args: {
+    feed: {
+        description: string | null;
+        id: string;
+        siteUrl: string | null;
+        title: string | null;
+    };
+    now: Date;
+    parsed: Pick<ParsedFeed, "description" | "link" | "title">;
+}): Promise<void> {
+    await prisma.rssFeed.update({
+        data: {
+            description: args.parsed.description ?? args.feed.description,
+            lastError: null,
+            lastFetchedAt: args.now,
+            siteUrl: args.parsed.link ?? args.feed.siteUrl,
+            title: args.parsed.title ?? args.feed.title,
+        },
+        where: { id: args.feed.id },
+    });
 }

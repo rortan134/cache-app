@@ -1,5 +1,6 @@
 import "server-only";
 
+import { mapConcurrent } from "@/lib/common/arrays";
 import { createLogger } from "@/lib/common/logs/console/logger";
 import { upsertLibraryItemImports } from "@/lib/integrations/upsert";
 import { LibraryItemSource } from "@/prisma/client/enums";
@@ -21,6 +22,24 @@ export async function importPinterestBoards(args: {
 
     try {
         const boards = await listPinterestBoards(accessToken);
+
+        const boardsWithPins = await mapConcurrent(
+            boards,
+            async (board) => {
+                try {
+                    return await listPinterestBoardPins(accessToken, board);
+                } catch (error) {
+                    log.error("Failed to fetch pins for board", {
+                        boardId: board.id,
+                        boardName: board.name,
+                        error,
+                    });
+                    return [];
+                }
+            },
+            4
+        );
+
         const importedExternalIds = new Set<string>();
         const pinsToImport: {
             caption: string | null;
@@ -30,9 +49,7 @@ export async function importPinterestBoards(args: {
         }[] = [];
         let skippedCount = 0;
 
-        for (const board of boards) {
-            const pins = await listPinterestBoardPins(accessToken, board);
-
+        for (const pins of boardsWithPins) {
             for (const pin of pins) {
                 if (importedExternalIds.has(pin.externalId)) {
                     continue;

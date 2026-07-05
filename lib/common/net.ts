@@ -127,3 +127,16 @@ export async function parsePublicHttpUrl(
 
     return parsed;
 }
+
+/**
+ * Attempts to read a Response body as JSON, returning null on failure.
+ * Use this instead of raw response.json() when the body may be empty or
+ * malformed (e.g. error responses, 204 No Content).
+ */
+export async function readJsonOrNull(response: Response): Promise<unknown> {
+    try {
+        return await response.json();
+    } catch {
+        return null;
+    }
+}

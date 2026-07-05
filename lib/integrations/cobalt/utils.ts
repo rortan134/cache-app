@@ -1,3 +1,8 @@
+/**
+ * When adding a new integration that supports media (Instagram, Pinterest,
+ * TikTok, X, YouTube, etc.), its hostnames must also be added here for
+ * Cobalt-based media resolution.
+ */
 export const COBALT_SUPPORTED_HOSTS = new Set([
     "bilibili.com",
     "www.bilibili.com",
