@@ -85,6 +85,7 @@ interface VideoRangeRequest {
 interface ResolvedImage {
     imageUrl: string;
     pageUrl: string;
+    response?: Response;
 }
 
 const ResolvedImageSchema = z.object({
@@ -127,6 +128,13 @@ export async function GET(request: Request): Promise<Response> {
             return proxyVideoResponse(cachedVideoUrl, targetUrl, request);
         }
 
+        if (!isCobaltHost(targetUrl.href)) {
+            log.debug("Host not supported for video preview", {
+                targetUrl: targetUrl.href,
+            });
+            return textResponse("Video preview not available", 404);
+        }
+
         const publicTargetUrl = await parsePublicHttpUrl(targetUrl.href);
         if (!publicTargetUrl) {
             return textResponse("Invalid URL", 400);
@@ -153,7 +161,10 @@ export async function GET(request: Request): Promise<Response> {
             return textResponse("Invalid URL", 400);
         }
 
-        const preview = await resolveImagePreview(publicTargetUrl.href);
+        const preview = await resolveImagePreview(
+            publicTargetUrl.href,
+            delivery === "proxy"
+        );
         if (!preview?.imageUrl) {
             return textResponse("Preview not found", 404);
         }
@@ -209,7 +220,8 @@ function parsePreviewDelivery(delivery: string | null): PreviewDelivery | null {
 }
 
 async function resolveImagePreview(
-    targetUrl: string
+    targetUrl: string,
+    includeResponse = false
 ): Promise<ResolvedImage | null> {
     const cached = await readCachedImagePreview(targetUrl);
     if (cached) {
@@ -241,9 +253,12 @@ async function resolveImagePreview(
 
     const pageContentType = pageResponse.headers.get("content-type") ?? "";
     if (isSupportedPreviewImageContentType(pageContentType)) {
-        const result = { imageUrl: targetUrl, pageUrl: targetUrl };
+        const result: ResolvedImage = {
+            imageUrl: targetUrl,
+            pageUrl: targetUrl,
+        };
         await writeCachedImagePreview(targetUrl, result);
-        return result;
+        return includeResponse ? { ...result, response: pageResponse } : result;
     }
 
     const previewHeaders = headersToRecord(pageResponse.headers);
@@ -315,17 +330,19 @@ async function proxyImageResponse(
     targetUrl: URL,
     request: Request
 ): Promise<Response> {
-    const imageResponse = await fetchWithRedirects(
-        await parsePublicHttpUrl(preview.imageUrl),
-        {
-            headers: {
-                Accept: "image/*",
-                Referer: preview.pageUrl,
-                "User-Agent": getUserAgent(targetUrl.href),
+    const imageResponse =
+        preview.response ??
+        (await fetchWithRedirects(
+            await parsePublicHttpUrl(preview.imageUrl),
+            {
+                headers: {
+                    Accept: "image/*",
+                    Referer: preview.pageUrl,
+                    "User-Agent": getUserAgent(targetUrl.href),
+                },
             },
-        },
-        request.signal
-    );
+            request.signal
+        ));
 
     if (!imageResponse.ok) {
         return textResponse("Preview not found", 404);
@@ -430,13 +447,6 @@ async function resolveVideoPreview(
 }
 
 async function resolveVideo(targetUrl: URL, signal?: AbortSignal) {
-    if (!isCobaltHost(targetUrl.href)) {
-        log.debug("Host not supported for video preview", {
-            targetUrl: targetUrl.href,
-        });
-        return { videoUrl: null };
-    }
-
     const targetHref = targetUrl.href;
     const cachedVideoUrl = await readFromRedis(cobaltCacheKey(targetHref));
     if (cachedVideoUrl) {
@@ -774,7 +784,10 @@ async function writeCachedImagePreview(
 ): Promise<void> {
     await writeToRedis(
         previewImageCacheKey(targetHref),
-        JSON.stringify(preview),
+        JSON.stringify({
+            imageUrl: preview.imageUrl,
+            pageUrl: preview.pageUrl,
+        }),
         PREVIEW_IMAGE_CACHE_TTL_SECONDS
     );
 }
