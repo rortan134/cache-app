@@ -37,6 +37,7 @@ import type {
 import { cn } from "@/lib/common/cn";
 import { ITEM_KIND_NOTE } from "@/lib/common/constants";
 import { Toolbar } from "@base-ui/react";
+import { Checkbox } from "@base-ui/react/checkbox";
 import { useStableCallback } from "@base-ui/utils/useStableCallback";
 import {
     Check,
@@ -50,6 +51,10 @@ import { createStore } from "stan-js";
 import { storage } from "stan-js/storage";
 
 const ONBOARDING_TASK_META = [
+    {
+        id: "pain-point-survey",
+        label: "Answer this...",
+    },
     {
         id: "integration",
         label: "Connect your first integration",
@@ -74,7 +79,42 @@ const ONBOARDING_TASK_META = [
 
 const ONBOARDING_TASK_COUNT = ONBOARDING_TASK_META.length;
 
+const PAIN_POINT_OPTIONS = [
+    {
+        description: "I lose track of articles, videos, and links I've saved.",
+        id: "losing-saved",
+        label: "Finding things I've saved",
+    },
+    {
+        description:
+            "Twitter here, YouTube there, browser bookmarks somewhere else.",
+        id: "too-many-places",
+        label: "Too many places to search",
+    },
+    {
+        description: "Saved stuff piles up without any structure or themes.",
+        id: "organizing",
+        label: "Hard to organize into topics",
+    },
+    {
+        description: "I save things and never come back to read or watch them.",
+        id: "reading-later",
+        label: "Never getting back to them",
+    },
+    {
+        description: "I'd love a clean link to send friends or coworkers.",
+        id: "sharing",
+        label: "Sharing with others",
+    },
+    {
+        description: "I want to jot ideas next to the things I save.",
+        id: "quick-thoughts",
+        label: "Adding my own notes",
+    },
+] as const;
+
 type OnboardingTaskId = (typeof ONBOARDING_TASK_META)[number]["id"];
+type PainPointId = (typeof PAIN_POINT_OPTIONS)[number]["id"];
 
 interface OnboardingTask {
     id: OnboardingTaskId;
@@ -92,6 +132,7 @@ interface CompletedTaskInput {
 
 const { useStore: useLibraryOnboardingStore } = createStore({
     completedOnboardingTaskIds: storage<OnboardingTaskId[]>([]),
+    painPointSurveySelections: storage<PainPointId[]>([]),
 });
 
 function getCompletedTaskIdSet({
@@ -113,6 +154,9 @@ function getCompletedTaskIdSet({
     }
     if (clientCompletedTaskIds.includes("command")) {
         completed.add("command");
+    }
+    if (clientCompletedTaskIds.includes("pain-point-survey")) {
+        completed.add("pain-point-survey");
     }
     if (collections.some(isSharedCollection)) {
         completed.add("share");
@@ -170,8 +214,11 @@ export function OnboardingMenu({
     const { setOpen: setSidebarOpen } = useSidebar();
 
     const { setIsIntegrationsListOpen } = useIntegrationsListStore();
-    const { completedOnboardingTaskIds, setCompletedOnboardingTaskIds } =
-        useLibraryOnboardingStore();
+    const {
+        completedOnboardingTaskIds,
+        setCompletedOnboardingTaskIds,
+        setPainPointSurveySelections,
+    } = useLibraryOnboardingStore();
 
     const { copyToClipboard } = useCopyToClipboard();
 
@@ -192,6 +239,11 @@ export function OnboardingMenu({
         string | null
     >(null);
     const [isSharePending, startShareTransition] = React.useTransition();
+
+    const [isPainPointDialogOpen, setIsPainPointDialogOpen] =
+        React.useState(false);
+    const [painPointDialogSelections, setPainPointDialogSelections] =
+        React.useState<Set<PainPointId>>(() => new Set());
 
     const markClientTaskCompleted = useStableCallback(
         (taskId: OnboardingTaskId) => {
@@ -283,12 +335,58 @@ export function OnboardingMenu({
         }
     );
 
+    const handleOpenPainPointDialog = useStableCallback(() => {
+        setIsPainPointDialogOpen(true);
+    });
+
+    const handlePainPointDialogOpenChange = useStableCallback(
+        (open: boolean) => {
+            setIsPainPointDialogOpen(open);
+            if (!open) {
+                setPainPointDialogSelections(new Set());
+            }
+        }
+    );
+
+    const handleTogglePainPoint = useStableCallback(
+        (painPointId: PainPointId, checked: boolean) => {
+            setPainPointDialogSelections((current) => {
+                const next = new Set(current);
+                if (checked) {
+                    next.add(painPointId);
+                } else {
+                    next.delete(painPointId);
+                }
+                return next;
+            });
+        }
+    );
+
+    const handleSubmitPainPointSurvey = useStableCallback(() => {
+        const selections = painPointDialogSelections;
+        setPainPointSurveySelections((current) => {
+            const known = new Set(current);
+            const merged: PainPointId[] = [...current];
+            for (const id of selections) {
+                if (!known.has(id)) {
+                    known.add(id);
+                    merged.push(id);
+                }
+            }
+            return merged;
+        });
+        markClientTaskCompleted("pain-point-survey");
+        setIsPainPointDialogOpen(false);
+        setPainPointDialogSelections(new Set());
+    });
+
     const taskHandlerMap: Record<OnboardingTaskId, () => void | Promise<void>> =
         {
             collection: onCreateCollection,
             command: handleOpenCommand,
             integration: handleOpenIntegrations,
             note: onCreateNote,
+            "pain-point-survey": handleOpenPainPointDialog,
             share: handleRequestShare,
         };
 
@@ -400,6 +498,13 @@ export function OnboardingMenu({
                     </DialogPopup>
                 </Dialog>
             ) : null}
+            <PainPointSurveyDialog
+                onCheckedChange={handleTogglePainPoint}
+                onOpenChange={handlePainPointDialogOpenChange}
+                onSubmit={handleSubmitPainPointSurvey}
+                open={isPainPointDialogOpen}
+                selections={painPointDialogSelections}
+            />
         </>
     );
 }
@@ -460,5 +565,84 @@ function OnboardingTaskStateIcon({ isCompleted }: { isCompleted: boolean }) {
             size={10}
             value={0}
         />
+    );
+}
+
+interface PainPointSurveyDialogProps {
+    onCheckedChange: (painPointId: PainPointId, checked: boolean) => void;
+    onOpenChange: (open: boolean) => void;
+    onSubmit: () => void;
+    open: boolean;
+    selections: Set<PainPointId>;
+}
+
+function PainPointSurveyDialog({
+    onCheckedChange,
+    onOpenChange,
+    onSubmit,
+    open,
+    selections,
+}: PainPointSurveyDialogProps) {
+    return (
+        <Dialog onOpenChange={onOpenChange} open={open}>
+            <DialogPopup>
+                <DialogHeader>
+                    <DialogTitle>
+                        What's your biggest pain point right now?
+                    </DialogTitle>
+                    <DialogDescription>
+                        Pick anything that sounds like you. We'll use this to
+                        tailor the next steps
+                    </DialogDescription>
+                </DialogHeader>
+                <DialogPanel className="grid gap-1.5">
+                    {PAIN_POINT_OPTIONS.map((option) => {
+                        const isChecked = selections.has(option.id);
+                        return (
+                            <label
+                                className="flex cursor-pointer items-start gap-3 rounded-md border border-transparent p-2 outline-none transition-colors hover:border-border has-focus-visible:border-ring data-checked:border-border"
+                                data-checked={isChecked || undefined}
+                                htmlFor={`pain-point-${option.id}`}
+                                key={option.id}
+                            >
+                                <Checkbox.Root
+                                    aria-label={option.label}
+                                    checked={isChecked}
+                                    className="relative inline-flex size-4.5 shrink-0 items-center justify-center rounded-[.25rem] border border-input bg-background not-dark:bg-clip-padding shadow-xs/5 outline-none ring-ring transition-shadow before:pointer-events-none before:absolute before:inset-0 before:rounded-[3px] not-data-disabled:not-data-checked:not-aria-invalid:before:shadow-[0_1px_--theme(--color-black/4%)] focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:ring-offset-background aria-invalid:border-destructive/36 focus-visible:aria-invalid:border-destructive/64 focus-visible:aria-invalid:ring-destructive/48 data-disabled:cursor-not-allowed data-disabled:opacity-64 sm:size-4 dark:not-data-checked:bg-input/32 dark:aria-invalid:ring-destructive/24 dark:not-data-disabled:not-data-checked:not-aria-invalid:before:shadow-[0_-1px_--theme(--color-white/6%)] [[data-disabled],[data-checked],[aria-invalid]]:shadow-none"
+                                    id={`pain-point-${option.id}`}
+                                    onCheckedChange={(checked) =>
+                                        onCheckedChange(option.id, checked)
+                                    }
+                                >
+                                    <Checkbox.Indicator className="absolute -inset-px flex items-center justify-center rounded-[.25rem] text-primary-foreground data-unchecked:hidden data-checked:bg-primary data-indeterminate:text-foreground">
+                                        <Check
+                                            aria-hidden
+                                            className="size-3.5 sm:size-3"
+                                            focusable="false"
+                                        />
+                                    </Checkbox.Indicator>
+                                </Checkbox.Root>
+                                <span className="grid min-w-0 flex-1 gap-0.5 text-sm leading-tight">
+                                    <span className="font-medium text-foreground">
+                                        {option.label}
+                                    </span>
+                                    <span className="text-muted-foreground">
+                                        {option.description}
+                                    </span>
+                                </span>
+                            </label>
+                        );
+                    })}
+                </DialogPanel>
+                <DialogFooter>
+                    <DialogClose render={<Button size="sm" variant="ghost" />}>
+                        Skip
+                    </DialogClose>
+                    <Button onClick={onSubmit} size="sm">
+                        Done
+                    </Button>
+                </DialogFooter>
+            </DialogPopup>
+        </Dialog>
     );
 }

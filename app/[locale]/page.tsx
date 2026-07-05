@@ -618,7 +618,8 @@ export default async function Home() {
                             <T>
                                 <p className="font-medium text-base text-foreground">
                                     <span className="font-normal opacity-50">
-                                        You don't have to use Cache.
+                                        You don't have to use Cache
+                                        <br />
                                     </span>{" "}
                                     Let your AI agents use it with{" "}
                                     <ModelContextProtocolIcon /> MCP (Model

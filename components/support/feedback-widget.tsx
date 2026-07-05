@@ -9,6 +9,7 @@ import { createFeedback } from "@/lib/feedback/actions";
 import type { FeedbackActionState } from "@/lib/feedback/schema";
 import { useStableCallback } from "@base-ui/utils/useStableCallback";
 import { Send } from "lucide-react";
+import { useReducedMotion } from "motion/react";
 import { usePathname } from "next/navigation";
 import * as React from "react";
 import { useFormStatus } from "react-dom";
@@ -25,6 +26,7 @@ export function FeedbackWidget({
     ...props
 }: FeedbackWidgetProps) {
     const pathname = usePathname();
+    const isReducedMotion = useReducedMotion();
     const [isOpen, setIsOpen] = React.useState(false);
     const [state, formAction] = React.useActionState(
         createFeedback,
@@ -36,6 +38,15 @@ export function FeedbackWidget({
     React.useEffect(
         function closeOnSubmit() {
             if (state.status !== "success") {
+                return;
+            }
+            // Gate the celebration behind prefers-reduced-motion. The OS setting
+            // is unknown on first render (`useReducedMotion` returns `null`),
+            // so default to allowing the effect and only suppress it once the
+            // hook has confirmed the user opted out.
+            if (isReducedMotion) {
+                formRef.current?.reset();
+                setIsOpen(false);
                 return;
             }
             const rect = submitButtonRef.current?.getBoundingClientRect();
@@ -52,7 +63,7 @@ export function FeedbackWidget({
             formRef.current?.reset();
             setIsOpen(false);
         },
-        [state.status]
+        [state.status, isReducedMotion]
     );
 
     const handleToggleFeedbackWidget = useStableCallback(() => {

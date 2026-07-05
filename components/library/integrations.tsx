@@ -128,7 +128,9 @@ export function Integrations({ connectedIntegrations }: IntegrationsProps) {
             className="group/collapsible"
             data-sidebar-collapsible=""
         >
-            <IntegrationsListTrigger>
+            <IntegrationsListTrigger
+                connectedCount={connectedIntegrations.size}
+            >
                 <T>Integrations</T>
             </IntegrationsListTrigger>
             <IntegrationsListPanel>
@@ -436,9 +438,12 @@ function IntegrationsList({
 
 function IntegrationsListTrigger({
     children,
+    connectedCount,
     render,
     ...props
-}: React.ComponentProps<typeof CollapsibleTrigger>) {
+}: React.ComponentProps<typeof CollapsibleTrigger> & {
+    connectedCount: number;
+}) {
     const { isIntegrationsListOpen } = useIntegrationsListStore();
 
     return (
@@ -468,8 +473,8 @@ function IntegrationsListTrigger({
                     className="-ml-0.5"
                     focusable="false"
                 />
-                <HighlightIn className="absolute right-2 text-muted-foreground text-xs">
-                    {4} connected
+                <HighlightIn className="absolute right-2 text-[11px] text-muted-foreground group-hover:hidden">
+                    {connectedCount} connected
                 </HighlightIn>
                 <Kbd className="ml-auto bg-transparent opacity-0 group-hover:opacity-50 group-has-data-open/collapsible:hidden">
                     <CmdKbd />I

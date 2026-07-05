@@ -76,6 +76,7 @@ export default async function LibraryPage() {
         <WorkspaceProvider
             initialCollections={collections}
             initialItems={items}
+            key={userId}
         >
             <ApplicationSidebar>
                 <Integrations connectedIntegrations={connectedIntegrations} />
