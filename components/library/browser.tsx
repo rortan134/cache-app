@@ -3400,6 +3400,9 @@ function useLibraryItemActions(args: {
     };
 }
 
+const PREVIEW_DIMENSIONS_CACHE = new Map<string, { h: number; w: number }>();
+const PREVIEW_DIMENSIONS_CACHE_MAX = 500;
+
 function MediaPreview({
     src,
     videoSrc,
@@ -3421,6 +3424,8 @@ function MediaPreview({
 
     const shouldLoadVideo = isHovered && canRenderVideo && !hasVideoFailed;
     const isVideoLoading = !hasVideoStarted && shouldLoadVideo;
+
+    const cachedDims = src ? PREVIEW_DIMENSIONS_CACHE.get(src) : null;
 
     React.useEffect(() => {
         const video = videoRef.current;
@@ -3449,8 +3454,32 @@ function MediaPreview({
     });
 
     const handleImageError = useStableCallback(() => {
+        if (src) {
+            PREVIEW_DIMENSIONS_CACHE.delete(src);
+        }
         setHasImageFailed(true);
     });
+
+    const handleImageLoad = useStableCallback(
+        (event: React.SyntheticEvent<HTMLImageElement>) => {
+            const img = event.currentTarget;
+            const w = img.naturalWidth;
+            const h = img.naturalHeight;
+            if (w > 0 && h > 0 && src) {
+                if (
+                    PREVIEW_DIMENSIONS_CACHE.size >=
+                    PREVIEW_DIMENSIONS_CACHE_MAX
+                ) {
+                    const oldestKey =
+                        PREVIEW_DIMENSIONS_CACHE.keys().next().value;
+                    if (oldestKey !== undefined) {
+                        PREVIEW_DIMENSIONS_CACHE.delete(oldestKey);
+                    }
+                }
+                PREVIEW_DIMENSIONS_CACHE.set(src, { h, w });
+            }
+        }
+    );
 
     const handleMouseEnter = useStableCallback(() => {
         setIsHovered(true);
@@ -3481,11 +3510,19 @@ function MediaPreview({
 
     const SoundIcon = isSoundEnabled ? Volume2Icon : VolumeXIcon;
 
+    const wrapperStyle: React.CSSProperties | undefined = cachedDims
+        ? { aspectRatio: `${cachedDims.w} / ${cachedDims.h}` }
+        : undefined;
+
     return (
         <div
-            className="relative size-full break-inside-avoid"
+            className={cn(
+                "relative break-inside-avoid",
+                cachedDims ? "w-full" : "size-full"
+            )}
             onMouseEnter={handleMouseEnter}
             onMouseLeave={handleMouseLeave}
+            style={wrapperStyle}
         >
             {canRenderImage && !hasImageFailed ? (
                 <img
@@ -3496,6 +3533,7 @@ function MediaPreview({
                     height={400}
                     loading="eager"
                     onError={handleImageError}
+                    onLoad={handleImageLoad}
                     src={src}
                     style={{ cursor: "pointer" }}
                     width={300}
