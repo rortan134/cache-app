@@ -83,7 +83,9 @@ import {
     PreviewCardTrigger,
 } from "@/components/ui/preview-card";
 import { SidebarItem } from "@/components/ui/sidebar";
+import { Spinner } from "@/components/ui/spinner";
 import { Textarea } from "@/components/ui/textarea";
+import { useCollectionRecommendations } from "@/hooks/queries/use-collection-recommendations";
 import {
     pauseSmartCollectionsAutomations,
     useSmartCollectionsPreference,
@@ -100,6 +102,12 @@ import {
 } from "@/lib/collections/actions";
 import { disableCollectionSharing } from "@/lib/collections/sharing/actions";
 import { buildPublicCollectionShareUrl } from "@/lib/collections/sharing/url";
+import {
+    TEMPLATE_BY_VALUE,
+    TEMPLATES,
+    type CollectionTemplateOption,
+    type TemplateValue,
+} from "@/lib/collections/templates";
 import {
     itemPreviewImageUrl,
     type LibraryCollectionSummary,
@@ -225,12 +233,6 @@ interface CollectionItemStyle extends React.CSSProperties {
     "--text-muted-color": string;
 }
 
-interface CollectionTemplateOption {
-    description: string;
-    name: string;
-    value: string;
-}
-
 interface CollectionsListItemContextValue {
     collection: LibraryCollectionSummary;
     isHovered: boolean;
@@ -353,115 +355,6 @@ const VIEW_OPTIONS = [
     { icon: ArchiveX, label: "Exclude archives", value: "exclude-archives" },
     { icon: Globe, label: "Show shared only", value: "show-shared-only" },
 ] as const;
-
-const TEMPLATES = [
-    {
-        description:
-            "Articles, essays, and references to read when you have time.",
-        name: "Reading List",
-        value: "reading_list",
-    },
-    {
-        description:
-            "Visual references, examples, and sparks to kick off new ideas.",
-        name: "Inspiration",
-        value: "inspiration",
-    },
-    {
-        description:
-            "Step-by-step tutorials, docs, and practical guides to revisit.",
-        name: "Tutorials & Guides",
-        value: "tutorials_guides",
-    },
-    {
-        description:
-            "APIs, standards, specs, and evergreen references you keep coming back to.",
-        name: "Reference Shelf",
-        value: "reference_shelf",
-    },
-    {
-        description: "Apps, services, libraries, and tools to keep handy.",
-        name: "Tools & Resources",
-        value: "tools_resources",
-    },
-    {
-        description: "Videos, talks, and media to watch when you're ready.",
-        name: "Watch Later",
-        value: "watch_later",
-    },
-    {
-        description:
-            "Background research, references, and findings for ongoing work.",
-        name: "Research Notes",
-        value: "research_notes",
-    },
-    {
-        description:
-            "Potential product concepts, opportunities, and experiments.",
-        name: "Product Ideas",
-        value: "product_ideas",
-    },
-    {
-        description:
-            "Products, gear, and purchase links you're comparing or planning to buy.",
-        name: "Shopping List",
-        value: "shopping_list",
-    },
-    {
-        description:
-            "Restaurants, cafes, shops, and spots you want to check out soon.",
-        name: "Places to Try",
-        value: "places_to_try",
-    },
-    {
-        description:
-            "Trips, destinations, and travel resources to plan effectively.",
-        name: "Travel Plans",
-        value: "travel_plans",
-    },
-    {
-        description:
-            "DIY ideas, home upgrades, decor references, and projects for your space.",
-        name: "Home Projects",
-        value: "home_projects",
-    },
-    {
-        description:
-            "Workouts, routines, nutrition ideas, and wellness resources to revisit.",
-        name: "Wellness & Fitness",
-        value: "wellness_fitness",
-    },
-    {
-        description:
-            "Learning goals, resources, and opportunities for professional growth.",
-        name: "Career Growth",
-        value: "career_growth",
-    },
-    {
-        description:
-            "Tickets, events, deadlines, deals, and opportunities that are only useful for a short window and should be acted on soon.",
-        name: "Time-sensitive",
-        value: "time_sensitive",
-    },
-    {
-        description:
-            "Personal finance, investment research, budgeting tools, and financial planning resources.",
-        name: "Finance & Investing",
-        value: "finance_investing",
-    },
-    {
-        description:
-            "Online courses, educational platforms, learning paths, and skill-building resources to grow your knowledge.",
-        name: "Courses & Learning",
-        value: "courses_learning",
-    },
-] as const satisfies readonly CollectionTemplateOption[];
-
-type TemplateValue = (typeof TEMPLATES)[number]["value"];
-
-const TEMPLATE_BY_VALUE = new Map(
-    TEMPLATES.map((template) => [template.value, template])
-);
 
 const { useStore: useCollectionsListStateStore } = createStore({
     favoriteCollectionIds: storage<string[]>([]),
@@ -664,6 +557,7 @@ export function Collections() {
                             </CollectionItem>
                         )}
                     </CollectionsListContent>
+                    <CollectionsListRecommendations />
                 </CollapsiblePanel>
             </CollectionsList>
             <CollectionsListStatus />
@@ -677,6 +571,11 @@ export function Collections() {
 function useCollectionsController() {
     const { mutate: mutateSmartCollectionsPreference } =
         useSmartCollectionsPreference();
+    const {
+        isLoading: recommendationsLoading,
+        items: recommendationItems,
+        mutate: onRecommendationsMutate,
+    } = useCollectionRecommendations();
 
     const {
         collectionPreviewThumbnailUrlsById,
@@ -1296,6 +1195,33 @@ function useCollectionsController() {
         }
     );
 
+    const handleCreateFromTemplate = useStableCallback(
+        async (
+            template: { description: string; name: string },
+            assignToItemId?: string
+        ) => {
+            setFeedback(null);
+
+            const result = await createCollectionSafely({
+                assignToItemId,
+                description: template.description,
+                name: template.name,
+            });
+
+            if (result.status !== ACTION_STATUS.CREATED) {
+                showError(result.message);
+                return;
+            }
+
+            syncCreated({
+                assignedItemIds: getCreatedAssignedItemIds(result),
+                collection: result.collection,
+            });
+            onRecommendationsMutate();
+            showSuccess(`${template.name} created from template.`);
+        }
+    );
+
     const handleFavoriteToggle = useStableCallback(
         (collection: LibraryCollectionSummary) => {
             const isFavorite = favoriteCollectionIdSet.has(collection.id);
@@ -1366,6 +1292,7 @@ function useCollectionsController() {
             onCopyLinks: handleCopyLinks,
             onCopyShareLink: handleCopyShareLink,
             onCopyTitle: handleCopyTitle,
+            onCreateFromTemplate: handleCreateFromTemplate,
             onDelete: requestDelete,
             onDisableShare: handleDisableShare,
             onDisableSmartCollections: handleDisableSmartCollections,
@@ -1375,6 +1302,7 @@ function useCollectionsController() {
             onExportCsv: handleExportCsv,
             onFavoriteToggle: handleFavoriteToggle,
             onOpenLinks: handleOpenLinks,
+            onRecommendationsMutate,
             onRename: requestRename,
             onSendToNotion: handleSendToNotion,
             onUpdatePriority: handleUpdatePriority,
@@ -1415,6 +1343,10 @@ function useCollectionsController() {
             pendingPriorityComboboxCollectionId,
             pendingRename,
             pendingShareIds,
+            recommendations: {
+                isLoading: recommendationsLoading,
+                items: recommendationItems,
+            },
             requestCreate,
             selectedCollectionIds,
             showError,
@@ -1871,7 +1803,7 @@ function CollectionsListGroupTrigger({
             >
                 <span className="min-w-0 text-xs">
                     {children}&nbsp;
-                    <span className="opacity-80">({count})</span>
+                    <span className="opacity-80">{count}</span>
                 </span>
                 <ChevronDownFilledIcon
                     aria-hidden
@@ -2124,6 +2056,79 @@ function CollectionsListEmpty({
                     </div>
                 )}
             </p>
+        </div>
+    );
+}
+
+function CollectionRecommendationItem({
+    template,
+}: {
+    template: CollectionTemplateOption;
+}) {
+    const { onCreateFromTemplate } = useCollectionsActions();
+    const [isCreating, setIsCreating] = React.useState(false);
+
+    const handleClick = useStableCallback(
+        async (event: React.MouseEvent<HTMLButtonElement>) => {
+            if (isCreating) {
+                event.preventDefault();
+                return;
+            }
+            setIsCreating(true);
+            try {
+                await onCreateFromTemplate(template);
+            } finally {
+                setIsCreating(false);
+            }
+        }
+    );
+
+    return (
+        <div className="group relative flex select-none items-center">
+            <SidebarItem
+                className="w-full min-w-0 flex-1 justify-start rounded-lg pr-8 pl-10.5 text-left hover:bg-transparent"
+                render={
+                    <button
+                        disabled={isCreating}
+                        onClick={handleClick}
+                        type="button"
+                    />
+                }
+            >
+                <PlusIcon
+                    aria-hidden
+                    className="absolute left-3.5 z-10 size-4 opacity-50"
+                    focusable="false"
+                />
+                <div className="flex min-w-0 flex-1 items-center gap-3 leading-none">
+                    <span className="max-w-full shrink-0 truncate font-medium text-sm">
+                        {template.name}
+                    </span>
+                </div>
+                {isCreating ? (
+                    <Spinner className="absolute right-1 size-3.5" />
+                ) : null}
+            </SidebarItem>
+        </div>
+    );
+}
+
+function CollectionsListRecommendations() {
+    const { collectionSummaries, recommendations } = useCollectionsState();
+    const { items, isLoading } = recommendations;
+
+    if (!(collectionSummaries.length > 0 && items.length > 0 && !isLoading)) {
+        return null;
+    }
+
+    return (
+        <div className="flex flex-col gap-1 pt-0.5">
+            {items.map((template) => (
+                <CollectionRecommendationItem
+                    key={template.value}
+                    template={template}
+                />
+            ))}
         </div>
     );
 }
@@ -2938,12 +2943,12 @@ function CollectionItemMetadata({ children }: CollectionItemMetadataProps) {
                             <Badge size="sm" variant="secondary">
                                 {collection.shareId ? (
                                     <>
-                                        <Globe className="size-2.5" />
+                                        <Globe className="size-3" />
                                         Public
                                     </>
                                 ) : (
                                     <>
-                                        <LockKeyhole className="size-2.5" />
+                                        <LockKeyhole className="size-3" />
                                         Private
                                     </>
                                 )}
@@ -3159,7 +3164,8 @@ function CollectionsRenameDialog() {
 
 function CollectionsCreateDialog() {
     const { isCreateOpen, createItemId, showSuccess } = useCollectionsState();
-    const { syncCreated, setIsCreateOpen } = useCollectionsActions();
+    const { onRecommendationsMutate, syncCreated, setIsCreateOpen } =
+        useCollectionsActions();
 
     const [nameDraft, setNameDraft] = React.useState("");
     const [descriptionDraft, setDescriptionDraft] = React.useState("");
@@ -3260,6 +3266,7 @@ function CollectionsCreateDialog() {
                     assignedItemIds: getCreatedAssignedItemIds(result),
                     collection: result.collection,
                 });
+                onRecommendationsMutate();
                 showSuccess(`${template.name} created from template.`);
                 setIsCreateOpen(false);
             } finally {
@@ -3366,7 +3373,7 @@ function CollectionsCreateDialog() {
                             <AlertDescription>
                                 Collections keep your best saves and content in
                                 one place. Use them for ongoing goals, or just
-                                to keep things tidy. Cache Smart Collections can
+                                to keep things tidy. Smart Collections can
                                 auto-assign matching entries to it.{" "}
                                 {disabled ? (
                                     <Button
@@ -3375,7 +3382,7 @@ function CollectionsCreateDialog() {
                                         size="xs"
                                         variant="link"
                                     >
-                                        Learn how
+                                        Learn more
                                     </Button>
                                 ) : null}
                             </AlertDescription>
@@ -3445,7 +3452,8 @@ function CollectionsCreateDialog() {
                                             />
                                         </strong>{" "}
                                         can automatically assign collections to
-                                        entries that match these templates.
+                                        entries that match these templates – no
+                                        extra work for you.
                                     </p>
                                 </div>
                             </ComboboxPopup>

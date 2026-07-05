@@ -9,11 +9,10 @@ import {
     Composer,
     ComposerActionClear,
     ComposerActionNew,
-    ComposerActionNewCollection,
     ComposerActionOnboarding,
     ComposerActions,
     ComposerInput,
-    ComposerSuggestions,
+    ComposerSuggestionsList,
     type CommandPaletteGroup,
     type CommandPaletteItem,
     type CommandSuggestion,
@@ -241,8 +240,8 @@ import {
 import dynamic from "next/dynamic";
 import Image from "next/image";
 import * as React from "react";
-import { createPortal } from "react-dom";
 import { useHotkeys } from "react-hotkeys-hook";
+import { Controlled as ControlledZoom } from "react-medium-image-zoom";
 import { Streamdown } from "streamdown";
 import useSWR from "swr";
 
@@ -3796,7 +3795,7 @@ function CollectionComboboxPicker({
                                 ? `Edit collections (${selectedCount} selected)`
                                 : "Add to collections"
                         }
-                        className="z-1 rounded-full transition-transform ease-in-out active:scale-95"
+                        className="z-1 rounded-full"
                         size="icon-sm"
                         variant="ghost"
                     />
@@ -4148,61 +4147,6 @@ function CardMenu({
     );
 }
 
-function ImageZoomOverlay({
-    onClose,
-    src,
-}: {
-    onClose: () => void;
-    src: string;
-}) {
-    const ownerDocument = getOwnerDocument();
-
-    React.useEffect(() => {
-        const handleKeyDown = (event: KeyboardEvent) => {
-            if (event.key === "Escape") {
-                onClose();
-            }
-        };
-        ownerDocument.addEventListener("keydown", handleKeyDown);
-        return () =>
-            ownerDocument.removeEventListener("keydown", handleKeyDown);
-    }, [onClose, ownerDocument]);
-
-    return createPortal(
-        <div
-            aria-modal="true"
-            className="fade-in fixed inset-0 z-50 flex animate-in items-center justify-center bg-black/32 duration-250"
-            onClick={(event) => {
-                if (event.target === event.currentTarget) {
-                    onClose();
-                }
-            }}
-            onKeyDown={(event) => {
-                if (event.key === "Enter" || event.key === " ") {
-                    onClose();
-                }
-            }}
-            role="dialog"
-        >
-            <button
-                className="absolute top-4 right-4 z-10 rounded-full bg-muted/80 p-2 text-muted-foreground hover:bg-muted"
-                onClick={onClose}
-                type="button"
-            >
-                <XIcon className="size-5" />
-            </button>
-            <img
-                alt=""
-                className="h-full w-auto object-contain"
-                height={400}
-                src={src}
-                width={300}
-            />
-        </div>,
-        ownerDocument.body
-    );
-}
-
 function MediaCard({ item }: LibraryGridCardProps) {
     const { onOpenInNewTab, onOpenNote } = useLibraryGridCardContext();
     const isNote = item.kind === ITEM_KIND_NOTE;
@@ -4221,18 +4165,26 @@ function MediaCard({ item }: LibraryGridCardProps) {
     const displayTitle = getItemTitle(item);
     const { markVisited, isLastVisited } = useLastVisited();
 
+    const handleZoomChange = (nextZoomed: boolean) => {
+        setIsZoomed(nextZoomed);
+    };
+
     const handleZoomIn = () => {
         setIsZoomed(true);
     };
 
-    const handlePrimaryClick = (event: React.MouseEvent<HTMLAnchorElement>) => {
-        event.preventDefault();
+    const handlePrimaryAction = () => {
         if (isNote) {
             onOpenNote?.(item);
-            return;
+        } else {
+            onOpenInNewTab?.(item);
+            markVisited(item.id);
         }
-        onOpenInNewTab?.(item);
-        markVisited(item.id);
+    };
+
+    const handlePrimaryClick = (event: React.MouseEvent<HTMLElement>) => {
+        event.preventDefault();
+        handlePrimaryAction();
     };
 
     const handleDownload = () => {
@@ -4266,125 +4218,126 @@ function MediaCard({ item }: LibraryGridCardProps) {
     };
 
     return (
-        <>
-            <ContextMenu onOpenChange={setIsContextMenuOpen}>
-                <ContextMenuTrigger
-                    onKeyDown={handleCardKeyDown}
-                    render={
-                        // biome-ignore lint/a11y/useSemanticElements: Group role
-                        <div
-                            className="group relative flex shrink-0 flex-col focus-visible:outline-none"
-                            role="group"
-                        />
-                    }
+        <ContextMenu onOpenChange={setIsContextMenuOpen}>
+            <ContextMenuTrigger
+                onKeyDown={handleCardKeyDown}
+                render={
+                    // biome-ignore lint/a11y/useSemanticElements: Group role
+                    <div
+                        className="group relative flex shrink-0 flex-col before:absolute before:-inset-x-2 before:-top-2 before:bottom-0 before:-z-10 before:rounded-xl before:bg-muted/50 before:opacity-0 before:transition-transform hover:before:opacity-100 focus-visible:outline-none active:before:scale-x-[0.99] active:before:scale-y-[0.97] active:before:opacity-80!"
+                        role="group"
+                    />
+                }
+            >
+                {/* biome-ignore lint/a11y/useSemanticElements: ControlledZoom conflicts with anchor elements */}
+                <div
+                    className="squircle flex flex-col overflow-clip rounded-xl focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
+                    onClick={handlePrimaryClick}
+                    onKeyDown={(event: React.KeyboardEvent<HTMLElement>) => {
+                        if (event.key === "Enter") {
+                            handlePrimaryAction();
+                        }
+                    }}
+                    role="link"
+                    tabIndex={0}
                 >
-                    <a
-                        className="squircle flex flex-col overflow-clip rounded-xl focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
-                        href={href}
-                        onClick={handlePrimaryClick}
-                        rel="noreferrer"
-                        tabIndex={0}
-                        target={isNote ? undefined : "_blank"}
-                    >
-                        {isNote ? (
-                            <div className="relative flex h-auto min-h-56 w-full flex-col justify-between bg-linear-to-br from-amber-50 via-background to-stone-100 p-3">
-                                <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(251,191,36,0.18),transparent_45%)]" />
-                                <div className="relative flex flex-1 flex-col gap-2 pt-1.5">
-                                    <p className="whitespace-pre-wrap text-[11px] text-foreground leading-relaxed opacity-90">
-                                        {noteExcerpt ||
-                                            "Tap to start writing in this note"}
-                                    </p>
-                                </div>
+                    {isNote ? (
+                        <div className="relative flex h-auto min-h-56 w-full flex-col justify-between bg-linear-to-br from-amber-50 via-background to-stone-100 p-3">
+                            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(251,191,36,0.18),transparent_45%)]" />
+                            <div className="relative flex flex-1 flex-col gap-2 pt-1.5">
+                                <p className="whitespace-pre-wrap text-[11px] text-foreground leading-relaxed opacity-90">
+                                    {noteExcerpt ||
+                                        "Tap to start writing in this note"}
+                                </p>
                             </div>
-                        ) : (
-                            <>
+                        </div>
+                    ) : (
+                        <>
+                            <ControlledZoom
+                                isZoomed={isZoomed}
+                                onZoomChange={handleZoomChange}
+                            >
                                 <MediaPreview
                                     src={previewImageUrl}
                                     videoSrc={previewVideoUrl}
                                 />
-                                {isLastVisited(item.id) ? (
-                                    <span className="absolute top-2 right-2 z-10 inline-flex items-center gap-1 rounded-full bg-black/45 px-1.5 py-px font-medium text-white text-xs leading-normal">
-                                        <T>Last visited</T>
-                                        <ArrowUpRight
-                                            aria-hidden
-                                            className="hidden size-4 group-hover:inline-block"
-                                            focusable="false"
-                                        />
-                                    </span>
-                                ) : (
-                                    <span className="absolute top-2 right-2 z-10 rounded-full bg-black/50 px-1.5 py-px font-medium text-white text-xs leading-normal opacity-0 group-hover:opacity-100">
-                                        <ArrowUpRight
-                                            aria-hidden
-                                            className="size-4"
-                                            focusable="false"
-                                        />
-                                    </span>
-                                )}
-                            </>
-                        )}
-                    </a>
-                    <div className="flex items-center py-1.5 pr-1">
-                        <CardCollectionPicker
-                            item={item}
-                            onOpenChange={setIsCollectionPickerOpen}
-                            open={isCollectionPickerOpen}
-                        />
-                        <Menu
-                            onOpenChange={setIsCardMenuOpen}
-                            open={isCardMenuOpen}
-                        >
-                            <MenuTrigger
-                                render={
-                                    <Button
-                                        className="w-full min-w-0 flex-1 justify-start overflow-clip whitespace-nowrap border-none text-left text-[11px]!"
-                                        size="xs"
-                                        title={displayTitle}
-                                        type="button"
-                                        variant="ghost"
+                            </ControlledZoom>
+                            {isLastVisited(item.id) ? (
+                                <span className="absolute top-2 right-2 z-10 inline-flex items-center gap-1 rounded-full bg-black/45 px-1.5 py-px font-medium text-white text-xs leading-normal">
+                                    <T>Last visited</T>
+                                    <ArrowUpRight
+                                        aria-hidden
+                                        className="hidden size-4 group-hover:inline-block"
+                                        focusable="false"
                                     />
-                                }
-                            >
-                                <Ticker>{displayTitle}</Ticker>
-                            </MenuTrigger>
-                            <MenuPopup>
-                                <CardMenu
-                                    addedLabel={addedLabel}
-                                    createdLabel={createdLabel}
-                                    href={href}
-                                    isDownloading={isDownloading}
-                                    isOpen={isCardMenuOpen}
-                                    item={item}
-                                    kind="menu"
-                                    onDownload={handleDownload}
-                                    onZoomIn={handleZoomIn}
-                                    previewImageUrl={previewImageUrl}
+                                </span>
+                            ) : (
+                                <span className="absolute top-2 right-2 z-10 rounded-full bg-black/50 px-1.5 py-px font-medium text-white text-xs leading-normal opacity-0 group-hover:opacity-100">
+                                    <ArrowUpRight
+                                        aria-hidden
+                                        className="size-4"
+                                        focusable="false"
+                                    />
+                                </span>
+                            )}
+                        </>
+                    )}
+                </div>
+                <div className="flex items-center py-1.5 pr-1">
+                    <Menu
+                        onOpenChange={setIsCardMenuOpen}
+                        open={isCardMenuOpen}
+                    >
+                        <MenuTrigger
+                            render={
+                                <Button
+                                    className="w-full min-w-0 flex-1 justify-start overflow-clip whitespace-nowrap border-none text-left text-[11px]!"
+                                    size="xs"
+                                    title={displayTitle}
+                                    type="button"
+                                    variant="ghost"
                                 />
-                            </MenuPopup>
-                        </Menu>
-                    </div>
-                </ContextMenuTrigger>
-                <ContextMenuPopup>
-                    <CardMenu
-                        addedLabel={addedLabel}
-                        createdLabel={createdLabel}
-                        href={href}
-                        isDownloading={isDownloading}
-                        isOpen={isContextMenuOpen}
+                            }
+                        >
+                            <Ticker>{displayTitle}</Ticker>
+                        </MenuTrigger>
+                        <MenuPopup>
+                            <CardMenu
+                                addedLabel={addedLabel}
+                                createdLabel={createdLabel}
+                                href={href}
+                                isDownloading={isDownloading}
+                                isOpen={isCardMenuOpen}
+                                item={item}
+                                kind="menu"
+                                onDownload={handleDownload}
+                                onZoomIn={handleZoomIn}
+                                previewImageUrl={previewImageUrl}
+                            />
+                        </MenuPopup>
+                    </Menu>
+                    <CardCollectionPicker
                         item={item}
-                        kind="context"
-                        onDownload={handleDownload}
-                        onZoomIn={handleZoomIn}
-                        previewImageUrl={previewImageUrl}
+                        onOpenChange={setIsCollectionPickerOpen}
+                        open={isCollectionPickerOpen}
                     />
-                </ContextMenuPopup>
-            </ContextMenu>
-            {isZoomed && previewImageUrl ? (
-                <ImageZoomOverlay
-                    onClose={() => setIsZoomed(false)}
-                    src={previewImageUrl}
+                </div>
+            </ContextMenuTrigger>
+            <ContextMenuPopup>
+                <CardMenu
+                    addedLabel={addedLabel}
+                    createdLabel={createdLabel}
+                    href={href}
+                    isDownloading={isDownloading}
+                    isOpen={isContextMenuOpen}
+                    item={item}
+                    kind="context"
+                    onDownload={handleDownload}
+                    onZoomIn={handleZoomIn}
+                    previewImageUrl={previewImageUrl}
                 />
-            ) : null}
-        </>
+            </ContextMenuPopup>
+        </ContextMenu>
     );
 }
 
@@ -5888,9 +5841,6 @@ export function BrowserRoot({
                     onClearPalette={clearLibraryPalette}
                     onCreateCollection={requestCreate}
                     onCreateNote={handleCreateNote}
-                    onCreateResultsDialogOpen={
-                        handleCreateResultsDialogOpenChange
-                    }
                     onOpenCommandFromOnboarding={
                         handleOpenCommandFromOnboarding
                     }
@@ -5899,33 +5849,32 @@ export function BrowserRoot({
                 >
                     <ComposerActionNew />
                     <ComposerActionClear />
-                    <ComposerActionNewCollection />
                     <ComposerActionOnboarding />
                 </ComposerActions>
-                <ComposerSuggestions
-                    onOpenChange={setIsSuggestionsOpen}
-                    open={isSuggestionsOpen}
-                    suggestions={suggestions}
-                >
-                    {(suggestion, index) => (
-                        <Button
-                            className="rounded-full text-muted-foreground"
-                            key={index}
-                            onClick={suggestion.onSelect}
-                            size="xs"
-                            variant="ghost"
-                        >
-                            {suggestion.icon}
-                            &nbsp;
-                            {suggestion.label}
-                            <Kbd className="bg-transparent px-0 text-[11px] opacity-50">
-                                <CmdKbd />
-                                {index + 1}
-                            </Kbd>
-                        </Button>
-                    )}
-                </ComposerSuggestions>
             </Composer>
+            <ComposerSuggestionsList
+                onOpenChange={setIsSuggestionsOpen}
+                open={isSuggestionsOpen}
+                suggestions={suggestions}
+            >
+                {(suggestion, index) => (
+                    <Button
+                        className="rounded-full text-muted-foreground"
+                        key={index}
+                        onClick={suggestion.onSelect}
+                        size="xs"
+                        variant="ghost"
+                    >
+                        {suggestion.icon}
+                        &nbsp;
+                        {suggestion.label}
+                        <Kbd className="bg-transparent px-0 text-[11px] opacity-50">
+                            <CmdKbd />
+                            {index + 1}
+                        </Kbd>
+                    </Button>
+                )}
+            </ComposerSuggestionsList>
             {isPreviewOnly ? <InlinePaywallBanner /> : null}
             <Browser
                 clearLibraryPalette={clearLibraryPalette}

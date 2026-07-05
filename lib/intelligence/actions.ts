@@ -3,6 +3,11 @@
 import { isUnauthenticated, requireActionUserId } from "@/lib/auth/session";
 import { getValidationErrorMessage } from "@/lib/common/action";
 import { createLogger } from "@/lib/common/logs/console/logger";
+import { normalizeCollectionName } from "@/lib/common/strings";
+import type { CollectionTemplateOption } from "@/lib/collections/templates";
+import { TEMPLATES } from "@/lib/collections/templates";
+import { recommendCollectionTemplates } from "@/lib/intelligence/recommendations";
+import { prisma } from "@/prisma";
 import { request as getArcjetRequest } from "@arcjet/next";
 import {
     AskCacheRequestSchema,
@@ -154,6 +159,63 @@ export async function askCache(
             markdown:
                 "Ask Cache could not complete that request. Please try again.",
             message: "We couldn't ask Cache right now.",
+            status: "ERROR",
+        };
+    }
+}
+
+export type CollectionRecommendationsResult =
+    | {
+          recommendations: CollectionTemplateOption[];
+          status: "SUCCESS";
+      }
+    | {
+          message: string;
+          status: "ERROR" | "INVALID" | "UNAUTHORIZED";
+      };
+
+const RECOMMENDATIONS_ERROR_MESSAGE =
+    "We couldn't load collection recommendations right now.";
+
+export async function getCollectionRecommendations(): Promise<CollectionRecommendationsResult> {
+    const auth = await requireActionUserId(
+        "Sign in again to view collection recommendations."
+    );
+    if (isUnauthenticated(auth)) {
+        return auth;
+    }
+
+    try {
+        const templateNameKeys = TEMPLATES.map(
+            (template) => normalizeCollectionName(template.name).nameKey
+        );
+
+        const existingCollections = await prisma.collection.findMany({
+            select: {
+                nameKey: true,
+            },
+            where: {
+                nameKey: { in: templateNameKeys },
+                userId: auth.userId,
+            },
+        });
+
+        const existingNameKeys = new Set(
+            existingCollections.map((collection) => collection.nameKey)
+        );
+
+        const recommendations = recommendCollectionTemplates({
+            existingNameKeys,
+        });
+
+        return {
+            recommendations,
+            status: "SUCCESS",
+        };
+    } catch (error) {
+        log.error("Failed to fetch collection recommendations", { error });
+        return {
+            message: RECOMMENDATIONS_ERROR_MESSAGE,
             status: "ERROR",
         };
     }

@@ -140,7 +140,7 @@ export function SessionHint({ serverSession }: SessionHintProps) {
     return (
         <div className="flex items-center gap-2">
             <Info className="size-4 opacity-50" />
-            <div className="font-medium text-xs leading-tight tracking-[-3%] opacity-50">
+            <div className="font-medium text-xs leading-tight tracking-tighter opacity-50">
                 You are signed in as{" "}
                 {session.user.email ?? <Skeleton>Placeholder</Skeleton>}
                 <Button

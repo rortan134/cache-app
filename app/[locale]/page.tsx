@@ -127,7 +127,7 @@ export default async function Home() {
                                 </GradientWaveText>
                             </h1>
                             <p className="font-medium text-base text-foreground leading-[1.22] tracking-[-3%] opacity-50 lg:max-w-[320px]">
-                                Meet Cache — The AI bookmark manager for busy
+                                Cache is the AI bookmark manager for busy
                                 people. Collect, organize, and rediscover
                                 everything you've saved across platforms.
                             </p>
@@ -180,8 +180,8 @@ export default async function Home() {
                             src={HeroImage}
                         />
                     </div>
-                    <div className="-mt-2 mb-3 flex flex-col gap-1">
-                        <p className="mx-auto text-center text-sm">
+                    <div className="mx-auto -mt-2 mb-3 flex max-w-prose flex-col items-center justify-center gap-1 text-center">
+                        <p className="text-sm">
                             <T>
                                 Save hours every week with a smarter way to
                                 handle everything you save online. From just
@@ -189,7 +189,7 @@ export default async function Home() {
                             </T>
                         </p>
                         <Button
-                            className="mt-0.5 opacity-50"
+                            className="mt-0.5 text-muted-foreground"
                             render={
                                 <a
                                     aria-label="GitHub Repository"
@@ -201,8 +201,12 @@ export default async function Home() {
                             size="sm"
                             variant="link"
                         >
-                            <GithubIcon className="size-4" />
-                            &nbsp;Open Source – Star on GitHub
+                            <GithubIcon
+                                aria-hidden
+                                className="size-3.5"
+                                focusable="false"
+                            />
+                            &nbsp;Open source – Truly yours
                         </Button>
                     </div>
                     <section className="grid w-full grid-cols-1 gap-2 md:grid-cols-2 md:gap-[40px]">
@@ -615,17 +619,17 @@ export default async function Home() {
                         </Carousel>
                     </section>
                     <section className="flex w-full flex-col gap-8">
-                        <div className="flex max-w-sm items-center gap-5">
+                        <div className="flex max-w-prose items-center gap-5">
                             <T>
-                                <p className="font-medium text-base text-foreground">
-                                    <span className="font-normal opacity-50">
+                                <p className="font-medium text-lg text-muted-foreground tracking-tighter">
+                                    <span className="font-normal text-foreground">
                                         You don't have to use Cache
                                         <br />
                                     </span>{" "}
                                     Let your AI agents use it with{" "}
-                                    <ModelContextProtocolIcon /> MCP (Model
-                                    Context Protocol) and empower them with the
-                                    full spectrum of your resources.
+                                    <ModelContextProtocolIcon className="opacity-60" />{" "}
+                                    MCP and empower them with the full spectrum
+                                    of your resources
                                 </p>
                             </T>
                         </div>

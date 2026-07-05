@@ -31,7 +31,7 @@ import {
 } from "@base-ui/react";
 import { useStableCallback } from "@base-ui/utils/useStableCallback";
 import { Calligraph } from "calligraph";
-import { CircleFadingPlus, Grid2x2, Grid2x2X, SquarePen } from "lucide-react";
+import { Grid2x2, Grid2x2X, SquarePen } from "lucide-react";
 import * as React from "react";
 
 const COMMAND_MATCH_WORD_SEPARATOR_PATTERN = /[\s:./_-]+/;
@@ -96,35 +96,17 @@ function useComposerActionsContext(): ComposerActionsContextValue {
 }
 
 export function Composer({
-    children,
     className,
     ...props
 }: React.ComponentProps<typeof Toolbar.Root>) {
-    const childrenArray = React.Children.toArray(children);
-    const toolbarChildren: React.ReactNode[] = [];
-    let suggestionsChild: React.ReactNode = null;
-
-    for (const child of childrenArray) {
-        if (React.isValidElement(child) && child.type === ComposerSuggestions) {
-            suggestionsChild = child;
-        } else {
-            toolbarChildren.push(child);
-        }
-    }
-
     return (
-        <>
-            <Toolbar.Root
-                {...props}
-                className={cn(
-                    "w-full max-w-2xl rounded-t-4xl rounded-b-2xl bg-muted/80",
-                    className
-                )}
-            >
-                {toolbarChildren}
-            </Toolbar.Root>
-            {suggestionsChild}
-        </>
+        <Toolbar.Root
+            {...props}
+            className={cn(
+                "w-full max-w-2xl rounded-t-4xl rounded-b-2xl bg-muted/80",
+                className
+            )}
+        />
     );
 }
 
@@ -171,7 +153,7 @@ export function ComposerInput({
                     <CommandEmpty>No matching commands</CommandEmpty>
                     <CommandStatus />
                     <CommandList className="max-w-2xl">
-                        {filteredGroups.map((group) => (
+                        {(group: CommandPaletteGroup) => (
                             <CommandGroup items={group.items} key={group.label}>
                                 <CommandGroupLabel>
                                     {group.label}
@@ -198,7 +180,7 @@ export function ComposerInput({
                                     </CommandCollection>
                                 )}
                             </CommandGroup>
-                        ))}
+                        )}
                     </CommandList>
                 </CommandPopup>
             </CommandPanel>
@@ -206,7 +188,7 @@ export function ComposerInput({
     );
 }
 
-export function ComposerSuggestions({
+export function ComposerSuggestionsList({
     children,
     suggestions,
     className,
@@ -235,17 +217,15 @@ export function ComposerSuggestions({
             onOpenChange={setOpen}
             open={open}
         >
-            <CollapsiblePanel
-                render={<div className={cn("px-3", className)} {...props} />}
-            >
+            <CollapsiblePanel {...props} className={cn("px-3", className)}>
                 <ScrollArea
                     className="max-w-full whitespace-nowrap"
                     shouldScrollFade
                 >
                     <div className="flex w-max flex-nowrap items-center gap-1.5">
-                        {suggestions.map((suggestion, index) => (
+                        {suggestions.map((suggestion, i) => (
                             <React.Fragment key={suggestion.label}>
-                                {children(suggestion, index)}
+                                {children(suggestion, i)}
                                 <span className="mr-0.5 -ml-0.5 font-medium text-muted-foreground text-xs">
                                     ·
                                 </span>
@@ -316,26 +296,6 @@ export function ComposerActionClear() {
     );
 }
 
-export function ComposerActionNewCollection() {
-    const { canCreateCollectionFromResults, onCreateResultsDialogOpen } =
-        useComposerActionsContext();
-
-    const handleCreateCollection = useStableCallback(() =>
-        onCreateResultsDialogOpen(true)
-    );
-
-    if (!canCreateCollectionFromResults) {
-        return null;
-    }
-
-    return (
-        <ActionButton onClick={handleCreateCollection}>
-            <CircleFadingPlus className="inline-block size-3.5 shrink-0" />
-            &nbsp;Collection with results
-        </ActionButton>
-    );
-}
-
 export function ComposerActionOnboarding() {
     const {
         canCreateCollectionFromResults,
@@ -388,14 +348,13 @@ interface ComposerActionsProps {
     onClearPalette: () => void;
     onCreateCollection: () => void;
     onCreateNote: () => void;
-    onCreateResultsDialogOpen: (open: boolean) => void;
     onOpenCommandFromOnboarding: () => void;
     resultsSummary: string;
     sectionsLength: number;
 }
 
 interface ComposerSuggestionsProps
-    extends Omit<React.ComponentProps<"div">, "children"> {
+    extends Omit<React.ComponentProps<typeof CollapsiblePanel>, "children"> {
     children: (suggestion: CommandSuggestion, index: number) => React.ReactNode;
     onOpenChange?: (open: boolean) => void;
     open?: boolean;
@@ -530,7 +489,7 @@ function ComposerInputShortcuts() {
             <Kbd className="border-none text-muted-foreground opacity-50 group-data-popup-open/input:opacity-0">
                 <CmdKbd />G
             </Kbd>
-            <span className="absolute right-3 flex items-center gap-0.5 text-nowrap opacity-0 group-data-popup-open/input:opacity-100">
+            <span className="absolute right-3.5 flex items-center gap-0.5 text-nowrap opacity-0 group-data-popup-open/input:opacity-100">
                 <Kbd className="border-none text-muted-foreground opacity-50">
                     Tab
                 </Kbd>
@@ -549,6 +508,8 @@ function CommandPaletteItemComponent({
     item: CommandPaletteItem;
     isHorizontal: boolean;
 }) {
+    const onSelect = useStableCallback(item.onSelect);
+
     return (
         <CommandItem
             className={cn(
@@ -557,7 +518,7 @@ function CommandPaletteItemComponent({
             )}
             disabled={item.disabled}
             key={item.value}
-            onClick={item.onSelect}
+            onClick={onSelect}
             value={item.value}
         >
             {item.render ? (
@@ -583,26 +544,18 @@ function CommandPaletteItemComponent({
 }
 
 function ActionButton({
-    onClick,
-    title,
-    children,
-}: {
-    onClick: () => void;
-    title?: string;
-    children: React.ReactNode;
-}) {
+    className,
+    ...props
+}: React.ComponentProps<typeof Button>) {
     return (
         <Toolbar.Button
             render={
                 <Button
-                    className="rounded-full"
-                    onClick={onClick}
+                    {...props}
+                    className={cn("rounded-full", className)}
                     size="xs"
-                    title={title}
                     variant="ghost"
-                >
-                    {children}
-                </Button>
+                />
             }
         />
     );

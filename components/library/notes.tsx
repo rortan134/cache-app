@@ -25,7 +25,6 @@ import { cn } from "@/lib/common/cn";
 import { getOwnerDocument } from "@/lib/common/dom";
 import { createLogger } from "@/lib/common/logs/console/logger";
 import { openExternal, parseStandaloneUrl } from "@/lib/common/url";
-import { sendNoteToNotion } from "@/lib/integrations/notion/actions";
 import {
     NOTE_EMPTY_HTML,
     convertNoteHtmlToMarkdown,
@@ -35,6 +34,7 @@ import {
     serializeNoteEditorStateToHtml,
     type NoteSerializedEditorState,
 } from "@/lib/integrations/notes/utils";
+import { sendNoteToNotion } from "@/lib/integrations/notion/actions";
 import AppIconSmall from "@/public/cache-icon-small.png";
 import { useStableCallback } from "@base-ui/utils/useStableCallback";
 import { $generateNodesFromDOM } from "@lexical/html";
@@ -890,7 +890,7 @@ function NoteRoot({
     const deferredContentHtml = useDeferredValue(draft.contentHtml);
     const textMetrics = getNoteTextMetrics(deferredContentHtml);
     const query = textMetrics.plainText;
-    const title = note ? "Edit note" : "New note";
+    const title = note ? "Edit note" : "New entry";
     const isBusy = isSaving || isClosing;
 
     return (
