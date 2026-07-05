@@ -321,6 +321,29 @@
   },
   "93f881a7033302b7": "El paso que faltaba entre guardar contenido y tomar notas. Estructurado, fácil de buscar y siempre ahí cuando lo necesitas.",
   "94c20ff6b75d8acb": "Cómo recopilamos, usamos y protegemos la información personal.",
+  "96f8b1f5e411305f": {
+    "c": [
+      {
+        "c": [
+          "No hace falta que uses Cache",
+          {
+            "i": 3,
+            "t": "br"
+          }
+        ],
+        "i": 2,
+        "t": "span"
+      },
+      " Deja que tus agentes de IA lo usen con ",
+      {
+        "i": 4,
+        "t": "ModelContextProtocolIcon"
+      },
+      " MCP (Model Context Protocol) y dales acceso a todo el abanico de tus recursos."
+    ],
+    "i": 1,
+    "t": "p"
+  },
   "97f68bd29d3d4247": {
     "c": [
       {
@@ -367,23 +390,6 @@
   "b33e2234ec4ab823": "Plan gratuito",
   "b5d5276005980a36": "Creadores y desarrolladores",
   "b80f68728546aeb4": "Programa tareas que organicen tu biblioteca, investiguen temas, resuman contenidos y mucho más, todo en piloto automático",
-  "b8d28058e59c24f4": {
-    "c": [
-      {
-        "c": "No tienes que usar Cache.",
-        "i": 2,
-        "t": "span"
-      },
-      " Deja que tus agentes de IA lo usen con ",
-      {
-        "i": 3,
-        "t": "ModelContextProtocolIcon"
-      },
-      " MCP (Model Context Protocol) y pon a su alcance todos tus recursos."
-    ],
-    "i": 1,
-    "t": "p"
-  },
   "c1172428bea235ca": "Normas que regulan el uso del servicio, la gestión de tu cuenta y el uso aceptable.",
   "c26fd6852bfece9e": "Continuar con Google",
   "c4244c4a6f71e511": "Abrir en una pestaña nueva",

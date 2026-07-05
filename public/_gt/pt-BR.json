@@ -321,6 +321,29 @@
   },
   "93f881a7033302b7": "A etapa que faltava entre salvar favoritos e fazer anotações. Estruturado, fácil de pesquisar, sempre à mão quando você precisar.",
   "94c20ff6b75d8acb": "Como coletamos, usamos e protegemos informações pessoais.",
+  "96f8b1f5e411305f": {
+    "c": [
+      {
+        "c": [
+          "Você não precisa usar o Cache",
+          {
+            "i": 3,
+            "t": "br"
+          }
+        ],
+        "i": 2,
+        "t": "span"
+      },
+      " Deixe seus agentes de IA usarem o Cache com ",
+      {
+        "i": 4,
+        "t": "ModelContextProtocolIcon"
+      },
+      " MCP (Protocolo de Contexto do Modelo) e dê a eles acesso a toda a gama dos seus recursos."
+    ],
+    "i": 1,
+    "t": "p"
+  },
   "97f68bd29d3d4247": {
     "c": [
       {
@@ -367,23 +390,6 @@
   "b33e2234ec4ab823": "Plano gratuito",
   "b5d5276005980a36": "Criadores e desenvolvedores",
   "b80f68728546aeb4": "Agende tarefas que organizam sua biblioteca, pesquisam temas, fazem resumos e muito mais — tudo no piloto automático",
-  "b8d28058e59c24f4": {
-    "c": [
-      {
-        "c": "Você não precisa usar o Cache.",
-        "i": 2,
-        "t": "span"
-      },
-      " Deixe seus agentes de IA usarem o Cache com ",
-      {
-        "i": 3,
-        "t": "ModelContextProtocolIcon"
-      },
-      " MCP (Protocolo de Contexto de Modelo) e dê a eles acesso a toda a sua gama de recursos."
-    ],
-    "i": 1,
-    "t": "p"
-  },
   "c1172428bea235ca": "Regras que regem o uso do serviço, o gerenciamento da sua conta e o uso aceitável.",
   "c26fd6852bfece9e": "Continuar com Google",
   "c4244c4a6f71e511": "Abrir em uma nova guia",

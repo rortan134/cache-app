@@ -321,6 +321,29 @@
   },
   "93f881a7033302b7": "Le chaînon manquant entre les signets et la prise de notes. Structuré, facile à rechercher, toujours là quand vous en avez besoin.",
   "94c20ff6b75d8acb": "Comment nous collectons, utilisons et protégeons les informations personnelles.",
+  "96f8b1f5e411305f": {
+    "c": [
+      {
+        "c": [
+          "Vous n’avez pas besoin d’utiliser Cache",
+          {
+            "i": 3,
+            "t": "br"
+          }
+        ],
+        "i": 2,
+        "t": "span"
+      },
+      " Laissez vos agents IA s’en servir avec ",
+      {
+        "i": 4,
+        "t": "ModelContextProtocolIcon"
+      },
+      " MCP (Model Context Protocol) et donnez-leur accès à l’ensemble de vos ressources."
+    ],
+    "i": 1,
+    "t": "p"
+  },
   "97f68bd29d3d4247": {
     "c": [
       {
@@ -367,23 +390,6 @@
   "b33e2234ec4ab823": "Forfait gratuit",
   "b5d5276005980a36": "Créateurs et développeurs",
   "b80f68728546aeb4": "Planifiez des tâches qui organisent votre bibliothèque, effectuent des recherches sur des sujets, résument du contenu et bien plus encore — le tout en mode autopilote",
-  "b8d28058e59c24f4": {
-    "c": [
-      {
-        "c": "Vous n’avez pas besoin d’utiliser Cache.",
-        "i": 2,
-        "t": "span"
-      },
-      " Laissez vos agents IA l’utiliser avec ",
-      {
-        "i": 3,
-        "t": "ModelContextProtocolIcon"
-      },
-      " MCP (Model Context Protocol) et donnez-leur accès à toute la richesse de vos ressources."
-    ],
-    "i": 1,
-    "t": "p"
-  },
   "c1172428bea235ca": "Règles régissant l’utilisation du service, la gestion de votre compte et l’utilisation autorisée.",
   "c26fd6852bfece9e": "Continuer avec Google",
   "c4244c4a6f71e511": "Ouvrir dans un nouvel onglet",
