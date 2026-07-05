@@ -2,7 +2,7 @@
  * BCP-47 locales enabled in General Translation.
  * Keep in sync with `locales` in `gt.config.json`.
  */
-export const SUPPORTED_LOCALES = ["en-US", "fr-FR", "es-ES", "pt-BR"] as const;
+export const SUPPORTED_LOCALES = ["en-US", "es-ES"] as const;
 
 export type SupportedLocale = (typeof SUPPORTED_LOCALES)[number];
 

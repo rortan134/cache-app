@@ -1,5 +1,5 @@
 {
-  "019869a6c0157892": "Términos del servicio",
+  "019869a6c0157892": "Términos del Servicio",
   "03560a0d75adf329": "Productividad",
   "062b5e45e86d2cc4": {
     "c": [
@@ -30,44 +30,60 @@
       "t": "h2"
     },
     {
-      "c": "Reúne automáticamente los marcadores de tu navegador, redes sociales y vídeos. Olvídate del scroll infinito y de ir saltando entre plataformas para encontrar lo que de verdad te importa.",
+      "c": "Reúne automáticamente los marcadores de tu navegador, redes sociales y vídeos. Olvídate del desplazamiento infinito y de ir saltando entre varias plataformas para encontrar lo que de verdad te importa.",
       "i": 2,
       "t": "p"
     }
   ],
   "090dd58a9e726297": "Lectores curiosos",
   "0d5988f4c0fbf2ad": "Cuenta de Cache",
-  "11503a3d12f43fdd": "Documentos oficiales que rigen tu relación con nosotros y explican cómo tratamos los datos. Elige un tema a continuación para leer el texto completo.",
-  "11d641c2c7d32f5c": "No hemos podido abrir la facturación en este momento.",
+  "11503a3d12f43fdd": "Documentos oficiales que regulan tu relación con nosotros y explican cómo tratamos los datos. Elige un tema a continuación para leer el texto completo.",
+  "11d641c2c7d32f5c": "No hemos podido abrir la facturación ahora mismo.",
   "15833184c459d240": {
-    "c": "Términos del servicio",
+    "c": "Términos del Servicio",
     "i": 1,
     "t": "p"
   },
-  "1ad7b60584ddc5de": "Tendrás que volver a iniciar sesión para acceder a tu Biblioteca.",
+  "1ad7b60584ddc5de": "Tendrás que volver a iniciar sesión para acceder a tu biblioteca.",
+  "1b691e9402e0f0db": [
+    {
+      "c": {
+        "c": "Bookmark Intelligence",
+        "i": 2,
+        "t": "GradientWaveText"
+      },
+      "i": 1,
+      "t": "h1"
+    },
+    {
+      "c": "Cache es el bookmark manager con IA para quienes siempre van con prisa. Recopila, organiza y redescubre todo lo que has guardado en distintas plataformas.",
+      "i": 3,
+      "t": "p"
+    }
+  ],
   "1d1c7a1398fc122d": "mensual",
   "1d829f40405b2c18": "Biblioteca",
   "1dd80c4ec03a228f": [
     {
-      "c": "Deja de posponerlo para «más tarde»",
+      "c": "Deja de dejarlo para «más tarde»",
       "i": 1,
       "t": "h2"
     },
     {
-      "c": "Todos guardamos cosas con la mejor intención, pero acaban perdiéndose en una lista olvidada. Cache recupera para ti ese contenido que guardaste justo cuando más te puede servir.",
+      "c": "Todos guardamos cosas con buena intención, pero al final se acaban perdiendo en una lista olvidada. Cache vuelve a poner ante ti tu mejor contenido guardado justo cuando más te puede servir.",
       "i": 2,
       "t": "p"
     }
   ],
   "1df7f7e3e7bcec8f": {
     "c": [
-      "Sigue explorando toda la biblioteca y desbloquea la navegación completa y las funciones Pro desde ",
+      "Sigue explorando toda tu biblioteca y desbloquea la navegación completa y las funciones Pro desde ",
       {
         "c": "8 €/mes",
         "i": 2,
         "t": "span"
       },
-      " — cancela cuando quieras."
+      "; cancela cuando quieras."
     ],
     "i": 1,
     "t": "p"
@@ -89,7 +105,7 @@
           "t": "Workflow"
         },
         {
-          "c": "Configura rutinas sencillas que te muestren un resumen diario de lo que has guardado hace poco",
+          "c": "Configura rutinas sencillas para recibir un resumen diario de tus guardados recientes",
           "i": 3,
           "t": "span"
         }
@@ -104,7 +120,7 @@
           "t": "Bookmark"
         },
         {
-          "c": "Mantén los enlaces importantes a la vista en lugar de dejarlos enterrados en una lista interminable",
+          "c": "Mantén los enlaces importantes siempre presentes en lugar de perderlos en una lista acumulada",
           "i": 6,
           "t": "span"
         }
@@ -114,25 +130,25 @@
     }
   ],
   "3b205a1c17c06fbd": "Favoritos",
-  "408574e37e8d91ee": "próximamente",
+  "408574e37e8d91ee": "pronto",
   "43c4658708e52e85": "Eliminar cuenta",
   "446fc0e1621b7ae8": "Soporte",
-  "4593e3bd9f747b95": "Consigue Pro mensual",
+  "4593e3bd9f747b95": "Hazte Pro mensual",
   "48de21dffb27aea4": "Registro de cambios",
   "4d587a9524c95dd7": [
-    "Accede a todos los marcadores de ",
+    "Accede a todos tus ",
     {
       "i": 1,
       "k": "_gt_value_1",
       "v": "v"
     },
-    "."
+    " marcadores."
   ],
-  "54733851c614db5d": "Esto cancela cualquier Suscripción activa y elimina permanentemente tu Biblioteca, tus Colecciones y los datos de tu cuenta. Esta acción no se puede deshacer.",
+  "54733851c614db5d": "Esto cancela cualquier suscripción activa y elimina permanentemente tu biblioteca, tus colecciones y los datos de tu cuenta. Esta acción no se puede deshacer.",
   "5930189d0848c328": "Creadores y curadores",
-  "59470116de88a745": "Artículos, ensayos, newsletters. Una biblioteca viva en vez de un cementerio de cosas para leer‑más‑tarde.",
+  "59470116de88a745": "Artículos, ensayos, newsletters. Una biblioteca viva en lugar de un cementerio de lecturas pendientes.",
   "5a0a4ee1bf2a58dc": "No se pudieron cargar las cuentas guardadas.",
-  "5f7836df60f0e71e": "Estas páginas pueden actualizarse periódicamente. La versión de este sitio es la que está en vigor en el momento de tu visita.",
+  "5f7836df60f0e71e": "Estas páginas pueden actualizarse periódicamente. La versión publicada en este sitio es la que está vigente en el momento de tu visita.",
   "5fd9dbdb19f74c4f": [
     {
       "c": [
@@ -143,11 +159,11 @@
         {
           "c": [
             {
-              "c": "Colecciones inteligentes",
+              "c": "Smart Collections",
               "i": 4,
               "t": "span"
             },
-            " te ayuda a separar lo que requiere acción de la inspiración"
+            " te ayuda a separar lo útil de la inspiración"
           ],
           "i": 3,
           "t": "span"
@@ -193,7 +209,7 @@
           "t": "Sparkles"
         },
         {
-          "c": "Obtén insights basados en IA sobre tu contenido",
+          "c": "Obtén información valiosa sobre tu contenido gracias a la IA",
           "i": 13,
           "t": "span"
         }
@@ -205,15 +221,15 @@
   "600433e7972a7e75": "Facturación",
   "606daf45fd88b674": "Escritores y pensadores",
   "634fd36cce8909a0": "Instala la extensión",
-  "64b08e57a2f2e7b7": "Cómo tratamos y protegemos los datos personales de nuestros clientes.",
-  "69cac161cf484cd9": "No hemos podido abrir el proceso de pago en este momento.",
+  "64b08e57a2f2e7b7": "Cómo procesamos y protegemos los datos personales de los clientes.",
+  "69cac161cf484cd9": "No hemos podido abrir el proceso de pago ahora mismo.",
   "6b75fd08ca7c6ae3": [
     {
       "i": 1,
       "k": "_gt_value_1",
       "v": "v"
     },
-    " finaliza el ",
+    " vence el ",
     {
       "i": 2,
       "k": "_gt_value_2",
@@ -228,7 +244,7 @@
     "t": "p"
   },
   "7472afb4558f12e9": "Última visita",
-  "75d4d73501e837d5": "Consigue Pro",
+  "75d4d73501e837d5": "Hazte Pro",
   "7721d8d00edabeda": "Cerrando sesión…",
   "78ed60593843d6e7": [
     {
@@ -253,7 +269,7 @@
           "t": "Search"
         },
         {
-          "c": "Encuentra cualquier cosa con la búsqueda de texto completo y OCR (reconocimiento óptico de caracteres)",
+          "c": "Encuentra cualquier cosa con búsqueda de texto completo y OCR",
           "i": 6,
           "t": "span"
         }
@@ -264,19 +280,19 @@
   ],
   "7cb5fccc5f748ea2": [
     {
-      "c": "Busca y explora desde un único feed ágil",
+      "c": "Busca y explora desde un único feed rápido",
       "i": 1,
       "t": "h2"
     },
     {
-      "c": "Agiliza la forma en que vuelves a tu contenido guardado con una interfaz moderna y potente, directamente en tu navegador.",
+      "c": "Simplifica la forma de volver a tu contenido guardado con una interfaz moderna y potente, directamente en tu navegador.",
       "i": 2,
       "t": "p"
     }
   ],
-  "7d288c9b77b0a60e": "Aviso legal y políticas",
+  "7d288c9b77b0a60e": "Información legal y políticas",
   "841cad15ee2276fc": "Recursos",
-  "86489a55ce454582": "Cache está pensado para…",
+  "86489a55ce454582": "Cache es para…",
   "87254fc32f854b77": "No se pudo cambiar de cuenta.",
   "87b2d18453bcefde": {
     "c": "Documentación",
@@ -286,53 +302,14 @@
   "8b045bc1a6270fb5": "Colecciones",
   "8ebdbcb486fb7060": "Suscripción",
   "8eeee33f47318d9a": "Hilos, vídeos, inspiración. Agrupa ideas en colecciones y compártelas.",
-  "91eaa44bec3ccfb9": [
-    {
-      "c": {
-        "c": "Inteligencia para marcadores",
-        "i": 2,
-        "t": "GradientWaveText"
-      },
-      "i": 1,
-      "t": "h1"
-    },
-    {
-      "c": "Descubre Cache, el gestor de marcadores con IA para quienes siempre van con prisa. Recopila, organiza y redescubre todo lo que has guardado en distintas plataformas.",
-      "i": 3,
-      "t": "p"
-    }
-  ],
   "933fa7740fe8c681": {
     "i": 1,
     "k": "_gt_value_1",
     "v": "v"
   },
-  "93f881a7033302b7": "El paso que faltaba entre guardar contenido y tomar notas. Estructurado, fácil de buscar y siempre ahí cuando lo necesitas.",
+  "93f881a7033302b7": "El paso que faltaba entre guardar marcadores y tomar notas. Estructurado, fácil de buscar y siempre a mano cuando lo necesitas.",
   "94c20ff6b75d8acb": "Cómo recopilamos, usamos y protegemos la información personal.",
-  "95784cd912180f20": "Ahorra horas cada semana con una forma más inteligente de gestionar todo lo que guardas online. Desde solo 8 $ al mes.",
-  "96f8b1f5e411305f": {
-    "c": [
-      {
-        "c": [
-          "No hace falta que uses Cache",
-          {
-            "i": 3,
-            "t": "br"
-          }
-        ],
-        "i": 2,
-        "t": "span"
-      },
-      " Deja que tus agentes de IA lo usen con ",
-      {
-        "i": 4,
-        "t": "ModelContextProtocolIcon"
-      },
-      " MCP (Model Context Protocol) y pon a su alcance todos tus recursos."
-    ],
-    "i": 1,
-    "t": "p"
-  },
+  "95784cd912180f20": "Ahorra horas cada semana con una forma más inteligente de gestionar todo lo que guardas en internet. Desde solo 8 $ al mes.",
   "97f68bd29d3d4247": {
     "c": [
       {
@@ -347,10 +324,10 @@
   },
   "99e4c3ba36537129": "Cancelar",
   "9e172217c3e3d8ae": "Actualizar a Pro",
-  "a06f2446c9ee9132": "Referencias, citas, fragmentos. Un archivo de investigación con buscador para tu materia prima.",
-  "a3bf9c945c7318bb": "Automations",
-  "a4ecc2d52fb9c50b": "Política de privacidad",
-  "a586e0692358c532": "Actualiza para obtener acceso completo a Cache y a todas las integraciones",
+  "a06f2446c9ee9132": "Referencias, citas, fragmentos. Una base documental con buscador para tu material de trabajo.",
+  "a3bf9c945c7318bb": "Automatizaciones",
+  "a4ecc2d52fb9c50b": "Política de Privacidad",
+  "a586e0692358c532": "Actualiza para acceder por completo a Cache y a todas las integraciones",
   "a5ae11bec19a2aaa": [
     "No se ha encontrado ninguna colección.  ",
     {
@@ -361,7 +338,7 @@
   ],
   "a7820e6a001d950c": "¿Cerrar sesión?",
   "a7b00994918dc087": "Eliminar cuenta",
-  "ab4abf4e5a6f6057": "No se ha guardado",
+  "ab4abf4e5a6f6057": "No guardado",
   "af34d21966b17dd8": {
     "c": [
       {
@@ -383,17 +360,40 @@
       "t": "h2"
     },
     {
-      "c": "Crea una base de conocimiento a partir del contenido que ya has marcado como importante. Importa todo lo que tienes guardado y disperso una sola vez, y Cache lo organiza en minutos.",
+      "c": "Crea una base de conocimiento a partir del contenido que ya has marcado como importante. Importa de una vez tus guardados dispersos y Cache los organiza en cuestión de minutos.",
       "i": 2,
       "t": "p"
     }
   ],
   "b33e2234ec4ab823": "Plan gratuito",
   "b5d5276005980a36": "Creadores y desarrolladores",
-  "b80f68728546aeb4": "Programa tareas que organicen tu biblioteca, investiguen temas, resuman contenidos y mucho más, todo en piloto automático",
-  "c1172428bea235ca": "Normas que regulan el uso del servicio, la gestión de tu cuenta y el uso aceptable.",
+  "b80f68728546aeb4": "Programa tareas para organizar tu biblioteca, investigar temas, resumir contenido y mucho más, todo en piloto automático",
+  "c1172428bea235ca": "Normas que rigen el uso del servicio, la gestión de tu cuenta y el uso aceptable.",
   "c26fd6852bfece9e": "Continuar con Google",
   "c4244c4a6f71e511": "Abrir en una pestaña nueva",
+  "c4cfa45b41d2f4e3": {
+    "c": [
+      {
+        "c": [
+          "No hace falta que uses Cache",
+          {
+            "i": 3,
+            "t": "br"
+          }
+        ],
+        "i": 2,
+        "t": "span"
+      },
+      " Deja que tus agentes de IA lo usen con ",
+      {
+        "i": 4,
+        "t": "ModelContextProtocolIcon"
+      },
+      " MCP y pon a su alcance todos tus recursos"
+    ],
+    "i": 1,
+    "t": "p"
+  },
   "c884609397b72df2": "anual",
   "cca6a310f45ce736": [
     {
@@ -421,7 +421,7 @@
       "v": "v"
     }
   ],
-  "cf702c635fa32efc": "Acuerdo de tratamiento de datos",
+  "cf702c635fa32efc": "Acuerdo de Tratamiento de Datos",
   "d353ed81b71684aa": "Integraciones",
   "d6db6a63bfbd1a36": "o ahorra con la facturación anual",
   "d70e4938efa65780": {
@@ -440,12 +440,12 @@
   "db72ad3b2501e7a9": "Cargando cuentas",
   "dd199c66ab0644de": [
     {
-      "c": "Crea una Biblioteca con todo el contenido que te encanta",
+      "c": "Crea una biblioteca con todo el contenido que te encanta",
       "i": 1,
       "t": "h2"
     },
     {
-      "c": "Inspírate y encuentra esa lección, consejo, receta o idea que llevas tiempo buscando en lo que tardas en tomarte un café.",
+      "c": "Inspírate y encuentra esa lección, consejo, receta o idea que llevabas tiempo buscando en lo que tardas en tomarte un café.",
       "i": 2,
       "t": "p"
     }
@@ -464,8 +464,8 @@
     }
   ],
   "e09a36ef3ffd9115": "Sin guardar",
-  "e1897047828fc955": "Docs, incidencias, código, tutoriales. Encuentra ese enlace al instante.",
+  "e1897047828fc955": "Documentación, incidencias, código, tutoriales. Encuentra ese enlace concreto al instante.",
   "ece5e10bd5b5769d": "Guardando...",
   "f137946f63b397fd": "Abrir en...",
-  "fe9fbbc696a13ffb": "Las plataformas de terceros que conectes a través del Servicio operan de forma independiente de Cache. Cache no controla sus políticas ni cómo las aplican, y no es responsable de las decisiones que esas plataformas tomen con respecto a tus cuentas o al acceso a sus servicios —incluidos, entre otros, los cambios en la disponibilidad—, estén o no relacionadas con tu uso de Cache. Eres responsable de cumplir los términos, políticas y directrices de la comunidad de cada plataforma. Cache no será responsable de ningún inconveniente, pérdida u otra consecuencia derivada de tu relación con esas plataformas o de tu uso del Servicio en relación con ellas. Puedes encontrar más información"
+  "fe9fbbc696a13ffb": "Las plataformas de terceros a las que te conectes a través del Servicio operan de forma independiente de Cache. Cache no controla sus políticas ni cómo las aplican, y no se responsabiliza de las decisiones que esas plataformas tomen respecto a tus cuentas o a tu acceso a sus servicios, incluidos, entre otros, los cambios en su disponibilidad, estén o no relacionados con tu uso de Cache. Eres responsable de cumplir los términos, las políticas y las normas de la comunidad de cada plataforma. Cache no se hace responsable de las molestias, pérdidas ni de cualquier otra consecuencia derivada de tu relación con esas plataformas o de tu uso del Servicio en relación con ellas. Puedes encontrar más información"
 }

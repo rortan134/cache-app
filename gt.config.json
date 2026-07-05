@@ -1,10 +1,10 @@
 {
     "defaultLocale": "en-US",
-    "locales": ["en-US", "fr-FR", "es-ES", "pt-BR"],
+    "locales": ["en-US", "es-ES"],
     "files": {
         "gt": {
             "output": "public/_gt/[locale].json"
         }
     },
-    "_versionId": "b869f339a261acda7ed1ede3b2e7c1996d294fbe108b003636ded8eb4018ce34"
+    "_versionId": "a1fbc9d411521f1c318bf4e69eb3c52dfb7ef92208c51c27bdc272e9e7ec3244"
 }
