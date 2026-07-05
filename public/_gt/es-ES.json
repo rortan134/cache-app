@@ -25,12 +25,12 @@
   },
   "075adcaff4be7543": [
     {
-      "c": "Reúne todo lo que ya has guardado",
+      "c": "Importa todo lo que ya has guardado",
       "i": 1,
       "t": "h2"
     },
     {
-      "c": "Reúne automáticamente los marcadores de tu navegador, tus redes sociales y tus vídeos. Deja atrás el scroll infinito y el tener que ir saltando entre varias plataformas para encontrar lo que más te importa.",
+      "c": "Reúne automáticamente los marcadores de tu navegador, redes sociales y vídeos. Olvídate del scroll infinito y de ir saltando entre plataformas para encontrar lo que de verdad te importa.",
       "i": 2,
       "t": "p"
     }
@@ -115,18 +115,6 @@
   ],
   "3b205a1c17c06fbd": "Favoritos",
   "408574e37e8d91ee": "próximamente",
-  "40d161f02a845459": [
-    {
-      "c": "Detecta lo que se ha quedado obsoleto y conserva lo útil",
-      "i": 1,
-      "t": "h2"
-    },
-    {
-      "c": "Crea una base de conocimiento con el contenido que ya consideras importante. Importa lo que tienes guardado y disperso de una sola vez, y pasa del caos al orden en cuestión de minutos.",
-      "i": 2,
-      "t": "p"
-    }
-  ],
   "43c4658708e52e85": "Eliminar cuenta",
   "446fc0e1621b7ae8": "Soporte",
   "4593e3bd9f747b95": "Consigue Pro mensual",
@@ -276,12 +264,12 @@
   ],
   "7cb5fccc5f748ea2": [
     {
-      "c": "Busca y explora desde un feed único y rápido",
+      "c": "Busca y explora desde un único feed ágil",
       "i": 1,
       "t": "h2"
     },
     {
-      "c": "Redescubre tu contenido guardado de forma más ágil con una interfaz moderna y potente, directamente en tu navegador.",
+      "c": "Agiliza la forma en que vuelves a tu contenido guardado con una interfaz moderna y potente, directamente en tu navegador.",
       "i": 2,
       "t": "p"
     }
@@ -309,7 +297,7 @@
       "t": "h1"
     },
     {
-      "c": "Descubre Cache, el gestor de marcadores con IA para gente ocupada. Reúne, organiza y redescubre todo lo que has guardado en distintas plataformas.",
+      "c": "Descubre Cache, el gestor de marcadores con IA para quienes siempre van con prisa. Recopila, organiza y redescubre todo lo que has guardado en distintas plataformas.",
       "i": 3,
       "t": "p"
     }
@@ -321,6 +309,7 @@
   },
   "93f881a7033302b7": "El paso que faltaba entre guardar contenido y tomar notas. Estructurado, fácil de buscar y siempre ahí cuando lo necesitas.",
   "94c20ff6b75d8acb": "Cómo recopilamos, usamos y protegemos la información personal.",
+  "95784cd912180f20": "Ahorra horas cada semana con una forma más inteligente de gestionar todo lo que guardas online. Desde solo 8 $ al mes.",
   "96f8b1f5e411305f": {
     "c": [
       {
@@ -339,7 +328,7 @@
         "i": 4,
         "t": "ModelContextProtocolIcon"
       },
-      " MCP (Model Context Protocol) y dales acceso a todo el abanico de tus recursos."
+      " MCP (Model Context Protocol) y pon a su alcance todos tus recursos."
     ],
     "i": 1,
     "t": "p"
@@ -387,6 +376,18 @@
   },
   "b0218088cb0cf61f": "Atajos de teclado",
   "b04df1727faed146": "Tus cuentas",
+  "b094c95a043884f2": [
+    {
+      "c": "Detecta lo obsoleto, quédate con lo útil",
+      "i": 1,
+      "t": "h2"
+    },
+    {
+      "c": "Crea una base de conocimiento a partir del contenido que ya has marcado como importante. Importa todo lo que tienes guardado y disperso una sola vez, y Cache lo organiza en minutos.",
+      "i": 2,
+      "t": "p"
+    }
+  ],
   "b33e2234ec4ab823": "Plan gratuito",
   "b5d5276005980a36": "Creadores y desarrolladores",
   "b80f68728546aeb4": "Programa tareas que organicen tu biblioteca, investiguen temas, resuman contenidos y mucho más, todo en piloto automático",
@@ -444,7 +445,7 @@
       "t": "h2"
     },
     {
-      "c": "Inspírate y encuentra esa lección, consejo, receta o idea que llevabas tiempo buscando en lo que dura una pausa para el café.",
+      "c": "Inspírate y encuentra esa lección, consejo, receta o idea que llevas tiempo buscando en lo que tardas en tomarte un café.",
       "i": 2,
       "t": "p"
     }
@@ -462,7 +463,6 @@
       "v": "v"
     }
   ],
-  "de379f2eceb78115": "Una forma más inteligente de gestionar todo lo que guardas en internet. Desde solo 8 $/mes.",
   "e09a36ef3ffd9115": "Sin guardar",
   "e1897047828fc955": "Docs, incidencias, código, tutoriales. Encuentra ese enlace al instante.",
   "ece5e10bd5b5769d": "Guardando...",

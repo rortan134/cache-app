@@ -30,7 +30,7 @@
       "t": "h2"
     },
     {
-      "c": "Reúna automaticamente os favoritos do seu navegador, redes sociais e vídeos. Chega de rolar sem parar e alternar entre várias plataformas para encontrar o que mais importa para você.",
+      "c": "Reúna automaticamente favoritos do seu navegador, redes sociais e vídeos. Chega de rolar sem parar e alternar entre várias plataformas para encontrar o que mais importa para você.",
       "i": 2,
       "t": "p"
     }
@@ -115,18 +115,6 @@
   ],
   "3b205a1c17c06fbd": "Favoritos",
   "408574e37e8d91ee": "em breve",
-  "40d161f02a845459": [
-    {
-      "c": "Identifique o que perdeu valor, mantenha o que é útil",
-      "i": 1,
-      "t": "h2"
-    },
-    {
-      "c": "Monte uma base de conhecimento com o conteúdo que você já considerou importante. Importe seus itens salvos espalhados uma vez e vá da bagunça à organização em minutos.",
-      "i": 2,
-      "t": "p"
-    }
-  ],
   "43c4658708e52e85": "Excluir conta",
   "446fc0e1621b7ae8": "Suporte",
   "4593e3bd9f747b95": "Obter Pro mensal",
@@ -276,12 +264,12 @@
   ],
   "7cb5fccc5f748ea2": [
     {
-      "c": "Pesquise e explore em um feed único e rápido",
+      "c": "Pesquise e explore em um feed rápido e único",
       "i": 1,
       "t": "h2"
     },
     {
-      "c": "Simplifique a forma de revisitar o que você salvou com uma interface moderna e poderosa, direto no navegador.",
+      "c": "Simplifique a forma de revisitar o que você salvou com uma interface moderna e poderosa, direto no seu navegador.",
       "i": 2,
       "t": "p"
     }
@@ -309,7 +297,7 @@
       "t": "h1"
     },
     {
-      "c": "Conheça o Cache — o gerenciador de favoritos com IA para quem vive na correria. Colete, organize e reencontre tudo o que você salvou em várias plataformas.",
+      "c": "Conheça o Cache — o gerenciador de favoritos com IA para quem vive na correria. Colete, organize e reencontre tudo o que você salvou em diferentes plataformas.",
       "i": 3,
       "t": "p"
     }
@@ -321,6 +309,7 @@
   },
   "93f881a7033302b7": "A etapa que faltava entre salvar favoritos e fazer anotações. Estruturado, fácil de pesquisar, sempre à mão quando você precisar.",
   "94c20ff6b75d8acb": "Como coletamos, usamos e protegemos informações pessoais.",
+  "95784cd912180f20": "Economize horas toda semana com uma forma mais inteligente de lidar com tudo o que você salva online. A partir de só US$ 8/mês.",
   "96f8b1f5e411305f": {
     "c": [
       {
@@ -334,12 +323,12 @@
         "i": 2,
         "t": "span"
       },
-      " Deixe seus agentes de IA usarem o Cache com ",
+      " Deixe seus agentes de IA usarem com ",
       {
         "i": 4,
         "t": "ModelContextProtocolIcon"
       },
-      " MCP (Protocolo de Contexto do Modelo) e dê a eles acesso a toda a gama dos seus recursos."
+      " MCP (Protocolo de Contexto de Modelo) e dê a eles acesso a todo o seu universo de recursos."
     ],
     "i": 1,
     "t": "p"
@@ -387,6 +376,18 @@
   },
   "b0218088cb0cf61f": "Atalhos de teclado",
   "b04df1727faed146": "Suas contas",
+  "b094c95a043884f2": [
+    {
+      "c": "Separe o que ficou desatualizado e guarde o que é útil",
+      "i": 1,
+      "t": "h2"
+    },
+    {
+      "c": "Crie uma base de conhecimento com o conteúdo que você já marcou como importante. Importe seus itens salvos espalhados uma vez, e Cache organiza tudo em minutos.",
+      "i": 2,
+      "t": "p"
+    }
+  ],
   "b33e2234ec4ab823": "Plano gratuito",
   "b5d5276005980a36": "Criadores e desenvolvedores",
   "b80f68728546aeb4": "Agende tarefas que organizam sua biblioteca, pesquisam temas, fazem resumos e muito mais — tudo no piloto automático",
@@ -439,12 +440,12 @@
   "db72ad3b2501e7a9": "Carregando contas",
   "dd199c66ab0644de": [
     {
-      "c": "Organize uma Biblioteca com todo o conteúdo que você adora",
+      "c": "Faça a curadoria de uma biblioteca com todo o conteúdo que você adora",
       "i": 1,
       "t": "h2"
     },
     {
-      "c": "Inspire-se e encontre aquela lição, conselho, receita ou ideia que você estava procurando no tempo de um cafezinho.",
+      "c": "Inspire-se e encontre aquela lição, conselho, receita ou ideia que você estava procurando no tempo de um café.",
       "i": 2,
       "t": "p"
     }
@@ -462,7 +463,6 @@
       "v": "v"
     }
   ],
-  "de379f2eceb78115": "Uma maneira mais inteligente de lidar com tudo o que você salva online. A partir de apenas US$ 8/mês.",
   "e09a36ef3ffd9115": "Removido",
   "e1897047828fc955": "Docs, issues, código, tutoriais. Encontre aquele link na hora.",
   "ece5e10bd5b5769d": "Salvando...",

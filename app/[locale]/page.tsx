@@ -183,8 +183,9 @@ export default async function Home() {
                     <div className="-mt-2 mb-3 flex flex-col gap-1">
                         <p className="mx-auto text-center text-sm">
                             <T>
-                                A smarter way to handle everything you save
-                                online. From just $8/month.
+                                Save hours every week with a smarter way to
+                                handle everything you save online. From just
+                                $8/month.
                             </T>
                         </p>
                         <Button
@@ -403,10 +404,10 @@ export default async function Home() {
                                     Spot the stale, keep the useful
                                 </h2>
                                 <p className="text-pretty font-medium text-base text-foreground leading-[1.2] tracking-[-3%] opacity-50">
-                                    Build a knowledge base with the content
-                                    you've already deemed important. Import
-                                    scattered saves once and go from messy to
-                                    organized in minutes.
+                                    Build a knowledge base from the content
+                                    you've already marked as important. Import
+                                    scattered saves once and Cache organizes
+                                    them in minutes.
                                 </p>
                             </T>
                             <ul className="mt-2 flex flex-col space-y-2 text-xs">
