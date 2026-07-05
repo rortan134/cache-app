@@ -22,7 +22,9 @@ The goal is NOT to rubber-stamp what you did. The goal is to catch the shortcuts
 
 6. **Look for refactoring opportunities.** Actively ask yourself: what can be refactored in or around the code you touched to make it easier to maintain long term? Duplicated logic that should be extracted, unclear abstractions that should be simplified, tangled responsibilities that should be separated. Don't just preserve the status quo — improve it.
 
-7. **Report.** After fixing everything, give a brief summary of what you changed and what you flagged. Do not re-stage the post review changes.
+7. **Report.** After fixing everything, give a brief summary of what you changed and what you flagged.
+
+**Do NOT stage the post-review fixes.** Leave them unstaged so the reviewer can inspect the fix diff separately from the original work. Staging them buries the fixes inside the original commit, making them invisible to review.
 
 ## The final question
 
