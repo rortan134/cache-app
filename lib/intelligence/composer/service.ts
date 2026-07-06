@@ -37,22 +37,25 @@ import {
 process.env.GOOGLE_GENERATIVE_AI_API_KEY ??= serverEnv.GEMINI_API_KEY;
 
 const ASK_CACHE_MODEL_DEFAULT = "gemini-3.1-flash-lite";
-const ASK_CACHE_MODELS_FALLBACK = ["gemini-3.1-flash-lite"] as const;
+const ASK_CACHE_MODELS_FALLBACK = ["gemini-3-flash-preview"] as const;
 const ASK_CACHE_MODELS = [
     ASK_CACHE_MODEL_DEFAULT,
     ...ASK_CACHE_MODELS_FALLBACK,
 ] as const;
-const ASK_CACHE_OUTPUT_TOKEN_LIMIT = 900;
-const ASK_CACHE_MAX_STEPS = 10;
-const ASK_CACHE_TIMEOUT_MS = 45_000;
-const ASK_CACHE_LIBRARY_SEARCH_LIMIT_MAX = 12;
-const ASK_CACHE_LIBRARY_TEXT_PREVIEW_LENGTH_MAX = 800;
+const ASK_CACHE_OUTPUT_TOKEN_LIMIT = 1200;
+const ASK_CACHE_MAX_STEPS = 12;
+const ASK_CACHE_TIMEOUT_MS = 60_000;
+const ASK_CACHE_LIBRARY_SEARCH_LIMIT_MAX = 15;
+const ASK_CACHE_LIBRARY_TEXT_PREVIEW_LENGTH_MAX = 1000;
 const ASK_CACHE_PROVIDER_CONFIGURATION_ERROR_MESSAGE =
     "Cache AI provider credentials are missing or invalid.";
 const ASK_CACHE_RUNTIME_CONTEXT_LOCALE_DEFAULT = "en-US";
 const ASK_CACHE_RUNTIME_CONTEXT_SURFACE_LABEL_BY_VALUE = {
     library_composer: "Cache library composer",
 } as const;
+
+const WHITESPACE_SPLIT_PATTERN = /\s+/;
+const WWW_DOMAIN_PREFIX_PATTERN = /^www\./;
 
 const log = createLogger("intelligence:ask-cache");
 
@@ -185,7 +188,7 @@ async function runAskCacheAgentModel(args: {
         tools: {
             search_library: tool({
                 description:
-                    "Search the user's saved Cache library. Use this when the answer depends on saved bookmarks or notes. This is lexical search, not semantic search: broad concepts need concrete candidate terms, names, brands, domains, or URL patterns.",
+                    "Search the user's saved Cache library. Each word in the query is searched independently across captions, note text, and URLs (AND semantics). For conceptual requests, use concrete candidate names, brands, domains, or terms instead of broad category labels. For collection-scoped searches, pass collectionIds.",
                 execute: (toolInput) =>
                     searchAskCacheLibrary({
                         input: toolInput,
@@ -195,7 +198,7 @@ async function runAskCacheAgentModel(args: {
             }),
             update_composer: tool({
                 description:
-                    "Apply a validated composer patch. Use this to change search terms, collection/source/domain filters, collection membership, grouping, sorting, columns, or reset state. Batch multiple changes into one call — the patch accepts all fields at once. Do not represent broad conceptual matches with only generic search terms; use high-confidence concrete filters.",
+                    "Apply a validated composer patch. Use this to change search terms, collection/source/domain filters, collection membership, grouping, sorting, columns, or reset state. Batch multiple changes into one call — the patch accepts all fields at once. Only include fields that differ from the current composer state; noop patches are rejected. Do not represent broad conceptual matches with only generic search terms; use high-confidence concrete filters.",
                 execute: (toolInput) => {
                     if (operations.length >= ASK_CACHE_OPERATION_LIMIT) {
                         return {
@@ -208,6 +211,16 @@ async function runAskCacheAgentModel(args: {
                         toolInput.patch,
                         args.input
                     );
+
+                    if (isNoopComposerPatch(patch, args.input.composerState)) {
+                        return {
+                            ok: false,
+                            reason: "patch_is_noop",
+                            validationNote:
+                                "All proposed changes already match the current composer state. Update only fields that differ.",
+                        };
+                    }
+
                     operations.push(patch);
                     operationSummaries.push(toolInput.summary);
                     return {
@@ -252,7 +265,7 @@ async function searchAskCacheLibrary(args: {
     userId: string;
 }) {
     const limit = Math.min(
-        args.input.limit ?? 8,
+        args.input.limit ?? 10,
         ASK_CACHE_LIBRARY_SEARCH_LIMIT_MAX
     );
     const search = args.input.query?.trim();
@@ -261,25 +274,31 @@ async function searchAskCacheLibrary(args: {
     const domainFilters = (args.input.domainFilters ?? []).map((domain) =>
         domain.toLowerCase()
     );
-    const searchCondition: Prisma.LibraryItemWhereInput | null = search
-        ? {
-              OR: [
-                  { caption: { contains: search, mode: "insensitive" } },
-                  {
-                      noteContentText: {
-                          contains: search,
-                          mode: "insensitive",
-                      },
-                  },
-                  { url: { contains: search, mode: "insensitive" } },
-              ],
-          }
-        : null;
+    const searchConditions: Prisma.LibraryItemWhereInput[] = [];
+    if (search) {
+        const terms = search
+            .split(WHITESPACE_SPLIT_PATTERN)
+            .filter((term) => term.length > 0);
+        const termGroups: Prisma.LibraryItemWhereInput[] = terms.map(
+            (term) => ({
+                OR: [
+                    { caption: { contains: term, mode: "insensitive" } },
+                    {
+                        noteContentText: {
+                            contains: term,
+                            mode: "insensitive",
+                        },
+                    },
+                    { url: { contains: term, mode: "insensitive" } },
+                ],
+            })
+        );
+        searchConditions.push(...termGroups);
+    }
     const domainCondition = buildAskCacheDomainCondition(domainFilters);
-    const andConditions = [searchCondition, domainCondition].filter(
-        (condition): condition is Prisma.LibraryItemWhereInput =>
-            condition !== null
-    );
+    if (domainCondition) {
+        searchConditions.push(domainCondition);
+    }
 
     const items = await prisma.libraryItem.findMany({
         include: LIBRARY_ITEM_COLLECTIONS_INCLUDE,
@@ -298,24 +317,18 @@ async function searchAskCacheLibrary(args: {
             ...(sourceFilters.length > 0
                 ? { source: { in: sourceFilters } }
                 : {}),
-            ...(andConditions.length > 0 ? { AND: andConditions } : {}),
+            ...(searchConditions.length > 0 ? { AND: searchConditions } : {}),
         },
     });
-    const pageItems = items
-        .filter(
-            (item) =>
-                domainFilters.length === 0 ||
-                domainFilters.includes(parseDisplayUrl(item.url).toLowerCase())
-        )
-        .slice(0, limit);
 
     return {
-        items: pageItems.map((item) => ({
+        items: items.slice(0, limit).map((item) => ({
             caption: item.caption,
             collectionNames: item.collections.map(
                 (collection) => collection.name
             ),
             createdAt: item.createdAt.toISOString(),
+            domain: parseDisplayUrl(item.url),
             id: item.id,
             kind: item.kind,
             postedAt: item.postedAt?.toISOString() ?? null,
@@ -323,7 +336,7 @@ async function searchAskCacheLibrary(args: {
             textPreview: truncateText(item.noteContentText),
             url: item.url,
         })),
-        truncated: items.length > limit || pageItems.length < items.length,
+        truncated: items.length > limit,
     };
 }
 
@@ -335,13 +348,10 @@ function buildAskCacheDomainCondition(
     }
 
     const orConditions: Prisma.LibraryItemWhereInput[] = [];
-    for (const domain of domainFilters) {
-        const hostCandidates = domain.startsWith("www.")
-            ? [domain]
-            : [domain, `www.${domain}`];
-
-        orConditions.push({ url: { equals: domain, mode: "insensitive" } });
-        for (const host of hostCandidates) {
+    for (const rawDomain of domainFilters) {
+        const domain = rawDomain.replace(WWW_DOMAIN_PREFIX_PATTERN, "");
+        for (const host of [domain, `www.${domain}`]) {
+            orConditions.push({ url: { equals: host, mode: "insensitive" } });
             orConditions.push({
                 url: { equals: `http://${host}`, mode: "insensitive" },
             });
@@ -385,6 +395,7 @@ function buildAskCacheInstructions(input: AskCacheRequest): string {
         "When the request is ambiguous, make the best reasonable assumption from the current composer state and visible context, state that assumption briefly, then act.",
         "Never claim to inspect library items unless you called search_library.",
         "Use update_composer for requests that ask to show, find, filter, sort, group, or reset.",
+        "Prefer update_composer over setting searchTerms alone when concrete filters (collections, domains, sources) are available.",
         "Use exact collection ids from the collection catalog when selecting collection filters.",
         "Use exact domains from the available domain list when applying domain filters.",
         "When a user asks for conceptual matches, infer what qualifies instead of searching only for the user's literal words.",
@@ -394,8 +405,10 @@ function buildAskCacheInstructions(input: AskCacheRequest): string {
         "For broad conceptual requests, inspect candidate items with search_library before applying filters, and prefer exact domains, collection filters, source filters, or specific entity names over generic category terms.",
         "Example: for 'I'm looking for software products', do not set searchTerms to ['software']; instead identify recognizable software companies, apps, SaaS tools, developer tools, AI products, or product domains from availableDomains and search_library results, then filter by those concrete signals.",
         "If the available composer filters cannot represent the conceptual match well, say so briefly and apply only high-confidence filters rather than pretending a generic keyword search is sufficient.",
+        "Use web_search only when public, current information would materially improve the answer beyond what is in the user's library.",
         "Prefer concise markdown. Mention applied composer changes in one short sentence when you call update_composer.",
-        "Batch multiple composer changes into one update_composer call. The patch accepts searchTerms, sourceFilters, domainFilters, selectedCollectionIds, groupBy, sortMode, and columnCountMode all at once.",
+        "Batch multiple composer changes into one update_composer call. The patch accepts searchTerms, sourceFilters, domainFilters, selectedCollectionIds, groupBy, sortMode, columnCountMode, and reset all at once.",
+        "Call update_composer at most 8 times. After reaching the limit, stop and explain what was applied.",
         "Do not mutate saved items, collections, notes, or external services.",
         "",
         "Runtime context:",
@@ -511,6 +524,58 @@ function normalizeComposerPatchForContext(
     };
 }
 
+function arraysEqual(left: string[], right: string[]): boolean {
+    if (left.length !== right.length) {
+        return false;
+    }
+    const sortedLeft = [...left].sort();
+    const sortedRight = [...right].sort();
+    for (let i = 0; i < sortedLeft.length; i++) {
+        if (sortedLeft[i] !== sortedRight[i]) {
+            return false;
+        }
+    }
+    return true;
+}
+
+function isNoopComposerPatch(
+    patch: AskCacheComposerPatch,
+    state: AskCacheRequest["composerState"]
+): boolean {
+    if (patch.reset) {
+        return false;
+    }
+
+    const checks: Array<() => boolean> = [
+        () =>
+            patch.collectionMembershipFilter !== undefined &&
+            patch.collectionMembershipFilter !==
+                state.collectionMembershipFilter,
+        () =>
+            patch.columnCountMode !== undefined &&
+            patch.columnCountMode !== state.columnCountMode,
+        () =>
+            patch.domainFilters !== undefined &&
+            !arraysEqual(patch.domainFilters, state.domainFilters),
+        () => patch.groupBy !== undefined && patch.groupBy !== state.groupBy,
+        () =>
+            patch.searchTerms !== undefined &&
+            !arraysEqual(patch.searchTerms, state.searchTerms),
+        () => patch.sortMode !== undefined && patch.sortMode !== state.sortMode,
+        () =>
+            patch.sourceFilters !== undefined &&
+            !arraysEqual(patch.sourceFilters, state.sourceFilters),
+        () =>
+            patch.selectedCollectionIds !== undefined &&
+            !arraysEqual(
+                patch.selectedCollectionIds,
+                state.selectedCollectionIds
+            ),
+    ];
+
+    return !checks.some((check) => check());
+}
+
 function truncateText(value: string | null): string | null {
     if (!value) {
         return null;
@@ -524,18 +589,30 @@ function getFinalStepText(
     steps: Array<{ text?: string }>,
     operationSummaries: string[]
 ): string | null {
-    const finalText = normalizeGeneratedMarkdown(
-        steps.findLast((step) => step.text?.trim())?.text
-    );
-    if (finalText) {
-        return finalText;
+    const lastText = steps.findLast((step) => step.text?.trim())?.text;
+    if (lastText) {
+        const normalized = normalizeGeneratedMarkdown(lastText);
+        if (normalized) {
+            return normalized;
+        }
     }
 
-    const fallbackText = normalizeGeneratedMarkdown(
-        operationSummaries.join("\n")
-    );
-    if (fallbackText) {
-        return fallbackText;
+    const allTexts = steps
+        .map((step) => step.text?.trim())
+        .filter((text): text is string => text !== undefined)
+        .join("\n");
+    const aggregated = normalizeGeneratedMarkdown(allTexts);
+    if (aggregated) {
+        return aggregated;
+    }
+
+    if (operationSummaries.length > 0) {
+        const fallback = normalizeGeneratedMarkdown(
+            operationSummaries.join("\n")
+        );
+        if (fallback) {
+            return fallback;
+        }
     }
 
     return null;
