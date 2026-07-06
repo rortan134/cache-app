@@ -42,6 +42,8 @@ Strive for writing fully functional, bug-free code by using best practices and m
 
 Avoid unnecessary code indirection unless an abstraction for DRY compliance is necessary. Duplicate logic across multiple files is a code smell and should be avoided. Extracting a className string into a constant just because it is used twice is not justified, that is code indirection.
 
+Follow YAGNI principles, and prefer one-liner solutions.
+
 Composition over inheritance: Prefer dependency injection.
 
 Handle errors at the appropriate scopes. Never silently swallow exceptions. If you think an error cannot happen, assert that assumption explicitly.
@@ -213,13 +215,18 @@ Anchor design decisions on the user's primary task or focus, to make sure the us
 ### Tech stack
 
 Runtime & Package Manager: Node.js 24.x, Bun, read Bun API docs in `node_modules/bun-types/docs/**.mdx` if necessary.
-framework: Next.js 16 (App Router)
-UI: React 19, Base-UI ([@base-ui/react](https://base-ui.com/llms.txt), @base-ui/utils), and lucide-react icons
+Framework: Next.js 16 (App Router)
+UI: React 19, Base-UI ([@base-ui/react](https://base-ui.com/llms.txt), @base-ui/utils), [motion](https://motion.dev) for animations, and lucide-react icons
 React Compiler: `babel-plugin-react-compiler` is enabled. It automatically memoizes components and values. Do not add manual `useMemo` or `useCallback`; they add noise without benefit and can interfere with compiler optimization
 Styling: Tailwind CSS 4
+Rich Text: [Lexical](https://lexical.dev) for notes editing
+Internationalization: [gt-next](https://gt-next.vercel.app) for i18n
 Validation: zod v4 schemas
 Database: PostgreSQL via Prisma ORM v7
+AI: [Vercel AI SDK](https://sdk.vercel.ai) + [Workflow](https://workflow.vercel.ai) for durable AI orchestration
 Auth: [better-auth](https://better-auth.com/llms.txt) with better-auth/stripe (Stripe subscriptions)
+Email: [Resend](https://resend.com)
+Security: [Arcjet](https://arcjet.com) for rate limiting and bot protection
 Tooling: TypeScript v6 (strict typing), Biome via Ultracite (run via `bun lint` or `bun lint:fix` for writing)
 
 <!-- BEGIN:nextjs-agent-rules -->
