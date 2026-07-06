@@ -3829,13 +3829,13 @@ function CollectionComboboxPicker({
             >
                 {children ??
                     (selectedCount > 0 ? (
-                        <SquircleDashed
+                        <Squircle
                             aria-hidden
                             aria-label="Collections"
                             className="size-4.5"
                         />
                     ) : (
-                        <Squircle
+                        <SquircleDashed
                             aria-hidden
                             aria-label="Collections"
                             className="size-4.5"
