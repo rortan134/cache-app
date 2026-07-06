@@ -111,6 +111,7 @@ import { Ticker } from "@/components/ui/ticker";
 import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
 import { useIsExtensionInstalled } from "@/hooks/use-extension-installed";
 import { useLastVisited } from "@/hooks/use-last-visited";
+import { useSearchHistory } from "@/hooks/use-search-history";
 import type { CollectionCreateFromItemsResult } from "@/lib/collections/actions";
 import { downloadMedia } from "@/lib/collections/actions";
 import {
@@ -133,6 +134,7 @@ import {
     CACHE_EXTENSION_DOWNLOAD_URL,
     FALLBACK_URL,
     ITEM_KIND_NOTE,
+    MIME_TYPES,
 } from "@/lib/common/constants";
 import { parseDate } from "@/lib/common/dates";
 import {
@@ -246,8 +248,6 @@ import { Streamdown } from "streamdown";
 import useSWR from "swr";
 
 const log = createLogger("library:browser");
-
-const CSV_CONTENT_TYPE = "text/csv";
 
 const CSV_HEADERS = [
     "Section",
@@ -2474,7 +2474,9 @@ function buildSearchPaletteGroups({
     navigationItems,
     onAskCacheSubmit,
     onClearCollectionFilters,
+    onClearSearchHistory,
     onToggleCollectionSelection,
+    searchHistory,
     selectedCollectionIds,
     searchTerms,
     setIsCommandOpen,
@@ -2492,9 +2494,11 @@ function buildSearchPaletteGroups({
     navigationItems: CommandPaletteItem[];
     onAskCacheSubmit: (prompt: string) => void | Promise<void>;
     onClearCollectionFilters: () => void;
+    onClearSearchHistory: () => void;
     onToggleCollectionSelection: (id: string) => void;
-    selectedCollectionIds: string[];
+    searchHistory: string[];
     searchTerms: string[];
+    selectedCollectionIds: string[];
     setIsCommandOpen: (value: boolean) => void;
     setLastVisitedFilterEnabled: (value: boolean) => void;
     setQuery: (value: string) => void;
@@ -2624,27 +2628,63 @@ function buildSearchPaletteGroups({
         }
     }
 
-    if (lastVisitedItemIds.length > 0 && !lastVisitedFilterEnabled) {
+    const shouldShowLastVisited =
+        lastVisitedItemIds.length > 0 && !lastVisitedFilterEnabled;
+    const shouldShowSearchHistory = !draft && searchHistory.length > 0;
+    const availableHistory = shouldShowSearchHistory
+        ? searchHistory.filter(
+              (term) =>
+                  !searchTerms.some(
+                      (st) => st.toLowerCase() === term.toLowerCase()
+                  )
+          )
+        : [];
+
+    if (shouldShowLastVisited || availableHistory.length > 0) {
         groups.push({
             items: [
-                {
-                    label: "Pick up where you left off",
-                    onSelect: applyCollectionFilter(() =>
-                        setLastVisitedFilterEnabled(true)
-                    ),
-                    render: () => (
-                        <div className="flex items-center gap-2.5">
-                            <History className="size-3.5 shrink-0 text-muted-foreground" />
-                            <span className="truncate">
-                                Pick up where you left off
-                            </span>
-                            <span className="text-muted-foreground/60 text-xs tabular-nums">
-                                {lastVisitedItemIds.length}
-                            </span>
-                        </div>
-                    ),
-                    value: "filter last visited",
-                },
+                ...(shouldShowLastVisited
+                    ? [
+                          {
+                              label: "Pick up where you left off",
+                              onSelect: applyCollectionFilter(() =>
+                                  setLastVisitedFilterEnabled(true)
+                              ),
+                              render: () => (
+                                  <div className="flex items-center gap-2.5">
+                                      <History className="size-3.5 shrink-0 text-muted-foreground" />
+                                      <span className="truncate">
+                                          Pick up where you left off
+                                      </span>
+                                      <span className="text-muted-foreground/60 text-xs tabular-nums">
+                                          {lastVisitedItemIds.length}
+                                      </span>
+                                  </div>
+                              ),
+                              value: "filter last visited",
+                          },
+                      ]
+                    : []),
+                ...availableHistory.slice(0, 5).map((term) => ({
+                    label: term,
+                    onSelect: () => {
+                        setSearchTerms((current) =>
+                            appendUniqueSearchTerm(current, term)
+                        );
+                        setQuery("");
+                        setIsCommandOpen(true);
+                    },
+                    value: `search history ${term}`,
+                })),
+                ...(availableHistory.length > 0
+                    ? [
+                          {
+                              label: "Clear history",
+                              onSelect: onClearSearchHistory,
+                              value: "clear search history",
+                          },
+                      ]
+                    : []),
             ],
             label: "Recent",
         });
@@ -2730,6 +2770,7 @@ interface BuildPaletteGroupsInput {
     lastVisitedItemIds: string[];
     onAskCacheSubmit: (prompt: string) => void | Promise<void>;
     onClearCollectionFilters: () => void;
+    onClearSearchHistory: () => void;
     onToggleCollectionSelection: (id: string) => void;
     openPaletteSection: (
         section: Exclude<PaletteSection, "search">,
@@ -2738,6 +2779,7 @@ interface BuildPaletteGroupsInput {
     paletteSection: PaletteSection;
     query: string;
     returnToSearchSection: () => void;
+    searchHistory: string[];
     searchTerms: string[];
     selectedCollectionIds: string[];
     setCollectionMembershipFilter: (value: CollectionMembershipFilter) => void;
@@ -2800,12 +2842,14 @@ function buildPaletteGroups({
     lastVisitedFilterEnabled,
     lastVisitedItemIds,
     onClearCollectionFilters,
+    onClearSearchHistory,
     onAskCacheSubmit,
     onToggleCollectionSelection,
     openPaletteSection,
     query,
     paletteSection,
     returnToSearchSection,
+    searchHistory,
     searchTerms,
     selectedCollectionIds,
     setCollectionMembershipFilter,
@@ -2892,7 +2936,9 @@ function buildPaletteGroups({
             navigationItems,
             onAskCacheSubmit,
             onClearCollectionFilters,
+            onClearSearchHistory,
             onToggleCollectionSelection,
+            searchHistory,
             searchTerms,
             selectedCollectionIds,
             setIsCommandOpen,
@@ -3457,7 +3503,7 @@ function MediaPreview({
     const shouldLoadVideo = isHovered && canRenderVideo && !hasVideoFailed;
     const isVideoLoading = !hasVideoStarted && shouldLoadVideo;
 
-    const cachedDims = src ? PREVIEW_DIMENSIONS_CACHE.get(src) : null;
+    const cachedDimensions = src ? PREVIEW_DIMENSIONS_CACHE.get(src) : null;
 
     React.useEffect(() => {
         const video = videoRef.current;
@@ -3542,15 +3588,15 @@ function MediaPreview({
 
     const SoundIcon = isSoundEnabled ? Volume2Icon : VolumeXIcon;
 
-    const wrapperStyle: React.CSSProperties | undefined = cachedDims
-        ? { aspectRatio: `${cachedDims.w} / ${cachedDims.h}` }
+    const wrapperStyle: React.CSSProperties | undefined = cachedDimensions
+        ? { aspectRatio: `${cachedDimensions.w} / ${cachedDimensions.h}` }
         : undefined;
 
     return (
         <div
             className={cn(
                 "relative break-inside-avoid",
-                cachedDims ? "w-full" : "size-full"
+                cachedDimensions ? "w-full" : "size-full"
             )}
             onMouseEnter={handleMouseEnter}
             onMouseLeave={handleMouseLeave}
@@ -3559,7 +3605,7 @@ function MediaPreview({
             {canRenderImage && !hasImageFailed ? (
                 <img
                     alt=""
-                    className="size-full object-cover transition-opacity duration-100"
+                    className="size-full object-cover"
                     draggable="false"
                     fetchPriority="auto"
                     height={400}
@@ -4893,6 +4939,8 @@ export function BrowserRoot({
     const [columnCountMode, setColumnCountMode] =
         React.useState<ColumnCountMode>(DEFAULT_COLUMN_COUNT_MODE);
     const { lastVisitedItemIds } = useLastVisited();
+    const { clearSearchHistory, recordSearchTerm, searchHistory } =
+        useSearchHistory();
     const [lastVisitedFilterEnabled, setLastVisitedFilterEnabled] =
         React.useState(false);
     const [paletteSection, setPaletteSection] =
@@ -4956,6 +5004,29 @@ export function BrowserRoot({
         isCreatingResultsCollection,
         startCreateResultsCollectionTransition,
     ] = React.useTransition();
+
+    /**
+     * Auto-records any newly-added search term into the persistent
+     * `useSearchHistory` store. Observing `searchTerms` here (rather than
+     * calling `recordSearchTerm` at every commit site) keeps the recording
+     * concern in one place and captures terms added by both the inline
+     * palette actions and Ask Cache patches. The ref is seeded with `[]`
+     * rather than `searchTerms` so a non-empty initial state (e.g. future
+     * URL hydration) is still recorded on the first run.
+     */
+    const prevSearchTermsRef = React.useRef<string[]>([]);
+    React.useEffect(() => {
+        const prev = prevSearchTermsRef.current;
+        for (const term of searchTerms) {
+            const isAlreadyTracked = prev.some(
+                (prevTerm) => prevTerm.toLowerCase() === term.toLowerCase()
+            );
+            if (!isAlreadyTracked) {
+                recordSearchTerm(term);
+            }
+        }
+        prevSearchTermsRef.current = searchTerms;
+    }, [searchTerms, recordSearchTerm]);
 
     const clearCommandAttachments = useStableCallback(() => {
         setCommandAttachments((current) => {
@@ -5162,11 +5233,13 @@ export function BrowserRoot({
         lastVisitedItemIds,
         onAskCacheSubmit: handleAskCacheSubmit,
         onClearCollectionFilters,
+        onClearSearchHistory: clearSearchHistory,
         onToggleCollectionSelection: onRemoveCollectionFilter,
         openPaletteSection,
         paletteSection,
         query,
         returnToSearchSection,
+        searchHistory,
         searchTerms,
         selectedCollectionIds,
         setCollectionMembershipFilter,
@@ -5183,10 +5256,21 @@ export function BrowserRoot({
         sourceFilters,
     });
 
+    const activeLastVisitedItemIds = lastVisitedFilterEnabled
+        ? lastVisitedItemIds
+        : [];
+
+    const paletteGroupValueSet = new Set<string>();
+    for (const group of groups) {
+        for (const item of group.items) {
+            paletteGroupValueSet.add(item.value);
+        }
+    }
+
     const filteredItems = filterCommandItems(items, {
         collectionMembershipFilter,
         domainFilters,
-        lastVisitedItemIds: lastVisitedFilterEnabled ? lastVisitedItemIds : [],
+        lastVisitedItemIds: activeLastVisitedItemIds,
         searchTerms,
         selectedCollectionIds,
         sourceFilters,
@@ -5204,7 +5288,7 @@ export function BrowserRoot({
     const hasActiveFilters = browserHasActiveFilters({
         collectionMembershipFilter,
         domainFilters,
-        lastVisitedItemIds: lastVisitedFilterEnabled ? lastVisitedItemIds : [],
+        lastVisitedItemIds: activeLastVisitedItemIds,
         searchTerms,
         selectedCollectionIds,
         sourceFilters,
@@ -5468,11 +5552,7 @@ export function BrowserRoot({
 
     const handleCommandInputChange = useStableCallback(
         (next: string, eventDetails: AutocompleteRootChangeEventDetails) => {
-            if (
-                groups
-                    .flatMap((group) => group.items)
-                    .some((value) => value.value === next)
-            ) {
+            if (paletteGroupValueSet.has(next)) {
                 eventDetails.cancel();
                 return;
             }
@@ -5636,7 +5716,7 @@ export function BrowserRoot({
                 await saveFile(
                     new Blob(
                         [buildBrowserSectionCsv(sectionTitle, sectionItems)],
-                        { type: CSV_CONTENT_TYPE }
+                        { type: MIME_TYPES.csv }
                     ),
                     {
                         description: "CSV file",
