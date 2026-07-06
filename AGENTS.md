@@ -6,7 +6,7 @@
 
 ## On development
 
-Cache has a zero technical debt policy. Do it right the first time. A problem solved in design costs less than one solved in implementation, which costs less than one solved in production. The cost of fixing problems grows exponentially over time.
+Cache has a zero technical debt policy. Do it right the first time: the design that lands in the codebase should be the correct one. A problem solved in design costs less than one solved in implementation, which costs less than one solved in production. The cost of fixing problems grows exponentially over time. "Right the first time" describes the landed output, not the exploration that produced it — see simplicity below.
 
 Minimize low-value prose. Offer nuanced, factual, and accurate solutions with brilliant critical reasoning. Suggest solutions or alternatives I didn’t think about and anticipate my needs.
 
@@ -52,7 +52,7 @@ Never compromise type safety: Avoid using `any`, no `!` (non-null assertion), or
 
 Declare variables at the smallest possible scope. Minimize the number of variables in play at any point. This reduces the probability of using the wrong variable and makes code easier to reason about. Calculate or check variables close to where they are used. Do not introduce variables before they are needed or leave them around when they are not.
 
-Plugin architectures allow for extensibility and isolation; most functionality should live in plugins, not the core, enabling parallel development and future-proofing.
+Plugin architectures allow for extensibility and isolation; most functionality should live in plugins, not the core, enabling parallel development and future-proofing. Apply the plugin rule only to features whose pluggability is itself a current requirement (sync adapters, export formats, AI providers). YAGNI governs speculative features — do not extract a plugin boundary for a single implementation.
 
 Minimize risk by anticipating what’s most likely to fail (platforms, language changes, hardware, people) and insulating your system from those points of failure.
 
@@ -79,7 +79,7 @@ Every component should be co-located into a single file with its parts, and shou
 
 Use the `useTimeout` utility from `@base-ui/utils/useTimeout` instead of `window.setTimeout`, and `useAnimationFrame` from `@base-ui/utils/useAnimationFrame` instead of `requestAnimationFrame`.
 
-Use the `useStableCallback` utility from `@base-ui/utils/useStableCallback` instead of `React.useCallback` if the function is called within an effect or event handler. The utility cannot be used to memoize functions that are called directly in the body of a component (during render), so continue with `React.useCallback` in those scenarios.
+Use the `useStableCallback` utility from `@base-ui/utils/useStableCallback` instead of `React.useCallback` whenever the function is passed into an effect, an event handler, or any other long-lived closure — `useStableCallback` guarantees a stable identity without re-running on every render, which the React Compiler does not do for free. The utility cannot be used to memoize functions that are called directly in the body of a component (during render); in those cases the React Compiler memoizes the value automatically, so no manual hook is needed.
 
 Use the `useIsoLayoutEffect` utility from `@base-ui/utils/useIsoLayoutEffect` instead of `React.useLayoutEffect`.
 
@@ -89,7 +89,7 @@ Avoid duplicating logic where necessary: If two components can share logic (such
 
 ### File-Level Definition Order
 
-Make sure every component file follows the same vertical stack. Deviations are rare: If a helper is stateless and pure, it can live before the component (like removeCSSVariableInheritance in DrawerPopup.tsx). If it is stateful or closes over component internals, it lives after the types at the bottom.
+Make sure every component file follows the same vertical stack. Deviations are rare: a stateless pure helper may live above the component only when it is consumed by module-level stateless objects (step #4); helpers that close over component internals or any per-render value live below the types at the bottom (steps #9–#10).
 
 1. Imports
 2. Module-level constants (UPPER_SNAKE_CASE)
@@ -127,7 +127,7 @@ export const DrawerPopup = (
   // 4. Other hooks that don't depend on #5-#7
   useDialogPortalContext();
 
-  // 5. Derived values via useMemo
+  // 5. Derived values
   const nestedDrawerOpen = nestedOpenDrawerCount > 0;
 
   // 6. Local useState
@@ -186,7 +186,7 @@ Refs are initialized to their semantic empty state (false, 0, null, ''), never u
 
 Document the why, not the what: The code shows what it does. Documentation should explain why it exists, why it works this way, and what could go wrong. Your job is to produce clear, accurate, and consistent content that helps developers succeed on this codebase.
 
-Document what **not** to do: Warn against common mistakes when a misuse would be easy and costly. No `====` separators. No non-TSDoc comments.
+Document what **not** to do: Warn against common mistakes when a misuse would be easy and costly. No `====` separators.
 
 Document design choices: When you choose between reasonable alternatives, explain  the reasoning in a sentence. e.g. "The package X uses functional options Y rather than a config struct because Z" or "We return a X rather than failing on the Y because Z"
 
@@ -217,7 +217,7 @@ Anchor design decisions on the user's primary task or focus, to make sure the us
 Runtime & Package Manager: Node.js 24.x, Bun, read Bun API docs in `node_modules/bun-types/docs/**.mdx` if necessary.
 Framework: Next.js 16 (App Router)
 UI: React 19, Base-UI ([@base-ui/react](https://base-ui.com/llms.txt), @base-ui/utils), [motion](https://motion.dev) for animations, and lucide-react icons
-React Compiler: `babel-plugin-react-compiler` is enabled. It automatically memoizes components and values. Do not add manual `useMemo` or `useCallback`; they add noise without benefit and can interfere with compiler optimization
+React Compiler: `babel-plugin-react-compiler` is enabled. It automatically memoizes components and values, including render-time derived values. Do not add manual `useMemo` or `useCallback`; they add noise without benefit and can interfere with compiler optimization.
 Styling: Tailwind CSS 4
 Rich Text: [Lexical](https://lexical.dev) for notes editing
 Internationalization: [gt-next](https://gt-next.vercel.app) for i18n
@@ -241,11 +241,11 @@ This version has breaking changes — APIs, conventions, and file structure may 
 
 When you need up-to-date API docs, usage examples, or migration guides for any library or framework (especially those in the tech stack above), use the Context7 tools (`context7_resolve-library-id` then `context7_query-docs`). They fetch current documentation and code examples instead of relying on potentially stale training data. Call these whenever a question involves a specific library version, a new API, or a pattern you're uncertain about.
 
-### Procedure module pattern (Service + Server Actions)
+### Server Actions / Service module pattern
 
-We organize and co-locate Next.js Server Actions as thin adapters in `lib/{module}/actions.ts` files that handle input/output validation, auth/session and privilege checks, error normalization, caching/revalidation and rate limiting. These actions call pure service functions which contain all business logic and database/external-API calls. Services never depend on the framework; they operate on validated data and return domain objects/typed results, and can be used independently either for either other modules, as side effects, or pure server components.
+We organize and co-locate Next.js Server Actions as thin adapters in `lib/{module}/actions.ts` files that handle input/output validation, auth/session and privilege checks, error normalization, caching/revalidation and rate limiting. These actions call pure service functions which contain all business logic and database/external-API calls. Services never depend on the framework; they operate on validated data and return domain objects/typed results, and can be used independently either for other modules, as side effects, or pure server components.
 
-Actions are the only networking boundary: they parse/validate inputs, guard with user context, translate service results to serialized responses, and decide application-specific side effects, like `revalidatePath()`. Behind the scenes, actions use the `POST` method. Actions are defined as procedures, which are fully type-safe and imported directly and consumed as GET fetchers functions on top of [swr](https://swr.vercel.app/llms.txt) or as POST mutations, effectively typing and inferring the responses. Actions should return only the necessary data that will be used atomically, and not entire objects.
+Actions are the only networking boundary: they parse/validate inputs, guard with user context, translate service results to serialized responses, and decide application-specific side effects, like `revalidatePath()`. Behind the scenes, actions use the `POST` method. On the client, an action is consumed in one of two ways: as a read, by wrapping it in a small fetcher function passed to [swr](https://swr.vercel.app/llms.txt) (SWR calls the function locally); or as a mutation, by calling it directly from an event handler or form action. Either way the action is imported and invoked as an ordinary async function — the type signature of the export is the type of the call site, so requests and responses are fully inferred without an intermediate schema. Actions should return only the necessary data that will be used atomically, and not entire objects.
 
 ### Logging and error handling pattern
 
