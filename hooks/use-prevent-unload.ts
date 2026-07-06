@@ -1,5 +1,5 @@
 import { getOwnerWindow } from "@/lib/common/dom";
-import { useEffect } from "react";
+import { useIsoLayoutEffect } from "@base-ui/utils/useIsoLayoutEffect";
 
 /**
  * Prevents the browser window from unloading when the given condition is met.
@@ -11,7 +11,7 @@ import { useEffect } from "react";
 export const usePreventWindowUnload = (
     isEnabled: boolean | (() => boolean) = true
 ) => {
-    useEffect(() => {
+    useIsoLayoutEffect(() => {
         const ownerWindow = getOwnerWindow();
 
         const handleBeforeUnload = (event: BeforeUnloadEvent) => {

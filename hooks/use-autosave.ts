@@ -1,8 +1,9 @@
+import { usePreventWindowUnload } from "@/hooks/use-prevent-unload";
 import { createLogger } from "@/lib/common/logs/console/logger";
+import { useIsoLayoutEffect } from "@base-ui/utils/useIsoLayoutEffect";
 import { useStableCallback } from "@base-ui/utils/useStableCallback";
 import { useTimeout } from "@base-ui/utils/useTimeout";
 import { useValueAsRef } from "@base-ui/utils/useValueAsRef";
-import { usePreventWindowUnload } from "@/hooks/use-prevent-unload";
 import { useEffect, useRef, useState } from "react";
 
 const log = createLogger("use-autosave");
@@ -10,7 +11,8 @@ const MIN_SAVING_DISPLAY_MS = 600;
 const SAVE_STATUS_IDLE_DELAY_MS = 2000;
 
 export type SaveStatus = "idle" | "saving" | "saved" | "error";
-type SaveResult = boolean | string | undefined;
+
+type SaveResult = boolean | string;
 
 interface UseAutosaveOptions {
     content: string;
@@ -85,7 +87,7 @@ export function useAutosave({
         }
     );
 
-    useEffect(() => {
+    useIsoLayoutEffect(() => {
         isMountedRef.current = true;
         return () => {
             isMountedRef.current = false;

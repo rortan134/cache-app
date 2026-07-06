@@ -17,10 +17,13 @@ function readLastVisitedItemIds(): string[] {
             return [];
         }
         const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed)) {
-            return parsed;
+        if (!Array.isArray(parsed)) {
+            return [];
         }
-        return [raw];
+        const strings = parsed.filter(
+            (entry): entry is string => typeof entry === "string"
+        );
+        return strings.length > 0 ? strings : [];
     } catch {
         return [];
     }
