@@ -123,7 +123,11 @@ import {
 } from "@/lib/common/arrays";
 import { cn } from "@/lib/common/cn";
 import { getHexColorFromName } from "@/lib/common/colors";
-import { ACTION_STATUS, ITEM_KIND_NOTE } from "@/lib/common/constants";
+import {
+    ACTION_STATUS,
+    ITEM_KIND_NOTE,
+    MIME_TYPES,
+} from "@/lib/common/constants";
 import { saveFile } from "@/lib/common/file";
 import { getSystemControlKey } from "@/lib/common/keyboard";
 import { createLogger } from "@/lib/common/logs/console/logger";
@@ -186,7 +190,6 @@ import { storage } from "stan-js/storage";
 
 const log = createLogger("library:collections");
 
-const CSV_CONTENT_TYPE = "text/csv";
 const CSV_RECORD_SEPARATOR = "\r\n";
 const CSV_HEADERS = [
     "Collection",
@@ -198,6 +201,7 @@ const CSV_HEADERS = [
     "Posted At",
 ] as const;
 
+const NAME_REQUIRED_MESSAGE = "Enter a collection name.";
 const CREATE_ERROR_MESSAGE = "We couldn't create this collection right now.";
 const DELETE_ERROR_MESSAGE = "We couldn't delete this collection right now.";
 const DUPLICATE_ERROR_MESSAGE =
@@ -235,7 +239,6 @@ interface CollectionItemStyle extends React.CSSProperties {
 
 interface CollectionsListItemContextValue {
     collection: LibraryCollectionSummary;
-    isHovered: boolean;
     isSelected: boolean;
 }
 
@@ -595,6 +598,27 @@ function useCollectionsController() {
 
     const { hasAccess } = useSubscriptionAccess();
 
+    const {
+        favoriteCollectionIds,
+        isCollectionsListOpen,
+        isFavoritesListOpen,
+        setFavoriteCollectionIds,
+        setIsCollectionsListOpen,
+        setIsFavoritesListOpen,
+    } = useCollectionsListStateStore();
+
+    const {
+        collectionSortField,
+        collectionTextMatchQuery,
+        setCollectionSortField,
+        setCollectionTextMatchQuery,
+        setCollectionView,
+        collectionView,
+    } = useCollectionsSortStore();
+
+    const { copyToClipboard } = useCopyToClipboard();
+    const [, startTransition] = React.useTransition();
+
     const [isCreateOpen, setIsCreateOpen] = React.useState(false);
     const [createItemId, setCreateItemId] = React.useState<string | null>(null);
 
@@ -619,27 +643,6 @@ function useCollectionsController() {
     const [feedback, setFeedback] = React.useState<CollectionFeedback | null>(
         null
     );
-
-    const {
-        favoriteCollectionIds,
-        isCollectionsListOpen,
-        isFavoritesListOpen,
-        setFavoriteCollectionIds,
-        setIsCollectionsListOpen,
-        setIsFavoritesListOpen,
-    } = useCollectionsListStateStore();
-
-    const {
-        collectionSortField,
-        collectionTextMatchQuery,
-        setCollectionSortField,
-        setCollectionTextMatchQuery,
-        setCollectionView,
-        collectionView,
-    } = useCollectionsSortStore();
-
-    const { copyToClipboard } = useCopyToClipboard();
-    const [, startTransition] = React.useTransition();
 
     const pendingActionIdsRef = React.useRef(new Set<string>());
     const favoriteCollectionIdSetRef = React.useRef(new Set<string>());
@@ -1086,11 +1089,11 @@ function useCollectionsController() {
                 return;
             }
 
-            React.startTransition(async () => {
+            startTransition(async () => {
                 try {
                     await saveFile(
                         new Blob([buildCsv(collection, items)], {
-                            type: CSV_CONTENT_TYPE,
+                            type: MIME_TYPES.csv,
                         }),
                         {
                             description: "CSV file",
@@ -1262,30 +1265,32 @@ function useCollectionsController() {
         setFeedback(null);
     });
 
-    const handleComboboxValueChange = (nextValue: ComboboxValue | null) => {
-        if (!nextValue) {
-            return;
-        }
-
-        if (
-            nextValue.sortField !== collectionSortField ||
-            nextValue.sortQuery !== collectionTextMatchQuery
-        ) {
-            setCollectionSortField(nextValue.sortField);
-            if (nextValue.sortField === "text-match") {
-                setCollectionTextMatchQuery(nextValue.sortQuery);
-            } else {
-                setCollectionTextMatchQuery("");
+    const handleComboboxValueChange = useStableCallback(
+        (nextValue: ComboboxValue | null) => {
+            if (!nextValue) {
+                return;
             }
-            setSortInputValue("");
-        }
 
-        if (nextValue.view !== collectionView) {
-            setCollectionView(nextValue.view);
-        }
+            if (
+                nextValue.sortField !== collectionSortField ||
+                nextValue.sortQuery !== collectionTextMatchQuery
+            ) {
+                setCollectionSortField(nextValue.sortField);
+                if (nextValue.sortField === "text-match") {
+                    setCollectionTextMatchQuery(nextValue.sortQuery);
+                } else {
+                    setCollectionTextMatchQuery("");
+                }
+                setSortInputValue("");
+            }
 
-        setIsSortOpen(false);
-    };
+            if (nextValue.view !== collectionView) {
+                setCollectionView(nextValue.view);
+            }
+
+            setIsSortOpen(false);
+        }
+    );
 
     return {
         actions: {
@@ -1442,7 +1447,8 @@ function useCollectionItemPreviewIndex(
 /**
  * Look up the full priority option (icon + label) for a given priority value.
  *
- * Falls back to `DEFAULT_PRIORITY` so callers never have to handle `undefined`.
+ * The map covers every `CollectionPriority` enum value, so the lookup always
+ * returns an entry — callers don't have to handle `undefined`.
  */
 function getPriorityOption(priority: CollectionPriority): PriorityOption {
     return PRIORITY_BY_VALUE.get(priority) ?? DEFAULT_PRIORITY;
@@ -2108,7 +2114,7 @@ function CollectionRecommendationItem({
                 {isCreating ? (
                     <Spinner className="absolute right-1 size-3.5" />
                 ) : (
-                    <span className="absolute right-1 text-muted-foreground text-xs">
+                    <span className="absolute right-3 text-muted-foreground text-xs opacity-0 group-hover:opacity-100">
                         Create
                     </span>
                 )}
@@ -2121,7 +2127,7 @@ function CollectionsListRecommendations() {
     const { collectionSummaries, recommendations } = useCollectionsState();
     const { items, isLoading } = recommendations;
 
-    if (!(collectionSummaries.length > 0 && items.length > 0 && !isLoading)) {
+    if (collectionSummaries.length === 0 || items.length === 0 || isLoading) {
         return null;
     }
 
@@ -2195,7 +2201,7 @@ function CollectionsListClearFilterButton({
     const { hasAnySelected, onClearCollectionFilters } = useCollectionsState();
 
     const onClick = useStableCallback(onClickProp);
-    const handleOnClick = useStableCallback(
+    const handleClick = useStableCallback(
         (event: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
             onClick?.(event);
             onClearCollectionFilters();
@@ -2210,7 +2216,7 @@ function CollectionsListClearFilterButton({
         <Button
             {...props}
             aria-label="Clear selected collections"
-            onClick={handleOnClick}
+            onClick={handleClick}
             size="icon-xs"
             title="Clear selected collections"
             variant="ghost"
@@ -2332,7 +2338,7 @@ function CollectionsListCreateButton({
     const { requestCreate } = useCollectionsState();
 
     const onClick = useStableCallback(onClickProp);
-    const handleOnClick = useStableCallback(
+    const handleClick = useStableCallback(
         (event: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
             onClick?.(event);
             requestCreate();
@@ -2343,7 +2349,7 @@ function CollectionsListCreateButton({
         <Button
             {...props}
             aria-label="Create collection"
-            onClick={handleOnClick}
+            onClick={handleClick}
             size="icon-xs"
             title={`Create a new collection (${getSystemControlKey()}N)`}
             variant="ghost"
@@ -2465,7 +2471,7 @@ interface CollectionsListItemProps extends React.ComponentProps<"div"> {
  * A single row in the collections list.
  *
  * Provides `CollectionsListItemContext` to its children so compound parts
- * can read the collection and hover state without prop drilling.
+ * can read the collection and selection state without prop drilling.
  */
 function CollectionItem({
     className,
@@ -2477,16 +2483,13 @@ function CollectionItem({
 }: CollectionsListItemProps) {
     const { hoveredCollectionRef, selectedCollectionIds } =
         useCollectionsState();
-    const [isHovered, setIsHovered] = React.useState(false);
     const isSelected = selectedCollectionIds.includes(collection.id);
-    const onMouseEnter = useStableCallback(onMouseEnterProp);
-    const onMouseLeave = useStableCallback(onMouseLeaveProp);
+    const handleMouseEnter = useStableCallback(onMouseEnterProp);
+    const handleMouseLeave = useStableCallback(onMouseLeaveProp);
     const style = getCollectionItemStyle(collection.name, isSelected);
 
     return (
-        <CollectionsListItemContext
-            value={{ collection, isHovered, isSelected }}
-        >
+        <CollectionsListItemContext value={{ collection, isSelected }}>
             <div
                 {...props}
                 className={cn(
@@ -2494,16 +2497,14 @@ function CollectionItem({
                     className
                 )}
                 onMouseEnter={(event) => {
-                    setIsHovered(true);
                     hoveredCollectionRef.current = collection;
-                    onMouseEnter?.(event);
+                    handleMouseEnter?.(event);
                 }}
                 onMouseLeave={(event) => {
-                    setIsHovered(false);
                     if (hoveredCollectionRef.current?.id === collection.id) {
                         hoveredCollectionRef.current = null;
                     }
-                    onMouseLeave?.(event);
+                    handleMouseLeave?.(event);
                 }}
                 style={{ ...style, ...styleProp }}
             />
@@ -2720,13 +2721,13 @@ function CollectionItemShareSubMenu() {
     const isShared = !!collection.shareId;
     const isSharePending = pendingShareIds.includes(collection.id);
 
-    const onCopyShareLink = useStableCallback(() =>
+    const handleCopyShareLink = useStableCallback(() =>
         onCopyShareLinkAction(collection)
     );
-    const onDisableShare = useStableCallback(() =>
+    const handleDisableShare = useStableCallback(() =>
         onDisableShareAction(collection)
     );
-    const onEnableShare = useStableCallback(() =>
+    const handleEnableShare = useStableCallback(() =>
         onEnableShareAction(collection)
     );
 
@@ -2744,7 +2745,7 @@ function CollectionItemShareSubMenu() {
                 {isShared ? (
                     <MenuItem
                         disabled={isSharePending}
-                        onClick={onCopyShareLink}
+                        onClick={handleCopyShareLink}
                     >
                         <LinkIcon
                             aria-hidden
@@ -2757,7 +2758,7 @@ function CollectionItemShareSubMenu() {
                     <MenuItem
                         closeOnClick={false}
                         disabled={isSharePending}
-                        onClick={onEnableShare}
+                        onClick={handleEnableShare}
                     >
                         <UserRoundPlus
                             aria-hidden
@@ -2767,10 +2768,7 @@ function CollectionItemShareSubMenu() {
                         Create public link
                     </MenuItem>
                 )}
-                <MenuItem
-                    closeOnClick={false}
-                    disabled={!isShared || isSharePending}
-                >
+                <MenuItem closeOnClick={false} disabled>
                     <LockKeyhole
                         aria-hidden
                         className="size-4 text-muted-foreground"
@@ -2782,7 +2780,7 @@ function CollectionItemShareSubMenu() {
                     <MenuItem
                         closeOnClick={false}
                         disabled={isSharePending}
-                        onClick={onDisableShare}
+                        onClick={handleDisableShare}
                         variant="destructive"
                     >
                         <Trash2Icon
@@ -2815,11 +2813,19 @@ function CollectionItemExportSubMenu() {
     const { collection } = useCollectionsListItemContext();
     const hasItems = collection.itemCount > 0;
 
-    const onCopyLinks = useStableCallback(() => onCopyLinksAction(collection));
-    const onCopyTitle = useStableCallback(() => onCopyTitleAction(collection));
-    const onExportCsv = useStableCallback(() => onExportCsvAction(collection));
-    const onOpenLinks = useStableCallback(() => onOpenLinksAction(collection));
-    const onSendToNotion = useStableCallback(() =>
+    const handleCopyLinks = useStableCallback(() =>
+        onCopyLinksAction(collection)
+    );
+    const handleCopyTitle = useStableCallback(() =>
+        onCopyTitleAction(collection)
+    );
+    const handleExportCsv = useStableCallback(() =>
+        onExportCsvAction(collection)
+    );
+    const handleOpenLinks = useStableCallback(() =>
+        onOpenLinksAction(collection)
+    );
+    const handleSendToNotion = useStableCallback(() =>
         onSendToNotionAction(collection)
     );
     const isSendingToNotion = pendingNotionCollectionIds.includes(
@@ -2837,7 +2843,7 @@ function CollectionItemExportSubMenu() {
                 Export
             </MenuSubTrigger>
             <MenuSubPopup>
-                <MenuItem onClick={onCopyTitle}>
+                <MenuItem onClick={handleCopyTitle}>
                     <CopyIcon
                         aria-hidden
                         className="size-4 text-muted-foreground"
@@ -2845,7 +2851,7 @@ function CollectionItemExportSubMenu() {
                     />
                     Copy title
                 </MenuItem>
-                <MenuItem disabled={!hasItems} onClick={onCopyLinks}>
+                <MenuItem disabled={!hasItems} onClick={handleCopyLinks}>
                     <CopyIcon
                         aria-hidden
                         className="size-4 text-muted-foreground"
@@ -2853,7 +2859,7 @@ function CollectionItemExportSubMenu() {
                     />
                     Copy all links
                 </MenuItem>
-                <MenuItem disabled={!hasItems} onClick={onOpenLinks}>
+                <MenuItem disabled={!hasItems} onClick={handleOpenLinks}>
                     <ExternalLinkIcon
                         aria-hidden
                         className="size-4 text-muted-foreground"
@@ -2861,7 +2867,7 @@ function CollectionItemExportSubMenu() {
                     />
                     Open all links
                 </MenuItem>
-                <MenuItem disabled={!hasItems} onClick={onExportCsv}>
+                <MenuItem disabled={!hasItems} onClick={handleExportCsv}>
                     <FileSpreadsheetIcon
                         aria-hidden
                         className="size-4 text-muted-foreground"
@@ -2871,7 +2877,7 @@ function CollectionItemExportSubMenu() {
                 </MenuItem>
                 <MenuItem
                     disabled={!hasItems || isSendingToNotion}
-                    onClick={onSendToNotion}
+                    onClick={handleSendToNotion}
                 >
                     <NotionIcon
                         aria-hidden
@@ -2909,12 +2915,14 @@ function CollectionItemMetadata({ children }: CollectionItemMetadataProps) {
     const { collection } = useCollectionsListItemContext();
     const isFavorite = favoriteCollectionIdSet.has(collection.id);
 
-    const onRename = useStableCallback(() => onRenameAction(collection));
-    const onDelete = useStableCallback(() => onDeleteAction(collection));
-    const onFavoriteToggle = useStableCallback(() => {
+    const handleRename = useStableCallback(() => onRenameAction(collection));
+    const handleDelete = useStableCallback(() => onDeleteAction(collection));
+    const handleFavoriteToggle = useStableCallback(() => {
         onFavoriteToggleAction(collection);
     });
-    const onMakeCopy = useStableCallback(() => onDuplicateAction(collection));
+    const handleMakeCopy = useStableCallback(() =>
+        onDuplicateAction(collection)
+    );
 
     const updatedAt = dayjs(collection.updatedAt);
 
@@ -2958,7 +2966,7 @@ function CollectionItemMetadata({ children }: CollectionItemMetadataProps) {
                                 )}
                             </Badge>
                         </MenuGroupLabel>
-                        <MenuItem onClick={onFavoriteToggle}>
+                        <MenuItem onClick={handleFavoriteToggle}>
                             <Star
                                 aria-hidden
                                 className={cn(
@@ -2974,7 +2982,7 @@ function CollectionItemMetadata({ children }: CollectionItemMetadataProps) {
                                 </MenuShortcut>
                             )}
                         </MenuItem>
-                        <MenuItem onClick={onRename}>
+                        <MenuItem onClick={handleRename}>
                             <PencilIcon
                                 aria-hidden
                                 className="size-4 text-muted-foreground"
@@ -2983,7 +2991,7 @@ function CollectionItemMetadata({ children }: CollectionItemMetadataProps) {
                             Rename
                             <MenuShortcut>E</MenuShortcut>
                         </MenuItem>
-                        <MenuItem onClick={onMakeCopy}>
+                        <MenuItem onClick={handleMakeCopy}>
                             <CopyPlus
                                 aria-hidden
                                 className="size-4 text-muted-foreground"
@@ -2999,7 +3007,7 @@ function CollectionItemMetadata({ children }: CollectionItemMetadataProps) {
                     </MenuGroup>
                     <MenuSeparator />
                     <MenuGroup>
-                        <MenuItem onClick={onDelete}>Delete</MenuItem>
+                        <MenuItem onClick={handleDelete}>Delete</MenuItem>
                     </MenuGroup>
                     <MenuItem disabled>
                         <div className="-mt-0.5 space-y-1 text-[10px] text-muted-foreground leading-none *:text-nowrap">
@@ -3062,7 +3070,7 @@ function CollectionsRenameDialog() {
         const nextName = normalizeWhitespace(nameDraft);
 
         if (nextName.length === 0) {
-            setErrorMessage("Enter a collection name.");
+            setErrorMessage(NAME_REQUIRED_MESSAGE);
             return;
         }
 
@@ -3209,7 +3217,7 @@ function CollectionsCreateDialog() {
     const handleSubmit = () => {
         const name = normalizeWhitespace(nameDraft);
         if (name.length === 0) {
-            setErrorMessage("Enter a collection name.");
+            setErrorMessage(NAME_REQUIRED_MESSAGE);
             return;
         }
 
