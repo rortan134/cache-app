@@ -12,12 +12,12 @@ export const getServerSession = cache(async () =>
     auth.api.getSession({ headers: await headers() })
 );
 
-export type Session = Awaited<ReturnType<typeof getServerSession>>;
-
 export const getSessionUserId = cache(async (): Promise<string | null> => {
     const session = await getServerSession();
     return session?.user?.id ?? null;
 });
+
+export type Session = Awaited<ReturnType<typeof getServerSession>>;
 
 type WithSessionCallback<T> = (session: Session) => Promise<T> | T;
 

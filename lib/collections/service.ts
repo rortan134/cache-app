@@ -988,9 +988,7 @@ export async function listCollections(
         where: { userId: args.userId },
     });
 
-    return collections.map((collection) =>
-        toLibraryCollectionSummary(collection)
-    );
+    return collections.map(toLibraryCollectionSummary);
 }
 
 /**

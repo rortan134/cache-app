@@ -2,8 +2,8 @@ import { getStripeClient, getStripeWebhookSecret } from "@/lib/billing/client";
 import { getPlanPriceIds } from "@/lib/billing/prices";
 import { APP_NAME, BASE_URL } from "@/lib/common/constants";
 import { createLogger } from "@/lib/common/logs/console/logger";
-import { seedBuiltInAutomationsForUser } from "@/lib/intelligence/automations/service";
 import { NOTION_API_VERSION } from "@/lib/integrations/notion/api";
+import { seedBuiltInAutomationsForUser } from "@/lib/intelligence/automations/service";
 import { prisma } from "@/prisma";
 import type { OAuth2Tokens } from "@better-auth/core/oauth2";
 import { stripe } from "@better-auth/stripe";
@@ -375,9 +375,7 @@ export const auth = betterAuth({
     },
     appName: APP_NAME,
     baseURL: BASE_AUTH_URL,
-    database: prismaAdapter(prisma, {
-        provider: "postgresql",
-    }),
+    database: prismaAdapter(prisma, { provider: "postgresql" }),
     databaseHooks: {
         user: {
             create: {
@@ -394,9 +392,6 @@ export const auth = betterAuth({
                 },
             },
         },
-    },
-    emailAndPassword: {
-        enabled: false,
     },
     plugins: [
         i18nPlugin(),
