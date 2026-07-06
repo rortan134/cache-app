@@ -18,6 +18,7 @@ import {
     TikTokIcon,
 } from "@/components/ui/icons";
 import { PageShell } from "@/components/ui/page-shell";
+import { Popover, PopoverPopup, PopoverTrigger } from "@/components/ui/popover";
 import { Sidebar, SidebarFooter, SidebarHeader } from "@/components/ui/sidebar";
 import { getServerSession } from "@/lib/auth/session";
 import { cn } from "@/lib/common/cn";
@@ -629,9 +630,32 @@ export default async function Home() {
                                         <br />
                                     </span>{" "}
                                     Let your AI agents use it with{" "}
-                                    <ModelContextProtocolIcon className="opacity-60" />{" "}
-                                    MCP and empower them with the full spectrum
-                                    of your resources
+                                    <ModelContextProtocolIcon className="mb-0.5 opacity-60" />{" "}
+                                    <Popover>
+                                        <PopoverTrigger
+                                            nativeButton={false}
+                                            openOnHover
+                                            render={
+                                                <span className="underline-thickness-2 cursor-help underline decoration-dotted underline-offset-4">
+                                                    MCP
+                                                </span>
+                                            }
+                                        />
+                                        <PopoverPopup side="top">
+                                            <p className="max-w-xs text-pretty text-sm">
+                                                MCP is a universal connector —
+                                                similar to a "USB port" for AI,
+                                                but for software. It lets your
+                                                AI agents securely access apps
+                                                and data, so they can take
+                                                actions and get work done for
+                                                you — all without you needing to
+                                                manually intervene.
+                                            </p>
+                                        </PopoverPopup>
+                                    </Popover>{" "}
+                                    and empower them with the full spectrum of
+                                    your resources
                                 </p>
                             </T>
                         </div>
