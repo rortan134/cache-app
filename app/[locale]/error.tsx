@@ -1,8 +1,10 @@
 "use client";
 
+import { BrandLogo } from "@/components/ui/brand-logo";
 import { Button } from "@/components/ui/button";
 import { PageShell } from "@/components/ui/page-shell";
 import { createLogger } from "@/lib/common/logs/console/logger";
+import LogoIconImage from "@/public/cache-app-icon.png";
 import Link from "next/link";
 import { useEffect } from "react";
 
@@ -23,7 +25,8 @@ export default function ErrorPage({
 
     return (
         <PageShell>
-            <div className="flex max-w-md flex-col items-center justify-center gap-6 text-center">
+            <div className="mx-auto flex h-svh max-w-md flex-col items-center justify-center gap-5 text-center">
+                <BrandLogo className="scale-80" src={LogoIconImage} />
                 <h1 className="font-medium text-foreground text-lg">
                     Something went wrong
                 </h1>

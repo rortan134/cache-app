@@ -1,18 +1,18 @@
 "use client";
 
-import { cn } from "@/lib/common/cn";
 import {
     ContextMenu,
     ContextMenuItem,
     ContextMenuPopup,
     ContextMenuTrigger,
 } from "@/components/ui/context-menu";
+import { cn } from "@/lib/common/cn";
 import { saveFile } from "@/lib/common/file";
 import { DownloadIcon } from "lucide-react";
 import type { StaticImageData } from "next/image";
 import Image from "next/image";
 import Link from "next/link";
-import type * as React from "react";
+import * as React from "react";
 
 interface BrandLogoProps
     extends Omit<React.ComponentProps<typeof Link>, "href"> {
@@ -21,10 +21,18 @@ interface BrandLogoProps
 }
 
 export function BrandLogo({ href, src, className, ...props }: BrandLogoProps) {
+    const abortControllerRef = React.useRef<AbortController | null>(null);
+
+    React.useEffect(() => () => abortControllerRef.current?.abort(), []);
+
     const handleSaveLogo = async () => {
+        abortControllerRef.current?.abort();
+        abortControllerRef.current = new AbortController();
         try {
             await saveFile(
-                fetch(src.src).then((response) => {
+                fetch(src.src, {
+                    signal: abortControllerRef.current.signal,
+                }).then((response) => {
                     if (!response.ok) {
                         throw new Error(
                             `Failed to fetch logo image (${response.status})`
@@ -39,6 +47,9 @@ export function BrandLogo({ href, src, className, ...props }: BrandLogoProps) {
                 }
             );
         } catch (error) {
+            if (error instanceof DOMException && error.name === "AbortError") {
+                return;
+            }
             console.error("Failed to save logo image", error);
         }
     };

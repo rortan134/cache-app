@@ -625,12 +625,12 @@ function IntegrationsListItem({
                         {label}
                     </span>
                     <span className="grid items-center text-muted-foreground leading-snug">
-                        <span className="text-right text-[11px] [grid-area:1/1] group-focus-within:opacity-0 group-hover:opacity-0">
+                        <span className="text-right text-[11px] opacity-0 [grid-area:1/1] sm:opacity-100 sm:group-hover:opacity-0 sm:group-focus-within:opacity-0">
                             {description}
                         </span>
                         <IntegrationsListItemActions
                             actions={actions}
-                            className="opacity-0 [grid-area:1/1] group-focus-within:opacity-100 group-hover:opacity-100"
+                            className="opacity-100 [grid-area:1/1] sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100"
                             integrationId={integrationId}
                             status={status}
                         />
