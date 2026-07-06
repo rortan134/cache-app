@@ -105,6 +105,6 @@
         "prisma": "7.8.0",
         "tailwindcss": "4.3.2",
         "typescript": "6.0.3",
-        "ultracite": "7.8.4"
+        "ultracite": "7.9.2"
     }
 }
