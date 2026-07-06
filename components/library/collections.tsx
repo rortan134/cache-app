@@ -2107,7 +2107,11 @@ function CollectionRecommendationItem({
                 </div>
                 {isCreating ? (
                     <Spinner className="absolute right-1 size-3.5" />
-                ) : null}
+                ) : (
+                    <span className="absolute right-1 text-muted-foreground text-xs">
+                        Create
+                    </span>
+                )}
             </SidebarItem>
         </div>
     );

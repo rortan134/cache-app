@@ -137,15 +137,20 @@ export function ComposerInput({
                 <Toolbar.Input
                     render={
                         <CommandInput
+                            autoCapitalize="sentences"
+                            autoCorrect="on"
                             endAddon={
                                 <ComposerInputEndAddon
                                     stackEntries={stackEntries}
                                 />
                             }
+                            inputMode="text"
                             onKeyDown={onKeyDown}
                             placeholder={placeholder}
                             ref={ref}
                             size="lg"
+                            spellCheck="true"
+                            translate="no"
                         />
                     }
                 />
@@ -277,7 +282,7 @@ export function ComposerActionClear() {
     } = useComposerActionsContext();
 
     return (
-        <ActionButton onClick={onClearPalette} title="Reset browser">
+        <ActionButton onClick={onClearPalette} title="Reset filters">
             {canClear ? (
                 <Grid2x2X className="inline-block size-3.5 shrink-0" />
             ) : (

@@ -670,7 +670,7 @@ function buildCommandSuggestions({
         if (hasAnyRefinements) {
             addSuggestion({
                 icon: <RotateCcw className={SUGGESTION_ICON_CLASS} />,
-                label: "Reset browser",
+                label: "Reset filters",
                 onSelect: commitSelection(clearLibraryPalette),
             });
         }
@@ -1821,6 +1821,15 @@ interface BrowserResultsContextValue {
      * global `S` hotkey can request the hovered card's picker to open
      * without the card needing to handle the keydown itself (which only
      * fires while the card has keyboard focus).
+     *
+     * This is the single source of truth for "which picker is open".
+     * A card's `CardCollectionPicker` receives `open = openPickerItemId === item.id`
+     * and reports closures back via `onOpenChange(false)`; treat that
+     * callback as best-effort close signaling. When the picker is
+     * closed by flipping `open` to `false` externally (e.g. another
+     * card's `S` press reassigns `openPickerItemId`), Base-UI does not
+     * dispatch `onOpenChange(false)` for the previously open card —
+     * which is fine because this state already reflects the new target.
      */
     openPickerItemId: string | null;
     pendingDeleteItemId: string | null;
@@ -1924,6 +1933,7 @@ function BrowserEmpty() {
                 columnCount={4}
                 columnGutter={16}
                 items={[...EMPTY_LIBRARY_PEEK_PLACEHOLDERS]}
+                maxColumnCount={7}
                 render={BrowserEmptyCell}
                 rowGutter={16}
             />
@@ -2354,7 +2364,7 @@ function BrowserMasonry({ children }: BrowserMansonryProps) {
                 itemStyle={{ contain: "layout style" }}
                 items={items}
                 key={`${sidebarStateDeferred}-${items.length}`}
-                maxColumnCount={9}
+                maxColumnCount={7}
                 render={BrowserMasonryCell}
                 rowGutter={16}
                 tabIndex={-1}
@@ -2651,9 +2661,9 @@ function buildSearchPaletteGroups({
                 {
                     description:
                         "Reset search, filters, grouping, sort, and layout",
-                    label: "Reset browser",
+                    label: "Reset filters",
                     onSelect: clearLibraryPalette,
-                    value: "reset browser state",
+                    value: "reset filters",
                 },
             ],
             label: "Quick actions",
@@ -4195,6 +4205,15 @@ function MediaCard({ item }: LibraryGridCardProps) {
     const displayTitle = getItemTitle(item);
     const { markVisited, isLastVisited } = useLastVisited();
 
+    React.useEffect(
+        () => () => {
+            if (hoveredItemIdRef.current === item.id) {
+                hoveredItemIdRef.current = null;
+            }
+        },
+        [hoveredItemIdRef, item.id]
+    );
+
     const handleZoomChange = (nextZoomed: boolean) => {
         if (!nextZoomed) {
             setIsZoomed(false);
@@ -5416,21 +5435,21 @@ export function BrowserRoot({
             }
         }
 
-        if (event.key.toLowerCase() === "s") {
-            const id = hoveredItemIdRef.current;
-            if (id) {
-                event.preventDefault();
-                setOpenPickerItemId(id);
-            }
-            return;
-        }
-
         if (
             event.defaultPrevented ||
             isTextEntry ||
             isPaletteEventTarget ||
             !isPrintablePaletteKey(event)
         ) {
+            return;
+        }
+
+        if (event.key.toLowerCase() === "s") {
+            const id = hoveredItemIdRef.current;
+            if (id) {
+                event.preventDefault();
+                setOpenPickerItemId(id);
+            }
             return;
         }
 
@@ -5980,6 +5999,7 @@ export function BrowserRoot({
                             columnCount={resolvedColumnCount}
                             columnGutter={16}
                             items={LOCKED_LIBRARY_PREVIEW_PLACEHOLDERS}
+                            maxColumnCount={7}
                             render={LockedPreviewCard}
                             rowGutter={16}
                         />

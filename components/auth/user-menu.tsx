@@ -47,6 +47,7 @@ import {
     ArrowUpRight,
     ChevronDown,
     ChevronRight,
+    Download,
     Ellipsis,
     Globe,
     LoaderCircle,
@@ -263,6 +264,14 @@ export function UserMenuContent() {
                         />
                     </CollapsiblePanel>
                 </Collapsible>
+                <MenuItem
+                    className="justify-between"
+                    closeOnClick={false}
+                    disabled
+                >
+                    Download desktop app
+                    <Download className="ml-auto inline-block size-3.5 shrink-0 text-muted-foreground" />
+                </MenuItem>
                 <LogoutDialogTrigger
                     nativeButton={false}
                     render={

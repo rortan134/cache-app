@@ -15,7 +15,7 @@ export default function ApplicationLayout({
                 <BackToTopButton>
                     <ChevronUp
                         aria-hidden
-                        className="size-4"
+                        className="size-4.5"
                         focusable="false"
                     />
                     <T>Back to top</T>
