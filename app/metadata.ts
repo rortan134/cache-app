@@ -9,7 +9,7 @@ interface BuildPageMetadataArgs {
     ogImage?: string;
     ogType?: "website" | "article";
     path: `/${string}`;
-    title: string;
+    title: string | { absolute: string };
 }
 
 const DEFAULT_OG_IMAGE = `${BASE_URL}/opengraph-image.png`;

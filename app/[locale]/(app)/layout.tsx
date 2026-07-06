@@ -9,18 +9,12 @@ export default function ApplicationLayout({
     children,
 }: React.PropsWithChildren) {
     return (
-        <PageShell>
-            <div className="flex flex-1 flex-col gap-8 lg:flex-row lg:justify-between">
-                <SidebarProvider>{children}</SidebarProvider>
-                <BackToTopButton>
-                    <ChevronUp
-                        aria-hidden
-                        className="size-4.5"
-                        focusable="false"
-                    />
-                    <T>Back to top</T>
-                </BackToTopButton>
-            </div>
+        <PageShell className="flex-1 gap-8 lg:flex-row lg:justify-between">
+            <SidebarProvider>{children}</SidebarProvider>
+            <BackToTopButton>
+                <ChevronUp aria-hidden className="size-4.5" focusable="false" />
+                <T>Back to top</T>
+            </BackToTopButton>
         </PageShell>
     );
 }

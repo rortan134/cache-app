@@ -73,11 +73,13 @@ export async function generateMetadata({
         ],
         locale,
         path: "/",
-        title: gtPublicString(
-            locale,
-            "home.metadata.title",
-            "Unify your bookmarks across every platform"
-        ),
+        title: {
+            absolute: `Cache | ${gtPublicString(
+                locale,
+                "home.metadata.title",
+                "Unify your bookmarks across every platform"
+            )}`,
+        },
     });
 }
 
@@ -184,8 +186,8 @@ export default async function Home() {
                         <p className="text-sm">
                             <T>
                                 Save hours every week with a smarter way to
-                                handle everything you save online. From just
-                                $8/month.
+                                handle everything you save online. Make sense of
+                                the noise — from just $8/month.
                             </T>
                         </p>
                         <Button
@@ -216,9 +218,9 @@ export default async function Home() {
                                     Curate a library of all the content you love
                                 </h2>
                                 <p className="text-pretty font-medium text-base text-foreground leading-[1.2] tracking-[-3%] opacity-50">
-                                    Get inspired, find that one lesson, advice,
-                                    recipe, or idea you've been looking for in
-                                    the span of a coffee break.
+                                    Get inspired, find that lesson, recipe, or
+                                    idea you've been looking for, all in the
+                                    span of a coffee break.
                                 </p>
                             </T>
                         </div>
