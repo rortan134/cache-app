@@ -116,7 +116,6 @@ Open [http://localhost:3000](http://localhost:3000).
 
 - **Comments** — Add and view threaded comments on entries.
 - **Inbox view** — Triage view for reviewing entries.
-- **PDF Support** — Upload, store, and search within PDF documents alongside bookmarks.
 - **Notes improvements** — Richer editing experience, advanced formatting.
 - *More coming soon*
 
