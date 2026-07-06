@@ -1,5 +1,5 @@
 import { buildPageMetadata } from "@/app/metadata";
-import { ApplicationSidebar } from "@/components/application-sidebar";
+import { ApplicationSidebar } from "@/components/sidebar/application-sidebar";
 import { AutomationsList } from "@/components/automations/automations";
 import { AutomationComposerDialog } from "@/components/automations/automation-composer-dialog";
 import { getServerSession } from "@/lib/auth/session";

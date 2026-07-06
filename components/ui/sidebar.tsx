@@ -205,7 +205,11 @@ export function SidebarTrigger({
             data-slot="sidebar-trigger"
             onClick={handleClick}
             size="icon-sm"
-            title={open ? "Close sidebar" : "Open sidebar"}
+            title={
+                open
+                    ? `Close sidebar (${getSystemControlKey()}B)`
+                    : `Open sidebar (${getSystemControlKey()}B)`
+            }
             variant="ghost"
         >
             {open ? (

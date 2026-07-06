@@ -1,5 +1,5 @@
 import { buildPageMetadata } from "@/app/metadata";
-import { ApplicationSidebar } from "@/components/application-sidebar";
+import { ApplicationSidebar } from "@/components/sidebar/application-sidebar";
 import { BrowserRoot } from "@/components/library/browser";
 import { Collections } from "@/components/library/collections";
 import { Integrations } from "@/components/library/integrations";
@@ -64,6 +64,7 @@ export default async function LibraryPage() {
         libraryItemSources: itemSources.map((item) => item.source),
         linkedProviderIds: linkedAccounts.map((account) => account.providerId),
     };
+
     const connectedIntegrations: Set<IntegrationId> = new Set([
         ...listConnectedIntegrationIds("source", integrationConnectionContext),
         ...listConnectedIntegrationIds(
