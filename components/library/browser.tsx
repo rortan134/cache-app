@@ -212,7 +212,6 @@ import {
     ChevronUp,
     CircleFadingPlus,
     Component,
-    Diamond,
     DownloadIcon,
     Ellipsis,
     ExternalLinkIcon,
@@ -230,6 +229,7 @@ import {
     SearchIcon,
     SearchX,
     Squircle,
+    SquircleDashed,
     Star,
     Tags,
     Volume2Icon,
@@ -1789,6 +1789,14 @@ interface BrowserResultsContextValue {
     columnCount?: number;
     enableSectionCollapse: boolean;
     favoriteItemIdSet: ReadonlySet<string>;
+    /**
+     * Tracks the id of the grid card currently under the pointer so
+     * global hotkeys (e.g. `S` to open the collection picker) can target
+     * the hovered card instead of requiring keyboard focus on the card,
+     * which is unreachable while the pointer is elsewhere. Mirrors the
+     * `hoveredCollectionRef` pattern used by the collections list.
+     */
+    hoveredItemIdRef: React.RefObject<string | null>;
     onCollapseAllSections?: () => void;
     onCopyLink: (item: LibraryItemWithCollections) => void;
     onCreateCollectionFromResults?: () => void;
@@ -1807,7 +1815,16 @@ interface BrowserResultsContextValue {
         itemId: string,
         collectionIds: string[]
     ) => Promise<LibraryItemCollectionsUpdateResult>;
+    /**
+     * The id of the card whose collection picker is currently open, or
+     * `null` when no card picker is open. Driven externally so the
+     * global `S` hotkey can request the hovered card's picker to open
+     * without the card needing to handle the keydown itself (which only
+     * fires while the card has keyboard focus).
+     */
+    openPickerItemId: string | null;
     pendingDeleteItemId: string | null;
+    setOpenPickerItemId: (id: string | null) => void;
     shouldShowEmptyLibraryPeek: boolean;
     shouldShowNoFilteredResults: boolean;
 }
@@ -2350,6 +2367,7 @@ function BrowserCardProvider({ children }: React.PropsWithChildren) {
     const {
         collections,
         favoriteItemIdSet,
+        hoveredItemIdRef,
         onCopyLink,
         onDelete,
         onFindSimilar,
@@ -2357,7 +2375,9 @@ function BrowserCardProvider({ children }: React.PropsWithChildren) {
         onOpenInNewTab,
         onOpenNote,
         onUpdateItemCollections,
+        openPickerItemId,
         pendingDeleteItemId,
+        setOpenPickerItemId,
     } = useBrowserResultsContext();
 
     return (
@@ -2365,6 +2385,7 @@ function BrowserCardProvider({ children }: React.PropsWithChildren) {
             value={{
                 collections,
                 favoriteItemIdSet,
+                hoveredItemIdRef,
                 onCopyLink,
                 onDelete,
                 onFindSimilar,
@@ -2372,7 +2393,9 @@ function BrowserCardProvider({ children }: React.PropsWithChildren) {
                 onOpenInNewTab,
                 onOpenNote,
                 onUpdateItemCollections,
+                openPickerItemId,
                 pendingDeleteItemId,
+                setOpenPickerItemId,
             }}
         >
             {children}
@@ -2491,7 +2514,7 @@ function buildSearchPaletteGroups({
             description: draftAlreadyIncluded
                 ? "Already included in the search"
                 : "Add this search term",
-            label: `Add search "${draft}"`,
+            label: `Search "${draft}"`,
             onSelect: () => {
                 setSearchTerms((current) =>
                     appendUniqueSearchTerm(current, draft)
@@ -2500,7 +2523,7 @@ function buildSearchPaletteGroups({
                 setIsCommandOpen(true);
             },
             shortcut: shouldDefaultToAskCache ? undefined : "Enter",
-            value: `add search ${draft}`,
+            value: `search ${draft}`,
         };
         const askCacheItem: CommandPaletteItem = {
             description: "AI Search",
@@ -3604,6 +3627,7 @@ type LibraryGridCardContextValue = Pick<
     BrowserResultsContextValue,
     | "collections"
     | "favoriteItemIdSet"
+    | "hoveredItemIdRef"
     | "onCopyLink"
     | "onDelete"
     | "onFindSimilar"
@@ -3611,7 +3635,9 @@ type LibraryGridCardContextValue = Pick<
     | "onOpenInNewTab"
     | "onOpenNote"
     | "onUpdateItemCollections"
+    | "openPickerItemId"
     | "pendingDeleteItemId"
+    | "setOpenPickerItemId"
 >;
 
 interface CollectionComboboxPickerProps
@@ -3803,7 +3829,7 @@ function CollectionComboboxPicker({
             >
                 {children ??
                     (selectedCount > 0 ? (
-                        <Diamond
+                        <SquircleDashed
                             aria-hidden
                             aria-label="Collections"
                             className="size-4.5"
@@ -4148,11 +4174,15 @@ function CardMenu({
 }
 
 function MediaCard({ item }: LibraryGridCardProps) {
-    const { onOpenInNewTab, onOpenNote } = useLibraryGridCardContext();
+    const {
+        hoveredItemIdRef,
+        onOpenInNewTab,
+        onOpenNote,
+        openPickerItemId,
+        setOpenPickerItemId,
+    } = useLibraryGridCardContext();
     const isNote = item.kind === ITEM_KIND_NOTE;
     const [isDownloading, startDownloadTransition] = React.useTransition();
-    const [isCollectionPickerOpen, setIsCollectionPickerOpen] =
-        React.useState(false);
     const [isCardMenuOpen, setIsCardMenuOpen] = React.useState(false);
     const [isContextMenuOpen, setIsContextMenuOpen] = React.useState(false);
     const [isZoomed, setIsZoomed] = React.useState(false);
@@ -4166,7 +4196,9 @@ function MediaCard({ item }: LibraryGridCardProps) {
     const { markVisited, isLastVisited } = useLastVisited();
 
     const handleZoomChange = (nextZoomed: boolean) => {
-        setIsZoomed(nextZoomed);
+        if (!nextZoomed) {
+            setIsZoomed(false);
+        }
     };
 
     const handleZoomIn = () => {
@@ -4181,6 +4213,12 @@ function MediaCard({ item }: LibraryGridCardProps) {
             markVisited(item.id);
         }
     };
+
+    const isPickerOpen = openPickerItemId === item.id;
+
+    const handlePickerOpenChange = useStableCallback((nextOpen: boolean) => {
+        setOpenPickerItemId(nextOpen ? item.id : null);
+    });
 
     const handlePrimaryClick = (event: React.MouseEvent<HTMLElement>) => {
         event.preventDefault();
@@ -4200,27 +4238,17 @@ function MediaCard({ item }: LibraryGridCardProps) {
         });
     };
 
-    const handleCardKeyDown = (event: React.KeyboardEvent<HTMLElement>) => {
-        if (
-            event.defaultPrevented ||
-            event.nativeEvent.isComposing ||
-            event.metaKey ||
-            event.ctrlKey ||
-            event.altKey ||
-            isCollectionPickerOpen ||
-            isTextEntryTarget(event.target) ||
-            event.key.toLowerCase() !== "s"
-        ) {
-            return;
-        }
-        event.preventDefault();
-        setIsCollectionPickerOpen(true);
-    };
-
     return (
         <ContextMenu onOpenChange={setIsContextMenuOpen}>
             <ContextMenuTrigger
-                onKeyDown={handleCardKeyDown}
+                onMouseEnter={() => {
+                    hoveredItemIdRef.current = item.id;
+                }}
+                onMouseLeave={() => {
+                    if (hoveredItemIdRef.current === item.id) {
+                        hoveredItemIdRef.current = null;
+                    }
+                }}
                 render={
                     // biome-ignore lint/a11y/useSemanticElements: Group role
                     <div
@@ -4284,6 +4312,11 @@ function MediaCard({ item }: LibraryGridCardProps) {
                     )}
                 </div>
                 <div className="flex items-center py-1.5 pr-1">
+                    <CardCollectionPicker
+                        item={item}
+                        onOpenChange={handlePickerOpenChange}
+                        open={isPickerOpen}
+                    />
                     <Menu
                         onOpenChange={setIsCardMenuOpen}
                         open={isCardMenuOpen}
@@ -4316,11 +4349,6 @@ function MediaCard({ item }: LibraryGridCardProps) {
                             />
                         </MenuPopup>
                     </Menu>
-                    <CardCollectionPicker
-                        item={item}
-                        onOpenChange={setIsCollectionPickerOpen}
-                        open={isCollectionPickerOpen}
-                    />
                 </div>
             </ContextMenuTrigger>
             <ContextMenuPopup>
@@ -4858,6 +4886,12 @@ export function BrowserRoot({
     const [activeNote, setActiveNote] = React.useState<
         LibraryItemWithCollections | typeof NOTE_DRAWER_NEW | null
     >(null);
+
+    const [openPickerItemId, setOpenPickerItemId] = React.useState<
+        string | null
+    >(null);
+    const hoveredItemIdRef = React.useRef<string | null>(null);
+
     const [isCreateResultsDialogOpen, setIsCreateResultsDialogOpen] =
         React.useState(false);
     const [createResultsNameDraft, setCreateResultsNameDraft] =
@@ -5382,11 +5416,19 @@ export function BrowserRoot({
             }
         }
 
+        if (event.key.toLowerCase() === "s") {
+            const id = hoveredItemIdRef.current;
+            if (id) {
+                event.preventDefault();
+                setOpenPickerItemId(id);
+            }
+            return;
+        }
+
         if (
             event.defaultPrevented ||
             isTextEntry ||
             isPaletteEventTarget ||
-            event.key.toLowerCase() === "s" ||
             !isPrintablePaletteKey(event)
         ) {
             return;
@@ -5883,6 +5925,7 @@ export function BrowserRoot({
                 columnCount={resolvedColumnCount}
                 enableSectionCollapse={enableSectionCollapse}
                 favoriteItemIdSet={favoriteItemIdSet}
+                hoveredItemIdRef={hoveredItemIdRef}
                 onCollapseAllSections={collapseAllSections}
                 onCopyLink={handleCopyLink}
                 onCreateCollectionFromResults={() =>
@@ -5897,7 +5940,9 @@ export function BrowserRoot({
                 onOpenNote={handleOpenNote}
                 onToggleSection={toggleSection}
                 onUpdateItemCollections={onUpdateItemCollections}
+                openPickerItemId={openPickerItemId}
                 pendingDeleteItemId={pendingDeleteItem?.id ?? null}
+                setOpenPickerItemId={setOpenPickerItemId}
                 shouldShowEmptyLibraryPeek={shouldShowEmptyLibraryPeek}
                 shouldShowNoFilteredResults={shouldShowNoFilteredResults}
             >

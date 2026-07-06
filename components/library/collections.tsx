@@ -1803,7 +1803,7 @@ function CollectionsListGroupTrigger({
             >
                 <span className="min-w-0 text-xs">
                     {children}&nbsp;
-                    <span className="opacity-80">{count}</span>
+                    <span className="mx-0.5 opacity-80">{count}</span>
                 </span>
                 <ChevronDownFilledIcon
                     aria-hidden
@@ -3371,20 +3371,24 @@ function CollectionsCreateDialog() {
                         <Alert>
                             <Lightbulb aria-hidden focusable="false" />
                             <AlertDescription>
-                                Collections keep your best saves and content in
-                                one place. Use them for ongoing goals, or just
-                                to keep things tidy. Smart Collections can
-                                auto-assign matching entries to it.{" "}
-                                {disabled ? (
-                                    <Button
-                                        className="inline-flex h-fit! w-fit px-0 leading-tight sm:text-[11px]"
-                                        render={<Link href="/automations" />}
-                                        size="xs"
-                                        variant="link"
-                                    >
-                                        Learn more
-                                    </Button>
-                                ) : null}
+                                <p>
+                                    Collections keep your best saves and content
+                                    in one place. Use them for ongoing goals, or
+                                    just to keep things tidy. Smart Collections
+                                    can auto-assign matching entries to it.{" "}
+                                    {disabled ? (
+                                        <Button
+                                            className="inline-flex h-fit! w-fit px-0 leading-tight sm:text-[11px]"
+                                            render={
+                                                <Link href="/automations" />
+                                            }
+                                            size="xs"
+                                            variant="link"
+                                        >
+                                            Learn more
+                                        </Button>
+                                    ) : null}
+                                </p>
                             </AlertDescription>
                         </Alert>
                     </DialogPanel>
@@ -3442,7 +3446,6 @@ function CollectionsCreateDialog() {
                                         focusable="false"
                                     />
                                     <p className="text-[11px] text-muted-foreground leading-tight">
-                                        Cache's{" "}
                                         <strong className="font-medium">
                                             Smart Collections&nbsp;
                                             <Sparkle

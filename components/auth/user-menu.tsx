@@ -102,7 +102,7 @@ export function UserMenuTrigger(
     props: React.ComponentProps<typeof MenuTrigger>
 ) {
     return (
-        <MenuTrigger {...props}>
+        <MenuTrigger {...props} openOnHover>
             <WithUserSessionOnly loadingRender={<UserMenuTriggerSkeleton />}>
                 {(user) => (
                     <span className="flex min-w-0 items-center gap-2">
