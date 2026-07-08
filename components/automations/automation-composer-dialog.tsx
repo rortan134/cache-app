@@ -469,7 +469,7 @@ export function AutomationComposerDialog({
                         </Alert>
                     </DialogPanel>
                     <DialogFooter>
-                        <Button loading={isPending} size="sm" type="submit">
+                        <Button isLoading={isPending} size="sm" type="submit">
                             {submitLabel}
                         </Button>
                     </DialogFooter>
@@ -546,7 +546,7 @@ function AutomationCollectionCombobox({
                         {(collectionOption: AutomationCollectionOption) => (
                             <ComboboxItem
                                 key={collectionOption.id}
-                                showIndicatorLast
+                                shouldShowIndicatorLast
                                 value={collectionOption}
                             >
                                 {collectionOption.name}
@@ -625,7 +625,7 @@ function AutomationCadenceCombobox({
                         {(cadenceOption: CadenceOption) => (
                             <ComboboxItem
                                 key={cadenceOption.value}
-                                showIndicatorLast
+                                shouldShowIndicatorLast
                                 value={cadenceOption}
                             >
                                 <CalendarDays
@@ -757,7 +757,7 @@ function AutomationTimeCombobox({
                             <ComboboxItem
                                 className="tabular-nums"
                                 key={timeOption.value}
-                                showIndicatorLast
+                                shouldShowIndicatorLast
                                 value={timeOption}
                             >
                                 {timeOption.label}
@@ -836,7 +836,7 @@ function AutomationWeekDayCombobox({
                         {(weekDayOption: WeekDayOption) => (
                             <ComboboxItem
                                 key={weekDayOption.value}
-                                showIndicatorLast
+                                shouldShowIndicatorLast
                                 value={weekDayOption}
                             >
                                 {weekDayOption.label}
@@ -914,7 +914,7 @@ function AutomationMonthDayCombobox({
                         {(monthDayOption: MonthDayOption) => (
                             <ComboboxItem
                                 key={monthDayOption.value}
-                                showIndicatorLast
+                                shouldShowIndicatorLast
                                 value={monthDayOption}
                             >
                                 {monthDayOption.label}

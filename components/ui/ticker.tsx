@@ -1,17 +1,11 @@
 "use client";
 
 import { cn } from "@/lib/common/cn";
-import { useIsoLayoutEffect } from "@base-ui/utils/useIsoLayoutEffect";
 import * as React from "react";
 
 const DEFAULT_DURATION_SECONDS = 5;
 const MAX_SPEED_PX_PER_SECOND = 92;
 const MARQUEE_REPEAT_COUNT = 2;
-
-interface TickerMeasurements {
-    childPx: number;
-    trackPx: number;
-}
 
 interface TickerTrackStyle extends React.CSSProperties {
     "--animation-distance": string;
@@ -22,47 +16,41 @@ interface TickerProps extends React.ComponentProps<"span"> {
     direction?: "left" | "right";
 }
 
-const INITIAL_MEASUREMENTS: TickerMeasurements = { childPx: 0, trackPx: 0 };
-
 export function Ticker({
     direction = "left",
     className,
     children,
     ...props
 }: TickerProps) {
-    const trackRef = React.useRef<HTMLSpanElement | null>(null);
-    const childRef = React.useRef<HTMLSpanElement | null>(null);
-    const [measurements, setMeasurements] =
-        React.useState<TickerMeasurements>(INITIAL_MEASUREMENTS);
+    const [overflowWidthPx, setOverflowWidthPx] = React.useState(0);
 
-    useIsoLayoutEffect(() => {
-        const track = trackRef.current;
-        if (!track) {
+    const trackRef = (el: HTMLSpanElement | null) => {
+        if (!el) {
             return;
         }
-        const trackPx = track.offsetWidth;
-        const childPx = childRef.current?.offsetWidth ?? 0;
-        setMeasurements((current) =>
-            current.trackPx === trackPx && current.childPx === childPx
-                ? current
-                : { childPx, trackPx }
+        const trackWidth = el.offsetWidth;
+        const innerEl = el.firstElementChild;
+        const contentWidth =
+            innerEl instanceof HTMLElement ? innerEl.offsetWidth : 0;
+        setOverflowWidthPx(
+            contentWidth > 0 && contentWidth > trackWidth ? contentWidth : 0
         );
-    }, [children]);
+    };
 
-    const isOverflowing =
-        measurements.childPx > 0 && measurements.childPx > measurements.trackPx;
-
-    const renderedRepeatCount = isOverflowing ? MARQUEE_REPEAT_COUNT : 1;
+    const isOverflowing = overflowWidthPx > 0;
 
     const trackStyle: TickerTrackStyle = {
         "--animation-distance": `${-100 / MARQUEE_REPEAT_COUNT}%`,
-        "--duration": `${getTickerDurationSeconds(measurements.childPx)}s`,
+        "--duration": `${getTickerDurationSeconds(overflowWidthPx)}s`,
     };
 
     return (
         <span
             {...props}
-            className={cn("group block w-full min-w-0", className)}
+            className={cn(
+                "group inline-flex w-full min-w-0 overflow-clip",
+                className
+            )}
             ref={trackRef}
         >
             <span
@@ -74,15 +62,14 @@ export function Ticker({
                 )}
                 style={trackStyle}
             >
-                {Array.from({ length: renderedRepeatCount }, (_, index) => (
-                    <span
-                        className={cn("shrink-0 p-px", isOverflowing && "pr-4")}
-                        key={index}
-                        ref={index === 0 ? childRef : undefined}
-                    >
-                        {children}
-                    </span>
-                ))}
+                {Array.from(
+                    { length: isOverflowing ? MARQUEE_REPEAT_COUNT : 1 },
+                    (_, index) => (
+                        <span className="shrink-0 p-px pr-4" key={index}>
+                            {children}
+                        </span>
+                    )
+                )}
             </span>
         </span>
     );

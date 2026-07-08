@@ -206,7 +206,7 @@ export function RecentlyDeletedList({
                                     <T>Cancel</T>
                                 </DialogClose>
                                 <Button
-                                    loading={isPending}
+                                    isLoading={isPending}
                                     onClick={handleConfirmAction}
                                     variant={
                                         pendingAction.kind === "purge"

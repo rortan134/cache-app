@@ -48,7 +48,7 @@ const buttonVariants = cva(
 );
 
 export interface ButtonProps extends useRender.ComponentProps<"button"> {
-    loading?: boolean;
+    isLoading?: boolean;
     size?: VariantProps<typeof buttonVariants>["size"];
     variant?: VariantProps<typeof buttonVariants>["variant"];
 }
@@ -59,20 +59,20 @@ export function Button({
     size,
     render,
     children,
-    loading = false,
+    isLoading = false,
     disabled: disabledProp,
     ...props
 }: ButtonProps) {
-    const isDisabled: boolean = Boolean(loading || disabledProp);
+    const isDisabled: boolean = Boolean(isLoading || disabledProp);
     const typeValue: React.ButtonHTMLAttributes<HTMLButtonElement>["type"] =
         render ? undefined : "button";
 
     const defaultProps = {
-        "aria-disabled": loading || undefined,
+        "aria-disabled": isLoading || undefined,
         children: (
             <>
                 {children}
-                {loading && (
+                {isLoading && (
                     <Spinner
                         className="pointer-events-none absolute"
                         data-slot="button-loading-indicator"
@@ -81,7 +81,7 @@ export function Button({
             </>
         ),
         className: cn(buttonVariants({ className, size, variant })),
-        "data-loading": loading ? "" : undefined,
+        "data-loading": isLoading ? "" : undefined,
         "data-slot": "button",
         disabled: isDisabled,
         type: typeValue,

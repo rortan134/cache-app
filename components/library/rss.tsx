@@ -165,7 +165,7 @@ function FeedRow({
                 ) : null}
             </div>
             <Button
-                loading={isRemoving}
+                isLoading={isRemoving}
                 onClick={onRemove}
                 size="icon"
                 variant="ghost"
@@ -216,7 +216,7 @@ function AddFeedForm({ onFeedAdded }: { onFeedAdded: () => void }) {
                     type="url"
                     value={url}
                 />
-                <Button loading={isPending} size="sm" type="submit">
+                <Button isLoading={isPending} size="sm" type="submit">
                     Add
                 </Button>
             </div>

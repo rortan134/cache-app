@@ -2333,7 +2333,7 @@ function CollectionsListSortingCombobox({
                                     {(option: ComboboxValue) => (
                                         <ComboboxItem
                                             key={getComboboxOptionValue(option)}
-                                            showIndicatorLast
+                                            shouldShowIndicatorLast
                                             value={option}
                                         >
                                             <CollectionsComboboxOptionRow
@@ -2682,7 +2682,7 @@ function CollectionItemPriorityCombobox() {
                         {(priorityOption: PriorityOption) => (
                             <ComboboxItem
                                 key={priorityOption.value}
-                                showIndicatorLast
+                                shouldShowIndicatorLast
                                 value={priorityOption.value}
                             >
                                 <CollectionsComboboxOptionRow
@@ -3163,7 +3163,7 @@ function CollectionsRenameDialog() {
                         >
                             Cancel
                         </DialogClose>
-                        <Button loading={isPending} size="sm" type="submit">
+                        <Button isLoading={isPending} size="sm" type="submit">
                             Save
                         </Button>
                     </DialogFooter>
@@ -3474,7 +3474,7 @@ function CollectionsCreateDialog() {
                         </Combobox>
                         <Button
                             disabled={!isNameValid}
-                            loading={isPending}
+                            isLoading={isPending}
                             size="sm"
                             type="submit"
                         >
@@ -3547,7 +3547,7 @@ function CollectionsDeleteDialog() {
                             Cancel
                         </DialogClose>
                         <Button
-                            loading={isPending}
+                            isLoading={isPending}
                             size="sm"
                             type="submit"
                             variant="destructive"

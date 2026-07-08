@@ -38,7 +38,7 @@ import type {
     ServerRequest,
 } from "@modelcontextprotocol/sdk/types.js";
 import { createMcpHandler, withMcpAuth } from "mcp-handler";
-import { z } from "zod/v4";
+import * as z from "zod";
 
 const log = createLogger("mcp.route");
 
@@ -316,7 +316,7 @@ async function handleDeleteLibraryItem(
         return {
             content: [
                 {
-                    text: "Library item moved to Recently deleted.",
+                    text: "Library item deleted.",
                     type: "text",
                 },
             ],
@@ -347,7 +347,7 @@ async function handleDeleteLibraryItem(
         }
         return handleToolError(
             "delete_library_item",
-            "Could not move the library item to Recently deleted.",
+            "Could not delete the library item.",
             userId,
             error
         );

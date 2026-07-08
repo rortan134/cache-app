@@ -21,10 +21,14 @@ export function DialogPopup({
     className,
     children,
     shouldShowCloseButton = true,
+    portalProps,
     ...props
-}: DialogPrimitive.Popup.Props & { shouldShowCloseButton?: boolean }) {
+}: DialogPrimitive.Popup.Props & {
+    shouldShowCloseButton?: boolean;
+    portalProps?: DialogPrimitive.Portal.Props;
+}) {
     return (
-        <DialogPrimitive.Portal>
+        <DialogPrimitive.Portal {...portalProps}>
             <DialogBackdrop />
             <DialogViewport>
                 <DialogPrimitive.Popup

@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/drawer";
 import { AltKbd, CmdKbd, Kbd, KbdGroup, ShiftKbd } from "@/components/ui/kbd";
 import { stopPropagationForPrintableKeys } from "@/lib/common/dom";
+import { useStableCallback } from "@base-ui/utils/useStableCallback";
 import * as React from "react";
 import { useHotkeys, useHotkeysContext } from "react-hotkeys-hook";
 
@@ -40,13 +41,13 @@ export function KeyboardShortcutsDialogTrigger(
     const [isOpen, setIsOpen] = React.useState(false);
     const { hotkeys } = useHotkeysContext();
 
-    useHotkeys(
-        "mod+/, ?",
-        () => {
-            setIsOpen(true);
-        },
-        { description: "Open keyboard shortcuts panel" }
-    );
+    const handleOpen = useStableCallback(() => {
+        setIsOpen(true);
+    });
+
+    useHotkeys("mod+/, ?", handleOpen, {
+        description: "Open keyboard shortcuts panel",
+    });
 
     const shortcutItems: ShortcutItem[] = hotkeys.map((shortcut) => ({
         description: shortcut.description ?? "",

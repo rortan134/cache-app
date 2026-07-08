@@ -144,7 +144,7 @@ export function SessionHint({ serverSession }: SessionHintProps) {
                 You are signed in as{" "}
                 {session.user.email ?? <Skeleton>Placeholder</Skeleton>}
                 <Button
-                    loading={isPending}
+                    isLoading={isPending}
                     render={
                         <Link href="/logout" prefetch={false}>
                             Log out

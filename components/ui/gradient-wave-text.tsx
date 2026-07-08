@@ -43,11 +43,11 @@ interface GradientWaveTextProps {
     className?: string;
     customColors?: string[];
     delay?: number;
-    inView?: boolean;
-    once?: boolean;
-    paused?: boolean;
-    radial?: boolean;
-    repeat?: boolean;
+    isPaused?: boolean;
+    isRadial?: boolean;
+    shouldPlayOnce?: boolean;
+    shouldRepeat?: boolean;
+    shouldRequireInView?: boolean;
     speed?: number;
 }
 
@@ -56,12 +56,12 @@ export function GradientWaveText({
     align = "left",
     className,
     speed = 1.6,
-    paused = false,
+    isPaused = false,
     delay = 0,
-    repeat = false,
-    inView = false,
-    once = true,
-    radial = true,
+    shouldRepeat = false,
+    shouldRequireInView = false,
+    shouldPlayOnce = true,
+    isRadial = true,
     bottomOffset = 20,
     bandGap = 5,
     bandCount = 8,
@@ -77,10 +77,10 @@ export function GradientWaveText({
     const hasPlayedRef = React.useRef(false);
     const animationFrame = useAnimationFrame();
 
-    const [isInView, setIsInView] = React.useState(!inView);
+    const [isInView, setIsInView] = React.useState(!shouldRequireInView);
 
     React.useEffect(() => {
-        if (!inView) {
+        if (!shouldRequireInView) {
             setIsInView(true);
             return;
         }
@@ -94,12 +94,12 @@ export function GradientWaveText({
             (entries) => {
                 for (const entry of entries) {
                     if (entry.isIntersecting) {
-                        if (once && hasPlayedRef.current) {
+                        if (shouldPlayOnce && hasPlayedRef.current) {
                             return;
                         }
                         setIsInView(true);
                         hasPlayedRef.current = true;
-                    } else if (!once) {
+                    } else if (!shouldPlayOnce) {
                         setIsInView(false);
                     }
                 }
@@ -109,7 +109,7 @@ export function GradientWaveText({
 
         observer.observe(node);
         return () => observer.disconnect();
-    }, [inView, once]);
+    }, [shouldRequireInView, shouldPlayOnce]);
 
     const stops = (() => {
         const resolvedColors = customColors?.length
@@ -128,7 +128,7 @@ export function GradientWaveText({
         return colorStops.join(", ");
     })();
 
-    const gradient = radial
+    const gradient = isRadial
         ? `radial-gradient(circle at left top, ${stops})`
         : `linear-gradient(to bottom right, ${stops})`;
 
@@ -156,7 +156,7 @@ export function GradientWaveText({
             return;
         }
 
-        const cycles = repeat ? 0 : 1;
+        const cycles = shouldRepeat ? 0 : 1;
         let last = now();
 
         const tick = () => {
@@ -178,7 +178,7 @@ export function GradientWaveText({
             const dt = Math.min(MAX_FRAME_DELTA_MS, now_ - last);
             last = now_;
 
-            if (!paused) {
+            if (!isPaused) {
                 const increment = (dt * speed) / FRAME_DURATION_MS;
                 let next = tRef.current + increment;
 
@@ -216,7 +216,7 @@ export function GradientWaveText({
 
         animationFrame.request(tick);
         return animationFrame.cancel;
-    }, [animationFrame, speed, paused, repeat, isInView]);
+    }, [animationFrame, speed, isPaused, shouldRepeat, isInView]);
 
     const spanStyle: React.CSSProperties = {
         backfaceVisibility: "hidden",

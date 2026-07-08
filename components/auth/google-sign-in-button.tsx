@@ -52,7 +52,7 @@ export function GoogleSignInButton({
                     "border border-[#747775] bg-white text-[#1f1f1f] shadow-xs hover:bg-[#f8f9fa] dark:border-input dark:bg-popover dark:text-foreground dark:hover:bg-accent/50",
                     className
                 )}
-                loading={isPending}
+                isLoading={isPending}
                 onClick={handleSignIn}
                 size={size}
             >

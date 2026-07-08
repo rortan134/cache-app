@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/context-menu";
 import { cn } from "@/lib/common/cn";
 import { saveFile } from "@/lib/common/file";
+import { useStableCallback } from "@base-ui/utils/useStableCallback";
 import { DownloadIcon } from "lucide-react";
 import type { StaticImageData } from "next/image";
 import Image from "next/image";
@@ -25,7 +26,7 @@ export function BrandLogo({ href, src, className, ...props }: BrandLogoProps) {
 
     React.useEffect(() => () => abortControllerRef.current?.abort(), []);
 
-    const handleSaveLogo = async () => {
+    const handleSaveLogo = useStableCallback(async () => {
         abortControllerRef.current?.abort();
         abortControllerRef.current = new AbortController();
         try {
@@ -52,7 +53,7 @@ export function BrandLogo({ href, src, className, ...props }: BrandLogoProps) {
             }
             console.error("Failed to save logo image", error);
         }
-    };
+    });
 
     const logoClassName = cn(
         "w-fit focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60",

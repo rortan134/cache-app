@@ -100,7 +100,7 @@ export function DeleteAccountDialogTrigger(
                         <T context="Cancel button">Cancel</T>
                     </DialogClose>
                     <Button
-                        loading={isPending}
+                        isLoading={isPending}
                         onClick={handleConfirm}
                         variant="destructive"
                     >

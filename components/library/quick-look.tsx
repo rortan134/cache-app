@@ -104,6 +104,44 @@ interface QuickLookDrawerStore {
     triggerId: string | null;
 }
 
+interface QuickLookDrawerActions {
+    openWithEntry: (entry: QuickLookDrawerEntry, triggerId: string) => void;
+    selectQueueIndex: (index: number) => void;
+}
+
+// stan-js@1.9's `CustomActions` constraint is `Record<string, (...args: never[]) => void>`,
+// which is too narrow to accept parameterised functions. Intersecting with that shape
+// satisfies the constraint without weakening our typed signatures. Soundness leans on
+// `noUncheckedIndexedAccess` (tsconfig.json): the index signature resolves to `... | undefined`,
+// so unknown action keys are rejected at call sites. Do not disable that flag.
+type QuickLookDrawerStanActions = QuickLookDrawerActions &
+    Record<string, (...args: never[]) => void>;
+
+function clampQuickLookActiveIndex(index: number, itemsLength: number): number {
+    if (itemsLength === 0) {
+        return 0;
+    }
+    return Math.min(Math.max(index, 0), itemsLength - 1);
+}
+
+function addQuickLookQueueEntry(
+    { items }: QuickLookDrawerQueueState,
+    entry: QuickLookDrawerEntry
+): QuickLookDrawerQueueState {
+    const idx = items.findIndex((item) => item.url === entry.url);
+    if (idx >= 0) {
+        return {
+            activeIndex: idx,
+            items: items.map((item, i) => (i === idx ? entry : item)),
+        };
+    }
+    const nextItems = [...items, entry].slice(-QUICK_LOOK_DRAWER_QUEUE_LIMIT);
+    return {
+        activeIndex: nextItems.length - 1,
+        items: nextItems,
+    };
+}
+
 const QuickLookDrawerContext =
     React.createContext<QuickLookDrawerContextValue | null>(null);
 
@@ -111,21 +149,48 @@ const QUICK_LOOK_DRAWER_HANDLE = DrawerCreateHandle<QuickLookDrawerEntry>();
 
 const {
     actions: quickLookDrawerStoreActions,
-    batchUpdates: batchQuickLookDrawerStoreUpdates,
-    getState: getQuickLookDrawerState,
     useStore: useQuickLookDrawerStore,
-} = createStore<QuickLookDrawerStore>({
-    activeIndex: storage(0, {
-        storageKey: QUICK_LOOK_DRAWER_ACTIVE_INDEX_STORAGE_KEY,
-    }),
-    isOpen: storage(false, {
-        storageKey: QUICK_LOOK_DRAWER_OPEN_STORAGE_KEY,
-    }),
-    items: storage<QuickLookDrawerEntry[]>([], {
-        storageKey: QUICK_LOOK_DRAWER_ITEMS_STORAGE_KEY,
-    }),
-    triggerId: null,
-});
+} = createStore<QuickLookDrawerStore, QuickLookDrawerStanActions>(
+    {
+        activeIndex: storage(0, {
+            storageKey: QUICK_LOOK_DRAWER_ACTIVE_INDEX_STORAGE_KEY,
+        }),
+        isOpen: storage(false, {
+            storageKey: QUICK_LOOK_DRAWER_OPEN_STORAGE_KEY,
+        }),
+        items: storage<QuickLookDrawerEntry[]>([], {
+            storageKey: QUICK_LOOK_DRAWER_ITEMS_STORAGE_KEY,
+        }),
+        triggerId: null,
+    },
+    ({ actions, getState }) => ({
+        openWithEntry(entry: QuickLookDrawerEntry, triggerId: string) {
+            const { isOpen, items, activeIndex } = getState();
+            const queue = isOpen
+                ? addQuickLookQueueEntry({ activeIndex, items }, entry)
+                : { activeIndex: 0, items: [entry] };
+
+            // stan-js wraps custom actions in `batchUpdates`, so these four writes
+            // flush as a single update. Do not wrap them in another batch — nesting
+            // `batchUpdates` flushes listeners inside the outer batch and re-flushes
+            // them on the outer `finally`, notifying subscribers twice.
+            actions.setItems(queue.items);
+            actions.setActiveIndex(
+                clampQuickLookActiveIndex(queue.activeIndex, queue.items.length)
+            );
+            actions.setTriggerId(triggerId);
+            actions.setIsOpen(true);
+            QUICK_LOOK_DRAWER_HANDLE.open(triggerId);
+        },
+        selectQueueIndex(index: number) {
+            const { items } = getState();
+            if (index < 0 || index >= items.length) {
+                return;
+            }
+            actions.setActiveIndex(index);
+        },
+    })
+);
 
 export function QuickLookDrawer({
     description,
@@ -175,59 +240,58 @@ export function QuickLookDrawerSurface() {
         activeIndex,
         isOpen,
         items,
-        setActiveIndex,
+        selectQueueIndex,
         setIsOpen,
         setTriggerId,
         triggerId,
     } = useQuickLookDrawerStore();
 
-    const safeActiveIndex =
-        items.length === 0
-            ? 0
-            : Math.min(Math.max(activeIndex, 0), items.length - 1);
+    // `activeIndex` is persisted alongside `items`, but a cross-tab `storage` event
+    // can deliver one key before the other (stan-js writes each key separately), and
+    // per-key storage corruption can leave the persisted pair inconsistent. Clamp on
+    // read so the surface never indexes out of bounds; the source stays clamped on
+    // write via `openWithEntry`/`selectQueueIndex`, so no write-back effect is needed.
+    const safeActiveIndex = clampQuickLookActiveIndex(
+        activeIndex,
+        items.length
+    );
     const activeEntry = items[safeActiveIndex] ?? null;
 
     const handleOpenChange = useStableCallback((nextIsOpen: boolean) => {
         setIsOpen(nextIsOpen);
         if (!nextIsOpen) {
             setTriggerId(null);
+            QUICK_LOOK_DRAWER_HANDLE.close();
         }
     });
 
+    // Cross-tab `storage` events can clear `items` while the drawer is open.
+    // The drawer closes visually via the `open` prop below, but the store's
+    // `isOpen` flag and handle state still need to be cleaned up to stay
+    // consistent for the next open call.
     React.useEffect(() => {
         if (isOpen && items.length === 0) {
             setIsOpen(false);
             setTriggerId(null);
             QUICK_LOOK_DRAWER_HANDLE.close();
         }
-        if (items.length > 0 && safeActiveIndex !== activeIndex) {
-            setActiveIndex(safeActiveIndex);
-        }
-    }, [
-        activeIndex,
-        isOpen,
-        items.length,
-        safeActiveIndex,
-        setActiveIndex,
-        setIsOpen,
-        setTriggerId,
-    ]);
+    }, [isOpen, items.length, setIsOpen, setTriggerId]);
 
     return (
         <Drawer
             handle={QUICK_LOOK_DRAWER_HANDLE}
             onOpenChange={handleOpenChange}
-            open={isOpen}
+            open={isOpen && items.length > 0}
             position="left"
             triggerId={triggerId}
         >
             <DrawerVirtualKeyboardProvider>
-                {activeEntry ? (
+                {activeEntry && isOpen ? (
                     <QuickLookDrawerContent
                         activeEntry={activeEntry}
                         activeIndex={safeActiveIndex}
                         items={items}
-                        onSelectQueueIndex={selectQuickLookQueueIndex}
+                        onSelectQueueIndex={selectQueueIndex}
                     />
                 ) : null}
             </DrawerVirtualKeyboardProvider>
@@ -249,46 +313,10 @@ export function openQuickLookDrawer(
     entry: QuickLookDrawerEntry,
     triggerId: string
 ) {
-    const { activeIndex, isOpen, items } = getQuickLookDrawerState();
-    const queue = isOpen
-        ? addQuickLookQueueEntry({ activeIndex, items }, entry)
-        : { activeIndex: 0, items: [entry] };
-
-    batchQuickLookDrawerStoreUpdates(() => {
-        quickLookDrawerStoreActions.setItems(queue.items);
-        quickLookDrawerStoreActions.setActiveIndex(queue.activeIndex);
-        quickLookDrawerStoreActions.setTriggerId(triggerId);
-        quickLookDrawerStoreActions.setIsOpen(true);
-    });
-    QUICK_LOOK_DRAWER_HANDLE.open(triggerId);
+    quickLookDrawerStoreActions.openWithEntry(entry, triggerId);
 }
 
-function addQuickLookQueueEntry(
-    { items }: QuickLookDrawerQueueState,
-    entry: QuickLookDrawerEntry
-): QuickLookDrawerQueueState {
-    const idx = items.findIndex((item) => item.url === entry.url);
-    if (idx >= 0) {
-        return {
-            activeIndex: idx,
-            items: items.map((item, i) => (i === idx ? entry : item)),
-        };
-    }
-    const nextItems = [...items, entry].slice(-QUICK_LOOK_DRAWER_QUEUE_LIMIT);
-    return {
-        activeIndex: nextItems.length - 1,
-        items: nextItems,
-    };
-}
-
-function selectQuickLookQueueIndex(index: number) {
-    const { items } = getQuickLookDrawerState();
-    if (index >= 0 && index < items.length) {
-        quickLookDrawerStoreActions.setActiveIndex(index);
-    }
-}
-
-function useQuickLookStatus(isOpen: boolean, url: string, timeoutMs: number) {
+function useQuickLookStatus(url: string, timeoutMs: number) {
     const [status, setStatus] =
         React.useState<QuickLookDrawerStatus>("loading");
     const [oembed, setOembed] = React.useState<QuickLookDrawerOembed | null>(
@@ -305,16 +333,15 @@ function useQuickLookStatus(isOpen: boolean, url: string, timeoutMs: number) {
     });
 
     React.useEffect(() => {
-        if (!isOpen || url === QUICK_LOOK_BLOCKED_URL) {
+        setOembed(null);
+        if (url === QUICK_LOOK_BLOCKED_URL) {
             blockedTimeout.clear();
-            setOembed(null);
-            setStatus(url === QUICK_LOOK_BLOCKED_URL ? "blocked" : "loading");
+            setStatus("blocked");
             return;
         }
 
         const controller = new AbortController();
         setStatus("loading");
-        setOembed(null);
         blockedTimeout.start(timeoutMs, markAsBlocked);
 
         resolveQuickLookOembed(url, controller.signal)
@@ -333,16 +360,20 @@ function useQuickLookStatus(isOpen: boolean, url: string, timeoutMs: number) {
                 }
             })
             .catch(() => {
-                if (!controller.signal.aborted) {
-                    setOembed(null);
+                if (controller.signal.aborted) {
+                    return;
                 }
+                // A genuine network failure (not an abort) should not leave the user
+                // staring at a spinner until the timeout fires; transition to blocked now.
+                blockedTimeout.clear();
+                markAsBlocked();
             });
 
         return () => {
             controller.abort();
             blockedTimeout.clear();
         };
-    }, [blockedTimeout, isOpen, markAsBlocked, timeoutMs, url]);
+    }, [blockedTimeout, markAsBlocked, timeoutMs, url]);
 
     return { markAsBlocked, markAsLoaded, oembed, status };
 }
@@ -482,7 +513,6 @@ function QuickLookDrawerContent({
 }) {
     const { description, title, url } = activeEntry;
     const { markAsBlocked, markAsLoaded, oembed, status } = useQuickLookStatus(
-        true,
         url,
         DEFAULT_QUICK_LOOK_TIMEOUT_MS
     );

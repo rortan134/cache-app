@@ -488,7 +488,7 @@ export function OnboardingMenu({
                                 Cancel
                             </DialogClose>
                             <Button
-                                loading={isSharePending}
+                                isLoading={isSharePending}
                                 onClick={handleConfirmShare}
                                 size="sm"
                             >

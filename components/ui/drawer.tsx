@@ -53,8 +53,6 @@ export function Drawer<Payload = unknown>({
     );
 }
 
-const DrawerPortal: typeof DrawerPrimitive.Portal = DrawerPrimitive.Portal;
-
 export function DrawerTrigger<Payload = unknown>(
     props: DrawerPrimitive.Trigger.Props<Payload>
 ) {
@@ -63,22 +61,6 @@ export function DrawerTrigger<Payload = unknown>(
 
 export function DrawerClose(props: DrawerPrimitive.Close.Props) {
     return <DrawerPrimitive.Close data-slot="drawer-close" {...props} />;
-}
-
-function DrawerBackdrop({
-    className,
-    ...props
-}: DrawerPrimitive.Backdrop.Props) {
-    return (
-        <DrawerPrimitive.Backdrop
-            className={cn(
-                "fixed inset-0 z-50 bg-linear-to-b from-black/15 to-black/10 opacity-[calc(1-var(--drawer-swipe-progress))] transition-opacity duration-250 ease-[cubic-bezier(0.32,0.72,0,1)] data-ending-style:opacity-0 data-starting-style:opacity-0 data-ending-style:duration-100 data-swiping:duration-0 supports-[-webkit-touch-callout:none]:absolute",
-                className
-            )}
-            data-slot="drawer-backdrop"
-            {...props}
-        />
-    );
 }
 
 export function DrawerViewport({
@@ -326,6 +308,24 @@ export function DrawerPanel({
     }
 
     return content;
+}
+
+const DrawerPortal: typeof DrawerPrimitive.Portal = DrawerPrimitive.Portal;
+
+function DrawerBackdrop({
+    className,
+    ...props
+}: DrawerPrimitive.Backdrop.Props) {
+    return (
+        <DrawerPrimitive.Backdrop
+            {...props}
+            className={cn(
+                "fixed inset-0 z-50 bg-linear-to-b from-black/15 to-black/10 opacity-[calc(1-var(--drawer-swipe-progress))] transition-opacity duration-250 ease-[cubic-bezier(0.32,0.72,0,1)] data-ending-style:opacity-0 data-starting-style:opacity-0 data-ending-style:duration-100 data-swiping:duration-0 supports-[-webkit-touch-callout:none]:absolute",
+                className
+            )}
+            data-slot="drawer-backdrop"
+        />
+    );
 }
 
 function wrapRender(

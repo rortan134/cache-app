@@ -5,6 +5,8 @@ import { Input, type InputSize } from "@/components/ui/input";
 import { Kbd } from "@/components/ui/kbd";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Autocomplete } from "@base-ui/react/autocomplete";
+import { mergeProps } from "@base-ui/react/merge-props";
+import { useRender } from "@base-ui/react/use-render";
 import type * as React from "react";
 
 export function Command({
@@ -112,7 +114,7 @@ export function CommandPopup({
             >
                 <span
                     className={cn(
-                        "relative flex max-h-full w-full min-w-(--anchor-width) max-w-(--available-width) origin-(--transform-origin) rounded-2xl border bg-popover not-dark:bg-clip-padding shadow-lg/5 transition-[scale,opacity] before:pointer-events-none before:absolute before:inset-0 before:rounded-[calc(var(--radius-lg)-1px)] before:shadow-[0_1px_--theme(--color-black/4%)] dark:before:shadow-[0_-1px_--theme(--color-white/6%)]",
+                        "relative flex max-h-full w-full min-w-(--anchor-width) max-w-(--available-width) origin-(--transform-origin) rounded-2xl border bg-popover not-dark:bg-clip-padding shadow-lg/5 transition-[scale,opacity] before:pointer-events-none before:absolute before:inset-0 before:rounded-[calc(var(--radius-2xl)-1px)] before:shadow-[0_1px_--theme(--color-black/4%)] data-ending-style:scale-98 data-starting-style:scale-98 data-ending-style:opacity-0 data-starting-style:opacity-0 dark:before:shadow-[0_-1px_--theme(--color-white/6%)]",
                         className
                     )}
                 >
@@ -245,15 +247,19 @@ export function CommandRow(props: Autocomplete.Row.Props) {
 
 export function CommandPanel({
     className,
+    render,
     ...props
-}: React.ComponentProps<"div">) {
-    return (
-        <div
-            {...props}
-            className={cn("min-h-0 w-full", className)}
-            data-slot="command-panel"
-        />
-    );
+}: useRender.ComponentProps<"div">) {
+    const defaultProps = {
+        className: cn("min-h-0 w-full", className),
+        "data-slot": "command-panel",
+    };
+
+    return useRender({
+        defaultTagName: "div",
+        props: mergeProps<"div">(defaultProps, props),
+        render,
+    });
 }
 
 export function CommandShortcut({
@@ -271,18 +277,22 @@ export function CommandShortcut({
 
 export function CommandFooter({
     className,
+    render,
     ...props
-}: React.ComponentProps<"div">) {
-    return (
-        <div
-            className={cn(
-                "flex items-center justify-end gap-3 rounded-b-[calc(var(--radius-2xl)-1px)] border-border/50 border-t bg-muted/80 px-4 py-2 text-foreground text-xs",
-                className
-            )}
-            data-slot="command-footer"
-            {...props}
-        />
-    );
+}: useRender.ComponentProps<"div">) {
+    const defaultProps = {
+        className: cn(
+            "flex items-center justify-end gap-3 rounded-b-[calc(var(--radius-2xl)-1px)] border-border/50 border-t bg-muted/80 px-4 py-2 text-foreground text-xs",
+            className
+        ),
+        "data-slot": "command-footer",
+    };
+
+    return useRender({
+        defaultTagName: "div",
+        props: mergeProps<"div">(defaultProps, props),
+        render,
+    });
 }
 
 export const useCommandFilter: typeof Autocomplete.useFilter =

@@ -1,12 +1,13 @@
 "use client";
 
-import { cn } from "@/lib/common/cn";
 import { Button } from "@/components/ui/button";
 import {
     PreviewCard,
     PreviewCardPopup,
     PreviewCardTrigger,
 } from "@/components/ui/preview-card";
+import { cn } from "@/lib/common/cn";
+import { useStableCallback } from "@base-ui/utils/useStableCallback";
 import type { FileUIPart, SourceDocumentUIPart } from "ai";
 import {
     FileTextIcon,
@@ -295,14 +296,14 @@ export function AttachmentRemove({
 }: AttachmentRemoveProps) {
     const { onRemove, variant } = useAttachmentContext();
 
+    const handleClick = useStableCallback((event: React.MouseEvent) => {
+        event.stopPropagation();
+        onRemove?.();
+    });
+
     if (!onRemove) {
         return null;
     }
-
-    const handleClick = (event: React.MouseEvent) => {
-        event.stopPropagation();
-        onRemove();
-    };
 
     return (
         <Button

@@ -1,3 +1,5 @@
+"use client";
+
 import { cn } from "@/lib/common/cn";
 import { motion } from "motion/react";
 import type * as React from "react";
@@ -6,17 +8,20 @@ const FADE_IN_DURATION = 0.5;
 const STAY_DURATION = 1.5;
 const FADE_OUT_DURATION = 0.3;
 
-const HighlightIn = ({
+export interface HighlightInProps
+    extends React.ComponentProps<typeof motion.span> {
+    delay?: number;
+    shouldFadeOut?: boolean;
+}
+
+export function HighlightIn({
     children,
     className,
     delay = 0,
-    fadeOut = true,
+    shouldFadeOut = true,
     ...props
-}: React.ComponentProps<typeof motion.span> & {
-    delay?: number;
-    fadeOut?: boolean;
-}) => {
-    const fadeOutDurationActual = fadeOut ? FADE_OUT_DURATION : 0;
+}: HighlightInProps) {
+    const fadeOutDurationActual = shouldFadeOut ? FADE_OUT_DURATION : 0;
     const totalDurationActual =
         FADE_IN_DURATION + STAY_DURATION + fadeOutDurationActual;
     const fadeInEndActual = FADE_IN_DURATION / totalDurationActual;
@@ -26,17 +31,17 @@ const HighlightIn = ({
     return (
         <motion.span
             {...props}
-            animate={{ opacity: fadeOut ? [0, 1, 1, 0] : [0, 1, 1] }}
+            animate={{ opacity: shouldFadeOut ? [0, 1, 1, 0] : [0, 1, 1] }}
             className={cn("pointer-events-none select-none", className)}
             inert
             initial={{ opacity: 0 }}
             transition={{
                 delay,
                 duration: totalDurationActual,
-                ease: fadeOut
+                ease: shouldFadeOut
                     ? ["easeInOut", "linear", "easeInOut"]
                     : ["easeInOut", "linear"],
-                times: fadeOut
+                times: shouldFadeOut
                     ? [0, fadeInEndActual, stayEndActual, 1]
                     : [0, fadeInEndActual, stayEndActual],
             }}
@@ -44,6 +49,4 @@ const HighlightIn = ({
             {children}
         </motion.span>
     );
-};
-
-export { HighlightIn };
+}

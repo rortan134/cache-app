@@ -22,6 +22,7 @@ export function MenuPopup({
     alignOffset,
     side = "bottom",
     anchor,
+    positionMethod,
     portalProps,
     ...props
 }: MenuPrimitive.Popup.Props & {
@@ -30,6 +31,7 @@ export function MenuPopup({
     alignOffset?: MenuPrimitive.Positioner.Props["alignOffset"];
     side?: MenuPrimitive.Positioner.Props["side"];
     anchor?: MenuPrimitive.Positioner.Props["anchor"];
+    positionMethod?: MenuPrimitive.Positioner.Props["positionMethod"];
     portalProps?: MenuPrimitive.Portal.Props;
 }) {
     return (
@@ -40,13 +42,14 @@ export function MenuPopup({
                 anchor={anchor}
                 className="z-50"
                 data-slot="menu-positioner"
+                positionMethod={positionMethod}
                 side={side}
                 sideOffset={sideOffset}
             >
                 <MenuPrimitive.Popup
                     {...props}
                     className={cn(
-                        "relative not-[class*='w-']:min-w-52 origin-(--transform-origin) overflow-hidden rounded-2xl border bg-popover not-dark:bg-clip-padding text-popover-foreground shadow-lg/8 outline-none transition-[scale,opacity] before:pointer-events-none before:absolute before:inset-0 before:rounded-[calc(var(--radius-2xl)-1px)] before:shadow-[0_1px_--theme(--color-black/4%)] data-starting-style:scale-98 data-starting-style:opacity-0 dark:before:shadow-[0_-1px_--theme(--color-white/6%)]",
+                        "relative not-[class*='w-']:min-w-52 origin-(--transform-origin) overflow-hidden rounded-2xl border bg-popover not-dark:bg-clip-padding text-popover-foreground shadow-lg/8 outline-none transition-[scale,opacity] before:pointer-events-none before:absolute before:inset-0 before:rounded-[calc(var(--radius-2xl)-1px)] before:shadow-[0_1px_--theme(--color-black/4%)] data-ending-style:scale-98 data-starting-style:scale-98 data-ending-style:opacity-0 data-starting-style:opacity-0 dark:before:shadow-[0_-1px_--theme(--color-white/6%)]",
                         className
                     )}
                     data-slot="menu-popup"
@@ -191,11 +194,17 @@ export function MenuSubPopup({
     sideOffset = 0,
     alignOffset,
     align = "start",
+    anchor,
+    positionMethod,
+    portalProps,
     ...props
 }: MenuPrimitive.Popup.Props & {
     align?: MenuPrimitive.Positioner.Props["align"];
     sideOffset?: MenuPrimitive.Positioner.Props["sideOffset"];
     alignOffset?: MenuPrimitive.Positioner.Props["alignOffset"];
+    anchor?: MenuPrimitive.Positioner.Props["anchor"];
+    positionMethod?: MenuPrimitive.Positioner.Props["positionMethod"];
+    portalProps?: MenuPrimitive.Portal.Props;
 }) {
     const defaultAlignOffset = align === "center" ? undefined : -5;
 
@@ -204,8 +213,11 @@ export function MenuSubPopup({
             {...props}
             align={align}
             alignOffset={alignOffset ?? defaultAlignOffset}
+            anchor={anchor}
             className={className}
-            data-slot="menu-sub-content"
+            data-slot="menu-sub-popup"
+            portalProps={portalProps}
+            positionMethod={positionMethod}
             side="inline-end"
             sideOffset={sideOffset}
         />

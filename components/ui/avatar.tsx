@@ -52,12 +52,12 @@ export function AvatarGroup({
 }: React.ComponentProps<"div">) {
     return (
         <div
+            {...props}
             className={cn(
                 "relative flex items-center justify-center -space-x-3",
                 className
             )}
             data-slot="avatar-group"
-            {...props}
         />
     );
 }

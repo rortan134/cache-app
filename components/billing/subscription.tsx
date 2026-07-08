@@ -235,7 +235,7 @@ function SubscriptionUpgradeButton({
         <>
             <Button
                 {...props}
-                loading={isPending}
+                isLoading={isPending}
                 onClick={execute}
                 variant={variant}
             />
@@ -264,7 +264,7 @@ function SubscriptionBillingPortalButton({
         <>
             <Button
                 {...props}
-                loading={isPending}
+                isLoading={isPending}
                 onClick={execute}
                 variant={variant}
             />

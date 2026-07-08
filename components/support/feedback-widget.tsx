@@ -141,7 +141,7 @@ function SubmitButton({ ref }: { ref?: React.Ref<HTMLButtonElement> }) {
     return (
         <Button
             className="rounded-full"
-            loading={pending}
+            isLoading={pending}
             ref={ref}
             size="sm"
             type="submit"

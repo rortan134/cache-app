@@ -749,7 +749,7 @@ function IntegrationsListItemActionButton({
     return (
         <Button
             className="rounded-full text-xs!"
-            loading={action.isLoading}
+            isLoading={action.isLoading}
             onClick={handleClick}
             size="sm"
             variant="ghost"

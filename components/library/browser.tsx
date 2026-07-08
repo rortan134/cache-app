@@ -3462,8 +3462,7 @@ function useLibraryItemActions(args: {
                 result = await deleteLibraryItem(targetItem.id);
             } catch {
                 result = {
-                    message:
-                        "We couldn't move this saved item to Recently deleted right now.",
+                    message: "We couldn't delete this saved item right now.",
                     status: "ERROR",
                 };
             }
@@ -4266,11 +4265,7 @@ function CardMenu({
             )}
             <ItemSeparator />
             <Item disabled={isDeletePending} onClick={() => onDelete?.(item)}>
-                {isDeletePending ? (
-                    <T>Moving to Recently deleted…</T>
-                ) : (
-                    <T>Move to Recently deleted</T>
-                )}
+                {isDeletePending ? <T>Deleting…</T> : <T>Delete</T>}
                 <Kbd className="ml-auto">
                     <CmdKbd />⌫
                 </Kbd>
@@ -4798,7 +4793,7 @@ function BrowserDialogs(props: BrowserDialogsProps) {
                 <DialogPopup>
                     <DialogHeader>
                         <DialogTitle>
-                            <T>Move to Recently deleted?</T>
+                            <T>Delete?</T>
                         </DialogTitle>
                         <DialogDescription>
                             <T>
@@ -4808,10 +4803,10 @@ function BrowserDialogs(props: BrowserDialogsProps) {
                                         pendingDeleteItem?.url ||
                                         "This saved item"}
                                 </Var>{" "}
-                                will move to Recently deleted. You have 30 days
-                                to restore it before it's deleted forever. This
-                                only removes it from your library, not from the
-                                original platform.
+                                will be moved to Recently deleted. You have 30
+                                days to restore it before it's permanently
+                                deleted. This only removes it from your library,
+                                not from the original platform.
                             </T>
                         </DialogDescription>
                     </DialogHeader>
@@ -4823,11 +4818,11 @@ function BrowserDialogs(props: BrowserDialogsProps) {
                             <T>Cancel</T>
                         </DialogClose>
                         <Button
-                            loading={isDeletePending}
+                            isLoading={isDeletePending}
                             onClick={onConfirmDelete}
                             variant="destructive"
                         >
-                            <T>Move to Recently deleted</T>
+                            <T>Delete</T>
                         </Button>
                     </DialogFooter>
                 </DialogPopup>
@@ -4948,7 +4943,7 @@ function BrowserDialogs(props: BrowserDialogsProps) {
                                 Cancel
                             </DialogClose>
                             <Button
-                                loading={isCreatingResultsCollection}
+                                isLoading={isCreatingResultsCollection}
                                 size="sm"
                                 type="submit"
                             >

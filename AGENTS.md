@@ -210,6 +210,8 @@ When to include specific details:
 
 ## On this project
 
+This is a shared codebase. Multiple agents may be working concurrently. Never revert, restore, or overwrite files you did not personally modify — `git status` showing files you never touched is a signal that someone else is working, not that your tooling misbehaved. Scope every `git restore`, `git checkout`, `git stash`, and destructive file operation strictly to the files you changed. When in doubt, leave it alone.
+
 Before adding a new utility, check if a similar one exists in the `lib/common` directory or nearby module scope as utils.
 
 Anchor design decisions on the user's primary task or focus, to make sure the user can complete those tasks easily, not overwhelmed by unrelated UI clutter or user flows. Our UI should help users complete their tasks, not hinder them.

@@ -1,7 +1,7 @@
 "use client";
 
-import * as React from "react";
 import { canUseDOM, getOwnerDocument, getOwnerWindow } from "@/lib/common/dom";
+import * as React from "react";
 
 const UNICORN_PROJECT_ID = "XbMh8JZ8sBt8du5zfTgn";
 const UNICORN_SCRIPT_ID = "unicorn-studio-sdk";
