@@ -2034,14 +2034,10 @@ function CollectionsListToolbarButton({
     );
 }
 
-/**
- * Renders inside a dashed-border card so it looks intentional rather than
- * like missing data.
- */
 function CollectionsListEmpty({
     className,
     ...props
-}: React.ComponentProps<"p">) {
+}: React.ComponentProps<"div">) {
     const { collectionCount, collectionSummaries, requestCreate } =
         useCollectionsState();
 
@@ -2051,7 +2047,7 @@ function CollectionsListEmpty({
 
     return (
         <div className="flex flex-col items-center justify-center gap-4 rounded-2xl border border-border/30 border-dashed px-4 py-7 text-center">
-            <p
+            <div
                 {...props}
                 className={cn(
                     "font-medium text-muted-foreground text-xs italic leading-tight",
@@ -2083,7 +2079,7 @@ function CollectionsListEmpty({
                         </span>
                     </div>
                 )}
-            </p>
+            </div>
         </div>
     );
 }
