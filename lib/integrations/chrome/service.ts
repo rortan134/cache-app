@@ -10,6 +10,7 @@ import { createLogger } from "@/lib/common/logs/console/logger";
 import { DEFAULT_BROWSER_PROFILE_ID } from "@/lib/integrations/browser-profiles";
 import { prisma } from "@/prisma";
 import { LibraryItemSource } from "@/prisma/client/enums";
+import { Prisma } from "@/prisma/client/client";
 import * as z from "zod";
 
 import type {
@@ -128,27 +129,63 @@ interface ChromeSyncAccumulator {
 // Event handlers
 // ---------------------------------------------------------------------------
 
+/**
+ * Wraps the Prisma delegate's `update` so a tombstoning that races between the
+ * in-memory lookup and the database write (P2025) becomes a silent no-op
+ * instead of a sync 500. Mirrors the `deleteMany` path already used by the
+ * delete-event branch — that gate is `deletedAt: null` in the `where`, and
+ * Prisma resolves zero-row matches to a thrown `P2025`. Returning `null` lets
+ * callers skip the `replaceChromeLookupRow` call without changing their
+ * control flow.
+ */
+async function updateLiveChromeDelegate(
+    delegate: ChromeLibraryItemDelegate,
+    args: Parameters<ChromeLibraryItemDelegate["update"]>[0]
+): Promise<Awaited<ReturnType<ChromeLibraryItemDelegate["update"]>> | null> {
+    try {
+        return await delegate.update(args);
+    } catch (error) {
+        if (
+            error instanceof Prisma.PrismaClientKnownRequestError &&
+            error.code === "P2025"
+        ) {
+            return null;
+        }
+        throw error;
+    }
+}
+
 async function handleChromeDeleteEvent(args: {
     delegate: ChromeLibraryItemDelegate;
     externalId: string;
     lookup: ChromeBatchLookupState;
 }): Promise<boolean> {
     const exact = args.lookup.rowsByPrimaryExternalId.get(args.externalId);
+    // Lookups are pre-filtered to live rows, but the gate below is the last
+    // line of defense so a stale row that became tombstoned between
+    // buildChromeLookupState and delete cannot be hard-removed by an
+    // out-of-order Chrome delete event.
+    const liveWhere = { deletedAt: null, id: exact?.id ?? "" };
     if (exact) {
         if (exact.sourceAliasIds.length > 0) {
             const [nextPrimary, ...remainingAliases] = exact.sourceAliasIds;
-            const updated = await args.delegate.update({
+            const updated = await updateLiveChromeDelegate(args.delegate, {
                 data: {
                     externalId: nextPrimary,
                     sourceAliasIds: [exact.externalId, ...remainingAliases],
                 },
-                where: { id: exact.id },
+                where: liveWhere,
             });
-            replaceChromeLookupRow(args.lookup, exact, updated);
+            if (updated) {
+                replaceChromeLookupRow(args.lookup, exact, updated);
+            }
         } else {
-            await args.delegate.delete({
-                where: { id: exact.id },
+            await args.delegate.deleteMany({
+                where: liveWhere,
             });
+            // Always remove from the lookup — the row is either gone now or
+            // was already tombstoned. Either way, subsequent delete events
+            // for the same externalId within this batch should be a no-op.
             removeChromeLookupRow(args.lookup, exact);
         }
         return true;
@@ -162,15 +199,17 @@ async function handleChromeDeleteEvent(args: {
         return false;
     }
 
-    const updated = await args.delegate.update({
+    const updated = await updateLiveChromeDelegate(args.delegate, {
         data: {
             sourceAliasIds: aliasOwner.sourceAliasIds.filter(
                 (value) => value !== args.externalId
             ),
         },
-        where: { id: aliasOwner.id },
+        where: { deletedAt: null, id: aliasOwner.id },
     });
-    replaceChromeLookupRow(args.lookup, aliasOwner, updated);
+    if (updated) {
+        replaceChromeLookupRow(args.lookup, aliasOwner, updated);
+    }
     return true;
 }
 
@@ -194,11 +233,13 @@ async function handleChromeBookmarkWriteEvent(args: {
     );
     const exact = args.lookup.rowsByPrimaryExternalId.get(record.externalId);
     if (exact) {
-        const updated = await args.delegate.update({
+        const updated = await updateLiveChromeDelegate(args.delegate, {
             data: buildChromeBookmarkUpdateData(record),
-            where: { id: exact.id },
+            where: { deletedAt: null, id: exact.id },
         });
-        replaceChromeLookupRow(args.lookup, exact, updated);
+        if (updated) {
+            replaceChromeLookupRow(args.lookup, exact, updated);
+        }
         return { deduped: false };
     }
 
@@ -212,11 +253,13 @@ async function handleChromeBookmarkWriteEvent(args: {
             aliasOwner,
             record.externalId
         );
-        const updated = await args.delegate.update({
+        const updated = await updateLiveChromeDelegate(args.delegate, {
             data: buildChromeBookmarkUpdateData(record),
             where: { id: promoted.id },
         });
-        replaceChromeLookupRow(args.lookup, aliasOwner, updated);
+        if (updated) {
+            replaceChromeLookupRow(args.lookup, aliasOwner, updated);
+        }
         return { deduped: false };
     }
 
@@ -278,6 +321,7 @@ async function pruneChromeSnapshot(
         },
         where: {
             browserProfileId,
+            deletedAt: null,
             source: LibraryItemSource.chrome_bookmarks,
             userId,
         },
@@ -293,7 +337,7 @@ async function pruneChromeSnapshot(
             seen.has(aliasId)
         );
         if (aliasCandidate) {
-            await delegate.update({
+            await delegate.updateMany({
                 data: {
                     externalId: aliasCandidate,
                     sourceAliasIds: [
@@ -303,13 +347,13 @@ async function pruneChromeSnapshot(
                         ),
                     ],
                 },
-                where: { id: row.id },
+                where: { deletedAt: null, id: row.id },
             });
             continue;
         }
 
-        await delegate.delete({
-            where: { id: row.id },
+        await delegate.deleteMany({
+            where: { deletedAt: null, id: row.id },
         });
         pruned += 1;
     }
@@ -327,6 +371,12 @@ async function processChromeBookmarkEventBatch(args: {
     const existingRows = await delegate.findMany({
         where: {
             browserProfileId: args.browserProfileId,
+            // Tombstones are intentionally absent from the incremental sync
+            // loop: the bookmark is gone from Chrome but the user has it in
+            // their trash. Chrome sync must NEVER hard-delete tombstoned
+            // items — the user has 30 days to restore. Snapshot prune
+            // (already filtered) is the only path that may eventually purge.
+            deletedAt: null,
             source: LibraryItemSource.chrome_bookmarks,
             userId: args.userId,
         },
@@ -449,6 +499,9 @@ export async function purgeChromeBookmarksForUser(
 ): Promise<number> {
     const result = await prisma.libraryItem.deleteMany({
         where: {
+            // Tombstones survive disconnect/reconnect so the user can restore
+            // bookmarks they deliberately trashed before booting Chrome.
+            deletedAt: null,
             source: LibraryItemSource.chrome_bookmarks,
             userId,
         },
@@ -470,6 +523,7 @@ export function getChromeBookmarkItemForUserByExternalId(
         include: LIBRARY_ITEM_COLLECTIONS_INCLUDE,
         where: {
             browserProfileId: DEFAULT_BROWSER_PROFILE_ID,
+            deletedAt: null,
             OR: [
                 {
                     externalId,

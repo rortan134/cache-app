@@ -1,23 +1,22 @@
 import "server-only";
 
-import crypto from "node:crypto";
-import type * as z from "zod";
-import { ITEM_KIND_BOOKMARK } from "@/lib/common/constants";
-import { deleteLibraryItem } from "@/lib/collections/service";
-import { parseStandaloneUrl } from "@/lib/common/url";
-import { IntegrationApiError } from "@/lib/integrations/error";
-import { DEFAULT_BROWSER_PROFILE_ID } from "@/lib/integrations/browser-profiles";
-import { createNoteFromPlainText } from "@/lib/integrations/notes/service";
-import { prisma } from "@/prisma";
-import { LibraryItemSource } from "@/prisma/client/enums";
 import {
     LIBRARY_ITEM_COLLECTIONS_INCLUDE,
     type LibraryItemWithCollections,
     toLibraryItemWithCollections,
 } from "@/lib/collections/utils";
-import { upsertLibraryItemImports } from "@/lib/integrations/upsert";
+import { ITEM_KIND_BOOKMARK } from "@/lib/common/constants";
 import { createLogger } from "@/lib/common/logs/console/logger";
+import { parseStandaloneUrl } from "@/lib/common/url";
+import { DEFAULT_BROWSER_PROFILE_ID } from "@/lib/integrations/browser-profiles";
+import { IntegrationApiError } from "@/lib/integrations/error";
 import type { McpLibraryItemSchema } from "@/lib/integrations/mcp/protocol";
+import { createNoteFromPlainText } from "@/lib/integrations/notes/service";
+import { upsertLibraryItemImports } from "@/lib/integrations/upsert";
+import { prisma } from "@/prisma";
+import { LibraryItemSource } from "@/prisma/client/enums";
+import crypto from "node:crypto";
+import type * as z from "zod";
 
 const log = createLogger("mcp.service");
 
@@ -106,6 +105,7 @@ export async function addLibraryItem(
         include: LIBRARY_ITEM_COLLECTIONS_INCLUDE,
         where: {
             browserProfileId: DEFAULT_BROWSER_PROFILE_ID,
+            deletedAt: null,
             externalId,
             source: LibraryItemSource.other,
             userId: args.userId,
@@ -135,23 +135,6 @@ export async function addLibraryItem(
  */
 function hashBookmarkExternalId(url: string): string {
     return crypto.createHash("sha256").update(url).digest("hex");
-}
-
-interface DeleteLibraryItemArgs {
-    itemId: string;
-    userId: string;
-}
-
-/**
- * Deletes a library item by ID. Errors propagate as `IntegrationApiError` so
- * the route layer can render them as a server-error tool result. The route
- * layer is responsible for translating successful absence into the wire
- * format (`{ ok: true }`).
- */
-export async function deleteLibraryItemMcp(
-    args: DeleteLibraryItemArgs
-): Promise<void> {
-    await deleteLibraryItem({ itemId: args.itemId, userId: args.userId });
 }
 
 export function toMcpLibraryItem(

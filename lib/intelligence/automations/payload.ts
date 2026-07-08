@@ -354,6 +354,7 @@ function getPayloadWhere(run: AutomationRunPayloadScope) {
                   },
               }
             : {}),
+        deletedAt: null,
         userId: run.userId,
     };
 }

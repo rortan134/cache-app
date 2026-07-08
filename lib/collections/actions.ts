@@ -389,8 +389,8 @@ export async function updateCollectionPriority(input: {
     }
 }
 
-export async function disableSmartCollections(): Promise<
-    | { status: typeof ACTION_STATUS.DISABLED }
+export async function getSmartCollectionsPreference(): Promise<
+    | { disabled: boolean; status: typeof ACTION_STATUS.SUCCESS }
     | {
           message: string;
           status:
@@ -406,15 +406,63 @@ export async function disableSmartCollections(): Promise<
     }
 
     try {
-        await service.disableSmartCollections({ userId: auth.userId });
-
-        return { status: ACTION_STATUS.DISABLED };
+        const enabled = await service.getUserSmartCollectionsPreference({
+            userId: auth.userId,
+        });
+        return { disabled: !enabled, status: ACTION_STATUS.SUCCESS };
     } catch (error) {
         return handleActionError({
             codeToStatus: {},
             error,
             errorFactory: LibraryCollectionError,
-            fallbackMessage: "We couldn't disable smart collections right now.",
+            fallbackMessage:
+                "We couldn't fetch your smart collections preference.",
+            log,
+        });
+    }
+}
+
+export async function setSmartCollectionsPreference(input: {
+    enabled: boolean;
+}): Promise<
+    | { status: typeof ACTION_STATUS.UPDATED }
+    | {
+          message: string;
+          status:
+              | typeof ACTION_STATUS.ERROR
+              | typeof ACTION_STATUS.INVALID
+              | typeof ACTION_STATUS.UNAUTHORIZED;
+      }
+> {
+    const parsed = z.object({ enabled: z.boolean() }).safeParse(input);
+    if (!parsed.success) {
+        return {
+            message: parsed.error.issues[0]?.message ?? "Invalid request.",
+            status: ACTION_STATUS.INVALID,
+        };
+    }
+
+    const auth = await requireActionUserId(
+        "Sign in again to manage smart collections."
+    );
+    if (isUnauthenticated(auth)) {
+        return auth;
+    }
+
+    try {
+        await service.setSmartCollectionsPreference({
+            enabled: parsed.data.enabled,
+            userId: auth.userId,
+        });
+
+        return { status: ACTION_STATUS.UPDATED };
+    } catch (error) {
+        return handleActionError({
+            codeToStatus: {},
+            error,
+            errorFactory: LibraryCollectionError,
+            fallbackMessage:
+                "We couldn't update your smart collections preference.",
             log,
         });
     }

@@ -20,6 +20,7 @@ import {
 } from "@/components/library/composer";
 import type { NoteDraft } from "@/components/library/notes";
 import {
+    openQuickLookDrawer,
     QuickLookDrawer,
     QuickLookDrawerSurface,
     QuickLookDrawerTrigger,
@@ -201,7 +202,7 @@ import type {
 import { useIsoLayoutEffect } from "@base-ui/utils/useIsoLayoutEffect";
 import { useStableCallback } from "@base-ui/utils/useStableCallback";
 import { useTimeout } from "@base-ui/utils/useTimeout";
-import { T } from "gt-next";
+import { T, Var } from "gt-next";
 import {
     ArrowDownWideNarrow,
     ArrowUpRight,
@@ -1746,7 +1747,10 @@ function PaletteAttachmentChip({
                                 <img
                                     alt=""
                                     className="max-h-full max-w-full object-contain"
+                                    decoding="async"
+                                    fetchPriority="high"
                                     height={320}
+                                    loading="lazy"
                                     src={attachment.url}
                                     width={288}
                                 />
@@ -2360,7 +2364,6 @@ function BrowserMasonry({ children }: BrowserMansonryProps) {
                 columnCount={columnCount}
                 columnGutter={16}
                 itemAs="article"
-                itemHeightEstimate={350}
                 itemStyle={{ contain: "layout style" }}
                 items={items}
                 key={`${sidebarStateDeferred}-${items.length}`}
@@ -2452,6 +2455,7 @@ function CategoryThumbnail({ urls }: { urls: string[] }) {
         <img
             alt=""
             className="absolute top-10 left-3 z-10 h-auto w-full rounded-sm object-cover transition-transform group-data-highlighted:-translate-y-1"
+            decoding="async"
             draggable="false"
             fetchPriority="high"
             height={104}
@@ -2652,7 +2656,7 @@ function buildSearchPaletteGroups({
                               ),
                               render: () => (
                                   <div className="flex items-center gap-2.5">
-                                      <History className="size-3.5 shrink-0 text-muted-foreground" />
+                                      <History className="size-4 shrink-0 text-muted-foreground" />
                                       <span className="truncate">
                                           Pick up where you left off
                                       </span>
@@ -2674,6 +2678,12 @@ function buildSearchPaletteGroups({
                         setQuery("");
                         setIsCommandOpen(true);
                     },
+                    render: () => (
+                        <div className="flex items-center gap-2.5">
+                            <SearchIcon className="size-4 shrink-0 text-muted-foreground" />
+                            <span className="truncate">{term}</span>
+                        </div>
+                    ),
                     value: `search history ${term}`,
                 })),
                 ...(availableHistory.length > 0
@@ -3452,7 +3462,8 @@ function useLibraryItemActions(args: {
                 result = await deleteLibraryItem(targetItem.id);
             } catch {
                 result = {
-                    message: "We couldn't delete this saved item right now.",
+                    message:
+                        "We couldn't move this saved item to Recently deleted right now.",
                     status: "ERROR",
                 };
             }
@@ -3606,6 +3617,7 @@ function MediaPreview({
                 <img
                     alt=""
                     className="size-full object-cover"
+                    decoding="async"
                     draggable="false"
                     fetchPriority="auto"
                     height={400}
@@ -3725,6 +3737,7 @@ interface LibraryGridCardMenuProps {
     isOpen: boolean;
     item: LibraryItemWithCollections;
     kind: "context" | "menu";
+    onClose: () => void;
     onDownload: () => void;
     onZoomIn: () => void;
     previewImageUrl: string | null;
@@ -4005,6 +4018,7 @@ function CardMenu({
     isOpen,
     item,
     kind,
+    onClose,
     onDownload,
     onZoomIn,
     previewImageUrl,
@@ -4033,6 +4047,7 @@ function CardMenu({
         (event: KeyboardEvent) => {
             event.preventDefault();
             onItemFavoriteToggle(item);
+            onClose();
         },
         {
             description: "Toggle favorite on selected item",
@@ -4040,7 +4055,34 @@ function CardMenu({
             enableOnContentEditable: false,
             enableOnFormTags: false,
         },
-        [isOpen, isDeletePending, item, onItemFavoriteToggle]
+        [isOpen, isDeletePending, item, onClose, onItemFavoriteToggle]
+    );
+
+    const quickLookTriggerId = React.useId();
+
+    useHotkeys(
+        "alt+e",
+        (event: KeyboardEvent) => {
+            event.preventDefault();
+            if (canPreview) {
+                openQuickLookDrawer(
+                    {
+                        description: itemDomain(item.url),
+                        title: getItemTitle(item),
+                        url: item.url,
+                    },
+                    quickLookTriggerId
+                );
+            }
+            onClose();
+        },
+        {
+            description: "Quick look on selected item",
+            enabled: isOpen && !isDeletePending && canPreview,
+            enableOnContentEditable: false,
+            enableOnFormTags: false,
+        },
+        [isOpen, isDeletePending, canPreview, item, onClose, quickLookTriggerId]
     );
 
     useHotkeys(
@@ -4050,6 +4092,7 @@ function CardMenu({
             if (!isDeletePending && onDelete) {
                 onDelete(item);
             }
+            onClose();
         },
         {
             description: "Delete selected item",
@@ -4057,7 +4100,7 @@ function CardMenu({
             enableOnContentEditable: false,
             enableOnFormTags: false,
         },
-        [isOpen, isDeletePending, item, onDelete]
+        [isOpen, isDeletePending, item, onClose, onDelete]
     );
 
     return (
@@ -4126,10 +4169,13 @@ function CardMenu({
                 >
                     <QuickLookDrawerTrigger
                         nativeButton={false}
-                        render={<Item closeOnClick={false} />}
+                        render={<Item />}
                     >
                         <EyeIcon className="size-4.5 text-muted-foreground" />
                         Quick Look
+                        <Kbd className="ml-auto">
+                            <AltKbd />E
+                        </Kbd>
                     </QuickLookDrawerTrigger>
                 </QuickLookDrawer>
             ) : null}
@@ -4220,7 +4266,11 @@ function CardMenu({
             )}
             <ItemSeparator />
             <Item disabled={isDeletePending} onClick={() => onDelete?.(item)}>
-                {isDeletePending ? "Deleting..." : "Delete"}
+                {isDeletePending ? (
+                    <T>Moving to Recently deleted…</T>
+                ) : (
+                    <T>Move to Recently deleted</T>
+                )}
                 <Kbd className="ml-auto">
                     <CmdKbd />⌫
                 </Kbd>
@@ -4250,6 +4300,14 @@ function MediaCard({ item }: LibraryGridCardProps) {
     const noteExcerpt = getNoteExcerpt(item.noteContentText);
     const displayTitle = getItemTitle(item);
     const { markVisited, isLastVisited } = useLastVisited();
+
+    const closeCardMenu = useStableCallback(() => {
+        setIsCardMenuOpen(false);
+    });
+
+    const closeContextMenu = useStableCallback(() => {
+        setIsContextMenuOpen(false);
+    });
 
     React.useEffect(
         () => () => {
@@ -4408,6 +4466,7 @@ function MediaCard({ item }: LibraryGridCardProps) {
                                 isOpen={isCardMenuOpen}
                                 item={item}
                                 kind="menu"
+                                onClose={closeCardMenu}
                                 onDownload={handleDownload}
                                 onZoomIn={handleZoomIn}
                                 previewImageUrl={previewImageUrl}
@@ -4425,6 +4484,7 @@ function MediaCard({ item }: LibraryGridCardProps) {
                     isOpen={isContextMenuOpen}
                     item={item}
                     kind="context"
+                    onClose={closeContextMenu}
                     onDownload={handleDownload}
                     onZoomIn={handleZoomIn}
                     previewImageUrl={previewImageUrl}
@@ -4737,15 +4797,22 @@ function BrowserDialogs(props: BrowserDialogsProps) {
             >
                 <DialogPopup>
                     <DialogHeader>
-                        <DialogTitle>Delete saved item?</DialogTitle>
+                        <DialogTitle>
+                            <T>Move to Recently deleted?</T>
+                        </DialogTitle>
                         <DialogDescription>
-                            Remove{" "}
-                            {pendingDeleteItem?.noteContentText?.trim() ||
-                                pendingDeleteItem?.caption?.trim() ||
-                                pendingDeleteItem?.url ||
-                                "this saved item"}{" "}
-                            from Cache. This only deletes it from your library,
-                            not from the original platform.
+                            <T>
+                                <Var>
+                                    {pendingDeleteItem?.noteContentText?.trim() ||
+                                        pendingDeleteItem?.caption?.trim() ||
+                                        pendingDeleteItem?.url ||
+                                        "This saved item"}
+                                </Var>{" "}
+                                will move to Recently deleted. You have 30 days
+                                to restore it before it's deleted forever. This
+                                only removes it from your library, not from the
+                                original platform.
+                            </T>
                         </DialogDescription>
                     </DialogHeader>
                     <DialogFooter>
@@ -4753,14 +4820,14 @@ function BrowserDialogs(props: BrowserDialogsProps) {
                             disabled={isDeletePending}
                             render={<Button variant="ghost" />}
                         >
-                            Cancel
+                            <T>Cancel</T>
                         </DialogClose>
                         <Button
                             loading={isDeletePending}
                             onClick={onConfirmDelete}
                             variant="destructive"
                         >
-                            Delete
+                            <T>Move to Recently deleted</T>
                         </Button>
                     </DialogFooter>
                 </DialogPopup>

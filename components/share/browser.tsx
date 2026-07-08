@@ -1,9 +1,6 @@
 "use client";
 
-import {
-    Masonry,
-    type MasonryRenderComponentProps,
-} from "@/components/ui/masonry";
+import { Masonry } from "@/components/ui/masonry";
 import { MediaPlaceholder } from "@/components/ui/media-placeholder";
 import { Ticker } from "@/components/ui/ticker";
 import * as React from "react";
@@ -47,12 +44,13 @@ function PreviewMedia({
 }
 
 function PublicShareGridCard({
-    item,
+    data,
 }: {
-    item: PublicShareGridItem;
+    data: PublicShareGridItem;
 }): React.ReactElement {
-    const isNote = item.kind === "note";
-    const noteExcerpt = item.noteExcerpt ?? "Untitled note";
+    const isNote = data.kind === "note";
+    const noteExcerpt = data.noteExcerpt ?? "Untitled note";
+    const displayTitle = data.title;
 
     const preview = isNote ? (
         <div className="relative flex h-auto min-h-56 w-full flex-col justify-between bg-linear-to-br from-amber-50 via-background to-stone-100 p-3">
@@ -65,43 +63,42 @@ function PublicShareGridCard({
         </div>
     ) : (
         <div className="relative aspect-3/4 w-full overflow-hidden">
-            <PreviewMedia alt={item.title} src={item.previewImageUrl} />
+            <PreviewMedia alt={data.title} src={data.previewImageUrl} />
+        </div>
+    );
+
+    const titleElement = isNote ? null : (
+        <div className="flex items-center p-1.5">
+            <span
+                className="block w-full min-w-0 truncate text-left text-[11px] text-foreground"
+                title={displayTitle}
+            >
+                <Ticker>{displayTitle}</Ticker>
+            </span>
         </div>
     );
 
     return (
-        <article className="squircle relative flex flex-col overflow-clip rounded-xl ring-1 ring-border/50">
-            {item.href ? (
+        <div className="group relative flex shrink-0 flex-col before:absolute before:-inset-x-2 before:-top-2 before:bottom-0 before:-z-10 before:rounded-xl before:bg-muted/50 before:opacity-0 before:transition-transform hover:before:opacity-100 active:before:scale-x-[0.99] active:before:scale-y-[0.97] active:before:opacity-80!">
+            {data.href ? (
                 <a
-                    className="flex flex-col focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
-                    href={item.href}
+                    className="squircle flex flex-col overflow-clip rounded-xl focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
+                    href={data.href}
                     rel="noopener noreferrer"
                     target="_blank"
                 >
                     {preview}
+                    {titleElement}
                 </a>
             ) : (
-                preview
-            )}
-            {isNote ? null : (
-                <div className="flex items-center py-1 pr-3">
-                    <span
-                        className="min-w-0 flex-1 truncate rounded-sm font-normal text-[11px] text-foreground leading-none outline-none"
-                        title={item.title}
-                    >
-                        <Ticker>{item.title}</Ticker>
-                    </span>
+                <div className="squircle flex flex-col overflow-clip rounded-xl focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60">
+                    {preview}
+                    {titleElement}
                 </div>
             )}
-        </article>
+        </div>
     );
 }
-
-const PublicShareGridCell = ({
-    data,
-}: MasonryRenderComponentProps<PublicShareGridItem>) => (
-    <PublicShareGridCard item={data} />
-);
 
 function PublicShareGrid({
     items,
@@ -111,9 +108,9 @@ function PublicShareGrid({
     if (items.length === 0) {
         return (
             <div className="flex min-h-[50vh] items-center justify-center">
-                <div className="flex flex-col items-center gap-3 rounded-2xl border border-border/70 border-dashed bg-card/30 px-6 py-14 text-center">
+                <div className="flex flex-col items-center gap-3 rounded-2xl border border-border/70 border-dashed px-6 py-14 text-center">
                     <p className="max-w-md text-balance text-muted-foreground text-sm">
-                        This shared collection is empty.
+                        This collection is empty.
                     </p>
                 </div>
             </div>
@@ -123,10 +120,13 @@ function PublicShareGrid({
     return (
         <Masonry
             columnGutter={16}
-            itemKey={(data) => data.id}
+            itemAs="article"
+            itemStyle={{ contain: "layout style" }}
             items={items}
-            render={PublicShareGridCell}
+            maxColumnCount={7}
+            render={PublicShareGridCard}
             rowGutter={16}
+            tabIndex={-1}
         />
     );
 }

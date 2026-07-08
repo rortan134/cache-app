@@ -218,6 +218,7 @@ export function QuickLookDrawerSurface() {
             handle={QUICK_LOOK_DRAWER_HANDLE}
             onOpenChange={handleOpenChange}
             open={isOpen}
+            position="left"
             triggerId={triggerId}
         >
             <DrawerVirtualKeyboardProvider>
@@ -244,7 +245,10 @@ function useQuickLookDrawerContext(): QuickLookDrawerContextValue {
     return context;
 }
 
-function openQuickLookDrawer(entry: QuickLookDrawerEntry, triggerId: string) {
+export function openQuickLookDrawer(
+    entry: QuickLookDrawerEntry,
+    triggerId: string
+) {
     const { activeIndex, isOpen, items } = getQuickLookDrawerState();
     const queue = isOpen
         ? addQuickLookQueueEntry({ activeIndex, items }, entry)
@@ -487,19 +491,16 @@ function QuickLookDrawerContent({
         canOpenUrlExternally && status !== "blocked" && status !== "oembed";
 
     return (
-        <DrawerViewport shouldShowBackdrop={false}>
+        <DrawerViewport>
             <DrawerPopup
                 className="sm:max-w-[min(96vw,78rem)]"
-                shouldShowBar
                 shouldShowCloseButton
             >
-                <DrawerHeader className="border-border/70 border-b pb-4">
-                    <DrawerTitle className="truncate text-lg sm:text-xl">
-                        {title}
-                    </DrawerTitle>
+                <DrawerHeader>
+                    <DrawerTitle>{title}</DrawerTitle>
                     <DrawerDescription>
                         {description ?? parseDisplayUrl(url)}
-                        <span className="ml-2 text-muted-foreground">·</span>
+                        <span className="ml-2">·</span>
                         <QuickLookDrawerLinkButton
                             href={url}
                             size="sm"

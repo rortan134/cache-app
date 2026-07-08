@@ -67,23 +67,36 @@ async function importSnapshotProfileRows(args: {
     userId: string;
 }): Promise<SnapshotProfileImportResult> {
     const existingRows = await args.libraryItemDelegate.findMany({
-        select: { externalId: true, id: true },
+        select: { deletedAt: true, externalId: true },
         where: {
             browserProfileId: args.browserProfileId,
             source: args.source,
             userId: args.userId,
         },
     });
+    // Tombstoned rows are excluded from both the import and the upsert so the
+    // user's explicit delete is not silently undone by a re-sync. The row
+    // stays tombstoned until the user restores it or the 30-day window expires.
     const existingExternalIds = new Set(
-        existingRows.map((row) => row.externalId)
+        existingRows
+            .filter((row) => row.deletedAt === null)
+            .map((row) => row.externalId)
     );
-    const importedCount = args.rows.filter(
+    const tombstonedExternalIds = new Set(
+        existingRows
+            .filter((row) => row.deletedAt !== null)
+            .map((row) => row.externalId)
+    );
+    const upsertableRows = args.rows.filter(
+        (row) => !tombstonedExternalIds.has(row.externalId)
+    );
+    const importedCount = upsertableRows.filter(
         (row) => !existingExternalIds.has(row.externalId)
     ).length;
-    const updatedCount = args.rows.length - importedCount;
+    const updatedCount = upsertableRows.length - importedCount;
     const smartCollectionItemIds = new Set<string>();
 
-    for (const batch of chunk(args.rows, SNAPSHOT_UPSERT_BATCH_SIZE)) {
+    for (const batch of chunk(upsertableRows, SNAPSHOT_UPSERT_BATCH_SIZE)) {
         const savedRows = await Promise.all(
             batch.map((row) =>
                 args.libraryItemDelegate.upsert({
@@ -129,6 +142,10 @@ async function importSnapshotProfileRows(args: {
     const deleteResult = await args.libraryItemDelegate.deleteMany({
         where: {
             browserProfileId: args.browserProfileId,
+            // Snapshot prune must skip tombstones; tombstoned rows survive a
+            // source going dark so the user has a chance to restore or purge
+            // explicitly from `/recently-deleted`.
+            deletedAt: null,
             ...(retainedExternalIds.length > 0
                 ? {
                       externalId: {

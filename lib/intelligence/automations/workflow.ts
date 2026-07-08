@@ -60,41 +60,6 @@ export async function prepareAutomationRunForWorkflow(args: {
     return await markAutomationRunRunning(args);
 }
 
-export async function executeSmartCollectionsAutomationRun(args: {
-    runId: string;
-    userId: string;
-}) {
-    "use step";
-
-    const [{ autoTagLibraryItemsByIds }, service] = await Promise.all([
-        import("@/lib/intelligence"),
-        import("./service"),
-    ]);
-    const itemIds = await service.getSmartCollectionItemIdsForRun({
-        runId: args.runId,
-    });
-    if (itemIds.length > 0) {
-        await autoTagLibraryItemsByIds({
-            itemIds,
-            userId: args.userId,
-        });
-    }
-
-    const summaryMarkdown =
-        itemIds.length === 0
-            ? "No newly saved items needed smart collection classification."
-            : `Smart collections checked ${itemIds.length} newly saved ${itemIds.length === 1 ? "item" : "items"}.`;
-
-    await service.finishAutomationRun({
-        runId: args.runId,
-        sources: {
-            itemIds,
-        },
-        status: "succeeded",
-        summaryMarkdown,
-    });
-}
-
 export async function executeReadOnlyAutomationRun(
     prepared: PreparedAutomationRun
 ) {

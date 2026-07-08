@@ -265,7 +265,7 @@ export function ComposerActionNew() {
     const { onCreateNote } = useComposerActionsContext();
 
     return (
-        <ActionButton onClick={onCreateNote}>
+        <ActionButton onClick={onCreateNote} title="New">
             <SquarePen className="inline-block size-3.5 shrink-0" />
             &nbsp;New
         </ActionButton>

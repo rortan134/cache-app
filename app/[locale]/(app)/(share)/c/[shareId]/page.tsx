@@ -3,7 +3,6 @@ import {
     type PublicShareGridItem,
 } from "@/components/share/browser";
 import { BrandLogo } from "@/components/ui/brand-logo";
-import { PageShell } from "@/components/ui/page-shell";
 import { getPublicCollectionShareById } from "@/lib/collections/sharing/service";
 import { BASE_URL, FALLBACK_URL, ITEM_KIND_NOTE } from "@/lib/common/constants";
 import { getNoteExcerpt } from "@/lib/common/strings";
@@ -99,25 +98,34 @@ async function PageComp(props: CollectionSharePageProps) {
     });
 
     return (
-        <PageShell>
-            <div className="flex w-full flex-1 px-2 py-2 sm:px-4 sm:py-4">
-                <PublicShareGrid items={items} />
-            </div>
-        </PageShell>
+        <>
+            <BrandLogo
+                className="mx-auto my-3 scale-80"
+                href="/library"
+                src={LogoIconImage}
+            />
+            {collection.name && (
+                <div className="flex flex-col items-center justify-center text-muted-foreground text-sm">
+                    <h1 className="font-medium text-foreground text-xl">
+                        {collection.name}
+                    </h1>
+                    <span className="tabular-nums">
+                        {collection.itemCount}{" "}
+                        {collection.itemCount === 1 ? "entry" : "entries"}
+                    </span>
+                </div>
+            )}
+            <PublicShareGrid items={items} />
+        </>
     );
 }
 
 export default function CollectionSharePage(props: CollectionSharePageProps) {
     return (
-        <>
-            <BrandLogo
-                className="mx-auto my-3"
-                href="/library"
-                src={LogoIconImage}
-            />
+        <div className="flex w-full flex-1 flex-col justify-stretch gap-6 px-2 py-2 sm:px-4 sm:py-4">
             <React.Suspense>
                 <PageComp {...props} />
             </React.Suspense>
-        </>
+        </div>
     );
 }

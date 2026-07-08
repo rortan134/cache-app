@@ -53,6 +53,7 @@ export function getNoteItemForUser(
     return prisma.libraryItem.findFirst({
         include: LIBRARY_ITEM_COLLECTIONS_INCLUDE,
         where: {
+            deletedAt: null,
             id: itemId,
             kind: ITEM_KIND_NOTE,
             userId,
@@ -116,6 +117,7 @@ export async function updateNote(
             noteContentText: note.contentText,
         },
         where: {
+            deletedAt: null,
             id: itemId,
             kind: ITEM_KIND_NOTE,
             userId,

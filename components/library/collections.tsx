@@ -86,17 +86,14 @@ import { SidebarItem } from "@/components/ui/sidebar";
 import { Spinner } from "@/components/ui/spinner";
 import { Textarea } from "@/components/ui/textarea";
 import { useCollectionRecommendations } from "@/hooks/queries/use-collection-recommendations";
-import {
-    pauseSmartCollectionsAutomations,
-    useSmartCollectionsPreference,
-} from "@/hooks/queries/use-smart-collections-preference";
+import { useSmartCollectionsPreference } from "@/hooks/queries/use-smart-collections-preference";
 import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
 import {
     createCollection,
     deleteCollection,
-    disableSmartCollections,
     duplicateCollection,
     renameCollection,
+    setSmartCollectionsPreference,
     updateCollectionPriority,
     type CollectionCreateResult,
 } from "@/lib/collections/actions";
@@ -154,7 +151,6 @@ import {
     ArchiveIcon,
     ArchiveX,
     ArrowUpDown,
-    ArrowUpRight,
     ChevronRight,
     Clock,
     Component,
@@ -182,7 +178,6 @@ import {
     X,
 } from "lucide-react";
 import Image from "next/image";
-import Link from "next/link";
 import * as React from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 import { createStore } from "stan-js";
@@ -220,7 +215,9 @@ const COPY_SHARE_LINK_ERROR_MESSAGE =
 const EXPORT_CSV_ERROR_MESSAGE =
     "We couldn't export this collection right now.";
 const DISABLE_SMART_COLLECTIONS_ERROR_MESSAGE =
-    "We couldn't disable smart collections right now.";
+    "We couldn't turn off smart collections right now.";
+const ENABLE_SMART_COLLECTIONS_ERROR_MESSAGE =
+    "We couldn't turn on smart collections right now.";
 
 type CollectionOptionIcon = React.ComponentType<{ className?: string }>;
 
@@ -538,7 +535,7 @@ export function Collections() {
                     </CollectionsListToolbarGroup>
                 </CollectionsListToolbar>
                 <CollapsiblePanel>
-                    <div className="p-1.5 pt-0.5 pl-2.5">
+                    <div className="flex p-1.5 pt-0.5 pl-2.5">
                         <CollectionsListCalloutPopover />
                     </div>
                     <CollectionsListEmpty />
@@ -1242,22 +1239,46 @@ function useCollectionsController() {
     const handleDisableSmartCollections = useStableCallback(async () => {
         try {
             await mutateSmartCollectionsPreference(
-                async (enabledAutomations = []) => {
-                    const result = await disableSmartCollections();
-                    if (result.status !== ACTION_STATUS.DISABLED) {
+                async () => {
+                    const result = await setSmartCollectionsPreference({
+                        enabled: false,
+                    });
+                    if (result.status !== ACTION_STATUS.UPDATED) {
                         throw new Error(result.message);
                     }
-                    return pauseSmartCollectionsAutomations(enabledAutomations);
+                    return { disabled: true };
                 },
                 {
-                    optimisticData: (enabledAutomations = []) =>
-                        pauseSmartCollectionsAutomations(enabledAutomations),
+                    optimisticData: { disabled: true },
                     rollbackOnError: true,
                 }
             );
         } catch (error) {
             log.error("Failed to disable smart collections", { error });
             showError(DISABLE_SMART_COLLECTIONS_ERROR_MESSAGE);
+        }
+    });
+
+    const handleEnableSmartCollections = useStableCallback(async () => {
+        try {
+            await mutateSmartCollectionsPreference(
+                async () => {
+                    const result = await setSmartCollectionsPreference({
+                        enabled: true,
+                    });
+                    if (result.status !== ACTION_STATUS.UPDATED) {
+                        throw new Error(result.message);
+                    }
+                    return { disabled: false };
+                },
+                {
+                    optimisticData: { disabled: false },
+                    rollbackOnError: true,
+                }
+            );
+        } catch (error) {
+            log.error("Failed to enable smart collections", { error });
+            showError(ENABLE_SMART_COLLECTIONS_ERROR_MESSAGE);
         }
     });
 
@@ -1304,6 +1325,7 @@ function useCollectionsController() {
             onDismissFeedback: handleDismissFeedback,
             onDuplicate: handleDuplicate,
             onEnableShare: handleEnableShare,
+            onEnableSmartCollections: handleEnableSmartCollections,
             onExportCsv: handleExportCsv,
             onFavoriteToggle: handleFavoriteToggle,
             onOpenLinks: handleOpenLinks,
@@ -2364,7 +2386,8 @@ function CollectionsListCreateButton({
 }
 
 function CollectionsListCalloutPopover() {
-    const { onDisableSmartCollections } = useCollectionsActions();
+    const { onDisableSmartCollections, onEnableSmartCollections } =
+        useCollectionsActions();
     const { disabled } = useSmartCollectionsPreference();
 
     return (
@@ -2415,46 +2438,22 @@ function CollectionsListCalloutPopover() {
                             : "Let Cache do the organizing"}
                     </PopoverTitle>
                     <PopoverDescription className="text-foreground text-xs leading-snug">
-                        {disabled ? (
-                            <>
-                                Smart Collections uses AI to automatically group
-                                your saves into contextual collections.
-                            </>
-                        ) : (
-                            <>
-                                As you add new entries, Cache AI proactively
-                                groups your related saves into contextual
-                                collections. Cache also learns your preferences
-                                over time.{" "}
-                                <Button
-                                    className="h-fit! px-0 leading-snug sm:text-xs"
-                                    render={<Link href="/automations" />}
-                                    size="xs"
-                                    variant="link"
-                                >
-                                    Automations
-                                    <ArrowUpRight
-                                        aria-hidden
-                                        className="inline-block size-3 shrink-0 text-muted-foreground"
-                                        focusable="false"
-                                    />
-                                </Button>
-                            </>
-                        )}
+                        Smart Collections uses AI to automatically group your
+                        saves into contextual collections as you add new
+                        entries.
                     </PopoverDescription>
                     <Button
                         className="w-fit px-0 text-muted-foreground text-xs"
                         onClick={
-                            disabled ? undefined : onDisableSmartCollections
-                        }
-                        render={
-                            disabled ? <Link href="/automations" /> : undefined
+                            disabled
+                                ? onEnableSmartCollections
+                                : onDisableSmartCollections
                         }
                         size="xs"
                         variant="link"
                     >
                         {disabled
-                            ? "Learn more about Smart Collections"
+                            ? "Turn on Smart Collections"
                             : "Turn off Smart Collections"}
                     </Button>
                 </div>
@@ -3291,6 +3290,7 @@ function CollectionsCreateDialog() {
     const errorId = React.useId();
     const descriptionInputId = React.useId();
     const { disabled } = useSmartCollectionsPreference();
+    const { onEnableSmartCollections } = useCollectionsActions();
 
     return (
         <Dialog onOpenChange={handleOpenChange} open={isCreateOpen}>
@@ -3391,13 +3391,12 @@ function CollectionsCreateDialog() {
                                     {disabled ? (
                                         <Button
                                             className="inline-flex h-fit! w-fit px-0 leading-tight sm:text-[11px]"
-                                            render={
-                                                <Link href="/automations" />
-                                            }
+                                            onClick={onEnableSmartCollections}
                                             size="xs"
+                                            type="button"
                                             variant="link"
                                         >
-                                            Learn more
+                                            Turn on Smart Collections
                                         </Button>
                                     ) : null}
                                 </p>

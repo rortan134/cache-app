@@ -50,6 +50,9 @@ enum LibraryActivityEventKind {
   collection_shared
   item_added
   item_collected
+  item_deleted
+  item_purged
+  item_restored
   item_updated
   source_connected
 }
@@ -75,7 +78,6 @@ enum AutomationCadence {
 
 /// First-party automation templates seeded for new users.
 enum AutomationTemplateKey {
-  smart_collections
   weekly_digest
 }
 
@@ -93,26 +95,31 @@ enum AutomationRunStatus {
 /// Managed by better-auth core, with Cache-specific user preferences added.
 /// Do not rename auth-owned fields; better-auth reads them by convention.
 model User {
-  id                       String                 @id
-  name                     String
-  email                    String                 @unique
-  emailVerified            Boolean                @default(false)
-  image                    String?
-  createdAt                DateTime               @default(now())
-  updatedAt                DateTime               @updatedAt
+  id                      String                 @id
+  name                    String
+  email                   String                 @unique
+  emailVerified           Boolean                @default(false)
+  image                   String?
+  createdAt               DateTime               @default(now())
+  updatedAt               DateTime               @updatedAt
   /// Stripe customer id is duplicated here for fast account-level lookups even
   /// though subscription state lives in the plugin-managed table.
-  stripeCustomerId         String?
+  stripeCustomerId        String?
   /// Bearer token used by browser extensions to ingest into this user's library
   /// without exposing session cookies.
-  extensionIngestToken     String?                @unique
-  sessions                 Session[]
-  accounts                 Account[]
-  libraryItems             LibraryItem[]
-  collections              Collection[]
-  libraryActivityEvents    LibraryActivityEvent[]
-  automations              Automation[]
-  automationRuns           AutomationRun[]
+  extensionIngestToken    String?                @unique
+  /// Library preference: whether smart collections auto-tagging is on. Smart
+  /// collections runs only on the per-save event path; there is no scheduled
+  /// catch-up batch. Defaults to off so a brand-new user must opt in before
+  /// the classifier starts writing collection assignments.
+  smartCollectionsEnabled Boolean                @default(false)
+  sessions                Session[]
+  accounts                Account[]
+  libraryItems            LibraryItem[]
+  collections             Collection[]
+  libraryActivityEvents   LibraryActivityEvent[]
+  automations             Automation[]
+  automationRuns          AutomationRun[]
 
   feedbackEntries Feedback[]
   rssFeeds        RssFeed[]
@@ -221,6 +228,10 @@ model LibraryItem {
   postedAt         DateTime?
   /// Time Cache last fetched or refreshed source metadata.
   scrapedAt        DateTime?
+  /// Time the user moved this item to Recently deleted. Null while the item
+  /// is in the active library. Tombstones are hard-deleted 30 days later (see
+  /// `lib/collections/service.ts:purgeExpiredLibraryItems`).
+  deletedAt        DateTime?
   collections      Collection[]
   activityEvents   LibraryActivityEvent[]
   /// Null means the item has not entered the review workflow yet.
@@ -238,6 +249,9 @@ model LibraryItem {
   @@index([userId, reviewedAt])
   @@index([userId, favoritedAt])
   @@index([userId, scrapedAt, updatedAt, reviewedAt])
+  /// Recently-deleted listing and lazy purge both filter by `(userId, deletedAt)`;
+  /// keep both live and trashed reads index-served.
+  @@index([userId, deletedAt])
   @@map("library_item")
 }
 

@@ -104,6 +104,8 @@ export const COLLECTION_VALIDATION_MESSAGES = {
     itemCollectionsIdRequired: "Pick valid collections before saving.",
     itemDeleteIdRequired: "Select a saved item before trying to delete it.",
     itemFavoriteIdRequired: "Select a saved item before favoriting.",
+    itemPurgeIdRequired: "Select a trashed item to permanently delete.",
+    itemRestoreIdRequired: "Select a trashed item to restore.",
     manageIdRequired: "Select a collection to update.",
     nameAndItemsRequired:
         "Enter a valid collection name and at least one saved item.",
@@ -168,6 +170,11 @@ export const STATUS_MAP_NOT_FOUND = {
 export const STATUS_MAP_DUPLICATE_OR_NOT_FOUND = {
     duplicate_name: ACTION_STATUS.DUPLICATE,
     not_found: ACTION_STATUS.NOT_FOUND,
+} as const;
+
+export const STATUS_MAP_TRASHED_ITEM = {
+    not_found: ACTION_STATUS.NOT_FOUND,
+    not_trashed: ACTION_STATUS.NOT_FOUND,
 } as const;
 
 // ---------------------------------------------------------------------------

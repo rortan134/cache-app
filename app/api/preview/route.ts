@@ -85,7 +85,6 @@ interface VideoRangeRequest {
 interface ResolvedImage {
     imageUrl: string;
     pageUrl: string;
-    response?: Response;
 }
 
 const ResolvedImageSchema = z.object({
@@ -140,7 +139,7 @@ export async function GET(request: Request): Promise<Response> {
             return textResponse("Invalid URL", 400);
         }
 
-        return resolveVideoPreview(publicTargetUrl, request);
+        return resolveVideoPreview(publicTargetUrl, request, delivery);
     }
 
     try {
@@ -161,10 +160,7 @@ export async function GET(request: Request): Promise<Response> {
             return textResponse("Invalid URL", 400);
         }
 
-        const preview = await resolveImagePreview(
-            publicTargetUrl.href,
-            delivery === "proxy"
-        );
+        const preview = await resolveImagePreview(publicTargetUrl, request);
         if (!preview?.imageUrl) {
             return textResponse("Preview not found", 404);
         }
@@ -181,9 +177,7 @@ export async function GET(request: Request): Promise<Response> {
             error,
             "resolve preview",
             "Preview not found",
-            {
-                targetUrl: targetUrl.href,
-            }
+            { targetUrl: targetUrl.href }
         );
     }
 }
@@ -220,57 +214,64 @@ function parsePreviewDelivery(delivery: string | null): PreviewDelivery | null {
 }
 
 async function resolveImagePreview(
-    targetUrl: string,
-    includeResponse = false
+    targetUrl: URL,
+    request: Request
 ): Promise<ResolvedImage | null> {
-    const cached = await readCachedImagePreview(targetUrl);
-    if (cached) {
-        return cached;
-    }
+    const signal = request.signal;
+    const targetHref = targetUrl.href;
 
-    const oembedUrl = tiktokOembedUrl(targetUrl);
+    const oembedUrl = tiktokOembedUrl(targetHref);
     if (oembedUrl) {
-        const result = await resolveTikTokImagePreview(targetUrl, oembedUrl);
+        const result = await resolveTikTokImagePreview(
+            targetHref,
+            oembedUrl,
+            signal
+        );
         if (result) {
-            await writeCachedImagePreview(targetUrl, result);
+            await writeCachedImagePreview(targetHref, result);
         }
         return result;
     }
 
-    const pageResponse = await fetchWithRedirects(parseHttpUrl(targetUrl), {
-        headers: {
-            Accept: "text/html,application/xhtml+xml,image/*",
-            "User-Agent": getUserAgent(targetUrl),
+    const pageResponse = await fetchWithRedirects(
+        targetUrl,
+        {
+            headers: {
+                Accept: "text/html,application/xhtml+xml,image/*",
+                "User-Agent": getUserAgent(targetHref),
+            },
         },
-    });
+        signal
+    );
     if (!pageResponse.ok) {
         log.debug("Preview page request failed", {
             status: pageResponse.status,
-            targetUrl,
+            targetUrl: targetHref,
         });
         return null;
     }
 
     const pageContentType = pageResponse.headers.get("content-type") ?? "";
     if (isSupportedPreviewImageContentType(pageContentType)) {
+        // We never consume this body, so release the connection before we
+        // serialize to Redis. Swallow a rejecting cancel — it's cleanup, not
+        // a user-visible failure.
+        await pageResponse.body?.cancel().catch(() => undefined);
         const result: ResolvedImage = {
-            imageUrl: targetUrl,
-            pageUrl: targetUrl,
+            imageUrl: targetHref,
+            pageUrl: targetHref,
         };
-        await writeCachedImagePreview(targetUrl, result);
-        return includeResponse ? { ...result, response: pageResponse } : result;
+        await writeCachedImagePreview(targetHref, result);
+        return result;
     }
 
-    const previewHeaders = headersToRecord(pageResponse.headers);
-    const previewContentType = normalizePreviewContentType(pageContentType);
-    if (previewContentType) {
-        previewHeaders["content-type"] = previewContentType;
-    }
-
+    const previewContentType =
+        normalizePreviewContentType(pageContentType) || pageContentType;
     const previewBody = shouldReadPreviewResponseBody(previewContentType)
         ? await readTextBodyWithLimit(
               pageResponse,
-              MAX_PREVIEW_METADATA_BODY_BYTES
+              MAX_PREVIEW_METADATA_BODY_BYTES,
+              signal
           )
         : "";
     if (previewBody === null) {
@@ -279,8 +280,8 @@ async function resolveImagePreview(
 
     const page = await getPreviewFromContent({
         data: previewBody,
-        headers: previewHeaders,
-        url: pageResponse.url || targetUrl,
+        headers: { "content-type": previewContentType },
+        url: pageResponse.url || targetHref,
     });
 
     const imageUrl = getFirstHttpUrl("images" in page ? page.images : []);
@@ -290,22 +291,27 @@ async function resolveImagePreview(
 
     const result = {
         imageUrl,
-        pageUrl: parseHttpUrl(page.url)?.href ?? targetUrl,
+        pageUrl: parseHttpUrl(page.url)?.href ?? targetHref,
     };
-    await writeCachedImagePreview(targetUrl, result);
+    await writeCachedImagePreview(targetHref, result);
     return result;
 }
 
 async function resolveTikTokImagePreview(
     targetUrl: string,
-    oembedUrl: string
+    oembedUrl: string,
+    signal: AbortSignal
 ): Promise<ResolvedImage | null> {
-    const response = await fetchWithRedirects(parseHttpUrl(oembedUrl), {
-        headers: {
-            Accept: MIME_TYPES.json,
-            "User-Agent": USER_AGENT,
+    const response = await fetchWithRedirects(
+        parseHttpUrl(oembedUrl),
+        {
+            headers: {
+                Accept: MIME_TYPES.json,
+                "User-Agent": USER_AGENT,
+            },
         },
-    });
+        signal
+    );
     if (!response.ok) {
         log.debug("TikTok oEmbed preview request failed", {
             status: response.status,
@@ -330,19 +336,22 @@ async function proxyImageResponse(
     targetUrl: URL,
     request: Request
 ): Promise<Response> {
-    const imageResponse =
-        preview.response ??
-        (await fetchWithRedirects(
-            await parsePublicHttpUrl(preview.imageUrl),
-            {
-                headers: {
-                    Accept: "image/*",
-                    Referer: preview.pageUrl,
-                    "User-Agent": getUserAgent(targetUrl.href),
-                },
+    const publicImageUrl = await parsePublicHttpUrl(preview.imageUrl);
+    if (!publicImageUrl) {
+        return textResponse("Preview not found", 404);
+    }
+
+    const imageResponse = await fetchWithRedirects(
+        publicImageUrl,
+        {
+            headers: {
+                Accept: "image/*",
+                Referer: preview.pageUrl,
+                "User-Agent": getUserAgent(targetUrl.href),
             },
-            request.signal
-        ));
+        },
+        request.signal
+    );
 
     if (!imageResponse.ok) {
         return textResponse("Preview not found", 404);
@@ -395,7 +404,8 @@ function redirectToPreview(
 
 async function resolveVideoPreview(
     targetUrl: URL,
-    request: Request
+    request: Request,
+    delivery: PreviewDelivery
 ): Promise<Response> {
     const { signal } = request;
     if (signal.aborted) {
@@ -424,9 +434,6 @@ async function resolveVideoPreview(
             }
         }
 
-        const delivery = parsePreviewDelivery(
-            new URL(request.url).searchParams.get("delivery")
-        );
         if (delivery === "redirect") {
             return redirectToPreview(
                 videoResult.videoUrl,
@@ -448,11 +455,6 @@ async function resolveVideoPreview(
 
 async function resolveVideo(targetUrl: URL, signal?: AbortSignal) {
     const targetHref = targetUrl.href;
-    const cachedVideoUrl = await readFromRedis(cobaltCacheKey(targetHref));
-    if (cachedVideoUrl) {
-        return { videoUrl: cachedVideoUrl };
-    }
-
     const result = await resolveCobaltPreview(targetHref, signal);
     if (result.status === "SUCCESS" && result.videoPreviewUrl) {
         await writeToRedis(
@@ -623,41 +625,10 @@ function getUserAgent(url: string): string {
     return USER_AGENT;
 }
 
-function headersToRecord(headers: Headers): Record<string, string> {
-    const record: Record<string, string> = {};
-    headers.forEach((value, key) => {
-        record[key] = value;
-    });
-    return record;
-}
-
-function readWithSignal(
-    reader: ReadableStreamDefaultReader<Uint8Array>,
-    signal: AbortSignal
-) {
-    if (signal.aborted) {
-        throw new DOMException("Aborted", "AbortError");
-    }
-
-    return new Promise<Awaited<ReturnType<typeof reader.read>>>(
-        (resolve, reject) => {
-            const onAbort = () => {
-                reject(new DOMException("Aborted", "AbortError"));
-            };
-            signal.addEventListener("abort", onAbort, { once: true });
-            reader
-                .read()
-                .then(resolve, reject)
-                .finally(() => {
-                    signal.removeEventListener("abort", onAbort);
-                });
-        }
-    );
-}
-
 async function readTextBodyWithLimit(
     response: Response,
-    maxBodyBytes: number
+    maxBodyBytes: number,
+    externalSignal?: AbortSignal
 ): Promise<string | null> {
     if (isContentLengthOverLimit(response.headers, maxBodyBytes)) {
         return null;
@@ -667,38 +638,76 @@ async function readTextBodyWithLimit(
         return "";
     }
 
-    const { signal, clearTimeout } = abortAfterAny(FETCH_TIMEOUT_MS);
-
+    const { signal, clearTimeout } = abortAfterAny(
+        FETCH_TIMEOUT_MS,
+        ...(externalSignal ? [externalSignal] : [])
+    );
     const reader = response.body.getReader();
     const decoder = new TextDecoder();
     let body = "";
     let bodyBytes = 0;
+    let hasAborted = signal.aborted;
+
+    const onAbort = () => {
+        hasAborted = true;
+        // Fire-and-forget: a rejecting cancel shouldn't escape and convert a
+        // clean abort into a 404 via handlePreviewError.
+        reader.cancel("Preview metadata read aborted.").catch(() => undefined);
+    };
+    if (hasAborted) {
+        onAbort();
+    } else {
+        signal.addEventListener("abort", onAbort, { once: true });
+    }
 
     try {
         while (true) {
-            const { done, value } = await readWithSignal(reader, signal);
-            if (done) {
+            const { value, done } = await reader.read().catch((error) => {
+                // A in-flight cancel can surface as a DOMException other than
+                // AbortError, or as a TypeError on already-cancelled readers.
+                // Treat any error observed while (or after) we asked for cancel
+                // as a benign end-of-stream — otherwise the rejection bubbles
+                // through resolveImagePreview and gets surfaced as a 404.
+                if (hasAborted || isAbortError(error)) {
+                    return { done: true as const, value: undefined };
+                }
+                throw error;
+            });
+            if (done || !value) {
                 break;
             }
 
             bodyBytes += value.byteLength;
             if (bodyBytes > maxBodyBytes) {
-                await reader.cancel("Preview metadata exceeded size limit.");
-                body += decoder.decode(value);
+                const overflow = bodyBytes - maxBodyBytes;
+                const allowedSlice = value.subarray(
+                    0,
+                    value.byteLength - overflow
+                );
+                if (allowedSlice.byteLength > 0) {
+                    body += decoder.decode(allowedSlice, { stream: true });
+                }
+                // Symmetric with onAbort above: don't let a rejecting cancel
+                // escape on this code path either.
+                reader
+                    .cancel("Preview metadata exceeded size limit.")
+                    .catch(() => undefined);
+                if (hasAborted) {
+                    return null;
+                }
+                body += decoder.decode();
                 return body;
             }
 
             body += decoder.decode(value, { stream: true });
         }
 
-        return body + decoder.decode();
-    } catch (error) {
-        if (isAbortError(error)) {
-            await reader.cancel("Preview metadata read timed out.");
+        if (hasAborted) {
             return null;
         }
-        throw error;
+        return body + decoder.decode();
     } finally {
+        signal.removeEventListener("abort", onAbort);
         clearTimeout();
         reader.releaseLock();
     }

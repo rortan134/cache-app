@@ -22,7 +22,6 @@ import { useStableCallback } from "@base-ui/utils/useStableCallback";
 import {
     Bot,
     CalendarClock,
-    FolderSearch,
     Pause,
     Play,
     Trash2,
@@ -38,7 +37,6 @@ type AutomationRunListItem = Awaited<
 >[number];
 
 const TEMPLATE_ICON: Record<string, LucideIcon> = {
-    smart_collections: FolderSearch,
     weekly_digest: CalendarClock,
 };
 

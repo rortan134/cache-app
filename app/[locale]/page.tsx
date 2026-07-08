@@ -35,12 +35,14 @@ import OrganizeSectionImage from "@/public/organize-section.webp";
 import SmartCollectionsBackgroundImage from "@/public/smart-collections-background.webp";
 import { LocaleSelector, T } from "gt-next";
 import {
+    Album,
     Bookmark,
     CircleCheck,
     CloudDownload,
     Component,
+    Lightbulb,
     Search,
-    Sparkles,
+    SquareMousePointer,
     Terminal,
     Unlink,
     Workflow,
@@ -62,7 +64,7 @@ export async function generateMetadata({
         description: gtPublicString(
             locale,
             "home.metadata.description",
-            "The bookmark manager for busy people. View, manage, and organize bookmarks across platforms."
+            "The AI bookmark manager for busy people. View, manage, and organize bookmarks across platforms."
         ),
         keywords: [
             "bookmark manager",
@@ -224,6 +226,24 @@ export default async function Home() {
                                     span of a coffee break.
                                 </p>
                             </T>
+                            <ul className="mt-2 flex flex-col space-y-2 text-xs">
+                                <T context="Features">
+                                    <li className="flex items-center gap-2">
+                                        <Search className="inline-block size-4 shrink-0" />
+                                        <span>
+                                            Search the way you think, faster
+                                            than ever
+                                        </span>
+                                    </li>
+                                    <li className="flex items-center gap-2">
+                                        <Lightbulb className="inline-block size-4 shrink-0" />
+                                        <span>
+                                            Find new insights, and explore ideas
+                                            with Cache's AI agent
+                                        </span>
+                                    </li>
+                                </T>
+                            </ul>
                         </div>
                         <div className="order-first aspect-square w-full overflow-hidden rounded-2xl bg-muted md:order-last">
                             <figure className="overflow-hidden">
@@ -253,6 +273,24 @@ export default async function Home() {
                                     to you.
                                 </p>
                             </T>
+                            <ul className="mt-2 flex flex-col space-y-2 text-xs">
+                                <T context="Features">
+                                    <li className="flex items-center gap-2">
+                                        <SquareMousePointer className="inline-block size-4 shrink-0" />
+                                        <span>
+                                            Save from anywhere with the browser
+                                            extension
+                                        </span>
+                                    </li>
+                                    <li className="flex items-center gap-2">
+                                        <CloudDownload className="inline-block size-4 shrink-0" />
+                                        <span>
+                                            Share or export your collections
+                                            from Cache anytime
+                                        </span>
+                                    </li>
+                                </T>
+                            </ul>
                         </div>
                         <div className="order-first aspect-square w-full overflow-hidden rounded-2xl bg-muted md:order-last">
                             <figure className="relative flex h-full items-center justify-center overflow-hidden p-6">
@@ -338,7 +376,8 @@ export default async function Home() {
                                         <Workflow className="inline-block size-4 shrink-0" />
                                         <span>
                                             Set up simple routines that show you
-                                            a daily digest of your recent saves
+                                            a daily digest of your recent saves,
+                                            and more
                                         </span>
                                     </li>
                                     <li className="flex items-center gap-2">
@@ -384,10 +423,10 @@ export default async function Home() {
                                         </span>
                                     </li>
                                     <li className="flex items-center gap-2">
-                                        <Search className="inline-block size-4 shrink-0" />
+                                        <Album className="inline-block size-4 shrink-0" />
                                         <span>
-                                            Find anything with full-text search
-                                            and OCR
+                                            Read articles without distractions
+                                            using Quick Look
                                         </span>
                                     </li>
                                 </T>
@@ -430,23 +469,9 @@ export default async function Home() {
                                         </span>
                                     </li>
                                     <li className="flex items-center gap-2">
-                                        <CloudDownload className="inline-block size-4 shrink-0" />
-                                        <span>
-                                            Share or export your collections
-                                            from Cache anytime
-                                        </span>
-                                    </li>
-                                    <li className="flex items-center gap-2">
                                         <Unlink className="inline-block size-4 shrink-0" />
                                         <span>
-                                            Remove duplicates and broken links
-                                        </span>
-                                    </li>
-                                    <li className="flex items-center gap-2">
-                                        <Sparkles className="inline-block size-4 shrink-0" />
-                                        <span>
-                                            Gain AI-powered insights into your
-                                            content
+                                            Filter duplicates and broken links
                                         </span>
                                     </li>
                                 </T>

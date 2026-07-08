@@ -1,5 +1,6 @@
 import { LibraryCollectionError } from "@/lib/collections/error";
 import {
+    deleteLibraryItem,
     getLibraryItem,
     listCollections,
     listLibraryItems,
@@ -27,7 +28,6 @@ import {
 } from "@/lib/integrations/mcp/rate-limit";
 import {
     addLibraryItem,
-    deleteLibraryItemMcp,
     toMcpLibraryItem,
 } from "@/lib/integrations/mcp/service";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
@@ -311,10 +311,15 @@ async function handleDeleteLibraryItem(
     const { userId } = auth;
 
     try {
-        await deleteLibraryItemMcp({ itemId: args.itemId, userId });
+        await deleteLibraryItem({ itemId: args.itemId, userId });
         const payload = McpDeleteLibraryItemOutputSchema.parse({ ok: true });
         return {
-            content: [{ text: "Library item deleted.", type: "text" }],
+            content: [
+                {
+                    text: "Library item moved to Recently deleted.",
+                    type: "text",
+                },
+            ],
             structuredContent: asStructured(payload),
         };
     } catch (error) {
@@ -322,10 +327,11 @@ async function handleDeleteLibraryItem(
             error instanceof LibraryCollectionError &&
             error.data.code === "not_found"
         ) {
-            // Treat already-deleted as a successful no-op so MCP clients can
-            // retry safely after a network blip. The tool's `outputSchema`
-            // (and the `{ ok: true }` payload) is unchanged so callers that
-            // rely on the typed result can keep doing so without branching.
+            // Treat already-trashed or never-existed as a successful no-op
+            // so MCP clients can retry safely after a network blip. The
+            // tool's `outputSchema` (and the `{ ok: true }` payload) is
+            // unchanged so callers that rely on the typed result can keep
+            // doing so without branching.
             const payload = McpDeleteLibraryItemOutputSchema.parse({
                 ok: true,
             });
@@ -341,7 +347,7 @@ async function handleDeleteLibraryItem(
         }
         return handleToolError(
             "delete_library_item",
-            "Could not delete the library item.",
+            "Could not move the library item to Recently deleted.",
             userId,
             error
         );

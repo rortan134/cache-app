@@ -117,7 +117,6 @@ Open [http://localhost:3000](http://localhost:3000).
 - **Comments** — Add and view threaded comments on entries.
 - **Inbox view** — Triage view for reviewing entries.
 - **Notes improvements** — Richer editing experience, advanced formatting.
-- *More coming soon*
 
 ---
 

@@ -4,6 +4,7 @@ import { isUnauthenticated, requireActionUserId } from "@/lib/auth/session";
 import {
     COLLECTION_VALIDATION_MESSAGES,
     STATUS_MAP_NOT_FOUND,
+    STATUS_MAP_TRASHED_ITEM,
     uniqueStrings,
     type ActionError,
     type LibraryCollectionSummary,
@@ -21,6 +22,7 @@ import {
     MAX_COLLECTIONS_PER_ITEM,
 } from "@/lib/common/constants";
 import { createLogger } from "@/lib/common/logs/console/logger";
+import { revalidatePath } from "next/cache";
 import * as z from "zod";
 import { LibraryCollectionError } from "./error";
 import * as service from "./service";
@@ -61,10 +63,46 @@ const LibraryItemFavoriteToggleInputSchema = z.object({
         .min(1, COLLECTION_VALIDATION_MESSAGES.itemFavoriteIdRequired),
 });
 
+const LibraryItemRestoreInputSchema = z.object({
+    itemId: z
+        .string()
+        .trim()
+        .min(1, COLLECTION_VALIDATION_MESSAGES.itemRestoreIdRequired),
+});
+
+const LibraryItemPurgeInputSchema = z.object({
+    itemId: z
+        .string()
+        .trim()
+        .min(1, COLLECTION_VALIDATION_MESSAGES.itemPurgeIdRequired),
+});
+
 export type LibraryItemDeleteResult =
     | {
           collectionSummaries: LibraryCollectionSummary[];
           itemId: string;
+          status: typeof ACTION_STATUS.DELETED;
+      }
+    | ActionError;
+
+export type LibraryItemRestoreResult =
+    | {
+          collectionSummaries: LibraryCollectionSummary[];
+          itemId: string;
+          status: typeof ACTION_STATUS.RESTORED;
+      }
+    | ActionError;
+
+export type LibraryItemPurgeResult =
+    | {
+          itemId: string;
+          status: typeof ACTION_STATUS.DELETED;
+      }
+    | ActionError;
+
+export type LibraryItemPurgeExpiredResult =
+    | {
+          purgedItemIds: string[];
           status: typeof ACTION_STATUS.DELETED;
       }
     | ActionError;
@@ -118,11 +156,13 @@ export async function deleteLibraryItem(
     }
 
     try {
-        const result = await service.deleteLibraryItem({
+        const result = await service.trashLibraryItem({
             itemId: parsed.data.itemId,
             userId: auth.userId,
         });
 
+        revalidatePath("/library");
+        revalidatePath("/recently-deleted");
         return {
             ...result,
             status: ACTION_STATUS.DELETED,
@@ -133,6 +173,123 @@ export async function deleteLibraryItem(
             error,
             errorFactory: LibraryCollectionError,
             fallbackMessage: "We couldn't delete this saved item right now.",
+            log,
+        });
+    }
+}
+
+export async function restoreLibraryItem(
+    itemId: string
+): Promise<LibraryItemRestoreResult> {
+    const parsed = LibraryItemRestoreInputSchema.safeParse({ itemId });
+    if (!parsed.success) {
+        return {
+            message: getValidationErrorMessage(
+                parsed,
+                COLLECTION_VALIDATION_MESSAGES.itemRestoreIdRequired
+            ),
+            status: ACTION_STATUS.INVALID,
+        };
+    }
+
+    const auth = await requireActionUserId(
+        "Sign in again to manage saved items."
+    );
+    if (isUnauthenticated(auth)) {
+        return auth;
+    }
+
+    try {
+        const result = await service.restoreLibraryItem({
+            itemId: parsed.data.itemId,
+            userId: auth.userId,
+        });
+
+        revalidatePath("/library");
+        revalidatePath("/recently-deleted");
+        return {
+            ...result,
+            status: ACTION_STATUS.RESTORED,
+        };
+    } catch (error) {
+        return handleActionError({
+            codeToStatus: STATUS_MAP_TRASHED_ITEM,
+            error,
+            errorFactory: LibraryCollectionError,
+            fallbackMessage: "We couldn't restore this saved item right now.",
+            log,
+        });
+    }
+}
+
+export async function purgeLibraryItem(
+    itemId: string
+): Promise<LibraryItemPurgeResult> {
+    const parsed = LibraryItemPurgeInputSchema.safeParse({ itemId });
+    if (!parsed.success) {
+        return {
+            message: getValidationErrorMessage(
+                parsed,
+                COLLECTION_VALIDATION_MESSAGES.itemPurgeIdRequired
+            ),
+            status: ACTION_STATUS.INVALID,
+        };
+    }
+
+    const auth = await requireActionUserId(
+        "Sign in again to manage saved items."
+    );
+    if (isUnauthenticated(auth)) {
+        return auth;
+    }
+
+    try {
+        const result = await service.purgeLibraryItem({
+            itemId: parsed.data.itemId,
+            userId: auth.userId,
+        });
+
+        revalidatePath("/recently-deleted");
+        return {
+            itemId: result.itemId,
+            status: ACTION_STATUS.DELETED,
+        };
+    } catch (error) {
+        return handleActionError({
+            codeToStatus: STATUS_MAP_TRASHED_ITEM,
+            error,
+            errorFactory: LibraryCollectionError,
+            fallbackMessage:
+                "We couldn't permanently delete this saved item right now.",
+            log,
+        });
+    }
+}
+
+export async function purgeExpiredLibraryItems(): Promise<LibraryItemPurgeExpiredResult> {
+    const auth = await requireActionUserId(
+        "Sign in again to manage saved items."
+    );
+    if (isUnauthenticated(auth)) {
+        return auth;
+    }
+
+    try {
+        const result = await service.purgeExpiredLibraryItems({
+            userId: auth.userId,
+        });
+        revalidatePath("/recently-deleted");
+        return {
+            purgedItemIds: result.purgedItemIds,
+            status: ACTION_STATUS.DELETED,
+        };
+    } catch (error) {
+        return handleActionError({
+            codeToStatus: {},
+            error,
+            errorFactory: LibraryCollectionError,
+            fallbackMessage:
+                "We couldn't finish cleaning up Recently deleted right now.",
             log,
         });
     }

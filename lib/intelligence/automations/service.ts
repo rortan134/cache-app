@@ -629,45 +629,6 @@ export async function finishAutomationRun(args: {
     });
 }
 
-export async function getSmartCollectionItemIdsForRun(args: { runId: string }) {
-    "use step";
-
-    const run = await prisma.automationRun.findUnique({
-        include: {
-            automation: true,
-        },
-        where: {
-            id: args.runId,
-        },
-    });
-    if (!run) {
-        return [];
-    }
-
-    const baseline =
-        run.automation.lastSucceededAtUtc ??
-        run.automation.activatedAtUtc ??
-        run.scheduledForUtc;
-
-    const items = await prisma.libraryItem.findMany({
-        orderBy: {
-            createdAt: "asc",
-        },
-        select: {
-            id: true,
-        },
-        where: {
-            createdAt: {
-                gt: baseline,
-                lte: run.scheduledForUtc,
-            },
-            userId: run.userId,
-        },
-    });
-
-    return items.map((item) => item.id);
-}
-
 async function requireAutomationOwned(
     tx: Pick<AutomationTransaction, "automation">,
     args: {

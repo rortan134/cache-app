@@ -14,18 +14,16 @@ export const AUTOMATION_WEB_FETCH_RETRY_ATTEMPTS = 3;
 export const AUTOMATION_WEB_FETCH_RETRY_BASE_DELAY_MS = 1000;
 export const AUTOMATION_WEB_FETCH_TOTAL_TIMEOUT_MS = 30_000;
 
+// Built-in automations seeded for every new user at signup time. Smart
+// collections is intentionally NOT here: it is a per-user Library preference
+// (`User.smartCollectionsEnabled`) backed by the event-driven classifier
+// that runs on every save, not a scheduled automation.
 export const AUTOMATION_TEMPLATE_DEFINITIONS = [
     {
         cadence: "weekly",
         prompt: "Create a concise weekly digest of the most useful saved items. Group related ideas, call out what deserves attention, and include practical next steps.",
         templateKey: "weekly_digest",
         title: "Weekly digest",
-    },
-    {
-        cadence: "daily",
-        prompt: "Classify newly saved items into useful collections. Be conservative, prefer existing collections, and create a new collection only for a clear reusable theme.",
-        templateKey: "smart_collections",
-        title: "Smart collections",
     },
 ] as const satisfies Array<{
     cadence: "daily" | "weekly" | "monthly";

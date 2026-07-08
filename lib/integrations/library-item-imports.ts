@@ -95,6 +95,9 @@ export function buildLibraryItemUpdateData(
     return {
         browserProfileId: row.browserProfileId,
         caption: row.caption,
+        // An upstream re-add of a tombstoned row un-trashes it: the user's
+        // sync still carries the item, so the tombstone is stale.
+        deletedAt: null,
         kind: row.kind,
         parentExternalId: row.parentExternalId,
         postedAt: row.postedAt,

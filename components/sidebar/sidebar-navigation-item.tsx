@@ -11,7 +11,7 @@ import { useHotkeys } from "react-hotkeys-hook";
 interface SidebarNavigationItemProps extends React.ComponentProps<typeof Link> {
     href: string;
     icon: React.ReactNode;
-    shortcutKeys: string;
+    shortcutKeys?: string;
 }
 
 export function SidebarNavigationItem({
@@ -23,8 +23,9 @@ export function SidebarNavigationItem({
 }: SidebarNavigationItemProps) {
     const router = useRouter();
 
-    useHotkeys(shortcutKeys, () => router.push(href), {
+    useHotkeys(shortcutKeys ?? "", () => router.push(href), {
         description: `Navigate to ${props["aria-label"]}`,
+        enabled: Boolean(shortcutKeys),
         preventDefault: true,
     });
 
@@ -51,13 +52,15 @@ export function SidebarNavigationItem({
                         >
                             <span className="truncate">{children}</span>
                         </div>
-                        <Kbd
-                            className="ml-auto bg-transparent opacity-0 group-hover:opacity-50"
-                            data-sidebar-label=""
-                        >
-                            <CmdKbd />
-                            {shortcutKeys.split("+").pop()}
-                        </Kbd>
+                        {shortcutKeys ? (
+                            <Kbd
+                                className="ml-auto bg-transparent opacity-0 group-hover:opacity-50"
+                                data-sidebar-label=""
+                            >
+                                <CmdKbd />
+                                {shortcutKeys.split("+").pop()}
+                            </Kbd>
+                        ) : null}
                     </SidebarItem>
                 }
             />

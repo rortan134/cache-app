@@ -305,6 +305,7 @@ async function searchAskCacheLibrary(args: {
         orderBy: [{ scrapedAt: SORT_DESC }, { updatedAt: SORT_DESC }],
         take: limit + 1,
         where: {
+            deletedAt: null,
             kind: { not: ITEM_KIND_FOLDER },
             userId: args.userId,
             ...(collectionIds.length > 0

@@ -73,6 +73,8 @@ const journal = await Bun.file(journalPath).json()
 
 ## On React components
 
+Never show the empty state during the loading state. Loading indicators (skeletons, spinners) and empty states are mutually exclusive — guard empty state checks with `isLoading` so the loading UI renders first, and the empty state only appears after loading completes with zero results.
+
 Always build React components following full `vercel-composition-patterns` and `vercel-react-best-practices` rules.
 
 Every component should be co-located into a single file with its parts, and should use a common, composable interface, making them predictable.

@@ -1,8 +1,8 @@
 "use client";
 
-import { cn } from "@/lib/common/cn";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { cn } from "@/lib/common/cn";
 import { Drawer as DrawerPrimitive } from "@base-ui/react/drawer";
 import { mergeProps } from "@base-ui/react/merge-props";
 import { useRender } from "@base-ui/react/use-render";
@@ -40,9 +40,7 @@ export function Drawer<Payload = unknown>({
     swipeDirection,
     position = "bottom",
     ...props
-}: DrawerPrimitive.Root.Props<Payload> & {
-    position?: DrawerPosition;
-}) {
+}: DrawerPrimitive.Root.Props<Payload> & { position?: DrawerPosition }) {
     return (
         <DrawerContext value={{ position }}>
             <DrawerPrimitive.Root
@@ -131,13 +129,11 @@ export function DrawerPopup({
     shouldShowCloseButton = false,
     position: positionProp,
     variant = "default",
-    shouldShowBar = false,
     ...props
 }: DrawerPrimitive.Popup.Props & {
     shouldShowCloseButton?: boolean;
     position?: DrawerPosition;
     variant?: "default" | "straight" | "inset";
-    shouldShowBar?: boolean;
 }) {
     const { position: contextPosition } = React.use(DrawerContext);
     const position = positionProp ?? contextPosition;
@@ -204,7 +200,6 @@ export function DrawerPopup({
                     <XIcon />
                 </DrawerPrimitive.Close>
             )}
-            {shouldShowBar && <DrawerBar />}
         </DrawerPrimitive.Popup>
     );
 }
@@ -331,40 +326,6 @@ export function DrawerPanel({
     }
 
     return content;
-}
-
-function DrawerBar({
-    className,
-    position: positionProp,
-    render,
-    ...props
-}: useRender.ComponentProps<"div"> & {
-    position?: DrawerPosition;
-}) {
-    const { position: contextPosition } = React.use(DrawerContext);
-    const position = positionProp ?? contextPosition;
-    const horizontal = position === "left" || position === "right";
-    const defaultProps = {
-        "aria-hidden": true as const,
-        className: cn(
-            "absolute flex touch-none items-center justify-center p-3 before:rounded-full before:bg-input",
-            horizontal
-                ? "inset-y-0 before:h-12 before:w-1"
-                : "inset-x-0 before:h-1 before:w-12",
-            position === "top" && "bottom-0",
-            position === "bottom" && "top-0",
-            position === "left" && "right-0",
-            position === "right" && "left-0",
-            className
-        ),
-        "data-slot": "drawer-bar",
-    };
-
-    return useRender({
-        defaultTagName: "div",
-        props: mergeProps<"div">(defaultProps, props),
-        render,
-    });
 }
 
 function wrapRender(

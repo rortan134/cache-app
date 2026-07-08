@@ -20,6 +20,7 @@ export const SITE_DOMAIN = "www.cachd.app";
 
 export const CACHE_EXTENSION_DOWNLOAD_URL =
     "https://chromewebstore.google.com/detail/";
+export const CACHE_EXTENSION_ID = "";
 export const CACHE_EXTENSION_READY_EVENT = "CACHE_EXTENSION_READY";
 export const CACHE_SITE_OPEN_AND_SYNC_EVENT = "CACHE_SITE_OPEN_AND_SYNC";
 
@@ -105,9 +106,13 @@ export const ACTION_STATUS = {
     ERROR: "ERROR",
     INVALID: "INVALID",
     NOT_FOUND: "NOT_FOUND",
+    RESTORED: "RESTORED",
     SHARED: "SHARED",
     SUBSCRIPTION_REQUIRED: "SUBSCRIPTION_REQUIRED",
     SUCCESS: "SUCCESS",
     UNAUTHORIZED: "UNAUTHORIZED",
     UPDATED: "UPDATED",
 } as const;
+
+/** Days an item lives in Recently deleted before a hard purge. */
+export const LIBRARY_ITEM_TRASH_WINDOW_DAYS = 30;

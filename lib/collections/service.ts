@@ -8,6 +8,7 @@ import {
     toLibraryCollectionSummaryFromTagRecord,
     toLibraryCollectionTag,
     toLibraryItemWithCollections,
+    itemPreviewImageUrl,
     type LibraryCollectionSummary,
     type LibraryCollectionTag,
     type LibraryCollectionTagRecord,
@@ -18,6 +19,7 @@ import { resolveCobaltDownloadUrl } from "@/lib/integrations/cobalt/service";
 import {
     FREE_LIBRARY_PREVIEW_ITEMS,
     ITEM_KIND_FOLDER,
+    LIBRARY_ITEM_TRASH_WINDOW_DAYS,
     SORT_ASC,
     SORT_DESC,
 } from "@/lib/common/constants";
@@ -27,18 +29,20 @@ import {
 } from "@/lib/common/strings";
 import { prisma } from "@/prisma";
 import { Prisma } from "@/prisma/client/client";
-import {
-    AutomationRunStatus,
-    AutomationStatus,
-    AutomationTemplateKey,
-    type CollectionPriority,
-    type LibraryItemSource,
+import type {
+    CollectionPriority,
+    LibraryItemSource,
 } from "@/prisma/client/enums";
 import { LibraryCollectionError } from "./error";
 
 const COLLECTION_LIST_LIMIT_MAX = 9999;
+const COLLECTION_CARD_PREVIEW_LIMIT = 4;
 const LIBRARY_ITEMS_PAGE_LIMIT_DEFAULT = 9999;
 const LIBRARY_ITEMS_PAGE_LIMIT_MAX = 9999;
+const LIBRARY_ITEM_TRASH_WINDOW_MS =
+    LIBRARY_ITEM_TRASH_WINDOW_DAYS * 24 * 60 * 60 * 1000;
+const DAY_IN_MS = 24 * 60 * 60 * 1000;
+const RECENTLY_DELETED_LIMIT_MAX = 200;
 
 type CollectionTransaction = Prisma.TransactionClient;
 
@@ -65,7 +69,7 @@ function toIdConnections(ids: readonly string[]): Array<{
 }
 
 function createCollectionError(args: {
-    code: "duplicate_name" | "not_found";
+    code: "duplicate_name" | "not_found" | "not_trashed";
     message: string;
     operation: string;
 }): InstanceType<typeof LibraryCollectionError> {
@@ -171,13 +175,24 @@ async function findCollectionSummariesOwnedByIds(
         select: {
             _count: {
                 select: {
-                    items: true,
+                    // Mirror `listCollections` so the sidebar/counts agree on
+                    // what an item is: live-only, no folders, no tombstones.
+                    items: {
+                        where: {
+                            deletedAt: null,
+                            kind: { not: ITEM_KIND_FOLDER },
+                        },
+                    },
                 },
             },
             ...LIBRARY_COLLECTION_TAG_SELECT,
             items: {
                 select: {
                     source: true,
+                },
+                where: {
+                    deletedAt: null,
+                    kind: { not: ITEM_KIND_FOLDER },
                 },
             },
         },
@@ -240,6 +255,7 @@ async function requireLibraryItemsOwnedWithCollections(
             id: true,
         },
         where: {
+            deletedAt: null,
             id: {
                 in: args.itemIds,
             },
@@ -320,6 +336,7 @@ async function requireLibraryItemOwnedWithCollections(
             id: true,
         },
         where: {
+            deletedAt: null,
             id: args.itemId,
             userId: args.userId,
         },
@@ -344,6 +361,7 @@ async function requireLibraryItemOwned(
     const item = await tx.libraryItem.findFirst({
         select: { id: true, source: true },
         where: {
+            deletedAt: null,
             id: args.itemId,
             userId: args.userId,
         },
@@ -368,6 +386,7 @@ async function requireLibraryItemsOwned(
     const items = await tx.libraryItem.findMany({
         select: { id: true, source: true },
         where: {
+            deletedAt: null,
             id: { in: args.itemIds },
             userId: args.userId,
         },
@@ -539,6 +558,7 @@ export function duplicateCollection({
                 description: true,
                 items: {
                     select: { id: true, source: true },
+                    where: { deletedAt: null },
                 },
                 name: true,
                 priority: true,
@@ -678,17 +698,61 @@ export function deleteLibraryItem({
     collectionSummaries: LibraryCollectionSummary[];
     itemId: string;
 }> {
+    return trashLibraryItem({ itemId, userId });
+}
+
+export function trashLibraryItem({
+    itemId,
+    userId,
+}: {
+    itemId: string;
+    userId: string;
+}): Promise<{
+    collectionSummaries: LibraryCollectionSummary[];
+    itemId: string;
+}> {
     return prisma.$transaction(async (tx) => {
-        const item = await requireLibraryItemOwnedWithCollections(tx, {
-            itemId,
-            message: "This saved item was already removed.",
-            operation: "deleteLibraryItem",
-            userId,
+        const item = await tx.libraryItem.findFirst({
+            select: {
+                collections: {
+                    select: {
+                        id: true,
+                    },
+                },
+                deletedAt: true,
+                id: true,
+            },
+            where: {
+                deletedAt: null,
+                id: itemId,
+                userId,
+            },
         });
 
-        await tx.libraryItem.delete({
+        if (!item) {
+            throw createCollectionError({
+                code: "not_found",
+                message: "This saved item was already removed.",
+                operation: "trashLibraryItem",
+            });
+        }
+
+        const now = new Date();
+        await tx.libraryItem.update({
+            data: {
+                deletedAt: now,
+            },
             where: {
                 id: item.id,
+            },
+        });
+
+        await tx.libraryActivityEvent.create({
+            data: {
+                kind: "item_deleted",
+                libraryItemId: item.id,
+                occurredAt: now,
+                userId,
             },
         });
 
@@ -704,6 +768,272 @@ export function deleteLibraryItem({
     });
 }
 
+interface RestoreLibraryItemArgs {
+    itemId: string;
+    userId: string;
+}
+
+interface RestoreLibraryItemResult {
+    collectionSummaries: LibraryCollectionSummary[];
+    itemId: string;
+}
+
+/**
+ * Restores a tombstoned item back to the library. Items already restored or
+ * never trashed surface as `not_found`; items currently in the trash are
+ * brought back via a single update plus an `item_restored` activity event.
+ * Collection summaries are returned so callers can refresh sidebar counts.
+ */
+export function restoreLibraryItem({
+    itemId,
+    userId,
+}: RestoreLibraryItemArgs): Promise<RestoreLibraryItemResult> {
+    return prisma.$transaction(async (tx) => {
+        const item = await tx.libraryItem.findFirst({
+            select: {
+                collections: {
+                    select: {
+                        id: true,
+                    },
+                },
+                deletedAt: true,
+                id: true,
+            },
+            where: {
+                deletedAt: { not: null },
+                id: itemId,
+                userId,
+            },
+        });
+
+        if (!item) {
+            throw createCollectionError({
+                code: "not_found",
+                message: "That saved item is no longer in Recently deleted.",
+                operation: "restoreLibraryItem",
+            });
+        }
+
+        const now = new Date();
+        await tx.libraryItem.update({
+            data: { deletedAt: null },
+            where: { id: item.id },
+        });
+        await tx.libraryActivityEvent.create({
+            data: {
+                kind: "item_restored",
+                libraryItemId: item.id,
+                occurredAt: now,
+                userId,
+            },
+        });
+
+        return {
+            collectionSummaries: await findCollectionSummariesOwnedByIds(tx, {
+                collectionIds: item.collections.map(
+                    (collection) => collection.id
+                ),
+                userId,
+            }),
+            itemId: item.id,
+        };
+    });
+}
+
+interface PurgeLibraryItemArgs {
+    itemId: string;
+    userId: string;
+}
+
+interface PurgeLibraryItemResult {
+    itemId: string;
+}
+
+/**
+ * Permanently removes a tombstoned item from the library. Items not in
+ * Recently deleted (live items or already-purged tombstones) surface as
+ * `not_found` so callers do not accidentally hard-delete an active item.
+ */
+export function purgeLibraryItem({
+    itemId,
+    userId,
+}: PurgeLibraryItemArgs): Promise<PurgeLibraryItemResult> {
+    return prisma.$transaction(async (tx) => {
+        const item = await tx.libraryItem.findFirst({
+            select: { deletedAt: true, id: true },
+            where: { deletedAt: { not: null }, id: itemId, userId },
+        });
+
+        if (!item) {
+            throw createCollectionError({
+                code: "not_found",
+                message: "That saved item is no longer in Recently deleted.",
+                operation: "purgeLibraryItem",
+            });
+        }
+
+        await tx.libraryActivityEvent.create({
+            data: {
+                kind: "item_purged",
+                libraryItemId: item.id,
+                occurredAt: new Date(),
+                userId,
+            },
+        });
+        await tx.libraryItem.delete({ where: { id: item.id } });
+
+        return { itemId: item.id };
+    });
+}
+
+interface PurgeExpiredLibraryItemsArgs {
+    now?: Date;
+    userId: string;
+}
+
+interface PurgeExpiredLibraryItemsResult {
+    purgedItemIds: string[];
+}
+
+/**
+ * Lazily hard-deletes tombstones older than `LIBRARY_ITEM_TRASH_WINDOW_DAYS`
+ * for one user. Each deletion writes an `item_purged` event so the activity
+ * timeline reflects what was lost. Exposed for page-load sweeps so we never
+ * ship a cron job for a feature that mostly writes Postgres rows.
+ *
+ * Pass `now` in tests; production callers use the default `new Date()`.
+ */
+export function purgeExpiredLibraryItems({
+    now: nowArg,
+    userId,
+}: PurgeExpiredLibraryItemsArgs): Promise<PurgeExpiredLibraryItemsResult> {
+    const now = nowArg ?? new Date();
+    const cutoff = new Date(now.getTime() - LIBRARY_ITEM_TRASH_WINDOW_MS);
+
+    return prisma.$transaction(async (tx) => {
+        const purgedIds: string[] = [];
+        const PURGE_BATCH_SIZE = 1000;
+
+        // Repeat until no rows match the expired cutoff. A single batch
+        // bounded at PURGE_BATCH_SIZE would leave stale tombstones visible
+        // in listRecentlyDeletedItems, defeating the trash-window guarantee.
+        while (true) {
+            const candidateIds = (
+                await tx.libraryItem.findMany({
+                    select: { id: true },
+                    take: PURGE_BATCH_SIZE,
+                    where: {
+                        deletedAt: { lt: cutoff, not: null },
+                        userId,
+                    },
+                })
+            ).map((item) => item.id);
+
+            if (candidateIds.length === 0) {
+                break;
+            }
+
+            // deleteMany includes `deletedAt` so a concurrent restore that sets
+            // `deletedAt = null` between the read above and this delete is
+            // excluded — a restored item is no longer expired and must survive.
+            await tx.libraryItem.deleteMany({
+                where: {
+                    deletedAt: { lt: cutoff, not: null },
+                    id: { in: candidateIds },
+                    userId,
+                },
+            });
+
+            // Find which candidates survived the delete (were restored between
+            // read and delete) so events only track items actually removed.
+            const survivors = new Set(
+                (
+                    await tx.libraryItem.findMany({
+                        select: { id: true },
+                        where: { id: { in: candidateIds }, userId },
+                    })
+                ).map((item) => item.id)
+            );
+            const batchPurged = candidateIds.filter((id) => !survivors.has(id));
+            purgedIds.push(...batchPurged);
+        }
+
+        if (purgedIds.length > 0) {
+            await tx.libraryActivityEvent.createMany({
+                data: purgedIds.map((itemId) => ({
+                    kind: "item_purged" as const,
+                    libraryItemId: itemId,
+                    occurredAt: now,
+                    userId,
+                })),
+            });
+        }
+
+        return { purgedItemIds: purgedIds };
+    });
+}
+
+interface ListRecentlyDeletedItemsArgs {
+    limit?: number;
+    userId: string;
+}
+
+interface RecentlyDeletedItem {
+    collections: LibraryCollectionTag[];
+    daysRemaining: number;
+    deletedAt: Date;
+    item: LibraryItemWithCollections;
+}
+
+/**
+ * Loads the calling user's tombstones ordered by `deletedAt desc`. Returns
+ * each row plus a derived `daysRemaining` countdown used by the UI to
+ * communicate when hard deletion will occur. The lazy expiry sweep runs
+ * before listing so the user never sees items the next page load would
+ * purge anyway.
+ */
+export async function listRecentlyDeletedItems({
+    limit,
+    userId,
+}: ListRecentlyDeletedItemsArgs): Promise<RecentlyDeletedItem[]> {
+    const now = new Date();
+    await purgeExpiredLibraryItems({ now, userId });
+
+    const take = Math.max(
+        1,
+        Math.min(
+            limit ?? RECENTLY_DELETED_LIMIT_MAX,
+            RECENTLY_DELETED_LIMIT_MAX
+        )
+    );
+
+    const rows = await prisma.libraryItem.findMany({
+        include: LIBRARY_ITEM_COLLECTIONS_INCLUDE,
+        orderBy: [{ deletedAt: SORT_DESC }, { id: SORT_DESC }],
+        take,
+        where: {
+            deletedAt: { not: null },
+            kind: { not: ITEM_KIND_FOLDER },
+            userId,
+        },
+    });
+
+    return rows.map((item) => {
+        const deletedAt = item.deletedAt ?? now;
+        const expiresAt = deletedAt.getTime() + LIBRARY_ITEM_TRASH_WINDOW_MS;
+        const daysRemaining = Math.max(
+            0,
+            Math.round((expiresAt - now.getTime()) / DAY_IN_MS)
+        );
+        return {
+            collections: item.collections,
+            daysRemaining,
+            deletedAt,
+            item,
+        };
+    });
+}
+
 export async function toggleLibraryItemFavorite({
     itemId,
     userId,
@@ -714,7 +1044,7 @@ export async function toggleLibraryItemFavorite({
     const updated = await prisma.$transaction(async (tx) => {
         const existing = await tx.libraryItem.findFirst({
             select: { favoritedAt: true },
-            where: { id: itemId, userId },
+            where: { deletedAt: null, id: itemId, userId },
         });
 
         if (!existing) {
@@ -730,6 +1060,7 @@ export async function toggleLibraryItemFavorite({
             },
             include: LIBRARY_ITEM_COLLECTIONS_INCLUDE,
             where: {
+                deletedAt: null,
                 favoritedAt: existing.favoritedAt ? { not: null } : null,
                 id: itemId,
                 userId,
@@ -859,6 +1190,7 @@ export function updateLibraryItemsCollections({
         const updatedItems = await tx.libraryItem.findMany({
             select: LIBRARY_ITEM_COLLECTIONS_SELECT,
             where: {
+                deletedAt: null,
                 id: {
                     in: itemIds,
                 },
@@ -907,6 +1239,7 @@ export async function listLibraryItems(
     const limit = Math.max(1, Math.min(args.limit ?? 20, 50));
     const skip = Math.max(args.offset ?? 0, 0);
     const where: Prisma.LibraryItemWhereInput = {
+        deletedAt: null,
         kind: { not: ITEM_KIND_FOLDER },
         userId: args.userId,
     };
@@ -954,7 +1287,7 @@ export async function getLibraryItem(
 ): Promise<LibraryItemWithCollections | null> {
     const item = await prisma.libraryItem.findFirst({
         include: LIBRARY_ITEM_COLLECTIONS_INCLUDE,
-        where: { id: args.itemId, userId: args.userId },
+        where: { deletedAt: null, id: args.itemId, userId: args.userId },
     });
 
     return item ? toLibraryItemWithCollections(item) : null;
@@ -975,12 +1308,20 @@ export async function listCollections(
             // (used to derive `sources`) must mirror the same predicate.
             _count: {
                 select: {
-                    items: { where: { kind: { not: ITEM_KIND_FOLDER } } },
+                    items: {
+                        where: {
+                            deletedAt: null,
+                            kind: { not: ITEM_KIND_FOLDER },
+                        },
+                    },
                 },
             },
             items: {
                 select: { source: true },
-                where: { kind: { not: ITEM_KIND_FOLDER } },
+                where: {
+                    deletedAt: null,
+                    kind: { not: ITEM_KIND_FOLDER },
+                },
             },
         },
         orderBy: { name: SORT_ASC },
@@ -991,43 +1332,127 @@ export async function listCollections(
     return collections.map(toLibraryCollectionSummary);
 }
 
+export interface CollectionPreview {
+    description: string | null;
+    id: string;
+    itemCount: number;
+    name: string;
+    previewImageUrls: string[];
+}
+
 /**
- * Disables smart collections by pausing the seeded automation.
- *
- * The built-in automation is the durable preference source; pending runs are
- * deleted to match `pauseAutomation` semantics.
+ * Lists every collection the user owns, each paired with up to four preview
+ * image URLs drawn from its live, non-folder bookmark items. The previews are
+ * deterministically ordered by a stable hash of `collectionId:itemId` so the
+ * same four thumbnails surface on every render without storing any ordering.
+ * Fewer than four URLs means the collection has fewer previewable items.
  */
-export async function disableSmartCollections({
-    userId,
-}: {
+export async function listCollectionsWithPreviews(args: {
+    userId: string;
+}): Promise<CollectionPreview[]> {
+    const collections = await prisma.collection.findMany({
+        orderBy: { name: SORT_ASC },
+        select: {
+            _count: {
+                select: {
+                    items: {
+                        where: {
+                            deletedAt: null,
+                            kind: { not: ITEM_KIND_FOLDER },
+                        },
+                    },
+                },
+            },
+            description: true,
+            id: true,
+            items: {
+                select: { id: true, kind: true, url: true },
+                where: {
+                    deletedAt: null,
+                    kind: { not: ITEM_KIND_FOLDER },
+                },
+            },
+            name: true,
+        },
+        take: COLLECTION_LIST_LIMIT_MAX,
+        where: { userId: args.userId },
+    });
+
+    return collections.map((collection) => ({
+        description: collection.description,
+        id: collection.id,
+        itemCount: collection._count.items,
+        name: collection.name,
+        previewImageUrls: collectionPreviewImageUrls(
+            collection.id,
+            collection.items
+        ),
+    }));
+}
+
+function collectionPreviewImageUrls(
+    collectionId: string,
+    items: Array<{ id: string; kind: string; url: string }>
+): string[] {
+    const candidateUrls = items
+        .map((item) => ({ id: item.id, url: itemPreviewImageUrl(item) }))
+        .filter(
+            (entry): entry is { id: string; url: string } => entry.url !== null
+        )
+        .map((entry) => ({
+            orderSeed: collectionPreviewOrderSeed(
+                `${collectionId}:${entry.id}`
+            ),
+            url: entry.url,
+        }));
+
+    return candidateUrls
+        .sort((left, right) => left.orderSeed - right.orderSeed)
+        .slice(0, COLLECTION_CARD_PREVIEW_LIMIT)
+        .map((entry) => entry.url);
+}
+
+function collectionPreviewOrderSeed(value: string): number {
+    let hash = 0;
+    for (const character of value) {
+        hash = (hash * 31 + character.charCodeAt(0)) >>> 0;
+    }
+    return hash;
+}
+
+/**
+ * Reads the user's smart collections preference.
+ *
+ * Returns true when smart collections auto-tagging is enabled. Smart collections
+ * is a library preference backed by `User.smartCollectionsEnabled` and runs
+ * purely on the per-save event path; there is no scheduled catch-up batch.
+ */
+export async function getUserSmartCollectionsPreference(args: {
+    userId: string;
+}): Promise<boolean> {
+    const user = await prisma.user.findUnique({
+        select: { smartCollectionsEnabled: true },
+        where: { id: args.userId },
+    });
+    return user?.smartCollectionsEnabled ?? false;
+}
+
+/**
+ * Sets the user's smart collections preference.
+ *
+ * When `enabled` is false, in-flight `after()` callbacks from already-fired
+ * saves may still observe the previous state for the remainder of the
+ * request scope — the gate is best-effort at write time. Either way, all
+ * future saves will respect the new value the next time
+ * `autoTagLibraryItemsByIds` runs.
+ */
+export async function setSmartCollectionsPreference(args: {
+    enabled: boolean;
     userId: string;
 }): Promise<void> {
-    await prisma.$transaction(async (tx) => {
-        const automation = await tx.automation.findFirst({
-            select: { id: true },
-            where: {
-                templateKey: AutomationTemplateKey.smart_collections,
-                userId,
-            },
-        });
-
-        if (!automation) {
-            return;
-        }
-
-        await tx.automation.update({
-            data: {
-                nextRunAtUtc: null,
-                status: AutomationStatus.paused,
-            },
-            where: { id: automation.id },
-        });
-        await tx.automationRun.deleteMany({
-            where: {
-                automationId: automation.id,
-                status: AutomationRunStatus.pending,
-            },
-        });
+    await prisma.user.update({
+        data: { smartCollectionsEnabled: args.enabled },
+        where: { id: args.userId },
     });
 }
 
@@ -1042,6 +1467,7 @@ export async function getLibrary(args: {
     totalItemCount: number;
 }> {
     const itemWhere: Prisma.LibraryItemWhereInput = {
+        deletedAt: null,
         kind: { not: ITEM_KIND_FOLDER },
         userId: args.userId,
     };

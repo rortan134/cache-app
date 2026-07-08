@@ -124,6 +124,7 @@ async function getFreePreviewItemIdsInTransaction(
         select: { id: true },
         take: FREE_LIBRARY_PREVIEW_ITEMS,
         where: {
+            deletedAt: null,
             kind: { not: LibraryItemKind.folder },
             userId,
         },
@@ -153,6 +154,7 @@ async function hasPublicShareAccess(args: {
     const hiddenCollectionItemCount = await args.tx.libraryItem.count({
         where: {
             collections: { some: { id: args.collectionId } },
+            deletedAt: null,
             id:
                 previewItemIds.length > 0
                     ? { notIn: previewItemIds }
@@ -365,6 +367,10 @@ export async function getPublicCollectionShareById(
                             url: true,
                         },
                         where: {
+                            // Public viewers must not see items the owner
+                            // has trashed — tombstones are private until
+                            // hard-deleted.
+                            deletedAt: null,
                             kind: {
                                 not: LibraryItemKind.folder,
                             },

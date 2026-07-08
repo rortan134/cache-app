@@ -20,7 +20,7 @@ const IMPORT_UPSERT_CONCURRENCY = 4;
 type ExistingImportRow = Pick<
     LibraryItemImportRow,
     "browserProfileId" | "externalId"
->;
+> & { deletedAt: Date | null };
 
 interface UpsertLibraryItemImportsArgs {
     items: Omit<LibraryItemImportRowInput, "source">[];
@@ -74,6 +74,7 @@ async function findExistingImportRows(args: {
             ...(await prisma.libraryItem.findMany({
                 select: {
                     browserProfileId: true,
+                    deletedAt: true,
                     externalId: true,
                 },
                 where: {
@@ -108,15 +109,25 @@ export async function upsertLibraryItemImports(
         source: args.source,
         userId: args.userId,
     });
-    const existingKeys = new Set(
-        existingRows.map((row) => libraryItemIdentityKey(row))
+    const liveKeys = new Set(
+        existingRows
+            .filter((row) => row.deletedAt === null)
+            .map((row) => libraryItemIdentityKey(row))
+    );
+    const tombstonedKeys = new Set(
+        existingRows
+            .filter((row) => row.deletedAt !== null)
+            .map((row) => libraryItemIdentityKey(row))
+    );
+    const upsertableRows = rows.filter(
+        (row) => !tombstonedKeys.has(libraryItemIdentityKey(row))
     );
     const smartCollectionItemIds = new Set<string>();
     const shouldAddToSmartCollections =
         args.shouldAddToSmartCollections ??
         ((row: LibraryItemImportRow) => row.kind !== ITEM_KIND_FOLDER);
 
-    for (const batch of chunk(rows, IMPORT_UPSERT_BATCH_SIZE)) {
+    for (const batch of chunk(upsertableRows, IMPORT_UPSERT_BATCH_SIZE)) {
         const savedRows = await mapConcurrent(
             batch,
             (row) =>
@@ -143,7 +154,7 @@ export async function upsertLibraryItemImports(
             if (
                 row &&
                 shouldAddToSmartCollections(row) &&
-                !existingKeys.has(libraryItemIdentityKey(row))
+                !liveKeys.has(libraryItemIdentityKey(row))
             ) {
                 smartCollectionItemIds.add(savedRow.id);
             }
