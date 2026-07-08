@@ -2440,7 +2440,7 @@ function CollectionsListCalloutPopover() {
                     <PopoverDescription className="text-foreground text-xs leading-snug">
                         Smart Collections uses AI to automatically group your
                         saves into contextual collections as you add new
-                        entries.
+                        entries. Cache even learns your preferences over time.
                     </PopoverDescription>
                     <Button
                         className="w-fit px-0 text-muted-foreground text-xs"
