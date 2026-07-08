@@ -101,10 +101,7 @@ export function useAutosave({
             }
 
             const contentToSave = contentRef.current;
-            if (
-                !shouldFlushQueued &&
-                contentToSave === savedContentRef.current
-            ) {
+            if (contentToSave === savedContentRef.current) {
                 return Promise.resolve(true);
             }
 
