@@ -1,6 +1,5 @@
 import { createHash } from "node:crypto";
 
-import { getPreviewFromContent } from "link-preview-js";
 import * as z from "zod";
 
 import { abortAfterAny, isAbortError } from "@/lib/common/abort";
@@ -71,6 +70,22 @@ const HTTP_SINGLE_RANGE_HEADER_PATTERN = /^bytes=(\d*)-(\d*)$/;
 const XHTML_CONTENT_TYPE_PATTERN = /^application\/xhtml\+xml/i;
 const ABORTED_RESPONSE = new Response(null, { status: 499 });
 const INSTAGRAM_HOSTS = new Set(["instagram.com", ".instagram.com"]);
+
+// Lazily imported so the cheerio/parse5 closure (~25ms cold-start in this
+// runtime) only loads when a cache-miss image preview actually needs to parse
+// HTML. Cache-hit, video, and redirect paths never pay this cost. The parser is
+// cached after first use so subsequent misses reuse it. See perf/preview/RESULTS.md.
+let linkPreviewParser:
+    | typeof import("link-preview-js")["getPreviewFromContent"]
+    | null = null;
+
+async function loadLinkPreviewParser() {
+    if (!linkPreviewParser) {
+        linkPreviewParser = (await import("link-preview-js"))
+            .getPreviewFromContent;
+    }
+    return linkPreviewParser;
+}
 
 type PreviewType = "image" | "video";
 
@@ -278,6 +293,7 @@ async function resolveImagePreview(
         return null;
     }
 
+    const getPreviewFromContent = await loadLinkPreviewParser();
     const page = await getPreviewFromContent({
         data: previewBody,
         headers: { "content-type": previewContentType },
