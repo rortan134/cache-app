@@ -10,6 +10,7 @@ import { getRedisClient } from "@/lib/common/redis";
 import { parsePublicHttpUrl } from "@/lib/common/server-net";
 import { fetchWithTimeout } from "@/lib/common/timeout";
 import { parseStandaloneUrl } from "@/lib/common/url";
+import { extractPreviewImageUrls } from "./extract";
 import {
     classifyCobaltError,
     resolveCobaltPreview,
@@ -70,22 +71,6 @@ const HTTP_SINGLE_RANGE_HEADER_PATTERN = /^bytes=(\d*)-(\d*)$/;
 const XHTML_CONTENT_TYPE_PATTERN = /^application\/xhtml\+xml/i;
 const ABORTED_RESPONSE = new Response(null, { status: 499 });
 const INSTAGRAM_HOSTS = new Set(["instagram.com", ".instagram.com"]);
-
-// Lazily imported so the cheerio/parse5 closure (~25ms cold-start in this
-// runtime) only loads when a cache-miss image preview actually needs to parse
-// HTML. Cache-hit, video, and redirect paths never pay this cost. The parser is
-// cached after first use so subsequent misses reuse it. See perf/preview/RESULTS.md.
-let linkPreviewParser:
-    | typeof import("link-preview-js")["getPreviewFromContent"]
-    | null = null;
-
-async function loadLinkPreviewParser() {
-    if (!linkPreviewParser) {
-        linkPreviewParser = (await import("link-preview-js"))
-            .getPreviewFromContent;
-    }
-    return linkPreviewParser;
-}
 
 type PreviewType = "image" | "video";
 
@@ -293,21 +278,22 @@ async function resolveImagePreview(
         return null;
     }
 
-    const getPreviewFromContent = await loadLinkPreviewParser();
-    const page = await getPreviewFromContent({
-        data: previewBody,
-        headers: { "content-type": previewContentType },
-        url: pageResponse.url || targetHref,
-    });
-
-    const imageUrl = getFirstHttpUrl("images" in page ? page.images : []);
+    // extractPreviewImageUrls replaces link-preview-js's cheerio/parse5 DOM
+    // parse with an htmlparser2 streaming scan (~10x faster on a 150 KiB page).
+    // It mirrors getImages precedence exactly; parity is covered by
+    // app/api/preview/extract.test.ts. baseUrl is the final post-redirect URL
+    // (or the original target) so relative og:image/<img> resolve identically.
+    const baseUrl = pageResponse.url || targetHref;
+    const imageUrl = getFirstHttpUrl(
+        extractPreviewImageUrls(previewBody, baseUrl)
+    );
     if (!imageUrl) {
         return null;
     }
 
     const result = {
         imageUrl,
-        pageUrl: parseHttpUrl(page.url)?.href ?? targetHref,
+        pageUrl: parseHttpUrl(baseUrl)?.href ?? targetHref,
     };
     await writeCachedImagePreview(targetHref, result);
     return result;

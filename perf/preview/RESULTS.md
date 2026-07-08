@@ -75,3 +75,52 @@ Parity: identical status codes (307/200/400/415/413), `cache-control`,
 `Vercel-CDN-Cache-Control`, `Vercel-Cache-Tag`, `content-type`, `content-length`,
 `accept-ranges`, redirect limit, and body caps. Verified via the harness
 validation fixture.
+
+### Win 2 — replace cheerio/parse5 with an htmlparser2 streaming scan (`[perf/preview]`)
+
+The route only consumed `page.images` and `page.url` from `getPreviewFromContent`.
+Profiling showed the cheerio/parse5 full-DOM parse was 97% of the cache-miss cost
+(5.4ms parse + selector overhead out of 6.3ms, body read only 0.013ms). Replaced
+the `getPreviewFromContent` call with a focused `extractPreviewImageUrls` built
+on htmlparser2's streaming tokenizer: it scans `<meta>`/`<link>`/`<img>` tokens
+without building a DOM tree, then resolves URLs against the post-redirect base.
+
+The extractor mirrors `getImages` precedence exactly — `property="og:image"` then
+`name="og:image"` (link-preview-js returns one set or the other, never both),
+then first `<link rel="image_src">`, then deduped `<img>` — with lowercased tag/
+attribute names and entity decoding to match parse5. `link-preview-js` is no
+longer imported by the preview route at all (it remains a dep for
+`lib/integrations/chrome/actions.ts`); `htmlparser2` (already in the closure via
+cheerio) is now a direct dep so the dependency is explicit.
+
+`extractPreviewImageUrls` lives in `app/api/preview/extract.ts`; parity is
+guarded by `app/api/preview/extract.test.ts` (16 cases vs link-preview-js).
+
+Paths (isolated, 2000 iterations, ~150 KiB page, 2 consecutive runs):
+
+| path            | baseline p50 | after p50 | after p99 | speedup |
+| --------------- | ------------ | --------- | --------- | ------- |
+| cache-hit        | 0.010 ms     | 0.010 ms  | 0.019 ms  | —       |
+| cache-miss-image | 17.334 ms    | 1.546 ms  | 3.880 ms  | 11.2x   |
+| video-proxy      | 0.750 ms     | 0.032 ms  | 0.427 ms  | —       |
+| redirect-chain   | 17.733 ms    | 1.565 ms  | 4.493 ms  | 11.3x   |
+
+Cold-start (link-preview-js no longer imported; htmlparser2 imported eagerly,
+which is ~5x lighter than cheerio+parse5):
+
+|            | p50 (ms) | p99 (ms) | delta vs baseline |
+| ---------- | -------- | -------- | ----------------- |
+| baseline   | 103.311  | 268.767  | —                 |
+| after win1 | 67.488   | 81.947   | -35.8 / -186.8    |
+| after win2 | 70.255   | 168.321  | -33.1 / -100.4    |
+
+Win 2 supersedes Win 1's lazy-loader (link-preview-js is now unimported by the
+route). Cold-start p50 is within noise of Win 1; the headline gain is the 11x
+cache-miss/redirect improvement. The p99 cold-start spread is child-process spawn
+variance on a shared machine, not import cost.
+
+Parity: identical status codes, `cache-control`, `Vercel-CDN-Cache-Control`,
+`Vercel-Cache-Tag`, `content-type`, `content-length`, `accept-ranges`, redirect
+limit, and body caps. Extractor parity vs link-preview-js: 16/16 cases pass
+(`bun test app/api/preview/extract.test.ts`).
+
