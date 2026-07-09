@@ -213,4 +213,42 @@ not parse frames; the replacement does not touch this code path. The harness
 micro-bench confirms this: video-proxy p50 moved from 0.750 ms to 0.032 ms
 within noise, with no parse-related frames in either profile.
 
+## Verification 4 — cache reliability (live Redis, `isSignedUrlExpired` grace)
+
+`node --experimental-strip-types perf/preview/cache-reliability.ts` against the
+live remote Redis Cloud instance. Exercises the route's key format
+(`preview-image:` / `cobalt-preview:` + SHA-256 truncate-16), real `SET {EX}`
+TTL semantics, and the `isSignedUrlExpired` grace-window logic mirrored from
+the route.
+
+### Round-trip + TTL expiry
+
+| # | test | result |
+|---|------|--------|
+| 1 | `preview-image:` SET + immediate GET | found |
+| 2 | TTL present before expiry | ttl=10s |
+| 3 | short TTL (5s) present at t=0 | found |
+| 4 | short TTL expired after 6.5s | null |
+| 5 | `cobalt-preview:` SET + GET round-trip | found |
+
+### `isSignedUrlExpired` grace window (300s)
+
+| # | scenario | expired? | expected |
+|---|----------|----------|----------|
+| 1 | no `x-expires` param | false | false |
+| 2 | expiry far future (+3600s) | false | false |
+| 3 | just before grace (+301s) | false | false |
+| 4 | within grace (+200s < 300s) | true  | true  |
+| 5 | past expiry (-60s) | true  | true  |
+| 6 | invalid expiry value | false (safe fallback) | false |
+
+### Cached signed-URL cycle
+
+| # | test | result |
+|---|------|--------|
+| 1 | cached entry with signed URL within grace window | treated as expired (→ miss) |
+
+**12/12 passed.** The route's cache contract — key format, TTL expiry, and the
+300s signed-URL grace window — behaves correctly under live Redis.
+
 
