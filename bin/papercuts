@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+# Usage: papercuts "the thing that annoyed you"
+set -euo pipefail
+
+FILE="${PAPERCUTS_FILE:-PAPERCUTS.md}"
+NOTE="$*"
+
+if [ -z "$NOTE" ]; then
+  echo "usage: papercuts \"description of the papercut\"" >&2
+  exit 1
+fi
+
+# Create the file with a header if it doesn't exist
+if [ ! -f "$FILE" ]; then
+  printf '# Papercuts\n\nSmall frustrations logged by agents during work.\n\n' > "$FILE"
+fi
+
+TIMESTAMP="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+BRANCH="$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo 'n/a')"
+
+printf -- '- [ ] %s _(%s, branch: %s)_\n' "$NOTE" "$TIMESTAMP" "$BRANCH" >> "$FILE"
+echo "logged papercut → $FILE"

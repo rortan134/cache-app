@@ -266,3 +266,9 @@ Use these in services and actions to propagate domain failures with structured m
 ### Data model
 
 The data model can be found at `prisma/schema.prisma`
+
+### Papercuts
+
+Anytime you hit friction during a task — a dead-end tool call, a broken link, misleading docs, a flaky command, missing context — log it instead of silently working around it:
+`./bin/papercuts "what went wrong and where..."`
+Keep going with your task afterward. Don't stop to fix it unless asked to.
