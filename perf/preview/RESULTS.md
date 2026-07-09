@@ -124,3 +124,33 @@ Parity: identical status codes, `cache-control`, `Vercel-CDN-Cache-Control`,
 limit, and body caps. Extractor parity vs link-preview-js: 16/16 cases pass
 (`bun test app/api/preview/extract.test.ts`).
 
+## Verification 2 — load test (plow, `next dev` :3000, live remote Redis)
+
+`plow --rate N -c <concurrency> -d 60s` against the dev server with the live
+remote Redis (single connection, ~95–195ms RTT). Each request: real Redis GET +
+response. "cached" = URL pre-populated in Redis (`nextjs.org`, `delivery=redirect`
+→ 307). "uncached" = a distinct URL not in Redis, so the first request is a real
+miss (upstream fetch + parse + cache) then served from cache; the miss path is
+exercised and the route stays under load. Error rate is 4xx + 5xx (plow buckets);
+all requests returned 307 (3xx), so **error rate = 0% at every rate**.
+
+| path     | rate (RPS) | requests | status | p50 (ms) | p95 (ms) | p99 (ms) | errors |
+| -------- | ---------- | -------- | ------ | -------- | -------- | -------- | ------ |
+| cached    | 50         | 2993     | 307    | 98.3     | 146.0    | 247.6    | 0      |
+| cached    | 100        | 5991     | 307    | 97.0     | 137.8    | 249.1    | 0      |
+| cached    | 500        | 28537    | 307    | 95.4     | 239.8    | 353.9    | 0      |
+| uncached  | 50         | 2982     | 307    | 99.1     | 178.8    | 414.9    | 0      |
+| uncached  | 100        | 5751     | 307    | 98.5     | 290.4    | 1105.8   | 0      |
+| uncached  | 500        | 12136    | 307    | 347.9    | 1450.0   | 3568.6   | 0      |
+
+Latency is dominated by the remote Redis RTT (the route's own compute is <2ms,
+isolated by the micro-bench). At 500 RPS uncached the single Redis connection
+saturates and occasionally drops; the route degrades gracefully — `getRedisClient`
+returns null while reconnecting, the request falls through to the upstream fetch
+which re-resolves and re-caches, still returning 307. No 4xx/5xx. In production
+with co-located Redis (~1ms RTT) the 500 RPS ceiling would not be Redis-bound.
+A synthetic non-resolving test domain was avoided here precisely because its
+fallback path would 400 on DNS failure under Redis degradation — a test-artefact,
+not a route defect.
+
+
