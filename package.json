@@ -54,7 +54,7 @@
         "culori": "4.0.2",
         "dayjs": "1.11.21",
         "dotenv": "17.4.2",
-        "gt-next": "6.16.37",
+        "gt-next": "11.0.1",
         "htmlparser2": "^12.0.0",
         "ipaddr.js": "2.4.0",
         "legid": "^0.1.4",
