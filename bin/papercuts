@@ -1,12 +1,13 @@
 #!/usr/bin/env bash
-# Usage: papercuts "the thing that annoyed you"
+# Usage: ./bin/papercuts "the thing that annoyed you"
+# See AGENTS.md for workflow instructions
 set -euo pipefail
 
 FILE="${PAPERCUTS_FILE:-PAPERCUTS.md}"
 NOTE="$*"
 
 if [ -z "$NOTE" ]; then
-  echo "usage: papercuts \"description of the papercut\"" >&2
+  echo "usage: ./bin/papercuts \"description of the papercut\"" >&2
   exit 1
 fi
 
