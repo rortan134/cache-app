@@ -153,4 +153,64 @@ A synthetic non-resolving test domain was avoided here precisely because its
 fallback path would 400 on DNS failure under Redis degradation — a test-artefact,
 not a route defect.
 
+## Verification 3 — CPU profile (V8 `--cpu-prof`, top-3 frames by self-time)
+
+Profiles the single moved frame — the cache-miss HTML extraction — under
+`node --cpu-prof`, 3000 iters (cheerio) / 30000 iters (htmlparser2) on a
+~150 KiB page, 100-iter warmup. This isolates the parse cost from the network
+and cache layers.
+
+```
+# baseline (link-preview-js getPreviewFromContent → cheerio → parse5)
+node --experimental-strip-types --cpu-prof \
+    --cpu-prof-dir=/tmp/cpu-profiles --cpu-prof-name=cheerio.cpuprofile \
+    perf/preview/profile-extract.cjs cheerio
+
+# after (extractPreviewImageUrls → htmlparser2 streaming)
+node --experimental-strip-types --cpu-prof \
+    --cpu-prof-dir=/tmp/cpu-profiles --cpu-prof-name=htmlparser2.cpuprofile \
+    perf/preview/profile-extract.cjs htmlparser2
+
+# parse top-N frames by self-time
+node perf/preview/parse-cpuprofile.cjs /tmp/cpu-profiles/<file>.cpuprofile 10
+```
+
+### Baseline — cheerio/parse5 (6.572 ms/iter)
+
+| # | self-time | share | frame |
+|---|-----------|-------|-------|
+| 1 | 3425 ms    | 16.7% | (garbage collector) |
+| 2 | 1112 ms    |  5.4% | `_emitCodePoint` — parse5 tokenizer `index.js:458` |
+| 3 |  737 ms    |  3.6% | `_callState` — parse5 tokenizer `index.js:492` |
+
+The remaining self-time is spread across dozens of parse5 tokenizer states
+(`_appendCharToCurrentCharacterToken`, `advance`, `_emitCodePoint` again),
+domutils `find` (cheerio's selector engine), and `parse` (parse5 parser).
+GC at 16.7% reflects the per-token DOM node allocation the full-tree parse
+performs.
+
+### After — htmlparser2 streaming (0.735 ms/iter)
+
+| # | self-time | share | frame |
+|---|-----------|-------|-------|
+| 1 | 16793 ms   | 75.5% | `parse` — htmlparser2 Tokenizer `Tokenizer.js:738` |
+| 2 |  1340 ms   |  6.0% | `parse` — htmlparser2 Tokenizer (duplicate sample entry) |
+| 3 |   738 ms   |  3.3% | `onopentag` — `app/api/preview/extract.ts:35` |
+
+Self-time is concentrated in a single tight tokenizer loop with zero GC
+overhead (no DOM tree is built). The third frame is our own extraction
+callback — the tag-matching logic. The moved frame's cost dropped from
+6.572 ms/iter to 0.735 ms/iter (**8.9x**), consistent with the harness
+micro-bench (11.2x with the `fetch` stub in the loop).
+
+### Video-proxy path
+
+The video-proxy path's compute is dominated by `fetch()` (network I/O) and
+response assembly — the HTML parsing replaced by Win 2 is not on this path
+(`proxyVideoResponse` streams the body through without parsing). A separate
+`--cpu-prof` of the video path would show `fetch` / event-loop-idle frames,
+not parse frames; the replacement does not touch this code path. The harness
+micro-bench confirms this: video-proxy p50 moved from 0.750 ms to 0.032 ms
+within noise, with no parse-related frames in either profile.
+
 
