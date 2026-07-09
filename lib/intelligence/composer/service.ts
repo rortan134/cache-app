@@ -15,7 +15,7 @@ import {
     APICallError,
     LoadAPIKeyError,
     RetryError,
-    isStepCount,
+    stepCountIs,
     tool,
     type LanguageModelUsage,
     type UIMessageChunk,
@@ -244,7 +244,7 @@ async function runAskCacheAgentModel(args: {
     const result = await agent.stream({
         maxSteps: ASK_CACHE_MAX_STEPS,
         messages: [{ content: args.userMessage, role: "user" }],
-        stopWhen: isStepCount(ASK_CACHE_MAX_STEPS),
+        stopWhen: stepCountIs(ASK_CACHE_MAX_STEPS),
         timeout: ASK_CACHE_TIMEOUT_MS,
         writable: new WritableStream<UIMessageChunk>(),
     });

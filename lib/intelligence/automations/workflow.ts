@@ -142,7 +142,7 @@ async function runAutomationAgentForWorkflow(args: {
 }): Promise<AutomationAgentRunResult> {
     "use step";
 
-    const [{ DurableAgent }, { isStepCount, tool }] = await Promise.all([
+    const [{ DurableAgent }, { stepCountIs, tool }] = await Promise.all([
         import("@workflow/ai/agent"),
         import("ai"),
     ]);
@@ -239,7 +239,7 @@ async function runAutomationAgentForWorkflow(args: {
                 role: "user",
             },
         ],
-        stopWhen: isStepCount(6),
+        stopWhen: stepCountIs(6),
         writable: new WritableStream(),
     });
 
@@ -312,10 +312,18 @@ function buildAutomationUserMessage(prepared: PreparedAutomationRun): string {
 function uniqueSources(sources: AutomationRunSource[]) {
     const byKey = new Map<string, AutomationRunSource>();
     for (const source of sources) {
-        const key = `${source.type}:${source.id ?? source.url ?? ""}`;
-        if (key.endsWith(":")) {
+        let tag: string | null;
+        if ("id" in source) {
+            tag = source.id;
+        } else if ("url" in source) {
+            tag = source.url;
+        } else {
+            tag = null;
+        }
+        if (tag === null) {
             continue;
         }
+        const key = `${source.type}:${tag}`;
         if (!byKey.has(key)) {
             byKey.set(key, source);
         }
