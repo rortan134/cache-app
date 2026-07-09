@@ -22,13 +22,12 @@ import { Popover, PopoverPopup, PopoverTrigger } from "@/components/ui/popover";
 import { Sidebar, SidebarFooter, SidebarHeader } from "@/components/ui/sidebar";
 import { getServerSession } from "@/lib/auth/session";
 import { cn } from "@/lib/common/cn";
-import { BASE_URL } from "@/lib/common/constants";
+import { BASE_URL, CACHE_EXTENSION_DOWNLOAD_URL } from "@/lib/common/constants";
 import { gtPublicString } from "@/lib/i18n/gt-public-json";
 import { INTEGRATIONS } from "@/lib/integrations/support";
 import LogoIconImage from "@/public/cache-app-icon.png";
 import IconSmallImage from "@/public/cache-icon-small.png";
 import CollectionsSectionImage from "@/public/collections-section-image.webp";
-import QRCodeDownloadImage from "@/public/download-qrcode.png";
 import HeroImage from "@/public/hero-image.webp";
 import LibrarySectionImage from "@/public/library-section.webp";
 import OrganizeSectionImage from "@/public/organize-section.webp";
@@ -142,16 +141,12 @@ export default async function Home() {
                     </SidebarHeader>
                     <SidebarFooter>
                         <div className="hidden items-center gap-3 lg:flex">
-                            <Image
-                                alt="Download QR Code"
-                                className="size-20"
-                                height={80}
-                                loading="eager"
-                                priority
-                                src={QRCodeDownloadImage}
-                                width={80}
-                            />
-                            <div className="flex flex-col gap-1.5 pb-[2px]">
+                            <a
+                                className="flex flex-col gap-1.5 pb-[2px] hover:opacity-60"
+                                href={CACHE_EXTENSION_DOWNLOAD_URL}
+                                rel="noopener"
+                                target="_blank"
+                            >
                                 <p className="font-medium text-foreground text-lg tracking-[-3%]">
                                     <T context="Chrome web store browser extension">
                                         Install the extension
@@ -165,7 +160,7 @@ export default async function Home() {
                                         Chrome Web Store
                                     </span>
                                 </p>
-                            </div>
+                            </a>
                         </div>
                         <LocaleSelector
                             id="language-selector"
@@ -573,6 +568,10 @@ export default async function Home() {
                                     id="target-audience-carousel-heading"
                                 >
                                     <T context="target audience">
+                                        <span className="opacity-50">
+                                            Use cases
+                                        </span>
+                                        <br />
                                         Cache is for…
                                     </T>
                                 </h2>

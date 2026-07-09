@@ -15,7 +15,7 @@ import {
     SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { T } from "gt-next";
-import { Compass, Trash2, Workflow } from "lucide-react";
+import { Compass, History, Workflow } from "lucide-react";
 import type * as React from "react";
 import { SidebarNavigationItem } from "./sidebar-navigation-item";
 
@@ -55,20 +55,6 @@ export function ApplicationSidebar({ children }: React.PropsWithChildren) {
                         <T>Library</T>
                     </SidebarNavigationItem>
                     <SidebarNavigationItem
-                        aria-label="Recently deleted"
-                        href="/recently-deleted"
-                        icon={
-                            <Trash2
-                                aria-hidden
-                                className="inline-block size-4 shrink-0"
-                                focusable="false"
-                            />
-                        }
-                        title="Go to Recently deleted"
-                    >
-                        <T>Recently deleted</T>
-                    </SidebarNavigationItem>
-                    <SidebarNavigationItem
                         aria-label="Automations"
                         href="/automations"
                         icon={
@@ -82,6 +68,20 @@ export function ApplicationSidebar({ children }: React.PropsWithChildren) {
                         title="Go to Automations"
                     >
                         <T>Automations</T>
+                    </SidebarNavigationItem>
+                    <SidebarNavigationItem
+                        aria-label="Recently deleted"
+                        href="/recently-deleted"
+                        icon={
+                            <History
+                                aria-hidden
+                                className="inline-block size-4 shrink-0"
+                                focusable="false"
+                            />
+                        }
+                        title="Go to Recently deleted"
+                    >
+                        <T>Deleted</T>
                     </SidebarNavigationItem>
                 </SidebarGroup>
                 {children}

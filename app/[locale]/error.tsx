@@ -4,6 +4,7 @@ import { BrandLogo } from "@/components/ui/brand-logo";
 import { Button } from "@/components/ui/button";
 import { PageShell } from "@/components/ui/page-shell";
 import { createLogger } from "@/lib/common/logs/console/logger";
+import { useStableCallback } from "@base-ui/utils/useStableCallback";
 import LogoIconImage from "@/public/cache-app-icon.png";
 import Link from "next/link";
 import { useEffect } from "react";
@@ -23,6 +24,8 @@ export default function ErrorPage({
         log.error(JSON.stringify(error));
     }, [error]);
 
+    const handleReset = useStableCallback(() => reset());
+
     return (
         <PageShell>
             <div className="mx-auto flex h-svh max-w-md flex-col items-center justify-center gap-5 text-center">
@@ -34,7 +37,7 @@ export default function ErrorPage({
                     We encountered an unexpected error…
                 </p>
                 <div className="flex flex-wrap items-center justify-center gap-3">
-                    <Button onClick={() => reset()}>Try again</Button>
+                    <Button onClick={handleReset}>Try again</Button>
                     <Button render={<Link href="/" />}>Home</Button>
                 </div>
             </div>

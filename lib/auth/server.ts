@@ -1,6 +1,6 @@
 import { getStripeClient, getStripeWebhookSecret } from "@/lib/billing/client";
 import { getPlanPriceIds } from "@/lib/billing/prices";
-import { APP_NAME, BASE_URL, CACHE_EXTENSION_ID } from "@/lib/common/constants";
+import { APP_NAME, BASE_URL } from "@/lib/common/constants";
 import { createLogger } from "@/lib/common/logs/console/logger";
 import { NOTION_API_VERSION } from "@/lib/integrations/notion/api";
 import { seedBuiltInAutomationsForUser } from "@/lib/intelligence/automations/service";
@@ -19,7 +19,9 @@ const BASE_AUTH_URL = process.env.BETTER_AUTH_URL ?? BASE_URL;
 
 const TRUSTED_ORIGINS = [
     BASE_AUTH_URL,
-    ...(CACHE_EXTENSION_ID ? [`chrome-extension://${CACHE_EXTENSION_ID}`] : []),
+    ...(process.env.CACHE_EXTENSION_ID
+        ? [`chrome-extension://${process.env.CACHE_EXTENSION_ID}`]
+        : []),
     ...(process.env.TRUSTED_ORIGINS?.split(",")
         .map((origin) => origin.trim())
         .filter(Boolean) ?? []),
