@@ -257,6 +257,11 @@ function RecentlyDeletedRow({
         : false;
     const countdownCopy = formatCountdownCopy(meta?.daysRemaining);
 
+    const handleRestore = useStableCallback(() =>
+        onRequestAction(item, "restore")
+    );
+    const handlePurge = useStableCallback(() => onRequestAction(item, "purge"));
+
     return (
         <div
             className={cn(
@@ -288,11 +293,7 @@ function RecentlyDeletedRow({
                 </div>
             </div>
             <div className="flex shrink-0 items-center gap-2">
-                <Button
-                    onClick={() => onRequestAction(item, "restore")}
-                    size="sm"
-                    variant="outline"
-                >
+                <Button onClick={handleRestore} size="sm" variant="outline">
                     <RotateCcw
                         aria-hidden
                         className="size-4"
@@ -300,11 +301,7 @@ function RecentlyDeletedRow({
                     />
                     <T>Restore</T>
                 </Button>
-                <Button
-                    onClick={() => onRequestAction(item, "purge")}
-                    size="sm"
-                    variant="destructive"
-                >
+                <Button onClick={handlePurge} size="sm" variant="destructive">
                     <Trash aria-hidden className="size-4" focusable="false" />
                     <T>Delete forever</T>
                 </Button>

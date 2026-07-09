@@ -202,6 +202,37 @@ export function AutomationComposerDialog({
         }
     );
 
+    const handleTitleChange = useStableCallback(
+        (event: React.ChangeEvent<HTMLInputElement>) =>
+            updateFormState({ title: event.currentTarget.value })
+    );
+
+    const handlePromptChange = useStableCallback(
+        (event: React.ChangeEvent<HTMLTextAreaElement>) =>
+            updateFormState({ prompt: event.currentTarget.value })
+    );
+
+    const handleCollectionChange = useStableCallback(
+        (collection: AutomationCollectionOption) =>
+            updateFormState({ collection })
+    );
+
+    const handleCadenceChange = useStableCallback((cadence: CadenceOption) =>
+        updateFormState({ cadence })
+    );
+
+    const handleTimeValueChange = useStableCallback((timeValue: string) =>
+        updateFormState({ timeValue })
+    );
+
+    const handleWeekDayChange = useStableCallback((weekDay: number) =>
+        updateFormState({ weekDay })
+    );
+
+    const handleMonthDayChange = useStableCallback((monthDay: number) =>
+        updateFormState({ monthDay })
+    );
+
     const handleSubmit = useStableCallback(
         (event: React.ChangeEvent<HTMLFormElement>) => {
             event.preventDefault();
@@ -214,8 +245,9 @@ export function AutomationComposerDialog({
                     : "collection";
 
                 const timezone =
-                    automation?.timezone ??
-                    Intl.DateTimeFormat().resolvedOptions().timeZone;
+                    automation === undefined
+                        ? Intl.DateTimeFormat().resolvedOptions().timeZone
+                        : automation.timezone;
 
                 const input = {
                     collectionId: isAllLibraryPayload
@@ -333,11 +365,7 @@ export function AutomationComposerDialog({
                                 className="-mx-[calc(--spacing(3)-1px)] font-semibold text-xl"
                                 id={titleId}
                                 isUnstyled
-                                onChange={(event) =>
-                                    updateFormState({
-                                        title: event.currentTarget.value,
-                                    })
-                                }
+                                onChange={handleTitleChange}
                                 placeholder="Weekly research digest"
                                 required
                                 size="lg"
@@ -356,11 +384,7 @@ export function AutomationComposerDialog({
                                 className="-mx-[calc(--spacing(3)-1px)] *:resize-none"
                                 id={promptId}
                                 isUnstyled
-                                onChange={(event) =>
-                                    updateFormState({
-                                        prompt: event.currentTarget.value,
-                                    })
-                                }
+                                onChange={handlePromptChange}
                                 placeholder="Summarize the most useful saved items and call out patterns worth revisiting."
                                 required
                                 rows={6}
@@ -377,9 +401,7 @@ export function AutomationComposerDialog({
                             </span>
                             <AutomationCollectionCombobox
                                 labelId={collectionId}
-                                onValueChange={(collection) =>
-                                    updateFormState({ collection })
-                                }
+                                onValueChange={handleCollectionChange}
                                 options={[ALL_LIBRARY_OPTION, ...collections]}
                                 value={formState.collection}
                             />
@@ -393,9 +415,7 @@ export function AutomationComposerDialog({
                             </span>
                             <AutomationCadenceCombobox
                                 labelId={cadenceId}
-                                onValueChange={(cadence) =>
-                                    updateFormState({ cadence })
-                                }
+                                onValueChange={handleCadenceChange}
                                 value={formState.cadence}
                             />
                         </div>
@@ -408,9 +428,7 @@ export function AutomationComposerDialog({
                             </span>
                             <AutomationTimeCombobox
                                 labelId={timeId}
-                                onValueChange={(timeValue) =>
-                                    updateFormState({ timeValue })
-                                }
+                                onValueChange={handleTimeValueChange}
                                 options={timeOptions}
                                 value={getTimeOfDayOption(
                                     timeOptions,
@@ -428,9 +446,7 @@ export function AutomationComposerDialog({
                                 </span>
                                 <AutomationWeekDayCombobox
                                     labelId={weekDayId}
-                                    onValueChange={(weekDay) =>
-                                        updateFormState({ weekDay })
-                                    }
+                                    onValueChange={handleWeekDayChange}
                                     value={getWeekDayOption(formState.weekDay)}
                                 />
                             </div>
@@ -445,9 +461,7 @@ export function AutomationComposerDialog({
                                 </span>
                                 <AutomationMonthDayCombobox
                                     labelId={monthDayId}
-                                    onValueChange={(monthDay) =>
-                                        updateFormState({ monthDay })
-                                    }
+                                    onValueChange={handleMonthDayChange}
                                     value={getMonthDayOption(
                                         formState.monthDay
                                     )}
@@ -494,20 +508,32 @@ function AutomationCollectionCombobox({
 }: AutomationCollectionComboboxProps) {
     const [isOpen, setIsOpen] = React.useState(false);
 
+    const itemToStringLabel = useStableCallback(
+        (option: AutomationCollectionOption) => option.name
+    );
+
+    const itemToStringValue = useStableCallback(
+        (option: AutomationCollectionOption) => option.id
+    );
+
+    const handleValueChange = useStableCallback(
+        (nextCollection: AutomationCollectionOption | null) => {
+            if (!nextCollection) {
+                return;
+            }
+            onValueChange(nextCollection);
+            setIsOpen(false);
+        }
+    );
+
     return (
         <Combobox<AutomationCollectionOption>
             autoHighlight
             items={options}
-            itemToStringLabel={(option) => option.name}
-            itemToStringValue={(option) => option.id}
+            itemToStringLabel={itemToStringLabel}
+            itemToStringValue={itemToStringValue}
             onOpenChange={setIsOpen}
-            onValueChange={(nextCollection) => {
-                if (!nextCollection) {
-                    return;
-                }
-                onValueChange(nextCollection);
-                setIsOpen(false);
-            }}
+            onValueChange={handleValueChange}
             open={isOpen}
             value={value}
         >
@@ -573,20 +599,32 @@ function AutomationCadenceCombobox({
 }: AutomationCadenceComboboxProps) {
     const [isOpen, setIsOpen] = React.useState(false);
 
+    const itemToStringLabel = useStableCallback(
+        (option: CadenceOption) => option.label
+    );
+
+    const itemToStringValue = useStableCallback(
+        (option: CadenceOption) => option.value
+    );
+
+    const handleValueChange = useStableCallback(
+        (nextCadence: CadenceOption | null) => {
+            if (!nextCadence) {
+                return;
+            }
+            onValueChange(nextCadence);
+            setIsOpen(false);
+        }
+    );
+
     return (
         <Combobox<CadenceOption>
             autoHighlight
             items={CADENCE_OPTIONS}
-            itemToStringLabel={(option) => option.label}
-            itemToStringValue={(option) => option.value}
+            itemToStringLabel={itemToStringLabel}
+            itemToStringValue={itemToStringValue}
             onOpenChange={setIsOpen}
-            onValueChange={(nextCadence) => {
-                if (!nextCadence) {
-                    return;
-                }
-                onValueChange(nextCadence);
-                setIsOpen(false);
-            }}
+            onValueChange={handleValueChange}
             open={isOpen}
             value={value}
         >
@@ -696,23 +734,45 @@ function AutomationTimeCombobox({
         setIsOpen(false);
     });
 
+    const itemToStringLabel = useStableCallback(
+        (option: TimeOfDayOption) => option.label
+    );
+
+    const itemToStringValue = useStableCallback(
+        (option: TimeOfDayOption) => option.value
+    );
+
+    const handleInputValueChange = useStableCallback(
+        (nextInputValue: string) => {
+            setInputValue(nextInputValue);
+        }
+    );
+
+    const handleValueChange = useStableCallback(
+        (nextTime: TimeOfDayOption | null) => {
+            if (!nextTime) {
+                return;
+            }
+            handleSelectFromList(nextTime);
+        }
+    );
+
+    const handleKeyDown = useStableCallback((event: React.KeyboardEvent) => {
+        if (event.key === "Enter") {
+            handleFreeformEnter();
+        }
+    });
+
     return (
         <Combobox<TimeOfDayOption>
             autoHighlight
             inputValue={inputValue}
             items={options}
-            itemToStringLabel={(option) => option.label}
-            itemToStringValue={(option) => option.value}
-            onInputValueChange={(nextInputValue) => {
-                setInputValue(nextInputValue);
-            }}
+            itemToStringLabel={itemToStringLabel}
+            itemToStringValue={itemToStringValue}
+            onInputValueChange={handleInputValueChange}
             onOpenChange={setIsOpen}
-            onValueChange={(nextTime) => {
-                if (!nextTime) {
-                    return;
-                }
-                handleSelectFromList(nextTime);
-            }}
+            onValueChange={handleValueChange}
             open={isOpen}
             value={value}
         >
@@ -743,11 +803,7 @@ function AutomationTimeCombobox({
             <ComboboxPopup>
                 <ComboboxInput
                     aria-label="Search times"
-                    onKeyDown={(event) => {
-                        if (event.key === "Enter") {
-                            handleFreeformEnter();
-                        }
-                    }}
+                    onKeyDown={handleKeyDown}
                     placeholder="Select time..."
                 />
                 <ComboboxEmpty>No matching times</ComboboxEmpty>
@@ -784,20 +840,32 @@ function AutomationWeekDayCombobox({
 }: AutomationWeekDayComboboxProps) {
     const [isOpen, setIsOpen] = React.useState(false);
 
+    const itemToStringLabel = useStableCallback(
+        (option: WeekDayOption) => option.label
+    );
+
+    const itemToStringValue = useStableCallback((option: WeekDayOption) =>
+        String(option.value)
+    );
+
+    const handleValueChange = useStableCallback(
+        (nextWeekDay: WeekDayOption | null) => {
+            if (!nextWeekDay) {
+                return;
+            }
+            onValueChange(nextWeekDay.value);
+            setIsOpen(false);
+        }
+    );
+
     return (
         <Combobox<WeekDayOption>
             autoHighlight
             items={WEEK_DAYS}
-            itemToStringLabel={(option) => option.label}
-            itemToStringValue={(option) => String(option.value)}
+            itemToStringLabel={itemToStringLabel}
+            itemToStringValue={itemToStringValue}
             onOpenChange={setIsOpen}
-            onValueChange={(nextWeekDay) => {
-                if (!nextWeekDay) {
-                    return;
-                }
-                onValueChange(nextWeekDay.value);
-                setIsOpen(false);
-            }}
+            onValueChange={handleValueChange}
             open={isOpen}
             value={value}
         >
@@ -862,20 +930,32 @@ function AutomationMonthDayCombobox({
 }: AutomationMonthDayComboboxProps) {
     const [isOpen, setIsOpen] = React.useState(false);
 
+    const itemToStringLabel = useStableCallback(
+        (option: MonthDayOption) => option.label
+    );
+
+    const itemToStringValue = useStableCallback((option: MonthDayOption) =>
+        String(option.value)
+    );
+
+    const handleValueChange = useStableCallback(
+        (nextMonthDay: MonthDayOption | null) => {
+            if (!nextMonthDay) {
+                return;
+            }
+            onValueChange(nextMonthDay.value);
+            setIsOpen(false);
+        }
+    );
+
     return (
         <Combobox<MonthDayOption>
             autoHighlight
             items={MONTH_DAY_OPTIONS}
-            itemToStringLabel={(option) => option.label}
-            itemToStringValue={(option) => String(option.value)}
+            itemToStringLabel={itemToStringLabel}
+            itemToStringValue={itemToStringValue}
             onOpenChange={setIsOpen}
-            onValueChange={(nextMonthDay) => {
-                if (!nextMonthDay) {
-                    return;
-                }
-                onValueChange(nextMonthDay.value);
-                setIsOpen(false);
-            }}
+            onValueChange={handleValueChange}
             open={isOpen}
             value={value}
         >
@@ -942,11 +1022,13 @@ function getInitialFormState(
         collection: getCollectionOption(collections, automation),
         errorMessage: null,
         monthDay: automation?.monthDay ?? DEFAULT_MONTH_DAY,
-        prompt: automation?.prompt ?? "",
+        prompt: automation === undefined ? "" : automation.prompt,
         timeValue: formatTimeOfDayMinutes(
-            automation?.timeOfDayMinutes ?? DEFAULT_TIME_OF_DAY_MINUTES
+            automation === undefined
+                ? DEFAULT_TIME_OF_DAY_MINUTES
+                : automation.timeOfDayMinutes
         ),
-        title: automation?.title ?? "",
+        title: automation === undefined ? "" : automation.title,
         weekDay: automation?.weekDay ?? DEFAULT_WEEK_DAY,
     };
 }

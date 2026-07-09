@@ -1846,6 +1846,7 @@ function CollectionsListGroupTrigger({
                 )}
                 positionMethod="fixed"
                 shouldUseTooltipStyle
+                side="right"
             >
                 <p className="whitespace-normal font-medium leading-tight">
                     {summary}
@@ -2041,6 +2042,8 @@ function CollectionsListEmpty({
     const { collectionCount, collectionSummaries, requestCreate } =
         useCollectionsState();
 
+    const handleRequestCreate = useStableCallback(() => requestCreate());
+
     if (collectionSummaries.length > 0) {
         return null;
     }
@@ -2070,7 +2073,7 @@ function CollectionsListEmpty({
                                 No collections found.&nbsp;{" "}
                                 <button
                                     className="inline cursor-pointer underline hover:no-underline"
-                                    onClick={() => requestCreate()}
+                                    onClick={handleRequestCreate}
                                     type="button"
                                 >
                                     Create your first collection
@@ -2483,6 +2486,22 @@ function CollectionItem({
     const handleMouseLeave = useStableCallback(onMouseLeaveProp);
     const style = getCollectionItemStyle(collection.name, isSelected);
 
+    const onMouseEnter = useStableCallback(
+        (event: React.MouseEvent<HTMLDivElement>) => {
+            hoveredCollectionRef.current = collection;
+            handleMouseEnter?.(event);
+        }
+    );
+
+    const onMouseLeave = useStableCallback(
+        (event: React.MouseEvent<HTMLDivElement>) => {
+            if (hoveredCollectionRef.current?.id === collection.id) {
+                hoveredCollectionRef.current = null;
+            }
+            handleMouseLeave?.(event);
+        }
+    );
+
     return (
         <CollectionsListItemContext value={{ collection, isSelected }}>
             <div
@@ -2491,16 +2510,8 @@ function CollectionItem({
                     "group relative flex select-none items-center",
                     className
                 )}
-                onMouseEnter={(event) => {
-                    hoveredCollectionRef.current = collection;
-                    handleMouseEnter?.(event);
-                }}
-                onMouseLeave={(event) => {
-                    if (hoveredCollectionRef.current?.id === collection.id) {
-                        hoveredCollectionRef.current = null;
-                    }
-                    handleMouseLeave?.(event);
-                }}
+                onMouseEnter={onMouseEnter}
+                onMouseLeave={onMouseLeave}
                 style={{ ...style, ...styleProp }}
             />
         </CollectionsListItemContext>
@@ -2634,19 +2645,21 @@ function CollectionItemPriorityCombobox() {
         }
     });
 
+    const handleValueChange = useStableCallback((nextPriority) => {
+        if (!nextPriority || nextPriority === collection.priority) {
+            setPendingPriorityComboboxCollectionId(null);
+            return;
+        }
+        onUpdatePriority(collection.id, nextPriority);
+        setPendingPriorityComboboxCollectionId(null);
+    });
+
     return (
         <Combobox
             autoHighlight
             items={PRIORITIES}
             onOpenChange={handleOpenChange}
-            onValueChange={(nextPriority) => {
-                if (!nextPriority || nextPriority === collection.priority) {
-                    setPendingPriorityComboboxCollectionId(null);
-                    return;
-                }
-                onUpdatePriority(collection.id, nextPriority);
-                setPendingPriorityComboboxCollectionId(null);
-            }}
+            onValueChange={handleValueChange}
             open={isOpen}
             value={collection.priority}
         >
@@ -3051,20 +3064,25 @@ function CollectionsRenameDialog() {
         }
     }, [pendingRename]);
 
-    const handleNameDraftChange = (draft: string) => {
+    const handleNameDraftChange = useStableCallback((draft: string) => {
         setNameDraft(draft);
         if (errorMessage) {
             setErrorMessage(null);
         }
-    };
+    });
 
-    const handleOpenChange = (open: boolean) => {
+    const handleNameChange = useStableCallback(
+        (event: React.ChangeEvent<HTMLInputElement>) =>
+            handleNameDraftChange(event.currentTarget.value)
+    );
+
+    const handleOpenChange = useStableCallback((open: boolean) => {
         if (!(open || isPending || renameSubmissionPendingRef.current)) {
             setPendingRename(null);
         }
-    };
+    });
 
-    const handleSubmit = () => {
+    const handleSubmit = useStableCallback(() => {
         if (isPending || renameSubmissionPendingRef.current) {
             return;
         }
@@ -3110,7 +3128,12 @@ function CollectionsRenameDialog() {
                 renameSubmissionPendingRef.current = false;
             }
         });
-    };
+    });
+
+    const handleFormSubmit = useStableCallback((event: React.ChangeEvent) => {
+        event.preventDefault();
+        handleSubmit();
+    });
 
     const inputId = React.useId();
     const errorId = React.useId();
@@ -3118,13 +3141,7 @@ function CollectionsRenameDialog() {
     return (
         <Dialog onOpenChange={handleOpenChange} open={isOpen}>
             <DialogPopup>
-                <form
-                    className="contents"
-                    onSubmit={(event) => {
-                        event.preventDefault();
-                        handleSubmit();
-                    }}
-                >
+                <form className="contents" onSubmit={handleFormSubmit}>
                     <DialogHeader>
                         <DialogTitle>Rename collection</DialogTitle>
                         <DialogDescription>
@@ -3148,11 +3165,7 @@ function CollectionsRenameDialog() {
                                 autoFocus
                                 id={inputId}
                                 maxLength={NAME_MAX_LENGTH}
-                                onChange={(event) =>
-                                    handleNameDraftChange(
-                                        event.currentTarget.value
-                                    )
-                                }
+                                onChange={handleNameChange}
                                 placeholder="Collection name"
                                 required
                                 type="text"
@@ -3203,14 +3216,14 @@ function CollectionsCreateDialog() {
         }
     }, [isCreateOpen]);
 
-    const handleNameDraftChange = (draft: string) => {
+    const handleNameDraftChange = useStableCallback((draft: string) => {
         setNameDraft(draft);
         if (errorMessage) {
             setErrorMessage(null);
         }
-    };
+    });
 
-    const handleOpenChange = (open: boolean) => {
+    const handleOpenChange = useStableCallback((open: boolean) => {
         if (!open) {
             if (isPending || createSubmissionPendingRef.current) {
                 return;
@@ -3220,9 +3233,9 @@ function CollectionsCreateDialog() {
             setErrorMessage(null);
         }
         setIsCreateOpen(open);
-    };
+    });
 
-    const handleSubmit = () => {
+    const handleSubmit = useStableCallback(() => {
         const name = normalizeWhitespace(nameDraft);
         if (name.length === 0) {
             setErrorMessage(NAME_REQUIRED_MESSAGE);
@@ -3255,45 +3268,62 @@ function CollectionsCreateDialog() {
                 createSubmissionPendingRef.current = false;
             }
         });
-    };
+    });
 
-    const handleCreateFromTemplate = (value: TemplateValue | null) => {
-        if (createSubmissionPendingRef.current) {
-            return;
-        }
-        if (!value) {
-            return;
-        }
-        const template = TEMPLATE_BY_VALUE.get(value);
-        if (!template) {
-            return;
-        }
-        setErrorMessage(null);
-        createSubmissionPendingRef.current = true;
+    const handleFormSubmit = useStableCallback((event: React.ChangeEvent) => {
+        event.preventDefault();
+        handleSubmit();
+    });
 
-        startCreate(async () => {
-            try {
-                const result = await createCollectionSafely({
-                    assignToItemId: createItemId ?? undefined,
-                    description: template.description,
-                    name: template.name,
-                });
-                if (result.status !== ACTION_STATUS.CREATED) {
-                    setErrorMessage(result.message);
-                    return;
-                }
-                syncCreated({
-                    assignedItemIds: getCreatedAssignedItemIds(result),
-                    collection: result.collection,
-                });
-                onRecommendationsMutate();
-                showSuccess(`${template.name} created from template.`);
-                setIsCreateOpen(false);
-            } finally {
-                createSubmissionPendingRef.current = false;
+    const handleNameChange = useStableCallback(
+        (event: React.ChangeEvent<HTMLInputElement>) =>
+            handleNameDraftChange(event.currentTarget.value)
+    );
+
+    const handleDescriptionChange = useStableCallback(
+        (event: React.ChangeEvent<HTMLTextAreaElement>) =>
+            setDescriptionDraft(event.currentTarget.value)
+    );
+
+    const handleCreateFromTemplate = useStableCallback(
+        (value: TemplateValue | null) => {
+            if (createSubmissionPendingRef.current) {
+                return;
             }
-        });
-    };
+            if (!value) {
+                return;
+            }
+            const template = TEMPLATE_BY_VALUE.get(value);
+            if (!template) {
+                return;
+            }
+            setErrorMessage(null);
+            createSubmissionPendingRef.current = true;
+
+            startCreate(async () => {
+                try {
+                    const result = await createCollectionSafely({
+                        assignToItemId: createItemId ?? undefined,
+                        description: template.description,
+                        name: template.name,
+                    });
+                    if (result.status !== ACTION_STATUS.CREATED) {
+                        setErrorMessage(result.message);
+                        return;
+                    }
+                    syncCreated({
+                        assignedItemIds: getCreatedAssignedItemIds(result),
+                        collection: result.collection,
+                    });
+                    onRecommendationsMutate();
+                    showSuccess(`${template.name} created from template.`);
+                    setIsCreateOpen(false);
+                } finally {
+                    createSubmissionPendingRef.current = false;
+                }
+            });
+        }
+    );
 
     const nameInputId = React.useId();
     const errorId = React.useId();
@@ -3304,13 +3334,7 @@ function CollectionsCreateDialog() {
     return (
         <Dialog onOpenChange={handleOpenChange} open={isCreateOpen}>
             <DialogPopup>
-                <form
-                    className="contents"
-                    onSubmit={(event) => {
-                        event.preventDefault();
-                        handleSubmit();
-                    }}
-                >
+                <form className="contents" onSubmit={handleFormSubmit}>
                     <DialogHeader>
                         <div className="flex items-center gap-1">
                             <Badge size="lg" variant="outline">
@@ -3350,11 +3374,7 @@ function CollectionsCreateDialog() {
                                 id={nameInputId}
                                 isUnstyled
                                 maxLength={NAME_MAX_LENGTH}
-                                onChange={(event) =>
-                                    handleNameDraftChange(
-                                        event.currentTarget.value
-                                    )
-                                }
+                                onChange={handleNameChange}
                                 placeholder="Collection name"
                                 required
                                 size="lg"
@@ -3374,11 +3394,7 @@ function CollectionsCreateDialog() {
                                 id={descriptionInputId}
                                 isUnstyled
                                 maxLength={1024}
-                                onChange={(event) =>
-                                    setDescriptionDraft(
-                                        event.currentTarget.value
-                                    )
-                                }
+                                onChange={handleDescriptionChange}
                                 placeholder="Describe what belongs here..."
                                 size="lg"
                                 value={descriptionDraft}
@@ -3501,7 +3517,7 @@ function CollectionsDeleteDialog() {
     const { setPendingDelete, syncDeleted } = useCollectionsActions();
     const [isPending, startDelete] = React.useTransition();
 
-    const handleConfirm = () => {
+    const handleConfirm = useStableCallback(() => {
         const target = pendingDelete;
         if (!target) {
             return;
@@ -3521,24 +3537,23 @@ function CollectionsDeleteDialog() {
             setPendingDelete(null);
             showSuccess(`${result.collection.name} deleted.`);
         });
-    };
+    });
 
-    const handleOpenChange = (open: boolean) => {
+    const handleOpenChange = useStableCallback((open: boolean) => {
         if (!(open || isPending)) {
             setPendingDelete(null);
         }
-    };
+    });
+
+    const handleFormSubmit = useStableCallback((event: React.ChangeEvent) => {
+        event.preventDefault();
+        handleConfirm();
+    });
 
     return (
         <Dialog onOpenChange={handleOpenChange} open={pendingDelete !== null}>
             <DialogPopup>
-                <form
-                    className="contents"
-                    onSubmit={(event) => {
-                        event.preventDefault();
-                        handleConfirm();
-                    }}
-                >
+                <form className="contents" onSubmit={handleFormSubmit}>
                     <DialogHeader>
                         <DialogTitle>Delete collection?</DialogTitle>
                         <DialogDescription>

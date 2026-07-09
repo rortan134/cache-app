@@ -2,7 +2,8 @@
 
 import { Button } from "@/components/ui/button";
 import { Group } from "@/components/ui/group";
-import { useTheme } from "@/hooks/use-theme";
+import { type Theme, useTheme } from "@/hooks/use-theme";
+import { useStableCallback } from "@base-ui/utils/useStableCallback";
 import { Monitor, Moon, Sun } from "lucide-react";
 
 const THEME_OPTIONS = [
@@ -12,7 +13,7 @@ const THEME_OPTIONS = [
 ] as const;
 
 export function ThemeSelector() {
-    const { setTheme, theme } = useTheme();
+    const { theme } = useTheme();
 
     return (
         <Group aria-label="Theme">
@@ -20,20 +21,44 @@ export function ThemeSelector() {
                 const isSelected = theme === value;
 
                 return (
-                    <Button
-                        aria-label={label}
-                        aria-pressed={isSelected}
-                        data-pressed={isSelected ? "" : undefined}
+                    <ThemeButton
+                        Icon={Icon}
+                        isSelected={isSelected}
                         key={value}
-                        onClick={() => setTheme(value)}
-                        size="icon-sm"
-                        title={label}
-                        variant="secondary"
-                    >
-                        <Icon className="size-4" />
-                    </Button>
+                        label={label}
+                        value={value}
+                    />
                 );
             })}
         </Group>
+    );
+}
+
+function ThemeButton({
+    Icon,
+    isSelected,
+    label,
+    value,
+}: {
+    Icon: typeof Sun;
+    isSelected: boolean;
+    label: string;
+    value: Theme;
+}) {
+    const { setTheme } = useTheme();
+    const handleClick = useStableCallback(() => setTheme(value));
+
+    return (
+        <Button
+            aria-label={label}
+            aria-pressed={isSelected}
+            data-pressed={isSelected ? "" : undefined}
+            onClick={handleClick}
+            size="icon-sm"
+            title={label}
+            variant="secondary"
+        >
+            <Icon className="size-4" />
+        </Button>
     );
 }

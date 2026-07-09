@@ -452,26 +452,12 @@ export function OnboardingMenu({
                         {collections.length > 1 ? (
                             <DialogPanel className="grid gap-1">
                                 {collections.map((collection) => (
-                                    <Button
-                                        className={cn(
-                                            "w-full justify-start",
-                                            pendingShareCollection.id ===
-                                                collection.id && "bg-accent"
-                                        )}
+                                    <ShareCollectionButton
+                                        collection={collection}
                                         key={collection.id}
-                                        onClick={() =>
-                                            handleSelectShareCollection(
-                                                collection
-                                            )
-                                        }
-                                        size="sm"
-                                        variant="ghost"
-                                    >
-                                        <Component className="size-4" />
-                                        <span className="min-w-0 truncate">
-                                            {collection.name}
-                                        </span>
-                                    </Button>
+                                        onSelect={handleSelectShareCollection}
+                                        selectedId={pendingShareCollection.id}
+                                    />
                                 ))}
                             </DialogPanel>
                         ) : null}
@@ -596,43 +582,16 @@ function PainPointSurveyDialog({
                     </DialogDescription>
                 </DialogHeader>
                 <DialogPanel className="grid gap-1.5">
-                    {PAIN_POINT_OPTIONS.map((option) => {
-                        const isChecked = selections.has(option.id);
-                        return (
-                            <label
-                                className="flex cursor-pointer items-start gap-3 rounded-md border border-transparent p-2 outline-none transition-colors hover:border-border has-focus-visible:border-ring data-checked:border-border"
-                                data-checked={isChecked || undefined}
-                                htmlFor={`pain-point-${option.id}`}
-                                key={option.id}
-                            >
-                                <Checkbox.Root
-                                    aria-label={option.label}
-                                    checked={isChecked}
-                                    className="relative inline-flex size-4.5 shrink-0 items-center justify-center rounded-[.25rem] border border-input bg-background not-dark:bg-clip-padding shadow-xs/5 outline-none ring-ring transition-shadow before:pointer-events-none before:absolute before:inset-0 before:rounded-[3px] not-data-disabled:not-data-checked:not-aria-invalid:before:shadow-[0_1px_--theme(--color-black/4%)] focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:ring-offset-background aria-invalid:border-destructive/36 focus-visible:aria-invalid:border-destructive/64 focus-visible:aria-invalid:ring-destructive/48 data-disabled:cursor-not-allowed data-disabled:opacity-64 sm:size-4 dark:not-data-checked:bg-input/32 dark:aria-invalid:ring-destructive/24 dark:not-data-disabled:not-data-checked:not-aria-invalid:before:shadow-[0_-1px_--theme(--color-white/6%)] [[data-disabled],[data-checked],[aria-invalid]]:shadow-none"
-                                    id={`pain-point-${option.id}`}
-                                    onCheckedChange={(checked) =>
-                                        onCheckedChange(option.id, checked)
-                                    }
-                                >
-                                    <Checkbox.Indicator className="absolute -inset-px flex items-center justify-center rounded-[.25rem] text-primary-foreground data-unchecked:hidden data-checked:bg-primary data-indeterminate:text-foreground">
-                                        <Check
-                                            aria-hidden
-                                            className="size-3.5 sm:size-3"
-                                            focusable="false"
-                                        />
-                                    </Checkbox.Indicator>
-                                </Checkbox.Root>
-                                <span className="grid min-w-0 flex-1 gap-0.5 text-sm leading-tight">
-                                    <span className="font-medium text-foreground">
-                                        {option.label}
-                                    </span>
-                                    <span className="text-muted-foreground">
-                                        {option.description}
-                                    </span>
-                                </span>
-                            </label>
-                        );
-                    })}
+                    {PAIN_POINT_OPTIONS.map((option) => (
+                        <PainPointOption
+                            description={option.description}
+                            id={option.id}
+                            isChecked={selections.has(option.id)}
+                            key={option.id}
+                            label={option.label}
+                            onCheckedChange={onCheckedChange}
+                        />
+                    ))}
                 </DialogPanel>
                 <DialogFooter>
                     <DialogClose render={<Button size="sm" variant="ghost" />}>
@@ -644,5 +603,78 @@ function PainPointSurveyDialog({
                 </DialogFooter>
             </DialogPopup>
         </Dialog>
+    );
+}
+
+function ShareCollectionButton({
+    collection,
+    onSelect,
+    selectedId,
+}: {
+    collection: LibraryCollectionSummary;
+    onSelect: (collection: LibraryCollectionSummary) => void;
+    selectedId: string;
+}) {
+    const handleClick = useStableCallback(() => onSelect(collection));
+
+    return (
+        <Button
+            className={cn(
+                "w-full justify-start",
+                selectedId === collection.id && "bg-accent"
+            )}
+            onClick={handleClick}
+            size="sm"
+            variant="ghost"
+        >
+            <Component className="size-4" />
+            <span className="min-w-0 truncate">{collection.name}</span>
+        </Button>
+    );
+}
+
+function PainPointOption({
+    id,
+    isChecked,
+    label,
+    description,
+    onCheckedChange,
+}: {
+    id: PainPointId;
+    isChecked: boolean;
+    label: string;
+    description: string;
+    onCheckedChange: (painPointId: PainPointId, checked: boolean) => void;
+}) {
+    const handleCheckedChange = useStableCallback((checked: boolean) =>
+        onCheckedChange(id, checked)
+    );
+
+    return (
+        <label
+            className="flex cursor-pointer items-start gap-3 rounded-md border border-transparent p-2 outline-none transition-colors hover:border-border has-focus-visible:border-ring data-checked:border-border"
+            data-checked={isChecked || undefined}
+            htmlFor={`pain-point-${id}`}
+        >
+            <Checkbox.Root
+                aria-label={label}
+                checked={isChecked}
+                className="relative inline-flex size-4.5 shrink-0 items-center justify-center rounded-[.25rem] border border-input bg-background not-dark:bg-clip-padding shadow-xs/5 outline-none ring-ring transition-shadow before:pointer-events-none before:absolute before:inset-0 before:rounded-[3px] not-data-disabled:not-data-checked:not-aria-invalid:before:shadow-[0_1px_--theme(--color-black/4%)] focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:ring-offset-background aria-invalid:border-destructive/36 focus-visible:aria-invalid:border-destructive/64 focus-visible:aria-invalid:ring-destructive/48 data-disabled:cursor-not-allowed data-disabled:opacity-64 sm:size-4 dark:not-data-checked:bg-input/32 dark:aria-invalid:ring-destructive/24 dark:not-data-disabled:not-data-checked:not-aria-invalid:before:shadow-[0_-1px_--theme(--color-white/6%)] [[data-disabled],[data-checked],[aria-invalid]]:shadow-none"
+                id={`pain-point-${id}`}
+                onCheckedChange={handleCheckedChange}
+            >
+                <Checkbox.Indicator className="absolute -inset-px flex items-center justify-center rounded-[.25rem] text-primary-foreground data-unchecked:hidden data-checked:bg-primary data-indeterminate:text-foreground">
+                    <Check
+                        aria-hidden
+                        className="size-3.5 sm:size-3"
+                        focusable="false"
+                    />
+                </Checkbox.Indicator>
+            </Checkbox.Root>
+            <span className="grid min-w-0 flex-1 gap-0.5 text-sm leading-tight">
+                <span className="font-medium text-foreground">{label}</span>
+                <span className="text-muted-foreground">{description}</span>
+            </span>
+        </label>
     );
 }

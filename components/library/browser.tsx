@@ -1340,6 +1340,7 @@ function buildPaletteStackEntries({
                     <PaletteChip
                         key={`collection-${collectionId}`}
                         label={`Collection: ${truncateLabel(collection.name)}`}
+                        // biome-ignore lint/performance/noJsxPropsBind: stabilized internally by PaletteChip
                         onRemove={onRemove}
                     />
                 ),
@@ -1372,6 +1373,7 @@ function buildPaletteStackEntries({
                 <PaletteChip
                     key={`search-${term}`}
                     label={`Search: ${truncateLabel(term)}`}
+                    // biome-ignore lint/performance/noJsxPropsBind: stabilized internally by PaletteChip
                     onRemove={onRemove}
                 />
             ),
@@ -1388,6 +1390,7 @@ function buildPaletteStackEntries({
                 <PaletteChip
                     key={`source-${source}`}
                     label={`Source: ${sourceLabel(source)}`}
+                    // biome-ignore lint/performance/noJsxPropsBind: stabilized internally by PaletteChip
                     onRemove={onRemove}
                 />
             ),
@@ -1404,6 +1407,7 @@ function buildPaletteStackEntries({
                 <PaletteChip
                     key={`domain-${domainFilter}`}
                     label={`Domain: ${truncateLabel(domainFilter)}`}
+                    // biome-ignore lint/performance/noJsxPropsBind: stabilized internally by PaletteChip
                     onRemove={onRemove}
                 />
             ),
@@ -1420,6 +1424,7 @@ function buildPaletteStackEntries({
                 <PaletteChip
                     key="collection-membership"
                     label={`Collections: ${collectionMembershipFilterLabel(collectionMembershipFilter)}`}
+                    // biome-ignore lint/performance/noJsxPropsBind: stabilized internally by PaletteChip
                     onRemove={onRemove}
                 />
             ),
@@ -1435,6 +1440,7 @@ function buildPaletteStackEntries({
                 <PaletteChip
                     key="group"
                     label={`Group: ${groupByLabel(groupBy)}`}
+                    // biome-ignore lint/performance/noJsxPropsBind: stabilized internally by PaletteChip
                     onRemove={onRemove}
                 />
             ),
@@ -1450,6 +1456,7 @@ function buildPaletteStackEntries({
                 <PaletteChip
                     key="last-visited"
                     label="Last visited"
+                    // biome-ignore lint/performance/noJsxPropsBind: stabilized internally by PaletteChip
                     onRemove={onRemove}
                 />
             ),
@@ -1465,6 +1472,7 @@ function buildPaletteStackEntries({
                 <PaletteChip
                     key="sort"
                     label={`Sort: ${sortModeLabel(sortMode)}`}
+                    // biome-ignore lint/performance/noJsxPropsBind: stabilized internally by PaletteChip
                     onRemove={onRemove}
                 />
             ),
@@ -1480,6 +1488,7 @@ function buildPaletteStackEntries({
                 <PaletteChip
                     key="columns"
                     label={`Columns: ${columnCountLabel(columnCountMode)}`}
+                    // biome-ignore lint/performance/noJsxPropsBind: stabilized internally by PaletteChip
                     onRemove={onRemove}
                 />
             ),
@@ -1634,17 +1643,19 @@ function PaletteChip({
     label: string;
     onRemove: () => void;
 }) {
+    const handleRemove = useStableCallback((event: React.MouseEvent) => {
+        event.preventDefault();
+        event.stopPropagation();
+        onRemove();
+    });
+
     return (
         <span className="inline-flex max-w-[min(100%,12rem)] items-center gap-0.5 rounded-full border border-border/60 bg-background/90 py-0.5 ps-2 pe-0.5 font-medium text-foreground text-xs shadow-xs/5">
             <span className="min-w-0 max-w-full truncate text-xs">{label}</span>
             <Button
                 aria-label={`Remove ${label}`}
                 className="rounded-full"
-                onClick={(event) => {
-                    event.preventDefault();
-                    event.stopPropagation();
-                    onRemove();
-                }}
+                onClick={handleRemove}
                 size="icon-xs"
                 variant="ghost"
             >
@@ -1657,10 +1668,12 @@ function PaletteChip({
 function CopyResponseButton({ value }: { value: string }) {
     const { copyToClipboard, isCopied } = useCopyToClipboard();
 
+    const handleCopy = useStableCallback(() => copyToClipboard(value));
+
     return (
         <Button
             aria-label={isCopied ? "Copied" : "Copy response"}
-            onClick={() => copyToClipboard(value)}
+            onClick={handleCopy}
             size="icon-xs"
             title={isCopied ? "Copied" : "Copy response"}
             variant="ghost"
@@ -1741,6 +1754,8 @@ function PaletteAttachmentChip({
     const label = getAttachmentLabel(attachment);
     const mediaCategory = getMediaCategory(attachment);
 
+    const handleRemove = useStableCallback(() => onRemove(attachment.id));
+
     return (
         <Attachments className="gap-0" variant="inline">
             <AttachmentPreviewCard>
@@ -1749,7 +1764,7 @@ function PaletteAttachmentChip({
                         <Attachment
                             className="max-w-[min(100%,12rem)] rounded-full border-border/60 bg-background/90 py-0.5 ps-1 pe-0.5 text-xs shadow-xs/5"
                             data={attachment}
-                            onRemove={() => onRemove(attachment.id)}
+                            onRemove={handleRemove}
                         />
                     }
                 >
@@ -2045,6 +2060,10 @@ function BrowserGroupHeader() {
             canExportSectionResults ||
             enableSectionCollapse);
 
+    const handleExportSectionResults = useStableCallback(() =>
+        onExportSectionResults?.(group.title, group.items)
+    );
+
     return (
         <ContextMenu>
             <ContextMenuTrigger
@@ -2115,11 +2134,11 @@ function BrowserGroupHeader() {
                                             <ChevronUp className="size-4.5 text-muted-foreground" />
                                             Collapse
                                         </MenuItem>
-                                        {(onExpandAllSections ||
-                                            onCollapseAllSections) && (
+                                        {onExpandAllSections ||
+                                        onCollapseAllSections ? (
                                             <>
                                                 <MenuSeparator />
-                                                {onExpandAllSections && (
+                                                {onExpandAllSections ? (
                                                     <MenuItem
                                                         onClick={
                                                             onExpandAllSections
@@ -2128,8 +2147,8 @@ function BrowserGroupHeader() {
                                                         <ChevronsDown className="size-4.5 text-muted-foreground" />
                                                         Expand all
                                                     </MenuItem>
-                                                )}
-                                                {onCollapseAllSections && (
+                                                ) : null}
+                                                {onCollapseAllSections ? (
                                                     <MenuItem
                                                         onClick={
                                                             onCollapseAllSections
@@ -2138,13 +2157,13 @@ function BrowserGroupHeader() {
                                                         <ChevronsUp className="size-4.5 text-muted-foreground" />
                                                         Collapse all
                                                     </MenuItem>
-                                                )}
+                                                ) : null}
                                             </>
-                                        )}
-                                        {(canCreateCollectionFromResults ||
-                                            canExportSectionResults) && (
+                                        ) : null}
+                                        {canCreateCollectionFromResults ||
+                                        canExportSectionResults ? (
                                             <MenuSeparator />
-                                        )}
+                                        ) : null}
                                     </>
                                 ) : null}
                                 {canCreateCollectionFromResults ? (
@@ -2162,12 +2181,7 @@ function BrowserGroupHeader() {
                                 {onExportSectionResults ? (
                                     <MenuItem
                                         disabled={!hasItems}
-                                        onClick={() =>
-                                            onExportSectionResults(
-                                                group.title,
-                                                group.items
-                                            )
-                                        }
+                                        onClick={handleExportSectionResults}
                                     >
                                         <FileSpreadsheetIcon className="size-4.5 text-muted-foreground" />
                                         Export to CSV
@@ -2178,7 +2192,7 @@ function BrowserGroupHeader() {
                     ) : null}
                 </div>
             </ContextMenuTrigger>
-            {enableSectionCollapse && (
+            {enableSectionCollapse ? (
                 <ContextMenuPopup>
                     <ContextMenuItem
                         disabled={!group.collapsed}
@@ -2194,27 +2208,27 @@ function BrowserGroupHeader() {
                         <ChevronUp className="size-4.5 text-muted-foreground" />
                         Collapse
                     </ContextMenuItem>
-                    {(onExpandAllSections || onCollapseAllSections) && (
+                    {onExpandAllSections || onCollapseAllSections ? (
                         <>
                             <ContextMenuSeparator />
-                            {onExpandAllSections && (
+                            {onExpandAllSections ? (
                                 <ContextMenuItem onClick={onExpandAllSections}>
                                     <ChevronsDown className="size-4.5 text-muted-foreground" />
                                     Expand all
                                 </ContextMenuItem>
-                            )}
-                            {onCollapseAllSections && (
+                            ) : null}
+                            {onCollapseAllSections ? (
                                 <ContextMenuItem
                                     onClick={onCollapseAllSections}
                                 >
                                     <ChevronsUp className="size-4.5 text-muted-foreground" />
                                     Collapse all
                                 </ContextMenuItem>
-                            )}
+                            ) : null}
                         </>
-                    )}
+                    ) : null}
                 </ContextMenuPopup>
-            )}
+            ) : null}
         </ContextMenu>
     );
 }
@@ -2472,6 +2486,8 @@ function CategoryThumbnail({ urls }: { urls: string[] }) {
 
     const src = validUrls[0];
 
+    const handleImageError = useStableCallback(() => setHasImageError(true));
+
     if (hasImageError || !src) {
         return null;
     }
@@ -2485,7 +2501,7 @@ function CategoryThumbnail({ urls }: { urls: string[] }) {
             fetchPriority="high"
             height={104}
             loading="eager"
-            onError={() => setHasImageError(true)}
+            onError={handleImageError}
             src={src}
             width={140}
         />
@@ -3253,9 +3269,7 @@ function buildBrowserSections(
         ];
     }
 
-    const collectionNames = new Map(
-        collections?.map((c) => [c.id, c.name]) ?? []
-    );
+    const collectionNames = new Map(collections?.map((c) => [c.id, c.name]));
 
     const buckets = new Map<string, LibraryItemWithCollections[]>();
     for (const item of sortedItems) {
@@ -3875,38 +3889,40 @@ function CollectionComboboxPicker({
     const selectedCollectionIds = getSharedCollectionIds(items);
     const selectedCount = selectedCollectionIds.length;
 
+    const handleValueChange = useStableCallback((nextIds: string[]) => {
+        const nextCollectionIds = [...nextIds];
+
+        if (items.length === 1) {
+            const [item] = items;
+            if (!item) {
+                return;
+            }
+            onUpdateItemCollections(item.id, nextCollectionIds).catch(
+                () => undefined
+            );
+            return;
+        }
+
+        if (!onUpdateItemsCollections) {
+            throw new Error(
+                "Bulk collection updates require onUpdateItemsCollections."
+            );
+        }
+
+        onUpdateItemsCollections({
+            itemIds: items.map((item) => item.id),
+            nextSharedCollectionIds: nextCollectionIds,
+            previousSharedCollectionIds: selectedCollectionIds,
+        }).catch(() => undefined);
+    });
+
     return (
         <Combobox
             autoHighlight
             items={collections}
             multiple
             onOpenChange={setIsOpen}
-            onValueChange={(nextIds) => {
-                const nextCollectionIds = [...nextIds];
-
-                if (items.length === 1) {
-                    const [item] = items;
-                    if (!item) {
-                        return;
-                    }
-                    onUpdateItemCollections(item.id, nextCollectionIds).catch(
-                        () => undefined
-                    );
-                    return;
-                }
-
-                if (!onUpdateItemsCollections) {
-                    throw new Error(
-                        "Bulk collection updates require onUpdateItemsCollections."
-                    );
-                }
-
-                onUpdateItemsCollections({
-                    itemIds: items.map((item) => item.id),
-                    nextSharedCollectionIds: nextCollectionIds,
-                    previousSharedCollectionIds: selectedCollectionIds,
-                }).catch(() => undefined);
-            }}
+            onValueChange={handleValueChange}
             open={isOpen}
             value={selectedCollectionIds}
         >
@@ -4002,10 +4018,12 @@ function CardCollectionPicker({
 function PreviewColorBadge({ value }: { value: string }) {
     const { copyToClipboard, isCopied } = useCopyToClipboard();
 
+    const handleCopy = useStableCallback(() => copyToClipboard(value));
+
     return (
         <Avatar
             className="relative size-4.5 cursor-pointer overflow-visible"
-            onClick={() => copyToClipboard(value)}
+            onClick={handleCopy}
         >
             <AvatarFallback style={{ backgroundColor: value }}>
                 {isCopied ? (
@@ -4132,6 +4150,42 @@ function CardMenu({
         [isOpen, isDeletePending, item, onClose, onDelete]
     );
 
+    const handleItemFavoriteToggle = useStableCallback(() =>
+        onItemFavoriteToggle(item)
+    );
+
+    const handleOpenNote = useStableCallback(() => onOpenNote?.(item));
+
+    const handleOpenInNewTab = useStableCallback(() => onOpenInNewTab?.(item));
+
+    const handleCopyLink = useStableCallback(() => onCopyLink?.(item));
+
+    const handleFindSimilar = useStableCallback(() => onFindSimilar(item));
+
+    const handleDelete = useStableCallback(() => onDelete?.(item));
+
+    const handleWayback30 = useStableCallback(() =>
+        openExternal(
+            `https://web.archive.org/web/${formatWaybackDate(-30)}/${item.url}`
+        )
+    );
+
+    const handleWayback90 = useStableCallback(() =>
+        openExternal(
+            `https://web.archive.org/web/${formatWaybackDate(-90)}/${item.url}`
+        )
+    );
+
+    const handleWayback365 = useStableCallback(() =>
+        openExternal(
+            `https://web.archive.org/web/${formatWaybackDate(-365)}/${item.url}`
+        )
+    );
+
+    const handleWaybackAll = useStableCallback(() =>
+        openExternal(`https://web.archive.org/web/*/${item.url}`)
+    );
+
     return (
         <>
             <Collapsible>
@@ -4171,7 +4225,7 @@ function CardMenu({
                 </CollapsiblePanel>
             </Collapsible>
             <ItemSeparator />
-            <Item onClick={() => onItemFavoriteToggle(item)}>
+            <Item onClick={handleItemFavoriteToggle}>
                 <Star
                     className={cn(
                         "size-4.5 text-muted-foreground",
@@ -4184,7 +4238,7 @@ function CardMenu({
                 </Kbd>
             </Item>
             {isNote ? (
-                <Item onClick={() => onOpenNote?.(item)}>
+                <Item onClick={handleOpenNote}>
                     <FilePenLineIcon className="size-4.5 text-muted-foreground" />
                     Edit note
                 </Item>
@@ -4216,10 +4270,7 @@ function CardMenu({
             ) : null}
             {isNote ? null : (
                 <>
-                    <Item
-                        className="cursor-alias"
-                        onClick={() => onOpenInNewTab?.(item)}
-                    >
+                    <Item className="cursor-alias" onClick={handleOpenInNewTab}>
                         {SourceIcon ? (
                             <SourceIcon className="size-4 text-muted-foreground" />
                         ) : (
@@ -4228,7 +4279,7 @@ function CardMenu({
                         Open in new tab
                         <ArrowUpRight className="ml-auto size-4 text-muted-foreground" />
                     </Item>
-                    <Item onClick={() => onCopyLink?.(item)}>
+                    <Item onClick={handleCopyLink}>
                         <LinkIcon className="size-4.5 text-muted-foreground" />
                         Copy link URL
                     </Item>
@@ -4239,7 +4290,7 @@ function CardMenu({
                     </Item>
                 </>
             )}
-            <Item onClick={() => onFindSimilar(item)}>
+            <Item onClick={handleFindSimilar}>
                 <SearchIcon className="size-4.5 text-muted-foreground" />
                 Find similar
             </Item>
@@ -4250,43 +4301,19 @@ function CardMenu({
                         Previous versions
                     </MenuSubTrigger>
                     <MenuSubPopup>
-                        <MenuItem
-                            onClick={() =>
-                                openExternal(
-                                    `https://web.archive.org/web/${formatWaybackDate(-30)}/${item.url}`
-                                )
-                            }
-                        >
+                        <MenuItem onClick={handleWayback30}>
                             <History className="size-4 text-muted-foreground" />
                             1 month ago
                         </MenuItem>
-                        <MenuItem
-                            onClick={() =>
-                                openExternal(
-                                    `https://web.archive.org/web/${formatWaybackDate(-90)}/${item.url}`
-                                )
-                            }
-                        >
+                        <MenuItem onClick={handleWayback90}>
                             <History className="size-4 text-muted-foreground" />
                             3 months ago
                         </MenuItem>
-                        <MenuItem
-                            onClick={() =>
-                                openExternal(
-                                    `https://web.archive.org/web/${formatWaybackDate(-365)}/${item.url}`
-                                )
-                            }
-                        >
+                        <MenuItem onClick={handleWayback365}>
                             <History className="size-4 text-muted-foreground" />
                             1 year ago
                         </MenuItem>
-                        <MenuItem
-                            onClick={() =>
-                                openExternal(
-                                    `https://web.archive.org/web/*/${item.url}`
-                                )
-                            }
-                        >
+                        <MenuItem onClick={handleWaybackAll}>
                             <History className="size-4 text-muted-foreground" />
                             View all snapshots
                         </MenuItem>
@@ -4294,7 +4321,7 @@ function CardMenu({
                 </MenuSub>
             )}
             <ItemSeparator />
-            <Item disabled={isDeletePending} onClick={() => onDelete?.(item)}>
+            <Item disabled={isDeletePending} onClick={handleDelete}>
                 {isDeletePending ? <T>Deleting…</T> : <T>Delete</T>}
                 <Kbd className="ml-auto">
                     <CmdKbd />⌫
@@ -4343,15 +4370,15 @@ function MediaCard({ item }: LibraryGridCardProps) {
         [hoveredItemIdRef, item.id]
     );
 
-    const handleZoomChange = (nextZoomed: boolean) => {
+    const handleZoomChange = useStableCallback((nextZoomed: boolean) => {
         if (!nextZoomed) {
             setIsZoomed(false);
         }
-    };
+    });
 
-    const handleZoomIn = () => {
+    const handleZoomIn = useStableCallback(() => {
         setIsZoomed(true);
-    };
+    });
 
     const handlePrimaryAction = () => {
         if (isNote) {
@@ -4368,12 +4395,32 @@ function MediaCard({ item }: LibraryGridCardProps) {
         setOpenPickerItemId(nextOpen ? item.id : null);
     });
 
-    const handlePrimaryClick = (event: React.MouseEvent<HTMLElement>) => {
-        event.preventDefault();
-        handlePrimaryAction();
-    };
+    const handlePrimaryClick = useStableCallback(
+        (event: React.MouseEvent<HTMLElement>) => {
+            event.preventDefault();
+            handlePrimaryAction();
+        }
+    );
 
-    const handleDownload = () => {
+    const handlePrimaryKeyDown = useStableCallback(
+        (event: React.KeyboardEvent<HTMLElement>) => {
+            if (event.key === "Enter") {
+                handlePrimaryAction();
+            }
+        }
+    );
+
+    const handleMouseEnter = useStableCallback(() => {
+        hoveredItemIdRef.current = item.id;
+    });
+
+    const handleMouseLeave = useStableCallback(() => {
+        if (hoveredItemIdRef.current === item.id) {
+            hoveredItemIdRef.current = null;
+        }
+    });
+
+    const handleDownload = useStableCallback(() => {
         startDownloadTransition(async () => {
             try {
                 await downloadLibraryItemMedia(item);
@@ -4384,19 +4431,13 @@ function MediaCard({ item }: LibraryGridCardProps) {
                 });
             }
         });
-    };
+    });
 
     return (
         <ContextMenu onOpenChange={setIsContextMenuOpen}>
             <ContextMenuTrigger
-                onMouseEnter={() => {
-                    hoveredItemIdRef.current = item.id;
-                }}
-                onMouseLeave={() => {
-                    if (hoveredItemIdRef.current === item.id) {
-                        hoveredItemIdRef.current = null;
-                    }
-                }}
+                onMouseEnter={handleMouseEnter}
+                onMouseLeave={handleMouseLeave}
                 render={
                     // biome-ignore lint/a11y/useSemanticElements: Group role
                     <div
@@ -4409,11 +4450,7 @@ function MediaCard({ item }: LibraryGridCardProps) {
                 <div
                     className="squircle flex flex-col overflow-clip rounded-xl focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
                     onClick={handlePrimaryClick}
-                    onKeyDown={(event: React.KeyboardEvent<HTMLElement>) => {
-                        if (event.key === "Enter") {
-                            handlePrimaryAction();
-                        }
-                    }}
+                    onKeyDown={handlePrimaryKeyDown}
                     role="link"
                     tabIndex={0}
                 >
@@ -4472,7 +4509,7 @@ function MediaCard({ item }: LibraryGridCardProps) {
                         <MenuTrigger
                             render={
                                 <Button
-                                    className="w-full min-w-0 flex-1 justify-start overflow-clip whitespace-nowrap border-none text-left text-[11px]!"
+                                    className="w-full min-w-0 flex-1 justify-start overflow-clip whitespace-nowrap px-0 text-left text-[11px]!"
                                     size="xs"
                                     title={displayTitle}
                                     type="button"
@@ -4668,7 +4705,7 @@ const NoteDrawer = dynamic(
                 );
             }
 
-            return function NoteDrawer({
+            return function NoteDrawerInner({
                 activeNote,
                 handlePasteUrlIntoLibrary,
                 handleSaveNote,
@@ -4682,16 +4719,18 @@ const NoteDrawer = dynamic(
                     null
                 );
 
+                const handleOpenChange = useStableCallback((open: boolean) => {
+                    if (!open) {
+                        onNoteDrawerClose();
+                    }
+                });
+
                 return (
                     <Note.Root
                         contentEditableRef={contentEditableRef}
                         isSaving={isSavingNote || isSavingPastedUrl}
                         note={note}
-                        onOpenChange={(open) => {
-                            if (!open) {
-                                onNoteDrawerClose();
-                            }
-                        }}
+                        onOpenChange={handleOpenChange}
                         onSave={handleSaveNote}
                         onUrlPaste={handlePasteUrlIntoLibrary}
                         open={isNoteDrawerOpen}
@@ -4807,12 +4846,34 @@ function BrowserDialogs(props: BrowserDialogsProps) {
         onCreateCollectionFromResultsSubmit,
         isCreatingResultsCollection,
 
-        collectionComboboxPicker: CollectionComboboxPicker,
+        collectionComboboxPicker: CollectionComboboxPickerComponent,
         collections,
         visibleResultItems,
         onUpdateItemCollections,
         onUpdateItemsCollections,
     } = props;
+
+    const handleResultsFormSubmit = useStableCallback(
+        (event: React.ChangeEvent) => {
+            event.preventDefault();
+            onCreateCollectionFromResultsSubmit();
+        }
+    );
+
+    const handleResultsNameChange = useStableCallback(
+        (event: React.ChangeEvent<HTMLInputElement>) => {
+            onUpdateCreateResultsNameDraft(event.currentTarget.value);
+            if (createResultsError) {
+                onUpdateCreateResultsError(null);
+            }
+        }
+    );
+
+    const handleResultsDescriptionChange = useStableCallback(
+        (event: React.ChangeEvent<HTMLTextAreaElement>) => {
+            onUpdateCreateResultsDescriptionDraft(event.currentTarget.value);
+        }
+    );
 
     return (
         <>
@@ -4864,10 +4925,7 @@ function BrowserDialogs(props: BrowserDialogsProps) {
                 <DialogPopup>
                     <form
                         className="contents"
-                        onSubmit={(event) => {
-                            event.preventDefault();
-                            onCreateCollectionFromResultsSubmit();
-                        }}
+                        onSubmit={handleResultsFormSubmit}
                     >
                         <DialogHeader>
                             <div className="flex items-center gap-1">
@@ -4902,14 +4960,7 @@ function BrowserDialogs(props: BrowserDialogsProps) {
                                     id={createResultsNameInputId}
                                     isUnstyled
                                     maxLength={COLLECTION_NAME_MAX_LENGTH}
-                                    onChange={(event) => {
-                                        onUpdateCreateResultsNameDraft(
-                                            event.currentTarget.value
-                                        );
-                                        if (createResultsError) {
-                                            onUpdateCreateResultsError(null);
-                                        }
-                                    }}
+                                    onChange={handleResultsNameChange}
                                     placeholder="Collection title"
                                     required
                                     size="lg"
@@ -4929,11 +4980,7 @@ function BrowserDialogs(props: BrowserDialogsProps) {
                                     id={createResultsDescriptionId}
                                     isUnstyled
                                     maxLength={1024}
-                                    onChange={(event) => {
-                                        onUpdateCreateResultsDescriptionDraft(
-                                            event.currentTarget.value
-                                        );
-                                    }}
+                                    onChange={handleResultsDescriptionChange}
                                     placeholder="Describe what belongs here..."
                                     size="lg"
                                     value={createResultsDescriptionDraft}
@@ -4946,7 +4993,7 @@ function BrowserDialogs(props: BrowserDialogsProps) {
                             ) : null}
                         </DialogPanel>
                         <DialogFooter>
-                            <CollectionComboboxPicker
+                            <CollectionComboboxPickerComponent
                                 collections={collections}
                                 items={visibleResultItems}
                                 onUpdateItemCollections={
@@ -4965,7 +5012,7 @@ function BrowserDialogs(props: BrowserDialogsProps) {
                             >
                                 <Component className="mr-0.5! size-4" />
                                 Add to existing
-                            </CollectionComboboxPicker>
+                            </CollectionComboboxPickerComponent>
                             <DialogClose
                                 disabled={isCreatingResultsCollection}
                                 render={<Button size="sm" variant="ghost" />}
@@ -6046,6 +6093,12 @@ export function BrowserRoot({
         "--library-section-sticky-top": "8px",
     };
 
+    const handleOpenCreateResultsDialog = useStableCallback(() =>
+        handleCreateResultsDialogOpenChange(true)
+    );
+
+    const handleCloseNoteDrawer = useStableCallback(() => setActiveNote(null));
+
     return (
         <div
             className="relative z-0 flex w-full min-w-0 flex-1 flex-col gap-4 p-8"
@@ -6119,9 +6172,7 @@ export function BrowserRoot({
                 hoveredItemIdRef={hoveredItemIdRef}
                 onCollapseAllSections={collapseAllSections}
                 onCopyLink={handleCopyLink}
-                onCreateCollectionFromResults={() =>
-                    handleCreateResultsDialogOpenChange(true)
-                }
+                onCreateCollectionFromResults={handleOpenCreateResultsDialog}
                 onDelete={handleRequestDelete}
                 onExpandAllSections={expandAllSections}
                 onExportSectionResults={handleExportSectionResults}
@@ -6184,7 +6235,7 @@ export function BrowserRoot({
                 handleSaveNote={handleSaveNote}
                 isSavingNote={isSavingNote}
                 isSavingPastedUrl={isSavingPastedUrl}
-                onNoteDrawerClose={() => setActiveNote(null)}
+                onNoteDrawerClose={handleCloseNoteDrawer}
             />
             <QuickLookDrawerSurface />
             <BrowserDialogs

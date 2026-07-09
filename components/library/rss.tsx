@@ -102,9 +102,9 @@ export function RssManageDialog() {
                 {feeds.map((feed) => (
                     <FeedRow
                         feed={feed}
+                        handleRemove={handleRemove}
                         isRemoving={removingFeedIds.has(feed.id)}
                         key={feed.id}
-                        onRemove={() => handleRemove(feed.id)}
                     />
                 ))}
             </div>
@@ -141,13 +141,14 @@ export function RssManageDialog() {
 
 function FeedRow({
     feed,
-    onRemove,
+    handleRemove,
     isRemoving,
 }: {
     feed: FeedViewModel;
-    onRemove: () => void;
+    handleRemove: (feedId: string) => void;
     isRemoving: boolean;
 }) {
+    const onRemove = useStableCallback(() => handleRemove(feed.id));
     return (
         <div className="flex items-center gap-3 rounded-lg border p-3 text-sm">
             <Rss className="size-4 shrink-0 text-muted-foreground" />
@@ -181,7 +182,14 @@ function AddFeedForm({ onFeedAdded }: { onFeedAdded: () => void }) {
     const [error, setError] = React.useState<string | null>(null);
     const [isPending, startTransition] = React.useTransition();
 
-    const handleSubmit = useStableCallback((event: React.FormEvent) => {
+    const handleChange = useStableCallback(
+        (event: React.ChangeEvent<HTMLInputElement>) => {
+            setUrl(event.currentTarget.value);
+            setError(null);
+        }
+    );
+
+    const handleSubmit = useStableCallback((event: React.ChangeEvent) => {
         event.preventDefault();
         if (isPending) {
             return;
@@ -207,10 +215,7 @@ function AddFeedForm({ onFeedAdded }: { onFeedAdded: () => void }) {
                     aria-invalid={error ? true : undefined}
                     autoFocus
                     className="flex-1"
-                    onChange={(event) => {
-                        setUrl(event.currentTarget.value);
-                        setError(null);
-                    }}
+                    onChange={handleChange}
                     placeholder="Paste feed URL"
                     required
                     type="url"
