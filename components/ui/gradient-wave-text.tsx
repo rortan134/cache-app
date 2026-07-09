@@ -118,7 +118,11 @@ export function GradientWaveText({
         const colorStops: string[] = [];
         const baseColor = "var(--gradient-wave-base, rgb(29,29,31))";
         colorStops.push(`${baseColor} calc((var(--gi) + 0) * 1%)`);
-        for (let i = 0; i < bandCount && i < resolvedColors.length * 2; i++) {
+        for (
+            let i = 0;
+            i < bandCount && i < resolvedColors.length * 2;
+            i += 1
+        ) {
             const color = resolvedColors[i % resolvedColors.length];
             const offset = (i + 2) * bandGap;
             colorStops.push(`${color} calc((var(--gi) + ${offset}) * 1%)`);

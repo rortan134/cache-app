@@ -58,7 +58,6 @@
                 "noBitwiseOperators": "off"
             },
             "style": {
-                "noIncrementDecrement": "off",
                 "useDestructuring": "off",
                 "useErrorCause": "off"
             }

@@ -400,7 +400,7 @@ function useGetVisibleGroups({
                     rank: { index, score },
                 });
             }
-            index++;
+            index += 1;
         }
 
         if (rankedItems.length === 0) {

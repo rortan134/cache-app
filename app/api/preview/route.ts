@@ -566,7 +566,7 @@ async function fetchWithRedirects(
     for (
         let redirectCount = 0;
         redirectCount <= MAX_REDIRECTS;
-        redirectCount++
+        redirectCount += 1
     ) {
         if (redirectCount > 0) {
             const validated = await parsePublicHttpUrl(publicUrl.href);

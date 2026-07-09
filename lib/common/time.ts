@@ -70,7 +70,7 @@ export interface TimeOfDayOption {
 export function getTimeOfDayOptions(locale: string): TimeOfDayOption[] {
     const shouldUse24HourClock = uses24HourClock(locale);
     const options: TimeOfDayOption[] = [];
-    for (let hours = 0; hours < 24; hours++) {
+    for (let hours = 0; hours < 24; hours += 1) {
         for (let minutes = 0; minutes < 60; minutes += 15) {
             const value = formatTimeOfDayMinutes(hours * 60 + minutes);
             options.push({
