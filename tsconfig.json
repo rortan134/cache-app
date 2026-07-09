@@ -34,13 +34,14 @@
         "strictPropertyInitialization": true,
         "allowSyntheticDefaultImports": true,
         "useUnknownInCatchVariables": true,
-        "preserveConstEnums": true,
+
         "allowImportingTsExtensions": true,
 
         /* Bundled projects */
         "removeComments": true,
         "lib": ["dom", "dom.iterable", "ESNext"],
         "noEmit": true,
+        "types": ["node", "bun", "react", "react-dom"],
         "module": "ESNext",
         "moduleResolution": "bundler",
         "jsx": "react-jsx",

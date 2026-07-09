@@ -192,6 +192,7 @@ function fetchWithRequestSignal(requestSignal: AbortSignal) {
         }
     };
 
+    nextFetch.preconnect = fetch.preconnect;
     return nextFetch;
 }
 
