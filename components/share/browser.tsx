@@ -3,6 +3,7 @@
 import { Masonry } from "@/components/ui/masonry";
 import { MediaPlaceholder } from "@/components/ui/media-placeholder";
 import { Ticker } from "@/components/ui/ticker";
+import { useStableCallback } from "@base-ui/utils/useStableCallback";
 import * as React from "react";
 
 interface PublicShareGridItem {
@@ -24,6 +25,8 @@ function PreviewMedia({
     const [didFail, setDidFail] = React.useState(false);
     const canRenderImage = Boolean(src) && !didFail;
 
+    const handleError = useStableCallback(() => setDidFail(true));
+
     if (!canRenderImage) {
         return <MediaPlaceholder className="min-h-32" />;
     }
@@ -36,7 +39,7 @@ function PreviewMedia({
             fetchPriority="auto"
             height={400}
             loading="lazy"
-            onError={() => setDidFail(true)}
+            onError={handleError}
             src={src ?? undefined}
             width={300}
         />

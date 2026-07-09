@@ -1,6 +1,7 @@
 "use client";
 
 import { MediaPlaceholder } from "@/components/ui/media-placeholder";
+import { useStableCallback } from "@base-ui/utils/useStableCallback";
 import * as React from "react";
 
 const PREVIEW_CELL_COUNT = 4;
@@ -24,6 +25,8 @@ function CollectionThumbnailCell({ url }: { url: string | null }) {
     const [didFail, setDidFail] = React.useState(false);
     const canRenderImage = Boolean(url) && !didFail;
 
+    const handleError = useStableCallback(() => setDidFail(true));
+
     if (!canRenderImage) {
         return <MediaPlaceholder className="size-full rounded-none" />;
     }
@@ -35,7 +38,7 @@ function CollectionThumbnailCell({ url }: { url: string | null }) {
             draggable={false}
             height={160}
             loading="lazy"
-            onError={() => setDidFail(true)}
+            onError={handleError}
             src={url ?? undefined}
             width={160}
         />

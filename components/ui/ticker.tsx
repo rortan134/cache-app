@@ -1,6 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/common/cn";
+import { useStableCallback } from "@base-ui/utils/useStableCallback";
 import * as React from "react";
 
 const DEFAULT_DURATION_SECONDS = 5;
@@ -24,7 +25,7 @@ export function Ticker({
 }: TickerProps) {
     const [overflowWidthPx, setOverflowWidthPx] = React.useState(0);
 
-    const trackRef = (el: HTMLSpanElement | null) => {
+    const trackRef = useStableCallback((el: HTMLSpanElement | null) => {
         if (!el) {
             return;
         }
@@ -35,7 +36,7 @@ export function Ticker({
         setOverflowWidthPx(
             contentWidth > 0 && contentWidth > trackWidth ? contentWidth : 0
         );
-    };
+    });
 
     const isOverflowing = overflowWidthPx > 0;
 

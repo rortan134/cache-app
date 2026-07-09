@@ -254,14 +254,13 @@ export function WorkspaceProvider({
     );
 
     const visibleCollections = collections.filter((collection) => {
-        switch (collectionView) {
-            case "exclude-archives":
-                return collection.priority !== "archive";
-            case "show-shared-only":
-                return collection.shareId !== null;
-            default:
-                return true;
+        if (collectionView === "exclude-archives") {
+            return collection.priority !== "archive";
         }
+        if (collectionView === "show-shared-only") {
+            return collection.shareId !== null;
+        }
+        return true;
     });
 
     const collectionSummaries = sortCollectionSummaries(

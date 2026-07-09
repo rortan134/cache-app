@@ -67,6 +67,7 @@ import {
     PASTE_COMMAND,
     SELECTION_CHANGE_COMMAND,
     mergeRegister,
+    type EditorState,
     type LexicalEditor,
     type PasteCommandType,
     type RangeSelection,
@@ -460,14 +461,10 @@ function getSelectionBlockType(selection: RangeSelection): NoteBlockType {
     }
 
     const headingTag = topLevelNode.getTag();
-    switch (headingTag) {
-        case "h1":
-        case "h2":
-        case "h3":
-            return headingTag;
-        default:
-            return "paragraph";
+    if (headingTag === "h1" || headingTag === "h2" || headingTag === "h3") {
+        return headingTag;
     }
+    return "paragraph";
 }
 
 function downloadMarkdownFile(contentHtml: string) {
@@ -538,11 +535,11 @@ function FormattingToolbarPlugin() {
         );
     }, [editor]);
 
-    const toggleTextFormat = (format: TextFormatType) => {
+    const toggleTextFormat = useStableCallback((format: TextFormatType) => {
         editor.dispatchCommand(FORMAT_TEXT_COMMAND, format);
-    };
+    });
 
-    const setBlockType = (blockType: NoteBlockType) => {
+    const setBlockType = useStableCallback((blockType: NoteBlockType) => {
         editor.update(() => {
             const selection = $getSelection();
             if (!$isRangeSelection(selection)) {
@@ -556,7 +553,27 @@ function FormattingToolbarPlugin() {
 
             $setBlocksType(selection, () => $createHeadingNode(blockType));
         });
-    };
+    });
+
+    const handleBlockTypeMouseDown = useStableCallback(
+        (event: React.MouseEvent<HTMLButtonElement>) => {
+            event.preventDefault();
+            const blockType = event.currentTarget.dataset.blockType;
+            if (blockType) {
+                setBlockType(blockType as NoteBlockType);
+            }
+        }
+    );
+
+    const handleFormatMouseDown = useStableCallback(
+        (event: React.MouseEvent<HTMLButtonElement>) => {
+            event.preventDefault();
+            const format = event.currentTarget.dataset.format as TextFormatType;
+            if (format) {
+                toggleTextFormat(format);
+            }
+        }
+    );
 
     return (
         <div className="-mx-2 mb-3 flex flex-wrap items-center gap-1 rounded-2xl border border-border/60 bg-muted/35 p-1">
@@ -567,11 +584,9 @@ function FormattingToolbarPlugin() {
                         "rounded-full px-3 font-medium text-xs",
                         formats.blockType === option.value && "bg-accent"
                     )}
+                    data-block-type={option.value}
                     key={option.value}
-                    onMouseDown={(event) => {
-                        event.preventDefault();
-                        setBlockType(option.value);
-                    }}
+                    onMouseDown={handleBlockTypeMouseDown}
                     size="xs"
                     variant="ghost"
                 >
@@ -585,11 +600,9 @@ function FormattingToolbarPlugin() {
                     <Button
                         aria-label={option.ariaLabel}
                         className={cn(formats[option.stateKey] && "bg-accent")}
+                        data-format={option.format}
                         key={option.format}
-                        onMouseDown={(event) => {
-                            event.preventDefault();
-                            toggleTextFormat(option.format);
-                        }}
+                        onMouseDown={handleFormatMouseDown}
                         size="icon-sm"
                         variant="ghost"
                     >
@@ -653,6 +666,11 @@ function ContentPlugin({
         [editor, handlePaste]
     );
 
+    const handleChange = useStableCallback((editorState: EditorState) => {
+        const contentState = editorState.toJSON();
+        onDraftChange(noteDraftFromEditorState(contentState));
+    });
+
     return (
         <>
             <FormattingToolbarPlugin />
@@ -678,13 +696,7 @@ function ContentPlugin({
                 />
                 <HistoryPlugin />
                 <LexicalAutoFocusPlugin defaultSelection="rootEnd" />
-                <OnChangePlugin
-                    ignoreSelectionChange
-                    onChange={(editorState) => {
-                        const contentState = editorState.toJSON();
-                        onDraftChange(noteDraftFromEditorState(contentState));
-                    }}
-                />
+                <OnChangePlugin ignoreSelectionChange onChange={handleChange} />
             </div>
         </>
     );
@@ -986,9 +998,9 @@ function NoteHeader() {
     } | null>(null);
     const [isSendingToNotion, startSendToNotion] = useTransition();
 
-    const handleExportMarkdown = () => {
+    const handleExportMarkdown = useStableCallback(() => {
         downloadMarkdownFile(contentHtml);
-    };
+    });
 
     const handleSendToNotion = useStableCallback(() => {
         if (!(hasQuery && !isSendingToNotion)) {
@@ -1016,6 +1028,10 @@ function NoteHeader() {
                 tone: "error",
             });
         });
+    });
+
+    const handleClose = useStableCallback(async () => {
+        await onOpenChange(false);
     });
 
     return (
@@ -1048,24 +1064,18 @@ function NoteHeader() {
                         {EXPORT_CONTENT_PROVIDERS.map((provider) => {
                             const ProviderIcon = provider.icon;
                             return (
-                                <MenuItem
-                                    disabled={!hasQuery}
+                                <ExportProviderMenuItem
+                                    hasQuery={hasQuery}
                                     key={provider.title}
-                                    render={(props) => (
-                                        <a
-                                            {...props}
-                                            href={provider.createUrl(query)}
-                                            rel="noopener noreferrer"
-                                            target="_blank"
-                                        />
-                                    )}
+                                    provider={provider}
+                                    query={query}
                                 >
                                     <ProviderIcon className="size-4 text-muted-foreground" />
                                     <span className="flex-1">
                                         {provider.title}
                                     </span>
                                     <ExternalLinkIcon className="size-4 text-muted-foreground" />
-                                </MenuItem>
+                                </ExportProviderMenuItem>
                             );
                         })}
                         <MenuItem
@@ -1119,9 +1129,7 @@ function NoteHeader() {
                     <Button
                         aria-label="Close note"
                         className="rounded-full"
-                        onClick={async () => {
-                            await onOpenChange(false);
-                        }}
+                        onClick={handleClose}
                         size="icon-sm"
                         variant="secondary"
                     >
@@ -1205,6 +1213,30 @@ function NoteMetrics() {
                 </span>
             </T>
         </div>
+    );
+}
+
+function ExportProviderMenuItem({
+    hasQuery,
+    provider,
+    query,
+    children,
+}: {
+    hasQuery: boolean;
+    provider: ExportContentProvider;
+    query: string;
+    children: React.ReactNode;
+}) {
+    const href = provider.createUrl(query);
+
+    const renderLink = useStableCallback((props: React.ComponentProps<"a">) => (
+        <a {...props} href={href} rel="noopener noreferrer" target="_blank" />
+    ));
+
+    return (
+        <MenuItem disabled={!hasQuery} render={renderLink}>
+            {children}
+        </MenuItem>
     );
 }
 

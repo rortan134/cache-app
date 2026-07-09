@@ -178,13 +178,17 @@ export function MenuSubTrigger({
         <MenuPrimitive.SubmenuTrigger
             {...props}
             className={cn(
-                "flex min-h-8 cursor-default select-none items-center gap-2 rounded-lg px-2.5 py-2 text-sm outline-none hover:transition-colors data-disabled:pointer-events-none data-highlighted:bg-accent data-highlighted:text-accent-foreground data-disabled:opacity-64",
+                "group/trigger flex min-h-8 cursor-default select-none items-center gap-2 rounded-lg px-2.5 py-2 text-sm outline-none hover:transition-colors data-disabled:pointer-events-none data-highlighted:bg-accent data-highlighted:text-accent-foreground data-disabled:opacity-64",
                 className
             )}
             data-slot="menu-sub-trigger"
         >
             {children}
-            <ChevronRightIcon className="ms-auto -me-0.5 size-4 opacity-80" />
+            <ChevronRightIcon
+                aria-hidden
+                className="ms-auto -me-0.5 size-4 opacity-80 group-data-popup-open/trigger:opacity-30"
+                focusable="false"
+            />
         </MenuPrimitive.SubmenuTrigger>
     );
 }

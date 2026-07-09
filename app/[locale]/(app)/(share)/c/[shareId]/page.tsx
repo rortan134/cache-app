@@ -89,8 +89,7 @@ async function PageComp(props: CollectionSharePageProps) {
             kind: item.kind === "note" ? "note" : "bookmark",
             noteExcerpt:
                 item.kind === "note"
-                    ? (getNoteExcerpt(item.noteContentText, 320) ??
-                      "Untitled note")
+                    ? getNoteExcerpt(item.noteContentText, 320)
                     : null,
             previewImageUrl: getSharedItemPreviewImageUrl(item, href),
             title: getSharedItemTitle(item),
@@ -104,7 +103,7 @@ async function PageComp(props: CollectionSharePageProps) {
                 href="/library"
                 src={LogoIconImage}
             />
-            {collection.name && (
+            {collection.name ? (
                 <div className="flex flex-col items-center justify-center text-muted-foreground text-sm">
                     <h1 className="font-medium text-foreground text-xl">
                         {collection.name}
@@ -114,7 +113,7 @@ async function PageComp(props: CollectionSharePageProps) {
                         {collection.itemCount === 1 ? "entry" : "entries"}
                     </span>
                 </div>
-            )}
+            ) : null}
             <PublicShareGrid items={items} />
         </>
     );

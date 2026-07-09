@@ -2,6 +2,7 @@
 
 import { cn } from "@/lib/common/cn";
 import { djb2Hash } from "@/lib/common/colors";
+import { GlobeX } from "lucide-react";
 import * as React from "react";
 
 export function MediaPlaceholder({
@@ -25,6 +26,8 @@ export function MediaPlaceholder({
             )}
             data-slot="media-placeholder"
             style={cssVars}
-        />
+        >
+            <GlobeX className="size-4 text-muted-foreground opacity-80" />
+        </div>
     );
 }
