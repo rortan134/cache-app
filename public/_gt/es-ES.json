@@ -37,13 +37,31 @@
   ],
   "090dd58a9e726297": "Lectores curiosos",
   "0d5988f4c0fbf2ad": "Cuenta de Cache",
+  "104132fd795e5775": "Se elimina hoy",
   "11503a3d12f43fdd": "Documentos oficiales que regulan tu relación con nosotros y explican cómo tratamos los datos. Elige un tema a continuación para leer el texto completo.",
+  "118ab776d12b969b": [
+    "Devuelve ",
+    {
+      "i": 1,
+      "k": "_gt_value_1",
+      "v": "v"
+    },
+    " a tu biblioteca. Las colecciones y las vistas previas se restaurarán intactas."
+  ],
   "11d641c2c7d32f5c": "No hemos podido abrir la facturación ahora mismo.",
   "15833184c459d240": {
     "c": "Términos del Servicio",
     "i": 1,
     "t": "p"
   },
+  "15c8a471fd9b053b": [
+    {
+      "i": 1,
+      "k": "_gt_value_1",
+      "v": "v"
+    },
+    " se moverá a Eliminados recientemente. Tendrás 30 días para restaurarlo antes de que se elimine permanentemente. Esto solo lo elimina de tu biblioteca, no de la plataforma original."
+  ],
   "1ad7b60584ddc5de": "Tendrás que volver a iniciar sesión para acceder a tu biblioteca.",
   "1b691e9402e0f0db": [
     {
@@ -88,16 +106,12 @@
     "i": 1,
     "t": "p"
   },
+  "1e76ae647164edcc": "Todavía no hay colecciones",
   "1e850b13fa5eae43": "Guardado",
   "20529ca475e73f99": "Tema",
+  "2160b45b8ed704e5": "Los elementos que elimines de tu biblioteca permanecerán aquí durante 30 días antes de eliminarse para siempre.",
   "228f947f7df3af4d": "Añadir otra cuenta...",
-  "251aca485fefb2c6": "Empieza a escribir o pega un enlace para añadirlo...",
-  "26fe9d3e34588477": "Cerrar sesión",
-  "27d7979205fe23f9": "¿Eliminar tu cuenta?",
-  "2d905536ddbff96d": "Cerrar sesión",
-  "2e477bab4317c062": "No se pudo añadir otra cuenta.",
-  "2e9224bc11574ab5": "Exportar a Markdown",
-  "33d5ec3254f4789d": [
+  "22ecdfc00af0782c": [
     {
       "c": [
         {
@@ -105,7 +119,7 @@
           "t": "Workflow"
         },
         {
-          "c": "Configura rutinas sencillas para recibir un resumen diario de tus guardados recientes",
+          "c": "Configura rutinas sencillas para recibir un resumen diario de lo que has guardado recientemente y mucho más",
           "i": 3,
           "t": "span"
         }
@@ -120,7 +134,7 @@
           "t": "Bookmark"
         },
         {
-          "c": "Mantén los enlaces importantes siempre presentes en lugar de perderlos en una lista acumulada",
+          "c": "Mantén los enlaces importantes siempre presentes en vez de dejarlos enterrados en una lista pendiente",
           "i": 6,
           "t": "span"
         }
@@ -129,12 +143,30 @@
       "t": "li"
     }
   ],
+  "251aca485fefb2c6": "Empieza a escribir o pega un enlace para añadirlo...",
+  "26fe9d3e34588477": "Cerrar sesión",
+  "27d7979205fe23f9": "¿Eliminar tu cuenta?",
+  "2d905536ddbff96d": "Cerrar sesión",
+  "2e477bab4317c062": "No se pudo añadir otra cuenta.",
+  "2e9224bc11574ab5": "Exportar a Markdown",
+  "3a9c949fbbeae41b": [
+    "Se elimina dentro de ",
+    {
+      "i": 1,
+      "k": "_gt_value_1",
+      "v": "v"
+    },
+    " día"
+  ],
   "3b205a1c17c06fbd": "Favoritos",
+  "3b244622a56ac1bc": "¿Eliminar?",
   "408574e37e8d91ee": "pronto",
   "43c4658708e52e85": "Eliminar cuenta",
+  "442ad87bcc4b1187": "No hay nada que restaurar ahora mismo",
   "446fc0e1621b7ae8": "Soporte",
   "4593e3bd9f747b95": "Hazte Pro mensual",
   "48de21dffb27aea4": "Registro de cambios",
+  "4d1751261b773c2c": "¿Restaurar este elemento guardado?",
   "4d587a9524c95dd7": [
     "Accede a todos tus ",
     {
@@ -144,12 +176,63 @@
     },
     " marcadores."
   ],
+  "4fc630d6b2bf647f": "Restaurar",
   "54733851c614db5d": "Esto cancela cualquier suscripción activa y elimina permanentemente tu biblioteca, tus colecciones y los datos de tu cuenta. Esta acción no se puede deshacer.",
   "5930189d0848c328": "Creadores y curadores",
   "59470116de88a745": "Artículos, ensayos, newsletters. Una biblioteca viva en lugar de un cementerio de lecturas pendientes.",
   "5a0a4ee1bf2a58dc": "No se pudieron cargar las cuentas guardadas.",
   "5f7836df60f0e71e": "Estas páginas pueden actualizarse periódicamente. La versión publicada en este sitio es la que está vigente en el momento de tu visita.",
-  "5fd9dbdb19f74c4f": [
+  "600433e7972a7e75": "Facturación",
+  "606daf45fd88b674": "Escritores y pensadores",
+  "634fd36cce8909a0": "Instala la extensión",
+  "64b08e57a2f2e7b7": "Cómo procesamos y protegemos los datos personales de los clientes.",
+  "69cac161cf484cd9": "No hemos podido abrir el proceso de pago ahora mismo.",
+  "6b75fd08ca7c6ae3": [
+    {
+      "i": 1,
+      "k": "_gt_value_1",
+      "v": "v"
+    },
+    " vence el ",
+    {
+      "i": 2,
+      "k": "_gt_value_2",
+      "v": "v"
+    }
+  ],
+  "6c1216fee667a463": [
+    {
+      "c": [
+        {
+          "i": 2,
+          "t": "SquareMousePointer"
+        },
+        {
+          "c": "Guarda desde cualquier sitio con la extensión del navegador",
+          "i": 3,
+          "t": "span"
+        }
+      ],
+      "i": 1,
+      "t": "li"
+    },
+    {
+      "c": [
+        {
+          "i": 5,
+          "t": "CloudDownload"
+        },
+        {
+          "c": "Comparte o exporta tus colecciones de Cache cuando quieras",
+          "i": 6,
+          "t": "span"
+        }
+      ],
+      "i": 4,
+      "t": "li"
+    }
+  ],
+  "6dc17c680e88d0a7": [
     {
       "c": [
         {
@@ -176,67 +259,62 @@
       "c": [
         {
           "i": 6,
-          "t": "CloudDownload"
+          "t": "Unlink"
         },
         {
-          "c": "Comparte o exporta tus colecciones de Cache cuando quieras",
+          "c": "Filtra duplicados y enlaces rotos",
           "i": 7,
           "t": "span"
         }
       ],
       "i": 5,
       "t": "li"
-    },
-    {
-      "c": [
-        {
-          "i": 9,
-          "t": "Unlink"
-        },
-        {
-          "c": "Elimina duplicados y enlaces rotos",
-          "i": 10,
-          "t": "span"
-        }
-      ],
-      "i": 8,
-      "t": "li"
-    },
-    {
-      "c": [
-        {
-          "i": 12,
-          "t": "Sparkles"
-        },
-        {
-          "c": "Obtén información valiosa sobre tu contenido gracias a la IA",
-          "i": 13,
-          "t": "span"
-        }
-      ],
-      "i": 11,
-      "t": "li"
-    }
-  ],
-  "600433e7972a7e75": "Facturación",
-  "606daf45fd88b674": "Escritores y pensadores",
-  "634fd36cce8909a0": "Instala la extensión",
-  "64b08e57a2f2e7b7": "Cómo procesamos y protegemos los datos personales de los clientes.",
-  "69cac161cf484cd9": "No hemos podido abrir el proceso de pago ahora mismo.",
-  "6b75fd08ca7c6ae3": [
-    {
-      "i": 1,
-      "k": "_gt_value_1",
-      "v": "v"
-    },
-    " vence el ",
-    {
-      "i": 2,
-      "k": "_gt_value_2",
-      "v": "v"
     }
   ],
   "6f1b661d2c2cb538": "Desconocido",
+  "7120e94fedd7615d": {
+    "c": [
+      {
+        "c": [
+          "Ni siquiera tienes que usar Cache",
+          {
+            "i": 3,
+            "t": "br"
+          }
+        ],
+        "i": 2,
+        "t": "span"
+      },
+      " Deja que tus agentes de IA lo usen con ",
+      {
+        "i": 4,
+        "t": "ModelContextProtocolIcon"
+      },
+      " ",
+      {
+        "c": [
+          {
+            "i": 6,
+            "t": "PopoverTrigger"
+          },
+          {
+            "c": {
+              "c": "MCP es un conector universal, parecido a un «puerto USB» para la IA, pero aplicado al software. Permite que tus agentes de IA accedan de forma segura a aplicaciones y datos para que puedan realizar acciones y trabajar por ti, sin que tengas que intervenir manualmente.",
+              "i": 8,
+              "t": "p"
+            },
+            "i": 7,
+            "t": "PopoverPopup"
+          }
+        ],
+        "i": 5,
+        "t": "Popover"
+      },
+      " y pon a su alcance todos tus recursos"
+    ],
+    "i": 1,
+    "t": "p"
+  },
   "71a0bd88bed41d7c": "Volver arriba",
   "731e805e4730862c": {
     "c": "Seguridad",
@@ -246,38 +324,7 @@
   "7472afb4558f12e9": "Última visita",
   "75d4d73501e837d5": "Hazte Pro",
   "7721d8d00edabeda": "Cerrando sesión…",
-  "78ed60593843d6e7": [
-    {
-      "c": [
-        {
-          "i": 2,
-          "t": "Terminal"
-        },
-        {
-          "c": "Usa el menú de comandos y los atajos para trabajar de forma más eficiente",
-          "i": 3,
-          "t": "span"
-        }
-      ],
-      "i": 1,
-      "t": "li"
-    },
-    {
-      "c": [
-        {
-          "i": 5,
-          "t": "Search"
-        },
-        {
-          "c": "Encuentra cualquier cosa con búsqueda de texto completo y OCR",
-          "i": 6,
-          "t": "span"
-        }
-      ],
-      "i": 4,
-      "t": "li"
-    }
-  ],
+  "7a8ec4ce7cf50dc7": "Eliminados recientemente",
   "7cb5fccc5f748ea2": [
     {
       "c": "Busca y explora desde un único feed rápido",
@@ -292,16 +339,49 @@
   ],
   "7d288c9b77b0a60e": "Información legal y políticas",
   "841cad15ee2276fc": "Recursos",
-  "86489a55ce454582": "Cache es para…",
   "87254fc32f854b77": "No se pudo cambiar de cuenta.",
   "87b2d18453bcefde": {
     "c": "Documentación",
     "i": 1,
     "t": "p"
   },
+  "87f6f3f373779010": [
+    {
+      "c": [
+        {
+          "i": 2,
+          "t": "Terminal"
+        },
+        {
+          "c": "Usa el command menu y los atajos para trabajar de forma más eficiente",
+          "i": 3,
+          "t": "span"
+        }
+      ],
+      "i": 1,
+      "t": "li"
+    },
+    {
+      "c": [
+        {
+          "i": 5,
+          "t": "Album"
+        },
+        {
+          "c": "Lee artículos sin distracciones con Quick Look",
+          "i": 6,
+          "t": "span"
+        }
+      ],
+      "i": 4,
+      "t": "li"
+    }
+  ],
   "8b045bc1a6270fb5": "Colecciones",
+  "8d01ed931a4c5812": "Eliminando…",
   "8ebdbcb486fb7060": "Suscripción",
   "8eeee33f47318d9a": "Hilos, vídeos, inspiración. Agrupa ideas en colecciones y compártelas.",
+  "927f9d194579e5f6": "Las colecciones que crees aparecerán aquí.",
   "933fa7740fe8c681": {
     "i": 1,
     "k": "_gt_value_1",
@@ -309,7 +389,7 @@
   },
   "93f881a7033302b7": "El paso que faltaba entre guardar marcadores y tomar notas. Estructurado, fácil de buscar y siempre a mano cuando lo necesitas.",
   "94c20ff6b75d8acb": "Cómo recopilamos, usamos y protegemos la información personal.",
-  "95784cd912180f20": "Ahorra horas cada semana con una forma más inteligente de gestionar todo lo que guardas en internet. Desde solo 8 $ al mes.",
+  "97a5529d32e3ce95": "Ahorra horas cada semana con una forma más inteligente de gestionar todo lo que guardas online. Pon orden en el caos — desde 8 $/mes.",
   "97f68bd29d3d4247": {
     "c": [
       {
@@ -322,8 +402,21 @@
     "i": 1,
     "t": "span"
   },
+  "9868880f7ab7bc33": [
+    {
+      "c": "Casos de uso",
+      "i": 1,
+      "t": "span"
+    },
+    {
+      "i": 2,
+      "t": "br"
+    },
+    "Cache es ideal para…"
+  ],
   "99e4c3ba36537129": "Cancelar",
   "9e172217c3e3d8ae": "Actualizar a Pro",
+  "9fda70fa98e942b4": "Todas las colecciones que has creado en tu espacio de trabajo.",
   "a06f2446c9ee9132": "Referencias, citas, fragmentos. Una base documental con buscador para tu material de trabajo.",
   "a3bf9c945c7318bb": "Automatizaciones",
   "a4ecc2d52fb9c50b": "Política de Privacidad",
@@ -336,9 +429,19 @@
       "t": "button"
     }
   ],
+  "a752f0eedca9330f": [
+    "Se elimina dentro de ",
+    {
+      "i": 1,
+      "k": "_gt_value_1",
+      "v": "v"
+    },
+    " días"
+  ],
   "a7820e6a001d950c": "¿Cerrar sesión?",
   "a7b00994918dc087": "Eliminar cuenta",
   "ab4abf4e5a6f6057": "No guardado",
+  "aba29e77e52bca46": "Eliminar",
   "af34d21966b17dd8": {
     "c": [
       {
@@ -368,32 +471,51 @@
   "b33e2234ec4ab823": "Plan gratuito",
   "b5d5276005980a36": "Creadores y desarrolladores",
   "b80f68728546aeb4": "Programa tareas para organizar tu biblioteca, investigar temas, resumir contenido y mucho más, todo en piloto automático",
+  "b84b7f3c49c02a0a": [
+    {
+      "c": [
+        {
+          "i": 2,
+          "t": "Search"
+        },
+        {
+          "c": "Busca como piensas, más rápido que nunca",
+          "i": 3,
+          "t": "span"
+        }
+      ],
+      "i": 1,
+      "t": "li"
+    },
+    {
+      "c": [
+        {
+          "i": 5,
+          "t": "Lightbulb"
+        },
+        {
+          "c": "Descubre nuevas perspectivas y explora ideas con el agente de IA de Cache",
+          "i": 6,
+          "t": "span"
+        }
+      ],
+      "i": 4,
+      "t": "li"
+    }
+  ],
+  "baf0f86dd08375f6": "Los elementos restaurados vuelven a tu biblioteca con sus colecciones y vistas previas intactas. Los elementos que se queden aquí se eliminarán para siempre al cabo de 30 días.",
   "c1172428bea235ca": "Normas que rigen el uso del servicio, la gestión de tu cuenta y el uso aceptable.",
   "c26fd6852bfece9e": "Continuar con Google",
   "c4244c4a6f71e511": "Abrir en una pestaña nueva",
-  "c4cfa45b41d2f4e3": {
-    "c": [
-      {
-        "c": [
-          "No hace falta que uses Cache",
-          {
-            "i": 3,
-            "t": "br"
-          }
-        ],
-        "i": 2,
-        "t": "span"
-      },
-      " Deja que tus agentes de IA lo usen con ",
-      {
-        "i": 4,
-        "t": "ModelContextProtocolIcon"
-      },
-      " MCP y pon a su alcance todos tus recursos"
-    ],
-    "i": 1,
-    "t": "p"
-  },
+  "c7b6b877e9f2b845": [
+    "Eliminar permanentemente ",
+    {
+      "i": 1,
+      "k": "_gt_value_1",
+      "v": "v"
+    },
+    " de Cache. Esta acción no se puede deshacer."
+  ],
   "c884609397b72df2": "anual",
   "cca6a310f45ce736": [
     {
@@ -422,7 +544,9 @@
     }
   ],
   "cf702c635fa32efc": "Acuerdo de Tratamiento de Datos",
+  "d15d4ce9981708e9": "Cancelar",
   "d353ed81b71684aa": "Integraciones",
+  "d6c8fad26b565faa": "Eliminado",
   "d6db6a63bfbd1a36": "o ahorra con la facturación anual",
   "d70e4938efa65780": {
     "c": [
@@ -438,18 +562,6 @@
   },
   "daf8daec701f0863": "Cuenta",
   "db72ad3b2501e7a9": "Cargando cuentas",
-  "dd199c66ab0644de": [
-    {
-      "c": "Crea una biblioteca con todo el contenido que te encanta",
-      "i": 1,
-      "t": "h2"
-    },
-    {
-      "c": "Inspírate y encuentra esa lección, consejo, receta o idea que llevabas tiempo buscando en lo que tardas en tomarte un café.",
-      "i": 2,
-      "t": "p"
-    }
-  ],
   "ddc161e16a7e8f5a": [
     {
       "i": 1,
@@ -465,6 +577,20 @@
   ],
   "e09a36ef3ffd9115": "Sin guardar",
   "e1897047828fc955": "Documentación, incidencias, código, tutoriales. Encuentra ese enlace concreto al instante.",
+  "e3fb410a95d4f393": [
+    {
+      "c": "Crea una biblioteca con todo el contenido que te encanta",
+      "i": 1,
+      "t": "h2"
+    },
+    {
+      "c": "Inspírate, encuentra esa lección, receta o idea que llevas tiempo buscando, todo en lo que tardas en tomarte un café.",
+      "i": 2,
+      "t": "p"
+    }
+  ],
+  "e6bf33cf97345f68": "¿Eliminar para siempre?",
+  "e6c1109fa39e2f8d": "Eliminar definitivamente",
   "ece5e10bd5b5769d": "Guardando...",
   "f137946f63b397fd": "Abrir en...",
   "fe9fbbc696a13ffb": "Las plataformas de terceros a las que te conectes a través del Servicio operan de forma independiente de Cache. Cache no controla sus políticas ni cómo las aplican, y no se responsabiliza de las decisiones que esas plataformas tomen respecto a tus cuentas o a tu acceso a sus servicios, incluidos, entre otros, los cambios en su disponibilidad, estén o no relacionados con tu uso de Cache. Eres responsable de cumplir los términos, las políticas y las normas de la comunidad de cada plataforma. Cache no se hace responsable de las molestias, pérdidas ni de cualquier otra consecuencia derivada de tu relación con esas plataformas o de tu uso del Servicio en relación con ellas. Puedes encontrar más información"
