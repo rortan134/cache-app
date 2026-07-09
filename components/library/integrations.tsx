@@ -1,7 +1,6 @@
 "use client";
 
 import { RssManageDialog, openRssManageDialog } from "@/components/library/rss";
-import { FeedbackWidget } from "@/components/support/feedback-widget";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -152,8 +151,7 @@ export function Integrations({ connectedIntegrations }: IntegrationsProps) {
                         />
                     ))}
                 </DisclosureListVertical>
-                <IntegrationsListFeedback />
-                <IntegrationsListPrivacyNotice />
+                <IntegrationsListPrivacyDisclaimer />
                 <RssManageDialog />
             </IntegrationsListPanel>
         </IntegrationsList>
@@ -513,28 +511,7 @@ function IntegrationsListPanel(
     return <CollapsiblePanel {...props} />;
 }
 
-function IntegrationsListFeedback() {
-    return (
-        <FeedbackWidget
-            className="mx-2.5 mt-1.5 mb-0.5"
-            context="integrations-list"
-        >
-            <p className="text-left text-[11px] text-muted-foreground leading-tight">
-                Can't find the integration you need most?{" "}
-                <Button
-                    className="h-fit! px-0 leading-tight sm:text-[11px]"
-                    render={<span />}
-                    size="xs"
-                    variant="link"
-                >
-                    Request it
-                </Button>
-            </p>
-        </FeedbackWidget>
-    );
-}
-
-function IntegrationsListPrivacyNotice() {
+function IntegrationsListPrivacyDisclaimer() {
     const [isOpen, setIsOpen] = React.useState(true);
 
     const handleDismiss = useStableCallback(() => setIsOpen(false));

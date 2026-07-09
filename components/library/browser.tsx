@@ -215,6 +215,7 @@ import {
     ChevronUp,
     CircleFadingPlus,
     Component,
+    CopyIcon,
     DownloadIcon,
     Ellipsis,
     ExternalLinkIcon,
@@ -1653,6 +1654,26 @@ function PaletteChip({
     );
 }
 
+function CopyResponseButton({ value }: { value: string }) {
+    const { copyToClipboard, isCopied } = useCopyToClipboard();
+
+    return (
+        <Button
+            aria-label={isCopied ? "Copied" : "Copy response"}
+            onClick={() => copyToClipboard(value)}
+            size="icon-xs"
+            title={isCopied ? "Copied" : "Copy response"}
+            variant="ghost"
+        >
+            {isCopied ? (
+                <Check className="size-3.5 text-success" />
+            ) : (
+                <CopyIcon className="size-3.5 text-muted-foreground" />
+            )}
+        </Button>
+    );
+}
+
 function AskCacheResponsePanel({
     response,
 }: {
@@ -1705,6 +1726,7 @@ function AskCacheResponsePanel({
             <Streamdown className="whitespace-pre-line text-sm leading-relaxed">
                 {response.markdown}
             </Streamdown>
+            <CopyResponseButton value={response.markdown} />
         </div>
     );
 }
@@ -2308,6 +2330,9 @@ function BrowserGroupAIOverviewContent() {
                     : "Description is unavailable right now."}
             </Streamdown>
             &nbsp;
+            {summary && summary.length > 0 ? (
+                <CopyResponseButton value={summary} />
+            ) : null}
             <Button
                 aria-controls={contentId}
                 aria-expanded={isExpanded}
@@ -3455,11 +3480,13 @@ function useLibraryItemActions(args: {
             return;
         }
 
+        const targetItemId = targetItem.id;
+
         startDeleteTransition(async () => {
             let result: LibraryItemDeleteResult;
 
             try {
-                result = await deleteLibraryItem(targetItem.id);
+                result = await deleteLibraryItem(targetItemId);
             } catch {
                 result = {
                     message: "We couldn't delete this saved item right now.",
@@ -3472,6 +3499,9 @@ function useLibraryItemActions(args: {
                     current.filter((item) => item.id !== result.itemId)
                 );
                 args.onDeleteSuccess?.(result);
+            }
+
+            if (pendingDeleteItem && pendingDeleteItem.id === targetItemId) {
                 setPendingDeleteItem(null);
             }
         });

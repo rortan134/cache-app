@@ -2906,9 +2906,11 @@ function CollectionItemMetadata({ children }: CollectionItemMetadataProps) {
         onDelete: onDeleteAction,
         onFavoriteToggle: onFavoriteToggleAction,
         onDuplicate: onDuplicateAction,
+        onUpdatePriority: onUpdatePriorityAction,
     } = useCollectionsActions();
     const { collection } = useCollectionsListItemContext();
     const isFavorite = favoriteCollectionIdSet.has(collection.id);
+    const isArchived = collection.priority === "archive";
 
     const handleRename = useStableCallback(() => onRenameAction(collection));
     const handleDelete = useStableCallback(() => onDeleteAction(collection));
@@ -2917,6 +2919,9 @@ function CollectionItemMetadata({ children }: CollectionItemMetadataProps) {
     });
     const handleMakeCopy = useStableCallback(() =>
         onDuplicateAction(collection)
+    );
+    const handleArchive = useStableCallback(() =>
+        onUpdatePriorityAction(collection.id, "archive")
     );
 
     const updatedAt = dayjs(collection.updatedAt);
@@ -2993,6 +2998,14 @@ function CollectionItemMetadata({ children }: CollectionItemMetadataProps) {
                                 focusable="false"
                             />
                             Make a copy
+                        </MenuItem>
+                        <MenuItem disabled={isArchived} onClick={handleArchive}>
+                            <ArchiveIcon
+                                aria-hidden
+                                className="size-4 text-muted-foreground"
+                                focusable="false"
+                            />
+                            Archive
                         </MenuItem>
                     </MenuGroup>
                     <MenuSeparator />

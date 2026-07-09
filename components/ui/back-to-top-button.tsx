@@ -50,9 +50,11 @@ export function BackToTopButton({
         >
             <Button
                 {...props}
+                aria-hidden
                 aria-label="Back to top"
                 onClick={scrollToTop}
                 size="sm"
+                tabIndex={-1}
             />
         </div>
     );
