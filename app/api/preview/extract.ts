@@ -16,9 +16,14 @@ import { Parser } from "htmlparser2";
  * Uses htmlparser2's streaming tokenizer instead of cheerio/parse5 to avoid
  * building a full DOM tree: ~10x faster (0.6ms vs 6.3ms on a 150 KiB page).
  * Tag and attribute names are lowercased to match parse5/cheerio; entities are
- * decoded so `&amp;` in a URL becomes `&` before resolution. Parity is verified
- * against link-preview-js in `app/api/preview/extract.test.ts`; see
- * perf/preview/RESULTS.md for the benchmark.
+ * decoded so `&amp;` in a URL becomes `&` before resolution.
+ *
+ * Lower-priority collectors are skipped once a higher-precedence match is
+ * confirmed (e.g. no `Set` allocation and no `<img>` `src` resolution when an
+ * `og:image` property is found), so the common property-og path avoids most
+ * per-request garbage. Parity is verified against link-preview-js in
+ * `app/api/preview/extract.test.ts`; see perf/preview/RESULTS.md for the
+ * benchmark.
  */
 export function extractPreviewImageUrls(
     html: string,
@@ -29,35 +34,63 @@ export function extractPreviewImageUrls(
     let imageSrcLinkChecked = false;
     let imageSrcLinkHref: string | null = null;
     const imgUrls: string[] = [];
-    const seenImgSrc = new Set<string>();
+    let seenImgSrc: Set<string> | null = null;
+    let hasPropertyOgImage = false;
+    let hasNameOgImage = false;
 
     const parser = new Parser(
         {
             onopentag(tag, attrs) {
                 if (tag === "meta") {
                     const content = attrs.content;
-                    if (attrs.property === "og:image" && content) {
-                        propertyOgImages.push(new URL(content, baseUrl).href);
-                    } else if (attrs.name === "og:image" && content) {
-                        nameOgImages.push(new URL(content, baseUrl).href);
+
+                    if (attrs.property === "og:image") {
+                        hasPropertyOgImage = true;
+                        if (content) {
+                            propertyOgImages.push(
+                                new URL(content, baseUrl).href
+                            );
+                        }
+                    } else if (
+                        !hasPropertyOgImage &&
+                        attrs.name === "og:image"
+                    ) {
+                        hasNameOgImage = true;
+                        if (content) {
+                            nameOgImages.push(new URL(content, baseUrl).href);
+                        }
                     }
                 } else if (tag === "link") {
                     if (
-                        !imageSrcLinkChecked &&
-                        attrs.rel === "image_src" &&
-                        attrs.href
+                        hasPropertyOgImage ||
+                        hasNameOgImage ||
+                        imageSrcLinkChecked
                     ) {
+                        return;
+                    }
+                    const href = attrs.href;
+                    if (attrs.rel === "image_src") {
                         imageSrcLinkChecked = true;
-                        imageSrcLinkHref = new URL(attrs.href, baseUrl).href;
-                    } else if (
-                        !imageSrcLinkChecked &&
-                        attrs.rel === "image_src"
-                    ) {
-                        imageSrcLinkChecked = true;
+                        if (href) {
+                            imageSrcLinkHref = new URL(href, baseUrl).href;
+                        }
                     }
                 } else if (tag === "img") {
+                    if (
+                        hasPropertyOgImage ||
+                        hasNameOgImage ||
+                        imageSrcLinkHref !== null
+                    ) {
+                        return;
+                    }
                     const src = attrs.src;
-                    if (src && !seenImgSrc.has(src)) {
+                    if (!src) {
+                        return;
+                    }
+                    if (seenImgSrc === null) {
+                        seenImgSrc = new Set<string>();
+                    }
+                    if (!seenImgSrc.has(src)) {
                         seenImgSrc.add(src);
                         imgUrls.push(new URL(src, baseUrl).href);
                     }

@@ -95,6 +95,28 @@ describe("extractPreviewImageUrls — parity with link-preview-js", () => {
         );
     });
 
+    test("non-image_src link before image_src does not block it", async () => {
+        await expectParity(
+            `<link rel="stylesheet" href="/style.css">` +
+                `<link rel="image_src" href="/fav.png">` +
+                `<img src="https://x.com/a.png">`
+        );
+    });
+
+    test("empty property og:image suppresses lower precedence", async () => {
+        await expectParity(
+            `<meta property="og:image" content="">` +
+                `<meta name="og:image" content="https://x.com/a.png">`
+        );
+    });
+
+    test("missing property og:image content suppresses lower precedence", async () => {
+        await expectParity(
+            `<meta property="og:image">` +
+                `<meta name="og:image" content="https://x.com/a.png">`
+        );
+    });
+
     test("relative og:image resolves against base url", async () => {
         await expectParity(`<meta property="og:image" content="/og/rel.png">`);
     });

@@ -16,6 +16,7 @@ bun perf/preview/harness.ts all        # cold-start + dns + paths
 bun perf/preview/harness.ts paths
 bun perf/preview/harness.ts cold-start
 bun perf/preview/harness.ts dns
+bun perf/preview/extract.bench.ts      # extractor-only micro-benchmark
 ```
 
 ## Baseline (pre-refactor)
@@ -123,6 +124,55 @@ Parity: identical status codes, `cache-control`, `Vercel-CDN-Cache-Control`,
 `Vercel-Cache-Tag`, `content-type`, `content-length`, `accept-ranges`, redirect
 limit, and body caps. Extractor parity vs link-preview-js: 16/16 cases pass
 (`bun test app/api/preview/extract.test.ts`).
+
+### Win 3 — skip lower-priority collectors and lazy-allocate the img dedup set (`[perf/preview]`)
+
+Profiling the extractor itself showed htmlparser2 tokenization dominating
+large-page cost, but the callback was still doing unnecessary work: every
+`<img>` `src` was resolved and deduped even when an `og:image` property had
+already been seen, and the `seenImgSrc` `Set` was allocated on every call.
+
+Restructured `extractPreviewImageUrls` to:
+
+- Set a flag as soon as the first `property="og:image"` is seen and skip
+  `name`/`link`/`img` processing entirely from that point.
+- Set a flag as soon as the first `name="og:image"` is seen and skip
+  `link`/`img` processing.
+- Stop resolving `<img>` `src`s once a `<link rel="image_src">` href is found.
+- Allocate the `seenImgSrc` `Set` lazily, so the common property-og path never
+  creates it.
+
+Extractor micro-benchmark (`bun perf/preview/extract.bench.ts`, Bun 1.3.14,
+Apple M3):
+
+| fixture             | avg      | alloc (approx) |
+| ------------------- | -------- | -------------- |
+| empty               | 1.03 µs  | 161 b          |
+| og-property-small   | 1.04 µs  | 0 b            |
+| og-property-large   | 1.38 ms  | 1.1 kb         |
+| og-name-only        | 0.97 µs  | 0 b            |
+| image-src           | 1.16 µs  | 31 b           |
+| img-fallback        | 2.16 µs  | 13 b           |
+| mixed               | 698 µs   | 11 kb          |
+
+Large pages are tokenizer-bound, so wall-clock gains are modest there. The
+main win is allocation pressure: the property-og path no longer creates a
+`Set` or resolves `<img>` `src`s, which reduces per-request garbage on the
+cache-miss path under load.
+
+Route harness (`bun perf/preview/harness.ts paths`, compute-isolated, 2000
+iters) after Win 3:
+
+| path            | p50 (ms) | p99 (ms) | req/s   |
+| --------------- | -------- | -------- | ------- |
+| cache-hit        | 0.010    | 0.019    | 96 116  |
+| cache-miss-image | 1.513    | 3.837    | 610     |
+| video-proxy      | 0.031    | 0.390    | 24 953  |
+| redirect-chain   | 1.524    | 3.589    | 607     |
+
+Compared to Win 2: cache-miss-image -2.1%, redirect-chain -2.6%, both within
+run-to-run variance, and no regression on the other paths. Parity is now
+19/19 (`bun test app/api/preview/extract.test.ts`).
 
 ## Verification 2 — load test (plow, `next dev` :3000, live remote Redis)
 
