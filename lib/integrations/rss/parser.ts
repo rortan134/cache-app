@@ -45,13 +45,16 @@ export async function parseFeed(url: string): Promise<ParsedFeed> {
         if (error instanceof RssFeedError) {
             throw error;
         }
-        throw new RssFeedError({
-            kind: "fetch_failed",
-            message:
-                error instanceof Error
-                    ? error.message
-                    : "Failed to fetch the feed.",
-        });
+        throw new RssFeedError(
+            {
+                kind: "fetch_failed",
+                message:
+                    error instanceof Error
+                        ? error.message
+                        : "Failed to fetch the feed.",
+            },
+            { cause: error }
+        );
     }
 
     let feed: Parser.Output<Record<string, unknown>>;
@@ -59,13 +62,16 @@ export async function parseFeed(url: string): Promise<ParsedFeed> {
     try {
         feed = await parser.parseString(xml);
     } catch (error) {
-        throw new RssFeedError({
-            kind: "parse_failed",
-            message:
-                error instanceof Error
-                    ? error.message
-                    : "Failed to parse the feed XML.",
-        });
+        throw new RssFeedError(
+            {
+                kind: "parse_failed",
+                message:
+                    error instanceof Error
+                        ? error.message
+                        : "Failed to parse the feed XML.",
+            },
+            { cause: error }
+        );
     }
 
     return {

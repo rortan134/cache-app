@@ -259,12 +259,15 @@ export async function enablePublicCollectionShare(input: {
                 shouldRetry: isPrismaUniqueConstraintError,
             }
         );
-    } catch {
-        throw new CollectionShareError({
-            code: "share_generation_failed",
-            message: "We couldn't create a public link right now.",
-            operation: "enablePublicCollectionShare",
-        });
+    } catch (error) {
+        throw new CollectionShareError(
+            {
+                code: "share_generation_failed",
+                message: "We couldn't create a public link right now.",
+                operation: "enablePublicCollectionShare",
+            },
+            { cause: error }
+        );
     }
 }
 

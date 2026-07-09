@@ -228,11 +228,14 @@ async function executeGeneration<T>(
             userId,
         });
 
-        throw new GenAiGenerationError({
-            message,
-            operation: "generateCollectionSummary",
-            status,
-        });
+        throw new GenAiGenerationError(
+            {
+                message,
+                operation: "generateCollectionSummary",
+                status,
+            },
+            { cause: error }
+        );
     } finally {
         span.stop();
     }

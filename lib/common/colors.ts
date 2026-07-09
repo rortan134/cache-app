@@ -101,7 +101,8 @@ export const parseToHex = (color: string): string => {
         return formatHex(parsed);
     } catch (error) {
         throw new Error(
-            `Failed to normalize color "${color}": ${error instanceof Error ? error.message : "Unknown error"}`
+            `Failed to normalize color "${color}": ${error instanceof Error ? error.message : "Unknown error"}`,
+            { cause: error }
         );
     }
 };

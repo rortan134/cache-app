@@ -9,7 +9,6 @@ const log = createLogger("Redis");
 const RedisConnectionError = NamedError.create(
     "RedisConnectionError",
     z.object({
-        cause: z.instanceof(Error).optional(),
         message: z.string(),
         operation: z.string(),
     })
@@ -129,10 +128,12 @@ export async function healthCheck(): Promise<void> {
     try {
         await redis.ping();
     } catch (error) {
-        throw new RedisConnectionError({
-            cause: error instanceof Error ? error : undefined,
-            message: "Redis ping failed",
-            operation: "healthCheck",
-        });
+        throw new RedisConnectionError(
+            {
+                message: "Redis ping failed",
+                operation: "healthCheck",
+            },
+            { cause: error }
+        );
     }
 }

@@ -701,8 +701,11 @@ async function fetchSectionDescription([
     let rawInput: unknown;
     try {
         rawInput = JSON.parse(payload);
-    } catch {
-        throw new Error("Failed to parse section description request payload.");
+    } catch (error) {
+        throw new Error(
+            "Failed to parse section description request payload.",
+            { cause: error }
+        );
     }
 
     const parsed = SectionDescriptionRequestSchema.safeParse(rawInput);

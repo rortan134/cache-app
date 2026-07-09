@@ -60,11 +60,13 @@ export const withStripe = async <T>(
             throw error;
         }
 
-        throw new StripeError({
-            cause: error,
-            message: error instanceof Error ? error.message : String(error),
-            operation: "core::withStripe",
-        });
+        throw new StripeError(
+            {
+                message: error instanceof Error ? error.message : String(error),
+                operation: "core::withStripe",
+            },
+            { cause: error }
+        );
     }
 };
 

@@ -36,11 +36,13 @@ export async function withSession<T>(
             throw error;
         }
 
-        throw new SessionError({
-            cause: error instanceof Error ? error : undefined,
-            message: error instanceof Error ? error.message : String(error),
-            operation: "auth::withSession",
-        });
+        throw new SessionError(
+            {
+                message: error instanceof Error ? error.message : String(error),
+                operation: "auth::withSession",
+            },
+            { cause: error }
+        );
     }
 }
 
