@@ -16,9 +16,9 @@ export const fileOpen = async <M extends boolean | undefined = false>(options: {
 }): Promise<M extends false | undefined ? File : File[]> => {
     type ReturnType = M extends false | undefined ? File : File[];
 
-    const mimeTypes = options.extensions?.reduce((mimeTypes, type) => {
-        mimeTypes.push(MIME_TYPES[type]);
-        return mimeTypes;
+    const mimeTypes = options.extensions?.reduce((acc, type) => {
+        acc.push(MIME_TYPES[type]);
+        return acc;
     }, [] as string[]);
 
     const extensions = options.extensions?.reduce((acc, ext) => {

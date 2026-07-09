@@ -46,8 +46,9 @@ export function SidebarProvider({
     const open = openProp ?? uncontrolledOpen;
 
     const setOpen = useStableCallback(
-        (value: boolean | ((value: boolean) => boolean)) => {
-            const nextOpen = typeof value === "function" ? value(open) : value;
+        (nextValue: boolean | ((prev: boolean) => boolean)) => {
+            const nextOpen =
+                typeof nextValue === "function" ? nextValue(open) : nextValue;
             onOpenChange?.(nextOpen);
 
             if (openProp === undefined) {

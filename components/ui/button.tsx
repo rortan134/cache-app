@@ -72,12 +72,12 @@ export function Button({
         children: (
             <>
                 {children}
-                {isLoading && (
+                {isLoading ? (
                     <Spinner
                         className="pointer-events-none absolute"
                         data-slot="button-loading-indicator"
                     />
-                )}
+                ) : null}
             </>
         ),
         className: cn(buttonVariants({ className, size, variant })),

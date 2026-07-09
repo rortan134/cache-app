@@ -23,7 +23,7 @@ export abstract class NamedError extends Error {
 
             constructor(errorData: z.input<Data>, options?: ErrorOptions) {
                 const record =
-                    errorData && typeof errorData === "object"
+                    typeof errorData === "object"
                         ? (errorData as Record<string, unknown>)
                         : null;
                 const message =

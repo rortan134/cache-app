@@ -11,8 +11,8 @@ const TRAILING_NUMBER_REPLACE_PATTERN = /(\d+)$/;
  * @param others - The array of existing names.
  * @public
  */
-export function getIncrementedName(name: string, others: string[]) {
-    let result = name;
+export function getIncrementedName(baseName: string, others: string[]) {
+    let result = baseName;
     const set = new Set(others);
 
     while (set.has(result)) {
@@ -48,11 +48,11 @@ export function decodeHtmlEntities(input: string): string {
         .replaceAll("&#39;", "'");
 }
 
-export function normalizeCollectionName(name: string): {
+export function normalizeCollectionName(baseName: string): {
     name: string;
     nameKey: string;
 } {
-    const normalizedName = normalizeWhitespace(name);
+    const normalizedName = normalizeWhitespace(baseName);
     return {
         name: normalizedName,
         nameKey: normalizedName.toLowerCase(),
@@ -61,8 +61,8 @@ export function normalizeCollectionName(name: string): {
 
 const WHITESPACE_PATTERN = /\s+/;
 
-export function getInitials(name: string | null, email: string): string {
-    const source = name?.trim() || email.trim();
+export function getInitials(baseName: string | null, email: string): string {
+    const source = baseName?.trim() || email.trim();
     const parts = source.split(WHITESPACE_PATTERN).filter(Boolean);
 
     if (parts.length >= 2) {

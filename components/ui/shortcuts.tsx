@@ -85,7 +85,7 @@ export function KeyboardShortcutsDialogTrigger(
                                                 <KbdGroup>
                                                     <Kbd>
                                                         {item.hotkey
-                                                            ?.split("+")
+                                                            .split("+")
                                                             .map((part, i) => (
                                                                 <ShortcutKeyPart
                                                                     key={i}
@@ -108,16 +108,17 @@ export function KeyboardShortcutsDialogTrigger(
 }
 
 function ShortcutKeyPart({ part }: { part: string }) {
-    switch (part.toLowerCase()) {
-        case "mod":
-            return <CmdKbd />;
-        case "alt":
-            return <AltKbd />;
-        case "shift":
-            return <ShiftKbd />;
-        default:
-            return part;
+    const lowerPart = part.toLowerCase();
+    if (lowerPart === "mod") {
+        return <CmdKbd />;
     }
+    if (lowerPart === "alt") {
+        return <AltKbd />;
+    }
+    if (lowerPart === "shift") {
+        return <ShiftKbd />;
+    }
+    return part;
 }
 
 // Re-exporting with "use client"

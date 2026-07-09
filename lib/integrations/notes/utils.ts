@@ -286,28 +286,35 @@ function convertNoteDomNodeToMarkdown(node: Node): string {
         .map((child) => convertNoteDomNodeToMarkdown(child))
         .join("");
 
-    switch (tag) {
-        case "h1":
-            return `# ${children}\n\n`;
-        case "h2":
-            return `## ${children}\n\n`;
-        case "h3":
-            return `### ${children}\n\n`;
-        case "p":
-            return children ? `${children}\n\n` : "";
-        case "strong":
-            return `**${children}**`;
-        case "em":
-            return `*${children}*`;
-        case "u":
-            return `<u>${children}</u>`;
-        case "s":
-            return `~~${children}~~`;
-        case "mark":
-            return `==${children}==`;
-        case "br":
-            return "\n";
-        default:
-            return children;
+    if (tag === "h1") {
+        return `# ${children}\n\n`;
     }
+    if (tag === "h2") {
+        return `## ${children}\n\n`;
+    }
+    if (tag === "h3") {
+        return `### ${children}\n\n`;
+    }
+    if (tag === "p") {
+        return children ? `${children}\n\n` : "";
+    }
+    if (tag === "strong") {
+        return `**${children}**`;
+    }
+    if (tag === "em") {
+        return `*${children}*`;
+    }
+    if (tag === "u") {
+        return `<u>${children}</u>`;
+    }
+    if (tag === "s") {
+        return `~~${children}~~`;
+    }
+    if (tag === "mark") {
+        return `==${children}==`;
+    }
+    if (tag === "br") {
+        return "\n";
+    }
+    return children;
 }

@@ -499,8 +499,8 @@ const baseHandler = createMcpHandler(
 // so clients can introspect server info / discover tools before they ask
 // for credentials. Per-handler gating (`authorizeToolCall`) then enforces
 // the right scope for any actual read or write.
-const authWrapper = (handler: typeof baseHandler) =>
-    withMcpAuth(handler, verifyMcpAuthToken, {
+const authWrapper = (h: typeof baseHandler) =>
+    withMcpAuth(h, verifyMcpAuthToken, {
         required: false,
     });
 

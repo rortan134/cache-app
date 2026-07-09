@@ -78,7 +78,7 @@ const COLORS: readonly string[] = [
 
 export const isValidColor = (color: string): boolean => {
     try {
-        return parse(color) != null;
+        return parse(color) !== null;
     } catch {
         return false;
     }

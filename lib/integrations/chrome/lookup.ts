@@ -116,7 +116,7 @@ export function normalizeChromeBookmarkRecord(
                 : null,
         scrapedAt: parseDate(occurredAt) ?? new Date(),
         source: LibraryItemSource.chrome_bookmarks,
-        sourceDeviceId: device?.id ?? null,
+        sourceDeviceId: device ? device.id : null,
         sourceDeviceName: device?.name ?? null,
         sourceMetadata: metadata,
         url:

@@ -760,6 +760,7 @@ export function integrationOwnsLibraryItemSource(
     source: LibraryItemSource
 ): boolean {
     const libraryItemSources = getIntegration(id).source?.libraryItemSources;
+    // biome-ignore lint/suspicious/noUnnecessaryConditions: libraryItemSources is typed as LibraryItemSource[] | undefined per the type system
     return libraryItemSources?.includes(source) ?? false;
 }
 

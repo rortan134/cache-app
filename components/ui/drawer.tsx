@@ -81,7 +81,7 @@ export function DrawerViewport({
 
     return (
         <DrawerPortal {...portalProps}>
-            {shouldShowBackdrop && <DrawerBackdrop />}
+            {shouldShowBackdrop ? <DrawerBackdrop /> : null}
             <DrawerPrimitive.Viewport
                 className={cn(
                     "fixed inset-0 z-50 [--bleed:--spacing(12)] [--inset:--spacing(0)]",
@@ -173,7 +173,7 @@ export function DrawerPopup({
             {...props}
         >
             {children}
-            {shouldShowCloseButton && (
+            {shouldShowCloseButton ? (
                 <DrawerPrimitive.Close
                     aria-label="Close"
                     className="absolute inset-e-2 top-2"
@@ -181,7 +181,7 @@ export function DrawerPopup({
                 >
                     <XIcon />
                 </DrawerPrimitive.Close>
-            )}
+            ) : null}
         </DrawerPrimitive.Popup>
     );
 }

@@ -3,8 +3,11 @@ import pRetry from "p-retry";
 interface RetryOptions {
     attempts?: number;
     delayMs?: number | ((attempt: number, error: unknown) => number);
-    onRetry?(error: unknown, attempt: number, delayMs: number): void;
-    shouldRetry?(error: unknown, attempt: number): boolean | Promise<boolean>;
+    onRetry?: (error: unknown, attempt: number, delayMs: number) => void;
+    shouldRetry?: (
+        error: unknown,
+        attempt: number
+    ) => boolean | Promise<boolean>;
     signal?: AbortSignal;
 }
 

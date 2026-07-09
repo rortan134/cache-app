@@ -44,7 +44,7 @@ export function CommandInput({
             className="group/input relative flex not-has-[>*.w-full]:w-fit w-full text-foreground has-disabled:opacity-64"
             data-slot="command-input-group"
         >
-            {startAddon && (
+            {startAddon ? (
                 <div
                     aria-hidden
                     className="pointer-events-none absolute inset-s-px inset-y-0 z-10 flex shrink-0 items-center ps-[calc(--spacing(5)-1px)] has-[+[data-size=sm]]:ps-[calc(--spacing(2.5)-1px)] [&_svg:not([class*='size-'])]:size-4.5 sm:[&_svg:not([class*='size-'])]:size-4 [&_svg]:-mx-0.5"
@@ -52,7 +52,7 @@ export function CommandInput({
                 >
                     {startAddon}
                 </div>
-            )}
+            ) : null}
             <Autocomplete.Input
                 className={cn(
                     "min-h-11 rounded-full p-1.5",
@@ -68,7 +68,7 @@ export function CommandInput({
                 render={<Input shouldUseNativeInput size={size} />}
                 {...props}
             />
-            {endAddon && (
+            {endAddon ? (
                 // biome-ignore lint/a11y/useSemanticElements: groups input adornments without naming a form field group.
                 <div
                     className="absolute inset-e-0.5 inset-y-0 z-10 flex shrink-0 flex-nowrap items-center justify-end gap-0.5 pe-[calc(--spacing(2)-1px)] has-[+[data-size=sm]]:pe-[calc(--spacing(1.5)-1px)]"
@@ -76,7 +76,7 @@ export function CommandInput({
                 >
                     {endAddon}
                 </div>
-            )}
+            ) : null}
         </Autocomplete.InputGroup>
     );
 }

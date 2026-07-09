@@ -22,8 +22,7 @@ import { Parser } from "htmlparser2";
  * confirmed (e.g. no `Set` allocation and no `<img>` `src` resolution when an
  * `og:image` property is found), so the common property-og path avoids most
  * per-request garbage. Parity is verified against link-preview-js in
- * `app/api/preview/extract.test.ts`; see perf/preview/RESULTS.md for the
- * benchmark.
+ * `app/api/preview/extract.test.ts`.
  */
 export function extractPreviewImageUrls(
     html: string,

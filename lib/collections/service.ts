@@ -917,7 +917,7 @@ export function purgeExpiredLibraryItems({
         // Repeat until no rows match the expired cutoff. A single batch
         // bounded at PURGE_BATCH_SIZE would leave stale tombstones visible
         // in listRecentlyDeletedItems, defeating the trash-window guarantee.
-        while (true) {
+        for (;;) {
             const candidateIds = (
                 await tx.libraryItem.findMany({
                     select: { id: true },

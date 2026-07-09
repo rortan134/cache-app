@@ -40,7 +40,7 @@ export function DialogPopup({
                     data-slot="dialog-popup"
                 >
                     {children}
-                    {shouldShowCloseButton && (
+                    {shouldShowCloseButton ? (
                         <DialogPrimitive.Close
                             aria-label="Close"
                             className="absolute inset-e-2 top-2"
@@ -48,7 +48,7 @@ export function DialogPopup({
                         >
                             <XIcon />
                         </DialogPrimitive.Close>
-                    )}
+                    ) : null}
                 </DialogPrimitive.Popup>
             </DialogViewport>
         </DialogPrimitive.Portal>

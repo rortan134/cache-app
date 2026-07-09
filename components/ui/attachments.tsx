@@ -122,6 +122,7 @@ function renderAttachmentPreviewContent(
 
     const Icon = MEDIA_CATEGORY_ICON_BY_CATEGORY[mediaCategory];
     const iconClassName = variant === "inline" ? "size-3" : "size-4";
+    // biome-ignore lint/suspicious/noUnnecessaryConditions: fallbackIcon may be undefined at runtime despite non-optional type
     return fallbackIcon ?? renderAttachmentIcon(Icon, iconClassName);
 }
 

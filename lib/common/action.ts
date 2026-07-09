@@ -19,7 +19,7 @@ interface ErrorWithCode<Code extends string> {
 }
 
 interface ErrorFactory<Code extends string> {
-    isInstance(error: unknown): error is ErrorWithCode<Code>;
+    isInstance: (error: unknown) => error is ErrorWithCode<Code>;
 }
 
 type ActionErrorStatus<Status extends string> =
@@ -31,6 +31,7 @@ export function handleActionError<Code extends string, Status extends string>({
     error,
     errorFactory,
     fallbackMessage,
+    // biome-ignore lint/suspicious/noShadow: intentional — matches caller's key name
     log,
 }: {
     codeToStatus: Partial<Record<Code, Status>>;

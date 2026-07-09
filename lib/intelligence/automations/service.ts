@@ -239,7 +239,7 @@ export async function updateAutomation(args: {
                   })
                 : null;
 
-        const automation = await tx.automation.update({
+        const updated = await tx.automation.update({
             data: {
                 cadence: normalized.schedule.cadence,
                 collectionId: normalized.collectionId,
@@ -261,15 +261,15 @@ export async function updateAutomation(args: {
 
         await tx.automationRun.deleteMany({
             where: {
-                automationId: automation.id,
+                automationId: updated.id,
                 status: AutomationRunStatus.pending,
             },
         });
-        if (automation.status === AutomationStatus.active && nextRunAtUtc) {
-            await createPendingRun(tx, automation, nextRunAtUtc);
+        if (updated.status === AutomationStatus.active && nextRunAtUtc) {
+            await createPendingRun(tx, updated, nextRunAtUtc);
         }
 
-        return toAutomationListItem(automation);
+        return toAutomationListItem(updated);
     });
     return automation;
 }
@@ -736,10 +736,9 @@ async function createPendingRun(
         data: {
             automationId: automation.id,
             collectionIdSnapshot: automation.collectionId,
-            collectionNameSnapshot:
-                automation.collection?.name ??
-                automation.collectionNameSnapshot ??
-                null,
+            collectionNameSnapshot: automation.collection
+                ? automation.collection.name
+                : automation.collectionNameSnapshot,
             payloadScopeSnapshot: automation.payloadScope,
             promptSnapshot: automation.prompt,
             scheduledForUtc,
@@ -1021,8 +1020,9 @@ function toAutomationListItem(automation: {
         activatedAtUtc: automation.activatedAtUtc,
         cadence: automation.cadence,
         collectionId: automation.collectionId,
-        collectionName:
-            automation.collection?.name ?? automation.collectionNameSnapshot,
+        collectionName: automation.collection
+            ? automation.collection.name
+            : automation.collectionNameSnapshot,
         createdAt: automation.createdAt,
         id: automation.id,
         lastFailureCode: automation.lastFailureCode,

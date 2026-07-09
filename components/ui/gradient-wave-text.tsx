@@ -259,5 +259,5 @@ export function GradientWaveText({
 }
 
 function now(): number {
-    return globalThis?.performance?.now() ?? Date.now();
+    return globalThis.performance.now();
 }

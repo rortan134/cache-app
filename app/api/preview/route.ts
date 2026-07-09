@@ -418,22 +418,22 @@ async function resolveVideoPreview(
         const videoResult = await resolveVideo(targetUrl, signal);
         if (!videoResult?.videoUrl) {
             const errorCategory = classifyCobaltError(videoResult?.errorCode);
-            switch (errorCategory) {
-                case "rate_limited":
-                    return textResponse(
-                        "Video preview temporarily unavailable due to rate limiting",
-                        429
-                    );
-                case "fetch_failed":
-                    return textResponse(
-                        "Video preview temporarily unavailable",
-                        503
-                    );
-                case "not_found":
-                    return textResponse("Video preview not found", 404);
-                default:
-                    return textResponse("Video preview not available", 404);
+            if (errorCategory === "rate_limited") {
+                return textResponse(
+                    "Video preview temporarily unavailable due to rate limiting",
+                    429
+                );
             }
+            if (errorCategory === "fetch_failed") {
+                return textResponse(
+                    "Video preview temporarily unavailable",
+                    503
+                );
+            }
+            if (errorCategory === "not_found") {
+                return textResponse("Video preview not found", 404);
+            }
+            return textResponse("Video preview not available", 404);
         }
 
         if (delivery === "redirect") {
@@ -663,7 +663,7 @@ async function readTextBodyWithLimit(
     }
 
     try {
-        while (true) {
+        for (;;) {
             const { value, done } = await reader.read().catch((error) => {
                 // A in-flight cancel can surface as a DOMException other than
                 // AbortError, or as a TypeError on already-cancelled readers.

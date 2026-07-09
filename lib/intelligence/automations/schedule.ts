@@ -77,16 +77,13 @@ function computeLocalCandidateAfter(
     localAfter: Dayjs,
     schedule: AutomationScheduleInput
 ): Dayjs {
-    switch (schedule.cadence) {
-        case "daily":
-            return advanceDaily(localAfter, schedule);
-        case "weekly":
-            return advanceWeekly(localAfter, schedule);
-        case "monthly":
-            return advanceMonthly(localAfter, schedule);
-        default:
-            throw new Error("Unsupported automation cadence.");
+    if (schedule.cadence === "daily") {
+        return advanceDaily(localAfter, schedule);
     }
+    if (schedule.cadence === "weekly") {
+        return advanceWeekly(localAfter, schedule);
+    }
+    return advanceMonthly(localAfter, schedule);
 }
 
 function advanceDaily(

@@ -1,6 +1,6 @@
 "use client";
 
-import { canUseDOM, getOwnerDocument, getOwnerWindow } from "@/lib/common/dom";
+import { getOwnerDocument, getOwnerWindow } from "@/lib/common/dom";
 import { useStableCallback } from "@base-ui/utils/useStableCallback";
 import { useEffect, useSyncExternalStore } from "react";
 
@@ -30,11 +30,11 @@ function emitChange() {
 }
 
 function hasThemeStorage() {
-    return canUseDOM && typeof getOwnerWindow().localStorage !== "undefined";
+    return typeof getOwnerWindow().localStorage !== "undefined";
 }
 
 function getSystemDark() {
-    return canUseDOM && getOwnerWindow().matchMedia(MEDIA_QUERY).matches;
+    return getOwnerWindow().matchMedia(MEDIA_QUERY).matches;
 }
 
 function getStored(): Theme {
@@ -97,9 +97,6 @@ function resolveBrowserChromeSurface(): HTMLElement {
 }
 
 export function syncBrowserChromeTheme() {
-    if (!canUseDOM) {
-        return;
-    }
     const ownerDocument = getOwnerDocument();
     const ownerWindow = getOwnerWindow();
     const surfaceColor = normalizeThemeColor(
@@ -119,9 +116,6 @@ export function syncBrowserChromeTheme() {
 }
 
 function applyTheme(theme: Theme, suppressTransitions = false) {
-    if (!canUseDOM) {
-        return;
-    }
     const ownerDocument = getOwnerDocument();
     const ownerWindow = getOwnerWindow();
     const documentElement = ownerDocument.documentElement;
@@ -163,9 +157,6 @@ function getServerSnapshot() {
 }
 
 function subscribe(listener: () => void): () => void {
-    if (!canUseDOM) {
-        return () => undefined;
-    }
     listeners.push(listener);
 
     const ownerWindow = getOwnerWindow();
@@ -193,7 +184,7 @@ function subscribe(listener: () => void): () => void {
     };
 }
 
-if (canUseDOM) {
+if (typeof document !== "undefined") {
     applyTheme(getStored());
 }
 

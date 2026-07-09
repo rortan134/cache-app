@@ -392,7 +392,7 @@ async function downloadRemoteAsset(
         let downloadedBytes = 0;
 
         try {
-            while (true) {
+            for (;;) {
                 const { done, value } = await reader.read();
                 if (done) {
                     break;

@@ -74,7 +74,7 @@ export function ComboboxInput({
             className="relative not-has-[>*.w-full]:w-fit w-full border-b text-foreground has-disabled:opacity-64"
             data-slot="combobox-input-group"
         >
-            {startAddon && (
+            {startAddon ? (
                 <div
                     aria-hidden
                     className="pointer-events-none absolute inset-s-px inset-y-0 z-10 flex items-center ps-[calc(--spacing(3)-1px)] opacity-80 has-[+[data-size=sm]]:ps-[calc(--spacing(2.5)-1px)] [&_svg:not([class*='size-'])]:size-4.5 sm:[&_svg:not([class*='size-'])]:size-4 [&_svg]:-mx-0.5"
@@ -82,7 +82,7 @@ export function ComboboxInput({
                 >
                     {startAddon}
                 </div>
-            )}
+            ) : null}
             <ComboboxPrimitive.Input
                 className={cn(
                     startAddon &&
@@ -108,7 +108,7 @@ export function ComboboxInput({
                 }
                 {...props}
             />
-            {endAddon && (
+            {endAddon ? (
                 <div
                     aria-hidden
                     className={cn(
@@ -120,8 +120,8 @@ export function ComboboxInput({
                 >
                     {endAddon}
                 </div>
-            )}
-            {shouldShowClear && (
+            ) : null}
+            {shouldShowClear ? (
                 <ComboboxClear
                     {...clearProps}
                     className={cn(
@@ -131,7 +131,7 @@ export function ComboboxInput({
                 >
                     <XIcon />
                 </ComboboxClear>
-            )}
+            ) : null}
         </ComboboxPrimitive.InputGroup>
     );
 }
@@ -214,9 +214,9 @@ export function ComboboxItem({
             )}
             data-slot="combobox-item"
         >
-            {shouldShowIndicatorLast && (
+            {shouldShowIndicatorLast ? (
                 <div className="col-start-1">{children}</div>
-            )}
+            ) : null}
             <ComboboxPrimitive.ItemIndicator
                 className={
                     shouldShowIndicatorLast ? "col-start-2" : "col-start-1"
@@ -380,7 +380,7 @@ export function ComboboxChips({
             data-slot="combobox-chips"
             ref={chipsRef}
         >
-            {startAddon && (
+            {startAddon ? (
                 <div
                     aria-hidden
                     className="flex shrink-0 items-center ps-2 opacity-80 has-[~[data-size=sm]]:has-[+[data-slot=combobox-chip]]:pe-1.5 has-[~[data-size=sm]]:ps-1.5 has-[+[data-slot=combobox-chip]]:pe-2 [&_svg:not([class*='size-'])]:size-4.5 sm:[&_svg:not([class*='size-'])]:size-4 [&_svg]:pointer-events-none [&_svg]:-ms-0.5 [&_svg]:-me-1.5"
@@ -388,7 +388,7 @@ export function ComboboxChips({
                 >
                     {startAddon}
                 </div>
-            )}
+            ) : null}
             {children}
         </ComboboxPrimitive.Chips>
     );
