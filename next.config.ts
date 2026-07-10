@@ -1,10 +1,31 @@
-import { BASE_URL } from "@/lib/common/constants";
 import { withGTConfig } from "gt-next/config";
 import type { NextConfig } from "next";
 import { withWorkflow } from "workflow/next";
 
+const securityHeaders = [
+    {
+        key: "Strict-Transport-Security",
+        value: "max-age=63072000; includeSubDomains; preload",
+    },
+    {
+        key: "X-Content-Type-Options",
+        value: "nosniff",
+    },
+    {
+        key: "X-Frame-Options",
+        value: "SAMEORIGIN",
+    },
+    {
+        key: "Referrer-Policy",
+        value: "origin-when-cross-origin",
+    },
+    {
+        key: "Permissions-Policy",
+        value: "camera=(), microphone=(), geolocation=()",
+    },
+];
+
 const nextConfig: NextConfig = {
-    assetPrefix: process.env.NODE_ENV === "development" ? undefined : BASE_URL,
     cacheComponents: true,
     experimental: {
         optimizePackageImports: [
@@ -15,6 +36,7 @@ const nextConfig: NextConfig = {
             "@lexical/react",
             "@lexical/rich-text",
             "@lexical/selection",
+            "@lexical/a11y",
             "lexical",
             "class-variance-authority",
             "motion",
@@ -66,7 +88,6 @@ const nextConfig: NextConfig = {
                 headers: [...securityHeaders],
                 source: "/(.*)",
             },
-            // Block access to sourcemap files (defense in depth)
             {
                 headers: [
                     {
@@ -135,29 +156,6 @@ const nextConfig: NextConfig = {
         ];
     },
 };
-
-const securityHeaders = [
-    {
-        key: "Strict-Transport-Security",
-        value: "max-age=63072000; includeSubDomains; preload",
-    },
-    {
-        key: "X-Content-Type-Options",
-        value: "nosniff",
-    },
-    {
-        key: "X-Frame-Options",
-        value: "SAMEORIGIN",
-    },
-    {
-        key: "Referrer-Policy",
-        value: "origin-when-cross-origin",
-    },
-    {
-        key: "Permissions-Policy",
-        value: "camera=(), microphone=(), geolocation=()",
-    },
-] as const;
 
 export default withWorkflow(
     withGTConfig(nextConfig, {

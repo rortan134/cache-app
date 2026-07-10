@@ -37,22 +37,32 @@ import {
 import { sendNoteToNotion } from "@/lib/integrations/notion/actions";
 import AppIconSmall from "@/public/cache-icon-small.png";
 import { useStableCallback } from "@base-ui/utils/useStableCallback";
-import { $generateNodesFromDOM } from "@lexical/html";
-import { AutoFocusPlugin as LexicalAutoFocusPlugin } from "@lexical/react/LexicalAutoFocusPlugin";
 import {
-    LexicalComposer,
-    type InitialConfigType,
-} from "@lexical/react/LexicalComposer";
+    AriaLiveRegionExtension,
+    FocusManagerExtension,
+    HistoryAnnounceExtension,
+    RovingTabIndexExtension,
+} from "@lexical/a11y";
+import {
+    AutoFocusExtension,
+    configExtension,
+    defineExtension,
+    type InitialEditorStateType,
+} from "@lexical/extension";
+import { HistoryExtension } from "@lexical/history";
+import { $generateNodesFromDOM } from "@lexical/html";
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 import { ContentEditable } from "@lexical/react/LexicalContentEditable";
-import { LexicalErrorBoundary } from "@lexical/react/LexicalErrorBoundary";
-import { HistoryPlugin } from "@lexical/react/LexicalHistoryPlugin";
+import { LexicalExtensionComposer } from "@lexical/react/LexicalExtensionComposer";
 import { OnChangePlugin } from "@lexical/react/LexicalOnChangePlugin";
-import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin";
+import { useLexicalEditable } from "@lexical/react/useLexicalEditable";
+import { useLexicalFocusManagerRef } from "@lexical/react/useLexicalFocusManagerRef";
+import { useLexicalIsTextContentEmpty } from "@lexical/react/useLexicalIsTextContentEmpty";
+import { useLexicalRovingTabIndexRef } from "@lexical/react/useLexicalRovingTabIndexRef";
 import {
     $createHeadingNode,
     $isHeadingNode,
-    HeadingNode,
+    RichTextExtension,
 } from "@lexical/rich-text";
 import { $setBlocksType } from "@lexical/selection";
 import { T, Var } from "gt-next";
@@ -93,6 +103,7 @@ import {
     use,
     useDeferredValue,
     useEffect,
+    useMemo,
     useRef,
     useState,
     useTransition,
@@ -189,10 +200,61 @@ const NOTE_EDITOR_THEME = {
     },
 };
 
-const NOTE_EDITOR_NODES = [HeadingNode];
 const NOTE_EDITOR_NAMESPACE = "cache-library-note";
 const NOTE_READING_WORDS_PER_MINUTE = 250;
 const NOTE_WORD_SEPARATOR = /\s+/;
+
+/**
+ * Strings announced to assistive tech when the matching action happens.
+ *
+ * The wording is concise on purpose so screen-reader users hear a short,
+ * unambiguous event rather than a verbose sentence.
+ */
+const NOTE_HISTORY_ANNOUNCE_UNDONE = "Undone";
+const NOTE_HISTORY_ANNOUNCE_REDONE = "Redone";
+
+/**
+ * Root Lexical extension tree for the note editor.
+ *
+ * `RichTextExtension` owns the rich-text nodes (heading, quote, paragraph),
+ * `HistoryExtension` powers undo/redo, and `AutoFocusExtension` sets the
+ * initial selection. The `@lexical/a11y` extensions add screen-reader
+ * announcements (`HistoryAnnounceExtension` via the shared
+ * `AriaLiveRegionExtension`) and the WAI-ARIA toolbar pattern
+ * (`RovingTabIndexExtension` + `FocusManagerExtension`).
+ *
+ * The per-note `$initialEditorState` is *not* baked in here: this constant
+ * describes the static shape of the editor. `NoteEditor` injects the
+ * initial state through `configExtension` keyed on `editorKey` so each note
+ * session rebuilds the tree from a content-specific snapshot, while the
+ * editor never re-creates mid-session (which would discard editor state).
+ */
+const NOTE_EDITOR_EXTENSION = defineExtension({
+    dependencies: [
+        RichTextExtension,
+        HistoryExtension,
+        configExtension(AutoFocusExtension, {
+            defaultSelection: "rootEnd",
+        }),
+        configExtension(AriaLiveRegionExtension, {
+            owner: null,
+            politeness: "polite",
+        }),
+        configExtension(HistoryAnnounceExtension, {
+            disabled: false,
+            redone: NOTE_HISTORY_ANNOUNCE_REDONE,
+            undone: NOTE_HISTORY_ANNOUNCE_UNDONE,
+        }),
+        RovingTabIndexExtension,
+        FocusManagerExtension,
+    ],
+    name: NOTE_EDITOR_NAMESPACE,
+    namespace: NOTE_EDITOR_NAMESPACE,
+    onError(error: Error) {
+        log.error("Unexpected note editor error", error);
+    },
+    theme: NOTE_EDITOR_THEME,
+});
 
 const log = createLogger("library:notes");
 
@@ -392,7 +454,7 @@ function getNoteTextMetrics(contentHtml: string): NoteTextMetrics {
 
 function getInitialEditorState(
     initialDraft: NoteDraft
-): InitialConfigType["editorState"] {
+): InitialEditorStateType {
     if (initialDraft.contentState) {
         return JSON.stringify(initialDraft.contentState);
     }
@@ -481,15 +543,29 @@ function downloadMarkdownFile(contentHtml: string) {
 }
 
 /**
- * Lexical plugin that renders a block-type and inline-format toolbar.
+ * Renders the block-type and inline-format toolbar for the note editor.
+ *
+ * Implements the WAI-ARIA toolbar pattern: `role="toolbar"` with
+ * `aria-orientation="horizontal"`, a roving `tabindex` managed by
+ * `@lexical/a11y`'s `RovingTabIndexExtension` (one tab stop, ArrowLeft /
+ * ArrowRight move between items), and an editor-to-toolbar focus jump wired
+ * by `FocusManagerExtension` (Alt+F10 enters the toolbar, Escape returns to
+ * the editor).
  *
  * Listens to selection changes and only re-renders when the format state
- * actually differs, which is important because Lexical fires many
- * selection events during typing.
+ * actually differs, which is important because Lexical fires many selection
+ * events during typing.
  */
 function FormattingToolbarPlugin() {
     const [editor] = useLexicalComposerContext();
     const [formats, setFormats] = useState<FormatState>(INITIAL_FORMAT_STATE);
+
+    const rovingTabIndexRef = useLexicalRovingTabIndexRef();
+    const focusManagerRef = useLexicalFocusManagerRef();
+    const toolbarRef = useStableCallback((element: HTMLDivElement | null) => {
+        rovingTabIndexRef(element);
+        focusManagerRef(element);
+    });
 
     useEffect(() => {
         const updateToolbarState = () => {
@@ -576,7 +652,13 @@ function FormattingToolbarPlugin() {
     );
 
     return (
-        <div className="-mx-2 mb-3 flex flex-wrap items-center gap-1 rounded-2xl border border-border/60 bg-muted/35 p-1">
+        <div
+            aria-label="Text formatting"
+            aria-orientation="horizontal"
+            className="-mx-2 mb-3 flex flex-wrap items-center gap-1 rounded-2xl border border-border/60 bg-muted/35 p-1"
+            ref={toolbarRef}
+            role="toolbar"
+        >
             {NOTE_BLOCK_OPTIONS.map((option) => (
                 <Button
                     aria-label={option.ariaLabel}
@@ -675,30 +757,49 @@ function ContentPlugin({
         <>
             <FormattingToolbarPlugin />
             <div className="relative min-h-96 flex-1">
-                <RichTextPlugin
-                    contentEditable={
-                        <ContentEditable
-                            className={cn(
-                                "prose prose-stone h-full min-h-96 max-w-none overflow-y-auto text-[15px] leading-7 outline-none",
-                                "prose-p:my-0 prose-p:min-h-[1.75rem]",
-                                "prose-mark:rounded-sm prose-mark:bg-amber-200/90 prose-mark:px-0.5",
-                                "prose-strong:font-semibold prose-em:italic prose-u:underline prose-s:line-through"
-                            )}
-                            ref={contentEditableRef}
-                        />
-                    }
-                    ErrorBoundary={LexicalErrorBoundary}
-                    placeholder={
-                        <div className="pointer-events-none absolute inset-0 text-base text-muted-foreground">
-                            <T>Start typing or paste a link to add...</T>
-                        </div>
-                    }
+                {/* The ContentEditable is mounted here rather than via the
+                    `contentEditable` prop on LexicalExtensionComposer so the
+                    placeholder overlay stays a sibling of the edit surface
+                    inside this `relative` wrapper. The extensions
+                    (RichTextExtension, HistoryExtension, AutoFocusExtension,
+                    the @lexical/a11y extensions) own the editor's behavior;
+                    this component only pipes paste and change events. */}
+                <ContentEditable
+                    className={cn(
+                        "prose prose-stone h-full min-h-96 max-w-none overflow-y-auto text-[15px] leading-7 outline-none",
+                        "prose-p:my-0 prose-p:min-h-[1.75rem]",
+                        "prose-mark:rounded-sm prose-mark:bg-amber-200/90 prose-mark:px-0.5",
+                        "prose-strong:font-semibold prose-em:italic prose-u:underline prose-s:line-through"
+                    )}
+                    ref={contentEditableRef}
                 />
-                <HistoryPlugin />
-                <LexicalAutoFocusPlugin defaultSelection="rootEnd" />
+                <NotePlaceholder />
                 <OnChangePlugin ignoreSelectionChange onChange={handleChange} />
             </div>
         </>
+    );
+}
+
+/**
+ * Shows the "Start typing or paste a link..." hint only while the editor is
+ * empty and editable, mirroring the legacy `RichTextPlugin` placeholder.
+ */
+function NotePlaceholder() {
+    const [editor] = useLexicalComposerContext();
+    const isEmpty = useLexicalIsTextContentEmpty(editor, true);
+    const isEditable = useLexicalEditable();
+
+    if (!(isEditable && isEmpty)) {
+        return null;
+    }
+
+    return (
+        <div
+            aria-hidden
+            className="pointer-events-none absolute inset-0 text-base text-muted-foreground"
+        >
+            <T>Start typing or paste a link to add...</T>
+        </div>
     );
 }
 
@@ -1142,11 +1243,20 @@ function NoteHeader() {
 }
 
 /**
- * Lexical composer that mounts the rich-text editor with the correct
- * initial state and plugins.
+ * Lexical composer that mounts the rich-text editor with a11y wiring and the
+ * correct initial state for the current note.
  *
- * Keyed by `editorKey` so reopening a different note fully remounts
- * the editor instead of recycling stale internal state.
+ * The root extension is rebuilt per `editorKey` (`getInitialEditorState`
+ * returns content-specific state) via `useMemo`, which is safe because
+ * `key={editorKey}` on `LexicalExtensionComposer` unmounts the previous
+ * editor and builds a fresh one — the extension is never re-created during a
+ * note session, so editor state (selection, history, focus) is preserved
+ * across renders of `NoteEditor` for the same note.
+ *
+ * The `contentEditable` prop is intentionally null: `ContentPlugin` mounts
+ * the `ContentEditable` inside a `relative` wrapper that co-locates the
+ * empty-state placeholder overlay. The a11y extensions live in
+ * `NOTE_EDITOR_EXTENSION`.
  */
 function NoteEditor() {
     const {
@@ -1157,19 +1267,44 @@ function NoteEditor() {
         onUrlPaste,
         shouldCreateBookmarkFromUrlPaste,
     } = useNoteContext();
-    const editorState = getInitialEditorState(initialDraft);
+
+    // We only want `initialDraft`'s value at the moment the editor is built
+    // (Lexical applies `$initialEditorState` once, at construction time —
+    // exactly like the legacy `LexicalComposer` that created the editor in a
+    // `useMemo([])` and read `initialConfig` from the first render).
+    // A ref lets the memo body read the latest snapshot without putting
+    // `initialDraft` in the dep list — which would rebuild the editor mid
+    // session when a save commits the working draft (initialDraft would
+    // change with no editorKey change) and discard focus, selection, and
+    // undo history.
+    const initialDraftRef = useRef(initialDraft);
+    initialDraftRef.current = initialDraft;
+
+    const extension = useMemo(
+        () =>
+            defineExtension({
+                $initialEditorState: getInitialEditorState(
+                    initialDraftRef.current
+                ),
+                dependencies: [NOTE_EDITOR_EXTENSION],
+                // Per-session extension name (unique across remounts) so the
+                // LexicalBuilder can resolve it in devtools; the *editor*
+                // `namespace` (the clipboard-interchange identifier) stays
+                // the shared `NOTE_EDITOR_NAMESPACE` below, so undo/redo history
+                // and clipboard formats remain stable across notes.
+                name: `${NOTE_EDITOR_NAMESPACE}-${editorKey}`,
+                namespace: NOTE_EDITOR_NAMESPACE,
+            }),
+        // Rebuild only when `editorKey` changes — which forces
+        // `LexicalExtensionComposer` (keyed on `editorKey`) to unmount and
+        // mount a fresh editor with this extension's `$initialEditorState`.
+        [editorKey]
+    );
 
     return (
-        <LexicalComposer
-            initialConfig={{
-                editorState,
-                namespace: NOTE_EDITOR_NAMESPACE,
-                nodes: NOTE_EDITOR_NODES,
-                onError(error: Error) {
-                    log.error("Unexpected note editor error", error);
-                },
-                theme: NOTE_EDITOR_THEME,
-            }}
+        <LexicalExtensionComposer
+            contentEditable={null}
+            extension={extension}
             key={editorKey}
         >
             <ContentPlugin
@@ -1180,7 +1315,7 @@ function NoteEditor() {
                     shouldCreateBookmarkFromUrlPaste
                 }
             />
-        </LexicalComposer>
+        </LexicalExtensionComposer>
     );
 }
 
