@@ -4,16 +4,6 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
-    DEFAULT_TIME_OF_DAY_MINUTES,
-    formatTimeOfDayMinutes,
-    getTimeOfDayOption,
-    getTimeOfDayOptionByLabel,
-    getTimeOfDayOptions,
-    parseTimeOfDayMinutes,
-    roundTimeOfDayMinutes,
-    type TimeOfDayOption,
-} from "@/lib/common/time";
-import {
     Combobox,
     ComboboxCollection,
     ComboboxEmpty,
@@ -36,11 +26,22 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import {
+    DEFAULT_TIME_OF_DAY_MINUTES,
+    formatTimeOfDayMinutes,
+    getTimeOfDayOption,
+    getTimeOfDayOptionByLabel,
+    getTimeOfDayOptions,
+    parseTimeOfDayMinutes,
+    roundTimeOfDayMinutes,
+    type TimeOfDayOption,
+} from "@/lib/common/time";
+import {
     createAutomation,
     resumeAutomation,
     updateAutomation,
 } from "@/lib/intelligence/automations/actions";
 import AppIconSmall from "@/public/cache-icon-small.png";
+import { useIsoLayoutEffect } from "@base-ui/utils/useIsoLayoutEffect";
 import { useStableCallback } from "@base-ui/utils/useStableCallback";
 import { parseDate } from "chrono-node";
 import { useLocale } from "gt-next";
@@ -694,9 +695,9 @@ function AutomationTimeCombobox({
     value,
 }: AutomationTimeComboboxProps) {
     const [isOpen, setIsOpen] = React.useState(false);
-    const [inputValue, setInputValue] = React.useState(value.label);
+    const [inputValue, setInputValue] = React.useState(() => value.label);
 
-    React.useEffect(() => {
+    useIsoLayoutEffect(() => {
         setInputValue(value.label);
     }, [value.label]);
 

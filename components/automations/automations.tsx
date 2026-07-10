@@ -7,6 +7,7 @@ import {
 } from "@/components/automations/automation-composer-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { ClientOnly } from "@/components/ui/client-only";
 import { cn } from "@/lib/common/cn";
 import {
     DEFAULT_TIME_OF_DAY_MINUTES,
@@ -111,13 +112,6 @@ function formatSchedule(automation: AutomationListItem): string {
         return `Monthly at ${time}`;
     }
     return `Daily at ${time}`;
-}
-
-function formatDate(value: Date): string {
-    return new Intl.DateTimeFormat(undefined, {
-        dateStyle: "medium",
-        timeStyle: "short",
-    }).format(value);
 }
 
 function getAutomationRunMessage(run: AutomationRunListItem) {
@@ -316,6 +310,11 @@ function AutomationIconButton({
     );
 }
 
+const DATE_TIME_INTL = new Intl.DateTimeFormat(undefined, {
+    dateStyle: "medium",
+    timeStyle: "short",
+});
+
 function AutomationRunRow({ run }: { run: AutomationRunListItem }) {
     const runMessage = getAutomationRunMessage(run);
 
@@ -323,7 +322,9 @@ function AutomationRunRow({ run }: { run: AutomationRunListItem }) {
         <div className="grid gap-1 rounded-md bg-muted/30 px-3 py-2">
             <div className="flex items-center justify-between gap-3">
                 <span className="text-muted-foreground text-xs">
-                    {formatDate(run.scheduledForUtc)}
+                    <ClientOnly>
+                        {DATE_TIME_INTL.format(run.scheduledForUtc)}
+                    </ClientOnly>
                 </span>
                 <Badge
                     className="rounded-md px-2 text-[11px]"
