@@ -17,14 +17,19 @@ import { i18nPlugin } from "./i18n";
 
 const BASE_AUTH_URL = process.env.BETTER_AUTH_URL ?? BASE_URL;
 
+const EXTENSION_ORIGIN = process.env.CACHE_EXTENSION_ID
+    ? `chrome-extension://${process.env.CACHE_EXTENSION_ID}`
+    : null;
+
+const ENV_TRUSTED_ORIGINS =
+    process.env.TRUSTED_ORIGINS?.split(",")
+        .map((origin) => origin.trim())
+        .filter(Boolean) ?? [];
+
 const TRUSTED_ORIGINS = [
     BASE_AUTH_URL,
-    ...(process.env.CACHE_EXTENSION_ID
-        ? [`chrome-extension://${process.env.CACHE_EXTENSION_ID}`]
-        : []),
-    ...(process.env.TRUSTED_ORIGINS?.split(",")
-        .map((origin) => origin.trim())
-        .filter(Boolean) ?? []),
+    ...(EXTENSION_ORIGIN ? [EXTENSION_ORIGIN] : []),
+    ...ENV_TRUSTED_ORIGINS,
 ];
 
 const SESSION_COOKIE_CACHE_MAX_AGE_SECONDS = 24 * 60 * 60; // 24 hours in seconds
