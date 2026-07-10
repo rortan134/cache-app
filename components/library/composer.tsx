@@ -31,7 +31,7 @@ import {
 } from "@base-ui/react";
 import { useStableCallback } from "@base-ui/utils/useStableCallback";
 import { Calligraph } from "calligraph";
-import { Grid2x2, Grid2x2X, SquarePen } from "lucide-react";
+import { ChevronDown, Grid2x2, Grid2x2X, SquarePen } from "lucide-react";
 import * as React from "react";
 
 const COMMAND_MATCH_WORD_SEPARATOR_PATTERN = /[\s:./_-]+/;
@@ -297,22 +297,18 @@ export function ComposerActionClear() {
                     </>
                 )}
             </span>
+            <ChevronDown className="inline-block size-3.5 shrink-0" />
         </ActionButton>
     );
 }
 
 export function ComposerActionOnboarding() {
     const {
-        canCreateCollectionFromResults,
         connectedIntegrationCount,
         onCreateCollection,
         onCreateNote,
         onOpenCommandFromOnboarding,
     } = useComposerActionsContext();
-
-    if (canCreateCollectionFromResults) {
-        return null;
-    }
 
     return (
         <OnboardingMenu
@@ -345,7 +341,6 @@ interface ComposerInputProps {
 
 interface ComposerActionsProps {
     canClear: boolean;
-    canCreateCollectionFromResults: boolean;
     children: React.ReactNode;
     className?: string;
     connectedIntegrationCount: number;

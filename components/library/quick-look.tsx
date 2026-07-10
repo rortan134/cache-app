@@ -16,11 +16,13 @@ import {
 } from "@/components/ui/drawer";
 import { Spinner } from "@/components/ui/spinner";
 import { parseDisplayUrl } from "@/lib/common/url";
+import { useIsoLayoutEffect } from "@base-ui/utils/useIsoLayoutEffect";
 import { useStableCallback } from "@base-ui/utils/useStableCallback";
 import { useTimeout } from "@base-ui/utils/useTimeout";
 import { T } from "gt-next";
 import { AlertCircleIcon, ExternalLinkIcon, GlobeIcon } from "lucide-react";
 import * as React from "react";
+import useSWR from "swr";
 import { createStore } from "stan-js";
 import { storage } from "stan-js/storage";
 
@@ -49,13 +51,19 @@ const YOUTUBE_IFRAME_HOSTS = new Set([
 
 type QuickLookDrawerStatus = "blocked" | "loaded" | "loading" | "oembed";
 
-type QuickLookOembedResult =
+// The fetcher's resolution distinguishes the three server outcomes that drive the
+// derived status: a successful oEmbed (`found`), a server-side failure while
+// attempting oEmbed (`not-found`), and a 404 meaning this URL has no oEmbed
+// provider at all (`unsupported`). Only `found` short-circuits the vanilla
+// iframe; `not-found` mirrors the original "failed" path of surfacing blocked
+// immediately, while `unsupported` lets the iframe try.
+type QuickLookOembedResolution =
     | {
           oembed: QuickLookDrawerOembed;
-          status: "found";
+          resolution: "found";
       }
     | {
-          status: "failed" | "unsupported";
+          resolution: "not-found" | "unsupported";
       };
 
 interface QuickLookDrawerOembed {
@@ -317,84 +325,171 @@ export function openQuickLookDrawer(
 }
 
 function useQuickLookStatus(url: string, timeoutMs: number) {
-    const [status, setStatus] =
-        React.useState<QuickLookDrawerStatus>("loading");
-    const [oembed, setOembed] = React.useState<QuickLookDrawerOembed | null>(
-        null
-    );
+    // `about:blank` is the synthetic "no preview" URL. There is nothing to embed
+    // or load, so we disable SWR's fetcher with a `null` key and derivation
+    // returns "blocked" directly.
+    const swrKey = url === QUICK_LOOK_BLOCKED_URL ? null : url;
+
+    const { data, error } = useSWR(swrKey, resolveQuickLookOembed, {
+        // oEmbed responses are stable per URL within a session — re-fetching on
+        // focus or reconnect would just re-mount the preview and discard a
+        // working iframe for no observable benefit.
+        revalidateOnFocus: false,
+        revalidateOnReconnect: false,
+        // The endpoint fails fast (5s server-side upper bound). Retrying would
+        // only delay the blocked fallback; recoverability depends on the user
+        // choosing a different URL, not on transient network blips.
+        shouldRetryOnError: false,
+    });
+
+    // SWR owns the oEmbed fetch; the iframe keeps a tiny piece of local state for
+    // its own DOM lifecycle. `<iframe>` onLoad/onError describe a *rendering*
+    // outcome, not a network request — there's no natural SWR model (no key to
+    // de-dupe or revalidate), so a second fetcher would be a fake abstraction.
+    // Composing these two signals in derivation is simpler and keeps each part
+    // honest about what it knows.
+    const [iframeStatus, setIframeStatus] = React.useState<
+        "pending" | "loaded" | "blocked"
+    >("pending");
+
     const blockedTimeout = useTimeout();
 
     const markAsBlocked = useStableCallback(() => {
-        setStatus((curr) => (curr === "loading" ? "blocked" : curr));
+        setIframeStatus((current) =>
+            // Once loaded, an iframe stays loaded — internal navigation failures
+            // after a successful load are not actionable and would flicker the
+            // blocked view against a working preview. Only route non-loaded
+            // states to blocked, mirroring the original `setStatus` guard.
+            current === "loaded" ? "loaded" : "blocked"
+        );
     });
 
     const markAsLoaded = useStableCallback(() => {
-        setStatus("loaded");
+        // Unconditional: a late `onLoad` is allowed to resurrect the preview from
+        // a timeout-induced blocked state, matching the original's behavior where
+        // `markAsLoaded` always wrote "loaded" regardless of prior status.
+        setIframeStatus("loaded");
     });
 
+    // Reset the iframe lifecycle synchronously on URL change so the very first
+    // render of the new URL never inherits the previous URL's terminal status.
+    // Layout effects run after DOM commit but before paint, guaranteeing the
+    // user never sees a "loaded"/"blocked" leftover from a prior preview.
+    useIsoLayoutEffect(() => {
+        setIframeStatus("pending");
+    }, [url]);
+
     React.useEffect(() => {
-        setOembed(null);
         if (url === QUICK_LOOK_BLOCKED_URL) {
             blockedTimeout.clear();
-            setStatus("blocked");
             return;
         }
-
-        const controller = new AbortController();
-        setStatus("loading");
-        blockedTimeout.start(timeoutMs, markAsBlocked);
-
-        resolveQuickLookOembed(url, controller.signal)
-            .then((res) => {
-                if (controller.signal.aborted) {
-                    return;
-                }
-
-                if (res.status === "failed") {
-                    blockedTimeout.clear();
-                    setStatus("blocked");
-                } else if (res.status === "found" && res.oembed) {
-                    blockedTimeout.clear();
-                    setOembed(res.oembed);
-                    setStatus("oembed");
-                }
-            })
-            .catch(() => {
-                if (controller.signal.aborted) {
-                    return;
-                }
-                // A genuine network failure (not an abort) should not leave the user
-                // staring at a spinner until the timeout fires; transition to blocked now.
-                blockedTimeout.clear();
-                markAsBlocked();
-            });
-
+        // The timeout bounds the *total* wait from the URL change, mirroring the
+        // original 8-second deadline that spanned both the oEmbed fetch and the
+        // iframe load. It can only cause a `pending → blocked` transition — once
+        // the iframe has reached a terminal state, the callback no-ops.
+        blockedTimeout.start(timeoutMs, () => {
+            setIframeStatus((current) =>
+                current === "pending" ? "blocked" : current
+            );
+        });
         return () => {
-            controller.abort();
             blockedTimeout.clear();
         };
-    }, [blockedTimeout, markAsBlocked, timeoutMs, url]);
+    }, [blockedTimeout, timeoutMs, url]);
 
-    return { markAsBlocked, markAsLoaded, oembed, status };
+    // Once SWR settles on an outcome that bypasses the iframe, the loading
+    // timeout has no useful work left. Clearing avoids a wasteful re-render
+    // (the timer would fire into a status the derivation already ignores).
+    // `unsupported` is the exception: 404 means "no oEmbed provider for this
+    // URL" — the vanilla iframe is still the user's best preview, and the
+    // timeout must keep running to bound its load.
+    React.useEffect(() => {
+        if (
+            data?.resolution === "found" ||
+            data?.resolution === "not-found" ||
+            error
+        ) {
+            blockedTimeout.clear();
+        }
+    }, [blockedTimeout, data, error]);
+
+    return {
+        markAsBlocked,
+        markAsLoaded,
+        oembed: data?.resolution === "found" ? data.oembed : null,
+        status: deriveQuickLookStatus(url, data, error, iframeStatus),
+    };
+}
+
+function deriveQuickLookStatus(
+    url: string,
+    data: QuickLookOembedResolution | undefined,
+    error: Error | undefined,
+    iframeStatus: "pending" | "loaded" | "blocked"
+): QuickLookDrawerStatus {
+    if (url === QUICK_LOOK_BLOCKED_URL) {
+        return "blocked";
+    }
+
+    // A successful oEmbed takes priority and supplants any iframe state — the
+    // richer preview wins regardless of whether the iframe loaded in parallel.
+    if (data?.resolution === "found") {
+        return "oembed";
+    }
+
+    // `not-found` is the original "failed" path: the oEmbed endpoint reached the
+    // server but couldn't produce a result (non-404 error, malformed JSON, etc.).
+    // As in the original, surface blocked immediately and discard any pending
+    // iframe result — a server-side oEmbed failure suggests the URL won't render
+    // reliably as an iframe either, so don't make the user wait to find out.
+    if (data?.resolution === "not-found") {
+        return "blocked";
+    }
+
+    // SWR `error` means the fetcher threw (a genuine network failure, not an HTTP
+    // status — those route to resolutions). Preserves the original's liveness
+    // guard: a working iframe stays loaded; only `pending`/`blocked` fall back.
+    // This matches `markAsBlocked`, which no-ops once the iframe has loaded.
+    if (error && iframeStatus !== "loaded") {
+        return "blocked";
+    }
+
+    if (iframeStatus === "blocked") {
+        return "blocked";
+    }
+
+    if (iframeStatus === "loaded") {
+        return "loaded";
+    }
+
+    // Either SWR is still loading (iframe mounts in parallel as a hedge against
+    // an unsupported oEmbed outcome) or SWR resolved to `unsupported` and we're
+    // waiting for that iframe's onLoad/onError. Either way, show the spinner.
+    return "loading";
 }
 
 async function resolveQuickLookOembed(
-    url: string,
-    signal: AbortSignal
-): Promise<QuickLookOembedResult> {
+    url: string
+): Promise<QuickLookOembedResolution> {
+    // SWR manages key changes and stale-response discarding internally; the
+    // original AbortController plumbing is no longer needed here. SWR will not
+    // abort the underlying fetch on key change, but the server endpoint caps
+    // itself at 5s, so abandoned requests do not accumulate indefinitely.
     const response = await fetch(`/api/oembed?url=${encodeURIComponent(url)}`, {
         headers: { Accept: "application/json" },
-        signal,
     });
     if (response.status === 404) {
-        return { status: "unsupported" };
+        return { resolution: "unsupported" };
     }
     if (!response.ok) {
-        return { status: "failed" };
+        return { resolution: "not-found" };
     }
     const data: unknown = await response.json();
     const oembed = parseQuickLookOembed(data);
-    return oembed ? { oembed, status: "found" } : { status: "failed" };
+    return oembed
+        ? { oembed, resolution: "found" }
+        : { resolution: "not-found" };
 }
 
 function parseQuickLookOembed(data: unknown): QuickLookDrawerOembed | null {
@@ -466,6 +561,7 @@ function buildOembedSrcDoc(html: string): string {
 <base target="_blank">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src https: data:; style-src 'unsafe-inline' https:; script-src 'unsafe-inline' https:; frame-src https:;">
 <style>
 html,
 body {
@@ -569,6 +665,7 @@ function QuickLookDrawerContent({
                                 onError={markAsBlocked}
                                 onLoad={markAsLoaded}
                                 referrerPolicy="strict-origin-when-cross-origin"
+                                sandbox="allow-scripts allow-popups allow-popups-to-escape-sandbox"
                                 src={url}
                                 title={`Preview of ${title}`}
                             />

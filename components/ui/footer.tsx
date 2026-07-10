@@ -13,6 +13,7 @@ export function Footer() {
                                 <Link
                                     className="underline"
                                     href="https://docs.cachd.app"
+                                    rel="noopener noreferrer"
                                     target="_blank"
                                 >
                                     <T>
@@ -22,6 +23,7 @@ export function Footer() {
                                 <Link
                                     className="underline"
                                     href="/legal/terms-of-service"
+                                    rel="noopener noreferrer"
                                     target="_blank"
                                 >
                                     <T>
@@ -31,6 +33,7 @@ export function Footer() {
                                 <Link
                                     className="underline"
                                     href="/legal/privacy-policy"
+                                    rel="noopener noreferrer"
                                     target="_blank"
                                 >
                                     <T>
@@ -40,6 +43,7 @@ export function Footer() {
                                 <Link
                                     className="underline"
                                     href="/security"
+                                    rel="noopener noreferrer"
                                     target="_blank"
                                 >
                                     <T>

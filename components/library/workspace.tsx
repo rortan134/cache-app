@@ -141,7 +141,7 @@ const SUMMARY_SORTERS = {
 } satisfies SummarySorter;
 
 function sortList<T>(list: readonly T[], compare: (a: T, b: T) => number): T[] {
-    return [...list].sort(compare);
+    return list.toSorted(compare);
 }
 
 export function sortCollections<

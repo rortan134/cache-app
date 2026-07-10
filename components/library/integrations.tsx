@@ -542,6 +542,7 @@ function IntegrationsListPrivacyDisclaimer() {
                             <Link
                                 href="/legal/privacy-policy"
                                 prefetch={false}
+                                rel="noopener"
                                 target="_blank"
                             />
                         }
@@ -648,6 +649,7 @@ function IntegrationsListItemPreviewTrigger({
                         alt=""
                         className="aspect-3/2 h-auto w-full object-cover"
                         fill
+                        sizes="256px"
                         src={integration.hintImage}
                     />
                 ) : null}

@@ -83,6 +83,7 @@ import {
     PreviewCardTrigger,
 } from "@/components/ui/preview-card";
 import { SidebarItem } from "@/components/ui/sidebar";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Spinner } from "@/components/ui/spinner";
 import { Textarea } from "@/components/ui/textarea";
 import { useCollectionRecommendations } from "@/hooks/queries/use-collection-recommendations";
@@ -815,75 +816,6 @@ function useCollectionsController() {
         preventDefault: true,
     });
 
-    useHotkeys(
-        "e",
-        (event) => {
-            const target = hoveredCollectionRef.current;
-            if (target) {
-                event.preventDefault();
-                requestRename(target);
-            }
-        },
-        { description: "Rename hovered collection" }
-    );
-
-    useHotkeys(
-        ["delete", "backspace"],
-        (event) => {
-            const target = hoveredCollectionRef.current;
-            if (target) {
-                event.preventDefault();
-                requestDelete(target);
-            }
-        },
-        { description: "Delete hovered collection" }
-    );
-
-    useHotkeys(
-        "c",
-        (event) => {
-            const target = hoveredCollectionRef.current;
-            if (target && target.itemCount > 0) {
-                event.preventDefault();
-                handleCopyLinks(target);
-            }
-        },
-        { description: "Copy links from hovered collection" }
-    );
-
-    useHotkeys(
-        "alt+f",
-        (event) => {
-            const target = hoveredCollectionRef.current;
-            if (target) {
-                const isFavorite = favoriteCollectionIdSetRef.current.has(
-                    target.id
-                );
-                if (!isFavorite) {
-                    event.preventDefault();
-                    handleFavoriteToggle(target);
-                }
-            }
-        },
-        { description: "Favorite hovered collection" }
-    );
-
-    useHotkeys(
-        "p",
-        () => {
-            const target = hoveredCollectionRef.current;
-            if (!target) {
-                return;
-            }
-            setPendingPriorityComboboxCollectionId(target.id);
-        },
-        {
-            description: "Set priority for hovered collection",
-            preventDefault: true,
-        },
-        []
-    );
-
     const requestDelete = useStableCallback(
         (collection: LibraryCollectionSummary) => {
             setFeedback(null);
@@ -1236,6 +1168,75 @@ function useCollectionsController() {
         }
     );
 
+    useHotkeys(
+        "e",
+        (event) => {
+            const target = hoveredCollectionRef.current;
+            if (target) {
+                event.preventDefault();
+                requestRename(target);
+            }
+        },
+        { description: "Rename hovered collection" }
+    );
+
+    useHotkeys(
+        ["delete", "backspace"],
+        (event) => {
+            const target = hoveredCollectionRef.current;
+            if (target) {
+                event.preventDefault();
+                requestDelete(target);
+            }
+        },
+        { description: "Delete hovered collection" }
+    );
+
+    useHotkeys(
+        "c",
+        (event) => {
+            const target = hoveredCollectionRef.current;
+            if (target && target.itemCount > 0) {
+                event.preventDefault();
+                handleCopyLinks(target);
+            }
+        },
+        { description: "Copy links from hovered collection" }
+    );
+
+    useHotkeys(
+        "alt+f",
+        (event) => {
+            const target = hoveredCollectionRef.current;
+            if (target) {
+                const isFavorite = favoriteCollectionIdSetRef.current.has(
+                    target.id
+                );
+                if (!isFavorite) {
+                    event.preventDefault();
+                    handleFavoriteToggle(target);
+                }
+            }
+        },
+        { description: "Favorite hovered collection" }
+    );
+
+    useHotkeys(
+        "p",
+        () => {
+            const target = hoveredCollectionRef.current;
+            if (!target) {
+                return;
+            }
+            setPendingPriorityComboboxCollectionId(target.id);
+        },
+        {
+            description: "Set priority for hovered collection",
+            preventDefault: true,
+        },
+        []
+    );
+
     const handleDisableSmartCollections = useStableCallback(async () => {
         try {
             await mutateSmartCollectionsPreference(
@@ -1446,11 +1447,22 @@ function useCollectionItemPreviewIndex(
     const [activePreviewIndex, setActivePreviewIndex] = React.useState(0);
     const previewInterval = useInterval();
     const hasMultipleThumbnails = thumbnailCount > 1;
+    const shouldCycle = isOpen && hasMultipleThumbnails;
+
+    // Adjust index during render when the preview closes so the next open
+    // starts at 0 without waiting for an effect paint. Interval ownership
+    // stays in the effect below — clearing timers during render is unsafe
+    // under concurrent rendering (a discarded render would stop a live one).
+    const [prevShouldCycle, setPrevShouldCycle] = React.useState(shouldCycle);
+    if (prevShouldCycle !== shouldCycle) {
+        setPrevShouldCycle(shouldCycle);
+        if (!shouldCycle) {
+            setActivePreviewIndex(0);
+        }
+    }
 
     React.useEffect(() => {
-        if (!(isOpen && hasMultipleThumbnails)) {
-            previewInterval.clear();
-            setActivePreviewIndex(0);
+        if (!shouldCycle) {
             return;
         }
         previewInterval.start(PREVIEW_SLIDE_INTERVAL_MS, () => {
@@ -1461,7 +1473,7 @@ function useCollectionItemPreviewIndex(
         return () => {
             previewInterval.clear();
         };
-    }, [hasMultipleThumbnails, isOpen, previewInterval, thumbnailCount]);
+    }, [shouldCycle, previewInterval, thumbnailCount]);
 
     return activePreviewIndex;
 }
@@ -2387,7 +2399,18 @@ function CollectionsListCreateButton({
 function CollectionsListCalloutPopover() {
     const { onDisableSmartCollections, onEnableSmartCollections } =
         useCollectionsActions();
-    const { disabled } = useSmartCollectionsPreference();
+    const { disabled, isLoading } = useSmartCollectionsPreference();
+
+    if (isLoading || typeof disabled === "undefined") {
+        return (
+            <div className="flex items-center gap-0.5 text-nowrap font-medium text-[11px] opacity-40">
+                <Skeleton className="h-3 w-[82px]" />
+                <span>is</span>
+                <Skeleton className="h-3 w-7" />
+                <Skeleton className="size-4" />
+            </div>
+        );
+    }
 
     return (
         <Popover>
@@ -3049,20 +3072,14 @@ function CollectionsRenameDialog() {
     const { syncName, setPendingRename } = useCollectionsActions();
     const isOpen = pendingRename !== null;
 
-    const [nameDraft, setNameDraft] = React.useState("");
+    const [nameDraft, setNameDraft] = React.useState(
+        () => pendingRename?.name ?? ""
+    );
     const [errorMessage, setErrorMessage] = React.useState<string | null>(null);
     const [isPending, startRename] = React.useTransition();
     const renameSubmissionPendingRef = React.useRef(false);
 
-    React.useEffect(() => {
-        if (pendingRename) {
-            setNameDraft(pendingRename.name);
-            setErrorMessage(null);
-        } else {
-            setNameDraft("");
-            setErrorMessage(null);
-        }
-    }, [pendingRename]);
+    const renameDialogKey = pendingRename?.id ?? "closed";
 
     const handleNameDraftChange = useStableCallback((draft: string) => {
         setNameDraft(draft);
@@ -3139,7 +3156,11 @@ function CollectionsRenameDialog() {
     const errorId = React.useId();
 
     return (
-        <Dialog onOpenChange={handleOpenChange} open={isOpen}>
+        <Dialog
+            key={renameDialogKey}
+            onOpenChange={handleOpenChange}
+            open={isOpen}
+        >
             <DialogPopup>
                 <form className="contents" onSubmit={handleFormSubmit}>
                     <DialogHeader>
@@ -3200,6 +3221,8 @@ function CollectionsCreateDialog() {
     const { onRecommendationsMutate, syncCreated, setIsCreateOpen } =
         useCollectionsActions();
 
+    const createDialogKey = String(isCreateOpen);
+
     const [nameDraft, setNameDraft] = React.useState("");
     const [descriptionDraft, setDescriptionDraft] = React.useState("");
     const [errorMessage, setErrorMessage] = React.useState<string | null>(null);
@@ -3207,14 +3230,6 @@ function CollectionsCreateDialog() {
     const createSubmissionPendingRef = React.useRef(false);
 
     const isNameValid = normalizeWhitespace(nameDraft).length > 0;
-
-    React.useEffect(() => {
-        if (!isCreateOpen) {
-            setNameDraft("");
-            setDescriptionDraft("");
-            setErrorMessage(null);
-        }
-    }, [isCreateOpen]);
 
     const handleNameDraftChange = useStableCallback((draft: string) => {
         setNameDraft(draft);
@@ -3332,7 +3347,11 @@ function CollectionsCreateDialog() {
     const { onEnableSmartCollections } = useCollectionsActions();
 
     return (
-        <Dialog onOpenChange={handleOpenChange} open={isCreateOpen}>
+        <Dialog
+            key={createDialogKey}
+            onOpenChange={handleOpenChange}
+            open={isCreateOpen}
+        >
             <DialogPopup>
                 <form className="contents" onSubmit={handleFormSubmit}>
                     <DialogHeader>
@@ -3413,7 +3432,7 @@ function CollectionsCreateDialog() {
                                     in one place. Use them for ongoing goals, or
                                     just to keep things tidy. Smart Collections
                                     can auto-assign matching entries to it.{" "}
-                                    {disabled ? (
+                                    {disabled === true ? (
                                         <Button
                                             className="inline-flex h-fit! w-fit px-0 leading-tight sm:text-[11px]"
                                             onClick={onEnableSmartCollections}
@@ -3585,21 +3604,13 @@ function CollectionsDeleteDialog() {
     );
 }
 
-function DialogFieldError({
-    children,
-    id,
-}: {
-    children: React.ReactNode;
-    id: string;
-}) {
+function DialogFieldError({ className, ...props }: React.ComponentProps<"p">) {
     return (
         <p
+            {...props}
             aria-atomic="true"
-            className="pt-2 text-destructive text-xs"
-            id={id}
+            className={cn("pt-2 text-destructive text-xs", className)}
             role="alert"
-        >
-            {children}
-        </p>
+        />
     );
 }

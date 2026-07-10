@@ -43,11 +43,6 @@ interface GradientWaveTextProps {
     className?: string;
     customColors?: string[];
     delay?: number;
-    isPaused?: boolean;
-    isRadial?: boolean;
-    shouldPlayOnce?: boolean;
-    shouldRepeat?: boolean;
-    shouldRequireInView?: boolean;
     speed?: number;
 }
 
@@ -56,12 +51,7 @@ export function GradientWaveText({
     align = "left",
     className,
     speed = 1.6,
-    isPaused = false,
     delay = 0,
-    shouldRepeat = false,
-    shouldRequireInView = false,
-    shouldPlayOnce = true,
-    isRadial = true,
     bottomOffset = 20,
     bandGap = 5,
     bandCount = 8,
@@ -74,42 +64,7 @@ export function GradientWaveText({
     const finishedRef = React.useRef(false);
     const startedRef = React.useRef(false);
     const startAtRef = React.useRef(0);
-    const hasPlayedRef = React.useRef(false);
     const animationFrame = useAnimationFrame();
-
-    const [isInView, setIsInView] = React.useState(!shouldRequireInView);
-
-    React.useEffect(() => {
-        if (!shouldRequireInView) {
-            setIsInView(true);
-            return;
-        }
-
-        const node = elRef.current;
-        if (!node) {
-            return;
-        }
-
-        const observer = new IntersectionObserver(
-            (entries) => {
-                for (const entry of entries) {
-                    if (entry.isIntersecting) {
-                        if (shouldPlayOnce && hasPlayedRef.current) {
-                            return;
-                        }
-                        setIsInView(true);
-                        hasPlayedRef.current = true;
-                    } else if (!shouldPlayOnce) {
-                        setIsInView(false);
-                    }
-                }
-            },
-            { threshold: 0.1 }
-        );
-
-        observer.observe(node);
-        return () => observer.disconnect();
-    }, [shouldRequireInView, shouldPlayOnce]);
 
     const stops = (() => {
         const resolvedColors = customColors?.length
@@ -132,15 +87,9 @@ export function GradientWaveText({
         return colorStops.join(", ");
     })();
 
-    const gradient = isRadial
-        ? `radial-gradient(circle at left top, ${stops})`
-        : `linear-gradient(to bottom right, ${stops})`;
+    const gradient = `radial-gradient(circle at left top, ${stops})`;
 
     React.useEffect(() => {
-        if (!isInView) {
-            return;
-        }
-
         const node = elRef.current;
         if (!node) {
             return;
@@ -152,15 +101,14 @@ export function GradientWaveText({
         startedRef.current = false;
         startAtRef.current = now() + Math.max(0, (delay ?? 0) * 1000);
         node.style.setProperty("--gi", String(GRADIENT_PROGRESS_INITIAL));
-    }, [isInView, delay]);
+    }, [delay]);
 
     React.useEffect(() => {
         const node = elRef.current;
-        if (!(node && isInView)) {
+        if (!node) {
             return;
         }
 
-        const cycles = shouldRepeat ? 0 : 1;
         let last = now();
 
         const tick = () => {
@@ -182,45 +130,32 @@ export function GradientWaveText({
             const dt = Math.min(MAX_FRAME_DELTA_MS, now_ - last);
             last = now_;
 
-            if (!isPaused) {
-                const increment = (dt * speed) / FRAME_DURATION_MS;
-                let next = tRef.current + increment;
+            const increment = (dt * speed) / FRAME_DURATION_MS;
+            let next = tRef.current + increment;
 
-                if (cycles === 0) {
-                    if (next >= GRADIENT_PROGRESS_RANGE) {
-                        next %= GRADIENT_PROGRESS_RANGE;
-                    }
-                    tRef.current = next;
-                    node.style.setProperty("--gi", String(next));
-                } else {
-                    while (
-                        next >= GRADIENT_PROGRESS_RANGE &&
-                        cyclesDoneRef.current < cycles
-                    ) {
-                        next -= GRADIENT_PROGRESS_RANGE;
-                        cyclesDoneRef.current += 1;
-                    }
-
-                    if (cyclesDoneRef.current >= cycles) {
-                        tRef.current = GRADIENT_PROGRESS_RANGE;
-                        node.style.setProperty(
-                            "--gi",
-                            String(GRADIENT_PROGRESS_RANGE)
-                        );
-                        finishedRef.current = true;
-                        return;
-                    }
-                    tRef.current = next;
-                    node.style.setProperty("--gi", String(next));
-                }
+            while (
+                next >= GRADIENT_PROGRESS_RANGE &&
+                cyclesDoneRef.current < 1
+            ) {
+                next -= GRADIENT_PROGRESS_RANGE;
+                cyclesDoneRef.current += 1;
             }
+
+            if (cyclesDoneRef.current >= 1) {
+                tRef.current = GRADIENT_PROGRESS_RANGE;
+                node.style.setProperty("--gi", String(GRADIENT_PROGRESS_RANGE));
+                finishedRef.current = true;
+                return;
+            }
+            tRef.current = next;
+            node.style.setProperty("--gi", String(next));
 
             animationFrame.request(tick);
         };
 
         animationFrame.request(tick);
         return animationFrame.cancel;
-    }, [animationFrame, speed, isPaused, shouldRepeat, isInView]);
+    }, [animationFrame, speed]);
 
     const spanStyle: React.CSSProperties = {
         backfaceVisibility: "hidden",
