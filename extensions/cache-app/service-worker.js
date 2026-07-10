@@ -708,8 +708,10 @@ async function searchChromeBookmarks(query) {
     if (!query?.trim()) {
         return [];
     }
-    const results = await chrome.bookmarks.search(query.trim());
-    const identity = await ensureChromeIdentity();
+    const [results, identity] = await Promise.all([
+        chrome.bookmarks.search(query.trim()),
+        ensureChromeIdentity(),
+    ]);
     return results.map((node) =>
         mapChromeBookmarkNode(node, identity.profileId)
     );
@@ -722,13 +724,9 @@ async function migrateItemsIfNeeded(data, versionKey, itemsKey, targetVersion) {
     let items = Array.isArray(raw) ? raw : [];
 
     if (version < targetVersion) {
-        items = items
-            .map((row) =>
-                row && typeof row === "object" && !Array.isArray(row)
-                    ? row
-                    : null
-            )
-            .filter(Boolean);
+        items = items.flatMap((row) =>
+            row && typeof row === "object" && !Array.isArray(row) ? [row] : []
+        );
         await chrome.storage.local.set({
             [itemsKey]: items,
             [versionKey]: targetVersion,
