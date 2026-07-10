@@ -228,6 +228,7 @@ export function UserMenuContent() {
                                 <Link
                                     href="/changelog"
                                     prefetch={false}
+                                    rel="noopener noreferrer"
                                     target="_blank"
                                 />
                             }
@@ -240,7 +241,7 @@ export function UserMenuContent() {
                             render={
                                 <Link
                                     href="https://docs.cachd.app/docs/privacy"
-                                    rel="noopener"
+                                    rel="noopener noreferrer"
                                     target="_blank"
                                 />
                             }
@@ -305,6 +306,7 @@ export function UserMenuFooter() {
                             <Link
                                 href={href}
                                 prefetch={false}
+                                rel="noopener noreferrer"
                                 target="_blank"
                             />
                         }

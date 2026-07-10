@@ -49,7 +49,7 @@ export function SignInButton({ hasServerSession }: SignInButtonProps) {
             </GoogleSignInButton>
             <span className="-mt-3 text-muted-foreground text-xs">
                 <Check className="inline-block size-3.5" />
-                &nbsp; Get started for free
+                &nbsp; Get started now
             </span>
         </>
     );
