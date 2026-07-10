@@ -1333,9 +1333,10 @@ function buildPaletteStackEntries({
     sourceFilters,
 }: BuildPaletteStackEntriesInput): PaletteStackEntry[] {
     const entries: PaletteStackEntry[] = [];
+    const collectionById = new Map(collections.map((c) => [c.id, c]));
 
     for (const collectionId of selectedCollectionIds) {
-        const collection = collections.find((c) => c.id === collectionId);
+        const collection = collectionById.get(collectionId);
         if (collection) {
             const onRemove = () => onRemoveCollectionFilter(collectionId);
             entries.push({
@@ -1788,7 +1789,6 @@ function PaletteAttachmentChip({
                                     alt=""
                                     className="max-h-full max-w-full object-contain"
                                     decoding="async"
-                                    fetchPriority="high"
                                     height={320}
                                     loading="lazy"
                                     src={attachment.url}
@@ -1974,7 +1974,6 @@ function BrowserEmpty() {
                 </p>
             </div>
             <Masonry
-                columnCount={4}
                 columnGutter={16}
                 items={[...EMPTY_LIBRARY_PEEK_PLACEHOLDERS]}
                 maxColumnCount={7}
@@ -3403,21 +3402,26 @@ function useSectionCollapseState({
         !(shouldShowEmptyLibraryPeek || shouldShowNoFilteredResults) &&
         (hasActiveFilters || groupBy !== "none");
 
-    React.useEffect(() => {
+    const prevSectionsRef = React.useRef(sections);
+    if (sections !== prevSectionsRef.current) {
+        prevSectionsRef.current = sections;
         const validKeys = new Set(sections.map((section) => section.key));
         setCollapsedSectionKeys((current) => {
             const next = current.filter((key) => validKeys.has(key));
             return next.length === current.length ? current : next;
         });
-    }, [sections]);
+    }
 
-    React.useEffect(() => {
-        if (!enableSectionCollapse) {
-            setCollapsedSectionKeys((current) =>
-                current.length === 0 ? current : []
-            );
-        }
-    }, [enableSectionCollapse]);
+    const prevEnableSectionCollapseRef = React.useRef(enableSectionCollapse);
+    if (
+        prevEnableSectionCollapseRef.current !== enableSectionCollapse &&
+        !enableSectionCollapse
+    ) {
+        setCollapsedSectionKeys((current) =>
+            current.length === 0 ? current : []
+        );
+    }
+    prevEnableSectionCollapseRef.current = enableSectionCollapse;
 
     const toggleSection = useStableCallback((key: string) => {
         setCollapsedSectionKeys((current) =>
@@ -5195,6 +5199,8 @@ export function BrowserRoot({
         setIsCommandOpen(false);
     });
 
+    const domainOptions = buildDomainPaletteOptions(items);
+
     const buildAskCacheRequest = useStableCallback(
         (prompt: string): AskCacheRequest => ({
             composerState: {
@@ -5359,8 +5365,6 @@ export function BrowserRoot({
         }
     );
 
-    const domainOptions = buildDomainPaletteOptions(items);
-
     const groups = buildPaletteGroups({
         askCacheResponse,
         clearLibraryPalette,
@@ -5442,8 +5446,6 @@ export function BrowserRoot({
         columnCountMode !== DEFAULT_COLUMN_COUNT_MODE ||
         sourceFilters.length > 0;
 
-    const hasMeaningfulResultsView = hasActiveFilters || groupBy !== "none";
-
     const shouldShowEmptyLibraryPeek =
         items.length === 0 && filteredItems.length === 0 && !hasActiveFilters;
 
@@ -5484,9 +5486,6 @@ export function BrowserRoot({
 
     const visibleResultItems = sections.flatMap((section) => section.items);
 
-    const canCreateCollectionFromResults =
-        hasMeaningfulResultsView && visibleResultItems.length > 0;
-
     const resultCollectionItemIds = visibleResultItems.map((item) => item.id);
 
     const shouldShowLockedPreview =
@@ -5521,13 +5520,13 @@ export function BrowserRoot({
         sourceFilters,
     });
 
-    const [isSuggestionsOpen, setIsSuggestionsOpen] = React.useState(true);
+    const [isSuggestionsOpen, setIsSuggestionsOpen] = React.useState(false);
 
-    React.useEffect(() => {
-        if (suggestions.length > 0) {
-            setIsSuggestionsOpen(true);
-        }
-    }, [suggestions.length]);
+    const prevSuggestionCountRef = React.useRef(suggestions.length);
+    if (suggestions.length > 0 && prevSuggestionCountRef.current === 0) {
+        setIsSuggestionsOpen(true);
+    }
+    prevSuggestionCountRef.current = suggestions.length;
 
     const focusPaletteInput = useStableCallback((select = false) => {
         setIsCommandOpen(true);
@@ -6122,9 +6121,6 @@ export function BrowserRoot({
                 />
                 <ComposerActions
                     canClear={canClear}
-                    canCreateCollectionFromResults={
-                        canCreateCollectionFromResults
-                    }
                     connectedIntegrationCount={connectedIntegrationCount}
                     groupBy={groupBy}
                     onClearPalette={clearLibraryPalette}
