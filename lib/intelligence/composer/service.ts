@@ -529,8 +529,8 @@ function arraysEqual(left: string[], right: string[]): boolean {
     if (left.length !== right.length) {
         return false;
     }
-    const sortedLeft = [...left].sort();
-    const sortedRight = [...right].sort();
+    const sortedLeft = left.toSorted((a, b) => a.localeCompare(b));
+    const sortedRight = right.toSorted((a, b) => a.localeCompare(b));
     for (let i = 0; i < sortedLeft.length; i += 1) {
         if (sortedLeft[i] !== sortedRight[i]) {
             return false;

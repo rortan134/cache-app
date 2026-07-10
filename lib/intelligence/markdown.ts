@@ -58,10 +58,14 @@ function normalizeGeneratedMarkdownValue(
     }
 
     if (Array.isArray(value)) {
-        return value
-            .map((item) => normalizeGeneratedMarkdownValue(item, depth + 1))
-            .filter((item) => item.length > 0)
-            .join("\n");
+        const parts: string[] = [];
+        for (const item of value) {
+            const normalized = normalizeGeneratedMarkdownValue(item, depth + 1);
+            if (normalized.length > 0) {
+                parts.push(normalized);
+            }
+        }
+        return parts.join("\n");
     }
 
     if (!isRecord(value)) {

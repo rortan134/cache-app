@@ -776,15 +776,15 @@ function mergeCollections(
         byNameKey.set(collection.nameKey, collection);
     }
 
-    return [...byNameKey.values()].sort((left, right) =>
+    return [...byNameKey.values()].toSorted((left, right) =>
         left.name.localeCompare(right.name)
     );
 }
 
 function tokenizeCollectionName(name: string): string[] {
-    return [...name.toLocaleLowerCase().matchAll(COLLECTION_NAME_TOKEN_PATTERN)]
-        .map((match) => match[0])
-        .filter((token) => token.length > 0);
+    return [
+        ...name.toLocaleLowerCase().matchAll(COLLECTION_NAME_TOKEN_PATTERN),
+    ].map((match) => match[0]);
 }
 
 function shouldCreateSmartCollection(args: {
@@ -836,25 +836,29 @@ async function applyDecisionToItem(args: {
     );
     const desiredCollectionIds = new Set<string>();
 
-    const normalizedNewCollectionNames = [
-        ...new Map(
-            args.decision.createCollectionNames
-                .map((name) =>
-                    normalizeCollectionName(
-                        name.slice(0, COLLECTION_NAME_LENGTH_MAX)
-                    )
-                )
-                .filter((normalized) => normalized.name.length > 0)
-                .filter((normalized) =>
-                    shouldCreateSmartCollection({
-                        collectionsByNameKey,
-                        name: normalized.name,
-                        nameKey: normalized.nameKey,
-                    })
-                )
-                .map((normalized) => [normalized.nameKey, normalized])
-        ).values(),
-    ];
+    const dedupMap = new Map<
+        string,
+        ReturnType<typeof normalizeCollectionName>
+    >();
+    for (const name of args.decision.createCollectionNames) {
+        const normalized = normalizeCollectionName(
+            name.slice(0, COLLECTION_NAME_LENGTH_MAX)
+        );
+        if (normalized.name.length === 0) {
+            continue;
+        }
+        if (
+            !shouldCreateSmartCollection({
+                collectionsByNameKey,
+                name: normalized.name,
+                nameKey: normalized.nameKey,
+            })
+        ) {
+            continue;
+        }
+        dedupMap.set(normalized.nameKey, normalized);
+    }
+    const normalizedNewCollectionNames = [...dedupMap.values()];
 
     for (const name of args.decision.applyCollectionNames) {
         const normalized = normalizeCollectionName(name);
@@ -1020,9 +1024,10 @@ export async function autoTagLibraryItemsByIds(args: {
 
     const ai = getGoogleGenAi();
     let collections = initialCollections;
+    const itemsById = new Map(items.map((i) => [i.id, i]));
 
     for (const itemId of validItemIds) {
-        const rawItem = items.find((i) => i.id === itemId);
+        const rawItem = itemsById.get(itemId);
         if (!rawItem) {
             continue;
         }
