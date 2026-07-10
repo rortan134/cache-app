@@ -129,39 +129,35 @@ export const McpDeleteLibraryItemInputSchema = McpItemIdInputSchema;
 // `z4mini.object(shape)` from individual fields, which cannot carry
 // cross-field `superRefine`). The route dispatches on which branch matched
 // instead of re-running the XOR.
-const McpAddLibraryNoteSchema = z
-    .object({
-        noteContentText: z
-            .string()
-            .trim()
-            .min(1)
-            .max(NOTE_TEXT_MAX_LENGTH)
-            .describe("Plain text for a note."),
-    })
-    .strict();
+const McpAddLibraryNoteSchema = z.strictObject({
+    noteContentText: z
+        .string()
+        .trim()
+        .min(1)
+        .max(NOTE_TEXT_MAX_LENGTH)
+        .describe("Plain text for a note."),
+});
 
-const McpAddLibraryBookmarkSchema = z
-    .object({
-        caption: z
-            .string()
-            .trim()
-            .max(CAPTION_MAX_LENGTH)
-            .optional()
-            .describe("Optional caption or title for the saved bookmark."),
-        url: z
-            .string()
-            .trim()
-            .max(URL_MAX_LENGTH)
-            .refine(
-                (value) =>
-                    value.startsWith("http://") || value.startsWith("https://"),
-                { message: "URL must use the http or https scheme." }
-            )
-            .describe(
-                "Fully qualified http(s) URL to save as a bookmark. Save dedupes by URL, so calling twice with the same URL is safe."
-            ),
-    })
-    .strict();
+const McpAddLibraryBookmarkSchema = z.strictObject({
+    caption: z
+        .string()
+        .trim()
+        .max(CAPTION_MAX_LENGTH)
+        .optional()
+        .describe("Optional caption or title for the saved bookmark."),
+    url: z
+        .string()
+        .trim()
+        .max(URL_MAX_LENGTH)
+        .refine(
+            (value) =>
+                value.startsWith("http://") || value.startsWith("https://"),
+            { message: "URL must use the http or https scheme." }
+        )
+        .describe(
+            "Fully qualified http(s) URL to save as a bookmark. Save dedupes by URL, so calling twice with the same URL is safe."
+        ),
+});
 
 export const McpAddLibraryItemInputSchema = z.union([
     McpAddLibraryNoteSchema,

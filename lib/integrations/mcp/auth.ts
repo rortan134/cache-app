@@ -2,7 +2,7 @@ import type { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
 
 const encoder = new TextEncoder();
 
-const MCP_TOKEN_TTL_DAYS = 90;
+const MCP_TOKEN_TTL_DAYS = 30;
 const MCP_TOKEN_TTL_MS = MCP_TOKEN_TTL_DAYS * 24 * 60 * 60 * 1000;
 
 /**
@@ -92,7 +92,7 @@ function isMcpScope(value: string): value is McpScope {
 /**
  * Generates a stateless HMAC token for MCP authentication.
  *
- * The token encodes `userId`, `issuedAt`, `expiresAt` (default TTL: 90 days)
+ * The token encodes `userId`, `issuedAt`, `expiresAt` (default TTL: 30 days)
  * and the granted `scopes`, and signs the joined string with
  * `BETTER_AUTH_SECRET`. Tokens are self-validating: `verifyMcpToken` only
  * needs the secret + the token bytes, so there is no server-side state to

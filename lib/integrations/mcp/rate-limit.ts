@@ -2,7 +2,7 @@
  * Per-userId rate limiting for the MCP tools.
  *
  * The threat we're guarding against is a stolen MCP Bearer token. Tokens are
- * 90-day HMAC-secret-bound; a leaked grant gives the holder full read+write
+ * 30-day HMAC-secret-bound; a leaked grant gives the holder full read+write
  * access to the user's library. Rate limits narrow the blast radius without
  * requiring a revocation surface area we don't have today.
  *

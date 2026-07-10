@@ -5,11 +5,12 @@ import {
     type LibraryItemWithCollections,
     toLibraryItemWithCollections,
 } from "@/lib/collections/utils";
-import { ITEM_KIND_BOOKMARK } from "@/lib/common/constants";
+import { BASE_URL, ITEM_KIND_BOOKMARK } from "@/lib/common/constants";
 import { createLogger } from "@/lib/common/logs/console/logger";
 import { parseStandaloneUrl } from "@/lib/common/url";
 import { DEFAULT_BROWSER_PROFILE_ID } from "@/lib/integrations/browser-profiles";
 import { IntegrationApiError } from "@/lib/integrations/error";
+import { generateMcpToken } from "@/lib/integrations/mcp/auth";
 import type { McpLibraryItemSchema } from "@/lib/integrations/mcp/protocol";
 import { createNoteFromPlainText } from "@/lib/integrations/notes/service";
 import { upsertLibraryItemImports } from "@/lib/integrations/upsert";
@@ -79,7 +80,7 @@ export async function addLibraryItem(
 
     const externalId = hashBookmarkExternalId(validatedUrl.href);
 
-    const upsertResult = await upsertLibraryItemImports({
+    await upsertLibraryItemImports({
         items: [
             {
                 browserProfileId: DEFAULT_BROWSER_PROFILE_ID,
@@ -93,15 +94,7 @@ export async function addLibraryItem(
         userId: args.userId,
     });
 
-    if (upsertResult.upsertedCount === 0) {
-        throw new IntegrationApiError({
-            message: "Bookmark could not be saved.",
-            operation: "addLibraryItem",
-            status: 500,
-        });
-    }
-
-    const created = await prisma.libraryItem.findFirst({
+    let created = await prisma.libraryItem.findFirst({
         include: LIBRARY_ITEM_COLLECTIONS_INCLUDE,
         where: {
             browserProfileId: DEFAULT_BROWSER_PROFILE_ID,
@@ -111,6 +104,33 @@ export async function addLibraryItem(
             userId: args.userId,
         },
     });
+
+    if (!created) {
+        // Tombstoned row (previously deleted). Bulk import deliberately skips
+        // tombstones so a platform re-sync does not revive soft-deleted items;
+        // an explicit MCP add is a user intent to re-save, so restore and apply
+        // the new caption/url rather than only clearing deletedAt.
+        const tombstoned = await prisma.libraryItem.findFirst({
+            where: {
+                browserProfileId: DEFAULT_BROWSER_PROFILE_ID,
+                deletedAt: { not: null },
+                externalId,
+                source: LibraryItemSource.other,
+                userId: args.userId,
+            },
+        });
+        if (tombstoned) {
+            created = await prisma.libraryItem.update({
+                data: {
+                    caption: args.caption ?? null,
+                    deletedAt: null,
+                    url: validatedUrl.href,
+                },
+                include: LIBRARY_ITEM_COLLECTIONS_INCLUDE,
+                where: { id: tombstoned.id },
+            });
+        }
+    }
 
     if (!created) {
         log.error("Bookmark upsert reported success but row is missing", {
@@ -135,6 +155,55 @@ export async function addLibraryItem(
  */
 function hashBookmarkExternalId(url: string): string {
     return crypto.createHash("sha256").update(url).digest("hex");
+}
+
+export interface McpSetupPrompt {
+    endpoint: string;
+    prompt: string;
+    token: string;
+}
+
+export async function generateMcpSetupPrompt(
+    userId: string
+): Promise<McpSetupPrompt> {
+    const token = await generateMcpToken(userId);
+    const endpoint = `${BASE_URL}/mcp`;
+
+    const prompt = `You have been given access to my Cache library via MCP.
+
+Cache (https://cachd.app) unifies bookmarks from Chrome, Instagram, TikTok, YouTube, X/Twitter, GitHub, Pinterest, and more into a single searchable library with AI-powered collections, summaries, and review workflows.
+
+Please configure yourself as an MCP client with this server:
+
+Endpoint: ${endpoint}
+Authentication: Bearer ${token}
+
+For full product context, fetch https://cachd.app/llms.txt
+
+Available capabilities:
+- list_library_items — Search, browse, and paginate my saved bookmarks and notes (optional: collectionId, limit, offset, search)
+- get_library_item — Read a specific item by ID (itemId)
+- add_library_item — Save a new bookmark ({url, caption?}) or note ({noteContentText}) to my library. The two shapes are mutually exclusive.
+- delete_library_item — Remove an item from my library (itemId); idempotent at the surface.
+- list_collections — See my collections with item counts
+
+Tools require the token to be presented as \`Authorization: Bearer <token>\`. Read tools need \`library:read\`; write tools (add, delete) need \`library:write\`.
+
+If you are Claude Desktop, add this to your claude_desktop_config.json:
+{
+  "mcpServers": {
+    "cache": {
+      "url": "${endpoint}",
+      "headers": {
+        "Authorization": "Bearer ${token}"
+      }
+    }
+  }
+}
+
+If you are Cursor or another client, use the endpoint and Bearer token above.`;
+
+    return { endpoint, prompt, token };
 }
 
 export function toMcpLibraryItem(

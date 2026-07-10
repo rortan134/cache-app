@@ -1,6 +1,5 @@
 import { auth } from "@/lib/auth/server";
-import { BASE_URL } from "@/lib/common/constants";
-import { generateMcpToken } from "@/lib/integrations/mcp/auth";
+import { generateMcpSetupPrompt } from "@/lib/integrations/mcp/service";
 import { headers } from "next/headers";
 
 /**
@@ -16,7 +15,7 @@ import { headers } from "next/headers";
  * - `endpoint`/`token`: easy programmatic access for clients that want to
  *   build their own config without parsing prompt text.
  *
- * The token is a long-lived (90-day) HMAC-signed secret. We mark the
+ * The token is a long-lived (30-day) HMAC-signed secret. We mark the
  * response `Cache-Control: no-store, private` so any intermediate cache
  * (Vercel edge, browser devtools, an IDE history buffer) does not persist
  * the token beyond the originating request. Programmatic consumers should
@@ -40,43 +39,7 @@ export async function POST(): Promise<Response> {
         );
     }
 
-    const token = await generateMcpToken(userId);
-
-    const endpoint = `${BASE_URL}/mcp`;
-
-    const prompt = `You have been given access to my Cache library via MCP.
-
-Cache (https://cachd.app) unifies bookmarks from Chrome, Instagram, TikTok, YouTube, X/Twitter, GitHub, Pinterest, and more into a single searchable library with AI-powered collections, summaries, and review workflows.
-
-Please configure yourself as an MCP client with this server:
-
-Endpoint: ${endpoint}
-Authentication: Bearer ${token}
-
-For full product context, fetch https://cachd.app/llms.txt
-
-Available capabilities:
-- list_library_items — Search, browse, and paginate my saved bookmarks and notes (optional: collectionId, limit, offset, search)
-- get_library_item — Read a specific item by ID (itemId)
-- add_library_item — Save a new bookmark ({url, caption?}) or note ({noteContentText}) to my library. The two shapes are mutually exclusive.
-- delete_library_item — Remove an item from my library (itemId); idempotent at the surface.
-- list_collections — See my collections with item counts
-
-Tools require the token to be presented as \`Authorization: Bearer <token>\`. Read tools need \`library:read\`; write tools (add, delete) need \`library:write\`.
-
-If you are Claude Desktop, add this to your claude_desktop_config.json:
-{
-  "mcpServers": {
-    "cache": {
-      "url": "${endpoint}",
-      "headers": {
-        "Authorization": "Bearer ${token}"
-      }
-    }
-  }
-}
-
-If you are Cursor or another client, use the endpoint and Bearer token above.`;
+    const { endpoint, prompt, token } = await generateMcpSetupPrompt(userId);
 
     return Response.json(
         { endpoint, prompt, token },
