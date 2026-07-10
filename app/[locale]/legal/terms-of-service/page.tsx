@@ -2,6 +2,7 @@ import { buildPageMetadata } from "@/app/metadata";
 import { APP_NAME } from "@/lib/common/constants";
 import { gtPublicString } from "@/lib/i18n/gt-public-json";
 import type { Metadata } from "next";
+import Link from "next/link";
 
 export async function generateMetadata({
     params,
@@ -59,12 +60,12 @@ export default function TermsOfServicePage() {
                 </p>
                 <p>
                     <strong>Your Privacy:</strong> Please see our{" "}
-                    <a
+                    <Link
                         className="text-stone-950 underline underline-offset-4"
                         href="/legal/privacy-policy"
                     >
                         Privacy Policy
-                    </a>{" "}
+                    </Link>{" "}
                     for information about how we collect, use, and share your
                     personal data. By using the Product, you consent to the
                     practices described in the Privacy Policy.
@@ -224,12 +225,12 @@ export default function TermsOfServicePage() {
                 </h2>
                 <p>
                     <strong>DPA:</strong>{" "}
-                    <a
+                    <Link
                         className="text-stone-950 underline underline-offset-4"
                         href="/legal/dpa"
                     >
                         /legal/dpa
-                    </a>
+                    </Link>
                 </p>
             </section>
 

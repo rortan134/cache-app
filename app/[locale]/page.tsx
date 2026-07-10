@@ -144,7 +144,7 @@ export default async function Home() {
                             <a
                                 className="flex flex-col gap-1.5 pb-[2px] hover:opacity-60"
                                 href={CACHE_EXTENSION_DOWNLOAD_URL}
-                                rel="noopener"
+                                rel="noopener noreferrer"
                                 target="_blank"
                             >
                                 <p className="font-medium text-foreground text-lg tracking-[-3%]">

@@ -16,6 +16,8 @@ export async function GET(request: Request) {
         return Response.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    // Recover must finish before claim: recovered runs go `starting → pending`
+    // and would otherwise wait until the next cron tick to be picked up.
     const recovered = await recoverStaleAutomationRuns();
     const claimed = await claimDueAutomationRuns();
     let started = 0;
