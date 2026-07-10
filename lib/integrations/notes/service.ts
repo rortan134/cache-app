@@ -4,6 +4,7 @@ import {
     LIBRARY_ITEM_COLLECTIONS_INCLUDE,
     type LibraryItemWithCollections,
 } from "@/lib/collections/utils";
+import { FALLBACK_URL, ITEM_KIND_NOTE } from "@/lib/common/constants";
 import { DEFAULT_BROWSER_PROFILE_ID } from "@/lib/integrations/browser-profiles";
 import { IntegrationUserError } from "@/lib/integrations/error";
 import {
@@ -12,9 +13,9 @@ import {
     isNoteSerializedEditorState,
     sanitizeNoteHtml,
     serializeNoteEditorStateToHtml,
+    type NoteSerializedEditorState,
 } from "@/lib/integrations/notes/utils";
 import { prisma } from "@/prisma";
-import { FALLBACK_URL, ITEM_KIND_NOTE } from "@/lib/common/constants";
 import { LibraryItemSource } from "@/prisma/client/enums";
 import {
     DbNull,
@@ -23,7 +24,7 @@ import {
 
 export interface NormalizedNotePayload {
     contentHtml: string;
-    contentState: InputJsonValue | null;
+    contentState: NoteSerializedEditorState | null;
     contentText: string;
 }
 
@@ -32,7 +33,7 @@ export function normalizeNotePayload(input: {
     contentState?: unknown;
 }): NormalizedNotePayload {
     const contentState = isNoteSerializedEditorState(input.contentState)
-        ? JSON.parse(JSON.stringify(input.contentState))
+        ? structuredClone(input.contentState)
         : null;
     const contentHtml = contentState
         ? serializeNoteEditorStateToHtml(contentState)
@@ -44,6 +45,17 @@ export function normalizeNotePayload(input: {
         contentState,
         contentText,
     };
+}
+
+// Lexical's persistence path is toJSON → JSON.stringify. Round-trip here so
+// the Prisma Json column only ever sees pure JSON (client input is only
+// shallow-guarded). The cast is Prisma's index-signature gap, not a trust claim.
+function noteContentStateForPrisma(
+    contentState: NoteSerializedEditorState | null
+): InputJsonValue | typeof DbNull {
+    return contentState === null
+        ? DbNull
+        : (JSON.parse(JSON.stringify(contentState)) as InputJsonValue);
 }
 
 export function getNoteItemForUser(
@@ -84,7 +96,7 @@ export async function createNote(
             externalId: `note_${crypto.randomUUID()}`,
             kind: ITEM_KIND_NOTE,
             noteContentHtml: note.contentHtml,
-            noteContentState: note.contentState ?? DbNull,
+            noteContentState: noteContentStateForPrisma(note.contentState),
             noteContentText: note.contentText,
             source: LibraryItemSource.cache_note,
             url: FALLBACK_URL,
@@ -113,7 +125,7 @@ export async function updateNote(
         data: {
             caption: null,
             noteContentHtml: note.contentHtml,
-            noteContentState: note.contentState ?? DbNull,
+            noteContentState: noteContentStateForPrisma(note.contentState),
             noteContentText: note.contentText,
         },
         where: {

@@ -14,7 +14,7 @@ const NotionApiErrorSchema = z.object({
 });
 
 const NotionCreatePageResponseSchema = z.object({
-    url: z.string().url(),
+    url: z.url(),
 });
 
 export interface NotionCreatedPage {

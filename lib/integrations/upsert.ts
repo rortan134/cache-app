@@ -164,6 +164,6 @@ export async function upsertLibraryItemImports(
     return {
         skippedCount,
         smartCollectionItemIds: [...smartCollectionItemIds],
-        upsertedCount: rows.length,
+        upsertedCount: upsertableRows.length,
     };
 }

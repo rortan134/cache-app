@@ -192,21 +192,45 @@ function previewFromDirectUrl(
 function previewFromPicker(
     picker: NonNullable<CobaltResponse["picker"]>
 ): ResolveCobaltPreviewResult {
-    const usableCandidates = picker
-        .map((candidate) => ({
+    interface MappedCandidate {
+        mediaType: CobaltPreviewMediaType;
+        thumb: string | null;
+        url: string | null;
+    }
+
+    let videoCandidate: MappedCandidate | undefined;
+    let imageCandidate: MappedCandidate | undefined;
+
+    for (const candidate of picker) {
+        const mapped: MappedCandidate = {
             mediaType: normalizeCandidateType(candidate.type),
             thumb: candidate.thumb
                 ? normalizeCobaltMediaUrl(candidate.thumb)
                 : null,
             url: candidate.url ? normalizeCobaltMediaUrl(candidate.url) : null,
-        }))
-        .filter((candidate) => candidate.url || candidate.thumb);
+        };
 
-    const videoCandidate = usableCandidates.find(
-        (candidate) =>
-            candidate.url &&
-            (candidate.mediaType === "video" || candidate.mediaType === "gif")
-    );
+        if (!(mapped.url || mapped.thumb)) {
+            continue;
+        }
+
+        if (
+            !videoCandidate &&
+            mapped.url &&
+            (mapped.mediaType === "video" || mapped.mediaType === "gif")
+        ) {
+            videoCandidate = mapped;
+            break;
+        }
+
+        if (
+            !imageCandidate &&
+            (mapped.mediaType === "image" || mapped.mediaType === "unknown")
+        ) {
+            imageCandidate = mapped;
+        }
+    }
+
     if (videoCandidate?.url) {
         return {
             mediaType: videoCandidate.mediaType,
@@ -217,12 +241,6 @@ function previewFromPicker(
         };
     }
 
-    const imageCandidate = usableCandidates.find(
-        (candidate) =>
-            (candidate.mediaType === "image" ||
-                candidate.mediaType === "unknown") &&
-            (candidate.url || candidate.thumb)
-    );
     const staticImageUrl = imageCandidate?.thumb ?? imageCandidate?.url ?? null;
     if (staticImageUrl) {
         return {
