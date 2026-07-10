@@ -12,7 +12,8 @@ const HISTORY_LIMIT = 15;
  */
 const TERM_MAX_LENGTH = 200;
 
-const STORAGE_KEY = "cache:searchHistory";
+const LEGACY_STORAGE_KEY = "cache:searchHistory";
+const STORAGE_KEY = "cache:searchHistory:v1";
 
 const EMPTY_HISTORY: string[] = [];
 
@@ -23,6 +24,20 @@ function readSearchHistory(): string[] {
     try {
         const raw = localStorage.getItem(STORAGE_KEY);
         if (raw === null) {
+            const legacyRaw = localStorage.getItem(LEGACY_STORAGE_KEY);
+            if (legacyRaw !== null) {
+                try {
+                    const parsed = JSON.parse(legacyRaw);
+                    if (Array.isArray(parsed)) {
+                        localStorage.setItem(STORAGE_KEY, legacyRaw);
+                        localStorage.removeItem(LEGACY_STORAGE_KEY);
+                        return readSearchHistory();
+                    }
+                } catch {
+                    // Legacy data was invalid; start fresh.
+                }
+                localStorage.removeItem(LEGACY_STORAGE_KEY);
+            }
             return EMPTY_HISTORY;
         }
         const parsed = JSON.parse(raw);

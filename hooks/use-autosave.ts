@@ -1,6 +1,7 @@
 import { usePreventWindowUnload } from "@/hooks/use-prevent-unload";
 import { createLogger } from "@/lib/common/logs/console/logger";
 import { useIsoLayoutEffect } from "@base-ui/utils/useIsoLayoutEffect";
+import { useRefWithInit } from "@base-ui/utils/useRefWithInit";
 import { useStableCallback } from "@base-ui/utils/useStableCallback";
 import { useTimeout } from "@base-ui/utils/useTimeout";
 import { useValueAsRef } from "@base-ui/utils/useValueAsRef";
@@ -50,7 +51,7 @@ export function useAutosave({
 
     const activeSaveRef = useRef<Promise<boolean> | null>(null);
     const isMountedRef = useRef(false);
-    const latestContentChangeMsRef = useRef(Date.now());
+    const latestContentChangeMsRef = useRefWithInit(() => Date.now());
     const previousContentRef = useRef(content);
     const savingStartMsRef = useRef(0);
 
@@ -63,11 +64,11 @@ export function useAutosave({
 
     const isDirtyRef = useValueAsRef(isDirty);
 
-    const shouldPreventUnload = useStableCallback(
+    const checkShouldPreventUnload = useStableCallback(
         () => activeSaveRef.current !== null || isDirtyRef.current
     );
 
-    usePreventWindowUnload(shouldPreventUnload);
+    usePreventWindowUnload(checkShouldPreventUnload);
 
     const scheduleSettledStatus = useStableCallback(
         (nextStatus: SaveStatus) => {
@@ -94,6 +95,10 @@ export function useAutosave({
         };
     }, []);
 
+    const saveRef = useRef<(shouldFlushQueued?: boolean) => Promise<boolean>>(
+        () => Promise.resolve(true)
+    );
+
     const save = useStableCallback(
         (shouldFlushQueued = false): Promise<boolean> => {
             if (!enabledRef.current) {
@@ -115,7 +120,7 @@ export function useAutosave({
                         return false;
                     }
 
-                    return save(true);
+                    return saveRef.current(true);
                 });
             }
 
@@ -147,7 +152,7 @@ export function useAutosave({
                     contentRef.current !== savedContentRef.current
                 ) {
                     if (shouldFlushQueued) {
-                        return save(true);
+                        return saveRef.current(true);
                     }
 
                     const elapsedSinceChangeMs =
@@ -158,7 +163,7 @@ export function useAutosave({
                     );
 
                     debounceTimeout.start(remainingCooldownMs, () => {
-                        save().catch((error: unknown) => {
+                        saveRef.current().catch((error: unknown) => {
                             log.error("Queued autosave failed", error);
                         });
                     });
@@ -171,6 +176,8 @@ export function useAutosave({
             return savePromise;
         }
     );
+
+    saveRef.current = save;
 
     useEffect(() => {
         if (!(enabled && isDirty) || activeSaveRef.current) {

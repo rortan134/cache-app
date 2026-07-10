@@ -5,7 +5,8 @@ import * as React from "react";
 
 const HISTORY_LIMIT = 15;
 
-const STORAGE_KEY = "cache:lastVisitedItemIds";
+const LEGACY_STORAGE_KEY = "cache:lastVisitedItemIds";
+const STORAGE_KEY = "cache:lastVisitedItemIds:v1";
 
 let listeners: Array<() => void> = [];
 let cachedSnapshot: string[] | null | undefined;
@@ -14,6 +15,20 @@ function readLastVisitedItemIds(): string[] {
     try {
         const raw = localStorage.getItem(STORAGE_KEY);
         if (raw === null) {
+            const legacyRaw = localStorage.getItem(LEGACY_STORAGE_KEY);
+            if (legacyRaw !== null) {
+                try {
+                    const parsed = JSON.parse(legacyRaw);
+                    if (Array.isArray(parsed)) {
+                        localStorage.setItem(STORAGE_KEY, legacyRaw);
+                        localStorage.removeItem(LEGACY_STORAGE_KEY);
+                        return readLastVisitedItemIds();
+                    }
+                } catch {
+                    // Legacy data was invalid; start fresh.
+                }
+                localStorage.removeItem(LEGACY_STORAGE_KEY);
+            }
             return [];
         }
         const parsed = JSON.parse(raw);

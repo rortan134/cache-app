@@ -15,22 +15,6 @@ async function fetchSmartCollectionsPreference(): Promise<SmartCollectionsPrefer
     return { disabled: result.disabled };
 }
 
-/**
- * Reads the user's smart collections preference from the server.
- *
- * Smart collections is a library preference backed by
- * `User.smartCollectionsEnabled`; there is no automation involved. The
- * `disabled` flag is the inverse of that column (`disabled === true` means
- * the user has opted out of auto-tagging on save).
- *
- * To change the preference, callers should use the
- * `setSmartCollectionsPreference` server action and then call `mutate()` to
- * revalidate the SWR cache. Keeping the write call in the consumer (rather
- * than hiding it inside this hook) ensures optimistic UI and the actual
- * server write stay in the same scope — the previous design briefly drifted
- * away from the server because the optimistic helper flipped a flag the
- * server didn't yet know about.
- */
 export function useSmartCollectionsPreference() {
     const { data, error, isLoading, mutate } = useSWR(
         SMART_COLLECTIONS_PREFERENCE_KEY,
@@ -39,7 +23,7 @@ export function useSmartCollectionsPreference() {
     );
 
     return {
-        disabled: data?.disabled ?? true,
+        disabled: data?.disabled,
         error,
         isLoading,
         mutate,
