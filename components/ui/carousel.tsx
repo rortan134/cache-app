@@ -44,8 +44,8 @@ export function CarouselPanel({
     slideClassName,
     ...props
 }: CarouselPanelProps) {
-    const slides = React.Children.toArray(children);
     const { id } = useCarouselContext();
+    const slideCount = React.Children.count(children);
 
     return (
         <BlossomCarousel
@@ -59,17 +59,16 @@ export function CarouselPanel({
             id={id}
             role="region"
         >
-            {slides.map((child, index) => (
+            {React.Children.map(children, (child, index) => (
                 // biome-ignore lint/a11y/useSemanticElements: Group role
                 <section
-                    aria-label={`${index + 1} of ${slides.length}`}
+                    aria-label={`${index + 1} of ${slideCount}`}
                     aria-roledescription="slide"
                     className={cn(
                         "inline-block shrink-0 snap-start",
                         slideClassName
                     )}
                     data-blossom-slide
-                    key={index}
                     role="group"
                 >
                     {child}
@@ -87,7 +86,11 @@ export function CarouselControls() {
             <Button
                 className="rounded-full"
                 render={
-                    <BlossomPrev aria-label="Previous" for={id}>
+                    <BlossomPrev
+                        aria-label="Previous"
+                        disabled={undefined}
+                        for={id}
+                    >
                         <ChevronLeft
                             aria-hidden
                             className="size-5"
@@ -101,7 +104,11 @@ export function CarouselControls() {
             <Button
                 className="rounded-full"
                 render={
-                    <BlossomNext aria-label="Next" for={id}>
+                    <BlossomNext
+                        aria-label="Next"
+                        disabled={undefined}
+                        for={id}
+                    >
                         <ChevronRight
                             aria-hidden
                             className="size-5"
