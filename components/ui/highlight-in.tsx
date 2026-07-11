@@ -1,15 +1,14 @@
 "use client";
 
 import { cn } from "@/lib/common/cn";
-import { motion } from "motion/react";
+import * as m from "motion/react-m";
 import type * as React from "react";
 
 const FADE_IN_DURATION = 0.5;
 const STAY_DURATION = 1.5;
 const FADE_OUT_DURATION = 0.3;
 
-export interface HighlightInProps
-    extends React.ComponentProps<typeof motion.span> {
+export interface HighlightInProps extends React.ComponentProps<typeof m.span> {
     delay?: number;
     shouldFadeOut?: boolean;
 }
@@ -29,7 +28,7 @@ export function HighlightIn({
         (FADE_IN_DURATION + STAY_DURATION) / totalDurationActual;
 
     return (
-        <motion.span
+        <m.span
             {...props}
             animate={{ opacity: shouldFadeOut ? [0, 1, 1, 0] : [0, 1, 1] }}
             className={cn("pointer-events-none select-none", className)}
@@ -47,6 +46,6 @@ export function HighlightIn({
             }}
         >
             {children}
-        </motion.span>
+        </m.span>
     );
 }
