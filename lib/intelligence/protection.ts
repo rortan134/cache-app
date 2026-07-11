@@ -77,12 +77,16 @@ export async function protectGenAiRequest(args: {
     prompt: string;
     request: ArcjetNextRequest;
     requestedTokens: number;
-    /** Text to scan for prompt injection. Defaults to `prompt` (the full AI prompt). */
+    /**
+     * User-controlled text for prompt-injection detection.
+     * Pass only untrusted content — never system instructions or few-shot
+     * examples (those false-positive Arcjet's detector). Omit only when the
+     * request has no user text to scan.
+     */
     scanMessage?: string;
     userId: string;
 }): Promise<void> {
-    const { feature, prompt, request, requestedTokens, scanMessage, userId } =
-        args;
+    const { feature, request, requestedTokens, scanMessage, userId } = args;
 
     if (!serverEnv.ARCJET_KEY) {
         log.warn(
@@ -96,7 +100,9 @@ export async function protectGenAiRequest(args: {
     const decision = await createPlanClient(plan, serverEnv.ARCJET_KEY).protect(
         request,
         {
-            detectPromptInjectionMessage: scanMessage ?? prompt,
+            // Empty string disables injection detection for this call.
+            // Callers that accept user text must pass `scanMessage`.
+            detectPromptInjectionMessage: scanMessage ?? "",
             requested: requestedTokens,
             userId,
         }

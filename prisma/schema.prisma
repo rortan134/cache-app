@@ -33,6 +33,15 @@ enum LibraryItemKind {
   note
 }
 
+/// Last known HTTP reachability for a bookmark URL. Null means never checked.
+/// Transient failures and auth walls are `ambiguous`, not `unreachable`.
+enum LibraryItemLinkReachability {
+  reachable
+  unreachable
+  ambiguous
+  skipped
+}
+
 /// Manual or AI-assisted ranking for how central a collection is to the user.
 /// `archive` keeps the collection available while moving it out of active work.
 enum CollectionPriority {
@@ -238,6 +247,10 @@ model LibraryItem {
   reviewedAt       DateTime?
   /// When the user marked this item as a favorite. Null means not favorited.
   favoritedAt      DateTime?
+  /// Last link-health classification from Cache's reachability probe.
+  linkReachability LibraryItemLinkReachability?
+  /// When `linkReachability` was last written. Null means never checked.
+  linkCheckedAt    DateTime?
   createdAt        DateTime               @default(now())
   updatedAt        DateTime               @updatedAt
 
@@ -252,6 +265,7 @@ model LibraryItem {
   /// Recently-deleted listing and lazy purge both filter by `(userId, deletedAt)`;
   /// keep both live and trashed reads index-served.
   @@index([userId, deletedAt])
+  @@index([userId, linkReachability])
   @@map("library_item")
 }
 

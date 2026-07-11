@@ -133,6 +133,111 @@ export function isHttpUrl(value: string | null | undefined): value is string {
     }
 }
 
+const TRACKING_QUERY_PARAMS = new Set([
+    "_ga",
+    "_gl",
+    "fbclid",
+    "gbraid",
+    "gclid",
+    "igshid",
+    "mc_cid",
+    "mc_eid",
+    "mkt_tok",
+    "msclkid",
+    // bare `ref` is often content-bearing; only strip known tracking variants
+    "ref_src",
+    "ref_url",
+    "si",
+    "spm",
+    "twclid",
+    "vero_id",
+    "wbraid",
+    "wickedid",
+    "yclid",
+    "ysclid",
+]);
+
+function isTrackingQueryParam(name: string): boolean {
+    const lower = name.toLowerCase();
+    if (TRACKING_QUERY_PARAMS.has(lower)) {
+        return true;
+    }
+    return (
+        lower.startsWith("utm_") ||
+        lower.startsWith("mtm_") ||
+        lower.startsWith("pk_")
+    );
+}
+
+/**
+ * Stable content key for “same link” matching across sources.
+ * Drops scheme, `www.`, trailing slash, fragment, and common tracking params.
+ * Returns null when the input is not an http(s) URL.
+ */
+export function canonicalBookmarkUrl(
+    url: string | null | undefined
+): string | null {
+    if (typeof url !== "string") {
+        return null;
+    }
+
+    const trimmed = url.trim();
+    if (!trimmed) {
+        return null;
+    }
+
+    let parsed: URL;
+    try {
+        parsed = new URL(trimmed);
+    } catch {
+        return null;
+    }
+
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+        return null;
+    }
+
+    let host = parsed.hostname.toLowerCase();
+    if (host.startsWith("www.")) {
+        host = host.slice(4);
+    }
+    if (!host) {
+        return null;
+    }
+
+    if (parsed.port) {
+        const isDefaultPort =
+            (parsed.protocol === "http:" && parsed.port === "80") ||
+            (parsed.protocol === "https:" && parsed.port === "443");
+        if (!isDefaultPort) {
+            host = `${host}:${parsed.port}`;
+        }
+    }
+
+    let pathname = parsed.pathname || "/";
+    if (pathname.length > 1 && pathname.endsWith("/")) {
+        pathname = pathname.slice(0, -1);
+    }
+
+    const keptParams = [...parsed.searchParams.entries()]
+        .filter(([name]) => !isTrackingQueryParam(name))
+        .sort(([aName, aValue], [bName, bValue]) => {
+            const byName = aName.localeCompare(bName);
+            if (byName !== 0) {
+                return byName;
+            }
+            return aValue.localeCompare(bValue);
+        });
+
+    let canonical = `${host}${pathname}`;
+    if (keptParams.length > 0) {
+        const query = new URLSearchParams(keptParams).toString();
+        canonical = `${canonical}?${query}`;
+    }
+
+    return canonical;
+}
+
 export function openExternal(url: string) {
     if (typeof window === "undefined") {
         return;

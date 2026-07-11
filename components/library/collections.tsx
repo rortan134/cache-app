@@ -146,6 +146,7 @@ import SmartCollectionsBackgroundImg from "@/public/smart-collections-background
 import type { BaseUIEvent } from "@base-ui/react";
 import { Toolbar } from "@base-ui/react/toolbar";
 import { useInterval } from "@base-ui/utils/useInterval";
+import { useIsoLayoutEffect } from "@base-ui/utils/useIsoLayoutEffect";
 import { useStableCallback } from "@base-ui/utils/useStableCallback";
 import { T, useLocale } from "gt-next";
 import {
@@ -1836,10 +1837,11 @@ function CollectionsListGroupTrigger({
             ? getListFormatter(locale).format(labels)
             : placeholder);
 
+    const [isHovering, setIsHovering] = React.useState(false);
+
     return (
-        <Popover>
-            <PopoverTrigger
-                openOnHover
+        <PreviewCard onOpenChange={setIsHovering} open={isHovering && !isOpen}>
+            <PreviewCardTrigger
                 render={
                     <CollapsibleTrigger
                         {...props}
@@ -1863,21 +1865,18 @@ function CollectionsListGroupTrigger({
                     className="-ml-0.5"
                     focusable="false"
                 />
-            </PopoverTrigger>
-            <PopoverPopup
+            </PreviewCardTrigger>
+            <PreviewCardPopup
                 align="start"
-                positionerClassName={cn(
-                    isOpen && "pointer-events-none! hidden!"
-                )}
+                className="p-3"
                 positionMethod="fixed"
-                shouldUseTooltipStyle
                 side="right"
             >
-                <p className="whitespace-normal font-medium leading-tight">
+                <p className="whitespace-normal font-medium text-xs leading-tight">
                     {summary}
                 </p>
-            </PopoverPopup>
-        </Popover>
+            </PreviewCardPopup>
+        </PreviewCard>
     );
 }
 
@@ -2148,11 +2147,13 @@ function CollectionRecommendationItem({
                     />
                 }
             >
-                <PlusIcon
-                    aria-hidden
-                    className="absolute left-3.5 z-10 size-4 opacity-50"
-                    focusable="false"
-                />
+                <span className="absolute top-1/2 left-2.5 z-10 flex size-7 -translate-y-1/2 items-center justify-center rounded-md border-none bg-muted text-muted-foreground sm:size-6">
+                    <PlusIcon
+                        aria-hidden
+                        className="size-4 sm:size-3.5"
+                        focusable="false"
+                    />
+                </span>
                 <div className="flex min-w-0 flex-1 items-center gap-3 leading-none">
                     <span className="max-w-full shrink-0 truncate font-medium text-sm">
                         {template.name}
@@ -2442,9 +2443,8 @@ function CollectionsListCalloutPopover() {
     if (isLoading || typeof disabled === "undefined") {
         return (
             <div className="flex items-center gap-0.5 text-nowrap font-medium text-[11px] opacity-40">
-                <Skeleton className="h-3 w-[82px]" />
+                Smart Collections
                 <span>is</span>
-                <Skeleton className="h-3 w-7" />
                 <Skeleton className="size-4" />
             </div>
         );
@@ -2542,9 +2542,9 @@ function CollectionItem({
 }: CollectionsListItemProps) {
     const { hoveredCollectionRef, selectedCollectionIds } =
         useCollectionsState();
-    const isSelected = selectedCollectionIds.includes(collection.id);
     const handleMouseEnter = useStableCallback(onMouseEnterProp);
     const handleMouseLeave = useStableCallback(onMouseLeaveProp);
+    const isSelected = selectedCollectionIds.includes(collection.id);
     const style = getCollectionItemStyle(collection.name, isSelected);
 
     const onMouseEnter = useStableCallback(
@@ -2604,17 +2604,13 @@ function CollectionItemTrigger({
 
     const onClick = useStableCallback(onClickProp);
 
-    const selectAndClose = useStableCallback(() => {
-        onSelectCollection(collection.id);
-        setIsOpen(false);
-    });
-
     const handleClick = useStableCallback(
         (
             event: BaseUIEvent<React.MouseEvent<HTMLAnchorElement, MouseEvent>>
         ) => {
             onClick?.(event);
-            selectAndClose();
+            onSelectCollection(collection.id);
+            setIsOpen(false);
         }
     );
 
@@ -2644,15 +2640,6 @@ function CollectionItemTrigger({
                         src={activeThumbnail}
                     />
                 ) : null}
-                <Button
-                    className="m-1 mt-1.5 justify-between"
-                    onClick={selectAndClose}
-                    size="xs"
-                    variant="ghost"
-                >
-                    Created {dayjs(collection.createdAt).format("MMM DD, YYYY")}
-                    , Updated {dayjs(collection.updatedAt).fromNow()}
-                </Button>
             </PreviewCardPopup>
         </PreviewCard>
     );
@@ -3106,57 +3093,26 @@ function CollectionItemMetadata({ children }: CollectionItemMetadataProps) {
 }
 
 function CollectionsRenameDialog() {
-    const { pendingRename } = useCollectionsState();
-    const { setPendingRename } = useCollectionsActions();
-    const isOpen = pendingRename !== null;
-    const renameSubmissionPendingRef = React.useRef(false);
-
-    const formSessionKeyRef = React.useRef(0);
-    const wasOpenRef = React.useRef(false);
-    if (isOpen && !wasOpenRef.current) {
-        formSessionKeyRef.current += 1;
-    }
-    wasOpenRef.current = isOpen;
-
-    const activeRenameRef = React.useRef(pendingRename);
-    if (pendingRename !== null) {
-        activeRenameRef.current = pendingRename;
-    }
-    const activeRename = activeRenameRef.current;
-
-    const handleOpenChange = useStableCallback((open: boolean) => {
-        if (!(open || renameSubmissionPendingRef.current)) {
-            setPendingRename(null);
-        }
-    });
-
-    return (
-        <Dialog onOpenChange={handleOpenChange} open={isOpen}>
-            {activeRename ? (
-                <CollectionsRenameDialogForm
-                    key={`${formSessionKeyRef.current}:${activeRename.id}`}
-                    pendingRename={activeRename}
-                    renameSubmissionPendingRef={renameSubmissionPendingRef}
-                />
-            ) : null}
-        </Dialog>
-    );
-}
-
-function CollectionsRenameDialogForm({
-    pendingRename,
-    renameSubmissionPendingRef,
-}: {
-    pendingRename: LibraryCollectionSummary;
-    renameSubmissionPendingRef: React.RefObject<boolean>;
-}) {
-    const { showSuccess } = useCollectionsState();
+    const { pendingRename, showSuccess } = useCollectionsState();
     const { syncName, setPendingRename } = useCollectionsActions();
+    const isOpen = pendingRename !== null;
     const [isSubmitting, setIsSubmitting] = React.useState(false);
     const [, startRename] = React.useTransition();
+    const renameSubmissionPendingRef = React.useRef(false);
 
-    const [nameDraft, setNameDraft] = React.useState(() => pendingRename.name);
+    const [nameDraft, setNameDraft] = React.useState(
+        () => pendingRename?.name ?? ""
+    );
     const [errorMessage, setErrorMessage] = React.useState<string | null>(null);
+
+    // Sync draft before paint so the input never flashes empty on open.
+    useIsoLayoutEffect(() => {
+        if (pendingRename) {
+            setNameDraft(pendingRename.name);
+            setErrorMessage(null);
+            setIsSubmitting(false);
+        }
+    }, [pendingRename]);
 
     const handleNameDraftChange = useStableCallback((draft: string) => {
         setNameDraft(draft);
@@ -3170,12 +3126,23 @@ function CollectionsRenameDialogForm({
             handleNameDraftChange(event.currentTarget.value)
     );
 
+    const handleOpenChange = useStableCallback((open: boolean) => {
+        if (!(open || renameSubmissionPendingRef.current)) {
+            setPendingRename(null);
+        }
+    });
+
     const handleSubmit = useStableCallback(() => {
         if (isSubmitting || renameSubmissionPendingRef.current) {
             return;
         }
 
-        const previousName = pendingRename.name;
+        const target = pendingRename;
+        if (!target) {
+            return;
+        }
+
+        const previousName = target.name;
         const nextName = normalizeWhitespace(nameDraft);
 
         if (nextName.length === 0) {
@@ -3188,14 +3155,14 @@ function CollectionsRenameDialogForm({
             return;
         }
 
-        syncName(pendingRename.id, nextName);
+        syncName(target.id, nextName);
         renameSubmissionPendingRef.current = true;
         setIsSubmitting(true);
 
         startRename(async () => {
             try {
                 const result = await renameCollectionSafely({
-                    collectionId: pendingRename.id,
+                    collectionId: target.id,
                     name: nextName,
                 });
 
@@ -3206,7 +3173,7 @@ function CollectionsRenameDialogForm({
                     return;
                 }
 
-                syncName(pendingRename.id, previousName);
+                syncName(target.id, previousName);
                 setErrorMessage(result.message);
             } finally {
                 renameSubmissionPendingRef.current = false;
@@ -3224,56 +3191,63 @@ function CollectionsRenameDialogForm({
     const errorId = React.useId();
 
     return (
-        <DialogPopup>
-            <form className="contents" onSubmit={handleFormSubmit}>
-                <DialogHeader>
-                    <DialogTitle>Rename collection</DialogTitle>
-                    <DialogDescription>
-                        Update how this collection appears across your library.
-                    </DialogDescription>
-                </DialogHeader>
-                <DialogPanel>
-                    <div>
-                        <label
-                            className="sr-only font-medium text-sm"
-                            htmlFor={inputId}
+        <Dialog onOpenChange={handleOpenChange} open={isOpen}>
+            <DialogPopup>
+                <form className="contents" onSubmit={handleFormSubmit}>
+                    <DialogHeader>
+                        <DialogTitle>Rename collection</DialogTitle>
+                        <DialogDescription>
+                            Update how this collection appears across your
+                            library.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogPanel>
+                        <div>
+                            <label
+                                className="sr-only font-medium text-sm"
+                                htmlFor={inputId}
+                            >
+                                Name
+                            </label>
+                            <Input
+                                aria-describedby={
+                                    errorMessage ? errorId : undefined
+                                }
+                                aria-invalid={errorMessage ? true : undefined}
+                                autoFocus
+                                id={inputId}
+                                maxLength={NAME_MAX_LENGTH}
+                                onChange={handleNameChange}
+                                placeholder="Collection name"
+                                required
+                                type="text"
+                                value={nameDraft}
+                            />
+                            {errorMessage ? (
+                                <DialogFieldError id={errorId}>
+                                    {errorMessage}
+                                </DialogFieldError>
+                            ) : null}
+                        </div>
+                    </DialogPanel>
+                    <DialogFooter>
+                        <DialogClose
+                            disabled={isSubmitting}
+                            render={<Button size="sm" variant="ghost" />}
                         >
-                            Name
-                        </label>
-                        <Input
-                            aria-describedby={
-                                errorMessage ? errorId : undefined
-                            }
-                            aria-invalid={errorMessage ? true : undefined}
-                            autoFocus
-                            id={inputId}
-                            maxLength={NAME_MAX_LENGTH}
-                            onChange={handleNameChange}
-                            placeholder="Collection name"
-                            required
-                            type="text"
-                            value={nameDraft}
-                        />
-                        {errorMessage ? (
-                            <DialogFieldError id={errorId}>
-                                {errorMessage}
-                            </DialogFieldError>
-                        ) : null}
-                    </div>
-                </DialogPanel>
-                <DialogFooter>
-                    <DialogClose
-                        disabled={isSubmitting}
-                        render={<Button size="sm" variant="ghost" />}
-                    >
-                        Cancel
-                    </DialogClose>
-                    <Button isLoading={isSubmitting} size="sm" type="submit">
-                        Save
-                    </Button>
-                </DialogFooter>
-            </form>
-        </DialogPopup>
+                            Cancel
+                        </DialogClose>
+                        <Button
+                            isLoading={isSubmitting}
+                            size="sm"
+                            type="submit"
+                        >
+                            Save
+                        </Button>
+                    </DialogFooter>
+                </form>
+            </DialogPopup>
+        </Dialog>
     );
 }
 
@@ -3290,33 +3264,7 @@ const INITIAL_CREATE_FORM_STATE: CreateFormState = {
 };
 
 function CollectionsCreateDialog() {
-    const { isCreateOpen } = useCollectionsState();
-    const { createSubmissionPendingRef, setIsCreateOpen } =
-        useCollectionsActions();
-
-    const formSessionKeyRef = React.useRef(0);
-    const wasOpenRef = React.useRef(false);
-    if (isCreateOpen && !wasOpenRef.current) {
-        formSessionKeyRef.current += 1;
-    }
-    wasOpenRef.current = isCreateOpen;
-
-    const handleOpenChange = useStableCallback((open: boolean) => {
-        if (!open && createSubmissionPendingRef.current) {
-            return;
-        }
-        setIsCreateOpen(open);
-    });
-
-    return (
-        <Dialog onOpenChange={handleOpenChange} open={isCreateOpen}>
-            <CollectionsCreateDialogForm key={formSessionKeyRef.current} />
-        </Dialog>
-    );
-}
-
-function CollectionsCreateDialogForm() {
-    const { createItemId, showSuccess } = useCollectionsState();
+    const { createItemId, isCreateOpen, showSuccess } = useCollectionsState();
     const {
         createSubmissionPendingRef,
         onEnableSmartCollections,
@@ -3329,6 +3277,15 @@ function CollectionsCreateDialogForm() {
     const [, startCreate] = React.useTransition();
 
     const [formState, setFormState] = React.useState(INITIAL_CREATE_FORM_STATE);
+
+    // Reset before paint so reopening never shows the previous draft.
+    useIsoLayoutEffect(() => {
+        if (isCreateOpen) {
+            setFormState(INITIAL_CREATE_FORM_STATE);
+            setIsSubmitting(false);
+        }
+    }, [isCreateOpen]);
+
     const { descriptionDraft, errorMessage, nameDraft } = formState;
     const isNameValid = normalizeWhitespace(nameDraft).length > 0;
 
@@ -3338,6 +3295,13 @@ function CollectionsCreateDialogForm() {
                 ? { ...current, errorMessage: null, nameDraft: draft }
                 : { ...current, nameDraft: draft }
         );
+    });
+
+    const handleOpenChange = useStableCallback((open: boolean) => {
+        if (!open && createSubmissionPendingRef.current) {
+            return;
+        }
+        setIsCreateOpen(open);
     });
 
     const handleSubmit = useStableCallback(() => {
@@ -3457,179 +3421,183 @@ function CollectionsCreateDialogForm() {
     const descriptionInputId = React.useId();
 
     return (
-        <DialogPopup>
-            <form className="contents" onSubmit={handleFormSubmit}>
-                <DialogHeader>
-                    <div className="flex items-center gap-1">
-                        <Badge size="lg" variant="outline">
-                            <Image
-                                alt=""
-                                height={12}
-                                src={AppIconSmall}
-                                width={12}
-                            />
-                            Cache
-                        </Badge>
-                        <ChevronRight
-                            aria-hidden
-                            className="inline-block size-3.5 shrink-0"
-                            focusable="false"
-                        />
-                        <DialogTitle className="font-medium text-sm">
-                            New collection
-                        </DialogTitle>
-                    </div>
-                </DialogHeader>
-                <DialogPanel className="space-y-2">
-                    <div>
-                        <label
-                            className="sr-only font-medium text-sm"
-                            htmlFor={nameInputId}
-                        >
-                            Name
-                        </label>
-                        <Input
-                            aria-describedby={
-                                errorMessage ? errorId : undefined
-                            }
-                            aria-invalid={errorMessage ? true : undefined}
-                            autoFocus
-                            className="-mx-[calc(--spacing(3)-1px)] font-semibold text-xl"
-                            id={nameInputId}
-                            isUnstyled
-                            maxLength={NAME_MAX_LENGTH}
-                            onChange={handleNameChange}
-                            placeholder="Collection name"
-                            required
-                            size="lg"
-                            type="text"
-                            value={nameDraft}
-                        />
-                    </div>
-                    <div>
-                        <label
-                            className="sr-only font-medium text-sm"
-                            htmlFor={descriptionInputId}
-                        >
-                            Description (optional)
-                        </label>
-                        <Textarea
-                            className="-mx-[calc(--spacing(3)-1px)] *:resize-none"
-                            id={descriptionInputId}
-                            isUnstyled
-                            maxLength={1024}
-                            onChange={handleDescriptionChange}
-                            placeholder="Describe what belongs here..."
-                            size="lg"
-                            value={descriptionDraft}
-                        />
-                    </div>
-                    {errorMessage ? (
-                        <DialogFieldError id={errorId}>
-                            {errorMessage}
-                        </DialogFieldError>
-                    ) : null}
-                    <Alert>
-                        <Lightbulb aria-hidden focusable="false" />
-                        <AlertDescription>
-                            <p>
-                                Collections keep your best saves and content in
-                                one place. Use them for ongoing goals, or just
-                                to keep things tidy. Smart Collections can
-                                auto-assign matching entries to it.{" "}
-                                {disabled === true ? (
-                                    <Button
-                                        className="inline-flex h-fit! w-fit px-0 leading-tight sm:text-[11px]"
-                                        onClick={onEnableSmartCollections}
-                                        size="xs"
-                                        type="button"
-                                        variant="link"
-                                    >
-                                        Turn on Smart Collections
-                                    </Button>
-                                ) : null}
-                            </p>
-                        </AlertDescription>
-                    </Alert>
-                </DialogPanel>
-                <DialogFooter>
-                    <Combobox
-                        autoHighlight
-                        items={TEMPLATES}
-                        onValueChange={handleCreateFromTemplate}
-                    >
-                        <ComboboxTrigger
-                            disabled={isSubmitting}
-                            render={
-                                <Button
-                                    className="mr-auto -ml-2"
-                                    size="xs"
-                                    variant="link"
+        <Dialog onOpenChange={handleOpenChange} open={isCreateOpen}>
+            <DialogPopup>
+                <form className="contents" onSubmit={handleFormSubmit}>
+                    <DialogHeader>
+                        <div className="flex items-center gap-1">
+                            <Badge size="lg" variant="outline">
+                                <Image
+                                    alt=""
+                                    height={12}
+                                    src={AppIconSmall}
+                                    width={12}
                                 />
-                            }
-                        >
-                            <LibraryBig
+                                Cache
+                            </Badge>
+                            <ChevronRight
                                 aria-hidden
-                                className="mr-0.5! size-4"
+                                className="inline-block size-3.5 shrink-0"
                                 focusable="false"
                             />
-                            Explore Templates
-                        </ComboboxTrigger>
-                        <ComboboxPopup align="start" className="max-w-80">
-                            <ComboboxInput placeholder="Create collection from template..." />
-                            <ComboboxEmpty>No matching templates</ComboboxEmpty>
-                            <ComboboxList>
-                                <ComboboxCollection>
-                                    {(template) => (
-                                        <ComboboxItem
-                                            key={template.value}
-                                            value={template.value}
+                            <DialogTitle className="font-medium text-sm">
+                                New collection
+                            </DialogTitle>
+                        </div>
+                    </DialogHeader>
+                    <DialogPanel className="space-y-2">
+                        <div>
+                            <label
+                                className="sr-only font-medium text-sm"
+                                htmlFor={nameInputId}
+                            >
+                                Name
+                            </label>
+                            <Input
+                                aria-describedby={
+                                    errorMessage ? errorId : undefined
+                                }
+                                aria-invalid={errorMessage ? true : undefined}
+                                autoFocus
+                                className="-mx-[calc(--spacing(3)-1px)] font-semibold text-xl"
+                                id={nameInputId}
+                                isUnstyled
+                                maxLength={NAME_MAX_LENGTH}
+                                onChange={handleNameChange}
+                                placeholder="Collection name"
+                                required
+                                size="lg"
+                                type="text"
+                                value={nameDraft}
+                            />
+                        </div>
+                        <div>
+                            <label
+                                className="sr-only font-medium text-sm"
+                                htmlFor={descriptionInputId}
+                            >
+                                Description (optional)
+                            </label>
+                            <Textarea
+                                className="-mx-[calc(--spacing(3)-1px)] *:resize-none"
+                                id={descriptionInputId}
+                                isUnstyled
+                                maxLength={1024}
+                                onChange={handleDescriptionChange}
+                                placeholder="Describe what belongs here..."
+                                size="lg"
+                                value={descriptionDraft}
+                            />
+                        </div>
+                        {errorMessage ? (
+                            <DialogFieldError id={errorId}>
+                                {errorMessage}
+                            </DialogFieldError>
+                        ) : null}
+                        <Alert>
+                            <Lightbulb aria-hidden focusable="false" />
+                            <AlertDescription>
+                                <p>
+                                    Collections keep your best saves and content
+                                    in one place. Use them for ongoing goals, or
+                                    just to keep things tidy. Smart Collections
+                                    can auto-assign matching entries to it.{" "}
+                                    {disabled === true ? (
+                                        <Button
+                                            className="inline-flex h-fit! w-fit px-0 leading-tight sm:text-[11px]"
+                                            onClick={onEnableSmartCollections}
+                                            size="xs"
+                                            type="button"
+                                            variant="link"
                                         >
-                                            <div className="flex min-w-0 max-w-80 flex-col gap-0.5">
-                                                <span className="min-w-0 truncate text-foreground text-sm">
-                                                    {template.name}
-                                                </span>
-                                                <span className="line-clamp-2 text-muted-foreground text-xs">
-                                                    {template.description}
-                                                </span>
-                                            </div>
-                                        </ComboboxItem>
-                                    )}
-                                </ComboboxCollection>
-                            </ComboboxList>
-                            <div className="flex gap-2 px-3 pt-1.5 pb-2.5">
-                                <Info
+                                            Turn on Smart Collections
+                                        </Button>
+                                    ) : null}
+                                </p>
+                            </AlertDescription>
+                        </Alert>
+                    </DialogPanel>
+                    <DialogFooter>
+                        <Combobox
+                            autoHighlight
+                            items={TEMPLATES}
+                            onValueChange={handleCreateFromTemplate}
+                        >
+                            <ComboboxTrigger
+                                disabled={isSubmitting}
+                                render={
+                                    <Button
+                                        className="mr-auto -ml-2"
+                                        size="xs"
+                                        variant="link"
+                                    />
+                                }
+                            >
+                                <LibraryBig
                                     aria-hidden
-                                    className="inline-block size-3.5 shrink-0"
+                                    className="mr-0.5! size-4"
                                     focusable="false"
                                 />
-                                <p className="text-[11px] text-muted-foreground leading-tight">
-                                    <strong className="font-medium">
-                                        Smart Collections&nbsp;
-                                        <Sparkle
-                                            aria-hidden
-                                            className="mb-px inline-block size-3"
-                                            focusable="false"
-                                        />
-                                    </strong>{" "}
-                                    can automatically assign collections to
-                                    entries that match these templates – no
-                                    extra work for you.
-                                </p>
-                            </div>
-                        </ComboboxPopup>
-                    </Combobox>
-                    <Button
-                        disabled={!isNameValid}
-                        isLoading={isSubmitting}
-                        size="sm"
-                        type="submit"
-                    >
-                        Create collection
-                    </Button>
-                </DialogFooter>
-            </form>
-        </DialogPopup>
+                                Explore Templates
+                            </ComboboxTrigger>
+                            <ComboboxPopup align="start" className="max-w-80">
+                                <ComboboxInput placeholder="Create collection from template..." />
+                                <ComboboxEmpty>
+                                    No matching templates
+                                </ComboboxEmpty>
+                                <ComboboxList>
+                                    <ComboboxCollection>
+                                        {(template) => (
+                                            <ComboboxItem
+                                                key={template.value}
+                                                value={template.value}
+                                            >
+                                                <div className="flex min-w-0 max-w-80 flex-col gap-0.5">
+                                                    <span className="min-w-0 truncate text-foreground text-sm">
+                                                        {template.name}
+                                                    </span>
+                                                    <span className="line-clamp-2 text-muted-foreground text-xs">
+                                                        {template.description}
+                                                    </span>
+                                                </div>
+                                            </ComboboxItem>
+                                        )}
+                                    </ComboboxCollection>
+                                </ComboboxList>
+                                <div className="flex gap-2 px-3 pt-1.5 pb-2.5">
+                                    <Info
+                                        aria-hidden
+                                        className="inline-block size-3.5 shrink-0"
+                                        focusable="false"
+                                    />
+                                    <p className="text-[11px] text-muted-foreground leading-tight">
+                                        <strong className="font-medium">
+                                            Smart Collections&nbsp;
+                                            <Sparkle
+                                                aria-hidden
+                                                className="mb-px inline-block size-3"
+                                                focusable="false"
+                                            />
+                                        </strong>{" "}
+                                        can automatically assign collections to
+                                        entries that match these templates – no
+                                        extra work for you.
+                                    </p>
+                                </div>
+                            </ComboboxPopup>
+                        </Combobox>
+                        <Button
+                            disabled={!isNameValid}
+                            isLoading={isSubmitting}
+                            size="sm"
+                            type="submit"
+                        >
+                            Create collection
+                        </Button>
+                    </DialogFooter>
+                </form>
+            </DialogPopup>
+        </Dialog>
     );
 }
 

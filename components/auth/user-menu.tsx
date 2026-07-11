@@ -19,6 +19,7 @@ import {
     CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { AltKbd, CmdKbd, Kbd } from "@/components/ui/kbd";
+import AppIconSmall from "@/public/cache-icon-small.png";
 import {
     Menu,
     MenuGroup,
@@ -54,6 +55,7 @@ import {
     LogOut,
     UserRoundPlus,
 } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import * as React from "react";
@@ -209,7 +211,13 @@ export function UserMenuContent() {
                         className="w-full justify-start font-normal"
                         render={<MenuItem closeOnClick={false} />}
                     >
-                        <T>Upgrade to Pro</T>
+                        <Image
+                            alt=""
+                            height={12}
+                            src={AppIconSmall}
+                            width={12}
+                        />
+                        <T>Upgrade to premium</T>
                         <ArrowUpRight className="ml-auto! inline-block size-4 shrink-0 text-muted-foreground" />
                     </SubscriptionUpgradeButton>
                 </UnsubscribedOnly>

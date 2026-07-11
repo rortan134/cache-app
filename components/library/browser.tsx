@@ -7,7 +7,7 @@ import {
 import { useSubscriptionAccess } from "@/components/billing/subscription";
 import {
     Composer,
-    ComposerActionClear,
+    ComposerActionMetrics,
     ComposerActionNew,
     ComposerActionOnboarding,
     ComposerActions,
@@ -125,10 +125,19 @@ import type { CollectionCreateFromItemsResult } from "@/lib/collections/actions"
 import { downloadMedia } from "@/lib/collections/actions";
 import {
     deleteLibraryItem,
+    probeLibraryItemsReachabilityAction,
     type LibraryItemCollectionsUpdateResult,
     type LibraryItemDeleteResult,
     type LibraryItemsCollectionsUpdateResult,
 } from "@/lib/collections/items";
+import {
+    collectDuplicateBookmarkItemIds,
+    isLinkProbeCandidate,
+    itemCanonicalGroupKey,
+    LINK_REACHABILITY_BATCH_MAX,
+    needsLinkReachabilityProbe,
+} from "@/lib/collections/library-quality";
+import { buildLibraryMetrics } from "@/lib/collections/metrics";
 import {
     itemPreviewImageUrl,
     itemPreviewVideoUrl,
@@ -277,6 +286,7 @@ interface BuildCommandSuggestionsInput {
     collectionMembershipFilter: CollectionMembershipFilter;
     collections: LibraryCollectionSummary[];
     domainFilters: string[];
+    duplicatesFilterEnabled: boolean;
     groupBy: GroupByMode;
     isExtensionInstalled: boolean;
     items: LibraryItemWithCollections[];
@@ -304,6 +314,7 @@ interface BuildCommandSuggestionsInput {
     ) => void;
     sortMode: SortMode;
     sourceFilters: LibraryItemSource[];
+    unreachableFilterEnabled: boolean;
 }
 
 function buildCommandSuggestions({
@@ -327,9 +338,11 @@ function buildCommandSuggestions({
     setSourceFilters,
     sourceFilters,
     domainFilters,
+    duplicatesFilterEnabled,
     groupBy,
     isExtensionInstalled,
     sortMode,
+    unreachableFilterEnabled,
 }: BuildCommandSuggestionsInput): CommandSuggestion[] {
     const suggestions: CommandSuggestion[] = [];
     const suggestionLabels = new Set<string>();
@@ -373,7 +386,9 @@ function buildCommandSuggestions({
         collectionMembershipFilter !== DEFAULT_COLLECTION_MEMBERSHIP_FILTER ||
         groupBy !== "none" ||
         sortMode !== DEFAULT_SORT_MODE ||
-        lastVisitedFilterEnabled;
+        lastVisitedFilterEnabled ||
+        duplicatesFilterEnabled ||
+        unreachableFilterEnabled;
 
     const commitSelection = (fn: () => void) => () => {
         fn();
@@ -845,6 +860,9 @@ type GroupByMode =
     | "month-added"
     | "month-created";
 
+/** Includes forced clustering modes that are not user-selectable. */
+type EffectiveGroupByMode = GroupByMode | "canonical-url";
+
 const ALL_GROUPING_MODES: GroupByMode[] = [
     "source",
     "domain",
@@ -1090,13 +1108,16 @@ function itemYearKey(
 
 function getItemGroupKey(
     item: LibraryItemWithCollections,
-    groupBy: GroupByMode
+    groupBy: EffectiveGroupByMode
 ): string {
     if (groupBy === "source") {
         return item.source;
     }
     if (groupBy === "domain") {
         return itemDomain(item.url);
+    }
+    if (groupBy === "canonical-url") {
+        return itemCanonicalGroupKey(item);
     }
     if (groupBy === "month-added") {
         return itemMonthKey(item, "added");
@@ -1115,7 +1136,7 @@ function getItemGroupKey(
 
 function getGroupCount(
     items: LibraryItemWithCollections[],
-    groupBy: GroupByMode
+    groupBy: EffectiveGroupByMode
 ): number {
     if (groupBy === "none") {
         return 0;
@@ -1164,7 +1185,7 @@ function buildResultsCollectionName(searchTerms: string[]): string {
 }
 
 function formatGroupHeading(
-    mode: GroupByMode,
+    mode: EffectiveGroupByMode,
     key: string,
     collectionNames?: Map<string, string>
 ): string {
@@ -1176,6 +1197,9 @@ function formatGroupHeading(
     }
     if (mode === "source") {
         return SOURCE_LABEL_BY_VALUE[key] ?? "Other";
+    }
+    if (mode === "canonical-url") {
+        return truncateLabel(key, 64);
     }
     if (mode === "month-added" || mode === "month-created") {
         const [ys, ms] = key.split("-");
@@ -1236,7 +1260,7 @@ function compareItems(
 function compareSectionKeys(
     a: string,
     b: string,
-    groupBy: GroupByMode,
+    groupBy: EffectiveGroupByMode,
     sortMode: SortMode,
     collectionNames?: Map<string, string>
 ): number {
@@ -1292,6 +1316,7 @@ interface BuildPaletteStackEntriesInput {
     columnCountMode: ColumnCountMode;
     commandAttachments: LibraryCommandAttachment[];
     domainFilters: string[];
+    duplicatesFilterEnabled: boolean;
     groupBy: GroupByMode;
     lastVisitedFilterEnabled: boolean;
     onRemoveCollectionFilter: (id: string) => void;
@@ -1303,6 +1328,7 @@ interface BuildPaletteStackEntriesInput {
     setDomainFilters: (
         value: string[] | ((value: string[]) => string[])
     ) => void;
+    setDuplicatesFilterEnabled: (value: boolean) => void;
     setGroupBy: (value: GroupByMode) => void;
     setLastVisitedFilterEnabled: (value: boolean) => void;
     setSearchTerms: (value: string[] | ((value: string[]) => string[])) => void;
@@ -1312,8 +1338,10 @@ interface BuildPaletteStackEntriesInput {
             | LibraryItemSource[]
             | ((value: LibraryItemSource[]) => LibraryItemSource[])
     ) => void;
+    setUnreachableFilterEnabled: (value: boolean) => void;
     sortMode: SortMode;
     sourceFilters: LibraryItemSource[];
+    unreachableFilterEnabled: boolean;
 }
 
 function buildPaletteStackEntries({
@@ -1322,6 +1350,7 @@ function buildPaletteStackEntries({
     columnCountMode,
     commandAttachments,
     domainFilters,
+    duplicatesFilterEnabled,
     groupBy,
     lastVisitedFilterEnabled,
     onRemoveCollectionFilter,
@@ -1331,13 +1360,16 @@ function buildPaletteStackEntries({
     setCollectionMembershipFilter,
     setColumnCountMode,
     setDomainFilters,
+    setDuplicatesFilterEnabled,
     setGroupBy,
     setLastVisitedFilterEnabled,
     setSearchTerms,
     setSortMode,
     setSourceFilters,
+    setUnreachableFilterEnabled,
     sortMode,
     sourceFilters,
+    unreachableFilterEnabled,
 }: BuildPaletteStackEntriesInput): PaletteStackEntry[] {
     const entries: PaletteStackEntry[] = [];
     const collectionById = new Map(collections.map((c) => [c.id, c]));
@@ -1472,6 +1504,38 @@ function buildPaletteStackEntries({
                 />
             ),
             key: "last-visited",
+            onRemove,
+        });
+    }
+
+    if (duplicatesFilterEnabled) {
+        const onRemove = () => setDuplicatesFilterEnabled(false);
+        entries.push({
+            chip: (
+                <PaletteChip
+                    key="duplicates"
+                    label="Duplicates"
+                    // biome-ignore lint/performance/noJsxPropsBind: stabilized internally by PaletteChip
+                    onRemove={onRemove}
+                />
+            ),
+            key: "duplicates",
+            onRemove,
+        });
+    }
+
+    if (unreachableFilterEnabled) {
+        const onRemove = () => setUnreachableFilterEnabled(false);
+        entries.push({
+            chip: (
+                <PaletteChip
+                    key="unreachable"
+                    label="Unreachable"
+                    // biome-ignore lint/performance/noJsxPropsBind: stabilized internally by PaletteChip
+                    onRemove={onRemove}
+                />
+            ),
+            key: "unreachable",
             onRemove,
         });
     }
@@ -1887,6 +1951,7 @@ interface BrowserResultsContextValue {
     setOpenPickerItemId: (id: string | null) => void;
     shouldShowEmptyLibraryPeek: boolean;
     shouldShowNoFilteredResults: boolean;
+    shouldShowUnreachableProbePending: boolean;
 }
 
 const BrowserResultsContext =
@@ -1976,8 +2041,7 @@ function BrowserEmpty() {
                 <p className="text-muted-foreground text-xs leading-tight">
                     Everything you bookmark, unified and searchable. Cache is a
                     purpose-built bookmark manager designed to find what matters
-                    to you. Images, Videos, Links and Files you add will appear
-                    here.
+                    to you. Images, videos, and links you add will appear here.
                 </p>
             </div>
             <Masonry
@@ -2007,6 +2071,23 @@ function BrowserEmptyWithFilters() {
             <Button onClick={clearLibraryPalette} size="sm" variant="outline">
                 Reset filters
             </Button>
+        </div>
+    );
+}
+
+function BrowserUnreachableProbePending() {
+    const { shouldShowUnreachableProbePending } = useBrowserResultsContext();
+
+    if (!shouldShowUnreachableProbePending) {
+        return null;
+    }
+
+    return (
+        <div className="flex flex-col items-center gap-3 rounded-2xl border border-border/70 border-dashed bg-card/30 px-6 py-14 text-center">
+            <Spinner className="size-5 text-muted-foreground" />
+            <p className="max-w-md text-balance text-muted-foreground text-sm">
+                Checking which links fail to load…
+            </p>
         </div>
     );
 }
@@ -2822,6 +2903,8 @@ interface BuildPaletteGroupsInput {
         label: string;
         value: string;
     }[];
+    duplicateItemCount: number;
+    duplicatesFilterEnabled: boolean;
     groupBy: GroupByMode;
     lastVisitedFilterEnabled: boolean;
     lastVisitedItemIds: string[];
@@ -2844,6 +2927,7 @@ interface BuildPaletteGroupsInput {
     setDomainFilters: (
         value: string[] | ((value: string[]) => string[])
     ) => void;
+    setDuplicatesFilterEnabled: (value: boolean) => void;
     setGroupBy: (value: GroupByMode) => void;
     setIsCommandOpen: (
         value: boolean | ((previous: boolean) => boolean)
@@ -2857,8 +2941,10 @@ interface BuildPaletteGroupsInput {
             | LibraryItemSource[]
             | ((value: LibraryItemSource[]) => LibraryItemSource[])
     ) => void;
+    setUnreachableFilterEnabled: (value: boolean) => void;
     sortMode: SortMode;
     sourceFilters: LibraryItemSource[];
+    unreachableFilterEnabled: boolean;
 }
 
 function buildDomainPaletteOptions(
@@ -2895,6 +2981,8 @@ function buildPaletteGroups({
     collections,
     domainFilters,
     domainOptions,
+    duplicateItemCount,
+    duplicatesFilterEnabled,
     groupBy,
     lastVisitedFilterEnabled,
     lastVisitedItemIds,
@@ -2913,14 +3001,17 @@ function buildPaletteGroups({
     setColumnCountMode,
     setIsCommandOpen,
     setDomainFilters,
+    setDuplicatesFilterEnabled,
     setGroupBy,
     setLastVisitedFilterEnabled,
     setQuery,
     setSearchTerms,
     setSortMode,
     setSourceFilters,
+    setUnreachableFilterEnabled,
     sortMode,
     sourceFilters,
+    unreachableFilterEnabled,
 }: BuildPaletteGroupsInput): CommandPaletteGroup[] {
     const draft = query.trim();
     const groups: CommandPaletteGroup[] = [];
@@ -2979,7 +3070,10 @@ function buildPaletteGroups({
         collectionMembershipFilter !== DEFAULT_COLLECTION_MEMBERSHIP_FILTER ||
         groupBy !== "none" ||
         sortMode !== DEFAULT_SORT_MODE ||
-        columnCountMode !== DEFAULT_COLUMN_COUNT_MODE;
+        columnCountMode !== DEFAULT_COLUMN_COUNT_MODE ||
+        duplicatesFilterEnabled ||
+        unreachableFilterEnabled ||
+        lastVisitedFilterEnabled;
 
     if (paletteSection === "search") {
         return buildSearchPaletteGroups({
@@ -3018,6 +3112,33 @@ function buildPaletteGroups({
         groups.push({
             items: [backItem],
             label: "Navigation",
+        });
+        groups.push({
+            items: [
+                {
+                    active: duplicatesFilterEnabled,
+                    description:
+                        duplicateItemCount > 0
+                            ? `Show ${duplicateItemCount} bookmark${duplicateItemCount === 1 ? "" : "s"} that share a URL`
+                            : "No duplicate bookmarks found right now",
+                    label: "Duplicates",
+                    onSelect: applyAndStay(() =>
+                        setDuplicatesFilterEnabled(!duplicatesFilterEnabled)
+                    ),
+                    value: "filter duplicates",
+                },
+                {
+                    active: unreachableFilterEnabled,
+                    description:
+                        "Check which bookmark links fail to load or time out",
+                    label: "Unreachable links",
+                    onSelect: applyAndStay(() =>
+                        setUnreachableFilterEnabled(!unreachableFilterEnabled)
+                    ),
+                    value: "filter unreachable",
+                },
+            ],
+            label: "Library quality",
         });
         groups.push({
             items: [
@@ -3177,20 +3298,26 @@ function filterCommandItems(
     input: {
         collectionMembershipFilter: CollectionMembershipFilter;
         domainFilters: string[];
+        duplicateItemIds: ReadonlySet<string>;
+        duplicatesFilterEnabled: boolean;
         lastVisitedItemIds: string[];
         searchTerms: string[];
         selectedCollectionIds: string[];
         sourceFilters: LibraryItemSource[];
+        unreachableFilterEnabled: boolean;
+        unreachableItemIds: ReadonlySet<string>;
     }
 ): LibraryItemWithCollections[] {
     const hasActiveFilters =
         input.collectionMembershipFilter !==
             DEFAULT_COLLECTION_MEMBERSHIP_FILTER ||
         input.domainFilters.length > 0 ||
+        input.duplicatesFilterEnabled ||
         input.lastVisitedItemIds.length > 0 ||
         input.searchTerms.length > 0 ||
         input.selectedCollectionIds.length > 0 ||
-        input.sourceFilters.length > 0;
+        input.sourceFilters.length > 0 ||
+        input.unreachableFilterEnabled;
 
     if (!hasActiveFilters) {
         return items;
@@ -3205,6 +3332,14 @@ function filterCommandItems(
         list = list.filter((item) =>
             input.lastVisitedItemIds.includes(item.id)
         );
+    }
+
+    if (input.duplicatesFilterEnabled) {
+        list = list.filter((item) => input.duplicateItemIds.has(item.id));
+    }
+
+    if (input.unreachableFilterEnabled) {
+        list = list.filter((item) => input.unreachableItemIds.has(item.id));
     }
 
     if (input.selectedCollectionIds.length > 0) {
@@ -3261,7 +3396,7 @@ function sortCommandItems(
 
 function buildBrowserSections(
     sortedItems: LibraryItemWithCollections[],
-    groupBy: GroupByMode,
+    groupBy: EffectiveGroupByMode,
     sortMode: SortMode,
     collections?: LibraryCollectionSummary[]
 ): BrowserGroup[] {
@@ -3369,10 +3504,12 @@ async function createLibraryBookmarkFromPastedUrl({
 function browserHasActiveFilters(input: {
     collectionMembershipFilter: CollectionMembershipFilter;
     domainFilters: string[];
+    duplicatesFilterEnabled: boolean;
     lastVisitedItemIds: string[];
     searchTerms: string[];
     selectedCollectionIds: string[];
     sourceFilters: LibraryItemSource[];
+    unreachableFilterEnabled: boolean;
 }): boolean {
     return (
         input.searchTerms.length > 0 ||
@@ -3381,7 +3518,9 @@ function browserHasActiveFilters(input: {
         input.domainFilters.length > 0 ||
         input.collectionMembershipFilter !==
             DEFAULT_COLLECTION_MEMBERSHIP_FILTER ||
-        input.lastVisitedItemIds.length > 0
+        input.lastVisitedItemIds.length > 0 ||
+        input.duplicatesFilterEnabled ||
+        input.unreachableFilterEnabled
     );
 }
 
@@ -3392,7 +3531,7 @@ function useSectionCollapseState({
     shouldShowEmptyLibraryPeek,
     shouldShowNoFilteredResults,
 }: {
-    groupBy: GroupByMode;
+    groupBy: EffectiveGroupByMode;
     hasActiveFilters: boolean;
     sections: BrowserGroup[];
     shouldShowEmptyLibraryPeek: boolean;
@@ -5074,6 +5213,18 @@ export function BrowserRoot({
         useSearchHistory();
     const [lastVisitedFilterEnabled, setLastVisitedFilterEnabled] =
         React.useState(false);
+    const [duplicatesFilterEnabled, setDuplicatesFilterEnabled] =
+        React.useState(false);
+    const [unreachableFilterEnabled, setUnreachableFilterEnabled] =
+        React.useState(false);
+    const [unreachableProbe, setUnreachableProbe] = React.useState({
+        active: false,
+        checked: 0,
+        total: 0,
+    });
+    const unreachableProbeVersionRef = React.useRef(0);
+    const itemsRef = React.useRef(items);
+    itemsRef.current = items;
     const [paletteSection, setPaletteSection] =
         React.useState<PaletteSection>("search");
     const [commandAttachments, setCommandAttachments] = React.useState<
@@ -5180,9 +5331,144 @@ export function BrowserRoot({
         setSortMode(DEFAULT_SORT_MODE);
         setColumnCountMode(DEFAULT_COLUMN_COUNT_MODE);
         setLastVisitedFilterEnabled(false);
+        setDuplicatesFilterEnabled(false);
+        setUnreachableFilterEnabled(false);
         setPaletteSection("search");
         setIsCommandOpen(false);
     });
+
+    const duplicateItemIds = collectDuplicateBookmarkItemIds(items);
+
+    const unreachableItemIds = React.useMemo(() => {
+        const ids = new Set<string>();
+        for (const item of items) {
+            if (item.linkReachability === "unreachable") {
+                ids.add(item.id);
+            }
+        }
+        return ids;
+    }, [items]);
+
+    React.useEffect(() => {
+        if (!unreachableFilterEnabled) {
+            unreachableProbeVersionRef.current += 1;
+            setUnreachableProbe({ active: false, checked: 0, total: 0 });
+            return;
+        }
+
+        const version = unreachableProbeVersionRef.current + 1;
+        unreachableProbeVersionRef.current = version;
+
+        const sleep = (ms: number) =>
+            new Promise<void>((resolve) => {
+                window.setTimeout(resolve, ms);
+            });
+
+        // Local set so the async loop does not re-probe the same batch while
+        // waiting for React to commit `onItemsChange` into `itemsRef`.
+        const probedItemIds = new Set<string>();
+
+        const run = async () => {
+            while (unreachableProbeVersionRef.current === version) {
+                const currentItems = itemsRef.current;
+                const probeableItems = currentItems.filter((item) =>
+                    isLinkProbeCandidate(item)
+                );
+                const candidates = probeableItems.filter(
+                    (item) =>
+                        !probedItemIds.has(item.id) &&
+                        needsLinkReachabilityProbe(item)
+                );
+                const totalProbeable = probeableItems.length;
+                const checked = totalProbeable - candidates.length;
+
+                if (candidates.length === 0) {
+                    setUnreachableProbe({
+                        active: false,
+                        checked: totalProbeable,
+                        total: totalProbeable,
+                    });
+                    // Library may still be hydrating; keep waiting while empty.
+                    if (currentItems.length === 0) {
+                        await sleep(1000);
+                        continue;
+                    }
+                    return;
+                }
+
+                setUnreachableProbe({
+                    active: true,
+                    checked,
+                    total: totalProbeable,
+                });
+
+                const batch = candidates.slice(0, LINK_REACHABILITY_BATCH_MAX);
+                try {
+                    const result = await probeLibraryItemsReachabilityAction({
+                        itemIds: batch.map((item) => item.id),
+                    });
+                    if (unreachableProbeVersionRef.current !== version) {
+                        return;
+                    }
+
+                    if (result.status !== ACTION_STATUS.SUCCESS) {
+                        log.error("Link reachability probe failed", {
+                            message: result.message,
+                        });
+                        await sleep(3000);
+                        continue;
+                    }
+
+                    if (result.rateLimited) {
+                        setUnreachableProbe({
+                            active: true,
+                            checked,
+                            total: totalProbeable,
+                        });
+                        await sleep(Math.max(1000, result.retryAfterMs));
+                        continue;
+                    }
+
+                    for (const entry of result.results) {
+                        probedItemIds.add(entry.itemId);
+                    }
+
+                    const resultById = new Map(
+                        result.results.map((entry) => [entry.itemId, entry])
+                    );
+                    onItemsChange((previous) =>
+                        previous.map((item) => {
+                            const entry = resultById.get(item.id);
+                            if (!entry) {
+                                return item;
+                            }
+                            return {
+                                ...item,
+                                linkCheckedAt: new Date(entry.checkedAt),
+                                linkReachability: entry.status,
+                            };
+                        })
+                    );
+                } catch (error) {
+                    if (unreachableProbeVersionRef.current !== version) {
+                        return;
+                    }
+                    log.error("Link reachability probe threw", error);
+                    await sleep(3000);
+                }
+            }
+        };
+
+        run().catch((error) => {
+            log.error("Link reachability probe loop failed", error);
+        });
+
+        return () => {
+            // Stop the async loop on unmount or before the next effect run so
+            // it cannot keep probing or calling onItemsChange after teardown.
+            unreachableProbeVersionRef.current += 1;
+        };
+    }, [onItemsChange, unreachableFilterEnabled]);
 
     const domainOptions = buildDomainPaletteOptions(items);
 
@@ -5220,12 +5506,16 @@ export function BrowserRoot({
                 filteredItemCount: filterCommandItems(items, {
                     collectionMembershipFilter,
                     domainFilters,
+                    duplicateItemIds,
+                    duplicatesFilterEnabled,
                     lastVisitedItemIds: lastVisitedFilterEnabled
                         ? lastVisitedItemIds
                         : [],
                     searchTerms,
                     selectedCollectionIds,
                     sourceFilters,
+                    unreachableFilterEnabled,
+                    unreachableItemIds,
                 }).length,
                 totalItemCount,
             },
@@ -5359,6 +5649,8 @@ export function BrowserRoot({
         columnCountMode,
         domainFilters,
         domainOptions,
+        duplicateItemCount: duplicateItemIds.size,
+        duplicatesFilterEnabled,
         groupBy,
         lastVisitedFilterEnabled,
         lastVisitedItemIds,
@@ -5376,6 +5668,7 @@ export function BrowserRoot({
         setCollectionMembershipFilter,
         setColumnCountMode,
         setDomainFilters,
+        setDuplicatesFilterEnabled,
         setGroupBy,
         setIsCommandOpen,
         setLastVisitedFilterEnabled,
@@ -5383,8 +5676,10 @@ export function BrowserRoot({
         setSearchTerms,
         setSortMode,
         setSourceFilters,
+        setUnreachableFilterEnabled,
         sortMode,
         sourceFilters,
+        unreachableFilterEnabled,
     });
 
     const activeLastVisitedItemIds = lastVisitedFilterEnabled
@@ -5401,17 +5696,25 @@ export function BrowserRoot({
     const filteredItems = filterCommandItems(items, {
         collectionMembershipFilter,
         domainFilters,
+        duplicateItemIds,
+        duplicatesFilterEnabled,
         lastVisitedItemIds: activeLastVisitedItemIds,
         searchTerms,
         selectedCollectionIds,
         sourceFilters,
+        unreachableFilterEnabled,
+        unreachableItemIds,
     });
 
     const sortedItems = sortCommandItems(filteredItems, sortMode);
 
+    const effectiveGroupBy: EffectiveGroupByMode = duplicatesFilterEnabled
+        ? "canonical-url"
+        : groupBy;
+
     const sections = buildBrowserSections(
         sortedItems,
-        groupBy,
+        effectiveGroupBy,
         sortMode,
         collections
     );
@@ -5419,10 +5722,12 @@ export function BrowserRoot({
     const hasActiveFilters = browserHasActiveFilters({
         collectionMembershipFilter,
         domainFilters,
+        duplicatesFilterEnabled,
         lastVisitedItemIds: activeLastVisitedItemIds,
         searchTerms,
         selectedCollectionIds,
         sourceFilters,
+        unreachableFilterEnabled,
     });
 
     const hasNonDefaultView =
@@ -5434,8 +5739,13 @@ export function BrowserRoot({
     const shouldShowEmptyLibraryPeek =
         items.length === 0 && filteredItems.length === 0 && !hasActiveFilters;
 
+    const isUnreachableProbePending =
+        unreachableFilterEnabled && unreachableProbe.active;
+
     const shouldShowNoFilteredResults =
-        filteredItems.length === 0 && !shouldShowEmptyLibraryPeek;
+        filteredItems.length === 0 &&
+        !shouldShowEmptyLibraryPeek &&
+        !isUnreachableProbePending;
 
     const {
         collapseAllSections,
@@ -5444,7 +5754,7 @@ export function BrowserRoot({
         expandAllSections,
         toggleSection,
     } = useSectionCollapseState({
-        groupBy,
+        groupBy: effectiveGroupBy,
         hasActiveFilters,
         sections,
         shouldShowEmptyLibraryPeek,
@@ -5468,22 +5778,41 @@ export function BrowserRoot({
                 ? `${items.length} item${items.length === 1 ? "" : "s"} of ${totalItemCount}`
                 : `${filteredItems.length} result${filteredItems.length === 1 ? "" : "s"} from ${items.length} visible`;
     }
+    if (unreachableFilterEnabled && unreachableProbe.total > 0) {
+        const remaining = unreachableProbe.total - unreachableProbe.checked;
+        let progressLabel = unreachableProbe.active
+            ? `Checking links ${unreachableProbe.checked}/${unreachableProbe.total}`
+            : `Checked ${unreachableProbe.checked} link${unreachableProbe.checked === 1 ? "" : "s"}`;
+        if (unreachableProbe.active && remaining > 0) {
+            // Server budget is 100 probes/minute; give a coarse ETA.
+            const minutesLeft = Math.max(1, Math.ceil(remaining / 100));
+            progressLabel = `${progressLabel} · ~${minutesLeft} min left`;
+        }
+        resultsSummary = `${resultsSummary} · ${progressLabel}`;
+    }
 
     const visibleResultItems = sections.flatMap((section) => section.items);
 
     const resultCollectionItemIds = visibleResultItems.map((item) => item.id);
 
     const shouldShowLockedPreview =
-        isPreviewOnly && !hasActiveFilters && groupBy === "none";
+        isPreviewOnly && !hasActiveFilters && effectiveGroupBy === "none";
 
     const canClear =
         (hasActiveFilters || hasNonDefaultView) && !shouldShowEmptyLibraryPeek;
+
+    const libraryMetrics = buildLibraryMetrics({
+        getSourceLabel: sourceLabel,
+        items: filteredItems,
+        libraryItemCount: isPreviewOnly ? totalItemCount : items.length,
+    });
 
     const suggestions = buildCommandSuggestions({
         clearLibraryPalette,
         collectionMembershipFilter,
         collections,
         domainFilters,
+        duplicatesFilterEnabled,
         groupBy,
         isExtensionInstalled,
         items: filteredItems,
@@ -5503,6 +5832,7 @@ export function BrowserRoot({
         setSourceFilters,
         sortMode,
         sourceFilters,
+        unreachableFilterEnabled,
     });
 
     const [isSuggestionsOpen, setIsSuggestionsOpen] = React.useState(false);
@@ -5707,6 +6037,7 @@ export function BrowserRoot({
         columnCountMode,
         commandAttachments,
         domainFilters,
+        duplicatesFilterEnabled,
         groupBy,
         lastVisitedFilterEnabled,
         onRemoveCollectionFilter,
@@ -5716,13 +6047,16 @@ export function BrowserRoot({
         setCollectionMembershipFilter,
         setColumnCountMode,
         setDomainFilters,
+        setDuplicatesFilterEnabled,
         setGroupBy,
         setLastVisitedFilterEnabled,
         setSearchTerms,
         setSortMode,
         setSourceFilters,
+        setUnreachableFilterEnabled,
         sortMode,
         sourceFilters,
+        unreachableFilterEnabled,
     });
 
     const handlePaletteInputKeyDown = useStableCallback(
@@ -6108,6 +6442,7 @@ export function BrowserRoot({
                     canClear={canClear}
                     connectedIntegrationCount={connectedIntegrationCount}
                     groupBy={groupBy}
+                    metrics={libraryMetrics}
                     onClearPalette={clearLibraryPalette}
                     onCreateCollection={requestCreate}
                     onCreateNote={handleCreateNote}
@@ -6118,7 +6453,7 @@ export function BrowserRoot({
                     sectionsLength={sections.length}
                 >
                     <ComposerActionNew />
-                    <ComposerActionClear />
+                    <ComposerActionMetrics />
                     <ComposerActionOnboarding />
                 </ComposerActions>
             </Composer>
@@ -6171,9 +6506,13 @@ export function BrowserRoot({
                 setOpenPickerItemId={setOpenPickerItemId}
                 shouldShowEmptyLibraryPeek={shouldShowEmptyLibraryPeek}
                 shouldShowNoFilteredResults={shouldShowNoFilteredResults}
+                shouldShowUnreachableProbePending={
+                    isUnreachableProbePending && filteredItems.length === 0
+                }
             >
                 <BrowserEmpty />
                 <BrowserEmptyWithFilters />
+                <BrowserUnreachableProbePending />
                 <BrowserList sections={sections}>
                     {(section) => (
                         <BrowserGroup>

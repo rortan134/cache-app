@@ -22,8 +22,25 @@ import {
 } from "@/components/ui/command";
 import { DisclosureListHorizontal } from "@/components/ui/disclosure-list";
 import { CmdKbd, Kbd } from "@/components/ui/kbd";
+import {
+    MetricsDataList,
+    MetricsDataListItem,
+    MetricsPanel,
+    MetricsPanelChart,
+    MetricsPanelHeader,
+    MetricsPanelTitle,
+} from "@/components/ui/metrics-panel";
+import {
+    Popover,
+    PopoverClose,
+    PopoverPopup,
+    PopoverTitle,
+    PopoverTrigger,
+} from "@/components/ui/popover";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import type { LibraryMetricsSnapshot } from "@/lib/collections/metrics";
 import { cn } from "@/lib/common/cn";
+import { formatPercent } from "@/lib/common/numbers";
 import {
     Toolbar,
     type AutocompleteRootChangeEventDetails,
@@ -31,7 +48,7 @@ import {
 } from "@base-ui/react";
 import { useStableCallback } from "@base-ui/utils/useStableCallback";
 import { Calligraph } from "calligraph";
-import { Grid2x2, Grid2x2X, SquarePen } from "lucide-react";
+import { ChevronDown, Grid2x2, Grid2x2X, SquarePen } from "lucide-react";
 import * as React from "react";
 
 const COMMAND_MATCH_WORD_SEPARATOR_PATTERN = /[\s:./_-]+/;
@@ -272,17 +289,20 @@ export function ComposerActionNew() {
     );
 }
 
-export function ComposerActionClear() {
-    const {
-        canClear,
-        onClearPalette,
-        resultsSummary,
-        groupBy,
-        sectionsLength,
-    } = useComposerActionsContext();
+export function ComposerActionSummary({
+    className,
+    ...props
+}: React.ComponentProps<typeof Button>) {
+    const { canClear, groupBy, resultsSummary, sectionsLength } =
+        useComposerActionsContext();
 
     return (
-        <ActionButton onClick={onClearPalette} title="Reset filters">
+        <Button
+            {...props}
+            className={cn("rounded-full", className)}
+            size="xs"
+            variant="ghost"
+        >
             {canClear ? (
                 <Grid2x2X className="inline-block size-3.5 shrink-0" />
             ) : (
@@ -297,7 +317,32 @@ export function ComposerActionClear() {
                     </>
                 )}
             </span>
-        </ActionButton>
+            <ChevronDown className="inline-block size-3.5 shrink-0" />
+        </Button>
+    );
+}
+
+export function ComposerActionMetrics() {
+    const { canClear, metrics, onClearPalette } = useComposerActionsContext();
+
+    return (
+        <Popover>
+            <Toolbar.Button
+                render={
+                    <PopoverTrigger
+                        openOnHover
+                        render={<ComposerActionSummary />}
+                    />
+                }
+            />
+            <PopoverPopup align="start" positionMethod="fixed" side="top">
+                <ComposerLibraryMetricsPanel
+                    canClear={canClear}
+                    metrics={metrics}
+                    onClearPalette={onClearPalette}
+                />
+            </PopoverPopup>
+        </Popover>
     );
 }
 
@@ -344,6 +389,7 @@ interface ComposerActionsProps {
     className?: string;
     connectedIntegrationCount: number;
     groupBy: string;
+    metrics: LibraryMetricsSnapshot;
     onClearPalette: () => void;
     onCreateCollection: () => void;
     onCreateNote: () => void;
@@ -540,6 +586,84 @@ function CommandPaletteItemComponent({
             )}
         </CommandItem>
     );
+}
+
+function ComposerLibraryMetricsPanel({
+    canClear,
+    metrics,
+    onClearPalette,
+}: {
+    canClear: boolean;
+    metrics: LibraryMetricsSnapshot;
+    onClearPalette: () => void;
+}) {
+    const sourceTotal = metrics.sourceSegments.reduce(
+        (sum, segment) => sum + segment.value,
+        0
+    );
+
+    return (
+        <MetricsPanel>
+            {canClear ? (
+                <PopoverClose
+                    render={
+                        <Button
+                            className="w-full"
+                            onClick={onClearPalette}
+                            size="sm"
+                            variant="secondary"
+                        />
+                    }
+                >
+                    Reset filters
+                </PopoverClose>
+            ) : null}
+            <MetricsPanelHeader>
+                <MetricsPanelTitle render={<PopoverTitle />}>
+                    Display Breakdown
+                </MetricsPanelTitle>
+            </MetricsPanelHeader>
+            <MetricsPanelChart segments={metrics.sourceSegments} />
+            {metrics.sourceSegments.length > 0 ? (
+                <MetricsDataList>
+                    {metrics.sourceSegments.map((segment) => (
+                        <MetricsDataListItem
+                            color={segment.color}
+                            key={segment.key}
+                            label={segment.label}
+                            value={formatSegmentValue(
+                                segment.value,
+                                sourceTotal
+                            )}
+                        />
+                    ))}
+                </MetricsDataList>
+            ) : null}
+            <MetricsDataList>
+                <MetricsDataListItem
+                    label="Favorites"
+                    value={metrics.favoriteCount}
+                />
+                <MetricsDataListItem
+                    label="Not in collections"
+                    value={metrics.uncollectedCount}
+                />
+                <MetricsDataListItem
+                    label="In collections"
+                    value={metrics.inCollectionCount}
+                />
+                <MetricsDataListItem label="Notes" value={metrics.noteCount} />
+            </MetricsDataList>
+        </MetricsPanel>
+    );
+}
+
+function formatSegmentValue(value: number, total: number): string {
+    if (total <= 0) {
+        return String(value);
+    }
+    const percent = (value / total) * 100;
+    return `${value} · ${formatPercent(percent)}`;
 }
 
 function ActionButton({

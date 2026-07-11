@@ -126,6 +126,7 @@ export async function runAskCacheAgent({
             `${instructions}\n\n${userMessage}`,
             ASK_CACHE_OUTPUT_TOKEN_LIMIT
         ),
+        scanMessage: input.prompt,
         userId,
     });
 

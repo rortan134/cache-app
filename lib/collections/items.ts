@@ -1,6 +1,11 @@
 "use server";
 
 import { isUnauthenticated, requireActionUserId } from "@/lib/auth/session";
+import { LINK_REACHABILITY_BATCH_MAX } from "@/lib/collections/library-quality";
+import {
+    probeLibraryItemsReachability,
+    type LinkReachabilityResult,
+} from "@/lib/collections/link-reachability";
 import {
     COLLECTION_VALIDATION_MESSAGES,
     STATUS_MAP_NOT_FOUND,
@@ -77,6 +82,13 @@ const LibraryItemPurgeInputSchema = z.object({
         .min(1, COLLECTION_VALIDATION_MESSAGES.itemPurgeIdRequired),
 });
 
+const LibraryItemsReachabilityProbeInputSchema = z.object({
+    itemIds: z
+        .array(z.string().trim().min(1))
+        .min(1)
+        .max(LINK_REACHABILITY_BATCH_MAX),
+});
+
 export type LibraryItemDeleteResult =
     | {
           collectionSummaries: LibraryCollectionSummary[];
@@ -131,6 +143,15 @@ export type LibraryItemFavoriteToggleResult =
     | {
           item: LibraryItemWithCollections;
           status: typeof ACTION_STATUS.UPDATED;
+      }
+    | ActionError;
+
+export type LibraryItemsReachabilityProbeResult =
+    | {
+          rateLimited: boolean;
+          results: LinkReachabilityResult[];
+          retryAfterMs: number;
+          status: typeof ACTION_STATUS.SUCCESS;
       }
     | ActionError;
 
@@ -384,6 +405,52 @@ export async function toggleLibraryItemFavorite(
             fallbackMessage: "We couldn't update this favorite right now.",
             log,
         });
+    }
+}
+
+export async function probeLibraryItemsReachabilityAction(input: {
+    itemIds: string[];
+}): Promise<LibraryItemsReachabilityProbeResult> {
+    const parsed = LibraryItemsReachabilityProbeInputSchema.safeParse(input);
+    if (!parsed.success) {
+        return {
+            message: getValidationErrorMessage(
+                parsed,
+                "Select items to check."
+            ),
+            status: ACTION_STATUS.INVALID,
+        };
+    }
+
+    const auth = await requireActionUserId(
+        "Sign in again to check saved links."
+    );
+    if (isUnauthenticated(auth)) {
+        return auth;
+    }
+
+    try {
+        const outcome = await probeLibraryItemsReachability({
+            itemIds: parsed.data.itemIds,
+            userId: auth.userId,
+        });
+
+        if (outcome.didPersist) {
+            revalidatePath("/library");
+        }
+
+        return {
+            rateLimited: outcome.rateLimited,
+            results: outcome.results,
+            retryAfterMs: outcome.retryAfterMs,
+            status: ACTION_STATUS.SUCCESS,
+        };
+    } catch (error) {
+        log.error("Failed to probe library item reachability", error);
+        return {
+            message: "We couldn't check those links right now.",
+            status: ACTION_STATUS.ERROR,
+        };
     }
 }
 

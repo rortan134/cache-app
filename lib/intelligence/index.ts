@@ -740,6 +740,16 @@ async function decideCollectionsForItem(
                 protectionPrompt,
                 ESTIMATED_OUTPUT_TOKENS
             ),
+            // Scan only user/item content — not system instructions in the prompt.
+            scanMessage: [
+                item.caption,
+                item.url,
+                item.kind,
+                item.source,
+                attachment?.protectionText,
+            ]
+                .filter((part): part is string => typeof part === "string")
+                .join(" "),
             userId,
         });
 

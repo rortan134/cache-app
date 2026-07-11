@@ -69,6 +69,7 @@ export async function executeReadOnlyAutomationRun(
     try {
         await protectAutomationAgentRun({
             prompt: `${instructions}\n\n${userMessage}`,
+            scanMessage: userMessage,
             userId: prepared.userId,
         });
 
@@ -114,6 +115,7 @@ export async function executeReadOnlyAutomationRun(
 
 async function protectAutomationAgentRun(args: {
     prompt: string;
+    scanMessage: string;
     userId: string;
 }) {
     "use step";
@@ -130,6 +132,7 @@ async function protectAutomationAgentRun(args: {
             args.prompt,
             AUTOMATION_OUTPUT_TOKEN_LIMIT
         ),
+        scanMessage: args.scanMessage,
         userId: args.userId,
     });
 }
