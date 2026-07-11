@@ -3406,9 +3406,12 @@ function useSectionCollapseState({
         !(shouldShowEmptyLibraryPeek || shouldShowNoFilteredResults) &&
         (hasActiveFilters || groupBy !== "none");
 
-    const prevSectionsRef = React.useRef(sections);
-    if (sections !== prevSectionsRef.current) {
-        prevSectionsRef.current = sections;
+    const sectionKeySignature = sections
+        .map((section) => section.key)
+        .join("\0");
+    const prevSectionKeySignatureRef = React.useRef(sectionKeySignature);
+    if (sectionKeySignature !== prevSectionKeySignatureRef.current) {
+        prevSectionKeySignatureRef.current = sectionKeySignature;
         const validKeys = new Set(sections.map((section) => section.key));
         setCollapsedSectionKeys((current) => {
             const next = current.filter((key) => validKeys.has(key));
@@ -4056,8 +4059,8 @@ function PreviewColorPalette({ src }: { src: string }) {
 
     return (
         <AvatarGroup className="justify-end -space-x-1">
-            {data.map((value, i) => (
-                <PreviewColorBadge key={i} value={value} />
+            {data.map((value, index) => (
+                <PreviewColorBadge key={`${value}-${index}`} value={value} />
             ))}
         </AvatarGroup>
     );
@@ -6127,7 +6130,7 @@ export function BrowserRoot({
                 {(suggestion, index) => (
                     <Button
                         className="rounded-full text-muted-foreground"
-                        key={index}
+                        key={suggestion.label}
                         onClick={suggestion.onSelect}
                         size="xs"
                         variant="ghost"
