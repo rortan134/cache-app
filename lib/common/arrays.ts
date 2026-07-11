@@ -33,9 +33,51 @@ export async function mapConcurrent<T, R>(
     fn: (item: T) => Promise<R>,
     concurrency: number
 ): Promise<R[]> {
-    const batches = chunk(items, concurrency);
-    const batchedResults = await Promise.all(
-        batches.map((batch) => Promise.all(batch.map((item) => fn(item))))
+    if (items.length === 0) {
+        return [];
+    }
+
+    const concurrencyLimit = Number.isFinite(concurrency)
+        ? Math.floor(concurrency)
+        : 1;
+    const limit = Math.max(1, concurrencyLimit);
+    const results = new Array<R>(items.length);
+    // Shared iterator: each worker pulls the next entry. Entries preserve T
+    // under noUncheckedIndexedAccess (unlike items[i]), and undefined slots
+    // still reach fn instead of retiring the worker early.
+    const iterator = items.entries();
+    // Capture the first rejection, stop scheduling new work, and let in-flight
+    // calls finish so sibling workers never produce unhandled rejections.
+    let hasRejected = false;
+    let firstError: unknown;
+
+    async function worker(): Promise<void> {
+        for (;;) {
+            if (hasRejected) {
+                return;
+            }
+            const next = iterator.next();
+            if (next.done) {
+                return;
+            }
+            const [index, item] = next.value;
+            try {
+                results[index] = await fn(item);
+            } catch (error) {
+                if (!hasRejected) {
+                    hasRejected = true;
+                    firstError = error;
+                }
+                return;
+            }
+        }
+    }
+
+    await Promise.all(
+        Array.from({ length: Math.min(limit, items.length) }, () => worker())
     );
-    return batchedResults.flat();
+    if (hasRejected) {
+        throw firstError;
+    }
+    return results;
 }
