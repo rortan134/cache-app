@@ -13,6 +13,11 @@ import { T, Var } from "gt-next";
 import * as React from "react";
 import useSWR from "swr";
 
+const PERIOD_END_DATE_FORMATTER = new Intl.DateTimeFormat(undefined, {
+    day: "numeric",
+    month: "short",
+});
+
 /**
  * Returns user subscription status and access checks, unifying auth session
  * and active Stripe records. This prevents desync bugs where the local session
@@ -368,10 +373,7 @@ function subscriptionPeriodEndLabel(
         return null;
     }
 
-    return new Intl.DateTimeFormat(undefined, {
-        day: "numeric",
-        month: "short",
-    }).format(new Date(periodEnd));
+    return PERIOD_END_DATE_FORMATTER.format(new Date(periodEnd));
 }
 
 /* @internal */

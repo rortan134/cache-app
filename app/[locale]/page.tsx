@@ -666,7 +666,7 @@ export default async function Home() {
                                             }
                                         />
                                         <PopoverPopup side="top">
-                                            <p className="max-w-xs text-pretty text-sm">
+                                            <div className="max-w-xs text-pretty text-sm">
                                                 MCP is a universal connector —
                                                 similar to a "USB port" for AI,
                                                 but for software. It lets your
@@ -675,7 +675,7 @@ export default async function Home() {
                                                 actions and get work done for
                                                 you — all without you needing to
                                                 manually intervene.
-                                            </p>
+                                            </div>
                                         </PopoverPopup>
                                     </Popover>{" "}
                                     and empower them with the full spectrum of

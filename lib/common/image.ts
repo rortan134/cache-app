@@ -2,8 +2,8 @@ import { parseHttpUrl } from "@/lib/common/net";
 
 const SAME_ORIGIN_IMAGE_URL_BASE = "https://cache.local";
 
-export function filterValidImageUrls(urls: string[]): Promise<string[]> {
-    return Promise.resolve(urls.filter(isLoadableHttpImageUrl));
+export function filterValidImageUrls(urls: string[]): string[] {
+    return urls.filter(isLoadableHttpImageUrl);
 }
 
 function isLoadableHttpImageUrl(url: string): boolean {

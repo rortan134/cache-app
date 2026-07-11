@@ -21,10 +21,10 @@ const EXTENSION_ORIGIN = process.env.CACHE_EXTENSION_ID
     ? `chrome-extension://${process.env.CACHE_EXTENSION_ID}`
     : null;
 
-const ENV_TRUSTED_ORIGINS =
-    process.env.TRUSTED_ORIGINS?.split(",")
-        .map((origin) => origin.trim())
-        .filter(Boolean) ?? [];
+const ENV_TRUSTED_ORIGINS = (process.env.TRUSTED_ORIGINS ?? "")
+    .split(",")
+    .map((origin) => origin.trim())
+    .filter(Boolean);
 
 const TRUSTED_ORIGINS = [
     BASE_AUTH_URL,
