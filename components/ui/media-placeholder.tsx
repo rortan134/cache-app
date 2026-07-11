@@ -13,7 +13,7 @@ export function MediaPlaceholder({
     const hash = djb2Hash(id);
     const x = hash % 101; // x in [0, 100] percent
     const y = (hash >> 8) % 101; // y in [0, 100] percent
-    const cssVars: React.CSSProperties & Record<string, string> = {
+    const style: React.CSSProperties & Record<string, string> = {
         "--texture-position": `${x}% ${y}%`,
     };
 
@@ -25,9 +25,9 @@ export function MediaPlaceholder({
                 className
             )}
             data-slot="media-placeholder"
-            style={cssVars}
+            style={style}
         >
-            <GlobeX className="size-4 text-muted-foreground opacity-80" />
+            <GlobeX className="size-6 text-muted-foreground opacity-50" />
         </div>
     );
 }

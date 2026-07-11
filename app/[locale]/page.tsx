@@ -1,7 +1,7 @@
 import { JsonLdScript } from "@/app/json-ld-script";
 import { buildPageMetadata } from "@/app/metadata";
 import { GoogleOneTapTrigger, SessionHint } from "@/components/auth/session";
-import { SignInButton } from "@/components/auth/sign-in-buttons";
+import { SignInButton } from "@/components/auth/sign-in-button";
 import { BrandLogo } from "@/components/ui/brand-logo";
 import { Button } from "@/components/ui/button";
 import {
@@ -142,7 +142,7 @@ export default async function Home() {
                     <SidebarFooter>
                         <div className="hidden items-center gap-3 lg:flex">
                             <a
-                                className="flex flex-col gap-1.5 pb-[2px] hover:opacity-60"
+                                className="flex flex-col gap-1 pb-[2px] hover:opacity-60"
                                 href={CACHE_EXTENSION_DOWNLOAD_URL}
                                 rel="noopener noreferrer"
                                 target="_blank"
@@ -152,7 +152,7 @@ export default async function Home() {
                                         Install the extension
                                     </T>
                                 </p>
-                                <p className="flex shrink-0 flex-row items-center gap-1.5 truncate text-base text-foreground leading-[1.22] tracking-[-3%]">
+                                <p className="flex shrink-0 flex-row items-center gap-2 truncate text-base text-foreground leading-[1.22] tracking-[-3%]">
                                     <span>
                                         <ChromeIcon className="size-4" />
                                     </span>
@@ -184,8 +184,9 @@ export default async function Home() {
                         <p className="text-sm">
                             <T>
                                 Save hours every week with a smarter way to
-                                handle everything you save online. Make sense of
-                                the noise — from just $8/month.
+                                handle everything you save online.
+                                <br />
+                                Make sense of the noise — from just $8/month.
                             </T>
                         </p>
                         <Button
@@ -206,7 +207,7 @@ export default async function Home() {
                                 className="size-3.5"
                                 focusable="false"
                             />
-                            &nbsp;Open source – Truly yours
+                            &nbsp;Open-source. Truly yours
                         </Button>
                     </div>
                     <section className="grid w-full grid-cols-1 gap-2 md:grid-cols-2 md:gap-[40px]">
@@ -405,7 +406,7 @@ export default async function Home() {
                                 <p className="text-pretty font-medium text-base text-foreground leading-[1.2] tracking-[-3%] opacity-50">
                                     Streamline the way you revisit your saved
                                     content through a modern and powerful
-                                    interface, right in your browser.
+                                    interface.
                                 </p>
                             </T>
                             <ul className="mt-2 flex flex-col space-y-2 text-xs">

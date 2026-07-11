@@ -39,7 +39,7 @@ function LinkText({
         <a
             className="text-stone-950 underline underline-offset-4"
             href={href}
-            rel="noreferrer"
+            rel="noopener noreferrer"
             target="_blank"
         >
             {children}

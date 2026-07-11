@@ -87,7 +87,7 @@ function PublicShareGridCard({
                 <a
                     className="squircle flex flex-col overflow-clip rounded-xl focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
                     href={data.href}
-                    rel="noopener noreferrer"
+                    rel="noopener noreferrer nofollow"
                     target="_blank"
                 >
                     {preview}

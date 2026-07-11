@@ -89,7 +89,7 @@ export default function TermsOfServicePage() {
                         <a
                             className="text-stone-950 underline underline-offset-4"
                             href="https://commonpaper.com/standards/cloud-service-agreement/2.1/"
-                            rel="noreferrer"
+                            rel="noopener noreferrer"
                             target="_blank"
                         >
                             Cloud Service Agreement Standard Terms Version 2.1
