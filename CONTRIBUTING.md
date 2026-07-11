@@ -1,8 +1,6 @@
 # Contributing to Cache
 
-Thank you for your interest in contributing to Cache! We welcome contributions in all forms—from bug fixes and documentation to new features.
-
-> **Project Overview**: Cache is a Next.js 16 application with a procedure module pattern. Services (`lib/{module}/service.ts`) contain pure business logic; actions (`lib/{module}/actions.ts`) are thin Server Action adapters handling auth, validation, and caching. The project uses Bun, TypeScript 6 (strict), React 19, Tailwind CSS 4, Prisma 7, and a PostgreSQL database.
+Thank you for your interest in contributing to Cache! We welcome contributions in all forms—from bug fixes and documentation to new features. This repository favors incremental change over perfection.
 
 ---
 

@@ -182,30 +182,6 @@ Refs are initialized to their semantic empty state (false, 0, null, ''), never u
 | xRef.current = fn     | resetSwipeRef.current = resetSwipe | Callback ref pattern                    |
 | isNestedDrawerOpenRef | isNestedDrawerOpenRef              | Boolean ref for stale-closure avoidance |
 
-## On writing code documentation
-
-Document the why, not the what: The code shows what it does. Documentation should explain why it exists, why it works this way, and what could go wrong. Your job is to produce clear, accurate, and consistent content that helps developers succeed on this codebase.
-
-Document what **not** to do: Warn against common mistakes when a misuse would be easy and costly. No `====` separators.
-
-Document design choices: When you choose between reasonable alternatives, explain  the reasoning in a sentence. e.g. "The package X uses functional options Y rather than a config struct because Z" or "We return a X rather than failing on the Y because Z"
-
-The depth of documentation should match complexity. A simple getter needs one line. A distributed algorithm needs paragraphs.
-
-When to include specific details:
-
-  Parameters: Document when the purpose is not obvious from the name and type, or when there are constraints like must be positive.
-
-  Return values: Explain when return patterns are subtle or when multiple success states exist. For functions that return a value plus an error, document what value returns on failure.
-
-  Error conditions: List specific errors only when callers need to handle them differently.
-
-  Concurrency: Document when a function or type is safe or unsafe for concurrent use.
-
-  Performance: Mention non-obvious characteristics that affect usage decisions.
-
-  Context: Document context behavior only if it is non-standard.
-
 ## On this project
 
 This is a shared codebase. Multiple agents may be working concurrently. Never revert, restore, or overwrite files you did not personally modify — `git status` showing files you never touched is a signal that someone else is working, not that your tooling misbehaved. Scope every `git restore`, `git checkout`, `git stash`, and destructive file operation strictly to the files you changed. When in doubt, leave it alone.
@@ -238,10 +214,6 @@ Tooling: TypeScript v6 (strict typing), Biome via Ultracite (run via `bun lint` 
 This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` before writing any code. Heed deprecation notices.
 
 <!-- END:nextjs-agent-rules -->
-
-### Documentation lookups with Context7
-
-When you need up-to-date API docs, usage examples, or migration guides for any library or framework (especially those in the tech stack above), use the Context7 tools (`context7_resolve-library-id` then `context7_query-docs`). They fetch current documentation and code examples instead of relying on potentially stale training data. Call these whenever a question involves a specific library version, a new API, or a pattern you're uncertain about.
 
 ### Server Actions / Service module pattern
 
