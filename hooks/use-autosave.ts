@@ -1,7 +1,6 @@
 import { usePreventWindowUnload } from "@/hooks/use-prevent-unload";
 import { createLogger } from "@/lib/common/logs/console/logger";
 import { useIsoLayoutEffect } from "@base-ui/utils/useIsoLayoutEffect";
-import { useRefWithInit } from "@base-ui/utils/useRefWithInit";
 import { useStableCallback } from "@base-ui/utils/useStableCallback";
 import { useTimeout } from "@base-ui/utils/useTimeout";
 import { useValueAsRef } from "@base-ui/utils/useValueAsRef";
@@ -47,21 +46,14 @@ export function useAutosave({
     const onSave = useStableCallback(onSaveProp);
     const contentRef = useValueAsRef(content);
     const enabledRef = useValueAsRef(enabled);
-    const savedContentRef = useValueAsRef(savedContent);
+    const lastSavedContentRef = useRef(savedContent);
 
     const activeSaveRef = useRef<Promise<boolean> | null>(null);
     const isMountedRef = useRef(false);
-    const latestContentChangeMsRef = useRefWithInit(() => Date.now());
-    const previousContentRef = useRef(content);
+    const latestContentChangeMsRef = useRef(0);
     const savingStartMsRef = useRef(0);
 
     const isDirty = content !== savedContent;
-
-    if (content !== previousContentRef.current) {
-        previousContentRef.current = content;
-        latestContentChangeMsRef.current = Date.now();
-    }
-
     const isDirtyRef = useValueAsRef(isDirty);
 
     const checkShouldPreventUnload = useStableCallback(
@@ -89,6 +81,14 @@ export function useAutosave({
     );
 
     useIsoLayoutEffect(() => {
+        lastSavedContentRef.current = savedContent;
+    }, [savedContent]);
+
+    useIsoLayoutEffect(() => {
+        latestContentChangeMsRef.current = Date.now();
+    }, [content]);
+
+    useIsoLayoutEffect(() => {
         isMountedRef.current = true;
         return () => {
             isMountedRef.current = false;
@@ -106,7 +106,7 @@ export function useAutosave({
             }
 
             const contentToSave = contentRef.current;
-            if (contentToSave === savedContentRef.current) {
+            if (contentToSave === lastSavedContentRef.current) {
                 return Promise.resolve(true);
             }
 
@@ -136,7 +136,7 @@ export function useAutosave({
                     const result = await onSave();
                     didSave = result !== false;
                     if (didSave) {
-                        savedContentRef.current =
+                        lastSavedContentRef.current =
                             typeof result === "string" ? result : contentToSave;
                     }
                 } catch (error) {
@@ -149,7 +149,7 @@ export function useAutosave({
                 if (
                     didSave &&
                     enabledRef.current &&
-                    contentRef.current !== savedContentRef.current
+                    contentRef.current !== lastSavedContentRef.current
                 ) {
                     if (shouldFlushQueued) {
                         return saveRef.current(true);
@@ -180,25 +180,25 @@ export function useAutosave({
     saveRef.current = save;
 
     useEffect(() => {
-        if (!(enabled && isDirty) || activeSaveRef.current) {
+        if (!enabled || content === savedContent || activeSaveRef.current) {
             return;
         }
         debounceTimeout.start(delay, save);
         return debounceTimeout.clear;
-    }, [enabled, isDirty, delay, save, debounceTimeout]);
+    }, [content, savedContent, enabled, delay, save, debounceTimeout]);
 
     useEffect(
         () => () => {
             if (
                 enabledRef.current &&
-                contentRef.current !== savedContentRef.current
+                contentRef.current !== lastSavedContentRef.current
             ) {
                 save(true).catch((error: unknown) => {
                     log.error("Unmount autosave failed", error);
                 });
             }
         },
-        [contentRef, enabledRef, save, savedContentRef]
+        [contentRef, enabledRef, save]
     );
 
     const saveImmediately = useStableCallback(async () => {
