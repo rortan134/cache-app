@@ -44,8 +44,7 @@
                 "noSvgWithoutTitle": "off"
             },
             "complexity": {
-                "noExcessiveCognitiveComplexity": "off",
-                "noUselessCatchBinding": "off"
+                "noExcessiveCognitiveComplexity": "off"
             },
             "performance": {
                 "noBarrelFile": "off",
@@ -54,7 +53,6 @@
                 "noAwaitInLoops": "off"
             },
             "suspicious": {
-                "noArrayIndexKey": "off",
                 "noBitwiseOperators": "off"
             },
             "style": {
