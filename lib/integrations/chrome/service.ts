@@ -4,7 +4,7 @@ import {
     LIBRARY_ITEM_COLLECTIONS_INCLUDE,
     type LibraryItemWithCollections,
 } from "@/lib/collections/utils";
-import { chunk } from "@/lib/common/arrays";
+import { chunk, mapConcurrent } from "@/lib/common/arrays";
 import { ITEM_KIND_BOOKMARK, ITEM_KIND_FOLDER } from "@/lib/common/constants";
 import { createLogger } from "@/lib/common/logs/console/logger";
 import { DEFAULT_BROWSER_PROFILE_ID } from "@/lib/integrations/browser-profiles";
@@ -31,6 +31,7 @@ import {
 
 const log = createLogger("library:chrome-bookmarks");
 const CHROME_BOOKMARK_SYNC_BATCH_SIZE = 25;
+const CHROME_PRUNE_CONCURRENCY = 8;
 
 // ---------------------------------------------------------------------------
 // Schemas
@@ -327,38 +328,84 @@ async function pruneChromeSnapshot(
         },
     });
 
-    let pruned = 0;
-    for (const row of rows) {
-        if (seen.has(row.externalId)) {
-            continue;
-        }
+    const candidates = rows.filter((row) => !seen.has(row.externalId));
+    // externalId is unique per (user, source, profile). Pre-claim remap
+    // targets so concurrent workers never race two rows onto the same id.
+    // If the target is already live (or claimed by an earlier candidate),
+    // the stale row is a duplicate and must be deleted instead.
+    const reservedExternalIds = new Set(rows.map((row) => row.externalId));
+    const remaps: Array<{
+        aliasCandidate: string;
+        row: (typeof candidates)[number];
+    }> = [];
+    const deletes: typeof candidates = [];
 
-        const aliasCandidate = row.sourceAliasIds.find((aliasId) =>
-            seen.has(aliasId)
+    for (const row of candidates) {
+        const aliasCandidate = row.sourceAliasIds.find(
+            (aliasId) => seen.has(aliasId) && !reservedExternalIds.has(aliasId)
         );
         if (aliasCandidate) {
-            await delegate.updateMany({
-                data: {
-                    externalId: aliasCandidate,
-                    sourceAliasIds: [
-                        row.externalId,
-                        ...row.sourceAliasIds.filter(
-                            (aliasId) => aliasId !== aliasCandidate
-                        ),
-                    ],
-                },
-                where: { deletedAt: null, id: row.id },
-            });
+            reservedExternalIds.add(aliasCandidate);
+            remaps.push({ aliasCandidate, row });
             continue;
         }
-
-        await delegate.deleteMany({
-            where: { deletedAt: null, id: row.id },
-        });
-        pruned += 1;
+        deletes.push(row);
     }
 
-    return pruned;
+    // Bound concurrency so a large prune does not open unbounded DB writes.
+    // Isolate per-row failures so one unique/DB error cannot skip remaps or
+    // strand deletes — next snapshot will retry leftover stale rows.
+    await mapConcurrent(
+        remaps,
+        async ({ aliasCandidate, row }) => {
+            try {
+                await delegate.updateMany({
+                    data: {
+                        externalId: aliasCandidate,
+                        sourceAliasIds: [
+                            row.externalId,
+                            ...row.sourceAliasIds.filter(
+                                (aliasId) => aliasId !== aliasCandidate
+                            ),
+                        ],
+                    },
+                    where: { deletedAt: null, id: row.id },
+                });
+            } catch (error) {
+                log.error("Failed to remap chrome library item during prune", {
+                    error:
+                        error instanceof Error ? error.message : String(error),
+                    externalId: row.externalId,
+                    itemId: row.id,
+                    targetExternalId: aliasCandidate,
+                });
+            }
+        },
+        CHROME_PRUNE_CONCURRENCY
+    );
+
+    const deleteOutcomes = await mapConcurrent(
+        deletes,
+        async (row) => {
+            try {
+                await delegate.deleteMany({
+                    where: { deletedAt: null, id: row.id },
+                });
+                return true;
+            } catch (error) {
+                log.error("Failed to delete chrome library item during prune", {
+                    error:
+                        error instanceof Error ? error.message : String(error),
+                    externalId: row.externalId,
+                    itemId: row.id,
+                });
+                return false;
+            }
+        },
+        CHROME_PRUNE_CONCURRENCY
+    );
+
+    return deleteOutcomes.filter(Boolean).length;
 }
 
 async function processChromeBookmarkEventBatch(args: {

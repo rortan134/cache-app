@@ -14,7 +14,7 @@ import { prisma } from "@/prisma";
 import type { LibraryItemSource } from "@/prisma/client/enums";
 
 const EXISTING_IMPORT_LOOKUP_BATCH_SIZE = 250;
-const IMPORT_UPSERT_BATCH_SIZE = 50;
+const EXISTING_IMPORT_LOOKUP_CONCURRENCY = 4;
 const IMPORT_UPSERT_CONCURRENCY = 4;
 
 type ExistingImportRow = Pick<
@@ -67,11 +67,11 @@ async function findExistingImportRows(args: {
     source: LibraryItemSource;
     userId: string;
 }): Promise<ExistingImportRow[]> {
-    const existingRows: ExistingImportRow[] = [];
-
-    for (const batch of chunk(args.rows, EXISTING_IMPORT_LOOKUP_BATCH_SIZE)) {
-        existingRows.push(
-            ...(await prisma.libraryItem.findMany({
+    const batches = chunk(args.rows, EXISTING_IMPORT_LOOKUP_BATCH_SIZE);
+    const batchResults = await mapConcurrent(
+        batches,
+        (batch) =>
+            prisma.libraryItem.findMany({
                 select: {
                     browserProfileId: true,
                     deletedAt: true,
@@ -85,11 +85,11 @@ async function findExistingImportRows(args: {
                     source: args.source,
                     userId: args.userId,
                 },
-            }))
-        );
-    }
+            }),
+        EXISTING_IMPORT_LOOKUP_CONCURRENCY
+    );
 
-    return existingRows;
+    return batchResults.flat();
 }
 
 export async function upsertLibraryItemImports(
@@ -127,37 +127,35 @@ export async function upsertLibraryItemImports(
         args.shouldAddToSmartCollections ??
         ((row: LibraryItemImportRow) => row.kind !== ITEM_KIND_FOLDER);
 
-    for (const batch of chunk(upsertableRows, IMPORT_UPSERT_BATCH_SIZE)) {
-        const savedRows = await mapConcurrent(
-            batch,
-            (row) =>
-                prisma.libraryItem.upsert({
-                    create: buildLibraryItemCreateData(row, args.userId),
-                    select: {
-                        id: true,
+    const savedRows = await mapConcurrent(
+        upsertableRows,
+        (row) =>
+            prisma.libraryItem.upsert({
+                create: buildLibraryItemCreateData(row, args.userId),
+                select: {
+                    id: true,
+                },
+                update: buildLibraryItemUpdateData(row),
+                where: {
+                    userId_source_browserProfileId_externalId: {
+                        browserProfileId: row.browserProfileId,
+                        externalId: row.externalId,
+                        source: args.source,
+                        userId: args.userId,
                     },
-                    update: buildLibraryItemUpdateData(row),
-                    where: {
-                        userId_source_browserProfileId_externalId: {
-                            browserProfileId: row.browserProfileId,
-                            externalId: row.externalId,
-                            source: args.source,
-                            userId: args.userId,
-                        },
-                    },
-                }),
-            IMPORT_UPSERT_CONCURRENCY
-        );
+                },
+            }),
+        IMPORT_UPSERT_CONCURRENCY
+    );
 
-        for (const [index, savedRow] of savedRows.entries()) {
-            const row = batch[index];
-            if (
-                row &&
-                shouldAddToSmartCollections(row) &&
-                !liveKeys.has(libraryItemIdentityKey(row))
-            ) {
-                smartCollectionItemIds.add(savedRow.id);
-            }
+    for (const [index, savedRow] of savedRows.entries()) {
+        const row = upsertableRows[index];
+        if (
+            row &&
+            shouldAddToSmartCollections(row) &&
+            !liveKeys.has(libraryItemIdentityKey(row))
+        ) {
+            smartCollectionItemIds.add(savedRow.id);
         }
     }
 
