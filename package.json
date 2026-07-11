@@ -67,7 +67,7 @@
         "mime-types": "3.0.2",
         "motion": "12.42.2",
         "nanoid": "5.1.16",
-        "next": "^16.3.0-preview.5",
+        "next": "^16.3.0-canary.83",
         "node-vibrant": "4.0.4",
         "openlink": "^0.3.0",
         "p-retry": "8.0.0",
