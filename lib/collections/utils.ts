@@ -1,3 +1,4 @@
+import { unique } from "@/lib/common/arrays";
 import {
     ACTION_STATUS,
     FALLBACK_URL,
@@ -181,14 +182,10 @@ export const STATUS_MAP_TRASHED_ITEM = {
 // Utilities
 // ---------------------------------------------------------------------------
 
-export function uniqueStrings(values: string[]): string[] {
-    return Array.from(new Set(values));
-}
-
 export function uniqueLibraryItemSources(
     items: readonly { source: LibraryItemSource }[]
 ): LibraryItemSource[] {
-    return Array.from(new Set(items.map((item) => item.source)));
+    return unique(items.map((item) => item.source));
 }
 
 // ---------------------------------------------------------------------------

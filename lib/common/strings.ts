@@ -99,18 +99,28 @@ export function escapeCsv(value: string): string {
     return `"${value.replaceAll('"', '""')}"`;
 }
 
+/**
+ * Truncates to maxLength. When truncated, the ellipsis is included in the
+ * budget so the result length is at most maxLength.
+ */
+export function truncateText(value: string, maxLength: number): string {
+    if (maxLength <= 0) {
+        return "";
+    }
+    if (value.length <= maxLength) {
+        return value;
+    }
+
+    return `${value.slice(0, maxLength - 1).trimEnd()}…`;
+}
+
 export function truncateLabel(label: string, max = 22): string {
-    return label.length > max ? `${label.slice(0, max)}…` : label;
+    return truncateText(label, max);
 }
 
 export function getNoteExcerpt(
     text: string | null | undefined,
     maxLength = 180
 ): string {
-    const normalizedText = (text ?? "").trim().replaceAll(/\s+/g, " ");
-    if (normalizedText.length <= maxLength) {
-        return normalizedText;
-    }
-
-    return `${normalizedText.slice(0, Math.max(0, maxLength - 1)).trimEnd()}…`;
+    return truncateText((text ?? "").trim().replaceAll(/\s+/g, " "), maxLength);
 }

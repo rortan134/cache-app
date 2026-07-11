@@ -5,7 +5,6 @@ import {
     COLLECTION_VALIDATION_MESSAGES,
     STATUS_MAP_NOT_FOUND,
     STATUS_MAP_TRASHED_ITEM,
-    uniqueStrings,
     type ActionError,
     type LibraryCollectionSummary,
     type LibraryCollectionTag,
@@ -15,6 +14,7 @@ import {
     getValidationErrorMessage,
     handleActionError,
 } from "@/lib/common/action";
+import { unique } from "@/lib/common/arrays";
 import {
     ACTION_STATUS,
     BATCH_UPDATE_MAX_ITEMS,
@@ -301,11 +301,9 @@ export async function updateLibraryItemsCollections(input: {
     previousSharedCollectionIds: string[];
 }): Promise<LibraryItemsCollectionsUpdateResult> {
     const parsed = LibraryItemsCollectionsUpdateInputSchema.safeParse({
-        itemIds: uniqueStrings(input.itemIds),
-        nextSharedCollectionIds: uniqueStrings(input.nextSharedCollectionIds),
-        previousSharedCollectionIds: uniqueStrings(
-            input.previousSharedCollectionIds
-        ),
+        itemIds: unique(input.itemIds),
+        nextSharedCollectionIds: unique(input.nextSharedCollectionIds),
+        previousSharedCollectionIds: unique(input.previousSharedCollectionIds),
     });
 
     if (!parsed.success) {
@@ -394,7 +392,7 @@ export async function updateLibraryItemCollections(input: {
     itemId: string;
 }): Promise<LibraryItemCollectionsUpdateResult> {
     const parsed = LibraryItemCollectionsUpdateInputSchema.safeParse({
-        collectionIds: uniqueStrings(input.collectionIds),
+        collectionIds: unique(input.collectionIds),
         itemId: input.itemId,
     });
 

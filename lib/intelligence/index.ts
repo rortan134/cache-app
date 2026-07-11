@@ -13,6 +13,7 @@ import {
     protectGenAiRequest,
 } from "@/lib/intelligence/protection";
 
+import { unique } from "@/lib/common/arrays";
 import {
     ITEM_KIND_BOOKMARK,
     MIME_TYPES,
@@ -22,6 +23,7 @@ import {
     decodeHtmlEntities,
     normalizeCollectionName,
     normalizeWhitespace,
+    truncateText,
 } from "@/lib/common/strings";
 import { isHttpUrl } from "@/lib/common/url";
 import { resolveCobaltDownloadUrl } from "@/lib/integrations/cobalt/service";
@@ -143,12 +145,10 @@ function getGoogleGenAi(): GoogleGenAI {
 }
 
 function resolveSmartCollectionModels(): string[] {
-    return [
-        ...new Set([
-            SMART_COLLECTIONS_MODEL_DEFAULT,
-            ...SMART_COLLECTIONS_MODELS_FALLBACK,
-        ]),
-    ];
+    return unique([
+        SMART_COLLECTIONS_MODEL_DEFAULT,
+        ...SMART_COLLECTIONS_MODELS_FALLBACK,
+    ]);
 }
 
 function getSmartCollectionModelErrorInfo(
@@ -304,9 +304,7 @@ function summarizeJson(
         if (!serialized) {
             return "";
         }
-        return serialized.length > maxLength
-            ? `${serialized.slice(0, maxLength)}…`
-            : serialized;
+        return truncateText(serialized, maxLength);
     } catch {
         return "";
     }
@@ -564,7 +562,7 @@ async function resolveContentCandidates(
             }
     }
 
-    return [...new Set(candidates)];
+    return unique(candidates);
 }
 
 async function createAttachmentForItem(
@@ -953,9 +951,9 @@ export async function autoTagLibraryItemsByIds(args: {
         return;
     }
 
-    const validItemIds = [
-        ...new Set(args.itemIds.filter((itemId) => itemId.trim().length > 0)),
-    ];
+    const validItemIds = unique(
+        args.itemIds.filter((itemId) => itemId.trim().length > 0)
+    );
     if (validItemIds.length === 0) {
         return;
     }
@@ -1081,12 +1079,10 @@ const SECTION_DESCRIPTION_OUTPUT_TOKEN_LIMIT = 96;
 const SECTION_DESCRIPTION_TIMEOUT_MS = 30_000;
 
 function resolveSectionDescriptionModels(): string[] {
-    return [
-        ...new Set([
-            SECTION_DESCRIPTION_MODEL_DEFAULT,
-            ...SECTION_DESCRIPTION_MODELS_FALLBACK,
-        ]),
-    ];
+    return unique([
+        SECTION_DESCRIPTION_MODEL_DEFAULT,
+        ...SECTION_DESCRIPTION_MODELS_FALLBACK,
+    ]);
 }
 
 interface SectionDescriptionResult {

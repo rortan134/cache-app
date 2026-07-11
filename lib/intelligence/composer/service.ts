@@ -5,6 +5,7 @@ import { LIBRARY_ITEM_COLLECTIONS_INCLUDE } from "@/lib/collections/utils";
 import { ITEM_KIND_FOLDER, SORT_DESC } from "@/lib/common/constants";
 import { createLogger } from "@/lib/common/logs/console/logger";
 import { isRecord } from "@/lib/common/objects";
+import { truncateText } from "@/lib/common/strings";
 import { parseDisplayUrl } from "@/lib/common/url";
 import { prisma } from "@/prisma";
 import type { Prisma } from "@/prisma/client/client";
@@ -334,7 +335,12 @@ async function searchAskCacheLibrary(args: {
             kind: item.kind,
             postedAt: item.postedAt?.toISOString() ?? null,
             source: item.source,
-            textPreview: truncateText(item.noteContentText),
+            textPreview: item.noteContentText
+                ? truncateText(
+                      item.noteContentText,
+                      ASK_CACHE_LIBRARY_TEXT_PREVIEW_LENGTH_MAX
+                  )
+                : null,
             url: item.url,
         })),
         truncated: items.length > limit,
@@ -575,15 +581,6 @@ function isNoopComposerPatch(
     ];
 
     return !checks.some((check) => check());
-}
-
-function truncateText(value: string | null): string | null {
-    if (!value) {
-        return null;
-    }
-    return value.length > ASK_CACHE_LIBRARY_TEXT_PREVIEW_LENGTH_MAX
-        ? `${value.slice(0, ASK_CACHE_LIBRARY_TEXT_PREVIEW_LENGTH_MAX - 1).trimEnd()}…`
-        : value;
 }
 
 function getFinalStepText(

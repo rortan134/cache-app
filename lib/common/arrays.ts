@@ -28,6 +28,10 @@ export function addUnique<T>(values: T[], value: T): T[] {
     return values.includes(value) ? values : [...values, value];
 }
 
+export function unique<T>(values: readonly T[]): T[] {
+    return Array.from(new Set(values));
+}
+
 export async function mapConcurrent<T, R>(
     items: readonly T[],
     fn: (item: T) => Promise<R>,

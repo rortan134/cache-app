@@ -6,7 +6,6 @@ import {
     STATUS_MAP_DUPLICATE_OR_NOT_FOUND,
     STATUS_MAP_NOT_FOUND,
     collectionNameSchema,
-    uniqueStrings,
     type ActionError,
     type ActionErrorWithDuplicate,
     type ActionErrorWithoutNotFound,
@@ -17,6 +16,7 @@ import {
     getValidationErrorMessage,
     handleActionError,
 } from "@/lib/common/action";
+import { unique } from "@/lib/common/arrays";
 import { ACTION_STATUS, DESCRIPTION_MAX_LENGTH } from "@/lib/common/constants";
 import { createLogger } from "@/lib/common/logs/console/logger";
 import type { CollectionPriority } from "@/prisma/client/enums";
@@ -172,7 +172,7 @@ export async function createCollectionFromItems(input: {
 }): Promise<CollectionCreateFromItemsResult> {
     const parsed = CollectionCreateFromItemsInputSchema.safeParse({
         ...input,
-        itemIds: uniqueStrings(input.itemIds),
+        itemIds: unique(input.itemIds),
     });
 
     if (!parsed.success) {

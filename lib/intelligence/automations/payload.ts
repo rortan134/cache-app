@@ -4,6 +4,7 @@ import { isAbortError, abortAfter } from "@/lib/common/abort";
 import { HttpError } from "@/lib/common/http-error";
 import { withRetry } from "@/lib/common/retry";
 import { parsePublicHttpUrl } from "@/lib/common/server-net";
+import { truncateText } from "@/lib/common/strings";
 import { fetchWithTimeout } from "@/lib/common/timeout";
 import { prisma } from "@/prisma";
 import { AutomationPayloadScope } from "@/prisma/client/enums";
@@ -196,7 +197,12 @@ export async function listAutomationPayloadItems(args: {
             kind: item.kind,
             postedAt: item.postedAt?.toISOString() ?? null,
             source: item.source,
-            textPreview: truncateText(item.noteContentText),
+            textPreview: item.noteContentText
+                ? truncateText(
+                      item.noteContentText,
+                      AUTOMATION_TEXT_PREVIEW_LENGTH_MAX
+                  )
+                : null,
             updatedAt: item.updatedAt.toISOString(),
             url: item.url,
         })),
@@ -370,14 +376,4 @@ function getAutomationRunPayloadScope(
             id: runId,
         },
     });
-}
-
-function truncateText(value: string | null): string | null {
-    if (!value) {
-        return null;
-    }
-    if (value.length <= AUTOMATION_TEXT_PREVIEW_LENGTH_MAX) {
-        return value;
-    }
-    return `${value.slice(0, AUTOMATION_TEXT_PREVIEW_LENGTH_MAX).trimEnd()}...`;
 }

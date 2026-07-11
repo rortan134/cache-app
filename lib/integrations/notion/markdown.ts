@@ -1,5 +1,9 @@
 import { FALLBACK_URL, ITEM_KIND_NOTE } from "@/lib/common/constants";
-import { getNoteExcerpt, normalizeWhitespace } from "@/lib/common/strings";
+import {
+    getNoteExcerpt,
+    normalizeWhitespace,
+    truncateText,
+} from "@/lib/common/strings";
 import { normalizeURL } from "@/lib/common/url";
 import type { LibraryItemWithCollections } from "@/lib/collections/utils";
 
@@ -88,14 +92,6 @@ function normalizeTitle(value: string, fallback: string): string {
         normalizeWhitespace(value) || fallback,
         NOTION_TITLE_MAX_LENGTH
     );
-}
-
-function truncateText(value: string, maxLength: number): string {
-    if (value.length <= maxLength) {
-        return value;
-    }
-
-    return `${value.slice(0, maxLength - 1).trimEnd()}…`;
 }
 
 function escapeMarkdownText(value: string): string {
