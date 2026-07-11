@@ -3,6 +3,8 @@ name: find-bugs-diff
 description: Find bugs, security vulnerabilities, and code quality issues in local branch changes. Use when asked to review changes, find bugs, security review, or audit code on the current branch.
 ---
 
+<!-- Skill based on https://github.com/getsentry/skills/blob/main/skills/find-bugs/SKILL.md -->
+
 # Find Bugs
 
 Review changes on this branch for bugs, security vulnerabilities, and code quality issues.

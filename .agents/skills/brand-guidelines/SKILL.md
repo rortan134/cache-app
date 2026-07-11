@@ -3,6 +3,8 @@ name: brand-guidelines
 description: Write copy following brand guidelines. Use when writing UI text, error messages, empty states, onboarding flows, 404 pages, documentation, marketing copy, or any user-facing content. Covers both Plain Speech (default) and Cache Voice tones.
 ---
 
+<!-- Skill based on https://github.com/getsentry/skills/blob/main/skills/brand-guidelines/SKILL.md -->
+
 # Brand Guidelines
 
 Write user-facing copy following Cache's brand guidelines.

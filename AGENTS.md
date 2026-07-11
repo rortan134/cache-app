@@ -6,11 +6,11 @@
 
 ## On development
 
-Cache has a zero technical debt policy. Do it right the first time: the design that lands in the codebase should be the correct one. A problem solved in design costs less than one solved in implementation, which costs less than one solved in production. The cost of fixing problems grows exponentially over time. "Right the first time" describes the landed output, not the exploration that produced it — see simplicity below.
+Cache has a zero technical debt policy. Do it right the first time: the design that lands in the codebase should be the correct one, with no intentional debt in that surface. A problem solved in design costs less than one solved in implementation, which costs less than one solved in production. "Right the first time" describes the landed output, not the exploration that produced it — see simplicity below. When rules conflict, prefer in order: correctness and safety of the change surface, then scope discipline (task-only files and multi-agent isolation), then local coherence in files you already touch, then YAGNI, then style.
 
 Minimize low-value prose. Offer nuanced, factual, and accurate solutions with brilliant critical reasoning. Suggest solutions or alternatives I didn’t think about and anticipate my needs.
 
-When the user request is suggesting an approach that is not ideal or wouldn't work, you must reject it and offer alternatives or different perspectives on the problem at hand. Reframe problems and perspectives whenever adequate in order to reach the most optimal answer. Break them down into smaller, logical steps from first principles.
+When the user request is wrong, unsafe, or would not work, block it and offer alternatives. When it is merely suboptimal, challenge once with a concrete alternative, then execute the user's choice unless a hard constraint still fails. Reframe from first principles when that reaches a better answer.
 
 Consider new technologies and contrarian ideas, not just conventional wisdom.
 
@@ -26,11 +26,9 @@ Define success criteria. Loop until verified.
 
 It is not about formatting or syntax. Linters handle that. It is about how to think, how to make decisions, and what to value when building software.
 
-Fight entropy. Leave the codebase better than you found it.
+Make minimal, surgical changes. Leave the codebase better than you found it.
 
-Make minimal, surgical changes.
-
-Read the full implementation, not just the signature.
+Read the full implementation of what you change and its direct callers/callees, not just the signature and not the whole repo.
 
 Simple and elegant systems are easier to design correctly, more efficient in execution, and more reliable. That simplicity requires hard work and discipline.
 
@@ -40,25 +38,25 @@ Follow the rationale that each function should have a single, named responsibili
 
 Strive for writing fully functional, bug-free code by using best practices and minimizing room for error by, for example, making illegal states unrepresentable.
 
-Avoid unnecessary code indirection unless an abstraction for DRY compliance is necessary. Duplicate logic across multiple files is a code smell and should be avoided. Extracting a className string into a constant just because it is used twice is not justified, that is code indirection.
+Avoid unnecessary code indirection. Extract when the same reason to change applies in two or more modules and the name is obvious; similar code with different futures may stay duplicated. Extracting a className string into a constant just because it is used twice is not justified.
 
-Follow YAGNI principles, and prefer one-liner solutions.
+Follow YAGNI. Prefer the smallest clear unit, not the fewest lines — one-liners only for pure expressions with no branching, I/O, or error paths.
 
 Composition over inheritance: Prefer dependency injection.
 
 Handle errors at the appropriate scopes. Never silently swallow exceptions. If you think an error cannot happen, assert that assumption explicitly.
 
-Never compromise type safety: Avoid using `any`, no `!` (non-null assertion), or casting types `as Type` at all costs as it indicates wrong assumptions or bad implementation.
+Never compromise type safety: avoid `any`, `!` (non-null assertion), and `as Type` casting as they usually indicate wrong assumptions or bad implementation. A cast is allowed only at a trust boundary (SDK, ORM, framework) when the invariant is runtime-checked or guaranteed by a typed wrapper one layer in. Prefer narrowing (`zod`, predicates, exhaustiveness). If you need a cast deeper than the boundary, fix the model.
 
 Declare variables at the smallest possible scope. Minimize the number of variables in play at any point. This reduces the probability of using the wrong variable and makes code easier to reason about. Calculate or check variables close to where they are used. Do not introduce variables before they are needed or leave them around when they are not.
 
-Plugin architectures allow for extensibility and isolation; most functionality should live in plugins, not the core, enabling parallel development and future-proofing. Apply the plugin rule only to features whose pluggability is itself a current requirement (sync adapters, export formats, AI providers). YAGNI governs speculative features — do not extract a plugin boundary for a single implementation.
+Plugin architectures allow for extensibility and isolation; most functionality should live in plugins, not the core, enabling parallel development and future-proofing. Apply a plugin boundary when pluggability is itself a current requirement (sync adapters, export formats, AI providers). YAGNI governs speculative features — do not extract a plugin boundary for a single implementation.
 
 Minimize risk by anticipating what’s most likely to fail (platforms, language changes, hardware, people) and insulating your system from those points of failure.
 
 Great names capture what a thing is or does. Append qualifiers to names. Units, bounds, and modifiers come at the end. This groups related variables together and makes scanning easier.
 
-Reduce total variable count by inlining when a value is only used once.
+Inline single-use values when the expression is obvious in place. Keep a name when it encodes units, domain meaning, or a non-obvious intermediate — even if used once.
 
 Constants Are Module-Level and UPPER_SNAKE_CASE. Physics constants, selectors, and thresholds are declared at the top of the file, never inside the component.
 
@@ -249,7 +247,7 @@ When you need up-to-date API docs, usage examples, or migration guides for any l
 
 We organize and co-locate Next.js Server Actions as thin adapters in `lib/{module}/actions.ts` files that handle input/output validation, auth/session and privilege checks, error normalization, caching/revalidation and rate limiting. These actions call pure service functions which contain all business logic and database/external-API calls. Services never depend on the framework; they operate on validated data and return domain objects/typed results, and can be used independently either for other modules, as side effects, or pure server components.
 
-Actions are the only networking boundary: they parse/validate inputs, guard with user context, translate service results to serialized responses, and decide application-specific side effects, like `revalidatePath()`. Behind the scenes, actions use the `POST` method. On the client, an action is consumed in one of two ways: as a read, by wrapping it in a small fetcher function passed to [swr](https://swr.vercel.app/llms.txt) (SWR calls the function locally); or as a mutation, by calling it directly from an event handler or form action. Either way the action is imported and invoked as an ordinary async function — the type signature of the export is the type of the call site, so requests and responses are fully inferred without an intermediate schema. Actions should return only the necessary data that will be used atomically, and not entire objects.
+Actions are the only networking boundary: they parse/validate inputs, guard with user context, translate service results to serialized responses, and decide application-specific side effects, like `revalidatePath()`. Behind the scenes, actions use the `POST` method. On the client, an action is consumed in one of two ways: as a read, by wrapping it in a small fetcher function passed to [swr](https://swr.vercel.app/llms.txt) (SWR calls the function locally); or as a mutation, by calling it directly from an event handler or form action. Either way the action is imported and invoked as an ordinary async function — the type signature of the export is the type of the call site, so requests and responses are fully inferred without an intermediate schema. Actions should return the minimal stable contract the current consumer needs — prefer a small DTO over entire domain objects or field-by-field thrash.
 
 ### Logging and error handling pattern
 
@@ -269,6 +267,6 @@ The data model can be found at `prisma/schema.prisma`
 
 ### Papercuts
 
-Anytime you hit friction during a task — a dead-end tool call, a broken link, misleading docs, a flaky command, missing context — log it instead of silently working around it:
+Product or code issues in your change surface: fix or do not land. Tooling, docs, or agent friction (dead-end tool call, broken link, misleading docs, flaky command, missing context) — log it instead of silently working around it:
 `./bin/papercuts "what went wrong and where..."`
-Keep going with your task afterward. Don't stop to fix it unless asked to.
+Keep going afterward. Don't stop to fix tooling friction unless asked to. Do not use papercuts as a reason to ship incorrect product code.
