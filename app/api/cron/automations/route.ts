@@ -1,6 +1,7 @@
 import { automationRunWorkflow } from "@/app/workflows/automation-run";
 import { serverEnv } from "@/env/server";
 import { createLogger } from "@/lib/common/logs/console/logger";
+import { withRetry } from "@/lib/common/retry";
 import {
     attachWorkflowRunId,
     claimDueAutomationRuns,
@@ -20,31 +21,69 @@ export async function GET(request: Request) {
     // and would otherwise wait until the next cron tick to be picked up.
     const recovered = await recoverStaleAutomationRuns();
     const claimed = await claimDueAutomationRuns();
-    let started = 0;
-    let failedToStart = 0;
+    // Starts are independent per claimed run; parallelize so a slow
+    // workflow/api start does not serialize the whole cron tick.
+    // Each mapper always resolves so one mark/attach failure cannot 500 a
+    // partially successful tick or drop accurate started/failed counts.
+    const startOutcomes = await Promise.all(
+        claimed.claimed.map(async (run) => {
+            let workflowRunId: string;
+            try {
+                const workflowRun = await start(automationRunWorkflow, [
+                    run.runId,
+                ]);
+                workflowRunId = workflowRun.runId;
+            } catch (error) {
+                const message =
+                    error instanceof Error ? error.message : String(error);
+                log.error("Failed to start automation workflow", {
+                    error: message,
+                    runId: run.runId,
+                });
+                try {
+                    await markAutomationRunStartFailed({
+                        message,
+                        runId: run.runId,
+                    });
+                } catch (markError) {
+                    log.error("Failed to mark automation run start-failed", {
+                        error:
+                            markError instanceof Error
+                                ? markError.message
+                                : String(markError),
+                        runId: run.runId,
+                    });
+                }
+                return false;
+            }
 
-    for (const run of claimed.claimed) {
-        try {
-            const workflowRun = await start(automationRunWorkflow, [run.runId]);
-            await attachWorkflowRunId({
-                runId: run.runId,
-                workflowRunId: workflowRun.runId,
-            });
-            started += 1;
-        } catch (error) {
-            failedToStart += 1;
-            const message =
-                error instanceof Error ? error.message : String(error);
-            log.error("Failed to start automation workflow", {
-                error: message,
-                runId: run.runId,
-            });
-            await markAutomationRunStartFailed({
-                message,
-                runId: run.runId,
-            });
-        }
-    }
+            // start() already launched the workflow. Never mark failed on
+            // attach errors — that would race markAutomationRunRunning and
+            // leave recovery free to double-start the same run. Retry attach
+            // so a transient DB blip does not leave starting without
+            // workflowRunId until the workflow's own mark-running step.
+            try {
+                await withRetry(
+                    () =>
+                        attachWorkflowRunId({
+                            runId: run.runId,
+                            workflowRunId,
+                        }),
+                    { attempts: 3, delayMs: 50 }
+                );
+            } catch (error) {
+                log.error("Failed to attach workflow run id", {
+                    error:
+                        error instanceof Error ? error.message : String(error),
+                    runId: run.runId,
+                    workflowRunId,
+                });
+            }
+            return true;
+        })
+    );
+    const started = startOutcomes.filter(Boolean).length;
+    const failedToStart = startOutcomes.length - started;
 
     return Response.json({
         claimed: claimed.claimed.length,
