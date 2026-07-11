@@ -103,7 +103,6 @@ import {
     use,
     useDeferredValue,
     useEffect,
-    useMemo,
     useRef,
     useState,
     useTransition,
@@ -139,7 +138,6 @@ interface NoteContextValue {
     contentHtml: string;
     editorKey: number;
     initialDraft: NoteDraft;
-    isBusy: boolean;
     isDirty: boolean;
     onDraftChange: (draft: NoteDraft) => void;
     onOpenChange: (open: boolean) => Promise<void>;
@@ -224,10 +222,9 @@ const NOTE_HISTORY_ANNOUNCE_REDONE = "Redone";
  * (`RovingTabIndexExtension` + `FocusManagerExtension`).
  *
  * The per-note `$initialEditorState` is *not* baked in here: this constant
- * describes the static shape of the editor. `NoteEditor` injects the
- * initial state through `configExtension` keyed on `editorKey` so each note
- * session rebuilds the tree from a content-specific snapshot, while the
- * editor never re-creates mid-session (which would discard editor state).
+ * describes the static shape of the editor. `NoteEditor` wraps it in a
+ * per-session extension (keyed on `editorKey`) that supplies the content
+ * snapshot, so the editor never re-creates mid-session and discards state.
  */
 const NOTE_EDITOR_EXTENSION = defineExtension({
     dependencies: [
@@ -480,6 +477,18 @@ function getInitialEditorState(
     };
 }
 
+function createNoteSessionExtension(
+    editorKey: number,
+    initialDraft: NoteDraft
+) {
+    return defineExtension({
+        $initialEditorState: getInitialEditorState(initialDraft),
+        dependencies: [NOTE_EDITOR_EXTENSION],
+        name: `${NOTE_EDITOR_NAMESPACE}-${editorKey}`,
+        namespace: NOTE_EDITOR_NAMESPACE,
+    });
+}
+
 function haveDraftsChanged(left: NoteDraft, right: NoteDraft): boolean {
     return (
         normalizeNoteHtml(left.contentHtml) !==
@@ -492,12 +501,13 @@ function isDraftEmpty(draft: NoteDraft): boolean {
 }
 
 function getNotionNoteTitle(plainText: string): string {
-    const firstLine = plainText
-        .split("\n")
-        .map((line) => line.trim())
-        .find((line) => line.length > 0);
-
-    return firstLine ?? "Cache note";
+    for (const line of plainText.split("\n")) {
+        const trimmed = line.trim();
+        if (trimmed.length > 0) {
+            return trimmed;
+        }
+    }
+    return "Cache note";
 }
 
 function shouldCloseWithoutSaving(
@@ -508,7 +518,6 @@ function shouldCloseWithoutSaving(
     if (!haveDraftsChanged(currentDraft, initialDraft)) {
         return true;
     }
-
     return !hasPersistedNote && isDraftEmpty(currentDraft);
 }
 
@@ -523,10 +532,29 @@ function getSelectionBlockType(selection: RangeSelection): NoteBlockType {
     }
 
     const headingTag = topLevelNode.getTag();
+
     if (headingTag === "h1" || headingTag === "h2" || headingTag === "h3") {
         return headingTag;
     }
     return "paragraph";
+}
+
+function parseNoteBlockType(value: string | undefined): NoteBlockType | null {
+    for (const option of NOTE_BLOCK_OPTIONS) {
+        if (option.value === value) {
+            return option.value;
+        }
+    }
+    return null;
+}
+
+function parseTextFormat(value: string | undefined): TextFormatType | null {
+    for (const option of NOTE_TEXT_FORMAT_OPTIONS) {
+        if (option.format === value) {
+            return option.format;
+        }
+    }
+    return null;
 }
 
 function downloadMarkdownFile(contentHtml: string) {
@@ -568,38 +596,36 @@ function FormattingToolbarPlugin() {
     });
 
     useEffect(() => {
+        const commitFormats = (nextFormats: FormatState) => {
+            setFormats((current) =>
+                areFormatStatesEqual(current, nextFormats)
+                    ? current
+                    : nextFormats
+            );
+        };
+
         const updateToolbarState = () => {
             editor.getEditorState().read(() => {
                 const selection = $getSelection();
                 if (!$isRangeSelection(selection)) {
-                    setFormats((current) =>
-                        areFormatStatesEqual(current, INITIAL_FORMAT_STATE)
-                            ? current
-                            : INITIAL_FORMAT_STATE
-                    );
+                    commitFormats(INITIAL_FORMAT_STATE);
                     return;
                 }
 
-                const nextFormats: FormatState = {
+                commitFormats({
                     blockType: getSelectionBlockType(selection),
                     bold: selection.hasFormat("bold"),
                     italic: selection.hasFormat("italic"),
                     strikeThrough: selection.hasFormat("strikethrough"),
                     underline: selection.hasFormat("underline"),
-                };
-
-                setFormats((currentFormats) =>
-                    areFormatStatesEqual(currentFormats, nextFormats)
-                        ? currentFormats
-                        : nextFormats
-                );
+                });
             });
         };
 
         updateToolbarState();
 
         return mergeRegister(
-            editor.registerUpdateListener(() => updateToolbarState()),
+            editor.registerUpdateListener(updateToolbarState),
             editor.registerCommand(
                 SELECTION_CHANGE_COMMAND,
                 () => {
@@ -610,10 +636,6 @@ function FormattingToolbarPlugin() {
             )
         );
     }, [editor]);
-
-    const toggleTextFormat = useStableCallback((format: TextFormatType) => {
-        editor.dispatchCommand(FORMAT_TEXT_COMMAND, format);
-    });
 
     const setBlockType = useStableCallback((blockType: NoteBlockType) => {
         editor.update(() => {
@@ -634,9 +656,11 @@ function FormattingToolbarPlugin() {
     const handleBlockTypeMouseDown = useStableCallback(
         (event: React.MouseEvent<HTMLButtonElement>) => {
             event.preventDefault();
-            const blockType = event.currentTarget.dataset.blockType;
+            const blockType = parseNoteBlockType(
+                event.currentTarget.dataset.blockType
+            );
             if (blockType) {
-                setBlockType(blockType as NoteBlockType);
+                setBlockType(blockType);
             }
         }
     );
@@ -644,9 +668,9 @@ function FormattingToolbarPlugin() {
     const handleFormatMouseDown = useStableCallback(
         (event: React.MouseEvent<HTMLButtonElement>) => {
             event.preventDefault();
-            const format = event.currentTarget.dataset.format as TextFormatType;
+            const format = parseTextFormat(event.currentTarget.dataset.format);
             if (format) {
-                toggleTextFormat(format);
+                editor.dispatchCommand(FORMAT_TEXT_COMMAND, format);
             }
         }
     );
@@ -834,7 +858,7 @@ export function NoteRoot({
     );
     const [draft, setDraft] = useState<NoteDraft>(initialDraft);
     const [editorKey, setEditorKey] = useState(0);
-    const [isClosing, setIsClosing] = useState(false);
+    const isClosingRef = useRef(false);
 
     const initialDraftRef = useRef<NoteDraft>(draft);
     const latestDraftRef = useRef<NoteDraft>(draft);
@@ -848,12 +872,16 @@ export function NoteRoot({
         setInitialDraft(nextDraft);
     };
 
-    const resetDraft = () => {
-        const nextDraft = noteDraftFromItem(note);
-        updateInitialDraft(nextDraft);
+    const commitWorkingDraft = (nextDraft: NoteDraft) => {
         latestDraftRef.current = nextDraft;
         setDraft(nextDraft);
         setEditorKey((key) => key + 1);
+    };
+
+    const resetDraft = () => {
+        const nextDraft = noteDraftFromItem(note);
+        updateInitialDraft(nextDraft);
+        commitWorkingDraft(nextDraft);
     };
 
     const syncDraftFromNote = () => {
@@ -869,17 +897,14 @@ export function NoteRoot({
 
         updateInitialDraft(nextDraft);
 
-        if (shouldPreserveLocalDraft) {
+        if (
+            shouldPreserveLocalDraft ||
+            !haveDraftsChanged(nextDraft, latestDraftRef.current)
+        ) {
             return;
         }
 
-        if (!haveDraftsChanged(nextDraft, latestDraftRef.current)) {
-            return;
-        }
-
-        latestDraftRef.current = nextDraft;
-        setDraft(nextDraft);
-        setEditorKey((key) => key + 1);
+        commitWorkingDraft(nextDraft);
     };
 
     // React to prop changes during render instead of a `useEffect` to avoid
@@ -983,7 +1008,7 @@ export function NoteRoot({
             return;
         }
 
-        if (isClosing || (isSaving && saveStatus !== "saving")) {
+        if (isClosingRef.current || (isSaving && saveStatus !== "saving")) {
             return;
         }
 
@@ -999,14 +1024,14 @@ export function NoteRoot({
             return;
         }
 
-        setIsClosing(true);
+        isClosingRef.current = true;
         try {
             const didSave = await saveImmediately();
             if (didSave) {
                 onOpenChange(false);
             }
         } finally {
-            setIsClosing(false);
+            isClosingRef.current = false;
         }
     };
 
@@ -1014,7 +1039,6 @@ export function NoteRoot({
     const textMetrics = getNoteTextMetrics(deferredContentHtml);
     const query = textMetrics.plainText;
     const title = note ? "Edit note" : "New entry";
-    const isBusy = isSaving || isClosing;
 
     return (
         <NoteContext
@@ -1023,7 +1047,6 @@ export function NoteRoot({
                 contentHtml: draft.contentHtml,
                 editorKey,
                 initialDraft,
-                isBusy,
                 isDirty,
                 onDraftChange: handleDraftChange,
                 onOpenChange: handleOpenChange,
@@ -1053,49 +1076,33 @@ export function NoteTitle() {
 function NoteSaveStatus() {
     const { isDirty, saveStatus } = useNoteContext();
 
+    let message: ReactNode = null;
+    let isError = false;
+
     if (saveStatus === "saving") {
-        return (
-            <span
-                aria-live="polite"
-                className="hidden text-right text-muted-foreground text-xs sm:block"
-            >
-                <T>Saving...</T>
-            </span>
-        );
+        message = <T>Saving...</T>;
+    } else if (saveStatus === "error") {
+        message = <T>Not saved</T>;
+        isError = true;
+    } else if (saveStatus === "saved") {
+        message = <T>Saved</T>;
+    } else if (isDirty) {
+        message = <T>Unsaved</T>;
     }
 
-    if (saveStatus === "error") {
-        return (
-            <span
-                aria-live="polite"
-                className="hidden text-right text-destructive text-xs sm:block"
-            >
-                <T>Not saved</T>
-            </span>
-        );
-    }
-
-    if (saveStatus === "saved") {
-        return (
-            <span
-                aria-live="polite"
-                className="hidden text-right text-muted-foreground text-xs sm:block"
-            >
-                <T>Saved</T>
-            </span>
-        );
-    }
-
-    if (!isDirty) {
+    if (!message) {
         return null;
     }
 
     return (
         <span
             aria-live="polite"
-            className="hidden text-right text-muted-foreground text-xs sm:block"
+            className={cn(
+                "hidden text-right text-xs sm:block",
+                isError ? "text-destructive" : "text-muted-foreground"
+            )}
         >
-            <T>Unsaved</T>
+            {message}
         </span>
     );
 }
@@ -1114,7 +1121,7 @@ export function NoteHeader() {
     });
 
     const handleSendToNotion = useStableCallback(() => {
-        if (!(hasQuery && !isSendingToNotion)) {
+        if (!hasQuery || isSendingToNotion) {
             return;
         }
 
@@ -1172,23 +1179,14 @@ export function NoteHeader() {
                         <ChevronDownIcon className="size-3.5" />
                     </MenuTrigger>
                     <MenuPopup align="start" className="w-60">
-                        {EXPORT_CONTENT_PROVIDERS.map((provider) => {
-                            const ProviderIcon = provider.icon;
-                            return (
-                                <ExportProviderMenuItem
-                                    hasQuery={hasQuery}
-                                    key={provider.title}
-                                    provider={provider}
-                                    query={query}
-                                >
-                                    <ProviderIcon className="size-4 text-muted-foreground" />
-                                    <span className="flex-1">
-                                        {provider.title}
-                                    </span>
-                                    <ExternalLinkIcon className="size-4 text-muted-foreground" />
-                                </ExportProviderMenuItem>
-                            );
-                        })}
+                        {EXPORT_CONTENT_PROVIDERS.map((provider) => (
+                            <ExportProviderMenuItem
+                                hasQuery={hasQuery}
+                                key={provider.title}
+                                provider={provider}
+                                query={query}
+                            />
+                        ))}
                         <MenuItem
                             disabled={!hasQuery || isSendingToNotion}
                             onClick={handleSendToNotion}
@@ -1252,21 +1250,20 @@ export function NoteHeader() {
     );
 }
 
+interface EditorSession {
+    editorKey: number;
+    extension: ReturnType<typeof createNoteSessionExtension>;
+}
+
 /**
  * Lexical composer that mounts the rich-text editor with a11y wiring and the
  * correct initial state for the current note.
  *
- * The root extension is rebuilt per `editorKey` (`getInitialEditorState`
- * returns content-specific state) via `useMemo`, which is safe because
- * `key={editorKey}` on `LexicalExtensionComposer` unmounts the previous
- * editor and builds a fresh one — the extension is never re-created during a
- * note session, so editor state (selection, history, focus) is preserved
- * across renders of `NoteEditor` for the same note.
- *
- * The `contentEditable` prop is intentionally null: `ContentPlugin` mounts
- * the `ContentEditable` inside a `relative` wrapper that co-locates the
- * empty-state placeholder overlay. The a11y extensions live in
- * `NOTE_EDITOR_EXTENSION`.
+ * The session extension is rebuilt only when `editorKey` changes, and
+ * `key={editorKey}` on `LexicalExtensionComposer` remounts a fresh editor —
+ * so selection, history, and focus are preserved across renders of the same
+ * note session. The `contentEditable` prop is intentionally null:
+ * `ContentPlugin` mounts `ContentEditable` beside the empty-state placeholder.
  */
 export function NoteEditor() {
     const {
@@ -1278,43 +1275,29 @@ export function NoteEditor() {
         shouldCreateBookmarkFromUrlPaste,
     } = useNoteContext();
 
-    // We only want `initialDraft`'s value at the moment the editor is built
-    // (Lexical applies `$initialEditorState` once, at construction time —
-    // exactly like the legacy `LexicalComposer` that created the editor in a
-    // `useMemo([])` and read `initialConfig` from the first render).
-    // A ref lets the memo body read the latest snapshot without putting
-    // `initialDraft` in the dep list — which would rebuild the editor mid
-    // session when a save commits the working draft (initialDraft would
-    // change with no editorKey change) and discard focus, selection, and
-    // undo history.
-    const initialDraftRef = useRef(initialDraft);
-    initialDraftRef.current = initialDraft;
+    // Lexical applies `$initialEditorState` once at construction. Cache the
+    // session extension by `editorKey` only — never rebuild when a save
+    // commits `initialDraft` with the same key (that would discard focus,
+    // selection, and undo history). `key={editorKey}` remounts the composer.
+    // Read `initialDraft` from this render when the key changes; do not use
+    // `useValueAsRef` here — it only commits `.current` in a layout effect,
+    // so a render-time session rebuild would seed the previous note.
+    const sessionRef = useRef<EditorSession | null>(null);
 
-    const extension = useMemo(
-        () =>
-            defineExtension({
-                $initialEditorState: getInitialEditorState(
-                    initialDraftRef.current
-                ),
-                dependencies: [NOTE_EDITOR_EXTENSION],
-                // Per-session extension name (unique across remounts) so the
-                // LexicalBuilder can resolve it in devtools; the *editor*
-                // `namespace` (the clipboard-interchange identifier) stays
-                // the shared `NOTE_EDITOR_NAMESPACE` below, so undo/redo history
-                // and clipboard formats remain stable across notes.
-                name: `${NOTE_EDITOR_NAMESPACE}-${editorKey}`,
-                namespace: NOTE_EDITOR_NAMESPACE,
-            }),
-        // Rebuild only when `editorKey` changes — which forces
-        // `LexicalExtensionComposer` (keyed on `editorKey`) to unmount and
-        // mount a fresh editor with this extension's `$initialEditorState`.
-        [editorKey]
-    );
+    if (
+        sessionRef.current === null ||
+        sessionRef.current.editorKey !== editorKey
+    ) {
+        sessionRef.current = {
+            editorKey,
+            extension: createNoteSessionExtension(editorKey, initialDraft),
+        };
+    }
 
     return (
         <LexicalExtensionComposer
             contentEditable={null}
-            extension={extension}
+            extension={sessionRef.current.extension}
             key={editorKey}
         >
             <ContentPlugin
@@ -1365,14 +1348,13 @@ function ExportProviderMenuItem({
     hasQuery,
     provider,
     query,
-    children,
 }: {
     hasQuery: boolean;
     provider: ExportContentProvider;
     query: string;
-    children: React.ReactNode;
 }) {
     const href = provider.createUrl(query);
+    const ProviderIcon = provider.icon;
 
     const renderLink = useStableCallback((props: React.ComponentProps<"a">) => (
         <a {...props} href={href} rel="noopener noreferrer" target="_blank" />
@@ -1380,9 +1362,9 @@ function ExportProviderMenuItem({
 
     return (
         <MenuItem disabled={!hasQuery} render={renderLink}>
-            {children}
+            <ProviderIcon className="size-4 text-muted-foreground" />
+            <span className="flex-1">{provider.title}</span>
+            <ExternalLinkIcon className="size-4 text-muted-foreground" />
         </MenuItem>
     );
 }
-
-
