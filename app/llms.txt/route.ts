@@ -20,7 +20,7 @@ Cache exposes a Model Context Protocol (MCP) server so AI agents can read and wr
 
 ### Setup
 
-1. Visit \`https://cachd.app/mcp/prompt\` (POST) while authenticated to get a personalized setup prompt with your Bearer token, or generate one programmatically.
+1. Visit \`https://www.cachd.app/mcp/prompt\` (POST) while authenticated to get a personalized setup prompt with your Bearer token, or generate one programmatically.
 2. Configure your MCP client:
 
 **Claude Desktop** (\`claude_desktop_config.json\`):
@@ -28,7 +28,7 @@ Cache exposes a Model Context Protocol (MCP) server so AI agents can read and wr
 {
   "mcpServers": {
     "cache": {
-      "url": "https://cachd.app/mcp",
+      "url": "https://www.cachd.app/mcp",
       "headers": {
         "Authorization": "Bearer <your-token>"
       }
@@ -37,7 +37,7 @@ Cache exposes a Model Context Protocol (MCP) server so AI agents can read and wr
 }
 \`\`\`
 
-**Cursor / other clients**: Use the endpoint \`https://cachd.app/mcp\` with the Bearer token.
+**Cursor / other clients**: Use the endpoint \`https://www.cachd.app/mcp\` with the Bearer token.
 
 ### Available tools
 

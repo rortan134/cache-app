@@ -3,7 +3,7 @@
  *
  * The zod schemas here are the single source of truth for the JSON that
  * flows into (tool args) and out of (`structuredContent`) every MCP tool.
- * Both `lib/integrations/mcp/service.ts` and `app/[locale]/mcp/route.ts`
+ * Both `lib/integrations/mcp/service.ts` and `app/mcp/route.ts`
  * consume these — routes for `registerTool`'s `inputSchema` / `outputSchema`,
  * services via `z.infer` for their return types. There's no parallel
  * TypeScript type definition: drift between validator and consumer is

@@ -171,14 +171,14 @@ export async function generateMcpSetupPrompt(
 
     const prompt = `You have been given access to my Cache library via MCP.
 
-Cache (https://cachd.app) unifies bookmarks from Chrome, Instagram, TikTok, YouTube, X/Twitter, GitHub, Pinterest, and more into a single searchable library with AI-powered collections, summaries, and review workflows.
+Cache (https://www.cachd.app) unifies bookmarks from Chrome, Instagram, TikTok, YouTube, X/Twitter, GitHub, Pinterest, and more into a single searchable library with AI-powered collections, summaries, and review workflows.
 
 Please configure yourself as an MCP client with this server:
 
 Endpoint: ${endpoint}
 Authentication: Bearer ${token}
 
-For full product context, fetch https://cachd.app/llms.txt
+For full product context, fetch https://www.cachd.app/llms.txt
 
 Available capabilities:
 - list_library_items — Search, browse, and paginate my saved bookmarks and notes (optional: collectionId, limit, offset, search)

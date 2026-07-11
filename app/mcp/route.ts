@@ -6,6 +6,7 @@ import {
     listLibraryItems,
 } from "@/lib/collections/service";
 import { createLogger } from "@/lib/common/logs/console/logger";
+import { IntegrationApiError } from "@/lib/integrations/error";
 import {
     MCP_SCOPES,
     type McpScope,
@@ -291,6 +292,14 @@ async function handleAddLibraryItem(
             structuredContent: asStructured(payload),
         };
     } catch (error) {
+        // Client-facing validation failures (XOR / invalid URL) are safe to
+        // echo: they are authored strings, not infrastructure leakage.
+        if (IntegrationApiError.isInstance(error)) {
+            const status = error.data.status;
+            if (typeof status === "number" && status >= 400 && status < 500) {
+                return textErrorResult(error.data.message);
+            }
+        }
         return handleToolError(
             "add_library_item",
             "Could not save the library item.",
@@ -493,30 +502,19 @@ const baseHandler = createMcpHandler(
     }
 );
 
-// `withMcpAuth` runs first so the SDK's MCP response headers (`Mcp-Session-Id`,
-// streaming) are produced cleanly. `required: false` lets `initialize` and
-// `tools/list` succeed without a token (or with a `library:read` token)
-// so clients can introspect server info / discover tools before they ask
-// for credentials. Per-handler gating (`authorizeToolCall`) then enforces
-// the right scope for any actual read or write.
-const authWrapper = (h: typeof baseHandler) =>
-    withMcpAuth(h, verifyMcpAuthToken, {
-        required: false,
-    });
-
-// Re-export as both methods so the route works regardless of transport.
-const handler = authWrapper(baseHandler);
+// `withMcpAuth` first so MCP session headers stay intact. `required: false`
+// lets `initialize` / `tools/list` run without a token; tools still gate via
+// `authorizeToolCall`.
+const mcpHandler = withMcpAuth(baseHandler, verifyMcpAuthToken, {
+    required: false,
+});
 
 /**
- * CORS preflight answer. Browser-based MCP clients cannot bypass
- * `withMcpAuth` — it runs before any handler in the route — but a CORS
- * preflight (OPTIONS) carries no Bearer token, so without this stub the
- * preflight is rejected with 401 and the browser refuses to send the real
- * POST. We answer preflights here with the same CORS posture mcp-handler
- * uses for `protectedResourceHandler` (echo the Origin, allow `POST` +
- * streamable transport headers) and never include the Authorization header
- * in the allowed list publicly — origin-allow-listed clients can still
- * attach it themselves.
+ * Browser MCP clients need CORS on both the OPTIONS preflight and the real
+ * GET/POST response. `mcp-handler` does not attach ACAO on streamable HTTP,
+ * so we own the full CORS surface here:
+ * - Allowlisted Origin only (never `*`) so `Authorization` can be sent
+ * - Same allow-list on preflight and actual responses
  */
 const CORS_ALLOWED_HEADERS = "authorization,content-type,accept,mcp-session-id";
 const CORS_ALLOWED_METHODS = "POST, GET, OPTIONS";
@@ -527,8 +525,7 @@ function isAllowedOrigin(origin: string): boolean {
         return false;
     }
     try {
-        const url = new URL(origin);
-        const host = url.hostname;
+        const host = new URL(origin).hostname;
         return (
             host === "cachd.app" ||
             host.endsWith(".cachd.app") ||
@@ -540,23 +537,42 @@ function isAllowedOrigin(origin: string): boolean {
     }
 }
 
-export function OPTIONS(request: Request): Response {
+function applyCorsHeaders(request: Request, headers: Headers): void {
     const origin = request.headers.get("origin") ?? "";
+    headers.set("Vary", "Origin");
+    if (!isAllowedOrigin(origin)) {
+        return;
+    }
+    headers.set("Access-Control-Allow-Origin", origin);
+}
+
+function withCors(request: Request, response: Response): Response {
+    const headers = new Headers(response.headers);
+    applyCorsHeaders(request, headers);
+    return new Response(response.body, {
+        headers,
+        status: response.status,
+        statusText: response.statusText,
+    });
+}
+
+export function OPTIONS(request: Request): Response {
     const headers = new Headers({
         "Access-Control-Allow-Headers": CORS_ALLOWED_HEADERS,
         "Access-Control-Allow-Methods": CORS_ALLOWED_METHODS,
         "Access-Control-Max-Age": CORS_MAX_AGE,
-        Vary: "Origin",
     });
-    if (isAllowedOrigin(origin)) {
-        // `*` would block the use of `Authorization`. Echo back the
-        // request's Origin so the browser can pair the preflight with the
-        // credentialed real request.
-        headers.set("Access-Control-Allow-Origin", origin);
+    applyCorsHeaders(request, headers);
+    if (headers.has("Access-Control-Allow-Origin")) {
         headers.append("Vary", "Access-Control-Request-Headers");
     }
     return new Response(null, { headers, status: 204 });
 }
 
-export const GET = handler;
-export const POST = handler;
+export async function GET(request: Request): Promise<Response> {
+    return withCors(request, await mcpHandler(request));
+}
+
+export async function POST(request: Request): Promise<Response> {
+    return withCors(request, await mcpHandler(request));
+}
