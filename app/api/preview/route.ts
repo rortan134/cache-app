@@ -1,7 +1,5 @@
 import { createHash } from "node:crypto";
 
-import * as z from "zod";
-
 import { abortAfterAny, isAbortError } from "@/lib/common/abort";
 import { MIME_TYPES } from "@/lib/common/constants";
 import { createLogger } from "@/lib/common/logs/console/logger";
@@ -10,11 +8,6 @@ import { getRedisClient } from "@/lib/common/redis";
 import { parsePublicHttpUrl } from "@/lib/common/server-net";
 import { fetchWithTimeout } from "@/lib/common/timeout";
 import { parseStandaloneUrl } from "@/lib/common/url";
-import { extractPreviewImageUrls } from "./extract";
-import {
-    classifyCobaltError,
-    resolveCobaltPreview,
-} from "@/lib/integrations/cobalt/service";
 import { isCobaltHost } from "@/lib/integrations/cobalt/utils";
 import {
     tiktokOembedThumbnailUrl,
@@ -87,10 +80,55 @@ interface ResolvedImage {
     pageUrl: string;
 }
 
-const ResolvedImageSchema = z.object({
-    imageUrl: z.string(),
-    pageUrl: z.string(),
-});
+// Lazy-loaded only on the HTML cache-miss path (not cache-hit / video).
+// On import failure, clear the cached promise so the next request can retry.
+let extractPreviewImageUrlsPromise: Promise<
+    typeof import("./extract").extractPreviewImageUrls
+> | null = null;
+
+function loadExtractPreviewImageUrls() {
+    extractPreviewImageUrlsPromise ??= import("./extract")
+        .then((mod) => mod.extractPreviewImageUrls)
+        .catch((error: unknown) => {
+            extractPreviewImageUrlsPromise = null;
+            throw error;
+        });
+    return extractPreviewImageUrlsPromise;
+}
+
+// Lazy-loaded only on the video cache-miss path.
+let cobaltServicePromise: Promise<
+    typeof import("@/lib/integrations/cobalt/service")
+> | null = null;
+
+function loadCobaltService() {
+    cobaltServicePromise ??= import("@/lib/integrations/cobalt/service").catch(
+        (error: unknown) => {
+            cobaltServicePromise = null;
+            throw error;
+        }
+    );
+    return cobaltServicePromise;
+}
+
+function parseResolvedImage(value: unknown): ResolvedImage | null {
+    if (!(typeof value === "object" && value !== null)) {
+        return null;
+    }
+    if (!("imageUrl" in value && "pageUrl" in value)) {
+        return null;
+    }
+    if (
+        typeof value.imageUrl !== "string" ||
+        typeof value.pageUrl !== "string"
+    ) {
+        return null;
+    }
+    return {
+        imageUrl: value.imageUrl,
+        pageUrl: value.pageUrl,
+    };
+}
 
 export async function GET(request: Request): Promise<Response> {
     const requestUrl = new URL(request.url);
@@ -280,10 +318,11 @@ async function resolveImagePreview(
 
     // extractPreviewImageUrls replaces link-preview-js's cheerio/parse5 DOM
     // parse with an htmlparser2 streaming scan (~10x faster on a 150 KiB page).
-    // It mirrors getImages precedence exactly; parity is covered by
-    // app/api/preview/extract.test.ts. baseUrl is the final post-redirect URL
-    // (or the original target) so relative og:image/<img> resolve identically.
+    // Lazy-imported so cache-hit / video cold starts skip htmlparser2.
+    // baseUrl is the final post-redirect URL (or the original target) so
+    // relative og:image/<img> resolve identically.
     const baseUrl = pageResponse.url || targetHref;
+    const extractPreviewImageUrls = await loadExtractPreviewImageUrls();
     const imageUrl = getFirstHttpUrl(
         extractPreviewImageUrls(previewBody, baseUrl)
     );
@@ -417,6 +456,7 @@ async function resolveVideoPreview(
     try {
         const videoResult = await resolveVideo(targetUrl, signal);
         if (!videoResult?.videoUrl) {
+            const { classifyCobaltError } = await loadCobaltService();
             const errorCategory = classifyCobaltError(videoResult?.errorCode);
             if (errorCategory === "rate_limited") {
                 return textResponse(
@@ -457,6 +497,7 @@ async function resolveVideoPreview(
 
 async function resolveVideo(targetUrl: URL, signal?: AbortSignal) {
     const targetHref = targetUrl.href;
+    const { resolveCobaltPreview } = await loadCobaltService();
     const result = await resolveCobaltPreview(targetHref, signal);
     if (result.status === "SUCCESS" && result.videoPreviewUrl) {
         await writeToRedis(
@@ -562,6 +603,10 @@ async function fetchWithRedirects(
         : { redirect: "manual" as const };
 
     let publicUrl = initialUrl;
+    // Hosts SSRF-checked in this chain only. Same-host multi-hop redirects
+    // skip a second dns.lookup without a process-wide positive DNS cache
+    // (which would widen rebinding across requests).
+    const hostsValidatedThisChain = new Set<string>();
 
     for (
         let redirectCount = 0;
@@ -569,11 +614,15 @@ async function fetchWithRedirects(
         redirectCount += 1
     ) {
         if (redirectCount > 0) {
-            const validated = await parsePublicHttpUrl(publicUrl.href);
-            if (!validated) {
-                return textResponse("Invalid URL", 400);
+            const hostname = publicUrl.hostname;
+            if (!hostsValidatedThisChain.has(hostname)) {
+                const validated = await parsePublicHttpUrl(publicUrl.href);
+                if (!validated) {
+                    return textResponse("Invalid URL", 400);
+                }
+                publicUrl = validated;
+                hostsValidatedThisChain.add(validated.hostname);
             }
-            publicUrl = validated;
         }
 
         const response = await fetchWithTimeout(
@@ -779,14 +828,16 @@ async function readCachedImagePreview(
     } catch {
         return null;
     }
-    const parsed = ResolvedImageSchema.safeParse(parsedJson);
-    if (!parsed.success) {
+    // Lightweight shape check replaces zod on the cache-hit hot path; the
+    // schema only required two strings.
+    const parsed = parseResolvedImage(parsedJson);
+    if (!parsed) {
         return null;
     }
-    if (isSignedUrlExpired(parsed.data.imageUrl)) {
+    if (isSignedUrlExpired(parsed.imageUrl)) {
         return null;
     }
-    return parsed.data;
+    return parsed;
 }
 
 async function writeCachedImagePreview(
