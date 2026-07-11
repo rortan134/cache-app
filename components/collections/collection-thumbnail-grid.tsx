@@ -4,30 +4,31 @@ import { MediaPlaceholder } from "@/components/ui/media-placeholder";
 import { useStableCallback } from "@base-ui/utils/useStableCallback";
 import * as React from "react";
 
-const PREVIEW_CELL_COUNT = 4;
+const PREVIEW_CELL_KEYS = ["tl", "tr", "bl", "br"] as const;
 
 export function CollectionThumbnailGrid({ urls }: { urls: string[] }) {
-    const cells = Array.from(
-        { length: PREVIEW_CELL_COUNT },
-        (_, index) => urls[index] ?? null
-    );
-
     return (
         <div className="grid h-40 w-full grid-cols-2 grid-rows-2 gap-0.5 overflow-hidden bg-muted/40">
-            {cells.map((url, index) => (
-                <CollectionThumbnailCell key={index} url={url} />
+            {PREVIEW_CELL_KEYS.map((cellKey, slot) => (
+                <CollectionThumbnailCell
+                    key={cellKey}
+                    url={urls[slot] ?? null}
+                />
             ))}
         </div>
     );
 }
 
 function CollectionThumbnailCell({ url }: { url: string | null }) {
-    const [didFail, setDidFail] = React.useState(false);
-    const canRenderImage = Boolean(url) && !didFail;
+    const [failedUrl, setFailedUrl] = React.useState<string | null>(null);
 
-    const handleError = useStableCallback(() => setDidFail(true));
+    const handleError = useStableCallback(() => {
+        if (url) {
+            setFailedUrl(url);
+        }
+    });
 
-    if (!canRenderImage) {
+    if (!url || failedUrl === url) {
         return <MediaPlaceholder className="size-full rounded-none" />;
     }
 
@@ -39,7 +40,7 @@ function CollectionThumbnailCell({ url }: { url: string | null }) {
             height={160}
             loading="lazy"
             onError={handleError}
-            src={url ?? undefined}
+            src={url}
             width={160}
         />
     );

@@ -4059,8 +4059,8 @@ function PreviewColorPalette({ src }: { src: string }) {
 
     return (
         <AvatarGroup className="justify-end -space-x-1">
-            {data.map((value, index) => (
-                <PreviewColorBadge key={`${value}-${index}`} value={value} />
+            {data.map(({ hex, name }) => (
+                <PreviewColorBadge key={name} value={hex} />
             ))}
         </AvatarGroup>
     );

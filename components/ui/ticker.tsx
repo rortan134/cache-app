@@ -6,7 +6,8 @@ import * as React from "react";
 
 const DEFAULT_DURATION_SECONDS = 5;
 const MAX_SPEED_PX_PER_SECOND = 92;
-const MARQUEE_REPEAT_COUNT = 2;
+const MARQUEE_REPEAT_KEYS = ["primary", "clone"] as const;
+const MARQUEE_REPEAT_COUNT = MARQUEE_REPEAT_KEYS.length;
 
 interface TickerTrackStyle extends React.CSSProperties {
     "--animation-distance": string;
@@ -63,14 +64,14 @@ export function Ticker({
                 )}
                 style={trackStyle}
             >
-                {Array.from(
-                    { length: isOverflowing ? MARQUEE_REPEAT_COUNT : 1 },
-                    (_, index) => (
-                        <span className="shrink-0 p-px pr-4" key={index}>
-                            {children}
-                        </span>
-                    )
-                )}
+                {MARQUEE_REPEAT_KEYS.slice(
+                    0,
+                    isOverflowing ? MARQUEE_REPEAT_COUNT : 1
+                ).map((repeatKey) => (
+                    <span className="shrink-0 p-px pr-4" key={repeatKey}>
+                        {children}
+                    </span>
+                ))}
             </span>
         </span>
     );

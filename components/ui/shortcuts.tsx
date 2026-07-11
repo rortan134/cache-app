@@ -84,14 +84,16 @@ export function KeyboardShortcutsDialogTrigger(
                                                 </span>
                                                 <KbdGroup>
                                                     <Kbd>
-                                                        {item.hotkey
-                                                            .split("+")
-                                                            .map((part, i) => (
+                                                        {splitHotkeyParts(
+                                                            item.hotkey
+                                                        ).map(
+                                                            ({ key, part }) => (
                                                                 <ShortcutKeyPart
-                                                                    key={i}
+                                                                    key={key}
                                                                     part={part}
                                                                 />
-                                                            ))}
+                                                            )
+                                                        )}
                                                     </Kbd>
                                                 </KbdGroup>
                                             </div>
@@ -105,6 +107,14 @@ export function KeyboardShortcutsDialogTrigger(
             </DrawerViewport>
         </Drawer>
     );
+}
+
+function splitHotkeyParts(hotkey: string) {
+    const parts = hotkey.split("+");
+    return parts.map((part, index) => ({
+        key: parts.slice(0, index + 1).join("+"),
+        part,
+    }));
 }
 
 function ShortcutKeyPart({ part }: { part: string }) {
