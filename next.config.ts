@@ -43,6 +43,7 @@ const nextConfig: NextConfig = {
             "streamdown",
             "zod",
         ],
+        useTypeScriptCli: true,
     },
     async headers() {
         return [
