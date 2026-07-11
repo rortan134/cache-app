@@ -573,8 +573,7 @@ function IntegrationsListItem({
         id: integrationId,
         isConnected,
     });
-
-    const primaryAction = actions[0];
+    const [primaryAction] = actions;
 
     const handleClick = useStableCallback(() => {
         primaryAction?.onClick();

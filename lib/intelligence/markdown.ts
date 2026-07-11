@@ -85,7 +85,7 @@ function normalizeGeneratedMarkdownValue(
 
     const fieldNames = Object.keys(value);
     if (fieldNames.length === 1) {
-        const fieldName = fieldNames[0];
+        const [fieldName] = fieldNames;
         if (fieldName) {
             return normalizeGeneratedMarkdownValue(value[fieldName], depth + 1);
         }
