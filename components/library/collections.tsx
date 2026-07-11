@@ -3081,6 +3081,16 @@ function CollectionsRenameDialog() {
 
     const renameDialogKey = pendingRename?.id ?? "closed";
 
+    React.useEffect(() => {
+        if (pendingRename) {
+            setNameDraft(pendingRename.name);
+            setErrorMessage(null);
+            return;
+        }
+        setNameDraft("");
+        setErrorMessage(null);
+    }, [pendingRename]);
+
     const handleNameDraftChange = useStableCallback((draft: string) => {
         setNameDraft(draft);
         if (errorMessage) {
@@ -3230,6 +3240,14 @@ function CollectionsCreateDialog() {
     const createSubmissionPendingRef = React.useRef(false);
 
     const isNameValid = normalizeWhitespace(nameDraft).length > 0;
+
+    React.useEffect(() => {
+        if (!isCreateOpen) {
+            setNameDraft("");
+            setDescriptionDraft("");
+            setErrorMessage(null);
+        }
+    }, [isCreateOpen]);
 
     const handleNameDraftChange = useStableCallback((draft: string) => {
         setNameDraft(draft);
