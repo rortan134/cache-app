@@ -18,7 +18,15 @@ import {
     type CommandSuggestion,
     type PaletteStackEntry,
 } from "@/components/library/composer";
-import type { NoteDraft } from "@/components/library/notes";
+import {
+    NoteEditor,
+    NoteHeader,
+    NoteMetrics,
+    NoteRoot,
+    NoteTitle,
+    useNoteContext,
+    type NoteDraft,
+} from "@/components/library/notes";
 import {
     openQuickLookDrawer,
     QuickLookDrawer,
@@ -241,7 +249,6 @@ import {
     XIcon,
     ZoomIn,
 } from "lucide-react";
-import dynamic from "next/dynamic";
 import Image from "next/image";
 import * as React from "react";
 import { useHotkeys } from "react-hotkeys-hook";
@@ -2466,31 +2473,25 @@ function BrowserGroup({ children }: React.PropsWithChildren) {
 }
 
 function CategoryThumbnail({ urls }: { urls: string[] }) {
-    const [validUrls, setValidUrls] = React.useState<string[]>([]);
-    const [hasImageError, setHasImageError] = React.useState(false);
+    const validUrls = filterValidImageUrls(urls);
+    const urlsKey = validUrls.join("\0");
+    const [errorCount, setErrorCount] = React.useState(0);
+    const [prevUrlsKey, setPrevUrlsKey] = React.useState(urlsKey);
 
-    React.useEffect(() => {
-        setHasImageError(false);
-        if (urls.length === 0) {
-            setValidUrls([]);
-            return;
-        }
-        let isMounted = true;
-        filterValidImageUrls(urls).then((valid) => {
-            if (isMounted) {
-                setValidUrls(valid);
-            }
-        });
-        return () => {
-            isMounted = false;
-        };
-    }, [urls]);
+    // Reset the error cursor when the candidate list changes so a prior
+    // load failure does not permanently hide a newly valid thumbnail.
+    if (urlsKey !== prevUrlsKey) {
+        setPrevUrlsKey(urlsKey);
+        setErrorCount(0);
+    }
 
-    const src = validUrls[0];
+    const src = validUrls[errorCount];
 
-    const handleImageError = useStableCallback(() => setHasImageError(true));
+    const handleImageError = useStableCallback(() => {
+        setErrorCount((count) => count + 1);
+    });
 
-    if (hasImageError || !src) {
+    if (!src) {
         return null;
     }
 
@@ -2629,18 +2630,17 @@ function buildSearchPaletteGroups({
 
     if (showCollectionsGroup) {
         if (isDefaultState) {
-            const collectionItems = collections
-                .map((collection) => ({
-                    collection,
-                    thumbnails:
-                        collectionPreviewThumbnailUrlsById.get(collection.id) ??
-                        [],
-                }))
-                .filter(({ thumbnails }) => thumbnails.length > 1)
-                .slice(0, 4);
-
-            groups.push({
-                items: collectionItems.map(({ collection, thumbnails }) => ({
+            const collectionItems: CommandPaletteItem[] = [];
+            for (const collection of collections) {
+                if (collectionItems.length >= 4) {
+                    break;
+                }
+                const thumbnails =
+                    collectionPreviewThumbnailUrlsById.get(collection.id) ?? [];
+                if (thumbnails.length <= 1) {
+                    continue;
+                }
+                collectionItems.push({
                     active: selectedCollectionIds.includes(collection.id),
                     label: collection.name,
                     onSelect: applyCollectionFilter(() =>
@@ -2657,7 +2657,11 @@ function buildSearchPaletteGroups({
                         </div>
                     ),
                     value: `filter collection ${collection.id}`,
-                })),
+                });
+            }
+
+            groups.push({
+                items: collectionItems,
                 label: "Collections",
                 layout: "horizontal",
             });
@@ -3838,12 +3842,7 @@ function getSharedCollectionIds(items: LibraryItemWithCollections[]): string[] {
         }
     }
 
-    return (
-        firstItem?.collections
-            .map((collection) => collection.id)
-            .filter((collectionId) => sharedCollectionIds.has(collectionId)) ??
-        []
-    );
+    return Array.from(sharedCollectionIds);
 }
 
 function getItemTitle(item: LibraryItemWithCollections): string {
@@ -4657,101 +4656,84 @@ interface NoteDrawerProps {
     onNoteDrawerClose: () => void;
 }
 
-/**
- * Lazily load the note editor so the ~350 KB Lexical subtree is not
- * included in the initial browser bundle.
- *
- * The component is always rendered so the chunk starts loading on
- * hydration, but it returns null while loading because the drawer is
- * closed most of the time and a loading skeleton would flash on every
- * page load.
- */
-const NoteDrawer = dynamic(
-    () =>
-        import("@/components/library/notes").then((mod) => {
-            const Note = mod.Note;
+interface NoteDrawerContentProps {
+    contentEditableRef: React.RefObject<HTMLDivElement | null>;
+    isNoteDrawerOpen: boolean;
+}
 
-            function NoteDrawerShell({
-                contentEditableRef,
-                isNoteDrawerOpen,
-            }: {
-                contentEditableRef: React.RefObject<HTMLDivElement | null>;
-                isNoteDrawerOpen: boolean;
-            }) {
-                const { onOpenChange } = Note.useContext();
+function NoteDrawerContent({
+    contentEditableRef,
+    isNoteDrawerOpen,
+}: NoteDrawerContentProps) {
+    const { onOpenChange } = useNoteContext();
 
-                return (
-                    <Drawer
-                        onOpenChange={onOpenChange}
-                        open={isNoteDrawerOpen}
-                        position="right"
-                        swipeDirection="right"
+    return (
+        <Drawer
+            onOpenChange={onOpenChange}
+            open={isNoteDrawerOpen}
+            position="right"
+            swipeDirection="right"
+        >
+            <DrawerViewport>
+                <DrawerPopup
+                    className="max-w-2xl"
+                    initialFocus={contentEditableRef}
+                    variant="straight"
+                >
+                    <DrawerHeader
+                        allowSelection
+                        className="flex-row items-center justify-between"
                     >
-                        <DrawerViewport>
-                            <DrawerPopup
-                                className="max-w-2xl"
-                                initialFocus={contentEditableRef}
-                                variant="straight"
-                            >
-                                <DrawerHeader
-                                    allowSelection
-                                    className="flex-row items-center justify-between"
-                                >
-                                    <DrawerTitle className="sr-only">
-                                        <Note.Title />
-                                    </DrawerTitle>
-                                    <Note.Header />
-                                </DrawerHeader>
-                                <DrawerPanel allowSelection>
-                                    <Note.Editor />
-                                    <Note.Metrics />
-                                </DrawerPanel>
-                            </DrawerPopup>
-                        </DrawerViewport>
-                    </Drawer>
-                );
-            }
+                        <DrawerTitle className="sr-only">
+                            <NoteTitle />
+                        </DrawerTitle>
+                        <NoteHeader />
+                    </DrawerHeader>
+                    <DrawerPanel allowSelection>
+                        <NoteEditor />
+                        <NoteMetrics />
+                    </DrawerPanel>
+                </DrawerPopup>
+            </DrawerViewport>
+        </Drawer>
+    );
+}
 
-            return function NoteDrawerInner({
-                activeNote,
-                handlePasteUrlIntoLibrary,
-                handleSaveNote,
-                isSavingNote,
-                isSavingPastedUrl,
-                onNoteDrawerClose,
-            }: NoteDrawerProps) {
-                const isNoteDrawerOpen = activeNote !== null;
-                const note = activeNote === NOTE_DRAWER_NEW ? null : activeNote;
-                const contentEditableRef = React.useRef<HTMLDivElement | null>(
-                    null
-                );
+function NoteDrawer({
+    activeNote,
+    handlePasteUrlIntoLibrary,
+    handleSaveNote,
+    isSavingNote,
+    isSavingPastedUrl,
+    onNoteDrawerClose,
+}: NoteDrawerProps) {
+    const isNoteDrawerOpen = activeNote !== null;
+    const note = activeNote === NOTE_DRAWER_NEW ? null : activeNote;
+    const contentEditableRef = React.useRef<HTMLDivElement | null>(null);
 
-                const handleOpenChange = useStableCallback((open: boolean) => {
-                    if (!open) {
-                        onNoteDrawerClose();
-                    }
-                });
+    const handleOpenChange = useStableCallback((open: boolean) => {
+        if (!open) {
+            onNoteDrawerClose();
+        }
+    });
 
-                return (
-                    <Note.Root
-                        contentEditableRef={contentEditableRef}
-                        isSaving={isSavingNote || isSavingPastedUrl}
-                        note={note}
-                        onOpenChange={handleOpenChange}
-                        onSave={handleSaveNote}
-                        onUrlPaste={handlePasteUrlIntoLibrary}
-                        open={isNoteDrawerOpen}
-                    >
-                        <NoteDrawerShell
-                            contentEditableRef={contentEditableRef}
-                            isNoteDrawerOpen={isNoteDrawerOpen}
-                        />
-                    </Note.Root>
-                );
-            };
-        }),
-    { loading: () => null, ssr: false }
-);
+    return (
+        <NoteRoot
+            contentEditableRef={contentEditableRef}
+            isSaving={isSavingNote || isSavingPastedUrl}
+            note={note}
+            onOpenChange={handleOpenChange}
+            onSave={handleSaveNote}
+            onUrlPaste={handlePasteUrlIntoLibrary}
+            open={isNoteDrawerOpen}
+        >
+            <NoteDrawerContent
+                contentEditableRef={contentEditableRef}
+                isNoteDrawerOpen={isNoteDrawerOpen}
+            />
+        </NoteRoot>
+    );
+}
 
 interface BrowserSimilarFilterState {
     collectionMembershipFilter: CollectionMembershipFilter;

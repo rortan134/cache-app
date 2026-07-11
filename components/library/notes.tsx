@@ -357,11 +357,11 @@ const EXPORT_CONTENT_PROVIDERS: readonly ExportContentProvider[] = [
 
 const NoteContext = createContext<NoteContextValue | null>(null);
 
-function useNoteContext(): NoteContextValue {
+export function useNoteContext(): NoteContextValue {
     const context = use(NoteContext);
     if (!context) {
         throw new Error(
-            "Note compound components must be rendered inside Note.Root."
+            "Note compound components must be rendered inside NoteRoot."
         );
     }
     return context;
@@ -808,8 +808,18 @@ function NotePlaceholder() {
  *
  * Manages draft state, dirty-checking, auto-save on close, and expansion
  * toggling. Provides the shared context consumed by all leaf parts.
+ *
+ * Compose with leaf parts:
+ *   <NoteRoot note={note} open onSave={...} ...>
+ *     <NoteHeader />
+ *     <NoteEditor />
+ *     <NoteMetrics />
+ *   </NoteRoot>
+ *
+ * Call `useNoteContext()` in custom children to read draft state and
+ * text metrics.
  */
-function NoteRoot({
+export function NoteRoot({
     children,
     contentEditableRef,
     note,
@@ -1035,7 +1045,7 @@ function NoteRoot({
  *
  * Used by parent layouts that need the title outside the note tree.
  */
-function NoteTitle() {
+export function NoteTitle() {
     const { title } = useNoteContext();
     return title;
 }
@@ -1090,7 +1100,7 @@ function NoteSaveStatus() {
     );
 }
 
-function NoteHeader() {
+export function NoteHeader() {
     const { contentHtml, onOpenChange, query, title } = useNoteContext();
     const hasQuery = query.length > 0;
     const [notionStatus, setNotionStatus] = useState<{
@@ -1258,7 +1268,7 @@ function NoteHeader() {
  * empty-state placeholder overlay. The a11y extensions live in
  * `NOTE_EDITOR_EXTENSION`.
  */
-function NoteEditor() {
+export function NoteEditor() {
     const {
         contentEditableRef,
         editorKey,
@@ -1319,7 +1329,7 @@ function NoteEditor() {
     );
 }
 
-function NoteMetrics() {
+export function NoteMetrics() {
     const { textMetrics } = useNoteContext();
     const shouldShowReadTime = textMetrics.readMinuteCount >= 2;
 
@@ -1375,24 +1385,4 @@ function ExportProviderMenuItem({
     );
 }
 
-/**
- * Compound component for the rich-text note editor.
- *
- * Compose with `.Root`, `.Header`, `.Editor`, and `.Metrics`:
- *   <Note.Root note={note} open onSave={...} ...>
- *     <Note.Header />
- *     <Note.Editor />
- *     <Note.Metrics />
- *   </Note.Root>
- *
- * Call `.useContext()` in custom children to read draft state,
- * text metrics, and the expanded flag.
- */
-export const Note = Object.assign(NoteRoot, {
-    Editor: NoteEditor,
-    Header: NoteHeader,
-    Metrics: NoteMetrics,
-    Root: NoteRoot,
-    Title: NoteTitle,
-    useContext: useNoteContext,
-});
+
