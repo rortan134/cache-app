@@ -7,7 +7,6 @@ import {
 } from "@/components/ui/collapsible";
 import { Popover, PopoverPopup, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/common/cn";
-import { clamp } from "@/lib/common/numbers";
 import { Calligraph } from "calligraph";
 import * as React from "react";
 
@@ -32,8 +31,6 @@ export function DisclosureListVertical({
     const visible = childrenArray.slice(0, maxVisible);
     const hidden = childrenArray.slice(maxVisible);
 
-    const hiddenCount = clamp(hidden.length, 0, 99);
-
     return (
         <div
             {...props}
@@ -41,7 +38,7 @@ export function DisclosureListVertical({
             data-slot="disclosure-list"
         >
             {visible}
-            {hiddenCount > 0 ? <DisclosureListHidden items={hidden} /> : null}
+            {hidden.length > 0 ? <DisclosureListHidden items={hidden} /> : null}
         </div>
     );
 }
@@ -89,9 +86,6 @@ export function DisclosureListHorizontal({
     const visible = childrenArray.slice(0, maxVisible);
     const hidden = childrenArray.slice(maxVisible);
 
-    const hiddenCount = clamp(hidden.length, 0, 99);
-    const displayedHidden = hidden.slice(0, hiddenCount);
-
     return (
         <div
             {...props}
@@ -99,19 +93,17 @@ export function DisclosureListHorizontal({
             data-slot="disclosure-list"
         >
             {visible}
-            {hiddenCount > 0 ? (
+            {hidden.length > 0 ? (
                 <Popover>
                     <PopoverTrigger render={badgeRender}>
                         +
                         <Calligraph className="-mx-0.5">
-                            {hiddenCount}
+                            {hidden.length}
                         </Calligraph>{" "}
                         more
                     </PopoverTrigger>
                     <PopoverPopup>
-                        <div className="flex flex-col gap-2">
-                            {displayedHidden}
-                        </div>
+                        <div className="flex flex-col gap-2">{hidden}</div>
                     </PopoverPopup>
                 </Popover>
             ) : null}

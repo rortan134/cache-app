@@ -7,13 +7,15 @@ import * as React from "react";
 
 export function MediaPlaceholder({
     className,
+    children,
+    style: styleProp,
     ...props
 }: React.ComponentProps<"div">) {
     const id = React.useId();
     const hash = djb2Hash(id);
     const x = hash % 101; // x in [0, 100] percent
     const y = (hash >> 8) % 101; // y in [0, 100] percent
-    const style: React.CSSProperties & Record<string, string> = {
+    const textureStyle: React.CSSProperties & Record<string, string> = {
         "--texture-position": `${x}% ${y}%`,
     };
 
@@ -25,9 +27,11 @@ export function MediaPlaceholder({
                 className
             )}
             data-slot="media-placeholder"
-            style={style}
+            style={{ ...textureStyle, ...styleProp }}
         >
-            <GlobeX className="size-6 text-muted-foreground opacity-50" />
+            {children ?? (
+                <GlobeX className="size-6 text-muted-foreground opacity-50" />
+            )}
         </div>
     );
 }

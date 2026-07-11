@@ -8,6 +8,9 @@ const ICON_STROKE_WIDTH = 3;
 export function RadialIcon({
     value,
     size = 10,
+    "aria-label": ariaLabel = "Progress",
+    "aria-hidden": ariaHidden,
+    role = "img",
     ...props
 }: React.ComponentProps<"svg"> & {
     value: number;
@@ -15,13 +18,15 @@ export function RadialIcon({
 }) {
     const circumference = 2 * Math.PI * size;
     const dashOffset = circumference * (1 - clamp(value / 100, 0, 1));
+    const isDecorative = ariaHidden === true || ariaHidden === "true";
 
     return (
         <svg
             {...props}
-            aria-label="Context usage"
+            aria-hidden={isDecorative || undefined}
+            aria-label={isDecorative ? undefined : ariaLabel}
             height="20"
-            role="img"
+            role={isDecorative ? undefined : role}
             style={{ color: "currentcolor" }}
             viewBox={`0 0 ${ICON_VIEWBOX} ${ICON_VIEWBOX}`}
             width="20"

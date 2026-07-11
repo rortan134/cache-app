@@ -82,7 +82,6 @@ export function Footer() {
                                 inconvenience, loss, or other outcome arising
                                 from your relationship with those platforms or
                                 your use of the Service in connection with them.
-                                Additional detail may be found
                             </T>
                         </span>
                         <div className="relative inset-x-0 h-[100px] w-full overflow-clip sm:h-[130px] md:h-[200px]">

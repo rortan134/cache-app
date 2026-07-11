@@ -26,14 +26,17 @@ export function Ticker({
 }: TickerProps) {
     const [overflowWidthPx, setOverflowWidthPx] = React.useState(0);
 
-    const trackRef = useStableCallback((el: HTMLSpanElement | null) => {
-        if (!el) {
+    const setTrackRef = useStableCallback((track: HTMLSpanElement | null) => {
+        if (!track) {
             return;
         }
-        const trackWidth = el.offsetWidth;
-        const innerEl = el.firstElementChild;
-        const contentWidth =
-            innerEl instanceof HTMLElement ? innerEl.offsetWidth : 0;
+        const marquee = track.firstElementChild;
+        const content = marquee?.firstElementChild;
+        if (!(content instanceof HTMLElement)) {
+            return;
+        }
+        const trackWidth = track.offsetWidth;
+        const contentWidth = content.offsetWidth;
         setOverflowWidthPx(
             contentWidth > 0 && contentWidth > trackWidth ? contentWidth : 0
         );
@@ -53,7 +56,7 @@ export function Ticker({
                 "group inline-flex w-full min-w-0 overflow-clip",
                 className
             )}
-            ref={trackRef}
+            ref={setTrackRef}
         >
             <span
                 className={cn(

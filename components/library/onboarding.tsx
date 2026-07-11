@@ -413,6 +413,7 @@ export function OnboardingMenu({
                                         variant="ghost"
                                     >
                                         <RadialIcon
+                                            aria-hidden
                                             className="inline-block size-4 shrink-0"
                                             size={9}
                                             value={progressValue}
@@ -547,6 +548,7 @@ function OnboardingTaskStateIcon({ isCompleted }: { isCompleted: boolean }) {
 
     return (
         <RadialIcon
+            aria-hidden
             className="inline-block size-4 shrink-0"
             size={10}
             value={0}
