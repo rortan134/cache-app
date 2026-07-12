@@ -7,7 +7,7 @@ export function GithubIcon({
 }: React.SVGProps<SVGSVGElement>) {
     return (
         <svg
-            aria-hidden
+            aria-hidden="true"
             className={cn("size-6 shrink-0", className)}
             focusable="false"
             role="img"
@@ -28,7 +28,7 @@ export function TikTokIcon({
 }: React.SVGProps<SVGSVGElement>) {
     return (
         <svg
-            aria-hidden
+            aria-hidden="true"
             className={cn("size-6 shrink-0", className)}
             focusable="false"
             role="img"
@@ -65,7 +65,7 @@ export function InstagramIcon({
 }: React.SVGProps<SVGSVGElement>) {
     return (
         <svg
-            aria-hidden
+            aria-hidden="true"
             className={cn("size-6 shrink-0", className)}
             focusable="false"
             role="img"
@@ -112,7 +112,7 @@ export function PinterestIcon({
 }: React.SVGProps<SVGSVGElement>) {
     return (
         <svg
-            aria-hidden
+            aria-hidden="true"
             className={cn("size-6 shrink-0", className)}
             focusable="false"
             role="img"
@@ -133,7 +133,7 @@ export function PhotosIcon({
 }: React.SVGProps<SVGSVGElement>) {
     return (
         <svg
-            aria-hidden
+            aria-hidden="true"
             className={cn("size-6 shrink-0", className)}
             focusable="false"
             preserveAspectRatio="xMidYMid"
@@ -167,7 +167,7 @@ export function XSocialIcon({
 }: React.SVGProps<SVGSVGElement>) {
     return (
         <svg
-            aria-hidden
+            aria-hidden="true"
             className={cn("size-6 shrink-0", className)}
             fill="none"
             focusable="false"
@@ -189,7 +189,7 @@ export function YouTubeIcon({
 }: React.SVGProps<SVGSVGElement>) {
     return (
         <svg
-            aria-hidden
+            aria-hidden="true"
             className={cn("size-6 shrink-0", className)}
             focusable="false"
             role="img"
@@ -211,7 +211,7 @@ export function ChromeIcon({
 }: React.SVGProps<SVGSVGElement>) {
     return (
         <svg
-            aria-hidden
+            aria-hidden="true"
             className={cn("size-6 shrink-0", className)}
             focusable="false"
             role="img"
@@ -249,7 +249,7 @@ export function GoogleIcon({
 }: React.SVGProps<SVGSVGElement>) {
     return (
         <svg
-            aria-hidden
+            aria-hidden="true"
             className={cn("size-5 shrink-0", className)}
             focusable="false"
             role="img"
@@ -282,7 +282,7 @@ export function NotionIcon({
 }: React.SVGProps<SVGSVGElement>) {
     return (
         <svg
-            aria-hidden
+            aria-hidden="true"
             className={cn("inline-block size-4 shrink-0", className)}
             focusable="false"
             height="268"
@@ -307,7 +307,7 @@ export function GoogleDocsIcon({
 }: React.SVGProps<SVGSVGElement>) {
     return (
         <svg
-            aria-hidden
+            aria-hidden="true"
             className={cn("inline-block size-4 shrink-0", className)}
             focusable="false"
             role="img"

@@ -86,7 +86,6 @@ export function FeedbackWidget({
                     <form
                         action={formAction}
                         className="space-y-4"
-                        onKeyDown={stopPropagationForPrintableKeys}
                         ref={formRef}
                     >
                         <input name="context" type="hidden" value={context} />
@@ -104,6 +103,7 @@ export function FeedbackWidget({
                             className="min-h-24"
                             id="feedback-message"
                             name="message"
+                            onKeyDown={stopPropagationForPrintableKeys}
                             placeholder="Cache updates regularly with your suggestions. Have an idea to improve this page? Tell the Cache team"
                             required
                         />

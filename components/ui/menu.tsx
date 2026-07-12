@@ -279,7 +279,7 @@ function MenuCheckIndicator({ children }: { children: React.ReactNode }) {
         <>
             <MenuPrimitive.CheckboxItemIndicator className="col-start-1 -ms-0.5">
                 <svg
-                    aria-hidden
+                    aria-hidden="true"
                     fill="none"
                     height="24"
                     stroke="currentColor"
