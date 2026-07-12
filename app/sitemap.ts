@@ -1,6 +1,6 @@
 import { BASE_URL } from "@/lib/common/constants";
 import { normalizeURL } from "@/lib/common/url";
-import { getDefaultLocale, getLocales } from "gt-next/server";
+import { getDefaultLocale, getLocales } from "gt-next";
 import type { MetadataRoute } from "next";
 
 interface SitemapRoute {

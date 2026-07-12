@@ -1,5 +1,5 @@
 import { BASE_URL } from "@/lib/common/constants";
-import { getDefaultLocale, getGTClass, getLocales } from "gt-next/server";
+import { getDefaultLocale, getLocales, resolveCanonicalLocale } from "gt-next";
 import type { Metadata } from "next";
 
 function getLocalizedUrl(locale: string, path: `/${string}`) {
@@ -11,11 +11,10 @@ function getLocalizedUrl(locale: string, path: `/${string}`) {
 export function buildLocaleAlternates(
     path: `/${string}`
 ): NonNullable<Metadata["alternates"]> {
-    const gt = getGTClass();
     const defaultLocale = getDefaultLocale();
     const languages = Object.fromEntries(
         getLocales().map((locale) => [
-            gt.resolveCanonicalLocale(locale),
+            resolveCanonicalLocale(locale),
             getLocalizedUrl(locale, path),
         ])
     );

@@ -160,11 +160,31 @@
   ],
   "3b205a1c17c06fbd": "Favoritos",
   "3b244622a56ac1bc": "¿Eliminar?",
+  "3eb0108260605379": [
+    "Ahorra horas cada semana con una forma más inteligente de gestionar todo lo que guardas online.",
+    {
+      "i": 1,
+      "t": "br"
+    },
+    "Pon orden en el caos — desde solo 8 $/mes."
+  ],
   "408574e37e8d91ee": "pronto",
   "43c4658708e52e85": "Eliminar cuenta",
   "442ad87bcc4b1187": "No hay nada que restaurar ahora mismo",
   "446fc0e1621b7ae8": "Soporte",
   "4593e3bd9f747b95": "Hazte Pro mensual",
+  "4842519093db3e53": [
+    {
+      "c": "Busca y explora desde un único feed rápido",
+      "i": 1,
+      "t": "h2"
+    },
+    {
+      "c": "Agiliza la forma en que vuelves a consultar el contenido que has guardado con una interfaz moderna y potente.",
+      "i": 2,
+      "t": "p"
+    }
+  ],
   "48de21dffb27aea4": "Registro de cambios",
   "4d1751261b773c2c": "¿Restaurar este elemento guardado?",
   "4d587a9524c95dd7": [
@@ -178,6 +198,7 @@
   ],
   "4fc630d6b2bf647f": "Restaurar",
   "54733851c614db5d": "Esto cancela cualquier suscripción activa y elimina permanentemente tu biblioteca, tus colecciones y los datos de tu cuenta. Esta acción no se puede deshacer.",
+  "57e47beccd8ac997": "Hazte premium",
   "5930189d0848c328": "Creadores y curadores",
   "59470116de88a745": "Artículos, ensayos, newsletters. Una biblioteca viva en lugar de un cementerio de lecturas pendientes.",
   "5a0a4ee1bf2a58dc": "No se pudieron cargar las cuentas guardadas.",
@@ -325,18 +346,6 @@
   "75d4d73501e837d5": "Hazte Pro",
   "7721d8d00edabeda": "Cerrando sesión…",
   "7a8ec4ce7cf50dc7": "Eliminados recientemente",
-  "7cb5fccc5f748ea2": [
-    {
-      "c": "Busca y explora desde un único feed rápido",
-      "i": 1,
-      "t": "h2"
-    },
-    {
-      "c": "Simplifica la forma de volver a tu contenido guardado con una interfaz moderna y potente, directamente en tu navegador.",
-      "i": 2,
-      "t": "p"
-    }
-  ],
   "7d288c9b77b0a60e": "Información legal y políticas",
   "841cad15ee2276fc": "Recursos",
   "87254fc32f854b77": "No se pudo cambiar de cuenta.",
@@ -377,6 +386,7 @@
       "t": "li"
     }
   ],
+  "8a356f348a1058a6": "Las plataformas de terceros a las que te conectas a través del Servicio operan de forma independiente a Cache. Cache no controla sus políticas ni cómo las aplican, y no se hace responsable de las decisiones que esas plataformas tomen sobre tus cuentas o tu acceso a sus servicios, incluidos, entre otros, los cambios en la disponibilidad, estén o no relacionados con tu uso de Cache. Eres responsable de cumplir los términos, las políticas y las community guidelines de cada plataforma. Cache no será responsable de ningún inconveniente, pérdida u otra consecuencia derivada de tu relación con esas plataformas o de tu uso del Servicio en relación con ellas.",
   "8b045bc1a6270fb5": "Colecciones",
   "8d01ed931a4c5812": "Eliminando…",
   "8ebdbcb486fb7060": "Suscripción",
@@ -389,7 +399,6 @@
   },
   "93f881a7033302b7": "El paso que faltaba entre guardar marcadores y tomar notas. Estructurado, fácil de buscar y siempre a mano cuando lo necesitas.",
   "94c20ff6b75d8acb": "Cómo recopilamos, usamos y protegemos la información personal.",
-  "97a5529d32e3ce95": "Ahorra horas cada semana con una forma más inteligente de gestionar todo lo que guardas online. Pon orden en el caos — desde 8 $/mes.",
   "97f68bd29d3d4247": {
     "c": [
       {
@@ -415,9 +424,10 @@
     "Cache es ideal para…"
   ],
   "99e4c3ba36537129": "Cancelar",
-  "9e172217c3e3d8ae": "Actualizar a Pro",
+  "9fd82b2890ce2961": "Ocultar sugerencias",
   "9fda70fa98e942b4": "Todas las colecciones que has creado en tu espacio de trabajo.",
   "a06f2446c9ee9132": "Referencias, citas, fragmentos. Una base documental con buscador para tu material de trabajo.",
+  "a1266e82c6a1f68f": "Mostrar sugerencias",
   "a3bf9c945c7318bb": "Automatizaciones",
   "a4ecc2d52fb9c50b": "Política de Privacidad",
   "a586e0692358c532": "Actualiza para acceder por completo a Cache y a todas las integraciones",
@@ -592,6 +602,5 @@
   "e6bf33cf97345f68": "¿Eliminar para siempre?",
   "e6c1109fa39e2f8d": "Eliminar definitivamente",
   "ece5e10bd5b5769d": "Guardando...",
-  "f137946f63b397fd": "Abrir en...",
-  "fe9fbbc696a13ffb": "Las plataformas de terceros a las que te conectes a través del Servicio operan de forma independiente de Cache. Cache no controla sus políticas ni cómo las aplican, y no se responsabiliza de las decisiones que esas plataformas tomen respecto a tus cuentas o a tu acceso a sus servicios, incluidos, entre otros, los cambios en su disponibilidad, estén o no relacionados con tu uso de Cache. Eres responsable de cumplir los términos, las políticas y las normas de la comunidad de cada plataforma. Cache no se hace responsable de las molestias, pérdidas ni de cualquier otra consecuencia derivada de tu relación con esas plataformas o de tu uso del Servicio en relación con ellas. Puedes encontrar más información"
+  "f137946f63b397fd": "Abrir en..."
 }
