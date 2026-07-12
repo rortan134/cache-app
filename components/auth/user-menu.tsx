@@ -19,7 +19,6 @@ import {
     CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { AltKbd, CmdKbd, Kbd } from "@/components/ui/kbd";
-import AppIconSmall from "@/public/cache-icon-small.png";
 import {
     Menu,
     MenuGroup,
@@ -42,6 +41,7 @@ import type { auth } from "@/lib/auth/server";
 import { cn } from "@/lib/common/cn";
 import { createLogger } from "@/lib/common/logs/console/logger";
 import { getInitials } from "@/lib/common/strings";
+import AppIconSmall from "@/public/cache-icon-small.png";
 import { useStableCallback } from "@base-ui/utils/useStableCallback";
 import { LocaleSelector, T, Var } from "gt-next";
 import {
@@ -211,14 +211,16 @@ export function UserMenuContent() {
                         className="w-full justify-start font-normal"
                         render={<MenuItem closeOnClick={false} />}
                     >
-                        <Image
-                            alt=""
-                            height={12}
-                            src={AppIconSmall}
-                            width={12}
-                        />
                         <T>Upgrade to premium</T>
-                        <ArrowUpRight className="ml-auto! inline-block size-4 shrink-0 text-muted-foreground" />
+                        <div className="ml-auto inline-flex items-center justify-end gap-1">
+                            <Image
+                                alt=""
+                                height={12}
+                                src={AppIconSmall}
+                                width={12}
+                            />
+                            <ArrowUpRight className="inline-block size-4 shrink-0 text-muted-foreground" />
+                        </div>
                     </SubscriptionUpgradeButton>
                 </UnsubscribedOnly>
                 <Collapsible>
