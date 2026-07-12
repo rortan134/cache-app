@@ -1,6 +1,5 @@
 "use client";
 
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -25,6 +24,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { cn } from "@/lib/common/cn";
 import {
     DEFAULT_TIME_OF_DAY_MINUTES,
     formatTimeOfDayMinutes,
@@ -51,9 +51,9 @@ import {
     ChevronRight,
     Clock,
     FolderOpen,
-    Lightbulb,
     Pencil,
     Plus,
+    type LucideIcon,
 } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -61,7 +61,8 @@ import * as React from "react";
 
 const ALL_LIBRARY_COLLECTION_ID = "all_library";
 const AUTOMATION_OPTION_TRIGGER_CLASS_NAME =
-    "max-w-full min-w-0 justify-start gap-0 overflow-hidden";
+    "h-7 max-w-full min-w-0 justify-start gap-1 rounded-md px-2 font-normal text-muted-foreground hover:bg-muted hover:text-foreground";
+const AUTOMATION_OPTION_POPUP_CLASS_NAME = "min-w-44";
 const DEFAULT_WEEK_DAY = 1;
 const DEFAULT_MONTH_DAY = 1;
 const DEFAULT_WEEK_DAY_OPTION: WeekDayOption = {
@@ -347,14 +348,14 @@ export function AutomationComposerDialog({
                                 />
                                 Cache
                             </Badge>
-                            <ChevronRight className="inline-block size-3.5 shrink-0" />
+                            <ChevronRight className="inline-block size-3.5 shrink-0 text-muted-foreground" />
                             <DialogTitle className="font-medium text-sm">
                                 {isEditing ? "Edit" : "New"} automation
                             </DialogTitle>
                         </div>
                     </DialogHeader>
-                    <DialogPanel className="space-y-2">
-                        <div>
+                    <DialogPanel className="space-y-4">
+                        <div className="space-y-1">
                             <label
                                 className="sr-only font-medium text-sm"
                                 htmlFor={titleId}
@@ -373,8 +374,6 @@ export function AutomationComposerDialog({
                                 type="text"
                                 value={formState.title}
                             />
-                        </div>
-                        <div>
                             <label
                                 className="sr-only font-medium text-sm"
                                 htmlFor={promptId}
@@ -388,12 +387,12 @@ export function AutomationComposerDialog({
                                 onChange={handlePromptChange}
                                 placeholder="Summarize the most useful saved items and call out patterns worth revisiting."
                                 required
-                                rows={6}
+                                rows={5}
                                 size="lg"
                                 value={formState.prompt}
                             />
                         </div>
-                        <div className="grid gap-2">
+                        <div className="flex flex-wrap items-center gap-1">
                             <span
                                 className="sr-only font-medium text-sm"
                                 id={collectionId}
@@ -403,11 +402,12 @@ export function AutomationComposerDialog({
                             <AutomationCollectionCombobox
                                 labelId={collectionId}
                                 onValueChange={handleCollectionChange}
-                                options={[ALL_LIBRARY_OPTION, ...collections]}
+                                options={getCollectionComboboxOptions(
+                                    collections,
+                                    formState.collection
+                                )}
                                 value={formState.collection}
                             />
-                        </div>
-                        <div className="grid gap-2">
                             <span
                                 className="sr-only font-medium text-sm"
                                 id={cadenceId}
@@ -419,8 +419,6 @@ export function AutomationComposerDialog({
                                 onValueChange={handleCadenceChange}
                                 value={formState.cadence}
                             />
-                        </div>
-                        <div className="grid gap-2">
                             <span
                                 className="sr-only font-medium text-sm"
                                 id={timeId}
@@ -436,52 +434,46 @@ export function AutomationComposerDialog({
                                     formState.timeValue
                                 )}
                             />
+                            {formState.cadence.value === "weekly" ? (
+                                <>
+                                    <span
+                                        className="sr-only font-medium text-sm"
+                                        id={weekDayId}
+                                    >
+                                        Weekday
+                                    </span>
+                                    <AutomationWeekDayCombobox
+                                        labelId={weekDayId}
+                                        onValueChange={handleWeekDayChange}
+                                        value={getWeekDayOption(
+                                            formState.weekDay
+                                        )}
+                                    />
+                                </>
+                            ) : null}
+                            {formState.cadence.value === "monthly" ? (
+                                <>
+                                    <span
+                                        className="sr-only font-medium text-sm"
+                                        id={monthDayId}
+                                    >
+                                        Month day
+                                    </span>
+                                    <AutomationMonthDayCombobox
+                                        labelId={monthDayId}
+                                        onValueChange={handleMonthDayChange}
+                                        value={getMonthDayOption(
+                                            formState.monthDay
+                                        )}
+                                    />
+                                </>
+                            ) : null}
                         </div>
-                        {formState.cadence.value === "weekly" ? (
-                            <div className="grid gap-2">
-                                <span
-                                    className="sr-only font-medium text-sm"
-                                    id={weekDayId}
-                                >
-                                    Weekday
-                                </span>
-                                <AutomationWeekDayCombobox
-                                    labelId={weekDayId}
-                                    onValueChange={handleWeekDayChange}
-                                    value={getWeekDayOption(formState.weekDay)}
-                                />
-                            </div>
-                        ) : null}
-                        {formState.cadence.value === "monthly" ? (
-                            <div>
-                                <span
-                                    className="sr-only font-medium text-sm"
-                                    id={monthDayId}
-                                >
-                                    Month day
-                                </span>
-                                <AutomationMonthDayCombobox
-                                    labelId={monthDayId}
-                                    onValueChange={handleMonthDayChange}
-                                    value={getMonthDayOption(
-                                        formState.monthDay
-                                    )}
-                                />
-                            </div>
-                        ) : null}
                         {formState.errorMessage ? (
                             <p className="text-destructive text-sm leading-6">
                                 {formState.errorMessage}
                             </p>
                         ) : null}
-                        <Alert>
-                            <Lightbulb />
-                            <AlertDescription>
-                                Automations help you streamline repetitive tasks
-                                and processes. Set them up to save time and
-                                ensure things run smoothly.
-                            </AlertDescription>
-                        </Alert>
                     </DialogPanel>
                     <DialogFooter>
                         <Button isLoading={isPending} size="sm" type="submit">
@@ -499,6 +491,43 @@ interface AutomationComposerDialogProps {
     children?: React.ReactNode;
     collections: AutomationCollectionOption[];
     trigger?: React.ReactElement;
+}
+
+function AutomationOptionTrigger({
+    icon: Icon,
+    labelId,
+    valueClassName,
+}: {
+    icon: LucideIcon;
+    labelId: string;
+    valueClassName?: string;
+}) {
+    return (
+        <ComboboxTrigger
+            render={
+                <Button
+                    aria-labelledby={labelId}
+                    className={AUTOMATION_OPTION_TRIGGER_CLASS_NAME}
+                    size="xs"
+                    variant="ghost"
+                />
+            }
+        >
+            <Icon
+                aria-hidden
+                className="size-3.5 shrink-0 opacity-70"
+                focusable="false"
+            />
+            <span className={cn("min-w-0 truncate", valueClassName)}>
+                <ComboboxValue />
+            </span>
+            <ChevronDown
+                aria-hidden
+                className="size-3 shrink-0 opacity-50"
+                focusable="false"
+            />
+        </ComboboxTrigger>
+    );
 }
 
 function AutomationCollectionCombobox({
@@ -538,34 +567,12 @@ function AutomationCollectionCombobox({
             open={isOpen}
             value={value}
         >
-            <ComboboxTrigger
-                render={
-                    <Button
-                        aria-labelledby={labelId}
-                        className={AUTOMATION_OPTION_TRIGGER_CLASS_NAME}
-                        size="xs"
-                        variant="ghost"
-                    />
-                }
-            >
-                <FolderOpen
-                    aria-hidden
-                    className="size-3.5 text-muted-foreground"
-                    focusable="false"
-                />
-                <span className="mx-0.5 min-w-0 truncate">
-                    <ComboboxValue />
-                </span>
-                <ChevronDown
-                    aria-hidden
-                    className="size-3.5"
-                    focusable="false"
-                />
-            </ComboboxTrigger>
-            <ComboboxPopup>
+            <AutomationOptionTrigger icon={FolderOpen} labelId={labelId} />
+            <ComboboxPopup className={AUTOMATION_OPTION_POPUP_CLASS_NAME}>
                 <ComboboxInput
                     aria-label="Search collections"
-                    placeholder="Select collection..."
+                    placeholder="Collection"
+                    size="sm"
                 />
                 <ComboboxEmpty>No matching collections</ComboboxEmpty>
                 <ComboboxList>
@@ -576,7 +583,9 @@ function AutomationCollectionCombobox({
                                 shouldShowIndicatorLast
                                 value={collectionOption}
                             >
-                                {collectionOption.name}
+                                <span className="truncate">
+                                    {collectionOption.name}
+                                </span>
                             </ComboboxItem>
                         )}
                     </ComboboxCollection>
@@ -629,36 +638,8 @@ function AutomationCadenceCombobox({
             open={isOpen}
             value={value}
         >
-            <ComboboxTrigger
-                render={
-                    <Button
-                        aria-labelledby={labelId}
-                        className={AUTOMATION_OPTION_TRIGGER_CLASS_NAME}
-                        size="xs"
-                        variant="ghost"
-                    />
-                }
-            >
-                <CalendarDays
-                    aria-hidden
-                    className="size-3.5 text-muted-foreground"
-                    focusable="false"
-                />
-                <span className="mx-0.5 min-w-0 truncate">
-                    <ComboboxValue />
-                </span>
-                <ChevronDown
-                    aria-hidden
-                    className="size-3.5"
-                    focusable="false"
-                />
-            </ComboboxTrigger>
-            <ComboboxPopup>
-                <ComboboxInput
-                    aria-label="Search cadences"
-                    placeholder="Select cadence..."
-                />
-                <ComboboxEmpty>No matching cadences</ComboboxEmpty>
+            <AutomationOptionTrigger icon={CalendarDays} labelId={labelId} />
+            <ComboboxPopup className="min-w-36">
                 <ComboboxList>
                     <ComboboxCollection>
                         {(cadenceOption: CadenceOption) => (
@@ -667,11 +648,6 @@ function AutomationCadenceCombobox({
                                 shouldShowIndicatorLast
                                 value={cadenceOption}
                             >
-                                <CalendarDays
-                                    aria-hidden
-                                    className="size-4 text-muted-foreground"
-                                    focusable="false"
-                                />
                                 {cadenceOption.label}
                             </ComboboxItem>
                         )}
@@ -777,35 +753,17 @@ function AutomationTimeCombobox({
             open={isOpen}
             value={value}
         >
-            <ComboboxTrigger
-                render={
-                    <Button
-                        aria-labelledby={labelId}
-                        className={AUTOMATION_OPTION_TRIGGER_CLASS_NAME}
-                        size="xs"
-                        variant="ghost"
-                    />
-                }
-            >
-                <Clock
-                    aria-hidden
-                    className="size-3.5 text-muted-foreground"
-                    focusable="false"
-                />
-                <span className="mx-0.5 min-w-0 truncate tabular-nums">
-                    <ComboboxValue />
-                </span>
-                <ChevronDown
-                    aria-hidden
-                    className="size-3.5"
-                    focusable="false"
-                />
-            </ComboboxTrigger>
-            <ComboboxPopup>
+            <AutomationOptionTrigger
+                icon={Clock}
+                labelId={labelId}
+                valueClassName="tabular-nums"
+            />
+            <ComboboxPopup className="min-w-36">
                 <ComboboxInput
                     aria-label="Search times"
                     onKeyDown={handleKeyDown}
-                    placeholder="Select time..."
+                    placeholder="Time"
+                    size="sm"
                 />
                 <ComboboxEmpty>No matching times</ComboboxEmpty>
                 <ComboboxList>
@@ -870,36 +828,8 @@ function AutomationWeekDayCombobox({
             open={isOpen}
             value={value}
         >
-            <ComboboxTrigger
-                render={
-                    <Button
-                        aria-labelledby={labelId}
-                        className={AUTOMATION_OPTION_TRIGGER_CLASS_NAME}
-                        size="xs"
-                        variant="ghost"
-                    />
-                }
-            >
-                <CalendarDays
-                    aria-hidden
-                    className="size-3.5 text-muted-foreground"
-                    focusable="false"
-                />
-                <span className="mx-0.5 min-w-0 truncate">
-                    <ComboboxValue />
-                </span>
-                <ChevronDown
-                    aria-hidden
-                    className="size-3.5"
-                    focusable="false"
-                />
-            </ComboboxTrigger>
-            <ComboboxPopup>
-                <ComboboxInput
-                    aria-label="Search weekdays"
-                    placeholder="Select weekday..."
-                />
-                <ComboboxEmpty>No matching weekdays</ComboboxEmpty>
+            <AutomationOptionTrigger icon={CalendarDays} labelId={labelId} />
+            <ComboboxPopup className="min-w-36">
                 <ComboboxList>
                     <ComboboxCollection>
                         {(weekDayOption: WeekDayOption) => (
@@ -960,34 +890,12 @@ function AutomationMonthDayCombobox({
             open={isOpen}
             value={value}
         >
-            <ComboboxTrigger
-                render={
-                    <Button
-                        aria-labelledby={labelId}
-                        className={AUTOMATION_OPTION_TRIGGER_CLASS_NAME}
-                        size="xs"
-                        variant="ghost"
-                    />
-                }
-            >
-                <CalendarDays
-                    aria-hidden
-                    className="size-3.5 text-muted-foreground"
-                    focusable="false"
-                />
-                <span className="mx-0.5 min-w-0 truncate">
-                    <ComboboxValue />
-                </span>
-                <ChevronDown
-                    aria-hidden
-                    className="size-3.5"
-                    focusable="false"
-                />
-            </ComboboxTrigger>
-            <ComboboxPopup>
+            <AutomationOptionTrigger icon={CalendarDays} labelId={labelId} />
+            <ComboboxPopup className="min-w-32">
                 <ComboboxInput
                     aria-label="Search month days"
-                    placeholder="Select day..."
+                    placeholder="Day"
+                    size="sm"
                 />
                 <ComboboxEmpty>No matching days</ComboboxEmpty>
                 <ComboboxList>
@@ -1067,11 +975,33 @@ function getCollectionOption(
         return ALL_LIBRARY_OPTION;
     }
 
-    return (
-        collections.find(
-            (collection) => collection.id === automation.collectionId
-        ) ?? ALL_LIBRARY_OPTION
+    const collection = collections.find(
+        (option) => option.id === automation.collectionId
     );
+    if (collection) {
+        return collection;
+    }
+
+    // Keep an invalid sentinel so save revalidates server-side instead of
+    // silently rewriting the scope to "All library".
+    return {
+        id: automation.collectionId ?? "missing_collection",
+        name: "Collection missing",
+    };
+}
+
+function getCollectionComboboxOptions(
+    collections: AutomationCollectionOption[],
+    selected: AutomationCollectionOption
+): AutomationCollectionOption[] {
+    const options = [ALL_LIBRARY_OPTION, ...collections];
+    if (
+        selected.id === ALL_LIBRARY_COLLECTION_ID ||
+        options.some((option) => option.id === selected.id)
+    ) {
+        return options;
+    }
+    return [selected, ...options];
 }
 
 function getCadenceOption(cadence: AutomationCadence | undefined) {

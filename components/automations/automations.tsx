@@ -24,6 +24,7 @@ import {
     Bot,
     CalendarClock,
     Pause,
+    Pencil,
     Play,
     Trash2,
     type LucideIcon,
@@ -31,11 +32,7 @@ import {
 import { useRouter } from "next/navigation";
 import * as React from "react";
 
-type AutomationRunListItem = Awaited<
-    ReturnType<
-        typeof import("@/lib/intelligence/automations/service").listAutomationRuns
-    >
->[number];
+type AutomationRunListItem = AutomationListItem["recentRuns"][number];
 
 const TEMPLATE_ICON: Record<string, LucideIcon> = {
     weekly_digest: CalendarClock,
@@ -43,6 +40,15 @@ const TEMPLATE_ICON: Record<string, LucideIcon> = {
 
 const DEFAULT_WEEK_DAY = 1;
 const DEFAULT_CADENCE = "weekly" as const;
+const WEEK_DAY_LABELS = [
+    "Sunday",
+    "Monday",
+    "Tuesday",
+    "Wednesday",
+    "Thursday",
+    "Friday",
+    "Saturday",
+] as const;
 
 function getTemplateIcon(templateKey: AutomationListItem["templateKey"]) {
     if (templateKey) {
@@ -82,19 +88,30 @@ function isCompleteSchedule(
     timeOfDayMinutes: number;
     timezone: string;
 } {
-    return !!(
-        automation.cadence &&
-        automation.timezone &&
-        automation.timeOfDayMinutes !== null
-    );
+    if (
+        !(
+            automation.cadence &&
+            automation.timezone &&
+            automation.timeOfDayMinutes !== null
+        )
+    ) {
+        return false;
+    }
+    if (automation.cadence === "weekly" && automation.weekDay === null) {
+        return false;
+    }
+    if (automation.cadence === "monthly" && automation.monthDay === null) {
+        return false;
+    }
+    return true;
 }
 
 function formatPayload(automation: AutomationListItem): string {
     if (automation.payloadScope === "collection") {
-        if (automation.collectionName) {
-            return `Collection: ${automation.collectionName}`;
+        if (!automation.collectionId) {
+            return "Collection missing";
         }
-        return "Collection missing";
+        return automation.collectionName ?? "Collection missing";
     }
     return "All library";
 }
@@ -103,28 +120,49 @@ function formatSchedule(automation: AutomationListItem): string {
     if (!isCompleteSchedule(automation)) {
         return "Unscheduled";
     }
-    const cadence = automation.cadence;
+
     const time = formatTimeOfDayMinutes(automation.timeOfDayMinutes);
-    if (cadence === "weekly") {
+
+    if (automation.cadence === "weekly") {
+        const weekDayLabel =
+            automation.weekDay === null
+                ? null
+                : WEEK_DAY_LABELS[automation.weekDay];
+        if (weekDayLabel) {
+            return `${weekDayLabel}s at ${time}`;
+        }
         return `Weekly at ${time}`;
     }
-    if (cadence === "monthly") {
+
+    if (automation.cadence === "monthly") {
+        if (automation.monthDay) {
+            return `Monthly on the ${getMonthDayLabel(automation.monthDay)} at ${time}`;
+        }
         return `Monthly at ${time}`;
     }
+
     return `Daily at ${time}`;
+}
+
+function getMonthDayLabel(monthDay: number): string {
+    const suffix =
+        monthDay >= 11 && monthDay <= 13
+            ? "th"
+            : (["th", "st", "nd", "rd"][monthDay % 10] ?? "th");
+    return `${monthDay}${suffix}`;
 }
 
 function getAutomationRunMessage(run: AutomationRunListItem) {
     if (run.summaryMarkdown) {
         return (
-            <p className="line-clamp-3 text-foreground text-sm leading-6">
+            <p className="line-clamp-2 text-muted-foreground text-xs leading-5">
                 {run.summaryMarkdown}
             </p>
         );
     }
     if (run.errorMessage) {
         return (
-            <p className="text-destructive text-sm leading-6">
+            <p className="line-clamp-2 text-destructive text-xs leading-5">
                 {run.errorMessage}
             </p>
         );
@@ -135,23 +173,22 @@ function getAutomationRunMessage(run: AutomationRunListItem) {
 export function AutomationsList({
     automations,
     collections,
-    runsByAutomationId,
 }: AutomationsListProps) {
     if (automations.length === 0) {
         return (
             <section className="flex min-h-64 flex-col items-center justify-center gap-3 rounded-lg border border-border border-dashed p-8 text-center">
                 <Bot
                     aria-hidden
-                    className="size-6 text-muted-foreground"
+                    className="size-5 text-muted-foreground"
                     focusable="false"
                 />
                 <div className="flex flex-col gap-1">
                     <h2 className="font-medium text-foreground text-sm">
                         No automations yet
                     </h2>
-                    <p className="max-w-md text-muted-foreground text-sm leading-6">
-                        Create one to have Cache summarize or organize saved
-                        content on a schedule.
+                    <p className="max-w-sm text-muted-foreground text-sm leading-6">
+                        Create one to summarize or organize saved content on a
+                        schedule.
                     </p>
                 </div>
             </section>
@@ -159,13 +196,12 @@ export function AutomationsList({
     }
 
     return (
-        <section className="grid gap-3">
+        <section className="flex flex-col gap-2">
             {automations.map((automation) => (
                 <AutomationCard
                     automation={automation}
                     collections={collections}
                     key={automation.id}
-                    runs={runsByAutomationId[automation.id] ?? []}
                 />
             ))}
         </section>
@@ -175,23 +211,30 @@ export function AutomationsList({
 interface AutomationsListProps {
     automations: AutomationListItem[];
     collections: AutomationCollectionOption[];
-    runsByAutomationId: Record<string, AutomationRunListItem[]>;
 }
 
-function AutomationCard({
-    automation,
-    collections,
-    runs,
-}: AutomationCardProps) {
+function AutomationCard({ automation, collections }: AutomationCardProps) {
+    const runs = automation.recentRuns;
     const router = useRouter();
     const [isPending, startTransition] = React.useTransition();
-    const latestRun = runs[0] ?? automation.lastRun;
+    const [actionErrorMessage, setActionErrorMessage] = React.useState<
+        string | null
+    >(null);
     const isActive = automation.status === "active";
+    const canDelete = !isActive;
     const Icon = getTemplateIcon(automation.templateKey);
+    const metaParts = [formatPayload(automation), formatSchedule(automation)];
 
     const handlePause = useStableCallback(() => {
+        setActionErrorMessage(null);
         startTransition(async () => {
-            await pauseAutomation({ automationId: automation.id });
+            const result = await pauseAutomation({
+                automationId: automation.id,
+            });
+            if (result.status !== "SUCCESS") {
+                setActionErrorMessage(result.message);
+                return;
+            }
             router.refresh();
         });
     });
@@ -200,8 +243,9 @@ function AutomationCard({
         if (!isCompleteSchedule(automation)) {
             return;
         }
+        setActionErrorMessage(null);
         startTransition(async () => {
-            await resumeAutomation({
+            const result = await resumeAutomation({
                 automationId: automation.id,
                 schedule: {
                     cadence: automation.cadence,
@@ -211,43 +255,79 @@ function AutomationCard({
                     weekDay: automation.weekDay,
                 },
             });
+            if (result.status !== "SUCCESS") {
+                setActionErrorMessage(result.message);
+                return;
+            }
             router.refresh();
         });
     });
 
     const handleDelete = useStableCallback(() => {
+        if (!canDelete) {
+            return;
+        }
+        setActionErrorMessage(null);
         startTransition(async () => {
-            await deleteAutomation({ automationId: automation.id });
+            const result = await deleteAutomation({
+                automationId: automation.id,
+            });
+            if (result.status !== "SUCCESS") {
+                setActionErrorMessage(result.message);
+                return;
+            }
             router.refresh();
         });
     });
 
     return (
-        <article className="grid gap-4 rounded-lg border border-border bg-background p-4">
-            <div className="flex items-start gap-4">
-                <span className="flex size-5 shrink-0 items-center justify-center text-muted-foreground">
-                    <Icon aria-hidden className="size-5" focusable="false" />
+        <article className="rounded-lg border border-border bg-card p-3">
+            <div className="flex items-start gap-3">
+                <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground">
+                    <Icon aria-hidden className="size-4" focusable="false" />
                 </span>
                 <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                        <h2 className="font-medium text-[15px] text-foreground">
+                    <div className="flex min-w-0 flex-wrap items-center gap-2">
+                        <h2 className="truncate font-medium text-foreground text-sm">
                             {automation.title}
                         </h2>
                         <AutomationStatusBadge status={automation.status} />
                     </div>
-                    <p className="mt-1 line-clamp-2 text-muted-foreground text-sm leading-6">
+                    <p className="mt-0.5 line-clamp-1 text-muted-foreground text-xs leading-5">
                         {automation.prompt}
                     </p>
-                    <div className="mt-3 flex flex-wrap gap-2 text-muted-foreground text-xs">
-                        <span>{formatPayload(automation)}</span>
-                        <span>{formatSchedule(automation)}</span>
-                    </div>
+                    <p className="mt-1.5 text-muted-foreground text-xs">
+                        {metaParts.join(" · ")}
+                    </p>
+                    {actionErrorMessage ? (
+                        <p
+                            aria-live="polite"
+                            className="mt-1.5 text-destructive text-xs leading-5"
+                            role="status"
+                        >
+                            {actionErrorMessage}
+                        </p>
+                    ) : null}
                 </div>
-                <div className="flex shrink-0 items-center gap-1">
+                <div className="flex shrink-0 items-center gap-0.5">
                     <AutomationComposerDialog
                         automation={toComposerAutomation(automation)}
                         collections={collections}
-                    />
+                        trigger={
+                            <Button
+                                aria-label={`Edit ${automation.title}`}
+                                size="icon-sm"
+                                type="button"
+                                variant="ghost"
+                            />
+                        }
+                    >
+                        <Pencil
+                            aria-hidden
+                            className="size-4"
+                            focusable="false"
+                        />
+                    </AutomationComposerDialog>
                     {isActive ? (
                         <AutomationIconButton
                             aria-label={`Pause ${automation.title}`}
@@ -257,38 +337,58 @@ function AutomationCard({
                         />
                     ) : (
                         <AutomationIconButton
-                            aria-label={`Resume ${automation.title}`}
-                            disabled={
+                            aria-disabled={
                                 isPending || !isCompleteSchedule(automation)
                             }
+                            aria-label={
+                                isCompleteSchedule(automation)
+                                    ? `Resume ${automation.title}`
+                                    : `Set a complete schedule to resume ${automation.title}`
+                            }
+                            disabled={isPending}
                             icon={Play}
-                            onClick={handleResume}
+                            onClick={
+                                isCompleteSchedule(automation)
+                                    ? handleResume
+                                    : undefined
+                            }
+                            title={
+                                isCompleteSchedule(automation)
+                                    ? undefined
+                                    : "Set a complete schedule to resume"
+                            }
                         />
                     )}
                     <AutomationIconButton
-                        aria-label={`Delete ${automation.title}`}
+                        aria-disabled={isPending || !canDelete}
+                        aria-label={
+                            canDelete
+                                ? `Delete ${automation.title}`
+                                : `Pause ${automation.title} before deleting`
+                        }
                         disabled={isPending}
                         icon={Trash2}
-                        onClick={handleDelete}
+                        onClick={canDelete ? handleDelete : undefined}
+                        title={
+                            canDelete
+                                ? undefined
+                                : "Pause this automation before deleting"
+                        }
                     />
                 </div>
             </div>
-            <div className="grid gap-2 border-border border-t pt-3">
-                <h3 className="font-medium text-muted-foreground text-xs">
-                    Recent runs
-                </h3>
-                {latestRun ? (
-                    <div className="grid gap-2">
-                        {runs.slice(0, 5).map((run) => (
+            {runs.length > 0 ? (
+                <div className="mt-3 border-border border-t pt-3">
+                    <h3 className="mb-1.5 font-medium text-[11px] text-muted-foreground uppercase tracking-wide">
+                        Recent runs
+                    </h3>
+                    <div className="flex flex-col gap-1">
+                        {runs.map((run) => (
                             <AutomationRunRow key={run.id} run={run} />
                         ))}
                     </div>
-                ) : (
-                    <p className="text-muted-foreground text-sm">
-                        No runs yet.
-                    </p>
-                )}
-            </div>
+                </div>
+            ) : null}
         </article>
     );
 }
@@ -296,7 +396,6 @@ function AutomationCard({
 interface AutomationCardProps {
     automation: AutomationListItem;
     collections: AutomationCollectionOption[];
-    runs: AutomationRunListItem[];
 }
 
 function AutomationIconButton({
@@ -315,23 +414,35 @@ const DATE_TIME_INTL = new Intl.DateTimeFormat(undefined, {
     timeStyle: "short",
 });
 
+function getRunStatusClassName(status: AutomationRunListItem["status"]) {
+    if (status === "failed") {
+        return "bg-destructive/8 text-destructive";
+    }
+    if (status === "succeeded") {
+        return "bg-success/8 text-success-foreground";
+    }
+    return "bg-muted text-muted-foreground";
+}
+
 function AutomationRunRow({ run }: { run: AutomationRunListItem }) {
     const runMessage = getAutomationRunMessage(run);
 
     return (
-        <div className="grid gap-1 rounded-md bg-muted/30 px-3 py-2">
+        <div className="flex flex-col gap-0.5 rounded-md px-2 py-1.5 hover:bg-muted/40">
             <div className="flex items-center justify-between gap-3">
                 <span className="text-muted-foreground text-xs">
                     <ClientOnly>
                         {DATE_TIME_INTL.format(run.scheduledForUtc)}
                     </ClientOnly>
                 </span>
-                <Badge
-                    className="rounded-md px-2 text-[11px]"
-                    variant="outline"
+                <span
+                    className={cn(
+                        "rounded-full px-1.5 py-0.5 font-medium text-[10px] capitalize",
+                        getRunStatusClassName(run.status)
+                    )}
                 >
                     {run.status}
-                </Badge>
+                </span>
             </div>
             {runMessage}
         </div>
@@ -343,7 +454,7 @@ function AutomationStatusBadge({ status }: { status: "active" | "paused" }) {
     return (
         <Badge
             className={cn(
-                "rounded-md px-2 text-[11px]",
+                "rounded-full px-1.5 py-0 text-[10px]",
                 isActive
                     ? "bg-success/8 text-success-foreground"
                     : "bg-muted text-muted-foreground"

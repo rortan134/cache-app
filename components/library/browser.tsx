@@ -1725,11 +1725,13 @@ function PaletteChip({
     });
 
     return (
-        <span className="inline-flex max-w-[min(100%,12rem)] items-center gap-0.5 rounded-full border border-border/60 bg-background/90 py-0.5 ps-2 pe-0.5 font-medium text-foreground text-xs shadow-xs/5">
-            <span className="min-w-0 max-w-full truncate text-xs">{label}</span>
+        <span className="inline-flex max-w-[min(100%,12rem)] items-center gap-0.5 rounded-full border border-border/60 bg-background/80 py-0.5 ps-2 pe-0.5 font-medium text-foreground text-xs shadow-xs/5 backdrop-blur-md backdrop-saturate-150">
+            <span className="min-w-0 max-w-full truncate text-xs tracking-[0.01em]">
+                {label}
+            </span>
             <Button
                 aria-label={`Remove ${label}`}
-                className="rounded-full"
+                className="rounded-full transition-transform duration-100 ease-out active:scale-[0.97]"
                 onClick={handleRemove}
                 size="icon-xs"
                 variant="ghost"
@@ -1837,7 +1839,7 @@ function PaletteAttachmentChip({
                 <AttachmentPreviewCardTrigger
                     render={
                         <Attachment
-                            className="max-w-[min(100%,12rem)] rounded-full border-border/60 bg-background/90 py-0.5 ps-1 pe-0.5 text-xs shadow-xs/5"
+                            className="max-w-[min(100%,12rem)] rounded-full border-border/60 bg-background/80 py-0.5 ps-1 pe-0.5 text-xs shadow-xs/5 backdrop-blur-md backdrop-saturate-150"
                             data={attachment}
                             onRemove={handleRemove}
                         />
@@ -2034,9 +2036,11 @@ function BrowserEmpty() {
                         ariaLabel="Welcome to your Cache"
                         className="inline"
                     >
-                        Welcome to your Cache
+                        <T>Welcome to your Cache</T>
                     </GradientWaveText>
-                    <span className="ml-3 opacity-50">Ready to start?</span>
+                    <span className="ml-3 opacity-50">
+                        <T>Ready to start?</T>
+                    </span>
                 </h3>
                 <p className="text-muted-foreground text-xs leading-tight">
                     Everything you bookmark, unified and searchable. Cache is a
@@ -2065,7 +2069,7 @@ function BrowserEmptyWithFilters() {
 
     return (
         <div className="flex flex-col items-center gap-3 rounded-2xl border border-border/70 border-dashed bg-card/30 px-6 py-14 text-center">
-            <p className="max-w-md text-balance text-muted-foreground text-sm">
+            <p className="max-w-md text-balance text-muted-foreground text-sm leading-snug tracking-[0.01em]">
                 No saved items match the current search and filters.
             </p>
             <Button onClick={clearLibraryPalette} size="sm" variant="outline">
@@ -2085,7 +2089,7 @@ function BrowserUnreachableProbePending() {
     return (
         <div className="flex flex-col items-center gap-3 rounded-2xl border border-border/70 border-dashed bg-card/30 px-6 py-14 text-center">
             <Spinner className="size-5 text-muted-foreground" />
-            <p className="max-w-md text-balance text-muted-foreground text-sm">
+            <p className="max-w-md text-balance text-muted-foreground text-sm leading-snug tracking-[0.01em]">
                 Checking which links fail to load…
             </p>
         </div>
@@ -2161,7 +2165,7 @@ function BrowserGroupHeader() {
                 render={<div className="contents" role="group" />}
             >
                 <div
-                    className="sticky z-10 flex items-center justify-between gap-3 rounded-xl bg-muted pr-3"
+                    className="sticky z-10 flex items-center justify-between gap-3 rounded-xl bg-muted pr-3 shadow-[0_8px_20px_-14px_rgba(0,0,0,0.18)]"
                     style={{
                         background: getColorGradientFromName(group.accentKey),
                         top: "var(--library-section-sticky-top)",
@@ -2579,7 +2583,7 @@ function CategoryThumbnail({ urls }: { urls: string[] }) {
     return (
         <img
             alt=""
-            className="absolute top-10 left-3 z-10 h-auto w-full rounded-sm object-cover transition-transform group-data-highlighted:-translate-y-1"
+            className="absolute top-10 left-3 z-10 h-auto w-full rounded-sm object-cover transition-transform duration-150 ease-out group-data-highlighted:-translate-y-1"
             decoding="async"
             draggable="false"
             fetchPriority="high"
@@ -3894,7 +3898,7 @@ function MediaPreview({
                 <>
                     <video
                         className={cn(
-                            "squircle pointer-events-none absolute inset-0 size-full rounded-xl object-contain duration-150",
+                            "squircle pointer-events-none absolute inset-0 size-full rounded-xl object-contain transition-opacity duration-150 ease-out",
                             { "z-1": isHovered }
                         )}
                         crossOrigin="use-credentials"
@@ -3911,7 +3915,7 @@ function MediaPreview({
                     {isVideoLoading ? (
                         <div
                             className={cn(
-                                "pointer-events-none absolute top-2 left-2 z-10 rounded-full bg-black/50 text-white opacity-0 transition-opacity",
+                                "pointer-events-none absolute top-2 left-2 z-10 rounded-full bg-black/50 text-white opacity-0 transition-opacity duration-150 ease-out",
                                 { "opacity-100": isHovered }
                             )}
                         >
@@ -3930,7 +3934,7 @@ function MediaPreview({
                             }
                             aria-pressed={isSoundEnabled}
                             className={cn(
-                                "pointer-events-auto absolute top-2 left-2 z-10 rounded-full bg-black/50 text-white opacity-0 transition-opacity hover:bg-black/60 focus-visible:opacity-100 focus-visible:ring-ring/70",
+                                "pointer-events-auto absolute top-2 left-2 z-10 rounded-full bg-black/50 text-white opacity-0 transition-opacity duration-150 ease-out hover:bg-black/60 focus-visible:opacity-100 focus-visible:ring-ring/70 active:scale-[0.97]",
                                 { "opacity-100": isHovered }
                             )}
                             onClick={handleSoundToggle}
@@ -4148,7 +4152,7 @@ function CollectionComboboxPicker({
                                     ? `Edit collections (${selectedCount} selected)`
                                     : "Add to collections"
                             }
-                            className="z-1 rounded-full"
+                            className="z-1 rounded-full transition-transform duration-100 ease-out active:scale-[0.97]"
                             size="icon-sm"
                             variant="ghost"
                         />
@@ -4189,10 +4193,10 @@ function CollectionComboboxPicker({
                                         {collection.name}
                                     </span>
                                     <div className="relative flex w-fit items-center justify-end pl-4">
-                                        <span className="shrink-0 text-nowrap text-muted-foreground text-xs tabular-nums group-data-highlighted/item:opacity-0">
+                                        <span className="shrink-0 text-nowrap text-muted-foreground text-xs tabular-nums transition-opacity duration-150 ease-out group-data-highlighted/item:opacity-0">
                                             {collection.itemCount}
                                         </span>
-                                        <span className="absolute right-0 shrink-0 text-nowrap text-muted-foreground text-xs opacity-0 group-data-highlighted/item:opacity-100">
+                                        <span className="absolute right-0 shrink-0 text-nowrap text-muted-foreground text-xs opacity-0 transition-opacity duration-150 ease-out group-data-highlighted/item:opacity-100">
                                             Save
                                         </span>
                                     </div>
@@ -4655,7 +4659,7 @@ function MediaCard({ item }: LibraryGridCardProps) {
                 render={
                     // biome-ignore lint/a11y/useSemanticElements: Group role
                     <div
-                        className="group relative flex shrink-0 flex-col before:absolute before:-inset-x-2 before:-top-2 before:bottom-0 before:-z-10 before:rounded-xl before:bg-muted/50 before:opacity-0 before:transition-transform hover:before:opacity-100 focus-visible:outline-none active:before:scale-x-[0.99] active:before:scale-y-[0.97] active:before:opacity-80!"
+                        className="group relative flex shrink-0 flex-col transition-transform duration-100 ease-out before:absolute before:-inset-x-2 before:-top-2 before:bottom-0 before:-z-10 before:rounded-xl before:bg-muted/50 before:opacity-0 before:transition-[opacity,transform] before:duration-100 before:ease-out hover:before:opacity-100 focus-visible:outline-none active:scale-[0.99] active:before:scale-x-[0.99] active:before:scale-y-[0.97] active:before:opacity-80!"
                         role="group"
                     />
                 }
@@ -4672,7 +4676,7 @@ function MediaCard({ item }: LibraryGridCardProps) {
                         <div className="relative flex h-auto min-h-56 w-full flex-col justify-between bg-linear-to-br from-amber-50 via-background to-stone-100 p-3">
                             <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(251,191,36,0.18),transparent_45%)]" />
                             <div className="relative flex flex-1 flex-col gap-2 pt-1.5">
-                                <p className="whitespace-pre-wrap text-[11px] text-foreground leading-relaxed opacity-90">
+                                <p className="whitespace-pre-wrap text-[11px] text-foreground leading-relaxed tracking-[0.01em] opacity-90">
                                     {noteExcerpt ||
                                         "Tap to start writing in this note"}
                                 </p>
@@ -4690,7 +4694,7 @@ function MediaCard({ item }: LibraryGridCardProps) {
                                 />
                             </ControlledZoom>
                             {isLastVisited(item.id) ? (
-                                <span className="absolute top-2 right-2 z-10 inline-flex items-center gap-1 rounded-full bg-black/45 px-1.5 py-px font-medium text-white text-xs leading-normal">
+                                <span className="absolute top-2 right-2 z-10 inline-flex items-center gap-1 rounded-full bg-black/45 px-1.5 py-px font-medium text-white text-xs leading-normal tracking-[0.01em] backdrop-blur-sm">
                                     <T>Last visited</T>
                                     <ArrowUpRight
                                         aria-hidden
@@ -4699,7 +4703,7 @@ function MediaCard({ item }: LibraryGridCardProps) {
                                     />
                                 </span>
                             ) : (
-                                <span className="absolute top-2 right-2 z-10 rounded-full bg-black/50 px-1.5 py-px font-medium text-white text-xs leading-normal opacity-0 group-hover:opacity-100">
+                                <span className="absolute top-2 right-2 z-10 rounded-full bg-black/50 px-1.5 py-px font-medium text-white text-xs leading-normal opacity-0 transition-opacity duration-150 ease-out group-hover:opacity-100">
                                     <ArrowUpRight
                                         aria-hidden
                                         className="size-4"
@@ -4723,7 +4727,7 @@ function MediaCard({ item }: LibraryGridCardProps) {
                         <MenuTrigger
                             render={
                                 <Button
-                                    className="w-full min-w-0 flex-1 justify-start overflow-clip whitespace-nowrap px-0 text-left text-[11px]!"
+                                    className="w-full min-w-0 flex-1 justify-start overflow-clip whitespace-nowrap px-0 text-left text-[11px]! tracking-[0.01em] transition-transform duration-100 ease-out active:scale-[0.99]"
                                     size="xs"
                                     title={displayTitle}
                                     type="button"
@@ -6507,7 +6511,7 @@ export function BrowserRoot({
             >
                 {(suggestion, index) => (
                     <Button
-                        className="rounded-full text-muted-foreground"
+                        className="rounded-full text-muted-foreground transition-transform duration-100 ease-out active:scale-[0.97]"
                         key={suggestion.label}
                         onClick={suggestion.onSelect}
                         size="xs"

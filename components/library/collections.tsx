@@ -179,6 +179,7 @@ import {
     UserRoundPlus,
     X,
 } from "lucide-react";
+import { useReducedMotion } from "motion/react";
 import Image from "next/image";
 import * as React from "react";
 import { useHotkeys } from "react-hotkeys-hook";
@@ -204,6 +205,7 @@ const DELETE_ERROR_MESSAGE = "We couldn't delete this collection right now.";
 const DUPLICATE_ERROR_MESSAGE =
     "We couldn't make a copy of this collection right now.";
 const EMPTY_LINKS_ERROR_MESSAGE = "There are no links in this collection yet.";
+const EMPTY_ITEMS_ERROR_MESSAGE = "There are no items in this collection yet.";
 const RENAME_ERROR_MESSAGE = "We couldn't rename this collection right now.";
 const DISABLE_SHARING_ERROR_MESSAGE =
     "We couldn't stop sharing this collection right now.";
@@ -214,14 +216,22 @@ const COPY_TITLE_ERROR_MESSAGE =
     "We couldn't copy this collection's title right now.";
 const COPY_SHARE_LINK_ERROR_MESSAGE =
     "We couldn't copy this public link right now.";
+const COPY_SHARE_LINK_MISSING_MESSAGE =
+    "Create a public link before trying to copy it.";
 const EXPORT_CSV_ERROR_MESSAGE =
     "We couldn't export this collection right now.";
+const SEND_TO_NOTION_ERROR_MESSAGE =
+    "We couldn't send this collection to Notion right now.";
 const DISABLE_SMART_COLLECTIONS_ERROR_MESSAGE =
     "We couldn't turn off smart collections right now.";
 const ENABLE_SMART_COLLECTIONS_ERROR_MESSAGE =
     "We couldn't turn on smart collections right now.";
 
-type CollectionOptionIcon = React.ComponentType<{ className?: string }>;
+type CollectionOptionIcon = React.ComponentType<{
+    "aria-hidden"?: boolean | "true" | "false";
+    className?: string;
+    focusable?: boolean | "false" | "true";
+}>;
 
 type CollectionsListStatusTone = "error" | "success";
 
@@ -271,7 +281,8 @@ interface ComboboxGroupData {
     items: ComboboxValue[];
 }
 
-const PREVIEW_SLIDE_INTERVAL_MS = 600;
+const PREVIEW_SLIDE_INTERVAL_MS = 1400;
+const PREVIEW_CROSSFADE_MS = 400;
 
 const NAME_MAX_LENGTH = 64;
 
@@ -468,6 +479,10 @@ const disableCollectionSharingSafely = tryAction(
     disableCollectionSharing,
     DISABLE_SHARING_ERROR_MESSAGE
 );
+const sendCollectionToNotionSafely = tryAction(
+    sendCollectionToNotion,
+    SEND_TO_NOTION_ERROR_MESSAGE
+);
 
 export function Collections() {
     return (
@@ -498,18 +513,18 @@ export function Collections() {
                     </CollectionsListFavoritesCarouselContent>
                     <CollectionsListFavoritesContent>
                         {(collection) => (
-                            <CollectionItem
+                            <CollectionsListItem
                                 collection={collection}
                                 key={collection.id}
                             >
-                                <CollectionItemPriorityCombobox />
-                                <CollectionItemTrigger>
-                                    <CollectionItemValue />
-                                </CollectionItemTrigger>
-                                <CollectionItemMetadata>
+                                <CollectionsListItemPriorityCombobox />
+                                <CollectionsListItemTrigger>
+                                    <CollectionsListItemValue />
+                                </CollectionsListItemTrigger>
+                                <CollectionsListItemMetadata>
                                     {dayjs(collection.updatedAt).fromNow(true)}
-                                </CollectionItemMetadata>
-                            </CollectionItem>
+                                </CollectionsListItemMetadata>
+                            </CollectionsListItem>
                         )}
                     </CollectionsListFavoritesContent>
                 </CollapsiblePanel>
@@ -544,20 +559,20 @@ export function Collections() {
                     <CollectionsListEmpty />
                     <CollectionsListContent>
                         {(collection) => (
-                            <CollectionItem
+                            <CollectionsListItem
                                 collection={collection}
                                 key={collection.id}
                             >
-                                <CollectionItemPriorityCombobox />
-                                <CollectionItemTrigger>
-                                    <CollectionItemValue />
-                                </CollectionItemTrigger>
-                                <CollectionItemMetadata>
+                                <CollectionsListItemPriorityCombobox />
+                                <CollectionsListItemTrigger>
+                                    <CollectionsListItemValue />
+                                </CollectionsListItemTrigger>
+                                <CollectionsListItemMetadata>
                                     {COMPACT_NUMBER_FORMATTER.format(
                                         collection.itemCount
                                     )}
-                                </CollectionItemMetadata>
-                            </CollectionItem>
+                                </CollectionsListItemMetadata>
+                            </CollectionsListItem>
                         )}
                     </CollectionsListContent>
                     <CollectionsListRecommendations />
@@ -654,6 +669,9 @@ function useCollectionsController() {
     );
 
     const hasAnySelected = selectedCollectionIds.length > 0;
+    const selectedCollectionIdSet = new Set(selectedCollectionIds);
+    const pendingShareIdSet = new Set(pendingShareIds);
+    const pendingNotionCollectionIdSet = new Set(pendingNotionCollectionIds);
     const collectionLabels = collectionSummaries.map(
         (collection) => collection.name
     );
@@ -804,7 +822,7 @@ function useCollectionsController() {
         }
     );
 
-    useHotkeys("mod+n, v", handleCreateShortcutPress, {
+    useHotkeys("mod+n", handleCreateShortcutPress, {
         description: "Create a new collection",
         preventDefault: true,
     });
@@ -885,7 +903,7 @@ function useCollectionsController() {
     const handleCopyShareLink = useStableCallback(
         async (collection: LibraryCollectionSummary) => {
             if (!collection.shareId) {
-                showError("Create a public link before trying to copy it.");
+                showError(COPY_SHARE_LINK_MISSING_MESSAGE);
                 return;
             }
 
@@ -958,8 +976,8 @@ function useCollectionsController() {
                 collection,
                 ensureAccessAction: "share",
                 keyPrefix: PENDING_ACTION_PREFIX.SHARE,
-                setPending: (pending) =>
-                    setCollectionSharePending(collection.id, pending),
+                setPending: (isPending) =>
+                    setCollectionSharePending(collection.id, isPending),
             });
         }
     );
@@ -983,8 +1001,8 @@ function useCollectionsController() {
                 },
                 collection,
                 keyPrefix: PENDING_ACTION_PREFIX.SHARE,
-                setPending: (pending) =>
-                    setCollectionSharePending(collection.id, pending),
+                setPending: (isPending) =>
+                    setCollectionSharePending(collection.id, isPending),
             });
         }
     );
@@ -1022,7 +1040,7 @@ function useCollectionsController() {
             const items = getCollectionItems(collection.id);
 
             if (items.length === 0) {
-                showError(EMPTY_LINKS_ERROR_MESSAGE);
+                showError(EMPTY_ITEMS_ERROR_MESSAGE);
                 return;
             }
 
@@ -1051,7 +1069,7 @@ function useCollectionsController() {
         (collection: LibraryCollectionSummary) => {
             runGuardedAction({
                 action: async () => {
-                    const result = await sendCollectionToNotion({
+                    const result = await sendCollectionToNotionSafely({
                         collectionId: collection.id,
                     });
 
@@ -1065,8 +1083,8 @@ function useCollectionsController() {
                 collection,
                 ensureAccessAction: "send to Notion",
                 keyPrefix: PENDING_ACTION_PREFIX.NOTION,
-                setPending: (pending) =>
-                    setCollectionNotionPending(collection.id, pending),
+                setPending: (isPending) =>
+                    setCollectionNotionPending(collection.id, isPending),
             });
         }
     );
@@ -1241,8 +1259,7 @@ function useCollectionsController() {
         {
             description: "Set priority for hovered collection",
             preventDefault: true,
-        },
-        []
+        }
     );
 
     const handleDisableSmartCollections = useStableCallback(async () => {
@@ -1378,16 +1395,16 @@ function useCollectionsController() {
             onSelectCollection,
             onToggleItemFavorite,
             pendingDelete,
-            pendingNotionCollectionIds,
+            pendingNotionCollectionIdSet,
             pendingPriorityComboboxCollectionId,
             pendingRename,
-            pendingShareIds,
+            pendingShareIdSet,
             recommendations: {
                 isLoading: recommendationsLoading,
                 items: recommendationItems,
             },
             requestCreate,
-            selectedCollectionIds,
+            selectedCollectionIdSet,
             showError,
             showSuccess,
             sort: {
@@ -1406,7 +1423,7 @@ function useCollectionsState(): CollectionsState {
     const context = React.use(CollectionsStateContext);
     if (!context) {
         throw new Error(
-            "Collections state must be read within a CollectionsProvider."
+            "Collections state must be read within a CollectionsListProvider."
         );
     }
     return context;
@@ -1416,7 +1433,7 @@ function useCollectionsActions(): CollectionsActions {
     const context = React.use(CollectionsActionsContext);
     if (!context) {
         throw new Error(
-            "Collections actions must be used within a CollectionsProvider."
+            "Collections actions must be used within a CollectionsListProvider."
         );
     }
     return context;
@@ -1449,16 +1466,19 @@ function CollectionsListProvider({ children }: React.PropsWithChildren) {
  * preview popup is open.
  *
  * Resets to the first image when closed so the sequence always starts
- * from the beginning.
+ * from the beginning. Respects `prefers-reduced-motion` — no cycling when
+ * the user has opted out of non-essential motion.
  */
 function useCollectionItemPreviewIndex(
     isOpen: boolean,
     thumbnailCount: number
 ) {
+    const isReducedMotion = useReducedMotion();
     const [activePreviewIndex, setActivePreviewIndex] = React.useState(0);
     const previewInterval = useInterval();
     const hasMultipleThumbnails = thumbnailCount > 1;
-    const shouldCycle = isOpen && hasMultipleThumbnails;
+    const shouldCycle =
+        isOpen && hasMultipleThumbnails && isReducedMotion !== true;
 
     // Adjust index during render when the preview closes so the next open
     // starts at 0 without waiting for an effect paint. Interval ownership
@@ -1539,15 +1559,33 @@ function getComboboxCollectionsSortingGroups(
         option.label.toLowerCase().includes(normalizedQuery)
     );
 
-    const sortItems: ComboboxValue[] =
-        normalizedQuery.length === 0 || matchingSortOptions.length > 0
-            ? matchingSortOptions.map((option) => ({
-                  icon: option.icon,
-                  label: option.label,
-                  sortField: option.value,
+    const textMatchOption: ComboboxValue | null =
+        currentValue.sortField === "text-match" &&
+        currentValue.sortQuery.length > 0 &&
+        (normalizedQuery.length === 0 ||
+            currentValue.sortQuery.toLowerCase().includes(normalizedQuery) ||
+            `sort by "${currentValue.sortQuery}"`.includes(normalizedQuery))
+            ? {
+                  icon: ListFilter,
+                  label: `Sort by "${currentValue.sortQuery}"`,
+                  sortField: "text-match",
                   sortQuery: currentValue.sortQuery,
                   view: currentValue.view,
-              }))
+              }
+            : null;
+
+    const sortItems: ComboboxValue[] =
+        normalizedQuery.length === 0 || matchingSortOptions.length > 0
+            ? [
+                  ...(textMatchOption ? [textMatchOption] : []),
+                  ...matchingSortOptions.map((option) => ({
+                      icon: option.icon,
+                      label: option.label,
+                      sortField: option.value,
+                      sortQuery: currentValue.sortQuery,
+                      view: currentValue.view,
+                  })),
+              ]
             : [
                   {
                       icon: ListFilter,
@@ -1623,11 +1661,13 @@ function CollectionsListItemPreviewImage({
     src,
     ...props
 }: React.ComponentProps<"img">) {
-    const [failedSrc, setFailedSrc] = React.useState<string | null>(null);
+    const [failedSrc, setFailedSrc] = React.useState<string | Blob | null>(
+        null
+    );
     const hasFailed = src !== undefined && failedSrc === src;
 
     const handleError = useStableCallback((): void => {
-        setFailedSrc((src as string | undefined) ?? null);
+        setFailedSrc(src ?? null);
     });
 
     if (!src || hasFailed) {
@@ -1837,10 +1877,10 @@ function CollectionsListGroupTrigger({
             ? getListFormatter(locale).format(labels)
             : placeholder);
 
-    const [isHovering, setIsHovering] = React.useState(false);
+    const [isHovered, setIsHovered] = React.useState(false);
 
     return (
-        <PreviewCard onOpenChange={setIsHovering} open={isHovering && !isOpen}>
+        <PreviewCard onOpenChange={setIsHovered} open={isHovered && !isOpen}>
             <PreviewCardTrigger
                 render={
                     <CollapsibleTrigger
@@ -1911,15 +1951,11 @@ function CollectionsListFavoritesCarouselSlide({
         (item.caption ?? "").trim() || (isNote ? "Note" : "Saved item");
     const [isOpen, setIsOpen] = React.useState(false);
 
-    const handleClick = useStableCallback(
-        (
-            event: BaseUIEvent<React.MouseEvent<HTMLAnchorElement, MouseEvent>>
-        ) => {
-            event.preventDefault();
-            onOpenFavoriteItem(item);
-            setIsOpen(false);
-        }
-    );
+    const handleClick = useStableCallback((event: React.SyntheticEvent) => {
+        event.preventDefault();
+        onOpenFavoriteItem(item);
+        setIsOpen(false);
+    });
 
     const handleRemoveFavorite = useStableCallback(
         (event: React.MouseEvent<HTMLButtonElement>) => {
@@ -1937,7 +1973,7 @@ function CollectionsListFavoritesCarouselSlide({
     return (
         <PreviewCard onOpenChange={setIsOpen} open={isOpen}>
             <div
-                className="group relative inline-block aspect-3/4 h-14 overflow-hidden rounded-md bg-muted focus-within:ring-2 focus-within:ring-ring/60"
+                className="group relative inline-block aspect-3/4 h-14 overflow-hidden rounded-md bg-muted transition-transform duration-100 ease-out focus-within:ring-2 focus-within:ring-ring/60 active:scale-[0.97]"
                 title={previewLabel}
             >
                 <PreviewCardTrigger
@@ -1948,7 +1984,7 @@ function CollectionsListFavoritesCarouselSlide({
                 >
                     {isNote ? (
                         <div className="flex size-full flex-col justify-between overflow-hidden bg-linear-to-br from-amber-50 via-background to-stone-100 p-1.5">
-                            <p className="line-clamp-4 whitespace-pre-wrap text-left text-[9px] text-foreground leading-snug opacity-90">
+                            <p className="line-clamp-4 whitespace-pre-wrap text-left text-[9px] text-foreground leading-snug tracking-[0.01em] opacity-90">
                                 {noteExcerpt || "Open note"}
                             </p>
                         </div>
@@ -1962,7 +1998,7 @@ function CollectionsListFavoritesCarouselSlide({
                 </PreviewCardTrigger>
                 <button
                     aria-label="Remove from favorites"
-                    className="absolute top-0 left-0 z-10 flex size-4 items-center justify-center rounded-br-md bg-black/40 opacity-0 hover:bg-black/60 focus-visible:opacity-100 group-hover:opacity-100"
+                    className="absolute top-0 left-0 z-10 flex size-4 items-center justify-center rounded-br-md bg-black/40 opacity-100 pointer-fine:opacity-0 transition-opacity duration-150 ease-out hover:bg-black/60 focus-visible:opacity-100 pointer-fine:group-hover:opacity-100"
                     onClick={handleRemoveFavorite}
                     type="button"
                 >
@@ -1976,7 +2012,7 @@ function CollectionsListFavoritesCarouselSlide({
             >
                 {isNote ? (
                     <div className="flex size-full flex-col justify-between overflow-hidden bg-linear-to-br from-amber-50 via-background to-stone-100 p-3">
-                        <p className="line-clamp-6 whitespace-pre-wrap text-left text-foreground text-xs leading-snug">
+                        <p className="line-clamp-6 whitespace-pre-wrap text-left text-foreground text-xs leading-snug tracking-[0.01em]">
                             {noteExcerpt || "Empty note"}
                         </p>
                     </div>
@@ -2055,7 +2091,10 @@ function CollectionsListToolbarButton({
     return (
         <Toolbar.Button
             {...props}
-            className={cn("opacity-80 hover:opacity-100", className)}
+            className={cn(
+                "opacity-80 transition-opacity duration-150 ease-out hover:opacity-100",
+                className
+            )}
         />
     );
 }
@@ -2162,7 +2201,7 @@ function CollectionRecommendationItem({
                 {isCreating ? (
                     <Spinner className="absolute right-3 size-3.5" />
                 ) : (
-                    <span className="absolute right-3 text-muted-foreground text-xs opacity-0 group-hover:opacity-100">
+                    <span className="absolute right-3 text-muted-foreground text-xs opacity-0 transition-opacity duration-150 ease-out group-hover:opacity-100">
                         Create
                     </span>
                 )}
@@ -2188,7 +2227,7 @@ function CollectionsListRecommendations() {
             open={isRecommendationsOpen}
         >
             <CollapsibleTrigger
-                className="flex w-full items-center px-2.5 py-1.5 text-muted-foreground text-xs hover:text-foreground"
+                className="flex w-full items-center px-2.5 py-1.5 text-muted-foreground text-xs tracking-[0.01em] transition-colors duration-150 ease-out hover:text-foreground"
                 title={
                     isRecommendationsOpen
                         ? "Hide suggested collections"
@@ -2532,7 +2571,7 @@ interface CollectionsListItemProps extends React.ComponentProps<"div"> {
  * Provides `CollectionsListItemContext` to its children so compound parts
  * can read the collection and selection state without prop drilling.
  */
-function CollectionItem({
+function CollectionsListItem({
     className,
     collection,
     onMouseEnter: onMouseEnterProp,
@@ -2540,11 +2579,11 @@ function CollectionItem({
     style: styleProp,
     ...props
 }: CollectionsListItemProps) {
-    const { hoveredCollectionRef, selectedCollectionIds } =
+    const { hoveredCollectionRef, selectedCollectionIdSet } =
         useCollectionsState();
     const handleMouseEnter = useStableCallback(onMouseEnterProp);
     const handleMouseLeave = useStableCallback(onMouseLeaveProp);
-    const isSelected = selectedCollectionIds.includes(collection.id);
+    const isSelected = selectedCollectionIdSet.has(collection.id);
     const style = getCollectionItemStyle(collection.name, isSelected);
 
     const onMouseEnter = useStableCallback(
@@ -2584,7 +2623,7 @@ function CollectionItem({
  *
  * Clicking selects the collection and closes the preview popup.
  */
-function CollectionItemTrigger({
+function CollectionsListItemTrigger({
     onClick: onClickProp,
     ...props
 }: React.ComponentProps<typeof PreviewCardTrigger>) {
@@ -2623,23 +2662,48 @@ function CollectionItemTrigger({
                 onClick={handleClick}
                 render={
                     <SidebarItem
-                        className="w-full min-w-0 flex-1 justify-start pr-8 pl-10.5 text-left hover:bg-transparent focus-visible:ring-(--accent-color)"
+                        className="w-full min-w-0 flex-1 justify-start pr-8 pl-10.5 text-left before:bg-(--collection-background) hover:bg-transparent focus-visible:ring-(--accent-color)"
                         render={<Button variant="ghost" />}
                     />
                 }
             />
             <PreviewCardPopup
-                className="flex flex-col p-0"
+                className="flex flex-col overflow-hidden p-0"
                 positionMethod="fixed"
                 side="right"
             >
-                {isOpen ? (
-                    <CollectionsListItemPreviewImage
-                        alt={`${collection.name} preview`}
-                        className="aspect-auto h-auto w-full"
-                        src={activeThumbnail}
-                    />
-                ) : null}
+                <div className="relative min-h-32 w-full">
+                    {thumbnails.length > 0 ? (
+                        thumbnails.map((thumbnail, index) => (
+                            <CollectionsListItemPreviewImage
+                                alt={`${collection.name} preview`}
+                                aria-hidden={index !== activePreviewIndex}
+                                className={cn(
+                                    "aspect-auto h-auto w-full transition-opacity ease-out",
+                                    index === 0
+                                        ? "relative"
+                                        : "absolute inset-0",
+                                    index === activePreviewIndex
+                                        ? "opacity-100"
+                                        : "opacity-0"
+                                )}
+                                // Thumbnail URLs can repeat across items; slide order is fixed.
+                                // biome-ignore lint/suspicious/noArrayIndexKey: stable slide index
+                                key={`${collection.id}:${index}`}
+                                src={thumbnail}
+                                style={{
+                                    transitionDuration: `${PREVIEW_CROSSFADE_MS}ms`,
+                                }}
+                            />
+                        ))
+                    ) : (
+                        <CollectionsListItemPreviewImage
+                            alt={`${collection.name} preview`}
+                            className="aspect-auto h-auto w-full"
+                            src={activeThumbnail}
+                        />
+                    )}
+                </div>
             </PreviewCardPopup>
         </PreviewCard>
     );
@@ -2651,19 +2715,19 @@ function CollectionItemTrigger({
  * Sources are hidden by default to keep the sidebar compact; they fade in
  * on hover as a secondary cue.
  */
-function CollectionItemValue() {
+function CollectionsListItemValue() {
     const { collection } = useCollectionsListItemContext();
 
     return (
         <div className="flex min-w-0 flex-1 items-center gap-3 leading-none">
             <span
-                className="max-w-full shrink-0 truncate font-medium text-sm"
+                className="max-w-full shrink-0 truncate font-medium text-sm tracking-tight"
                 title={collection.description ?? undefined}
             >
                 {collection.name}
             </span>
             {collection.sources.length > 0 ? (
-                <span className="max-w-full flex-1 truncate py-px text-[11px] text-muted-foreground opacity-0 group-hover:opacity-80">
+                <span className="max-w-full flex-1 truncate py-px text-[11px] text-muted-foreground tracking-[0.01em] opacity-0 transition-opacity duration-150 ease-out group-hover:opacity-80">
                     {collection.sources.map(getSourceLabel).join(", ")}
                 </span>
             ) : null}
@@ -2676,7 +2740,7 @@ function CollectionItemValue() {
  *
  * The "P" hotkey opens the dropdown while the item is hovered.
  */
-function CollectionItemPriorityCombobox() {
+function CollectionsListItemPriorityCombobox() {
     const { pendingPriorityComboboxCollectionId } = useCollectionsState();
     const { onUpdatePriority, setPendingPriorityComboboxCollectionId } =
         useCollectionsActions();
@@ -2715,14 +2779,18 @@ function CollectionItemPriorityCombobox() {
                 render={
                     <Button
                         aria-label={`Change priority for ${collection.name}`}
-                        className="absolute top-1/2 left-2.5 z-10 -translate-y-1/2 border-none bg-(--collection-background) text-(--accent-color)"
+                        className="absolute top-1/2 left-2.5 z-10 -translate-y-1/2 border-none bg-(--collection-background) text-(--accent-color) transition-transform duration-100 ease-out active:scale-[0.97]"
                         size="icon-xs"
                         title="Organize collections by relevance level"
                         variant="ghost"
                     />
                 }
             >
-                <SelectedPriorityIcon className="size-4" />
+                <SelectedPriorityIcon
+                    aria-hidden
+                    className="size-4"
+                    focusable="false"
+                />
             </ComboboxTrigger>
             <ComboboxPopup className="max-w-64" positionMethod="fixed">
                 <ComboboxInput
@@ -2766,8 +2834,8 @@ function CollectionItemPriorityCombobox() {
     );
 }
 
-function CollectionItemShareSubMenu() {
-    const { pendingShareIds } = useCollectionsState();
+function CollectionsListItemShareSubMenu() {
+    const { pendingShareIdSet } = useCollectionsState();
     const {
         onCopyShareLink: onCopyShareLinkAction,
         onDisableShare: onDisableShareAction,
@@ -2775,7 +2843,7 @@ function CollectionItemShareSubMenu() {
     } = useCollectionsActions();
     const { collection } = useCollectionsListItemContext();
     const isShared = !!collection.shareId;
-    const isSharePending = pendingShareIds.includes(collection.id);
+    const isSharePending = pendingShareIdSet.has(collection.id);
 
     const handleCopyShareLink = useStableCallback(() =>
         onCopyShareLinkAction(collection)
@@ -2857,8 +2925,8 @@ function CollectionItemShareSubMenu() {
  *
  * Some items are disabled when the collection has no entries.
  */
-function CollectionItemExportSubMenu() {
-    const { pendingNotionCollectionIds } = useCollectionsState();
+function CollectionsListItemExportSubMenu() {
+    const { pendingNotionCollectionIdSet } = useCollectionsState();
     const {
         onCopyLinks: onCopyLinksAction,
         onCopyTitle: onCopyTitleAction,
@@ -2884,9 +2952,7 @@ function CollectionItemExportSubMenu() {
     const handleSendToNotion = useStableCallback(() =>
         onSendToNotionAction(collection)
     );
-    const isSendingToNotion = pendingNotionCollectionIds.includes(
-        collection.id
-    );
+    const isSendingToNotion = pendingNotionCollectionIdSet.has(collection.id);
 
     return (
         <MenuSub>
@@ -2937,7 +3003,7 @@ function CollectionItemExportSubMenu() {
                 >
                     <NotionIcon
                         aria-hidden
-                        className="size-4"
+                        className="size-4 text-muted-foreground"
                         focusable="false"
                     />
                     {isSendingToNotion
@@ -2949,7 +3015,7 @@ function CollectionItemExportSubMenu() {
     );
 }
 
-interface CollectionItemMetadataProps {
+interface CollectionsListItemMetadataProps {
     children?: React.ReactNode;
 }
 
@@ -2960,7 +3026,9 @@ interface CollectionItemMetadataProps {
  * replacing it with an ellipsis menu. Keyboard shortcuts (E, Delete/Backspace,
  * C, Option+F) are active while hovered.
  */
-function CollectionItemMetadata({ children }: CollectionItemMetadataProps) {
+function CollectionsListItemMetadata({
+    children,
+}: CollectionsListItemMetadataProps) {
     const { favoriteCollectionIdSet } = useCollectionsState();
     const {
         onRename: onRenameAction,
@@ -2989,14 +3057,15 @@ function CollectionItemMetadata({ children }: CollectionItemMetadataProps) {
 
     return (
         <div className="absolute top-1/2 right-0 flex size-8 -translate-y-1/2 items-center justify-center">
-            <span className="pointer-events-none text-nowrap text-(--text-muted-color) text-xs tabular-nums focus-visible:opacity-0 group-focus-within:opacity-0 group-hover:opacity-0">
+            <span className="pointer-events-none text-nowrap text-(--text-muted-color) text-xs tabular-nums transition-opacity duration-150 ease-out focus-visible:opacity-0 group-focus-within:opacity-0 pointer-fine:group-hover:opacity-0">
                 {children}
             </span>
             <Menu>
                 <MenuTrigger
                     render={
                         <Button
-                            className="absolute opacity-0 focus-visible:opacity-100 group-focus-within:opacity-100 group-hover:opacity-100 group-focus:opacity-100 data-popup-open:bg-muted data-popup-open:opacity-100"
+                            aria-label={`Collection actions for ${collection.name}`}
+                            className="absolute opacity-100 pointer-fine:opacity-0 transition-opacity duration-150 ease-out focus-visible:opacity-100 group-focus-within:opacity-100 pointer-fine:group-hover:opacity-100 group-focus:opacity-100 data-popup-open:bg-muted data-popup-open:opacity-100"
                             size="icon-xs"
                             title={`Collection actions for ${collection.name}`}
                             variant="ghost"
@@ -3016,12 +3085,20 @@ function CollectionItemMetadata({ children }: CollectionItemMetadataProps) {
                             <Badge size="sm" variant="secondary">
                                 {collection.shareId ? (
                                     <>
-                                        <Globe className="size-3" />
+                                        <Globe
+                                            aria-hidden
+                                            className="size-3"
+                                            focusable="false"
+                                        />
                                         Public
                                     </>
                                 ) : (
                                     <>
-                                        <LockKeyhole className="size-3" />
+                                        <LockKeyhole
+                                            aria-hidden
+                                            className="size-3"
+                                            focusable="false"
+                                        />
                                         Private
                                     </>
                                 )}
@@ -3071,12 +3148,15 @@ function CollectionItemMetadata({ children }: CollectionItemMetadataProps) {
                     </MenuGroup>
                     <MenuSeparator />
                     <MenuGroup>
-                        <CollectionItemShareSubMenu />
-                        <CollectionItemExportSubMenu />
+                        <CollectionsListItemShareSubMenu />
+                        <CollectionsListItemExportSubMenu />
                     </MenuGroup>
                     <MenuSeparator />
                     <MenuGroup>
-                        <MenuItem onClick={handleDelete}>Delete</MenuItem>
+                        <MenuItem onClick={handleDelete}>
+                            Delete
+                            <MenuShortcut>⌫</MenuShortcut>
+                        </MenuItem>
                     </MenuGroup>
                     <MenuItem disabled>
                         <div className="-mt-0.5 space-y-1 text-[10px] text-muted-foreground leading-none *:text-nowrap">
@@ -3113,6 +3193,9 @@ function CollectionsRenameDialog() {
             setIsSubmitting(false);
         }
     }, [pendingRename]);
+
+    const inputId = React.useId();
+    const errorId = React.useId();
 
     const handleNameDraftChange = useStableCallback((draft: string) => {
         setNameDraft(draft);
@@ -3186,9 +3269,6 @@ function CollectionsRenameDialog() {
         event.preventDefault();
         handleSubmit();
     });
-
-    const inputId = React.useId();
-    const errorId = React.useId();
 
     return (
         <Dialog onOpenChange={handleOpenChange} open={isOpen}>
@@ -3288,6 +3368,9 @@ function CollectionsCreateDialog() {
 
     const { descriptionDraft, errorMessage, nameDraft } = formState;
     const isNameValid = normalizeWhitespace(nameDraft).length > 0;
+    const nameInputId = React.useId();
+    const errorId = React.useId();
+    const descriptionInputId = React.useId();
 
     const handleNameDraftChange = useStableCallback((draft: string) => {
         setFormState((current) =>
@@ -3339,6 +3422,7 @@ function CollectionsCreateDialog() {
                     assignedItemIds: getCreatedAssignedItemIds(result),
                     collection: result.collection,
                 });
+                showSuccess(`${result.collection.name} created.`);
                 setIsCreateOpen(false);
             } finally {
                 createSubmissionPendingRef.current = false;
@@ -3416,10 +3500,6 @@ function CollectionsCreateDialog() {
         }
     );
 
-    const nameInputId = React.useId();
-    const errorId = React.useId();
-    const descriptionInputId = React.useId();
-
     return (
         <Dialog onOpenChange={handleOpenChange} open={isCreateOpen}>
             <DialogPopup>
@@ -3459,7 +3539,7 @@ function CollectionsCreateDialog() {
                                 }
                                 aria-invalid={errorMessage ? true : undefined}
                                 autoFocus
-                                className="-mx-[calc(--spacing(3)-1px)] font-semibold text-xl"
+                                className="-mx-[calc(--spacing(3)-1px)] font-semibold text-xl tracking-tight"
                                 id={nameInputId}
                                 isUnstyled
                                 maxLength={NAME_MAX_LENGTH}
@@ -3604,7 +3684,7 @@ function CollectionsCreateDialog() {
 function CollectionsDeleteDialog() {
     const { pendingDelete, showSuccess, showError } = useCollectionsState();
     const { setPendingDelete, syncDeleted } = useCollectionsActions();
-    const [isPending, startDelete] = React.useTransition();
+    const [isSubmitting, startDelete] = React.useTransition();
 
     const handleConfirm = useStableCallback(() => {
         const target = pendingDelete;
@@ -3629,7 +3709,7 @@ function CollectionsDeleteDialog() {
     });
 
     const handleOpenChange = useStableCallback((open: boolean) => {
-        if (!(open || isPending)) {
+        if (!(open || isSubmitting)) {
             setPendingDelete(null);
         }
     });
@@ -3654,13 +3734,13 @@ function CollectionsDeleteDialog() {
                     <DialogPanel />
                     <DialogFooter>
                         <DialogClose
-                            disabled={isPending}
+                            disabled={isSubmitting}
                             render={<Button size="sm" variant="ghost" />}
                         >
                             Cancel
                         </DialogClose>
                         <Button
-                            isLoading={isPending}
+                            isLoading={isSubmitting}
                             size="sm"
                             type="submit"
                             variant="destructive"

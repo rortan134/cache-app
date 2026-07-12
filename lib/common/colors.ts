@@ -1,5 +1,5 @@
 import { clamp } from "@/lib/common/numbers";
-import { converter, formatHex, parse } from "culori";
+import { clampChroma, converter, formatHex, parse } from "culori";
 import * as z from "zod";
 
 const COLORS: readonly string[] = [
@@ -122,6 +122,12 @@ const HUE_SECTOR_DEGREES = 60;
 const HUE_FULL_CIRCLE = 360;
 const LUMINANCE_THRESHOLD = 0.55;
 
+/** Mid lightness: readable solid fills on light and dark surfaces. */
+const CHART_LIGHTNESS = 0.64;
+/** Moderate chroma: distinct without neon or washed pastels. */
+const CHART_CHROMA = 0.14;
+const CHART_FALLBACK_HEX = "#94a3b8";
+
 const GRADIENT_CHROMA_CLAMP_MIN = 0.6;
 const GRADIENT_CHROMA_CLAMP_MAX = 2.2;
 const GRADIENT_START_CHROMA = 2.4;
@@ -174,6 +180,62 @@ export function getHexColorFromName(value: string): string {
         );
     }
     return color;
+}
+
+/**
+ * Assign maximally distinct chart colors to a set of keys.
+ * Hues are evenly spaced; the set is sorted so the same membership always maps
+ * the same way. A hash of membership rotates the wheel so small sets don't
+ * always land in the same hue family.
+ */
+export function getChartColorsForKeys(
+    keys: readonly string[]
+): Map<string, string> {
+    const uniqueKeys = Array.from(new Set(keys)).sort((first, second) =>
+        first.localeCompare(second)
+    );
+    const count = uniqueKeys.length;
+    const colors = new Map<string, string>();
+    if (count === 0) {
+        return colors;
+    }
+
+    const startHue = djb2Hash(uniqueKeys.join("\0")) % HUE_FULL_CIRCLE;
+
+    for (let index = 0; index < count; index += 1) {
+        const key = uniqueKeys[index];
+        if (key === undefined) {
+            throw new Error(
+                `Invariant violated: missing key at index ${index}`
+            );
+        }
+        const hue =
+            count === 1
+                ? startHue
+                : (startHue + (index * HUE_FULL_CIRCLE) / count) %
+                  HUE_FULL_CIRCLE;
+        colors.set(key, chartHexFromHue(hue));
+    }
+
+    return colors;
+}
+
+function chartHexFromHue(hue: number): string {
+    const hex = formatHex(
+        clampChroma(
+            {
+                c: CHART_CHROMA,
+                h: hue,
+                l: CHART_LIGHTNESS,
+                mode: "oklch",
+            },
+            "oklch"
+        )
+    );
+    if (!hex) {
+        return CHART_FALLBACK_HEX;
+    }
+    return hex;
 }
 
 /**

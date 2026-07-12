@@ -1,6 +1,7 @@
 import "server-only";
 
 import { userHasActiveSubscription } from "@/lib/billing/service";
+import { createLogger } from "@/lib/common/logs/console/logger";
 import { prisma } from "@/prisma";
 import type { Prisma } from "@/prisma/client/client";
 import {
@@ -11,6 +12,7 @@ import {
     type AutomationTemplateKey,
 } from "@/prisma/client/enums";
 import { randomUUID } from "node:crypto";
+import { getRun } from "workflow/api";
 import {
     AUTOMATION_AGENT_MODEL_DEFAULT,
     AUTOMATION_DUE_BATCH_LIMIT,
@@ -25,6 +27,8 @@ import {
     validateAutomationSchedule,
     type AutomationScheduleInput,
 } from "./schedule";
+
+const log = createLogger("automations:service");
 
 type AutomationTransaction = Prisma.TransactionClient;
 type AutomationRunClaimResult =
@@ -67,7 +71,7 @@ const AUTOMATION_SELECT = {
             status: true,
             summaryMarkdown: true,
         },
-        take: 1,
+        take: 3,
     },
     status: true,
     templateKey: true,
@@ -334,51 +338,127 @@ export async function pauseAutomation(args: {
     automationId: string;
     userId: string;
 }): Promise<AutomationListItem> {
-    return await prisma.$transaction(async (tx) => {
-        const current = await requireAutomationOwned(tx, {
-            automationId: args.automationId,
-            operation: "pauseAutomation",
-            userId: args.userId,
-        });
+    const { automation, workflowRunIds } = await prisma.$transaction(
+        async (tx) => {
+            const current = await requireAutomationOwned(tx, {
+                automationId: args.automationId,
+                operation: "pauseAutomation",
+                userId: args.userId,
+            });
+            const now = new Date();
 
-        const automation = await tx.automation.update({
-            data: {
-                nextRunAtUtc: null,
-                status: AutomationStatus.paused,
-            },
-            select: AUTOMATION_SELECT,
-            where: {
-                id: current.id,
-            },
-        });
+            const inFlightRuns = await tx.automationRun.findMany({
+                select: {
+                    workflowRunId: true,
+                },
+                where: {
+                    automationId: current.id,
+                    status: {
+                        in: [
+                            AutomationRunStatus.starting,
+                            AutomationRunStatus.running,
+                        ],
+                    },
+                },
+            });
 
-        await tx.automationRun.deleteMany({
-            where: {
-                automationId: automation.id,
-                status: AutomationRunStatus.pending,
-            },
-        });
+            await tx.automationRun.deleteMany({
+                where: {
+                    automationId: current.id,
+                    status: AutomationRunStatus.pending,
+                },
+            });
+            // Cancel in-flight work so pause → delete cannot cascade away a live
+            // run while the workflow still spends tokens against a dead row.
+            const canceled = await tx.automationRun.updateMany({
+                data: {
+                    errorCode: "automation_paused",
+                    errorMessage:
+                        "The automation was paused before this run finished.",
+                    finishedAt: now,
+                    leaseExpiresAt: null,
+                    leaseId: null,
+                    status: AutomationRunStatus.canceled,
+                },
+                where: {
+                    automationId: current.id,
+                    status: {
+                        in: [
+                            AutomationRunStatus.starting,
+                            AutomationRunStatus.running,
+                        ],
+                    },
+                },
+            });
 
-        return toAutomationListItem(automation);
-    });
+            const paused = await tx.automation.update({
+                data: {
+                    // Keep parent metadata aligned with canceled in-flight runs.
+                    ...(canceled.count > 0 ? { lastRunAtUtc: now } : {}),
+                    nextRunAtUtc: null,
+                    status: AutomationStatus.paused,
+                },
+                select: AUTOMATION_SELECT,
+                where: {
+                    id: current.id,
+                },
+            });
+
+            return {
+                automation: toAutomationListItem(paused),
+                workflowRunIds: inFlightRuns
+                    .map((run) => run.workflowRunId)
+                    .filter((workflowRunId): workflowRunId is string =>
+                        Boolean(workflowRunId)
+                    ),
+            };
+        }
+    );
+
+    await cancelWorkflowRuns(workflowRunIds);
+    return automation;
 }
 
 export async function deleteAutomation(args: {
     automationId: string;
     userId: string;
 }): Promise<{ id: string }> {
-    const automation = await requireAutomationOwned(prisma, {
-        automationId: args.automationId,
-        operation: "deleteAutomation",
-        userId: args.userId,
-    });
-    await prisma.automation.delete({
+    // Atomic status gate: only a paused row owned by this user can be deleted.
+    const deleted = await prisma.automation.deleteMany({
         where: {
-            id: automation.id,
+            id: args.automationId,
+            status: AutomationStatus.paused,
+            userId: args.userId,
         },
     });
 
-    return { id: automation.id };
+    if (deleted.count === 1) {
+        return { id: args.automationId };
+    }
+
+    const existing = await prisma.automation.findFirst({
+        select: {
+            status: true,
+        },
+        where: {
+            id: args.automationId,
+            userId: args.userId,
+        },
+    });
+
+    if (!existing) {
+        throw createAutomationError({
+            code: "not_found",
+            message: "That automation is no longer available.",
+            operation: "deleteAutomation",
+        });
+    }
+
+    throw createAutomationError({
+        code: "must_be_paused",
+        message: "Pause this automation before deleting it.",
+        operation: "deleteAutomation",
+    });
 }
 
 export async function recoverStaleAutomationRuns(now = new Date()) {
@@ -397,15 +477,18 @@ export async function recoverStaleAutomationRuns(now = new Date()) {
         },
     });
 
+    // Hard ceiling: runs past AUTOMATION_RUNNING_TIMEOUT_MS are abandoned.
+    // finishAutomationRun only accepts `running`, so a late workflow success
+    // after this timeout cannot flip the row to succeeded. Cancel the workflow
+    // first so the engine stops spending work after we mark the run failed.
     const runningStartedBefore = new Date(
         now.getTime() - AUTOMATION_RUNNING_TIMEOUT_MS
     );
-    const running = await prisma.automationRun.updateMany({
-        data: {
-            errorCode: "run_timeout",
-            errorMessage: "The automation run exceeded its execution timeout.",
-            finishedAt: now,
-            status: AutomationRunStatus.failed,
+    const staleRunningRuns = await prisma.automationRun.findMany({
+        select: {
+            automationId: true,
+            id: true,
+            workflowRunId: true,
         },
         where: {
             startedAt: {
@@ -415,10 +498,78 @@ export async function recoverStaleAutomationRuns(now = new Date()) {
         },
     });
 
+    if (staleRunningRuns.length === 0) {
+        return {
+            recovered: starting.count,
+            timedOut: 0,
+        };
+    }
+
+    await cancelWorkflowRuns(
+        staleRunningRuns
+            .map((run) => run.workflowRunId)
+            .filter((workflowRunId): workflowRunId is string =>
+                Boolean(workflowRunId)
+            )
+    );
+
+    const running = await prisma.automationRun.updateMany({
+        data: {
+            errorCode: "run_timeout",
+            errorMessage: "The automation run exceeded its execution timeout.",
+            finishedAt: now,
+            status: AutomationRunStatus.failed,
+        },
+        where: {
+            id: {
+                in: staleRunningRuns.map((run) => run.id),
+            },
+            status: AutomationRunStatus.running,
+        },
+    });
+
+    if (running.count > 0) {
+        await prisma.automation.updateMany({
+            data: {
+                lastFailureCode: "run_timeout",
+                lastRunAtUtc: now,
+            },
+            where: {
+                id: {
+                    in: [
+                        ...new Set(
+                            staleRunningRuns.map((run) => run.automationId)
+                        ),
+                    ],
+                },
+            },
+        });
+    }
+
     return {
         recovered: starting.count,
         timedOut: running.count,
     };
+}
+
+async function cancelWorkflowRuns(workflowRunIds: string[]) {
+    if (workflowRunIds.length === 0) {
+        return;
+    }
+
+    await Promise.all(
+        workflowRunIds.map(async (workflowRunId) => {
+            try {
+                await getRun(workflowRunId).cancel();
+            } catch (error) {
+                log.warn("Failed to cancel automation workflow run", {
+                    error:
+                        error instanceof Error ? error.message : String(error),
+                    workflowRunId,
+                });
+            }
+        })
+    );
 }
 
 export async function claimDueAutomationRuns(
@@ -483,22 +634,50 @@ export async function attachWorkflowRunId(args: {
     });
 }
 
-export async function markAutomationRunStartFailed(args: {
-    message: string;
-    runId: string;
-}) {
-    await prisma.automationRun.update({
-        data: {
-            errorCode: "workflow_start_failed",
-            errorMessage: args.message,
-            finishedAt: new Date(),
-            leaseExpiresAt: null,
-            leaseId: null,
-            status: AutomationRunStatus.failed,
-        },
-        where: {
-            id: args.runId,
-        },
+export async function markAutomationRunStartFailed(args: { runId: string }) {
+    const now = new Date();
+
+    await prisma.$transaction(async (tx) => {
+        const run = await tx.automationRun.findUnique({
+            select: {
+                automationId: true,
+                status: true,
+            },
+            where: {
+                id: args.runId,
+            },
+        });
+        if (!run || run.status !== AutomationRunStatus.starting) {
+            return;
+        }
+
+        const failed = await tx.automationRun.updateMany({
+            data: {
+                errorCode: "workflow_start_failed",
+                errorMessage: "This automation run could not be started.",
+                finishedAt: now,
+                leaseExpiresAt: null,
+                leaseId: null,
+                status: AutomationRunStatus.failed,
+            },
+            where: {
+                id: args.runId,
+                status: AutomationRunStatus.starting,
+            },
+        });
+        if (failed.count !== 1) {
+            return;
+        }
+
+        await tx.automation.update({
+            data: {
+                lastFailureCode: "workflow_start_failed",
+                lastRunAtUtc: now,
+            },
+            where: {
+                id: run.automationId,
+            },
+        });
     });
 }
 
@@ -523,6 +702,25 @@ export async function markAutomationRunRunning(args: {
     }
 
     const automation = run.automation;
+    if (automation.status !== AutomationStatus.active) {
+        await prisma.automationRun.updateMany({
+            data: {
+                errorCode: "automation_paused",
+                errorMessage:
+                    "The automation was paused before this run started.",
+                finishedAt: now,
+                leaseExpiresAt: null,
+                leaseId: null,
+                status: AutomationRunStatus.canceled,
+            },
+            where: {
+                id: run.id,
+                status: AutomationRunStatus.starting,
+            },
+        });
+        return null;
+    }
+
     if (automation.payloadScope === AutomationPayloadScope.collection) {
         const collectionId =
             automation.collectionId ?? run.collectionIdSnapshot;
@@ -550,30 +748,31 @@ export async function markAutomationRunRunning(args: {
         }
     }
 
-    const updated = await prisma.automationRun.update({
+    const promoted = await prisma.automationRun.updateMany({
         data: {
             startedAt: now,
             status: AutomationRunStatus.running,
             workflowRunId: args.workflowRunId,
         },
-        include: {
-            automation: true,
-        },
         where: {
             id: run.id,
+            status: AutomationRunStatus.starting,
         },
     });
+    if (promoted.count !== 1) {
+        return null;
+    }
 
     return {
-        automationId: updated.automationId,
-        collectionId: updated.collectionIdSnapshot,
+        automationId: run.automationId,
+        collectionId: run.collectionIdSnapshot,
         modelId: AUTOMATION_AGENT_MODEL_DEFAULT,
-        payloadScope: updated.payloadScopeSnapshot,
-        prompt: updated.promptSnapshot,
-        runId: updated.id,
-        scheduledForUtc: updated.scheduledForUtc.toISOString(),
-        templateKey: updated.templateKeySnapshot,
-        userId: updated.userId,
+        payloadScope: run.payloadScopeSnapshot,
+        prompt: run.promptSnapshot,
+        runId: run.id,
+        scheduledForUtc: run.scheduledForUtc.toISOString(),
+        templateKey: run.templateKeySnapshot,
+        userId: run.userId,
     };
 }
 
@@ -591,41 +790,60 @@ export async function finishAutomationRun(args: {
     "use step";
 
     const now = new Date();
-    const run = await prisma.automationRun.update({
-        data: {
-            errorCode: args.errorCode,
-            errorMessage: args.errorMessage,
-            finishedAt: now,
-            leaseExpiresAt: null,
-            leaseId: null,
-            sources: args.sources,
-            status: args.status,
-            summaryMarkdown: args.summaryMarkdown,
-            usage: args.usage,
-        },
-        select: {
-            automationId: true,
-            id: true,
-            scheduledForUtc: true,
-        },
-        where: {
-            id: args.runId,
-        },
-    });
+    // Only a live `running` run may terminate. Guards against late writes after
+    // timeout recovery, double-starts, pause-cancel, or a second workflow
+    // finishing first. Run + automation metadata update together.
+    await prisma.$transaction(async (tx) => {
+        const run = await tx.automationRun.findUnique({
+            select: {
+                automationId: true,
+                status: true,
+            },
+            where: {
+                id: args.runId,
+            },
+        });
+        if (!run || run.status !== AutomationRunStatus.running) {
+            return;
+        }
 
-    await prisma.automation.update({
-        data: {
-            lastFailureCode:
-                args.status === AutomationRunStatus.failed
-                    ? (args.errorCode ?? "run_failed")
-                    : null,
-            lastRunAtUtc: now,
-            lastSucceededAtUtc:
-                args.status === AutomationRunStatus.succeeded ? now : undefined,
-        },
-        where: {
-            id: run.automationId,
-        },
+        const finished = await tx.automationRun.updateMany({
+            data: {
+                errorCode: args.errorCode,
+                errorMessage: args.errorMessage,
+                finishedAt: now,
+                leaseExpiresAt: null,
+                leaseId: null,
+                sources: args.sources,
+                status: args.status,
+                summaryMarkdown: args.summaryMarkdown,
+                usage: args.usage,
+            },
+            where: {
+                id: args.runId,
+                status: AutomationRunStatus.running,
+            },
+        });
+        if (finished.count !== 1) {
+            return;
+        }
+
+        await tx.automation.update({
+            data: {
+                lastFailureCode:
+                    args.status === AutomationRunStatus.failed
+                        ? (args.errorCode ?? "run_failed")
+                        : null,
+                lastRunAtUtc: now,
+                lastSucceededAtUtc:
+                    args.status === AutomationRunStatus.succeeded
+                        ? now
+                        : undefined,
+            },
+            where: {
+                id: run.automationId,
+            },
+        });
     });
 }
 
@@ -1033,6 +1251,7 @@ function toAutomationListItem(automation: {
         nextRunAtUtc: automation.nextRunAtUtc,
         payloadScope: automation.payloadScope,
         prompt: automation.prompt,
+        recentRuns: automation.runs,
         status: automation.status,
         templateKey: automation.templateKey,
         timeOfDayMinutes: automation.timeOfDayMinutes,
