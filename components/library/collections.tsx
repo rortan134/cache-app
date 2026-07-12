@@ -2677,6 +2677,7 @@ function CollectionsListItemTrigger({
                         thumbnails.map((thumbnail, index) => (
                             <CollectionsListItemPreviewImage
                                 alt={`${collection.name} preview`}
+                                aria-hidden={index !== activePreviewIndex}
                                 className={cn(
                                     "aspect-auto h-auto w-full transition-opacity ease-out",
                                     index === 0

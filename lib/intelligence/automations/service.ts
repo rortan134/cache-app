@@ -1,6 +1,7 @@
 import "server-only";
 
 import { userHasActiveSubscription } from "@/lib/billing/service";
+import { createLogger } from "@/lib/common/logs/console/logger";
 import { prisma } from "@/prisma";
 import type { Prisma } from "@/prisma/client/client";
 import {
@@ -11,6 +12,7 @@ import {
     type AutomationTemplateKey,
 } from "@/prisma/client/enums";
 import { randomUUID } from "node:crypto";
+import { getRun } from "workflow/api";
 import {
     AUTOMATION_AGENT_MODEL_DEFAULT,
     AUTOMATION_DUE_BATCH_LIMIT,
@@ -25,6 +27,8 @@ import {
     validateAutomationSchedule,
     type AutomationScheduleInput,
 } from "./schedule";
+
+const log = createLogger("automations:service");
 
 type AutomationTransaction = Prisma.TransactionClient;
 type AutomationRunClaimResult =
@@ -334,56 +338,85 @@ export async function pauseAutomation(args: {
     automationId: string;
     userId: string;
 }): Promise<AutomationListItem> {
-    return await prisma.$transaction(async (tx) => {
-        const current = await requireAutomationOwned(tx, {
-            automationId: args.automationId,
-            operation: "pauseAutomation",
-            userId: args.userId,
-        });
-        const now = new Date();
+    const { automation, workflowRunIds } = await prisma.$transaction(
+        async (tx) => {
+            const current = await requireAutomationOwned(tx, {
+                automationId: args.automationId,
+                operation: "pauseAutomation",
+                userId: args.userId,
+            });
+            const now = new Date();
 
-        const automation = await tx.automation.update({
-            data: {
-                nextRunAtUtc: null,
-                status: AutomationStatus.paused,
-            },
-            select: AUTOMATION_SELECT,
-            where: {
-                id: current.id,
-            },
-        });
-
-        await tx.automationRun.deleteMany({
-            where: {
-                automationId: automation.id,
-                status: AutomationRunStatus.pending,
-            },
-        });
-        // Cancel in-flight work so pause → delete cannot cascade away a live
-        // run while the workflow still spends tokens against a dead row.
-        await tx.automationRun.updateMany({
-            data: {
-                errorCode: "automation_paused",
-                errorMessage:
-                    "The automation was paused before this run finished.",
-                finishedAt: now,
-                leaseExpiresAt: null,
-                leaseId: null,
-                status: AutomationRunStatus.canceled,
-            },
-            where: {
-                automationId: automation.id,
-                status: {
-                    in: [
-                        AutomationRunStatus.starting,
-                        AutomationRunStatus.running,
-                    ],
+            const inFlightRuns = await tx.automationRun.findMany({
+                select: {
+                    workflowRunId: true,
                 },
-            },
-        });
+                where: {
+                    automationId: current.id,
+                    status: {
+                        in: [
+                            AutomationRunStatus.starting,
+                            AutomationRunStatus.running,
+                        ],
+                    },
+                },
+            });
 
-        return toAutomationListItem(automation);
-    });
+            await tx.automationRun.deleteMany({
+                where: {
+                    automationId: current.id,
+                    status: AutomationRunStatus.pending,
+                },
+            });
+            // Cancel in-flight work so pause → delete cannot cascade away a live
+            // run while the workflow still spends tokens against a dead row.
+            const canceled = await tx.automationRun.updateMany({
+                data: {
+                    errorCode: "automation_paused",
+                    errorMessage:
+                        "The automation was paused before this run finished.",
+                    finishedAt: now,
+                    leaseExpiresAt: null,
+                    leaseId: null,
+                    status: AutomationRunStatus.canceled,
+                },
+                where: {
+                    automationId: current.id,
+                    status: {
+                        in: [
+                            AutomationRunStatus.starting,
+                            AutomationRunStatus.running,
+                        ],
+                    },
+                },
+            });
+
+            const paused = await tx.automation.update({
+                data: {
+                    // Keep parent metadata aligned with canceled in-flight runs.
+                    ...(canceled.count > 0 ? { lastRunAtUtc: now } : {}),
+                    nextRunAtUtc: null,
+                    status: AutomationStatus.paused,
+                },
+                select: AUTOMATION_SELECT,
+                where: {
+                    id: current.id,
+                },
+            });
+
+            return {
+                automation: toAutomationListItem(paused),
+                workflowRunIds: inFlightRuns
+                    .map((run) => run.workflowRunId)
+                    .filter((workflowRunId): workflowRunId is string =>
+                        Boolean(workflowRunId)
+                    ),
+            };
+        }
+    );
+
+    await cancelWorkflowRuns(workflowRunIds);
+    return automation;
 }
 
 export async function deleteAutomation(args: {
@@ -444,15 +477,18 @@ export async function recoverStaleAutomationRuns(now = new Date()) {
         },
     });
 
+    // Hard ceiling: runs past AUTOMATION_RUNNING_TIMEOUT_MS are abandoned.
+    // finishAutomationRun only accepts `running`, so a late workflow success
+    // after this timeout cannot flip the row to succeeded. Cancel the workflow
+    // first so the engine stops spending work after we mark the run failed.
     const runningStartedBefore = new Date(
         now.getTime() - AUTOMATION_RUNNING_TIMEOUT_MS
     );
-    const running = await prisma.automationRun.updateMany({
-        data: {
-            errorCode: "run_timeout",
-            errorMessage: "The automation run exceeded its execution timeout.",
-            finishedAt: now,
-            status: AutomationRunStatus.failed,
+    const staleRunningRuns = await prisma.automationRun.findMany({
+        select: {
+            automationId: true,
+            id: true,
+            workflowRunId: true,
         },
         where: {
             startedAt: {
@@ -462,10 +498,78 @@ export async function recoverStaleAutomationRuns(now = new Date()) {
         },
     });
 
+    if (staleRunningRuns.length === 0) {
+        return {
+            recovered: starting.count,
+            timedOut: 0,
+        };
+    }
+
+    await cancelWorkflowRuns(
+        staleRunningRuns
+            .map((run) => run.workflowRunId)
+            .filter((workflowRunId): workflowRunId is string =>
+                Boolean(workflowRunId)
+            )
+    );
+
+    const running = await prisma.automationRun.updateMany({
+        data: {
+            errorCode: "run_timeout",
+            errorMessage: "The automation run exceeded its execution timeout.",
+            finishedAt: now,
+            status: AutomationRunStatus.failed,
+        },
+        where: {
+            id: {
+                in: staleRunningRuns.map((run) => run.id),
+            },
+            status: AutomationRunStatus.running,
+        },
+    });
+
+    if (running.count > 0) {
+        await prisma.automation.updateMany({
+            data: {
+                lastFailureCode: "run_timeout",
+                lastRunAtUtc: now,
+            },
+            where: {
+                id: {
+                    in: [
+                        ...new Set(
+                            staleRunningRuns.map((run) => run.automationId)
+                        ),
+                    ],
+                },
+            },
+        });
+    }
+
     return {
         recovered: starting.count,
         timedOut: running.count,
     };
+}
+
+async function cancelWorkflowRuns(workflowRunIds: string[]) {
+    if (workflowRunIds.length === 0) {
+        return;
+    }
+
+    await Promise.all(
+        workflowRunIds.map(async (workflowRunId) => {
+            try {
+                await getRun(workflowRunId).cancel();
+            } catch (error) {
+                log.warn("Failed to cancel automation workflow run", {
+                    error:
+                        error instanceof Error ? error.message : String(error),
+                    workflowRunId,
+                });
+            }
+        })
+    );
 }
 
 export async function claimDueAutomationRuns(

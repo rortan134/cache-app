@@ -300,7 +300,11 @@ function AutomationCard({ automation, collections }: AutomationCardProps) {
                         {metaParts.join(" · ")}
                     </p>
                     {actionErrorMessage ? (
-                        <p className="mt-1.5 text-destructive text-xs leading-5">
+                        <p
+                            aria-live="polite"
+                            className="mt-1.5 text-destructive text-xs leading-5"
+                            role="status"
+                        >
                             {actionErrorMessage}
                         </p>
                     ) : null}
@@ -333,33 +337,44 @@ function AutomationCard({ automation, collections }: AutomationCardProps) {
                         />
                     ) : (
                         <AutomationIconButton
-                            aria-label={`Resume ${automation.title}`}
-                            disabled={
+                            aria-disabled={
                                 isPending || !isCompleteSchedule(automation)
                             }
+                            aria-label={
+                                isCompleteSchedule(automation)
+                                    ? `Resume ${automation.title}`
+                                    : `Set a complete schedule to resume ${automation.title}`
+                            }
+                            disabled={isPending}
                             icon={Play}
-                            onClick={handleResume}
+                            onClick={
+                                isCompleteSchedule(automation)
+                                    ? handleResume
+                                    : undefined
+                            }
+                            title={
+                                isCompleteSchedule(automation)
+                                    ? undefined
+                                    : "Set a complete schedule to resume"
+                            }
                         />
                     )}
-                    <span
-                        className="inline-flex"
+                    <AutomationIconButton
+                        aria-disabled={isPending || !canDelete}
+                        aria-label={
+                            canDelete
+                                ? `Delete ${automation.title}`
+                                : `Pause ${automation.title} before deleting`
+                        }
+                        disabled={isPending}
+                        icon={Trash2}
+                        onClick={canDelete ? handleDelete : undefined}
                         title={
                             canDelete
                                 ? undefined
                                 : "Pause this automation before deleting"
                         }
-                    >
-                        <AutomationIconButton
-                            aria-label={
-                                canDelete
-                                    ? `Delete ${automation.title}`
-                                    : `Pause ${automation.title} before deleting`
-                            }
-                            disabled={isPending || !canDelete}
-                            icon={Trash2}
-                            onClick={handleDelete}
-                        />
-                    </span>
+                    />
                 </div>
             </div>
             {runs.length > 0 ? (
