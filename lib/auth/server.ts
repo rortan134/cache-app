@@ -335,8 +335,10 @@ function buildNotionOAuthConfig(): GenericOAuthConfig | null {
         authorizationHeaders: {
             "Notion-Version": NOTION_API_VERSION,
         },
-        authorizationUrl:
-            "https://api.notion.com/v1/oauth/authorize?owner=user",
+        authorizationUrl: "https://api.notion.com/v1/oauth/authorize",
+        authorizationUrlParams: {
+            owner: "user",
+        },
         ...creds,
         disableSignUp: true,
         getUserInfo: (tokens) =>

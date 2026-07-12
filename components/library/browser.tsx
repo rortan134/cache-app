@@ -2900,6 +2900,7 @@ interface BuildPaletteGroupsInput {
     columnCountMode: ColumnCountMode;
     domainFilters: string[];
     domainOptions: {
+        itemCount: number;
         label: string;
         value: string;
     }[];
@@ -2949,7 +2950,7 @@ interface BuildPaletteGroupsInput {
 
 function buildDomainPaletteOptions(
     items: LibraryItemWithCollections[]
-): { label: string; value: string }[] {
+): { itemCount: number; label: string; value: string }[] {
     const counts = new Map<string, number>();
     for (const item of items) {
         const domain = itemDomain(item.url);
@@ -2962,12 +2963,17 @@ function buildDomainPaletteOptions(
                 bCount - aCount || NAME_COLLATOR.compare(aDomain, bDomain)
         )
         .map(([domain, count]) => ({
+            itemCount: count,
             label: `${domain} (${count})`,
             value: domain,
         }));
 
     return [
-        { label: "All domains", value: ALL_DOMAIN_FILTER },
+        {
+            itemCount: items.length,
+            label: "All domains",
+            value: ALL_DOMAIN_FILTER,
+        },
         ...dynamicDomains,
     ];
 }
@@ -3343,9 +3349,10 @@ function filterCommandItems(
     }
 
     if (input.selectedCollectionIds.length > 0) {
+        const selectedCollectionIdSet = new Set(input.selectedCollectionIds);
         list = list.filter((item) =>
             item.collections.some((collection) =>
-                input.selectedCollectionIds.includes(collection.id)
+                selectedCollectionIdSet.has(collection.id)
             )
         );
     }
@@ -3373,13 +3380,13 @@ function filterCommandItems(
     }
 
     if (input.sourceFilters.length > 0) {
-        list = list.filter((item) => input.sourceFilters.includes(item.source));
+        const sourceFilterSet = new Set(input.sourceFilters);
+        list = list.filter((item) => sourceFilterSet.has(item.source));
     }
 
     if (input.domainFilters.length > 0) {
-        list = list.filter((item) =>
-            input.domainFilters.includes(itemDomain(item.url))
-        );
+        const domainFilterSet = new Set(input.domainFilters);
+        list = list.filter((item) => domainFilterSet.has(itemDomain(item.url)));
     }
 
     return list;
@@ -4029,6 +4036,7 @@ function CollectionComboboxPicker({
     open: openProp,
     onOpenChange,
     children,
+    render,
     ...props
 }: CollectionComboboxPickerProps) {
     const [isOpenInternal, setIsOpenInternal] = React.useState(false);
@@ -4077,16 +4085,18 @@ function CollectionComboboxPicker({
             <ComboboxTrigger
                 {...props}
                 render={
-                    <Button
-                        aria-label={
-                            selectedCount > 0
-                                ? `Edit collections (${selectedCount} selected)`
-                                : "Add to collections"
-                        }
-                        className="z-1 rounded-full"
-                        size="icon-sm"
-                        variant="ghost"
-                    />
+                    render ?? (
+                        <Button
+                            aria-label={
+                                selectedCount > 0
+                                    ? `Edit collections (${selectedCount} selected)`
+                                    : "Add to collections"
+                            }
+                            className="z-1 rounded-full"
+                            size="icon-sm"
+                            variant="ghost"
+                        />
+                    )
                 }
             >
                 {children ??
@@ -4908,36 +4918,73 @@ function buildSimilarBrowserFilterState(
     };
 }
 
-interface BrowserDialogsProps {
-    collectionComboboxPicker: React.ComponentType<{
-        collections: LibraryCollectionSummary[];
-        children: React.ReactNode;
-        items: LibraryItemWithCollections[];
-        onUpdateItemCollections: (
-            itemId: string,
-            collectionIds: string[]
-        ) => Promise<LibraryItemCollectionsUpdateResult>;
-        onUpdateItemsCollections?: (input: {
-            itemIds: string[];
-            nextSharedCollectionIds: string[];
-            previousSharedCollectionIds: string[];
-        }) => Promise<LibraryItemsCollectionsUpdateResult>;
-        render: React.ReactElement;
-    }>;
+interface DeleteItemDialogProps {
+    isDeletePending: boolean;
+    onConfirmDelete: () => void;
+    onOpenChange: (open: boolean) => void;
+    open: boolean;
+    pendingDeleteItem: LibraryItemWithCollections | null;
+}
+
+function DeleteItemDialog({
+    isDeletePending,
+    onConfirmDelete,
+    onOpenChange,
+    open,
+    pendingDeleteItem,
+}: DeleteItemDialogProps) {
+    return (
+        <Dialog onOpenChange={onOpenChange} open={open}>
+            <DialogPopup>
+                <DialogHeader>
+                    <DialogTitle>
+                        <T>Delete?</T>
+                    </DialogTitle>
+                    <DialogDescription>
+                        <T>
+                            <Var>
+                                {pendingDeleteItem?.noteContentText?.trim() ||
+                                    pendingDeleteItem?.caption?.trim() ||
+                                    pendingDeleteItem?.url ||
+                                    "This saved item"}
+                            </Var>{" "}
+                            will be moved to Recently deleted. You have 30 days
+                            to restore it before it's permanently deleted. This
+                            only removes it from your library, not from the
+                            original platform.
+                        </T>
+                    </DialogDescription>
+                </DialogHeader>
+                <DialogFooter>
+                    <DialogClose
+                        disabled={isDeletePending}
+                        render={<Button variant="ghost" />}
+                    >
+                        <T>Cancel</T>
+                    </DialogClose>
+                    <Button
+                        isLoading={isDeletePending}
+                        onClick={onConfirmDelete}
+                        variant="destructive"
+                    >
+                        <T>Delete</T>
+                    </Button>
+                </DialogFooter>
+            </DialogPopup>
+        </Dialog>
+    );
+}
+
+interface CreateResultsCollectionDialogProps {
     collections: LibraryCollectionSummary[];
     createResultsDescriptionDraft: string;
     createResultsDescriptionId: string;
-    createResultsDialogOpen: boolean;
     createResultsError: string | null;
     createResultsNameDraft: string;
     createResultsNameInputId: string;
-    deleteDialogOpen: boolean;
     isCreatingResultsCollection: boolean;
-    isDeletePending: boolean;
-    onConfirmDelete: () => void;
     onCreateCollectionFromResultsSubmit: () => void;
-    onCreateResultsDialogOpenChange: (open: boolean) => void;
-    onDeleteDialogOpenChange: (open: boolean) => void;
+    onOpenChange: (open: boolean) => void;
     onUpdateCreateResultsDescriptionDraft: (description: string) => void;
     onUpdateCreateResultsError: (error: string | null) => void;
     onUpdateCreateResultsNameDraft: (name: string) => void;
@@ -4950,42 +4997,32 @@ interface BrowserDialogsProps {
         nextSharedCollectionIds: string[];
         previousSharedCollectionIds: string[];
     }) => Promise<LibraryItemsCollectionsUpdateResult>;
-    pendingDeleteItem: LibraryItemWithCollections | null;
+    open: boolean;
     resultItemCount: number;
     visibleResultItems: LibraryItemWithCollections[];
 }
 
-function BrowserDialogs(props: BrowserDialogsProps) {
-    const {
-        deleteDialogOpen,
-        onDeleteDialogOpenChange,
-        pendingDeleteItem,
-        isDeletePending,
-        onConfirmDelete,
-
-        createResultsDialogOpen,
-        onCreateResultsDialogOpenChange,
-        resultItemCount,
-        createResultsNameInputId,
-        createResultsNameDraft,
-        onUpdateCreateResultsNameDraft,
-        onUpdateCreateResultsError,
-        createResultsError,
-        createResultsDescriptionId,
-        createResultsDescriptionDraft,
-        onUpdateCreateResultsDescriptionDraft,
-        onCreateCollectionFromResultsSubmit,
-        isCreatingResultsCollection,
-
-        collectionComboboxPicker: CollectionComboboxPickerComponent,
-        collections,
-        visibleResultItems,
-        onUpdateItemCollections,
-        onUpdateItemsCollections,
-    } = props;
-
+function CreateResultsCollectionDialog({
+    collections,
+    createResultsDescriptionDraft,
+    createResultsDescriptionId,
+    createResultsError,
+    createResultsNameDraft,
+    createResultsNameInputId,
+    isCreatingResultsCollection,
+    onCreateCollectionFromResultsSubmit,
+    onOpenChange,
+    onUpdateCreateResultsDescriptionDraft,
+    onUpdateCreateResultsError,
+    onUpdateCreateResultsNameDraft,
+    onUpdateItemCollections,
+    onUpdateItemsCollections,
+    open,
+    resultItemCount,
+    visibleResultItems,
+}: CreateResultsCollectionDialogProps) {
     const handleResultsFormSubmit = useStableCallback(
-        (event: React.ChangeEvent) => {
+        (event: React.FormEvent<HTMLFormElement>) => {
             event.preventDefault();
             onCreateCollectionFromResultsSubmit();
         }
@@ -5007,161 +5044,108 @@ function BrowserDialogs(props: BrowserDialogsProps) {
     );
 
     return (
-        <>
-            <Dialog
-                onOpenChange={onDeleteDialogOpenChange}
-                open={deleteDialogOpen}
-            >
-                <DialogPopup>
+        <Dialog onOpenChange={onOpenChange} open={open}>
+            <DialogPopup>
+                <form className="contents" onSubmit={handleResultsFormSubmit}>
                     <DialogHeader>
-                        <DialogTitle>
-                            <T>Delete?</T>
-                        </DialogTitle>
-                        <DialogDescription>
-                            <T>
-                                <Var>
-                                    {pendingDeleteItem?.noteContentText?.trim() ||
-                                        pendingDeleteItem?.caption?.trim() ||
-                                        pendingDeleteItem?.url ||
-                                        "This saved item"}
-                                </Var>{" "}
-                                will be moved to Recently deleted. You have 30
-                                days to restore it before it's permanently
-                                deleted. This only removes it from your library,
-                                not from the original platform.
-                            </T>
-                        </DialogDescription>
+                        <div className="flex items-center gap-1">
+                            <Badge size="lg" variant="outline">
+                                <Image
+                                    alt=""
+                                    height={12}
+                                    src={AppIconSmall}
+                                    width={12}
+                                />
+                                Cache
+                            </Badge>
+                            <ChevronRight className="inline-block size-3.5 shrink-0" />
+                            <DialogTitle className="font-medium text-sm">
+                                New collection with {resultItemCount} current
+                                result
+                                {resultItemCount === 1 ? "" : "s"}
+                            </DialogTitle>
+                        </div>
                     </DialogHeader>
+                    <DialogPanel className="space-y-2">
+                        <div>
+                            <label
+                                className="sr-only font-medium text-sm"
+                                htmlFor={createResultsNameInputId}
+                            >
+                                Name
+                            </label>
+                            <Input
+                                autoFocus
+                                className="-mx-[calc(--spacing(3)-1px)] font-semibold text-xl"
+                                id={createResultsNameInputId}
+                                isUnstyled
+                                maxLength={COLLECTION_NAME_MAX_LENGTH}
+                                onChange={handleResultsNameChange}
+                                placeholder="Collection title"
+                                required
+                                size="lg"
+                                type="text"
+                                value={createResultsNameDraft}
+                            />
+                        </div>
+                        <div>
+                            <label
+                                className="sr-only font-medium text-sm"
+                                htmlFor={createResultsDescriptionId}
+                            >
+                                Description (optional)
+                            </label>
+                            <Textarea
+                                className="-mx-[calc(--spacing(3)-1px)] *:resize-none"
+                                id={createResultsDescriptionId}
+                                isUnstyled
+                                maxLength={1024}
+                                onChange={handleResultsDescriptionChange}
+                                placeholder="Describe what belongs here..."
+                                size="lg"
+                                value={createResultsDescriptionDraft}
+                            />
+                        </div>
+                        {createResultsError ? (
+                            <p className="text-destructive text-sm">
+                                {createResultsError}
+                            </p>
+                        ) : null}
+                    </DialogPanel>
                     <DialogFooter>
-                        <DialogClose
-                            disabled={isDeletePending}
-                            render={<Button variant="ghost" />}
+                        <CollectionComboboxPicker
+                            collections={collections}
+                            items={visibleResultItems}
+                            onUpdateItemCollections={onUpdateItemCollections}
+                            onUpdateItemsCollections={onUpdateItemsCollections}
+                            render={
+                                <Button
+                                    className="mr-auto -ml-2"
+                                    size="xs"
+                                    variant="link"
+                                />
+                            }
                         >
-                            <T>Cancel</T>
+                            <Component className="mr-0.5! size-4" />
+                            Add to existing
+                        </CollectionComboboxPicker>
+                        <DialogClose
+                            disabled={isCreatingResultsCollection}
+                            render={<Button size="sm" variant="ghost" />}
+                        >
+                            Cancel
                         </DialogClose>
                         <Button
-                            isLoading={isDeletePending}
-                            onClick={onConfirmDelete}
-                            variant="destructive"
+                            isLoading={isCreatingResultsCollection}
+                            size="sm"
+                            type="submit"
                         >
-                            <T>Delete</T>
+                            Create collection
                         </Button>
                     </DialogFooter>
-                </DialogPopup>
-            </Dialog>
-            <Dialog
-                onOpenChange={onCreateResultsDialogOpenChange}
-                open={createResultsDialogOpen}
-            >
-                <DialogPopup>
-                    <form
-                        className="contents"
-                        onSubmit={handleResultsFormSubmit}
-                    >
-                        <DialogHeader>
-                            <div className="flex items-center gap-1">
-                                <Badge size="lg" variant="outline">
-                                    <Image
-                                        alt=""
-                                        height={12}
-                                        src={AppIconSmall}
-                                        width={12}
-                                    />
-                                    Cache
-                                </Badge>
-                                <ChevronRight className="inline-block size-3.5 shrink-0" />
-                                <DialogTitle className="font-medium text-sm">
-                                    New collection with {resultItemCount}{" "}
-                                    current result
-                                    {resultItemCount === 1 ? "" : "s"}
-                                </DialogTitle>
-                            </div>
-                        </DialogHeader>
-                        <DialogPanel className="space-y-2">
-                            <div>
-                                <label
-                                    className="sr-only font-medium text-sm"
-                                    htmlFor={createResultsNameInputId}
-                                >
-                                    Name
-                                </label>
-                                <Input
-                                    autoFocus
-                                    className="-mx-[calc(--spacing(3)-1px)] font-semibold text-xl"
-                                    id={createResultsNameInputId}
-                                    isUnstyled
-                                    maxLength={COLLECTION_NAME_MAX_LENGTH}
-                                    onChange={handleResultsNameChange}
-                                    placeholder="Collection title"
-                                    required
-                                    size="lg"
-                                    type="text"
-                                    value={createResultsNameDraft}
-                                />
-                            </div>
-                            <div>
-                                <label
-                                    className="sr-only font-medium text-sm"
-                                    htmlFor={createResultsDescriptionId}
-                                >
-                                    Description (optional)
-                                </label>
-                                <Textarea
-                                    className="-mx-[calc(--spacing(3)-1px)] *:resize-none"
-                                    id={createResultsDescriptionId}
-                                    isUnstyled
-                                    maxLength={1024}
-                                    onChange={handleResultsDescriptionChange}
-                                    placeholder="Describe what belongs here..."
-                                    size="lg"
-                                    value={createResultsDescriptionDraft}
-                                />
-                            </div>
-                            {createResultsError ? (
-                                <p className="text-destructive text-sm">
-                                    {createResultsError}
-                                </p>
-                            ) : null}
-                        </DialogPanel>
-                        <DialogFooter>
-                            <CollectionComboboxPickerComponent
-                                collections={collections}
-                                items={visibleResultItems}
-                                onUpdateItemCollections={
-                                    onUpdateItemCollections
-                                }
-                                onUpdateItemsCollections={
-                                    onUpdateItemsCollections
-                                }
-                                render={
-                                    <Button
-                                        className="mr-auto -ml-2"
-                                        size="xs"
-                                        variant="link"
-                                    />
-                                }
-                            >
-                                <Component className="mr-0.5! size-4" />
-                                Add to existing
-                            </CollectionComboboxPickerComponent>
-                            <DialogClose
-                                disabled={isCreatingResultsCollection}
-                                render={<Button size="sm" variant="ghost" />}
-                            >
-                                Cancel
-                            </DialogClose>
-                            <Button
-                                isLoading={isCreatingResultsCollection}
-                                size="sm"
-                                type="submit"
-                            >
-                                Create collection
-                            </Button>
-                        </DialogFooter>
-                    </form>
-                </DialogPopup>
-            </Dialog>
-        </>
+                </form>
+            </DialogPopup>
+        </Dialog>
     );
 }
 
@@ -5502,7 +5486,10 @@ export function BrowserRoot({
                 availableDomains: domainOptions
                     .filter((option) => option.value !== ALL_DOMAIN_FILTER)
                     .slice(0, ASK_CACHE_CONTEXT_DOMAIN_LIMIT)
-                    .map((option) => option.value),
+                    .map((option) => ({
+                        domain: option.value,
+                        itemCount: option.itemCount,
+                    })),
                 filteredItemCount: filterCommandItems(items, {
                     collectionMembershipFilter,
                     domainFilters,
@@ -6561,26 +6548,25 @@ export function BrowserRoot({
                 onNoteDrawerClose={handleCloseNoteDrawer}
             />
             <QuickLookDrawerSurface />
-            <BrowserDialogs
-                collectionComboboxPicker={CollectionComboboxPicker}
+            <DeleteItemDialog
+                isDeletePending={isDeletePending}
+                onConfirmDelete={handleConfirmDelete}
+                onOpenChange={handleDeleteDialogOpenChange}
+                open={pendingDeleteItem !== null}
+                pendingDeleteItem={pendingDeleteItem}
+            />
+            <CreateResultsCollectionDialog
                 collections={collections}
                 createResultsDescriptionDraft={createResultsDescriptionDraft}
                 createResultsDescriptionId={createResultsDescriptionId}
-                createResultsDialogOpen={isCreateResultsDialogOpen}
                 createResultsError={createResultsError}
                 createResultsNameDraft={createResultsNameDraft}
                 createResultsNameInputId={createResultsNameInputId}
-                deleteDialogOpen={pendingDeleteItem !== null}
                 isCreatingResultsCollection={isCreatingResultsCollection}
-                isDeletePending={isDeletePending}
-                onConfirmDelete={handleConfirmDelete}
                 onCreateCollectionFromResultsSubmit={
                     handleCreateCollectionFromResultsSubmit
                 }
-                onCreateResultsDialogOpenChange={
-                    handleCreateResultsDialogOpenChange
-                }
-                onDeleteDialogOpenChange={handleDeleteDialogOpenChange}
+                onOpenChange={handleCreateResultsDialogOpenChange}
                 onUpdateCreateResultsDescriptionDraft={
                     setCreateResultsDescriptionDraft
                 }
@@ -6588,7 +6574,7 @@ export function BrowserRoot({
                 onUpdateCreateResultsNameDraft={setCreateResultsNameDraft}
                 onUpdateItemCollections={onUpdateItemCollections}
                 onUpdateItemsCollections={onUpdateItemsCollections}
-                pendingDeleteItem={pendingDeleteItem}
+                open={isCreateResultsDialogOpen}
                 resultItemCount={resultCollectionItemIds.length}
                 visibleResultItems={visibleResultItems}
             />

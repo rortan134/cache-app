@@ -7,6 +7,10 @@ export const ASK_CACHE_DOMAIN_FILTER_MAX_LENGTH = 120;
 export const ASK_CACHE_COLLECTION_NAME_MAX_LENGTH = 120;
 export const ASK_CACHE_CONTEXT_COLLECTION_LIMIT = 200;
 export const ASK_CACHE_CONTEXT_DOMAIN_LIMIT = 200;
+export const ASK_CACHE_DOMAIN_FILTER_COUNT_MAX = ASK_CACHE_CONTEXT_DOMAIN_LIMIT;
+/** Cap for search_library domainFilters — each domain expands into many URL predicates. */
+export const ASK_CACHE_LIBRARY_SEARCH_DOMAIN_FILTER_COUNT_MAX = 40;
+export const ASK_CACHE_SEARCH_TERM_COUNT_MAX = 50;
 export const ASK_CACHE_OPERATION_LIMIT = 8;
 export const ASK_CACHE_LOCALE_MAX_LENGTH = 64;
 export const ASK_CACHE_TIME_ZONE_MAX_LENGTH = 64;
@@ -77,9 +81,11 @@ export const AskCacheComposerStateSchema = z.strictObject({
     columnCountMode: z.enum(ASK_CACHE_COLUMN_COUNT_VALUES),
     domainFilters: z
         .array(z.string().trim().min(1).max(ASK_CACHE_DOMAIN_FILTER_MAX_LENGTH))
-        .max(20),
+        .max(ASK_CACHE_DOMAIN_FILTER_COUNT_MAX),
     groupBy: z.enum(ASK_CACHE_GROUP_BY_VALUES),
-    searchTerms: z.array(AskCacheTextSchema).max(10),
+    searchTerms: z
+        .array(AskCacheTextSchema)
+        .max(ASK_CACHE_SEARCH_TERM_COUNT_MAX),
     selectedCollectionIds: z.array(AskCacheCollectionIdSchema).max(50),
     sortMode: z.enum(ASK_CACHE_SORT_MODE_VALUES),
     sourceFilters: z
@@ -97,11 +103,14 @@ export const AskCacheComposerPatchSchema = z
             .array(
                 z.string().trim().min(1).max(ASK_CACHE_DOMAIN_FILTER_MAX_LENGTH)
             )
-            .max(20)
+            .max(ASK_CACHE_DOMAIN_FILTER_COUNT_MAX)
             .optional(),
         groupBy: z.enum(ASK_CACHE_GROUP_BY_VALUES).optional(),
         reset: z.boolean().optional(),
-        searchTerms: z.array(AskCacheTextSchema).max(10).optional(),
+        searchTerms: z
+            .array(AskCacheTextSchema)
+            .max(ASK_CACHE_SEARCH_TERM_COUNT_MAX)
+            .optional(),
         selectedCollectionIds: z
             .array(AskCacheCollectionIdSchema)
             .max(50)
@@ -125,12 +134,17 @@ export const AskCacheAvailableCollectionSchema = z.strictObject({
     name: z.string().trim().min(1).max(ASK_CACHE_COLLECTION_NAME_MAX_LENGTH),
 });
 
+export const AskCacheAvailableDomainSchema = z.strictObject({
+    domain: z.string().trim().min(1).max(ASK_CACHE_DOMAIN_FILTER_MAX_LENGTH),
+    itemCount: z.int().min(1).max(100_000),
+});
+
 export const AskCacheVisibleContextSchema = z.strictObject({
     availableCollections: z
         .array(AskCacheAvailableCollectionSchema)
         .max(ASK_CACHE_CONTEXT_COLLECTION_LIMIT),
     availableDomains: z
-        .array(z.string().trim().min(1).max(ASK_CACHE_DOMAIN_FILTER_MAX_LENGTH))
+        .array(AskCacheAvailableDomainSchema)
         .max(ASK_CACHE_CONTEXT_DOMAIN_LIMIT),
     filteredItemCount: z.int().min(0).max(1_000_000),
     totalItemCount: z.int().min(0).max(1_000_000),

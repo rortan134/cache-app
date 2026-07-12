@@ -32,6 +32,9 @@ export const serverEnv = createEnv({
         GT_API_KEY: z.string(),
         GT_PROJECT_ID: z.string(),
 
+        NOTION_CLIENT_ID: z.string().optional(),
+        NOTION_CLIENT_SECRET: z.string().optional(),
+
         PINTEREST_CLIENT_ID: z.string().optional(),
         PINTEREST_CLIENT_SECRET: z.string().optional(),
 

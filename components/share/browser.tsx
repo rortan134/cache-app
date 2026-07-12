@@ -15,34 +15,77 @@ interface PublicShareGridItem {
     title: string;
 }
 
-function PreviewMedia({
-    alt,
-    src,
-}: {
-    alt: string;
-    src: string | null;
-}): React.ReactElement {
+const PREVIEW_DIMENSIONS_CACHE = new Map<string, { h: number; w: number }>();
+const PREVIEW_DIMENSIONS_CACHE_MAX = 500;
+const DEFAULT_PREVIEW_DIMENSIONS = { h: 4, w: 3 } as const;
+
+function PreviewMedia({ src }: { src: string | null }): React.ReactElement {
     const [didFail, setDidFail] = React.useState(false);
+    const [measuredSrc, setMeasuredSrc] = React.useState<string | null>(null);
+    const [measuredDimensions, setMeasuredDimensions] = React.useState<{
+        h: number;
+        w: number;
+    } | null>(null);
     const canRenderImage = Boolean(src) && !didFail;
+    const dimensions =
+        (src && measuredSrc === src ? measuredDimensions : null) ??
+        (src ? (PREVIEW_DIMENSIONS_CACHE.get(src) ?? null) : null) ??
+        DEFAULT_PREVIEW_DIMENSIONS;
 
-    const handleError = useStableCallback(() => setDidFail(true));
+    const handleError = useStableCallback(() => {
+        if (src) {
+            PREVIEW_DIMENSIONS_CACHE.delete(src);
+        }
+        setDidFail(true);
+    });
 
-    if (!canRenderImage) {
-        return <MediaPlaceholder className="min-h-32" />;
-    }
+    const handleLoad = useStableCallback(
+        (event: React.SyntheticEvent<HTMLImageElement>) => {
+            const img = event.currentTarget;
+            const w = img.naturalWidth;
+            const h = img.naturalHeight;
+            if (w > 0 && h > 0 && src) {
+                if (
+                    PREVIEW_DIMENSIONS_CACHE.size >=
+                    PREVIEW_DIMENSIONS_CACHE_MAX
+                ) {
+                    const oldestKey =
+                        PREVIEW_DIMENSIONS_CACHE.keys().next().value;
+                    if (oldestKey !== undefined) {
+                        PREVIEW_DIMENSIONS_CACHE.delete(oldestKey);
+                    }
+                }
+                const nextDimensions = { h, w };
+                PREVIEW_DIMENSIONS_CACHE.set(src, nextDimensions);
+                setMeasuredSrc(src);
+                setMeasuredDimensions(nextDimensions);
+            }
+        }
+    );
 
     return (
-        <img
-            alt={alt}
-            className="size-full object-cover"
-            draggable="false"
-            fetchPriority="auto"
-            height={400}
-            loading="lazy"
-            onError={handleError}
-            src={src ?? undefined}
-            width={300}
-        />
+        <div
+            className="relative w-full break-inside-avoid"
+            style={{ aspectRatio: `${dimensions.w} / ${dimensions.h}` }}
+        >
+            {canRenderImage ? (
+                <img
+                    alt=""
+                    className="size-full object-cover"
+                    decoding="async"
+                    draggable="false"
+                    fetchPriority="auto"
+                    height={400}
+                    loading="lazy"
+                    onError={handleError}
+                    onLoad={handleLoad}
+                    src={src ?? undefined}
+                    width={300}
+                />
+            ) : (
+                <MediaPlaceholder className="-z-1 min-h-32" />
+            )}
+        </div>
     );
 }
 
@@ -65,13 +108,11 @@ function PublicShareGridCard({
             </div>
         </div>
     ) : (
-        <div className="relative aspect-3/4 w-full overflow-hidden">
-            <PreviewMedia alt={data.title} src={data.previewImageUrl} />
-        </div>
+        <PreviewMedia src={data.previewImageUrl} />
     );
 
     const titleElement = isNote ? null : (
-        <div className="flex items-center p-1.5">
+        <div className="flex items-center py-1.5 pr-1">
             <span
                 className="block w-full min-w-0 truncate text-left text-[11px] text-foreground"
                 title={displayTitle}
@@ -81,21 +122,25 @@ function PublicShareGridCard({
         </div>
     );
 
+    const media = (
+        <div className="squircle overflow-clip rounded-xl">{preview}</div>
+    );
+
     return (
         <div className="group relative flex shrink-0 flex-col before:absolute before:-inset-x-2 before:-top-2 before:bottom-0 before:-z-10 before:rounded-xl before:bg-muted/50 before:opacity-0 before:transition-transform hover:before:opacity-100 active:before:scale-x-[0.99] active:before:scale-y-[0.97] active:before:opacity-80!">
             {data.href ? (
                 <a
-                    className="squircle flex flex-col overflow-clip rounded-xl focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
+                    className="flex flex-col focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
                     href={data.href}
                     rel="noopener noreferrer nofollow"
                     target="_blank"
                 >
-                    {preview}
+                    {media}
                     {titleElement}
                 </a>
             ) : (
-                <div className="squircle flex flex-col overflow-clip rounded-xl focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60">
-                    {preview}
+                <div className="flex flex-col">
+                    {media}
                     {titleElement}
                 </div>
             )}

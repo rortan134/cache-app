@@ -28,7 +28,11 @@ import { GenAiGenerationError } from "../error";
 import { normalizeGeneratedMarkdown } from "../markdown";
 import { estimateGenAiTokens, protectGenAiRequest } from "../protection";
 import {
+    ASK_CACHE_DOMAIN_FILTER_COUNT_MAX,
+    ASK_CACHE_DOMAIN_FILTER_MAX_LENGTH,
+    ASK_CACHE_LIBRARY_SEARCH_DOMAIN_FILTER_COUNT_MAX,
     ASK_CACHE_OPERATION_LIMIT,
+    ASK_CACHE_SEARCH_TERM_COUNT_MAX,
     ASK_CACHE_SOURCE_FILTER_VALUES,
     AskCacheToolUpdateInputSchema,
     type AskCacheComposerPatch,
@@ -46,7 +50,8 @@ const ASK_CACHE_MODELS = [
 const ASK_CACHE_OUTPUT_TOKEN_LIMIT = 1200;
 const ASK_CACHE_MAX_STEPS = 12;
 const ASK_CACHE_TIMEOUT_MS = 60_000;
-const ASK_CACHE_LIBRARY_SEARCH_LIMIT_MAX = 15;
+const ASK_CACHE_LIBRARY_SEARCH_LIMIT_MAX = 50;
+const ASK_CACHE_LIBRARY_SEARCH_OFFSET_MAX = 10_000;
 const ASK_CACHE_LIBRARY_TEXT_PREVIEW_LENGTH_MAX = 1000;
 const ASK_CACHE_PROVIDER_CONFIGURATION_ERROR_MESSAGE =
     "Cache AI provider credentials are missing or invalid.";
@@ -66,21 +71,29 @@ const AskCacheLibrarySearchInputSchema = z.strictObject({
         .max(10)
         .optional(),
     domainFilters: z
-        .array(z.string().trim().min(1).max(120))
-        .max(10)
+        .array(z.string().trim().min(1).max(ASK_CACHE_DOMAIN_FILTER_MAX_LENGTH))
+        .max(ASK_CACHE_LIBRARY_SEARCH_DOMAIN_FILTER_COUNT_MAX)
         .optional(),
     limit: z.int().min(1).max(ASK_CACHE_LIBRARY_SEARCH_LIMIT_MAX).optional(),
+    offset: z
+        .int()
+        .min(0)
+        .max(ASK_CACHE_LIBRARY_SEARCH_OFFSET_MAX)
+        .describe(
+            "Skip this many matches before returning results. Use with limit when a previous search_library call returned truncated: true."
+        )
+        .optional(),
     query: z
         .string()
         .trim()
         .max(200)
         .describe(
-            "Optional lexical search over captions, note text, and URLs. For conceptual requests, use concrete candidate names, brands, domains, or terms instead of broad category labels."
+            "Optional lexical search over captions, note text, and URLs. Words are AND-matched within a single item. For conceptual requests, prefer concrete candidate names, brands, or domains — or use domainFilters — instead of broad category labels."
         )
         .optional(),
     sourceFilters: z
         .array(z.enum(ASK_CACHE_SOURCE_FILTER_VALUES))
-        .max(10)
+        .max(ASK_CACHE_SOURCE_FILTER_VALUES.length)
         .optional(),
 });
 
@@ -190,7 +203,7 @@ async function runAskCacheAgentModel(args: {
         tools: {
             search_library: tool({
                 description:
-                    "Search the user's saved Cache library. Each word in the query is searched independently across captions, note text, and URLs (AND semantics). For conceptual requests, use concrete candidate names, brands, domains, or terms instead of broad category labels. For collection-scoped searches, pass collectionIds.",
+                    "Search the user's saved Cache library. Query words are AND-matched across caption, note text, and URL within each item. Prefer concrete names, brands, domains, domainFilters, sourceFilters, or collectionIds over broad category labels. When truncated is true, page with offset to continue the inventory.",
                 execute: (toolInput) =>
                     searchAskCacheLibrary({
                         input: toolInput,
@@ -200,7 +213,7 @@ async function runAskCacheAgentModel(args: {
             }),
             update_composer: tool({
                 description:
-                    "Apply a validated composer patch. Use this to change search terms, collection/source/domain filters, collection membership, grouping, sorting, columns, or reset state. Batch multiple changes into one call — the patch accepts all fields at once. Only include fields that differ from the current composer state; noop patches are rejected. Do not represent broad conceptual matches with only generic search terms; use high-confidence concrete filters.",
+                    "Apply a validated composer patch. Batch all state changes into one call. Only include fields that differ from the current composer state; noop patches are rejected. Prefer high-confidence concrete filters (domains, collections, sources, entity names) over generic category searchTerms.",
                 execute: (toolInput) => {
                     if (operations.length >= ASK_CACHE_OPERATION_LIMIT) {
                         return {
@@ -267,8 +280,12 @@ async function searchAskCacheLibrary(args: {
     userId: string;
 }) {
     const limit = Math.min(
-        args.input.limit ?? 10,
+        args.input.limit ?? 20,
         ASK_CACHE_LIBRARY_SEARCH_LIMIT_MAX
+    );
+    const offset = Math.min(
+        args.input.offset ?? 0,
+        ASK_CACHE_LIBRARY_SEARCH_OFFSET_MAX
     );
     const search = args.input.query?.trim();
     const collectionIds = args.input.collectionIds ?? [];
@@ -302,26 +319,27 @@ async function searchAskCacheLibrary(args: {
         searchConditions.push(domainCondition);
     }
 
+    const where: Prisma.LibraryItemWhereInput = {
+        deletedAt: null,
+        kind: { not: ITEM_KIND_FOLDER },
+        userId: args.userId,
+        ...(collectionIds.length > 0
+            ? {
+                  collections: {
+                      some: { id: { in: collectionIds } },
+                  },
+              }
+            : {}),
+        ...(sourceFilters.length > 0 ? { source: { in: sourceFilters } } : {}),
+        ...(searchConditions.length > 0 ? { AND: searchConditions } : {}),
+    };
+
     const items = await prisma.libraryItem.findMany({
         include: LIBRARY_ITEM_COLLECTIONS_INCLUDE,
         orderBy: [{ scrapedAt: SORT_DESC }, { updatedAt: SORT_DESC }],
+        skip: offset,
         take: limit + 1,
-        where: {
-            deletedAt: null,
-            kind: { not: ITEM_KIND_FOLDER },
-            userId: args.userId,
-            ...(collectionIds.length > 0
-                ? {
-                      collections: {
-                          some: { id: { in: collectionIds } },
-                      },
-                  }
-                : {}),
-            ...(sourceFilters.length > 0
-                ? { source: { in: sourceFilters } }
-                : {}),
-            ...(searchConditions.length > 0 ? { AND: searchConditions } : {}),
-        },
+        where,
     });
 
     return {
@@ -344,6 +362,8 @@ async function searchAskCacheLibrary(args: {
                 : null,
             url: item.url,
         })),
+        limit,
+        offset,
         truncated: items.length > limit,
     };
 }
@@ -355,9 +375,16 @@ function buildAskCacheDomainCondition(
         return null;
     }
 
+    const uniqueDomains = [
+        ...new Set(
+            domainFilters.map((rawDomain) =>
+                rawDomain.replace(WWW_DOMAIN_PREFIX_PATTERN, "")
+            )
+        ),
+    ];
+
     const orConditions: Prisma.LibraryItemWhereInput[] = [];
-    for (const rawDomain of domainFilters) {
-        const domain = rawDomain.replace(WWW_DOMAIN_PREFIX_PATTERN, "");
+    for (const domain of uniqueDomains) {
         for (const host of [domain, `www.${domain}`]) {
             orConditions.push({ url: { equals: host, mode: "insensitive" } });
             orConditions.push({
@@ -405,17 +432,20 @@ function buildAskCacheInstructions(input: AskCacheRequest): string {
         "Use update_composer for requests that ask to show, find, filter, sort, group, or reset.",
         "Prefer update_composer over setting searchTerms alone when concrete filters (collections, domains, sources) are available.",
         "Use exact collection ids from the collection catalog when selecting collection filters.",
-        "Use exact domains from the available domain list when applying domain filters.",
-        "When a user asks for conceptual matches, infer what qualifies instead of searching only for the user's literal words.",
-        "Library entries may not contain category labels like software product, recipe, tutorial, or inspiration in their caption, note text, URL, or metadata.",
-        "For conceptual filters, search and filter by concrete signals that imply the concept: product names, company names, domains, source type, collections, URL patterns, captions, and note text.",
-        "Do not use broad category words such as software, product, tool, recipe, tutorial, article, inspiration, or design as the only searchTerms unless the user explicitly asks for those literal words.",
-        "For broad conceptual requests, inspect candidate items with search_library before applying filters, and prefer exact domains, collection filters, source filters, or specific entity names over generic category terms.",
-        "Example: for 'I'm looking for software products', do not set searchTerms to ['software']; instead identify recognizable software companies, apps, SaaS tools, developer tools, AI products, or product domains from availableDomains and search_library results, then filter by those concrete signals.",
-        "If the available composer filters cannot represent the conceptual match well, say so briefly and apply only high-confidence filters rather than pretending a generic keyword search is sufficient.",
+        "Use exact domains from availableDomains when applying domainFilters.",
+        "Composer filters are exact-match tools, not a semantic category classifier.",
+        "Library entries usually do not contain category labels like software product, recipe, tutorial, or inspiration in caption, note text, URL, or metadata.",
+        "Do not set searchTerms to broad category words such as software, product, tool, recipe, tutorial, article, inspiration, or design unless the user explicitly asks for those literal words.",
+        "For conceptual requests: (1) prefer an exact matching collection if one exists; (2) inspect with search_library using concrete product, brand, domain, source, or URL signals; (3) apply high-confidence concrete filters.",
+        "When domainFilters express a conceptual match, include every high-confidence matching domain from availableDomains — do not sample a short representative list when more matching domains are available.",
+        `domainFilters accept up to ${ASK_CACHE_DOMAIN_FILTER_COUNT_MAX} domains; searchTerms accept up to ${ASK_CACHE_SEARCH_TERM_COUNT_MAX} terms. Use the full budget when the user wants a complete set.`,
+        "Relevant sourceFilters can help (for example github_starred_repositories for developer tools) and may be combined with domainFilters.",
+        "For 'show me all …' inventory requests, call search_library first (page with offset while truncated is true when needed), then update_composer when a useful filter exists.",
+        "Example: for 'show me all software products I saved', do not set searchTerms to ['software']. Prefer a matching collection if present; otherwise select all high-confidence product/app/SaaS/tool domains from availableDomains, include relevant sources, apply them together, and note any mixed-content domains you intentionally left out.",
+        "If the concept cannot be expressed completely with composer filters, say so plainly, apply only high-confidence filters, and answer with what search_library found. Never invent vague 'system constraints'; if a hard limit was hit, name the actual limit and that the result is partial.",
         "Use web_search only when public, current information would materially improve the answer beyond what is in the user's library.",
         "Prefer concise markdown. Mention applied composer changes in one short sentence when you call update_composer.",
-        "Batch multiple composer changes into one update_composer call. The patch accepts searchTerms, sourceFilters, domainFilters, selectedCollectionIds, groupBy, sortMode, columnCountMode, and reset all at once.",
+        "Batch multiple composer changes into one update_composer call. The patch accepts searchTerms, sourceFilters, domainFilters, selectedCollectionIds, collectionMembershipFilter, groupBy, sortMode, columnCountMode, and reset all at once.",
         "Call update_composer at most 8 times. After reaching the limit, stop and explain what was applied.",
         "Do not mutate saved items, collections, notes, or external services.",
         "",
@@ -511,7 +541,9 @@ function normalizeComposerPatchForContext(
             (collection) => collection.id
         )
     );
-    const domains = new Set(request.visibleContext.availableDomains);
+    const domains = new Set(
+        request.visibleContext.availableDomains.map((entry) => entry.domain)
+    );
 
     return {
         ...patch,
