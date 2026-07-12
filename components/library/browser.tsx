@@ -3719,21 +3719,38 @@ function MediaPreview({
 
     const cachedDimensions = src ? PREVIEW_DIMENSIONS_CACHE.get(src) : null;
 
-    React.useEffect(() => {
+    const stopHoverPlayback = useStableCallback(() => {
+        setIsHovered(false);
         const video = videoRef.current;
-        if (!(video && shouldLoadVideo)) {
+        if (!video) {
             return;
         }
+        video.pause();
+        video.currentTime = 0;
+    });
 
-        if (isHovered) {
-            video.play().catch((error: unknown) => {
-                log.debug("Failed to resume hover preview", { error });
-            });
-        } else {
-            video.pause();
-            video.currentTime = 0;
+    const handleMouseEnter = useStableCallback(() => {
+        setIsHovered(true);
+        setHasVideoFailed(false);
+    });
+
+    const handleMouseLeave = useStableCallback(() => {
+        stopHoverPlayback();
+    });
+
+    const handlePointerDown = useStableCallback(
+        (event: React.PointerEvent<HTMLDivElement>) => {
+            const ownerWindow = getOwnerWindow(event.currentTarget);
+            const target = event.target;
+            if (
+                target instanceof ownerWindow.Element &&
+                target.closest("button") !== null
+            ) {
+                return;
+            }
+            stopHoverPlayback();
         }
-    }, [isHovered, shouldLoadVideo]);
+    );
 
     const handleCanPlay = useStableCallback(() => {
         setHasVideoStarted(true);
@@ -3759,8 +3776,9 @@ function MediaPreview({
             const h = img.naturalHeight;
             if (w > 0 && h > 0 && src) {
                 if (
+                    !PREVIEW_DIMENSIONS_CACHE.has(src) &&
                     PREVIEW_DIMENSIONS_CACHE.size >=
-                    PREVIEW_DIMENSIONS_CACHE_MAX
+                        PREVIEW_DIMENSIONS_CACHE_MAX
                 ) {
                     const oldestKey =
                         PREVIEW_DIMENSIONS_CACHE.keys().next().value;
@@ -3772,15 +3790,6 @@ function MediaPreview({
             }
         }
     );
-
-    const handleMouseEnter = useStableCallback(() => {
-        setIsHovered(true);
-        setHasVideoFailed(false);
-    });
-
-    const handleMouseLeave = useStableCallback(() => {
-        setIsHovered(false);
-    });
 
     const handleVideoError = useStableCallback(() => {
         const video = videoRef.current;
@@ -3800,6 +3809,52 @@ function MediaPreview({
         setIsSoundEnabled((prev) => !prev);
     });
 
+    React.useEffect(() => {
+        const video = videoRef.current;
+        if (!(video && shouldLoadVideo)) {
+            return;
+        }
+
+        video.play().catch((error: unknown) => {
+            log.debug("Failed to resume hover preview", { error });
+        });
+    }, [shouldLoadVideo]);
+
+    React.useEffect(() => {
+        if (!shouldLoadVideo) {
+            return;
+        }
+
+        const ownerDocument = getOwnerDocument(videoRef.current);
+        const handleVisibilityChange = () => {
+            if (ownerDocument.hidden) {
+                stopHoverPlayback();
+                return;
+            }
+            const previewRoot = videoRef.current?.parentElement;
+            if (previewRoot?.matches(":hover")) {
+                setIsHovered(true);
+            }
+        };
+
+        ownerDocument.addEventListener(
+            "visibilitychange",
+            handleVisibilityChange
+        );
+        return () => {
+            ownerDocument.removeEventListener(
+                "visibilitychange",
+                handleVisibilityChange
+            );
+            const video = videoRef.current;
+            if (!video) {
+                return;
+            }
+            video.pause();
+            video.currentTime = 0;
+        };
+    }, [shouldLoadVideo, stopHoverPlayback]);
+
     const SoundIcon = isSoundEnabled ? Volume2Icon : VolumeXIcon;
 
     const wrapperStyle: React.CSSProperties | undefined = cachedDimensions
@@ -3814,6 +3869,7 @@ function MediaPreview({
             )}
             onMouseEnter={handleMouseEnter}
             onMouseLeave={handleMouseLeave}
+            onPointerDown={handlePointerDown}
             style={wrapperStyle}
         >
             {canRenderImage && !hasImageFailed ? (
@@ -5822,9 +5878,9 @@ export function BrowserRoot({
         unreachableFilterEnabled,
     });
 
-    const [isSuggestionsOpen, setIsSuggestionsOpen] = React.useState(false);
+    const [isSuggestionsOpen, setIsSuggestionsOpen] = React.useState(true);
 
-    const prevSuggestionCountRef = React.useRef(suggestions.length);
+    const prevSuggestionCountRef = React.useRef(0);
     if (suggestions.length > 0 && prevSuggestionCountRef.current === 0) {
         setIsSuggestionsOpen(true);
     }

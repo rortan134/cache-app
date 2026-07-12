@@ -3,6 +3,7 @@
 import { Masonry } from "@/components/ui/masonry";
 import { MediaPlaceholder } from "@/components/ui/media-placeholder";
 import { Ticker } from "@/components/ui/ticker";
+import { useIsoLayoutEffect } from "@base-ui/utils/useIsoLayoutEffect";
 import { useStableCallback } from "@base-ui/utils/useStableCallback";
 import * as React from "react";
 
@@ -18,73 +19,140 @@ interface PublicShareGridItem {
 const PREVIEW_DIMENSIONS_CACHE = new Map<string, { h: number; w: number }>();
 const PREVIEW_DIMENSIONS_CACHE_MAX = 500;
 const DEFAULT_PREVIEW_DIMENSIONS = { h: 4, w: 3 } as const;
+const PREVIEW_MIN_ASPECT_RATIO = 1 / 4;
+const PREVIEW_MAX_ASPECT_RATIO = 3;
+
+function readCachedDimensions(
+    src: string | null
+): { h: number; w: number } | null {
+    if (!src) {
+        return null;
+    }
+    return PREVIEW_DIMENSIONS_CACHE.get(src) ?? null;
+}
+
+function cacheDimensions(
+    src: string,
+    dimensions: { h: number; w: number }
+): void {
+    if (
+        !PREVIEW_DIMENSIONS_CACHE.has(src) &&
+        PREVIEW_DIMENSIONS_CACHE.size >= PREVIEW_DIMENSIONS_CACHE_MAX
+    ) {
+        const oldestKey = PREVIEW_DIMENSIONS_CACHE.keys().next().value;
+        if (oldestKey !== undefined) {
+            PREVIEW_DIMENSIONS_CACHE.delete(oldestKey);
+        }
+    }
+    PREVIEW_DIMENSIONS_CACHE.set(src, dimensions);
+}
+
+function clampPreviewDimensions(dimensions: { h: number; w: number }): {
+    h: number;
+    w: number;
+} {
+    const { h, w } = dimensions;
+    if (!(w > 0 && h > 0)) {
+        return dimensions;
+    }
+    const aspectRatio = h / w;
+    if (aspectRatio > PREVIEW_MAX_ASPECT_RATIO) {
+        return { h: Math.round(w * PREVIEW_MAX_ASPECT_RATIO), w };
+    }
+    if (aspectRatio < PREVIEW_MIN_ASPECT_RATIO) {
+        return { h: Math.round(w * PREVIEW_MIN_ASPECT_RATIO), w };
+    }
+    return dimensions;
+}
 
 function PreviewMedia({ src }: { src: string | null }): React.ReactElement {
+    const imgRef = React.useRef<HTMLImageElement | null>(null);
     const [didFail, setDidFail] = React.useState(false);
-    const [measuredSrc, setMeasuredSrc] = React.useState<string | null>(null);
-    const [measuredDimensions, setMeasuredDimensions] = React.useState<{
+    const [dimensions, setDimensions] = React.useState<{
         h: number;
         w: number;
-    } | null>(null);
+    } | null>(() => readCachedDimensions(src));
+    const [prevSrc, setPrevSrc] = React.useState(src);
+
+    if (src !== prevSrc) {
+        setPrevSrc(src);
+        setDidFail(false);
+        setDimensions(readCachedDimensions(src));
+    }
+
     const canRenderImage = Boolean(src) && !didFail;
-    const dimensions =
-        (src && measuredSrc === src ? measuredDimensions : null) ??
-        (src ? (PREVIEW_DIMENSIONS_CACHE.get(src) ?? null) : null) ??
-        DEFAULT_PREVIEW_DIMENSIONS;
+
+    const applyNaturalDimensions = useStableCallback(
+        (img: HTMLImageElement) => {
+            if (!src) {
+                return;
+            }
+            if (img.getAttribute("src") !== src) {
+                return;
+            }
+            const w = img.naturalWidth;
+            const h = img.naturalHeight;
+            if (!(w > 0 && h > 0)) {
+                return;
+            }
+            const next = { h, w };
+            cacheDimensions(src, next);
+            setDimensions((current) =>
+                current?.w === w && current.h === h ? current : next
+            );
+        }
+    );
 
     const handleError = useStableCallback(() => {
         if (src) {
             PREVIEW_DIMENSIONS_CACHE.delete(src);
         }
         setDidFail(true);
+        setDimensions(null);
     });
 
     const handleLoad = useStableCallback(
         (event: React.SyntheticEvent<HTMLImageElement>) => {
-            const img = event.currentTarget;
-            const w = img.naturalWidth;
-            const h = img.naturalHeight;
-            if (w > 0 && h > 0 && src) {
-                if (
-                    PREVIEW_DIMENSIONS_CACHE.size >=
-                    PREVIEW_DIMENSIONS_CACHE_MAX
-                ) {
-                    const oldestKey =
-                        PREVIEW_DIMENSIONS_CACHE.keys().next().value;
-                    if (oldestKey !== undefined) {
-                        PREVIEW_DIMENSIONS_CACHE.delete(oldestKey);
-                    }
-                }
-                const nextDimensions = { h, w };
-                PREVIEW_DIMENSIONS_CACHE.set(src, nextDimensions);
-                setMeasuredSrc(src);
-                setMeasuredDimensions(nextDimensions);
-            }
+            applyNaturalDimensions(event.currentTarget);
         }
+    );
+
+    useIsoLayoutEffect(() => {
+        const img = imgRef.current;
+        if (img?.complete && img.naturalWidth > 0) {
+            applyNaturalDimensions(img);
+        }
+    }, [applyNaturalDimensions, src]);
+
+    if (!canRenderImage) {
+        return <MediaPlaceholder className="min-h-32 w-full" />;
+    }
+
+    const displayDimensions = clampPreviewDimensions(
+        dimensions ?? DEFAULT_PREVIEW_DIMENSIONS
     );
 
     return (
         <div
             className="relative w-full break-inside-avoid"
-            style={{ aspectRatio: `${dimensions.w} / ${dimensions.h}` }}
+            style={{
+                aspectRatio: `${displayDimensions.w} / ${displayDimensions.h}`,
+            }}
         >
-            {canRenderImage ? (
-                <img
-                    alt=""
-                    className="size-full object-cover"
-                    decoding="async"
-                    draggable="false"
-                    fetchPriority="auto"
-                    height={400}
-                    loading="lazy"
-                    onError={handleError}
-                    onLoad={handleLoad}
-                    src={src ?? undefined}
-                    width={300}
-                />
-            ) : (
-                <MediaPlaceholder className="-z-1 min-h-32" />
-            )}
+            <img
+                alt=""
+                className="size-full object-cover"
+                decoding="async"
+                draggable="false"
+                fetchPriority="auto"
+                height={displayDimensions.h}
+                loading="lazy"
+                onError={handleError}
+                onLoad={handleLoad}
+                ref={imgRef}
+                src={src ?? undefined}
+                width={displayDimensions.w}
+            />
         </div>
     );
 }
