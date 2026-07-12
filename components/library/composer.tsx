@@ -335,7 +335,7 @@ export function ComposerActionMetrics() {
                     />
                 }
             />
-            <PopoverPopup align="start" positionMethod="fixed" side="top">
+            <PopoverPopup align="start" side="top">
                 <ComposerLibraryMetricsPanel
                     canClear={canClear}
                     metrics={metrics}
