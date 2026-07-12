@@ -5,10 +5,7 @@ import { AutomationComposerDialog } from "@/components/automations/automation-co
 import { getServerSession } from "@/lib/auth/session";
 import { listCollections } from "@/lib/collections/service";
 import { gtPublicString } from "@/lib/i18n/gt-public-json";
-import {
-    listAutomationRuns,
-    listAutomations,
-} from "@/lib/intelligence/automations/service";
+import { listAutomations } from "@/lib/intelligence/automations/service";
 import { T } from "gt-next";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
@@ -59,19 +56,6 @@ export default async function AutomationsPage() {
         name: collection.name,
     }));
 
-    const runsByAutomationId = Object.fromEntries(
-        await Promise.all(
-            automations.map(async (automation) => [
-                automation.id,
-                await listAutomationRuns({
-                    automationId: automation.id,
-                    limit: 5,
-                    userId,
-                }),
-            ])
-        )
-    );
-
     return (
         <>
             <ApplicationSidebar />
@@ -94,7 +78,6 @@ export default async function AutomationsPage() {
                 <AutomationsList
                     automations={automations}
                     collections={collectionOptions}
-                    runsByAutomationId={runsByAutomationId}
                 />
             </div>
         </>

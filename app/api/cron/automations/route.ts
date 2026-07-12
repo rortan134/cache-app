@@ -42,7 +42,6 @@ export async function GET(request: Request) {
                 });
                 try {
                     await markAutomationRunStartFailed({
-                        message,
                         runId: run.runId,
                     });
                 } catch (markError) {

@@ -259,6 +259,19 @@ export function UserMenuContent() {
                             <T>Support</T>
                             <ArrowUpRight className="ml-auto! inline-block size-4 shrink-0 text-muted-foreground" />
                         </MenuItem>
+                        <MenuItem
+                            className="justify-between pl-6"
+                            render={
+                                <Link
+                                    href="https://github.com/rortan134/cache-app"
+                                    rel="noopener noreferrer"
+                                    target="_blank"
+                                />
+                            }
+                        >
+                            <T>GitHub</T>
+                            <ArrowUpRight className="ml-auto! inline-block size-4 shrink-0 text-muted-foreground" />
+                        </MenuItem>
                         <KeyboardShortcutsDialogTrigger
                             nativeButton={false}
                             render={

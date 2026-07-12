@@ -67,7 +67,7 @@ const AUTOMATION_SELECT = {
             status: true,
             summaryMarkdown: true,
         },
-        take: 1,
+        take: 3,
     },
     status: true,
     templateKey: true,
@@ -340,6 +340,7 @@ export async function pauseAutomation(args: {
             operation: "pauseAutomation",
             userId: args.userId,
         });
+        const now = new Date();
 
         const automation = await tx.automation.update({
             data: {
@@ -358,6 +359,28 @@ export async function pauseAutomation(args: {
                 status: AutomationRunStatus.pending,
             },
         });
+        // Cancel in-flight work so pause → delete cannot cascade away a live
+        // run while the workflow still spends tokens against a dead row.
+        await tx.automationRun.updateMany({
+            data: {
+                errorCode: "automation_paused",
+                errorMessage:
+                    "The automation was paused before this run finished.",
+                finishedAt: now,
+                leaseExpiresAt: null,
+                leaseId: null,
+                status: AutomationRunStatus.canceled,
+            },
+            where: {
+                automationId: automation.id,
+                status: {
+                    in: [
+                        AutomationRunStatus.starting,
+                        AutomationRunStatus.running,
+                    ],
+                },
+            },
+        });
 
         return toAutomationListItem(automation);
     });
@@ -367,18 +390,42 @@ export async function deleteAutomation(args: {
     automationId: string;
     userId: string;
 }): Promise<{ id: string }> {
-    const automation = await requireAutomationOwned(prisma, {
-        automationId: args.automationId,
-        operation: "deleteAutomation",
-        userId: args.userId,
-    });
-    await prisma.automation.delete({
+    // Atomic status gate: only a paused row owned by this user can be deleted.
+    const deleted = await prisma.automation.deleteMany({
         where: {
-            id: automation.id,
+            id: args.automationId,
+            status: AutomationStatus.paused,
+            userId: args.userId,
         },
     });
 
-    return { id: automation.id };
+    if (deleted.count === 1) {
+        return { id: args.automationId };
+    }
+
+    const existing = await prisma.automation.findFirst({
+        select: {
+            status: true,
+        },
+        where: {
+            id: args.automationId,
+            userId: args.userId,
+        },
+    });
+
+    if (!existing) {
+        throw createAutomationError({
+            code: "not_found",
+            message: "That automation is no longer available.",
+            operation: "deleteAutomation",
+        });
+    }
+
+    throw createAutomationError({
+        code: "must_be_paused",
+        message: "Pause this automation before deleting it.",
+        operation: "deleteAutomation",
+    });
 }
 
 export async function recoverStaleAutomationRuns(now = new Date()) {
@@ -483,22 +530,50 @@ export async function attachWorkflowRunId(args: {
     });
 }
 
-export async function markAutomationRunStartFailed(args: {
-    message: string;
-    runId: string;
-}) {
-    await prisma.automationRun.update({
-        data: {
-            errorCode: "workflow_start_failed",
-            errorMessage: args.message,
-            finishedAt: new Date(),
-            leaseExpiresAt: null,
-            leaseId: null,
-            status: AutomationRunStatus.failed,
-        },
-        where: {
-            id: args.runId,
-        },
+export async function markAutomationRunStartFailed(args: { runId: string }) {
+    const now = new Date();
+
+    await prisma.$transaction(async (tx) => {
+        const run = await tx.automationRun.findUnique({
+            select: {
+                automationId: true,
+                status: true,
+            },
+            where: {
+                id: args.runId,
+            },
+        });
+        if (!run || run.status !== AutomationRunStatus.starting) {
+            return;
+        }
+
+        const failed = await tx.automationRun.updateMany({
+            data: {
+                errorCode: "workflow_start_failed",
+                errorMessage: "This automation run could not be started.",
+                finishedAt: now,
+                leaseExpiresAt: null,
+                leaseId: null,
+                status: AutomationRunStatus.failed,
+            },
+            where: {
+                id: args.runId,
+                status: AutomationRunStatus.starting,
+            },
+        });
+        if (failed.count !== 1) {
+            return;
+        }
+
+        await tx.automation.update({
+            data: {
+                lastFailureCode: "workflow_start_failed",
+                lastRunAtUtc: now,
+            },
+            where: {
+                id: run.automationId,
+            },
+        });
     });
 }
 
@@ -523,6 +598,25 @@ export async function markAutomationRunRunning(args: {
     }
 
     const automation = run.automation;
+    if (automation.status !== AutomationStatus.active) {
+        await prisma.automationRun.updateMany({
+            data: {
+                errorCode: "automation_paused",
+                errorMessage:
+                    "The automation was paused before this run started.",
+                finishedAt: now,
+                leaseExpiresAt: null,
+                leaseId: null,
+                status: AutomationRunStatus.canceled,
+            },
+            where: {
+                id: run.id,
+                status: AutomationRunStatus.starting,
+            },
+        });
+        return null;
+    }
+
     if (automation.payloadScope === AutomationPayloadScope.collection) {
         const collectionId =
             automation.collectionId ?? run.collectionIdSnapshot;
@@ -550,30 +644,31 @@ export async function markAutomationRunRunning(args: {
         }
     }
 
-    const updated = await prisma.automationRun.update({
+    const promoted = await prisma.automationRun.updateMany({
         data: {
             startedAt: now,
             status: AutomationRunStatus.running,
             workflowRunId: args.workflowRunId,
         },
-        include: {
-            automation: true,
-        },
         where: {
             id: run.id,
+            status: AutomationRunStatus.starting,
         },
     });
+    if (promoted.count !== 1) {
+        return null;
+    }
 
     return {
-        automationId: updated.automationId,
-        collectionId: updated.collectionIdSnapshot,
+        automationId: run.automationId,
+        collectionId: run.collectionIdSnapshot,
         modelId: AUTOMATION_AGENT_MODEL_DEFAULT,
-        payloadScope: updated.payloadScopeSnapshot,
-        prompt: updated.promptSnapshot,
-        runId: updated.id,
-        scheduledForUtc: updated.scheduledForUtc.toISOString(),
-        templateKey: updated.templateKeySnapshot,
-        userId: updated.userId,
+        payloadScope: run.payloadScopeSnapshot,
+        prompt: run.promptSnapshot,
+        runId: run.id,
+        scheduledForUtc: run.scheduledForUtc.toISOString(),
+        templateKey: run.templateKeySnapshot,
+        userId: run.userId,
     };
 }
 
@@ -591,41 +686,60 @@ export async function finishAutomationRun(args: {
     "use step";
 
     const now = new Date();
-    const run = await prisma.automationRun.update({
-        data: {
-            errorCode: args.errorCode,
-            errorMessage: args.errorMessage,
-            finishedAt: now,
-            leaseExpiresAt: null,
-            leaseId: null,
-            sources: args.sources,
-            status: args.status,
-            summaryMarkdown: args.summaryMarkdown,
-            usage: args.usage,
-        },
-        select: {
-            automationId: true,
-            id: true,
-            scheduledForUtc: true,
-        },
-        where: {
-            id: args.runId,
-        },
-    });
+    // Only a live `running` run may terminate. Guards against late writes after
+    // timeout recovery, double-starts, pause-cancel, or a second workflow
+    // finishing first. Run + automation metadata update together.
+    await prisma.$transaction(async (tx) => {
+        const run = await tx.automationRun.findUnique({
+            select: {
+                automationId: true,
+                status: true,
+            },
+            where: {
+                id: args.runId,
+            },
+        });
+        if (!run || run.status !== AutomationRunStatus.running) {
+            return;
+        }
 
-    await prisma.automation.update({
-        data: {
-            lastFailureCode:
-                args.status === AutomationRunStatus.failed
-                    ? (args.errorCode ?? "run_failed")
-                    : null,
-            lastRunAtUtc: now,
-            lastSucceededAtUtc:
-                args.status === AutomationRunStatus.succeeded ? now : undefined,
-        },
-        where: {
-            id: run.automationId,
-        },
+        const finished = await tx.automationRun.updateMany({
+            data: {
+                errorCode: args.errorCode,
+                errorMessage: args.errorMessage,
+                finishedAt: now,
+                leaseExpiresAt: null,
+                leaseId: null,
+                sources: args.sources,
+                status: args.status,
+                summaryMarkdown: args.summaryMarkdown,
+                usage: args.usage,
+            },
+            where: {
+                id: args.runId,
+                status: AutomationRunStatus.running,
+            },
+        });
+        if (finished.count !== 1) {
+            return;
+        }
+
+        await tx.automation.update({
+            data: {
+                lastFailureCode:
+                    args.status === AutomationRunStatus.failed
+                        ? (args.errorCode ?? "run_failed")
+                        : null,
+                lastRunAtUtc: now,
+                lastSucceededAtUtc:
+                    args.status === AutomationRunStatus.succeeded
+                        ? now
+                        : undefined,
+            },
+            where: {
+                id: run.automationId,
+            },
+        });
     });
 }
 
@@ -1033,6 +1147,7 @@ function toAutomationListItem(automation: {
         nextRunAtUtc: automation.nextRunAtUtc,
         payloadScope: automation.payloadScope,
         prompt: automation.prompt,
+        recentRuns: automation.runs,
         status: automation.status,
         templateKey: automation.templateKey,
         timeOfDayMinutes: automation.timeOfDayMinutes,

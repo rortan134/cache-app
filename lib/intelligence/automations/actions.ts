@@ -16,6 +16,7 @@ const STATUS_MAP = {
     forbidden: "FORBIDDEN",
     invalid_schedule: "INVALID",
     missing_collection: "NOT_FOUND",
+    must_be_paused: "INVALID",
     not_found: "NOT_FOUND",
     quota_unavailable: "FORBIDDEN",
     start_failed: "ERROR",

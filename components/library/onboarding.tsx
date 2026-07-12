@@ -84,37 +84,50 @@ const PAIN_POINT_OPTIONS = [
         description: "I lose track of articles, videos, and links I've saved.",
         id: "losing-saved",
         label: "Finding things I've saved",
+        solution:
+            "You saved it for a reason. That reason is still there — even when all you remember is a half-formed thought. What you keep should come back the moment you need it, not stay buried under everything else.",
     },
     {
         description:
             "Twitter here, YouTube there, browser bookmarks somewhere else.",
         id: "too-many-places",
         label: "Too many places to search",
+        solution:
+            "You shouldn't have to remember where you saved something just to find it again. One home for everything worth keeping — so looking for a link stops feeling like a scavenger hunt across apps.",
     },
     {
         description: "Saved stuff piles up without any structure or themes.",
         id: "organizing",
         label: "Hard to organize into topics",
+        solution:
+            "A pile isn't a library. Your saves can arrange themselves around how you actually think — by topic, project, or the thread only you see — without turning organization into another job you abandon.",
     },
     {
         description: "I save things and never come back to read or watch them.",
         id: "reading-later",
         label: "Never getting back to them",
+        solution:
+            "“Later” shouldn't mean never. What you set aside stays close enough to return to — gently, on your time — before good intentions quietly turn into a graveyard of open tabs.",
     },
     {
         description: "I'd love a clean link to send friends or coworkers.",
         id: "sharing",
         label: "Sharing with others",
+        solution:
+            "Share the thought, not the scavenger hunt. One quiet link. Exactly what you meant to show them — no export dumps, no “which app do you use?”, no screenshots of a bookmark bar.",
     },
     {
         description: "I want to jot ideas next to the things I save.",
         id: "quick-thoughts",
         label: "Adding my own notes",
+        solution:
+            "The idea that sparked when you saved something belongs next to it. Context stays put. So the thought doesn't die in a separate notes app while the source lives somewhere else entirely.",
     },
 ] as const;
 
 type OnboardingTaskId = (typeof ONBOARDING_TASK_META)[number]["id"];
 type PainPointId = (typeof PAIN_POINT_OPTIONS)[number]["id"];
+type PainPointDialogStep = "survey" | "response";
 
 interface OnboardingTask {
     id: OnboardingTaskId;
@@ -242,6 +255,8 @@ export function OnboardingMenu({
 
     const [isPainPointDialogOpen, setIsPainPointDialogOpen] =
         React.useState(false);
+    const [painPointDialogStep, setPainPointDialogStep] =
+        React.useState<PainPointDialogStep>("survey");
     const [painPointDialogSelections, setPainPointDialogSelections] =
         React.useState<Set<PainPointId>>(() => new Set());
 
@@ -336,6 +351,7 @@ export function OnboardingMenu({
     );
 
     const handleOpenPainPointDialog = useStableCallback(() => {
+        setPainPointDialogStep("survey");
         setIsPainPointDialogOpen(true);
     });
 
@@ -343,6 +359,7 @@ export function OnboardingMenu({
         (open: boolean) => {
             setIsPainPointDialogOpen(open);
             if (!open) {
+                setPainPointDialogStep("survey");
                 setPainPointDialogSelections(new Set());
             }
         }
@@ -376,7 +393,19 @@ export function OnboardingMenu({
             return merged;
         });
         markClientTaskCompleted("pain-point-survey");
+
+        if (selections.size === 0) {
+            setIsPainPointDialogOpen(false);
+            setPainPointDialogSelections(new Set());
+            return;
+        }
+
+        setPainPointDialogStep("response");
+    });
+
+    const handleFinishPainPointResponse = useStableCallback(() => {
         setIsPainPointDialogOpen(false);
+        setPainPointDialogStep("survey");
         setPainPointDialogSelections(new Set());
     });
 
@@ -487,10 +516,12 @@ export function OnboardingMenu({
             ) : null}
             <PainPointSurveyDialog
                 onCheckedChange={handleTogglePainPoint}
+                onFinishResponse={handleFinishPainPointResponse}
                 onOpenChange={handlePainPointDialogOpenChange}
                 onSubmit={handleSubmitPainPointSurvey}
                 open={isPainPointDialogOpen}
                 selections={painPointDialogSelections}
+                step={painPointDialogStep}
             />
         </>
     );
@@ -558,51 +589,95 @@ function OnboardingTaskStateIcon({ isCompleted }: { isCompleted: boolean }) {
 
 interface PainPointSurveyDialogProps {
     onCheckedChange: (painPointId: PainPointId, checked: boolean) => void;
+    onFinishResponse: () => void;
     onOpenChange: (open: boolean) => void;
     onSubmit: () => void;
     open: boolean;
     selections: Set<PainPointId>;
+    step: PainPointDialogStep;
 }
 
 function PainPointSurveyDialog({
     onCheckedChange,
+    onFinishResponse,
     onOpenChange,
     onSubmit,
     open,
     selections,
+    step,
 }: PainPointSurveyDialogProps) {
+    const isResponseStep = step === "response";
+    const selectedOptions = isResponseStep
+        ? PAIN_POINT_OPTIONS.filter((option) => selections.has(option.id))
+        : null;
+
     return (
         <Dialog onOpenChange={onOpenChange} open={open}>
             <DialogPopup>
-                <DialogHeader>
-                    <DialogTitle>
-                        What's your biggest pain point right now?
-                    </DialogTitle>
-                    <DialogDescription>
-                        Pick anything that sounds like you. We'll use this to
-                        tailor the next steps
-                    </DialogDescription>
-                </DialogHeader>
-                <DialogPanel className="grid gap-1.5">
-                    {PAIN_POINT_OPTIONS.map((option) => (
-                        <PainPointOption
-                            description={option.description}
-                            id={option.id}
-                            isChecked={selections.has(option.id)}
-                            key={option.id}
-                            label={option.label}
-                            onCheckedChange={onCheckedChange}
-                        />
-                    ))}
-                </DialogPanel>
-                <DialogFooter>
-                    <DialogClose render={<Button size="sm" variant="ghost" />}>
-                        Skip
-                    </DialogClose>
-                    <Button onClick={onSubmit} size="sm">
-                        Done
-                    </Button>
-                </DialogFooter>
+                {isResponseStep && selectedOptions ? (
+                    <>
+                        <DialogHeader>
+                            <DialogTitle>Good news –</DialogTitle>
+                            <DialogDescription>
+                                None of that has to follow you here.
+                            </DialogDescription>
+                        </DialogHeader>
+                        <DialogPanel className="grid gap-3">
+                            {selectedOptions.map((option) => (
+                                <div
+                                    className="grid gap-1 rounded-md border border-border p-3"
+                                    key={option.id}
+                                >
+                                    <p className="font-medium text-foreground text-sm leading-tight">
+                                        {option.label}
+                                    </p>
+                                    <p className="text-muted-foreground text-sm leading-snug">
+                                        {option.solution}
+                                    </p>
+                                </div>
+                            ))}
+                        </DialogPanel>
+                        <DialogFooter>
+                            <Button onClick={onFinishResponse} size="sm">
+                                Continue
+                            </Button>
+                        </DialogFooter>
+                    </>
+                ) : (
+                    <>
+                        <DialogHeader>
+                            <DialogTitle>
+                                What's your biggest pain point right now?
+                            </DialogTitle>
+                            <DialogDescription>
+                                Pick anything that sounds like you. We'll use
+                                this to tailor the next steps
+                            </DialogDescription>
+                        </DialogHeader>
+                        <DialogPanel className="grid gap-1.5">
+                            {PAIN_POINT_OPTIONS.map((option) => (
+                                <PainPointOption
+                                    description={option.description}
+                                    id={option.id}
+                                    isChecked={selections.has(option.id)}
+                                    key={option.id}
+                                    label={option.label}
+                                    onCheckedChange={onCheckedChange}
+                                />
+                            ))}
+                        </DialogPanel>
+                        <DialogFooter>
+                            <DialogClose
+                                render={<Button size="sm" variant="ghost" />}
+                            >
+                                Skip
+                            </DialogClose>
+                            <Button onClick={onSubmit} size="sm">
+                                Done
+                            </Button>
+                        </DialogFooter>
+                    </>
+                )}
             </DialogPopup>
         </Dialog>
     );

@@ -182,7 +182,6 @@ export function MenuSubTrigger({
                 className
             )}
             data-slot="menu-sub-trigger"
-            nativeButton={false}
         >
             {children}
             <ChevronRightIcon

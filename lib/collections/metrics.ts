@@ -1,4 +1,4 @@
-import { getHexColorFromName } from "@/lib/common/colors";
+import { getChartColorsForKeys } from "@/lib/common/colors";
 import { ITEM_KIND_NOTE } from "@/lib/common/constants";
 import type { LibraryItemSource } from "@/prisma/client/enums";
 
@@ -63,11 +63,22 @@ export function buildLibraryMetrics({
         }
     }
 
-    const sourceSegments = Array.from(sourceCounts.entries())
+    const sourceEntries = Array.from(sourceCounts.entries());
+    const colorsBySource = getChartColorsForKeys(
+        sourceEntries.map(([source]) => source)
+    );
+
+    const sourceSegments = sourceEntries
         .map(([source, value]) => {
             const label = getSourceLabel(source);
+            const color = colorsBySource.get(source);
+            if (!color) {
+                throw new Error(
+                    `Invariant violated: missing chart color for source ${source}`
+                );
+            }
             return {
-                color: getHexColorFromName(label),
+                color,
                 key: source,
                 label,
                 value,
