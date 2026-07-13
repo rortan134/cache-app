@@ -1,0 +1,265 @@
+# Build Cache desktop installers with Pake (https://github.com/tw93/Pake)
+# and attach them to a GitHub Release for user-menu downloads.
+#
+# Triggers:
+#   - workflow_dispatch (manual rebuild)
+#   - push of version tags: v* (e.g. v0.13.0)
+#
+# Published asset names (stable; used by lib/desktop):
+#   - Cache.dmg
+#   - Cache_x64.msi
+#   - Cache_x86_64.AppImage
+#   - Cache_x86_64.deb
+
+name: Desktop App Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      app_version:
+        description: "App version (defaults to package.json / tag)"
+        required: false
+        type: string
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+env:
+  APP_NAME: Cache
+  APP_URL: https://www.cachd.app
+  APP_ICON: https://www.cachd.app/web-app-manifest-512x512.png
+  APP_WIDTH: "1280"
+  APP_HEIGHT: "860"
+  NODE_VERSION: "22"
+
+jobs:
+  build:
+    name: Build (${{ matrix.platform }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: macos
+            os: macos-latest
+          - platform: windows
+            os: windows-latest
+          - platform: linux
+            os: ubuntu-24.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
+          targets: ${{ matrix.platform == 'macos' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Resolve app version
+        id: version
+        shell: bash
+        run: |
+          if [ -n "${{ inputs.app_version }}" ]; then
+            VERSION="${{ inputs.app_version }}"
+          elif [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
+            VERSION="${GITHUB_REF_NAME#v}"
+          else
+            VERSION="$(node -p "require('./package.json').version")"
+          fi
+          echo "value=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "Resolved app version: ${VERSION}"
+
+      - name: Install Linux system dependencies
+        if: matrix.platform == 'linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libappindicator3-dev \
+            librsvg2-dev \
+            patchelf \
+            libfuse2
+
+      - name: Setup mold linker
+        if: matrix.platform == 'linux'
+        uses: rui314/setup-mold@v1
+
+      - name: Install pake-cli
+        run: npm install -g pake-cli
+
+      - name: Build macOS (universal DMG)
+        if: matrix.platform == 'macos'
+        timeout-minutes: 35
+        env:
+          TAURI_BUNDLER_DMG_IGNORE_CI: "true"
+        run: |
+          set -euo pipefail
+          pake "${{ env.APP_URL }}" \
+            --name "${{ env.APP_NAME }}" \
+            --icon "${{ env.APP_ICON }}" \
+            --width "${{ env.APP_WIDTH }}" \
+            --height "${{ env.APP_HEIGHT }}" \
+            --app-version "${{ steps.version.outputs.value }}" \
+            --hide-title-bar \
+            --multi-arch \
+            --targets universal \
+            --safe-domain cachd.app \
+            --new-window \
+            --enable-drag-drop
+
+          mkdir -p output
+          if [ -f "${{ env.APP_NAME }}.dmg" ]; then
+            mv "${{ env.APP_NAME }}.dmg" output/Cache.dmg
+          elif [ -n "$(ls src-tauri/target/universal-apple-darwin/release/bundle/dmg/*.dmg 2>/dev/null || true)" ]; then
+            mv src-tauri/target/universal-apple-darwin/release/bundle/dmg/*.dmg output/Cache.dmg
+          else
+            echo "No DMG found"
+            find . -name "*.dmg" -type f || true
+            exit 1
+          fi
+          ls -lh output/
+
+      - name: Build Windows (x64 MSI)
+        if: matrix.platform == 'windows'
+        timeout-minutes: 30
+        shell: pwsh
+        run: |
+          pake "${{ env.APP_URL }}" `
+            --name "${{ env.APP_NAME }}" `
+            --icon "${{ env.APP_ICON }}" `
+            --width "${{ env.APP_WIDTH }}" `
+            --height "${{ env.APP_HEIGHT }}" `
+            --app-version "${{ steps.version.outputs.value }}" `
+            --targets x64 `
+            --safe-domain cachd.app `
+            --new-window `
+            --enable-drag-drop
+
+          New-Item -Path output -ItemType Directory -Force | Out-Null
+          if (Test-Path "${{ env.APP_NAME }}.msi") {
+            Move-Item "${{ env.APP_NAME }}.msi" "output/Cache_x64.msi"
+          } else {
+            $msi = Get-ChildItem -Path "src-tauri\target" -Recurse -Filter "*.msi" -ErrorAction SilentlyContinue | Select-Object -First 1
+            if ($null -eq $msi) {
+              Write-Error "No MSI found"
+              exit 1
+            }
+            Move-Item $msi.FullName "output/Cache_x64.msi"
+          }
+          Get-ChildItem output
+
+      - name: Build Linux (AppImage + deb)
+        if: matrix.platform == 'linux'
+        timeout-minutes: 30
+        run: |
+          set -euo pipefail
+          pake "${{ env.APP_URL }}" \
+            --name "${{ env.APP_NAME }}" \
+            --icon "${{ env.APP_ICON }}" \
+            --width "${{ env.APP_WIDTH }}" \
+            --height "${{ env.APP_HEIGHT }}" \
+            --app-version "${{ steps.version.outputs.value }}" \
+            --targets deb,appimage \
+            --safe-domain cachd.app \
+            --new-window \
+            --enable-drag-drop
+
+          mkdir -p output
+
+          if [ -f "${{ env.APP_NAME }}.AppImage" ]; then
+            mv "${{ env.APP_NAME }}.AppImage" output/Cache_x86_64.AppImage
+          elif [ -n "$(ls src-tauri/target/release/bundle/appimage/*.AppImage 2>/dev/null || true)" ]; then
+            mv src-tauri/target/release/bundle/appimage/*.AppImage output/Cache_x86_64.AppImage
+          else
+            echo "No AppImage found"
+            find . -name "*.AppImage" -type f || true
+            exit 1
+          fi
+
+          if [ -f "${{ env.APP_NAME }}.deb" ]; then
+            mv "${{ env.APP_NAME }}.deb" output/Cache_x86_64.deb
+          elif [ -n "$(ls src-tauri/target/release/bundle/deb/*.deb 2>/dev/null || true)" ]; then
+            mv src-tauri/target/release/bundle/deb/*.deb output/Cache_x86_64.deb
+          else
+            echo "Warning: No DEB found (AppImage is primary)"
+          fi
+
+          ls -lh output/
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v6
+        with:
+          name: desktop-${{ matrix.platform }}
+          path: output/*
+          if-no-files-found: error
+          retention-days: 14
+
+  release:
+    name: Publish GitHub Release
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Resolve release tag
+        id: tag
+        shell: bash
+        run: |
+          if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
+            TAG="${GITHUB_REF_NAME}"
+          elif [ -n "${{ inputs.app_version }}" ]; then
+            TAG="v${{ inputs.app_version }}"
+          else
+            VERSION="$(node -p "require('./package.json').version")"
+            TAG="v${VERSION}"
+          fi
+          echo "value=${TAG}" >> "$GITHUB_OUTPUT"
+          echo "Release tag: ${TAG}"
+
+      - name: Download all platform artifacts
+        uses: actions/download-artifact@v7
+        with:
+          path: release-assets
+          pattern: desktop-*
+          merge-multiple: true
+
+      - name: List assets
+        run: ls -lah release-assets/
+
+      - name: Create or update GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.tag.outputs.value }}
+          name: Cache Desktop ${{ steps.tag.outputs.value }}
+          body: |
+            Desktop installers for Cache, packaged with [Pake](https://github.com/tw93/Pake).
+
+            | Platform | Installer |
+            | -------- | --------- |
+            | macOS (Universal) | `Cache.dmg` |
+            | Windows (x64) | `Cache_x64.msi` |
+            | Linux | `Cache_x86_64.AppImage` / `Cache_x86_64.deb` |
+
+            Download from the user menu in the app, or use the assets below.
+          files: |
+            release-assets/Cache.dmg
+            release-assets/Cache_x64.msi
+            release-assets/Cache_x86_64.AppImage
+            release-assets/Cache_x86_64.deb
+          fail_on_unmatched_files: false
+          generate_release_notes: false
+          draft: false
+          make_latest: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

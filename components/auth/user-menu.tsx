@@ -38,9 +38,18 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ThemeSelector } from "@/components/ui/theme-selector";
 import { authClient, useSession } from "@/lib/auth/client";
 import type { auth } from "@/lib/auth/server";
+import { ACTION_STATUS } from "@/lib/common/constants";
 import { cn } from "@/lib/common/cn";
 import { createLogger } from "@/lib/common/logs/console/logger";
 import { getInitials } from "@/lib/common/strings";
+import { getDesktopDownloads } from "@/lib/desktop/actions";
+import { DESKTOP_ASSETS } from "@/lib/desktop/constants";
+import { detectDesktopPlatform } from "@/lib/desktop/platform";
+import {
+    getDesktopReleasesPageUrl,
+    getStaticDesktopDownloads,
+    type DesktopDownload,
+} from "@/lib/desktop/releases";
 import AppIconSmall from "@/public/cache-icon-small.png";
 import { useStableCallback } from "@base-ui/utils/useStableCallback";
 import { LocaleSelector, T, Var } from "gt-next";
@@ -83,6 +92,7 @@ const FOOTER_LINKS = [
 ] as const;
 
 const DEVICE_SESSIONS_SWR_KEY = ["auth-user-menu:device-sessions"] as const;
+const DESKTOP_DOWNLOADS_SWR_KEY = ["desktop:downloads"] as const;
 
 export function UserMenu(
     props: Omit<React.ComponentProps<typeof Menu>, "open" | "onOpenChange">
@@ -288,14 +298,7 @@ export function UserMenuContent() {
                         />
                     </CollapsiblePanel>
                 </Collapsible>
-                <MenuItem
-                    className="justify-between"
-                    closeOnClick={false}
-                    disabled
-                >
-                    Download desktop app
-                    <Download className="ml-auto inline-block size-3.5 shrink-0 text-muted-foreground" />
-                </MenuItem>
+                <UserMenuDesktopDownloadSubMenu />
                 <LogoutDialogTrigger
                     nativeButton={false}
                     render={
@@ -351,6 +354,142 @@ export function UserMenuFooter() {
             </div>
         </>
     );
+}
+
+/* @internal */
+function UserMenuDesktopDownloadSubMenu() {
+    const recommendedPlatform = detectDesktopPlatform();
+    const { data, isLoading } = useSWR(
+        DESKTOP_DOWNLOADS_SWR_KEY,
+        fetchDesktopDownloads,
+        {
+            revalidateOnFocus: false,
+            shouldRetryOnError: false,
+        }
+    );
+
+    const downloads = data?.downloads ?? getStaticDesktopDownloads();
+    const isUnavailable = data?.status === "unavailable";
+    const versionLabel = data?.version;
+
+    return (
+        <MenuSub>
+            <MenuSubTrigger
+                className="justify-between"
+                disabled={isUnavailable}
+            >
+                <T>Download desktop app</T>
+                {isLoading ? (
+                    <LoaderCircle className="ml-auto inline-block size-3.5 shrink-0 animate-spin text-muted-foreground" />
+                ) : (
+                    <Download className="ml-auto inline-block size-3.5 shrink-0 text-muted-foreground" />
+                )}
+            </MenuSubTrigger>
+            <MenuSubPopup align="end" className="min-w-[200px]">
+                <MenuGroup>
+                    {versionLabel ? (
+                        <MenuGroupLabel>
+                            <T>
+                                Version <Var>{versionLabel}</Var>
+                            </T>
+                        </MenuGroupLabel>
+                    ) : null}
+                    {isUnavailable ? (
+                        <MenuItem disabled>
+                            <T>Desktop installers are not available yet.</T>
+                        </MenuItem>
+                    ) : (
+                        downloads.map((download) => (
+                            <DesktopDownloadMenuItem
+                                download={download}
+                                isRecommended={
+                                    download.platform === recommendedPlatform
+                                }
+                                key={download.platform}
+                            />
+                        ))
+                    )}
+                    <MenuSeparator />
+                    <MenuItem
+                        className="justify-between"
+                        render={
+                            <a
+                                href={getDesktopReleasesPageUrl()}
+                                rel="noopener noreferrer"
+                                target="_blank"
+                            />
+                        }
+                    >
+                        <T>All releases</T>
+                        <ArrowUpRight className="ml-auto inline-block size-4 shrink-0 text-muted-foreground" />
+                    </MenuItem>
+                </MenuGroup>
+            </MenuSubPopup>
+        </MenuSub>
+    );
+}
+
+/* @internal */
+function DesktopDownloadMenuItem({
+    download,
+    isRecommended,
+}: {
+    download: DesktopDownload;
+    isRecommended: boolean;
+}) {
+    return (
+        <MenuItem
+            className="justify-between"
+            render={
+                <a
+                    download={download.fileName}
+                    href={download.url}
+                    rel="noopener noreferrer"
+                    target="_blank"
+                />
+            }
+        >
+            <span className="flex min-w-0 items-center gap-2">
+                <span>{DESKTOP_ASSETS[download.platform].label}</span>
+                {isRecommended ? (
+                    <span className="text-muted-foreground text-xs">
+                        <T>Recommended</T>
+                    </span>
+                ) : null}
+            </span>
+            <Download className="ml-auto inline-block size-3.5 shrink-0 text-muted-foreground" />
+        </MenuItem>
+    );
+}
+
+async function fetchDesktopDownloads(): Promise<{
+    downloads: DesktopDownload[];
+    status: "ok" | "unavailable" | "fallback";
+    version?: string;
+}> {
+    const result = await getDesktopDownloads();
+
+    if (result.status === ACTION_STATUS.SUCCESS) {
+        return {
+            downloads: result.data.downloads,
+            status: "ok",
+            version: result.data.version,
+        };
+    }
+
+    if (result.status === ACTION_STATUS.NOT_FOUND) {
+        return {
+            downloads: [],
+            status: "unavailable",
+        };
+    }
+
+    // API error: still offer stable latest/download links so the menu works offline of the API.
+    log.warn("Desktop downloads API unavailable; using static latest URLs");
+    return {
+        downloads: getStaticDesktopDownloads(),
+        status: "fallback",
+    };
 }
 
 /* @internal */
