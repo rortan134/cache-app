@@ -38,6 +38,7 @@
   "090dd58a9e726297": "Lectores curiosos",
   "0d5988f4c0fbf2ad": "Cuenta de Cache",
   "104132fd795e5775": "Se elimina hoy",
+  "111a44209dc6e701": "Eliminar",
   "11503a3d12f43fdd": "Documentos oficiales que regulan tu relación con nosotros y explican cómo tratamos los datos. Elige un tema a continuación para leer el texto completo.",
   "118ab776d12b969b": [
     "Devuelve ",
@@ -49,6 +50,7 @@
     " a tu biblioteca. Las colecciones y las vistas previas se restaurarán intactas."
   ],
   "11d641c2c7d32f5c": "No hemos podido abrir la facturación ahora mismo.",
+  "148d5dd8e5fc0bcc": "Te damos la bienvenida a Cache",
   "15833184c459d240": {
     "c": "Términos del Servicio",
     "i": 1,
@@ -149,6 +151,7 @@
   "2d905536ddbff96d": "Cerrar sesión",
   "2e477bab4317c062": "No se pudo añadir otra cuenta.",
   "2e9224bc11574ab5": "Exportar a Markdown",
+  "32b19c3e4683dc66": "¿Eliminar marcadores duplicados?",
   "3a9c949fbbeae41b": [
     "Se elimina dentro de ",
     {
@@ -346,6 +349,7 @@
   "75d4d73501e837d5": "Hazte Pro",
   "7721d8d00edabeda": "Cerrando sesión…",
   "7a8ec4ce7cf50dc7": "Eliminados recientemente",
+  "7ca9c9a15764489d": "GitHub",
   "7d288c9b77b0a60e": "Información legal y políticas",
   "841cad15ee2276fc": "Recursos",
   "87254fc32f854b77": "No se pudo cambiar de cuenta.",
@@ -466,6 +470,38 @@
   },
   "b0218088cb0cf61f": "Atajos de teclado",
   "b04df1727faed146": "Tus cuentas",
+  "b09090b6e53f3b5b": [
+    {
+      "c": [
+        {
+          "i": 2,
+          "t": "Search"
+        },
+        {
+          "c": "Busca tal y como piensas, más rápido que nunca",
+          "i": 3,
+          "t": "span"
+        }
+      ],
+      "i": 1,
+      "t": "li"
+    },
+    {
+      "c": [
+        {
+          "i": 5,
+          "t": "Lightbulb"
+        },
+        {
+          "c": "Explora las ideas que más te interesan con el agente de IA de Cache",
+          "i": 6,
+          "t": "span"
+        }
+      ],
+      "i": 4,
+      "t": "li"
+    }
+  ],
   "b094c95a043884f2": [
     {
       "c": "Detecta lo obsoleto, quédate con lo útil",
@@ -481,38 +517,6 @@
   "b33e2234ec4ab823": "Plan gratuito",
   "b5d5276005980a36": "Creadores y desarrolladores",
   "b80f68728546aeb4": "Programa tareas para organizar tu biblioteca, investigar temas, resumir contenido y mucho más, todo en piloto automático",
-  "b84b7f3c49c02a0a": [
-    {
-      "c": [
-        {
-          "i": 2,
-          "t": "Search"
-        },
-        {
-          "c": "Busca como piensas, más rápido que nunca",
-          "i": 3,
-          "t": "span"
-        }
-      ],
-      "i": 1,
-      "t": "li"
-    },
-    {
-      "c": [
-        {
-          "i": 5,
-          "t": "Lightbulb"
-        },
-        {
-          "c": "Descubre nuevas perspectivas y explora ideas con el agente de IA de Cache",
-          "i": 6,
-          "t": "span"
-        }
-      ],
-      "i": 4,
-      "t": "li"
-    }
-  ],
   "baf0f86dd08375f6": "Los elementos restaurados vuelven a tu biblioteca con sus colecciones y vistas previas intactas. Los elementos que se queden aquí se eliminarán para siempre al cabo de 30 días.",
   "c1172428bea235ca": "Normas que rigen el uso del servicio, la gestión de tu cuenta y el uso aceptable.",
   "c26fd6852bfece9e": "Continuar con Google",
@@ -602,5 +606,14 @@
   "e6bf33cf97345f68": "¿Eliminar para siempre?",
   "e6c1109fa39e2f8d": "Eliminar definitivamente",
   "ece5e10bd5b5769d": "Guardando...",
-  "f137946f63b397fd": "Abrir en..."
+  "f044e94922dd62f5": "¿Listo para empezar?",
+  "f137946f63b397fd": "Abrir en...",
+  "f92af3bd913028bf": [
+    {
+      "i": 1,
+      "k": "_gt_value_1",
+      "v": "v"
+    },
+    " marcadores duplicados se moverán a Eliminados recientemente. La copia más antigua de cada enlace permanecerá en tu biblioteca. Tienes 30 días para restaurarlos antes de que se eliminen de forma permanente."
+  ]
 }
