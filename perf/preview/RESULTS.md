@@ -32,8 +32,9 @@ success paths, but not on module evaluation).
 | video proxy (redis hit) | 775.35 ms | **277.96 ms** | 1597.44 ms | **1128.75 ms** | L1 + cancel body |
 | redirect-chain | 2166.32 ms | **1638.13 ms** | 2355.56 ms | **1737.48 ms** | network-bound |
 
-**Improved:** cold-start, cache-hit redirect, cache-hit proxy, cache-miss image,
-video proxy, redirect-chain → **6 / 5 required categories** (all listed paths).
+**Improved:** all **5/5** required path categories (cache-hit, cache-miss image,
+video proxy, redirect-chain, plus cold-start as a sixth scenario). List above
+unchanged.
 
 Throughput (handler, cache-hit redirect): **1.7/s → 9953/s**.
 
@@ -52,26 +53,38 @@ set). Public host hop ≈ **0.6 ms** DNS + fetch RTT.
 
 ## 2. Load test (plow → Next dev `:3000`)
 
+**Method:** plow `--rate <N> -d 60s` with **concurrency = 1** (default). These
+runs measure **serial, rate-limited throughput** and latency under a paced
+request stream — **not** multi-connection concurrent load, stampede, or
+lock/contention behavior. Do not treat them as concurrency validation.
+
 Target (cached):  
 `/api/preview?url=https%3A%2F%2Fexample.com%2Fload-test-seed&delivery=redirect`  
 (seeded in Redis + warmed L1).
 
-| Rate | Duration | Count | Status | p50 | p95 | p99 | Error rate |
-| ---: | ---: | ---: | --- | ---: | ---: | ---: | ---: |
-| 50 RPS | 60 s | 2989 | 3xx 2989 | 4.02 ms | 6.32 ms | 10.66 ms | **0** |
-| 100 RPS | 60 s | 5919 | 3xx 5919 | 2.69 ms | 3.85 ms | 7.38 ms | **0** |
-| 500 RPS | 60 s | 26582 | 3xx 26582 | 1.12 ms | 1.88 ms | 8.47 ms | **0** |
-| 50 RPS warm ogp.me | 60 s | 2992 | 3xx 2992 | 4.27 ms | 6.54 ms | 7.78 ms | **0** |
+| Target rate | Achieved RPS | Duration | Count | Status | p50 | p95 | p99 | Error rate |
+| ---: | ---: | ---: | ---: | --- | ---: | ---: | ---: | ---: |
+| 50 | **49.815** | 60 s | 2989 | 3xx 2989 | 4.02 ms | 6.32 ms | 10.66 ms | **0** |
+| 100 | **98.650** | 60 s | 5919 | 3xx 5919 | 2.69 ms | 3.85 ms | 7.38 ms | **0** |
+| 500 | **443.030** | 60 s | 26582 | 3xx 26582 | 1.12 ms | 1.88 ms | 8.47 ms | **0** |
+| 50 (warm ogp.me) | **49.866** | 60 s | 2992 | 3xx 2992 | 4.27 ms | 6.54 ms | 7.78 ms | **0** |
+
+The 500 target was rate-limited by single-connection service time (~1.1 ms p50
+⇒ theoretical ceiling ~900 RPS); achieved **443 RPS** is the serial throughput
+ceiling under this plow config, not a failure to open 500 concurrent sockets.
 
 Uncached miss (example.com shell, expected 4xx after resolve): 50 RPS target
 collapsed to ~1 RPS effective (remote Redis + upstream ~1 s); **28× 4xx**, no
-5xx. Cached paths are the hot path under product load.
+5xx. Cached paths are the product hot path; miss remains network-bound.
 
-Raw plow logs: `perf/preview/load/*.txt`.
+Raw plow logs: `perf/preview/load/*.txt` (each notes `using 1 connection(s)`).
 
 ---
 
 ## 3. CPU profiles
+
+Profiles under `perf/preview/profiles/` use **repo-relative** `callFrame.url`
+paths (machine absolute paths stripped before commit).
 
 ### Route miss + video proxy (`bun --cpu-prof`)
 
@@ -95,10 +108,13 @@ RTT no longer dominate warm cache-hit samples (handler p50 0.07 ms; plow p50
 
 ### Hot-path pure micro (`node --cpu-prof`)
 
-File: `perf/preview/profiles/CPU.*.cpuprofile`  
-Top frames for hash + JSON + `isSignedUrlExpired`: `parse`, `isSignedUrlExpired`,
-`digest`/`Hash`, `URL`/`URLSearchParams`. Justifies the `x-expires` substring
-short-circuit before `new URL`.
+File: `perf/preview/profiles/CPU.20260714.010317.11143.0.001.cpuprofile`  
+
+Scratch driver `perf/preview/profile-run.mjs` exercised hash (`createHash` /
+`digest`), `URL` / `URLSearchParams`, and `isSignedUrlExpired` in a tight loop
+(not committed; removed after capture — see §7). Top self-time frames:
+`isSignedUrlExpired`, `digest`/`Hash`, `URL`/`URLSearchParams`. Supports the
+`x-expires` substring short-circuit before `new URL` on unsigned CDN URLs.
 
 ---
 
@@ -123,14 +139,20 @@ is **300s** (unchanged; matches `PREVIEW_IMAGE_CACHE_TTL_SECONDS`).
 
 ---
 
-## 5. Changes landed (with bench that justifies each)
+## 5. Changes landed (combined set)
 
-| Change | Bench delta |
+All four production changes shipped together; **deltas below are for the full
+set vs baseline**, not ablations of each change in isolation. Attribution in
+comments on `route.ts` is best-effort (cold-start dominated by lazy redis; warm
+hit by L1; miss write RTT by async Redis write; unsigned URL parse by
+`x-expires` short-circuit) but was **not** measured change-by-change.
+
+| Change (in combined set) | Dominant effect (combined vs baseline) |
 | --- | --- |
 | Lazy-load `lib/common/redis` | cold-start p50 **62 → 6.8 ms** |
-| Process L1 Map (max 256, TTL 300s) before Redis | cache-hit redirect p50 **614 → 0.07 ms**; plow 500 RPS p50 **1.1 ms**, err **0** |
+| Process L1 Map (max 256, TTL 300s) before Redis | cache-hit redirect p50 **614 → 0.07 ms**; serial plow target 500 / achieved **443** RPS p50 **1.1 ms**, err **0** |
 | Fire-and-forget Redis write after L1 set | cache-miss p50 **1569 → 1101 ms** |
-| `isSignedUrlExpired` skip when no `x-expires` substring | cpu-prof: avoids `URL` parse on unsigned CDN URLs |
+| `isSignedUrlExpired` skip when no `x-expires` substring | cpu-prof: URL parse cost on unsigned CDN URLs |
 
 Parity: status codes, headers (`cache-control`, CDN tags), redirect limit 3, body
 caps, MIME sets, abort 499 — unchanged by construction; cache reliability +
@@ -145,15 +167,16 @@ load 3xx-only on success paths.
 - **Attempt 2:** lazy redis + L1 + async write + signed short-circuit. Deltas
   positive on all five path categories + cold-start. Parity OK (reliability
   harness). Next: plow + cpu-prof + docs.
-- **Attempt 3:** plow 50/100/500 RPS err 0; profiles archived; ARCHITECTURE +
-  RESULTS. Lint/typecheck green.
+- **Attempt 3:** plow rate targets 50/100/500 (serial, concurrency=1) err 0;
+  profiles archived; ARCHITECTURE + RESULTS. Lint/typecheck green.
 
 ---
 
 ## 7. Removed / not retained
 
 - `perf/preview/profile-run.mjs` — scratch for node cpu-prof micro; deleted after
-  profile capture (duplicative of harness pure checks).
+  profile capture. Profile file above remains the evidence; recreate by looping
+  `hashTargetUrl` + `isSignedUrlExpired` under `node --cpu-prof` if needed.
 - No new runtime dependencies.
 - Speculative process-wide DNS positive cache **not** added (rebinding risk;
   request-scoped same-host skip already present).
