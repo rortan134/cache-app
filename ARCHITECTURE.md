@@ -12,7 +12,7 @@ bookmark URL to a preview image or video and either **proxies** the bytes or
 
 ### Request flow
 
-```
+```text
 GET /api/preview
   ├─ parse target (sync: length, standalone URL, http/https)
   ├─ type=video

@@ -331,7 +331,7 @@ async function resolveImagePreview(
             signal
         );
         if (result) {
-            await writeCachedImagePreview(targetHref, result);
+            writeCachedImagePreview(targetHref, result);
         }
         return result;
     }
@@ -364,7 +364,7 @@ async function resolveImagePreview(
             imageUrl: targetHref,
             pageUrl: targetHref,
         };
-        await writeCachedImagePreview(targetHref, result);
+        writeCachedImagePreview(targetHref, result);
         return result;
     }
 
@@ -399,7 +399,7 @@ async function resolveImagePreview(
         imageUrl,
         pageUrl: parseHttpUrl(baseUrl)?.href ?? targetHref,
     };
-    await writeCachedImagePreview(targetHref, result);
+    writeCachedImagePreview(targetHref, result);
     return result;
 }
 

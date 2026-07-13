@@ -323,6 +323,54 @@ export async function measurePaths(iterations = 40) {
 // Cache reliability
 // ---------------------------------------------------------------------------
 
+const EXPECTED_HIT_CACHE_CONTROL =
+    "public, max-age=60, s-maxage=300, stale-while-revalidate=60";
+const EXPECTED_MISS_CACHE_CONTROL = "private, no-store";
+
+function assertPreviewRedirect(
+    res: Response,
+    opts: { expectLocation: string; label: string }
+): void {
+    if (res.status !== 307) {
+        throw new Error(
+            `${opts.label}: expected status 307, got ${res.status}`
+        );
+    }
+    const location = res.headers.get("location");
+    if (location !== opts.expectLocation) {
+        throw new Error(
+            `${opts.label}: expected location ${opts.expectLocation}, got ${location}`
+        );
+    }
+    const cacheControl = res.headers.get("cache-control");
+    if (cacheControl !== EXPECTED_HIT_CACHE_CONTROL) {
+        throw new Error(
+            `${opts.label}: expected cache-control ${EXPECTED_HIT_CACHE_CONTROL}, got ${cacheControl}`
+        );
+    }
+    if (!res.headers.get("vercel-cache-tag")?.startsWith("preview:image:")) {
+        throw new Error(
+            `${opts.label}: missing vercel-cache-tag preview:image:*`
+        );
+    }
+    console.log(
+        `OK  ${opts.label}: status=307 location=${location?.slice(0, 60)} cache-control ok`
+    );
+}
+
+function assertPreviewNotFound(res: Response, label: string): void {
+    if (res.status !== 404) {
+        throw new Error(`${label}: expected status 404, got ${res.status}`);
+    }
+    const cacheControl = res.headers.get("cache-control");
+    if (cacheControl !== EXPECTED_MISS_CACHE_CONTROL) {
+        throw new Error(
+            `${label}: expected cache-control ${EXPECTED_MISS_CACHE_CONTROL}, got ${cacheControl}`
+        );
+    }
+    console.log(`OK  ${label}: status=404 cache-control no-store`);
+}
+
 /** Mirror of route isSignedUrlExpired for unit-level grace checks. */
 export function isSignedUrlExpired(imageUrl: string): boolean {
     try {
@@ -404,9 +452,10 @@ export async function measureCacheReliability() {
             `http://localhost:3000/api/preview?url=${encodeURIComponent(hitUrl)}&delivery=redirect`
         )
     );
-    console.log(
-        `cache HIT redirect status=${hitRes.status} (expect 307) location=${hitRes.headers.get("location")?.slice(0, 60)}`
-    );
+    assertPreviewRedirect(hitRes, {
+        expectLocation: FIXTURE_IMAGE,
+        label: "cache HIT redirect",
+    });
     await hitRes.arrayBuffer();
 
     // Fresh URL never written to L1 or Redis → true miss (L1 survives redis.del).
@@ -417,12 +466,7 @@ export async function measureCacheReliability() {
         )
     );
     // example.com has no og:image → 404 Preview not found on miss
-    console.log(
-        `cache MISS redirect status=${missRes.status} (expect 404 for example.com shell)`
-    );
-    if (missRes.status === 307) {
-        throw new Error("true miss should not 307");
-    }
+    assertPreviewNotFound(missRes, "cache MISS redirect");
     await missRes.arrayBuffer();
 
     const nowSec = Math.floor(Date.now() / 1000);
@@ -485,13 +529,8 @@ export async function measureCacheReliability() {
             `http://localhost:3000/api/preview?url=${encodeURIComponent(signedTarget)}&delivery=redirect`
         )
     );
-    // Falls through to miss → example.com → 404
-    console.log(
-        `expired signed cache entry status=${signedRes.status} (expect 404 miss, not 307 hit)`
-    );
-    if (signedRes.status === 307) {
-        throw new Error("expired signed URL should not serve from cache");
-    }
+    // Falls through to miss → example.com → 404 (must not serve expired cache as 307)
+    assertPreviewNotFound(signedRes, "expired signed cache entry");
     await signedRes.arrayBuffer();
 
     await redis.del(imageKey);
@@ -506,17 +545,18 @@ export async function measureCacheReliability() {
 export async function measureDns(samples = 30) {
     for (const host of ["localhost", "127.0.0.1", "example.com"] as const) {
         const times: number[] = [];
-        try {
-            await lookup(host, { all: true, verbatim: true });
-        } catch {
-            // warmup
-        }
+        await lookup(host, { all: true, verbatim: true });
         for (let i = 0; i < samples; i += 1) {
             const t0 = performance.now();
             try {
                 await lookup(host, { all: true, verbatim: true });
-            } catch {
-                // still record elapsed
+            } catch (error) {
+                throw new Error(
+                    `dns.lookup(${host}) sample ${i} failed: ${
+                        error instanceof Error ? error.message : String(error)
+                    }`,
+                    { cause: error }
+                );
             }
             times.push(performance.now() - t0);
         }
