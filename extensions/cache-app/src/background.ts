@@ -1,16 +1,91 @@
-importScripts("cache-config.js", "cache-extension-runtime.js");
-
-const {
+// @ts-nocheck — mechanical port of the production service worker; boundary
+// contracts live in @/lib/runtime and the overlay is fully typed.
+import {
     CHROME_SYNC_MODES,
     MESSAGE_TYPES,
     STORAGE_KEYS,
+    buildOriginPath,
     defaultChromeSyncEndpoint,
+    getConfiguredCacheAppOrigin,
     ingestEndpointForSource,
-} = globalThis.CacheExtensionRuntime;
+    isCacheSiteUrl,
+    isSocialImportUrl,
+    isUnsupportedClipUrl,
+    resolveCacheOrigin,
+} from "@/lib/runtime";
+// Plasmo resolves these to built bundle URLs for dynamic MAIN-world registration.
+import cacheSiteMainUrl from "url:./page-world/cache-site-main";
+import youtubeMainUrl from "url:./page-world/youtube-main";
 
-/** @typedef {{ shortcode: string, url: string, caption: string, postedAt: string, scrapedAt: string }} InstagramSavedItem */
-/** @typedef {{ id: string, url: string, caption: string, postedAt: string, scrapedAt: string }} TikTokFavoriteItem */
-/** @typedef {{ videoId: string, videoUrl: string, title: string, channelName: string, channelId: string, duration: string, playlistItemId: string, position: number | null, publishedAt: string | null, availability: string, scrapedAt: string }} YouTubeWatchLaterItem */
+const PAGE_WORLD_SCRIPT_IDS = {
+    cacheSite: "cache-page-world-site",
+    youtube: "cache-page-world-youtube",
+} as const;
+
+function pageWorldFileName(bundleUrl: string): string {
+    return bundleUrl.split("/").pop()?.split("?")[0] ?? "";
+}
+
+async function registerPageWorldScripts() {
+    const cacheSiteJs = pageWorldFileName(String(cacheSiteMainUrl));
+    const youtubeJs = pageWorldFileName(String(youtubeMainUrl));
+    if (!(cacheSiteJs && youtubeJs)) {
+        throw new Error("Missing page-world bundle filenames.");
+    }
+    const scripts = [
+        {
+            id: PAGE_WORLD_SCRIPT_IDS.cacheSite,
+            js: [cacheSiteJs],
+            matches: ["https://cachd.app/*", "https://*.cachd.app/*"],
+            runAt: "document_idle",
+            world: "MAIN",
+        },
+        {
+            id: PAGE_WORLD_SCRIPT_IDS.youtube,
+            js: [youtubeJs],
+            matches: ["https://www.youtube.com/*"],
+            runAt: "document_idle",
+            world: "MAIN",
+        },
+    ];
+    const ids = scripts.map((script) => script.id);
+    // Unregister first so extension updates replace hashed filenames instead of
+    // keeping stale dynamic registrations that point at deleted bundles.
+    await chrome.scripting.unregisterContentScripts({ ids }).catch(() => {});
+    await chrome.scripting.registerContentScripts(scripts);
+}
+
+void registerPageWorldScripts().catch((error) => {
+    console.error("[Cache] page-world script registration failed:", error);
+});
+
+type InstagramSavedItem = {
+    shortcode: string;
+    url: string;
+    caption: string;
+    postedAt: string;
+    savedAt: string;
+};
+type TikTokFavoriteItem = {
+    id: string;
+    url: string;
+    caption: string;
+    postedAt: string;
+    savedAt: string;
+};
+type YouTubeWatchLaterItem = {
+    videoId: string;
+    videoUrl: string;
+    title: string;
+    channelName: string;
+    channelId: string;
+    duration: string;
+    playlistItemId: string;
+    position: number | null;
+    publishedAt: string | null;
+    availability: string;
+    savedAt: string;
+};
 
 const INSTAGRAM_STORAGE_VERSION = 1;
 const TIKTOK_STORAGE_VERSION = 1;
@@ -18,31 +93,60 @@ const YOUTUBE_STORAGE_VERSION = 1;
 const CHROME_SYNC_BATCH_SIZE = 200;
 const DEFAULT_BROWSER_PROFILE_ID = "default";
 
-chrome.action.onClicked.addListener(async (tab) => {
-    const url = tab.url ?? "";
+function formatApiError(body: any, status: any): string {
+    if (typeof body?.error === "string" && body.error.trim()) {
+        return body.error;
+    }
+    const flattened = body?.error;
     if (
-        url.startsWith("chrome://") ||
-        url.startsWith("chrome-extension://") ||
-        url.startsWith("about:") ||
-        url.startsWith("javascript:")
+        flattened &&
+        typeof flattened === "object" &&
+        Array.isArray(flattened.formErrors) &&
+        flattened.fieldErrors &&
+        typeof flattened.fieldErrors === "object"
     ) {
+        const parts = [...flattened.formErrors];
+        for (const key of Object.keys(flattened.fieldErrors)) {
+            const fieldMessages = flattened.fieldErrors[key];
+            if (Array.isArray(fieldMessages)) {
+                parts.push(...fieldMessages);
+            }
+        }
+        if (parts.length > 0) {
+            return parts.join(" ");
+        }
+    }
+    return `Request failed (${status})`;
+}
+
+chrome.action.onClicked.addListener(async (tab) => {
+    const tabId = tab?.id;
+    if (typeof tabId !== "number") {
         return;
     }
-    chrome.tabs.sendMessage(tab.id, {
-        type: MESSAGE_TYPES.SHOW_POPUP,
-        tab: {
-            id: tab.id,
-            title: tab.title ?? "",
-            url: url,
-        },
-    });
+    const url = tab.url ?? "";
+    if (isUnsupportedClipUrl(url)) {
+        return;
+    }
+    try {
+        await chrome.tabs.sendMessage(tabId, {
+            type: MESSAGE_TYPES.SHOW_POPUP,
+            tab: {
+                id: tabId,
+                title: tab.title ?? "",
+                url,
+            },
+        });
+    } catch (error) {
+        console.debug("[Cache App] SHOW_POPUP dispatch failed:", error);
+    }
 });
 
 /** Stale auto-sync markers are dropped after this window. Caps the chance of
  *  a stray sync firing when an unrelated tab reuses an old id. */
 const AUTO_SYNC_MARKER_TTL_MS = 60_000;
 /** Buffer for the target SPA (Instagram, TikTok, YouTube) to render its
- *  scrollable view before we start scraping. */
+ *  scrollable view before we start saving. */
 const AUTO_SYNC_TAB_READY_DELAY_MS = 2000;
 const INSTAGRAM_KEYS = {
     bookmarkCount: "bookmarkCount",
@@ -81,11 +185,14 @@ const CHROME_KEYS = {
 // We serialize every queue mutation through a single Promise chain so
 // that flushes cannot overwrite enqueues that happen between a flush’s
 // read and its subsequent write.
-let queueMutationPromise = Promise.resolve();
+let queueMutationPromise: Promise<unknown> = Promise.resolve();
 
-function withQueueLock(operation) {
-    const promise = queueMutationPromise.then(operation);
-    queueMutationPromise = promise.catch(() => {});
+function withQueueLock<T>(operation: () => Promise<T> | T): Promise<T> {
+    const promise = queueMutationPromise.then(operation) as Promise<T>;
+    queueMutationPromise = promise.then(
+        () => undefined,
+        () => undefined,
+    );
     return promise;
 }
 
@@ -93,15 +200,20 @@ function withQueueLock(operation) {
 // requests can race (e.g. user clicks Instagram then TikTok quickly), and the
 // marker is consumed in a separate turn from when it is written, so we use the
 // same serialization pattern.
-let autoSyncMarkerMutationPromise = Promise.resolve();
+let autoSyncMarkerMutationPromise: Promise<unknown> = Promise.resolve();
 
-function withAutoSyncMarkerLock(operation) {
-    const promise = autoSyncMarkerMutationPromise.then(operation);
-    autoSyncMarkerMutationPromise = promise.catch(() => {});
+function withAutoSyncMarkerLock<T>(
+    operation: () => Promise<T> | T,
+): Promise<T> {
+    const promise = autoSyncMarkerMutationPromise.then(operation) as Promise<T>;
+    autoSyncMarkerMutationPromise = promise.then(
+        () => undefined,
+        () => undefined,
+    );
     return promise;
 }
 
-function pruneAutoSyncMarkers(markers, now) {
+function pruneAutoSyncMarkers(markers: any, now: any) {
     return markers.filter(
         (marker) =>
             typeof marker?.tabId === "number" &&
@@ -110,7 +222,7 @@ function pruneAutoSyncMarkers(markers, now) {
     );
 }
 
-async function addPendingAutoSync(tabId) {
+async function addPendingAutoSync(tabId: any) {
     await withAutoSyncMarkerLock(async () => {
         const stored = await chrome.storage.local.get([
             STORAGE_KEYS.autoSyncMarkers,
@@ -128,7 +240,7 @@ async function addPendingAutoSync(tabId) {
     });
 }
 
-async function consumePendingAutoSync(tabId) {
+async function consumePendingAutoSync(tabId: any) {
     return withAutoSyncMarkerLock(async () => {
         const stored = await chrome.storage.local.get([
             STORAGE_KEYS.autoSyncMarkers,
@@ -157,42 +269,63 @@ async function consumePendingAutoSync(tabId) {
     });
 }
 
-async function tryOpenExtensionPopup() {
-    try {
-        const existingWindows = await chrome.windows.getAll();
-        const alreadyOpen = existingWindows.some(
-            (w) => w.type === "popup"
-        );
-        if (alreadyOpen) {
-            return;
-        }
-        await chrome.windows.create({
-            focused: true,
-            height: 600,
-            type: "popup",
-            url: chrome.runtime.getURL("popup.html"),
-            width: 400,
-        });
-    } catch (err) {
-        console.debug("[Cache App] popup window unavailable:", err);
-    }
-}
-
-async function startOpenAndSync(openURL) {
+async function startOpenAndSync(openURL: any) {
     const trimmed = typeof openURL === "string" ? openURL.trim() : "";
     if (!trimmed) {
         return;
     }
+    if (!isSocialImportUrl(trimmed)) {
+        throw new Error(
+            "Open-and-sync only supports Instagram Saved, TikTok Favorites, or YouTube Watch Later.",
+        );
+    }
+    // Persist URL before create so CONTENT_SCRIPT_READY can still match if the
+    // tab id marker races behind a fast content-script load.
+    await chrome.storage.local.set({
+        [STORAGE_KEYS.pendingOpenAndSyncUrl]: trimmed,
+    });
     const tab = await chrome.tabs.create({ active: true, url: trimmed });
     if (typeof tab?.id === "number") {
         await addPendingAutoSync(tab.id);
     }
-    await tryOpenExtensionPopup();
+}
+
+function openAndSyncUrlsMatch(pendingUrl: string, tabUrl: string): boolean {
+    try {
+        const pending = new URL(pendingUrl);
+        const tab = new URL(tabUrl);
+        return (
+            pending.hostname.replace(/^www\./, "") ===
+                tab.hostname.replace(/^www\./, "") &&
+            pending.pathname === tab.pathname &&
+            pending.search === tab.search
+        );
+    } catch {
+        return pendingUrl === tabUrl;
+    }
+}
+
+async function consumePendingOpenAndSyncByUrl(tabUrl: string) {
+    if (!tabUrl) {
+        return false;
+    }
+    const stored = await chrome.storage.local.get([
+        STORAGE_KEYS.pendingOpenAndSyncUrl,
+    ]);
+    const pending =
+        typeof stored[STORAGE_KEYS.pendingOpenAndSyncUrl] === "string"
+            ? stored[STORAGE_KEYS.pendingOpenAndSyncUrl]
+            : "";
+    if (!pending || !openAndSyncUrlsMatch(pending, tabUrl)) {
+        return false;
+    }
+    await chrome.storage.local.remove(STORAGE_KEYS.pendingOpenAndSyncUrl);
+    return true;
 }
 
 let chromeFlushInFlight = null;
 
-function messageSource(msg) {
+function messageSource(msg: any) {
     if (msg && typeof msg === "object") {
         if (msg.source === "tiktok") {
             return "tiktok";
@@ -207,7 +340,7 @@ function messageSource(msg) {
     return "instagram";
 }
 
-function generateClientId(prefix) {
+function generateClientId(prefix: any) {
     return `${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
 }
 
@@ -257,7 +390,7 @@ async function ensureChromeIdentity() {
     return { deviceId, deviceName, profileId };
 }
 
-function mapChromeBookmarkNode(node, browserProfileId) {
+function mapChromeBookmarkNode(node: any, browserProfileId: any) {
     return {
         dateAdded:
             typeof node.dateAdded === "number" ? node.dateAdded : undefined,
@@ -280,12 +413,7 @@ function mapChromeBookmarkNode(node, browserProfileId) {
     };
 }
 
-function flattenChromeBookmarkTree(
-    nodes,
-    browserProfileId,
-    result,
-    snapshotIds
-) {
+function flattenChromeBookmarkTree(nodes: any, browserProfileId: any, result: any, snapshotIds: any) {
     for (const node of nodes) {
         const externalId = String(node.id);
         snapshotIds.push(externalId);
@@ -323,7 +451,7 @@ async function readSyncMetaForUi() {
         ? data[CHROME_KEYS.pendingEvents].length
         : 0;
     return {
-        chromeContinuousSync: data[CHROME_KEYS.syncEnabled] === true,
+        chromeContinuousSync: data[CHROME_KEYS.syncEnabled] !== false,
         chromeCount:
             typeof data[CHROME_KEYS.bookmarkCount] === "number"
                 ? data[CHROME_KEYS.bookmarkCount]
@@ -364,7 +492,7 @@ async function readSyncMetaForUi() {
     };
 }
 
-async function notifySyncError(code, message) {
+async function notifySyncError(code: any, message: any) {
     await chrome.runtime
         .sendMessage({
             code,
@@ -374,7 +502,7 @@ async function notifySyncError(code, message) {
         .catch(() => {});
 }
 
-async function notifySyncProgress(activeSource) {
+async function notifySyncProgress(activeSource: any) {
     const meta = await readSyncMetaForUi();
     await chrome.runtime
         .sendMessage({
@@ -385,7 +513,7 @@ async function notifySyncProgress(activeSource) {
         .catch(() => {});
 }
 
-async function notifySyncDone(completedSource) {
+async function notifySyncDone(completedSource: any) {
     const meta = await readSyncMetaForUi();
     await chrome.runtime
         .sendMessage({
@@ -396,7 +524,35 @@ async function notifySyncDone(completedSource) {
         .catch(() => {});
 }
 
-async function postToOptionalBackend(endpoint, apiKey, items, source) {
+/** Prefer new `savedAt`; accept legacy `scrapedAt` from pre-rename storage. */
+function itemSavedAt(...candidates: any[]): string {
+    for (const item of candidates) {
+        if (typeof item?.savedAt === "string" && item.savedAt.trim()) {
+            return item.savedAt.trim();
+        }
+        if (typeof item?.scrapedAt === "string" && item.scrapedAt.trim()) {
+            return item.scrapedAt.trim();
+        }
+    }
+    return new Date().toISOString();
+}
+
+/** Map extension item shape onto the Cache ingest DTO. */
+function toIngestItems(items: any) {
+    if (!Array.isArray(items)) {
+        return [];
+    }
+    return items.map((item) => {
+        if (!item || typeof item !== "object") {
+            return item;
+        }
+        const { savedAt: _savedAt, scrapedAt: _scrapedAt, ...rest } = item;
+        // Ingest DTO field name is fixed by the Cache API schema.
+        return { ...rest, scrapedAt: itemSavedAt(item) };
+    });
+}
+
+async function postToOptionalBackend(endpoint: any, apiKey: any, items: any, source: any) {
     if (!endpoint?.trim()) {
         return;
     }
@@ -406,14 +562,14 @@ async function postToOptionalBackend(endpoint, apiKey, items, source) {
         );
         return;
     }
-    const headers = {
+    const headers: Record<string, string> = {
         Accept: "application/json",
+        Authorization: `Bearer ${apiKey.trim()}`,
         "Content-Type": "application/json",
     };
-    headers.Authorization = `Bearer ${apiKey.trim()}`;
     const res = await fetch(endpoint.trim(), {
         body: JSON.stringify({
-            items,
+            items: toIngestItems(items),
             source,
             syncedAt: new Date().toISOString(),
         }),
@@ -430,7 +586,7 @@ async function postToOptionalBackend(endpoint, apiKey, items, source) {
     }
 }
 
-async function postYouTubeSnapshot(endpoint, apiKey, payload) {
+async function postYouTubeSnapshot(endpoint: any, apiKey: any, payload: any) {
     if (!endpoint?.trim()) {
         throw new Error("Missing YouTube sync endpoint.");
     }
@@ -457,7 +613,7 @@ async function postYouTubeSnapshot(endpoint, apiKey, payload) {
     return res.json().catch(() => null);
 }
 
-async function postChromeSyncBatch(endpoint, apiKey, payload) {
+async function postChromeSyncBatch(endpoint: any, apiKey: any, payload: any) {
     if (!endpoint?.trim()) {
         throw new Error("Missing Chrome sync endpoint.");
     }
@@ -496,17 +652,55 @@ async function readChromeQueueState() {
             data[CHROME_KEYS.pendingMode] === CHROME_SYNC_MODES.oneTimeImport
                 ? CHROME_SYNC_MODES.oneTimeImport
                 : CHROME_SYNC_MODES.continuous,
+        // Opt-in: missing key means disabled until the user links Cache.
         syncEnabled: data[CHROME_KEYS.syncEnabled] === true,
     };
 }
 
-async function setChromeLastError(message) {
+async function enableChromeContinuousSync() {
+    await chrome.storage.local.set({
+        [CHROME_KEYS.syncEnabled]: true,
+    });
+}
+
+async function bootstrapChromeBookmarkSync() {
+    await ensureChromeIdentity();
+
+    const data = await chrome.storage.local.get([
+        CHROME_KEYS.lastSyncAt,
+        CHROME_KEYS.syncEnabled,
+        STORAGE_KEYS.syncApiKey,
+    ]);
+    // Opt-in: only run when continuous sync was explicitly enabled (e.g. after
+    // linking Cache). Startup/install must not flip missing → always-on.
+    if (data[CHROME_KEYS.syncEnabled] !== true) {
+        return;
+    }
+    const token =
+        typeof data[STORAGE_KEYS.syncApiKey] === "string"
+            ? data[STORAGE_KEYS.syncApiKey].trim()
+            : "";
+    if (!token) {
+        return;
+    }
+
+    const hasSyncedBefore =
+        typeof data[CHROME_KEYS.lastSyncAt] === "string" &&
+        data[CHROME_KEYS.lastSyncAt].length > 0;
+    if (!hasSyncedBefore) {
+        await runChromeInitialImport(CHROME_SYNC_MODES.continuous);
+        return;
+    }
+    await flushChromeBookmarkQueue();
+}
+
+async function setChromeLastError(message: any) {
     await chrome.storage.local.set({
         [CHROME_KEYS.lastError]: message,
     });
 }
 
-async function enqueueChromeEvents(events, mode) {
+async function enqueueChromeEvents(events: any, mode: any) {
     if (!Array.isArray(events) || events.length === 0) {
         return;
     }
@@ -664,7 +858,7 @@ async function flushChromeBookmarkQueue() {
     return chromeFlushInFlight;
 }
 
-async function queueChromeBookmarkNode(node, type) {
+async function queueChromeBookmarkNode(node: any, type: any) {
     const identity = await ensureChromeIdentity();
     const bookmark = mapChromeBookmarkNode(node, identity.profileId);
     await enqueueChromeEvents(
@@ -680,7 +874,7 @@ async function queueChromeBookmarkNode(node, type) {
     await flushChromeBookmarkQueue();
 }
 
-async function queueChromeDelete(externalId) {
+async function queueChromeDelete(externalId: any) {
     await enqueueChromeEvents(
         [
             {
@@ -694,7 +888,7 @@ async function queueChromeDelete(externalId) {
     await flushChromeBookmarkQueue();
 }
 
-async function runChromeInitialImport(mode) {
+async function runChromeInitialImport(mode: any) {
     const identity = await ensureChromeIdentity();
     const tree = await chrome.bookmarks.getTree();
     const events = [];
@@ -724,20 +918,7 @@ async function runChromeInitialImport(mode) {
     await flushChromeBookmarkQueue();
 }
 
-async function searchChromeBookmarks(query) {
-    if (!query?.trim()) {
-        return [];
-    }
-    const [results, identity] = await Promise.all([
-        chrome.bookmarks.search(query.trim()),
-        ensureChromeIdentity(),
-    ]);
-    return results.map((node) =>
-        mapChromeBookmarkNode(node, identity.profileId)
-    );
-}
-
-async function migrateItemsIfNeeded(data, versionKey, itemsKey, targetVersion) {
+async function migrateItemsIfNeeded(data: any, versionKey: any, itemsKey: any, targetVersion: any) {
     const version =
         typeof data[versionKey] === "number" ? data[versionKey] : 0;
     const raw = data[itemsKey];
@@ -756,7 +937,7 @@ async function migrateItemsIfNeeded(data, versionKey, itemsKey, targetVersion) {
     return items;
 }
 
-function mergeRowsByKey(incoming, existing, getKey, mergeItem) {
+function mergeRowsByKey(incoming: any, existing: any, getKey: any, mergeItem: any) {
     const rowsByKey = new Map();
 
     for (const item of existing) {
@@ -777,7 +958,7 @@ function mergeRowsByKey(incoming, existing, getKey, mergeItem) {
     return [...rowsByKey.values()];
 }
 
-function mergeByShortcode(incoming, existing) {
+function mergeByShortcode(incoming: any, existing: any) {
     return mergeRowsByKey(
         incoming,
         existing,
@@ -786,13 +967,12 @@ function mergeByShortcode(incoming, existing) {
             ...prev,
             ...item,
             postedAt: item.postedAt || prev?.postedAt,
-            scrapedAt:
-                item.scrapedAt || prev?.scrapedAt || new Date().toISOString(),
+            savedAt: itemSavedAt(item, prev),
         })
     );
 }
 
-function mergeByVideoId(incoming, existing) {
+function mergeByVideoId(incoming: any, existing: any) {
     return mergeRowsByKey(
         incoming,
         existing,
@@ -801,13 +981,12 @@ function mergeByVideoId(incoming, existing) {
             ...prev,
             ...item,
             postedAt: item.postedAt || prev?.postedAt,
-            scrapedAt:
-                item.scrapedAt || prev?.scrapedAt || new Date().toISOString(),
+            savedAt: itemSavedAt(item, prev),
         })
     );
 }
 
-function mergeByYouTubeVideoId(incoming, existing) {
+function mergeByYouTubeVideoId(incoming: any, existing: any) {
     return mergeRowsByKey(
         incoming,
         existing,
@@ -825,8 +1004,7 @@ function mergeByYouTubeVideoId(incoming, existing) {
                     ? item.position
                     : (prev?.position ?? null),
             publishedAt: item.publishedAt || prev?.publishedAt || null,
-            scrapedAt:
-                item.scrapedAt || prev?.scrapedAt || new Date().toISOString(),
+            savedAt: itemSavedAt(item, prev),
             title: item.title || prev?.title || "",
             videoUrl:
                 item.videoUrl ||
@@ -836,7 +1014,7 @@ function mergeByYouTubeVideoId(incoming, existing) {
     );
 }
 
-function sanitizeYouTubeSnapshotItem(item) {
+function sanitizeYouTubeSnapshotItem(item: any) {
     const videoId =
         typeof item?.videoId === "string" ? item.videoId.trim() : "";
     if (!videoId) {
@@ -875,10 +1053,7 @@ function sanitizeYouTubeSnapshotItem(item) {
             typeof item?.publishedAt === "string" && item.publishedAt.trim()
                 ? item.publishedAt.trim()
                 : undefined,
-        scrapedAt:
-            typeof item?.scrapedAt === "string" && item.scrapedAt.trim()
-                ? item.scrapedAt.trim()
-                : new Date().toISOString(),
+        savedAt: itemSavedAt(item),
         title:
             typeof item?.title === "string" && item.title.trim()
                 ? item.title.trim()
@@ -888,11 +1063,13 @@ function sanitizeYouTubeSnapshotItem(item) {
     };
 }
 
-async function syncYouTubeSnapshot(endpoint, apiKey, items) {
+async function syncYouTubeSnapshot(endpoint: any, apiKey: any, items: any) {
     const identity = await ensureChromeIdentity();
-    const payloadItems = items
-        .map((item) => sanitizeYouTubeSnapshotItem(item))
-        .filter((item) => item !== null);
+    const payloadItems = toIngestItems(
+        items
+            .map((item) => sanitizeYouTubeSnapshotItem(item))
+            .filter((item) => item !== null),
+    );
     await postYouTubeSnapshot(endpoint, apiKey, {
         browserProfileId: identity.profileId || DEFAULT_BROWSER_PROFILE_ID,
         items: payloadItems,
@@ -938,11 +1115,11 @@ const BOOKMARK_SOURCE_CONFIG = {
     },
 };
 
-function bookmarkSourceConfig(source) {
+function bookmarkSourceConfig(source: any) {
     return BOOKMARK_SOURCE_CONFIG[source] ?? BOOKMARK_SOURCE_CONFIG.instagram;
 }
 
-async function persistBookmarkItems(items, options) {
+async function persistBookmarkItems(items: any, options: any) {
     const config = bookmarkSourceConfig(options.source);
 
     const data = await chrome.storage.local.get([
@@ -1065,13 +1242,15 @@ chrome.bookmarks.onImportEnded.addListener(() => {
 });
 
 chrome.runtime.onInstalled.addListener(() => {
-    void ensureChromeIdentity();
-    void flushChromeBookmarkQueue();
+    void bootstrapChromeBookmarkSync().catch((error) => {
+        console.warn("[Cache App] chrome bookmark bootstrap failed:", error);
+    });
 });
 
 chrome.runtime.onStartup?.addListener(() => {
-    void ensureChromeIdentity();
-    void flushChromeBookmarkQueue();
+    void bootstrapChromeBookmarkSync().catch((error) => {
+        console.warn("[Cache App] chrome bookmark bootstrap failed:", error);
+    });
 });
 
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
@@ -1090,19 +1269,20 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
                 sendResponse({ error: "Not linked. Sign in to Cache and open a Cache tab." });
                 return;
             }
-            const runtime = globalThis.CacheExtensionRuntime;
-            const endpointOrigin = runtime.resolveCacheOrigin(
+            const endpointOrigin = resolveCacheOrigin(
                 typeof data[STORAGE_KEYS.syncEndpoint] === "string"
                     ? data[STORAGE_KEYS.syncEndpoint]
-                    : ""
+                    : "",
             );
             if (!endpointOrigin) {
                 sendResponse({ error: "Missing Cache origin." });
                 return;
             }
 
-            let url;
-            let fetchOptions = {
+            let url: string;
+            const fetchOptions: RequestInit & {
+                headers: Record<string, string>;
+            } = {
                 headers: {
                     Accept: "application/json",
                     Authorization: `Bearer ${token}`,
@@ -1111,16 +1291,25 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
 
             switch (msg.method) {
                 case "listCollections":
-                    url = runtime.buildOriginPath(endpointOrigin, "/api/integrations/extension/collections");
+                    url = buildOriginPath(
+                        endpointOrigin,
+                        "/api/integrations/extension/collections",
+                    );
                     break;
                 case "createCollection":
-                    url = runtime.buildOriginPath(endpointOrigin, "/api/integrations/extension/collections");
+                    url = buildOriginPath(
+                        endpointOrigin,
+                        "/api/integrations/extension/collections",
+                    );
                     fetchOptions.method = "POST";
                     fetchOptions.body = JSON.stringify(msg.args);
                     fetchOptions.headers["Content-Type"] = "application/json";
                     break;
                 case "clipPage":
-                    url = runtime.buildOriginPath(endpointOrigin, "/api/integrations/extension/clip");
+                    url = buildOriginPath(
+                        endpointOrigin,
+                        "/api/integrations/extension/clip",
+                    );
                     fetchOptions.method = "POST";
                     fetchOptions.body = JSON.stringify(msg.args);
                     fetchOptions.headers["Content-Type"] = "application/json";
@@ -1138,11 +1327,9 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
             const res = await fetch(url, fetchOptions);
             const json = await res.json();
             if (!res.ok) {
-                const error =
-                    typeof json?.error === "string"
-                        ? json.error
-                        : `Request failed (${res.status})`;
-                sendResponse({ error });
+                sendResponse({
+                    error: formatApiError(json, res.status),
+                });
                 return;
             }
             sendResponse({ data: json });
@@ -1161,17 +1348,46 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     if (msg?.type === MESSAGE_TYPES.CACHE_SITE_BRIDGE) {
         (async () => {
+            const senderUrl = sender?.tab?.url ?? sender?.url ?? "";
+            if (!isCacheSiteUrl(senderUrl)) {
+                console.warn(
+                    "[Cache] Ignoring CACHE_SITE_BRIDGE from non-Cache origin:",
+                    senderUrl || "(none)",
+                );
+                return;
+            }
             const endpoint =
                 typeof msg.endpoint === "string" ? msg.endpoint.trim() : "";
             const token = typeof msg.token === "string" ? msg.token.trim() : "";
             if (!(endpoint && token)) {
                 return;
             }
+            if (!isCacheSiteUrl(endpoint) && !isCacheSiteUrl(`${endpoint}/`)) {
+                // endpoint may be bare origin or full URL path
+                try {
+                    const origin = new URL(endpoint).origin;
+                    if (!isCacheSiteUrl(origin)) {
+                        console.warn(
+                            "[Cache] Ignoring CACHE_SITE_BRIDGE with disallowed endpoint:",
+                            endpoint,
+                        );
+                        return;
+                    }
+                } catch {
+                    console.warn(
+                        "[Cache] Ignoring CACHE_SITE_BRIDGE with invalid endpoint:",
+                        endpoint,
+                    );
+                    return;
+                }
+            }
             await chrome.storage.local.set({
                 [STORAGE_KEYS.syncApiKey]: token,
                 [STORAGE_KEYS.syncEndpoint]: endpoint,
             });
-            await flushChromeBookmarkQueue();
+            // Linking this browser opts in to continuous Chrome bookmark sync.
+            await enableChromeContinuousSync();
+            await bootstrapChromeBookmarkSync();
         })();
         return true;
     }
@@ -1179,6 +1395,14 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     if (msg?.type === MESSAGE_TYPES.CACHE_SITE_OPEN_AND_SYNC) {
         (async () => {
             try {
+                const senderUrl = sender?.tab?.url ?? sender?.url ?? "";
+                if (!isCacheSiteUrl(senderUrl)) {
+                    sendResponse?.({
+                        error: "Open-and-sync is only allowed from Cache.",
+                        ok: false,
+                    });
+                    return;
+                }
                 await startOpenAndSync(msg.openURL);
                 sendResponse?.({ ok: true });
             } catch (error) {
@@ -1204,7 +1428,17 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
             return false;
         }
         (async () => {
-            const match = await consumePendingAutoSync(tabId);
+            let match = await consumePendingAutoSync(tabId);
+            if (!match) {
+                // Race fallback: tab id marker may land after READY.
+                match = await consumePendingOpenAndSyncByUrl(
+                    sender?.tab?.url ?? "",
+                );
+            } else {
+                await chrome.storage.local.remove(
+                    STORAGE_KEYS.pendingOpenAndSyncUrl,
+                );
+            }
             if (!match) {
                 return;
             }
@@ -1256,53 +1490,70 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         return true;
     }
 
-    if (msg?.type === MESSAGE_TYPES.SYNC_CHROME_BOOKMARKS) {
+    if (msg?.type === MESSAGE_TYPES.START_SYNC) {
         (async () => {
+            const tabId =
+                typeof msg.tabId === "number"
+                    ? msg.tabId
+                    : typeof sender?.tab?.id === "number"
+                      ? sender.tab.id
+                      : null;
+            if (typeof tabId !== "number") {
+                sendResponse?.({
+                    error: "No active tab to import from.",
+                    ok: false,
+                });
+                return;
+            }
             try {
-                const mode =
-                    msg.mode === CHROME_SYNC_MODES.oneTimeImport
-                        ? CHROME_SYNC_MODES.oneTimeImport
-                        : CHROME_SYNC_MODES.continuous;
-                await runChromeInitialImport(mode);
+                await chrome.tabs.sendMessage(tabId, {
+                    type: MESSAGE_TYPES.START_SYNC,
+                });
                 sendResponse?.({ ok: true });
             } catch (error) {
-                const message =
-                    error instanceof Error ? error.message : String(error);
-                await setChromeLastError(message);
-                await notifySyncError("CHROME_SYNC_FAILED", message);
-                sendResponse?.({ error: message, ok: false });
+                sendResponse?.({
+                    error:
+                        error instanceof Error
+                            ? error.message
+                            : "Could not start import. Reopen the page and try again.",
+                    ok: false,
+                });
             }
         })();
         return true;
     }
 
-    if (msg?.type === MESSAGE_TYPES.TOGGLE_CHROME_SYNC) {
+    if (msg?.type === MESSAGE_TYPES.OPEN_CACHE_TAB) {
         (async () => {
-            await chrome.storage.local.set({
-                [CHROME_KEYS.syncEnabled]: !!msg.enabled,
-            });
-            if (msg.enabled) {
-                await runChromeInitialImport(CHROME_SYNC_MODES.continuous);
+            try {
+                const data = await chrome.storage.local.get([
+                    STORAGE_KEYS.syncEndpoint,
+                ]);
+                const endpoint =
+                    typeof data[STORAGE_KEYS.syncEndpoint] === "string"
+                        ? data[STORAGE_KEYS.syncEndpoint]
+                        : "";
+                const origin =
+                    resolveCacheOrigin(endpoint) ||
+                    getConfiguredCacheAppOrigin();
+                if (!origin) {
+                    sendResponse?.({
+                        error: "Missing Cache origin.",
+                        ok: false,
+                    });
+                    return;
+                }
+                await chrome.tabs.create({ url: origin });
+                sendResponse?.({ ok: true });
+            } catch (error) {
+                sendResponse?.({
+                    error:
+                        error instanceof Error
+                            ? error.message
+                            : "Could not open Cache.",
+                    ok: false,
+                });
             }
-            sendResponse?.({ ok: true });
-        })();
-        return true;
-    }
-
-    if (msg?.type === MESSAGE_TYPES.SEARCH_CHROME_BOOKMARKS) {
-        (async () => {
-            const results = await searchChromeBookmarks(
-                typeof msg.query === "string" ? msg.query : ""
-            );
-            sendResponse?.({ ok: true, results });
-        })();
-        return true;
-    }
-
-    if (msg?.type === MESSAGE_TYPES.GET_SYNC_META) {
-        (async () => {
-            const meta = await readSyncMetaForUi();
-            sendResponse?.({ ok: true, ...meta });
         })();
         return true;
     }

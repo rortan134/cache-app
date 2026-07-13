@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import type { CreateCollectionResponse } from "~lib/api";
+import type { CreateCollectionResponse } from "@/lib/api";
 import styles from "./popup.module.css";
 
 const NAME_MAX_LENGTH = 64;
@@ -49,6 +49,7 @@ export function CollectionCreateView({
     const handleKeyDown = (event: React.KeyboardEvent) => {
         if (event.key === "Escape" && !isSubmitting) {
             event.preventDefault();
+            event.stopPropagation();
             onCancel();
         }
     };
@@ -85,12 +86,13 @@ export function CollectionCreateView({
     };
 
     return (
-        <div className={styles.root} onKeyDown={handleKeyDown}>
+        <div onKeyDown={handleKeyDown}>
             <button
                 type="button"
                 className={styles.formBackRow}
                 onClick={handleCancel}
                 disabled={isSubmitting}
+                aria-label="Back to list"
             >
                 <svg
                     width="10"
@@ -107,7 +109,6 @@ export function CollectionCreateView({
                         strokeLinejoin="round"
                     />
                 </svg>
-                Back to list
             </button>
 
             <input
@@ -135,14 +136,6 @@ export function CollectionCreateView({
             {error ? <p className={styles.inlineError}>{error}</p> : null}
 
             <div className={styles.formActions}>
-                <button
-                    type="button"
-                    className={styles.secondaryButton}
-                    onClick={handleCancel}
-                    disabled={isSubmitting}
-                >
-                    Cancel
-                </button>
                 <button
                     type="button"
                     className={styles.primaryButton}

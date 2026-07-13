@@ -47,12 +47,6 @@
     }
 }
 
-.header {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
 .pageInfo {
     display: flex;
     flex-direction: column;
@@ -127,86 +121,9 @@
     }
 }
 
-.avatar {
-    flex: 0 0 auto;
-    width: 24px;
-    height: 24px;
-    border-radius: 50%;
-    background: #0969da;
-    color: #fff;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 600;
-    font-size: 11px;
-    overflow: hidden;
-}
-
-.avatar img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
-
-.headerText {
-    flex: 1 1 auto;
-    min-width: 0;
-    line-height: 1.3;
-}
-
-.displayName {
-    font-weight: 600;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.subheader {
-    font-size: 11px;
-    color: #656d76;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-@media (prefers-color-scheme: dark) {
-    .subheader {
-        color: #8b949e;
-    }
-}
-
-.openButton {
-    flex: 0 0 auto;
-    background: transparent;
-    border: 1px solid transparent;
-    color: inherit;
-    cursor: pointer;
-    padding: 4px;
-    border-radius: 6px;
-    line-height: 0;
-}
-
-.openButton:hover {
-    background: rgba(120, 120, 120, 0.12);
-}
-
 .searchRow {
-    position: relative;
     display: flex;
     align-items: center;
-}
-
-.searchIcon {
-    position: absolute;
-    left: 8px;
-    color: #656d76;
-    pointer-events: none;
-}
-
-@media (prefers-color-scheme: dark) {
-    .searchIcon {
-        color: #8b949e;
-    }
 }
 
 .searchInput {
@@ -284,20 +201,6 @@
     display: flex;
     flex-direction: column;
     gap: 2px;
-    mask-image: linear-gradient(
-        to bottom,
-        transparent 0%,
-        black 18px,
-        black calc(100% - 18px),
-        transparent 100%
-    );
-    -webkit-mask-image: linear-gradient(
-        to bottom,
-        transparent 0%,
-        black 18px,
-        black calc(100% - 18px),
-        transparent 100%
-    );
     scrollbar-width: none;
 }
 
@@ -456,27 +359,6 @@
     line-height: 1.4;
 }
 
-.spinner {
-    width: 18px;
-    height: 18px;
-    border-radius: 50%;
-    border: 2px solid rgba(128, 128, 128, 0.25);
-    border-top-color: #0969da;
-    animation: spin 0.7s linear infinite;
-}
-
-@media (prefers-color-scheme: dark) {
-    .spinner {
-        border-top-color: #58a6ff;
-    }
-}
-
-@keyframes spin {
-    to {
-        transform: rotate(360deg);
-    }
-}
-
 .skeletonRow {
     height: 28px;
     border-radius: 6px;
@@ -533,12 +415,6 @@
     .successBanner {
         color: #3fb950;
     }
-}
-
-.form {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
 }
 
 .createNameInput {

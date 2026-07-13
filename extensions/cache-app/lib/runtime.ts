@@ -5,6 +5,9 @@ export const CHROME_SYNC_MODES = {
     oneTimeImport: "one_time_import",
 } as const;
 
+export type ChromeSyncMode =
+    (typeof CHROME_SYNC_MODES)[keyof typeof CHROME_SYNC_MODES];
+
 export const MESSAGE_TYPES = {
     API_CALL: "API_CALL",
     BOOKMARKS_CHUNK: "BOOKMARKS_CHUNK",
@@ -14,17 +17,17 @@ export const MESSAGE_TYPES = {
     CACHE_SITE_BRIDGE_REQUEST: "CACHE_SITE_BRIDGE_REQUEST",
     CACHE_SITE_OPEN_AND_SYNC: "CACHE_SITE_OPEN_AND_SYNC",
     CACHE_SITE_TOKEN: "CACHE_SITE_TOKEN",
+    CACHE_YT_BOOTSTRAP: "CACHE_YT_BOOTSTRAP",
     CONTENT_SCRIPT_READY: "CONTENT_SCRIPT_READY",
-    GET_SYNC_META: "GET_SYNC_META",
-    SEARCH_CHROME_BOOKMARKS: "SEARCH_CHROME_BOOKMARKS",
+    OPEN_CACHE_TAB: "OPEN_CACHE_TAB",
     SHOW_POPUP: "SHOW_POPUP",
     START_SYNC: "START_SYNC",
-    SYNC_CHROME_BOOKMARKS: "SYNC_CHROME_BOOKMARKS",
     SYNC_DONE: "SYNC_DONE",
     SYNC_ERROR: "SYNC_ERROR",
     SYNC_PROGRESS: "SYNC_PROGRESS",
-    TOGGLE_CHROME_SYNC: "TOGGLE_CHROME_SYNC",
 } as const;
+
+export type MessageType = (typeof MESSAGE_TYPES)[keyof typeof MESSAGE_TYPES];
 
 export const STORAGE_KEYS = {
     autoSyncMarkers: "pendingAutoSyncMarkers",
@@ -32,11 +35,24 @@ export const STORAGE_KEYS = {
     chromePendingEvents: "chromePendingEvents",
     chromeSyncEnabled: "chromeSyncEnabled",
     lastClipCollectionIds: "lastClipCollectionIds",
+    pendingOpenAndSyncUrl: "pendingOpenAndSyncUrl",
     syncApiKey: "syncApiKey",
     syncEndpoint: "syncEndpoint",
 } as const;
 
-declare const CACHE_APP_ORIGIN: string | undefined;
+export type StorageKey = (typeof STORAGE_KEYS)[keyof typeof STORAGE_KEYS];
+
+export const SOURCE_LABELS = {
+    chrome: "Chrome bookmarks",
+    chrome_bookmarks: "Chrome bookmarks",
+    instagram: "Instagram Saved",
+    tiktok: "TikTok Favorites",
+    youtube: "YouTube Watch Later",
+} as const;
+
+export type BookmarkSource = keyof typeof SOURCE_LABELS;
+
+const DEFAULT_CACHE_APP_ORIGIN = "https://cachd.app";
 
 function normalizeOrigin(value: string): string {
     return value.trim().replace(/\/+$/, "");
@@ -55,10 +71,7 @@ function originFromUrl(raw: string): string {
 }
 
 export function getConfiguredCacheAppOrigin(): string {
-    if (typeof CACHE_APP_ORIGIN === "string") {
-        return normalizeOrigin(CACHE_APP_ORIGIN);
-    }
-    return "https://cachd.app";
+    return DEFAULT_CACHE_APP_ORIGIN;
 }
 
 export function resolveCacheOrigin(raw: string): string {
@@ -72,22 +85,69 @@ export function buildOriginPath(origin: string, path: string): string {
         : "";
 }
 
+export function defaultInstagramSyncEndpoint(
+    origin: string = getConfiguredCacheAppOrigin(),
+): string {
+    return buildOriginPath(origin, "/api/integrations/instagram/saved");
+}
+
+export function defaultTikTokSyncEndpoint(
+    origin: string = getConfiguredCacheAppOrigin(),
+): string {
+    return buildOriginPath(origin, "/api/integrations/tiktok/saved");
+}
+
+export function defaultYouTubeSyncEndpoint(
+    origin: string = getConfiguredCacheAppOrigin(),
+): string {
+    return buildOriginPath(origin, "/api/integrations/youtube/watch-later");
+}
+
+export function defaultChromeSyncEndpoint(
+    origin: string = getConfiguredCacheAppOrigin(),
+): string {
+    return buildOriginPath(origin, "/api/integrations/chrome/sync");
+}
+
 export function defaultExtensionCollectionsEndpoint(
-    origin = getConfiguredCacheAppOrigin()
+    origin: string = getConfiguredCacheAppOrigin(),
 ): string {
     return buildOriginPath(origin, "/api/integrations/extension/collections");
 }
 
 export function defaultExtensionClipEndpoint(
-    origin = getConfiguredCacheAppOrigin()
+    origin: string = getConfiguredCacheAppOrigin(),
 ): string {
     return buildOriginPath(origin, "/api/integrations/extension/clip");
 }
 
-export function defaultChromeSyncEndpoint(
-    origin = getConfiguredCacheAppOrigin()
+export function defaultExtensionIngestTokenEndpoint(
+    origin: string = getConfiguredCacheAppOrigin(),
 ): string {
-    return buildOriginPath(origin, "/api/integrations/chrome/sync");
+    return buildOriginPath(origin, "/api/user/extension-ingest-token");
+}
+
+export function ingestEndpointForSource(
+    storedEndpoint: string,
+    source: string,
+): string {
+    const origin = resolveCacheOrigin(storedEndpoint);
+
+    switch (source) {
+        case "youtube":
+            return defaultYouTubeSyncEndpoint(origin);
+        case "chrome":
+        case "chrome_bookmarks":
+            return defaultChromeSyncEndpoint(origin);
+        case "tiktok":
+            return defaultTikTokSyncEndpoint(origin);
+        default:
+            return defaultInstagramSyncEndpoint(origin);
+    }
+}
+
+export function sourceLabel(source: string): string {
+    return SOURCE_LABELS[source as BookmarkSource] ?? "items";
 }
 
 export function isYouTubeWatchLaterUrl(rawUrl: string): boolean {
@@ -103,17 +163,40 @@ export function isYouTubeWatchLaterUrl(rawUrl: string): boolean {
     }
 }
 
-const INSTAGRAM_SAVED_PATH_RE = /^https:\/\/www\.instagram\.com\/[^/?#]+\/saved\b/;
-const TIKTOK_FAVORITES_PATH_RE = /^https:\/\/www\.tiktok\.com\/[^/?#]+\/favorites\b/;
-
 export function isSocialImportUrl(rawUrl: string): boolean {
-    if (INSTAGRAM_SAVED_PATH_RE.test(rawUrl)) {
-        return true;
-    }
-    if (TIKTOK_FAVORITES_PATH_RE.test(rawUrl)) {
-        return true;
+    try {
+        const url = new URL(rawUrl);
+        const host = url.hostname.replace(/^www\./, "");
+        if (
+            host === "instagram.com" &&
+            /\/[^/?#]+\/saved(?:\/|$)/.test(url.pathname)
+        ) {
+            return true;
+        }
+        if (
+            host === "tiktok.com" &&
+            /\/[^/?#]+\/favorites(?:\/|$)/.test(url.pathname)
+        ) {
+            return true;
+        }
+    } catch {
+        return false;
     }
     return isYouTubeWatchLaterUrl(rawUrl);
+}
+
+/** True when the URL is a Cache web app origin we may bridge auth from. */
+export function isCacheSiteUrl(rawUrl: string): boolean {
+    try {
+        const url = new URL(rawUrl);
+        if (url.protocol !== "https:") {
+            return false;
+        }
+        const host = url.hostname;
+        return host === "cachd.app" || host.endsWith(".cachd.app");
+    } catch {
+        return false;
+    }
 }
 
 export function isUnsupportedClipUrl(rawUrl: string): boolean {
@@ -130,13 +213,14 @@ export function isUnsupportedClipUrl(rawUrl: string): boolean {
     );
 }
 
-export function sourceLabel(source: string): string {
-    const labels: Record<string, string> = {
-        chrome: "Chrome bookmarks",
-        chrome_bookmarks: "Chrome bookmarks",
-        instagram: "Instagram Saved",
-        tiktok: "TikTok Favorites",
-        youtube: "YouTube Watch Later",
-    };
-    return labels[source] ?? "items";
-}
+/** Hosts where the Cache web app can bridge auth into the extension. */
+export const CACHE_SITE_MATCHES = [
+    "https://cachd.app/*",
+    "https://*.cachd.app/*",
+] as const;
+
+export const SOCIAL_SAVE_MATCHES = [
+    "https://www.instagram.com/*",
+    "https://www.tiktok.com/*",
+    "https://www.youtube.com/*",
+] as const;

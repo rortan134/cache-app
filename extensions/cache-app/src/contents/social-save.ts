@@ -1,3 +1,20 @@
+// @ts-nocheck — mechanical port of platform save helpers; message contracts
+// are typed via @/lib/runtime.
+import type { PlasmoCSConfig } from "plasmo";
+import {
+    MESSAGE_TYPES,
+    isYouTubeWatchLaterUrl,
+} from "@/lib/runtime";
+
+export const config: PlasmoCSConfig = {
+    matches: [
+        "https://www.instagram.com/*",
+        "https://www.tiktok.com/*",
+        "https://www.youtube.com/*",
+    ],
+    run_at: "document_idle",
+};
+
 /** Enough rounds for large virtualized grids. */
 const MAX_SCROLL_ROUNDS = 200;
 const SCROLL_SETTLE_MS = 1000;
@@ -9,14 +26,12 @@ const MAX_ITEMS = 2000;
 const MAX_YOUTUBE_ITEMS = 10_000;
 const INNER_SCROLL_STEPS = 28;
 const INNER_SCROLL_STEP_PAUSE_MS = 72;
-const { MESSAGE_TYPES, isYouTubeWatchLaterUrl } =
-    globalThis.CacheExtensionRuntime;
 
 /**
  * @param {number} ms
  * @returns {Promise<void>}
  */
-function sleep(ms) {
+function sleep(ms: any) {
     return new Promise((resolve) => {
         setTimeout(resolve, ms);
     });
@@ -26,7 +41,7 @@ function sleep(ms) {
  * @param {HTMLElement | null} inner
  * @returns {boolean}
  */
-function isInnerScrolledToBottom(inner) {
+function isInnerScrolledToBottom(inner: any) {
     if (!inner) {
         return false;
     }
@@ -41,7 +56,7 @@ function isInnerScrolledToBottom(inner) {
  * @param {Element | null} start
  * @returns {HTMLElement | null}
  */
-function findBestScrollContainer(start) {
+function findBestScrollContainer(start: any) {
     let best = /** @type {HTMLElement | null} */ (null);
     let bestRoom = 0;
     let el = start;
@@ -63,7 +78,7 @@ function findBestScrollContainer(start) {
  * @param {() => HTMLElement | null} findAnchor
  * @returns {HTMLElement | null}
  */
-function findFeedScrollTarget(anchor, findAnchor) {
+function findFeedScrollTarget(anchor: any, findAnchor: any) {
     const sample = anchor instanceof HTMLElement ? anchor : findAnchor();
     return findBestScrollContainer(sample);
 }
@@ -73,7 +88,7 @@ function findFeedScrollTarget(anchor, findAnchor) {
  * @param {() => HTMLElement | null} findAnchor
  * @returns {boolean}
  */
-function isFeedScrolledToEnd(anchor, findAnchor) {
+function isFeedScrolledToEnd(anchor: any, findAnchor: any) {
     const scroller = findFeedScrollTarget(anchor, findAnchor);
     if (scroller && scroller.scrollHeight > scroller.clientHeight + 16) {
         return isInnerScrolledToBottom(scroller);
@@ -90,7 +105,7 @@ function isFeedScrolledToEnd(anchor, findAnchor) {
  * @param {() => HTMLElement | null} findAnchor
  * @returns {{ scrollTop: number, scrollHeight: number, clientHeight: number }}
  */
-function getFeedScrollMetrics(anchor, findAnchor) {
+function getFeedScrollMetrics(anchor: any, findAnchor: any) {
     const scroller = findFeedScrollTarget(anchor, findAnchor);
     if (scroller && scroller.scrollHeight > scroller.clientHeight + 16) {
         return {
@@ -112,7 +127,7 @@ function getFeedScrollMetrics(anchor, findAnchor) {
  * @param {{ scrollTop: number, scrollHeight: number, clientHeight: number }} b
  * @returns {boolean}
  */
-function feedScrollMetricsNearlyEqual(a, b) {
+function feedScrollMetricsNearlyEqual(a: any, b: any) {
     const eps = 12;
     return (
         Math.abs(a.scrollTop - b.scrollTop) < eps &&
@@ -124,7 +139,7 @@ function feedScrollMetricsNearlyEqual(a, b) {
 /**
  * @param {Element | null} start
  */
-function scrollAllAncestorsToBottom(start) {
+function scrollAllAncestorsToBottom(start: any) {
     const seen = new WeakSet();
     let el = start;
     while (el) {
@@ -152,7 +167,7 @@ function scrollWindowToBottom() {
 /**
  * @param {HTMLElement | null} innerScroller
  */
-async function stepScrollInnerToBottom(innerScroller) {
+async function stepScrollInnerToBottom(innerScroller: any) {
     if (!innerScroller) {
         return;
     }
@@ -179,7 +194,7 @@ async function stepScrollInnerToBottom(innerScroller) {
  * @param {HTMLElement | null} feedScroller
  * @param {{ fullInnerSteps?: boolean }} [opts]
  */
-async function scrollFeedTowardBottom(anchor, feedScroller, opts = {}) {
+async function scrollFeedTowardBottom(anchor: any, feedScroller: any, opts: any = {}) {
     const fullInner = opts.fullInnerSteps !== false;
     scrollWindowToBottom();
     scrollAllAncestorsToBottom(anchor);
@@ -197,7 +212,7 @@ async function scrollFeedTowardBottom(anchor, feedScroller, opts = {}) {
  * @param {Map<string, unknown>} accumulated
  * @param {"instagram" | "tiktok" | "youtube"} source
  */
-function flushChunkToExtension(accumulated, source) {
+function flushChunkToExtension(accumulated: any, source: any) {
     if (accumulated.size === 0) {
         return;
     }
@@ -213,7 +228,7 @@ function flushChunkToExtension(accumulated, source) {
         });
 }
 
-function textFromRuns(value) {
+function textFromRuns(value: any) {
     if (!value || typeof value !== "object") {
         return "";
     }
@@ -229,7 +244,7 @@ function textFromRuns(value) {
     return "";
 }
 
-function walkObjectTree(root, visitor) {
+function walkObjectTree(root: any, visitor: any) {
     const stack = [root];
     const seen = new WeakSet();
 
@@ -262,7 +277,7 @@ function walkObjectTree(root, visitor) {
  * @param {string} id
  * @returns {string | null}
  */
-function getPostedAtFromTikTokId(id) {
+function getPostedAtFromTikTokId(id: any) {
     try {
         const bigId = BigInt(id);
         const timestamp = Number(bigId >> 32n) * 1000;
@@ -278,7 +293,7 @@ function getPostedAtFromTikTokId(id) {
  * @param {string} alt
  * @returns {string | null}
  */
-function getPostedAtFromInstagramAlt(alt) {
+function getPostedAtFromInstagramAlt(alt: any) {
     if (!alt) {
         return null;
     }
@@ -327,7 +342,7 @@ function getPostedAtFromInstagramAlt(alt) {
  * @param {string | null | undefined} value
  * @returns {string | null}
  */
-function normalizeInstagramPostedAtValue(value) {
+function normalizeInstagramPostedAtValue(value: any) {
     if (!value) {
         return null;
     }
@@ -342,7 +357,7 @@ function normalizeInstagramPostedAtValue(value) {
  * @param {Element} start
  * @returns {string | null}
  */
-function findInstagramPostedAtFromDom(start) {
+function findInstagramPostedAtFromDom(start: any) {
     const directTime = start.querySelector("time[datetime]");
     if (directTime instanceof HTMLTimeElement) {
         const postedAt = normalizeInstagramPostedAtValue(
@@ -437,7 +452,7 @@ function getInstagramPostedAtByShortcodeMap() {
  * @param {string} caption
  * @returns {string | null}
  */
-function getInstagramPostedAt(anchor, shortcode, caption) {
+function getInstagramPostedAt(anchor: any, shortcode: any, caption: any) {
     const domPostedAt = findInstagramPostedAtFromDom(anchor);
     if (domPostedAt) {
         return domPostedAt;
@@ -504,7 +519,7 @@ function getInstagramPostLinkRoot() {
  * @param {HTMLAnchorElement} anchor
  * @returns {HTMLImageElement | null}
  */
-function findInstagramImageForAnchor(anchor) {
+function findInstagramImageForAnchor(anchor: any) {
     const anchorImage = anchor.querySelector("img");
     if (anchorImage instanceof HTMLImageElement) {
         return anchorImage;
@@ -546,7 +561,7 @@ function findInstagramScrollAnchorElement() {
  * @param {string} href
  * @returns {{ shortcode: string, pathname: string } | null}
  */
-function parseInstagramPostHref(href) {
+function parseInstagramPostHref(href: any) {
     try {
         const u = new URL(href, "https://www.instagram.com");
         if (u.hostname.replace(/^www\./, "") !== "instagram.com") {
@@ -562,12 +577,12 @@ function parseInstagramPostHref(href) {
     }
 }
 
-/** @typedef {{ shortcode: string, url: string, caption: string, postedAt: string | null, scrapedAt: string }} InstagramRow */
+/** @typedef {{ shortcode: string, url: string, caption: string, postedAt: string | null, savedAt: string }} InstagramRow */
 
 /**
  * @param {Map<string, InstagramRow>} accumulated
  */
-function mergeInstagramDomIntoAccumulated(accumulated) {
+function mergeInstagramDomIntoAccumulated(accumulated: any) {
     const root = getInstagramPostLinkRoot();
     const anchors = root.querySelectorAll('a[href*="/p/"], a[href*="/reel/"]');
 
@@ -597,7 +612,7 @@ function mergeInstagramDomIntoAccumulated(accumulated) {
         const row = {
             caption,
             postedAt,
-            scrapedAt: new Date().toISOString(),
+            savedAt: new Date().toISOString(),
             shortcode: parsed.shortcode,
             url: `https://www.instagram.com${parsed.pathname}`,
         };
@@ -626,7 +641,7 @@ function mergeInstagramDomIntoAccumulated(accumulated) {
  * @param {(accumulated: Map<string, any>) => void} mergeDomFn
  * @returns {Promise<Map<string, any>>}
  */
-async function scrollFeedToLoadMore(source, findAnchor, mergeDomFn) {
+async function scrollFeedToLoadMore(source: any, findAnchor: any, mergeDomFn: any) {
     const accumulated = new Map();
     mergeDomFn(accumulated);
     flushChunkToExtension(accumulated, source);
@@ -732,17 +747,17 @@ async function runInstagramSync() {
 
 /**
  * TikTok Web often mounts tabs and grids inside **closed** or open shadow roots.
- * Light-DOM `querySelector` misses them, so page detection and scraping both fail.
+ * Light-DOM `querySelector` misses them, so page detection and saving both fail.
  * @param {string} sel
  * @returns {Element[]}
  */
-function querySelectorAllDeep(sel) {
+function querySelectorAllDeep(sel: any) {
     /** @type {Element[]} */
     const out = [];
     /**
      * @param {Document | ShadowRoot | Element} root
      */
-    function walk(root) {
+    function walk(root: any) {
         if (!root || typeof root.querySelectorAll !== "function") {
             return;
         }
@@ -765,7 +780,7 @@ function querySelectorAllDeep(sel) {
  * @param {string} pathname
  * @returns {string}
  */
-function tiktokPathWithoutOptionalLocale(pathname) {
+function tiktokPathWithoutOptionalLocale(pathname: any) {
     const m = pathname.match(/^\/([a-z]{2}(?:-[a-zA-Z0-9]{2,10})?)\/(.+)$/i);
     if (!m) {
         return pathname;
@@ -845,7 +860,7 @@ function isTikTokProfileSurfacePath() {
  * @param {string} text
  * @returns {boolean}
  */
-function textSuggestsTikTokFavorites(text) {
+function textSuggestsTikTokFavorites(text: any) {
     const t = text.toLowerCase();
     return (
         /\bfavorites?\b/.test(t) ||
@@ -862,7 +877,7 @@ function textSuggestsTikTokFavorites(text) {
  * @param {Element} el
  * @returns {boolean}
  */
-function tiktokTabLooksSelected(el) {
+function tiktokTabLooksSelected(el: any) {
     if (el.getAttribute("aria-selected") === "true") {
         return true;
     }
@@ -881,7 +896,7 @@ function tiktokTabLooksSelected(el) {
  * @param {Element} el
  * @returns {boolean}
  */
-function tiktokElementLooksVisible(el) {
+function tiktokElementLooksVisible(el: any) {
     const r = el.getBoundingClientRect();
     return (
         r.width > 4 &&
@@ -996,7 +1011,7 @@ const TIKTOK_VIDEO_ID_RE = /\/video\/(\d+)/;
  * @param {string} href
  * @returns {{ id: string, url: string } | null}
  */
-function parseTikTokVideoHref(href) {
+function parseTikTokVideoHref(href: any) {
     try {
         const u = new URL(href, "https://www.tiktok.com");
         if (u.hostname.replace(/^www\./, "") !== "tiktok.com") {
@@ -1012,12 +1027,12 @@ function parseTikTokVideoHref(href) {
     }
 }
 
-/** @typedef {{ id: string, url: string, caption: string, scrapedAt: string }} TikTokRow */
+/** @typedef {{ id: string, url: string, caption: string, savedAt: string }} TikTokRow */
 
 /**
  * @param {Map<string, TikTokRow>} accumulated
  */
-function mergeTikTokDomIntoAccumulated(accumulated) {
+function mergeTikTokDomIntoAccumulated(accumulated: any) {
     const anchors = querySelectorAllDeep('a[href*="/video/"]');
 
     for (const a of anchors) {
@@ -1053,7 +1068,7 @@ function mergeTikTokDomIntoAccumulated(accumulated) {
             caption,
             id: parsed.id,
             postedAt: getPostedAtFromTikTokId(parsed.id),
-            scrapedAt: new Date().toISOString(),
+            savedAt: new Date().toISOString(),
             url: parsed.url,
         };
 
@@ -1109,16 +1124,17 @@ async function runTikTokSync() {
 
 // --- YouTube Watch Later ---
 
-const YT_BOOTSTRAP_MESSAGE = "CACHE_YT_BOOTSTRAP";
+const YT_BOOTSTRAP_MESSAGE = MESSAGE_TYPES.CACHE_YT_BOOTSTRAP;
+const YT_BOOTSTRAP_REQUEST_EVENT = "cache-request-yt-bootstrap";
 const YT_BROWSE_ENDPOINT = "https://www.youtube.com/youtubei/v1/browse";
 
-/** @typedef {{ availability: string, channelId: string, channelName: string, duration: string, playlistItemId: string, position: number | null, publishedAt: string | null, scrapedAt: string, title: string, videoId: string, videoUrl: string }} YouTubeWatchLaterItem */
+/** @typedef {{ availability: string, channelId: string, channelName: string, duration: string, playlistItemId: string, position: number | null, publishedAt: string | null, savedAt: string, title: string, videoId: string, videoUrl: string }} YouTubeWatchLaterItem */
 
 function isYouTubeWatchLaterPage() {
     return isYouTubeWatchLaterUrl(window.location.href);
 }
 
-function normalizeYouTubeAvailability(renderer, title) {
+function normalizeYouTubeAvailability(renderer: any, title: any) {
     const normalizedTitle = (title ?? "").trim().toLowerCase();
     if (renderer?.upcomingEventData) {
         return "upcoming";
@@ -1154,7 +1170,7 @@ function normalizeYouTubeAvailability(renderer, title) {
     return isLive ? "live" : "available";
 }
 
-function readYouTubeContinuationToken(value) {
+function readYouTubeContinuationToken(value: any) {
     if (!value || typeof value !== "object") {
         return "";
     }
@@ -1182,7 +1198,7 @@ function readYouTubeContinuationToken(value) {
     return "";
 }
 
-function extractYouTubePlaylistPosition(renderer, fallbackIndex) {
+function extractYouTubePlaylistPosition(renderer: any, fallbackIndex: any) {
     const indexText = textFromRuns(renderer?.index);
     const parsed = Number.parseInt(indexText, 10);
     if (Number.isFinite(parsed)) {
@@ -1191,7 +1207,7 @@ function extractYouTubePlaylistPosition(renderer, fallbackIndex) {
     return Number.isFinite(fallbackIndex) ? fallbackIndex : null;
 }
 
-function parseYouTubePlaylistVideoRenderer(renderer, fallbackIndex) {
+function parseYouTubePlaylistVideoRenderer(renderer: any, fallbackIndex: any) {
     const videoId =
         typeof renderer?.videoId === "string" ? renderer.videoId.trim() : "";
     if (!videoId) {
@@ -1235,14 +1251,14 @@ function parseYouTubePlaylistVideoRenderer(renderer, fallbackIndex) {
         playlistItemId,
         position: extractYouTubePlaylistPosition(renderer, fallbackIndex),
         publishedAt: null,
-        scrapedAt: new Date().toISOString(),
+        savedAt: new Date().toISOString(),
         title,
         videoId,
         videoUrl: `https://www.youtube.com/watch?v=${encodeURIComponent(videoId)}`,
     };
 }
 
-function extractYouTubeRowsAndTokens(root, offset = 0) {
+function extractYouTubeRowsAndTokens(root: any, offset: any = 0) {
     const rows = [];
     const tokens = new Set();
 
@@ -1269,7 +1285,7 @@ function extractYouTubeRowsAndTokens(root, offset = 0) {
     };
 }
 
-function mergeYouTubeRowsIntoAccumulated(accumulated, rows) {
+function mergeYouTubeRowsIntoAccumulated(accumulated: any, rows: any) {
     for (const row of rows) {
         if (accumulated.size >= MAX_YOUTUBE_ITEMS) {
             break;
@@ -1292,8 +1308,8 @@ function mergeYouTubeRowsIntoAccumulated(accumulated, rows) {
             position:
                 typeof row.position === "number" ? row.position : prev.position,
             publishedAt: row.publishedAt || prev.publishedAt || null,
-            scrapedAt:
-                row.scrapedAt || prev.scrapedAt || new Date().toISOString(),
+            savedAt:
+                row.savedAt || prev.savedAt || new Date().toISOString(),
             title: row.title || prev.title || "",
             videoUrl: row.videoUrl || prev.videoUrl || "",
         });
@@ -1304,24 +1320,10 @@ async function getYouTubeBootstrapData() {
     return new Promise((resolve) => {
         const timeoutId = setTimeout(() => {
             window.removeEventListener("message", onMessage);
-            cleanup();
             resolve(null);
         }, 1500);
 
-        let cleaned = false;
-        let injectedScript = null;
-
-        function cleanup() {
-            if (cleaned) {
-                return;
-            }
-            cleaned = true;
-            if (injectedScript) {
-                injectedScript.remove();
-            }
-        }
-
-        function onMessage(event) {
+        function onMessage(event: any) {
             if (event.source !== window) {
                 return;
             }
@@ -1336,23 +1338,18 @@ async function getYouTubeBootstrapData() {
 
             clearTimeout(timeoutId);
             window.removeEventListener("message", onMessage);
-            cleanup();
             resolve(data.payload ?? null);
         }
 
         window.addEventListener("message", onMessage);
-        injectedScript = document.createElement("script");
-        injectedScript.src = chrome.runtime.getURL("youtube-page-bootstrap.js");
-        injectedScript.async = false;
-        (
-            document.documentElement ??
-            document.head ??
-            document.body
-        )?.appendChild(injectedScript);
+        // MAIN-world content script (youtube-main.ts) answers this event.
+        document.documentElement.dispatchEvent(
+            new CustomEvent(YT_BOOTSTRAP_REQUEST_EVENT),
+        );
     });
 }
 
-async function fetchYouTubeContinuationPage(token, bootstrap) {
+async function fetchYouTubeContinuationPage(token: any, bootstrap: any) {
     if (!(bootstrap?.apiKey && bootstrap?.context)) {
         throw new Error(
             "YouTube page data is missing continuation configuration."
@@ -1425,10 +1422,14 @@ async function runYouTubeWatchLaterSync() {
         return;
     }
 
-    const bootstrap = await getYouTubeBootstrapData();
+    const bootstrap = (await getYouTubeBootstrapData()) as {
+        apiKey?: string;
+        context?: unknown;
+        initialData?: unknown;
+    } | null;
     if (!bootstrap?.initialData) {
         await chrome.runtime.sendMessage({
-            code: "SCRAPE_FAILED",
+            code: "SAVE_FAILED",
             message:
                 "Could not read YouTube playlist data from the page. Reload Watch Later and try again.",
             source: "youtube",
@@ -1445,7 +1446,7 @@ async function runYouTubeWatchLaterSync() {
 
     const initial = extractYouTubeRowsAndTokens(
         bootstrap.initialData,
-        positionOffset
+        positionOffset,
     );
     mergeYouTubeRowsIntoAccumulated(accumulated, initial.rows);
     positionOffset = accumulated.size;
@@ -1540,7 +1541,7 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
             }
         } catch (err) {
             await chrome.runtime.sendMessage({
-                code: "SCRAPE_FAILED",
+                code: "SAVE_FAILED",
                 message: err instanceof Error ? err.message : String(err),
                 type: MESSAGE_TYPES.SYNC_ERROR,
             });
