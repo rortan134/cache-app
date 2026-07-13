@@ -48,7 +48,7 @@ import {
 } from "@base-ui/react";
 import { useStableCallback } from "@base-ui/utils/useStableCallback";
 import { Calligraph } from "calligraph";
-import { ChevronDown, Grid2x2, Grid2x2X, SquarePen } from "lucide-react";
+import { ChevronDown, CopyX, Grid2x2, Grid2x2X, SquarePen } from "lucide-react";
 import * as React from "react";
 
 const COMMAND_MATCH_WORD_SEPARATOR_PATTERN = /[\s:./_-]+/;
@@ -364,6 +364,35 @@ export function ComposerActionOnboarding() {
     );
 }
 
+export function ComposerActionRemoveDuplicates() {
+    const {
+        duplicatesFilterEnabled,
+        onRemoveDuplicates,
+        removableDuplicateCount,
+    } = useComposerActionsContext();
+
+    if (!duplicatesFilterEnabled) {
+        return null;
+    }
+
+    const canRemove = removableDuplicateCount > 0;
+
+    return (
+        <ActionButton
+            disabled={!canRemove}
+            onClick={onRemoveDuplicates}
+            title={
+                canRemove
+                    ? "Remove duplicate bookmarks"
+                    : "No duplicates to remove"
+            }
+        >
+            <CopyX className="inline-block size-3.5 shrink-0" />
+            &nbsp;Remove duplicates
+        </ActionButton>
+    );
+}
+
 interface ComposerInputProps {
     containerRef: React.RefObject<HTMLDivElement | null>;
     groups: CommandPaletteGroup[];
@@ -388,12 +417,15 @@ interface ComposerActionsProps {
     children: React.ReactNode;
     className?: string;
     connectedIntegrationCount: number;
+    duplicatesFilterEnabled: boolean;
     groupBy: string;
     metrics: LibraryMetricsSnapshot;
     onClearPalette: () => void;
     onCreateCollection: () => void;
     onCreateNote: () => void;
     onOpenCommandFromOnboarding: () => void;
+    onRemoveDuplicates: () => void;
+    removableDuplicateCount: number;
     resultsSummary: string;
     sectionsLength: number;
 }

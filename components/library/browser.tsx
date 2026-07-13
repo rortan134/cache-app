@@ -10,6 +10,7 @@ import {
     ComposerActionMetrics,
     ComposerActionNew,
     ComposerActionOnboarding,
+    ComposerActionRemoveDuplicates,
     ComposerActions,
     ComposerInput,
     ComposerSuggestionsList,
@@ -153,6 +154,7 @@ import {
     ACTION_STATUS,
     CACHE_EXTENSION_DOWNLOAD_URL,
     FALLBACK_URL,
+    ITEM_KIND_BOOKMARK,
     ITEM_KIND_NOTE,
     MIME_TYPES,
 } from "@/lib/common/constants";
@@ -1170,6 +1172,54 @@ function itemPrimaryText(item: LibraryItemWithCollections): string {
     }
     const caption = item.caption?.trim();
     return caption && caption.length > 0 ? caption : item.url;
+}
+
+/**
+ * Returns bookmark ids that can be deleted to collapse each canonical-URL
+ * group to one survivor. Survivors are chosen from `allItems` (global
+ * oldest-added per canonical URL). Only ids also present in
+ * `visibleItemIds` are returned so combined filters only remove visible
+ * excess copies without keeping a newer visible copy over a hidden older one.
+ */
+function collectVisibleDuplicateExcessItemIds(
+    allItems: LibraryItemWithCollections[],
+    visibleItemIds: ReadonlySet<string>
+): string[] {
+    interface KeptCandidate {
+        id: string;
+        timestamp: number;
+    }
+    const keepByCanonical = new Map<string, KeptCandidate>();
+
+    for (const item of allItems) {
+        if (item.kind !== ITEM_KIND_BOOKMARK) {
+            continue;
+        }
+        const canonical = itemCanonicalGroupKey(item);
+        const timestamp = itemTimestamp(item, "added");
+        const existing = keepByCanonical.get(canonical);
+        if (!existing || timestamp < existing.timestamp) {
+            keepByCanonical.set(canonical, { id: item.id, timestamp });
+        }
+    }
+
+    const keepIds = new Set<string>();
+    for (const candidate of keepByCanonical.values()) {
+        keepIds.add(candidate.id);
+    }
+
+    const excessIds: string[] = [];
+    for (const item of allItems) {
+        if (item.kind !== ITEM_KIND_BOOKMARK) {
+            continue;
+        }
+        if (keepIds.has(item.id) || !visibleItemIds.has(item.id)) {
+            continue;
+        }
+        excessIds.push(item.id);
+    }
+
+    return excessIds;
 }
 
 function sourceLabel(source: LibraryItemSource): string {
@@ -5040,6 +5090,57 @@ function DeleteItemDialog({
     );
 }
 
+interface RemoveDuplicatesDialogProps {
+    count: number;
+    isRemoving: boolean;
+    onConfirm: () => void;
+    onOpenChange: (open: boolean) => void;
+    open: boolean;
+}
+
+function RemoveDuplicatesDialog({
+    count,
+    isRemoving,
+    onConfirm,
+    onOpenChange,
+    open,
+}: RemoveDuplicatesDialogProps) {
+    return (
+        <Dialog onOpenChange={onOpenChange} open={open}>
+            <DialogPopup>
+                <DialogHeader>
+                    <DialogTitle>
+                        <T>Remove duplicate bookmarks?</T>
+                    </DialogTitle>
+                    <DialogDescription>
+                        <T>
+                            <Var>{count}</Var> duplicate bookmarks will be moved
+                            to Recently deleted. The oldest copy of each link
+                            stays in your library. You have 30 days to restore
+                            them before they're permanently deleted.
+                        </T>
+                    </DialogDescription>
+                </DialogHeader>
+                <DialogFooter>
+                    <DialogClose
+                        disabled={isRemoving}
+                        render={<Button variant="ghost" />}
+                    >
+                        <T>Cancel</T>
+                    </DialogClose>
+                    <Button
+                        isLoading={isRemoving}
+                        onClick={onConfirm}
+                        variant="destructive"
+                    >
+                        <T>Remove</T>
+                    </Button>
+                </DialogFooter>
+            </DialogPopup>
+        </Dialog>
+    );
+}
+
 interface CreateResultsCollectionDialogProps {
     collections: LibraryCollectionSummary[];
     createResultsDescriptionDraft: string;
@@ -5264,6 +5365,12 @@ export function BrowserRoot({
         React.useState(false);
     const [duplicatesFilterEnabled, setDuplicatesFilterEnabled] =
         React.useState(false);
+    const [isRemoveDuplicatesDialogOpen, setIsRemoveDuplicatesDialogOpen] =
+        React.useState(false);
+    const [pendingRemoveDuplicateIds, setPendingRemoveDuplicateIds] =
+        React.useState<string[]>([]);
+    const [isRemovingDuplicates, startRemoveDuplicatesTransition] =
+        React.useTransition();
     const [unreachableFilterEnabled, setUnreachableFilterEnabled] =
         React.useState(false);
     const [unreachableProbe, setUnreachableProbe] = React.useState({
@@ -5756,6 +5863,81 @@ export function BrowserRoot({
         sourceFilters,
         unreachableFilterEnabled,
         unreachableItemIds,
+    });
+
+    const filteredItemIdSet = new Set(filteredItems.map((item) => item.id));
+    const removableDuplicateIds = duplicatesFilterEnabled
+        ? collectVisibleDuplicateExcessItemIds(items, filteredItemIdSet)
+        : [];
+
+    const handleRequestRemoveDuplicates = useStableCallback(() => {
+        if (removableDuplicateIds.length === 0) {
+            return;
+        }
+        setPendingRemoveDuplicateIds(removableDuplicateIds);
+        setIsRemoveDuplicatesDialogOpen(true);
+    });
+
+    const handleRemoveDuplicatesDialogOpenChange = useStableCallback(
+        (open: boolean) => {
+            if (!(open || isRemovingDuplicates)) {
+                setIsRemoveDuplicatesDialogOpen(false);
+                setPendingRemoveDuplicateIds([]);
+            }
+        }
+    );
+
+    const handleConfirmRemoveDuplicates = useStableCallback(() => {
+        const excessIds = pendingRemoveDuplicateIds;
+        if (excessIds.length === 0) {
+            setIsRemoveDuplicatesDialogOpen(false);
+            return;
+        }
+
+        startRemoveDuplicatesTransition(async () => {
+            let deletedCount = 0;
+            let failedCount = 0;
+
+            for (const id of excessIds) {
+                let result: LibraryItemDeleteResult;
+                try {
+                    result = await deleteLibraryItem(id);
+                } catch (error) {
+                    log.error("Failed to remove duplicate bookmark", error, {
+                        itemId: id,
+                    });
+                    result = {
+                        message: "We couldn't remove this duplicate right now.",
+                        status: ACTION_STATUS.ERROR,
+                    };
+                }
+
+                if (result.status !== ACTION_STATUS.DELETED) {
+                    failedCount += 1;
+                    continue;
+                }
+
+                deletedCount += 1;
+                const deletedItemId = result.itemId;
+                onItemsChange((current) =>
+                    current.filter((item) => item.id !== deletedItemId)
+                );
+                onDeleteItemSuccess(result);
+            }
+
+            setIsRemoveDuplicatesDialogOpen(false);
+            setPendingRemoveDuplicateIds([]);
+
+            if (failedCount === 0 && deletedCount === excessIds.length) {
+                setDuplicatesFilterEnabled(false);
+            } else if (failedCount > 0) {
+                log.error("Remove duplicates finished with failures", {
+                    deletedCount,
+                    failedCount,
+                    requestedCount: excessIds.length,
+                });
+            }
+        });
     });
 
     const sortedItems = sortCommandItems(filteredItems, sortMode);
@@ -6493,6 +6675,7 @@ export function BrowserRoot({
                 <ComposerActions
                     canClear={canClear}
                     connectedIntegrationCount={connectedIntegrationCount}
+                    duplicatesFilterEnabled={duplicatesFilterEnabled}
                     groupBy={groupBy}
                     metrics={libraryMetrics}
                     onClearPalette={clearLibraryPalette}
@@ -6501,10 +6684,13 @@ export function BrowserRoot({
                     onOpenCommandFromOnboarding={
                         handleOpenCommandFromOnboarding
                     }
+                    onRemoveDuplicates={handleRequestRemoveDuplicates}
+                    removableDuplicateCount={removableDuplicateIds.length}
                     resultsSummary={resultsSummary}
                     sectionsLength={sections.length}
                 >
                     <ComposerActionNew />
+                    <ComposerActionRemoveDuplicates />
                     <ComposerActionMetrics />
                     <ComposerActionOnboarding />
                 </ComposerActions>
@@ -6619,6 +6805,13 @@ export function BrowserRoot({
                 onOpenChange={handleDeleteDialogOpenChange}
                 open={pendingDeleteItem !== null}
                 pendingDeleteItem={pendingDeleteItem}
+            />
+            <RemoveDuplicatesDialog
+                count={pendingRemoveDuplicateIds.length}
+                isRemoving={isRemovingDuplicates}
+                onConfirm={handleConfirmRemoveDuplicates}
+                onOpenChange={handleRemoveDuplicatesDialogOpenChange}
+                open={isRemoveDuplicatesDialogOpen}
             />
             <CreateResultsCollectionDialog
                 collections={collections}
