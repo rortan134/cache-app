@@ -48,7 +48,7 @@ export async function generateMetadata(props: {
             "llm:use-cases": "",
         },
         publisher: APP_NAME,
-        referrer: "origin-when-cross-origin",
+        referrer: "strict-origin-when-cross-origin",
         robots: {
             follow: true,
             googleBot: {

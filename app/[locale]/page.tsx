@@ -52,6 +52,37 @@ import type * as React from "react";
 
 export const instant = false;
 
+const HOME_JSON_LD: Record<string, unknown> = {
+    "@context": "https://schema.org",
+    "@graph": [
+        {
+            "@type": "WebSite",
+            name: "Cache App",
+            url: BASE_URL,
+        },
+        {
+            "@type": "Organization",
+            logo: `${BASE_URL}/icon1.png`,
+            name: "CachdApp, Inc.",
+            url: BASE_URL,
+        },
+        {
+            "@type": "SoftwareApplication",
+            applicationCategory: "ProductivityApplication",
+            name: "Cache App",
+            offers: {
+                "@type": "Offer",
+                price: "8",
+                priceCurrency: "EUR",
+            },
+            operatingSystem: "Any",
+        },
+    ],
+};
+
+const HERO_IMAGE_SIZES = "(max-width: 1024px) 100vw, 1024px";
+const SECTION_IMAGE_SIZES = "(max-width: 768px) 100vw, 512px";
+
 export async function generateMetadata({
     params,
 }: {
@@ -88,37 +119,9 @@ export async function generateMetadata({
 export default async function Home() {
     const session = await getServerSession();
 
-    const jsonLd = {
-        "@context": "https://schema.org",
-        "@graph": [
-            {
-                "@type": "WebSite",
-                name: "Cache App",
-                url: BASE_URL,
-            },
-            {
-                "@type": "Organization",
-                logo: `${BASE_URL}/icon1.png`,
-                name: "CachdApp, Inc.",
-                url: BASE_URL,
-            },
-            {
-                "@type": "SoftwareApplication",
-                applicationCategory: "ProductivityApplication",
-                name: "Cache App",
-                offers: {
-                    "@type": "Offer",
-                    price: "8",
-                    priceCurrency: "EUR",
-                },
-                operatingSystem: "Any",
-            },
-        ],
-    };
-
     return (
         <PageShell>
-            <JsonLdScript data={jsonLd} />
+            <JsonLdScript data={HOME_JSON_LD} />
             <GoogleOneTapTrigger />
             <div className="flex flex-1 flex-col gap-8 lg:flex-row lg:justify-between">
                 <Sidebar>
@@ -173,10 +176,9 @@ export default async function Home() {
                         <Image
                             alt=""
                             className="absolute top-11 left-9 z-10 w-full rounded-xl"
-                            fetchPriority="high"
-                            loading="eager"
                             placeholder="blur"
-                            priority
+                            preload
+                            sizes={HERO_IMAGE_SIZES}
                             src={HeroImage}
                         />
                     </div>
@@ -246,9 +248,8 @@ export default async function Home() {
                                 <Image
                                     alt=""
                                     height={800}
-                                    loading="eager"
                                     placeholder="blur"
-                                    priority
+                                    sizes={SECTION_IMAGE_SIZES}
                                     src={LibrarySectionImage}
                                     width={800}
                                 />
@@ -391,6 +392,8 @@ export default async function Home() {
                                 <Image
                                     alt=""
                                     height={800}
+                                    placeholder="blur"
+                                    sizes={SECTION_IMAGE_SIZES}
                                     src={CollectionsSectionImage}
                                     width={800}
                                 />
@@ -433,6 +436,8 @@ export default async function Home() {
                                 <Image
                                     alt=""
                                     height={800}
+                                    placeholder="blur"
+                                    sizes={SECTION_IMAGE_SIZES}
                                     src={OrganizeSectionImage}
                                     width={800}
                                 />
@@ -474,10 +479,13 @@ export default async function Home() {
                             </ul>
                         </div>
                         <div className="relative order-first aspect-square w-full overflow-hidden rounded-2xl bg-muted md:order-last">
-                            <figure className="h-full overflow-hidden">
+                            <figure className="relative h-full overflow-hidden">
                                 <Image
                                     alt=""
-                                    className="absolute inset-0 size-full object-cover"
+                                    className="object-cover"
+                                    fill
+                                    placeholder="blur"
+                                    sizes={SECTION_IMAGE_SIZES}
                                     src={SmartCollectionsBackgroundImage}
                                 />
                                 <div className="relative flex h-full items-center justify-center p-8 py-12">

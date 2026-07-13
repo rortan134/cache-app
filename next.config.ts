@@ -17,7 +17,7 @@ const securityHeaders = [
     },
     {
         key: "Referrer-Policy",
-        value: "origin-when-cross-origin",
+        value: "strict-origin-when-cross-origin",
     },
     {
         key: "Permissions-Policy",
@@ -39,6 +39,7 @@ const nextConfig: NextConfig = {
             "@lexical/a11y",
             "lexical",
             "class-variance-authority",
+            "lucide-react",
             "motion",
             "streamdown",
             "zod",

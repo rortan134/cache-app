@@ -145,7 +145,7 @@ import EmptyCollectionStateImage from "@/public/empty-collection-state.png";
 import SmartCollectionsBackgroundImg from "@/public/smart-collections-background-wide.webp";
 import type { BaseUIEvent } from "@base-ui/react";
 import { Toolbar } from "@base-ui/react/toolbar";
-import { useInterval } from "@base-ui/utils/useInterval";
+import { useAnimationFrame } from "@base-ui/utils/useAnimationFrame";
 import { useIsoLayoutEffect } from "@base-ui/utils/useIsoLayoutEffect";
 import { useStableCallback } from "@base-ui/utils/useStableCallback";
 import { useTimeout } from "@base-ui/utils/useTimeout";
@@ -284,6 +284,168 @@ interface ComboboxGroupData {
 
 const PREVIEW_SLIDE_INTERVAL_MS = 1400;
 const PREVIEW_CROSSFADE_MS = 400;
+const PREVIEW_IMAGE_CACHE_MAX = 200;
+const PREVIEW_IMAGE_LOAD_CONCURRENCY = 2;
+const EMPTY_PREVIEW_THUMBNAILS: string[] = [];
+
+interface ReadyPreviewSlide {
+    aspectRatio: number;
+    src: string;
+}
+
+/** Session cache of successfully decoded preview images (url → aspect ratio). */
+const previewImageCache = new Map<string, number>();
+const previewImageLoads = new Map<string, Promise<ReadyPreviewSlide | null>>();
+
+function rememberPreviewImage(url: string, aspectRatio: number): void {
+    if (
+        !previewImageCache.has(url) &&
+        previewImageCache.size >= PREVIEW_IMAGE_CACHE_MAX
+    ) {
+        const oldestKey = previewImageCache.keys().next().value;
+        if (oldestKey !== undefined) {
+            previewImageCache.delete(oldestKey);
+        }
+    }
+    previewImageCache.set(url, aspectRatio);
+}
+
+function loadPreviewImage(url: string): Promise<ReadyPreviewSlide | null> {
+    const cachedAspectRatio = previewImageCache.get(url);
+    if (cachedAspectRatio !== undefined) {
+        return Promise.resolve({ aspectRatio: cachedAspectRatio, src: url });
+    }
+
+    const inflight = previewImageLoads.get(url);
+    if (inflight) {
+        return inflight;
+    }
+
+    const promise = new Promise<ReadyPreviewSlide | null>((resolve) => {
+        const image = document.createElement("img");
+        image.decoding = "async";
+        image.onload = () => {
+            previewImageLoads.delete(url);
+            const { naturalHeight, naturalWidth } = image;
+            if (naturalHeight <= 0 || naturalWidth <= 0) {
+                resolve(null);
+                return;
+            }
+            const aspectRatio = naturalWidth / naturalHeight;
+            rememberPreviewImage(url, aspectRatio);
+            resolve({ aspectRatio, src: url });
+        };
+        image.onerror = () => {
+            // Failures are not cached so transient CDN/network errors can retry.
+            previewImageLoads.delete(url);
+            resolve(null);
+        };
+        image.src = url;
+    });
+
+    previewImageLoads.set(url, promise);
+    return promise;
+}
+
+function getReadyPreviewSlides(urls: string[]): ReadyPreviewSlide[] {
+    const slides: ReadyPreviewSlide[] = [];
+    for (const url of urls) {
+        const aspectRatio = previewImageCache.get(url);
+        if (aspectRatio !== undefined) {
+            slides.push({ aspectRatio, src: url });
+        }
+    }
+    return slides;
+}
+
+function mergeReadyPreviewSlide(
+    urls: string[],
+    previous: ReadyPreviewSlide[],
+    slide: ReadyPreviewSlide
+): ReadyPreviewSlide[] {
+    if (previous.some((entry) => entry.src === slide.src)) {
+        return previous;
+    }
+    const readyBySrc = new Map(previous.map((entry) => [entry.src, entry]));
+    readyBySrc.set(slide.src, slide);
+    return urls.flatMap((url) => {
+        const entry = readyBySrc.get(url);
+        return entry ? [entry] : [];
+    });
+}
+
+function resolveActivePreviewSlide(
+    readySlides: ReadyPreviewSlide[],
+    activeSrc: string | null
+): ReadyPreviewSlide | null {
+    if (activeSrc !== null) {
+        const match = readySlides.find((slide) => slide.src === activeSrc);
+        if (match) {
+            return match;
+        }
+    }
+    return readySlides[0] ?? null;
+}
+
+function nextPreviewSlideSrc(
+    readySlides: ReadyPreviewSlide[],
+    activeSrc: string | null
+): string | null {
+    const first = readySlides[0];
+    if (!first) {
+        return null;
+    }
+    if (readySlides.length === 1) {
+        return first.src;
+    }
+    const currentIndex = readySlides.findIndex(
+        (slide) => slide.src === activeSrc
+    );
+    const nextIndex =
+        currentIndex < 0 ? 0 : (currentIndex + 1) % readySlides.length;
+    return readySlides[nextIndex]?.src ?? first.src;
+}
+
+/**
+ * Start preview image loads with a small concurrency pool so arming a row
+ * does not fan out unlimited /api/preview work at once.
+ */
+function startPreviewImageLoads(
+    urls: string[],
+    onReady: (slide: ReadyPreviewSlide) => void,
+    isCancelled: () => boolean
+): void {
+    if (urls.length === 0) {
+        return;
+    }
+
+    let nextIndex = 0;
+
+    const runNext = (): Promise<void> => {
+        if (isCancelled() || nextIndex >= urls.length) {
+            return Promise.resolve();
+        }
+        const url = urls[nextIndex];
+        nextIndex += 1;
+        if (url === undefined) {
+            return runNext();
+        }
+        return loadPreviewImage(url).then(
+            (slide) => {
+                if (!(isCancelled() || slide === null)) {
+                    onReady(slide);
+                }
+                return runNext();
+            },
+            () => runNext()
+        );
+    };
+
+    const workerCount = Math.min(PREVIEW_IMAGE_LOAD_CONCURRENCY, urls.length);
+    for (let worker = 0; worker < workerCount; worker += 1) {
+        runNext().catch(() => undefined);
+    }
+}
 
 const NAME_MAX_LENGTH = 64;
 
@@ -1463,51 +1625,114 @@ function CollectionsListProvider({ children }: React.PropsWithChildren) {
 }
 
 /**
- * Cycle through collection thumbnail previews on an interval while the
- * preview popup is open.
+ * Load-gated collection preview playback.
  *
- * Resets to the first image when closed so the sequence always starts
- * from the beginning. Respects `prefers-reduced-motion` — no cycling when
- * the user has opted out of non-essential motion.
+ * Loads only while armed (pointer over the row or open intent). Failures are
+ * skipped, not shown. Advances only across slides that have already loaded.
+ * Active slide is keyed by `src` so late-arriving earlier URLs cannot jump the
+ * visible frame when the ready list is re-ordered.
  */
-function useCollectionItemPreviewIndex(
-    isOpen: boolean,
-    thumbnailCount: number
+function useCollectionPreviewPlayback(
+    shouldLoad: boolean,
+    isCycling: boolean,
+    thumbnails: string[]
 ) {
     const isReducedMotion = useReducedMotion();
-    const [activePreviewIndex, setActivePreviewIndex] = React.useState(0);
-    const previewInterval = useInterval();
-    const hasMultipleThumbnails = thumbnailCount > 1;
-    const shouldCycle =
-        isOpen && hasMultipleThumbnails && isReducedMotion !== true;
+    const thumbnailsKey = thumbnails.join("\0");
+    const slideTimeout = useTimeout();
+    const readySlidesRef = React.useRef<ReadyPreviewSlide[]>([]);
 
-    // Adjust index during render when the preview closes so the next open
-    // starts at 0 without waiting for an effect paint. Interval ownership
-    // stays in the effect below — clearing timers during render is unsafe
-    // under concurrent rendering (a discarded render would stop a live one).
-    const [prevShouldCycle, setPrevShouldCycle] = React.useState(shouldCycle);
-    if (prevShouldCycle !== shouldCycle) {
-        setPrevShouldCycle(shouldCycle);
-        if (!shouldCycle) {
-            setActivePreviewIndex(0);
+    const [readySlides, setReadySlides] = React.useState<ReadyPreviewSlide[]>(
+        () => getReadyPreviewSlides(thumbnails)
+    );
+    const [activeSrc, setActiveSrc] = React.useState<string | null>(null);
+    const [prevThumbnailsKey, setPrevThumbnailsKey] =
+        React.useState(thumbnailsKey);
+    const [prevShouldLoad, setPrevShouldLoad] = React.useState(shouldLoad);
+
+    if (prevThumbnailsKey !== thumbnailsKey) {
+        setPrevThumbnailsKey(thumbnailsKey);
+        const initialReady = getReadyPreviewSlides(thumbnails);
+        const firstReady = initialReady[0];
+        setReadySlides(initialReady);
+        setActiveSrc(firstReady === undefined ? null : firstReady.src);
+    }
+
+    if (prevShouldLoad !== shouldLoad) {
+        setPrevShouldLoad(shouldLoad);
+        if (!shouldLoad) {
+            const firstReady = readySlides[0];
+            setActiveSrc(firstReady === undefined ? null : firstReady.src);
         }
     }
 
     React.useEffect(() => {
-        if (!shouldCycle) {
+        if (!shouldLoad) {
             return;
         }
-        previewInterval.start(PREVIEW_SLIDE_INTERVAL_MS, () => {
-            setActivePreviewIndex(
-                (currentIndex) => (currentIndex + 1) % thumbnailCount
-            );
-        });
-        return () => {
-            previewInterval.clear();
-        };
-    }, [shouldCycle, previewInterval, thumbnailCount]);
 
-    return activePreviewIndex;
+        let cancelled = false;
+        const urls =
+            thumbnailsKey.length === 0 ? [] : thumbnailsKey.split("\0");
+
+        startPreviewImageLoads(
+            urls,
+            (slide) => {
+                setReadySlides((previous) =>
+                    mergeReadyPreviewSlide(urls, previous, slide)
+                );
+            },
+            () => cancelled
+        );
+
+        return () => {
+            cancelled = true;
+        };
+    }, [shouldLoad, thumbnailsKey]);
+
+    readySlidesRef.current = readySlides;
+
+    const activeSlide = resolveActivePreviewSlide(readySlides, activeSrc);
+    if (activeSlide !== null && activeSlide.src !== activeSrc) {
+        setActiveSrc(activeSlide.src);
+    }
+
+    const shouldCycle =
+        isCycling && readySlides.length > 1 && isReducedMotion !== true;
+
+    React.useEffect(() => {
+        if (!shouldCycle) {
+            slideTimeout.clear();
+            return;
+        }
+
+        const scheduleNext = () => {
+            slideTimeout.start(PREVIEW_SLIDE_INTERVAL_MS, () => {
+                setActiveSrc((currentSrc) =>
+                    nextPreviewSlideSrc(readySlidesRef.current, currentSrc)
+                );
+                scheduleNext();
+            });
+        };
+        scheduleNext();
+
+        return () => {
+            slideTimeout.clear();
+        };
+    }, [shouldCycle, slideTimeout]);
+
+    const reportSlideError = useStableCallback((src: string) => {
+        previewImageCache.delete(src);
+        setReadySlides((previous) =>
+            previous.filter((slide) => slide.src !== src)
+        );
+        setActiveSrc((currentSrc) => (currentSrc === src ? null : currentSrc));
+    });
+
+    return {
+        activeSlide,
+        reportSlideError,
+    };
 }
 
 /**
@@ -1686,7 +1911,7 @@ function CollectionsListItemPreviewImage({
             alt={alt}
             className={className}
             decoding="async"
-            loading="lazy"
+            loading="eager"
             onError={handleError}
             src={src}
         />
@@ -2624,6 +2849,8 @@ function CollectionsListItem({
  * Previewable trigger that cycles through collection thumbnails on hover.
  *
  * Clicking selects the collection and closes the preview popup.
+ * The popup stays closed until at least one thumbnail has actually loaded
+ * so the first frame is never a blank shell.
  */
 function CollectionsListItemTrigger({
     onClick: onClickProp,
@@ -2632,15 +2859,25 @@ function CollectionsListItemTrigger({
     const { collectionPreviewThumbnailUrlsById, onSelectCollection } =
         useCollectionsState();
     const { collection, isSelected } = useCollectionsListItemContext();
-    const [isOpen, setIsOpen] = React.useState(false);
+    // Intent from Base UI (delayed open / close). Armed is pointer presence so
+    // we can warm images during the open delay without mount-time N preloads.
+    const [isOpenIntent, setIsOpenIntent] = React.useState(false);
+    const [isArmed, setIsArmed] = React.useState(false);
 
     const thumbnails =
-        collectionPreviewThumbnailUrlsById.get(collection.id) ?? [];
+        collectionPreviewThumbnailUrlsById.get(collection.id) ??
+        EMPTY_PREVIEW_THUMBNAILS;
 
-    const activePreviewIndex = useCollectionItemPreviewIndex(
-        isOpen,
-        thumbnails.length
+    const shouldLoad = isArmed || isOpenIntent;
+    const { activeSlide, reportSlideError } = useCollectionPreviewPlayback(
+        shouldLoad,
+        isOpenIntent,
+        thumbnails
     );
+
+    // Gate the visible popup on a ready slide, but hard-clear intent on leave
+    // so a late load cannot ghost-open after the pointer is gone.
+    const isOpen = isOpenIntent && activeSlide !== null;
 
     const onClick = useStableCallback(onClickProp);
 
@@ -2650,17 +2887,33 @@ function CollectionsListItemTrigger({
         ) => {
             onClick?.(event);
             onSelectCollection(collection.id);
-            setIsOpen(false);
+            setIsOpenIntent(false);
+            setIsArmed(false);
         }
     );
 
+    const handleOpenChange = useStableCallback((nextOpen: boolean) => {
+        setIsOpenIntent(nextOpen);
+    });
+
+    const handlePointerEnter = useStableCallback(() => {
+        setIsArmed(true);
+    });
+
+    const handlePointerLeave = useStableCallback(() => {
+        setIsArmed(false);
+        setIsOpenIntent(false);
+    });
+
     return (
-        <PreviewCard onOpenChange={setIsOpen} open={isOpen}>
+        <PreviewCard onOpenChange={handleOpenChange} open={isOpen}>
             <PreviewCardTrigger
                 {...props}
                 {...(isSelected ? { "data-active": true } : {})}
                 closeDelay={0}
                 onClick={handleClick}
+                onPointerEnter={handlePointerEnter}
+                onPointerLeave={handlePointerLeave}
                 render={
                     <SidebarItem
                         className="w-full min-w-0 flex-1 justify-start pr-8 pl-10.5 text-left before:bg-(--collection-background) hover:bg-transparent focus-visible:ring-(--accent-color)"
@@ -2673,11 +2926,11 @@ function CollectionsListItemTrigger({
                 positionMethod="fixed"
                 side="right"
             >
-                {isOpen && thumbnails.length > 0 ? (
+                {activeSlide ? (
                     <CollectionsListItemPreviewStack
-                        activeIndex={activePreviewIndex}
+                        activeSlide={activeSlide}
                         collectionName={collection.name}
-                        thumbnails={thumbnails}
+                        onSlideError={reportSlideError}
                     />
                 ) : null}
             </PreviewCardPopup>
@@ -2686,95 +2939,98 @@ function CollectionsListItemTrigger({
 }
 
 /**
- * Crossfading stack of collection thumbnails for the preview popup.
+ * Crossfading stack of ready collection thumbnails.
  *
- * Only the active thumbnail contributes to layout — it sets the popup's
- * aspect ratio from the image's natural dimensions read on load. The
- * previous thumbnail stays mounted for the fade duration so the transition
- * reads as a crossfade rather than a snap, then unmounts when the timer
- * expires.
- *
- * Without this restraint the absolute thumbnails would each contribute
- * intrinsic space, growing the popup to the largest image in the cycle
- * and breaking the per-image aspect that the previous single-image
- * implementation relied on.
+ * Slides are preloaded before they become active, so layout always has a
+ * known aspect ratio and the outgoing layer can fade from opacity 1 → 0
+ * while the incoming layer fades 0 → 1 after a paint (real crossfade).
  */
 function CollectionsListItemPreviewStack({
-    activeIndex,
+    activeSlide,
     collectionName,
-    thumbnails,
+    onSlideError,
 }: {
-    activeIndex: number;
+    activeSlide: ReadyPreviewSlide;
     collectionName: string;
-    thumbnails: string[];
+    onSlideError: (src: string) => void;
 }) {
-    const [aspectRatio, setAspectRatio] = React.useState<number | null>(null);
-    const [fadingOut, setFadingOut] = React.useState<{
-        index: number;
-        src: string;
-    } | null>(null);
-    const previousActiveIndexRef = React.useRef(activeIndex);
+    const [current, setCurrent] = React.useState(activeSlide);
+    const [outgoing, setOutgoing] = React.useState<ReadyPreviewSlide | null>(
+        null
+    );
+    const [isFading, setIsFading] = React.useState(false);
     const fadeTimeout = useTimeout();
+    const animationFrame = useAnimationFrame();
 
-    React.useEffect(() => {
-        const previousActive = previousActiveIndexRef.current;
-        if (previousActive === activeIndex) {
+    if (current.src !== activeSlide.src) {
+        setOutgoing(current);
+        setCurrent(activeSlide);
+        setIsFading(false);
+    }
+
+    useIsoLayoutEffect(() => {
+        if (outgoing === null) {
             return;
         }
-        const previousSrc = thumbnails[previousActive];
-        if (previousSrc !== undefined) {
-            setFadingOut({ index: previousActive, src: previousSrc });
+
+        // Layout effect runs before paint, so the prepare frame (outgoing at
+        // opacity 1, incoming at 0) is committed first. The next animation
+        // frame starts the opacity transition.
+        animationFrame.request(() => {
+            setIsFading(true);
+        });
+
+        fadeTimeout.start(PREVIEW_CROSSFADE_MS, () => {
+            setOutgoing(null);
+            setIsFading(false);
+        });
+
+        return () => {
+            animationFrame.cancel();
             fadeTimeout.clear();
-            fadeTimeout.start(PREVIEW_CROSSFADE_MS, () => {
-                setFadingOut(null);
-            });
-        }
-        setAspectRatio(null);
-        previousActiveIndexRef.current = activeIndex;
-    }, [activeIndex, thumbnails, fadeTimeout]);
+        };
+    }, [animationFrame, current.src, fadeTimeout, outgoing]);
 
-    const handleActivePreviewLoad = useStableCallback(
-        (event: React.SyntheticEvent<HTMLImageElement>) => {
-            const { naturalHeight, naturalWidth } = event.currentTarget;
-            if (naturalHeight > 0 && naturalWidth > 0) {
-                setAspectRatio(naturalWidth / naturalHeight);
-            }
-        }
-    );
-
-    const activeThumbnail = thumbnails[activeIndex] ?? null;
-
-    if (activeThumbnail === null) {
-        return null;
-    }
+    const handleCurrentError = useStableCallback(() => {
+        onSlideError(current.src);
+    });
 
     return (
         <div
             className="relative w-full"
-            style={
-                aspectRatio === null
-                    ? { minHeight: "8rem" }
-                    : { aspectRatio: String(aspectRatio) }
-            }
+            style={{ aspectRatio: String(current.aspectRatio) }}
         >
-            {fadingOut ? (
-                <CollectionsListItemPreviewImage
-                    alt={`${collectionName} preview`}
+            {outgoing ? (
+                // biome-ignore lint/correctness/useImageSize: parent aspect-ratio drives layout
+                <img
+                    alt=""
                     aria-hidden
-                    className="absolute inset-0 size-full object-cover opacity-0 transition-opacity ease-out"
-                    key={fadingOut.src}
-                    src={fadingOut.src}
+                    className={cn(
+                        "absolute inset-0 size-full object-cover transition-opacity ease-out",
+                        isFading ? "opacity-0" : "opacity-100"
+                    )}
+                    decoding="async"
+                    draggable={false}
+                    src={outgoing.src}
                     style={{
                         transitionDuration: `${PREVIEW_CROSSFADE_MS}ms`,
                     }}
                 />
             ) : null}
-            <CollectionsListItemPreviewImage
+            {/* biome-ignore lint/correctness/useImageSize: parent aspect-ratio drives layout */}
+            <img
                 alt={`${collectionName} preview`}
-                className="absolute inset-0 size-full object-cover opacity-100"
-                key={`${activeThumbnail}:${activeIndex}`}
-                onLoad={handleActivePreviewLoad}
-                src={activeThumbnail}
+                className={cn(
+                    "absolute inset-0 size-full object-cover transition-opacity ease-out",
+                    outgoing === null || isFading ? "opacity-100" : "opacity-0"
+                )}
+                decoding="async"
+                draggable={false}
+                onError={handleCurrentError}
+                src={current.src}
+                style={{
+                    transitionDuration: `${PREVIEW_CROSSFADE_MS}ms`,
+                }}
             />
         </div>
     );

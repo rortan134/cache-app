@@ -82,7 +82,7 @@ export function BrandLogo({ href, src, className, ...props }: BrandLogoProps) {
                     draggable={false}
                     fetchPriority="high"
                     loading="eager"
-                    priority
+                    sizes="180px"
                     src={src}
                 />
             </ContextMenuTrigger>

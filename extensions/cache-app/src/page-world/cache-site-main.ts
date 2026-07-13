@@ -24,8 +24,9 @@ async function publishToken(): Promise<void> {
             { token, type: MESSAGE_TYPES.CACHE_SITE_TOKEN },
             window.location.origin,
         );
-    } catch {
-        /* page may be logged out */
+    } catch (error) {
+        // res.ok / missing-token paths above cover signed-out; log anything else.
+        console.warn("[Cache] publishToken failed:", error);
     }
 }
 
