@@ -1,0 +1,28 @@
+Benchmarking http://localhost:3000/api/preview?url=https%3A%2F%2Fogp.me%2F&delivery=redirect for 1m0s using 1 connection(s).
+
+Summary:
+  Elapsed           1m0s
+  Count             2992
+    3xx             2992
+  RPS             49.866
+  Concurrency          1
+  Reads        0.034MB/s
+  Writes       0.005MB/s
+
+Statistics    Min     Mean    StdDev     Max   
+  Latency   1.263ms  4.417ms  2.448ms  62.085ms
+  RPS          0      49.05    6.51     50.01  
+
+Latency Percentile:
+  P50       P75      P90      P95      P99     P99.9     P99.99 
+  4.27ms  5.058ms  5.963ms  6.537ms  7.782ms  60.936ms  62.085ms
+
+Latency Histogram:
+  2.981ms   878  29.34%
+  4.148ms   951  31.78%
+  4.986ms   688  22.99%
+  5.803ms   278   9.29%
+  6.617ms   151   5.05%
+  9.83ms     40   1.34%
+  24.281ms    4   0.13%
+  60.732ms    2   0.07%

@@ -1,0 +1,28 @@
+Benchmarking http://localhost:3000/api/preview?url=https%3A%2F%2Fexample.com%2Fload-test-seed&delivery=redirect for 1m0s using 1 connection(s).
+
+Summary:
+  Elapsed           1m0s
+  Count             5919
+    3xx             5919
+  RPS             98.650
+  Concurrency          1
+  Reads        0.069MB/s
+  Writes       0.013MB/s
+
+Statistics    Min     Mean    StdDev     Max   
+  Latency   1.144ms  2.963ms  3.031ms  86.065ms
+  RPS          0      96.98    13.01    100.07 
+
+Latency Percentile:
+  P50       P75      P90      P95      P99     P99.9    P99.99 
+  2.69ms  3.074ms  3.493ms  3.851ms  7.379ms  73.58ms  86.065ms
+
+Latency Histogram:
+  1.857ms    463   7.82%
+  2.701ms   4411  74.52%
+  3.232ms    702  11.86%
+  4.266ms    262   4.43%
+  9.093ms     59   1.00%
+  24.698ms    15   0.25%
+  61.361ms     5   0.08%
+  82.705ms     2   0.03%
