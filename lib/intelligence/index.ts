@@ -270,6 +270,8 @@ function sourceLabel(source: LibraryItemSource): string {
             return "Note";
         case LibraryItemSource.chrome_bookmarks:
             return "Chrome bookmark";
+        case LibraryItemSource.extension_clip:
+            return "Extension clip";
         case LibraryItemSource.github_starred_repositories:
             return "GitHub repository";
         case LibraryItemSource.google_photos:
@@ -548,6 +550,7 @@ async function resolveContentCandidates(
         case LibraryItemSource.github_starred_repositories:
         case LibraryItemSource.pinterest:
         case LibraryItemSource.chrome_bookmarks:
+        case LibraryItemSource.extension_clip:
             addUrl(item.url);
             break;
         default:

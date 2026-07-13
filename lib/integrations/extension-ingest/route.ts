@@ -12,7 +12,7 @@ const log = createLogger("integrations:extension-ingest");
 
 const INGEST_CORS_HEADERS = {
     "Access-Control-Allow-Headers": "authorization, content-type",
-    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
     "Access-Control-Max-Age": "86400",
 } as const;
 

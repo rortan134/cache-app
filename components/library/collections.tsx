@@ -148,6 +148,7 @@ import { Toolbar } from "@base-ui/react/toolbar";
 import { useInterval } from "@base-ui/utils/useInterval";
 import { useIsoLayoutEffect } from "@base-ui/utils/useIsoLayoutEffect";
 import { useStableCallback } from "@base-ui/utils/useStableCallback";
+import { useTimeout } from "@base-ui/utils/useTimeout";
 import { T, useLocale } from "gt-next";
 import {
     ArchiveIcon,
@@ -1677,16 +1678,17 @@ function CollectionsListItemPreviewImage({
     }
 
     return (
+        // Dimensions are driven by the parent container (PreviewStack, carousel)
+        // whose aspect ratio is computed dynamically from the loaded image.
+        // biome-ignore lint/correctness/useImageSize: dynamic aspect ratio parent handles layout
         <img
             {...props}
             alt={alt}
             className={className}
             decoding="async"
-            height={192}
             loading="lazy"
             onError={handleError}
             src={src}
-            width={288}
         />
     );
 }
@@ -1984,7 +1986,7 @@ function CollectionsListFavoritesCarouselSlide({
                 >
                     {isNote ? (
                         <div className="flex size-full flex-col justify-between overflow-hidden bg-linear-to-br from-amber-50 via-background to-stone-100 p-1.5">
-                            <p className="line-clamp-4 whitespace-pre-wrap text-left text-[9px] text-foreground leading-snug tracking-[0.01em] opacity-90">
+                            <p className="line-clamp-4 whitespace-pre-wrap text-left text-[9px] text-foreground leading-snug opacity-90">
                                 {noteExcerpt || "Open note"}
                             </p>
                         </div>
@@ -2012,7 +2014,7 @@ function CollectionsListFavoritesCarouselSlide({
             >
                 {isNote ? (
                     <div className="flex size-full flex-col justify-between overflow-hidden bg-linear-to-br from-amber-50 via-background to-stone-100 p-3">
-                        <p className="line-clamp-6 whitespace-pre-wrap text-left text-foreground text-xs leading-snug tracking-[0.01em]">
+                        <p className="line-clamp-6 whitespace-pre-wrap text-left text-foreground text-xs leading-snug">
                             {noteExcerpt || "Empty note"}
                         </p>
                     </div>
@@ -2227,7 +2229,7 @@ function CollectionsListRecommendations() {
             open={isRecommendationsOpen}
         >
             <CollapsibleTrigger
-                className="flex w-full items-center px-2.5 py-1.5 text-muted-foreground text-xs tracking-[0.01em] transition-colors duration-150 ease-out hover:text-foreground"
+                className="flex w-full items-center px-2.5 py-1.5 text-muted-foreground text-xs transition-colors duration-150 ease-out hover:text-foreground"
                 title={
                     isRecommendationsOpen
                         ? "Hide suggested collections"
@@ -2639,7 +2641,6 @@ function CollectionsListItemTrigger({
         isOpen,
         thumbnails.length
     );
-    const activeThumbnail = thumbnails[activePreviewIndex];
 
     const onClick = useStableCallback(onClickProp);
 
@@ -2672,40 +2673,110 @@ function CollectionsListItemTrigger({
                 positionMethod="fixed"
                 side="right"
             >
-                <div className="relative min-h-32 w-full">
-                    {thumbnails.length > 0 ? (
-                        thumbnails.map((thumbnail, index) => (
-                            <CollectionsListItemPreviewImage
-                                alt={`${collection.name} preview`}
-                                aria-hidden={index !== activePreviewIndex}
-                                className={cn(
-                                    "aspect-auto h-auto w-full transition-opacity ease-out",
-                                    index === 0
-                                        ? "relative"
-                                        : "absolute inset-0",
-                                    index === activePreviewIndex
-                                        ? "opacity-100"
-                                        : "opacity-0"
-                                )}
-                                // Thumbnail URLs can repeat across items; slide order is fixed.
-                                // biome-ignore lint/suspicious/noArrayIndexKey: stable slide index
-                                key={`${collection.id}:${index}`}
-                                src={thumbnail}
-                                style={{
-                                    transitionDuration: `${PREVIEW_CROSSFADE_MS}ms`,
-                                }}
-                            />
-                        ))
-                    ) : (
-                        <CollectionsListItemPreviewImage
-                            alt={`${collection.name} preview`}
-                            className="aspect-auto h-auto w-full"
-                            src={activeThumbnail}
-                        />
-                    )}
-                </div>
+                {isOpen && thumbnails.length > 0 ? (
+                    <CollectionsListItemPreviewStack
+                        activeIndex={activePreviewIndex}
+                        collectionName={collection.name}
+                        thumbnails={thumbnails}
+                    />
+                ) : null}
             </PreviewCardPopup>
         </PreviewCard>
+    );
+}
+
+/**
+ * Crossfading stack of collection thumbnails for the preview popup.
+ *
+ * Only the active thumbnail contributes to layout — it sets the popup's
+ * aspect ratio from the image's natural dimensions read on load. The
+ * previous thumbnail stays mounted for the fade duration so the transition
+ * reads as a crossfade rather than a snap, then unmounts when the timer
+ * expires.
+ *
+ * Without this restraint the absolute thumbnails would each contribute
+ * intrinsic space, growing the popup to the largest image in the cycle
+ * and breaking the per-image aspect that the previous single-image
+ * implementation relied on.
+ */
+function CollectionsListItemPreviewStack({
+    activeIndex,
+    collectionName,
+    thumbnails,
+}: {
+    activeIndex: number;
+    collectionName: string;
+    thumbnails: string[];
+}) {
+    const [aspectRatio, setAspectRatio] = React.useState<number | null>(null);
+    const [fadingOut, setFadingOut] = React.useState<{
+        index: number;
+        src: string;
+    } | null>(null);
+    const previousActiveIndexRef = React.useRef(activeIndex);
+    const fadeTimeout = useTimeout();
+
+    React.useEffect(() => {
+        const previousActive = previousActiveIndexRef.current;
+        if (previousActive === activeIndex) {
+            return;
+        }
+        const previousSrc = thumbnails[previousActive];
+        if (previousSrc !== undefined) {
+            setFadingOut({ index: previousActive, src: previousSrc });
+            fadeTimeout.clear();
+            fadeTimeout.start(PREVIEW_CROSSFADE_MS, () => {
+                setFadingOut(null);
+            });
+        }
+        setAspectRatio(null);
+        previousActiveIndexRef.current = activeIndex;
+    }, [activeIndex, thumbnails, fadeTimeout]);
+
+    const handleActivePreviewLoad = useStableCallback(
+        (event: React.SyntheticEvent<HTMLImageElement>) => {
+            const { naturalHeight, naturalWidth } = event.currentTarget;
+            if (naturalHeight > 0 && naturalWidth > 0) {
+                setAspectRatio(naturalWidth / naturalHeight);
+            }
+        }
+    );
+
+    const activeThumbnail = thumbnails[activeIndex] ?? null;
+
+    if (activeThumbnail === null) {
+        return null;
+    }
+
+    return (
+        <div
+            className="relative w-full"
+            style={
+                aspectRatio === null
+                    ? { minHeight: "8rem" }
+                    : { aspectRatio: String(aspectRatio) }
+            }
+        >
+            {fadingOut ? (
+                <CollectionsListItemPreviewImage
+                    alt={`${collectionName} preview`}
+                    aria-hidden
+                    className="absolute inset-0 size-full object-cover opacity-0 transition-opacity ease-out"
+                    key={fadingOut.src}
+                    src={fadingOut.src}
+                    style={{
+                        transitionDuration: `${PREVIEW_CROSSFADE_MS}ms`,
+                    }}
+                />
+            ) : null}
+            <CollectionsListItemPreviewImage
+                alt={`${collectionName} preview`}
+                className="absolute inset-0 size-full object-cover opacity-100"
+                key={`${activeThumbnail}:${activeIndex}`}
+                onLoad={handleActivePreviewLoad}
+                src={activeThumbnail}
+            />
+        </div>
     );
 }
 
@@ -2727,7 +2798,7 @@ function CollectionsListItemValue() {
                 {collection.name}
             </span>
             {collection.sources.length > 0 ? (
-                <span className="max-w-full flex-1 truncate py-px text-[11px] text-muted-foreground tracking-[0.01em] opacity-0 transition-opacity duration-150 ease-out group-hover:opacity-80">
+                <span className="max-w-full flex-1 truncate py-px text-[11px] text-muted-foreground opacity-0 transition-opacity duration-150 ease-out group-hover:opacity-80">
                     {collection.sources.map(getSourceLabel).join(", ")}
                 </span>
             ) : null}
@@ -3056,7 +3127,7 @@ function CollectionsListItemMetadata({
     const updatedAt = dayjs(collection.updatedAt);
 
     return (
-        <div className="absolute top-1/2 right-0 flex size-8 -translate-y-1/2 items-center justify-center">
+        <div className="absolute top-1/2 right-1.5 flex size-8 -translate-y-1/2 items-center justify-center">
             <span className="pointer-events-none text-nowrap text-(--text-muted-color) text-xs tabular-nums transition-opacity duration-150 ease-out focus-visible:opacity-0 group-focus-within:opacity-0 pointer-fine:group-hover:opacity-0">
                 {children}
             </span>

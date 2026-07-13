@@ -104,6 +104,8 @@ import {
 import { MediaPlaceholder } from "@/components/ui/media-placeholder";
 import {
     Menu,
+    MenuGroup,
+    MenuGroupLabel,
     MenuItem,
     MenuPopup,
     MenuSeparator,
@@ -930,6 +932,7 @@ const DOMAIN_RELATED_SOURCES = new Set<LibraryItemSource>([
 const FILTERABLE_LIBRARY_SOURCES = [
     LibraryItemSource.cache_note,
     LibraryItemSource.chrome_bookmarks,
+    LibraryItemSource.extension_clip,
     LibraryItemSource.github_starred_repositories,
     LibraryItemSource.google_photos,
     LibraryItemSource.instagram,
@@ -943,6 +946,7 @@ const FILTERABLE_LIBRARY_SOURCES = [
 const SOURCE_LABEL_BY_VALUE: Partial<Record<string, string>> = {
     [LibraryItemSource.cache_note]: "Notes",
     [LibraryItemSource.chrome_bookmarks]: "Chrome",
+    [LibraryItemSource.extension_clip]: "Web",
     [LibraryItemSource.github_starred_repositories]: "GitHub",
     [LibraryItemSource.google_photos]: "Google Photos",
     [LibraryItemSource.instagram]: "Instagram",
@@ -1726,12 +1730,10 @@ function PaletteChip({
 
     return (
         <span className="inline-flex max-w-[min(100%,12rem)] items-center gap-0.5 rounded-full border border-border/60 bg-background/80 py-0.5 ps-2 pe-0.5 font-medium text-foreground text-xs shadow-xs/5 backdrop-blur-md backdrop-saturate-150">
-            <span className="min-w-0 max-w-full truncate text-xs tracking-[0.01em]">
-                {label}
-            </span>
+            <span className="min-w-0 max-w-full truncate text-xs">{label}</span>
             <Button
                 aria-label={`Remove ${label}`}
-                className="rounded-full transition-transform duration-100 ease-out active:scale-[0.97]"
+                className="rounded-full"
                 onClick={handleRemove}
                 size="icon-xs"
                 variant="ghost"
@@ -2069,7 +2071,7 @@ function BrowserEmptyWithFilters() {
 
     return (
         <div className="flex flex-col items-center gap-3 rounded-2xl border border-border/70 border-dashed bg-card/30 px-6 py-14 text-center">
-            <p className="max-w-md text-balance text-muted-foreground text-sm leading-snug tracking-[0.01em]">
+            <p className="max-w-md text-balance text-muted-foreground text-sm leading-snug">
                 No saved items match the current search and filters.
             </p>
             <Button onClick={clearLibraryPalette} size="sm" variant="outline">
@@ -2089,7 +2091,7 @@ function BrowserUnreachableProbePending() {
     return (
         <div className="flex flex-col items-center gap-3 rounded-2xl border border-border/70 border-dashed bg-card/30 px-6 py-14 text-center">
             <Spinner className="size-5 text-muted-foreground" />
-            <p className="max-w-md text-balance text-muted-foreground text-sm leading-snug tracking-[0.01em]">
+            <p className="max-w-md text-balance text-muted-foreground text-sm leading-snug">
                 Checking which links fail to load…
             </p>
         </div>
@@ -3934,7 +3936,7 @@ function MediaPreview({
                             }
                             aria-pressed={isSoundEnabled}
                             className={cn(
-                                "pointer-events-auto absolute top-2 left-2 z-10 rounded-full bg-black/50 text-white opacity-0 transition-opacity duration-150 ease-out hover:bg-black/60 focus-visible:opacity-100 focus-visible:ring-ring/70 active:scale-[0.97]",
+                                "pointer-events-auto absolute top-2 left-2 z-10 rounded-full bg-black/50 text-white opacity-0 transition-opacity duration-150 ease-out hover:bg-black/60 focus-visible:opacity-100 focus-visible:ring-ring/70",
                                 { "opacity-100": isHovered }
                             )}
                             onClick={handleSoundToggle}
@@ -4152,7 +4154,7 @@ function CollectionComboboxPicker({
                                     ? `Edit collections (${selectedCount} selected)`
                                     : "Add to collections"
                             }
-                            className="z-1 rounded-full transition-transform duration-100 ease-out active:scale-[0.97]"
+                            className="z-1 rounded-full"
                             size="icon-sm"
                             variant="ghost"
                         />
@@ -4519,22 +4521,25 @@ function CardMenu({
                         Previous versions
                     </MenuSubTrigger>
                     <MenuSubPopup>
-                        <MenuItem onClick={handleWayback30}>
-                            <History className="size-4 text-muted-foreground" />
-                            1 month ago
-                        </MenuItem>
-                        <MenuItem onClick={handleWayback90}>
-                            <History className="size-4 text-muted-foreground" />
-                            3 months ago
-                        </MenuItem>
-                        <MenuItem onClick={handleWayback365}>
-                            <History className="size-4 text-muted-foreground" />
-                            1 year ago
-                        </MenuItem>
-                        <MenuItem onClick={handleWaybackAll}>
-                            <History className="size-4 text-muted-foreground" />
-                            View all snapshots
-                        </MenuItem>
+                        <MenuGroup>
+                            <MenuGroupLabel>Web archive</MenuGroupLabel>
+                            <MenuItem onClick={handleWayback30}>
+                                <History className="size-4 text-muted-foreground" />
+                                1 month ago
+                            </MenuItem>
+                            <MenuItem onClick={handleWayback90}>
+                                <History className="size-4 text-muted-foreground" />
+                                3 months ago
+                            </MenuItem>
+                            <MenuItem onClick={handleWayback365}>
+                                <History className="size-4 text-muted-foreground" />
+                                1 year ago
+                            </MenuItem>
+                            <MenuItem onClick={handleWaybackAll}>
+                                <History className="size-4 text-muted-foreground" />
+                                View all snapshots
+                            </MenuItem>
+                        </MenuGroup>
                     </MenuSubPopup>
                 </MenuSub>
             )}
@@ -4659,7 +4664,7 @@ function MediaCard({ item }: LibraryGridCardProps) {
                 render={
                     // biome-ignore lint/a11y/useSemanticElements: Group role
                     <div
-                        className="group relative flex shrink-0 flex-col transition-transform duration-100 ease-out before:absolute before:-inset-x-2 before:-top-2 before:bottom-0 before:-z-10 before:rounded-xl before:bg-muted/50 before:opacity-0 before:transition-[opacity,transform] before:duration-100 before:ease-out hover:before:opacity-100 focus-visible:outline-none active:scale-[0.99] active:before:scale-x-[0.99] active:before:scale-y-[0.97] active:before:opacity-80!"
+                        className="group relative flex shrink-0 flex-col ease-out before:absolute before:-inset-x-2 before:-top-2 before:bottom-0 before:-z-10 before:rounded-xl before:bg-muted/50 before:opacity-0 before:transition-[opacity,transform] before:duration-100 before:ease-out hover:before:opacity-100 focus-visible:outline-none active:before:scale-x-[0.99] active:before:scale-y-[0.97] active:before:opacity-80!"
                         role="group"
                     />
                 }
@@ -4676,7 +4681,7 @@ function MediaCard({ item }: LibraryGridCardProps) {
                         <div className="relative flex h-auto min-h-56 w-full flex-col justify-between bg-linear-to-br from-amber-50 via-background to-stone-100 p-3">
                             <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(251,191,36,0.18),transparent_45%)]" />
                             <div className="relative flex flex-1 flex-col gap-2 pt-1.5">
-                                <p className="whitespace-pre-wrap text-[11px] text-foreground leading-relaxed tracking-[0.01em] opacity-90">
+                                <p className="whitespace-pre-wrap text-[11px] text-foreground leading-relaxed opacity-90">
                                     {noteExcerpt ||
                                         "Tap to start writing in this note"}
                                 </p>
@@ -4694,7 +4699,7 @@ function MediaCard({ item }: LibraryGridCardProps) {
                                 />
                             </ControlledZoom>
                             {isLastVisited(item.id) ? (
-                                <span className="absolute top-2 right-2 z-10 inline-flex items-center gap-1 rounded-full bg-black/45 px-1.5 py-px font-medium text-white text-xs leading-normal tracking-[0.01em] backdrop-blur-sm">
+                                <span className="absolute top-2 right-2 z-10 inline-flex items-center gap-1 rounded-full bg-black/45 px-1.5 py-px font-medium text-white text-xs leading-normal backdrop-blur-sm">
                                     <T>Last visited</T>
                                     <ArrowUpRight
                                         aria-hidden
@@ -4727,7 +4732,7 @@ function MediaCard({ item }: LibraryGridCardProps) {
                         <MenuTrigger
                             render={
                                 <Button
-                                    className="w-full min-w-0 flex-1 justify-start overflow-clip whitespace-nowrap px-0 text-left text-[11px]! tracking-[0.01em] transition-transform duration-100 ease-out active:scale-[0.99]"
+                                    className="w-full min-w-0 flex-1 justify-start overflow-clip whitespace-nowrap px-0 text-left text-[11px]!"
                                     size="xs"
                                     title={displayTitle}
                                     type="button"

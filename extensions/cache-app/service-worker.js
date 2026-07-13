@@ -18,6 +18,26 @@ const YOUTUBE_STORAGE_VERSION = 1;
 const CHROME_SYNC_BATCH_SIZE = 200;
 const DEFAULT_BROWSER_PROFILE_ID = "default";
 
+chrome.action.onClicked.addListener(async (tab) => {
+    const url = tab.url ?? "";
+    if (
+        url.startsWith("chrome://") ||
+        url.startsWith("chrome-extension://") ||
+        url.startsWith("about:") ||
+        url.startsWith("javascript:")
+    ) {
+        return;
+    }
+    chrome.tabs.sendMessage(tab.id, {
+        type: MESSAGE_TYPES.SHOW_POPUP,
+        tab: {
+            id: tab.id,
+            title: tab.title ?? "",
+            url: url,
+        },
+    });
+});
+
 /** Stale auto-sync markers are dropped after this window. Caps the chance of
  *  a stray sync firing when an unrelated tab reuses an old id. */
 const AUTO_SYNC_MARKER_TTL_MS = 60_000;
@@ -1052,6 +1072,90 @@ chrome.runtime.onInstalled.addListener(() => {
 chrome.runtime.onStartup?.addListener(() => {
     void ensureChromeIdentity();
     void flushChromeBookmarkQueue();
+});
+
+chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
+    if (msg?.type !== MESSAGE_TYPES.API_CALL) return;
+    (async () => {
+        try {
+            const data = await chrome.storage.local.get([
+                STORAGE_KEYS.syncApiKey,
+                STORAGE_KEYS.syncEndpoint,
+            ]);
+            const token =
+                typeof data[STORAGE_KEYS.syncApiKey] === "string"
+                    ? data[STORAGE_KEYS.syncApiKey].trim()
+                    : "";
+            if (!token) {
+                sendResponse({ error: "Not linked. Sign in to Cache and open a Cache tab." });
+                return;
+            }
+            const runtime = globalThis.CacheExtensionRuntime;
+            const endpointOrigin = runtime.resolveCacheOrigin(
+                typeof data[STORAGE_KEYS.syncEndpoint] === "string"
+                    ? data[STORAGE_KEYS.syncEndpoint]
+                    : ""
+            );
+            if (!endpointOrigin) {
+                sendResponse({ error: "Missing Cache origin." });
+                return;
+            }
+
+            let url;
+            let fetchOptions = {
+                headers: {
+                    Accept: "application/json",
+                    Authorization: `Bearer ${token}`,
+                },
+            };
+
+            switch (msg.method) {
+                case "listCollections":
+                    url = runtime.buildOriginPath(endpointOrigin, "/api/integrations/extension/collections");
+                    break;
+                case "createCollection":
+                    url = runtime.buildOriginPath(endpointOrigin, "/api/integrations/extension/collections");
+                    fetchOptions.method = "POST";
+                    fetchOptions.body = JSON.stringify(msg.args);
+                    fetchOptions.headers["Content-Type"] = "application/json";
+                    break;
+                case "clipPage":
+                    url = runtime.buildOriginPath(endpointOrigin, "/api/integrations/extension/clip");
+                    fetchOptions.method = "POST";
+                    fetchOptions.body = JSON.stringify(msg.args);
+                    fetchOptions.headers["Content-Type"] = "application/json";
+                    break;
+                default:
+                    sendResponse({ error: `Unknown method: ${msg.method}` });
+                    return;
+            }
+
+            if (!url) {
+                sendResponse({ error: "Could not build endpoint URL." });
+                return;
+            }
+
+            const res = await fetch(url, fetchOptions);
+            const json = await res.json();
+            if (!res.ok) {
+                const error =
+                    typeof json?.error === "string"
+                        ? json.error
+                        : `Request failed (${res.status})`;
+                sendResponse({ error });
+                return;
+            }
+            sendResponse({ data: json });
+        } catch (err) {
+            sendResponse({
+                error:
+                    err instanceof Error
+                        ? err.message
+                        : "Request failed.",
+            });
+        }
+    })();
+    return true;
 });
 
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {

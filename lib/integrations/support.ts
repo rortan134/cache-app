@@ -595,6 +595,7 @@ const SOURCE_TO_LABEL = new Map<LibraryItemSource, string>(
 
 // Internal sources that don't belong to a specific external integration
 SOURCE_TO_LABEL.set(LibraryItemSource.cache_note, "Notes");
+SOURCE_TO_LABEL.set(LibraryItemSource.extension_clip, "Extension");
 
 const SOURCE_TO_ICON = new Map<LibraryItemSource, IntegrationIcon>(
     INTEGRATIONS.flatMap((integration) =>

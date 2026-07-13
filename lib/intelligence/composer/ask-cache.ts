@@ -18,6 +18,7 @@ export const ASK_CACHE_TIME_ZONE_MAX_LENGTH = 64;
 export const ASK_CACHE_SOURCE_FILTER_VALUES = [
     LibraryItemSource.cache_note,
     LibraryItemSource.chrome_bookmarks,
+    LibraryItemSource.extension_clip,
     LibraryItemSource.github_starred_repositories,
     LibraryItemSource.google_photos,
     LibraryItemSource.instagram,

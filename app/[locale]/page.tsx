@@ -234,7 +234,7 @@ export default async function Home() {
                                     <li className="flex items-center gap-2">
                                         <Lightbulb className="inline-block size-4 shrink-0" />
                                         <span>
-                                            Find new insights, and explore ideas
+                                            Explore your most interesting ideas
                                             with Cache's AI agent
                                         </span>
                                     </li>

@@ -1,1 +1,10 @@
 MIGRATION.md
+
+# Plasmo build cache + generated manifests
+.plasmo/
+
+# Build output
+build/
+
+# Dependencies
+node_modules/

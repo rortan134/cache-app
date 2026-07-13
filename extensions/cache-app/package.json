@@ -1,0 +1,51 @@
+{
+    "name": "cache-app-extension",
+    "displayName": "Save to Cache",
+    "version": "0.6.0",
+    "description": "Clip pages into Cache collections. Sync Instagram Saved, TikTok Favorites, YouTube Watch Later, and Chrome bookmarks.",
+    "private": true,
+    "scripts": {
+        "dev": "plasmo dev",
+        "build": "plasmo build && node ./scripts/merge-legacy.mjs",
+        "package": "plasmo package",
+        "merge-legacy": "node ./scripts/merge-legacy.mjs"
+    },
+    "dependencies": {
+        "@plasmohq/storage": "1.15.0",
+        "plasmo": "0.90.5",
+        "react": "19.2.7",
+        "react-dom": "19.2.7"
+    },
+    "devDependencies": {
+        "@types/chrome": "0.0.326",
+        "@types/node": "24.0.0",
+        "@types/react": "19.1.8",
+        "@types/react-dom": "19.1.6",
+        "typescript": "5.8.3"
+    },
+    "manifest": {
+        "host_permissions": [
+            "https://www.instagram.com/*",
+            "https://www.tiktok.com/*",
+            "https://www.youtube.com/*",
+            "http://localhost:3000/*",
+            "https://cachd.app/*",
+            "https://*.cachd.app/*"
+        ],
+        "permissions": ["bookmarks", "storage", "tabs", "scripting"],
+        "web_accessible_resources": [
+            {
+                "resources": ["youtube-page-bootstrap.js"],
+                "matches": ["https://www.youtube.com/*"]
+            },
+            {
+                "resources": ["cache-site-page-bridge.js"],
+                "matches": [
+                    "http://localhost:3000/*",
+                    "https://cachd.app/*",
+                    "https://*.cachd.app/*"
+                ]
+            }
+        ]
+    }
+}

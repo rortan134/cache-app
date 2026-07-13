@@ -1,46 +1,73 @@
 # Cache Chrome extension
 
-Cache App Web Clipper. Can save any open tab as a Cache bookmark, with first-class support for many social apps. Metadata is stored in **`chrome.storage.local`**. Content scripts only run on the supported social sites and on the Cache origin.
+Clip any page into a Cache collection, with bulk import for Instagram Saved, TikTok Favorites, and YouTube Watch Later and continuous Chrome bookmark sync.
+
+## Build
+
+The popup is a Plasmo + React 19 app; the service worker, content scripts, and Cache site bridge remain vanilla JS for now.
+
+```bash
+# from the extensions/cache-app directory
+bun install
+bun dev        # plasmo dev — hot reload into a loaded unpacked extension
+bun build      # plasmo build && node ./scripts/merge-legacy.mjs
+```
+
+`bun build` runs Plasmo's production build, then `scripts/merge-legacy.mjs` overlays the legacy `service-worker.js`, `content.js`, `cache-site-bootstrap.js`, and runtime config into `build/chrome-mv3-prod/` and rewrites the merged manifest so the Plasmo-generated `action.default_popup` is preserved and the legacy background/content_scripts/web_accessible_resources are re-injected.
 
 ## Load unpacked
 
-1. Open `chrome://extensions`.
-2. Enable **Developer mode**.
-3. **Load unpacked** → choose this folder (`extensions/cache-app`).
+1. Run `bun build` (or `bun dev`).
+2. Open `chrome://extensions`.
+3. Enable **Developer mode**.
+4. **Load unpacked** and choose `extensions/cache-app/build/chrome-mv3-prod` (production) or `extensions/cache-app/build/chrome-mv3-dev` (dev build).
+
+For dev workflow with hot reload: run `bun dev` from `extensions/cache-app/`, then load unpacked from `build/chrome-mv3-dev`. Plasmo watches for changes and re-bundles.
 
 ## Point the extension at your deployment
 
-1. Edit **`cache-config.js`**: set `CACHE_APP_ORIGIN` to the same origin as `NEXT_PUBLIC_APP_URL` / `BETTER_AUTH_URL` (e.g. `https://your-domain.com` in production).
-2. Edit **`manifest.json`**:
-   - Add a `host_permissions` entry for that origin (e.g. `https://your-domain.com/*`).
-   - Duplicate the **Cache site** `content_scripts` block’s `matches` for that origin (same pattern as `http://localhost:3000/*`).
-3. Reload the extension in `chrome://extensions`.
+Set `CACHE_APP_ORIGIN` in `cache-config.js` to the same origin as `NEXT_PUBLIC_APP_URL` / `BETTER_AUTH_URL` (for local dev: `https://localhost:3000`). Add a matching `host_permissions` entry and the matching Cache site `content_scripts` block to `package.json` under `manifest` (Plasmo merges these into the built manifest). Reload the extension.
 
-The **content script** `cache-site-bootstrap.js` runs only on those origins. It performs a same-origin `GET /api/user/extension-ingest-token` (session cookies included). The app creates an ingest token on first request if needed; the extension stores the token and ingest URL for the service worker.
+## Clip UX
 
-## Use with the Cache web app
+On a normal webpage, the popup shows your collections in a compact panel:
 
-1. **Sign in** to Cache in Chrome (same profile as the extension).
-2. **Open any page** on your Cache origin (home, Library, etc.) so the bootstrap script can run once.
-3. **Sync** in the popup stays disabled until a Better Auth **session** cookie exists for `CACHE_APP_ORIGIN` **and** the bootstrap has stored a token. Reopen or focus the popup after step 2 if needed.
-4. On **Instagram → Saved**, **TikTok → Favorites**, or **YouTube → Watch Later**, click **Sync** to import the whole collection. For **any other tab**, click **Sync** to save the current page as a regular Chrome bookmark; the extension syncs it to Cache just like any other browser bookmark.
+- **Header**: avatar, display name, and a small control to open Cache.
+- **Search**: filters your collections by name.
+- **Collections** with **+ New**: multi-select 0..N collections (checkboxes). **+ New** opens an inline create form with name (required), optional description, and templates that create immediately.
+- **Done**: clips the active tab's URL and title into Cache under the selected collections. Re-clipping the same URL replaces its collection membership. Last selection is remembered for the next clip.
+- **Unsupported tabs** (chrome://, about:, extension pages): the popup explains that the page cannot be clipped.
+- **Tab closed in Cache?** The popup's unlinked state tells you to open Cache once so the ingest token can mint.
 
-**Open Cache** opens `/{defaultLocale}` on `CACHE_APP_ORIGIN` (`en-US` in the popup).
+Smart Collections rules:
+- Clip with **no** collections selected: eligible for auto-tagging.
+- Clip with **any** collection selected: auto-tagging is skipped for that write (your explicit choice wins).
 
-## Architecture overview
+If you do not link the browser first (by signing in to Cache so the bootstrap script stores an ingest token), the popup shows the unlinked state instead of the clip UI.
 
-- `cache-extension-runtime.js` is the shared runtime contract. It owns message names, shared storage keys, origin and endpoint resolution, and small cross-script helpers. Keep new cross-cutting constants here so popup, worker, and content scripts cannot drift.
-- `content.js` is the scraper boundary for Instagram Saved, TikTok Favorites, and YouTube Watch Later. It should only detect pages, collect rows, and emit progress or completion messages back to the extension runtime.
-- `cache-site-bootstrap.js` is the Cache-site bridge. It runs only on Cache origins, fetches or relays the ingest token from the signed-in app session, and stores the token in extension storage via the service worker.
-- `service-worker.js` is the orchestration boundary. It owns local persistence, Chrome bookmark event ingestion, source-specific merge policies, and all backend POSTs.
-- `popup.js` is UI-only. It should read sync metadata, request user-triggered work, and reflect link state, but it should not grow business logic that belongs in the worker.
+## Social bulk import
 
-## Server sync
+On **Instagram Saved**, **TikTok Favorites**, and **YouTube Watch Later**, the popup keeps the existing single **Import to Cache** button — no collection picker. Smart Collections organize those en masse once they land.
 
-The service worker skips server POSTs when there is no ingest token or no Cache session cookie for the POST URL’s origin (same idea as the popup).
+## Link the browser
+
+1. Sign in to Cache in Chrome.
+2. Open any page on your Cache origin (home, Library, etc.) so `cache-site-bootstrap.js` runs once and stores the ingest token in `chrome.storage.local`.
+3. Reopen the popup — the clip UI appears. If it still says unlinked, refresh or open a fresh Cache tab so the bootstrap script runs.
+
+## Architecture
+
+- `src/popup.tsx` and `src/collection-create-view.tsx` are the Plasmo React popup. They call `lib/api.ts` (list collections, create collection, clip page) with the stored bearer token.
+- `lib/runtime.ts` exports the typed contract used by the popup: `STORAGE_KEYS`, `MESSAGE_TYPES`, `isSocialImportUrl`, `isUnsupportedClipUrl`, `getConfiguredCacheAppOrigin`, and endpoint builders.
+- `lib/templates.ts` is the same static template catalog as the web create dialog.
+- `cache-extension-runtime.js` remains the shared vanilla runtime contract for the service worker, content scripts, and Cache site bridge.
+- `content.js` is the social scraper boundary.
+- `cache-site-bootstrap.js` is the Cache-site bridge that mints the ingest token from a signed-in session.
+- `service-worker.js` is the orchestration boundary for local persistence, Chrome bookmark event ingestion, source-specific merge, and all background POSTs.
+- Legacy `popup.html`, `popup.js`, and `popup.css` are left in place (not referenced by the merged manifest); they can be removed in a later cleanup pass.
 
 ## Privacy and limitations
 
-- **Personal / best-effort:** Instagram and TikTok UIs change often; selectors may need updates.
-- **Account linking:** Visiting Cache while signed in is required so the extension can receive a token; Next.js client navigations after the first load may not re-run the script—refresh or open a new tab if the popup still asks you to visit Cache.
-- Respect each platform’s terms; use at your own risk.
+- Personal / best-effort: Instagram and TikTok UIs change often; selectors may need updates.
+- Account linking: visiting Cache while signed in is required so the extension receives a token. Next.js client navigations after the first load may not re-run the bootstrap—refresh or open a new Cache tab if the popup still asks you to link.
+- Respect each platform's terms; use at your own risk.

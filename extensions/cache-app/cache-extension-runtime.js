@@ -6,6 +6,7 @@
     });
 
     const MESSAGE_TYPES = Object.freeze({
+        API_CALL: "API_CALL",
         BOOKMARKS_CHUNK: "BOOKMARKS_CHUNK",
         BOOKMARKS_COMPLETE: "BOOKMARKS_COMPLETE",
         CACHE_EXTENSION_READY: "CACHE_EXTENSION_READY",
@@ -16,6 +17,7 @@
         CONTENT_SCRIPT_READY: "CONTENT_SCRIPT_READY",
         GET_SYNC_META: "GET_SYNC_META",
         SEARCH_CHROME_BOOKMARKS: "SEARCH_CHROME_BOOKMARKS",
+        SHOW_POPUP: "SHOW_POPUP",
         START_SYNC: "START_SYNC",
         SYNC_CHROME_BOOKMARKS: "SYNC_CHROME_BOOKMARKS",
         SYNC_DONE: "SYNC_DONE",
@@ -29,6 +31,7 @@
         chromeLastSyncAt: "chromeLastSyncAt",
         chromePendingEvents: "chromePendingEvents",
         chromeSyncEnabled: "chromeSyncEnabled",
+        lastClipCollectionIds: "lastClipCollectionIds",
         syncApiKey: "syncApiKey",
         syncEndpoint: "syncEndpoint",
     });
@@ -98,6 +101,18 @@
         return buildOriginPath(origin, "/api/integrations/chrome/sync");
     }
 
+    function defaultExtensionCollectionsEndpoint(
+        origin = getConfiguredCacheAppOrigin()
+    ) {
+        return buildOriginPath(origin, "/api/integrations/extension/collections");
+    }
+
+    function defaultExtensionClipEndpoint(
+        origin = getConfiguredCacheAppOrigin()
+    ) {
+        return buildOriginPath(origin, "/api/integrations/extension/clip");
+    }
+
     function ingestEndpointForSource(storedEndpoint, source) {
         const origin = resolveCacheOrigin(storedEndpoint);
 
@@ -140,6 +155,8 @@
         STORAGE_KEYS,
         buildOriginPath,
         defaultChromeSyncEndpoint,
+        defaultExtensionClipEndpoint,
+        defaultExtensionCollectionsEndpoint,
         defaultIngestEndpoint,
         defaultInstagramSyncEndpoint,
         defaultTikTokSyncEndpoint,
