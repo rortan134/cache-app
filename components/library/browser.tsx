@@ -173,6 +173,14 @@ import { filterValidImageUrls } from "@/lib/common/image";
 import { getImageColors } from "@/lib/common/image-colors";
 import { createLogger } from "@/lib/common/logs/console/logger";
 import {
+    cachePreviewDimensions,
+    clampPreviewDimensions,
+    DEFAULT_PREVIEW_DIMENSIONS,
+    pinDefaultPreviewDimensionsIfMissing,
+    readCachedPreviewDimensions,
+    type PreviewDimensions,
+} from "@/lib/common/preview-dimensions";
+import {
     escapeCsv,
     getNoteExcerpt,
     normalizeWhitespace,
@@ -3748,9 +3756,6 @@ function useLibraryItemActions(args: {
     };
 }
 
-const PREVIEW_DIMENSIONS_CACHE = new Map<string, { h: number; w: number }>();
-const PREVIEW_DIMENSIONS_CACHE_MAX = 500;
-
 function MediaPreview({
     src,
     videoSrc,
@@ -3758,6 +3763,7 @@ function MediaPreview({
     src: string | null;
     videoSrc?: string | null;
 }) {
+    const imgRef = React.useRef<HTMLImageElement | null>(null);
     const videoRef = React.useRef<HTMLVideoElement | null>(null);
 
     const [isHovered, setIsHovered] = React.useState(false);
@@ -3766,14 +3772,23 @@ function MediaPreview({
     const [hasImageFailed, setHasImageFailed] = React.useState(false);
     const [hasVideoFailed, setHasVideoFailed] = React.useState(false);
     const [hasVideoStarted, setHasVideoStarted] = React.useState(false);
+    const [dimensions, setDimensions] =
+        React.useState<PreviewDimensions | null>(() =>
+            readCachedPreviewDimensions(src)
+        );
+    const [prevSrc, setPrevSrc] = React.useState(src);
 
-    const canRenderImage = !!src;
+    if (src !== prevSrc) {
+        setPrevSrc(src);
+        setHasImageFailed(false);
+        setDimensions(readCachedPreviewDimensions(src));
+    }
+
+    const canRenderImage = Boolean(src) && !hasImageFailed;
     const canRenderVideo = !!videoSrc;
 
     const shouldLoadVideo = isHovered && canRenderVideo && !hasVideoFailed;
     const isVideoLoading = !hasVideoStarted && shouldLoadVideo;
-
-    const cachedDimensions = src ? PREVIEW_DIMENSIONS_CACHE.get(src) : null;
 
     const stopHoverPlayback = useStableCallback(() => {
         setIsHovered(false);
@@ -3818,34 +3833,51 @@ function MediaPreview({
         }
     });
 
-    const handleImageError = useStableCallback(() => {
-        if (src) {
-            PREVIEW_DIMENSIONS_CACHE.delete(src);
+    const applyNaturalDimensions = useStableCallback(
+        (img: HTMLImageElement) => {
+            if (!src) {
+                return;
+            }
+            if (img.getAttribute("src") !== src) {
+                return;
+            }
+            const w = img.naturalWidth;
+            const h = img.naturalHeight;
+            if (!(w > 0 && h > 0)) {
+                return;
+            }
+            const next: PreviewDimensions = { h, w };
+            cachePreviewDimensions(src, next);
+            setDimensions((current) =>
+                current?.w === w && current.h === h ? current : next
+            );
         }
-        setHasImageFailed(true);
-    });
+    );
+
+    const handleImageError = useStableCallback(
+        (event: React.SyntheticEvent<HTMLImageElement>) => {
+            if (!src || event.currentTarget.getAttribute("src") !== src) {
+                return;
+            }
+            // Pin a default slot when nothing is known yet so virtualization
+            // remounts (and MediaPlaceholder) keep a stable aspect ratio.
+            setDimensions(pinDefaultPreviewDimensionsIfMissing(src));
+            setHasImageFailed(true);
+        }
+    );
 
     const handleImageLoad = useStableCallback(
         (event: React.SyntheticEvent<HTMLImageElement>) => {
-            const img = event.currentTarget;
-            const w = img.naturalWidth;
-            const h = img.naturalHeight;
-            if (w > 0 && h > 0 && src) {
-                if (
-                    !PREVIEW_DIMENSIONS_CACHE.has(src) &&
-                    PREVIEW_DIMENSIONS_CACHE.size >=
-                        PREVIEW_DIMENSIONS_CACHE_MAX
-                ) {
-                    const oldestKey =
-                        PREVIEW_DIMENSIONS_CACHE.keys().next().value;
-                    if (oldestKey !== undefined) {
-                        PREVIEW_DIMENSIONS_CACHE.delete(oldestKey);
-                    }
-                }
-                PREVIEW_DIMENSIONS_CACHE.set(src, { h, w });
-            }
+            applyNaturalDimensions(event.currentTarget);
         }
     );
+
+    useIsoLayoutEffect(() => {
+        const img = imgRef.current;
+        if (img?.complete && img.naturalWidth > 0) {
+            applyNaturalDimensions(img);
+        }
+    }, [applyNaturalDimensions, src]);
 
     const handleVideoError = useStableCallback(() => {
         const video = videoRef.current;
@@ -3913,38 +3945,41 @@ function MediaPreview({
 
     const SoundIcon = isSoundEnabled ? Volume2Icon : VolumeXIcon;
 
-    const wrapperStyle: React.CSSProperties | undefined = cachedDimensions
-        ? { aspectRatio: `${cachedDimensions.w} / ${cachedDimensions.h}` }
-        : undefined;
+    const displayDimensions = clampPreviewDimensions(
+        dimensions ?? DEFAULT_PREVIEW_DIMENSIONS
+    );
 
     return (
         <div
-            className={cn(
-                "relative break-inside-avoid",
-                cachedDimensions ? "w-full" : "size-full"
-            )}
+            className="relative w-full break-inside-avoid"
             onMouseEnter={handleMouseEnter}
             onMouseLeave={handleMouseLeave}
             onPointerDown={handlePointerDown}
-            style={wrapperStyle}
+            style={{
+                aspectRatio: `${displayDimensions.w} / ${displayDimensions.h}`,
+            }}
         >
-            {canRenderImage && !hasImageFailed ? (
+            {canRenderImage ? (
                 <img
                     alt=""
                     className="size-full object-cover"
                     decoding="async"
                     draggable="false"
                     fetchPriority="auto"
-                    height={400}
+                    height={displayDimensions.h}
+                    // Remount on src change so aborted prior loads cannot
+                    // fire stale error/load events against the new URL.
+                    key={src}
                     loading="eager"
                     onError={handleImageError}
                     onLoad={handleImageLoad}
-                    src={src}
+                    ref={imgRef}
+                    src={src ?? undefined}
                     style={{ cursor: "pointer" }}
-                    width={300}
+                    width={displayDimensions.w}
                 />
             ) : (
-                <MediaPlaceholder className="-z-1 min-h-32" />
+                <MediaPlaceholder className="-z-1 size-full" />
             )}
             {shouldLoadVideo ? (
                 <>

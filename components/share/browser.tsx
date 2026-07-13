@@ -3,6 +3,14 @@
 import { Masonry } from "@/components/ui/masonry";
 import { MediaPlaceholder } from "@/components/ui/media-placeholder";
 import { Ticker } from "@/components/ui/ticker";
+import {
+    cachePreviewDimensions,
+    clampPreviewDimensions,
+    DEFAULT_PREVIEW_DIMENSIONS,
+    pinDefaultPreviewDimensionsIfMissing,
+    readCachedPreviewDimensions,
+    type PreviewDimensions,
+} from "@/lib/common/preview-dimensions";
 import { useIsoLayoutEffect } from "@base-ui/utils/useIsoLayoutEffect";
 import { useStableCallback } from "@base-ui/utils/useStableCallback";
 import * as React from "react";
@@ -16,68 +24,19 @@ interface PublicShareGridItem {
     title: string;
 }
 
-const PREVIEW_DIMENSIONS_CACHE = new Map<string, { h: number; w: number }>();
-const PREVIEW_DIMENSIONS_CACHE_MAX = 500;
-const DEFAULT_PREVIEW_DIMENSIONS = { h: 4, w: 3 } as const;
-const PREVIEW_MIN_ASPECT_RATIO = 1 / 4;
-const PREVIEW_MAX_ASPECT_RATIO = 3;
-
-function readCachedDimensions(
-    src: string | null
-): { h: number; w: number } | null {
-    if (!src) {
-        return null;
-    }
-    return PREVIEW_DIMENSIONS_CACHE.get(src) ?? null;
-}
-
-function cacheDimensions(
-    src: string,
-    dimensions: { h: number; w: number }
-): void {
-    if (
-        !PREVIEW_DIMENSIONS_CACHE.has(src) &&
-        PREVIEW_DIMENSIONS_CACHE.size >= PREVIEW_DIMENSIONS_CACHE_MAX
-    ) {
-        const oldestKey = PREVIEW_DIMENSIONS_CACHE.keys().next().value;
-        if (oldestKey !== undefined) {
-            PREVIEW_DIMENSIONS_CACHE.delete(oldestKey);
-        }
-    }
-    PREVIEW_DIMENSIONS_CACHE.set(src, dimensions);
-}
-
-function clampPreviewDimensions(dimensions: { h: number; w: number }): {
-    h: number;
-    w: number;
-} {
-    const { h, w } = dimensions;
-    if (!(w > 0 && h > 0)) {
-        return dimensions;
-    }
-    const aspectRatio = h / w;
-    if (aspectRatio > PREVIEW_MAX_ASPECT_RATIO) {
-        return { h: Math.round(w * PREVIEW_MAX_ASPECT_RATIO), w };
-    }
-    if (aspectRatio < PREVIEW_MIN_ASPECT_RATIO) {
-        return { h: Math.round(w * PREVIEW_MIN_ASPECT_RATIO), w };
-    }
-    return dimensions;
-}
-
 function PreviewMedia({ src }: { src: string | null }): React.ReactElement {
     const imgRef = React.useRef<HTMLImageElement | null>(null);
     const [didFail, setDidFail] = React.useState(false);
-    const [dimensions, setDimensions] = React.useState<{
-        h: number;
-        w: number;
-    } | null>(() => readCachedDimensions(src));
+    const [dimensions, setDimensions] =
+        React.useState<PreviewDimensions | null>(() =>
+            readCachedPreviewDimensions(src)
+        );
     const [prevSrc, setPrevSrc] = React.useState(src);
 
     if (src !== prevSrc) {
         setPrevSrc(src);
         setDidFail(false);
-        setDimensions(readCachedDimensions(src));
+        setDimensions(readCachedPreviewDimensions(src));
     }
 
     const canRenderImage = Boolean(src) && !didFail;
@@ -95,21 +54,23 @@ function PreviewMedia({ src }: { src: string | null }): React.ReactElement {
             if (!(w > 0 && h > 0)) {
                 return;
             }
-            const next = { h, w };
-            cacheDimensions(src, next);
+            const next: PreviewDimensions = { h, w };
+            cachePreviewDimensions(src, next);
             setDimensions((current) =>
                 current?.w === w && current.h === h ? current : next
             );
         }
     );
 
-    const handleError = useStableCallback(() => {
-        if (src) {
-            PREVIEW_DIMENSIONS_CACHE.delete(src);
+    const handleError = useStableCallback(
+        (event: React.SyntheticEvent<HTMLImageElement>) => {
+            if (!src || event.currentTarget.getAttribute("src") !== src) {
+                return;
+            }
+            setDimensions(pinDefaultPreviewDimensionsIfMissing(src));
+            setDidFail(true);
         }
-        setDidFail(true);
-        setDimensions(null);
-    });
+    );
 
     const handleLoad = useStableCallback(
         (event: React.SyntheticEvent<HTMLImageElement>) => {
@@ -124,10 +85,6 @@ function PreviewMedia({ src }: { src: string | null }): React.ReactElement {
         }
     }, [applyNaturalDimensions, src]);
 
-    if (!canRenderImage) {
-        return <MediaPlaceholder className="min-h-32 w-full" />;
-    }
-
     const displayDimensions = clampPreviewDimensions(
         dimensions ?? DEFAULT_PREVIEW_DIMENSIONS
     );
@@ -139,20 +96,27 @@ function PreviewMedia({ src }: { src: string | null }): React.ReactElement {
                 aspectRatio: `${displayDimensions.w} / ${displayDimensions.h}`,
             }}
         >
-            <img
-                alt=""
-                className="size-full object-cover"
-                decoding="async"
-                draggable="false"
-                fetchPriority="auto"
-                height={displayDimensions.h}
-                loading="lazy"
-                onError={handleError}
-                onLoad={handleLoad}
-                ref={imgRef}
-                src={src ?? undefined}
-                width={displayDimensions.w}
-            />
+            {canRenderImage ? (
+                <img
+                    alt=""
+                    className="size-full object-cover"
+                    decoding="async"
+                    draggable="false"
+                    fetchPriority="auto"
+                    height={displayDimensions.h}
+                    // Remount on src change so aborted prior loads cannot
+                    // fire stale error/load events against the new URL.
+                    key={src}
+                    loading="lazy"
+                    onError={handleError}
+                    onLoad={handleLoad}
+                    ref={imgRef}
+                    src={src ?? undefined}
+                    width={displayDimensions.w}
+                />
+            ) : (
+                <MediaPlaceholder className="size-full" />
+            )}
         </div>
     );
 }
