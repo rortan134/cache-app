@@ -119,6 +119,9 @@ Open [http://localhost:3000](http://localhost:3000).
 - **Comments** — Add and view threaded comments on entries.
 - **Inbox view** — Triage view for reviewing entries.
 - **Notes improvements** — Richer editing experience, advanced formatting.
+- **Apple Notes integration** — Sync and save bookmarks from Apple Notes.
+- **Raycast integration** — Capture and search Cache from Raycast.
+- **Substack integration** — Import and save Substack posts and newsletters.
 
 ---
 
