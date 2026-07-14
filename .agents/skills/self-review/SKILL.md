@@ -14,16 +14,16 @@ You just finished some work. Before committing, step back and review it with a c
 
 The goal is NOT to rubber-stamp what you did. The goal is to catch the shortcuts, the entropy, the "good enough" choices that erode a codebase over time. Every quick fix has a cost in maintainability. Fight that.
 
-## What to do
+## Process
 
 1. **Gather all changes.** Run `git status` to see the full picture. Then run `git diff --cached` for all recently made staged changes. If the code you modified isn't staged, then stage it. Read every changed file fully — not just the diff hunks, but the surrounding context.
 
-2. **Spawn a bug-finding subagent.** Launch a `general` subagent that calls the `find-bugs-diff` skill to review your changes for bugs, security vulnerabilities, and code quality issues. Do NOT call the `find-bugs-diff` skill yourself — delegate it entirely to the subagent. Do not wait yet — continue with steps 3–5 while it runs.
+2. **Spawn a bug-finding subagent.** Launch a `general` subagent that calls the `find-bugs-diff` skill to review your changes for bugs, security vulnerabilities, regressions, and code quality issues. Do NOT call the `find-bugs-diff` skill yourself — delegate it entirely to the subagent. Do not wait yet — continue with steps 3–5 while it runs.
 
-3. **Re-check the goal.** Compare the diff against the original source goal or spec that was passed to you (user request, issue, PRD, plan). Flag anything missing, partial, wrong, or out of scope.
+3. **Identify and re-check the goal.** Compare the diff against the originating source goal or spec that was passed to you (user request, issue, path, PRD, plan). Flag anything missing, partial, wrong, or out of scope.
 
 4. **Read the quality standards.** Read these docs and review your work against each point:
-   - `/AGENTS.md`
+   - `AGENTS.md`
 
 5. **Smell baseline (Fowler).** On top of the repo standards, walk the diff against this fixed set of code smells from Fowler's _Refactoring_ (ch.3). Two rules bind it:
 
@@ -45,13 +45,13 @@ The goal is NOT to rubber-stamp what you did. The goal is to catch the shortcuts
    - **Middle Man** — a class or function that mostly just delegates onward. → cut it, call the real target direct.
    - **Refused Bequest** — a subclass or implementer that ignores or overrides most of what it inherits. → drop the inheritance, use composition.
 
-6. **Await the bug report and consolidate.** Collect findings from the subagent plus steps 3–5 into one list. Do not start fixing until this list is complete.
+6. **Await the bug report (Step 2.) and consolidate.** Collect findings from the subagent plus steps 3–5 into one list. Do not start fixing until this list is complete.
 
 7. **Fix violations.** Fix in severity order: goal gaps → bugs/security → standards → smells. Don't just report — fix. If a fix would be too large or risky, flag it explicitly with what's wrong and why you're not fixing it now. If a fix rewrites structure (not just renames or guards), re-run steps 5 and 2 on the post-fix diff before continuing.
 
 8. **Fight entropy.** Look at the code you touched and the code around it. Did you leave it better than you found it? Did you introduce complexity that isn't justified? Did you take a shortcut that a future reader will curse? If something nearby is already broken or messy and your change made it worse or left it as-is when a small improvement was obvious, fix it.
 
-9. **Look for refactoring opportunities.** Actively ask yourself: what can be refactored in or around the code you touched to make it easier to maintain long term? Duplicated logic that should be extracted, unclear abstractions that should be simplified, tangled responsibilities that should be separated. Don't just preserve the status quo — improve it.
+9. **Look for refactoring opportunities.** Actively ask yourself: what can be refactored in or around the code you touched to make it easier to maintain long term? Duplicated logic that should be extracted and reused, unclear abstractions that should be simplified, tangled responsibilities that should be separated. Don't just preserve the status quo — improve it.
 
 10. **Report.** After fixing everything, give a brief summary of what you changed and what you flagged.
 
