@@ -4063,11 +4063,6 @@ interface CollectionComboboxPickerProps
         previousSharedCollectionIds: string[];
     }) => Promise<LibraryItemsCollectionsUpdateResult>;
     open?: boolean;
-    /**
-     * Play the one-shot Smart Collections color cue on the Squircle. Claimed
-     * once per item id for the session so masonry remounts do not re-fire it.
-     */
-    playSmartCollectionsAnimation?: boolean;
     /** Temporary “just organized” affordance after Smart Collections assigns memberships. */
     showSmartCollectionsIndicator?: boolean;
 }
@@ -4172,23 +4167,6 @@ async function downloadLibraryItemMedia(
     ownerDocument.body.removeChild(link);
 }
 
-/** Session-scoped: item ids whose Smart Collections cue already claimed a play. */
-const smartCollectionsIndicatorPlayedItemIds = new Set<string>();
-
-function claimSmartCollectionsIndicatorPlay(
-    itemId: string,
-    smartCollectedAt: Date | string | null | undefined
-): boolean {
-    if (!isRecentlySmartCollected(smartCollectedAt)) {
-        return false;
-    }
-    if (smartCollectionsIndicatorPlayedItemIds.has(itemId)) {
-        return false;
-    }
-    smartCollectionsIndicatorPlayedItemIds.add(itemId);
-    return true;
-}
-
 function CollectionComboboxPicker({
     collections,
     items,
@@ -4198,7 +4176,6 @@ function CollectionComboboxPicker({
     onOpenChange,
     children,
     render,
-    playSmartCollectionsAnimation = false,
     showSmartCollectionsIndicator = false,
     ...props
 }: CollectionComboboxPickerProps) {
@@ -4209,8 +4186,6 @@ function CollectionComboboxPicker({
     const selectedCount = selectedCollectionIds.length;
     const shouldShowSmartCollectionsIndicator =
         showSmartCollectionsIndicator && selectedCount > 0;
-    const shouldPlaySmartCollectionsAnimation =
-        playSmartCollectionsAnimation && shouldShowSmartCollectionsIndicator;
 
     const handleValueChange = useStableCallback((nextIds: string[]) => {
         const nextCollectionIds = [...nextIds];
@@ -4275,7 +4250,7 @@ function CollectionComboboxPicker({
                             aria-hidden
                             className={cn(
                                 "size-4.5",
-                                shouldPlaySmartCollectionsAnimation &&
+                                shouldShowSmartCollectionsIndicator &&
                                     "motion-safe:animate-smart-collections-indicator"
                             )}
                         />
@@ -4330,14 +4305,6 @@ function CardCollectionPicker({
 }) {
     const { collections, onUpdateItemCollections } =
         useLibraryGridCardContext();
-    const showSmartCollectionsIndicator =
-        item.collections.length > 0 &&
-        isRecentlySmartCollected(item.smartCollectedAt);
-    const [playSmartCollectionsAnimation] = React.useState(
-        () =>
-            item.collections.length > 0 &&
-            claimSmartCollectionsIndicatorPlay(item.id, item.smartCollectedAt)
-    );
 
     return (
         <CollectionComboboxPicker
@@ -4346,8 +4313,10 @@ function CardCollectionPicker({
             onOpenChange={onOpenChange}
             onUpdateItemCollections={onUpdateItemCollections}
             open={open}
-            playSmartCollectionsAnimation={playSmartCollectionsAnimation}
-            showSmartCollectionsIndicator={showSmartCollectionsIndicator}
+            showSmartCollectionsIndicator={
+                item.collections.length > 0 &&
+                isRecentlySmartCollected(item.smartCollectedAt)
+            }
         />
     );
 }
@@ -5559,7 +5528,7 @@ export function BrowserRoot({
 
     const duplicateItemIds = collectDuplicateBookmarkItemIds(items);
 
-    const unreachableItemIds = React.useMemo(() => {
+    const unreachableItemIds = (() => {
         const ids = new Set<string>();
         for (const item of items) {
             if (item.linkReachability === "unreachable") {
@@ -5567,7 +5536,7 @@ export function BrowserRoot({
             }
         }
         return ids;
-    }, [items]);
+    })();
 
     React.useEffect(() => {
         if (!unreachableFilterEnabled) {

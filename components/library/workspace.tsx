@@ -139,14 +139,10 @@ const SUMMARY_SORTERS = {
     updated: compareUpdatedAt,
 } satisfies SummarySorter;
 
-function sortList<T>(list: readonly T[], compare: (a: T, b: T) => number): T[] {
-    return list.toSorted(compare);
-}
-
 export function sortCollections<
     T extends Pick<LibraryCollectionSummary, "name" | "priority">,
 >(collections: readonly T[]): T[] {
-    return sortList(collections, comparePriorities);
+    return collections.toSorted(comparePriorities);
 }
 
 function sortCollectionSummaries<T extends SortableCollectionSummary>(
@@ -155,9 +151,9 @@ function sortCollectionSummaries<T extends SortableCollectionSummary>(
     textMatchQuery = ""
 ): T[] {
     if (sortField === "text-match") {
-        return sortList(collections, compareTextMatch(textMatchQuery));
+        return collections.toSorted(compareTextMatch(textMatchQuery));
     }
-    return sortList(collections, SUMMARY_SORTERS[sortField]);
+    return collections.toSorted(SUMMARY_SORTERS[sortField]);
 }
 
 interface WorkspaceContextValue {

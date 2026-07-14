@@ -380,11 +380,10 @@ export function OnboardingMenu({
     );
 
     const handleSubmitPainPointSurvey = useStableCallback(() => {
-        const selections = painPointDialogSelections;
         setPainPointSurveySelections((current) => {
             const known = new Set(current);
             const merged: PainPointId[] = [...current];
-            for (const id of selections) {
+            for (const id of painPointDialogSelections) {
                 if (!known.has(id)) {
                     known.add(id);
                     merged.push(id);
@@ -394,7 +393,7 @@ export function OnboardingMenu({
         });
         markClientTaskCompleted("pain-point-survey");
 
-        if (selections.size === 0) {
+        if (painPointDialogSelections.size === 0) {
             setIsPainPointDialogOpen(false);
             setPainPointDialogSelections(new Set());
             return;

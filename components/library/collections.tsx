@@ -1504,11 +1504,6 @@ function useCollectionsController() {
 
     const handleSetSmartCollectionsEnabled = useStableCallback(
         async (enabled: boolean) => {
-            const actionVerb = enabled ? "enable" : "disable";
-            const errorMessage = enabled
-                ? ENABLE_SMART_COLLECTIONS_ERROR_MESSAGE
-                : DISABLE_SMART_COLLECTIONS_ERROR_MESSAGE;
-
             try {
                 await mutateSmartCollectionsPreference(
                     async () => {
@@ -1526,10 +1521,15 @@ function useCollectionsController() {
                     }
                 );
             } catch (error) {
-                log.error(`Failed to ${actionVerb} smart collections`, {
-                    error,
-                });
-                showError(errorMessage);
+                log.error(
+                    `Failed to ${enabled ? "enable" : "disable"} smart collections`,
+                    { error }
+                );
+                showError(
+                    enabled
+                        ? ENABLE_SMART_COLLECTIONS_ERROR_MESSAGE
+                        : DISABLE_SMART_COLLECTIONS_ERROR_MESSAGE
+                );
             }
         }
     );
