@@ -146,6 +146,7 @@
     }
   ],
   "251aca485fefb2c6": "Empieza a escribir o pega un enlace para añadirlo...",
+  "25f457f910ba96b7": "Recomendado",
   "26fe9d3e34588477": "Cerrar sesión",
   "27d7979205fe23f9": "¿Eliminar tu cuenta?",
   "2d905536ddbff96d": "Cerrar sesión",
@@ -454,6 +455,7 @@
   ],
   "a7820e6a001d950c": "¿Cerrar sesión?",
   "a7b00994918dc087": "Eliminar cuenta",
+  "a98a66fcfa96ef4d": "Descargar la aplicación de escritorio",
   "ab4abf4e5a6f6057": "No guardado",
   "aba29e77e52bca46": "Eliminar",
   "af34d21966b17dd8": {
@@ -558,6 +560,14 @@
     }
   ],
   "cf702c635fa32efc": "Acuerdo de Tratamiento de Datos",
+  "d127f26d5bae862d": [
+    "Versión ",
+    {
+      "i": 1,
+      "k": "_gt_value_1",
+      "v": "v"
+    }
+  ],
   "d15d4ce9981708e9": "Cancelar",
   "d353ed81b71684aa": "Integraciones",
   "d6c8fad26b565faa": "Eliminado",
@@ -574,6 +584,7 @@
     "i": 1,
     "t": "span"
   },
+  "d83e1bdafb7ed7fd": "Todas las versiones",
   "daf8daec701f0863": "Cuenta",
   "db72ad3b2501e7a9": "Cargando cuentas",
   "ddc161e16a7e8f5a": [
