@@ -3375,18 +3375,7 @@ function filterCommandItems(
         unreachableItemIds: ReadonlySet<string>;
     }
 ): LibraryItemWithCollections[] {
-    const hasActiveFilters =
-        input.collectionMembershipFilter !==
-            DEFAULT_COLLECTION_MEMBERSHIP_FILTER ||
-        input.domainFilters.length > 0 ||
-        input.duplicatesFilterEnabled ||
-        input.lastVisitedItemIds.length > 0 ||
-        input.searchTerms.length > 0 ||
-        input.selectedCollectionIds.length > 0 ||
-        input.sourceFilters.length > 0 ||
-        input.unreachableFilterEnabled;
-
-    if (!hasActiveFilters) {
+    if (!browserHasActiveFilters(input)) {
         return items;
     }
 

@@ -1425,51 +1425,45 @@ function useCollectionsController() {
         }
     );
 
-    const handleDisableSmartCollections = useStableCallback(async () => {
-        try {
-            await mutateSmartCollectionsPreference(
-                async () => {
-                    const result = await setSmartCollectionsPreference({
-                        enabled: false,
-                    });
-                    if (result.status !== ACTION_STATUS.UPDATED) {
-                        throw new Error(result.message);
-                    }
-                    return { disabled: true };
-                },
-                {
-                    optimisticData: { disabled: true },
-                    rollbackOnError: true,
-                }
-            );
-        } catch (error) {
-            log.error("Failed to disable smart collections", { error });
-            showError(DISABLE_SMART_COLLECTIONS_ERROR_MESSAGE);
-        }
-    });
+    const handleSetSmartCollectionsEnabled = useStableCallback(
+        async (enabled: boolean) => {
+            const actionVerb = enabled ? "enable" : "disable";
+            const errorMessage = enabled
+                ? ENABLE_SMART_COLLECTIONS_ERROR_MESSAGE
+                : DISABLE_SMART_COLLECTIONS_ERROR_MESSAGE;
 
-    const handleEnableSmartCollections = useStableCallback(async () => {
-        try {
-            await mutateSmartCollectionsPreference(
-                async () => {
-                    const result = await setSmartCollectionsPreference({
-                        enabled: true,
-                    });
-                    if (result.status !== ACTION_STATUS.UPDATED) {
-                        throw new Error(result.message);
+            try {
+                await mutateSmartCollectionsPreference(
+                    async () => {
+                        const result = await setSmartCollectionsPreference({
+                            enabled,
+                        });
+                        if (result.status !== ACTION_STATUS.UPDATED) {
+                            throw new Error(result.message);
+                        }
+                        return { disabled: !enabled };
+                    },
+                    {
+                        optimisticData: { disabled: !enabled },
+                        rollbackOnError: true,
                     }
-                    return { disabled: false };
-                },
-                {
-                    optimisticData: { disabled: false },
-                    rollbackOnError: true,
-                }
-            );
-        } catch (error) {
-            log.error("Failed to enable smart collections", { error });
-            showError(ENABLE_SMART_COLLECTIONS_ERROR_MESSAGE);
+                );
+            } catch (error) {
+                log.error(`Failed to ${actionVerb} smart collections`, {
+                    error,
+                });
+                showError(errorMessage);
+            }
         }
-    });
+    );
+
+    const handleDisableSmartCollections = useStableCallback(() =>
+        handleSetSmartCollectionsEnabled(false)
+    );
+
+    const handleEnableSmartCollections = useStableCallback(() =>
+        handleSetSmartCollectionsEnabled(true)
+    );
 
     const handleDismissFeedback = useStableCallback(() => {
         setFeedback(null);
