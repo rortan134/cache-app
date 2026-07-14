@@ -5,7 +5,10 @@ const REQUEST_EVENT = "cache-request-site-token";
 async function publishToken(): Promise<void> {
     const endpoint = `${window.location.origin}/api/user/extension-ingest-token`;
     try {
-        const res = await fetch(endpoint, { credentials: "include" });
+        const res = await fetch(endpoint, {
+            credentials: "include",
+            priority: "low",
+        });
         if (!res.ok) {
             return;
         }

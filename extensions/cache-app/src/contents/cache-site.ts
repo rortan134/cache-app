@@ -28,6 +28,7 @@ function announceExtensionReady(): void {
 async function fetchTokenFromContentScriptWorld(): Promise<string> {
     const res = await fetch(`${origin}/api/user/extension-ingest-token`, {
         credentials: "include",
+        priority: "low",
     });
     if (!res.ok) {
         return "";

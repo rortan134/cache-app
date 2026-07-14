@@ -2220,10 +2220,7 @@ function BrowserGroupHeader() {
 
     return (
         <ContextMenu>
-            <ContextMenuTrigger
-                // biome-ignore lint/a11y/useSemanticElements: Group role
-                render={<div className="contents" role="group" />}
-            >
+            <ContextMenuTrigger render={<div className="contents" />}>
                 <div
                     className="sticky z-10 flex items-center justify-between gap-3 rounded-xl bg-muted pr-3 shadow-[0_8px_20px_-14px_rgba(0,0,0,0.18)]"
                     style={{
@@ -4747,15 +4744,12 @@ function MediaCard({ item }: LibraryGridCardProps) {
                 onMouseEnter={handleMouseEnter}
                 onMouseLeave={handleMouseLeave}
                 render={
-                    // biome-ignore lint/a11y/useSemanticElements: Group role
-                    <div
-                        className="group relative flex shrink-0 flex-col ease-out before:absolute before:-inset-x-2 before:-top-2 before:bottom-0 before:-z-10 before:rounded-xl before:bg-muted/50 before:opacity-0 before:transition-[opacity,transform] before:duration-100 before:ease-out hover:before:opacity-100 focus-visible:outline-none active:before:scale-x-[0.99] active:before:scale-y-[0.97] active:before:opacity-80!"
-                        role="group"
-                    />
+                    <div className="group relative flex shrink-0 flex-col ease-out before:absolute before:-inset-x-2 before:-top-2 before:bottom-0 before:-z-10 before:rounded-xl before:bg-muted/50 before:opacity-0 before:transition-[opacity,transform] before:duration-100 before:ease-out hover:before:opacity-100 focus-visible:outline-none active:before:scale-x-[0.99] active:before:scale-y-[0.97] active:before:opacity-80!" />
                 }
             >
                 {/* biome-ignore lint/a11y/useSemanticElements: ControlledZoom conflicts with anchor elements */}
                 <div
+                    aria-label={displayTitle}
                     className="squircle flex flex-col overflow-clip rounded-xl focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
                     onClick={handlePrimaryClick}
                     onKeyDown={handlePrimaryKeyDown}

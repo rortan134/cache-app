@@ -25,7 +25,7 @@ export function buildLocaleAlternates(
         canonical,
         languages: {
             ...languages,
-            "x-default": path === "/" ? BASE_URL : canonical,
+            "x-default": canonical,
         },
     };
 }
