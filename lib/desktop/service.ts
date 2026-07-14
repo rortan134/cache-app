@@ -12,7 +12,7 @@ import {
 const log = createLogger("desktop:releases");
 
 const GITHUB_RELEASE_TIMEOUT_MS = 8000;
-const GITHUB_RELEASE_REVALIDATE_SECONDS = 3600;
+const GITHUB_RELEASE_REVALIDATE_SECONDS = 300;
 
 /**
  * Resolve the latest desktop installers from GitHub Releases.

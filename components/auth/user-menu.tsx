@@ -369,15 +369,11 @@ function UserMenuDesktopDownloadSubMenu() {
     );
 
     const downloads = data?.downloads ?? getStaticDesktopDownloads();
-    const isUnavailable = data?.status === "unavailable";
     const versionLabel = data?.version;
 
     return (
         <MenuSub>
-            <MenuSubTrigger
-                className="justify-between"
-                disabled={isUnavailable}
-            >
+            <MenuSubTrigger className="justify-between">
                 <T>Download desktop app</T>
                 {isLoading ? (
                     <LoaderCircle className="ml-auto inline-block size-3.5 shrink-0 animate-spin text-muted-foreground" />
@@ -394,21 +390,15 @@ function UserMenuDesktopDownloadSubMenu() {
                             </T>
                         </MenuGroupLabel>
                     ) : null}
-                    {isUnavailable ? (
-                        <MenuItem disabled>
-                            <T>Desktop installers are not available yet.</T>
-                        </MenuItem>
-                    ) : (
-                        downloads.map((download) => (
-                            <DesktopDownloadMenuItem
-                                download={download}
-                                isRecommended={
-                                    download.platform === recommendedPlatform
-                                }
-                                key={download.platform}
-                            />
-                        ))
-                    )}
+                    {downloads.map((download) => (
+                        <DesktopDownloadMenuItem
+                            download={download}
+                            isRecommended={
+                                download.platform === recommendedPlatform
+                            }
+                            key={download.platform}
+                        />
+                    ))}
                     <MenuSeparator />
                     <MenuItem
                         className="justify-between"
@@ -464,28 +454,23 @@ function DesktopDownloadMenuItem({
 
 async function fetchDesktopDownloads(): Promise<{
     downloads: DesktopDownload[];
-    status: "ok" | "unavailable" | "fallback";
+    status: "ok" | "fallback";
     version?: string;
 }> {
-    const result = await getDesktopDownloads();
+    try {
+        const result = await getDesktopDownloads();
 
-    if (result.status === ACTION_STATUS.SUCCESS) {
-        return {
-            downloads: result.data.downloads,
-            status: "ok",
-            version: result.data.version,
-        };
+        if (result.status === ACTION_STATUS.SUCCESS) {
+            return {
+                downloads: result.data.downloads,
+                status: "ok",
+                version: result.data.version,
+            };
+        }
+    } catch (error) {
+        log.warn("Desktop downloads action failed; using static URLs", error);
     }
 
-    if (result.status === ACTION_STATUS.NOT_FOUND) {
-        return {
-            downloads: [],
-            status: "unavailable",
-        };
-    }
-
-    // API error: still offer stable latest/download links so the menu works offline of the API.
-    log.warn("Desktop downloads API unavailable; using static latest URLs");
     return {
         downloads: getStaticDesktopDownloads(),
         status: "fallback",
