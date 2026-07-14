@@ -17,7 +17,6 @@ export const clientEnv = createEnv({
             process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY,
         NODE_ENV: process.env.NODE_ENV,
     },
-    // Variables available on both server and client
     shared: {
         NODE_ENV: z.enum(["development", "test", "production"]),
     },

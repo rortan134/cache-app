@@ -128,10 +128,12 @@ import type { CollectionCreateFromItemsResult } from "@/lib/collections/actions"
 import { downloadMedia } from "@/lib/collections/actions";
 import {
     deleteLibraryItem,
+    deleteLibraryItems,
     probeLibraryItemsReachabilityAction,
     type LibraryItemCollectionsUpdateResult,
     type LibraryItemDeleteResult,
     type LibraryItemsCollectionsUpdateResult,
+    type LibraryItemsDeleteResult,
 } from "@/lib/collections/items";
 import {
     collectDuplicateBookmarkItemIds,
@@ -142,6 +144,7 @@ import {
 } from "@/lib/collections/library-quality";
 import { buildLibraryMetrics } from "@/lib/collections/metrics";
 import {
+    isRecentlySmartCollected,
     itemPreviewImageUrl,
     itemPreviewVideoUrl,
     type LibraryCollectionSummary,
@@ -152,6 +155,7 @@ import { cn } from "@/lib/common/cn";
 import { getColorGradientFromName } from "@/lib/common/colors";
 import {
     ACTION_STATUS,
+    BATCH_UPDATE_MAX_ITEMS,
     CACHE_EXTENSION_DOWNLOAD_URL,
     FALLBACK_URL,
     ITEM_KIND_BOOKMARK,
@@ -3658,9 +3662,9 @@ interface LibraryProps {
 }
 
 function useLibraryItemActions(args: {
-    onDeleteSuccess?: (
-        result: Extract<LibraryItemDeleteResult, { status: "DELETED" }>
-    ) => void;
+    onDeleteSuccess?: (result: {
+        collectionSummaries: LibraryCollectionSummary[];
+    }) => void;
     setVisibleItems: (
         value:
             | LibraryItemWithCollections[]
@@ -4059,6 +4063,13 @@ interface CollectionComboboxPickerProps
         previousSharedCollectionIds: string[];
     }) => Promise<LibraryItemsCollectionsUpdateResult>;
     open?: boolean;
+    /**
+     * Play the one-shot Smart Collections color cue on the Squircle. Claimed
+     * once per item id for the session so masonry remounts do not re-fire it.
+     */
+    playSmartCollectionsAnimation?: boolean;
+    /** Temporary “just organized” affordance after Smart Collections assigns memberships. */
+    showSmartCollectionsIndicator?: boolean;
 }
 
 interface LibraryGridCardProps {
@@ -4161,6 +4172,23 @@ async function downloadLibraryItemMedia(
     ownerDocument.body.removeChild(link);
 }
 
+/** Session-scoped: item ids whose Smart Collections cue already claimed a play. */
+const smartCollectionsIndicatorPlayedItemIds = new Set<string>();
+
+function claimSmartCollectionsIndicatorPlay(
+    itemId: string,
+    smartCollectedAt: Date | string | null | undefined
+): boolean {
+    if (!isRecentlySmartCollected(smartCollectedAt)) {
+        return false;
+    }
+    if (smartCollectionsIndicatorPlayedItemIds.has(itemId)) {
+        return false;
+    }
+    smartCollectionsIndicatorPlayedItemIds.add(itemId);
+    return true;
+}
+
 function CollectionComboboxPicker({
     collections,
     items,
@@ -4170,6 +4198,8 @@ function CollectionComboboxPicker({
     onOpenChange,
     children,
     render,
+    playSmartCollectionsAnimation = false,
+    showSmartCollectionsIndicator = false,
     ...props
 }: CollectionComboboxPickerProps) {
     const [isOpenInternal, setIsOpenInternal] = React.useState(false);
@@ -4177,6 +4207,10 @@ function CollectionComboboxPicker({
     const setIsOpen = onOpenChange ?? setIsOpenInternal;
     const selectedCollectionIds = getSharedCollectionIds(items);
     const selectedCount = selectedCollectionIds.length;
+    const shouldShowSmartCollectionsIndicator =
+        showSmartCollectionsIndicator && selectedCount > 0;
+    const shouldPlaySmartCollectionsAnimation =
+        playSmartCollectionsAnimation && shouldShowSmartCollectionsIndicator;
 
     const handleValueChange = useStableCallback((nextIds: string[]) => {
         const nextCollectionIds = [...nextIds];
@@ -4205,6 +4239,13 @@ function CollectionComboboxPicker({
         }).catch(() => undefined);
     });
 
+    let defaultTriggerAriaLabel = "Add to collections";
+    if (shouldShowSmartCollectionsIndicator) {
+        defaultTriggerAriaLabel = "Smart Collections just organized this";
+    } else if (selectedCount > 0) {
+        defaultTriggerAriaLabel = `Edit collections (${selectedCount} selected)`;
+    }
+
     return (
         <Combobox
             autoHighlight
@@ -4220,11 +4261,7 @@ function CollectionComboboxPicker({
                 render={
                     render ?? (
                         <Button
-                            aria-label={
-                                selectedCount > 0
-                                    ? `Edit collections (${selectedCount} selected)`
-                                    : "Add to collections"
-                            }
+                            aria-label={defaultTriggerAriaLabel}
                             className="z-1 rounded-full"
                             size="icon-sm"
                             variant="ghost"
@@ -4236,15 +4273,14 @@ function CollectionComboboxPicker({
                     (selectedCount > 0 ? (
                         <Squircle
                             aria-hidden
-                            aria-label="Collections"
-                            className="size-4.5"
+                            className={cn(
+                                "size-4.5",
+                                shouldPlaySmartCollectionsAnimation &&
+                                    "motion-safe:animate-smart-collections-indicator"
+                            )}
                         />
                     ) : (
-                        <SquircleDashed
-                            aria-hidden
-                            aria-label="Collections"
-                            className="size-4.5"
-                        />
+                        <SquircleDashed aria-hidden className="size-4.5" />
                     ))}
             </ComboboxTrigger>
             <ComboboxPopup>
@@ -4294,6 +4330,14 @@ function CardCollectionPicker({
 }) {
     const { collections, onUpdateItemCollections } =
         useLibraryGridCardContext();
+    const showSmartCollectionsIndicator =
+        item.collections.length > 0 &&
+        isRecentlySmartCollected(item.smartCollectedAt);
+    const [playSmartCollectionsAnimation] = React.useState(
+        () =>
+            item.collections.length > 0 &&
+            claimSmartCollectionsIndicatorPlay(item.id, item.smartCollectedAt)
+    );
 
     return (
         <CollectionComboboxPicker
@@ -4302,6 +4346,8 @@ function CardCollectionPicker({
             onOpenChange={onOpenChange}
             onUpdateItemCollections={onUpdateItemCollections}
             open={open}
+            playSmartCollectionsAnimation={playSmartCollectionsAnimation}
+            showSmartCollectionsIndicator={showSmartCollectionsIndicator}
         />
     );
 }
@@ -5913,44 +5959,68 @@ export function BrowserRoot({
         }
 
         startRemoveDuplicatesTransition(async () => {
-            let deletedCount = 0;
+            const deletedIds: string[] = [];
+            const collectionSummariesById = new Map<
+                string,
+                LibraryCollectionSummary
+            >();
             let failedCount = 0;
 
-            for (const id of excessIds) {
-                let result: LibraryItemDeleteResult;
+            for (
+                let offset = 0;
+                offset < excessIds.length;
+                offset += BATCH_UPDATE_MAX_ITEMS
+            ) {
+                const batchIds = excessIds.slice(
+                    offset,
+                    offset + BATCH_UPDATE_MAX_ITEMS
+                );
+                let result: LibraryItemsDeleteResult;
                 try {
-                    result = await deleteLibraryItem(id);
+                    result = await deleteLibraryItems({ itemIds: batchIds });
                 } catch (error) {
-                    log.error("Failed to remove duplicate bookmark", error, {
-                        itemId: id,
+                    log.error("Failed to remove duplicate bookmarks", error, {
+                        batchSize: batchIds.length,
                     });
                     result = {
-                        message: "We couldn't remove this duplicate right now.",
+                        message:
+                            "We couldn't remove these duplicates right now.",
                         status: ACTION_STATUS.ERROR,
                     };
                 }
 
                 if (result.status !== ACTION_STATUS.DELETED) {
-                    failedCount += 1;
+                    failedCount += batchIds.length;
                     continue;
                 }
 
-                deletedCount += 1;
-                const deletedItemId = result.itemId;
+                // Batch resolved: live rows were trashed; missing ids were already gone.
+                deletedIds.push(...batchIds);
+                for (const summary of result.collectionSummaries) {
+                    collectionSummariesById.set(summary.id, summary);
+                }
+            }
+
+            if (deletedIds.length > 0) {
+                const deletedIdSet = new Set(deletedIds);
                 onItemsChange((current) =>
-                    current.filter((item) => item.id !== deletedItemId)
+                    current.filter((item) => !deletedIdSet.has(item.id))
                 );
-                onDeleteItemSuccess(result);
+                onDeleteItemSuccess({
+                    collectionSummaries: Array.from(
+                        collectionSummariesById.values()
+                    ),
+                });
             }
 
             setIsRemoveDuplicatesDialogOpen(false);
             setPendingRemoveDuplicateIds([]);
 
-            if (failedCount === 0 && deletedCount === excessIds.length) {
+            if (failedCount === 0 && deletedIds.length === excessIds.length) {
                 setDuplicatesFilterEnabled(false);
             } else if (failedCount > 0) {
                 log.error("Remove duplicates finished with failures", {
-                    deletedCount,
+                    deletedCount: deletedIds.length,
                     failedCount,
                     requestedCount: excessIds.length,
                 });

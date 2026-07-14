@@ -1,6 +1,6 @@
 import { buildPageMetadata } from "@/app/metadata";
 import { ApplicationSidebar } from "@/components/sidebar/application-sidebar";
-import { CollectionsGrid } from "@/components/library/collections-grid";
+import { CollectionsGrid } from "@/components/library/collections";
 import { getServerSession } from "@/lib/auth/session";
 import { listCollectionsWithPreviews } from "@/lib/collections/service";
 import { gtPublicString } from "@/lib/i18n/gt-public-json";

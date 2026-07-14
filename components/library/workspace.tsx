@@ -9,7 +9,6 @@ import {
     updateLibraryItemCollections,
     updateLibraryItemsCollections,
     type LibraryItemCollectionsUpdateResult,
-    type LibraryItemDeleteResult,
     type LibraryItemFavoriteToggleResult,
     type LibraryItemsCollectionsUpdateResult,
 } from "@/lib/collections/items";
@@ -175,9 +174,9 @@ interface WorkspaceContextValue {
         itemIds: string[];
         name: string;
     }) => Promise<CollectionCreateFromItemsResult>;
-    onDeleteItemSuccess: (
-        result: Extract<LibraryItemDeleteResult, { status: "DELETED" }>
-    ) => void;
+    onDeleteItemSuccess: (result: {
+        collectionSummaries: LibraryCollectionSummary[];
+    }) => void;
     onOpenFavoriteItem: (item: LibraryItemWithCollections) => void;
     onSelectCollection: (collectionId: string) => void;
     onToggleItemFavorite: (
@@ -417,7 +416,7 @@ export function WorkspaceProvider({
     );
 
     const handleDeleteItemSuccess = useStableCallback(
-        (result: Extract<LibraryItemDeleteResult, { status: "DELETED" }>) => {
+        (result: { collectionSummaries: LibraryCollectionSummary[] }) => {
             setCollections((current) =>
                 mergeCollectionSummaries(current, result.collectionSummaries)
             );

@@ -768,6 +768,98 @@ export function trashLibraryItem({
     });
 }
 
+/**
+ * Soft-deletes every live owned item among `itemIds`. Missing or already-trashed
+ * ids are skipped (partial success) so bulk flows like remove-duplicates do not
+ * fail an entire batch for one stale id. Returns only the ids this call trashed.
+ */
+export function trashLibraryItems({
+    itemIds,
+    userId,
+}: {
+    itemIds: string[];
+    userId: string;
+}): Promise<{
+    collectionSummaries: LibraryCollectionSummary[];
+    itemIds: string[];
+}> {
+    return prisma.$transaction(async (tx) => {
+        const items = await tx.libraryItem.findMany({
+            select: {
+                collections: {
+                    select: {
+                        id: true,
+                    },
+                },
+                id: true,
+            },
+            where: {
+                deletedAt: null,
+                id: {
+                    in: itemIds,
+                },
+                userId,
+            },
+        });
+
+        if (items.length === 0) {
+            return {
+                collectionSummaries: [],
+                itemIds: [],
+            };
+        }
+
+        const now = new Date();
+        const candidateIds = items.map((item) => item.id);
+        const trashedItems = await tx.libraryItem.updateManyAndReturn({
+            data: {
+                deletedAt: now,
+            },
+            select: {
+                id: true,
+            },
+            where: {
+                deletedAt: null,
+                id: {
+                    in: candidateIds,
+                },
+                userId,
+            },
+        });
+        const trashedItemIds = trashedItems.map((item) => item.id);
+
+        if (trashedItemIds.length > 0) {
+            await tx.libraryActivityEvent.createMany({
+                data: trashedItemIds.map((libraryItemId) => ({
+                    kind: "item_deleted" as const,
+                    libraryItemId,
+                    occurredAt: now,
+                    userId,
+                })),
+            });
+        }
+
+        const trashedItemIdSet = new Set(trashedItemIds);
+        const collectionIds = Array.from(
+            new Set(
+                items
+                    .filter((item) => trashedItemIdSet.has(item.id))
+                    .flatMap((item) =>
+                        item.collections.map((collection) => collection.id)
+                    )
+            )
+        );
+
+        return {
+            collectionSummaries: await findCollectionSummariesOwnedByIds(tx, {
+                collectionIds,
+                userId,
+            }),
+            itemIds: trashedItemIds,
+        };
+    });
+}
+
 interface RestoreLibraryItemArgs {
     itemId: string;
     userId: string;

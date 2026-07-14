@@ -5,6 +5,7 @@ import {
     ITEM_KIND_BOOKMARK,
     SORT_ASC,
 } from "@/lib/common/constants";
+import { parseDate } from "@/lib/common/dates";
 import { toValidUrl } from "@/lib/common/url";
 import { isCobaltHost } from "@/lib/integrations/cobalt/utils";
 import type { LibraryItem, Prisma } from "@/prisma/client/client";
@@ -13,6 +14,29 @@ import type {
     LibraryItemSource,
 } from "@/prisma/client/enums";
 import * as z from "zod";
+
+/**
+ * How long a card stays eligible for the Smart Collections “just organized”
+ * affordance (aria-label). Separate from the CSS animation duration (2.2s).
+ */
+export const SMART_COLLECTED_RECENT_WINDOW_MS = 3 * 60 * 1000;
+
+/**
+ * True when Smart Collections assigned memberships recently enough that the
+ * library card may surface a temporary intelligence affordance.
+ */
+export function isRecentlySmartCollected(
+    smartCollectedAt: Date | string | null | undefined,
+    nowMs = Date.now()
+): boolean {
+    const collectedAt = parseDate(smartCollectedAt);
+    if (!collectedAt) {
+        return false;
+    }
+
+    const ageMs = nowMs - collectedAt.getTime();
+    return ageMs >= 0 && ageMs < SMART_COLLECTED_RECENT_WINDOW_MS;
+}
 
 // ---------------------------------------------------------------------------
 // Domain types

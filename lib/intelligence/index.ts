@@ -944,6 +944,7 @@ async function applyDecisionToItem(args: {
                             ...desiredCollectionIds,
                         ].map((id) => ({ id })),
                     },
+                    smartCollectedAt: new Date(),
                 },
                 where: { id: item.id },
             });

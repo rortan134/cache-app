@@ -51,6 +51,8 @@
     --radius-3xl: calc(var(--radius) * 2.2);
     --radius-4xl: calc(var(--radius) * 2.6);
     --animate-skeleton: skeleton 2s -1s infinite linear;
+    --animate-smart-collections-indicator: smart-collections-indicator 2.2s
+        ease-in-out 1 both;
 }
 
 /* ── Design tokens (light) ── */
@@ -226,9 +228,38 @@
     }
 }
 
+/* One-shot intelligence cue for recently smart-collected card Squircle icons.
+   Uses the same warm palette as GradientWaveText; CSS-only so masonry cards
+   never pay for requestAnimationFrame. */
+@keyframes smart-collections-indicator {
+    0%,
+    100% {
+        color: inherit;
+    }
+    16% {
+        color: #ff3b30;
+    }
+    32% {
+        color: #ff8c42;
+    }
+    48% {
+        color: #ffd166;
+    }
+    64% {
+        color: #ff6fb5;
+    }
+    80% {
+        color: #c77dff;
+    }
+}
+
 /* ── Custom utilities ── */
 @utility animate-marquee {
     animation: marquee var(--duration, 5s) linear infinite;
+}
+
+@utility animate-smart-collections-indicator {
+    animation: var(--animate-smart-collections-indicator);
 }
 
 @utility overflow-fade-bottom {

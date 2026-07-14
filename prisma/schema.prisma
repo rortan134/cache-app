@@ -248,6 +248,10 @@ model LibraryItem {
   reviewedAt       DateTime?
   /// When the user marked this item as a favorite. Null means not favorited.
   favoritedAt      DateTime?
+  /// Last time Smart Collections added memberships to this item. Null means
+  /// never auto-tagged. UI uses recency of this stamp for a temporary
+  /// intelligence indicator; it is not cleared when the user edits memberships.
+  smartCollectedAt DateTime?
   /// Last link-health classification from Cache's reachability probe.
   linkReachability LibraryItemLinkReachability?
   /// When `linkReachability` was last written. Null means never checked.

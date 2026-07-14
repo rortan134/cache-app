@@ -61,6 +61,13 @@ const LibraryItemDeleteInputSchema = z.object({
         .min(1, COLLECTION_VALIDATION_MESSAGES.itemDeleteIdRequired),
 });
 
+const LibraryItemsDeleteInputSchema = z.object({
+    itemIds: z
+        .array(z.string().trim().min(1))
+        .min(1)
+        .max(BATCH_UPDATE_MAX_ITEMS),
+});
+
 const LibraryItemFavoriteToggleInputSchema = z.object({
     itemId: z
         .string()
@@ -93,6 +100,14 @@ export type LibraryItemDeleteResult =
     | {
           collectionSummaries: LibraryCollectionSummary[];
           itemId: string;
+          status: typeof ACTION_STATUS.DELETED;
+      }
+    | ActionError;
+
+export type LibraryItemsDeleteResult =
+    | {
+          collectionSummaries: LibraryCollectionSummary[];
+          itemIds: string[];
           status: typeof ACTION_STATUS.DELETED;
       }
     | ActionError;
@@ -194,6 +209,52 @@ export async function deleteLibraryItem(
             error,
             errorFactory: LibraryCollectionError,
             fallbackMessage: "We couldn't delete this saved item right now.",
+            log,
+        });
+    }
+}
+
+export async function deleteLibraryItems(input: {
+    itemIds: string[];
+}): Promise<LibraryItemsDeleteResult> {
+    const parsed = LibraryItemsDeleteInputSchema.safeParse({
+        itemIds: unique(input.itemIds),
+    });
+    if (!parsed.success) {
+        return {
+            message: getValidationErrorMessage(
+                parsed,
+                COLLECTION_VALIDATION_MESSAGES.itemDeleteIdRequired
+            ),
+            status: ACTION_STATUS.INVALID,
+        };
+    }
+
+    const auth = await requireActionUserId(
+        "Sign in again to manage saved items."
+    );
+    if (isUnauthenticated(auth)) {
+        return auth;
+    }
+
+    try {
+        const result = await service.trashLibraryItems({
+            itemIds: parsed.data.itemIds,
+            userId: auth.userId,
+        });
+
+        revalidatePath("/library");
+        revalidatePath("/recently-deleted");
+        return {
+            ...result,
+            status: ACTION_STATUS.DELETED,
+        };
+    } catch (error) {
+        return handleActionError({
+            codeToStatus: STATUS_MAP_NOT_FOUND,
+            error,
+            errorFactory: LibraryCollectionError,
+            fallbackMessage: "We couldn't delete those saved items right now.",
             log,
         });
     }
