@@ -827,14 +827,6 @@ function CollectionThumbnailCell({ url }: { url: string | null }) {
 }
 
 function useCollectionsController() {
-    const { mutate: mutateSmartCollectionsPreference } =
-        useSmartCollectionsPreference();
-    const {
-        isLoading: recommendationsLoading,
-        items: recommendationItems,
-        mutate: onRecommendationsMutate,
-    } = useCollectionRecommendations();
-
     const {
         collectionPreviewThumbnailUrlsById,
         collections,
@@ -1393,33 +1385,6 @@ function useCollectionsController() {
         }
     );
 
-    const handleCreateFromTemplate = useStableCallback(
-        async (
-            template: { description: string; name: string },
-            assignToItemId?: string
-        ) => {
-            setFeedback(null);
-
-            const result = await createCollectionSafely({
-                assignToItemId,
-                description: template.description,
-                name: template.name,
-            });
-
-            if (result.status !== ACTION_STATUS.CREATED) {
-                showError(result.message);
-                return;
-            }
-
-            syncCreated({
-                assignedItemIds: getCreatedAssignedItemIds(result),
-                collection: result.collection,
-            });
-            onRecommendationsMutate();
-            showSuccess(`${template.name} created from template.`);
-        }
-    );
-
     const handleFavoriteToggle = useStableCallback(
         (collection: LibraryCollectionSummary) => {
             const isFavorite = favoriteCollectionIdSet.has(collection.id);
@@ -1502,46 +1467,6 @@ function useCollectionsController() {
         }
     );
 
-    const handleSetSmartCollectionsEnabled = useStableCallback(
-        async (enabled: boolean) => {
-            try {
-                await mutateSmartCollectionsPreference(
-                    async () => {
-                        const result = await setSmartCollectionsPreference({
-                            enabled,
-                        });
-                        if (result.status !== ACTION_STATUS.UPDATED) {
-                            throw new Error(result.message);
-                        }
-                        return { disabled: !enabled };
-                    },
-                    {
-                        optimisticData: { disabled: !enabled },
-                        rollbackOnError: true,
-                    }
-                );
-            } catch (error) {
-                log.error(
-                    `Failed to ${enabled ? "enable" : "disable"} smart collections`,
-                    { error }
-                );
-                showError(
-                    enabled
-                        ? ENABLE_SMART_COLLECTIONS_ERROR_MESSAGE
-                        : DISABLE_SMART_COLLECTIONS_ERROR_MESSAGE
-                );
-            }
-        }
-    );
-
-    const handleDisableSmartCollections = useStableCallback(() =>
-        handleSetSmartCollectionsEnabled(false)
-    );
-
-    const handleEnableSmartCollections = useStableCallback(() =>
-        handleSetSmartCollectionsEnabled(true)
-    );
-
     const handleDismissFeedback = useStableCallback(() => {
         setFeedback(null);
     });
@@ -1579,18 +1504,14 @@ function useCollectionsController() {
             onCopyLinks: handleCopyLinks,
             onCopyShareLink: handleCopyShareLink,
             onCopyTitle: handleCopyTitle,
-            onCreateFromTemplate: handleCreateFromTemplate,
             onDelete: requestDelete,
             onDisableShare: handleDisableShare,
-            onDisableSmartCollections: handleDisableSmartCollections,
             onDismissFeedback: handleDismissFeedback,
             onDuplicate: handleDuplicate,
             onEnableShare: handleEnableShare,
-            onEnableSmartCollections: handleEnableSmartCollections,
             onExportCsv: handleExportCsv,
             onFavoriteToggle: handleFavoriteToggle,
             onOpenLinks: handleOpenLinks,
-            onRecommendationsMutate,
             onRename: requestRename,
             onSendToNotion: handleSendToNotion,
             onUpdatePriority: handleUpdatePriority,
@@ -1633,10 +1554,6 @@ function useCollectionsController() {
             pendingPriorityComboboxCollectionId,
             pendingRename,
             pendingShareIdSet,
-            recommendations: {
-                isLoading: recommendationsLoading,
-                items: recommendationItems,
-            },
             requestCreate,
             selectedCollectionIdSet,
             showError,
@@ -1671,6 +1588,43 @@ function useCollectionsActions(): CollectionsActions {
         );
     }
     return context;
+}
+
+function useSmartCollectionsToggle() {
+    const { showError } = useCollectionsState();
+    const { disabled, isLoading, mutate } = useSmartCollectionsPreference();
+
+    const setEnabled = useStableCallback(async (enabled: boolean) => {
+        try {
+            await mutate(
+                async () => {
+                    const result = await setSmartCollectionsPreference({
+                        enabled,
+                    });
+                    if (result.status !== ACTION_STATUS.UPDATED) {
+                        throw new Error(result.message);
+                    }
+                    return { disabled: !enabled };
+                },
+                {
+                    optimisticData: { disabled: !enabled },
+                    rollbackOnError: true,
+                }
+            );
+        } catch (error) {
+            log.error(
+                `Failed to ${enabled ? "enable" : "disable"} smart collections`,
+                { error }
+            );
+            showError(
+                enabled
+                    ? ENABLE_SMART_COLLECTIONS_ERROR_MESSAGE
+                    : DISABLE_SMART_COLLECTIONS_ERROR_MESSAGE
+            );
+        }
+    });
+
+    return { disabled, isLoading, setEnabled };
 }
 
 function useTogglePendingId(
@@ -2454,7 +2408,9 @@ function CollectionRecommendationItem({
 }: {
     template: CollectionTemplateOption;
 }) {
-    const { onCreateFromTemplate } = useCollectionsActions();
+    const { showError, showSuccess } = useCollectionsState();
+    const { syncCreated } = useCollectionsActions();
+    const { mutate: mutateRecommendations } = useCollectionRecommendations();
     const [isCreating, setIsCreating] = React.useState(false);
 
     const handleClick = useStableCallback(
@@ -2465,7 +2421,20 @@ function CollectionRecommendationItem({
             }
             setIsCreating(true);
             try {
-                await onCreateFromTemplate(template);
+                const result = await createCollectionSafely({
+                    description: template.description,
+                    name: template.name,
+                });
+                if (result.status !== ACTION_STATUS.CREATED) {
+                    showError(result.message);
+                    return;
+                }
+                syncCreated({
+                    assignedItemIds: getCreatedAssignedItemIds(result),
+                    collection: result.collection,
+                });
+                await mutateRecommendations();
+                showSuccess(`${template.name} created from template.`);
             } finally {
                 setIsCreating(false);
             }
@@ -2509,10 +2478,10 @@ function CollectionRecommendationItem({
 }
 
 function CollectionsListRecommendations() {
-    const { collectionSummaries, isRecommendationsOpen, recommendations } =
+    const { collectionSummaries, isRecommendationsOpen } =
         useCollectionsState();
     const { setIsRecommendationsOpen } = useCollectionsActions();
-    const { items, isLoading } = recommendations;
+    const { items, isLoading } = useCollectionRecommendations();
 
     if (collectionSummaries.length === 0 || items.length === 0 || isLoading) {
         return null;
@@ -2773,9 +2742,14 @@ function CollectionsListCreateButton({
 }
 
 function CollectionsListCalloutPopover() {
-    const { onDisableSmartCollections, onEnableSmartCollections } =
-        useCollectionsActions();
-    const { disabled, isLoading } = useSmartCollectionsPreference();
+    const { disabled, isLoading, setEnabled } = useSmartCollectionsToggle();
+
+    const handleToggle = useStableCallback(async () => {
+        if (typeof disabled === "undefined") {
+            return;
+        }
+        await setEnabled(!disabled);
+    });
 
     if (isLoading || typeof disabled === "undefined") {
         return (
@@ -2841,11 +2815,7 @@ function CollectionsListCalloutPopover() {
                     </PopoverDescription>
                     <Button
                         className="w-fit px-0 text-muted-foreground text-xs"
-                        onClick={
-                            disabled
-                                ? onEnableSmartCollections
-                                : onDisableSmartCollections
-                        }
+                        onClick={handleToggle}
                         size="xs"
                         variant="link"
                     >
@@ -3743,14 +3713,10 @@ const INITIAL_CREATE_FORM_STATE: CreateFormState = {
 
 function CollectionsCreateDialog() {
     const { createItemId, isCreateOpen, showSuccess } = useCollectionsState();
-    const {
-        createSubmissionPendingRef,
-        onEnableSmartCollections,
-        onRecommendationsMutate,
-        setIsCreateOpen,
-        syncCreated,
-    } = useCollectionsActions();
-    const { disabled } = useSmartCollectionsPreference();
+    const { createSubmissionPendingRef, setIsCreateOpen, syncCreated } =
+        useCollectionsActions();
+    const { disabled, setEnabled } = useSmartCollectionsToggle();
+    const { mutate: mutateRecommendations } = useCollectionRecommendations();
     const [isSubmitting, setIsSubmitting] = React.useState(false);
     const [, startCreate] = React.useTransition();
 
@@ -3849,6 +3815,10 @@ function CollectionsCreateDialog() {
         }
     );
 
+    const handleEnableSmartCollections = useStableCallback(async () => {
+        await setEnabled(true);
+    });
+
     const handleCreateFromTemplate = useStableCallback(
         (value: TemplateValue | null) => {
             if (isSubmitting || createSubmissionPendingRef.current) {
@@ -3887,7 +3857,7 @@ function CollectionsCreateDialog() {
                         assignedItemIds: getCreatedAssignedItemIds(result),
                         collection: result.collection,
                     });
-                    onRecommendationsMutate();
+                    await mutateRecommendations();
                     showSuccess(`${template.name} created from template.`);
                     setIsCreateOpen(false);
                 } finally {
@@ -3983,7 +3953,9 @@ function CollectionsCreateDialog() {
                                     {disabled === true ? (
                                         <Button
                                             className="inline-flex h-fit! w-fit px-0 leading-tight sm:text-[11px]"
-                                            onClick={onEnableSmartCollections}
+                                            onClick={
+                                                handleEnableSmartCollections
+                                            }
                                             size="xs"
                                             type="button"
                                             variant="link"
