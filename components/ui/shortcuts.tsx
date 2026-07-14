@@ -111,10 +111,11 @@ export function KeyboardShortcutsDialogTrigger(
 
 function splitHotkeyParts(hotkey: string) {
     const parts = hotkey.split("+");
-    return parts.map((part, index) => ({
-        key: parts.slice(0, index + 1).join("+"),
-        part,
-    }));
+    let key = "";
+    return parts.map((part) => {
+        key = key ? `${key}+${part}` : part;
+        return { key, part };
+    });
 }
 
 function ShortcutKeyPart({ part }: { part: string }) {

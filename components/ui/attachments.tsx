@@ -85,13 +85,14 @@ function renderAttachmentImage(
     filename: string | undefined,
     isGrid: boolean
 ) {
+    const size = isGrid ? 96 : 20;
     return (
         <img
             alt={filename || "Image"}
             className={cn("size-full object-cover", !isGrid && "rounded")}
-            height={isGrid ? 96 : 20}
+            height={size}
             src={url}
-            width={isGrid ? 96 : 20}
+            width={size}
         />
     );
 }
