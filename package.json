@@ -16,7 +16,7 @@
         "lint": "ultracite check",
         "lint:fix": "ultracite fix",
         "test": "bun test",
-        "analyze": "next experimental-analyze",
+        "analyze": "next experimental-analyze --output",
         "type-check": "tsc --noEmit --emitDeclarationOnly false",
         "prepare": "husky"
     },
@@ -29,7 +29,7 @@
         "@better-auth/i18n": "1.6.23",
         "@better-auth/prisma-adapter": "1.6.23",
         "@better-auth/stripe": "1.6.23",
-        "@blossom-carousel/react": "1.4.0",
+        "@blossom-carousel/react": "1.5.1",
         "@braintree/sanitize-url": "7.1.2",
         "@google/genai": "2.11.0",
         "@lexical/a11y": "0.47.0",
@@ -55,7 +55,7 @@
         "culori": "4.0.2",
         "dayjs": "1.11.21",
         "dotenv": "17.4.2",
-        "gt-next": "11.0.3",
+        "gt-next": "11.0.8",
         "htmlparser2": "^12.0.0",
         "ipaddr.js": "2.4.0",
         "legid": "^0.1.4",
@@ -66,7 +66,7 @@
         "mcp-handler": "1.1.0",
         "mime-types": "3.0.2",
         "motion": "12.42.2",
-        "nanoid": "5.1.16",
+        "nanoid": "6.0.0",
         "next": "^16.3.0-canary.83",
         "node-vibrant": "4.0.4",
         "openlink": "^0.3.0",
@@ -102,11 +102,11 @@
         "@types/react": "19.2.17",
         "@types/react-dom": "19.2.3",
         "babel-plugin-react-compiler": "1.0.0",
-        "gt": "2.14.58",
+        "gt": "2.14.62",
         "husky": "9.1.7",
         "prisma": "7.8.0",
         "tailwindcss": "4.3.2",
         "typescript": "7.0.2",
-        "ultracite": "7.9.3"
+        "ultracite": "7.9.4"
     }
 }

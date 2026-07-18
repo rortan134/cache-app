@@ -27,25 +27,7 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
     cacheComponents: true,
-    experimental: {
-        optimizePackageImports: [
-            "@base-ui/react",
-            "@base-ui/utils",
-            "@lexical/extension",
-            "@lexical/html",
-            "@lexical/react",
-            "@lexical/rich-text",
-            "@lexical/selection",
-            "@lexical/a11y",
-            "lexical",
-            "class-variance-authority",
-            "lucide-react",
-            "motion",
-            "streamdown",
-            "zod",
-        ],
-        useTypeScriptCli: true,
-    },
+    experimental: { useTypeScriptCli: true },
     async headers() {
         return [
             {
@@ -104,6 +86,7 @@ const nextConfig: NextConfig = {
     images: {
         minimumCacheTTL: 2_678_400, // 31 days
     },
+    partialPrefetching: true,
     reactCompiler: true,
     async redirects() {
         return [
