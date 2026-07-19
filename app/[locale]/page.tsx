@@ -25,6 +25,8 @@ import { cn } from "@/lib/common/cn";
 import { BASE_URL, CACHE_EXTENSION_DOWNLOAD_URL } from "@/lib/common/constants";
 import { gtPublicString } from "@/lib/i18n/gt-public-json";
 import { INTEGRATIONS } from "@/lib/integrations/support";
+import AiSectionLifestyleImage from "@/public/ai-section-lifestyle.webp";
+import AiSectionTravelImage from "@/public/ai-section-travel.webp";
 import LogoIconImage from "@/public/cache-app-icon.png";
 import IconSmallImage from "@/public/cache-icon-small.png";
 import CollectionsSectionImage from "@/public/collections-section-image.webp";
@@ -209,7 +211,7 @@ export default async function Home() {
                                 className="size-3.5"
                                 focusable="false"
                             />
-                            &nbsp;Open-source. Truly yours
+                            &nbsp;<T>Open-source. Truly yours</T>
                         </Button>
                     </div>
                     <section className="grid w-full grid-cols-1 gap-2 md:grid-cols-2 md:gap-[40px]">
@@ -328,7 +330,7 @@ export default async function Home() {
                                     </div>
                                     <div
                                         aria-hidden
-                                        className="mask-[radial-gradient(ellipse_50%_50%_at_50%_50%,#000_70%,transparent_100%)] absolute inset-1/3 bg-[radial-gradient(var(--dots-color)_1px,transparent_1px)] bg-size-[16px_16px] opacity-50 [--dots-color:black]"
+                                        className="mask-[radial-gradient(ellipse_50%_50%_at_50%_50%,#000_70%,transparent_100%)] absolute inset-1/3 bg-[radial-gradient(var(--dots-color)_1px,transparent_1px)] bg-size-[16px_16px] opacity-50 [--dots-color:var(--foreground)]"
                                     />
                                     <div className="space-y-6">
                                         {INTEGRATIONS.slice(3, 6).map(
@@ -567,6 +569,95 @@ export default async function Home() {
                                     </div>
                                 </div>
                             </figure>
+                        </div>
+                    </section>
+                    <section className="flex w-full flex-col gap-8 md:gap-12">
+                        <T>
+                            <h2 className="font-medium text-[28px] text-foreground leading-[1.1] tracking-[-1.28px] lg:text-[32px]">
+                                You save with a click,
+                                <br />
+                                <span className="text-muted-foreground">
+                                    and AI agents do the rest
+                                </span>
+                            </h2>
+                        </T>
+                        <div className="relative mx-auto h-[300px] w-full max-w-[640px] sm:h-[360px] sm:max-w-[700px] md:h-[420px]">
+                            <div
+                                aria-hidden
+                                className="absolute bottom-0 left-0 z-10 w-[44%] max-w-[160px] translate-x-3 overflow-hidden rounded-xl shadow-lg/15 sm:w-[200px] sm:max-w-none sm:translate-x-4 sm:rounded-2xl md:w-[230px] md:translate-x-6"
+                            >
+                                <div className="relative aspect-3/4 w-full">
+                                    <Image
+                                        alt=""
+                                        className="object-cover"
+                                        fill
+                                        placeholder="blur"
+                                        sizes="(max-width: 640px) 44vw, 230px"
+                                        src={AiSectionTravelImage}
+                                    />
+                                    <div className="absolute inset-x-0 bottom-0 hidden bg-linear-to-t from-black/60 to-transparent p-3.5 pt-12 sm:block md:p-4 md:pt-14">
+                                        <T>
+                                            <p className="font-medium text-[15px] text-white tracking-[-0.3px] md:text-base">
+                                                Travel
+                                            </p>
+                                            <p className="text-white/75 text-xs">
+                                                14 items
+                                            </p>
+                                        </T>
+                                    </div>
+                                </div>
+                            </div>
+                            <div
+                                aria-hidden
+                                className="absolute top-0 right-0 z-10 w-[44%] max-w-[160px] -translate-x-3 overflow-hidden rounded-xl shadow-lg/15 sm:w-[200px] sm:max-w-none sm:-translate-x-4 sm:rounded-2xl md:w-[230px] md:-translate-x-6"
+                            >
+                                <div className="relative aspect-3/4 w-full">
+                                    <Image
+                                        alt=""
+                                        className="object-cover"
+                                        fill
+                                        placeholder="blur"
+                                        sizes="(max-width: 640px) 44vw, 230px"
+                                        src={AiSectionLifestyleImage}
+                                    />
+                                    <div className="absolute inset-x-0 bottom-0 hidden bg-linear-to-t from-black/60 to-transparent p-3.5 pt-12 sm:block md:p-4 md:pt-14">
+                                        <div className="w-fit pl-[38%]">
+                                            <T>
+                                                <p className="font-medium text-[15px] text-white tracking-[-0.3px] md:text-base">
+                                                    Lifestyle
+                                                </p>
+                                                <p className="text-white/75 text-xs">
+                                                    33 items
+                                                </p>
+                                            </T>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="absolute top-3 left-1/2 z-20 w-[min(78%,250px)] -translate-x-1/2 sm:top-3 sm:w-[min(86%,320px)] md:top-4 md:w-[340px]">
+                                <div className="flex h-[270px] flex-col justify-between rounded-[1.25rem] border-4 border-background bg-card p-3 shadow-[0_8px_40px_-12px_rgb(0_0_0/0.35)] sm:h-[330px] sm:rounded-[1.75rem] sm:border-8 sm:p-5 md:h-[380px] md:rounded-[2rem] md:p-7">
+                                    <T context="AI agents demo on homepage">
+                                        <div className="ml-auto w-fit max-w-[92%] rounded-xl bg-muted px-3 py-2.5 sm:rounded-2xl sm:px-5 sm:py-3.5">
+                                            <p className="text-pretty text-left font-medium text-[12px] text-foreground leading-[1.35] tracking-[-0.2px] sm:text-[13px] md:text-[15px]">
+                                                What do my bookmarks say about
+                                                living a better life?
+                                            </p>
+                                        </div>
+                                        <div className="flex flex-col gap-1.5 sm:gap-2.5 md:gap-3">
+                                            <p className="font-medium text-[11px] text-muted-foreground tracking-[-0.2px] sm:text-xs md:text-sm">
+                                                Cache AI
+                                            </p>
+                                            <p className="text-pretty font-medium text-[13px] text-foreground leading-[1.3] tracking-[-0.4px] sm:text-base md:text-lg md:leading-[1.28]">
+                                                Your bookmarks suggest a
+                                                philosophy of life centered on
+                                                deliberate, high-leverage action
+                                                and systematic
+                                                self-optimization.
+                                            </p>
+                                        </div>
+                                    </T>
+                                </div>
+                            </div>
                         </div>
                     </section>
                     <section className="flex w-full flex-col gap-8">

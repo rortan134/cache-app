@@ -1,7 +1,7 @@
 import { buildPageMetadata } from "@/app/metadata";
-import { ApplicationSidebar } from "@/components/sidebar/application-sidebar";
-import { AutomationsList } from "@/components/automations/automations";
 import { AutomationComposerDialog } from "@/components/automations/automation-composer-dialog";
+import { AutomationsList } from "@/components/automations/automations";
+import { ApplicationSidebar } from "@/components/sidebar/application-sidebar";
 import { getServerSession } from "@/lib/auth/session";
 import { listCollections } from "@/lib/collections/service";
 import { gtPublicString } from "@/lib/i18n/gt-public-json";
@@ -59,7 +59,7 @@ export default async function AutomationsPage() {
     return (
         <>
             <ApplicationSidebar />
-            <div className="flex w-full max-w-[1040px] flex-col gap-8 px-6 py-8 sm:px-8 2xl:mx-auto">
+            <div className="relative z-0 flex w-full min-w-0 flex-1 flex-col gap-4 p-8">
                 <header className="flex items-end justify-between gap-4 border-border border-b pb-6">
                     <div className="flex flex-col gap-2">
                         <h1 className="font-semibold text-foreground text-xl">

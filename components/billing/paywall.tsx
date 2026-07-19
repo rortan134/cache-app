@@ -58,8 +58,8 @@ export function BlockPaywallBanner({ length }: BlockPaywallBannerProps) {
                                 <ArrowUpRight className="ml-auto inline-block size-4 shrink-0 text-muted-foreground" />
                             </SubscriptionUpgradeButton>
                             <SubscriptionUpgradeButton
-                                annual
                                 className="mx-auto w-fit text-muted-foreground text-sm underline underline-offset-2 hover:text-foreground"
+                                isAnnual
                                 size="sm"
                                 variant="link"
                             >

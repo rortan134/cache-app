@@ -8,7 +8,7 @@ export function Footer() {
             <div className="relative mx-auto mt-auto grid h-auto w-full max-w-[1024px] grid-cols-12 gap-x-[min(2.25vw,32px)] pt-[120px] lg:top-0">
                 <div className="relative z-20 col-span-full mx-auto grid w-full grid-cols-12 flex-col gap-6 gap-x-[min(2.25vw,32px)]">
                     <div className="col-span-full flex flex-col gap-4">
-                        <div className="col-span-full flex h-full flex-row flex-wrap gap-6 text-[#0A0B0D] text-[0.8rem] leading-[1.22] tracking-[-3%]">
+                        <div className="col-span-full flex h-full flex-row flex-wrap gap-6 text-[0.8rem] text-foreground leading-[1.22] tracking-[-3%]">
                             <div className="flex flex-row flex-wrap gap-6 [&:has(a:hover,a:focus-visible)_a:focus-visible]:opacity-100 [&:has(a:hover,a:focus-visible)_a:hover]:opacity-100 [&:has(a:hover,a:focus-visible)_a]:opacity-25 [&_a:focus-visible]:opacity-100 [&_a:hover]:opacity-100 [&_a]:opacity-50 [&_a]:transition-opacity [&_a]:duration-300">
                                 <Link
                                     className="underline"
@@ -62,10 +62,13 @@ export function Footer() {
                             <p className="opacity-50">
                                 &copy; Cache App. All rights reserved.
                             </p>
-                            <GDPRIcon className="opacity-50" />
+                            <div className="flex items-center gap-1 opacity-50">
+                                <GDPRIcon />
+                                <span>GDPR</span>
+                            </div>
                         </div>
                     </div>
-                    <div className="relative col-span-full flex flex-col items-start justify-between font-sans text-[#0A0B0D] text-xs leading-[1.22] tracking-[-3%] opacity-50">
+                    <div className="relative col-span-full flex flex-col items-start justify-between font-sans text-foreground text-xs leading-[1.22] tracking-[-3%] opacity-50">
                         <span className="opacity-90">
                             <T context="Disclaimer">
                                 Third-party platforms you connect through the
@@ -95,16 +98,14 @@ export function Footer() {
                                 width="426"
                             >
                                 <rect
-                                    className="origin-top transition-transform duration-300 hover:scale-95"
-                                    fill="black"
+                                    className="origin-top fill-foreground transition-transform duration-300 hover:scale-95"
                                     height="100"
                                     rx="30"
                                     width="100"
                                     y="50"
                                 />
                                 <rect
-                                    className="origin-top transition-transform duration-300 hover:scale-95"
-                                    fill="black"
+                                    className="origin-top fill-foreground transition-transform duration-300 hover:scale-95"
                                     height="100"
                                     rx="48"
                                     width="100"
@@ -112,8 +113,7 @@ export function Footer() {
                                     y="50"
                                 />
                                 <rect
-                                    className="origin-top transition-transform duration-300 hover:scale-95"
-                                    fill="black"
+                                    className="origin-top fill-foreground transition-transform duration-300 hover:scale-95"
                                     height="100"
                                     rx="28"
                                     width="100"
@@ -121,8 +121,7 @@ export function Footer() {
                                     y="50"
                                 />
                                 <rect
-                                    className="origin-top transition-transform duration-300 hover:scale-95"
-                                    fill="black"
+                                    className="origin-top fill-foreground transition-transform duration-300 hover:scale-95"
                                     height="100"
                                     rx="38"
                                     width="100"

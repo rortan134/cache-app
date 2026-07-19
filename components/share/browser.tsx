@@ -13,9 +13,10 @@ import {
 } from "@/lib/common/preview-dimensions";
 import { useIsoLayoutEffect } from "@base-ui/utils/useIsoLayoutEffect";
 import { useStableCallback } from "@base-ui/utils/useStableCallback";
+import { T } from "gt-next";
 import * as React from "react";
 
-interface PublicShareGridItem {
+export interface PublicShareGridItem {
     href: string | null;
     id: string;
     kind: "bookmark" | "note";
@@ -131,7 +132,7 @@ function PublicShareGridCard({
     const displayTitle = data.title;
 
     const preview = isNote ? (
-        <div className="relative flex h-auto min-h-56 w-full flex-col justify-between bg-linear-to-br from-amber-50 via-background to-stone-100 p-3">
+        <div className="relative flex h-auto min-h-56 w-full flex-col justify-between bg-linear-to-br from-note-surface-from via-background to-note-surface-to p-3">
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(251,191,36,0.18),transparent_45%)]" />
             <div className="relative flex flex-1 flex-col gap-2 pt-1.5">
                 <p className="whitespace-pre-wrap text-[11px] text-foreground leading-relaxed opacity-90">
@@ -180,7 +181,7 @@ function PublicShareGridCard({
     );
 }
 
-function PublicShareGrid({
+export function PublicShareGrid({
     items,
 }: {
     items: PublicShareGridItem[];
@@ -190,7 +191,7 @@ function PublicShareGrid({
             <div className="flex min-h-[50vh] items-center justify-center">
                 <div className="flex flex-col items-center gap-3 rounded-2xl border border-border/70 border-dashed px-6 py-14 text-center">
                     <p className="max-w-md text-balance text-muted-foreground text-sm">
-                        This collection is empty.
+                        <T>This collection is empty.</T>
                     </p>
                 </div>
             </div>
@@ -210,6 +211,3 @@ function PublicShareGrid({
         />
     );
 }
-
-export { PublicShareGrid };
-export type { PublicShareGridItem };

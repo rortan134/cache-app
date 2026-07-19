@@ -360,7 +360,7 @@ export const INTEGRATIONS: readonly SupportedIntegration[] = [
         },
         category: "media",
         description: "Photos and albums you star",
-        hint: "Import your starred photos and albums from Google Photos.",
+        hint: "Import your favorite photos and albums from Google Photos.",
         Icon: PhotosIcon,
         id: "google-photos",
         label: "Google Photos",
@@ -760,9 +760,11 @@ export function integrationOwnsLibraryItemSource(
     id: IntegrationId,
     source: LibraryItemSource
 ): boolean {
-    const libraryItemSources = getIntegration(id).source?.libraryItemSources;
-    // biome-ignore lint/suspicious/noUnnecessaryConditions: libraryItemSources is typed as LibraryItemSource[] | undefined per the type system
-    return libraryItemSources?.includes(source) ?? false;
+    const definition = getIntegration(id).source;
+    if (!definition) {
+        return false;
+    }
+    return definition.libraryItemSources.includes(source);
 }
 
 export function isIntegrationConnected(

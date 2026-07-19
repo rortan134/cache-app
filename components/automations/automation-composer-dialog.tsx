@@ -28,6 +28,7 @@ import { cn } from "@/lib/common/cn";
 import {
     DEFAULT_TIME_OF_DAY_MINUTES,
     formatTimeOfDayMinutes,
+    getMonthDayLabel,
     getTimeOfDayOption,
     getTimeOfDayOptionByLabel,
     getTimeOfDayOptions,
@@ -1023,12 +1024,4 @@ function getMonthDayOption(monthDay: number) {
         MONTH_DAY_OPTIONS.find((option) => option.value === monthDay) ??
         DEFAULT_MONTH_DAY_OPTION
     );
-}
-
-function getMonthDayLabel(monthDay: number): string {
-    const suffix =
-        monthDay >= 11 && monthDay <= 13
-            ? "th"
-            : (["th", "st", "nd", "rd"][monthDay % 10] ?? "th");
-    return `${monthDay}${suffix}`;
 }

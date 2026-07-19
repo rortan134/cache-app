@@ -12,6 +12,7 @@ import { cn } from "@/lib/common/cn";
 import {
     DEFAULT_TIME_OF_DAY_MINUTES,
     formatTimeOfDayMinutes,
+    getMonthDayLabel,
 } from "@/lib/common/time";
 import {
     deleteAutomation,
@@ -20,6 +21,7 @@ import {
 } from "@/lib/intelligence/automations/actions";
 import type { AutomationListItem } from "@/lib/intelligence/automations/service";
 import { useStableCallback } from "@base-ui/utils/useStableCallback";
+import { T } from "gt-next";
 import {
     Bot,
     CalendarClock,
@@ -49,6 +51,11 @@ const WEEK_DAY_LABELS = [
     "Friday",
     "Saturday",
 ] as const;
+
+const DATE_TIME_INTL = new Intl.DateTimeFormat(undefined, {
+    dateStyle: "medium",
+    timeStyle: "short",
+});
 
 function getTemplateIcon(templateKey: AutomationListItem["templateKey"]) {
     if (templateKey) {
@@ -144,14 +151,6 @@ function formatSchedule(automation: AutomationListItem): string {
     return `Daily at ${time}`;
 }
 
-function getMonthDayLabel(monthDay: number): string {
-    const suffix =
-        monthDay >= 11 && monthDay <= 13
-            ? "th"
-            : (["th", "st", "nd", "rd"][monthDay % 10] ?? "th");
-    return `${monthDay}${suffix}`;
-}
-
 function getAutomationRunMessage(run: AutomationRunListItem) {
     if (run.summaryMarkdown) {
         return (
@@ -184,11 +183,13 @@ export function AutomationsList({
                 />
                 <div className="flex flex-col gap-1">
                     <h2 className="font-medium text-foreground text-sm">
-                        No automations yet
+                        <T>No automations yet</T>
                     </h2>
                     <p className="max-w-sm text-muted-foreground text-sm leading-6">
-                        Create one to summarize or organize saved content on a
-                        schedule.
+                        <T>
+                            Create one to summarize or organize saved content on
+                            a schedule.
+                        </T>
                     </p>
                 </div>
             </section>
@@ -408,11 +409,6 @@ function AutomationIconButton({
         </Button>
     );
 }
-
-const DATE_TIME_INTL = new Intl.DateTimeFormat(undefined, {
-    dateStyle: "medium",
-    timeStyle: "short",
-});
 
 function getRunStatusClassName(status: AutomationRunListItem["status"]) {
     if (status === "failed") {

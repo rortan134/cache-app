@@ -3,13 +3,22 @@
 import { useStableCallback } from "@base-ui/utils/useStableCallback";
 import * as React from "react";
 
-const HISTORY_LIMIT = 15;
-
+const HISTORY_LIMIT = 50;
 const LEGACY_STORAGE_KEY = "cache:lastVisitedItemIds";
 const STORAGE_KEY = "cache:lastVisitedItemIds:v1";
 
 let listeners: Array<() => void> = [];
 let cachedSnapshot: string[] | null | undefined;
+
+function isQuotaExceededError(error: unknown): boolean {
+    return (
+        error instanceof DOMException &&
+        (error.name === "QuotaExceededError" ||
+            // Legacy WebKit / Firefox names.
+            error.name === "NS_ERROR_DOM_QUOTA_REACHED" ||
+            error.code === 22)
+    );
+}
 
 function readLastVisitedItemIds(): string[] {
     try {
@@ -44,11 +53,20 @@ function readLastVisitedItemIds(): string[] {
     }
 }
 
-function writeLastVisitedItemIds(ids: string[]): void {
-    try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(ids));
-    } catch {
-        // storage unavailable
+function writeLastVisitedItemIds(ids: string[]): string[] {
+    let candidate = ids;
+    for (;;) {
+        try {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(candidate));
+            return candidate;
+        } catch (error) {
+            if (!isQuotaExceededError(error) || candidate.length <= 1) {
+                // Keep the last known good snapshot — never adopt an
+                // unpersisted list that would diverge from storage.
+                return cachedSnapshot ?? [];
+            }
+            candidate = candidate.slice(0, Math.floor(candidate.length / 2));
+        }
     }
 }
 
@@ -109,8 +127,8 @@ export function useLastVisited(): {
             0,
             HISTORY_LIMIT
         );
-        cachedSnapshot = next;
-        writeLastVisitedItemIds(next);
+        const persisted = writeLastVisitedItemIds(next);
+        cachedSnapshot = persisted;
         emitChange();
     });
 

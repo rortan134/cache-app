@@ -6,6 +6,7 @@ import {
     UserMenuPopup,
     UserMenuTrigger,
 } from "@/components/auth/user-menu";
+import { SidebarNavigationItem } from "@/components/sidebar/sidebar-navigation-item";
 import {
     Sidebar,
     SidebarGroup,
@@ -17,7 +18,6 @@ import {
 import { T } from "gt-next";
 import { Compass, History, Workflow } from "lucide-react";
 import type * as React from "react";
-import { SidebarNavigationItem } from "./sidebar-navigation-item";
 
 export function ApplicationSidebar({ children }: React.PropsWithChildren) {
     return (

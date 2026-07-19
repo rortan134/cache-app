@@ -221,7 +221,7 @@ Then you write thin translation layers at each boundary:
 
 ```ts
 // lib/payment/errors.ts
-import { z } from "zod";
+import * as z from "zod";
 import { NamedError } from "@/lib/common/error";
 
 // Domain errors are independent of any transport. They describe what went wrong

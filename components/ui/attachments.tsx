@@ -105,7 +105,7 @@ function renderAttachmentPreviewContent(
     data: AttachmentData,
     mediaCategory: AttachmentMediaCategory,
     variant: AttachmentVariant,
-    fallbackIcon: React.ReactNode
+    fallbackIcon: React.ReactNode | undefined
 ) {
     if (mediaCategory === "image" && data.type === "file" && data.url) {
         return renderAttachmentImage(
@@ -121,10 +121,14 @@ function renderAttachmentPreviewContent(
         );
     }
 
+    if (fallbackIcon !== undefined) {
+        return fallbackIcon;
+    }
+
     const Icon = MEDIA_CATEGORY_ICON_BY_CATEGORY[mediaCategory];
     const iconClassName = variant === "inline" ? "size-3" : "size-4";
-    // biome-ignore lint/suspicious/noUnnecessaryConditions: fallbackIcon may be undefined at runtime despite non-optional type
-    return fallbackIcon ?? renderAttachmentIcon(Icon, iconClassName);
+
+    return renderAttachmentIcon(Icon, iconClassName);
 }
 
 interface AttachmentsContextValue {

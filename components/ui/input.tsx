@@ -6,7 +6,7 @@ import type * as React from "react";
 
 export type InputSize = "sm" | "default" | "lg" | number;
 
-interface InputProps
+export interface InputProps
     extends Omit<
         InputPrimitive.Props & React.RefAttributes<HTMLInputElement>,
         "size"

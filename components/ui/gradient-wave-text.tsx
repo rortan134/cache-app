@@ -185,7 +185,7 @@ export function GradientWaveText({
         <div
             aria-label={ariaLabel}
             className={cn(
-                "flex size-full items-center [--gradient-wave-base:rgb(29,29,31)]",
+                "flex size-full items-center overflow-clip",
                 className
             )}
             ref={elRef}

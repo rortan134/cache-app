@@ -1,13 +1,13 @@
-import { ApplicationSidebar } from "@/components/sidebar/application-sidebar";
+import { buildPageMetadata } from "@/app/metadata";
 import { RecentlyDeletedList } from "@/components/recently-deleted/recently-deleted-list";
+import { ApplicationSidebar } from "@/components/sidebar/application-sidebar";
 import { getServerSession } from "@/lib/auth/session";
 import { listRecentlyDeletedItems } from "@/lib/collections/service";
-import { buildPageMetadata } from "@/app/metadata";
 import { gtPublicString } from "@/lib/i18n/gt-public-json";
+import { T } from "gt-next";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { connection } from "next/server";
-import { T } from "gt-next";
 
 export const instant = false;
 
@@ -49,7 +49,7 @@ export default async function RecentlyDeletedPage() {
     return (
         <>
             <ApplicationSidebar />
-            <div className="flex w-full max-w-[1040px] flex-col gap-8 px-6 py-8 sm:px-8 2xl:mx-auto">
+            <div className="relative z-0 flex w-full min-w-0 flex-1 flex-col gap-4 p-8">
                 <header className="flex items-end justify-between gap-4 border-border border-b pb-6">
                     <div className="flex flex-col gap-2">
                         <h1 className="font-semibold text-foreground text-xl">
