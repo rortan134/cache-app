@@ -588,11 +588,10 @@ function useToggleCollectionFavorite() {
 
     const toggleFavorite = useStableCallback(
         (collection: LibraryCollectionSummary) => {
-            let isNowFavorite = false;
-            setFavoriteCollectionIds((current) => {
-                isNowFavorite = !current.includes(collection.id);
-                return toggleValue(current, collection.id);
-            });
+            const isNowFavorite = !favoriteCollectionIdSet.has(collection.id);
+            setFavoriteCollectionIds((current) =>
+                toggleValue(current, collection.id)
+            );
             setFeedback({
                 message: isNowFavorite
                     ? `${collection.name} added to Favorites.`
@@ -1493,12 +1492,14 @@ function useCollectionHoverHotkeys(input: {
 }
 
 function useCollectionsController() {
+    const { selectedCollectionIds } = useWorkspaceContext();
     const hoveredCollectionRef = React.useRef<LibraryCollectionSummary | null>(
         null
     );
     const sync = useCollectionSync(hoveredCollectionRef);
     const dialogs = useCollectionDialogRequests();
     const rowActions = useCollectionRowActions(sync);
+    const selectedCollectionIdSet = new Set(selectedCollectionIds);
 
     useCollectionPanelHotkeys();
     useCollectionHoverHotkeys({
@@ -1546,6 +1547,7 @@ function useCollectionsController() {
             pendingRename: dialogs.pendingRename,
             pendingShareIdSet: rowActions.pendingShareIdSet,
             requestCreate: dialogs.requestCreate,
+            selectedCollectionIdSet,
         },
     };
 }
@@ -2936,11 +2938,11 @@ function CollectionsListItem({
     style: styleProp,
     ...props
 }: CollectionsListItemProps) {
-    const { selectedCollectionIds } = useWorkspaceContext();
-    const { hoveredCollectionRef } = useCollectionsState();
+    const { hoveredCollectionRef, selectedCollectionIdSet } =
+        useCollectionsState();
     const handleMouseEnter = useStableCallback(onMouseEnterProp);
     const handleMouseLeave = useStableCallback(onMouseLeaveProp);
-    const isSelected = selectedCollectionIds.includes(collection.id);
+    const isSelected = selectedCollectionIdSet.has(collection.id);
     const style = getCollectionItemStyle(collection.name, isSelected);
 
     React.useEffect(

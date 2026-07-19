@@ -638,29 +638,32 @@ function ComposerLibraryMetricsPanel({
         unreachableCount,
     } = metrics;
 
-    const gapRows = [
-        uncollectedCount > 0
-            ? {
-                  key: "uncollected",
-                  label: "Not in Collections",
-                  value: formatShareValue(uncollectedCount, itemCount),
-              }
-            : null,
-        duplicateCount > 0
-            ? {
-                  key: "duplicates",
-                  label: "Duplicates",
-                  value: formatShareValue(duplicateCount, itemCount),
-              }
-            : null,
-        unreachableCount > 0
-            ? {
-                  key: "unreachable",
-                  label: "Unreachable",
-                  value: formatShareValue(unreachableCount, itemCount),
-              }
-            : null,
-    ].filter((row) => row !== null);
+    const gapRows: {
+        key: string;
+        label: string;
+        value: React.ReactNode;
+    }[] = [];
+    if (uncollectedCount > 0) {
+        gapRows.push({
+            key: "uncollected",
+            label: "Not in Collections",
+            value: formatShareValue(uncollectedCount, itemCount),
+        });
+    }
+    if (duplicateCount > 0) {
+        gapRows.push({
+            key: "duplicates",
+            label: "Duplicates",
+            value: formatShareValue(duplicateCount, itemCount),
+        });
+    }
+    if (unreachableCount > 0) {
+        gapRows.push({
+            key: "unreachable",
+            label: "Unreachable",
+            value: formatShareValue(unreachableCount, itemCount),
+        });
+    }
 
     return (
         <MetricsPanel>
@@ -718,18 +721,13 @@ function ComposerLibraryMetricsPanel({
                             itemCount
                         )}
                     />
-                    {gapRows.length > 0
-                        ? gapRows.map(
-                              (row) =>
-                                  row && (
-                                      <MetricsDataListItem
-                                          key={row.key}
-                                          label={row.label}
-                                          value={row.value}
-                                      />
-                                  )
-                          )
-                        : null}
+                    {gapRows.map((row) => (
+                        <MetricsDataListItem
+                            key={row.key}
+                            label={row.label}
+                            value={row.value}
+                        />
+                    ))}
                 </MetricsDataList>
             </MetricsPanelSection>
         </MetricsPanel>
