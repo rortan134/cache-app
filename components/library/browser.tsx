@@ -19,7 +19,7 @@ import {
     type CommandSuggestion,
     type PaletteStackEntry,
 } from "@/components/library/composer";
-import { isHoverHotkeySurface } from "@/components/library/hover-hotkey-surface";
+import { isCollectionHoverHotkeySurface } from "@/components/library/hover-hotkey-surface";
 import {
     NoteEditor,
     NoteHeader,
@@ -5349,7 +5349,7 @@ function useCardHoverHotkeys(input: {
     const resolveHoveredItem = useStableCallback(() => {
         // Collection rows claim the surface while hovered so pinned card
         // menus do not steal Alt+E / Alt+F / ⌘⌫ from collection shortcuts.
-        if (isHoverHotkeySurface("collection")) {
+        if (isCollectionHoverHotkeySurface()) {
             return null;
         }
         const id = hoveredItemIdRef.current;
@@ -6358,7 +6358,7 @@ export function BrowserRoot({
         }
 
         if (event.key.toLowerCase() === "s") {
-            if (isHoverHotkeySurface("collection")) {
+            if (isCollectionHoverHotkeySurface()) {
                 return;
             }
             const id = hoveredItemIdRef.current;

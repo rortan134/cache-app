@@ -2,8 +2,10 @@
 
 import { useSubscriptionAccess } from "@/components/billing/subscription";
 import {
-    claimHoverHotkeySurface,
-    releaseHoverHotkeySurface,
+    claimCollectionHoverHotkeySurface,
+    clearCollectionHoverHotkeySurface,
+    isCollectionHoverHotkeySurface,
+    releaseCollectionHoverHotkeySurface,
 } from "@/components/library/hover-hotkey-surface";
 import {
     appendCollection,
@@ -953,7 +955,7 @@ function useCollectionSync(
     const syncDeleted = useStableCallback((collectionId: string) => {
         if (hoveredCollectionRef.current?.id === collectionId) {
             hoveredCollectionRef.current = null;
-            releaseHoverHotkeySurface("collection");
+            clearCollectionHoverHotkeySurface();
         }
         setCollections((current) =>
             current.filter((collection) => collection.id !== collectionId)
@@ -1427,10 +1429,17 @@ function useCollectionHoverHotkeys(input: {
         setPendingPriorityComboboxCollectionId,
     } = input;
 
+    const resolveHoveredCollection = () => {
+        if (!isCollectionHoverHotkeySurface()) {
+            return null;
+        }
+        return hoveredCollectionRef.current;
+    };
+
     useHotkeys(
         "alt+e",
         (event) => {
-            const target = hoveredCollectionRef.current;
+            const target = resolveHoveredCollection();
             if (target) {
                 event.preventDefault();
                 requestRename(target);
@@ -1442,7 +1451,7 @@ function useCollectionHoverHotkeys(input: {
     useHotkeys(
         ["delete", "backspace"],
         (event) => {
-            const target = hoveredCollectionRef.current;
+            const target = resolveHoveredCollection();
             if (target) {
                 event.preventDefault();
                 requestDelete(target);
@@ -1454,7 +1463,7 @@ function useCollectionHoverHotkeys(input: {
     useHotkeys(
         "c",
         (event) => {
-            const target = hoveredCollectionRef.current;
+            const target = resolveHoveredCollection();
             if (target && target.itemCount > 0) {
                 event.preventDefault();
                 onCopyLinks(target);
@@ -1466,7 +1475,7 @@ function useCollectionHoverHotkeys(input: {
     useHotkeys(
         "alt+f",
         (event) => {
-            const target = hoveredCollectionRef.current;
+            const target = resolveHoveredCollection();
             if (target && !favoriteCollectionIdSetRef.current.has(target.id)) {
                 event.preventDefault();
                 toggleFavorite(target);
@@ -1478,7 +1487,7 @@ function useCollectionHoverHotkeys(input: {
     useHotkeys(
         "p",
         () => {
-            const target = hoveredCollectionRef.current;
+            const target = resolveHoveredCollection();
             if (!target) {
                 return;
             }
@@ -1500,6 +1509,27 @@ function useCollectionsController() {
     const dialogs = useCollectionDialogRequests();
     const rowActions = useCollectionRowActions(sync);
     const selectedCollectionIdSet = new Set(selectedCollectionIds);
+
+    React.useEffect(() => {
+        const clearStaleCollectionHover = () => {
+            hoveredCollectionRef.current = null;
+            clearCollectionHoverHotkeySurface();
+        };
+        const handleVisibilityChange = () => {
+            if (document.visibilityState === "hidden") {
+                clearStaleCollectionHover();
+            }
+        };
+        window.addEventListener("blur", clearStaleCollectionHover);
+        document.addEventListener("visibilitychange", handleVisibilityChange);
+        return () => {
+            window.removeEventListener("blur", clearStaleCollectionHover);
+            document.removeEventListener(
+                "visibilitychange",
+                handleVisibilityChange
+            );
+        };
+    }, []);
 
     useCollectionPanelHotkeys();
     useCollectionHoverHotkeys({
@@ -2942,33 +2972,31 @@ function CollectionsListItem({
         useCollectionsState();
     const handleMouseEnter = useStableCallback(onMouseEnterProp);
     const handleMouseLeave = useStableCallback(onMouseLeaveProp);
+    const hoverClaimIdRef = React.useRef(0);
     const isSelected = selectedCollectionIdSet.has(collection.id);
     const style = getCollectionItemStyle(collection.name, isSelected);
 
-    React.useEffect(
-        () => () => {
-            if (hoveredCollectionRef.current?.id === collection.id) {
-                hoveredCollectionRef.current = null;
-                releaseHoverHotkeySurface("collection");
-            }
-        },
-        [collection.id, hoveredCollectionRef]
-    );
+    const releaseHoverClaim = useStableCallback(() => {
+        releaseCollectionHoverHotkeySurface(hoverClaimIdRef.current);
+        hoverClaimIdRef.current = 0;
+        if (hoveredCollectionRef.current?.id === collection.id) {
+            hoveredCollectionRef.current = null;
+        }
+    });
+
+    React.useEffect(() => releaseHoverClaim, [releaseHoverClaim]);
 
     const onMouseEnter = useStableCallback(
         (event: React.MouseEvent<HTMLDivElement>) => {
             hoveredCollectionRef.current = collection;
-            claimHoverHotkeySurface("collection");
+            hoverClaimIdRef.current = claimCollectionHoverHotkeySurface();
             handleMouseEnter?.(event);
         }
     );
 
     const onMouseLeave = useStableCallback(
         (event: React.MouseEvent<HTMLDivElement>) => {
-            if (hoveredCollectionRef.current?.id === collection.id) {
-                hoveredCollectionRef.current = null;
-                releaseHoverHotkeySurface("collection");
-            }
+            releaseHoverClaim();
             handleMouseLeave?.(event);
         }
     );
