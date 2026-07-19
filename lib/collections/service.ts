@@ -1,5 +1,6 @@
 import "server-only";
 
+import { templateDescriptionForNameKey } from "@/lib/collections/templates";
 import {
     LIBRARY_COLLECTION_TAG_SELECT,
     LIBRARY_ITEM_COLLECTIONS_INCLUDE,
@@ -424,6 +425,8 @@ export function createCollection({
     collection: LibraryCollectionSummary;
 }> {
     const normalized = normalizeCollectionName(name);
+    const resolvedDescription =
+        description ?? templateDescriptionForNameKey(normalized.nameKey);
 
     return prisma.$transaction(async (tx) => {
         const assignedItem = assignToItemId
@@ -443,7 +446,7 @@ export function createCollection({
 
         const collection = await tx.collection.create({
             data: {
-                description,
+                description: resolvedDescription,
                 items: assignedItem
                     ? { connect: { id: assignedItem.id } }
                     : undefined,
@@ -479,6 +482,8 @@ export function createCollectionFromItems({
     collection: LibraryCollectionSummary;
 }> {
     const normalized = normalizeCollectionName(name);
+    const resolvedDescription =
+        description ?? templateDescriptionForNameKey(normalized.nameKey);
 
     return prisma.$transaction(async (tx) => {
         await ensureCollectionNameAvailable(tx, {
@@ -496,7 +501,7 @@ export function createCollectionFromItems({
 
         const collection = await tx.collection.create({
             data: {
-                description,
+                description: resolvedDescription,
                 items: {
                     connect: toIdConnections(itemIds),
                 },

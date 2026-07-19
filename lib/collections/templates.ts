@@ -1,3 +1,5 @@
+import { normalizeCollectionName } from "@/lib/common/strings";
+
 export interface CollectionTemplateOption {
     description: string;
     name: string;
@@ -112,3 +114,16 @@ export type TemplateValue = (typeof TEMPLATES)[number]["value"];
 export const TEMPLATE_BY_VALUE = new Map(
     TEMPLATES.map((template) => [template.value, template])
 );
+
+export const TEMPLATE_BY_NAME_KEY = new Map(
+    TEMPLATES.map((template) => [
+        normalizeCollectionName(template.name).nameKey,
+        template,
+    ])
+);
+
+export function templateDescriptionForNameKey(
+    nameKey: string
+): string | undefined {
+    return TEMPLATE_BY_NAME_KEY.get(nameKey)?.description;
+}

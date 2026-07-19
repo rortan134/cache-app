@@ -60,6 +60,23 @@ export function MetricsPanelTitle({
     });
 }
 
+export function MetricsPanelSection({
+    className,
+    render,
+    ...props
+}: useRender.ComponentProps<"section">) {
+    const defaultProps = {
+        className: cn("flex flex-col gap-2", className),
+        "data-slot": "metrics-panel-section",
+    };
+
+    return useRender({
+        defaultTagName: "section",
+        props: mergeProps<"section">(defaultProps, props),
+        render,
+    });
+}
+
 export function MetricsPanelChart({
     className,
     segments,
@@ -81,7 +98,7 @@ export function MetricsDataList({
     ...props
 }: useRender.ComponentProps<"dl">) {
     const defaultProps = {
-        className: cn("mt-1 flex flex-col gap-1.5", className),
+        className: cn("mt-1.5 flex flex-col gap-1.5", className),
         "data-slot": "metrics-data-list",
     };
 
@@ -111,7 +128,7 @@ export function MetricsDataListItem({
                             style={{ backgroundColor: color }}
                         />
                     ) : null}
-                    <span className="truncate">{label}</span>
+                    <span className="truncate font-medium">{label}</span>
                 </dt>
                 <dd className="text-foreground tabular-nums">{value}</dd>
             </>

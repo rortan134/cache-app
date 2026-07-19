@@ -1,6 +1,10 @@
+import { collectDuplicateBookmarkItemIds } from "@/lib/collections/library-quality";
 import { getChartColorsForKeys } from "@/lib/common/colors";
 import { ITEM_KIND_NOTE } from "@/lib/common/constants";
-import type { LibraryItemSource } from "@/prisma/client/enums";
+import {
+    LibraryItemLinkReachability,
+    type LibraryItemSource,
+} from "@/prisma/client/enums";
 
 export interface LibraryMetricsSegment {
     color: string;
@@ -10,7 +14,7 @@ export interface LibraryMetricsSegment {
 }
 
 export interface LibraryMetricsSnapshot {
-    collectionCount: number;
+    duplicateCount: number;
     favoriteCount: number;
     inCollectionCount: number;
     itemCount: number;
@@ -18,13 +22,17 @@ export interface LibraryMetricsSnapshot {
     noteCount: number;
     sourceSegments: LibraryMetricsSegment[];
     uncollectedCount: number;
+    unreachableCount: number;
 }
 
 export interface LibraryMetricsItem {
     collections: readonly { id: string }[];
     favoritedAt: Date | null;
+    id: string;
     kind: string;
+    linkReachability?: LibraryItemLinkReachability | null;
     source: LibraryItemSource;
+    url: string;
 }
 
 /**
@@ -41,10 +49,10 @@ export function buildLibraryMetrics({
     libraryItemCount: number;
 }): LibraryMetricsSnapshot {
     const sourceCounts = new Map<LibraryItemSource, number>();
-    const collectionIds = new Set<string>();
     let favoriteCount = 0;
     let noteCount = 0;
     let uncollectedCount = 0;
+    let unreachableCount = 0;
 
     for (const item of items) {
         sourceCounts.set(item.source, (sourceCounts.get(item.source) ?? 0) + 1);
@@ -58,8 +66,8 @@ export function buildLibraryMetrics({
         if (item.collections.length === 0) {
             uncollectedCount += 1;
         }
-        for (const collection of item.collections) {
-            collectionIds.add(collection.id);
+        if (item.linkReachability === LibraryItemLinkReachability.unreachable) {
+            unreachableCount += 1;
         }
     }
 
@@ -93,7 +101,7 @@ export function buildLibraryMetrics({
     const itemCount = items.length;
 
     return {
-        collectionCount: collectionIds.size,
+        duplicateCount: collectDuplicateBookmarkItemIds(items).size,
         favoriteCount,
         inCollectionCount: itemCount - uncollectedCount,
         itemCount,
@@ -101,5 +109,6 @@ export function buildLibraryMetrics({
         noteCount,
         sourceSegments,
         uncollectedCount,
+        unreachableCount,
     };
 }

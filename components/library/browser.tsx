@@ -19,6 +19,7 @@ import {
     type CommandSuggestion,
     type PaletteStackEntry,
 } from "@/components/library/composer";
+import { isCollectionHoverHotkeySurface } from "@/components/library/hover-hotkey-surface";
 import {
     NoteEditor,
     NoteHeader,
@@ -1749,11 +1750,11 @@ function buildCollectionPaletteItems({
 }): CommandPaletteItem[] {
     return [
         {
-            active: selectedCollectionIds.length === 0,
             description:
                 selectedCollectionIds.length === 0
                     ? "Show items from every collection"
                     : "Clear the selected collection filters",
+            isActive: selectedCollectionIds.length === 0,
             label: "Collections: All collections",
             onSelect: wrapOnSelect(onClearCollectionFilters),
             value: "filter collection all",
@@ -1762,11 +1763,11 @@ function buildCollectionPaletteItems({
             const isActive = selectedCollectionIds.includes(collection.id);
 
             return {
-                active: isActive,
                 description: buildCollectionPaletteDescription(
                     collection,
                     isActive
                 ),
+                isActive,
                 label: `Collection: ${collection.name}`,
                 onSelect: wrapOnSelect(() =>
                     onToggleCollectionSelection(collection.id)
@@ -1791,7 +1792,7 @@ function PaletteChip({
     });
 
     return (
-        <span className="inline-flex max-w-[min(100%,12rem)] items-center gap-0.5 rounded-full border border-border/60 bg-background/80 py-0.5 ps-2 pe-0.5 font-medium text-foreground text-xs shadow-xs/5 backdrop-blur-md backdrop-saturate-150">
+        <span className="inline-flex max-w-[min(100%,12rem)] items-center gap-0.5 rounded-full border border-border/60 bg-background/90 py-0.5 ps-2 pe-0.5 font-medium text-foreground text-xs shadow-xs/5">
             <span className="min-w-0 max-w-full truncate text-xs">{label}</span>
             <Button
                 aria-label={`Remove ${label}`}
@@ -1903,7 +1904,7 @@ function PaletteAttachmentChip({
                 <AttachmentPreviewCardTrigger
                     render={
                         <Attachment
-                            className="max-w-[min(100%,12rem)] rounded-full border-border/60 bg-background/80 py-0.5 ps-1 pe-0.5 text-xs shadow-xs/5 backdrop-blur-md backdrop-saturate-150"
+                            className="max-w-[min(100%,12rem)] rounded-full border-border/60 bg-background/90 py-0.5 ps-1 pe-0.5 text-xs shadow-xs/5"
                             data={attachment}
                             onRemove={handleRemove}
                         />
@@ -1972,12 +1973,20 @@ interface BrowserResultsContextValue {
     favoriteItemIdSet: ReadonlySet<string>;
     /**
      * Tracks the id of the grid card currently under the pointer so
-     * global hotkeys (e.g. `S` to open the collection picker) can target
-     * the hovered card instead of requiring keyboard focus on the card,
-     * which is unreachable while the pointer is elsewhere. Mirrors the
-     * `hoveredCollectionRef` pattern used by the collections list.
+     * global hotkeys (e.g. `S` to open the collection picker, `⌥F` /
+     * `⌥E` / `⌘⌫` for card actions) can target the hovered card instead
+     * of requiring keyboard focus on the card, which is unreachable
+     * while the pointer is elsewhere. Mirrors the `hoveredCollectionRef`
+     * pattern used by the collections list. While a card's menu or
+     * context menu is open, the card keeps this id pinned so menu
+     * shortcut labels still work after the pointer moves into the popup.
      */
     hoveredItemIdRef: React.RefObject<string | null>;
+    /**
+     * When non-null, a card menu/picker has claimed the hover target.
+     * Other cards must not overwrite `hoveredItemIdRef` until released.
+     */
+    hoverPinnedItemIdRef: React.RefObject<string | null>;
     onCollapseAllSections?: () => void;
     onCopyLink: (item: LibraryItemWithCollections) => void;
     onCreateCollectionFromResults?: () => void;
@@ -2575,6 +2584,7 @@ function BrowserCardProvider({ children }: React.PropsWithChildren) {
         collections,
         favoriteItemIdSet,
         hoveredItemIdRef,
+        hoverPinnedItemIdRef,
         onCopyLink,
         onDelete,
         onFindSimilar,
@@ -2593,6 +2603,7 @@ function BrowserCardProvider({ children }: React.PropsWithChildren) {
                 collections,
                 favoriteItemIdSet,
                 hoveredItemIdRef,
+                hoverPinnedItemIdRef,
                 onCopyLink,
                 onDelete,
                 onFindSimilar,
@@ -2718,10 +2729,10 @@ function buildSearchPaletteGroups({
     if (draft) {
         const shouldDefaultToAskCache = isMultiWordQuery(draft);
         const addSearchItem: CommandPaletteItem = {
-            active: draftAlreadyIncluded,
             description: draftAlreadyIncluded
                 ? "Already included in the search"
                 : "Add this search term",
+            isActive: draftAlreadyIncluded,
             label: `Search "${draft}"`,
             onSelect: () => {
                 setSearchTerms((current) =>
@@ -2753,8 +2764,8 @@ function buildSearchPaletteGroups({
         groups.push({
             items: [
                 ...searchTerms.map((term) => ({
-                    active: true,
                     description: "Active stacked search term",
+                    isActive: true,
                     label: `Search: ${truncateLabel(term, 28)}`,
                     onSelect: () =>
                         setSearchTerms((current) => removeValue(current, term)),
@@ -2787,7 +2798,7 @@ function buildSearchPaletteGroups({
                     continue;
                 }
                 collectionItems.push({
-                    active: selectedCollectionIds.includes(collection.id),
+                    isActive: selectedCollectionIds.includes(collection.id),
                     label: collection.name,
                     onSelect: applyCollectionFilter(() =>
                         onToggleCollectionSelection(collection.id)
@@ -2852,9 +2863,6 @@ function buildSearchPaletteGroups({
                                       <History className="size-4 shrink-0 text-muted-foreground" />
                                       <span className="truncate">
                                           Pick up where you left off
-                                      </span>
-                                      <span className="text-muted-foreground/60 text-xs tabular-nums">
-                                          {lastVisitedItemIds.length}
                                       </span>
                                   </div>
                               ),
@@ -3187,11 +3195,11 @@ function buildPaletteGroups({
         groups.push({
             items: [
                 {
-                    active: duplicatesFilterEnabled,
                     description:
                         duplicateItemCount > 0
                             ? `Show ${duplicateItemCount} bookmark${duplicateItemCount === 1 ? "" : "s"} that share a URL`
                             : "No duplicate bookmarks found right now",
+                    isActive: duplicatesFilterEnabled,
                     label: "Duplicates",
                     onSelect: applyAndStay(() =>
                         setDuplicatesFilterEnabled(!duplicatesFilterEnabled)
@@ -3199,9 +3207,9 @@ function buildPaletteGroups({
                     value: "filter duplicates",
                 },
                 {
-                    active: unreachableFilterEnabled,
                     description:
                         "Check which bookmark links fail to load or time out",
+                    isActive: unreachableFilterEnabled,
                     label: "Unreachable links",
                     onSelect: applyAndStay(() =>
                         setUnreachableFilterEnabled(!unreachableFilterEnabled)
@@ -3214,15 +3222,15 @@ function buildPaletteGroups({
         groups.push({
             items: [
                 {
-                    active: sourceFilters.length === 0,
                     description: "Show every source",
+                    isActive: sourceFilters.length === 0,
                     label: "Source: All sources",
                     onSelect: applyAndStay(() => setSourceFilters([])),
                     value: "filter source all",
                 },
                 ...PALETTE_SOURCE_FILTER_OPTIONS.map((option) => ({
-                    active: sourceFilters.includes(option.value),
                     description: "Toggle this source in the filter stack",
+                    isActive: sourceFilters.includes(option.value),
                     label: `Source: ${option.label}`,
                     onSelect: applyAndStay(() =>
                         setSourceFilters((current) =>
@@ -3237,11 +3245,11 @@ function buildPaletteGroups({
         groups.push({
             items: [
                 {
-                    active:
-                        collectionMembershipFilter ===
-                        DEFAULT_COLLECTION_MEMBERSHIP_FILTER,
                     description:
                         "Show items whether or not they are in collections",
+                    isActive:
+                        collectionMembershipFilter ===
+                        DEFAULT_COLLECTION_MEMBERSHIP_FILTER,
                     label: "Collections: All items",
                     onSelect: applyAndStay(() =>
                         setCollectionMembershipFilter(
@@ -3251,9 +3259,9 @@ function buildPaletteGroups({
                     value: "filter collections all",
                 },
                 {
-                    active: collectionMembershipFilter === "in-collections",
                     description:
                         "Show only items that belong to at least one collection",
+                    isActive: collectionMembershipFilter === "in-collections",
                     label: "Collections: In collections",
                     onSelect: applyAndStay(() =>
                         setCollectionMembershipFilter("in-collections")
@@ -3261,9 +3269,10 @@ function buildPaletteGroups({
                     value: "filter collections in",
                 },
                 {
-                    active: collectionMembershipFilter === "not-in-collections",
                     description:
                         "Show only items that do not belong to any collection",
+                    isActive:
+                        collectionMembershipFilter === "not-in-collections",
                     label: "Collections: Not in collections",
                     onSelect: applyAndStay(() =>
                         setCollectionMembershipFilter("not-in-collections")
@@ -3285,14 +3294,14 @@ function buildPaletteGroups({
         });
         groups.push({
             items: domainOptions.map((option) => ({
-                active:
-                    option.value === ALL_DOMAIN_FILTER
-                        ? domainFilters.length === 0
-                        : domainFilters.includes(option.value),
                 description:
                     option.value === ALL_DOMAIN_FILTER
                         ? "Show items from every domain"
                         : "Toggle this domain in the filter stack",
+                isActive:
+                    option.value === ALL_DOMAIN_FILTER
+                        ? domainFilters.length === 0
+                        : domainFilters.includes(option.value),
                 label: `Domain: ${option.label}`,
                 onSelect: applyAndStay(() =>
                     option.value === ALL_DOMAIN_FILTER
@@ -3313,8 +3322,8 @@ function buildPaletteGroups({
             { items: [backItem], label: "Navigation" },
             {
                 items: PALETTE_GROUP_OPTIONS.map((option) => ({
-                    active: groupBy === option.value,
                     description: "Organize the grid into sections",
+                    isActive: groupBy === option.value,
                     label: option.label,
                     onSelect: applyAndReturn(() => setGroupBy(option.value)),
                     value: `group ${option.value}`,
@@ -3329,8 +3338,8 @@ function buildPaletteGroups({
             { items: [backItem], label: "Navigation" },
             {
                 items: PALETTE_SORT_OPTIONS.map((option) => ({
-                    active: sortMode === option.value,
                     description: "Change the ordering within the current view",
+                    isActive: sortMode === option.value,
                     label: option.label,
                     onSelect: applyAndReturn(() => setSortMode(option.value)),
                     value: `sort ${option.value}`,
@@ -3345,11 +3354,11 @@ function buildPaletteGroups({
             { items: [backItem], label: "Navigation" },
             {
                 items: PALETTE_COLUMN_OPTIONS.map((option) => ({
-                    active: columnCountMode === option.value,
                     description:
                         option.value === "auto"
                             ? "Choose the best column count for the available width"
                             : "Force a specific number of columns",
+                    isActive: columnCountMode === option.value,
                     label: option.label,
                     onSelect: applyAndReturn(() =>
                         setColumnCountMode(option.value)
@@ -3389,9 +3398,8 @@ function filterCommandItems(
     );
 
     if (input.lastVisitedItemIds.length > 0) {
-        list = list.filter((item) =>
-            input.lastVisitedItemIds.includes(item.id)
-        );
+        const lastVisitedIdSet = new Set(input.lastVisitedItemIds);
+        list = list.filter((item) => lastVisitedIdSet.has(item.id));
     }
 
     if (input.duplicatesFilterEnabled) {
@@ -4036,6 +4044,7 @@ type LibraryGridCardContextValue = Pick<
     | "collections"
     | "favoriteItemIdSet"
     | "hoveredItemIdRef"
+    | "hoverPinnedItemIdRef"
     | "onCopyLink"
     | "onDelete"
     | "onFindSimilar"
@@ -4076,10 +4085,8 @@ interface LibraryGridCardMenuProps {
     createdLabel: string;
     href: string;
     isDownloading: boolean;
-    isOpen: boolean;
     item: LibraryItemWithCollections;
     kind: "context" | "menu";
-    onClose: () => void;
     onDownload: () => void;
     onZoomIn: () => void;
     previewImageUrl: string | null;
@@ -4335,7 +4342,7 @@ function PreviewColorBadge({ value }: { value: string }) {
                 {isCopied ? (
                     <>
                         <Check className="size-3 text-black invert" />
-                        <span className="absolute -bottom-4 text-nowrap rounded-full bg-white text-[11px] text-success-foreground">
+                        <span className="absolute -bottom-4 text-nowrap rounded-full bg-background text-[11px] text-success-foreground">
                             Copied!
                         </span>
                     </>
@@ -4368,10 +4375,8 @@ function CardMenu({
     createdLabel,
     href,
     isDownloading,
-    isOpen,
     item,
     kind,
-    onClose,
     onDownload,
     onZoomIn,
     previewImageUrl,
@@ -4394,67 +4399,6 @@ function CardMenu({
     const isDeletePending = pendingDeleteItemId === item.id;
     const SourceIcon = getSourceIcon(item.source);
     const canPreview = !isNote && toValidUrl(href) !== FALLBACK_URL;
-
-    useHotkeys(
-        "alt+f",
-        (event: KeyboardEvent) => {
-            event.preventDefault();
-            onItemFavoriteToggle(item);
-            onClose();
-        },
-        {
-            description: "Toggle favorite on selected item",
-            enabled: isOpen && !isDeletePending,
-            enableOnContentEditable: false,
-            enableOnFormTags: false,
-        },
-        [isOpen, isDeletePending, item, onClose, onItemFavoriteToggle]
-    );
-
-    const quickLookTriggerId = React.useId();
-
-    useHotkeys(
-        "alt+e",
-        (event: KeyboardEvent) => {
-            event.preventDefault();
-            if (canPreview) {
-                openQuickLookDrawer(
-                    {
-                        description: itemDomain(item.url),
-                        title: getItemTitle(item),
-                        url: item.url,
-                    },
-                    quickLookTriggerId
-                );
-            }
-            onClose();
-        },
-        {
-            description: "Quick look on selected item",
-            enabled: isOpen && !isDeletePending && canPreview,
-            enableOnContentEditable: false,
-            enableOnFormTags: false,
-        },
-        [isOpen, isDeletePending, canPreview, item, onClose, quickLookTriggerId]
-    );
-
-    useHotkeys(
-        "mod+backspace",
-        (event: KeyboardEvent) => {
-            event.preventDefault();
-            if (!isDeletePending && onDelete) {
-                onDelete(item);
-            }
-            onClose();
-        },
-        {
-            description: "Delete selected item",
-            enabled: isOpen && !isDeletePending,
-            enableOnContentEditable: false,
-            enableOnFormTags: false,
-        },
-        [isOpen, isDeletePending, item, onClose, onDelete]
-    );
 
     const handleItemFavoriteToggle = useStableCallback(() =>
         onItemFavoriteToggle(item)
@@ -4479,6 +4423,12 @@ function CardMenu({
     const handleWayback90 = useStableCallback(() =>
         openExternal(
             `https://web.archive.org/web/${formatWaybackDate(-90)}/${item.url}`
+        )
+    );
+
+    const handleWayback180 = useStableCallback(() =>
+        openExternal(
+            `https://web.archive.org/web/${formatWaybackDate(-180)}/${item.url}`
         )
     );
 
@@ -4582,7 +4532,7 @@ function CardMenu({
                         ) : (
                             <ExternalLinkIcon className="size-4.5 text-muted-foreground" />
                         )}
-                        Open in new tab
+                        Open in New Tab
                         <ArrowUpRight className="ml-auto size-4 text-muted-foreground" />
                     </Item>
                     <Item onClick={handleCopyLink}>
@@ -4608,7 +4558,7 @@ function CardMenu({
                     </MenuSubTrigger>
                     <MenuSubPopup>
                         <MenuGroup>
-                            <MenuGroupLabel>Web archive</MenuGroupLabel>
+                            <MenuGroupLabel>Wayback Machine</MenuGroupLabel>
                             <MenuItem onClick={handleWayback30}>
                                 <History className="size-4 text-muted-foreground" />
                                 1 month ago
@@ -4616,6 +4566,10 @@ function CardMenu({
                             <MenuItem onClick={handleWayback90}>
                                 <History className="size-4 text-muted-foreground" />
                                 3 months ago
+                            </MenuItem>
+                            <MenuItem onClick={handleWayback180}>
+                                <History className="size-4 text-muted-foreground" />
+                                6 months ago
                             </MenuItem>
                             <MenuItem onClick={handleWayback365}>
                                 <History className="size-4 text-muted-foreground" />
@@ -4643,6 +4597,7 @@ function CardMenu({
 function MediaCard({ item }: LibraryGridCardProps) {
     const {
         hoveredItemIdRef,
+        hoverPinnedItemIdRef,
         onOpenInNewTab,
         onOpenNote,
         openPickerItemId,
@@ -4661,23 +4616,44 @@ function MediaCard({ item }: LibraryGridCardProps) {
     const noteExcerpt = getNoteExcerpt(item.noteContentText);
     const displayTitle = getItemTitle(item);
     const { markVisited, isLastVisited } = useLastVisited();
-
-    const closeCardMenu = useStableCallback(() => {
-        setIsCardMenuOpen(false);
-    });
-
-    const closeContextMenu = useStableCallback(() => {
-        setIsContextMenuOpen(false);
-    });
+    const isPickerOpen = openPickerItemId === item.id;
+    const isHoverPinned = isCardMenuOpen || isContextMenuOpen || isPickerOpen;
+    const isPointerOverCardRef = React.useRef(false);
 
     React.useEffect(
         () => () => {
             if (hoveredItemIdRef.current === item.id) {
                 hoveredItemIdRef.current = null;
             }
+            if (hoverPinnedItemIdRef.current === item.id) {
+                hoverPinnedItemIdRef.current = null;
+            }
         },
-        [hoveredItemIdRef, item.id]
+        [hoveredItemIdRef, hoverPinnedItemIdRef, item.id]
     );
+
+    // Keep the hover target pinned while a menu/picker is open so shortcuts
+    // still resolve after the pointer moves into the popup — and so sibling
+    // cards cannot steal the target via mouseEnter. On unpin, drop the hover
+    // target unless the pointer is still over this card (mouseLeave is a no-op
+    // while pinned, so a stale id would otherwise stick for global hotkeys).
+    React.useEffect(() => {
+        if (isHoverPinned) {
+            hoverPinnedItemIdRef.current = item.id;
+            hoveredItemIdRef.current = item.id;
+            return;
+        }
+        if (hoverPinnedItemIdRef.current !== item.id) {
+            return;
+        }
+        hoverPinnedItemIdRef.current = null;
+        if (
+            !isPointerOverCardRef.current &&
+            hoveredItemIdRef.current === item.id
+        ) {
+            hoveredItemIdRef.current = null;
+        }
+    }, [hoveredItemIdRef, hoverPinnedItemIdRef, isHoverPinned, item.id]);
 
     const handleZoomChange = useStableCallback((nextZoomed: boolean) => {
         if (!nextZoomed) {
@@ -4697,8 +4673,6 @@ function MediaCard({ item }: LibraryGridCardProps) {
             markVisited(item.id);
         }
     };
-
-    const isPickerOpen = openPickerItemId === item.id;
 
     const handlePickerOpenChange = useStableCallback((nextOpen: boolean) => {
         setOpenPickerItemId(nextOpen ? item.id : null);
@@ -4720,11 +4694,17 @@ function MediaCard({ item }: LibraryGridCardProps) {
     );
 
     const handleMouseEnter = useStableCallback(() => {
+        isPointerOverCardRef.current = true;
+        const pinnedId = hoverPinnedItemIdRef.current;
+        if (pinnedId !== null && pinnedId !== item.id) {
+            return;
+        }
         hoveredItemIdRef.current = item.id;
     });
 
     const handleMouseLeave = useStableCallback(() => {
-        if (hoveredItemIdRef.current === item.id) {
+        isPointerOverCardRef.current = false;
+        if (hoveredItemIdRef.current === item.id && !isHoverPinned) {
             hoveredItemIdRef.current = null;
         }
     });
@@ -4754,14 +4734,14 @@ function MediaCard({ item }: LibraryGridCardProps) {
                 {/* biome-ignore lint/a11y/useSemanticElements: ControlledZoom conflicts with anchor elements */}
                 <div
                     aria-label={displayTitle}
-                    className="squircle flex flex-col overflow-clip rounded-xl focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
+                    className="squircle relative flex flex-col overflow-clip rounded-xl focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
                     onClick={handlePrimaryClick}
                     onKeyDown={handlePrimaryKeyDown}
                     role="link"
                     tabIndex={0}
                 >
                     {isNote ? (
-                        <div className="relative flex h-auto min-h-56 w-full flex-col justify-between bg-linear-to-br from-amber-50 via-background to-stone-100 p-3">
+                        <div className="relative flex h-auto min-h-56 w-full flex-col justify-between bg-linear-to-br from-note-surface-from via-background to-note-surface-to p-3">
                             <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(251,191,36,0.18),transparent_45%)]" />
                             <div className="relative flex flex-1 flex-col gap-2 pt-1.5">
                                 <p className="whitespace-pre-wrap text-[11px] text-foreground leading-relaxed opacity-90">
@@ -4782,7 +4762,7 @@ function MediaCard({ item }: LibraryGridCardProps) {
                                 />
                             </ControlledZoom>
                             {isLastVisited(item.id) ? (
-                                <span className="absolute top-2 right-2 z-10 inline-flex items-center gap-1 rounded-full bg-black/45 px-1.5 py-px font-medium text-white text-xs leading-normal backdrop-blur-sm">
+                                <span className="absolute right-2 bottom-2 z-10 inline-flex items-center gap-1 rounded-full bg-black/45 px-1.5 py-px font-medium text-white text-xs leading-normal">
                                     <T>Last visited</T>
                                     <ArrowUpRight
                                         aria-hidden
@@ -4791,7 +4771,7 @@ function MediaCard({ item }: LibraryGridCardProps) {
                                     />
                                 </span>
                             ) : (
-                                <span className="absolute top-2 right-2 z-10 rounded-full bg-black/50 px-1.5 py-px font-medium text-white text-xs leading-normal opacity-0 transition-opacity duration-150 ease-out group-hover:opacity-100">
+                                <span className="absolute right-2 bottom-2 z-10 rounded-full bg-black/50 px-1.5 py-px font-medium text-white text-xs leading-normal opacity-0 transition-opacity duration-150 ease-out group-hover:opacity-100">
                                     <ArrowUpRight
                                         aria-hidden
                                         className="size-4"
@@ -4831,10 +4811,8 @@ function MediaCard({ item }: LibraryGridCardProps) {
                                 createdLabel={createdLabel}
                                 href={href}
                                 isDownloading={isDownloading}
-                                isOpen={isCardMenuOpen}
                                 item={item}
                                 kind="menu"
-                                onClose={closeCardMenu}
                                 onDownload={handleDownload}
                                 onZoomIn={handleZoomIn}
                                 previewImageUrl={previewImageUrl}
@@ -4849,10 +4827,8 @@ function MediaCard({ item }: LibraryGridCardProps) {
                     createdLabel={createdLabel}
                     href={href}
                     isDownloading={isDownloading}
-                    isOpen={isContextMenuOpen}
                     item={item}
                     kind="context"
-                    onClose={closeContextMenu}
                     onDownload={handleDownload}
                     onZoomIn={handleZoomIn}
                     previewImageUrl={previewImageUrl}
@@ -4912,7 +4888,7 @@ function LockedPreviewCard({
     return (
         <div className="relative flex flex-col overflow-clip rounded-xl ring-1 ring-border/30">
             {data.kind === "note" ? (
-                <div className="relative min-h-56 bg-linear-to-br from-amber-50 via-background to-stone-100 p-4">
+                <div className="relative min-h-56 bg-linear-to-br from-note-surface-from via-background to-note-surface-to p-4">
                     <div className="absolute inset-0 bg-background/30" />
                     <div className="relative flex h-full flex-col gap-3">
                         <div className="space-y-2">
@@ -5348,6 +5324,107 @@ function CreateResultsCollectionDialog({
     );
 }
 
+/**
+ * Card action shortcuts that target the hovered grid card (via
+ * `hoveredItemIdRef`), matching the collections-list hover-hotkey pattern
+ * and the `S` collection-picker shortcut. Registered once at the browser
+ * root so every card does not mount its own `useHotkeys` listeners.
+ */
+function useCardHoverHotkeys(input: {
+    hoveredItemIdRef: React.RefObject<string | null>;
+    itemsRef: React.RefObject<LibraryItemWithCollections[]>;
+    onDelete: (item: LibraryItemWithCollections) => void;
+    onItemFavoriteToggle: (item: LibraryItemWithCollections) => void;
+    pendingDeleteItemIdRef: React.RefObject<string | null>;
+}) {
+    const {
+        hoveredItemIdRef,
+        itemsRef,
+        onDelete,
+        onItemFavoriteToggle,
+        pendingDeleteItemIdRef,
+    } = input;
+    const quickLookTriggerId = React.useId();
+
+    const resolveHoveredItem = useStableCallback(() => {
+        // Collection rows claim the surface while hovered so pinned card
+        // menus do not steal Alt+E / Alt+F / ⌘⌫ from collection shortcuts.
+        if (isCollectionHoverHotkeySurface()) {
+            return null;
+        }
+        const id = hoveredItemIdRef.current;
+        if (!id || pendingDeleteItemIdRef.current === id) {
+            return null;
+        }
+        return itemsRef.current.find((item) => item.id === id) ?? null;
+    });
+
+    useHotkeys(
+        "alt+f",
+        (event: KeyboardEvent) => {
+            const item = resolveHoveredItem();
+            if (!item) {
+                return;
+            }
+            event.preventDefault();
+            onItemFavoriteToggle(item);
+        },
+        {
+            description: "Toggle favorite on hovered item",
+            enableOnContentEditable: false,
+            enableOnFormTags: false,
+        },
+        [onItemFavoriteToggle, resolveHoveredItem]
+    );
+
+    useHotkeys(
+        "alt+e",
+        (event: KeyboardEvent) => {
+            const item = resolveHoveredItem();
+            if (!item || item.kind === ITEM_KIND_NOTE) {
+                return;
+            }
+            const href = normalizeURL(item.url);
+            if (toValidUrl(href) === FALLBACK_URL) {
+                return;
+            }
+            event.preventDefault();
+            openQuickLookDrawer(
+                {
+                    description: itemDomain(item.url),
+                    title: getItemTitle(item),
+                    url: item.url,
+                },
+                quickLookTriggerId
+            );
+        },
+        {
+            description: "Quick look on hovered item",
+            enableOnContentEditable: false,
+            enableOnFormTags: false,
+        },
+        [quickLookTriggerId, resolveHoveredItem]
+    );
+
+    useHotkeys(
+        "mod+backspace",
+        (event: KeyboardEvent) => {
+            const item = resolveHoveredItem();
+            if (!item) {
+                return;
+            }
+            event.preventDefault();
+            onDelete(item);
+        },
+        {
+            description: "Delete hovered item",
+            enableOnContentEditable: false,
+            enableOnFormTags: false,
+        },
+        [onDelete, resolveHoveredItem]
+    );
+}
+
 export function BrowserRoot({
     connectedIntegrationCount,
     lockedItemCount,
@@ -5407,8 +5484,8 @@ export function BrowserRoot({
     const [unreachableFilterEnabled, setUnreachableFilterEnabled] =
         React.useState(false);
     const [unreachableProbe, setUnreachableProbe] = React.useState({
-        active: false,
         checked: 0,
+        isActive: false,
         total: 0,
     });
     const unreachableProbeVersionRef = React.useRef(0);
@@ -5429,6 +5506,7 @@ export function BrowserRoot({
         string | null
     >(null);
     const hoveredItemIdRef = React.useRef<string | null>(null);
+    const hoverPinnedItemIdRef = React.useRef<string | null>(null);
 
     const [isCreateResultsDialogOpen, setIsCreateResultsDialogOpen] =
         React.useState(false);
@@ -5467,6 +5545,10 @@ export function BrowserRoot({
         },
         setVisibleItems: onItemsChange,
     });
+    const pendingDeleteItemIdRef = React.useRef<string | null>(
+        pendingDeleteItem?.id ?? null
+    );
+    pendingDeleteItemIdRef.current = pendingDeleteItem?.id ?? null;
 
     const [isSavingNote, startSavingNoteTransition] = React.useTransition();
     const [isSavingPastedUrl, startSavingPastedUrlTransition] =
@@ -5541,7 +5623,7 @@ export function BrowserRoot({
     React.useEffect(() => {
         if (!unreachableFilterEnabled) {
             unreachableProbeVersionRef.current += 1;
-            setUnreachableProbe({ active: false, checked: 0, total: 0 });
+            setUnreachableProbe({ checked: 0, isActive: false, total: 0 });
             return;
         }
 
@@ -5573,8 +5655,8 @@ export function BrowserRoot({
 
                 if (candidates.length === 0) {
                     setUnreachableProbe({
-                        active: false,
                         checked: totalProbeable,
+                        isActive: false,
                         total: totalProbeable,
                     });
                     // Library may still be hydrating; keep waiting while empty.
@@ -5586,8 +5668,8 @@ export function BrowserRoot({
                 }
 
                 setUnreachableProbe({
-                    active: true,
                     checked,
+                    isActive: true,
                     total: totalProbeable,
                 });
 
@@ -5610,8 +5692,8 @@ export function BrowserRoot({
 
                     if (result.rateLimited) {
                         setUnreachableProbe({
-                            active: true,
                             checked,
+                            isActive: true,
                             total: totalProbeable,
                         });
                         await sleep(Math.max(1000, result.retryAfterMs));
@@ -5741,7 +5823,7 @@ export function BrowserRoot({
             if (patch.columnCountMode) {
                 setColumnCountMode(patch.columnCountMode);
             }
-            if (patch.selectedCollectionIds) {
+            if (patch.selectedCollectionIds !== undefined) {
                 onClearCollectionFilters();
                 for (const collectionId of patch.selectedCollectionIds) {
                     onRemoveCollectionFilter(collectionId);
@@ -6031,7 +6113,7 @@ export function BrowserRoot({
         items.length === 0 && filteredItems.length === 0 && !hasActiveFilters;
 
     const isUnreachableProbePending =
-        unreachableFilterEnabled && unreachableProbe.active;
+        unreachableFilterEnabled && unreachableProbe.isActive;
 
     const shouldShowNoFilteredResults =
         filteredItems.length === 0 &&
@@ -6071,10 +6153,10 @@ export function BrowserRoot({
     }
     if (unreachableFilterEnabled && unreachableProbe.total > 0) {
         const remaining = unreachableProbe.total - unreachableProbe.checked;
-        let progressLabel = unreachableProbe.active
+        let progressLabel = unreachableProbe.isActive
             ? `Checking links ${unreachableProbe.checked}/${unreachableProbe.total}`
             : `Checked ${unreachableProbe.checked} link${unreachableProbe.checked === 1 ? "" : "s"}`;
-        if (unreachableProbe.active && remaining > 0) {
+        if (unreachableProbe.isActive && remaining > 0) {
             // Server budget is 100 probes/minute; give a coarse ETA.
             const minutesLeft = Math.max(1, Math.ceil(remaining / 100));
             progressLabel = `${progressLabel} · ~${minutesLeft} min left`;
@@ -6276,6 +6358,9 @@ export function BrowserRoot({
         }
 
         if (event.key.toLowerCase() === "s") {
+            if (isCollectionHoverHotkeySurface()) {
+                return;
+            }
             const id = hoveredItemIdRef.current;
             if (id) {
                 event.preventDefault();
@@ -6510,6 +6595,14 @@ export function BrowserRoot({
             });
         }
     );
+
+    useCardHoverHotkeys({
+        hoveredItemIdRef,
+        itemsRef,
+        onDelete: handleRequestDelete,
+        onItemFavoriteToggle: handleItemFavoriteToggle,
+        pendingDeleteItemIdRef,
+    });
 
     const handleFindSimilar = useStableCallback(
         (item: LibraryItemWithCollections) => {
@@ -6747,9 +6840,9 @@ export function BrowserRoot({
                     sectionsLength={sections.length}
                 >
                     <ComposerActionNew />
-                    <ComposerActionRemoveDuplicates />
                     <ComposerActionMetrics />
                     <ComposerActionOnboarding />
+                    <ComposerActionRemoveDuplicates />
                 </ComposerActions>
             </Composer>
             <ComposerSuggestionsList
@@ -6784,6 +6877,7 @@ export function BrowserRoot({
                 enableSectionCollapse={enableSectionCollapse}
                 favoriteItemIdSet={favoriteItemIdSet}
                 hoveredItemIdRef={hoveredItemIdRef}
+                hoverPinnedItemIdRef={hoverPinnedItemIdRef}
                 onCollapseAllSections={collapseAllSections}
                 onCopyLink={handleCopyLink}
                 onCreateCollectionFromResults={handleOpenCreateResultsDialog}
