@@ -222,9 +222,12 @@ async function runAskCacheAgentModel(args: {
                         };
                     }
 
-                    const patch = normalizeComposerPatchForContext(
-                        toolInput.patch,
-                        args.input
+                    const patch = resolveComposerPatchContradictions(
+                        normalizeComposerPatchForContext(
+                            toolInput.patch,
+                            args.input
+                        ),
+                        args.input.composerState
                     );
 
                     if (isNoopComposerPatch(patch, args.input.composerState)) {
@@ -432,6 +435,7 @@ function buildAskCacheInstructions(input: AskCacheRequest): string {
         "Use update_composer for requests that ask to show, find, filter, sort, group, or reset.",
         "Prefer update_composer over setting searchTerms alone when concrete filters (collections, domains, sources) are available.",
         "Use exact collection ids from the collection catalog when selecting collection filters.",
+        "selectedCollectionIds and collectionMembershipFilter: 'not-in-collections' are mutually exclusive — an item in a selected collection is by definition in a collection, so combining them always yields zero results. For 'things about X not in the X collection' requests, use collectionMembershipFilter: 'not-in-collections' with searchTerms about X, and set selectedCollectionIds: [] (omit only when none are already selected).",
         "Use exact domains from availableDomains when applying domainFilters.",
         "Composer filters are exact-match tools, not a semantic category classifier.",
         "Library entries usually do not contain category labels like software product, recipe, tutorial, or inspiration in caption, note text, URL, or metadata.",
@@ -547,20 +551,20 @@ function normalizeComposerPatchForContext(
 
     return {
         ...patch,
-        ...(patch.domainFilters
-            ? {
+        ...(patch.domainFilters === undefined
+            ? {}
+            : {
                   domainFilters: patch.domainFilters.filter((domain) =>
                       domains.has(domain)
                   ),
-              }
-            : {}),
-        ...(patch.selectedCollectionIds
-            ? {
+              }),
+        ...(patch.selectedCollectionIds === undefined
+            ? {}
+            : {
                   selectedCollectionIds: patch.selectedCollectionIds.filter(
                       (collectionId) => collectionIds.has(collectionId)
                   ),
-              }
-            : {}),
+              }),
     };
 }
 
@@ -576,6 +580,47 @@ function arraysEqual(left: string[], right: string[]): boolean {
         }
     }
     return true;
+}
+
+/**
+ * Resolves mutually exclusive collection filters so a valid patch never
+ * yields an empty result set. Prefer the field the model set explicitly:
+ * `not-in-collections` clears selections; selecting collections resets
+ * membership to `all`. Also heals latent contradictory state left by older
+ * patches so a partial update (e.g. searchTerms only) does not keep zero results.
+ */
+function resolveComposerPatchContradictions(
+    patch: AskCacheComposerPatch,
+    state: AskCacheRequest["composerState"]
+): AskCacheComposerPatch {
+    if (patch.reset) {
+        return patch;
+    }
+
+    const resultingMembership =
+        patch.collectionMembershipFilter ?? state.collectionMembershipFilter;
+    const resultingSelectedCollectionIds =
+        patch.selectedCollectionIds ?? state.selectedCollectionIds;
+
+    if (
+        resultingMembership !== "not-in-collections" ||
+        resultingSelectedCollectionIds.length === 0
+    ) {
+        return patch;
+    }
+
+    if (patch.collectionMembershipFilter === "not-in-collections") {
+        return { ...patch, selectedCollectionIds: [] };
+    }
+
+    if (
+        patch.selectedCollectionIds !== undefined &&
+        patch.selectedCollectionIds.length > 0
+    ) {
+        return { ...patch, collectionMembershipFilter: "all" };
+    }
+
+    return { ...patch, selectedCollectionIds: [] };
 }
 
 function isNoopComposerPatch(

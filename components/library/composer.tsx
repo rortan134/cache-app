@@ -28,6 +28,7 @@ import {
     MetricsPanel,
     MetricsPanelChart,
     MetricsPanelHeader,
+    MetricsPanelSection,
     MetricsPanelTitle,
 } from "@/components/ui/metrics-panel";
 import {
@@ -41,11 +42,11 @@ import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import type { LibraryMetricsSnapshot } from "@/lib/collections/metrics";
 import { cn } from "@/lib/common/cn";
 import { formatPercent } from "@/lib/common/numbers";
-import {
-    Toolbar,
-    type AutocompleteRootChangeEventDetails,
-    type BaseUIEvent,
+import type {
+    AutocompleteRootChangeEventDetails,
+    BaseUIEvent,
 } from "@base-ui/react";
+import { Toolbar } from "@base-ui/react/toolbar";
 import { useStableCallback } from "@base-ui/utils/useStableCallback";
 import { Calligraph } from "calligraph";
 import { ChevronDown, CopyX, Grid2x2, Grid2x2X, SquarePen } from "lucide-react";
@@ -60,9 +61,9 @@ export interface PaletteStackEntry {
 }
 
 export interface CommandPaletteItem {
-    active?: boolean;
     description?: string;
     disabled?: boolean;
+    isActive?: boolean;
     label: string;
     onSelect: (
         event: BaseUIEvent<React.MouseEvent> | KeyboardEvent
@@ -282,9 +283,9 @@ export function ComposerActionNew() {
     const { onCreateNote } = useComposerActionsContext();
 
     return (
-        <ActionButton onClick={onCreateNote} title="New">
+        <ActionButton onClick={onCreateNote} title="Add new">
             <SquarePen className="inline-block size-3.5 shrink-0" />
-            &nbsp;New
+            &nbsp;Add new
         </ActionButton>
     );
 }
@@ -608,7 +609,7 @@ function CommandPaletteItemComponent({
                             {item.description}
                         </span>
                     ) : null}
-                    {item.active ? (
+                    {item.isActive ? (
                         <Badge variant="secondary">Active</Badge>
                     ) : null}
                     {item.shortcut ? (
@@ -629,10 +630,37 @@ function ComposerLibraryMetricsPanel({
     metrics: LibraryMetricsSnapshot;
     onClearPalette: () => void;
 }) {
-    const sourceTotal = metrics.sourceSegments.reduce(
-        (sum, segment) => sum + segment.value,
-        0
-    );
+    const {
+        duplicateCount,
+        itemCount,
+        sourceSegments,
+        uncollectedCount,
+        unreachableCount,
+    } = metrics;
+
+    const gapRows = [
+        uncollectedCount > 0
+            ? {
+                  key: "uncollected",
+                  label: "Not in Collections",
+                  value: formatShareValue(uncollectedCount, itemCount),
+              }
+            : null,
+        duplicateCount > 0
+            ? {
+                  key: "duplicates",
+                  label: "Duplicates",
+                  value: formatShareValue(duplicateCount, itemCount),
+              }
+            : null,
+        unreachableCount > 0
+            ? {
+                  key: "unreachable",
+                  label: "Unreachable",
+                  value: formatShareValue(unreachableCount, itemCount),
+              }
+            : null,
+    ].filter((row) => row !== null);
 
     return (
         <MetricsPanel>
@@ -652,50 +680,73 @@ function ComposerLibraryMetricsPanel({
             ) : null}
             <MetricsPanelHeader>
                 <MetricsPanelTitle render={<PopoverTitle />}>
-                    Display Breakdown
+                    Library Breakdown
                 </MetricsPanelTitle>
             </MetricsPanelHeader>
-            <MetricsPanelChart segments={metrics.sourceSegments} />
-            {metrics.sourceSegments.length > 0 ? (
+            <MetricsPanelSection>
+                <MetricsPanelChart segments={sourceSegments} />
                 <MetricsDataList>
-                    {metrics.sourceSegments.map((segment) => (
+                    {sourceSegments.map((segment) => (
                         <MetricsDataListItem
                             color={segment.color}
                             key={segment.key}
                             label={segment.label}
-                            value={formatSegmentValue(
-                                segment.value,
-                                sourceTotal
-                            )}
+                            value={formatShareValue(segment.value, itemCount)}
                         />
                     ))}
                 </MetricsDataList>
-            ) : null}
-            <MetricsDataList>
-                <MetricsDataListItem
-                    label="Favorites"
-                    value={metrics.favoriteCount}
-                />
-                <MetricsDataListItem
-                    label="Not in collections"
-                    value={metrics.uncollectedCount}
-                />
-                <MetricsDataListItem
-                    label="In collections"
-                    value={metrics.inCollectionCount}
-                />
-                <MetricsDataListItem label="Notes" value={metrics.noteCount} />
-            </MetricsDataList>
+            </MetricsPanelSection>
+            <MetricsPanelSection>
+                <MetricsDataList>
+                    <MetricsDataListItem
+                        label="Favorites"
+                        value={formatShareValue(
+                            metrics.favoriteCount,
+                            itemCount
+                        )}
+                    />
+                    <MetricsDataListItem
+                        label="Notes"
+                        value={formatShareValue(metrics.noteCount, itemCount)}
+                    />
+                </MetricsDataList>
+                <MetricsDataList>
+                    <MetricsDataListItem
+                        label="In Collections"
+                        value={formatShareValue(
+                            metrics.inCollectionCount,
+                            itemCount
+                        )}
+                    />
+                    {gapRows.length > 0
+                        ? gapRows.map(
+                              (row) =>
+                                  row && (
+                                      <MetricsDataListItem
+                                          key={row.key}
+                                          label={row.label}
+                                          value={row.value}
+                                      />
+                                  )
+                          )
+                        : null}
+                </MetricsDataList>
+            </MetricsPanelSection>
         </MetricsPanel>
     );
 }
 
-function formatSegmentValue(value: number, total: number): string {
+function formatShareValue(value: number, total: number): React.ReactNode {
     if (total <= 0) {
-        return String(value);
+        return value;
     }
-    const percent = (value / total) * 100;
-    return `${value} · ${formatPercent(percent)}`;
+    const percent = formatPercent((value / total) * 100);
+    return (
+        <>
+            {value}
+            <span className="text-muted-foreground/50"> · {percent}</span>
+        </>
+    );
 }
 
 function ActionButton({

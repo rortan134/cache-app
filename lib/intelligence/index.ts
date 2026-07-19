@@ -1,6 +1,7 @@
 import "server-only";
 
 import { serverEnv } from "@/env/server";
+import { templateDescriptionForNameKey } from "@/lib/collections/templates";
 import { COLLECTION_NAME_LENGTH_MAX } from "@/lib/collections/utils";
 import { createLogger } from "@/lib/common/logs/console/logger";
 import { GenAiProtectionError } from "@/lib/intelligence/error";
@@ -312,6 +313,16 @@ function summarizeJson(
     }
 }
 
+function resolveCollectionDescription(
+    collection: Pick<SmartCollectionCatalogEntry, "description" | "nameKey">
+): string | null {
+    return (
+        collection.description ??
+        templateDescriptionForNameKey(collection.nameKey) ??
+        null
+    );
+}
+
 function buildPrompt(
     item: SmartCollectionItem,
     collections: SmartCollectionCatalogEntry[]
@@ -319,17 +330,25 @@ function buildPrompt(
     const currentCollectionNames = item.collections.map(
         (collection) => collection.name
     );
-    const collectionCatalog = collections.map((collection) => ({
-        description: collection.description,
-        name: collection.name,
-    }));
+    const collectionCatalog = collections.map((collection) => {
+        const description = resolveCollectionDescription(collection);
+        if (description) {
+            return {
+                description,
+                name: collection.name,
+            };
+        }
+        return { name: collection.name };
+    });
     const sourceMetadata = summarizeJson(item.sourceMetadata);
 
     return [
         "Classify this single saved library item into user collections.",
         "Return strict JSON only.",
         "Always return both arrays, even when they are empty.",
-        "Use applyCollectionNames only for exact matches from AVAILABLE_COLLECTIONS.",
+        "Use applyCollectionNames only for exact collection names from AVAILABLE_COLLECTIONS.",
+        "When a collection includes a description, treat that description as the primary membership criteria — apply the collection only when the item clearly fits the described purpose, not merely because the name shares a keyword.",
+        "Prefer existing collections that have descriptions over creating new collections for the same theme.",
         `Choose at most ${SMART_COLLECTIONS_APPLY_COLLECTION_COUNT_MAX} existing collections and at most ${SMART_COLLECTIONS_NEW_COLLECTION_COUNT_MAX} new collections.`,
         "Create a new collection only when the item has a broad, reusable topic that will likely group many future saved items.",
         `New collection names must be concise taxonomy labels of at most ${SMART_COLLECTIONS_NEW_COLLECTION_WORD_COUNT_MAX} words, such as Design Systems or Personal Finance.`,
@@ -674,7 +693,7 @@ async function tryModelVariant(
                 responseJsonSchema: smartCollectionDecisionJsonSchema,
                 responseMimeType: MIME_TYPES.json,
                 systemInstruction:
-                    "You organize a user's saved media into focused collections. Be conservative, prefer existing collections, and create new collections only when there is a strong reusable theme.",
+                    "You organize a user's saved media into focused collections. Be conservative, prefer existing collections, and create new collections only when there is a strong reusable theme. When a collection has a description, use that description as the membership criteria for what belongs in it.",
                 temperature: MODEL_TEMPERATURE,
             },
             contents: variant.contents,
@@ -792,6 +811,25 @@ function mergeCollections(
     );
 }
 
+/**
+ * Prompt-only enrichment: fills missing template descriptions in memory so the
+ * model sees membership criteria. Does not write user collections.
+ */
+function withTemplateDescriptionsOnCatalog(
+    collections: SmartCollectionCatalogEntry[]
+): SmartCollectionCatalogEntry[] {
+    return collections.map((collection) => {
+        if (collection.description) {
+            return collection;
+        }
+        const description = templateDescriptionForNameKey(collection.nameKey);
+        if (!description) {
+            return collection;
+        }
+        return { ...collection, description };
+    });
+}
+
 function tokenizeCollectionName(name: string): string[] {
     return [
         ...name.toLocaleLowerCase().matchAll(COLLECTION_NAME_TOKEN_PATTERN),
@@ -883,8 +921,12 @@ async function applyDecisionToItem(args: {
         const upsertedCollections: SmartCollectionCatalogEntry[] = [];
 
         for (const newCollection of normalizedNewCollectionNames) {
+            const templateDescription = templateDescriptionForNameKey(
+                newCollection.nameKey
+            );
             const collection = await tx.collection.upsert({
                 create: {
+                    description: templateDescription,
                     name: newCollection.name,
                     nameKey: newCollection.nameKey,
                     userId: args.userId,
@@ -1035,7 +1077,7 @@ export async function autoTagLibraryItemsByIds(args: {
     }
 
     const ai = getGoogleGenAi();
-    let collections = initialCollections;
+    let collections = withTemplateDescriptionsOnCatalog(initialCollections);
     const itemsById = new Map(items.map((i) => [i.id, i]));
 
     for (const itemId of validItemIds) {
