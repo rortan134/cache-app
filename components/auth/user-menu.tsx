@@ -38,8 +38,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ThemeSelector } from "@/components/ui/theme-selector";
 import { authClient, useSession } from "@/lib/auth/client";
 import type { auth } from "@/lib/auth/server";
-import { ACTION_STATUS } from "@/lib/common/constants";
 import { cn } from "@/lib/common/cn";
+import { ACTION_STATUS } from "@/lib/common/constants";
 import { createLogger } from "@/lib/common/logs/console/logger";
 import { getInitials } from "@/lib/common/strings";
 import { getDesktopDownloads } from "@/lib/desktop/actions";
@@ -359,14 +359,10 @@ export function UserMenuFooter() {
 /* @internal */
 function UserMenuDesktopDownloadSubMenu() {
     const recommendedPlatform = detectDesktopPlatform();
-    const { data, isLoading } = useSWR(
-        DESKTOP_DOWNLOADS_SWR_KEY,
-        fetchDesktopDownloads,
-        {
-            revalidateOnFocus: false,
-            shouldRetryOnError: false,
-        }
-    );
+    const { data } = useSWR(DESKTOP_DOWNLOADS_SWR_KEY, fetchDesktopDownloads, {
+        revalidateOnFocus: false,
+        shouldRetryOnError: false,
+    });
 
     const downloads = data?.downloads ?? getStaticDesktopDownloads();
     const versionLabel = data?.version;
@@ -375,11 +371,6 @@ function UserMenuDesktopDownloadSubMenu() {
         <MenuSub>
             <MenuSubTrigger className="justify-between">
                 <T>Download desktop app</T>
-                {isLoading ? (
-                    <LoaderCircle className="ml-auto inline-block size-3.5 shrink-0 animate-spin text-muted-foreground" />
-                ) : (
-                    <Download className="ml-auto inline-block size-3.5 shrink-0 text-muted-foreground" />
-                )}
             </MenuSubTrigger>
             <MenuSubPopup align="end" className="min-w-[200px]">
                 <MenuGroup>

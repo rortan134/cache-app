@@ -2870,7 +2870,7 @@ function CollectionsListCalloutPopover() {
         if (typeof disabled === "undefined") {
             return;
         }
-        await setEnabled(!disabled);
+        await setEnabled(disabled);
     });
 
     if (isLoading || typeof disabled === "undefined") {
