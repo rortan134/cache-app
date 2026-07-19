@@ -1,11 +1,24 @@
 import "server-only";
 
 import { auth } from "@/lib/auth/server";
+import { createLogger } from "@/lib/common/logs/console/logger";
 import { prisma } from "@/prisma";
 import { headers } from "next/headers";
+import {
+    compareProviderAccountsForScopePreference,
+    getProviderTokenApiErrorCode,
+    isSoftProviderTokenResolutionFailure,
+} from "./provider-account-resolution";
 import { listIntegrationAccountProviderIds } from "./support";
 
+const log = createLogger("integrations:account");
+
 const LINKED_INTEGRATION_ACCOUNT_LIMIT = 50;
+
+export interface ResolvedProviderAccess {
+    accessToken: string;
+    accountId: string;
+}
 
 /**
  * Lists linked OAuth accounts for integrations the app supports.
@@ -46,17 +59,161 @@ export async function getIntegrationAccountId(
     return account?.accountId ?? null;
 }
 
-export async function resolveProviderAccountAccessToken(args: {
-    accountId?: string;
-    providerId: string;
-}): Promise<string | null> {
+async function tryGetAccessToken(
+    accountId: string,
+    providerId: string
+): Promise<string | null> {
     const tokenResponse = await auth.api.getAccessToken({
         body: {
-            accountId: args.accountId,
-            providerId: args.providerId,
+            accountId,
+            providerId,
         },
         headers: await headers(),
     });
 
     return tokenResponse?.accessToken ?? null;
+}
+
+async function tryResolveAccountAccess(
+    accountId: string,
+    providerId: string,
+    softFailureMessage: string
+): Promise<ResolvedProviderAccess | null> {
+    try {
+        const accessToken = await tryGetAccessToken(accountId, providerId);
+        if (!accessToken) {
+            return null;
+        }
+        return { accessToken, accountId };
+    } catch (error) {
+        if (isSoftProviderTokenResolutionFailure(error)) {
+            log.debug(softFailureMessage, {
+                accountId,
+                code: getProviderTokenApiErrorCode(error),
+                providerId,
+            });
+            return null;
+        }
+        log.error("Hard failure resolving provider account access", {
+            accountId,
+            error,
+            providerId,
+        });
+        throw error;
+    }
+}
+
+/**
+ * Resolves a valid access token for an OAuth provider account.
+ *
+ * {@link args.userId} is always required so pinned accounts are ownership-
+ * checked and multi-account scans stay scoped to the session user.
+ *
+ * When a specific {@link args.accountId} is given, only that account is
+ * attempted (after verifying it belongs to {@link args.userId}). Otherwise
+ * ALL accounts matching the provider are tried — essential when a user has
+ * linked multiple Google accounts via accountLinking, so an arbitrary row
+ * isn't picked while another holds a valid token.
+ *
+ * When {@link args.requiredScope} is set, accounts whose stored scope grants
+ * it are tried first. Soft per-account token failures continue to the next
+ * account; session/config failures rethrow.
+ */
+export async function resolveProviderAccountAccess(args: {
+    accountId?: string;
+    providerId: string;
+    requiredScope?: string;
+    userId: string;
+}): Promise<ResolvedProviderAccess | null> {
+    if (args.accountId) {
+        const ownedAccount = await prisma.account.findFirst({
+            select: { accountId: true },
+            where: {
+                accountId: args.accountId,
+                providerId: args.providerId,
+                userId: args.userId,
+            },
+        });
+        if (!ownedAccount) {
+            log.warn("Pinned account is not owned by user", {
+                accountId: args.accountId,
+                providerId: args.providerId,
+                userId: args.userId,
+            });
+            return null;
+        }
+
+        return tryResolveAccountAccess(
+            args.accountId,
+            args.providerId,
+            "Pinned account access token is unusable"
+        );
+    }
+
+    for await (const access of eachProviderAccountAccess({
+        providerId: args.providerId,
+        requiredScope: args.requiredScope,
+        userId: args.userId,
+    })) {
+        return access;
+    }
+
+    log.warn("No valid access token found across all accounts", {
+        providerId: args.providerId,
+        requiredScope: args.requiredScope,
+        userId: args.userId,
+    });
+    return null;
+}
+
+/**
+ * Yields successfully resolved access tokens for each linked account,
+ * preferring accounts that grant {@link args.requiredScope}. Soft token
+ * failures skip to the next account; hard auth/config errors rethrow.
+ */
+export async function* eachProviderAccountAccess(args: {
+    providerId: string;
+    requiredScope?: string;
+    userId: string;
+}): AsyncGenerator<ResolvedProviderAccess> {
+    const accounts = await prisma.account.findMany({
+        orderBy: { accountId: "asc" },
+        select: { accountId: true, scope: true },
+        take: LINKED_INTEGRATION_ACCOUNT_LIMIT,
+        where: {
+            providerId: args.providerId,
+            userId: args.userId,
+        },
+    });
+
+    const orderedAccounts = args.requiredScope
+        ? accounts.toSorted((left, right) =>
+              compareProviderAccountsForScopePreference(
+                  left,
+                  right,
+                  args.requiredScope
+              )
+          )
+        : accounts;
+
+    for (const account of orderedAccounts) {
+        const access = await tryResolveAccountAccess(
+            account.accountId,
+            args.providerId,
+            "Skipping account with unusable access token"
+        );
+        if (access) {
+            yield access;
+        }
+    }
+}
+
+export async function resolveProviderAccountAccessToken(args: {
+    accountId?: string;
+    providerId: string;
+    requiredScope?: string;
+    userId: string;
+}): Promise<string | null> {
+    const resolved = await resolveProviderAccountAccess(args);
+    return resolved?.accessToken ?? null;
 }

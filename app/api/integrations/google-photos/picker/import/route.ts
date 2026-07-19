@@ -10,11 +10,13 @@ import {
     collectGooglePhotosImportCandidates,
     importGooglePhotosCandidates,
 } from "@/lib/integrations/google-photos/service";
+import { GOOGLE_PHOTOS_PERMISSION_MESSAGE } from "@/lib/integrations/google-photos/shared";
 import { autoTagLibraryItemsByIds } from "@/lib/intelligence";
 import { after } from "next/server";
 import * as z from "zod";
 
 const bodySchema = z.object({
+    accountId: z.string().min(1),
     sessionId: z.string().min(1),
 });
 
@@ -35,7 +37,9 @@ export async function POST(request: Request) {
     }
 
     const accessToken = await resolveProviderAccountAccessToken({
+        accountId: parsedBody.data.accountId,
         providerId: "google",
+        userId,
     });
     if (!accessToken) {
         return Response.json(
@@ -89,14 +93,12 @@ export async function POST(request: Request) {
             error instanceof IntegrationApiError &&
             error.data.integrationId === "google-photos"
         ) {
+            const status = error.data.status ?? 500;
             const message =
-                error.data.status === 401
-                    ? "Your Google account needs Photos permission. Please sign out and sign back in to reconnect."
+                status === 401 || status === 403
+                    ? GOOGLE_PHOTOS_PERMISSION_MESSAGE
                     : error.message;
-            return Response.json(
-                { error: message },
-                { status: error.data.status ?? 500 }
-            );
+            return Response.json({ error: message }, { status });
         }
         throw error;
     }

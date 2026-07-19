@@ -14,6 +14,7 @@ import { pickerPollIntervalMs, withPickerAutoclose } from "./api";
 const log = createLogger("integrations:google-photos");
 
 export interface PickerSessionViewModel {
+    accountId: string;
     mediaItemsSet?: boolean;
     pickerUri: string | null;
     pollIntervalMs: number;
@@ -22,9 +23,11 @@ export interface PickerSessionViewModel {
 }
 
 export function mapPickerSessionToViewModel(
-    session: GooglePhotosPickerSession
+    session: GooglePhotosPickerSession,
+    accountId: string
 ): PickerSessionViewModel {
     return {
+        accountId,
         mediaItemsSet: Boolean(session.mediaItemsSet),
         pickerUri: session.pickerUri
             ? withPickerAutoclose(session.pickerUri)

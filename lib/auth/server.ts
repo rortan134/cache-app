@@ -2,6 +2,7 @@ import { getStripeClient, getStripeWebhookSecret } from "@/lib/billing/client";
 import { getPlanPriceIds } from "@/lib/billing/prices";
 import { APP_NAME, BASE_URL } from "@/lib/common/constants";
 import { createLogger } from "@/lib/common/logs/console/logger";
+import { GOOGLE_PHOTOS_PICKER_SCOPE } from "@/lib/integrations/google-photos/shared";
 import { NOTION_API_VERSION } from "@/lib/integrations/notion/api";
 import { seedBuiltInAutomationsForUser } from "@/lib/intelligence/automations/service";
 import { prisma } from "@/prisma";
@@ -40,8 +41,6 @@ const SESSION_UPDATE_AGE_SECONDS = 60 * 60 * 24; // 24 hours (how often to refre
 const GOOGLE_CLIENT_ID = requiredEnv("GOOGLE_CLIENT_ID");
 const GOOGLE_CLIENT_SECRET = requiredEnv("GOOGLE_CLIENT_SECRET");
 
-const GOOGLE_PHOTOS_SCOPE =
-    "https://www.googleapis.com/auth/photospicker.mediaitems.readonly";
 const log = createLogger("Auth:server");
 
 // ---------------------------------------------------------------------------
@@ -445,7 +444,7 @@ export const auth = betterAuth({
             clientId: GOOGLE_CLIENT_ID,
             clientSecret: GOOGLE_CLIENT_SECRET,
             prompt: "select_account consent",
-            scope: ["openid", "email", "profile", GOOGLE_PHOTOS_SCOPE],
+            scope: ["openid", "email", "profile", GOOGLE_PHOTOS_PICKER_SCOPE],
         },
     },
     trustedOrigins: TRUSTED_ORIGINS,

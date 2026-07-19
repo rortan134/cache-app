@@ -117,6 +117,7 @@ async function sendToNotion(
     const accessToken = await resolveProviderAccountAccessToken({
         accountId,
         providerId: NOTION_PROVIDER_ID,
+        userId: auth.userId,
     });
     if (!accessToken) {
         return {

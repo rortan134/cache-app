@@ -57,7 +57,14 @@ export type GooglePhotosMediaItemsPage = z.infer<
     typeof GooglePhotosMediaItemsPageSchema
 >;
 
+export const GOOGLE_PHOTOS_PICKER_SCOPE =
+    "https://www.googleapis.com/auth/photospicker.mediaitems.readonly";
+
+export const GOOGLE_PHOTOS_PERMISSION_MESSAGE =
+    "Your Google account needs Photos permission. Sign out and sign back in to reconnect.";
+
 export const SessionCreateResponseSchema = z.object({
+    accountId: z.string().min(1),
     error: z.string().optional(),
     pickerUri: z.string().nullable(),
     pollIntervalMs: z.number(),
