@@ -51,6 +51,7 @@ export async function runOAuthImportService<
     const accessToken = await resolveProviderAccountAccessToken({
         accountId,
         providerId: args.providerId,
+        userId: args.userId,
     });
     if (!accessToken) {
         throw new IntegrationConnectionError({

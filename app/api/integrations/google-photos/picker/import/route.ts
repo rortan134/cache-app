@@ -15,6 +15,7 @@ import { after } from "next/server";
 import * as z from "zod";
 
 const bodySchema = z.object({
+    accountId: z.string().min(1),
     sessionId: z.string().min(1),
 });
 
@@ -35,7 +36,9 @@ export async function POST(request: Request) {
     }
 
     const accessToken = await resolveProviderAccountAccessToken({
+        accountId: parsedBody.data.accountId,
         providerId: "google",
+        userId,
     });
     if (!accessToken) {
         return Response.json(

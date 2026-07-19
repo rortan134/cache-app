@@ -79,6 +79,7 @@ async function createPickerSessionRequest(): Promise<SessionCreateResponse> {
 
 async function pollUntilMediaSelected(
     sessionId: string,
+    accountId: string,
     timeoutIn: string | null
 ): Promise<void> {
     const startedAt = Date.now();
@@ -99,7 +100,7 @@ async function pollUntilMediaSelected(
             }
 
             const response = await fetch(
-                `/api/integrations/google-photos/picker/session?id=${encodeURIComponent(sessionId)}`,
+                `/api/integrations/google-photos/picker/session?id=${encodeURIComponent(sessionId)}&accountId=${encodeURIComponent(accountId)}`,
                 { method: "GET" }
             );
             const raw = await readJsonOrNull(response);
@@ -136,11 +137,14 @@ async function pollUntilMediaSelected(
     );
 }
 
-async function importSelectedMedia(sessionId: string): Promise<ImportResponse> {
+async function importSelectedMedia(
+    sessionId: string,
+    accountId: string
+): Promise<ImportResponse> {
     const response = await fetch(
         "/api/integrations/google-photos/picker/import",
         {
-            body: JSON.stringify({ sessionId }),
+            body: JSON.stringify({ accountId, sessionId }),
             headers: { "Content-Type": "application/json" },
             method: "POST",
         }
@@ -183,9 +187,13 @@ export async function executeGooglePhotosPickerFlow(): Promise<string> {
     window.open(createPayload.pickerUri, "_blank", "noopener,noreferrer");
     await pollUntilMediaSelected(
         createPayload.sessionId,
+        createPayload.accountId,
         createPayload.timeoutIn
     );
-    const importPayload = await importSelectedMedia(createPayload.sessionId);
+    const importPayload = await importSelectedMedia(
+        createPayload.sessionId,
+        createPayload.accountId
+    );
 
     return `Imported ${importPayload.importedCount} item${importPayload.importedCount === 1 ? "" : "s"}.`;
 }
