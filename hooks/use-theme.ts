@@ -1,18 +1,22 @@
 "use client";
 
 import { getOwnerDocument, getOwnerWindow } from "@/lib/common/dom";
+import {
+    isTheme,
+    THEME_MEDIA_QUERY,
+    THEME_STORAGE_KEY,
+} from "@/lib/common/theme";
+import type { Theme } from "@/lib/common/theme";
 import { useStableCallback } from "@base-ui/utils/useStableCallback";
 import { useEffect, useSyncExternalStore } from "react";
 
-export type Theme = "light" | "dark" | "system";
+export type { Theme } from "@/lib/common/theme";
 
 interface ThemeSnapshot {
     systemDark: boolean;
     theme: Theme;
 }
 
-const STORAGE_KEY = "t3code:theme";
-const MEDIA_QUERY = "(prefers-color-scheme: dark)";
 const DEFAULT_THEME_SNAPSHOT: ThemeSnapshot = {
     systemDark: false,
     theme: "system",
@@ -34,7 +38,7 @@ function hasThemeStorage() {
 }
 
 function getSystemDark() {
-    return getOwnerWindow().matchMedia(MEDIA_QUERY).matches;
+    return getOwnerWindow().matchMedia(THEME_MEDIA_QUERY).matches;
 }
 
 function getStored(): Theme {
@@ -42,8 +46,8 @@ function getStored(): Theme {
         return DEFAULT_THEME_SNAPSHOT.theme;
     }
     try {
-        const raw = getOwnerWindow().localStorage.getItem(STORAGE_KEY);
-        if (raw === "light" || raw === "dark" || raw === "system") {
+        const raw = getOwnerWindow().localStorage.getItem(THEME_STORAGE_KEY);
+        if (isTheme(raw)) {
             return raw;
         }
     } catch {
@@ -99,20 +103,23 @@ function resolveBrowserChromeSurface(): HTMLElement {
 export function syncBrowserChromeTheme() {
     const ownerDocument = getOwnerDocument();
     const ownerWindow = getOwnerWindow();
+    // Keep chrome backgrounds on the CSS token so theme flips re-resolve.
+    // Baking a computed rgb here used to stick forever (inline > stylesheet).
+    const tokenBackground = "var(--background)";
+    ownerDocument.documentElement.style.backgroundColor = tokenBackground;
+    ownerDocument.body.style.backgroundColor = tokenBackground;
+
+    const surface = resolveBrowserChromeSurface();
     const surfaceColor = normalizeThemeColor(
-        ownerWindow.getComputedStyle(resolveBrowserChromeSurface())
-            .backgroundColor
+        ownerWindow.getComputedStyle(surface).backgroundColor
     );
     const fallbackColor = normalizeThemeColor(
         ownerWindow.getComputedStyle(ownerDocument.body).backgroundColor
     );
-    const backgroundColor = surfaceColor ?? fallbackColor;
-    if (!backgroundColor) {
-        return;
+    const themeColor = surfaceColor ?? fallbackColor;
+    if (themeColor) {
+        ensureThemeColorMetaTag().setAttribute("content", themeColor);
     }
-    ownerDocument.documentElement.style.backgroundColor = backgroundColor;
-    ownerDocument.body.style.backgroundColor = backgroundColor;
-    ensureThemeColorMetaTag().setAttribute("content", backgroundColor);
 }
 
 function applyTheme(theme: Theme, suppressTransitions = false) {
@@ -160,7 +167,7 @@ function subscribe(listener: () => void): () => void {
     listeners.push(listener);
 
     const ownerWindow = getOwnerWindow();
-    const mq = ownerWindow.matchMedia(MEDIA_QUERY);
+    const mq = ownerWindow.matchMedia(THEME_MEDIA_QUERY);
     const handleChange = () => {
         if (getStored() === "system") {
             applyTheme("system", true);
@@ -170,7 +177,7 @@ function subscribe(listener: () => void): () => void {
     mq.addEventListener("change", handleChange);
 
     const handleStorage = (e: StorageEvent) => {
-        if (e.key === STORAGE_KEY) {
+        if (e.key === THEME_STORAGE_KEY) {
             applyTheme(getStored(), true);
             emitChange();
         }
@@ -188,6 +195,12 @@ if (typeof document !== "undefined") {
     applyTheme(getStored());
 }
 
+/** Keep the theme store subscribed and system preference in sync app-wide. */
+export function ThemeEffect() {
+    useTheme();
+    return null;
+}
+
 export function useTheme() {
     const snapshot = useSyncExternalStore(
         subscribe,
@@ -203,7 +216,7 @@ export function useTheme() {
         if (!hasThemeStorage()) {
             return;
         }
-        getOwnerWindow().localStorage.setItem(STORAGE_KEY, next);
+        getOwnerWindow().localStorage.setItem(THEME_STORAGE_KEY, next);
         applyTheme(next, true);
         emitChange();
     });

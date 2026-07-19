@@ -24,6 +24,9 @@ export default function manifest(): MetadataRoute.Manifest {
             },
         ],
         lang: DEFAULT_LOCALE,
+        launch_handler: {
+            client_mode: "navigate-existing",
+        },
         name: APP_NAME,
         orientation: "any",
         prefer_related_applications: true,

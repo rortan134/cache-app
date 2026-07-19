@@ -196,7 +196,7 @@ function resolveActionLabel(args: {
         case "sync":
             return "Sync";
         case "copy":
-            return "Copy";
+            return "Copy prompt";
         default:
             ((_: never) => _)(role);
             return "Open";

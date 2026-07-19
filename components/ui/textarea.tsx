@@ -5,10 +5,10 @@ import { Field as FieldPrimitive } from "@base-ui/react/field";
 import { mergeProps } from "@base-ui/react/merge-props";
 import type * as React from "react";
 
-export type TextareaProps = React.ComponentProps<"textarea"> & {
-    size?: "sm" | "default" | "lg" | number;
+export interface TextareaProps extends React.ComponentProps<"textarea"> {
     isUnstyled?: boolean;
-};
+    size?: "sm" | "default" | "lg" | number;
+}
 
 export function Textarea({
     className,

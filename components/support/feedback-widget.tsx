@@ -40,10 +40,7 @@ export function FeedbackWidget({
             if (nextState.status !== "success") {
                 return nextState;
             }
-            // Gate the celebration behind prefers-reduced-motion. The OS setting
-            // is unknown on first render (`useReducedMotion` returns `null`),
-            // so default to allowing the effect and only suppress it once the
-            // hook has confirmed the user opted out.
+
             if (!isReducedMotion) {
                 const rect = submitButtonRef.current?.getBoundingClientRect();
                 if (rect) {
@@ -59,6 +56,7 @@ export function FeedbackWidget({
                         });
                 }
             }
+
             formRef.current?.reset();
             setIsOpen(false);
             return nextState;

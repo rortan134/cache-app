@@ -117,7 +117,7 @@ export function Sidebar({
         <aside
             {...props}
             className={cn(
-                "peer group/sidebar relative inset-y-0 flex min-h-full w-full shrink-0 flex-col gap-8 overscroll-contain px-8 py-7 transition-[left,right,width,padding] duration-100 ease-in-out data-[side=right]:right-0 data-[side=left]:left-0 lg:w-[400px] lg:max-w-[400px] lg:justify-between lg:data-[state=collapsed]:w-16 lg:data-[state=collapsed]:px-3 lg:data-[state=collapsed]:[&_[data-sidebar-collapsible]]:hidden lg:data-[state=collapsed]:[&_[data-sidebar-label]]:sr-only lg:data-[state=collapsed]:[&_[data-sidebar=item]]:justify-center lg:data-[state=collapsed]:[&_[data-sidebar=item]]:px-0",
+                "peer group/sidebar relative inset-y-0 flex min-h-full w-full shrink-0 flex-col gap-8 overscroll-contain px-8 py-7 transition-[left,right,width,padding] duration-250 ease-[cubic-bezier(0.32,0.72,0,1)] data-[side=right]:right-0 data-[side=left]:left-0 motion-reduce:transition-none lg:w-[400px] lg:max-w-[400px] lg:justify-between lg:data-[state=collapsed]:w-16 lg:data-[state=collapsed]:px-3 lg:[&_[data-sidebar-collapsible],&_[data-sidebar-label]]:transition-[opacity,display] lg:[&_[data-sidebar-collapsible],&_[data-sidebar-label]]:transition-discrete lg:[&_[data-sidebar-collapsible],&_[data-sidebar-label]]:duration-150 lg:[&_[data-sidebar-collapsible],&_[data-sidebar-label]]:ease-out motion-reduce:lg:[&_[data-sidebar-collapsible],&_[data-sidebar-label]]:transition-none lg:data-[state=collapsed]:[&_[data-sidebar-collapsible],&_[data-sidebar-label]]:hidden lg:data-[state=collapsed]:[&_[data-sidebar-collapsible],&_[data-sidebar-label]]:opacity-0 lg:[&_[data-sidebar-label]]:min-w-0 lg:[&_[data-sidebar-label]]:overflow-hidden lg:[&_[data-sidebar-label]]:whitespace-nowrap lg:data-[state=collapsed]:[&_[data-sidebar=item]]:justify-center lg:data-[state=collapsed]:[&_[data-sidebar=item]]:px-0",
                 className
             )}
             data-collapsible="icon"
@@ -198,7 +198,7 @@ export function SidebarTrigger({
             {...props}
             aria-label={open ? "Close sidebar" : "Open sidebar"}
             className={cn(
-                "hidden h-8 min-h-8 min-w-8 opacity-50 hover:opacity-100 lg:inline-flex",
+                "hidden h-8 min-h-8 min-w-8 shrink-0 opacity-50 hover:opacity-100 lg:inline-flex",
                 open ? "cursor-w-resize" : "cursor-e-resize",
                 className
             )}

@@ -1,13 +1,17 @@
 import "@/lib/dayjs/locales";
 
+import { ConsoleBanner } from "@/components/ui/console-banner";
 import { ShortcutsProvider } from "@/components/ui/shortcuts";
+import { ThemeEffect } from "@/hooks/use-theme";
 import { APP_NAME, BASE_URL, SITE_DEFAULT_TITLE } from "@/lib/common/constants";
+import { THEME_BOOTSTRAP_SCRIPT } from "@/lib/common/theme";
 import { INTEGRATIONS } from "@/lib/integrations/support";
 import { GTProvider, getLocales } from "gt-next";
 import { getLocale } from "gt-next/server";
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import type * as React from "react";
+import packageJson from "../../package.json" with { type: "json" };
 import "../globals.css";
 
 export function generateStaticParams() {
@@ -93,6 +97,10 @@ export default async function LocaleLayout(props: {
             suppressHydrationWarning
         >
             <head>
+                <script
+                    // biome-ignore lint/security/noDangerouslySetInnerHtml: theme FOUC guard; runs before paint
+                    dangerouslySetInnerHTML={{ __html: THEME_BOOTSTRAP_SCRIPT }}
+                />
                 {/* Pinterest verification */}
                 <meta
                     content="9c251d927955d913b23e047ef08ed572"
@@ -100,12 +108,14 @@ export default async function LocaleLayout(props: {
                 />
             </head>
             <body>
+                <ThemeEffect />
+                <ConsoleBanner version={packageJson.version} />
                 <span aria-atomic="true" aria-live="polite" className="sr-only">
                     {APP_NAME}
                 </span>
                 <div className="not-has-focus-visible:sr-only pointer-events-none fixed inset-x-0 top-0 z-50 mt-4 flex select-none justify-center">
                     <a
-                        className="pointer-events-auto rounded-2xl bg-background px-4 py-2 text-base text-foreground outline-2 outline-offset-2 focus-visible:outline focus-visible:outline-black print:hidden"
+                        className="pointer-events-auto rounded-2xl bg-background px-4 py-2 text-base text-foreground outline-2 outline-offset-2 focus-visible:outline focus-visible:outline-ring print:hidden"
                         href="#main-content"
                     >
                         Skip to content

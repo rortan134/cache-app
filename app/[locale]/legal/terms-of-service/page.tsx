@@ -30,9 +30,9 @@ export async function generateMetadata({
 
 export default function TermsOfServicePage() {
     return (
-        <article className="flex flex-col gap-8 text-[0.95rem] text-stone-800 leading-relaxed">
+        <article className="flex flex-col gap-8 text-[0.95rem] text-foreground/90 leading-relaxed">
             <header className="flex flex-col gap-3">
-                <h1 className="font-semibold text-2xl text-stone-950 tracking-tight">
+                <h1 className="font-semibold text-2xl text-foreground tracking-tight">
                     Cache App Terms of Service
                 </h1>
                 <p>
@@ -61,7 +61,7 @@ export default function TermsOfServicePage() {
                 <p>
                     <strong>Your Privacy:</strong> Please see our{" "}
                     <Link
-                        className="text-stone-950 underline underline-offset-4"
+                        className="text-foreground underline underline-offset-4"
                         href="/legal/privacy-policy"
                     >
                         Privacy Policy
@@ -73,12 +73,12 @@ export default function TermsOfServicePage() {
             </header>
 
             <section className="flex flex-col gap-4">
-                <h2 className="font-semibold text-stone-950 text-xl tracking-tight">
+                <h2 className="font-semibold text-foreground text-xl tracking-tight">
                     Cover Page
                 </h2>
 
                 <div className="flex flex-col gap-3">
-                    <h3 className="font-semibold text-lg text-stone-950">
+                    <h3 className="font-semibold text-foreground text-lg">
                         Order Form
                     </h3>
 
@@ -87,7 +87,7 @@ export default function TermsOfServicePage() {
                         incorporates and is governed by the Framework Terms that
                         are made up of the Key Terms below and the Common Paper{" "}
                         <a
-                            className="text-stone-950 underline underline-offset-4"
+                            className="text-foreground underline underline-offset-4"
                             href="https://commonpaper.com/standards/cloud-service-agreement/2.1/"
                             rel="noopener noreferrer"
                             target="_blank"
@@ -149,7 +149,7 @@ export default function TermsOfServicePage() {
             </section>
 
             <section className="flex flex-col gap-4">
-                <h2 className="font-semibold text-stone-950 text-xl tracking-tight">
+                <h2 className="font-semibold text-foreground text-xl tracking-tight">
                     Key Terms
                 </h2>
 
@@ -220,13 +220,13 @@ export default function TermsOfServicePage() {
             </section>
 
             <section className="flex flex-col gap-4">
-                <h2 className="font-semibold text-stone-950 text-xl tracking-tight">
+                <h2 className="font-semibold text-foreground text-xl tracking-tight">
                     Attachments and Supplements
                 </h2>
                 <p>
                     <strong>DPA:</strong>{" "}
                     <Link
-                        className="text-stone-950 underline underline-offset-4"
+                        className="text-foreground underline underline-offset-4"
                         href="/legal/dpa"
                     >
                         /legal/dpa
@@ -235,7 +235,7 @@ export default function TermsOfServicePage() {
             </section>
 
             <section className="flex flex-col gap-4">
-                <h2 className="font-semibold text-stone-950 text-xl tracking-tight">
+                <h2 className="font-semibold text-foreground text-xl tracking-tight">
                     Copyright Infringement and DMCA Policy
                 </h2>
                 <p>
@@ -317,7 +317,7 @@ export default function TermsOfServicePage() {
             </section>
 
             <section className="flex flex-col gap-4">
-                <h2 className="font-semibold text-stone-950 text-xl tracking-tight">
+                <h2 className="font-semibold text-foreground text-xl tracking-tight">
                     AI-Assisted Features
                 </h2>
                 <p>
@@ -340,7 +340,7 @@ export default function TermsOfServicePage() {
             </section>
 
             <section className="flex flex-col gap-4">
-                <h2 className="font-semibold text-stone-950 text-xl tracking-tight">
+                <h2 className="font-semibold text-foreground text-xl tracking-tight">
                     Notice for California Users
                 </h2>
                 <p>
@@ -356,7 +356,7 @@ export default function TermsOfServicePage() {
             </section>
 
             <section className="flex flex-col gap-4">
-                <h2 className="font-semibold text-stone-950 text-xl tracking-tight">
+                <h2 className="font-semibold text-foreground text-xl tracking-tight">
                     Contact Information
                 </h2>
                 <p>

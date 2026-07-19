@@ -433,6 +433,7 @@ export function OnboardingMenu({
                     <Toolbar.Button
                         render={
                             <MenuTrigger
+                                openOnHover
                                 render={
                                     <Button
                                         aria-label={`Get to know Cache, ${completedTaskCount} of ${ONBOARDING_TASK_COUNT} checklist items complete`}
@@ -453,7 +454,7 @@ export function OnboardingMenu({
                             />
                         }
                     />
-                    <MenuPopup className="min-w-72">
+                    <MenuPopup align="start" className="min-w-72">
                         <MenuGroup>
                             <MenuGroupLabel>
                                 Complete this checklist

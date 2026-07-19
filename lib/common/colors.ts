@@ -134,7 +134,8 @@ const GRADIENT_START_CHROMA = 2.4;
 const GRADIENT_START_CHROMA_BIAS = 0.7;
 const GRADIENT_END_CHROMA = 0.8;
 const GRADIENT_END_CHROMA_BIAS = 0.2;
-const GRADIENT_LIGHTNESS = 97;
+const GRADIENT_LIGHTNESS_LIGHT = 97;
+const GRADIENT_LIGHTNESS_DARK = 22;
 const GRADIENT_HUE_OFFSET = 10;
 const GRADIENT_ANGLE = "90deg";
 
@@ -277,6 +278,17 @@ export function rgbToHue(r: number, g: number, b: number): number {
     return (hue * HUE_SECTOR_DEGREES + HUE_FULL_CIRCLE) % HUE_FULL_CIRCLE;
 }
 
+function themeAwareLch(
+    lightnessLight: number,
+    lightnessDark: number,
+    chroma: number,
+    hue: number
+): string {
+    const c = Number(chroma.toFixed(3));
+    const h = Number(hue.toFixed(3));
+    return `light-dark(lch(${lightnessLight} ${c} ${h}), lch(${lightnessDark} ${c} ${h}))`;
+}
+
 export function getColorGradientFromName(name: string): string {
     const color = parseToRgb(getHexColorFromName(name));
     const rgb = [color.r, color.g, color.b] as const;
@@ -286,8 +298,23 @@ export function getColorGradientFromName(name: string): string {
         GRADIENT_CHROMA_CLAMP_MIN,
         GRADIENT_CHROMA_CLAMP_MAX
     );
-    const start = `lch(${GRADIENT_LIGHTNESS} ${Number((GRADIENT_START_CHROMA + chromaBias * GRADIENT_START_CHROMA_BIAS).toFixed(3))} ${Number(hue.toFixed(3))})`;
-    const end = `lch(${GRADIENT_LIGHTNESS} ${Number((GRADIENT_END_CHROMA + chromaBias * GRADIENT_END_CHROMA_BIAS).toFixed(3))} ${Number(((hue + GRADIENT_HUE_OFFSET) % HUE_FULL_CIRCLE).toFixed(3))})`;
+    const startChroma =
+        GRADIENT_START_CHROMA + chromaBias * GRADIENT_START_CHROMA_BIAS;
+    const endChroma =
+        GRADIENT_END_CHROMA + chromaBias * GRADIENT_END_CHROMA_BIAS;
+    const endHue = (hue + GRADIENT_HUE_OFFSET) % HUE_FULL_CIRCLE;
+    const start = themeAwareLch(
+        GRADIENT_LIGHTNESS_LIGHT,
+        GRADIENT_LIGHTNESS_DARK,
+        startChroma,
+        hue
+    );
+    const end = themeAwareLch(
+        GRADIENT_LIGHTNESS_LIGHT,
+        GRADIENT_LIGHTNESS_DARK,
+        endChroma,
+        endHue
+    );
     return `linear-gradient(${GRADIENT_ANGLE}, ${start} 0%, ${end} 100%), ${end}`;
 }
 

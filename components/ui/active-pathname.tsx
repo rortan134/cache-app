@@ -9,12 +9,12 @@ import { usePathname } from "next/navigation";
  *
  * `aria-current="page"` is emitted for the actual active route, while
  * `data-active` is provided as a styling hook that can optionally be inverted
- * with `reverse`.
+ * with `shouldReverseActive`.
  */
 export function ActivePathname({
     href,
     match = "exact",
-    reverse,
+    shouldReverseActive,
     render,
     ...props
 }: ActivePathnameProps) {
@@ -26,7 +26,9 @@ export function ActivePathname({
 
     const baseProps = {
         "aria-current": isPathnameActive ? "page" : undefined,
-        "data-active": reverse ? !isPathnameActive : isPathnameActive,
+        "data-active": shouldReverseActive
+            ? !isPathnameActive
+            : isPathnameActive,
     };
 
     return useRender({
@@ -59,5 +61,5 @@ export interface ActivePathnameProps extends useRender.ComponentProps<"div"> {
      * technology receives the semantic current-page state. This is useful for
      * styling inactive alternatives without lying to accessibility APIs.
      */
-    reverse?: boolean;
+    shouldReverseActive?: boolean;
 }

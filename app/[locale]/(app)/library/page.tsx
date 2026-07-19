@@ -49,7 +49,6 @@ export default async function LibraryPage() {
     }
 
     const hasAccess = await userHasActiveSubscription(userId);
-
     const [
         { itemSources, items, lockedItemCount, totalItemCount },
         collections,

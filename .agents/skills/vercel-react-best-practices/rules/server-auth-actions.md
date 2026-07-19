@@ -57,7 +57,7 @@ export async function deleteUser(userId: string) {
 'use server'
 
 import { verifySession } from '@/lib/auth'
-import { z } from 'zod'
+import * as z from 'zod'
 
 const updateProfileSchema = z.object({
   userId: z.string().uuid(),

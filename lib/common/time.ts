@@ -1,4 +1,15 @@
 /**
+ * Format a 1–31 calendar day with an English ordinal suffix ("1st", "2nd", "3rd").
+ */
+export function getMonthDayLabel(monthDay: number): string {
+    const suffix =
+        monthDay >= 11 && monthDay <= 13
+            ? "th"
+            : (["th", "st", "nd", "rd"][monthDay % 10] ?? "th");
+    return `${monthDay}${suffix}`;
+}
+
+/**
  * Format minutes since midnight to a zero-padded "HH:MM" string (24-hour).
  */
 export function formatTimeOfDayMinutes(timeOfDayMinutes: number): string {

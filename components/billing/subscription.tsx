@@ -23,7 +23,7 @@ const PERIOD_END_DATE_FORMATTER = new Intl.DateTimeFormat(undefined, {
  * and active Stripe records. This prevents desync bugs where the local session
  * claims active status but Stripe has canceled or suspended the account.
  */
-function useSubscriptionAccess() {
+export function useSubscriptionAccess() {
     const {
         data: session,
         error: sessionError,
@@ -77,10 +77,10 @@ type AccessData = ReturnType<typeof useSubscriptionAccess>;
  * intermediate states (such as flashing "Free Plan" before active Stripe data returns)
  * by deferring child execution until the subscription status is fully loaded.
  */
-function WithSubscriptionOnly({
+export function WithSubscriptionOnly({
     children,
     loadingRender = null,
-}: WithSubscriptionProps) {
+}: WithSubscriptionOnlyProps) {
     const { isLoading, subscription } = useSubscriptionAccess();
 
     if (isLoading) {
@@ -90,8 +90,13 @@ function WithSubscriptionOnly({
     return children(subscription);
 }
 
-interface WithSubscriptionProps {
+interface WithSubscriptionOnlyProps {
     children: (subscription: AccessData["subscription"]) => React.ReactNode;
+    loadingRender?: React.ReactNode;
+}
+
+interface SubscriptionGateProps {
+    children: React.ReactNode;
     loadingRender?: React.ReactNode;
 }
 
@@ -99,10 +104,10 @@ interface WithSubscriptionProps {
  * Restricts rendering to users with active subscriptions. Use this to hide
  * premium features or promotional copy from non-paying users.
  */
-function SubscribedOnly({
+export function SubscribedOnly({
     children,
     loadingRender = null,
-}: React.PropsWithChildren<{ loadingRender?: React.ReactNode }>) {
+}: SubscriptionGateProps) {
     const { hasAccess, isLoading } = useSubscriptionAccess();
 
     if (isLoading) {
@@ -117,10 +122,10 @@ function SubscribedOnly({
  * to prevent flashing upgrade prompts or free-tier UI while the subscription status
  * is still being verified.
  */
-function UnsubscribedOnly({
+export function UnsubscribedOnly({
     children,
     loadingRender = null,
-}: React.PropsWithChildren<{ loadingRender?: React.ReactNode }>) {
+}: SubscriptionGateProps) {
     const { hasAccess, isLoading } = useSubscriptionAccess();
 
     if (isLoading) {
@@ -135,13 +140,13 @@ function UnsubscribedOnly({
  * states (free, cancelling, trialing, active) into concise labels to ensure they
  * fit without breaking layout in dense, localized navigation headers.
  */
-function SubscriptionStatusBadge() {
+export function SubscriptionStatusBadge() {
     return (
         <WithSubscriptionOnly>
             {(subscription) => {
                 if (!subscription) {
                     return (
-                        <SubscriptionBadge hideIcon>
+                        <SubscriptionBadge shouldHideIcon>
                             <T context="Free plan label">Free plan</T>
                         </SubscriptionBadge>
                     );
@@ -220,15 +225,15 @@ function getReturnUrl() {
 /**
  * Triggers Stripe Checkout redirection for the premium Pro plan.
  */
-function SubscriptionUpgradeButton({
-    annual = false,
+export function SubscriptionUpgradeButton({
+    isAnnual = false,
     variant = "ghost",
     ...props
-}: React.ComponentProps<typeof Button> & { annual?: boolean }) {
+}: React.ComponentProps<typeof Button> & { isAnnual?: boolean }) {
     const { errorMessage, execute, isPending } = useSubscriptionRedirectAction(
         () =>
             authClient.subscription.upgrade({
-                annual,
+                annual: isAnnual,
                 cancelUrl: getReturnUrl(),
                 plan: "pro",
                 successUrl: getReturnUrl(),
@@ -253,7 +258,7 @@ function SubscriptionUpgradeButton({
  * Directs the customer to the Stripe billing portal to update payments, view
  * historical invoices, or manage subscription cycles.
  */
-function SubscriptionBillingPortalButton({
+export function SubscriptionBillingPortalButton({
     variant = "ghost",
     ...props
 }: React.ComponentProps<typeof Button>) {
@@ -385,17 +390,17 @@ function subscriptionStatusLabel(status: string | null | undefined) {
 function SubscriptionBadge({
     className,
     children,
-    hideIcon,
+    shouldHideIcon,
     variant = "secondary",
     ...props
-}: React.ComponentProps<typeof Badge> & { hideIcon?: boolean }) {
+}: React.ComponentProps<typeof Badge> & { shouldHideIcon?: boolean }) {
     return (
         <Badge
             {...props}
             className={cn("h-7! w-full", className)}
             variant={variant}
         >
-            {hideIcon ? null : <CrownFilledIcon />}
+            {shouldHideIcon ? null : <CrownFilledIcon />}
             {children}
         </Badge>
     );
@@ -421,13 +426,3 @@ function SubscriptionErrorMessage(props: React.ComponentProps<"p">) {
         />
     );
 }
-
-export {
-    SubscribedOnly,
-    SubscriptionBillingPortalButton,
-    SubscriptionStatusBadge,
-    SubscriptionUpgradeButton,
-    UnsubscribedOnly,
-    useSubscriptionAccess,
-    WithSubscriptionOnly,
-};

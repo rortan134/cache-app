@@ -3,6 +3,7 @@
 import { ActivePathname } from "@/components/ui/active-pathname";
 import { CmdKbd, Kbd } from "@/components/ui/kbd";
 import { SidebarItem } from "@/components/ui/sidebar";
+import { useStableCallback } from "@base-ui/utils/useStableCallback";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type * as React from "react";
@@ -23,7 +24,11 @@ export function SidebarNavigationItem({
 }: SidebarNavigationItemProps) {
     const router = useRouter();
 
-    useHotkeys(shortcutKeys ?? "", () => router.push(href), {
+    const handleShortcut = useStableCallback(() => {
+        router.push(href);
+    });
+
+    useHotkeys(shortcutKeys ?? "", handleShortcut, {
         description: `Navigate to ${props["aria-label"]}`,
         enabled: Boolean(shortcutKeys),
         preventDefault: true,
