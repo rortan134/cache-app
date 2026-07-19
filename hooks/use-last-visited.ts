@@ -83,7 +83,7 @@ function getSnapshot(): string[] {
     if (cachedSnapshot === undefined) {
         cachedSnapshot = readLastVisitedItemIds();
     }
-    return cachedSnapshot ?? [];
+    return cachedSnapshot ?? readLastVisitedItemIds();
 }
 
 function getServerSnapshot(): string[] {

@@ -131,7 +131,10 @@ export default async function Home() {
                         <BrandLogo href="/library" src={LogoIconImage} />
                         <T context="'Cache' is the product's name">
                             <h1 className="font-medium text-[3rem] leading-[98%] md:text-[4rem] md:tracking-[-0.21875rem]">
-                                <GradientWaveText ariaLabel="Unify your bookmarks">
+                                <GradientWaveText
+                                    ariaLabel="Unify your bookmarks"
+                                    className="pb-1.5"
+                                >
                                     Bookmark Intelligence
                                 </GradientWaveText>
                             </h1>
@@ -167,10 +170,12 @@ export default async function Home() {
                                 </p>
                             </a>
                         </div>
-                        <LocaleSelector
-                            id="language-selector"
-                            name="language"
-                        />
+                        <div className="hidden lg:block">
+                            <LocaleSelector
+                                id="language-selector"
+                                name="language"
+                            />
+                        </div>
                     </SidebarFooter>
                 </Sidebar>
                 <div className="flex w-full max-w-[1024px] flex-col gap-12 p-8 pb-0 2xl:mx-auto">

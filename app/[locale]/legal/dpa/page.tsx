@@ -450,7 +450,7 @@ export default function DPAPage() {
                         </thead>
                         <tbody className="divide-y divide-border">
                             <tr>
-                                <td className="vertical-align-top py-3 pr-4 font-medium text-foreground">
+                                <td className="py-3 pr-4 align-top font-medium text-foreground">
                                     Encryption of Personal Data
                                 </td>
                                 <td className="py-3 pl-4 text-muted-foreground">
@@ -461,7 +461,7 @@ export default function DPAPage() {
                                 </td>
                             </tr>
                             <tr>
-                                <td className="vertical-align-top py-3 pr-4 font-medium text-foreground">
+                                <td className="py-3 pr-4 align-top font-medium text-foreground">
                                     Logical Instance Separation
                                 </td>
                                 <td className="py-3 pl-4 text-muted-foreground">
@@ -472,7 +472,7 @@ export default function DPAPage() {
                                 </td>
                             </tr>
                             <tr>
-                                <td className="vertical-align-top py-3 pr-4 font-medium text-foreground">
+                                <td className="py-3 pr-4 align-top font-medium text-foreground">
                                     Backups and Disaster Recovery
                                 </td>
                                 <td className="py-3 pl-4 text-muted-foreground">
@@ -483,7 +483,7 @@ export default function DPAPage() {
                                 </td>
                             </tr>
                             <tr>
-                                <td className="vertical-align-top py-3 pr-4 font-medium text-foreground">
+                                <td className="py-3 pr-4 align-top font-medium text-foreground">
                                     Access Control and 2FA
                                 </td>
                                 <td className="py-3 pl-4 text-muted-foreground">
@@ -495,7 +495,7 @@ export default function DPAPage() {
                                 </td>
                             </tr>
                             <tr>
-                                <td className="vertical-align-top py-3 pr-4 font-medium text-foreground">
+                                <td className="py-3 pr-4 align-top font-medium text-foreground">
                                     Vulnerability Scanning
                                 </td>
                                 <td className="py-3 pl-4 text-muted-foreground">

@@ -160,6 +160,7 @@ import {
     ArchiveIcon,
     ArchiveX,
     ArrowUpDown,
+    BookmarkOff,
     ChevronRight,
     Clock,
     Component,
@@ -2940,6 +2941,11 @@ function CollectionsListCalloutPopover() {
                         size="xs"
                         variant="link"
                     >
+                        <BookmarkOff
+                            aria-hidden
+                            className="size-3.5"
+                            focusable="false"
+                        />
                         {disabled
                             ? "Turn on Smart Collections"
                             : "Turn off Smart Collections"}
@@ -3329,8 +3335,7 @@ function CollectionsListItemPriorityCombobox() {
                         focusable="false"
                     />
                     <p className="text-[10px] text-muted-foreground leading-tight">
-                        Set a priority to highlight your collections based on
-                        their relevance to you
+                        Highlight your collection based on its relevance to you
                     </p>
                 </div>
             </ComboboxPopup>

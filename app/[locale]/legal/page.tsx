@@ -76,7 +76,7 @@ export default async function LegalIndexPage({
         <div className="relative flex flex-col gap-10">
             <div
                 aria-hidden
-                className="pointer-events-none absolute -top-24 left-1/2 h-72 w-[min(100vw,42rem)] -translate-x-1/2 rounded-full bg-[radial-gradient(ellipse_at_center,--theme(--color-muted/55)_0%,transparent_68%)] blur-2xl"
+                className="pointer-events-none absolute -top-24 left-1/2 h-72 w-[min(100vw,42rem)] -translate-x-1/2 rounded-full bg-[radial-gradient(ellipse_at_center,--theme(--color-muted/55%)_0%,transparent_68%)] blur-2xl"
             />
 
             <header className="relative flex flex-col gap-3 text-pretty">
