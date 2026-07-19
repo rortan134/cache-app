@@ -9,17 +9,18 @@ import {
     getPickerSession,
 } from "@/lib/integrations/google-photos/api";
 import { mapPickerSessionToViewModel } from "@/lib/integrations/google-photos/service";
-import { GOOGLE_PHOTOS_PICKER_SCOPE } from "@/lib/integrations/google-photos/shared";
+import {
+    GOOGLE_PHOTOS_PERMISSION_MESSAGE,
+    GOOGLE_PHOTOS_PICKER_SCOPE,
+} from "@/lib/integrations/google-photos/shared";
 
 function photosAuthErrorResponse(error: IntegrationApiError): Response {
+    const status = error.data.status ?? 500;
     const message =
-        error.data.status === 401
-            ? "Your Google account needs Photos permission. Please sign out and sign back in to reconnect."
+        status === 401 || status === 403
+            ? GOOGLE_PHOTOS_PERMISSION_MESSAGE
             : error.message;
-    return Response.json(
-        { error: message },
-        { status: error.data.status ?? 500 }
-    );
+    return Response.json({ error: message }, { status });
 }
 
 function isPhotosAuthFailure(error: unknown): error is IntegrationApiError {
@@ -37,7 +38,6 @@ export async function POST() {
     }
     const { userId } = sessionResult;
 
-    let attemptedAccountCount = 0;
     let lastPhotosAuthError: IntegrationApiError | null = null;
 
     for await (const access of eachProviderAccountAccess({
@@ -45,7 +45,6 @@ export async function POST() {
         requiredScope: GOOGLE_PHOTOS_PICKER_SCOPE,
         userId,
     })) {
-        attemptedAccountCount += 1;
         try {
             const pickerSession = await createPickerSession(access.accessToken);
             return Response.json(
@@ -70,18 +69,9 @@ export async function POST() {
         return photosAuthErrorResponse(lastPhotosAuthError);
     }
 
-    if (attemptedAccountCount === 0) {
-        return Response.json(
-            { error: "Missing Google access token. Reconnect Google first." },
-            { status: 403 }
-        );
-    }
-
     return Response.json(
-        {
-            error: "Your Google account needs Photos permission. Please sign out and sign back in to reconnect.",
-        },
-        { status: 401 }
+        { error: "Missing Google access token. Reconnect Google first." },
+        { status: 403 }
     );
 }
 
