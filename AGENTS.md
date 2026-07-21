@@ -6,15 +6,15 @@
 
 ## On development
 
-Cache has a zero technical debt policy. Do it right the first time: the design that lands in the codebase should be the correct one, with no intentional debt in that surface. A problem solved in design costs less than one solved in implementation, which costs less than one solved in production. "Right the first time" describes the landed output, not the exploration that produced it — see simplicity below. When rules conflict, prefer in order: correctness and safety of the change surface, then scope discipline (task-only files and multi-agent isolation), then local coherence in files you already touch, then YAGNI, then style.
+Cache has a zero technical debt policy. Do it right the first time: the design that lands in the codebase should be the correct one, with no intentional debt in that surface. A problem solved in design costs less than one solved in implementation, which costs less than one solved in production. "Right the first time" describes the landed output, not the exploration that produced it — see simplicity below. When rules conflict, prefer in order: correctness and safety of the change surface, then scope discipline (task-only files and isolation), then local coherence in files you already touch, then YAGNI, then style.
 
-Minimize low-value prose. Offer nuanced, factual, and accurate solutions with brilliant critical reasoning. Suggest solutions or alternatives I didn’t think about and anticipate my needs.
+Minimize low-value prose. Make minimal, surgical changes. Leave the codebase better than you found it.
+
+Suggest solutions or alternatives I didn’t think about and anticipate my needs.
 
 When the user request is wrong, unsafe, or would not work, block it and offer alternatives. When it is merely suboptimal, challenge once with a concrete alternative, then execute the user's choice unless a hard constraint still fails. Reframe from first principles when that reaches a better answer.
 
 Consider new technologies and contrarian ideas, not just conventional wisdom.
-
-If you do not know the answer or think there might not be a correct answer, say so instead of guessing.
 
 Learn from existing code: Study and plan before implementing. Identify recurring patterns and design influences in the code. Keep rules or constraints of the task in mind.
 
@@ -25,8 +25,6 @@ If a tradeoff is required, choose correctness and robustness over short-term con
 Define success criteria. Loop until verified.
 
 It is not about formatting or syntax. Linters handle that. It is about how to think, how to make decisions, and what to value when building software.
-
-Make minimal, surgical changes. Leave the codebase better than you found it.
 
 Read the full implementation of what you change and its direct callers/callees, not just the signature and not the whole repo.
 
@@ -42,7 +40,7 @@ Avoid unnecessary code indirection. Extract when the same reason to change appli
 
 Follow YAGNI. Prefer the smallest clear unit, not the fewest lines — one-liners only for pure expressions with no branching, I/O, or error paths.
 
-Composition over inheritance: Prefer dependency injection.
+Composition over inheritance. Prefer dependency injection.
 
 Handle errors at the appropriate scopes. Never silently swallow exceptions. If you think an error cannot happen, assert that assumption explicitly.
 
@@ -56,9 +54,9 @@ Minimize risk by anticipating what’s most likely to fail (platforms, language 
 
 Great names capture what a thing is or does. Append qualifiers to names. Units, bounds, and modifiers come at the end. This groups related variables together and makes scanning easier.
 
-Inline single-use values when the expression is obvious in place. Keep a name when it encodes units, domain meaning, or a non-obvious intermediate — even if used once.
-
 Constants Are Module-Level and UPPER_SNAKE_CASE. Physics constants, selectors, and thresholds are declared at the top of the file, never inside the component.
+
+Inline single-use values when the expression is obvious in place. Keep a name when it encodes units, domain meaning, or a non-obvious intermediate — even if used once.
 
 ```ts
 // Good
@@ -70,8 +68,6 @@ const journal = await Bun.file(journalPath).json()
 ```
 
 ## On React components
-
-Never show the empty state during the loading state. Loading indicators (skeletons, spinners) and empty states are mutually exclusive — guard empty state checks with `isLoading` so the loading UI renders first, and the empty state only appears after loading completes with zero results.
 
 Always build React components following full `vercel-composition-patterns` and `vercel-react-best-practices` rules.
 
@@ -86,6 +82,8 @@ Use the `useIsoLayoutEffect` utility from `@base-ui/utils/useIsoLayoutEffect` in
 Use the shadow DOM-safe utilities for DOM traversal and event targeting: `contains`, `getTarget`, and `activeElement`. Use the owner utilities `ownerDocument` and `ownerWindow` instead of global `document`/`window` lookups when the code is tied to a DOM node, including realm-sensitive checks such as `instanceof`.
 
 Avoid duplicating logic where necessary: If two components can share logic (such as event handlers), define the logic/handlers in the parent and share it through a context to the child; use the existing context if it exists.
+
+Never show the empty state during the loading state. Loading indicators (skeletons, spinners) and empty states are mutually exclusive — guard empty state checks with `isLoading` so the loading UI renders first, and the empty state only appears after loading completes with zero results.
 
 ### File-Level Definition Order
 
@@ -195,7 +193,7 @@ Anchor design decisions on the user's primary task or focus, to make sure the us
 Runtime & Package Manager: Node.js 24.x, Bun, read Bun API docs in `node_modules/bun-types/docs/**.mdx` if necessary.
 Framework: Next.js 16 (App Router)
 UI: React 19, Base-UI ([@base-ui/react](https://base-ui.com/llms.txt), @base-ui/utils), [motion](https://motion.dev) for animations, and lucide-react icons
-React Compiler: `babel-plugin-react-compiler` is enabled. It automatically memoizes components and values, including render-time derived values. Do not add manual `useMemo` or `useCallback`; they add noise without benefit and can interfere with compiler optimization.
+React Compiler: `babel-plugin-react-compiler` is enabled. It automatically memoizes components and values, including render-time derived values. Do not add manual `useMemo` or `useCallback`; they can interfere with compiler optimization.
 Styling: Tailwind CSS 4
 Rich Text: [Lexical](https://lexical.dev) for notes editing
 Internationalization: [gt-next](https://gt-next.vercel.app) for i18n
