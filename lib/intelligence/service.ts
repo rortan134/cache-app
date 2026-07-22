@@ -187,10 +187,8 @@ async function executeGeneration<T>(
     try {
         await protectGenAiRequest({
             feature,
-            prompt,
             request,
             requestedTokens,
-            scanMessage: buildInjectionScanMessage(truncatedRequest),
             userId,
         });
 
@@ -298,26 +296,4 @@ function classifyApiError(error: unknown): { message: string; status: number } {
     }
 
     return { message: "Unknown error", status: 500 };
-}
-
-/**
- * Extracts only user-controlled text from a description request for prompt
- * injection scanning.
- *
- * Omits system instructions, output rules, and few-shot examples that
- * otherwise trigger false positives in Arcjet's detector (which looks for
- * instruction-override patterns like "Do not..." or "Return only...").
- */
-function buildInjectionScanMessage(request: DescriptionRequest): string {
-    const parts = [request.sectionTitle];
-    for (const item of request.items) {
-        parts.push(item.title, item.primaryText);
-        if (item.noteExcerpt !== undefined) {
-            parts.push(item.noteExcerpt);
-        }
-        if (item.domain !== undefined) {
-            parts.push(item.domain);
-        }
-    }
-    return parts.join(" ");
 }

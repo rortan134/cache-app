@@ -7,11 +7,7 @@ import { getUserPlanType } from "@/lib/billing/service";
 import { createLogger } from "@/lib/common/logs/console/logger";
 import { GenAiProtectionError } from "@/lib/intelligence/error";
 import type { ArcjetDecision, ArcjetNextRequest } from "@arcjet/next";
-import arcjet, {
-    detectPromptInjection,
-    shield,
-    tokenBucket,
-} from "@arcjet/next";
+import arcjet, { shield, tokenBucket } from "@arcjet/next";
 
 const log = createLogger("intelligence:protection");
 
@@ -37,9 +33,6 @@ function createPlanClient(plan: PriceType, key: string) {
             shield({
                 mode: "LIVE",
             }),
-            detectPromptInjection({
-                mode: "LIVE",
-            }),
             tokenBucket({
                 capacity: quota.fixedLimit,
                 characteristics: [CHARACTERISTIC_USER_ID],
@@ -55,9 +48,6 @@ function denialReason(decision: ArcjetDecision) {
     if (decision.reason.isRateLimit()) {
         return "quota_exceeded";
     }
-    if (decision.reason.isPromptInjection()) {
-        return "prompt_injection";
-    }
     return "forbidden";
 }
 
@@ -65,8 +55,6 @@ function denialMessage(reason: ReturnType<typeof denialReason>): string {
     switch (reason) {
         case "quota_exceeded":
             return "Your AI usage quota has been reached. Please try again later.";
-        case "prompt_injection":
-            return "The request was blocked because it looks like prompt injection.";
         default:
             return "The AI request was blocked.";
     }
@@ -74,19 +62,11 @@ function denialMessage(reason: ReturnType<typeof denialReason>): string {
 
 export async function protectGenAiRequest(args: {
     feature: string;
-    prompt: string;
     request: ArcjetNextRequest;
     requestedTokens: number;
-    /**
-     * User-controlled text for prompt-injection detection.
-     * Pass only untrusted content — never system instructions or few-shot
-     * examples (those false-positive Arcjet's detector). Omit only when the
-     * request has no user text to scan.
-     */
-    scanMessage?: string;
     userId: string;
 }): Promise<void> {
-    const { feature, request, requestedTokens, scanMessage, userId } = args;
+    const { feature, request, requestedTokens, userId } = args;
 
     if (!serverEnv.ARCJET_KEY) {
         log.warn(
@@ -99,13 +79,7 @@ export async function protectGenAiRequest(args: {
     const plan = await getUserPlanType(userId);
     const decision = await createPlanClient(plan, serverEnv.ARCJET_KEY).protect(
         request,
-        {
-            // Empty string disables injection detection for this call.
-            // Callers that accept user text must pass `scanMessage`.
-            detectPromptInjectionMessage: scanMessage ?? "",
-            requested: requestedTokens,
-            userId,
-        }
+        { requested: requestedTokens, userId }
     );
 
     if (!decision.isDenied()) {

@@ -744,6 +744,7 @@ async function decideCollectionsForItem(
     const contentVariants: Array<{ contents: Part[]; label: string }> = [
         { contents: [prompt], label: "metadata_only" },
     ];
+
     if (attachment) {
         contentVariants.unshift({
             contents: [prompt, ...attachment.parts],
@@ -754,7 +755,6 @@ async function decideCollectionsForItem(
     try {
         await protectGenAiRequest({
             feature: "smart_collections",
-            prompt: protectionPrompt,
             request: new Request(
                 "https://cache.local/internal/smart-collections"
             ),
@@ -762,16 +762,6 @@ async function decideCollectionsForItem(
                 protectionPrompt,
                 ESTIMATED_OUTPUT_TOKENS
             ),
-            // Scan only user/item content — not system instructions in the prompt.
-            scanMessage: [
-                item.caption,
-                item.url,
-                item.kind,
-                item.source,
-                attachment?.protectionText,
-            ]
-                .filter((part): part is string => typeof part === "string")
-                .join(" "),
             userId,
         });
 

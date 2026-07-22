@@ -8,7 +8,7 @@ export const GenAiProtectionError = NamedError.create(
         message: z.string(),
         operation: z.string(),
         plan: z.enum(["free", "monthly", "yearly"]),
-        reason: z.enum(["quota_exceeded", "prompt_injection", "forbidden"]),
+        reason: z.enum(["quota_exceeded", "forbidden"]),
         requestedTokens: z.int().positive(),
         userId: z.string(),
     })

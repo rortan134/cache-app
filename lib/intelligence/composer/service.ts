@@ -133,13 +133,11 @@ export async function runAskCacheAgent({
 
     await protectGenAiRequest({
         feature: "ask_cache_agent",
-        prompt: input.prompt,
         request,
         requestedTokens: estimateGenAiTokens(
             `${instructions}\n\n${userMessage}`,
             ASK_CACHE_OUTPUT_TOKEN_LIMIT
         ),
-        scanMessage: input.prompt,
         userId,
     });
 

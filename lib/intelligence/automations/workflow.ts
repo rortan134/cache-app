@@ -40,7 +40,7 @@ interface AutomationAgentRunResult {
 interface GenAiProtectionErrorData {
     data: {
         message: string;
-        reason: "quota_exceeded" | "prompt_injection" | "forbidden";
+        reason: "quota_exceeded" | "forbidden";
     };
 }
 interface StepUsage {
@@ -69,7 +69,6 @@ export async function executeReadOnlyAutomationRun(
     try {
         await protectAutomationAgentRun({
             prompt: `${instructions}\n\n${userMessage}`,
-            scanMessage: userMessage,
             userId: prepared.userId,
         });
 
@@ -115,7 +114,6 @@ export async function executeReadOnlyAutomationRun(
 
 async function protectAutomationAgentRun(args: {
     prompt: string;
-    scanMessage: string;
     userId: string;
 }) {
     "use step";
@@ -126,13 +124,11 @@ async function protectAutomationAgentRun(args: {
 
     await protectGenAiRequest({
         feature: "automation_agent",
-        prompt: args.prompt,
         request: new Request("https://cache.local/internal/automations"),
         requestedTokens: estimateGenAiTokens(
             args.prompt,
             AUTOMATION_OUTPUT_TOKEN_LIMIT
         ),
-        scanMessage: args.scanMessage,
         userId: args.userId,
     });
 }
@@ -283,9 +279,7 @@ function isGenAiProtectionErrorData(
         "message" in data &&
         typeof data.message === "string" &&
         "reason" in data &&
-        (data.reason === "quota_exceeded" ||
-            data.reason === "prompt_injection" ||
-            data.reason === "forbidden")
+        (data.reason === "quota_exceeded" || data.reason === "forbidden")
     );
 }
 
