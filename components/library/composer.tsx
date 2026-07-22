@@ -140,7 +140,7 @@ export function ComposerInput({
     ref,
     stackEntries,
 }: ComposerInputProps) {
-    const filteredGroups = useGetVisibleGroups({ groups, query });
+    const filteredGroups = useVisibleGroups({ groups, query });
 
     return (
         <Command
@@ -219,8 +219,8 @@ export function ComposerSuggestionsList({
     onOpenChange: onOpenChangeProp,
     ...props
 }: ComposerSuggestionsProps) {
-    const [internalOpen, setInternalOpen] = React.useState(true);
-    const open = openProp ?? internalOpen;
+    const [isInternalOpen, setInternalOpen] = React.useState(true);
+    const open = openProp ?? isInternalOpen;
     const setOpen = onOpenChangeProp ?? setInternalOpen;
 
     const handleDismiss = useStableCallback(() => setOpen(false));
@@ -313,7 +313,7 @@ export function ComposerActionSummary({
                 &nbsp;Showing <Calligraph>{resultsSummary}</Calligraph>
                 {groupBy === "none" ? null : (
                     <>
-                        , <Calligraph>{sectionsLength}</Calligraph> section
+                        , <Calligraph>{sectionsLength}</Calligraph> group
                         {sectionsLength === 1 ? "" : "s"}
                     </>
                 )}
@@ -439,7 +439,7 @@ interface ComposerSuggestionsProps
     suggestions: CommandSuggestion[];
 }
 
-function useGetVisibleGroups({
+function useVisibleGroups({
     groups,
     query,
 }: {

@@ -19,7 +19,6 @@ import {
     type CommandSuggestion,
     type PaletteStackEntry,
 } from "@/components/library/composer";
-import { isCollectionHoverHotkeySurface } from "@/components/library/hover-hotkey-surface";
 import {
     NoteEditor,
     NoteHeader,
@@ -122,6 +121,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { Textarea } from "@/components/ui/textarea";
 import { Ticker } from "@/components/ui/ticker";
 import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
+import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { useIsExtensionInstalled } from "@/hooks/use-extension-installed";
 import { useLastVisited } from "@/hooks/use-last-visited";
 import { useSearchHistory } from "@/hooks/use-search-history";
@@ -174,6 +174,7 @@ import {
     saveFile,
     type createFileAttachment,
 } from "@/lib/common/file";
+import { isCollectionHoverHotkeySurface } from "@/lib/common/hover-hotkey-surface";
 import { filterValidImageUrls } from "@/lib/common/image";
 import { getImageColors } from "@/lib/common/image-colors";
 import { createLogger } from "@/lib/common/logs/console/logger";
@@ -236,7 +237,7 @@ import type {
 import { useIsoLayoutEffect } from "@base-ui/utils/useIsoLayoutEffect";
 import { useStableCallback } from "@base-ui/utils/useStableCallback";
 import { useTimeout } from "@base-ui/utils/useTimeout";
-import { T, Var } from "gt-next";
+import { T, useGT, Var } from "gt-next";
 import {
     ArrowDownWideNarrow,
     ArrowUpRight,
@@ -851,6 +852,9 @@ const COMBOBOX_ITEM_PRESS_REASON = "item-press";
 const COMBOBOX_ESCAPE_KEY_REASON = "escape-key";
 const ALL_DOMAIN_FILTER = "__all_domains__";
 const UNSPECIFIC_DOMAIN_FILTER = "Other";
+
+/** Lucide squircle path; pathLength=1 lets the smart-collections stroke cue travel the perimeter. */
+const SQUIRCLE_PATH_D = "M12 3c7.2 0 9 1.8 9 9s-1.8 9-9 9-9-1.8-9-9 1.8-9 9-9";
 
 const SEARCH_HOTKEYS = [
     "ctrl+g",
@@ -2169,14 +2173,14 @@ function BrowserUnreachableProbePending() {
     );
 }
 
-function BrowserList({
-    sections,
+function BrowserGroupList({
+    groups,
     children,
 }: {
-    sections: BrowserGroup[];
+    groups: BrowserGroup[];
     children: (section: BrowserGroup) => React.ReactNode;
 }) {
-    return sections.map((section) => (
+    return groups.map((section) => (
         <BrowserGroupProvider key={section.key} section={section}>
             {children(section)}
         </BrowserGroupProvider>
@@ -2469,43 +2473,42 @@ function BrowserGroupAIOverviewContent() {
         setIsExpanded((prev) => !prev);
     });
 
-    const { data, isLoading } = useSWR<SectionDescriptionResponse>(
-        getSectionDescriptionSWRKey(payload, items.length),
-        fetchSectionDescription,
-        {
-            dedupingInterval: 60_000,
-            keepPreviousData: true,
-            revalidateOnFocus: false,
-            shouldRetryOnError: false,
-        }
-    );
+    const { data, isLoading, isValidating } =
+        useSWR<SectionDescriptionResponse>(
+            getSectionDescriptionSWRKey(payload, items.length),
+            fetchSectionDescription,
+            {
+                dedupingInterval: 60_000,
+                keepPreviousData: true,
+                revalidateOnFocus: false,
+                shouldRetryOnError: false,
+            }
+        );
+
+    const summary = data?.summary.trim();
+    const isPending = isLoading || isValidating;
+    const t = useGT();
 
     if (collapsed) {
         return null;
     }
 
-    const summary = data?.summary.trim();
-
-    return isLoading && !data ? (
-        <div className="block w-full text-xs leading-snug">
-            <Skeleton className="my-0.5 h-4 w-full" />
-            <Skeleton className="my-0.5 h-4 w-48" />
-        </div>
-    ) : (
+    return (
         <div
-            aria-busy={isLoading}
+            aria-busy={isPending}
             className="fade-in-0 flex w-full animate-in items-start gap-2 text-xs leading-snug motion-reduce:animate-none"
             id={contentId}
         >
             <Streamdown
                 className={cn("min-w-0 flex-1 whitespace-pre-line pt-1.5", {
                     "shimmer shimmer-duration-1000 text-muted-foreground":
-                        isLoading,
+                        isPending,
                 })}
             >
-                {summary && summary.length > 0
-                    ? summary
-                    : "Description is unavailable right now."}
+                {summary ||
+                    (isPending
+                        ? t("Loading overview...")
+                        : t("Overview is unavailable right now."))}
             </Streamdown>
             &nbsp;
             {summary && summary.length > 0 ? (
@@ -2555,7 +2558,7 @@ function BrowserMasonry({ children }: BrowserMansonryProps) {
     const { columnCount } = useBrowserResultsContext();
     const { state: sidebarState } = useSidebar();
     // ! this works, sometimes, to recalculate column count on sidebar toggle
-    const sidebarStateDeferred = React.useDeferredValue(sidebarState);
+    const sidebarStateDeferred = useDebouncedValue(sidebarState, 300);
 
     if (collapsed || items.length === 0) {
         return null;
@@ -3463,7 +3466,7 @@ function sortCommandItems(
     return filteredItems.toSorted((a, b) => compareItems(a, b, itemSortMode));
 }
 
-function buildBrowserSections(
+function buildBrowserGroups(
     sortedItems: LibraryItemWithCollections[],
     groupBy: EffectiveGroupByMode,
     sortMode: SortMode,
@@ -3596,13 +3599,13 @@ function browserHasActiveFilters(input: {
 function useSectionCollapseState({
     groupBy,
     hasActiveFilters,
-    sections,
+    groups,
     shouldShowEmptyLibraryPeek,
     shouldShowNoFilteredResults,
 }: {
     groupBy: EffectiveGroupByMode;
     hasActiveFilters: boolean;
-    sections: BrowserGroup[];
+    groups: BrowserGroup[];
     shouldShowEmptyLibraryPeek: boolean;
     shouldShowNoFilteredResults: boolean;
 }) {
@@ -3614,13 +3617,11 @@ function useSectionCollapseState({
         !(shouldShowEmptyLibraryPeek || shouldShowNoFilteredResults) &&
         (hasActiveFilters || groupBy !== "none");
 
-    const sectionKeySignature = sections
-        .map((section) => section.key)
-        .join("\0");
+    const sectionKeySignature = groups.map((section) => section.key).join("\0");
     const prevSectionKeySignatureRef = React.useRef(sectionKeySignature);
     if (sectionKeySignature !== prevSectionKeySignatureRef.current) {
         prevSectionKeySignatureRef.current = sectionKeySignature;
-        const validKeys = new Set(sections.map((section) => section.key));
+        const validKeys = new Set(groups.map((section) => section.key));
         setCollapsedSectionKeys((current) => {
             const next = current.filter((key) => validKeys.has(key));
             return next.length === current.length ? current : next;
@@ -3647,7 +3648,7 @@ function useSectionCollapseState({
     });
 
     const collapseAllSections = useStableCallback(() => {
-        setCollapsedSectionKeys(sections.map((section) => section.key));
+        setCollapsedSectionKeys(groups.map((section) => section.key));
     });
 
     const expandAllSections = useStableCallback(() => {
@@ -4174,6 +4175,45 @@ async function downloadLibraryItemMedia(
     ownerDocument.body.removeChild(link);
 }
 
+function SmartCollectionsSquircleIndicator() {
+    return (
+        <svg
+            aria-hidden="true"
+            className="size-4.5"
+            fill="none"
+            focusable="false"
+            role="img"
+            viewBox="0 0 24 24"
+        >
+            <path
+                d={SQUIRCLE_PATH_D}
+                stroke="currentColor"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+            />
+            <path
+                className="motion-safe:animate-smart-collections-indicator"
+                d={SQUIRCLE_PATH_D}
+                pathLength={1}
+            />
+        </svg>
+    );
+}
+
+function defaultCollectionTriggerIcon(
+    selectedCount: number,
+    shouldShowSmartCollectionsIndicator: boolean
+) {
+    if (selectedCount === 0) {
+        return <SquircleDashed aria-hidden className="size-4.5" />;
+    }
+    if (shouldShowSmartCollectionsIndicator) {
+        return <SmartCollectionsSquircleIndicator />;
+    }
+    return <Squircle aria-hidden className="size-4.5" />;
+}
+
 function CollectionComboboxPicker({
     collections,
     items,
@@ -4252,18 +4292,10 @@ function CollectionComboboxPicker({
                 }
             >
                 {children ??
-                    (selectedCount > 0 ? (
-                        <Squircle
-                            aria-hidden
-                            className={cn(
-                                "size-4.5",
-                                shouldShowSmartCollectionsIndicator &&
-                                    "motion-safe:animate-smart-collections-indicator"
-                            )}
-                        />
-                    ) : (
-                        <SquircleDashed aria-hidden className="size-4.5" />
-                    ))}
+                    defaultCollectionTriggerIcon(
+                        selectedCount,
+                        shouldShowSmartCollectionsIndicator
+                    )}
             </ComboboxTrigger>
             <ComboboxPopup>
                 <ComboboxInput
@@ -4996,12 +5028,12 @@ function NoteDrawer({
     return (
         <NoteRoot
             contentEditableRef={contentEditableRef}
+            isOpen={isNoteDrawerOpen}
             isSaving={isSavingNote || isSavingPastedUrl}
             note={note}
             onOpenChange={handleOpenChange}
             onSave={handleSaveNote}
             onUrlPaste={handlePasteUrlIntoLibrary}
-            open={isNoteDrawerOpen}
         >
             <NoteDrawerContent
                 contentEditableRef={contentEditableRef}
@@ -5914,7 +5946,7 @@ export function BrowserRoot({
         }
     );
 
-    const groups = buildPaletteGroups({
+    const paletteGroups = buildPaletteGroups({
         askCacheResponse,
         clearLibraryPalette,
         collectionMembershipFilter,
@@ -5961,7 +5993,7 @@ export function BrowserRoot({
         : [];
 
     const paletteGroupValueSet = new Set<string>();
-    for (const group of groups) {
+    for (const group of paletteGroups) {
         for (const item of group.items) {
             paletteGroupValueSet.add(item.value);
         }
@@ -6085,7 +6117,7 @@ export function BrowserRoot({
         ? "canonical-url"
         : groupBy;
 
-    const sections = buildBrowserSections(
+    const groups = buildBrowserGroups(
         sortedItems,
         effectiveGroupBy,
         sortMode,
@@ -6128,8 +6160,8 @@ export function BrowserRoot({
         toggleSection,
     } = useSectionCollapseState({
         groupBy: effectiveGroupBy,
+        groups,
         hasActiveFilters,
-        sections,
         shouldShowEmptyLibraryPeek,
         shouldShowNoFilteredResults,
     });
@@ -6164,7 +6196,7 @@ export function BrowserRoot({
         resultsSummary = `${resultsSummary} · ${progressLabel}`;
     }
 
-    const visibleResultItems = sections.flatMap((section) => section.items);
+    const visibleResultItems = groups.flatMap((section) => section.items);
 
     const resultCollectionItemIds = visibleResultItems.map((item) => item.id);
 
@@ -6812,7 +6844,7 @@ export function BrowserRoot({
             <Composer>
                 <ComposerInput
                     containerRef={commandPanelContainerRef}
-                    groups={groups}
+                    groups={paletteGroups}
                     isOpen={isCommandOpen}
                     onKeyDown={handlePaletteInputKeyDown}
                     onOpenChange={handleCommandOpenChange}
@@ -6837,7 +6869,7 @@ export function BrowserRoot({
                     onRemoveDuplicates={handleRequestRemoveDuplicates}
                     removableDuplicateCount={removableDuplicateIds.length}
                     resultsSummary={resultsSummary}
-                    sectionsLength={sections.length}
+                    sectionsLength={groups.length}
                 >
                     <ComposerActionNew />
                     <ComposerActionMetrics />
@@ -6902,7 +6934,7 @@ export function BrowserRoot({
                 <BrowserEmpty />
                 <BrowserEmptyWithFilters />
                 <BrowserUnreachableProbePending />
-                <BrowserList sections={sections}>
+                <BrowserGroupList groups={groups}>
                     {(section) => (
                         <BrowserGroup>
                             {enableSectionCollapse ? (
@@ -6923,7 +6955,7 @@ export function BrowserRoot({
                             </BrowserMasonry>
                         </BrowserGroup>
                     )}
-                </BrowserList>
+                </BrowserGroupList>
             </Browser>
             {shouldShowLockedPreview ? (
                 <div className="relative isolate flex flex-col gap-8">
