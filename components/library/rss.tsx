@@ -102,9 +102,9 @@ export function RssManageDialog() {
                 {feeds.map((feed) => (
                     <FeedRow
                         feed={feed}
-                        handleRemove={handleRemove}
                         isRemoving={removingFeedIds.has(feed.id)}
                         key={feed.id}
+                        onRemove={handleRemove}
                     />
                 ))}
             </div>
@@ -139,16 +139,14 @@ export function RssManageDialog() {
     );
 }
 
-function FeedRow({
-    feed,
-    handleRemove,
-    isRemoving,
-}: {
+interface FeedRowProps {
     feed: FeedViewModel;
-    handleRemove: (feedId: string) => void;
     isRemoving: boolean;
-}) {
-    const onRemove = useStableCallback(() => handleRemove(feed.id));
+    onRemove: (feedId: string) => void;
+}
+
+function FeedRow({ feed, isRemoving, onRemove }: FeedRowProps) {
+    const handleRemove = useStableCallback(() => onRemove(feed.id));
     return (
         <div className="flex items-center gap-3 rounded-lg border p-3 text-sm">
             <Rss className="size-4 shrink-0 text-muted-foreground" />
@@ -167,7 +165,7 @@ function FeedRow({
             </div>
             <Button
                 isLoading={isRemoving}
-                onClick={onRemove}
+                onClick={handleRemove}
                 size="icon"
                 variant="ghost"
             >
@@ -177,7 +175,11 @@ function FeedRow({
     );
 }
 
-function AddFeedForm({ onFeedAdded }: { onFeedAdded: () => void }) {
+interface AddFeedFormProps {
+    onFeedAdded: () => void;
+}
+
+function AddFeedForm({ onFeedAdded }: AddFeedFormProps) {
     const [url, setUrl] = React.useState("");
     const [error, setError] = React.useState<string | null>(null);
     const [isPending, startTransition] = React.useTransition();

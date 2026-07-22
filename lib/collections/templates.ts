@@ -91,6 +91,12 @@ export const TEMPLATES = [
     },
     {
         description:
+            "Common questions, company research, portfolio materials, and prep guides for upcoming interviews.",
+        name: "Interview Preparation",
+        value: "interview_preparation",
+    },
+    {
+        description:
             "Tickets, events, deadlines, deals, and opportunities that are only useful for a short window and should be acted on soon.",
         name: "Time-sensitive",
         value: "time_sensitive",
