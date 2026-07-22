@@ -7,6 +7,7 @@ import {
     ContextMenuTrigger,
 } from "@/components/ui/context-menu";
 import { cn } from "@/lib/common/cn";
+import { APP_NAME } from "@/lib/common/constants";
 import { saveFile } from "@/lib/common/file";
 import { useStableCallback } from "@base-ui/utils/useStableCallback";
 import { DownloadIcon } from "lucide-react";
@@ -63,6 +64,7 @@ export function BrandLogo({ href, src, className, ...props }: BrandLogoProps) {
     return (
         <ContextMenu>
             <ContextMenuTrigger
+                aria-label={APP_NAME}
                 render={
                     href ? (
                         <Link

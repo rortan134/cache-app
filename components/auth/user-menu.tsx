@@ -128,7 +128,7 @@ export function UserMenuTrigger(
             </WithUserSessionOnly>
             <ChevronDown
                 aria-hidden
-                className="pointer-events-none inline-block size-3.5 shrink-0 opacity-0 group-hover:opacity-80 group-data-popup-open:opacity-30"
+                className="pointer-events-none inline-block size-3.5 opacity-0 group-hover:opacity-80 group-data-popup-open:opacity-30"
                 focusable="false"
             />
             <Kbd
@@ -153,7 +153,7 @@ export function UserMenuPopup({
         <MenuPopup
             {...props}
             align={align}
-            className={cn("min-w-[248px]", className)}
+            className={cn("min-w-62", className)}
             side={side}
         >
             <div className="flex flex-col gap-1">{children}</div>
@@ -194,7 +194,7 @@ export function UserMenuContent() {
                 render={<MenuItem closeOnClick={false} />}
             >
                 Give feedback
-                <Globe className="ml-auto inline-block size-3.5 shrink-0 text-muted-foreground" />
+                <Globe className="ml-auto inline-block size-3.5 text-muted-foreground" />
             </FeedbackWidget>
             <MenuSeparator />
             <MenuGroup>
@@ -213,7 +213,7 @@ export function UserMenuContent() {
                         render={<MenuItem closeOnClick={false} />}
                     >
                         <T>Billing</T>
-                        <ArrowUpRight className="ml-auto! inline-block size-4 shrink-0 text-muted-foreground" />
+                        <ArrowUpRight className="ml-auto! inline-block size-4 text-muted-foreground" />
                     </SubscriptionBillingPortalButton>
                 </SubscribedOnly>
                 <UnsubscribedOnly>
@@ -229,7 +229,7 @@ export function UserMenuContent() {
                                 src={AppIconSmall}
                                 width={12}
                             />
-                            <ArrowUpRight className="inline-block size-4 shrink-0 text-muted-foreground" />
+                            <ArrowUpRight className="inline-block size-4 text-muted-foreground" />
                         </div>
                     </SubscriptionUpgradeButton>
                 </UnsubscribedOnly>
@@ -239,7 +239,7 @@ export function UserMenuContent() {
                         render={<MenuItem closeOnClick={false} />}
                     >
                         <T>Resources</T>
-                        <ChevronRight className="ml-auto! inline-block size-4 shrink-0 text-muted-foreground transition-transform group-data-panel-open:rotate-90 group-data-panel-open:opacity-30" />
+                        <ChevronRight className="ml-auto! inline-block size-4 text-muted-foreground transition-transform group-data-panel-open:rotate-90 group-data-panel-open:opacity-30" />
                     </CollapsibleTrigger>
                     <CollapsiblePanel>
                         <MenuItem
@@ -254,7 +254,7 @@ export function UserMenuContent() {
                             }
                         >
                             <T>Changelog</T>
-                            <ArrowUpRight className="ml-auto! inline-block size-4 shrink-0 text-muted-foreground" />
+                            <ArrowUpRight className="ml-auto! inline-block size-4 text-muted-foreground" />
                         </MenuItem>
                         <MenuItem
                             className="justify-between pl-6"
@@ -267,7 +267,7 @@ export function UserMenuContent() {
                             }
                         >
                             <T>Support</T>
-                            <ArrowUpRight className="ml-auto! inline-block size-4 shrink-0 text-muted-foreground" />
+                            <ArrowUpRight className="ml-auto! inline-block size-4 text-muted-foreground" />
                         </MenuItem>
                         <MenuItem
                             className="justify-between pl-6"
@@ -280,7 +280,7 @@ export function UserMenuContent() {
                             }
                         >
                             <T>GitHub</T>
-                            <ArrowUpRight className="ml-auto! inline-block size-4 shrink-0 text-muted-foreground" />
+                            <ArrowUpRight className="ml-auto! inline-block size-4 text-muted-foreground" />
                         </MenuItem>
                         <KeyboardShortcutsDialogTrigger
                             nativeButton={false}
@@ -309,7 +309,7 @@ export function UserMenuContent() {
                     }
                 >
                     <T context="User Log out/Sign out of the app">Log out</T>
-                    <LogOut className="ml-auto inline-block size-3.5 shrink-0 text-muted-foreground" />
+                    <LogOut className="ml-auto inline-block size-3.5 text-muted-foreground" />
                 </LogoutDialogTrigger>
             </MenuGroup>
         </>
@@ -369,10 +369,10 @@ function UserMenuDesktopDownloadSubMenu() {
 
     return (
         <MenuSub>
-            <MenuSubTrigger className="justify-between">
+            <MenuSubTrigger>
                 <T>Download desktop app</T>
             </MenuSubTrigger>
-            <MenuSubPopup align="end" className="min-w-[200px]">
+            <MenuSubPopup align="end" className="min-w-50">
                 <MenuGroup>
                     {versionLabel ? (
                         <MenuGroupLabel>
@@ -402,7 +402,7 @@ function UserMenuDesktopDownloadSubMenu() {
                         }
                     >
                         <T>All releases</T>
-                        <ArrowUpRight className="ml-auto inline-block size-4 shrink-0 text-muted-foreground" />
+                        <ArrowUpRight className="ml-auto inline-block size-4 text-muted-foreground" />
                     </MenuItem>
                 </MenuGroup>
             </MenuSubPopup>
@@ -438,7 +438,7 @@ function DesktopDownloadMenuItem({
                     </span>
                 ) : null}
             </span>
-            <Download className="ml-auto inline-block size-3.5 shrink-0 text-muted-foreground" />
+            <Download className="ml-auto inline-block size-3.5 text-muted-foreground" />
         </MenuItem>
     );
 }
@@ -476,6 +476,7 @@ function UserMenuAccountActionsSubMenu(
         <MenuSub>
             <MenuSubTrigger
                 {...props}
+                nativeButton
                 render={<Button size="xs" variant="ghost" />}
                 title="Account actions"
             />

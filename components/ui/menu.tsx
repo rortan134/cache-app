@@ -3,6 +3,7 @@
 import { cn } from "@/lib/common/cn";
 import { Menu as MenuPrimitive } from "@base-ui/react/menu";
 import { CheckIcon, ChevronRightIcon } from "lucide-react";
+import Link from "next/link";
 import type * as React from "react";
 
 export const MenuCreateHandle: typeof MenuPrimitive.createHandle =
@@ -126,6 +127,21 @@ export function MenuItem({
                 className
             )}
             data-slot="menu-item"
+        />
+    );
+}
+
+export function MenuLinkItem({
+    href,
+    ...props
+}: MenuPrimitive.Item.Props & {
+    href: string;
+}) {
+    return (
+        <MenuItem
+            {...props}
+            nativeButton={false}
+            render={<Link href={href} />}
         />
     );
 }

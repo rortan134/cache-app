@@ -238,7 +238,7 @@ export function ComboboxSeparator({
     return (
         <ComboboxPrimitive.Separator
             {...props}
-            className={cn("mx-2 my-1 h-px bg-border last:hidden", className)}
+            className={cn("mt-1.5 mb-1 h-px bg-border last:hidden", className)}
             data-slot="combobox-separator"
         />
     );
