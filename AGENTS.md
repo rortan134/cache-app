@@ -234,9 +234,3 @@ Use these in services and actions to propagate domain failures with structured m
 ### Data model
 
 The data model can be found at `prisma/schema.prisma`
-
-### Papercuts
-
-Product or code issues in your change surface: fix or do not land. Tooling, docs, or agent friction (dead-end tool call, broken link, misleading docs, flaky command, missing context) — log it instead of silently working around it:
-`./bin/papercuts "what went wrong and where..."`
-Keep going afterward. Don't stop to fix tooling friction unless asked to. Do not use papercuts as a reason to ship incorrect product code.
