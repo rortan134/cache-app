@@ -1,18 +1,18 @@
 import { buildPageMetadata } from "@/app/metadata";
-import { ApplicationSidebar } from "@/components/sidebar/application-sidebar";
 import { BrowserRoot } from "@/components/library/browser";
 import { Collections } from "@/components/library/collections";
 import { Integrations } from "@/components/library/integrations";
 import { WorkspaceProvider } from "@/components/library/workspace";
+import { ApplicationSidebar } from "@/components/sidebar/application-sidebar";
 import { getServerSession } from "@/lib/auth/session";
 import { userHasActiveSubscription } from "@/lib/billing/service";
 import { getLibrary, listCollections } from "@/lib/collections/service";
-import { gtPublicString } from "@/lib/i18n/gt-public-json";
 import { listLinkedIntegrationAccounts } from "@/lib/integrations/account";
 import {
     listConnectedIntegrationIds,
     type IntegrationId,
 } from "@/lib/integrations/support";
+import { getGT } from "gt-next/server";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { connection } from "next/server";
@@ -25,16 +25,15 @@ export async function generateMetadata({
     params: Promise<{ locale: string }>;
 }): Promise<Metadata> {
     const { locale } = await params;
+    const gt = await getGT();
 
     return buildPageMetadata({
-        description: gtPublicString(
-            locale,
-            "library.metadata.description",
+        description: gt(
             "Saved items from your connected accounts and extension imports appear below by source."
         ),
         locale,
         path: "/library",
-        title: gtPublicString(locale, "library.metadata.title", "Library"),
+        title: gt("Library"),
     });
 }
 

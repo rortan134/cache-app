@@ -1,5 +1,5 @@
-import { buildLocaleAlternates } from "@/lib/i18n/alternates";
 import { BASE_URL } from "@/lib/common/constants";
+import { getDefaultLocale, getLocales, resolveCanonicalLocale } from "gt-next";
 import type { Metadata } from "next";
 
 interface BuildPageMetadataArgs {
@@ -33,7 +33,7 @@ export function buildPageMetadata({
     title,
 }: BuildPageMetadataArgs): Metadata {
     return {
-        alternates: buildLocaleAlternates(path),
+        alternates: buildLocaleAlternates(path, locale),
         description,
         keywords,
         metadataBase: new URL(BASE_URL),
@@ -64,6 +64,35 @@ export function buildPageMetadata({
                 },
             ],
             title,
+        },
+    };
+}
+
+function getLocalizedUrl(locale: string, path: `/${string}`) {
+    return path === "/"
+        ? `${BASE_URL}/${locale}`
+        : `${BASE_URL}/${locale}${path}`;
+}
+
+export function buildLocaleAlternates(
+    path: `/${string}`,
+    locale?: string
+): NonNullable<Metadata["alternates"]> {
+    const defaultLocale = getDefaultLocale();
+    const resolvedLocale = locale ?? defaultLocale;
+    const languages = Object.fromEntries(
+        getLocales().map((loc) => [
+            resolveCanonicalLocale(loc),
+            getLocalizedUrl(loc, path),
+        ])
+    );
+    const canonical = getLocalizedUrl(resolvedLocale, path);
+
+    return {
+        canonical,
+        languages: {
+            ...languages,
+            "x-default": getLocalizedUrl(defaultLocale, path),
         },
     };
 }

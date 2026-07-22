@@ -1,6 +1,6 @@
 import { buildPageMetadata } from "@/app/metadata";
 import { APP_NAME } from "@/lib/common/constants";
-import { gtPublicString } from "@/lib/i18n/gt-public-json";
+import { getGT } from "gt-next/server";
 import type { Metadata } from "next";
 import Link from "next/link";
 
@@ -10,21 +10,17 @@ export async function generateMetadata({
     params: Promise<{ locale: string }>;
 }): Promise<Metadata> {
     const { locale } = await params;
+    const gt = await getGT();
 
     return buildPageMetadata({
-        description: gtPublicString(
-            locale,
-            "legal.terms.metadata.description",
-            `Terms of Service for ${APP_NAME} — rules for using the service, accounts, and acceptable use.`
+        description: gt(
+            "Terms of Service for {appName} — rules for using the service, accounts, and acceptable use.",
+            { appName: APP_NAME }
         ),
         keywords: ["terms of service", "terms", APP_NAME],
         locale,
         path: "/legal/terms-of-service",
-        title: gtPublicString(
-            locale,
-            "legal.terms.metadata.title",
-            "Terms of Service"
-        ),
+        title: gt("Terms of Service"),
     });
 }
 

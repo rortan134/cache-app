@@ -1,6 +1,6 @@
 import { buildPageMetadata } from "@/app/metadata";
 import { APP_NAME } from "@/lib/common/constants";
-import { gtPublicString } from "@/lib/i18n/gt-public-json";
+import { getGT } from "gt-next/server";
 import type { Metadata } from "next";
 
 export async function generateMetadata({
@@ -9,12 +9,12 @@ export async function generateMetadata({
     params: Promise<{ locale: string }>;
 }): Promise<Metadata> {
     const { locale } = await params;
+    const gt = await getGT();
 
     return buildPageMetadata({
-        description: gtPublicString(
-            locale,
-            "legal.dpa.metadata.description",
-            `Data Processing Agreement for ${APP_NAME} — how we process and protect personal data.`
+        description: gt(
+            "Data Processing Agreement for {appName} — how we process and protect personal data.",
+            { appName: APP_NAME }
         ),
         keywords: [
             "data processing agreement",
@@ -25,11 +25,7 @@ export async function generateMetadata({
         ],
         locale,
         path: "/legal/dpa",
-        title: gtPublicString(
-            locale,
-            "legal.dpa.metadata.title",
-            "Data Processing Agreement"
-        ),
+        title: gt("Data Processing Agreement"),
     });
 }
 

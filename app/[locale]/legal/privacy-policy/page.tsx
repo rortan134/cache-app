@@ -1,6 +1,6 @@
 import { buildPageMetadata } from "@/app/metadata";
 import { APP_NAME } from "@/lib/common/constants";
-import { gtPublicString } from "@/lib/i18n/gt-public-json";
+import { getGT } from "gt-next/server";
 import type { Metadata } from "next";
 import type React from "react";
 
@@ -10,21 +10,17 @@ export async function generateMetadata({
     params: Promise<{ locale: string }>;
 }): Promise<Metadata> {
     const { locale } = await params;
+    const gt = await getGT();
 
     return buildPageMetadata({
-        description: gtPublicString(
-            locale,
-            "legal.privacy.metadata.description",
-            `Privacy Policy for ${APP_NAME} — how we collect, use, and protect personal data.`
+        description: gt(
+            "Privacy Policy for {appName} — how we collect, use, and protect personal data.",
+            { appName: APP_NAME }
         ),
         keywords: ["privacy policy", "data privacy", APP_NAME],
         locale,
         path: "/legal/privacy-policy",
-        title: gtPublicString(
-            locale,
-            "legal.privacy.metadata.title",
-            "Privacy Policy"
-        ),
+        title: gt("Privacy Policy"),
     });
 }
 

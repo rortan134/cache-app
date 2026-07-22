@@ -1,7 +1,7 @@
 import { buildPageMetadata } from "@/app/metadata";
 import { APP_NAME } from "@/lib/common/constants";
-import { gtPublicString } from "@/lib/i18n/gt-public-json";
 import { T, Var } from "gt-next";
+import { getGT } from "gt-next/server";
 import { ArrowRight, Scale, Shield, FileText } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -13,17 +13,17 @@ export async function generateMetadata({
     params: Promise<{ locale: string }>;
 }): Promise<Metadata> {
     const { locale } = await params;
+    const gt = await getGT();
 
     return buildPageMetadata({
-        description: gtPublicString(
-            locale,
-            "legal.index.metadata.description",
-            `Legal documents, policies, and disclosures for ${APP_NAME}.`
+        description: gt(
+            "Legal documents, policies, and disclosures for {appName}.",
+            { appName: APP_NAME }
         ),
         keywords: ["legal", "policies", APP_NAME],
         locale,
         path: "/legal",
-        title: gtPublicString(locale, "legal.index.metadata.title", "Legal"),
+        title: gt("Legal"),
     });
 }
 

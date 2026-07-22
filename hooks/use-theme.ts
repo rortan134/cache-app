@@ -1,12 +1,12 @@
 "use client";
 
 import { getOwnerDocument, getOwnerWindow } from "@/lib/common/dom";
+import type { Theme } from "@/lib/common/theme";
 import {
     isTheme,
     THEME_MEDIA_QUERY,
     THEME_STORAGE_KEY,
 } from "@/lib/common/theme";
-import type { Theme } from "@/lib/common/theme";
 import { useStableCallback } from "@base-ui/utils/useStableCallback";
 import { useEffect, useSyncExternalStore } from "react";
 
@@ -196,7 +196,7 @@ if (typeof document !== "undefined") {
 }
 
 /** Keep the theme store subscribed and system preference in sync app-wide. */
-export function ThemeEffect() {
+export function ThemeSync() {
     useTheme();
     return null;
 }

@@ -23,7 +23,6 @@ import { Sidebar, SidebarFooter, SidebarHeader } from "@/components/ui/sidebar";
 import { getServerSession } from "@/lib/auth/session";
 import { cn } from "@/lib/common/cn";
 import { BASE_URL, CACHE_EXTENSION_DOWNLOAD_URL } from "@/lib/common/constants";
-import { gtPublicString } from "@/lib/i18n/gt-public-json";
 import { INTEGRATIONS } from "@/lib/integrations/support";
 import AiSectionLifestyleImage from "@/public/ai-section-lifestyle.webp";
 import AiSectionTravelImage from "@/public/ai-section-travel.webp";
@@ -35,6 +34,7 @@ import LibrarySectionImage from "@/public/library-section.webp";
 import OrganizeSectionImage from "@/public/organize-section.webp";
 import SmartCollectionsBackgroundImage from "@/public/smart-collections-background.webp";
 import { LocaleSelector, T } from "gt-next";
+import { getGT } from "gt-next/server";
 import {
     Album,
     Bookmark,
@@ -91,11 +91,10 @@ export async function generateMetadata({
     params: Promise<{ locale: string }>;
 }): Promise<Metadata> {
     const { locale } = await params;
+    const gt = await getGT();
 
     return buildPageMetadata({
-        description: gtPublicString(
-            locale,
-            "home.metadata.description",
+        description: gt(
             "The AI bookmark manager for busy people. View, manage, and organize bookmarks across platforms."
         ),
         keywords: [
@@ -109,11 +108,7 @@ export async function generateMetadata({
         locale,
         path: "/",
         title: {
-            absolute: `Cache | ${gtPublicString(
-                locale,
-                "home.metadata.title",
-                "Unify your bookmarks across every platform"
-            )}`,
+            absolute: `Cache | ${gt("Unify your bookmarks across every platform")}`,
         },
     });
 }
@@ -125,7 +120,7 @@ export default async function Home() {
         <PageShell>
             <JsonLdScript data={HOME_JSON_LD} />
             <GoogleOneTapTrigger />
-            <div className="flex flex-1 flex-col gap-8 lg:flex-row lg:justify-between">
+            <article className="flex flex-1 flex-col gap-8 lg:flex-row lg:justify-between">
                 <Sidebar>
                     <SidebarHeader>
                         <BrandLogo href="/library" src={LogoIconImage} />
@@ -185,6 +180,7 @@ export default async function Home() {
                             className="absolute top-11 left-9 z-10 w-full rounded-xl"
                             placeholder="blur"
                             preload
+                            quality={90}
                             sizes={HERO_IMAGE_SIZES}
                             src={HeroImage}
                         />
@@ -236,8 +232,8 @@ export default async function Home() {
                                     <li className="flex items-center gap-2">
                                         <Search className="inline-block size-4 shrink-0" />
                                         <span>
-                                            Search the way you think, faster
-                                            than ever
+                                            Search by asking and Cache will find
+                                            what you need
                                         </span>
                                     </li>
                                     <li className="flex items-center gap-2">
@@ -256,6 +252,7 @@ export default async function Home() {
                                     alt=""
                                     height={800}
                                     placeholder="blur"
+                                    quality={90}
                                     sizes={SECTION_IMAGE_SIZES}
                                     src={LibrarySectionImage}
                                     width={800}
@@ -791,7 +788,7 @@ export default async function Home() {
                     </section>
                     <Footer />
                 </div>
-            </div>
+            </article>
         </PageShell>
     );
 }

@@ -4,14 +4,16 @@ import { BrandLogo } from "@/components/ui/brand-logo";
 import { Button } from "@/components/ui/button";
 import { PageShell } from "@/components/ui/page-shell";
 import { createLogger } from "@/lib/common/logs/console/logger";
-import { useStableCallback } from "@base-ui/utils/useStableCallback";
 import LogoIconImage from "@/public/cache-app-icon.png";
+import { useStableCallback } from "@base-ui/utils/useStableCallback";
 import Link from "next/link";
 import { useEffect } from "react";
 
 const log = createLogger("ErrorComponent");
 
-type NextError = Error & { digest?: string };
+interface NextError extends Error {
+    digest?: string;
+}
 
 export default function ErrorPage({
     error,

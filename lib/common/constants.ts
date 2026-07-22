@@ -13,9 +13,6 @@ export const FOUNDING_DATE = new Date("2026-04-09T00:00:00.000Z");
 /** Shown after the page-specific title, e.g. "Settings | Cache App". */
 export const APP_NAME = "Cache App";
 
-/** Root / default document title when a segment does not override `title`. */
-export const SITE_DEFAULT_TITLE = `Bookmark manager | ${APP_NAME}`;
-
 export const SITE_DOMAIN = "www.cachd.app";
 
 export const CACHE_EXTENSION_ID = "fibhdcjlclheehonialdpealhemmoikn";
@@ -116,3 +113,5 @@ export const ACTION_STATUS = {
 
 /** Days an item lives in Recently deleted before a hard purge. */
 export const LIBRARY_ITEM_TRASH_WINDOW_DAYS = 30;
+
+export const NOTE_DND_MIME = "application/x-cache-note-id";
