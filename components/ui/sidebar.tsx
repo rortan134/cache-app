@@ -10,6 +10,7 @@ import {
 import { getSystemControlKey } from "@/lib/common/keyboard";
 import { mergeProps } from "@base-ui/react/merge-props";
 import { useRender } from "@base-ui/react/use-render";
+import { useIsoLayoutEffect } from "@base-ui/utils/useIsoLayoutEffect";
 import { useStableCallback } from "@base-ui/utils/useStableCallback";
 import { PanelLeft, PanelLeftOpen } from "lucide-react";
 import * as React from "react";
@@ -31,6 +32,17 @@ interface SidebarContextValue {
 
 const SidebarContext = React.createContext<SidebarContextValue | null>(null);
 
+function readSidebarCookieOpen(): boolean {
+    try {
+        const match = getOwnerDocument().cookie.match(
+            new RegExp(`(?:^|; )${SIDEBAR_COOKIE_NAME}=([^;]*)`)
+        );
+        return match?.[1] !== "false";
+    } catch {
+        return true;
+    }
+}
+
 export function SidebarProvider({
     defaultOpen = true,
     open: openProp,
@@ -44,6 +56,15 @@ export function SidebarProvider({
 }) {
     const [uncontrolledOpen, setUncontrolledOpen] = React.useState(defaultOpen);
     const open = openProp ?? uncontrolledOpen;
+    const hasAppliedCookieDefaultRef = React.useRef(openProp !== undefined);
+
+    useIsoLayoutEffect(() => {
+        if (hasAppliedCookieDefaultRef.current || openProp !== undefined) {
+            return;
+        }
+        hasAppliedCookieDefaultRef.current = true;
+        setUncontrolledOpen(readSidebarCookieOpen());
+    }, [openProp]);
 
     const setOpen = useStableCallback(
         (nextValue: boolean | ((prev: boolean) => boolean)) => {

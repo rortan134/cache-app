@@ -8,6 +8,12 @@ import {
 } from "@/components/auth/user-menu";
 import { SidebarNavigationItem } from "@/components/sidebar/sidebar-navigation-item";
 import {
+    Menu,
+    MenuLinkItem,
+    MenuPopup,
+    MenuTrigger,
+} from "@/components/ui/menu";
+import {
     Sidebar,
     SidebarGroup,
     SidebarHeader,
@@ -16,7 +22,7 @@ import {
     SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { T } from "gt-next";
-import { Compass, History, Workflow } from "lucide-react";
+import { Compass, Ellipsis, History, LayoutGrid, Workflow } from "lucide-react";
 import type * as React from "react";
 
 export function ApplicationSidebar({ children }: React.PropsWithChildren) {
@@ -69,20 +75,47 @@ export function ApplicationSidebar({ children }: React.PropsWithChildren) {
                     >
                         <T>Automations</T>
                     </SidebarNavigationItem>
-                    <SidebarNavigationItem
-                        aria-label="Recently deleted"
-                        href="/recently-deleted"
-                        icon={
-                            <History
-                                aria-hidden
-                                className="inline-block size-4 shrink-0"
-                                focusable="false"
-                            />
-                        }
-                        title="Go to Recently deleted"
-                    >
-                        <T>Deleted</T>
-                    </SidebarNavigationItem>
+                    <li>
+                        <Menu>
+                            <MenuTrigger render={<SidebarItem />}>
+                                <Ellipsis
+                                    aria-hidden
+                                    className="inline-block size-4 shrink-0"
+                                    focusable="false"
+                                />
+                                <div
+                                    className="flex min-w-0 grow items-center"
+                                    data-sidebar-label=""
+                                >
+                                    <span className="truncate">
+                                        <T context="sidebar.more-menu">More</T>
+                                    </span>
+                                </div>
+                            </MenuTrigger>
+                            <MenuPopup side="right">
+                                <MenuLinkItem href="/collections">
+                                    <LayoutGrid
+                                        aria-hidden
+                                        className="inline-block size-4 shrink-0"
+                                        focusable="false"
+                                    />
+                                    <span className="truncate">
+                                        <T>All collections</T>
+                                    </span>
+                                </MenuLinkItem>
+                                <MenuLinkItem href="/recently-deleted">
+                                    <History
+                                        aria-hidden
+                                        className="inline-block size-4 shrink-0"
+                                        focusable="false"
+                                    />
+                                    <span className="truncate">
+                                        <T>Recently deleted</T>
+                                    </span>
+                                </MenuLinkItem>
+                            </MenuPopup>
+                        </Menu>
+                    </li>
                 </SidebarGroup>
                 {children}
             </SidebarHeader>
