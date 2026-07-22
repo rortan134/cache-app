@@ -41,7 +41,7 @@
         "removeComments": true,
         "lib": ["dom", "dom.iterable", "ESNext"],
         "noEmit": true,
-        "types": ["node", "bun", "react", "react-dom"],
+        "types": ["node", "bun", "react", "react-dom", "next"],
         "module": "ESNext",
         "moduleResolution": "bundler",
         "jsx": "react-jsx",

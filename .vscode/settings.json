@@ -1,11 +1,14 @@
 {
-    "typescript.tsdk": "node_modules/typescript/lib",
-    "typescript.updateImportsOnFileMove.enabled": "always",
-    "typescript.preferences.importModuleSpecifier": "non-relative",
-    "typescript.preferences.useAliasesForRenames": false,
+    "js/ts.tsdk.path": "node_modules/typescript/lib",
+    "js/ts.updateImportsOnFileMove.enabled": "always",
+    "js/ts.preferences.importModuleSpecifier": "non-relative",
+    "js/ts.preferences.useAliasesForRenames": false,
     "search.exclude": {
         "prisma/client": true,
-        "**/*.agents": true
+        "**/*.agents": true,
+        "**/.git": true,
+        "**/.venv": true,
+        "**/__pycache__": true
     },
     "eslint.enable": false,
     "prettier.enable": false,
@@ -15,15 +18,6 @@
     },
     "editor.defaultFormatter": "biomejs.biome",
     "[html][markdown][mdx][yaml][javascript][typescript][javascriptreact][typescriptreact][json][jsonc][css]": {
-        "editor.defaultFormatter": "biomejs.biome"
-    },
-    "[typescriptreact]": {
-        "editor.defaultFormatter": "biomejs.biome"
-    },
-    "[typescript]": {
-        "editor.defaultFormatter": "biomejs.biome"
-    },
-    "[jsonc]": {
         "editor.defaultFormatter": "biomejs.biome"
     },
     "[markdown]": {
