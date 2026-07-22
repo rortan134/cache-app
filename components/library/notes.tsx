@@ -9,7 +9,6 @@ import {
     GoogleDocsIcon,
     NotionIcon,
     OpenAIIcon,
-    SciraIcon,
     V0Icon,
 } from "@/components/ui/icons";
 import {
@@ -20,6 +19,7 @@ import {
     MenuTrigger,
 } from "@/components/ui/menu";
 import { useAutosave, type SaveStatus } from "@/hooks/use-autosave";
+import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
 import type { LibraryItemWithCollections } from "@/lib/collections/utils";
 import { cn } from "@/lib/common/cn";
 import { getOwnerDocument } from "@/lib/common/dom";
@@ -85,8 +85,10 @@ import {
 } from "lexical";
 import {
     BoldIcon,
+    CheckIcon,
     ChevronDownIcon,
     ChevronRight,
+    Copy,
     DownloadIcon,
     ExternalLinkIcon,
     FileTextIcon,
@@ -119,6 +121,7 @@ export interface NoteDraft {
 interface NoteProps {
     children: ReactNode;
     contentEditableRef?: React.RefObject<HTMLDivElement | null>;
+    isOpen: boolean;
     isSaving: boolean;
     note: LibraryItemWithCollections | null;
     onOpenChange: (open: boolean) => void | Promise<void>;
@@ -130,7 +133,6 @@ interface NoteProps {
         | null
         | Promise<LibraryItemWithCollections | null>;
     onUrlPaste: (url: string) => Promise<void> | void;
-    open: boolean;
 }
 
 interface NoteContextValue {
@@ -238,7 +240,6 @@ const NOTE_EDITOR_EXTENSION = defineExtension({
             politeness: "polite",
         }),
         configExtension(HistoryAnnounceExtension, {
-            disabled: false,
             redone: NOTE_HISTORY_ANNOUNCE_REDONE,
             undone: NOTE_HISTORY_ANNOUNCE_UNDONE,
         }),
@@ -320,12 +321,6 @@ const EXPORT_CONTENT_PROVIDERS: readonly ExportContentProvider[] = [
             `https://cursor.com/link/prompt?${new URLSearchParams({ text: query })}`,
         icon: CursorIcon,
         title: "Open in Cursor",
-    },
-    {
-        createUrl: (query) =>
-            `https://scira.ai/?${new URLSearchParams({ q: query })}`,
-        icon: SciraIcon,
-        title: "Open in Scira",
     },
     {
         createUrl: (query) =>
@@ -834,7 +829,7 @@ function NotePlaceholder() {
  * toggling. Provides the shared context consumed by all leaf parts.
  *
  * Compose with leaf parts:
- *   <NoteRoot note={note} open onSave={...} ...>
+ *   <NoteRoot note={note} isOpen onSave={...} ...>
  *     <NoteHeader />
  *     <NoteEditor />
  *     <NoteMetrics />
@@ -846,12 +841,12 @@ function NotePlaceholder() {
 export function NoteRoot({
     children,
     contentEditableRef,
+    isOpen,
+    isSaving,
     note,
     onOpenChange,
     onSave,
     onUrlPaste,
-    open,
-    isSaving,
 }: NoteProps) {
     const [initialDraft, setInitialDraft] = useState<NoteDraft>(() =>
         noteDraftFromItem(note)
@@ -909,19 +904,19 @@ export function NoteRoot({
 
     // React to prop changes during render instead of a `useEffect` to avoid
     // committing once for the prop change and again for the state sync.
-    const [prevOpen, setPrevOpen] = useState(open);
+    const [prevOpen, setPrevOpen] = useState(isOpen);
     const [prevNote, setPrevNote] = useState(note);
 
-    if (open !== prevOpen) {
-        setPrevOpen(open);
-        if (open) {
+    if (isOpen !== prevOpen) {
+        setPrevOpen(isOpen);
+        if (isOpen) {
             resetDraft();
         }
     }
 
     if (note !== prevNote) {
         setPrevNote(note);
-        if (open && open === prevOpen) {
+        if (isOpen && isOpen === prevOpen) {
             syncDraftFromNote();
         }
     }
@@ -970,7 +965,7 @@ export function NoteRoot({
 
     const { isDirty, saveImmediately, saveStatus } = useAutosave({
         content: draft.contentHtml,
-        enabled: open,
+        enabled: isOpen,
         onSave: saveLatestDraft,
         savedContent: initialDraft.contentHtml,
     });
@@ -991,7 +986,7 @@ export function NoteRoot({
     });
 
     useEffect(() => {
-        if (!open) {
+        if (!isOpen) {
             return;
         }
 
@@ -1000,7 +995,7 @@ export function NoteRoot({
         return () => {
             ownerDocument.removeEventListener("keydown", handleSaveShortcut);
         };
-    }, [contentEditableRef, handleSaveShortcut, open]);
+    }, [contentEditableRef, handleSaveShortcut, isOpen]);
 
     const handleOpenChange = async (nextOpen: boolean) => {
         if (nextOpen) {
@@ -1026,8 +1021,8 @@ export function NoteRoot({
 
         isClosingRef.current = true;
         try {
-            const didSave = await saveImmediately();
-            if (didSave) {
+            const isSaved = await saveImmediately();
+            if (isSaved) {
                 onOpenChange(false);
             }
         } finally {
@@ -1038,7 +1033,7 @@ export function NoteRoot({
     const deferredContentHtml = useDeferredValue(draft.contentHtml);
     const textMetrics = getNoteTextMetrics(deferredContentHtml);
     const query = textMetrics.plainText;
-    const title = note ? "Edit note" : "New entry";
+    const title = note ? "Note" : "New entry";
 
     return (
         <NoteContext
@@ -1115,6 +1110,14 @@ export function NoteHeader() {
         tone: "error" | "success";
     } | null>(null);
     const [isSendingToNotion, startSendToNotion] = useTransition();
+    const { copyToClipboard, isCopied } = useCopyToClipboard();
+
+    const handleCopyNote = useStableCallback(() => {
+        if (!hasQuery) {
+            return;
+        }
+        copyToClipboard(query);
+    });
 
     const handleExportMarkdown = useStableCallback(() => {
         downloadMarkdownFile(contentHtml);
@@ -1164,76 +1167,92 @@ export function NoteHeader() {
             </div>
             <div className="flex items-center justify-end gap-2">
                 <NoteSaveStatus />
-                <Menu>
-                    <MenuTrigger
-                        render={
-                            <Button
-                                className="rounded-full"
-                                disabled={!hasQuery}
-                                size="sm"
-                                variant="secondary"
-                            />
-                        }
+                <Group aria-label="Note actions">
+                    <Button
+                        aria-label="Copy note"
+                        className="rounded-full"
+                        disabled={!hasQuery}
+                        onClick={handleCopyNote}
+                        size="icon-sm"
+                        variant="secondary"
                     >
-                        <T>Open in...</T>
-                        <ChevronDownIcon className="size-3.5" />
-                    </MenuTrigger>
-                    <MenuPopup align="start" className="w-60">
-                        {EXPORT_CONTENT_PROVIDERS.map((provider) => (
-                            <ExportProviderMenuItem
-                                hasQuery={hasQuery}
-                                key={provider.title}
-                                provider={provider}
-                                query={query}
-                            />
-                        ))}
-                        <MenuItem
-                            disabled={!hasQuery || isSendingToNotion}
-                            onClick={handleSendToNotion}
+                        {isCopied ? (
+                            <CheckIcon className="size-4" />
+                        ) : (
+                            <Copy className="size-4" />
+                        )}
+                    </Button>
+                    <Menu>
+                        <MenuTrigger
+                            render={
+                                <Button
+                                    className="rounded-full"
+                                    disabled={!hasQuery}
+                                    size="sm"
+                                    variant="secondary"
+                                />
+                            }
                         >
-                            <NotionIcon className="size-4 text-muted-foreground" />
-                            <span className="flex-1">
-                                {isSendingToNotion
-                                    ? "Sending to Notion..."
-                                    : "Send to Notion"}
-                            </span>
-                            <ExternalLinkIcon className="size-4 text-muted-foreground" />
-                        </MenuItem>
-                        {notionStatus ? (
-                            <p
-                                aria-live={
-                                    notionStatus.tone === "error"
-                                        ? "assertive"
-                                        : "polite"
-                                }
-                                className={cn(
-                                    "px-2 py-1 text-xs leading-tight",
-                                    notionStatus.tone === "error"
-                                        ? "text-destructive"
-                                        : "text-muted-foreground"
-                                )}
-                                role={
-                                    notionStatus.tone === "error"
-                                        ? "alert"
-                                        : "status"
-                                }
+                            <T>Open...</T>
+                            <ChevronDownIcon className="size-3.5" />
+                        </MenuTrigger>
+                        <MenuPopup align="start" className="w-60">
+                            {EXPORT_CONTENT_PROVIDERS.map((provider) => (
+                                <ExportProviderMenuItem
+                                    hasQuery={hasQuery}
+                                    key={provider.title}
+                                    provider={provider}
+                                    query={query}
+                                />
+                            ))}
+                            <MenuItem
+                                disabled={!hasQuery || isSendingToNotion}
+                                onClick={handleSendToNotion}
                             >
-                                {notionStatus.message}
-                            </p>
-                        ) : null}
-                        <MenuSeparator />
-                        <MenuItem
-                            disabled={!hasQuery}
-                            onClick={handleExportMarkdown}
-                        >
-                            <FileTextIcon className="size-4 text-muted-foreground" />
-                            <span className="flex-1">
-                                <T>Export to Markdown</T>
-                            </span>
-                            <DownloadIcon className="size-4 text-muted-foreground" />
-                        </MenuItem>
-                    </MenuPopup>
-                </Menu>
+                                <NotionIcon className="size-4 text-muted-foreground" />
+                                <span className="flex-1">
+                                    {isSendingToNotion
+                                        ? "Sending to Notion..."
+                                        : "Send to Notion"}
+                                </span>
+                                <ExternalLinkIcon className="size-4 text-muted-foreground" />
+                            </MenuItem>
+                            {notionStatus ? (
+                                <p
+                                    aria-live={
+                                        notionStatus.tone === "error"
+                                            ? "assertive"
+                                            : "polite"
+                                    }
+                                    className={cn(
+                                        "px-2 py-1 text-xs leading-tight",
+                                        notionStatus.tone === "error"
+                                            ? "text-destructive"
+                                            : "text-muted-foreground"
+                                    )}
+                                    role={
+                                        notionStatus.tone === "error"
+                                            ? "alert"
+                                            : "status"
+                                    }
+                                >
+                                    {notionStatus.message}
+                                </p>
+                            ) : null}
+                            <MenuSeparator />
+                            <MenuItem
+                                disabled={!hasQuery}
+                                onClick={handleExportMarkdown}
+                            >
+                                <FileTextIcon className="size-4 text-muted-foreground" />
+                                <span className="flex-1">
+                                    <T>Export to Markdown</T>
+                                </span>
+                                <DownloadIcon className="size-4 text-muted-foreground" />
+                            </MenuItem>
+                        </MenuPopup>
+                    </Menu>
+                </Group>
                 <Group aria-label="Panel actions">
                     <Button
                         aria-label="Close note"
@@ -1356,12 +1375,11 @@ function ExportProviderMenuItem({
     const href = provider.createUrl(query);
     const ProviderIcon = provider.icon;
 
-    const renderLink = useStableCallback((props: React.ComponentProps<"a">) => (
-        <a {...props} href={href} rel="noopener noreferrer" target="_blank" />
-    ));
-
     return (
-        <MenuItem disabled={!hasQuery} render={renderLink}>
+        <MenuItem
+            disabled={!hasQuery}
+            render={<a href={href} rel="noopener noreferrer" target="_blank" />}
+        >
             <ProviderIcon className="size-4 text-muted-foreground" />
             <span className="flex-1">{provider.title}</span>
             <ExternalLinkIcon className="size-4 text-muted-foreground" />
