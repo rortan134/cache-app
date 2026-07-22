@@ -17,6 +17,8 @@ import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import { Suspense } from "react";
 
+export const instant = false;
+
 interface CollectionSharePageProps {
     params: Promise<{
         shareId: string;

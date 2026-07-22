@@ -52,7 +52,8 @@
                 "noAwaitInLoops": "off"
             },
             "suspicious": {
-                "noBitwiseOperators": "off"
+                "noBitwiseOperators": "off",
+                "noUnnecessaryConditions": "off"
             },
             "style": {
                 "useDestructuring": "off"
