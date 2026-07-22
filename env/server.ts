@@ -11,6 +11,11 @@ export const serverEnv = createEnv({
         ARCJET_KEY: z.string().startsWith("ajkey_"),
         BETTER_AUTH_SECRET: z.string(),
         BETTER_AUTH_URL: z.url(),
+        /** Optional override for local/unpacked Chrome extension origin trust. */
+        CACHE_EXTENSION_ID: z
+            .string()
+            .regex(/^[a-p]{32}$/)
+            .optional(),
         CRON_SECRET: z.string().optional(),
         DATABASE_URL: z.string().startsWith("postgres://"),
         EMAIL_FROM: z.string().optional(),
@@ -34,6 +39,8 @@ export const serverEnv = createEnv({
         STRIPE_SECRET_KEY: z.string().startsWith("sk_"),
         STRIPE_WEBHOOK_SECRET: z.string().startsWith("whsec_"),
         TAVILY_API_KEY: z.string().optional(),
+        /** Comma-separated extra origins trusted by better-auth (CORS/CSRF). */
+        TRUSTED_ORIGINS: z.string().optional(),
         X_CLIENT_ID: z.string().optional(),
         X_CLIENT_SECRET: z.string().optional(),
     },

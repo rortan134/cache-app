@@ -2,6 +2,12 @@ import { withGTConfig } from "gt-next/config";
 import type { NextConfig } from "next";
 import { withWorkflow } from "workflow/next";
 
+const contentSecurityPolicy = [
+    "base-uri 'self'",
+    "object-src 'none'",
+    "frame-ancestors 'self'",
+].join("; ");
+
 const securityHeaders = [
     {
         key: "Strict-Transport-Security",
@@ -23,11 +29,19 @@ const securityHeaders = [
         key: "Permissions-Policy",
         value: "camera=(), microphone=(), geolocation=()",
     },
+    {
+        key: "Content-Security-Policy",
+        value: contentSecurityPolicy,
+    },
 ];
 
 const nextConfig: NextConfig = {
     cacheComponents: true,
-    experimental: { useTypeScriptCli: true },
+    experimental: {
+        optimizeCss: true,
+        preloadEntriesOnStart: false,
+        useTypeScriptCli: true,
+    },
     async headers() {
         return [
             {
@@ -78,6 +92,10 @@ const nextConfig: NextConfig = {
                         key: "x-robots-tag",
                         value: "noindex",
                     },
+                    {
+                        key: "Cache-Control",
+                        value: "public, max-age=86400, stale-while-revalidate=604800",
+                    },
                 ],
                 source: "/(.*)\\.map$",
             },
@@ -85,8 +103,15 @@ const nextConfig: NextConfig = {
     },
     images: {
         minimumCacheTTL: 2_678_400, // 31 days
+        /**
+         * Allowed `quality` values for next/image. 75 is the app-wide default;
+         * 90 exists for large photographic marketing assets
+         * where the default visibly softens texture.
+         */
+        qualities: [75, 90],
     },
     partialPrefetching: true,
+    poweredByHeader: false,
     reactCompiler: true,
     async redirects() {
         return [
