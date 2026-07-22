@@ -20,14 +20,31 @@ export const AUTOMATION_WEB_FETCH_TOTAL_TIMEOUT_MS = 30_000;
 // that runs on every save, not a scheduled automation.
 export const AUTOMATION_TEMPLATE_DEFINITIONS = [
     {
+        cadence: "daily",
+        prompt: "Create a concise daily digest of the most useful items saved recently. Group related ideas, call out what deserves attention today, and include practical next steps.",
+        summary:
+            "A concise digest of the most useful items you saved recently.",
+        templateKey: "daily_digest",
+        title: "Daily Digest",
+    },
+    {
         cadence: "weekly",
-        prompt: "Create a concise weekly digest of the most useful saved items. Group related ideas, call out what deserves attention, and include practical next steps.",
-        templateKey: "weekly_digest",
-        title: "Weekly digest",
+        prompt: "Find older saved items that still deserve attention. Prefer unfinished, high-value, or easy-to-act-on saves. Explain why each is worth revisiting and suggest one concrete next step.",
+        summary: "Surface older saves that still deserve a second look.",
+        templateKey: "worth_revisiting",
+        title: "Worth Revisiting",
+    },
+    {
+        cadence: "weekly",
+        prompt: "Scan recent saves and notes for open loops. Extract concrete next actions, group them by theme, and rank by impact or urgency. Skip fluff.",
+        summary: "Extract action items from recent saves and notes.",
+        templateKey: "next_actions",
+        title: "Next Actions",
     },
 ] as const satisfies Array<{
     cadence: "daily" | "weekly" | "monthly";
     prompt: string;
+    summary: string;
     templateKey: AutomationTemplateKey;
     title: string;
 }>;

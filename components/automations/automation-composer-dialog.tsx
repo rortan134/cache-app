@@ -52,8 +52,6 @@ import {
     ChevronRight,
     Clock,
     FolderOpen,
-    Pencil,
-    Plus,
     type LucideIcon,
 } from "lucide-react";
 import Image from "next/image";
@@ -163,6 +161,8 @@ export function AutomationComposerDialog({
     automation,
     children,
     collections,
+    onOpenChange,
+    open,
     trigger,
 }: AutomationComposerDialogProps) {
     const router = useRouter();
@@ -174,26 +174,35 @@ export function AutomationComposerDialog({
     const timeId = React.useId();
     const weekDayId = React.useId();
     const monthDayId = React.useId();
-    const [isOpen, setIsOpen] = React.useState(false);
+    const [uncontrolledOpen, setUncontrolledOpen] = React.useState(false);
+    const isOpenControlled = open !== undefined;
+    const isOpen = isOpenControlled ? open : uncontrolledOpen;
     const [isPending, startTransition] = React.useTransition();
     const [formState, setFormState] = React.useState<AutomationFormState>(() =>
         getInitialFormState(automation, collections)
     );
     const isEditing = automation !== undefined;
     const shouldResumeAfterSave = automation?.status === "paused";
-    const triggerLabel = getTriggerLabel(automation);
     const submitLabel = getSubmitLabel({
         isEditing,
         shouldResumeAfterSave,
     });
     const timeOptions = getTimeOfDayOptions(locale);
+    const shouldRenderTrigger = trigger !== null;
 
     const handleOpenChange = useStableCallback((nextOpen: boolean) => {
-        if (nextOpen) {
-            setFormState(getInitialFormState(automation, collections));
+        if (!isOpenControlled) {
+            setUncontrolledOpen(nextOpen);
         }
-        setIsOpen(nextOpen);
+        onOpenChange?.(nextOpen);
     });
+
+    useIsoLayoutEffect(() => {
+        if (!isOpen) {
+            return;
+        }
+        setFormState(getInitialFormState(automation, collections));
+    }, [automation?.id, collections, isOpen]);
 
     const updateFormState = useStableCallback(
         (nextState: Partial<AutomationFormState>) => {
@@ -307,7 +316,7 @@ export function AutomationComposerDialog({
                     }
                 }
 
-                setIsOpen(false);
+                handleOpenChange(false);
                 setFormState(getInitialFormState(undefined, collections));
                 router.refresh();
             });
@@ -316,26 +325,15 @@ export function AutomationComposerDialog({
 
     return (
         <Dialog onOpenChange={handleOpenChange} open={isOpen}>
-            <DialogTrigger render={trigger ?? <Button size="sm" />}>
-                {children ?? (
-                    <>
-                        {isEditing ? (
-                            <Pencil
-                                aria-hidden
-                                className="size-4"
-                                focusable="false"
-                            />
-                        ) : (
-                            <Plus
-                                aria-hidden
-                                className="size-4"
-                                focusable="false"
-                            />
-                        )}
-                        {triggerLabel}
-                    </>
-                )}
-            </DialogTrigger>
+            {shouldRenderTrigger ? (
+                <DialogTrigger
+                    render={
+                        trigger ?? <Button className="rounded-full" size="sm" />
+                    }
+                >
+                    {children ?? "New Automation"}
+                </DialogTrigger>
+            ) : null}
             <DialogPopup>
                 <form className="contents" onSubmit={handleSubmit}>
                     <DialogHeader>
@@ -487,12 +485,16 @@ export function AutomationComposerDialog({
     );
 }
 
-interface AutomationComposerDialogProps {
+type AutomationComposerDialogProps = {
     automation?: AutomationComposerAutomation;
     children?: React.ReactNode;
     collections: AutomationCollectionOption[];
-    trigger?: React.ReactElement;
-}
+    /** Pass `null` to hide the trigger (controlled open only). */
+    trigger?: React.ReactElement | null;
+} & (
+    | { onOpenChange?: (open: boolean) => void; open?: undefined }
+    | { onOpenChange: (open: boolean) => void; open: boolean }
+);
 
 function AutomationOptionTrigger({
     icon: Icon,
@@ -941,18 +943,6 @@ function getInitialFormState(
         title: automation === undefined ? "" : automation.title,
         weekDay: automation?.weekDay ?? DEFAULT_WEEK_DAY,
     };
-}
-
-function getTriggerLabel(
-    automation: AutomationComposerAutomation | undefined
-): string {
-    if (!automation) {
-        return "Create automation";
-    }
-    if (automation.status === "active") {
-        return "Edit";
-    }
-    return "Enable";
 }
 
 function getSubmitLabel(args: {

@@ -2,16 +2,17 @@ import { buildPageMetadata } from "@/app/metadata";
 import { AutomationComposerDialog } from "@/components/automations/automation-composer-dialog";
 import { AutomationsList } from "@/components/automations/automations";
 import { ApplicationSidebar } from "@/components/sidebar/application-sidebar";
+import { FadeIn } from "@/components/ui/fade-in";
+import { Skeleton } from "@/components/ui/skeleton";
 import { getServerSession } from "@/lib/auth/session";
 import { listCollections } from "@/lib/collections/service";
-import { gtPublicString } from "@/lib/i18n/gt-public-json";
 import { listAutomations } from "@/lib/intelligence/automations/service";
 import { T } from "gt-next";
+import { getGT } from "gt-next/server";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { connection } from "next/server";
-
-export const instant = false;
+import { Suspense, type ReactNode } from "react";
 
 export async function generateMetadata({
     params,
@@ -19,24 +20,51 @@ export async function generateMetadata({
     params: Promise<{ locale: string }>;
 }): Promise<Metadata> {
     const { locale } = await params;
+    const gt = await getGT();
 
     return buildPageMetadata({
-        description: gtPublicString(
-            locale,
-            "automations.metadata.description",
+        description: gt(
             "Manage lightweight automations that organize and summarize your saved content."
         ),
         locale,
         path: "/automations",
-        title: gtPublicString(
-            locale,
-            "automations.metadata.title",
-            "Automations"
-        ),
+        title: gt("Automations"),
     });
 }
 
-export default async function AutomationsPage() {
+export default function AutomationsPage() {
+    return (
+        <>
+            <ApplicationSidebar />
+            <div className="relative z-0 flex w-full min-w-0 flex-1 flex-col gap-6 p-8">
+                <Suspense fallback={<AutomationsPageSkeleton />}>
+                    <AutomationsPageBody />
+                </Suspense>
+            </div>
+        </>
+    );
+}
+
+function AutomationsPageHeader({ actions }: { actions: ReactNode }) {
+    return (
+        <header className="flex items-end justify-between gap-4">
+            <div className="flex flex-col gap-1.5">
+                <h1 className="font-semibold text-2xl text-foreground tracking-tight">
+                    <T>Automations</T>
+                </h1>
+                <p className="text-muted-foreground text-sm">
+                    <T>
+                        Schedule tasks that organize your library, research
+                        topics, summarize and much more — all on autopilot
+                    </T>
+                </p>
+            </div>
+            {actions}
+        </header>
+    );
+}
+
+async function AutomationsPageBody() {
     await connection();
 
     const session = await getServerSession();
@@ -57,29 +85,51 @@ export default async function AutomationsPage() {
     }));
 
     return (
-        <>
-            <ApplicationSidebar />
-            <div className="relative z-0 flex w-full min-w-0 flex-1 flex-col gap-4 p-8">
-                <header className="flex items-end justify-between gap-4 border-border border-b pb-6">
-                    <div className="flex flex-col gap-2">
-                        <h1 className="font-semibold text-foreground text-xl">
-                            Automations
-                        </h1>
-                        <p className="text-muted-foreground text-xs">
-                            <T>
-                                Schedule tasks that organize your library,
-                                research topics, summarize and much more — all
-                                on autopilot
-                            </T>
-                        </p>
-                    </div>
+        <FadeIn className="flex flex-col gap-8">
+            <AutomationsPageHeader
+                actions={
                     <AutomationComposerDialog collections={collectionOptions} />
-                </header>
-                <AutomationsList
-                    automations={automations}
-                    collections={collectionOptions}
-                />
+                }
+            />
+            <AutomationsList
+                automations={automations}
+                collections={collectionOptions}
+            />
+        </FadeIn>
+    );
+}
+
+function AutomationsPageSkeleton() {
+    return (
+        <>
+            <AutomationsPageHeader
+                actions={<Skeleton className="h-8 w-36 rounded-full" />}
+            />
+            <div
+                aria-busy="true"
+                aria-label="Loading automations"
+                className="flex flex-col gap-8"
+                role="status"
+            >
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                    {AUTOMATION_SKELETON_KEYS.map((key) => (
+                        <div
+                            className="flex flex-col gap-3 rounded-2xl bg-muted/60 p-4"
+                            key={key}
+                        >
+                            <div className="flex items-start justify-between gap-3">
+                                <Skeleton className="size-9 rounded-xl" />
+                                <Skeleton className="size-7 rounded-full" />
+                            </div>
+                            <Skeleton className="h-4 w-32" />
+                            <Skeleton className="h-3 w-full" />
+                            <Skeleton className="h-3 w-2/3" />
+                        </div>
+                    ))}
+                </div>
             </div>
         </>
     );
 }
+
+const AUTOMATION_SKELETON_KEYS = ["a0", "a1", "a2"] as const;
