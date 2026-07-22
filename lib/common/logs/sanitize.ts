@@ -10,33 +10,19 @@ type LoggablePrimitive = string | number | boolean | null | undefined | bigint;
  * Recursive type definition for values that can be sanitized.
  * Excludes symbols and functions, which are rejected by sanitizeForLog.
  */
-type Loggable =
+export type Loggable =
     | LoggablePrimitive
     | Error
     | readonly Loggable[]
     | { readonly [key: string]: Loggable };
 
-export type { Loggable };
-
-interface RedactionContext {
-    readonly redactionCache: Map<string, string>;
-}
-
 /**
  * Redacts sensitive entities from text using Arcjet.
  * Detects email addresses, phone numbers, IP addresses, and credit cards.
  */
-async function redactSensitiveEntities(
-    text: string,
-    context: RedactionContext
-): Promise<string> {
+async function redactSensitiveEntities(text: string): Promise<string> {
     if (text.length === 0) {
         return text;
-    }
-
-    const cached = context.redactionCache.get(text);
-    if (cached !== undefined) {
-        return cached;
     }
 
     try {
@@ -49,7 +35,6 @@ async function redactSensitiveEntities(
                 "credit-card-number",
             ],
         });
-        context.redactionCache.set(text, redacted);
         return redacted;
     } catch {
         // Error logging must remain best-effort, even if the redaction engine fails.
@@ -60,29 +45,24 @@ async function redactSensitiveEntities(
 /**
  * Applies entity redaction after structural formatting has made the value finite.
  */
-async function redactSanitizedStrings(
-    value: unknown,
-    context: RedactionContext
-): Promise<unknown> {
+async function redactSanitizedStrings(value: unknown): Promise<unknown> {
     if (value === null || value === undefined) {
         return value;
     }
 
     if (typeof value === "string") {
-        return await redactSensitiveEntities(value, context);
+        return await redactSensitiveEntities(value);
     }
 
     if (Array.isArray(value)) {
-        return await Promise.all(
-            value.map((item) => redactSanitizedStrings(item, context))
-        );
+        return await Promise.all(value.map(redactSanitizedStrings));
     }
 
     if (typeof value === "object") {
         const record: Record<string, unknown> = {};
         await Promise.all(
             Object.entries(value).map(async ([key, item]) => {
-                record[key] = await redactSanitizedStrings(item, context);
+                record[key] = await redactSanitizedStrings(item);
             })
         );
         return record;
@@ -92,8 +72,6 @@ async function redactSanitizedStrings(
 }
 
 /**
- * Sanitizes values for logging with comprehensive protection:
- *
  * 1. Entity-level redaction via Arcjet
  * 2. Pattern-based key redaction
  * 3. String truncation
@@ -109,11 +87,7 @@ export async function sanitizeForLog(value: unknown): Promise<unknown> {
     const structurallySanitized = formatLogValue(value, {
         unsupportedValueBehavior: "throw",
     });
-    const context: RedactionContext = {
-        redactionCache: new Map(),
-    };
-
-    return await redactSanitizedStrings(structurallySanitized, context);
+    return await redactSanitizedStrings(structurallySanitized);
 }
 
 export async function safeSanitize(
