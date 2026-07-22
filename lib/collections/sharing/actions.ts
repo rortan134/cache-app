@@ -14,6 +14,7 @@ import {
 import { ACTION_STATUS } from "@/lib/common/constants";
 import { createLogger } from "@/lib/common/logs/console/logger";
 import * as z from "zod";
+import { invalidateShareMetadataCache } from "./cache";
 import { CollectionShareError } from "./error";
 import {
     disablePublicCollectionShare,
@@ -86,6 +87,8 @@ export async function shareCollectionPublicly(input: {
             userId: auth.userId,
         });
 
+        invalidateShareMetadataCache(collection.shareId);
+
         return {
             collection,
             shareUrl: buildPublicCollectionShareUrl(collection.shareId),
@@ -127,10 +130,15 @@ export async function disableCollectionSharing(input: {
     }
 
     try {
-        const collection = await disablePublicCollectionShare({
-            collectionId: parsed.data.collectionId,
-            userId: auth.userId,
-        });
+        const { collection, revokedShareId } =
+            await disablePublicCollectionShare({
+                collectionId: parsed.data.collectionId,
+                userId: auth.userId,
+            });
+
+        if (revokedShareId) {
+            invalidateShareMetadataCache(revokedShareId);
+        }
 
         return {
             collection,

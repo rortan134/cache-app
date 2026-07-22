@@ -2,7 +2,9 @@
 
 import { Masonry } from "@/components/ui/masonry";
 import { MediaPlaceholder } from "@/components/ui/media-placeholder";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Ticker } from "@/components/ui/ticker";
+import { cn } from "@/lib/common/cn";
 import {
     cachePreviewDimensions,
     clampPreviewDimensions,
@@ -15,6 +17,71 @@ import { useIsoLayoutEffect } from "@base-ui/utils/useIsoLayoutEffect";
 import { useStableCallback } from "@base-ui/utils/useStableCallback";
 import { T } from "gt-next";
 import * as React from "react";
+
+const SHARE_SKELETON_PLACEHOLDERS = [
+    { aspect: "aspect-[3/4]", id: "share-skel-0" },
+    { aspect: "aspect-[4/5]", id: "share-skel-1" },
+    { aspect: "aspect-square", id: "share-skel-2" },
+    { aspect: "aspect-[5/6]", id: "share-skel-3" },
+    { aspect: "aspect-[3/4]", id: "share-skel-4" },
+    { aspect: "aspect-square", id: "share-skel-5" },
+    { aspect: "aspect-[4/5]", id: "share-skel-6" },
+    { aspect: "aspect-[3/4]", id: "share-skel-7" },
+    { aspect: "aspect-[5/6]", id: "share-skel-8" },
+    { aspect: "aspect-[4/5]", id: "share-skel-9" },
+    { aspect: "aspect-square", id: "share-skel-10" },
+    { aspect: "aspect-[3/4]", id: "share-skel-11" },
+    { aspect: "aspect-[5/6]", id: "share-skel-12" },
+    { aspect: "aspect-[4/5]", id: "share-skel-13" },
+] as const;
+
+type ShareSkeletonPlaceholder = (typeof SHARE_SKELETON_PLACEHOLDERS)[number];
+
+function buildShareSkeletonColumns(
+    columnCount: number
+): ShareSkeletonPlaceholder[][] {
+    const columns: ShareSkeletonPlaceholder[][] = Array.from(
+        { length: columnCount },
+        () => []
+    );
+    for (const [index, placeholder] of SHARE_SKELETON_PLACEHOLDERS.entries()) {
+        columns[index % columnCount]?.push(placeholder);
+    }
+    return columns;
+}
+
+const SHARE_SKELETON_BREAKPOINTS = [
+    {
+        className: "flex gap-4 sm:hidden",
+        columns: buildShareSkeletonColumns(2),
+        key: "cols-2",
+    },
+    {
+        className: "hidden gap-4 sm:flex md:hidden",
+        columns: buildShareSkeletonColumns(3),
+        key: "cols-3",
+    },
+    {
+        className: "hidden gap-4 md:flex lg:hidden",
+        columns: buildShareSkeletonColumns(4),
+        key: "cols-4",
+    },
+    {
+        className: "hidden gap-4 lg:flex xl:hidden",
+        columns: buildShareSkeletonColumns(5),
+        key: "cols-5",
+    },
+    {
+        className: "hidden gap-4 xl:flex 2xl:hidden",
+        columns: buildShareSkeletonColumns(6),
+        key: "cols-6",
+    },
+    {
+        className: "hidden gap-4 2xl:flex",
+        columns: buildShareSkeletonColumns(7),
+        key: "cols-7",
+    },
+] as const;
 
 export interface PublicShareGridItem {
     href: string | null;
@@ -209,5 +276,55 @@ export function PublicShareGrid({
             rowGutter={16}
             tabIndex={-1}
         />
+    );
+}
+
+function ShareSkeletonColumnStack({
+    columns,
+}: {
+    columns: readonly ShareSkeletonPlaceholder[][];
+}): React.ReactElement {
+    return (
+        <>
+            {columns.map((column) => (
+                <div
+                    className="flex min-w-0 flex-1 flex-col gap-4"
+                    key={column[0]?.id ?? "share-skel-col"}
+                >
+                    {column.map((placeholder) => (
+                        <div className="bg-card/40" key={placeholder.id}>
+                            <Skeleton
+                                className={cn(
+                                    "squircle w-full rounded-xl",
+                                    placeholder.aspect
+                                )}
+                            />
+                            <Skeleton className="mt-2 h-3 w-[92%]" />
+                        </div>
+                    ))}
+                </div>
+            ))}
+        </>
+    );
+}
+
+export function PublicShareGridSkeleton(): React.ReactElement {
+    return (
+        <div
+            aria-busy="true"
+            aria-label="Loading shared collection"
+            className="flex flex-col gap-6"
+            role="status"
+        >
+            <div className="flex flex-col items-center gap-2">
+                <Skeleton className="h-7 w-48" />
+                <Skeleton className="h-4 w-24" />
+            </div>
+            {SHARE_SKELETON_BREAKPOINTS.map((breakpoint) => (
+                <div className={breakpoint.className} key={breakpoint.key}>
+                    <ShareSkeletonColumnStack columns={breakpoint.columns} />
+                </div>
+            ))}
+        </div>
     );
 }

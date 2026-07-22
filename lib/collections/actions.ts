@@ -1,6 +1,7 @@
 "use server";
 
 import { isUnauthenticated, requireActionUserId } from "@/lib/auth/session";
+import { invalidateShareMetadataCache } from "@/lib/collections/sharing/cache";
 import {
     COLLECTION_VALIDATION_MESSAGES,
     STATUS_MAP_DUPLICATE_OR_NOT_FOUND,
@@ -328,6 +329,10 @@ export async function renameCollection(input: {
             name: parsed.data.name,
             userId: auth.userId,
         });
+
+        if (collection.shareId) {
+            invalidateShareMetadataCache(collection.shareId);
+        }
 
         return {
             collection,

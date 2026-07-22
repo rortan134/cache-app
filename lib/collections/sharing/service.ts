@@ -274,7 +274,10 @@ export async function enablePublicCollectionShare(input: {
 export async function disablePublicCollectionShare(input: {
     collectionId: string;
     userId: string;
-}) {
+}): Promise<{
+    collection: ReturnType<typeof toLibraryCollectionTag>;
+    revokedShareId: string | null;
+}> {
     const existingCollection = await requireCollectionTagOwned({
         collectionId: input.collectionId,
         operation: "disablePublicCollectionShare",
@@ -282,8 +285,13 @@ export async function disablePublicCollectionShare(input: {
     });
 
     if (!(existingCollection.shareId || existingCollection.sharedAt)) {
-        return toLibraryCollectionTag(existingCollection);
+        return {
+            collection: toLibraryCollectionTag(existingCollection),
+            revokedShareId: null,
+        };
     }
+
+    const revokedShareId = existingCollection.shareId;
 
     const disabledCollection = await prisma.collection.update({
         data: {
@@ -301,7 +309,10 @@ export async function disablePublicCollectionShare(input: {
         userId: input.userId,
     });
 
-    return toLibraryCollectionTag(disabledCollection);
+    return {
+        collection: toLibraryCollectionTag(disabledCollection),
+        revokedShareId,
+    };
 }
 
 export async function getPublicCollectionShareById(

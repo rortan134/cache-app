@@ -1,18 +1,21 @@
 import {
     PublicShareGrid,
+    PublicShareGridSkeleton,
     type PublicShareGridItem,
 } from "@/components/share/browser";
 import { BrandLogo } from "@/components/ui/brand-logo";
+import { FadeIn } from "@/components/ui/fade-in";
+import { publicCollectionShareMetadataTag } from "@/lib/collections/sharing/cache";
 import { getPublicCollectionShareById } from "@/lib/collections/sharing/service";
-import { BASE_URL, FALLBACK_URL, ITEM_KIND_NOTE } from "@/lib/common/constants";
+import { FALLBACK_URL, ITEM_KIND_NOTE } from "@/lib/common/constants";
 import { getNoteExcerpt } from "@/lib/common/strings";
 import { normalizeURL } from "@/lib/common/url";
 import LogoIconImage from "@/public/cache-app-icon.png";
 import type { Metadata } from "next";
+import { cacheLife, cacheTag } from "next/cache";
 import { notFound } from "next/navigation";
-import * as React from "react";
-
-export const instant = false;
+import { connection } from "next/server";
+import { Suspense } from "react";
 
 interface CollectionSharePageProps {
     params: Promise<{
@@ -48,10 +51,11 @@ function getSharedItemPreviewImageUrl(
     return `/api/preview?url=${encodeURIComponent(href)}`;
 }
 
-export async function generateMetadata(
-    props: CollectionSharePageProps
-): Promise<Metadata> {
-    const { shareId } = await props.params;
+async function getCachedShareMetadata(shareId: string): Promise<Metadata> {
+    "use cache";
+    cacheLife("hours");
+    cacheTag(publicCollectionShareMetadataTag(shareId));
+
     const collection = await getPublicCollectionShareById(shareId);
 
     return {
@@ -61,7 +65,6 @@ export async function generateMetadata(
                 ? `A read-only collection shared by ${collection.ownerName} on Cache.`
                 : "A shared collection on Cache.")
         } Create your own.`,
-        metadataBase: new URL(BASE_URL),
         robots: {
             follow: false,
             index: false,
@@ -72,7 +75,16 @@ export async function generateMetadata(
     };
 }
 
-async function PageComp(props: CollectionSharePageProps) {
+export async function generateMetadata(
+    props: CollectionSharePageProps
+): Promise<Metadata> {
+    const { shareId } = await props.params;
+    return getCachedShareMetadata(shareId);
+}
+
+async function CollectionShareBody(props: CollectionSharePageProps) {
+    await connection();
+
     const { shareId } = await props.params;
     const collection = await getPublicCollectionShareById(shareId);
 
@@ -97,12 +109,7 @@ async function PageComp(props: CollectionSharePageProps) {
     });
 
     return (
-        <>
-            <BrandLogo
-                className="mx-auto my-3 scale-80"
-                href="/library"
-                src={LogoIconImage}
-            />
+        <FadeIn className="flex flex-col gap-6">
             {collection.name ? (
                 <div className="flex flex-col items-center justify-center text-muted-foreground text-sm">
                     <h1 className="font-medium text-foreground text-xl">
@@ -115,16 +122,21 @@ async function PageComp(props: CollectionSharePageProps) {
                 </div>
             ) : null}
             <PublicShareGrid items={items} />
-        </>
+        </FadeIn>
     );
 }
 
 export default function CollectionSharePage(props: CollectionSharePageProps) {
     return (
         <div className="flex w-full flex-1 flex-col justify-stretch gap-6 px-2 py-2 sm:px-4 sm:py-4">
-            <React.Suspense>
-                <PageComp {...props} />
-            </React.Suspense>
+            <BrandLogo
+                className="mx-auto my-3 scale-80"
+                href="/library"
+                src={LogoIconImage}
+            />
+            <Suspense fallback={<PublicShareGridSkeleton />}>
+                <CollectionShareBody {...props} />
+            </Suspense>
         </div>
     );
 }
