@@ -88,7 +88,9 @@ enum AutomationCadence {
 
 /// First-party automation templates seeded for new users.
 enum AutomationTemplateKey {
-  weekly_digest
+  daily_digest
+  worth_revisiting
+  next_actions
 }
 
 /// Durable execution state for a single scheduled automation attempt.
