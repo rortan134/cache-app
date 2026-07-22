@@ -2,12 +2,6 @@
 
 import { useSubscriptionAccess } from "@/components/billing/subscription";
 import {
-    claimCollectionHoverHotkeySurface,
-    clearCollectionHoverHotkeySurface,
-    isCollectionHoverHotkeySurface,
-    releaseCollectionHoverHotkeySurface,
-} from "@/components/library/hover-hotkey-surface";
-import {
     appendCollection,
     mergeCollectionSummaries,
     replaceCollectionShareState,
@@ -134,6 +128,12 @@ import {
     MIME_TYPES,
 } from "@/lib/common/constants";
 import { saveFile } from "@/lib/common/file";
+import {
+    claimCollectionHoverHotkeySurface,
+    clearCollectionHoverHotkeySurface,
+    isCollectionHoverHotkeySurface,
+    releaseCollectionHoverHotkeySurface,
+} from "@/lib/common/hover-hotkey-surface";
 import { getSystemControlKey } from "@/lib/common/keyboard";
 import { createLogger } from "@/lib/common/logs/console/logger";
 import {
@@ -160,9 +160,9 @@ import {
     ArchiveIcon,
     ArchiveX,
     ArrowUpDown,
-    BookmarkOff,
     ChevronRight,
     Clock,
+    ClockFading,
     Component,
     CopyIcon,
     CopyPlus,
@@ -520,7 +520,7 @@ const SORT_OPTIONS = [
         value: "name",
     },
     {
-        icon: Sparkle,
+        icon: ClockFading,
         label: "Created",
         value: "created",
     },
@@ -2511,7 +2511,7 @@ function CollectionRecommendationItem({
                         <Spinner className="absolute right-3 size-3.5" />
                     ) : (
                         <span className="absolute right-3 text-muted-foreground text-xs opacity-0 transition-opacity duration-150 ease-out group-hover:opacity-100">
-                            Create
+                            <T>Add</T>
                         </span>
                     )}
                 </PreviewCardTrigger>
@@ -2788,7 +2788,7 @@ function CollectionsListSortingCombobox({
                     focusable="false"
                 />
             </ComboboxTrigger>
-            <ComboboxPopup align="end" positionMethod="fixed">
+            <ComboboxPopup align="start" positionMethod="fixed" side="right">
                 <ComboboxInput
                     endAddon={
                         <Kbd>
@@ -2941,11 +2941,6 @@ function CollectionsListCalloutPopover() {
                         size="xs"
                         variant="link"
                     >
-                        <BookmarkOff
-                            aria-hidden
-                            className="size-3.5"
-                            focusable="false"
-                        />
                         {disabled
                             ? "Turn on Smart Collections"
                             : "Turn off Smart Collections"}
@@ -3334,7 +3329,7 @@ function CollectionsListItemPriorityCombobox() {
                         className="inline-block size-3.5 shrink-0"
                         focusable="false"
                     />
-                    <p className="text-[10px] text-muted-foreground leading-tight">
+                    <p className="max-w-48 text-[10px] text-muted-foreground leading-tight">
                         Highlight your collection based on its relevance to you
                     </p>
                 </div>
