@@ -10,10 +10,10 @@ export function PageShell({
         <Comp
             {...props}
             className={cn(
-                "fade-in relative isolate z-0 mx-auto flex size-full min-h-screen animate-in flex-col leading-snug tracking-tight outline-none [-webkit-user-drag:none] focus-visible:outline-none motion-reduce:animate-none",
+                "relative isolate z-0 mx-auto flex size-full min-h-screen flex-col leading-snug tracking-tight outline-none [-webkit-user-drag:none] focus-visible:outline-none motion-reduce:animate-none",
                 className
             )}
-            id="main-content"
+            id="main"
             tabIndex={-1}
         />
     );
