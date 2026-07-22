@@ -6,7 +6,7 @@ import {
     importInstagramSaved,
     instagramSavedBodySchema,
 } from "@/lib/integrations/instagram/service";
-import { scheduleAutoTagging } from "@/lib/intelligence/schedule";
+import { scheduleSmartCollections } from "@/lib/intelligence/schedule";
 
 export function OPTIONS(request: Request) {
     return new Response(null, {
@@ -24,6 +24,6 @@ export function POST(request: Request) {
                 items: body.items,
                 userId,
             }),
-        onSmartCollectionItemIds: scheduleAutoTagging,
+        onSmartCollectionItemIds: scheduleSmartCollections,
     });
 }

@@ -6,7 +6,7 @@ import {
     importYoutubeWatchLaterSnapshot,
     youtubeWatchLaterBodySchema,
 } from "@/lib/integrations/youtube/service";
-import { scheduleAutoTagging } from "@/lib/intelligence/schedule";
+import { scheduleSmartCollections } from "@/lib/intelligence/schedule";
 
 export function OPTIONS(request: Request) {
     return new Response(null, {
@@ -24,7 +24,7 @@ export function POST(request: Request) {
                 ...body,
                 userId,
             }),
-        onSmartCollectionItemIds: scheduleAutoTagging,
+        onSmartCollectionItemIds: scheduleSmartCollections,
         response: ({ body, result }) => ({
             ...result,
             received: body.items.length,

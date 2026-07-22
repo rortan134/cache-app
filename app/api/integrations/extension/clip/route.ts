@@ -1,14 +1,14 @@
 import { createLogger } from "@/lib/common/logs/console/logger";
 import {
     clipPageFromExtension,
-    ExtensionClipError,
     extensionClipBodySchema,
+    ExtensionClipError,
 } from "@/lib/integrations/extension-clip/service";
 import {
     authenticateExtensionIngest,
     extensionIngestCorsHeaders,
 } from "@/lib/integrations/extension-ingest/route";
-import { scheduleAutoTagging } from "@/lib/intelligence/schedule";
+import { scheduleSmartCollections } from "@/lib/intelligence/schedule";
 
 const log = createLogger("api:integrations:extension:clip");
 
@@ -51,7 +51,7 @@ export async function POST(request: Request) {
         });
         const { smartCollectionItemIds, ...response } = result;
         if (smartCollectionItemIds.length > 0) {
-            scheduleAutoTagging(userId, smartCollectionItemIds);
+            scheduleSmartCollections(userId, smartCollectionItemIds);
         }
 
         return Response.json({ ok: true, ...response }, { headers: cors });

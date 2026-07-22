@@ -7,7 +7,7 @@ import {
     IntegrationConnectionError,
 } from "@/lib/integrations/error";
 import type { IntegrationId } from "@/lib/integrations/support";
-import { scheduleAutoTagging } from "@/lib/intelligence/schedule";
+import { scheduleSmartCollections } from "@/lib/intelligence/schedule";
 import { runOAuthImportService } from "./service";
 
 const log = createLogger("integrations:oauth-import");
@@ -27,12 +27,6 @@ interface OAuthImportConfig<T extends { smartCollectionItemIds: string[] }> {
 
 /**
  * Route adapter for OAuth-based integration imports.
- *
- * Resolves the current session, delegates the import to the framework-free
- * `runOAuthImportService`, schedules request-scoped side-effects
- * (`scheduleAutoTagging` uses `next/server`'s `after()`), and maps the
- * service's typed errors onto the integration-specific HTTP responses each
- * provider advertises.
  *
  * Domain failures are kept in the service; this layer is the only place
  * that touches `Request`/`Response` and the session helper.
@@ -55,7 +49,7 @@ export async function runOAuthImport<
                 providerId: config.providerId,
                 userId,
             });
-        scheduleAutoTagging(userId, smartCollectionItemIds);
+        scheduleSmartCollections(userId, smartCollectionItemIds);
         return Response.json(response);
     } catch (error) {
         if (error instanceof IntegrationConnectionError) {
