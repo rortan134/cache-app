@@ -58,7 +58,7 @@ Cache exists because that signal is too valuable to waste. It treats the act of 
 
 <a href="https://www.cachd.app" target="_blank" rel="noopener noreferrer"><img src="https://img.shields.io/badge/Open-cachd.app-3B3B3B?labelColor=1A1A1A" alt="Open cachd.app"></a>
 
-### Self-hosting (Work-in-progress)
+### Self-hosting (Work in progress)
 
 You can self-host Cache for total control over your data and design. Cache has zero telemetry by default.
 
@@ -92,29 +92,37 @@ bun run dev
 
 Open [http://localhost:3000](http://localhost:3000).
 
+### Environment Variables
+
+See the [environment variables reference](.env.example) for the full list.
+
 ---
 
 ## Tech Stack
 
-| Category                  | Technology                                                                                                             |
-| ------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| **Framework**             | [Next.js](https://nextjs.org/) (App Router)                                                                            |
-| **UI**                    | [React](https://react.dev/), [Base UI](https://base-ui.com/), [Tailwind CSS](https://tailwindcss.com/)                 |
-| **Rich Text**             | [Lexical](https://lexical.dev/), [Streamdown](https://github.com/vercel/streamdown)                                    |
-| **Database**              | PostgreSQL, Redis                                                                                                      |
-| **Auth**                  | [Better Auth](https://better-auth.com/)                                                                                |
-| **Validation**            | [Zod](https://zod.dev/), [@t3-oss/env-nextjs](https://env.t3.gg/)                                                      |
-| **AI/LLM**                | [Vercel AI SDK](https://sdk.vercel.ai/), [Google Gemini](https://ai.google.dev/), [@workflow/ai](https://workflow.ai/) |
-| **Agentic Web Search**    | [Tavily](https://tavily.com/)                                                                                          |
-| **Data Fetching**         | [SWR](https://swr.vercel.app/), [nuqs](https://nuqs.vercel.app/)                                                       |
-| **i18n**                  | [gt-next](https://generaltranslation.com)                                                                              |
-| **Payments**              | [Stripe](https://stripe.com/)                                                                                          |
-| **Workflows**             | [workflow](https://workflow.ai/)                                                                                       |
-| **MCP**                   | [MCP SDK](https://modelcontextprotocol.io/)                                                                            |
-| **Security (Cloud-only)** | [Arcjet](https://arcjet.com/) (WAF, rate limiting, PII redaction)                                                      |
-| **Linting**               | [Ultracite](https://ultracite.dev/) (Biome)                                                                            |
-| **React Compiler**        | [babel-plugin-react-compiler](https://react.dev/learn/react-compiler)                                                  |
-| **Date Handling**         | [Day.js](https://day.js.org/), [chrono-node](https://github.com/wanasit/chrono)                                        |
+<details>
+<summary>Next.js · Bun · PostgreSQL · Prisma ORM · Better Auth · Tailwind — and the rest of the stack</summary>
+
+| Category                  | Technology                                                                                                      |
+| ------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| **Framework**             | [Next.js](https://nextjs.org/) (App Router)                                                                     |
+| **UI**                    | [React](https://react.dev/), [Base UI](https://base-ui.com/), [Tailwind CSS](https://tailwindcss.com/)          |
+| **Rich Text**             | [Lexical](https://lexical.dev/), [Streamdown](https://github.com/vercel/streamdown)                             |
+| **Database**              | PostgreSQL, Redis                                                                                               |
+| **Auth**                  | [Better Auth](https://better-auth.com/)                                                                         |
+| **Validation**            | [Zod](https://zod.dev/), [@t3-oss/env-nextjs](https://env.t3.gg/)                                               |
+| **AI/LLM**                | [AI SDK](https://sdk.vercel.ai/), [AI Gateway](https://vercel.com/ai-gateway), [Gemini](https://ai.google.dev/) |
+| **Agentic Web Search**    | [Tavily](https://tavily.com/)                                                                                   |
+| **Data Fetching**         | [SWR](https://swr.vercel.app/), [nuqs](https://nuqs.vercel.app/)                                                |
+| **i18n**                  | [gt-next](https://generaltranslation.com)                                                                       |
+| **Subscriptions**         | [Stripe](https://stripe.com/)                                                                                   |
+| **Durable Execution**     | [Workflow SDK](https://workflow-sdk.dev/)                                                                       |
+| **Security (Cloud-only)** | [Arcjet](https://arcjet.com/) (WAF, rate limiting, PII redaction)                                               |
+| **Linting**               | [Ultracite](https://ultracite.dev/) (Biome)                                                                     |
+| **React Compiler**        | [babel-plugin-react-compiler](https://react.dev/learn/react-compiler)                                           |
+| **Date Handling**         | [Day.js](https://day.js.org/), [chrono-node](https://github.com/wanasit/chrono)                                 |
+
+</details>
 
 ---
 
