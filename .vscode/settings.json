@@ -17,10 +17,22 @@
         "source.organizeImports.biome": "explicit"
     },
     "editor.defaultFormatter": "biomejs.biome",
-    "[html][markdown][mdx][yaml][javascript][typescript][javascriptreact][typescriptreact][json][jsonc][css]": {
-        "editor.defaultFormatter": "biomejs.biome"
-    },
     "[markdown]": {
         "editor.defaultFormatter": "yzhang.markdown-all-in-one"
+    },
+    "[css]": {
+        "editor.defaultFormatter": "yzhang.markdown-all-in-one"
+    },
+    "[typescript]": {
+        "editor.defaultFormatter": "yzhang.markdown-all-in-one"
+    },
+    "[typescriptreact]": {
+        "editor.defaultFormatter": "biomejs.biome"
+    },
+    "[json]": {
+        "editor.defaultFormatter": "biomejs.biome"
+    },
+    "[jsonc]": {
+        "editor.defaultFormatter": "biomejs.biome"
     }
 }
