@@ -18,7 +18,7 @@ import {
     extensionClipExternalId,
     type ExtensionClipBody,
 } from "@/lib/integrations/extension-clip/schema";
-import { upsertLibraryItemImports } from "@/lib/integrations/upsert";
+import { upsertLibraryItemImports } from "@/lib/integrations/import-upsert";
 import { prisma } from "@/prisma";
 import type { CollectionPriority } from "@/prisma/client/enums";
 import { LibraryItemSource } from "@/prisma/client/enums";

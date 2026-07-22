@@ -14,13 +14,12 @@ import { LibraryItemSource } from "@/prisma/client/enums";
 import { Bot, Rss } from "lucide-react";
 import type { ComponentType, SVGProps } from "react";
 
-// ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
-
 export type IntegrationCategory = "developer" | "media" | "social";
+
 export type IntegrationDirection = "destination" | "source";
+
 export type IntegrationIcon = ComponentType<SVGProps<SVGSVGElement>>;
+
 export type IntegrationId =
     | "chrome"
     | "github"
@@ -33,6 +32,7 @@ export type IntegrationId =
     | "tiktok"
     | "x"
     | "youtube";
+
 export type IntegrationActionRole = "connect" | "copy" | "open" | "sync";
 
 export type IntegrationConnectionSignal =
@@ -140,10 +140,6 @@ export interface IntegrationConnectionContext {
     libraryItemSources: Iterable<LibraryItemSource>;
     linkedProviderIds: Iterable<string>;
 }
-
-// ---------------------------------------------------------------------------
-// Constants
-// ---------------------------------------------------------------------------
 
 const LIBRARY_CALLBACK_URL = "/library";
 
@@ -606,7 +602,10 @@ const SOURCE_TO_ICON = new Map<LibraryItemSource, IntegrationIcon>(
     )
 );
 
-const INTEGRATION_ACCOUNT_PROVIDER_IDS = Array.from(
+const INTEGRATION_ACCOUNT_PROVIDER_IDS: readonly Extract<
+    IntegrationConnectionSignal,
+    { kind: "linked-provider" }
+>["providerId"][] = Array.from(
     new Set(
         INTEGRATIONS.flatMap((integration) =>
             listDirectionDefinitions(integration).flatMap((definition) =>
@@ -621,10 +620,6 @@ const INTEGRATION_ACCOUNT_PROVIDER_IDS = Array.from(
 export const LIBRARY_BOOKMARK_SYNC_INTEGRATION_IDS = INTEGRATIONS.filter(
     (item) => item.source?.syncable
 ).map((item) => item.id);
-
-// ---------------------------------------------------------------------------
-// Internal helpers
-// ---------------------------------------------------------------------------
 
 function listDirectionDefinitions(
     integration: SupportedIntegration
@@ -677,10 +672,6 @@ function integrationMatchesSignal(
 
     return context.linkedProviderIds.has(signal.providerId);
 }
-
-// ---------------------------------------------------------------------------
-// Exports
-// ---------------------------------------------------------------------------
 
 export function isIntegrationId(value: unknown): value is IntegrationId {
     return typeof value === "string" && INTEGRATION_ID_SET.has(value);

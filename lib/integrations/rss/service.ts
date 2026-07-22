@@ -1,16 +1,16 @@
 import "server-only";
 
+import { mapConcurrent } from "@/lib/common/arrays";
 import { ITEM_KIND_BOOKMARK } from "@/lib/common/constants";
 import { getErrorMessage } from "@/lib/common/error";
 import { createLogger } from "@/lib/common/logs/console/logger";
-import { mapConcurrent } from "@/lib/common/arrays";
-import { upsertLibraryItemImports } from "@/lib/integrations/upsert";
+import { upsertLibraryItemImports } from "@/lib/integrations/import-upsert";
 import { prisma } from "@/prisma";
 import type { Prisma } from "@/prisma/client/client";
 import { LibraryItemSource } from "@/prisma/client/enums";
 import { RssFeedError } from "./errors";
-import { parseFeed } from "./parser";
 import type { ParsedFeed } from "./parser";
+import { parseFeed } from "./parser";
 
 const log = createLogger("integrations:rss");
 

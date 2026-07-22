@@ -2,14 +2,14 @@ import "server-only";
 
 import { createLogger } from "@/lib/common/logs/console/logger";
 import { DEFAULT_BROWSER_PROFILE_ID } from "@/lib/integrations/browser-profiles";
-import { upsertLibraryItemImports } from "@/lib/integrations/upsert";
+import { upsertLibraryItemImports } from "@/lib/integrations/import-upsert";
 import type { Prisma } from "@/prisma/client/client";
 import { LibraryItemSource } from "@/prisma/client/enums";
+import { pickerPollIntervalMs, withPickerAutoclose } from "./api";
 import type {
     GooglePhotosPickedMediaItem,
     GooglePhotosPickerSession,
 } from "./shared";
-import { pickerPollIntervalMs, withPickerAutoclose } from "./api";
 
 const log = createLogger("integrations:google-photos");
 

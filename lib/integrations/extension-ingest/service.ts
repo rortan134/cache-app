@@ -5,7 +5,7 @@ import type {
     ITEM_KIND_FOLDER,
 } from "@/lib/common/constants";
 import { parseDate } from "@/lib/common/dates";
-import { upsertLibraryItemImports } from "@/lib/integrations/upsert";
+import { upsertLibraryItemImports } from "@/lib/integrations/import-upsert";
 import { prisma } from "@/prisma";
 import type { Prisma } from "@/prisma/client/client";
 import type { LibraryItemSource } from "@/prisma/client/enums";

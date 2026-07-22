@@ -9,7 +9,7 @@ import {
     libraryItemIdentityKey,
     type LibraryItemImportRow,
     type LibraryItemImportRowInput,
-} from "@/lib/integrations/library-item-imports";
+} from "@/lib/integrations/import-row";
 import { prisma } from "@/prisma";
 import type { LibraryItemSource } from "@/prisma/client/enums";
 

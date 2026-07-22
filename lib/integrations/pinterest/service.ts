@@ -2,7 +2,7 @@ import "server-only";
 
 import { mapConcurrent } from "@/lib/common/arrays";
 import { createLogger } from "@/lib/common/logs/console/logger";
-import { upsertLibraryItemImports } from "@/lib/integrations/upsert";
+import { upsertLibraryItemImports } from "@/lib/integrations/import-upsert";
 import { LibraryItemSource } from "@/prisma/client/enums";
 import { listPinterestBoardPins, listPinterestBoards } from "./api";
 
