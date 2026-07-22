@@ -11,7 +11,7 @@ Thank you for helping us keep Cache secure. We take the security of our applicat
 
 ## Reporting a Vulnerability
 
-Please report vulnerabilities directly to `info@cachd.app`. Include:
+Please report vulnerabilities directly to `notices@cachd.app`. Include:
 
 - A description of the vulnerability
 - Steps to reproduce

@@ -20,12 +20,13 @@
   <a href="#features">Features</a> •
   <a href="#why">Why</a> •
   <a href="#tech-stack">Tech Stack</a> •
+  <a href="#cache-mcp">MCP</a> •
   <a href="#roadmap">Roadmap</a> •
   <a href="#contributing">Contributing</a> •
   <a href="#license">License</a>
 </p>
 
---
+---
 
 ## Why Cache
 
@@ -37,14 +38,17 @@ Cache exists because that signal is too valuable to waste. It treats the act of 
 
 ## What Cache does for you
 
-- **Unify your bookmarks** — First-class support for bookmarks from Instagram Saved, TikTok Favorites, YouTube Watch Later, X/Twitter Bookmarks, GitHub Stars, Chrome bookmarks, Pinterest, Google Photos, and more, all in one place. Unlike other tools that cap saves, Cache has no limits.
-- **Smart Collections** — Organize entries into collections with AI-assisted relevance ranking.
-- **AI-Assisted Search** — Ask the Cache AI agent and search across all your saved content.
-- **AI-Powered Synthesis** — Create Automations to generate daily, weekly, and monthly digests, and much more. Cache even learns your preferences over time.
-- **Note-taking** — First-party WYSIWYG notes alongside bookmarks.
-- **Browser Extension** — Chrome extension web clipper that captures and syncs saved content from anywhere.
-- **Export & Integrate** — Pipe results into other tools you already use. Share collections with others.
-- **Simple and Low Maintenance** — Cache is designed to be simple, low-maintenance, and always portable.
+- **Unify your bookmarks** — Integrate Cache into your day-to-day with first-class support for bookmarks from Browser bookmarks, Instagram Saved, TikTok Favorites, YouTube Watch Later, X/Twitter bookmarks, GitHub Stars, Pinterest, Google Photos, MCP, and more, all in one place. Unlike other tools that cap saves, Cache has no limits.
+- **Smart collections** — Automatically organizes entries into your collections with AI-assisted relevance ranking. Cache even learns your preferences over time.
+- **Overviews** — See a 1-line summary above every collection. As new entries are added, it updates instantly. And if you want to see more detail, just hit expand.
+- **AI-assisted search** — Ask the Cache AI agent and search across all your saved content.
+- **Automations** — Create custom agents to do anything. Generate daily digests, summaries, and much more.
+- **Note-taking** — First-party note-taking support alongside bookmarks.
+- **Collaboration** — Share a live view of any collection with anyone, even if they don't use Cache.
+- **Remind me (Soon)** — Set up reminders when saving or browsing on items to come back to later.
+- **Browser extension** — Capture and sync saved content from anywhere on the web.
+- **Export & integrate** — Pipe results into other tools you already use.
+- **Simple and low maintenance** — Cache is designed to be simple, low-maintenance, and always portable.
 
 ---
 
@@ -107,10 +111,21 @@ Open [http://localhost:3000](http://localhost:3000).
 | **Payments**              | [Stripe](https://stripe.com/)                                                                                          |
 | **Workflows**             | [workflow](https://workflow.ai/)                                                                                       |
 | **MCP**                   | [MCP SDK](https://modelcontextprotocol.io/)                                                                            |
-| **Security (Cloud only)** | [Arcjet](https://arcjet.com/) (WAF, rate limiting, PII redaction, prompt injection detection)                          |
+| **Security (Cloud-only)** | [Arcjet](https://arcjet.com/) (WAF, rate limiting, PII redaction)                                                      |
 | **Linting**               | [Ultracite](https://ultracite.dev/) (Biome)                                                                            |
-| **React Compiler**        | [babel-plugin-react-compiler](https://react.dev/learn/react-compiler) (auto-memoization)                               |
+| **React Compiler**        | [babel-plugin-react-compiler](https://react.dev/learn/react-compiler)                                                  |
 | **Date Handling**         | [Day.js](https://day.js.org/), [chrono-node](https://github.com/wanasit/chrono)                                        |
+
+---
+
+## Cache MCP
+
+Cache exposes an [MCP](https://modelcontextprotocol.io/) server so AI agents like Claude, Cursor, and others can read and write your library directly — search bookmarks, save new items, list collections, and more.
+
+Endpoint: `https://www.cachd.app/mcp`
+
+- [llms.txt](https://www.cachd.app/llms.txt) — agent context and tool reference
+- Generate a setup prompt with your Bearer token from the app (Integrations → MCP)
 
 ---
 
@@ -119,7 +134,6 @@ Open [http://localhost:3000](http://localhost:3000).
 - **Comments** — Add and view threaded comments on entries.
 - **Inbox view** — Triage view for reviewing entries.
 - **Notes improvements** — Richer editing experience, advanced formatting.
-- **Apple Notes integration** — Sync and save bookmarks from Apple Notes.
 - **Raycast integration** — Capture and search Cache from Raycast.
 - **Substack integration** — Import and save Substack posts and newsletters.
 
