@@ -1,5 +1,3 @@
-import { useEffect, useState } from "react";
-import type { PlasmoCSConfig, PlasmoGetOverlayAnchor } from "plasmo";
 import type {
     ClipResponse,
     CreateCollectionResponse,
@@ -12,9 +10,11 @@ import {
     isSocialImportUrl,
     isUnsupportedClipUrl,
 } from "@/lib/runtime";
+import cssText from "data-text:../popup.module.css";
+import type { PlasmoCSConfig, PlasmoGetOverlayAnchor } from "plasmo";
+import { useEffect, useState } from "react";
 import { CollectionCreateView } from "../collection-create-view";
 import styles from "../popup.module.css";
-import cssText from "data-text:../popup.module.css";
 
 export const config: PlasmoCSConfig = {
     matches: ["<all_urls>"],
