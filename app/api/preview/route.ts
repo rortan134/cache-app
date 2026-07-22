@@ -487,12 +487,12 @@ async function proxyImageResponse(
     });
 }
 
-function redirectToPreview(
+async function redirectToPreview(
     previewUrl: string,
     targetHref: string,
     type: PreviewType
-): Response {
-    const publicPreviewUrl = parseHttpUrl(previewUrl);
+): Promise<Response> {
+    const publicPreviewUrl = await parsePublicHttpUrl(previewUrl);
     if (!publicPreviewUrl) {
         return textResponse("Preview not found", 404);
     }

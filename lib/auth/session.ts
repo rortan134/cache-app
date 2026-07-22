@@ -2,6 +2,8 @@ import "server-only";
 
 import { SessionError } from "@/lib/auth/error";
 import { auth } from "@/lib/auth/server";
+import { ACTION_STATUS } from "@/lib/common/constants";
+import { getErrorMessage } from "@/lib/common/error";
 import { createLogger } from "@/lib/common/logs/console/logger";
 import { headers } from "next/headers";
 import { cache } from "react";
@@ -38,7 +40,7 @@ export async function withSession<T>(
 
         throw new SessionError(
             {
-                message: error instanceof Error ? error.message : String(error),
+                message: getErrorMessage(error),
                 operation: "auth::withSession",
             },
             { cause: error }
@@ -48,7 +50,7 @@ export async function withSession<T>(
 
 interface UnauthorizedActionResult {
     message: string;
-    status: "UNAUTHORIZED";
+    status: typeof ACTION_STATUS.UNAUTHORIZED;
 }
 
 interface AuthorizedActionResult {
@@ -63,7 +65,7 @@ type ActionAuthResult = UnauthorizedActionResult | AuthorizedActionResult;
 export function isUnauthenticated(
     result: ActionAuthResult
 ): result is UnauthorizedActionResult {
-    return "status" in result;
+    return "status" in result && result.status === ACTION_STATUS.UNAUTHORIZED;
 }
 
 /**
@@ -77,7 +79,7 @@ export async function requireActionUserId(
     if (!userId) {
         return {
             message: unauthorizedMessage,
-            status: "UNAUTHORIZED",
+            status: ACTION_STATUS.UNAUTHORIZED,
         };
     }
 
@@ -86,16 +88,21 @@ export async function requireActionUserId(
 
 /**
  * Resolves the current session user id for API route handlers.
+ * Session always comes from Next.js request cookies via `headers()`.
+ * `unauthorizedResponseHeaders` attach only to the 401 response (e.g. CORS).
  */
 export async function requireRouteUserId(args?: {
-    headers?: HeadersInit;
+    unauthorizedResponseHeaders?: HeadersInit;
 }): Promise<{ userId: string } | Response> {
     const userId = await getSessionUserId();
 
     if (!userId) {
         return Response.json(
             { error: "Unauthorized" },
-            { headers: args?.headers, status: 401 }
+            {
+                headers: args?.unauthorizedResponseHeaders,
+                status: 401,
+            }
         );
     }
 

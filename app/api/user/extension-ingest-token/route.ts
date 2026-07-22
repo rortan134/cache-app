@@ -14,7 +14,9 @@ export function OPTIONS(request: Request) {
 
 export async function GET(request: Request) {
     const cors = extensionTokenCorsHeaders(request);
-    const session = await requireRouteUserId({ headers: cors });
+    const session = await requireRouteUserId({
+        unauthorizedResponseHeaders: cors,
+    });
     if (session instanceof Response) {
         return session;
     }
@@ -26,7 +28,9 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
     const cors = extensionTokenCorsHeaders(request);
-    const session = await requireRouteUserId({ headers: cors });
+    const session = await requireRouteUserId({
+        unauthorizedResponseHeaders: cors,
+    });
     if (session instanceof Response) {
         return session;
     }
