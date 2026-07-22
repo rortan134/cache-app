@@ -228,6 +228,35 @@ function flushChunkToExtension(accumulated: any, source: any) {
         });
 }
 
+/**
+ * Sends only the items added since the previous flush. Each merge function
+ * records the keys it touched into {@link delta} so we don't re-serialize the
+ * entire history on every scroll round (up to `MAX_YOUTUBE_ITEMS` rows).
+ *
+ * @param {Map<string, unknown>} accumulated
+ * @param {Record<string, true>} delta
+ * @param {"instagram" | "tiktok" | "youtube"} source
+ */
+function flushAccumulatedDelta(accumulated, delta, source) {
+    const items = [];
+    for (const id of Object.keys(delta)) {
+        const row = accumulated.get(id);
+        if (row) items.push(row);
+    }
+    if (items.length === 0) {
+        return;
+    }
+    void chrome.runtime
+        .sendMessage({
+            items,
+            source,
+            type: MESSAGE_TYPES.BOOKMARKS_CHUNK,
+        })
+        .catch(() => {
+            /* service worker may be restarting */
+        });
+}
+
 function textFromRuns(value: any) {
     if (!value || typeof value !== "object") {
         return "";
@@ -581,8 +610,9 @@ function parseInstagramPostHref(href: any) {
 
 /**
  * @param {Map<string, InstagramRow>} accumulated
+ * @param {Record<string, true>=} delta
  */
-function mergeInstagramDomIntoAccumulated(accumulated: any) {
+function mergeInstagramDomIntoAccumulated(accumulated: any, delta: any) {
     const root = getInstagramPostLinkRoot();
     const anchors = root.querySelectorAll('a[href*="/p/"], a[href*="/reel/"]');
 
@@ -628,9 +658,11 @@ function mergeInstagramDomIntoAccumulated(accumulated: any) {
                     caption: prev.caption || caption,
                     postedAt: prev.postedAt || postedAt,
                 });
+                if (delta) delta[parsed.shortcode] = true;
             }
         } else {
             accumulated.set(parsed.shortcode, row);
+            if (delta) delta[parsed.shortcode] = true;
         }
     }
 }
@@ -642,9 +674,35 @@ function mergeInstagramDomIntoAccumulated(accumulated: any) {
  * @returns {Promise<Map<string, any>>}
  */
 async function scrollFeedToLoadMore(source: any, findAnchor: any, mergeDomFn: any) {
-    const accumulated = new Map();
-    mergeDomFn(accumulated);
-    flushChunkToExtension(accumulated, source);
+    return scrollFeedToLoadMoreInto(
+        new Map(),
+        source,
+        findAnchor,
+        mergeDomFn,
+    );
+}
+
+/**
+ * Like {@link scrollFeedToLoadMore} but seeds {@link accumulated} with rows
+ * collected by an earlier non-scrolling phase. The existing map is mutated
+ * and returned.
+ *
+ * @param {Map<string, any>} accumulated
+ * @param {string} source
+ * @param {() => HTMLElement | null} findAnchor
+ * @param {(accumulated: Map<string, any>) => void} mergeDomFn
+ */
+async function scrollFeedToLoadMoreInto(
+    accumulated: any,
+    source: any,
+    findAnchor: any,
+    mergeDomFn: any,
+) {
+    const cap =
+        source === "youtube" ? MAX_YOUTUBE_ITEMS : MAX_ITEMS;
+    const initialDelta = Object.create(null);
+    mergeDomFn(accumulated, initialDelta);
+    flushAccumulatedDelta(accumulated, initialDelta, source);
 
     let roundsWithoutNewAccumulated = 0;
     let stagnantScrollRounds = 0;
@@ -660,8 +718,9 @@ async function scrollFeedToLoadMore(source: any, findAnchor: any, mergeDomFn: an
         await scrollFeedTowardBottom(anchor, feedScroller, { fullInnerSteps });
         await sleep(SCROLL_SETTLE_MS);
 
-        mergeDomFn(accumulated);
-        flushChunkToExtension(accumulated, source);
+        const delta = Object.create(null);
+        mergeDomFn(accumulated, delta);
+        flushAccumulatedDelta(accumulated, delta, source);
 
         const grew = accumulated.size > sizeBeforeRound;
         if (grew) {
@@ -691,12 +750,14 @@ async function scrollFeedToLoadMore(source: any, findAnchor: any, mergeDomFn: an
             }
         }
 
-        if (accumulated.size >= MAX_ITEMS) {
+        if (accumulated.size >= cap) {
             break;
         }
     }
 
-    mergeDomFn(accumulated);
+    const finalDelta = Object.create(null);
+    mergeDomFn(accumulated, finalDelta);
+    flushAccumulatedDelta(accumulated, finalDelta, source);
     return accumulated;
 }
 
@@ -1031,8 +1092,9 @@ function parseTikTokVideoHref(href: any) {
 
 /**
  * @param {Map<string, TikTokRow>} accumulated
+ * @param {Record<string, true>=} delta
  */
-function mergeTikTokDomIntoAccumulated(accumulated: any) {
+function mergeTikTokDomIntoAccumulated(accumulated: any, delta: any) {
     const anchors = querySelectorAllDeep('a[href*="/video/"]');
 
     for (const a of anchors) {
@@ -1074,6 +1136,9 @@ function mergeTikTokDomIntoAccumulated(accumulated: any) {
 
         if (!accumulated.has(parsed.id)) {
             accumulated.set(parsed.id, row);
+            if (delta) delta[parsed.id] = true;
+        } else if (delta) {
+            delta[parsed.id] = true;
         }
     }
 }
@@ -1393,18 +1458,173 @@ async function fetchYouTubeContinuationPage(token: any, bootstrap: any) {
     return response.json();
 }
 
-async function scrollYouTubePlaylistTowardBottom() {
-    const main =
-        document.querySelector("ytd-app") ||
-        document.querySelector("ytd-browse") ||
-        document.querySelector("main");
-    const anchor =
-        main instanceof HTMLElement ? main : document.documentElement;
-    const scroller = findFeedScrollTarget(anchor, () =>
-        anchor instanceof HTMLElement ? anchor : document.documentElement
+/**
+ * Anchor on a rendered playlist video so `findBestScrollContainer` can walk
+ * *upward* and locate the actual scrollable ancestor. Anchoring on `ytd-app`
+ * (the previous approach) skipped every intermediate container because the
+ * walk stops at `<body>`.
+ *
+ * @returns {HTMLElement | null}
+ */
+function findYouTubePlaylistScrollAnchor() {
+    const renderer = document.querySelector("ytd-playlist-video-renderer");
+    if (renderer instanceof HTMLElement) {
+        return renderer;
+    }
+    const list = document.querySelector("ytd-playlist-video-list-renderer");
+    return list instanceof HTMLElement ? list : null;
+}
+
+/**
+ * Reads a single `ytd-playlist-video-renderer` DOM element. Polymer exposes
+ * the renderer data via `.data` (same `playlistVideoRenderer` shape that
+ * `parseYouTubePlaylistVideoRenderer` already handles); DOM selectors are a
+ * fallback when the polymer property is unavailable.
+ *
+ * @param {Element} el
+ * @param {number} fallbackIndex
+ * @returns {YouTubeWatchLaterItem | null}
+ */
+function parseYouTubePlaylistVideoRendererFromDom(el, fallbackIndex) {
+    const data = el?.data;
+    if (
+        data &&
+        typeof data === "object" &&
+        typeof data.videoId === "string"
+    ) {
+        return parseYouTubePlaylistVideoRenderer(data, fallbackIndex);
+    }
+
+    if (!(el instanceof HTMLElement)) {
+        return null;
+    }
+
+    const link = el.querySelector("a#video-title, a#video-title-link");
+    if (!link) {
+        return null;
+    }
+    const href = link.getAttribute("href") || "";
+    const match = href.match(/[?&]v=([a-zA-Z0-9_-]{6,})/);
+    const videoId = match?.[1];
+    if (!videoId) {
+        return null;
+    }
+
+    const title = (link.textContent || "").trim();
+    const channelLink = el.querySelector(
+        "a.yt-formatted-string, .ytd-channel-name a",
     );
-    await scrollFeedTowardBottom(anchor, scroller, { fullInnerSteps: true });
-    await sleep(SCROLL_SETTLE_MS);
+    const channelName = (channelLink?.textContent || "").trim();
+    const channelHref = channelLink?.getAttribute("href") || "";
+    const channelMatch =
+        channelHref.match(/\/channel\/([a-zA-Z0-9_-]+)/) ||
+        channelHref.match(/\/@([^/?#]+)/);
+    const channelId = channelMatch?.[1] || "";
+    const durationEl = el.querySelector(
+        "ytd-thumbnail-overlay-time-status-renderer",
+    );
+    const duration = (durationEl?.textContent || "").trim();
+    const indexEl = el.querySelector("#index");
+    const positionText = (indexEl?.textContent || "").trim();
+    const positionDigits = positionText.replace(/[^\d]/g, "");
+    const position = Number.parseInt(positionDigits, 10);
+    const availability = deriveYouTubeAvailabilityFromDom(el, title);
+
+    return {
+        availability,
+        channelId,
+        channelName,
+        duration,
+        playlistItemId: "",
+        position: Number.isFinite(position)
+            ? position
+            : Number.isFinite(fallbackIndex)
+              ? fallbackIndex
+              : null,
+        publishedAt: null,
+        savedAt: new Date().toISOString(),
+        title,
+        videoId,
+        videoUrl: `https://www.youtube.com/watch?v=${encodeURIComponent(videoId)}`,
+    };
+}
+
+/**
+ * Mirrors {@link normalizeYouTubeAvailability} for DOM cues. Watch Later
+ * often renders `ytd-playlist-video-renderer` shells for private, deleted,
+ * or otherwise unavailable videos; we must not collapse them to "available".
+ *
+ * @returns {"available" | "private" | "deleted" | "unavailable"}
+ */
+function deriveYouTubeAvailabilityFromDom(el, title) {
+    const normalizedTitle = (title || "").toLowerCase();
+    const tokens = [];
+    const badgeHosts = el.querySelectorAll(
+        [
+            "ytd-badge-supported-renderer",
+            "ytd-thumbnail-overlay-playability-status-renderer",
+            "span#title",
+            "#reason",
+            ".ytd-video-meta-block",
+        ].join(","),
+    );
+    for (const node of badgeHosts) {
+        tokens.push((node.textContent || "").toLowerCase());
+    }
+    const haystack = `${tokens.join(" ")} ${normalizedTitle}`;
+
+    if (haystack.includes("private")) return "private";
+    if (haystack.includes("deleted video") || haystack.includes("deleted"))
+        return "deleted";
+    const unavailableCue =
+        haystack.includes("unavailable") ||
+        haystack.includes("video unavailable") ||
+        el.querySelector("yt-img-shadow, .yt-core-image") === null;
+    if (unavailableCue) return "unavailable";
+    return "available";
+}
+
+/**
+ * @param {Map<string, YouTubeWatchLaterItem>} accumulated
+ * @param {Record<string, true>=} delta
+ */
+function mergeYouTubeDomIntoAccumulated(accumulated: any, delta: any) {
+    const renderers = document.querySelectorAll("ytd-playlist-video-renderer");
+    for (const el of renderers) {
+        if (accumulated.size >= MAX_YOUTUBE_ITEMS) {
+            break;
+        }
+        const row = parseYouTubePlaylistVideoRendererFromDom(
+            el,
+            accumulated.size + 1,
+        );
+        if (!row) {
+            continue;
+        }
+        const prev = accumulated.get(row.videoId);
+        mergeYouTubeRowsIntoAccumulated(accumulated, [row]);
+        if (delta && (!prev || prev !== accumulated.get(row.videoId))) {
+            delta[row.videoId] = true;
+        }
+    }
+}
+
+/**
+ * Scroll-to-load-more fallback for YouTube Watch Later. YouTube lazy-loads
+ * `ytd-playlist-video-renderer` elements as the user scrolls; this loop
+ * scrolls the playlist container, waits for new elements to render, then
+ * reads them from the DOM. Merges into the existing accumulated map so it
+ * picks up whatever the continuation-API path already collected.
+ *
+ * @param {Map<string, YouTubeWatchLaterItem>} accumulated
+ */
+async function scrollYouTubePlaylistToLoadMore(accumulated) {
+    return scrollFeedToLoadMoreInto(
+        accumulated,
+        "youtube",
+        () => findYouTubePlaylistScrollAnchor() ?? document.documentElement,
+        mergeYouTubeDomIntoAccumulated
+    );
 }
 
 async function runYouTubeWatchLaterSync() {
@@ -1455,6 +1675,10 @@ async function runYouTubeWatchLaterSync() {
     const queue = initial.tokens.filter(Boolean);
     initial.tokens.forEach((token) => seenTokens.add(token));
 
+    // Phase 1: Continuation API — fetch pages via YouTube's internal browse
+    // endpoint using continuation tokens. Efficient: no scrolling required.
+    // Skipped entirely when the initial page data has no continuation token
+    // (some Watch Later pages don't); Phase 2 handles the rest.
     while (queue.length > 0 && accumulated.size < MAX_YOUTUBE_ITEMS) {
         const token = queue.shift();
         if (!token || seenTokens.has(`done:${token}`)) {
@@ -1482,7 +1706,6 @@ async function runYouTubeWatchLaterSync() {
 
         if (accumulated.size === sizeBefore) {
             noNewRounds += 1;
-            await scrollYouTubePlaylistTowardBottom();
         } else {
             noNewRounds = 0;
         }
@@ -1493,6 +1716,14 @@ async function runYouTubeWatchLaterSync() {
         ) {
             break;
         }
+    }
+
+    // Phase 2: Scroll-to-load-more fallback. YouTube lazy-loads playlist
+    // entries as the user scrolls. When the continuation API is unavailable
+    // (no token in the initial data) or exhausted, scroll the playlist
+    // container and read the newly-rendered DOM elements.
+    if (accumulated.size < MAX_YOUTUBE_ITEMS) {
+        await scrollYouTubePlaylistToLoadMore(accumulated);
     }
 
     if (accumulated.size === 0) {
