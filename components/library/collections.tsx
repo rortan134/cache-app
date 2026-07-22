@@ -2925,11 +2925,7 @@ function CollectionsListCalloutPopover() {
                     src={SmartCollectionsBackgroundImg}
                 />
                 <div className="mt-4 flex max-w-64 flex-col gap-2">
-                    <PopoverTitle>
-                        {disabled
-                            ? "Smart Collections is off"
-                            : "Let Cache do the organizing"}
-                    </PopoverTitle>
+                    <PopoverTitle>Let Cache do the organizing</PopoverTitle>
                     <PopoverDescription className="text-foreground text-xs leading-snug">
                         Smart Collections uses AI to automatically group your
                         saves into contextual collections as you add new
@@ -3416,7 +3412,7 @@ function CollectionsListItemShareSubMenu() {
                             className="size-4"
                             focusable="false"
                         />
-                        Disable public link
+                        Stop sharing
                     </MenuItem>
                 ) : null}
             </MenuSubPopup>

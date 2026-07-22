@@ -77,7 +77,7 @@ export function ApplicationSidebar({ children }: React.PropsWithChildren) {
                     </SidebarNavigationItem>
                     <li>
                         <Menu>
-                            <MenuTrigger render={<SidebarItem />}>
+                            <MenuTrigger openOnHover render={<SidebarItem />}>
                                 <Ellipsis
                                     aria-hidden
                                     className="inline-block size-4 shrink-0"

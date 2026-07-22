@@ -13,11 +13,6 @@ import {
 import { FeedbackWidget } from "@/components/support/feedback-widget";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import {
-    Collapsible,
-    CollapsiblePanel,
-    CollapsibleTrigger,
-} from "@/components/ui/collapsible";
 import { AltKbd, CmdKbd, Kbd } from "@/components/ui/kbd";
 import {
     Menu,
@@ -56,7 +51,6 @@ import { LocaleSelector, T, Var } from "gt-next";
 import {
     ArrowUpRight,
     ChevronDown,
-    ChevronRight,
     Download,
     Ellipsis,
     Globe,
@@ -233,17 +227,13 @@ export function UserMenuContent() {
                         </div>
                     </SubscriptionUpgradeButton>
                 </UnsubscribedOnly>
-                <Collapsible>
-                    <CollapsibleTrigger
-                        nativeButton={false}
-                        render={<MenuItem closeOnClick={false} />}
-                    >
+                <MenuSub>
+                    <MenuSubTrigger>
                         <T>Resources</T>
-                        <ChevronRight className="ml-auto! inline-block size-4 text-muted-foreground transition-transform group-data-panel-open:rotate-90 group-data-panel-open:opacity-30" />
-                    </CollapsibleTrigger>
-                    <CollapsiblePanel>
+                    </MenuSubTrigger>
+                    <MenuSubPopup>
                         <MenuItem
-                            className="justify-between pl-6"
+                            className="justify-between"
                             render={
                                 <Link
                                     href="/changelog"
@@ -257,7 +247,7 @@ export function UserMenuContent() {
                             <ArrowUpRight className="ml-auto! inline-block size-4 text-muted-foreground" />
                         </MenuItem>
                         <MenuItem
-                            className="justify-between pl-6"
+                            className="justify-between"
                             render={
                                 <Link
                                     href="https://docs.cachd.app/docs/privacy"
@@ -270,7 +260,7 @@ export function UserMenuContent() {
                             <ArrowUpRight className="ml-auto! inline-block size-4 text-muted-foreground" />
                         </MenuItem>
                         <MenuItem
-                            className="justify-between pl-6"
+                            className="justify-between"
                             render={
                                 <Link
                                     href="https://github.com/rortan134/cache-app"
@@ -286,7 +276,7 @@ export function UserMenuContent() {
                             nativeButton={false}
                             render={
                                 <MenuItem
-                                    className="justify-between pl-6"
+                                    className="justify-between"
                                     closeOnClick={false}
                                 >
                                     <T>Keyboard shortcuts</T>
@@ -296,8 +286,8 @@ export function UserMenuContent() {
                                 </MenuItem>
                             }
                         />
-                    </CollapsiblePanel>
-                </Collapsible>
+                    </MenuSubPopup>
+                </MenuSub>
                 <UserMenuDesktopDownloadSubMenu />
                 <LogoutDialogTrigger
                     nativeButton={false}

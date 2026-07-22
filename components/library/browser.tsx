@@ -4803,7 +4803,7 @@ function MediaCard({ item }: LibraryGridCardProps) {
                                     />
                                 </span>
                             ) : (
-                                <span className="absolute right-2 bottom-2 z-10 rounded-full bg-black/50 px-1.5 py-px font-medium text-white text-xs leading-normal opacity-0 transition-opacity duration-150 ease-out group-hover:opacity-100">
+                                <span className="absolute right-2 bottom-2 z-10 rounded-full bg-black/50 px-1.5 py-px font-medium text-white text-xs leading-normal opacity-0 group-hover:opacity-100">
                                     <ArrowUpRight
                                         aria-hidden
                                         className="size-4"
