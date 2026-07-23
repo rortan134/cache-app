@@ -192,7 +192,6 @@ async function runAskCacheAgentModel(args: {
         instructions: args.instructions,
         maxOutputTokens: ASK_CACHE_OUTPUT_TOKEN_LIMIT,
         model: google(args.model),
-        temperature: 0.2,
         tools: {
             search_library: tool({
                 description:

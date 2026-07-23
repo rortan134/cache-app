@@ -28,7 +28,7 @@ import {
 } from "@/lib/common/strings";
 import { isHttpUrl } from "@/lib/common/url";
 import { resolveCobaltDownloadUrl } from "@/lib/integrations/cobalt/service";
-import { resolveGenAIModels } from "@/lib/intelligence/models";
+import { resolveGenAIModels, type ModelId } from "@/lib/intelligence/models";
 import { prisma } from "@/prisma";
 
 import { type LibraryItemKind, LibraryItemSource } from "@/prisma/client/enums";
@@ -64,9 +64,7 @@ const DEFAULT_SUMMARIZE_MAX_LENGTH = 1500;
 const DISPLAY_NAME_MAX_LENGTH = 128;
 const ESTIMATED_OUTPUT_TOKENS = 256;
 const MODEL_RETRY_ATTEMPTS = 2;
-const MODEL_TEMPERATURE = 0.1;
 const SECTION_RETRY_ATTEMPTS = 2;
-const SECTION_TEMPERATURE = 0.2;
 const PATTERN_HTML_TITLE = /<title[^>]*>([\s\S]*?)<\/title>/i;
 const PATTERN_HTML_DESCRIPTION =
     /<meta[^>]+name=["']description["'][^>]+content=["']([\s\S]*?)["'][^>]*>/i;
@@ -668,7 +666,7 @@ async function createAttachmentForItem(
 
 async function tryModelVariant(
     ai: GoogleGenAI,
-    model: string,
+    model: ModelId,
     variant: { contents: Part[]; label: string },
     item: SmartCollectionItem
 ): Promise<SmartCollectionDecision | null> {
@@ -686,7 +684,6 @@ async function tryModelVariant(
                 responseMimeType: MIME_TYPES.json,
                 systemInstruction:
                     "You organize a user's saved media into focused collections. Be conservative, prefer existing collections, and create new collections only when there is a strong reusable theme. When a collection has a description, use that description as the membership criteria for what belongs in it.",
-                temperature: MODEL_TEMPERATURE,
             },
             contents: variant.contents,
             model,
@@ -1150,7 +1147,6 @@ async function generateModelContent(
                 config: {
                     ...config,
                     responseMimeType: MIME_TYPES.json,
-                    temperature: SECTION_TEMPERATURE,
                 },
                 contents: prompt,
                 model,
