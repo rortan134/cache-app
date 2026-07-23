@@ -256,9 +256,22 @@ interface CollectionItemStyle extends React.CSSProperties {
     "--text-muted-color": string;
 }
 
+type CollectionListSource = "favorites" | "collections";
+
 interface CollectionsListItemContextValue {
     collection: LibraryCollectionSummary;
     isSelected: boolean;
+    source: CollectionListSource;
+}
+
+/** Open-token prefix used to disambiguate priority popups across lists. */
+const PRIORITY_OPEN_TOKEN_SEPARATOR = ":";
+
+function buildPriorityOpenToken(
+    source: CollectionListSource,
+    collectionId: string
+): string {
+    return `${source}${PRIORITY_OPEN_TOKEN_SEPARATOR}${collectionId}`;
 }
 
 interface SyncCreatedCollectionInput {
@@ -747,6 +760,7 @@ export function Collections() {
                             <CollectionsListItem
                                 collection={collection}
                                 key={collection.id}
+                                source="favorites"
                             >
                                 <CollectionsListItemPriorityCombobox />
                                 <CollectionsListItemTrigger>
@@ -793,6 +807,7 @@ export function Collections() {
                             <CollectionsListItem
                                 collection={collection}
                                 key={collection.id}
+                                source="collections"
                             >
                                 <CollectionsListItemPriorityCombobox />
                                 <CollectionsListItemTrigger>
@@ -1049,10 +1064,8 @@ function useCollectionRowActions(sync: ReturnType<typeof useCollectionSync>) {
     const [pendingShareIds, setPendingShareIds] = React.useState<string[]>([]);
     const [pendingNotionCollectionIds, setPendingNotionCollectionIds] =
         React.useState<string[]>([]);
-    const [
-        pendingPriorityComboboxCollectionId,
-        setPendingPriorityComboboxCollectionId,
-    ] = React.useState<string | null>(null);
+    const [pendingPriorityComboboxOpen, setPendingPriorityComboboxOpen] =
+        React.useState<string | null>(null);
 
     const pendingActionIdsRef = React.useRef(new Set<string>());
     const pendingShareIdSet = new Set(pendingShareIds);
@@ -1382,9 +1395,9 @@ function useCollectionRowActions(sync: ReturnType<typeof useCollectionSync>) {
         onSendToNotion,
         onUpdatePriority,
         pendingNotionCollectionIdSet,
-        pendingPriorityComboboxCollectionId,
+        pendingPriorityComboboxOpen,
         pendingShareIdSet,
-        setPendingPriorityComboboxCollectionId,
+        setPendingPriorityComboboxOpen,
     };
 }
 
@@ -1412,10 +1425,11 @@ function useCollectionPanelHotkeys() {
 
 function useCollectionHoverHotkeys(input: {
     hoveredCollectionRef: React.RefObject<LibraryCollectionSummary | null>;
+    hoveredCollectionSourceRef: React.RefObject<CollectionListSource | null>;
     onCopyLinks: (collection: LibraryCollectionSummary) => void;
     requestDelete: (collection: LibraryCollectionSummary) => void;
     requestRename: (collection: LibraryCollectionSummary) => void;
-    setPendingPriorityComboboxCollectionId: (id: string | null) => void;
+    setPendingPriorityComboboxOpen: (value: string | null) => void;
 }) {
     const { favoriteCollectionIdSet, toggleFavorite } =
         useToggleCollectionFavorite();
@@ -1424,10 +1438,11 @@ function useCollectionHoverHotkeys(input: {
 
     const {
         hoveredCollectionRef,
+        hoveredCollectionSourceRef,
         onCopyLinks,
         requestDelete,
         requestRename,
-        setPendingPriorityComboboxCollectionId,
+        setPendingPriorityComboboxOpen,
     } = input;
 
     const resolveHoveredCollection = () => {
@@ -1492,7 +1507,10 @@ function useCollectionHoverHotkeys(input: {
             if (!target) {
                 return;
             }
-            setPendingPriorityComboboxCollectionId(target.id);
+            const source = hoveredCollectionSourceRef.current ?? "collections";
+            setPendingPriorityComboboxOpen(
+                buildPriorityOpenToken(source, target.id)
+            );
         },
         {
             description: "Set priority for hovered collection",
@@ -1506,6 +1524,8 @@ function useCollectionsController() {
     const hoveredCollectionRef = React.useRef<LibraryCollectionSummary | null>(
         null
     );
+    const hoveredCollectionSourceRef =
+        React.useRef<CollectionListSource | null>(null);
     const sync = useCollectionSync(hoveredCollectionRef);
     const dialogs = useCollectionDialogRequests();
     const rowActions = useCollectionRowActions(sync);
@@ -1514,6 +1534,7 @@ function useCollectionsController() {
     React.useEffect(() => {
         const clearStaleCollectionHover = () => {
             hoveredCollectionRef.current = null;
+            hoveredCollectionSourceRef.current = null;
             clearCollectionHoverHotkeySurface();
         };
         const handleVisibilityChange = () => {
@@ -1535,11 +1556,12 @@ function useCollectionsController() {
     useCollectionPanelHotkeys();
     useCollectionHoverHotkeys({
         hoveredCollectionRef,
+        hoveredCollectionSourceRef,
         onCopyLinks: rowActions.onCopyLinks,
         requestDelete: dialogs.requestDelete,
         requestRename: dialogs.requestRename,
-        setPendingPriorityComboboxCollectionId:
-            rowActions.setPendingPriorityComboboxCollectionId,
+        setPendingPriorityComboboxOpen:
+            rowActions.setPendingPriorityComboboxOpen,
     });
 
     return {
@@ -1557,10 +1579,15 @@ function useCollectionsController() {
             onRename: dialogs.requestRename,
             onSendToNotion: rowActions.onSendToNotion,
             onUpdatePriority: rowActions.onUpdatePriority,
+            setHoveredCollectionSource: (
+                source: CollectionListSource | null
+            ) => {
+                hoveredCollectionSourceRef.current = source;
+            },
             setIsCreateOpen: dialogs.setIsCreateOpen,
             setPendingDelete: dialogs.setPendingDelete,
-            setPendingPriorityComboboxCollectionId:
-                rowActions.setPendingPriorityComboboxCollectionId,
+            setPendingPriorityComboboxOpen:
+                rowActions.setPendingPriorityComboboxOpen,
             setPendingRename: dialogs.setPendingRename,
             syncCreated: sync.syncCreated,
             syncDeleted: sync.syncDeleted,
@@ -1569,12 +1596,12 @@ function useCollectionsController() {
         state: {
             createItemId: dialogs.createItemId,
             hoveredCollectionRef,
+            hoveredCollectionSourceRef,
             isCreateOpen: dialogs.isCreateOpen,
             pendingDelete: dialogs.pendingDelete,
             pendingNotionCollectionIdSet:
                 rowActions.pendingNotionCollectionIdSet,
-            pendingPriorityComboboxCollectionId:
-                rowActions.pendingPriorityComboboxCollectionId,
+            pendingPriorityComboboxOpen: rowActions.pendingPriorityComboboxOpen,
             pendingRename: dialogs.pendingRename,
             pendingShareIdSet: rowActions.pendingShareIdSet,
             requestCreate: dialogs.requestCreate,
@@ -2952,6 +2979,7 @@ function CollectionsListCalloutPopover() {
 
 interface CollectionsListItemProps extends React.ComponentProps<"div"> {
     collection: LibraryCollectionSummary;
+    source: CollectionListSource;
 }
 
 /**
@@ -2965,11 +2993,13 @@ function CollectionsListItem({
     collection,
     onMouseEnter: onMouseEnterProp,
     onMouseLeave: onMouseLeaveProp,
+    source,
     style: styleProp,
     ...props
 }: CollectionsListItemProps) {
     const { hoveredCollectionRef, selectedCollectionIdSet } =
         useCollectionsState();
+    const { setHoveredCollectionSource } = useCollectionsActions();
     const handleMouseEnter = useStableCallback(onMouseEnterProp);
     const handleMouseLeave = useStableCallback(onMouseLeaveProp);
     const hoverClaimIdRef = React.useRef(0);
@@ -2981,6 +3011,7 @@ function CollectionsListItem({
         hoverClaimIdRef.current = 0;
         if (hoveredCollectionRef.current?.id === collection.id) {
             hoveredCollectionRef.current = null;
+            setHoveredCollectionSource(null);
         }
     });
 
@@ -2989,6 +3020,7 @@ function CollectionsListItem({
     const onMouseEnter = useStableCallback(
         (event: React.MouseEvent<HTMLDivElement>) => {
             hoveredCollectionRef.current = collection;
+            setHoveredCollectionSource(source);
             hoverClaimIdRef.current = claimCollectionHoverHotkeySurface();
             handleMouseEnter?.(event);
         }
@@ -3002,7 +3034,7 @@ function CollectionsListItem({
     );
 
     return (
-        <CollectionsListItemContext value={{ collection, isSelected }}>
+        <CollectionsListItemContext value={{ collection, isSelected, source }}>
             <div
                 {...props}
                 className={cn(
@@ -3246,28 +3278,29 @@ function CollectionsListItemValue() {
  * The "P" hotkey opens the dropdown while the item is hovered.
  */
 function CollectionsListItemPriorityCombobox() {
-    const { pendingPriorityComboboxCollectionId } = useCollectionsState();
-    const { onUpdatePriority, setPendingPriorityComboboxCollectionId } =
+    const { pendingPriorityComboboxOpen } = useCollectionsState();
+    const { onUpdatePriority, setPendingPriorityComboboxOpen } =
         useCollectionsActions();
-    const { collection } = useCollectionsListItemContext();
+    const { collection, source } = useCollectionsListItemContext();
+    const collectionOpenToken = buildPriorityOpenToken(source, collection.id);
     const SelectedPriorityIcon = getPriorityOption(collection.priority).icon;
-    const isOpen = pendingPriorityComboboxCollectionId === collection.id;
+    const isOpen = pendingPriorityComboboxOpen === collectionOpenToken;
 
     const handleOpenChange = useStableCallback((open: boolean) => {
         if (open) {
-            setPendingPriorityComboboxCollectionId(collection.id);
-        } else {
-            setPendingPriorityComboboxCollectionId(null);
+            setPendingPriorityComboboxOpen(collectionOpenToken);
+        } else if (isOpen) {
+            setPendingPriorityComboboxOpen(null);
         }
     });
 
     const handleValueChange = useStableCallback((nextPriority) => {
         if (!nextPriority || nextPriority === collection.priority) {
-            setPendingPriorityComboboxCollectionId(null);
+            setPendingPriorityComboboxOpen(null);
             return;
         }
         onUpdatePriority(collection.id, nextPriority);
-        setPendingPriorityComboboxCollectionId(null);
+        setPendingPriorityComboboxOpen(null);
     });
 
     return (
