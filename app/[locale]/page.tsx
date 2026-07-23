@@ -145,7 +145,7 @@ export default async function Home() {
                     <SidebarFooter>
                         <div className="hidden items-center gap-3 lg:flex">
                             <a
-                                className="flex flex-col gap-1 pb-[2px] hover:opacity-60"
+                                className="flex flex-col gap-1 pb-0.5 hover:opacity-60"
                                 href={CACHE_EXTENSION_DOWNLOAD_URL}
                                 rel="noopener noreferrer"
                                 target="_blank"
@@ -173,7 +173,7 @@ export default async function Home() {
                         </div>
                     </SidebarFooter>
                 </Sidebar>
-                <div className="flex w-full max-w-[1024px] flex-col gap-12 p-8 pb-0 2xl:mx-auto">
+                <div className="flex w-full max-w-5xl flex-col gap-12 p-8 pb-0 2xl:mx-auto">
                     <div className="relative aspect-video w-full overflow-hidden rounded-2xl border border-border/70 bg-muted">
                         <Image
                             alt=""

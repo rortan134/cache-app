@@ -5,7 +5,7 @@ import Link from "next/link";
 export function Footer() {
     return (
         <footer>
-            <div className="relative mx-auto mt-auto grid h-auto w-full max-w-[1024px] grid-cols-12 gap-x-[min(2.25vw,32px)] pt-[120px] lg:top-0">
+            <div className="relative mx-auto mt-auto grid h-auto w-full max-w-5xl grid-cols-12 gap-x-[min(2.25vw,32px)] pt-30 lg:top-0">
                 <div className="relative z-20 col-span-full mx-auto grid w-full grid-cols-12 flex-col gap-6 gap-x-[min(2.25vw,32px)]">
                     <div className="col-span-full flex flex-col gap-4">
                         <div className="col-span-full flex h-full flex-row flex-wrap gap-6 text-[0.8rem] text-foreground leading-[1.22] tracking-[-3%]">
@@ -87,7 +87,7 @@ export function Footer() {
                                 your use of the Service in connection with them.
                             </T>
                         </span>
-                        <div className="relative inset-x-0 h-[100px] w-full overflow-clip sm:h-[130px] md:h-[200px]">
+                        <div className="relative inset-x-0 h-25 w-full overflow-clip sm:h-25 md:h-50">
                             <svg
                                 aria-hidden
                                 className="overflow-fade-bottom mx-auto flex h-auto w-full justify-center"

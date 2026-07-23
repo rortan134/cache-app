@@ -1,9 +1,9 @@
 "use client";
 
-import { cn } from "@/lib/common/cn";
 import { Input, type InputSize } from "@/components/ui/input";
 import { Kbd } from "@/components/ui/kbd";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { cn } from "@/lib/common/cn";
 import { Autocomplete } from "@base-ui/react/autocomplete";
 import { mergeProps } from "@base-ui/react/merge-props";
 import { useRender } from "@base-ui/react/use-render";
@@ -54,6 +54,7 @@ export function CommandInput({
                 </div>
             ) : null}
             <Autocomplete.Input
+                {...props}
                 className={cn(
                     "min-h-11 rounded-full p-1.5",
                     "border bg-card shadow-xs outline-none ring-0 before:hidden has-focus-visible:border-border has-focus-visible:ring-0 has-focus-visible:ring-offset-0",
@@ -66,7 +67,6 @@ export function CommandInput({
                 )}
                 data-slot="command-input"
                 render={<Input shouldUseNativeInput size={size} />}
-                {...props}
             />
             {endAddon ? (
                 // biome-ignore lint/a11y/useSemanticElements: groups input adornments without naming a form field group.
@@ -119,9 +119,9 @@ export function CommandPopup({
                     )}
                 >
                     <Autocomplete.Popup
+                        {...props}
                         className="flex max-h-[min(var(--available-height),32rem)] flex-1 flex-col text-foreground"
                         data-slot="command-popup"
-                        {...props}
                     />
                 </span>
             </Autocomplete.Positioner>
@@ -144,12 +144,12 @@ export function CommandList({
             shouldUseScrollbarGutter={shouldUseScrollbarGutter}
         >
             <Autocomplete.List
+                {...props}
                 className={cn(
                     "not-empty:scroll-py-2 not-empty:p-2 in-data-has-overflow-y:pe-3",
                     className
                 )}
                 data-slot="command-list"
-                {...props}
             />
         </ScrollArea>
     );
@@ -162,12 +162,12 @@ export function CommandItem({
 }: Autocomplete.Item.Props) {
     return (
         <Autocomplete.Item
+            {...props}
             className={cn(
                 "flex min-h-8 cursor-default select-none items-center rounded-md px-2 py-1.5 text-base outline-none data-disabled:pointer-events-none data-highlighted:bg-accent data-highlighted:text-accent-foreground data-disabled:opacity-64 sm:min-h-7 sm:text-sm",
                 className
             )}
             data-slot="command-item"
-            {...props}
         >
             {children}
         </Autocomplete.Item>
@@ -180,9 +180,9 @@ export function CommandGroup({
 }: Autocomplete.Group.Props) {
     return (
         <Autocomplete.Group
+            {...props}
             className={cn("[[role=group]+&]:mt-1.5", className)}
             data-slot="command-group"
-            {...props}
         />
     );
 }
@@ -193,12 +193,12 @@ export function CommandGroupLabel({
 }: Autocomplete.GroupLabel.Props) {
     return (
         <Autocomplete.GroupLabel
+            {...props}
             className={cn(
                 "px-2 py-1.5 text-muted-foreground text-xs",
                 className
             )}
             data-slot="command-group-label"
-            {...props}
         />
     );
 }
@@ -209,12 +209,12 @@ export function CommandEmpty({
 }: Autocomplete.Empty.Props) {
     return (
         <Autocomplete.Empty
+            {...props}
             className={cn(
                 "not-empty:p-2 not-empty:py-6 text-center text-base text-muted-foreground sm:text-sm",
                 className
             )}
             data-slot="command-empty"
-            {...props}
         />
     );
 }
@@ -225,12 +225,12 @@ export function CommandStatus({
 }: Autocomplete.Status.Props) {
     return (
         <Autocomplete.Status
+            {...props}
             className={cn(
                 "px-3 py-2 font-medium text-muted-foreground text-xs empty:m-0 empty:p-0",
                 className
             )}
             data-slot="command-status"
-            {...props}
         />
     );
 }
@@ -242,7 +242,7 @@ export function CommandCollection(props: Autocomplete.Collection.Props) {
 }
 
 export function CommandRow(props: Autocomplete.Row.Props) {
-    return <Autocomplete.Row data-slot="command-row" {...props} />;
+    return <Autocomplete.Row {...props} data-slot="command-row" />;
 }
 
 export function CommandPanel({
@@ -268,9 +268,9 @@ export function CommandShortcut({
 }: React.ComponentProps<"kbd">) {
     return (
         <Kbd
+            {...props}
             className={cn("ms-auto text-muted-foreground/50", className)}
             data-slot="command-shortcut"
-            {...props}
         />
     );
 }
