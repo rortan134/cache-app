@@ -85,7 +85,7 @@ const PAIN_POINT_OPTIONS = [
         id: "losing-saved",
         label: "Finding things I've saved",
         solution:
-            "You saved it for a reason. That reason is still there — even when all you remember is a half-formed thought. What you keep should come back the moment you need it, not stay buried under everything else.",
+            "You saved it for a reason. That reason is still there — even when all you remember is a detail. Search finds it, so nothing stays buried.",
     },
     {
         description:
@@ -93,35 +93,35 @@ const PAIN_POINT_OPTIONS = [
         id: "too-many-places",
         label: "Too many places to search",
         solution:
-            "You shouldn't have to remember where you saved something just to find it again. One home for everything worth keeping — so looking for a link stops feeling like a scavenger hunt across apps.",
+            "Everything you save lands in one place. No more hunting across apps to find what you're looking for.",
     },
     {
         description: "Saved stuff piles up without any structure or themes.",
         id: "organizing",
         label: "Hard to organize into topics",
         solution:
-            "A pile isn't a library. Your saves can arrange themselves around how you actually think — by topic, project, or the thread only you see — without turning organization into another job you abandon.",
+            "Your saves organize themselves around the topics and projects that matter to you. No folders to maintain, no taxonomy to design.",
     },
     {
         description: "I save things and never come back to read or watch them.",
         id: "reading-later",
         label: "Never getting back to them",
         solution:
-            "“Later” shouldn't mean never. What you set aside stays close enough to return to — gently, on your time — before good intentions quietly turn into a graveyard of open tabs.",
+            "What you set aside stays close enough to return to. On your time, not buried in a backlog of good intentions.",
     },
     {
         description: "I'd love a clean link to send friends or coworkers.",
         id: "sharing",
         label: "Sharing with others",
         solution:
-            "Share the thought, not the scavenger hunt. One quiet link. Exactly what you meant to show them — no export dumps, no “which app do you use?”, no screenshots of a bookmark bar.",
+            "One link. Exactly what you meant to show them. No export dumps, no “which app do you use?”, no screenshots.",
     },
     {
         description: "I want to jot ideas next to the things I save.",
         id: "quick-thoughts",
         label: "Adding my own notes",
         solution:
-            "The idea that sparked when you saved something belongs next to it. Context stays put. So the thought doesn't die in a separate notes app while the source lives somewhere else entirely.",
+            "The thought that sparked when you saved something belongs next to it. Not in a separate notes app while the source lives somewhere else.",
     },
 ] as const;
 
