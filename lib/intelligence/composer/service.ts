@@ -26,6 +26,7 @@ import { AUTOMATION_WEB_SEARCH_TIME_RANGES } from "../automations/tool-inputs";
 import { automationWebSearch } from "../automations/web-search";
 import { GenAiGenerationError } from "../error";
 import { normalizeGeneratedMarkdown } from "../markdown";
+import { resolveGenAIModels, type ModelId } from "../models";
 import { estimateGenAiTokens, protectGenAiRequest } from "../protection";
 import {
     ASK_CACHE_DOMAIN_FILTER_COUNT_MAX,
@@ -41,12 +42,6 @@ import {
 
 process.env.GOOGLE_GENERATIVE_AI_API_KEY ??= serverEnv.GEMINI_API_KEY;
 
-const ASK_CACHE_MODEL_DEFAULT = "gemini-3.1-flash-lite";
-const ASK_CACHE_MODELS_FALLBACK = ["gemini-3-flash-preview"] as const;
-const ASK_CACHE_MODELS = [
-    ASK_CACHE_MODEL_DEFAULT,
-    ...ASK_CACHE_MODELS_FALLBACK,
-] as const;
 const ASK_CACHE_OUTPUT_TOKEN_LIMIT = 1200;
 const ASK_CACHE_MAX_STEPS = 12;
 const ASK_CACHE_TIMEOUT_MS = 60_000;
@@ -114,7 +109,7 @@ interface RunAskCacheAgentResult {
     usage?: Record<string, number>;
 }
 
-type AskCacheModelId = (typeof ASK_CACHE_MODELS)[number];
+type AskCacheModelId = ModelId;
 
 class EmptyAskCacheAgentResultError extends Error {
     constructor(model: AskCacheModelId) {
@@ -143,7 +138,7 @@ export async function runAskCacheAgent({
 
     let lastError: unknown;
 
-    for (const model of ASK_CACHE_MODELS) {
+    for (const model of resolveGenAIModels()) {
         try {
             return await runAskCacheAgentModel({
                 input,

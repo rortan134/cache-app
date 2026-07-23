@@ -28,6 +28,7 @@ import {
 } from "@/lib/common/strings";
 import { isHttpUrl } from "@/lib/common/url";
 import { resolveCobaltDownloadUrl } from "@/lib/integrations/cobalt/service";
+import { resolveGenAIModels } from "@/lib/intelligence/models";
 import { prisma } from "@/prisma";
 
 import { type LibraryItemKind, LibraryItemSource } from "@/prisma/client/enums";
@@ -50,8 +51,6 @@ import * as z from "zod";
 const log = createLogger("library:smart-collections");
 const serviceLog = createLogger("intelligence:service");
 
-const SMART_COLLECTIONS_MODEL_DEFAULT = "gemini-3.1-flash-lite";
-const SMART_COLLECTIONS_MODELS_FALLBACK = ["gemini-3.1-flash-lite"] as const;
 const SMART_COLLECTIONS_APPLY_COLLECTION_COUNT_MAX = 4;
 const SMART_COLLECTIONS_NEW_COLLECTION_COUNT_MAX = 1;
 const SMART_COLLECTIONS_NEW_COLLECTION_WORD_COUNT_MAX = 3;
@@ -143,13 +142,6 @@ let googleGenAi: GoogleGenAI | undefined;
 function getGoogleGenAi(): GoogleGenAI {
     googleGenAi ??= new GoogleGenAI({ apiKey: serverEnv.GEMINI_API_KEY });
     return googleGenAi;
-}
-
-function resolveSmartCollectionModels(): string[] {
-    return unique([
-        SMART_COLLECTIONS_MODEL_DEFAULT,
-        ...SMART_COLLECTIONS_MODELS_FALLBACK,
-    ]);
 }
 
 function getSmartCollectionModelErrorInfo(
@@ -765,7 +757,7 @@ async function decideCollectionsForItem(
             userId,
         });
 
-        for (const model of resolveSmartCollectionModels()) {
+        for (const model of resolveGenAIModels()) {
             for (const variant of contentVariants) {
                 const decision = await tryModelVariant(
                     ai,
@@ -1119,17 +1111,8 @@ export async function autoTagLibraryItemsByIds(args: {
 // Section description generation
 // ---------------------------------------------------------------------------
 
-const SECTION_DESCRIPTION_MODEL_DEFAULT = "gemini-3.1-flash-lite";
-const SECTION_DESCRIPTION_MODELS_FALLBACK = ["gemini-3-flash-preview"] as const;
 const SECTION_DESCRIPTION_OUTPUT_TOKEN_LIMIT = 96;
 const SECTION_DESCRIPTION_TIMEOUT_MS = 30_000;
-
-function resolveSectionDescriptionModels(): string[] {
-    return unique([
-        SECTION_DESCRIPTION_MODEL_DEFAULT,
-        ...SECTION_DESCRIPTION_MODELS_FALLBACK,
-    ]);
-}
 
 interface SectionDescriptionResult {
     rawSummary: string | undefined;
@@ -1151,7 +1134,7 @@ async function generateModelContent(
     config: ModelGenerationConfig,
     prompt: string
 ): Promise<string | undefined> {
-    const models = resolveSectionDescriptionModels();
+    const models = resolveGenAIModels();
     const ai = getGoogleGenAi();
     let lastError: unknown;
 
