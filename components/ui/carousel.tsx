@@ -56,6 +56,7 @@ export function CarouselPanel({
     useCarouselScrollOverflow({
         enabled: shouldScrollFade,
         handleRef: blossomHandleRef,
+        key: slideCount,
     });
 
     return (
@@ -138,9 +139,11 @@ export function CarouselControls() {
 }
 
 function useCarouselScrollOverflow({
+    key,
     enabled,
     handleRef,
 }: {
+    key: unknown;
     enabled: boolean;
     handleRef: React.RefObject<React.ComponentRef<
         typeof BlossomCarousel
@@ -193,5 +196,5 @@ function useCarouselScrollOverflow({
             scrollableEl.style.removeProperty("--carousel-overflow-x-start");
             scrollableEl.style.removeProperty("--carousel-overflow-x-end");
         };
-    }, [enabled, handleRef]);
+    }, [enabled, key]);
 }
