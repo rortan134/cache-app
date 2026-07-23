@@ -19,11 +19,12 @@ export async function POST() {
         if (result.errors.length > 0) {
             log.warn("RSS refresh completed with errors", {
                 errorCount: result.errors.length,
-                ...result,
+                errors: result.errors,
             });
         }
 
         return Response.json({
+            errors: result.errors,
             importedCount: result.importedCount,
             refreshedCount: result.refreshedFeedIds.length,
             skippedCount: result.skippedFeedIds.length,
