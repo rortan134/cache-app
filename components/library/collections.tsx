@@ -1798,7 +1798,7 @@ function getCollectionItemStyle(
     const base = `color-mix(in srgb, ${color} ${isSelected ? 20 : 10}%, transparent)`;
 
     return {
-        "--accent-color": `color-mix(in srgb, ${color}, light-dark(black, white) 45%)`,
+        "--accent-color": `color-mix(in srgb, ${color}, light-dark(black, white) 20%)`,
         "--collection-background": isSelected
             ? `color-mix(in srgb, ${base}, light-dark(white, black) 4%)`
             : `color-mix(in srgb, ${base}, light-dark(black, white) 4%)`,
@@ -2213,7 +2213,10 @@ function CollectionsListFavoritesCarouselContent({
 
     return (
         <Carousel>
-            <CarouselPanel className="mb-1 *:first:pl-2.5 [&>*:not(:last-child)]:me-1.5">
+            <CarouselPanel
+                className="*:first:pl-2.5 [&>*:not(:last-child)]:me-1.5"
+                shouldScrollFade
+            >
                 {favoriteItems.map(children)}
             </CarouselPanel>
         </Carousel>

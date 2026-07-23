@@ -3,6 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { Group } from "@/components/ui/group";
 import { cn } from "@/lib/common/cn";
+import { useIsoLayoutEffect } from "@base-ui/utils/useIsoLayoutEffect";
 import {
     BlossomCarousel,
     BlossomNext,
@@ -18,6 +19,7 @@ interface CarouselContextValue {
 
 interface CarouselPanelProps
     extends React.ComponentProps<typeof BlossomCarousel> {
+    shouldScrollFade?: boolean;
     slideClassName?: string;
 }
 
@@ -41,11 +43,20 @@ export function Carousel({ children }: React.PropsWithChildren) {
 export function CarouselPanel({
     children,
     className,
+    shouldScrollFade = false,
     slideClassName,
     ...props
 }: CarouselPanelProps) {
     const { id } = useCarouselContext();
     const slideCount = React.Children.count(children);
+    const blossomHandleRef = React.useRef<React.ComponentRef<
+        typeof BlossomCarousel
+    > | null>(null);
+
+    useCarouselScrollOverflow({
+        enabled: shouldScrollFade,
+        handleRef: blossomHandleRef,
+    });
 
     return (
         <BlossomCarousel
@@ -54,9 +65,12 @@ export function CarouselPanel({
             as="section"
             className={cn(
                 "no-scrollbar relative w-full shrink-0 snap-x snap-mandatory scroll-smooth",
+                shouldScrollFade &&
+                    "mask-l-from-[calc(100%-min(var(--fade-size),var(--carousel-overflow-x-start)))] mask-r-from-[calc(100%-min(var(--fade-size),var(--carousel-overflow-x-end)))] scroll-px-[calc(var(--fade-size)/2)] [--fade-size:0.5rem]",
                 className
             )}
             id={id}
+            ref={blossomHandleRef}
             role="region"
         >
             {React.Children.map(children, (child, index) => (
@@ -121,4 +135,63 @@ export function CarouselControls() {
             />
         </Group>
     );
+}
+
+function useCarouselScrollOverflow({
+    enabled,
+    handleRef,
+}: {
+    enabled: boolean;
+    handleRef: React.RefObject<React.ComponentRef<
+        typeof BlossomCarousel
+    > | null>;
+}) {
+    useIsoLayoutEffect(() => {
+        if (!(enabled && handleRef.current?.element)) {
+            return;
+        }
+
+        const scrollableEl = handleRef.current.element;
+
+        const updateOverflow = () => {
+            if (!scrollableEl.isConnected) {
+                return;
+            }
+            const maxScrollLeft = Math.max(
+                0,
+                scrollableEl.scrollWidth - scrollableEl.clientWidth
+            );
+            const scrollLeft = Math.max(
+                0,
+                Math.min(scrollableEl.scrollLeft, maxScrollLeft)
+            );
+            scrollableEl.style.setProperty(
+                "--carousel-overflow-x-start",
+                `${scrollLeft}px`
+            );
+            scrollableEl.style.setProperty(
+                "--carousel-overflow-x-end",
+                `${maxScrollLeft - scrollLeft}px`
+            );
+        };
+
+        updateOverflow();
+
+        const observer =
+            typeof ResizeObserver === "undefined"
+                ? null
+                : new ResizeObserver(updateOverflow);
+        observer?.observe(scrollableEl);
+
+        scrollableEl.addEventListener("scroll", updateOverflow, {
+            passive: true,
+        });
+
+        return () => {
+            observer?.disconnect();
+            scrollableEl.removeEventListener("scroll", updateOverflow);
+            scrollableEl.style.removeProperty("--carousel-overflow-x-start");
+            scrollableEl.style.removeProperty("--carousel-overflow-x-end");
+        };
+    }, [enabled, handleRef]);
 }
