@@ -2,6 +2,7 @@ import "@/lib/dayjs/locales";
 
 import { ConsoleBanner } from "@/components/ui/console-banner";
 import { ShortcutsProvider } from "@/components/ui/shortcuts";
+import { ThemeHotkey } from "@/components/ui/theme-hotkey";
 import { ThemeSync } from "@/hooks/use-theme";
 import { APP_NAME, BASE_URL } from "@/lib/common/constants";
 import { THEME_BOOTSTRAP_SCRIPT } from "@/lib/common/theme";
@@ -110,6 +111,7 @@ export default async function LocaleLayout(props: {
             </head>
             <body>
                 <ThemeSync />
+                <ThemeHotkey />
                 <ConsoleBanner version={packageJson.version} />
                 <span aria-atomic="true" aria-live="polite" className="sr-only">
                     {APP_NAME}
