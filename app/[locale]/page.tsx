@@ -175,8 +175,17 @@ export default async function Home() {
                 </Sidebar>
                 <div className="flex w-full max-w-5xl flex-col gap-12 p-8 pb-0 2xl:mx-auto">
                     <div className="relative aspect-video w-full overflow-hidden rounded-2xl border border-border/70 bg-muted">
+                        <div aria-live="polite" className="sr-only">
+                            <T>
+                                This element contains an interactive demo for
+                                sighted users showing the Cache App interface.
+                                The interface is displayed over a subtle, solid
+                                brand background.
+                            </T>
+                        </div>
                         <Image
                             alt=""
+                            aria-hidden
                             className="absolute top-11 left-9 z-10 w-full rounded-xl"
                             placeholder="blur"
                             preload

@@ -77,7 +77,7 @@ export function DeleteAccountDialogTrigger(
     return (
         <Dialog onOpenChange={handleOpenChange} open={isOpen}>
             <DialogTrigger {...props} />
-            <DialogPopup>
+            <DialogPopup aria-busy={isPending || undefined}>
                 <DialogHeader>
                     <DialogTitle>
                         <T context="Delete account dialog title">

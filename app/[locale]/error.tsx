@@ -1,7 +1,7 @@
 "use client";
 
 import { BrandLogo } from "@/components/ui/brand-logo";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { PageShell } from "@/components/ui/page-shell";
 import { createLogger } from "@/lib/common/logs/console/logger";
 import LogoIconImage from "@/public/cache-app-icon.png";
@@ -40,7 +40,12 @@ export default function ErrorPage({
                 </p>
                 <div className="flex flex-wrap items-center justify-center gap-3">
                     <Button onClick={handleReset}>Try again</Button>
-                    <Button render={<Link href="/" />}>Home</Button>
+                    <Link
+                        className={buttonVariants({ variant: "default" })}
+                        href="/"
+                    >
+                        Home
+                    </Link>
                 </div>
             </div>
         </PageShell>

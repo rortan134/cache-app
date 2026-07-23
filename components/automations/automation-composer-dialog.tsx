@@ -174,6 +174,7 @@ export function AutomationComposerDialog({
     const timeId = React.useId();
     const weekDayId = React.useId();
     const monthDayId = React.useId();
+    const errorId = React.useId();
     const [uncontrolledOpen, setUncontrolledOpen] = React.useState(false);
     const isOpenControlled = open !== undefined;
     const isOpen = isOpenControlled ? open : uncontrolledOpen;
@@ -209,7 +210,7 @@ export function AutomationComposerDialog({
             setFormState((currentState) => ({
                 ...currentState,
                 ...nextState,
-                errorMessage: null,
+                ...("errorMessage" in nextState ? {} : { errorMessage: null }),
             }));
         }
     );
@@ -248,6 +249,14 @@ export function AutomationComposerDialog({
     const handleSubmit = useStableCallback(
         (event: React.ChangeEvent<HTMLFormElement>) => {
             event.preventDefault();
+
+            if (!(formState.title.trim() && formState.prompt.trim())) {
+                updateFormState({
+                    errorMessage: "Title and instructions are required.",
+                });
+                return;
+            }
+
             startTransition(async () => {
                 const isAllLibraryPayload =
                     formState.collection.id === ALL_LIBRARY_COLLECTION_ID;
@@ -362,6 +371,9 @@ export function AutomationComposerDialog({
                                 Title
                             </label>
                             <Input
+                                aria-describedby={
+                                    formState.errorMessage ? errorId : undefined
+                                }
                                 autoFocus
                                 className="-mx-[calc(--spacing(3)-1px)] font-semibold text-xl"
                                 id={titleId}
@@ -380,6 +392,9 @@ export function AutomationComposerDialog({
                                 Instructions
                             </label>
                             <Textarea
+                                aria-describedby={
+                                    formState.errorMessage ? errorId : undefined
+                                }
                                 className="-mx-[calc(--spacing(3)-1px)] *:resize-none"
                                 id={promptId}
                                 isUnstyled
@@ -469,7 +484,11 @@ export function AutomationComposerDialog({
                             ) : null}
                         </div>
                         {formState.errorMessage ? (
-                            <p className="text-destructive text-sm leading-6">
+                            <p
+                                className="text-destructive text-sm leading-6"
+                                id={errorId}
+                                role="alert"
+                            >
                                 {formState.errorMessage}
                             </p>
                         ) : null}

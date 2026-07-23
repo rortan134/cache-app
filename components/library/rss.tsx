@@ -215,6 +215,7 @@ function AddFeedForm({ onFeedAdded }: AddFeedFormProps) {
                 <Input
                     aria-describedby={error ? "add-feed-error" : undefined}
                     aria-invalid={error ? true : undefined}
+                    aria-label="Feed URL"
                     autoFocus
                     className="flex-1"
                     onChange={handleChange}

@@ -2280,7 +2280,11 @@ function BrowserGroupHeader() {
                         <Menu>
                             <MenuTrigger
                                 render={
-                                    <Button size="icon-sm" variant="ghost">
+                                    <Button
+                                        aria-label="Section menu"
+                                        size="icon-sm"
+                                        variant="ghost"
+                                    >
                                         <Ellipsis className="size-3.5" />
                                     </Button>
                                 }
@@ -5329,6 +5333,7 @@ function CreateResultsCollectionDialog({
                                 <Button
                                     className="mr-auto -ml-2"
                                     size="xs"
+                                    type="button"
                                     variant="link"
                                 />
                             }
