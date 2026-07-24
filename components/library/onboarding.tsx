@@ -617,7 +617,7 @@ function PainPointSurveyDialog({
                 {isResponseStep && selectedOptions ? (
                     <>
                         <DialogHeader>
-                            <DialogTitle>Good news –</DialogTitle>
+                            <DialogTitle>Good news —</DialogTitle>
                             <DialogDescription>
                                 None of that has to follow you here.
                             </DialogDescription>
@@ -651,7 +651,7 @@ function PainPointSurveyDialog({
                             </DialogTitle>
                             <DialogDescription>
                                 Pick anything that sounds like you. We'll use
-                                this to tailor the next steps
+                                this to tailor the next steps.
                             </DialogDescription>
                         </DialogHeader>
                         <DialogPanel className="grid gap-1.5">

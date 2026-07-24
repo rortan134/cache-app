@@ -1089,7 +1089,7 @@ function useCollectionRowActions(sync: ReturnType<typeof useCollectionSync>) {
         if (!isHidden) {
             return true;
         }
-        showError(`Upgrade to ${action} every item in ${collection.name}.`);
+        showError(`Upgrade ${action} every item in ${collection.name}.`);
         return false;
     };
 

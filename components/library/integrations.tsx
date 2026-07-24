@@ -524,9 +524,9 @@ function IntegrationsListPrivacyDisclaimer() {
         >
             <CollapsiblePanel>
                 <p className="text-[11px] text-muted-foreground leading-tight">
-                    Please only connect accounts you trust. Cache can access
-                    what you choose to save with connected apps. You can always
-                    change your mind.{" "}
+                    Only connect accounts you trust. Cache can access what you
+                    choose to save with connected apps. You can always change
+                    your mind.{" "}
                     <Button
                         className="h-fit! px-0 leading-tight sm:text-[11px]"
                         onClick={handleDismiss}

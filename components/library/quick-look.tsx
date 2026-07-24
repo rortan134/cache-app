@@ -769,7 +769,7 @@ function QuickLookDrawerLoadingState() {
                     Loading preview...
                 </p>
                 <p className="max-w-sm text-balance text-muted-foreground text-sm">
-                    Opening the page...
+                    Opening the page.
                 </p>
             </div>
         </div>
@@ -820,8 +820,7 @@ function QuickLookDrawerBlockedState({
                     Preview unavailable
                 </p>
                 <p className="max-w-md text-balance text-muted-foreground text-sm">
-                    This site doesn't allow previews. It blocks embedding or is
-                    taking too long to load.
+                    This site can't be previewed.
                 </p>
             </div>
             {canOpenUrlExternally ? (
