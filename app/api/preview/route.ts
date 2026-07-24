@@ -209,12 +209,6 @@ export async function GET(request: Request): Promise<Response> {
         return textResponse("Invalid URL", 400);
     }
 
-    // Google Photos CDN URLs require OAuth authorization. Proxy through the
-    // user's Google access token instead of attempting an unauthenticated fetch.
-    if (isGooglePhotosHost(targetUrl)) {
-        return serveGooglePhotosPreview(targetUrl, request);
-    }
-
     const delivery = parsePreviewDelivery(
         requestUrl.searchParams.get("delivery")
     );
@@ -225,6 +219,13 @@ export async function GET(request: Request): Promise<Response> {
     const contentType = parsePreviewType(requestUrl.searchParams.get("type"));
     if (!contentType) {
         return textResponse("Unsupported preview type", 400);
+    }
+
+    // Google Photos CDN URLs require OAuth authorization. Only image
+    // previews are supported; video and invalid-type responses are handled
+    // by the standard checks above.
+    if (contentType === "image" && isGooglePhotosHost(targetUrl)) {
+        return serveGooglePhotosPreview(targetUrl, request);
     }
 
     if (contentType === "video") {
@@ -786,6 +787,7 @@ async function serveGooglePhotosPreview(
                     Authorization: `Bearer ${accessToken}`,
                     "User-Agent": USER_AGENT,
                 },
+                redirect: "error",
                 signal: request.signal,
             },
             FETCH_TIMEOUT_MS,
@@ -803,6 +805,15 @@ async function serveGooglePhotosPreview(
         const contentType = imageResponse.headers.get("content-type") ?? "";
         if (!isSupportedPreviewImageContentType(contentType)) {
             return textResponse("Unsupported preview", 415);
+        }
+
+        if (
+            isContentLengthOverLimit(
+                imageResponse.headers,
+                MAX_IMAGE_CONTENT_LENGTH_BYTES
+            )
+        ) {
+            return textResponse("Preview too large", 413);
         }
 
         // Do not cache — the upstream URL requires per-request OAuth.
