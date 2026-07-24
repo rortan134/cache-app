@@ -7,6 +7,9 @@ import { parseHttpUrl } from "@/lib/common/net";
 import { parsePublicHttpUrl } from "@/lib/common/server-net";
 import { fetchWithTimeout } from "@/lib/common/timeout";
 import { parseStandaloneUrl } from "@/lib/common/url";
+import { getSessionUserId } from "@/lib/auth/session";
+import { resolveProviderAccountAccessToken } from "@/lib/integrations/account";
+import { GOOGLE_PHOTOS_PICKER_SCOPE } from "@/lib/integrations/google-photos/shared";
 import { isCobaltHost } from "@/lib/integrations/cobalt/utils";
 import {
     tiktokOembedThumbnailUrl,
@@ -66,6 +69,7 @@ const HTTP_SINGLE_RANGE_HEADER_PATTERN = /^bytes=(\d*)-(\d*)$/;
 const XHTML_CONTENT_TYPE_PATTERN = /^application\/xhtml\+xml/i;
 const ABORTED_RESPONSE = new Response(null, { status: 499 });
 const INSTAGRAM_HOSTS = new Set(["instagram.com", ".instagram.com"]);
+const GOOGLE_PHOTOS_CDN_HOST = "lh3.googleusercontent.com";
 
 type PreviewType = "image" | "video";
 
@@ -203,6 +207,12 @@ export async function GET(request: Request): Promise<Response> {
     const targetUrl = parseTargetUrlSync(requestUrl.searchParams.get("url"));
     if (!targetUrl) {
         return textResponse("Invalid URL", 400);
+    }
+
+    // Google Photos CDN URLs require OAuth authorization. Proxy through the
+    // user's Google access token instead of attempting an unauthenticated fetch.
+    if (isGooglePhotosHost(targetUrl)) {
+        return serveGooglePhotosPreview(targetUrl, request);
     }
 
     const delivery = parsePreviewDelivery(
@@ -735,6 +745,82 @@ function getUserAgent(url: string): string {
         // fall through
     }
     return USER_AGENT;
+}
+
+function isGooglePhotosHost(url: URL): boolean {
+    return url.hostname === GOOGLE_PHOTOS_CDN_HOST;
+}
+
+/**
+ * Proxies a Google Photos CDN image by authenticating the request with the
+ * user's Google OAuth access token. Google Photos Picker API baseUrl values
+ * require Authorization headers and cannot be fetched anonymously.
+ */
+async function serveGooglePhotosPreview(
+    targetUrl: URL,
+    request: Request
+): Promise<Response> {
+    try {
+        const userId = await getSessionUserId();
+        if (!userId) {
+            return textResponse("Preview not available", 404);
+        }
+
+        const accessToken = await resolveProviderAccountAccessToken({
+            providerId: "google",
+            requiredScope: GOOGLE_PHOTOS_PICKER_SCOPE,
+            userId,
+        });
+        if (!accessToken) {
+            log.debug("No Google access token for Google Photos preview", {
+                userId,
+            });
+            return textResponse("Preview not available", 404);
+        }
+
+        const imageResponse = await fetchWithTimeout(
+            targetUrl.href,
+            {
+                headers: {
+                    Accept: "image/*",
+                    Authorization: `Bearer ${accessToken}`,
+                    "User-Agent": USER_AGENT,
+                },
+                signal: request.signal,
+            },
+            FETCH_TIMEOUT_MS,
+            request.signal
+        );
+
+        if (!imageResponse.ok) {
+            log.debug("Google Photos preview upstream failed", {
+                status: imageResponse.status,
+                targetUrl: targetUrl.href,
+            });
+            return textResponse("Preview not found", 404);
+        }
+
+        const contentType = imageResponse.headers.get("content-type") ?? "";
+        if (!isSupportedPreviewImageContentType(contentType)) {
+            return textResponse("Unsupported preview", 415);
+        }
+
+        // Do not cache — the upstream URL requires per-request OAuth.
+        return new Response(imageResponse.body, {
+            headers: {
+                "cache-control": "private, no-store",
+                "content-type": contentType,
+            },
+            status: 200,
+        });
+    } catch (error) {
+        return handlePreviewError(
+            error,
+            "resolve Google Photos preview",
+            "Preview not found",
+            { targetUrl: targetUrl.href }
+        );
+    }
 }
 
 async function readTextBodyWithLimit(
