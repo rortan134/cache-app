@@ -155,6 +155,21 @@ const nextConfig: NextConfig = {
                 permanent: false,
                 source: "/security",
             },
+            {
+                destination: "https://docs.cachd.app",
+                permanent: true,
+                source: "/docs",
+            },
+            {
+                destination: "https://docs.cachd.app",
+                permanent: true,
+                source: "/support",
+            },
+            {
+                destination: "https://docs.cachd.app",
+                permanent: true,
+                source: "/help",
+            },
         ];
     },
     async rewrites() {
