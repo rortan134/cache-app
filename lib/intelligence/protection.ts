@@ -28,6 +28,7 @@ function createPlanClient(plan: PriceType, key: string) {
     const quota = GEN_AI_QUOTAS[plan];
 
     return arcjet({
+        characteristics: [CHARACTERISTIC_USER_ID],
         key,
         rules: [
             tokenBucket({
