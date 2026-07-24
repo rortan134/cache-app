@@ -335,11 +335,7 @@ export function AutomationComposerDialog({
     return (
         <Dialog onOpenChange={handleOpenChange} open={isOpen}>
             {shouldRenderTrigger ? (
-                <DialogTrigger
-                    render={
-                        trigger ?? <Button className="rounded-full" size="sm" />
-                    }
-                >
+                <DialogTrigger render={trigger ?? <Button size="sm" />}>
                     {children ?? "New Automation"}
                 </DialogTrigger>
             ) : null}
@@ -560,12 +556,14 @@ function AutomationCollectionCombobox({
 }: AutomationCollectionComboboxProps) {
     const [isOpen, setIsOpen] = React.useState(false);
 
-    const itemToStringLabel = useStableCallback(
-        (option: AutomationCollectionOption) => option.name
+    const itemToStringLabel = React.useCallback(
+        (option: AutomationCollectionOption) => option.name,
+        []
     );
 
-    const itemToStringValue = useStableCallback(
-        (option: AutomationCollectionOption) => option.id
+    const itemToStringValue = React.useCallback(
+        (option: AutomationCollectionOption) => option.id,
+        []
     );
 
     const handleValueChange = useStableCallback(
@@ -631,12 +629,14 @@ function AutomationCadenceCombobox({
 }: AutomationCadenceComboboxProps) {
     const [isOpen, setIsOpen] = React.useState(false);
 
-    const itemToStringLabel = useStableCallback(
-        (option: CadenceOption) => option.label
+    const itemToStringLabel = React.useCallback(
+        (option: CadenceOption) => option.label,
+        []
     );
 
-    const itemToStringValue = useStableCallback(
-        (option: CadenceOption) => option.value
+    const itemToStringValue = React.useCallback(
+        (option: CadenceOption) => option.value,
+        []
     );
 
     const handleValueChange = useStableCallback(
@@ -733,12 +733,14 @@ function AutomationTimeCombobox({
         setIsOpen(false);
     });
 
-    const itemToStringLabel = useStableCallback(
-        (option: TimeOfDayOption) => option.label
+    const itemToStringLabel = React.useCallback(
+        (option: TimeOfDayOption) => option.label,
+        []
     );
 
-    const itemToStringValue = useStableCallback(
-        (option: TimeOfDayOption) => option.value
+    const itemToStringValue = React.useCallback(
+        (option: TimeOfDayOption) => option.value,
+        []
     );
 
     const handleInputValueChange = useStableCallback(
@@ -821,12 +823,14 @@ function AutomationWeekDayCombobox({
 }: AutomationWeekDayComboboxProps) {
     const [isOpen, setIsOpen] = React.useState(false);
 
-    const itemToStringLabel = useStableCallback(
-        (option: WeekDayOption) => option.label
+    const itemToStringLabel = React.useCallback(
+        (option: WeekDayOption) => option.label,
+        []
     );
 
-    const itemToStringValue = useStableCallback((option: WeekDayOption) =>
-        String(option.value)
+    const itemToStringValue = React.useCallback(
+        (option: WeekDayOption) => String(option.value),
+        []
     );
 
     const handleValueChange = useStableCallback(
@@ -883,12 +887,14 @@ function AutomationMonthDayCombobox({
 }: AutomationMonthDayComboboxProps) {
     const [isOpen, setIsOpen] = React.useState(false);
 
-    const itemToStringLabel = useStableCallback(
-        (option: MonthDayOption) => option.label
+    const itemToStringLabel = React.useCallback(
+        (option: MonthDayOption) => option.label,
+        []
     );
 
-    const itemToStringValue = useStableCallback((option: MonthDayOption) =>
-        String(option.value)
+    const itemToStringValue = React.useCallback(
+        (option: MonthDayOption) => String(option.value),
+        []
     );
 
     const handleValueChange = useStableCallback(

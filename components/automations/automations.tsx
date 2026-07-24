@@ -18,6 +18,7 @@ import {
     formatTimeOfDayMinutes,
     getMonthDayLabel,
 } from "@/lib/common/time";
+import { dayjs } from "@/lib/dayjs";
 import {
     deleteAutomation,
     pauseAutomation,
@@ -25,6 +26,7 @@ import {
 } from "@/lib/intelligence/automations/actions";
 import { AUTOMATION_TEMPLATE_DEFINITIONS } from "@/lib/intelligence/automations/constants";
 import type { AutomationListItem } from "@/lib/intelligence/automations/service";
+import { AutomationRunStatus } from "@/prisma/client/enums";
 import { useStableCallback } from "@base-ui/utils/useStableCallback";
 import { T } from "gt-next";
 import {
@@ -183,6 +185,70 @@ function formatSchedule(automation: AutomationListItem): string | null {
     return `Daily at ${time}`;
 }
 
+function stripMarkdown(markdown: string): string {
+    return markdown
+        .replace(/!\[.*?\]\(.*?\)/g, "")
+        .replace(/\[([^\]]*)\]\(.*?\)/g, "$1")
+        .replace(/^#{1,6}\s+/gm, "")
+        .replace(/^>\s+/gm, "")
+        .replace(/[*_~`]{1,3}/g, "")
+        .replace(/---+/g, "")
+        .replace(/\n{2,}/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+}
+
+function getLastRunDisplay(
+    lastRun: NonNullable<AutomationListItem["lastRun"]>
+): {
+    dotColor: string;
+    label: string;
+    output: React.ReactNode;
+} | null {
+    if (lastRun.status === AutomationRunStatus.succeeded) {
+        const plainText = lastRun.summaryMarkdown
+            ? stripMarkdown(lastRun.summaryMarkdown)
+            : null;
+
+        return {
+            dotColor: "bg-green-500",
+            label: `Ran ${dayjs(lastRun.createdAt).fromNow()}`,
+            output: plainText ? (
+                <p className="line-clamp-2 text-muted-foreground/60 text-xs leading-5">
+                    {plainText}
+                </p>
+            ) : null,
+        };
+    }
+    if (lastRun.status === AutomationRunStatus.failed) {
+        return {
+            dotColor: "bg-red-500",
+            label: `Failed ${dayjs(lastRun.createdAt).fromNow()}`,
+            output: lastRun.errorMessage ? (
+                <p className="line-clamp-2 text-red-400/80 text-xs leading-5">
+                    {lastRun.errorMessage}
+                </p>
+            ) : null,
+        };
+    }
+    if (
+        lastRun.status === AutomationRunStatus.skipped ||
+        lastRun.status === AutomationRunStatus.canceled
+    ) {
+        return {
+            dotColor: "bg-gray-400",
+            label: `${
+                lastRun.status === AutomationRunStatus.skipped
+                    ? "Skipped"
+                    : "Canceled"
+            } ${dayjs(lastRun.createdAt).fromNow()}`,
+            output: null,
+        };
+    }
+
+    return null;
+}
+
 export function AutomationsList({
     automations,
     collections,
@@ -270,6 +336,9 @@ function AutomationCard({ automation, collections }: AutomationCardProps) {
     const Icon = getTemplateIcon(automation.templateKey);
     const description = getAutomationDescription(automation);
     const scheduleLabel = formatSchedule(automation);
+    const lastRun = automation.lastRun
+        ? getLastRunDisplay(automation.lastRun)
+        : null;
 
     const handleEditOpen = useStableCallback(() => {
         setIsEditOpen(true);
@@ -431,6 +500,19 @@ function AutomationCard({ automation, collections }: AutomationCardProps) {
                     <p className="mt-0.5 text-[11px] text-muted-foreground/80">
                         {scheduleLabel}
                     </p>
+                ) : null}
+                {lastRun ? (
+                    <div className="flex flex-col gap-0.5">
+                        <span className="flex items-center gap-1">
+                            <span
+                                className={`inline-block size-1.5 shrink-0 rounded-full ${lastRun.dotColor}`}
+                            />
+                            <span className="text-[11px] text-muted-foreground/60">
+                                {lastRun.label}
+                            </span>
+                        </span>
+                        {lastRun.output}
+                    </div>
                 ) : null}
                 {actionErrorMessage ? (
                     <p
