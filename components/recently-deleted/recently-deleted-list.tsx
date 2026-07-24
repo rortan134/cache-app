@@ -11,7 +11,11 @@ import {
     DialogTitle,
 } from "@/components/ui/dialog";
 import { MediaPlaceholder } from "@/components/ui/media-placeholder";
-import { purgeLibraryItem, restoreLibraryItem } from "@/lib/collections/items";
+import {
+    purgeAllRecentlyDeletedItems,
+    purgeLibraryItem,
+    restoreLibraryItem,
+} from "@/lib/collections/items";
 import { ACTION_STATUS, ITEM_KIND_NOTE } from "@/lib/common/constants";
 import { cn } from "@/lib/common/cn";
 import { parseDisplayUrl } from "@/lib/common/url";
@@ -53,6 +57,10 @@ export function RecentlyDeletedList({
     const [hiddenItemIds, setHiddenItemIds] = React.useState<Set<string>>(
         () => new Set()
     );
+
+    const [showDeleteAllDialog, setShowDeleteAllDialog] = React.useState(false);
+    const [isDeleteAllPending, startDeleteAllTransition] =
+        React.useTransition();
 
     const visibleItems = items.filter((item) => !hiddenItemIds.has(item.id));
 
@@ -120,6 +128,36 @@ export function RecentlyDeletedList({
         });
     });
 
+    const handleDeleteAll = useStableCallback(() => {
+        startDeleteAllTransition(async () => {
+            setErrorMessage(null);
+            const response = await purgeAllRecentlyDeletedItems();
+            if (response.status === ACTION_STATUS.DELETED) {
+                setHiddenItemIds(new Set(items.map((item) => item.id)));
+                setShowDeleteAllDialog(false);
+                return;
+            }
+            setErrorMessage(
+                "message" in response
+                    ? response.message
+                    : "We couldn't permanently delete your items right now."
+            );
+        });
+    });
+
+    const handleRequestDeleteAll = useStableCallback(() => {
+        setShowDeleteAllDialog(true);
+    });
+
+    const handleDeleteAllDialogOpenChange = useStableCallback(
+        (open: boolean) => {
+            if (!(open || isDeleteAllPending)) {
+                setShowDeleteAllDialog(false);
+                setErrorMessage(null);
+            }
+        }
+    );
+
     if (visibleItems.length === 0) {
         return (
             <div className="flex flex-col items-center gap-6 py-24 text-center">
@@ -147,6 +185,16 @@ export function RecentlyDeletedList({
 
     return (
         <div className="flex flex-col gap-3">
+            <div className="flex items-center justify-end">
+                <Button
+                    onClick={handleRequestDeleteAll}
+                    size="sm"
+                    variant="destructive-outline"
+                >
+                    <Trash aria-hidden className="size-4" focusable="false" />
+                    <T>Delete all now</T>
+                </Button>
+            </div>
             {visibleItems.map((item) => {
                 const meta = itemDaysRemainingById[item.id];
                 return (
@@ -230,6 +278,45 @@ export function RecentlyDeletedList({
                                 </p>
                             ) : null}
                         </>
+                    ) : null}
+                </DialogPopup>
+            </Dialog>
+            <Dialog
+                onOpenChange={handleDeleteAllDialogOpenChange}
+                open={showDeleteAllDialog}
+            >
+                <DialogPopup>
+                    <DialogHeader>
+                        <DialogTitle>
+                            <T>Delete all items forever?</T>
+                        </DialogTitle>
+                        <DialogDescription>
+                            <T>
+                                Permanently delete all {visibleItems.length}{" "}
+                                items from Recently deleted. This cannot be
+                                undone.
+                            </T>
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter>
+                        <DialogClose
+                            disabled={isDeleteAllPending}
+                            render={<Button variant="ghost" />}
+                        >
+                            <T>Cancel</T>
+                        </DialogClose>
+                        <Button
+                            isLoading={isDeleteAllPending}
+                            onClick={handleDeleteAll}
+                            variant="destructive"
+                        >
+                            <T>Delete all</T>
+                        </Button>
+                    </DialogFooter>
+                    {errorMessage && showDeleteAllDialog ? (
+                        <p className="text-destructive text-xs" role="alert">
+                            {errorMessage}
+                        </p>
                     ) : null}
                 </DialogPopup>
             </Dialog>

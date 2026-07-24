@@ -1070,6 +1070,58 @@ export function purgeExpiredLibraryItems({
     });
 }
 
+interface PurgeAllRecentlyDeletedItemsArgs {
+    userId: string;
+}
+
+interface PurgeAllRecentlyDeletedItemsResult {
+    purgedItemIds: string[];
+}
+
+/**
+ * Permanently removes every tombstoned item for a user — the "Delete all now"
+ * path. Unlike `purgeExpiredLibraryItems` this ignores the trash window so
+ * items are removed on demand regardless of how long ago they were deleted.
+ */
+export function purgeAllRecentlyDeletedItems({
+    userId,
+}: PurgeAllRecentlyDeletedItemsArgs): Promise<PurgeAllRecentlyDeletedItemsResult> {
+    return prisma.$transaction(async (tx) => {
+        const itemIds = (
+            await tx.libraryItem.findMany({
+                select: { id: true },
+                where: {
+                    deletedAt: { not: null },
+                    userId,
+                },
+            })
+        ).map((item) => item.id);
+
+        if (itemIds.length === 0) {
+            return { purgedItemIds: [] };
+        }
+
+        await tx.libraryItem.deleteMany({
+            where: {
+                deletedAt: { not: null },
+                id: { in: itemIds },
+                userId,
+            },
+        });
+
+        await tx.libraryActivityEvent.createMany({
+            data: itemIds.map((id) => ({
+                kind: "item_purged" as const,
+                libraryItemId: id,
+                occurredAt: new Date(),
+                userId,
+            })),
+        });
+
+        return { purgedItemIds: itemIds };
+    });
+}
+
 interface ListRecentlyDeletedItemsArgs {
     limit?: number;
     userId: string;

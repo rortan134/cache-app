@@ -348,6 +348,43 @@ export async function purgeLibraryItem(
     }
 }
 
+export type LibraryItemPurgeAllResult =
+    | {
+          purgedItemIds: string[];
+          status: typeof ACTION_STATUS.DELETED;
+      }
+    | ActionError;
+
+export async function purgeAllRecentlyDeletedItems(): Promise<LibraryItemPurgeAllResult> {
+    const auth = await requireActionUserId(
+        "Sign in again to manage saved items."
+    );
+    if (isUnauthenticated(auth)) {
+        return auth;
+    }
+
+    try {
+        const result = await service.purgeAllRecentlyDeletedItems({
+            userId: auth.userId,
+        });
+
+        revalidatePath("/recently-deleted");
+        return {
+            purgedItemIds: result.purgedItemIds,
+            status: ACTION_STATUS.DELETED,
+        };
+    } catch (error) {
+        return handleActionError({
+            codeToStatus: {},
+            error,
+            errorFactory: LibraryCollectionError,
+            fallbackMessage:
+                "We couldn't permanently delete your items right now.",
+            log,
+        });
+    }
+}
+
 export async function purgeExpiredLibraryItems(): Promise<LibraryItemPurgeExpiredResult> {
     const auth = await requireActionUserId(
         "Sign in again to manage saved items."

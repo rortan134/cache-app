@@ -34,7 +34,7 @@ export default function CollectionsPage() {
     return (
         <>
             <ApplicationSidebar />
-            <div className="flex w-full max-w-260 flex-col gap-8 px-6 py-8 sm:px-8 2xl:mx-auto">
+            <div className="flex w-full flex-col gap-8 px-6 py-8 sm:px-8 2xl:mx-auto">
                 <CollectionsPageHeader />
                 <Suspense fallback={<CollectionsGridSkeleton />}>
                     <CollectionsPageBody />

@@ -1,6 +1,6 @@
 import type { AutomationTemplateKey } from "@/prisma/client/enums";
 
-export const AUTOMATION_AGENT_MODEL_DEFAULT = "poolside/laguna-s-2.1-free";
+export const AUTOMATION_AGENT_MODEL_DEFAULT = "openai/gpt-5-nano";
 export const AUTOMATION_DUE_BATCH_LIMIT = 10;
 export const AUTOMATION_INSPECTED_ITEM_COUNT_MAX = 120;
 export const AUTOMATION_ITEM_PAGE_LIMIT_DEFAULT = 20;
