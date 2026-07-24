@@ -7,7 +7,7 @@ import { getUserPlanType } from "@/lib/billing/service";
 import { createLogger } from "@/lib/common/logs/console/logger";
 import { GenAiProtectionError } from "@/lib/intelligence/error";
 import type { ArcjetDecision, ArcjetNextRequest } from "@arcjet/next";
-import arcjet, { shield, tokenBucket } from "@arcjet/next";
+import arcjet, { tokenBucket } from "@arcjet/next";
 
 const log = createLogger("intelligence:protection");
 
@@ -30,9 +30,6 @@ function createPlanClient(plan: PriceType, key: string) {
     return arcjet({
         key,
         rules: [
-            shield({
-                mode: "LIVE",
-            }),
             tokenBucket({
                 capacity: quota.fixedLimit,
                 characteristics: [CHARACTERISTIC_USER_ID],
