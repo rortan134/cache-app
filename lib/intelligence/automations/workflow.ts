@@ -1,8 +1,7 @@
 import { createLogger } from "@/lib/common/logs/console/logger";
-import {
-    AUTOMATION_AGENT_MODEL_DEFAULT,
-    AUTOMATION_INSPECTED_ITEM_COUNT_MAX,
-} from "./constants";
+import { DEFAULT_AGENT_MODEL } from "@/lib/intelligence/models";
+import { google } from "@workflow/ai/google";
+import { AUTOMATION_INSPECTED_ITEM_COUNT_MAX } from "./constants";
 import {
     AutomationPayloadItemsInputSchema,
     AutomationWebFetchInputSchema,
@@ -146,11 +145,12 @@ async function runAutomationAgentForWorkflow(args: {
         import("ai"),
     ]);
     const sources: AutomationRunSource[] = [];
+
     const agent = new DurableAgent({
         instructions: args.instructions,
         maxOutputTokens: AUTOMATION_OUTPUT_TOKEN_LIMIT,
-        model: args.modelId ?? AUTOMATION_AGENT_MODEL_DEFAULT,
-        temperature: 0.2,
+        model: args.modelId ?? google(DEFAULT_AGENT_MODEL),
+        temperature: 0.3,
         tools: {
             getAutomationPayloadSummary: tool({
                 description:

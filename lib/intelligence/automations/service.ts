@@ -2,6 +2,7 @@ import "server-only";
 
 import { userHasActiveSubscription } from "@/lib/billing/service";
 import { createLogger } from "@/lib/common/logs/console/logger";
+import { DEFAULT_AGENT_MODEL } from "@/lib/intelligence/models";
 import { prisma } from "@/prisma";
 import type { Prisma } from "@/prisma/client/client";
 import {
@@ -14,7 +15,6 @@ import {
 import { randomUUID } from "node:crypto";
 import { getRun } from "workflow/api";
 import {
-    AUTOMATION_AGENT_MODEL_DEFAULT,
     AUTOMATION_DUE_BATCH_LIMIT,
     AUTOMATION_LEASE_DURATION_MS,
     AUTOMATION_RUNNING_TIMEOUT_MS,
@@ -766,7 +766,7 @@ export async function markAutomationRunRunning(args: {
     return {
         automationId: run.automationId,
         collectionId: run.collectionIdSnapshot,
-        modelId: AUTOMATION_AGENT_MODEL_DEFAULT,
+        modelId: DEFAULT_AGENT_MODEL,
         payloadScope: run.payloadScopeSnapshot,
         prompt: run.promptSnapshot,
         runId: run.id,

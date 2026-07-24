@@ -24,7 +24,7 @@
         "editor.defaultFormatter": "yzhang.markdown-all-in-one"
     },
     "[typescript]": {
-        "editor.defaultFormatter": "yzhang.markdown-all-in-one"
+        "editor.defaultFormatter": "biomejs.biome"
     },
     "[typescriptreact]": {
         "editor.defaultFormatter": "biomejs.biome"
